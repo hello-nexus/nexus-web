@@ -377,7 +377,6 @@
   "cooling.fan.selectOnly": "Alleen {name} selecteren",
   "cooling.fanRole.generic": "Algemene ventilator",
   "cooling.fanRole.picker": "Apparaat van ventilator instellen",
-  "cooling.immersive.customActive": "Er is een aangepaste ventilatorconfiguratie actief. Beheer deze in de desktop-app.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Curve-editor",
   "cooling.label.curves": "Curves",

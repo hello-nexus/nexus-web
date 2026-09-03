@@ -377,7 +377,6 @@
   "cooling.fan.selectOnly": "Yalnızca {name} seç",
   "cooling.fanRole.generic": "Genel fan",
   "cooling.fanRole.picker": "Fan cihazını belirle",
-  "cooling.immersive.customActive": "Özel bir fan yapılandırması etkin. Masaüstü uygulamasından yönetin.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Eğri düzenleyici",
   "cooling.label.curves": "Eğriler",

@@ -2711,7 +2711,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'StaticDeviceSelect', category: 'panel-kit',
     filePath: 'src/panel/widgets/lighting/effecteditor/StaticDeviceSelect.tsx',
-    description: 'Devices tab of the immersive lighting editor, shown in Static mode only. Static assigns a colour per device, so a pick needs a target; this supplies one. Renders the lighting page\'s own ZoneCards in selectOnly mode (checkbox and card-tap selection, no per-card actions or context menu) over a Select all / Clear selection row. The selection is the immersive editor\'s own: every selectable device starts selected and the lighting page\'s selection is not shared.',
+    description: 'Devices tab of the immersive lighting editor, shown in Static mode only. Static assigns a colour per device, so a pick needs a target; this supplies one. Renders the lighting page\'s own ZoneCards in selectOnly mode (checkbox and card-tap selection, no per-card actions or context menu) over a Select all / Clear selection row. The selection is the page\'s - same localStorage key - so it is shared between the two surfaces.',
     notes: 'No live preview - reads the running install\'s lighting devices, and selecting one repoints the real Static assignment.',
   },
   {

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LightingTouch } from './LightingTouch';
-import { fetchAnimateSettings, fetchLightingDevices, setLightingDeviceColor, startStatic, type LightingDevice } from '../../../api/lighting';
+import { fetchAnimateSettings, setLightingDeviceColor, startStatic } from '../../../api/lighting';
 import { DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY } from './staticPicks';
 import { defaultStateFor } from '../../../types/lighting';
 import type { PanelWidget } from '../types';
@@ -50,9 +50,7 @@ vi.mock('./page/AnimateGrid', () => ({
   },
 }));
 vi.mock('./effecteditor/StaticDeviceSelect', () => ({
-  StaticDeviceSelect: (props: { onSetSelection: (ids: Set<string>) => void }) => (
-    <button type="button" onClick={() => props.onSetSelection(new Set(['dev-b']))}>only-b</button>
-  ),
+  StaticDeviceSelect: () => <div data-testid="device-select" />,
 }));
 
 vi.mock('../../../api/lighting', () => ({
@@ -82,17 +80,6 @@ vi.mock('../../../lib/i18n', () => ({
 
 const widget: PanelWidget = { id: 'w', type: 'lighting', size: '4x4', col: 0, row: 0 };
 
-const device = (id: string, extra: Partial<LightingDevice> = {}): LightingDevice => ({
-  id, name: id, ledsOn: true, ledCount: 10,
-  canvasX: 0, canvasY: 0, canvasW: 1, canvasH: 1, canvasRotation: 0,
-  ...extra,
-});
-const withDevices = (...devices: LightingDevice[]) =>
-  vi.mocked(fetchLightingDevices).mockResolvedValue({ isInit: true, devices });
-// The device list lands after the mode does, so a pick made before it would
-// find nothing selected yet.
-const selectionReady = () => waitFor(() => expect(pickerProps.current?.hasSelection).toBe(true));
-
 describe('LightingTouch static picks', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -102,16 +89,11 @@ describe('LightingTouch static picks', () => {
     pickerProps.current = null;
     vi.mocked(setLightingDeviceColor).mockClear();
     vi.mocked(startStatic).mockClear();
-    withDevices();
   });
 
-  // The immersive has to work from a cold open: every device a pick can land
-  // on starts selected, whatever the lighting page has selected for editing.
-  it('routes a Static pick to every device by default, never the global effect', async () => {
-    withDevices(device('dev-a'), device('dev-b'));
-    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
+  it('routes a Static pick to the selected devices, never the global effect', async () => {
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a', 'dev-b']));
     render(<LightingTouch widget={widget} />);
-    await selectionReady();
 
     fireEvent.click(await screen.findByText('pick-stripes'));
 
@@ -120,32 +102,6 @@ describe('LightingTouch static picks', () => {
       .toEqual(['dev-a', 'dev-b']);
     // A global start would repaint every device that carries its own assignment.
     expect(startStatic).not.toHaveBeenCalled();
-  });
-
-  it('leaves out a device the picker cannot select', async () => {
-    withDevices(device('dev-a', { controlled: false }), device('dev-b'));
-    render(<LightingTouch widget={widget} />);
-    await selectionReady();
-
-    fireEvent.click(await screen.findByText('pick-stripes'));
-
-    await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(setLightingDeviceColor).mock.calls[0][0]).toBe('dev-b');
-  });
-
-  it('honours a selection narrowed in the device picker', async () => {
-    withDevices(device('dev-a'), device('dev-b'));
-    render(<LightingTouch widget={widget} />);
-    await selectionReady();
-
-    // The picker lives on the editor's Devices tab; the effect grid on Effect.
-    fireEvent.click(screen.getByText('lighting.rightPane.devices'));
-    fireEvent.click(await screen.findByText('only-b'));
-    fireEvent.click(screen.getByText('lighting.pane.effect'));
-    fireEvent.click(await screen.findByText('pick-stripes'));
-
-    await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(setLightingDeviceColor).mock.calls[0][0]).toBe('dev-b');
   });
 
   // A pick stores the slot it was made against; devices hold references to
@@ -158,9 +114,8 @@ describe('LightingTouch static picks', () => {
       states: {},
       templates: { stripes: { selected: 2, slots } },
     });
-    withDevices(device('dev-a'));
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
     render(<LightingTouch widget={widget} />);
-    await selectionReady();
 
     fireEvent.click(await screen.findByText('pick-stripes'));
 
@@ -170,9 +125,10 @@ describe('LightingTouch static picks', () => {
   });
 
   it('offers the picker canvas, scoped to the selection', async () => {
-    withDevices(device('dev-a'));
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
     render(<LightingTouch widget={widget} />);
-    await selectionReady();
+    await waitFor(() => expect(pickerProps.current).not.toBeNull());
+    expect(pickerProps.current!.hasSelection).toBe(true);
     expect(typeof pickerProps.current!.onPreview).toBe('function');
     expect(typeof pickerProps.current!.onCommit).toBe('function');
   });
@@ -180,10 +136,9 @@ describe('LightingTouch static picks', () => {
   // A finger drag has to reach the hardware on every move, but the persisted
   // record is written on every change - so only the release may touch it.
   it('writes a dragged colour to the devices without persisting it', async () => {
-    withDevices(device('dev-a'));
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
     localStorage.setItem(DEVICE_PICKS_STORAGE_KEY, JSON.stringify({}));
     render(<LightingTouch widget={widget} />);
-    await selectionReady();
 
     fireEvent.click(await screen.findByText('drag-custom'));
 
@@ -195,9 +150,8 @@ describe('LightingTouch static picks', () => {
   });
 
   it('routes a custom colour to the selected devices', async () => {
-    withDevices(device('dev-a'));
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
     render(<LightingTouch widget={widget} />);
-    await selectionReady();
     const pick = await screen.findByText('pick-custom');
     fireEvent.click(pick);
     await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalled());
@@ -209,9 +163,8 @@ describe('LightingTouch static picks', () => {
   // The browsed effect is not what the devices wear: leaving the grid keyed on
   // it lights a pattern tile alongside the picker tile, so both read selected.
   it('highlights the grid from what the selection wears, not the browsed effect', async () => {
-    withDevices(device('dev-a'));
+    localStorage.setItem(SELECTED_DEVICES_STORAGE_KEY, JSON.stringify(['dev-a']));
     render(<LightingTouch widget={widget} />);
-    await selectionReady();
 
     // A pattern pick: the grid marks the tile the selection now wears.
     fireEvent.click(await screen.findByText('pick-stripes'));

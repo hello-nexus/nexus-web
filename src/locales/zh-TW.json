@@ -377,7 +377,6 @@
   "cooling.fan.selectOnly": "僅選擇 {name}",
   "cooling.fanRole.generic": "通用風扇",
   "cooling.fanRole.picker": "標記風扇裝置",
-  "cooling.immersive.customActive": "目前使用自訂風扇配置。請在桌面應用程式中管理。",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "曲線編輯器",
   "cooling.label.curves": "曲線",

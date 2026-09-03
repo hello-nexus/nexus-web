@@ -377,7 +377,6 @@
   "cooling.fan.selectOnly": "Selezione dome {name}",
   "cooling.fanRole.generic": "Ventiladôr gjeneric",
   "cooling.fanRole.picker": "Segne il dispositîf dal ventiladôr",
-  "cooling.immersive.customActive": "Une configurazion di ventuladôrs personalizade e je ative. Gjestissile de aplicazion desktop.",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Editor des curvis",
   "cooling.label.curves": "Curvis",

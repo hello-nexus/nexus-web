@@ -21,10 +21,9 @@ export type DevicePicks = Record<string, DevicePick>;
 export const DEVICE_PICKS_STORAGE_KEY = 'nexus.lighting.devicePicks';
 
 /**
- * The lighting page's selection. Browser-local: the service owns the assignment
- * but exposes no per-device look, so two profiles (or two machines) keep
- * separate selections and pick records. The immersive editor does not read it -
- * it starts from every device instead (see LightingTouch).
+ * The selection both surfaces share, so a pick made on one targets the other's.
+ * Browser-local: the service owns the assignment but exposes no per-device look,
+ * so two profiles (or two machines) keep separate selections and pick records.
  */
 export const SELECTED_DEVICES_STORAGE_KEY = 'nexus.lighting.selectedDevices';
 

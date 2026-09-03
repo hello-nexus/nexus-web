@@ -7,8 +7,6 @@ import { EffectControls } from './page/EffectControls';
 import { AnimateGrid } from './page/AnimateGrid';
 import { MediaList } from './effecteditor/MediaList';
 import { StaticDeviceSelect } from './effecteditor/StaticDeviceSelect';
-import { zoneCardSelectable } from './page/ZoneCard';
-import { visibleCards } from './page/zoneUtils';
 import type { LedPick } from './page/DeviceLedStrip';
 import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, pickerHexAt, pickerPointFor, snapToSegment } from './page/staticPickerField';
@@ -47,12 +45,12 @@ import {
 } from '../../../types/lighting';
 import { mergeTemplates, slotThumbSignature } from '../../../types/lightingTemplates';
 import { normalizeSync as resolveImmersiveMode } from '../../../hooks/useLightingSync';
-import { usePersistentState } from '../../../hooks/usePersistentState';
+import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import { useTranslation } from '../../../lib/i18n';
 import { isPaletteKey } from '../../../types/lightingPalette';
 import {
   pickCustomForDevices, pickLookForDevices,
-  DEVICE_PICKS_STORAGE_KEY,
+  DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick, type DevicePicks,
 } from './staticPicks';
 import type { WidgetProps } from '../types';
@@ -261,10 +259,10 @@ function renderImmersiveEditor(
 
 interface ImmersiveAnimateController {
   effect: string;
-  /** Static only: the devices a pick lands on. */
+  /** Static only: the devices a pick lands on, shared with the lighting page. */
   devices: LightingDevice[];
   selectedIds: Set<string>;
-  onSetSelection: (ids: Set<string>) => void;
+  onSetSelection: (ids: Set<string>, primary: string | null) => void;
   customColor: string;
   onSelectCustom: (hex: string) => void;
   /** Fires per pointer-move; the controller paces its own writes. */
@@ -295,15 +293,13 @@ interface ImmersiveAnimateController {
 }
 
 /**
- * The lighting devices plus this view's own selection: every device a pick can land
- * on starts selected, so a cold open paints everything. The lighting page's selection
- * is an editing scope (often one device, or none) and is not shared.
+ * The lighting devices plus the selection the lighting page keeps, so a static
+ * pick made here targets exactly what that page shows selected.
  */
 function useImmersiveDevices(enabled: boolean) {
   const [devices, setDevices] = useState<LightingDevice[]>([]);
-  // Held as exclusions so a device that appears later joins the selection while the user's
-  // own deselections stand. In memory only: the next open starts from everything again.
-  const [deselectedIds, setDeselectedIds] = useState<Set<string>>(() => new Set());
+  const [selectedIds, setSelectedIds] = usePersistentIdSet(SELECTED_DEVICES_STORAGE_KEY);
+  const [, setPrimaryId] = usePersistentState<string | null>(PRIMARY_DEVICE_STORAGE_KEY, null);
 
   const refresh = useCallback(async () => {
     const list = await fetchLightingDevices();
@@ -315,18 +311,10 @@ function useImmersiveDevices(enabled: boolean) {
   }, [enabled, refresh]);
   useTopicCallback('lighting', enabled, refresh);
 
-  // What the device picker can select is what a pick targets.
-  const selectableIds = useMemo(
-    () => visibleCards(devices).filter(zoneCardSelectable).map(d => d.id),
-    [devices],
-  );
-  const selectedIds = useMemo(
-    () => new Set(selectableIds.filter(id => !deselectedIds.has(id))),
-    [deselectedIds, selectableIds],
-  );
-  const onSetSelection = useCallback((ids: Set<string>) => {
-    setDeselectedIds(new Set(selectableIds.filter(id => !ids.has(id))));
-  }, [selectableIds]);
+  const onSetSelection = useCallback((ids: Set<string>, primary: string | null) => {
+    setSelectedIds(ids);
+    setPrimaryId(primary);
+  }, [setPrimaryId, setSelectedIds]);
 
   return { devices, selectedIds, onSetSelection };
 }

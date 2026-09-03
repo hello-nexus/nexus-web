@@ -16,16 +16,16 @@ import styles from './StaticDeviceSelect.module.scss';
  * per device, so a pick needs a target; this is the tab that supplies one.
  *
  * Cards are the lighting page's own ZoneCards in `selectOnly` mode, grouped by
- * the page's own blocks and MotherboardGroup headers. The selection is the
- * immersive editor's own (everything selectable, until narrowed here), not the
- * desktop page's editing scope. Group headers collapse only; power and Nexus
- * Control belong to the page, not to a picker.
+ * the page's own blocks and MotherboardGroup headers, and the selection Set is
+ * the page's - so a selection made here is the one the desktop page shows and
+ * vice versa. Group headers collapse only; power and Nexus Control belong to
+ * the page, not to a picker.
  */
 export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPickFor }: {
   devices: LightingDevice[];
   selectedIds: Set<string>;
-  /** Receives the whole next selection. */
-  onSetSelection: (ids: Set<string>) => void;
+  /** Receives the whole next selection, matching DevicePanel's onSetSelection. */
+  onSetSelection: (ids: Set<string>, primary: string | null) => void;
   /** This device's own assignment, so each card reads what IT wears. */
   ledPickFor?: (id: string) => LedPick | undefined;
 }) {
@@ -51,7 +51,12 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    onSetSelection(next);
+    // Primary follows the last remaining card in device order, matching
+    // DevicePanel - Set-insertion order would pick a different one.
+    const primary = next.has(id)
+      ? id
+      : (selectableIds.filter(x => next.has(x)).pop() ?? null);
+    onSetSelection(next, primary);
   };
 
   const card = (d: LightingDevice, indent: boolean, displayName?: string) => (
@@ -77,7 +82,7 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
           size="sm"
           icon={<CheckCheck />}
           disabled={selectableIds.every(id => selectedIds.has(id))}
-          onClick={() => onSetSelection(new Set(selectableIds))}
+          onClick={() => onSetSelection(new Set(selectableIds), selectableIds[0] ?? null)}
         >
           {t('lighting.ledMap.selectAll')}
         </Button>
@@ -86,7 +91,7 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
           size="sm"
           icon={<Ban />}
           disabled={selectedIds.size === 0}
-          onClick={() => onSetSelection(new Set())}
+          onClick={() => onSetSelection(new Set(), null)}
         >
           {t('lighting.ledMap.selectNone')}
         </Button>
