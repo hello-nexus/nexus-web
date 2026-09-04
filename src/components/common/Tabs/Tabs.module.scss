@@ -1,6 +1,6 @@
 // Sidebar-item model: flat at rest, each tab rounds independently (no bar-end
-// rounding). The selected tab gets a raised fill, brighter text, and an
-// accent-tinted icon - the same ON state the icon-only mode buttons wear.
+// rounding). The selected tab gets the --bg fill, brighter text, and an
+// accent-tinted icon - matching the sidebar nav rows.
 .tabs {
   display: inline-flex;
   gap: 2px;
@@ -19,10 +19,10 @@
   font-weight: var(--weight-body);
   line-height: 1.5;
   // Flat at rest - unselected tabs have no fill (just text + icon). The
-  // selected tab carries the raised pill (see .active).
+  // selected tab carries the --bg pill (see .active).
   background: transparent;
   color: var(--text-dim);
-  // Borderless; the active tab is marked by its fill + accent icon, not a
+  // Borderless; the active tab is marked by its --bg fill + accent icon, not a
   // stroke. Width reserved (transparent) so nothing reflows.
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
@@ -40,9 +40,9 @@
 }
 
 .active {
-  // Theme- and surface-dependent, since no single fill clears every canvas:
-  // see --tab-active-bg in styles/variables.scss and panel/styles/tokens.scss.
-  background: var(--tab-active-bg);
+  // --bg everywhere except the immersive lighting/cooling editors, whose
+  // shell overrides --tab-active-bg (EffectEditor.module.scss).
+  background: var(--tab-active-bg, var(--bg));
   color: var(--text);
 
   .tabIcon { color: var(--accent-glow); }
