@@ -8,6 +8,7 @@ import { OpenInAppBanner } from '../components/common/OpenInAppBanner/OpenInAppB
 import { SettingsView } from '../components/views/SettingsView/SettingsView';
 import { ProfilesView } from '../components/views/SettingsView/ProfilesView';
 import { AccountView } from '../components/views/SettingsView/Account/AccountView';
+import { AccountSignInModal } from '../components/views/SettingsView/Account/AccountSignInModal';
 import { ToolsView } from '../components/views/ToolsView';
 import { DevicePage } from '../components/views/DevicePage/DevicePage';
 // Widget Pages are code-split: the dashboard only loads the immersive view
@@ -470,11 +471,21 @@ export function Dashboard() {
     navigate('system', 'profiles');
   }, [navigate]);
 
-  // The profile dropdown's "Manage account" lands on the standalone Account
-  // page, not Settings.
+  // The profile dropdown's account entry lands on the standalone Account page, not Settings.
+  const [accountSignInOpen, setAccountSignInOpen] = useState(false);
   const handleNavigateAccount = useCallback(() => {
+    if (cloudAccounts.activeAccount == null) {
+      setAccountSignInOpen(true);
+      return;
+    }
     navigate('system', 'account');
-  }, [navigate]);
+  }, [cloudAccounts.activeAccount, navigate]);
+  // Refresh before navigating, or the Account page mounts signed-out for one round trip.
+  const handleAccountSignedIn = useCallback(async () => {
+    setAccountSignInOpen(false);
+    await cloudAccounts.refresh();
+    navigate('system', 'account');
+  }, [cloudAccounts, navigate]);
 
   // The "..." overflow menu's "Dev tools" entry opens the standalone developer
   // diagnostics page.
@@ -1070,6 +1081,14 @@ export function Dashboard() {
           onRemoteEnabledChange={setRemoteControlEnabled}
           onClose={() => setPairPhoneOpen(false)}
         />
+        {DEV_TOOLS && OFFICIAL_BUILD && (
+          <AccountSignInModal
+            open={accountSignInOpen}
+            onClose={() => setAccountSignInOpen(false)}
+            onSignedIn={() => { void handleAccountSignedIn(); }}
+            ariaLabel={t('account.signIn.title')}
+          />
+        )}
         {OFFICIAL_BUILD && <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />}
         <DeckEditAutoOpener online={online} onOpen={handleOpenDeckEditor} />
         <UpdateModalWithDismiss

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ServiceRequired } from '../../ServiceRequired';
 import { GenericSkeleton } from '../../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../../hooks/useServiceStatus';
@@ -48,6 +48,18 @@ export function AccountView({ serviceOnline, connectionState, accounts, tab, onT
   const handleRecoveryFreshConsumed = useCallback(() => {
     setRecoveryFresh(false);
   }, []);
+
+  // A recovery approved outside this view (the sign-in dialog) still opened
+  // the service's recovery-fresh window; read it back whenever an account lands.
+  useEffect(() => {
+    if (accounts.activeAccountId == null) return;
+    let cancelled = false;
+    void (async () => {
+      const status = await localServiceBackend.recoveryStatus();
+      if (!cancelled && status?.recoveryFresh) setRecoveryFresh(true);
+    })();
+    return () => { cancelled = true; };
+  }, [accounts.activeAccountId]);
 
   // localServiceBackend.login()/register() are thin /cloud/* proxies with no
   // side effect beyond the wire call - refreshing the shared accounts hook

@@ -15,7 +15,7 @@ import {
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import { RemoveAppButton } from './RemoveAppButton';
-import { StoreSignInModal } from './StoreSignInModal';
+import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import styles from './StorePage.module.scss';
 
 type InstallState = 'idle' | 'working' | 'failed';
@@ -377,10 +377,12 @@ export function StorePage({ tab, onTabChange, accounts }: {
           )}
         </div>
       )}
-      <StoreSignInModal
+      <AccountSignInModal
         open={pendingInstall !== null}
         onClose={() => setPendingInstall(null)}
         onSignedIn={handleSignedIn}
+        ariaLabel={t('store.signIn.title')}
+        body={t('store.signIn.body')}
       />
     </div>
   );

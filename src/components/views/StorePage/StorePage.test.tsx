@@ -25,8 +25,8 @@ vi.mock('../../../api/store', () => ({
 
 const installed: Array<{ id: string; version: string; iconUrl: string | null }> = [];
 
-vi.mock('./StoreSignInModal', () => ({
-  StoreSignInModal: ({ open, onSignedIn }: { open: boolean; onSignedIn: () => void }) =>
+vi.mock('../SettingsView/Account/AccountSignInModal', () => ({
+  AccountSignInModal: ({ open, onSignedIn }: { open: boolean; onSignedIn: () => void }) =>
     (open ? <button type="button" onClick={onSignedIn}>signed-in</button> : null),
 }));
 

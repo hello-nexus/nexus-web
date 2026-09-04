@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { BadgeCheck, Camera, ExternalLink } from 'lucide-react';
 import { Badge } from '../../../common/Badge/Badge';
 import { Button } from '../../../common/Button/Button';
+import { ConfirmModal } from '../../../common/ConfirmModal/ConfirmModal';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { MediaCropper, type NormalizedCrop } from '../../../common/MediaCropper/MediaCropper';
 import { normalizeRotate } from '../../../common/MediaCropper/mediaCrop';
@@ -206,8 +207,18 @@ export function AccountAuthenticationSection({
   };
 
   // ── Session ─────────────────────────────────────────────────────────────
-  const handleLogout = () => {
-    void backend.logout().then(onLoggedOut);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await backend.logout();
+    } finally {
+      setLoggingOut(false);
+      setLogoutConfirmOpen(false);
+    }
+    onLoggedOut();
   };
 
   // Defensive reset if `account.accountId` ever changes while this component
@@ -322,10 +333,21 @@ export function AccountAuthenticationSection({
       />
 
       <SettingRow label={t('account.logOut.label')} description={t('account.logOut.description')} stackOnNarrow>
-        <Button type="button" tone="neutral" size="sm" onClick={handleLogout}>
+        <Button type="button" tone="neutral" size="sm" onClick={() => setLogoutConfirmOpen(true)}>
           {t('account.logOut.label')}
         </Button>
       </SettingRow>
+
+      <ConfirmModal
+        open={logoutConfirmOpen}
+        title={t('account.logOut.confirmTitle')}
+        message={t('account.logOut.confirmMessage')}
+        confirmLabel={t('account.logOut.label')}
+        destructive={false}
+        confirmDisabled={loggingOut}
+        onConfirm={() => void handleLogout()}
+        onCancel={() => setLogoutConfirmOpen(false)}
+      />
 
       <ChangePasswordModal
         open={passwordModalOpen}
