@@ -129,7 +129,7 @@ describe('AiIntegrationSection', () => {
     render(<AiIntegrationSection serviceOnline />);
 
     const guideLink = await screen.findByRole('link', { name: 'settings.ai.guideLink' });
-    expect(guideLink).toHaveAttribute('href', 'https://hellonexus.com/docs/guides/monitoring/ai-integration');
+    expect(guideLink).toHaveAttribute('href', 'https://hellonexus.com/docs/guides/ai/ai-integration');
     expect(guideLink).toHaveAttribute('target', '_blank');
     expect(guideLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
