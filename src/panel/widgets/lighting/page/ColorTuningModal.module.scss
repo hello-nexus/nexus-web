@@ -1,0 +1,150 @@
+@use '../../../../styles/text' as *;
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.sectionTitle {
+  @include text-label;
+  color: var(--text-dim);
+}
+
+.sectionActions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.chipLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+// Marks a chip whose device already carries a trim. Sized to read as a state
+// dot rather than a bullet, and it never affects the chip's own accent.
+.tunedDot {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+// The shift ribbon: one strip of corner-split cells, upper-left half the
+// colour the effect produced and lower-right half what the device is sent.
+// Butted together with a single outline so it reads as one instrument, not a
+// grid of swatches.
+.ribbon {
+  display: flex;
+  height: 3rem;
+  overflow: hidden;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.ribbonCell {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.ribbonLegend {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.control {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+// Sits over the slider's own head row so the badge reads as part of the
+// label line without the Slider needing to know about mixed values.
+.controlHead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 4.5rem;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.mixed {
+  padding: 0 0.35rem;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+// A control the scoped devices disagree on: the thumb is showing an average
+// nobody is actually set to, so the track is muted until the user commits one.
+.sliderMixed {
+  opacity: var(--alpha-strong);
+}
+
+// The channel sliders carry their channel's colour on the fill, so the three
+// rows are distinguishable without reading their labels. The track gradient
+// reads --accent-glow (falling back to --accent), so overriding both on the
+// row is the whole change - no extra selector into the Slider primitive.
+.red {
+  --accent: #e05252;
+  --accent-glow: #e05252;
+  --slider-fill-dim: #7a3535;
+}
+
+.green {
+  --accent: #3fae5a;
+  --accent-glow: #3fae5a;
+  --slider-fill-dim: #2a6338;
+}
+
+.blue {
+  --accent: #4a83e0;
+  --accent-glow: #4a83e0;
+  --slider-fill-dim: #2f4d7a;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

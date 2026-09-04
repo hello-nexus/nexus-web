@@ -76,6 +76,7 @@ import { zoneCardSelectable, zoneCardUnavailable } from './page/ZoneCard';
 import { Button } from '../../../components/common/Button/Button';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
+import { ColorTuningModal } from './page/ColorTuningModal';
 import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
@@ -1234,6 +1235,24 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [orderedDevices],
   );
 
+  // Colour tuning. The modal owns its own device scope, but it opens on what
+  // the user right-clicked: the whole selection when the clicked card is part
+  // of one, that card alone otherwise - the same rule the menu's own labels
+  // announce. Null while closed; the modal is mounted only while open so it
+  // re-reads the stored trims each time.
+  const tunableDevices = useMemo(
+    () => orderedDevices.filter(zoneCardSelectable),
+    [orderedDevices],
+  );
+  const [colorTuningIds, setColorTuningIds] = useState<string[] | null>(null);
+  const handleOpenColorTuning = useCallback((cardId: string) => {
+    setColorTuningIds(
+      selectedDeviceIds.size > 1 && selectedDeviceIds.has(cardId)
+        ? [...selectedDeviceIds]
+        : [cardId],
+    );
+  }, [selectedDeviceIds]);
+
 
   // Off shuts the OpenRGB subprocess down, so the rail can be short for a
   // reason the list itself cannot show. The tail card says so while off, then
@@ -1971,6 +1990,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onSetControlled={handleSetControlled}
             lightingOff={effectiveMode === 'none'}
             onOpenSettings={handleOpenSettings}
+            onOpenColorTuning={handleOpenColorTuning}
             onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
             communityCounts={mappingCounts}
             onOpenCommunity={handleOpenCommunity}
@@ -2178,6 +2198,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onClose={() => setEditorTarget(null)}
           onCompositionChanged={hubId => { void handleCompositionChanged(hubId); }}
           onNavigateToDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
+        />
+      )}
+      {colorTuningIds && (
+        <ColorTuningModal
+          devices={tunableDevices}
+          initialIds={colorTuningIds}
+          onClose={() => setColorTuningIds(null)}
         />
       )}
       {presetAppsTarget && (

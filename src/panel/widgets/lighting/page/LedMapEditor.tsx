@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
-  Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square, Sun, SunDim,
+  Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square,
   Pencil, Merge, Scissors, ListRestart, Lock, Users, Palette, Droplet, Lightbulb, CircleDot,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
   highlightLeds, testLedPattern, clearLedEditor, postLedPreviewLayout,
-  setZoneLedCount, setLightingDeviceBrightness, setLightingDeviceColor, setHubComposition,
+  setZoneLedCount, setLightingDeviceColor, setHubComposition,
   type ApiEnvelope, type DeviceStructureResponse, type DeviceZone, type LightingDevice,
   type HubCompositionPatch,
 } from '../../../../api/lighting';
@@ -18,10 +18,8 @@ import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceMod
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
-import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { useThrottle } from '../../../../hooks/cadence';
-import { useGlobalBrightness } from './useGlobalBrightness';
 import { isApplePlatform, isMultiSelectModifier } from '../../../../lib/platform';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
 import {
@@ -107,7 +105,7 @@ interface Props {
   deviceId: string;
   /** Zone preselected on open; the card whose settings button launched the editor. */
   initialZoneId: string;
-  /** Live card list, used to resolve the selected zone's card (brightness, deviceKey, resizability). */
+  /** Live card list, used to resolve the selected zone's card (deviceKey, resizability, smart-light colour). */
   devices: LightingDevice[];
   /** False hides every zone-management affordance (single-zone smart lights etc.). */
   zoneCustomizable: boolean;
@@ -183,8 +181,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const marqueeAdditiveRef = useRef(false);
   const preMarqueeSelectionRef = useRef<Set<number>>(new Set());
 
-  // The selected zone's card. Zone ids are card ids, so brightness, LED
-  // count resizability, and the community deviceKey all resolve through it.
+  // The selected zone's card. Zone ids are card ids, so LED count
+  // resizability, the smart-light colour, and the community deviceKey all
+  // resolve through it.
   const zoneCard = devices.find(d => d.id === selectedZoneId);
 
   // Community layouts modal, stacked on top of the editor modal. Community
@@ -557,14 +556,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
   }, [editorMode, selected.size, selectedZoneId]);
 
-  // ── Per-zone brightness ───────────────────────────────────────────────
+  // ── Per-zone color ────────────────────────────────────────────────────
 
-  // Per-zone brightness (0..100). Capped by the global brightness slider, so
-  // the effective output is `min(global, zone / 100)` - never brighter.
-  const [brightness, setBrightness] = useState<number>(() => zoneCard?.brightness ?? 100);
-  // Master brightness (0..100), read-only. Below 100 it dims this zone's
-  // output, so the slider surfaces the effective level (pointer + info).
-  const globalBrightness = useGlobalBrightness();
   // Per-zone color, shown only for smart lights. Local state is degrees /
   // percent for the sliders; the service wants 0..1 floats. The card carries
   // hue/saturation as 0..1.
@@ -579,25 +572,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   devicesRef.current = devices;
   useEffect(() => {
     const card = devicesRef.current.find(d => d.id === selectedZoneId);
-    setBrightness(card?.brightness ?? 100);
     setHueDeg((card?.hue ?? 0) * 360);
     setSatPct((card?.saturation ?? 1) * 100);
   }, [selectedZoneId]);
-  const brightnessThrottle = useThrottle();
-  const sendBrightness = useCallback((value: number) => {
-    // Staged temp zones have no card to store brightness on; the slider is
-    // disabled for them, this guard covers throttled trailing sends.
-    if (isStagedZoneId(selectedZoneIdRef.current)) return;
-    setLightingDeviceBrightness(selectedZoneIdRef.current, value).catch(() => { /* best-effort */ });
-  }, []);
-  const handleBrightnessChange = useCallback((value: number) => {
-    setBrightness(value);
-    brightnessThrottle(() => sendBrightness(value));
-  }, [brightnessThrottle, sendBrightness]);
-  const handleBrightnessCommit = useCallback((value: number) => {
-    sendBrightness(value);
-  }, [sendBrightness]);
-
   const colorThrottle = useThrottle();
   const sendColor = useCallback(() => {
     if (isStagedZoneId(selectedZoneIdRef.current)) return;
@@ -2023,12 +2000,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     ? stagedPartition.kind === 'edited'
     : structure !== null && !structure.isDefaultPartition;
 
-  // Master brightness caps output: a zone set above it can't render brighter.
-  // Show the cap indicator only when this zone is set past the cap (which
-  // implies master < 100) and once the master value has loaded.
-  const master = globalBrightness ?? 100;
-  const showCap = globalBrightness != null && brightness > master;
-
   return (
     <DeviceModal
       open
@@ -2264,8 +2235,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           </div>
 
           {/* Preview + selection tooling above the canvas, as two compact
-              grouped sections: test pattern toggles + per-zone brightness on
-              the left, select all / clear selection on the right. */}
+              grouped sections: test pattern toggles (plus a smart light's own
+              colour) on the left, select all / clear selection on the right.
+              Brightness and the colour trims live in the Color tuning modal,
+              which can act on several devices at once. */}
           <div className={styles.controlsRow}>
             <div className={styles.controlGroup}>
               <div className={styles.modeBtns}>
@@ -2280,36 +2253,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                     {m.label}
                   </button>
                 ))}
-              </div>
-              <div className={styles.separator} />
-              <div className={styles.brightnessField}>
-                {brightness === 0
-                  ? <SunDim size={14} strokeWidth={1.7} className={styles.brightnessIcon} aria-hidden />
-                  : <Sun size={14} strokeWidth={1.7} className={styles.brightnessIcon} aria-hidden />}
-                <Slider
-                  value={brightness}
-                  min={0}
-                  max={100}
-                  step={1}
-                  // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                  orientation="bare"
-                  onChange={handleBrightnessChange}
-                  onCommit={handleBrightnessCommit}
-                  trackFill
-                  fillCap={zoneCard && showCap ? master : undefined}
-                  marker={zoneCard && showCap ? master : undefined}
-                  markerLabel={zoneCard && showCap ? (
-                    <InfoTooltip
-                      message={t('lighting.ledMap.effectiveBrightnessInfo', { master })}
-                      side="bottom"
-                      className={styles.markerInfo}
-                    />
-                  ) : undefined}
-                  disabled={!zoneCard}
-                  ariaLabel={t('lighting.devices.brightness')}
-                  className={styles.brightnessTrack}
-                />
-                <span className={styles.brightnessValue}>{brightness}%</span>
               </div>
               {isSmartLightId(selectedZoneId) && (
                 <>

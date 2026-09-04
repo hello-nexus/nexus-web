@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical, MousePointerClick } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical, MousePointerClick, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -72,6 +72,7 @@ export function ZoneCard({
   onTogglePower,
   onToggleControlled,
   onOpenSettings,
+  onOpenColorTuning,
   drag,
   communityCount,
   onOpenCommunity,
@@ -104,6 +105,9 @@ export function ZoneCard({
   onTogglePower?: () => void;
   onToggleControlled?: () => void;
   onOpenSettings?: () => void;
+  /** Opens the colour-tuning modal. Unlike the LED map it is meaningful for a
+   *  whole selection, so the row stays on the menu in bulk mode. */
+  onOpenColorTuning?: () => void;
   /** Optional dnd-kit drag wiring for reorderable lists. */
   drag?: SortableRowArgs;
   /** Available community layout count; the badge renders only when positive. */
@@ -226,6 +230,17 @@ export function ZoneCard({
       items.push({
         key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
         onSelect: () => onOpenSettings?.(),
+      });
+    }
+    // Colour tuning is per device but reads the same for a whole selection -
+    // trimming eight strips to match each other is the point - so unlike the
+    // LED map it keeps its row in bulk mode.
+    if (onOpenColorTuning) {
+      items.push({
+        key: 'colorTuning',
+        icon: <SlidersHorizontal size={14} />,
+        label: bulkMenuLabel(t, language, bulk, 'lighting.colorTuning.menu', 'lighting.colorTuning.menuCount'),
+        onSelect: onOpenColorTuning,
       });
     }
     if (!unavailable) {

@@ -22,7 +22,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false }: {
+export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
@@ -49,6 +49,9 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
   /** Whether the lighting mode is 'none' (off). Swaps the empty message. */
   lightingOff: boolean;
   onOpenSettings: (id: string) => void;
+  /** Opens the colour-tuning modal scoped to this card (or, when it is part of
+   *  a multi-selection, to the whole selection). */
+  onOpenColorTuning?: (id: string) => void;
   /** Called after a drag reorder with the new flat device-id ordering. */
   onDeviceReorder?: (newDeviceOrder: string[]) => void;
   /** Device id -> available community layout count, for the card badge. */
@@ -159,6 +162,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
       onTogglePower={() => onTogglePower(d.id)}
       onToggleControlled={() => onToggleControlled(d.id)}
       onOpenSettings={() => onOpenSettings(d.id)}
+      onOpenColorTuning={onOpenColorTuning ? () => onOpenColorTuning(d.id) : undefined}
       drag={drag}
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
