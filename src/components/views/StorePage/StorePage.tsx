@@ -14,7 +14,6 @@ import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
-import { RemoveAppButton } from './RemoveAppButton';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import styles from './StorePage.module.scss';
 
@@ -254,7 +253,6 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
           <ChevronLeft size={16} aria-hidden={true} />
           {t('store.back')}
         </button>
-        {installed && <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} iconOnly />}
       </div>
 
       <header className={styles.hero}>

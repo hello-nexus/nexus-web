@@ -139,20 +139,13 @@ describe('StorePage app page', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'signed-in' })).toBeInTheDocument());
   });
 
-  it('offers no Delete for an app that is not installed', async () => {
-    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
-
-    await screen.findByRole('button', { name: 'store.install' });
-    expect(screen.queryByRole('button', { name: 'store.delete' })).not.toBeInTheDocument();
-  });
-
-  it('names the installed version, and puts Delete on the page once installed', async () => {
+  it('names the installed version, and never offers Delete here (that lives under Manage purchases)', async () => {
     installed.push({ id: app.id, version: '1.0.1', iconUrl: null });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
     expect(await screen.findByText('store.installedVersion version=1.0.1')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'store.update' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'store.delete' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.delete' })).not.toBeInTheDocument();
   });
 });
 

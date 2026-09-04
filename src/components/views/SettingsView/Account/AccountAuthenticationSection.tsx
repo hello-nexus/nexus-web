@@ -26,6 +26,10 @@ interface AccountAuthenticationSectionProps {
   onAccountChanged: () => void;
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
+  /** Opens the change-password modal unprompted; defaults to recoveryFresh so a fresh recovery lands on it once. */
+  promptPasswordChange?: boolean;
+  /** The prompted modal was closed without a change; the caller drops promptPasswordChange so a remount does not reopen it. */
+  onPasswordPromptClosed?: () => void;
   onLoggedOut: () => void;
 }
 
@@ -105,7 +109,7 @@ function useRetryCountdown(retryAt: string | null): { hours: number; minutes: nu
 // shared by the in-app Account page and the public /account and /recover
 // pages (the public surface renders this block alone, no profile sync).
 export function AccountAuthenticationSection({
-  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, onLoggedOut,
+  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, promptPasswordChange = recoveryFresh, onPasswordPromptClosed, onLoggedOut,
 }: AccountAuthenticationSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
@@ -193,8 +197,8 @@ export function AccountAuthenticationSection({
   // change-password modal directly, passwordless, instead of the user
   // having to find and click the button themselves.
   useEffect(() => {
-    if (recoveryFresh) setPasswordModalOpen(true);
-  }, [recoveryFresh]);
+    if (promptPasswordChange) setPasswordModalOpen(true);
+  }, [promptPasswordChange]);
 
   // ── Privacy ─────────────────────────────────────────────────────────────
   const [privacySaving, setPrivacySaving] = useState(false);
@@ -351,7 +355,7 @@ export function AccountAuthenticationSection({
 
       <ChangePasswordModal
         open={passwordModalOpen}
-        onClose={() => setPasswordModalOpen(false)}
+        onClose={() => { setPasswordModalOpen(false); onPasswordPromptClosed?.(); }}
         recoveryFresh={recoveryFresh}
         onRecoveryFreshConsumed={onRecoveryFreshConsumed}
         changePassword={backend.changePassword}

@@ -412,7 +412,7 @@ export function Dashboard() {
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
   // No accounts without a credential, so the sync poll below stays off too.
-  const cloudAccounts = useCloudAccounts(online && OFFICIAL_BUILD);
+  const cloudAccounts = useCloudAccounts(online && OFFICIAL_BUILD, multiplex);
   // Sync conflicts only exist while a cloud account is signed in; without this
   // gate the 25s poll in useSyncStatus would run forever on every install,
   // signed in or not. useCloudAccounts itself only fetches once per online
