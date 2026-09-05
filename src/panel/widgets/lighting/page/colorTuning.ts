@@ -9,10 +9,6 @@ const TEMPERATURE_SPAN = 0.35;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-export function isNeutralAdjust(a: LightingColorAdjust): boolean {
-  return a.red === 1 && a.green === 1 && a.blue === 1 && a.temperature === 0 && a.saturation === 1;
-}
-
 /**
  * CPU mirror of `DeviceColorAdjust.Apply` in nexus-service: saturation around
  * Rec.709 luma first, then the per-channel gains with the warm/cool shift

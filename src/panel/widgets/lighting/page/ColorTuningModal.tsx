@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { Button } from '../../../../components/common/Button/Button';
-import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { InfoTooltip } from '../../../../components/common/InfoTooltip/InfoTooltip';
 import { useThrottle } from '../../../../hooks/cadence';
@@ -15,20 +14,16 @@ import {
   type LightingDevice,
 } from '../../../../api/lighting';
 import { useGlobalBrightness } from './useGlobalBrightness';
-import {
-  RIBBON_SAMPLES,
-  applyColorAdjust,
-  isNeutralAdjust,
-  toCss,
-} from './colorTuning';
+import { RIBBON_SAMPLES, applyColorAdjust, toCss } from './colorTuning';
 import styles from './ColorTuningModal.module.scss';
 
 interface ColorTuningModalProps {
-  /** Every tunable card, in rail order - the modal's own device list. */
+  /** Every tunable card, used to resolve the scoped ids to names + brightness. */
   devices: LightingDevice[];
-  /** Cards the tuning starts scoped to: the card the menu was opened on, or
-   *  the whole selection when it was opened from a multi-card menu. */
-  initialIds: string[];
+  /** Cards this tuning applies to: the card the menu was opened on, or the
+   *  whole selection when it was opened from a multi-card menu. Fixed for the
+   *  life of the modal - the scope is chosen on the device rail, not in here. */
+  deviceIds: string[];
   onClose: () => void;
 }
 
@@ -56,19 +51,14 @@ function spread(values: number[]): Spread {
  * controls trim each device until they agree. Nothing here changes the canvas
  * preview, exactly as per-device brightness never did.
  *
- * Multi-device by design: the scope chips at the top drive one write for the
- * whole set, and any control the scoped devices disagree on says so rather
- * than silently showing one device's value for all of them.
+ * Multi-device by design: one write covers the whole scope, and any control
+ * the scoped devices disagree on says so rather than silently showing one
+ * device's value for all of them.
  */
-export function ColorTuningModal({ devices, initialIds, onClose }: ColorTuningModalProps) {
+export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningModalProps) {
   const { t } = useTranslation();
   const globalBrightness = useGlobalBrightness();
 
-  const [scoped, setScoped] = useState<Set<string>>(() => {
-    const known = new Set(devices.map(d => d.id));
-    const seed = initialIds.filter(id => known.has(id));
-    return new Set(seed.length > 0 ? seed : devices.slice(0, 1).map(d => d.id));
-  });
   // Service-owned trims, seeded once and then kept in step with our own
   // writes. Sparse on the wire: an id absent from the response is neutral.
   const [adjusts, setAdjusts] = useState<Record<string, LightingColorAdjust>>({});
@@ -94,10 +84,14 @@ export function ColorTuningModal({ devices, initialIds, onClose }: ColorTuningMo
     return devices.find(d => d.id === id)?.brightness ?? 100;
   }, [brightness, devices]);
 
-  const scopedIds = useMemo(
-    () => devices.filter(d => scoped.has(d.id)).map(d => d.id),
-    [devices, scoped],
+  // Scope is fixed at open. Resolved against the live card list so an id that
+  // disappeared (hub recomposed, device unplugged) drops out instead of being
+  // written to.
+  const scopedCards = useMemo(
+    () => deviceIds.map(id => devices.find(d => d.id === id)).filter((d): d is LightingDevice => d != null),
+    [devices, deviceIds],
   );
+  const scopedIds = useMemo(() => scopedCards.map(d => d.id), [scopedCards]);
 
   // Current slider positions, plus whether the scoped devices agree on each.
   const red = spread(scopedIds.map(id => adjustOf(id).red));
@@ -180,71 +174,34 @@ export function ColorTuningModal({ devices, initialIds, onClose }: ColorTuningMo
       <div className={styles.body}>
         <p className={styles.hint}>{t('lighting.colorTuning.hint')}</p>
 
+        {/* Read-only: the scope is whatever the device rail had selected when
+            the menu was opened, so this states what is about to change rather
+            than offering another place to change it. */}
         <section className={styles.section}>
-          <div className={styles.sectionHead}>
-            <span className={styles.sectionTitle}>{t('lighting.colorTuning.scope')}</span>
-            <div className={styles.sectionActions}>
-              <Button
-                tone="ghost"
-                size="sm"
-                disabled={scoped.size === devices.length}
-                onClick={() => setScoped(new Set(devices.map(d => d.id)))}
-              >
-                {t('lighting.ledMap.selectAll')}
-              </Button>
-            </div>
-          </div>
-          <ChipGroup
-            wrap
-            multiSelect
-            ariaLabel={t('lighting.colorTuning.scope')}
-            activeKeys={scoped}
-            onToggleKey={id => setScoped(prev => {
-              const next = new Set(prev);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            })}
-            options={devices.map(d => ({
-              key: d.id,
-              label: (
-                <span className={styles.chipLabel}>
-                  {d.name}
-                  {/* A dot marks a device that already carries a trim, so an
-                      untouched set is distinguishable at a glance from one
-                      where only some devices were tuned. */}
-                  {!isNeutralAdjust(adjustOf(d.id)) && (
-                    <span className={styles.tunedDot} aria-hidden />
-                  )}
-                </span>
-              ),
-              ariaLabel: isNeutralAdjust(adjustOf(d.id))
-                ? d.name
-                : t('lighting.colorTuning.deviceTuned', { name: d.name }),
-            }))}
-          />
-          {empty && <p className={styles.empty} role="status">{t('lighting.colorTuning.noScope')}</p>}
+          <span className={styles.sectionTitle}>{t('lighting.colorTuning.scope')}</span>
+          <p className={styles.deviceList}>
+            {scopedCards.map(d => d.name).join(', ')}
+          </p>
         </section>
 
-        {/* The shift, shown on one ribbon: each cell is split corner to corner,
-            the upper-left half the colour the effect produced and the lower-
-            right half what this device will actually be sent. */}
+        {/* The shift, as two stacked bands over the same reference colours:
+            the top row is what the effect produced, the row under it what this
+            device will actually be sent. Column-aligned so each pair reads as
+            one before/after comparison. */}
         <section className={styles.section}>
-          <div className={styles.ribbon} aria-hidden>
-            {ribbon.map((cell, i) => (
-              <span
-                key={i}
-                className={styles.ribbonCell}
-                style={{
-                  backgroundImage:
-                    `linear-gradient(to bottom right, ${cell.source} 0 49.5%, ${cell.tuned} 50.5% 100%)`,
-                }}
-              />
-            ))}
-          </div>
-          <div className={styles.ribbonLegend}>
-            <span>{t('lighting.colorTuning.legendSource')}</span>
-            <span>{t('lighting.colorTuning.legendTuned')}</span>
+          <div className={styles.ribbon}>
+            <span className={styles.ribbonLabel}>{t('lighting.colorTuning.legendSource')}</span>
+            <div className={styles.ribbonRow} aria-hidden>
+              {ribbon.map((cell, i) => (
+                <span key={i} className={styles.ribbonCell} style={{ background: cell.source }} />
+              ))}
+            </div>
+            <span className={styles.ribbonLabel}>{t('lighting.colorTuning.legendTuned')}</span>
+            <div className={styles.ribbonRow} aria-hidden>
+              {ribbon.map((cell, i) => (
+                <span key={i} className={styles.ribbonCell} style={{ background: cell.tuned }} />
+              ))}
+            </div>
           </div>
         </section>
 

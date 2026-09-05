@@ -2203,7 +2203,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       {colorTuningIds && (
         <ColorTuningModal
           devices={tunableDevices}
-          initialIds={colorTuningIds}
+          deviceIds={colorTuningIds}
           onClose={() => setColorTuningIds(null)}
         />
       )}

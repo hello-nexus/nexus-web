@@ -27,10 +27,10 @@ function device(id: string, name: string, brightness = 100): LightingDevice {
 
 const DEVICES = [device('a', 'Strip A'), device('b', 'Strip B', 60)];
 
-async function renderModal(initialIds: string[] = ['a']) {
+async function renderModal(deviceIds: string[] = ['a']) {
   const onClose = vi.fn();
   await act(async () => {
-    render(<ColorTuningModal devices={DEVICES} initialIds={initialIds} onClose={onClose} />);
+    render(<ColorTuningModal devices={DEVICES} deviceIds={deviceIds} onClose={onClose} />);
   });
   return { onClose };
 }
@@ -79,13 +79,22 @@ describe('ColorTuningModal', () => {
     expect(screen.getAllByText('lighting.colorTuning.mixed')).toHaveLength(1);
   });
 
-  it('scopes to the chips the user picks', async () => {
-    await renderModal(['a']);
+  it('names the devices it is about to change, and writes to exactly those', async () => {
+    await renderModal(['a', 'b']);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Strip B' }));
+    expect(screen.getByText('Strip A, Strip B')).toBeTruthy();
+
     fireEvent.change(sliderFor('lighting.colorTuning.blue'), { target: { value: '80' } });
-
     expect(setAdjust.mock.calls.at(-1)![0]).toEqual(['a', 'b']);
+  });
+
+  it('ignores a scoped id that is no longer in the device list', async () => {
+    await renderModal(['a', 'gone']);
+
+    expect(screen.getByText('Strip A')).toBeTruthy();
+
+    fireEvent.change(sliderFor('lighting.colorTuning.red'), { target: { value: '110' } });
+    expect(setAdjust.mock.calls.at(-1)![0]).toEqual(['a']);
   });
 
   it('sends brightness per device, on the existing per-device route', async () => {
