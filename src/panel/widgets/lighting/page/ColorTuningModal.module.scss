@@ -71,16 +71,25 @@
   flex-direction: column;
 }
 
-// Sits over the slider's own head row so the badge reads as part of the
-// label line without the Slider needing to know about mixed values.
+// Sits over the slider's own head row so the badge reads as part of the label
+// line without the Slider needing to know about mixed values. The right inset
+// clears the Slider's value column, which is widest on the temperature row
+// (its formatter emits words, not a percentage).
 .controlHead {
   position: absolute;
   top: 0;
   left: 0;
-  right: 4.5rem;
+  right: 5.5rem;
   display: flex;
   justify-content: flex-end;
   pointer-events: none;
+}
+
+// Info (i) stacked above the master-brightness caret inside the slider track;
+// shrink the trigger so the indicator group stays compact.
+.markerInfo button {
+  width: 16px;
+  height: 16px;
 }
 
 .mixed {
@@ -94,7 +103,7 @@
 // A control the scoped devices disagree on: the thumb is showing an average
 // nobody is actually set to, so the track is muted until the user commits one.
 .sliderMixed {
-  opacity: var(--alpha-strong);
+  opacity: 0.7;
 }
 
 // The channel sliders carry their channel's colour on the fill, so the three
@@ -104,19 +113,16 @@
 .red {
   --accent: #e05252;
   --accent-glow: #e05252;
-  --slider-fill-dim: #7a3535;
 }
 
 .green {
   --accent: #3fae5a;
   --accent-glow: #3fae5a;
-  --slider-fill-dim: #2a6338;
 }
 
 .blue {
   --accent: #4a83e0;
   --accent-glow: #4a83e0;
-  --slider-fill-dim: #2f4d7a;
 }
 
 .actions {

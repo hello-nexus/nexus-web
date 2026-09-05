@@ -593,10 +593,15 @@ export const NEUTRAL_COLOR_ADJUST: LightingColorAdjust = {
 export const fetchLightingColorAdjust = () =>
   fetchService<{ adjustments: Record<string, LightingColorAdjust> }>('/devices/lighting-devices/color-adjust');
 
-// One write for the whole selection - the service applies the same trim to
-// every id, so tuning eight devices together is one round trip per drag.
-export const setLightingColorAdjust = (ids: string[], adjust: LightingColorAdjust) =>
-  postService('/devices/lighting-devices/color-adjust', { ids, ...adjust });
+/** What one write carries: only the controls the user actually moved, plus
+ *  brightness when that was the one that moved. */
+export type LightingColorAdjustPatch = Partial<LightingColorAdjust> & { brightness?: number };
+
+// One write for the whole selection, and only for the fields it names: the
+// service leaves anything absent alone, so moving one slider cannot flatten
+// the others across devices that disagree on them.
+export const setLightingColorAdjust = (ids: string[], patch: LightingColorAdjustPatch) =>
+  postService('/devices/lighting-devices/color-adjust', { ids, ...patch });
 
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.

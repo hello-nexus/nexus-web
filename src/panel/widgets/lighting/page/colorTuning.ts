@@ -28,10 +28,13 @@ export function applyColorAdjust(source: Rgb, adjust: LightingColorAdjust): Rgb 
   const gainR = clamp(adjust.red, 0.3, 1.7) * (1 + TEMPERATURE_SPAN * t);
   const gainG = clamp(adjust.green, 0.3, 1.7);
   const gainB = clamp(adjust.blue, 0.3, 1.7) * (1 - TEMPERATURE_SPAN * t);
+  // Truncate, not round: the service ends in a `(byte)` cast after its own
+  // clamp, so rounding here would preview up to one level brighter per channel
+  // than the hardware receives.
   return [
-    clamp(Math.round(r * gainR), 0, 255),
-    clamp(Math.round(g * gainG), 0, 255),
-    clamp(Math.round(b * gainB), 0, 255),
+    Math.trunc(clamp(r * gainR, 0, 255)),
+    Math.trunc(clamp(g * gainG, 0, 255)),
+    Math.trunc(clamp(b * gainB, 0, 255)),
   ];
 }
 

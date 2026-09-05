@@ -234,8 +234,10 @@ export function ZoneCard({
     }
     // Colour tuning is per device but reads the same for a whole selection -
     // trimming eight strips to match each other is the point - so unlike the
-    // LED map it keeps its row in bulk mode.
-    if (onOpenColorTuning) {
+    // LED map it keeps its row in bulk mode. Gated on the same predicate the
+    // modal scopes itself with: a card with lights off, Nexus Control off or
+    // no LEDs would open a modal with nothing in scope.
+    if (onOpenColorTuning && (bulk || zoneCardSelectable(device))) {
       items.push({
         key: 'colorTuning',
         icon: <SlidersHorizontal size={14} />,

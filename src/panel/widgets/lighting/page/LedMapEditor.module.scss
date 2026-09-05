@@ -412,8 +412,8 @@
   -moz-appearance: textfield;
 }
 
-// Compact icon-track-value layout for the per-device brightness slider
-// in the toolbar. Sun glyph mirrors the global brightness control.
+// Compact icon-track-value layout for the smart-light hue / saturation
+// sliders in the toolbar.
 .brightnessField {
   display: flex;
   align-items: center;
@@ -438,13 +438,6 @@
   white-space: nowrap;
   min-width: 2.4em;
   text-align: right;
-}
-
-// Info (i) stacked above the effective-brightness caret inside the slider
-// track; shrink the trigger so the indicator group stays compact.
-.markerInfo button {
-  width: 16px;
-  height: 16px;
 }
 
 .spacer { flex: 1; }

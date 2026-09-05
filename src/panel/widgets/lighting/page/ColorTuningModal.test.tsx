@@ -47,21 +47,38 @@ describe('ColorTuningModal', () => {
     setBrightness.mockResolvedValue(null);
   });
 
-  it('writes one trim for every scoped device', async () => {
+  it('writes one patch for every scoped device, carrying only the moved control', async () => {
     await renderModal(['a', 'b']);
 
     fireEvent.change(sliderFor('lighting.colorTuning.red'), { target: { value: '120' } });
 
     expect(setAdjust).toHaveBeenCalled();
-    const [ids, adjust] = setAdjust.mock.calls.at(-1)!;
+    const [ids, patch] = setAdjust.mock.calls.at(-1)!;
     expect(ids).toEqual(['a', 'b']);
-    expect(adjust.red).toBeCloseTo(1.2);
-    // The untouched channels keep their neutral value rather than being dropped.
-    expect(adjust.green).toBe(1);
-    expect(adjust.saturation).toBe(1);
+    expect(patch.red).toBeCloseTo(1.2);
+    // The untouched controls are absent, so the service leaves them alone -
+    // sending them would flatten values the scoped devices disagree on.
+    expect(Object.keys(patch)).toEqual(['red']);
   });
 
-  it('flags a control the scoped devices disagree on, and clears it on commit', async () => {
+  it('leaves the other mixed controls mixed when one is moved', async () => {
+    fetchAdjust.mockResolvedValue({
+      adjustments: {
+        a: { red: 1.4, green: 1, blue: 1, temperature: 0, saturation: 1.6 },
+      },
+    });
+    await renderModal(['a', 'b']);
+    // Red, saturation and brightness all differ across the scope.
+    expect(screen.getAllByText('lighting.colorTuning.mixed')).toHaveLength(3);
+
+    fireEvent.change(sliderFor('lighting.colorTuning.red'), { target: { value: '90' } });
+
+    // Only Red settled; saturation and brightness still disagree.
+    expect(screen.getAllByText('lighting.colorTuning.mixed')).toHaveLength(2);
+    expect(Object.keys(setAdjust.mock.calls.at(-1)![1])).toEqual(['red']);
+  });
+
+  it('flags a control the scoped devices disagree on, and clears it once moved', async () => {
     fetchAdjust.mockResolvedValue({
       adjustments: {
         a: { red: 1.4, green: 1, blue: 1, temperature: 0, saturation: 1 },
@@ -97,13 +114,16 @@ describe('ColorTuningModal', () => {
     expect(setAdjust.mock.calls.at(-1)![0]).toEqual(['a']);
   });
 
-  it('sends brightness per device, on the existing per-device route', async () => {
+  it('sends brightness on the same one-call write as the trims', async () => {
     await renderModal(['a', 'b']);
 
     fireEvent.change(sliderFor('lighting.devices.brightness'), { target: { value: '40' } });
 
-    expect(setBrightness.mock.calls.map(c => c[0]).sort()).toEqual(['a', 'b']);
-    expect(setBrightness.mock.calls.every(c => c[1] === 40)).toBe(true);
+    const [ids, patch] = setAdjust.mock.calls.at(-1)!;
+    expect(ids).toEqual(['a', 'b']);
+    expect(patch).toEqual({ brightness: 40 });
+    // No fan-out to the per-device brightness route.
+    expect(setBrightness).not.toHaveBeenCalled();
   });
 
   it('reset returns the scope to neutral', async () => {
@@ -115,7 +135,7 @@ describe('ColorTuningModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'lighting.colorTuning.reset' }));
 
     expect(setAdjust.mock.calls.at(-1)![1]).toEqual({
-      red: 1, green: 1, blue: 1, temperature: 0, saturation: 1,
+      red: 1, green: 1, blue: 1, temperature: 0, saturation: 1, brightness: 100,
     });
   });
 });

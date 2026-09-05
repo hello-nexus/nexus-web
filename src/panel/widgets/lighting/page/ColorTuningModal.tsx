@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { Button } from '../../../../components/common/Button/Button';
 import { Slider } from '../../../../components/common/Slider/Slider';
@@ -9,8 +9,8 @@ import {
   NEUTRAL_COLOR_ADJUST,
   fetchLightingColorAdjust,
   setLightingColorAdjust,
-  setLightingDeviceBrightness,
   type LightingColorAdjust,
+  type LightingColorAdjustPatch,
   type LightingDevice,
 } from '../../../../api/lighting';
 import { useGlobalBrightness } from './useGlobalBrightness';
@@ -69,7 +69,9 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
   useEffect(() => {
     let cancelled = false;
     fetchLightingColorAdjust().then(data => {
-      if (!cancelled && data) setAdjusts(data.adjustments ?? {});
+      // Local writes win: the sliders are live before this resolves, so a drag
+      // inside that window must not be repainted with the pre-drag values.
+      if (!cancelled && data) setAdjusts(prev => ({ ...(data.adjustments ?? {}), ...prev }));
     }).catch(() => { /* best-effort: an unreachable service reads as neutral */ });
     return () => { cancelled = true; };
   }, []);
@@ -101,49 +103,50 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
   const saturation = spread(scopedIds.map(id => adjustOf(id).saturation));
   const bright = spread(scopedIds.map(id => brightnessOf(id)));
 
-  const adjustThrottle = useThrottle();
-  const brightnessThrottle = useThrottle();
+  const throttle = useThrottle();
+  // The throttle has no cancel, so a commit that fired immediately can be
+  // followed ~33ms later by the drag's trailing callback. Both read the latest
+  // patch from this ref rather than a captured value, and an identical payload
+  // is dropped - so the trailing call can neither revert the commit nor double
+  // up a typed edit (which fires onChange(commit) and onCommit back to back).
+  const pendingRef = useRef<{ ids: string[]; patch: LightingColorAdjustPatch } | null>(null);
+  const lastSentRef = useRef('');
+  const flush = useCallback(() => {
+    const p = pendingRef.current;
+    if (!p || p.ids.length === 0) return;
+    const key = JSON.stringify(p);
+    if (key === lastSentRef.current) return;
+    lastSentRef.current = key;
+    setLightingColorAdjust(p.ids, p.patch).catch(() => { /* best-effort */ });
+  }, []);
 
-  // Every control writes the same trim to every scoped device, so one patch
-  // rebuilds the whole set from the values on screen - a mixed control stops
-  // being mixed the moment the user touches it, which is the intent.
-  const writeAdjust = useCallback((patch: Partial<LightingColorAdjust>, commit: boolean) => {
-    const next: LightingColorAdjust = {
-      red: patch.red ?? red.value,
-      green: patch.green ?? green.value,
-      blue: patch.blue ?? blue.value,
-      temperature: patch.temperature ?? temperature.value,
-      saturation: patch.saturation ?? saturation.value,
-    };
-    setAdjusts(prev => {
-      const out = { ...prev };
-      for (const id of scopedIds) out[id] = next;
-      return out;
-    });
-    const send = () => setLightingColorAdjust(scopedIds, next).catch(() => { /* best-effort */ });
-    if (commit) send();
-    else adjustThrottle(send);
-  }, [adjustThrottle, blue.value, green.value, red.value, saturation.value, scopedIds, temperature.value]);
-
-  const writeBrightness = useCallback((value: number, commit: boolean) => {
-    setBrightness(prev => {
-      const out = { ...prev };
-      for (const id of scopedIds) out[id] = value;
-      return out;
-    });
-    const send = () => {
-      for (const id of scopedIds) {
-        setLightingDeviceBrightness(id, value).catch(() => { /* best-effort */ });
-      }
-    };
-    if (commit) send();
-    else brightnessThrottle(send);
-  }, [brightnessThrottle, scopedIds]);
+  // Only the moved control goes over the wire. The service leaves every field
+  // the body omits alone, so nudging Red cannot flatten a saturation the two
+  // scoped devices disagree on into their average.
+  const write = useCallback((patch: LightingColorAdjustPatch, commit: boolean) => {
+    const { brightness: nextBrightness, ...trim } = patch;
+    if (Object.keys(trim).length > 0) {
+      setAdjusts(prev => {
+        const out = { ...prev };
+        for (const id of scopedIds) out[id] = { ...(prev[id] ?? NEUTRAL_COLOR_ADJUST), ...trim };
+        return out;
+      });
+    }
+    if (nextBrightness !== undefined) {
+      setBrightness(prev => {
+        const out = { ...prev };
+        for (const id of scopedIds) out[id] = nextBrightness;
+        return out;
+      });
+    }
+    pendingRef.current = { ids: scopedIds, patch };
+    if (commit) flush();
+    else throttle(flush);
+  }, [flush, scopedIds, throttle]);
 
   const handleReset = useCallback(() => {
-    writeAdjust({ ...NEUTRAL_COLOR_ADJUST }, true);
-    writeBrightness(100, true);
-  }, [writeAdjust, writeBrightness]);
+    write({ ...NEUTRAL_COLOR_ADJUST, brightness: 100 }, true);
+  }, [write]);
 
   // The ribbon renders what the sliders currently say, so a mixed control
   // previews its average - the same value the next drag would commit.
@@ -203,7 +206,7 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
           </div>
         </section>
 
-        <section className={styles.controls} aria-disabled={empty || undefined}>
+        <section className={styles.controls}>
           <div className={styles.control}>
             <div className={styles.controlHead}>{mixedLabel(bright)}</div>
             <Slider
@@ -227,12 +230,13 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
                 <InfoTooltip
                   message={t('lighting.colorTuning.effectiveBrightnessInfo', { master })}
                   side="bottom"
+                  className={styles.markerInfo}
                 />
               ) : undefined}
               disabled={empty}
               formatValue={v => `${v}%`}
-              onChange={v => writeBrightness(v, false)}
-              onCommit={v => writeBrightness(v, true)}
+              onChange={v => write({ brightness: v }, false)}
+              onCommit={v => write({ brightness: v }, true)}
               className={bright.mixed ? styles.sliderMixed : undefined}
             />
           </div>
@@ -256,8 +260,8 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
                 step={1}
                 disabled={empty}
                 formatValue={v => `${v}%`}
-                onChange={v => writeAdjust({ [channel]: v / 100 }, false)}
-                onCommit={v => writeAdjust({ [channel]: v / 100 }, true)}
+                onChange={v => write({ [channel]: v / 100 }, false)}
+                onCommit={v => write({ [channel]: v / 100 }, true)}
                 className={value.mixed ? styles.sliderMixed : undefined}
               />
             </div>
@@ -285,8 +289,8 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
                 : v === 100
                   ? t('lighting.colorTuning.warm')
                   : `${v > 0 ? '+' : ''}${v}`)}
-              onChange={v => writeAdjust({ temperature: v / 100 }, false)}
-              onCommit={v => writeAdjust({ temperature: v / 100 }, true)}
+              onChange={v => write({ temperature: v / 100 }, false)}
+              onCommit={v => write({ temperature: v / 100 }, true)}
               className={temperature.mixed ? styles.sliderMixed : undefined}
             />
           </div>
@@ -307,8 +311,8 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
               step={1}
               disabled={empty}
               formatValue={v => `${v}%`}
-              onChange={v => writeAdjust({ saturation: v / 100 }, false)}
-              onCommit={v => writeAdjust({ saturation: v / 100 }, true)}
+              onChange={v => write({ saturation: v / 100 }, false)}
+              onCommit={v => write({ saturation: v / 100 }, true)}
               className={saturation.mixed ? styles.sliderMixed : undefined}
             />
           </div>
