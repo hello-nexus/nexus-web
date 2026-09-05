@@ -4,7 +4,7 @@
 // values in sync with the constants there. Rendered at /telemetry-reference
 // (Settings → Dev tools → Telemetry events).
 
-export type TelemetryParamType = 'string' | 'number' | 'boolean';
+export type TelemetryParamType = 'string' | 'number' | 'boolean' | 'array';
 
 export interface TelemetryParam {
   name: string;
@@ -38,27 +38,37 @@ export const AUTO_PROPERTIES: TelemetryParam[] = [
 // event), refreshed only when the value actually changes. The hardware half
 // is what makes every event above breakable down by machine; the usage half
 // is the current-state census that layout_snapshot mirrors over time.
-// All of it is counts and enum values - no user-authored text ever leaves the
-// machine, so widget titles, renamed devices and panel display names are
-// deliberately absent.
+//
+// The hardware half carries vendor model-name strings (cpu, gpu, monitor and
+// the devices list) - reported by the hardware itself, never typed by the
+// user. The usage half is counts and fixed values only. Nothing the user
+// authored is collected in either: widget titles, renamed devices, panel
+// display names, file paths and serials are all excluded.
 export const PERSON_PROPERTIES: TelemetryParam[] = [
+  { name: 'version', type: 'string', required: true, description: 'Nexus build version (BuildInfo.Version).' },
+  { name: 'os', type: 'string', required: true, description: 'win | mac | linux | other.' },
+  { name: 'os_build', type: 'string', required: false, description: 'Operating-system build string.' },
   { name: 'cpu', type: 'string', required: false, description: 'CPU model name.' },
   { name: 'gpu', type: 'string', required: false, description: 'GPU model name(s).' },
-  { name: 'ram_amount', type: 'number', required: false, description: 'Installed RAM in GB.' },
+  { name: 'ram', type: 'string', required: false, description: 'Installed RAM as reported (the raw string; ram_amount is the parsed figure).' },
+  { name: 'ram_amount', type: 'number', required: false, description: 'Installed RAM in GB, parsed from ram. Absent when the string does not parse.' },
   { name: 'motherboard', type: 'string', required: false, description: 'Motherboard model name.' },
-  { name: 'storage_amount', type: 'number', required: false, description: 'Total storage in GB.' },
+  { name: 'storage', type: 'string', required: false, description: 'Storage as reported (the raw string; storage_amount is the parsed figure).' },
+  { name: 'storage_amount', type: 'number', required: false, description: 'Total storage in GB, parsed from storage. Absent when the string does not parse.' },
   { name: 'monitor', type: 'string', required: false, description: 'Monitor model name(s).' },
-  { name: 'devices', type: 'string', required: false, description: 'Recognized connected devices by model name (JSON array, capped at 80).' },
+  { name: 'network', type: 'string', required: false, description: 'Network adapter model name(s).' },
+  { name: 'sound', type: 'string', required: false, description: 'Sound device model name(s).' },
+  { name: 'devices', type: 'array', required: true, description: 'Recognized connected devices by model name, sorted (capped at 80). Always sent, possibly empty.' },
   { name: 'lighting_devices', type: 'number', required: true, description: 'Lighting devices currently enumerated.' },
   { name: 'cooling_channels', type: 'number', required: true, description: 'Fan channels currently enumerated.' },
   { name: 'panel_devices', type: 'number', required: true, description: 'Configured panel devices.' },
-  { name: 'panel_surfaces', type: 'string', required: true, description: 'Distinct panel surfaces in use (JSON array).' },
+  { name: 'panel_surfaces', type: 'array', required: true, description: 'Distinct panel surfaces in use.' },
   { name: 'widget_count', type: 'number', required: true, description: 'Total widget placements.' },
   { name: 'widget_page_count', type: 'number', required: true, description: 'Total panel pages.' },
-  { name: 'widget_types', type: 'string', required: true, description: 'Distinct widget type keys placed (JSON array).' },
+  { name: 'widget_types', type: 'array', required: true, description: 'Distinct widget type keys placed.' },
   { name: 'lighting_mode', type: 'string', required: true, description: 'simple | advanced. Seeded to advanced for pre-existing installs by the v15 migration, so read dashboard_mode_changed for actual preference.' },
   { name: 'cooling_mode', type: 'string', required: true, description: 'simple | advanced. Same migration caveat as lighting_mode.' },
-  { name: 'features_off', type: 'string', required: true, description: 'Feature pillars switched off (JSON array); empty for most installs.' },
+  { name: 'features_off', type: 'array', required: true, description: 'Feature pillars switched off; empty for most installs.' },
 ];
 
 export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
@@ -156,18 +166,18 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     title: 'Layout snapshot',
     status: 'live',
     source: 'service',
-    description: 'A daily census of what this install actually runs: which widget types are placed, across how many panels and pages. Panel widgets are persistent rather than opened, so a census answers "which widgets are used most" where a click count cannot. Carries the same fields as the usage person properties, so the census is readable as a trend over time.',
+    description: 'A census of what this install actually runs: which widget types are placed, across how many panels and pages. Panel widgets are persistent rather than opened, so a census answers "which widgets are used most" where a click count cannot. Fires on the first ready snapshot after each service start, then at most once every 24h - so a restart-heavy machine emits more than one a day, and the event is NOT a per-day unit. Carries the same fields as the usage person properties, so the census is readable as a trend over time.',
     params: [
-      { name: 'widget_types', type: 'string', required: true, description: 'Distinct widget type keys placed anywhere, sorted (JSON array). An SDK app appears as its app id, e.g. app:com.hellonexus.aquarium.' },
+      { name: 'widget_types', type: 'array', required: true, description: 'Distinct widget type keys placed anywhere, sorted. An SDK app appears as its app id, e.g. app:com.hellonexus.aquarium.' },
       { name: 'widget_count', type: 'number', required: true, description: 'Total widget placements across every panel and page.' },
       { name: 'widget_page_count', type: 'number', required: true, description: 'Total pages across every panel.' },
       { name: 'panel_devices', type: 'number', required: true, description: 'Number of configured panel devices.' },
-      { name: 'panel_surfaces', type: 'string', required: true, description: 'Distinct panel surfaces in use, sorted (JSON array), e.g. y70, q60, monitor.' },
+      { name: 'panel_surfaces', type: 'array', required: true, description: 'Distinct panel surfaces in use, sorted, e.g. y70, q60, monitor.' },
       { name: 'lighting_devices', type: 'number', required: true, description: 'Lighting devices currently enumerated.' },
       { name: 'cooling_channels', type: 'number', required: true, description: 'Fan channels currently enumerated.' },
       { name: 'lighting_mode', type: 'string', required: true, description: 'simple | advanced - the lighting page density.' },
       { name: 'cooling_mode', type: 'string', required: true, description: 'simple | advanced - the cooling page density.' },
-      { name: 'features_off', type: 'string', required: true, description: 'Feature pillars switched OFF (JSON array). Every pillar defaults on, so this is empty for most installs.' },
+      { name: 'features_off', type: 'array', required: true, description: 'Feature pillars switched OFF. Every pillar defaults on, so this is empty for most installs.' },
     ],
   },
   {
@@ -230,7 +240,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     description: 'Fires once while opted in, then again only when the hardware summary hash changes (e.g. a component swap); skipped and retried next pass on a cold boot with no processor or GPU data yet. Upserts the latest snapshot per install id in nexus-api rather than appending, and reaches PostHog only once nexus-api has accepted it.',
     params: [
       { name: 'cpu', type: 'string', required: true, description: 'CPU model name.' },
-      { name: 'gpu', type: 'string', required: false, description: 'GPU model name(s) as a JSON array; more than one entry on a multi-GPU system.' },
+      { name: 'gpu', type: 'array', required: false, description: 'GPU model name(s); more than one entry on a multi-GPU system.' },
       { name: 'ram_bytes', type: 'number', required: true, description: 'Total installed RAM in bytes, derived from the parsed GB figure (an approximation, not an exact byte count).' },
       { name: 'motherboard', type: 'string', required: true, description: 'Motherboard model name.' },
     ],

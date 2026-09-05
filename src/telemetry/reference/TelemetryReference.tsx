@@ -60,9 +60,10 @@ export function TelemetryReference() {
         <h2>Person properties</h2>
         <p className={styles.dim}>
           Attached to the anonymous install, not to any single event, and refreshed only when a
-          value changes. This is what lets every event below be broken down by hardware. Counts and
-          enum values only - no user-authored text (widget titles, renamed devices, panel names)
-          ever leaves the machine.
+          value changes. This is what lets every event below be broken down by hardware. The
+          hardware rows carry vendor model names reported by the hardware itself; the usage rows are
+          counts and fixed values. Nothing you authored is collected in either - widget titles,
+          devices you renamed, panel names, file paths and serials are all excluded.
         </p>
         <ParamTable params={PERSON_PROPERTIES} />
       </section>
