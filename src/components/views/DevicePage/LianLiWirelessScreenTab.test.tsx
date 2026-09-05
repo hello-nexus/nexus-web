@@ -17,6 +17,7 @@ const mockSetSettings = vi.fn();
 const mockSetContent = vi.fn();
 const mockImportMedia = vi.fn();
 const mockDeleteMedia = vi.fn();
+const mockSetOrder = vi.fn();
 
 vi.mock('../../../api/lianli-wireless', () => ({
   getLianLiWirelessScreens: (...args: any[]) => mockGetScreens(...args),
@@ -25,6 +26,7 @@ vi.mock('../../../api/lianli-wireless', () => ({
   setLianLiWirelessScreenContent: (...args: any[]) => mockSetContent(...args),
   importLianLiWirelessMedia: (...args: any[]) => mockImportMedia(...args),
   deleteLianLiWirelessMedia: (...args: any[]) => mockDeleteMedia(...args),
+  setLianLiWirelessScreenOrder: (...args: any[]) => mockSetOrder(...args),
 }));
 
 // Positions are all 0 on real hardware (GetPosIndex is unresolved), so the
@@ -49,6 +51,7 @@ beforeEach(() => {
   mockSetContent.mockResolvedValue(true);
   mockImportMedia.mockResolvedValue({ id: 'm4', name: 'test.png', kind: 'image' });
   mockDeleteMedia.mockResolvedValue(true);
+  mockSetOrder.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -84,6 +87,35 @@ describe('LianLiWirelessScreenTab', () => {
     // Defaults to screen 1 (image content type).
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.contentTypeAria' }))
       .toHaveTextContent('devices.lianli-wireless.contentTypePicture');
+  });
+
+  it('moves the selected fan right, renumbers the tiles, and persists the serial order', async () => {
+    await renderTab();
+    const group = screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' });
+    const before = within(group).getAllByRole('button', { pressed: true });
+    expect(before).toHaveLength(1);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' }));
+    });
+
+    expect(mockSetOrder).toHaveBeenCalledWith(['S2', 'S1', 'S3']);
+    // The moved fan (S1) is now the second tile and still the selected one.
+    const tiles = within(group).getAllByRole('button');
+    expect(tiles[1]).toHaveAttribute('aria-pressed', 'true');
+    expect(tiles[0]).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('disables the order buttons at the ends of the list and when several fans are selected', async () => {
+    await renderTab();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.orderMoveLeft' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })).not.toBeDisabled();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'devices.lianli-wireless.selectionModeMultiple' }));
+    const group = screen.getByRole('group', { name: 'devices.lianli-wireless.screensAria' });
+    fireEvent.click(within(group).getAllByRole('button')[1]);
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.orderMoveRight' })).toBeDisabled();
+    expect(mockSetOrder).not.toHaveBeenCalled();
   });
 
   it('selects one fan at a time in single mode (the default)', async () => {

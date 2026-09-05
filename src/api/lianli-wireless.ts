@@ -64,6 +64,8 @@ export type LianLiWirelessTempUnit = 'c' | 'f';
 export interface LianLiWirelessScreen {
   serial: string;
   position: number;
+  /** User-chosen list position (0-based); -1 or absent when not set. The service already sorts by it. */
+  order?: number;
   width: number;
   height: number;
   brightness: number;
@@ -107,6 +109,11 @@ export async function setLianLiWirelessScreenSettings(
   settings: { brightness?: number; rotation?: number },
 ): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/screen/settings', { serial, ...settings }));
+}
+
+/** Persists the screen list order (serials in the wanted order) so tile numbering matches the physical fans. */
+export async function setLianLiWirelessScreenOrder(serials: string[]): Promise<boolean> {
+  return isOk(await postService<OkResponse>('/devices/lianli-wireless/screens/order', { serials }));
 }
 
 export async function setLianLiWirelessScreenContent(
