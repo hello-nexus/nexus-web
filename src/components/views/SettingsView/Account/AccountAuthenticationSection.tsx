@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { BadgeCheck, Camera, ExternalLink } from 'lucide-react';
 import { Badge } from '../../../common/Badge/Badge';
 import { Button } from '../../../common/Button/Button';
+import { ConfirmModal } from '../../../common/ConfirmModal/ConfirmModal';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { MediaCropper, type NormalizedCrop } from '../../../common/MediaCropper/MediaCropper';
 import { normalizeRotate } from '../../../common/MediaCropper/mediaCrop';
@@ -25,6 +26,10 @@ interface AccountAuthenticationSectionProps {
   onAccountChanged: () => void;
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
+  /** Opens the change-password modal unprompted; defaults to recoveryFresh so a fresh recovery lands on it once. */
+  promptPasswordChange?: boolean;
+  /** The prompted modal was closed without a change; the caller drops promptPasswordChange so a remount does not reopen it. */
+  onPasswordPromptClosed?: () => void;
   onLoggedOut: () => void;
 }
 
@@ -104,7 +109,7 @@ function useRetryCountdown(retryAt: string | null): { hours: number; minutes: nu
 // shared by the in-app Account page and the public /account and /recover
 // pages (the public surface renders this block alone, no profile sync).
 export function AccountAuthenticationSection({
-  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, onLoggedOut,
+  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, promptPasswordChange = recoveryFresh, onPasswordPromptClosed, onLoggedOut,
 }: AccountAuthenticationSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
@@ -192,8 +197,8 @@ export function AccountAuthenticationSection({
   // change-password modal directly, passwordless, instead of the user
   // having to find and click the button themselves.
   useEffect(() => {
-    if (recoveryFresh) setPasswordModalOpen(true);
-  }, [recoveryFresh]);
+    if (promptPasswordChange) setPasswordModalOpen(true);
+  }, [promptPasswordChange]);
 
   // ── Privacy ─────────────────────────────────────────────────────────────
   const [privacySaving, setPrivacySaving] = useState(false);
@@ -206,8 +211,18 @@ export function AccountAuthenticationSection({
   };
 
   // ── Session ─────────────────────────────────────────────────────────────
-  const handleLogout = () => {
-    void backend.logout().then(onLoggedOut);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await backend.logout();
+    } finally {
+      setLoggingOut(false);
+      setLogoutConfirmOpen(false);
+    }
+    onLoggedOut();
   };
 
   // Defensive reset if `account.accountId` ever changes while this component
@@ -322,14 +337,25 @@ export function AccountAuthenticationSection({
       />
 
       <SettingRow label={t('account.logOut.label')} description={t('account.logOut.description')} stackOnNarrow>
-        <Button type="button" tone="neutral" size="sm" onClick={handleLogout}>
+        <Button type="button" tone="neutral" size="sm" onClick={() => setLogoutConfirmOpen(true)}>
           {t('account.logOut.label')}
         </Button>
       </SettingRow>
 
+      <ConfirmModal
+        open={logoutConfirmOpen}
+        title={t('account.logOut.confirmTitle')}
+        message={t('account.logOut.confirmMessage')}
+        confirmLabel={t('account.logOut.label')}
+        destructive={false}
+        confirmDisabled={loggingOut}
+        onConfirm={() => void handleLogout()}
+        onCancel={() => setLogoutConfirmOpen(false)}
+      />
+
       <ChangePasswordModal
         open={passwordModalOpen}
-        onClose={() => setPasswordModalOpen(false)}
+        onClose={() => { setPasswordModalOpen(false); onPasswordPromptClosed?.(); }}
         recoveryFresh={recoveryFresh}
         onRecoveryFreshConsumed={onRecoveryFreshConsumed}
         changePassword={backend.changePassword}

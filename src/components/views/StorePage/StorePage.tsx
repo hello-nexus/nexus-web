@@ -14,8 +14,7 @@ import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
-import { RemoveAppButton } from './RemoveAppButton';
-import { StoreSignInModal } from './StoreSignInModal';
+import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import styles from './StorePage.module.scss';
 
 type InstallState = 'idle' | 'working' | 'failed';
@@ -254,7 +253,6 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
           <ChevronLeft size={16} aria-hidden={true} />
           {t('store.back')}
         </button>
-        {installed && <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} iconOnly />}
       </div>
 
       <header className={styles.hero}>
@@ -377,10 +375,12 @@ export function StorePage({ tab, onTabChange, accounts }: {
           )}
         </div>
       )}
-      <StoreSignInModal
+      <AccountSignInModal
         open={pendingInstall !== null}
         onClose={() => setPendingInstall(null)}
         onSignedIn={handleSignedIn}
+        ariaLabel={t('store.signIn.title')}
+        body={t('store.signIn.body')}
       />
     </div>
   );

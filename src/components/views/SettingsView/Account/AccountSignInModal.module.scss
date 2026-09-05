@@ -1,0 +1,18 @@
+@use '../../../../styles/text' as *;
+
+// The shared modal box, same recipe as ConfirmModal/PromptModal: Overlay's
+// surface paints nothing and every consumer brings its own chrome.
+.signInModal {
+  background: var(--backdrop-base);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: min(420px, 100%);
+  padding: 1.5rem 1.5rem 1.25rem;
+}
+
+.signInBody {
+  margin: 0 0 0.75rem;
+  @include text-body;
+  color: var(--text);
+}

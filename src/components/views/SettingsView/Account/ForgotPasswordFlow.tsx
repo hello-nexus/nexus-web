@@ -98,9 +98,10 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
       <div className={styles.wrap}>
         <h1 className={styles.title}>{t('account.recovery.pendingTitle')}</h1>
         <div className={styles.pendingBlock}>
+          <p className={styles.pendingMessage}>{t('account.recovery.pendingMessage', { email })}</p>
           <div className={styles.pendingRow}>
-            <Spinner size={18} />
-            <p className={styles.subtitle}>{t('account.recovery.pendingMessage', { email })}</p>
+            <Spinner size={16} />
+            <span className={styles.hint}>{t('account.recovery.pendingWaiting')}</span>
           </div>
           <button type="button" className={styles.linkBtn} onClick={() => { backend.recoveryCancel?.(); setPhase('email'); }}>
             {t('account.recovery.cancel')}

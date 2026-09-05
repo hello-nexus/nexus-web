@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchCloudAccounts, type CloudAccountSummary } from '../api/cloud';
+import type { MultiplexContextValue } from './useMultiplexSocket';
 
 export interface UseCloudAccountsResult {
   activeAccountId: string | null;
@@ -7,11 +8,14 @@ export interface UseCloudAccountsResult {
   refresh: () => Promise<void>;
 }
 
+/** Service topic fired on login, logout, switch, or a recovery its own poll loop approved. */
+const CLOUD_ACCOUNTS_TOPIC = 'cloud/accounts';
+
 // Login/register/logout/password/username/privacy/delete/avatar all run
 // through AuthBackend (api/authBackend.ts + api/localServiceBackend.ts) -
 // this hook only tracks which account (if any) is active, for the account
 // page gate and the top-bar identity chip.
-export function useCloudAccounts(enabled: boolean): UseCloudAccountsResult {
+export function useCloudAccounts(enabled: boolean, multiplex: MultiplexContextValue | null = null): UseCloudAccountsResult {
   const [accounts, setAccounts] = useState<CloudAccountSummary[]>([]);
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
 
@@ -27,6 +31,19 @@ export function useCloudAccounts(enabled: boolean): UseCloudAccountsResult {
     if (!enabled) return;
     void refresh();
   }, [enabled, refresh]);
+
+  // The service signs in on its own when a recovery link is opened after the
+  // dialog that started it closed, so the active account is refetched on push.
+  // The two callbacks are stable; the context object re-keys on every
+  // connection-state change and would resubscribe each time.
+  const subscribe = multiplex?.subscribe;
+  const unsubscribe = multiplex?.unsubscribe;
+  useEffect(() => {
+    if (!enabled || !subscribe || !unsubscribe) return;
+    const onChanged = () => { void refresh(); };
+    subscribe(CLOUD_ACCOUNTS_TOPIC, onChanged);
+    return () => unsubscribe(CLOUD_ACCOUNTS_TOPIC, onChanged);
+  }, [enabled, subscribe, unsubscribe, refresh]);
 
   const activeAccount = useMemo(
     () => accounts.find(a => a.accountId === activeAccountId) ?? null,

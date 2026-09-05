@@ -20,6 +20,8 @@ export function CreateAccountForm({ backend, onSuccess }: CreateAccountFormProps
   const [touched, setTouched] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // Server-side rejection; cleared as soon as the username is edited.
+  const [usernameTaken, setUsernameTaken] = useState(false);
 
   const emailInvalid = touched && email.length > 0 && !isValidEmail(email);
   const usernameInvalid = touched && username.length > 0 && !isValidUsername(username);
@@ -47,7 +49,11 @@ export function CreateAccountForm({ backend, onSuccess }: CreateAccountFormProps
       setFormError(t('account.error.generic'));
       return;
     }
-    setFormError(result.body?.msg === 'username_taken' ? t('account.error.usernameTaken') : t('account.create.error.duplicate'));
+    if (result.body?.msg === 'username_taken') {
+      setUsernameTaken(true);
+      return;
+    }
+    setFormError(t('account.create.error.duplicate'));
   };
 
   return (
@@ -68,16 +74,18 @@ export function CreateAccountForm({ backend, onSuccess }: CreateAccountFormProps
         <span className={styles.fieldLabel}>{t('account.create.username')}</span>
         <TextInput
           value={username}
-          onInput={setUsername}
+          onInput={value => { setUsername(value); setUsernameTaken(false); }}
           name="username"
           autoComplete="username"
           ariaLabel={t('account.create.username')}
           maxLength={15}
-          invalid={usernameInvalid}
+          invalid={usernameInvalid || usernameTaken}
         />
         {usernameInvalid
           ? <p className={styles.error} role="alert">{t('account.create.error.username')}</p>
-          : <p className={styles.hint}>{t('account.create.usernameHint')}</p>}
+          : usernameTaken
+            ? <p className={styles.error} role="alert">{t('account.error.usernameTaken')}</p>
+            : <p className={styles.hint}>{t('account.create.usernameHint')}</p>}
       </label>
       <label className={styles.field}>
         <span className={styles.fieldLabel}>{t('account.create.password')}</span>

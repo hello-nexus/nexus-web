@@ -43,6 +43,8 @@ export type AuthRecoveryStatusValue = 'idle' | 'pending' | 'approved' | 'expired
 
 export interface AuthRecoveryStatusResponse {
   status: AuthRecoveryStatusValue;
+  /** In-app only: the service's post-recovery window in which a password change needs no current password. */
+  recoveryFresh?: boolean;
 }
 
 export interface AuthFetchResult<T> {

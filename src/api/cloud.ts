@@ -46,6 +46,7 @@ export type RecoveryStatusValue = 'idle' | 'pending' | 'approved' | 'expired';
 
 export interface RecoveryStatusResponse {
   status: RecoveryStatusValue;
+  recoveryFresh?: boolean;
 }
 
 export interface CloudDeviceItem {

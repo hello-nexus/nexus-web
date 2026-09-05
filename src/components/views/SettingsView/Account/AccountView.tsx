@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ServiceRequired } from '../../ServiceRequired';
 import { GenericSkeleton } from '../../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../../hooks/useServiceStatus';
@@ -29,6 +29,9 @@ function isSignedOutSubtab(value: string | null): value is AccountSignedOutSubta
   return value != null && (SIGNED_OUT_SUBTABS as readonly string[]).includes(value);
 }
 
+// Which account already got its post-recovery password prompt this session.
+let promptedRecoveryFor: string | null = null;
+
 // Standalone Account page, reached from the top-bar profile menu's "Manage
 // account" entry - mirrors ProfilesView's page shell/wiring pattern.
 export function AccountView({ serviceOnline, connectionState, accounts, tab, onTabChange, onOpenStoreApp }: AccountViewProps) {
@@ -39,15 +42,45 @@ export function AccountView({ serviceOnline, connectionState, accounts, tab, onT
   // the current-password field in both the password-change section and the
   // delete-account confirm dialog while this is true.
   const [recoveryFresh, setRecoveryFresh] = useState(false);
+  const [promptPasswordChange, setPromptPasswordChange] = useState(false);
 
   const handleRecoveryApproved = useCallback(() => {
     setRecoveryFresh(true);
+    setPromptPasswordChange(true);
     void accounts.refresh();
   }, [accounts]);
 
   const handleRecoveryFreshConsumed = useCallback(() => {
     setRecoveryFresh(false);
+    setPromptPasswordChange(false);
   }, []);
+
+  const handlePasswordPromptClosed = useCallback(() => {
+    setPromptPasswordChange(false);
+  }, []);
+
+  // A recovery approved outside this view (the sign-in dialog, or the service's
+  // poll loop after it closed) still opened the service's recovery-fresh window;
+  // read it back whenever an account lands. The window outlives this view's
+  // mount, so the new-password prompt fires once per account, not per visit.
+  useEffect(() => {
+    const accountId = accounts.activeAccountId;
+    if (accountId == null) {
+      promptedRecoveryFor = null;
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const status = await localServiceBackend.recoveryStatus();
+      if (cancelled || !status?.recoveryFresh) return;
+      setRecoveryFresh(true);
+      if (promptedRecoveryFor !== accountId) {
+        promptedRecoveryFor = accountId;
+        setPromptPasswordChange(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [accounts.activeAccountId]);
 
   // localServiceBackend.login()/register() are thin /cloud/* proxies with no
   // side effect beyond the wire call - refreshing the shared accounts hook
@@ -97,6 +130,8 @@ export function AccountView({ serviceOnline, connectionState, accounts, tab, onT
               accounts={accounts}
               recoveryFresh={recoveryFresh}
               onRecoveryFreshConsumed={handleRecoveryFreshConsumed}
+              promptPasswordChange={promptPasswordChange}
+              onPasswordPromptClosed={handlePasswordPromptClosed}
               tab={signedInTab}
               onOpenStoreApp={onOpenStoreApp}
             />

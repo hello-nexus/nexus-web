@@ -18,6 +18,7 @@ import {
   setLianLiWirelessScreenSettings,
   setLianLiWirelessScreenContent,
   importLianLiWirelessMedia,
+  setLianLiWirelessScreenOrder,
   deleteLianLiWirelessMedia,
   type LianLiWirelessScreen,
   type LianLiWirelessScreenContentType,
@@ -34,6 +35,11 @@ const SCREENS_POLL_MS = 2000;
 // One poll interval plus margin: long enough that the poll following an edit's
 // POST observes the applied server state before it resumes overwriting.
 const EDIT_POLL_GRACE_MS = 2500;
+
+// Screens without a saved order sort after every ordered one.
+function orderKey(s: LianLiWirelessScreen): number {
+  return s.order !== undefined && s.order >= 0 ? s.order : Number.MAX_SAFE_INTEGER;
+}
 
 const CONTENT_TYPES: { value: LianLiWirelessScreenContentType; labelKey: string }[] = [
   { value: 'off', labelKey: 'devices.lianli-wireless.contentTypeOff' },
@@ -125,8 +131,12 @@ export function LianLiWirelessScreenTab() {
   }, [refreshScreens, refreshMedia]);
 
   const loaded = screens !== null;
+  // Saved order first, then the firmware position; equal keys keep the
+  // service's list order (Array.sort is stable).
   const orderedScreens = useMemo(
-    () => (screens ? [...screens].sort((a, b) => a.position - b.position) : []),
+    () => (screens
+      ? [...screens].sort((a, b) => orderKey(a) - orderKey(b) || a.position - b.position)
+      : []),
     [screens],
   );
 
@@ -139,6 +149,21 @@ export function LianLiWirelessScreenTab() {
       setSelected(new Set([orderedScreens[0].serial]));
     }
   }, [orderedScreens]);
+
+  // Swap the selected fan with its neighbour in the list and persist the
+  // whole order; the optimistic local order holds until the next poll.
+  const moveSelected = useCallback((delta: -1 | 1) => {
+    if (!screens || selected.size !== 1) return;
+    const [serial] = selected;
+    const serials = orderedScreens.map(s => s.serial);
+    const from = serials.indexOf(serial);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= serials.length) return;
+    [serials[from], serials[to]] = [serials[to], serials[from]];
+    lastEditRef.current = performance.now();
+    setScreens(prev => prev ? prev.map(s => ({ ...s, order: serials.indexOf(s.serial) })) : prev);
+    void setLianLiWirelessScreenOrder(serials);
+  }, [screens, selected, orderedScreens]);
 
   const toggleScreen = useCallback((serial: string) => {
     setSelected(prev => {
@@ -164,6 +189,7 @@ export function LianLiWirelessScreenTab() {
   // The screens a control edit applies to (the selected group); the FIRST one's
   // current value is the representative shown in the controls.
   const targetScreens = orderedScreens.filter(s => selected.has(s.serial));
+  const selectedIndex = selected.size === 1 ? orderedScreens.findIndex(s => selected.has(s.serial)) : -1;
   const representative = targetScreens[0] ?? null;
   // When several fans with different content types are selected the content
   // controls can't show one truth; force a fresh pick instead.
@@ -340,6 +366,27 @@ export function LianLiWirelessScreenTab() {
                 );
               })}
             </div>
+            {/* The user lines the tile numbers up with the physical fans here. */}
+            <SettingRow label={t('devices.lianli-wireless.orderLabel')} disabled={selected.size !== 1}>
+              <div className={styles.orderButtons}>
+                <Button
+                  size="sm"
+                  tone="neutral"
+                  disabled={selected.size !== 1 || selectedIndex <= 0}
+                  onClick={() => moveSelected(-1)}
+                >
+                  {t('devices.lianli-wireless.orderMoveLeft')}
+                </Button>
+                <Button
+                  size="sm"
+                  tone="neutral"
+                  disabled={selected.size !== 1 || selectedIndex < 0 || selectedIndex >= orderedScreens.length - 1}
+                  onClick={() => moveSelected(1)}
+                >
+                  {t('devices.lianli-wireless.orderMoveRight')}
+                </Button>
+              </div>
+            </SettingRow>
           </>
         )}
       </SettingsSection>

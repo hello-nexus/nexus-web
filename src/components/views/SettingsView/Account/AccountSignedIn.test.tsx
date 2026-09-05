@@ -94,6 +94,9 @@ describe('AccountSignedIn log out bridging', () => {
     renderSignedIn({ backend: makeBackend({ logout }), accounts });
 
     fireEvent.click(screen.getByRole('button', { name: 'account.logOut.label' }));
+    // The confirm dialog's button carries the same label as the row's button.
+    const buttons = screen.getAllByRole('button', { name: 'account.logOut.label' });
+    fireEvent.click(buttons[buttons.length - 1]);
 
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(accounts.refresh).toHaveBeenCalled());
