@@ -123,11 +123,12 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
   {
     name: 'lighting_effect_applied',
     title: 'Lighting effect applied',
-    status: 'planned',
+    status: 'live',
     source: 'service',
-    description: 'An RGB effect was applied to a lighting zone.',
+    description: 'A lighting look was applied, from any of the three headless-start routes. Deduped on mode plus effect, so the ~30 posts/second a slider drag produces cost nothing and only a real change is recorded; stopping lighting clears the dedupe, so restarting the same look reports again. The count is therefore transitions, not time spent.',
     params: [
-      { name: 'effect', type: 'string', required: true, description: 'Effect id, e.g. static, breathing, rainbow.' },
+      { name: 'mode', type: 'string', required: true, description: 'animate | static | screen - the mode the service actually ran, which is not always the route it arrived on: a static-catalog key posted to the animate route is rerouted into Static and reported as static.' },
+      { name: 'effect', type: 'string', required: true, description: 'Effect key, lowercased the same way the provider lowercases it before matching (e.g. plasma, fire, gradientlinear). Defaults are filled in as the service applies them - an animate start with no key runs rainbow. Anything outside the lowercase slug alphabet reports as "other". Always "screen" in screen mode, where the service ignores the field.' },
     ],
   },
   {
