@@ -16,7 +16,6 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:sandbox": "playwright test -c playwright.sandbox.config.ts",
     "audit:locales": "node scripts/audit-locales.mjs",
-    "audit:css-chunks": "node scripts/audit-css-chunks.mjs",
     "audit:text-styles": "node scripts/audit-text-styles.mjs",
     "audit:styles": "node scripts/audit-styles.mjs"
   },
