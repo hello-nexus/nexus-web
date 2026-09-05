@@ -34,6 +34,33 @@ export const AUTO_PROPERTIES: TelemetryParam[] = [
   { name: 'os', type: 'string', required: true, description: 'win | mac | linux | other.' },
 ];
 
+// Attached to the anonymous person via PostHog $set (never to a single
+// event), refreshed only when the value actually changes. The hardware half
+// is what makes every event above breakable down by machine; the usage half
+// is the current-state census that layout_snapshot mirrors over time.
+// All of it is counts and enum values - no user-authored text ever leaves the
+// machine, so widget titles, renamed devices and panel display names are
+// deliberately absent.
+export const PERSON_PROPERTIES: TelemetryParam[] = [
+  { name: 'cpu', type: 'string', required: false, description: 'CPU model name.' },
+  { name: 'gpu', type: 'string', required: false, description: 'GPU model name(s).' },
+  { name: 'ram_amount', type: 'number', required: false, description: 'Installed RAM in GB.' },
+  { name: 'motherboard', type: 'string', required: false, description: 'Motherboard model name.' },
+  { name: 'storage_amount', type: 'number', required: false, description: 'Total storage in GB.' },
+  { name: 'monitor', type: 'string', required: false, description: 'Monitor model name(s).' },
+  { name: 'devices', type: 'string', required: false, description: 'Recognized connected devices by model name (JSON array, capped at 80).' },
+  { name: 'lighting_devices', type: 'number', required: true, description: 'Lighting devices currently enumerated.' },
+  { name: 'cooling_channels', type: 'number', required: true, description: 'Fan channels currently enumerated.' },
+  { name: 'panel_devices', type: 'number', required: true, description: 'Configured panel devices.' },
+  { name: 'panel_surfaces', type: 'string', required: true, description: 'Distinct panel surfaces in use (JSON array).' },
+  { name: 'widget_count', type: 'number', required: true, description: 'Total widget placements.' },
+  { name: 'widget_page_count', type: 'number', required: true, description: 'Total panel pages.' },
+  { name: 'widget_types', type: 'string', required: true, description: 'Distinct widget type keys placed (JSON array).' },
+  { name: 'lighting_mode', type: 'string', required: true, description: 'simple | advanced. Seeded to advanced for pre-existing installs by the v15 migration, so read dashboard_mode_changed for actual preference.' },
+  { name: 'cooling_mode', type: 'string', required: true, description: 'simple | advanced. Same migration caveat as lighting_mode.' },
+  { name: 'features_off', type: 'string', required: true, description: 'Feature pillars switched off (JSON array); empty for most installs.' },
+];
+
 export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
   {
     name: 'app_started',
@@ -122,6 +149,67 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     description: 'A phone successfully paired with this install.',
     params: [
       { name: 'transport', type: 'string', required: true, description: 'lan | relay - how the pairing claim reached the PC.' },
+    ],
+  },
+  {
+    name: 'layout_snapshot',
+    title: 'Layout snapshot',
+    status: 'live',
+    source: 'service',
+    description: 'A daily census of what this install actually runs: which widget types are placed, across how many panels and pages. Panel widgets are persistent rather than opened, so a census answers "which widgets are used most" where a click count cannot. Carries the same fields as the usage person properties, so the census is readable as a trend over time.',
+    params: [
+      { name: 'widget_types', type: 'string', required: true, description: 'Distinct widget type keys placed anywhere, sorted (JSON array). An SDK app appears as its app id, e.g. app:com.hellonexus.aquarium.' },
+      { name: 'widget_count', type: 'number', required: true, description: 'Total widget placements across every panel and page.' },
+      { name: 'widget_page_count', type: 'number', required: true, description: 'Total pages across every panel.' },
+      { name: 'panel_devices', type: 'number', required: true, description: 'Number of configured panel devices.' },
+      { name: 'panel_surfaces', type: 'string', required: true, description: 'Distinct panel surfaces in use, sorted (JSON array), e.g. y70, q60, monitor.' },
+      { name: 'lighting_devices', type: 'number', required: true, description: 'Lighting devices currently enumerated.' },
+      { name: 'cooling_channels', type: 'number', required: true, description: 'Fan channels currently enumerated.' },
+      { name: 'lighting_mode', type: 'string', required: true, description: 'simple | advanced - the lighting page density.' },
+      { name: 'cooling_mode', type: 'string', required: true, description: 'simple | advanced - the cooling page density.' },
+      { name: 'features_off', type: 'string', required: true, description: 'Feature pillars switched OFF (JSON array). Every pillar defaults on, so this is empty for most installs.' },
+    ],
+  },
+  {
+    name: 'dashboard_mode_changed',
+    title: 'Dashboard mode changed',
+    status: 'live',
+    source: 'service',
+    description: 'The lighting or cooling page was switched between simple and advanced (POST /preferences). Only fires on an actual transition. This is the only trustworthy measure of preference: the v15 settings migration seeded every pre-existing install to "advanced", so the current value alone cannot tell a deliberate choice from a migration default.',
+    params: [
+      { name: 'surface', type: 'string', required: true, description: 'lighting | cooling - which page was switched.' },
+      { name: 'from', type: 'string', required: true, description: 'The mode before the switch.' },
+      { name: 'to', type: 'string', required: true, description: 'The mode after the switch.' },
+    ],
+  },
+  {
+    name: 'onboarding_completed',
+    title: 'Onboarding completed',
+    status: 'live',
+    source: 'service',
+    description: 'The first-run welcome sequence finished (POST /onboarding/complete). Fires at most once per install - a repeat post finds the flag already set. Paired with the hardware person properties, this is the activation signal: which machines get through setup.',
+    params: [],
+  },
+  {
+    name: 'widget_added',
+    title: 'Widget added',
+    status: 'planned',
+    source: 'service',
+    description: 'A widget was placed on a panel. Reserved to pair with widget_removed so adoption can be told apart from retention - what people try versus what they keep. Not wired yet; layout_snapshot covers the census in the meantime.',
+    params: [
+      { name: 'widget', type: 'string', required: true, description: 'Widget type key.' },
+      { name: 'surface', type: 'string', required: true, description: 'Panel surface it was added to.' },
+    ],
+  },
+  {
+    name: 'widget_removed',
+    title: 'Widget removed',
+    status: 'planned',
+    source: 'service',
+    description: 'A widget was removed from a panel. The other half of widget_added. Not wired yet.',
+    params: [
+      { name: 'widget', type: 'string', required: true, description: 'Widget type key.' },
+      { name: 'surface', type: 'string', required: true, description: 'Panel surface it was removed from.' },
     ],
   },
   {

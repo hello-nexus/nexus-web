@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import {
   TELEMETRY_EVENTS,
   AUTO_PROPERTIES,
+  PERSON_PROPERTIES,
   type TelemetryEventDoc,
   type TelemetryParam,
 } from './events';
@@ -53,6 +54,17 @@ export function TelemetryReference() {
         <h2>Automatic properties</h2>
         <p className={styles.dim}>Attached to every event - you never pass these yourself.</p>
         <ParamTable params={AUTO_PROPERTIES} />
+      </section>
+
+      <section className={styles.autoProps}>
+        <h2>Person properties</h2>
+        <p className={styles.dim}>
+          Attached to the anonymous install, not to any single event, and refreshed only when a
+          value changes. This is what lets every event below be broken down by hardware. Counts and
+          enum values only - no user-authored text (widget titles, renamed devices, panel names)
+          ever leaves the machine.
+        </p>
+        <ParamTable params={PERSON_PROPERTIES} />
       </section>
 
       <div className={styles.list}>
