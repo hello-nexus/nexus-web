@@ -172,8 +172,6 @@ export function ColorTuningModal({ devices, deviceIds, onClose }: ColorTuningMod
   return (
     <DeviceModal open onClose={onClose} title={t('lighting.colorTuning.title')} medium>
       <div className={styles.body}>
-        <p className={styles.hint}>{t('lighting.colorTuning.hint')}</p>
-
         {/* Read-only: the scope is whatever the device rail had selected when
             the menu was opened, so this states what is about to change rather
             than offering another place to change it. */}

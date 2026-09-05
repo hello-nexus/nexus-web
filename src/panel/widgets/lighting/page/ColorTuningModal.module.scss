@@ -7,12 +7,6 @@
   min-width: 0;
 }
 
-.hint {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-}
-
 .section {
   display: flex;
   flex-direction: column;
@@ -66,6 +60,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  // The ribbon is a dense block of colour; without this the Brightness label
+  // sits right under the Tuned band and reads as part of it.
+  margin-top: var(--space-sm);
 }
 
 .control {
