@@ -51,14 +51,15 @@ export function getAllMarketplaceListings(): AppInstalledListing[] {
 }
 
 /**
- * Whether a marketplace app is shown in the Add-a-Widget picker. Every
- * bundled general-purpose SDK app (screentime / displays / media / weather,
- * ...) has a native built-in equivalent, so those stay delisted to avoid
- * offering two of each - of the bundled set the picker enables only a listing
- * the service flags `preinstalled && page`, i.e. the OEM bake-in app on the
- * machine it was bundled for. An app the user installed themselves (from the
- * store or sideloaded, `source: 'user'`) is always offered: they chose it, and
- * without a picker entry it could never be placed on a release build.
+ * Whether a marketplace app is shown in the Add-a-Widget picker. The bundled
+ * general-purpose SDK apps (timer, stopwatch, showcase) have native built-in
+ * equivalents, so those stay delisted to avoid offering two of each - of the
+ * bundled set the picker enables only a listing the service flags
+ * `preinstalled && page`, i.e. the OEM bake-in app on the machine it was
+ * bundled for. An app in the user apps root (`source: 'user'`: a store install
+ * or a manual copy) is always offered: the user chose it, and without a picker
+ * entry it could never be placed on a release build. A user copy of a bundled
+ * id shadows the bundled one and lists too, which is that user's own doing.
  * Installed-but-delisted widgets still resolve via `lookupApp`
  * (already-placed instances keep rendering) but aren't offered.
  */
