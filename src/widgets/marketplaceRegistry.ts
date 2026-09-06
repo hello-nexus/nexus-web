@@ -52,16 +52,21 @@ export function getAllMarketplaceListings(): AppInstalledListing[] {
 
 /**
  * Whether a marketplace app is shown in the Add-a-Widget picker. Every
- * general-purpose SDK app (screentime / displays / media / weather, ...) has
- * a native built-in equivalent, so those stay delisted to avoid offering two
- * of each - the picker enables only a listing the service flags `preinstalled
- * && page`, i.e. the OEM bake-in app on the machine it was bundled for.
+ * bundled general-purpose SDK app (screentime / displays / media / weather,
+ * ...) has a native built-in equivalent, so those stay delisted to avoid
+ * offering two of each - of the bundled set the picker enables only a listing
+ * the service flags `preinstalled && page`, i.e. the OEM bake-in app on the
+ * machine it was bundled for. An app the user installed themselves (from the
+ * store or sideloaded, `source: 'user'`) is always offered: they chose it, and
+ * without a picker entry it could never be placed on a release build.
  * Installed-but-delisted widgets still resolve via `lookupApp`
  * (already-placed instances keep rendering) but aren't offered.
  */
 export function isMarketplaceIdEnabled(id: string): boolean {
   const listing = getMarketplaceListing(id);
-  return !!listing?.preinstalled && !!listing?.page;
+  if (!listing) return false;
+  if (listing.source === 'user') return true;
+  return !!listing.preinstalled && !!listing.page;
 }
 
 /**
