@@ -97,6 +97,8 @@ export interface SliderProps {
 export interface ButtonProps extends WithChildren {
   label?: string; tone?: UiTone; variant?: 'solid' | 'soft' | 'ghost';
   disabled?: boolean; icon?: string; size?: 'sm' | 'md' | 'lg';
+  /** https URL the host opens in the system browser on press (press still fires). */
+  href?: string;
   onPress?: () => void;
   /** Fires on a press held past the long-press threshold (touch + mouse). */
   onLongPress?: () => void;
@@ -192,7 +194,50 @@ export interface AvatarProps {
   interactive?: boolean;
   /** Loops the authored reaction showcase (wave/cheer/dance/...). Default false. */
   demo?: boolean;
+  /**
+   * Text strip pinned to the bottom of the fullscreen immersive view (e.g. a
+   * live-presence line). Hidden in a widget tile and when empty/absent.
+   */
+  status?: string;
+  /** Adds a red live dot ahead of the status text. Default false. */
+  statusLive?: boolean;
+  /**
+   * A live player docked large at the bottom of the immersive view, with a
+   * button that opens `open` in the system browser. Hidden in a widget tile
+   * and when absent. `embed` must be an https embed URL on an allowlisted
+   * player host (YouTube today); anything else renders nothing.
+   */
+  stream?: AvatarStream;
+  /**
+   * Sticker palette for the immersive view. Non-empty shows a Stickers button
+   * in the bottom dock; sticker mode lets the viewer add, drag, pinch-scale,
+   * twist-rotate and remove stickers over the stage. `src` is a same-origin
+   * app-asset URL or data:image; third-party https is refused.
+   */
+  stickers?: AvatarSticker[];
+  /** The placed stickers; keep this in local state and feed `onPlacements` back into it. */
+  placements?: AvatarStickerPlacement[];
+  /** Fires with the whole placed set after every add, move, pinch, or remove. */
+  onPlacements?: (placements: AvatarStickerPlacement[]) => void;
+  /**
+   * Fires with `true` when the avatar enters the panel's fullscreen immersive
+   * view and `false` when it leaves. Lets the app gate work (e.g. polling the
+   * presence source behind `status`) on actually being on stage.
+   */
+  onImmersive?: (immersive: boolean) => void;
 }
+export interface AvatarStream {
+  /** https embed URL on an allowlisted player host. */
+  embed: string;
+  /** https page the dock's button opens in the system browser. */
+  open?: string;
+  /** Button label; the host supplies a generic one when absent. */
+  label?: string;
+}
+export interface AvatarSticker { id: string; src: string }
+/** One placed sticker: centre `x`/`y` as 0..1 of the stage box, `s` scale
+ *  multiplier of the host's base sticker size, `r` rotation in degrees. */
+export interface AvatarStickerPlacement { id: string; sticker: string; x: number; y: number; s: number; r: number }
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }
 export interface ViewHeaderProps {
   title: string;
@@ -339,7 +384,7 @@ export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-in
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
-export const Avatar = createRemoteComponent('ui-avatar' as any, ELEMENT_CTORS['ui-avatar']) as unknown as React.FC<AvatarProps>;
+export const Avatar = eventComponent<AvatarProps>('ui-avatar', ELEMENT_CTORS['ui-avatar'], [['onImmersive', 'immersive'], ['onPlacements', 'placements']]);
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);

@@ -56,8 +56,10 @@ export const UI_ELEMENTS = {
     properties: ['value', 'min', 'max', 'step', 'tone', 'label', 'disabled', 'trackFill', 'orientation'],
     events: ['input', 'change'],
   },
+  // `href` is an https URL the host opens in the system browser on press
+  // (press still fires); anything else is ignored.
   'ui-button': {
-    properties: ['label', 'tone', 'variant', 'disabled', 'icon', 'size'],
+    properties: ['label', 'tone', 'variant', 'disabled', 'icon', 'size', 'href'],
     events: ['press', 'longpress'],
   },
   'ui-stepper': {
@@ -167,8 +169,22 @@ export const UI_ELEMENTS = {
   // fullscreen immersive overlay - in a tile the canvas is always inert so a
   // tap falls through to tap-to-immersive. `pack` is a URL to a pack
   // directory or an encrypted .nxpack container.
+  //
+  // Immersive-only extras (all ignored in a tile): `status` is a text strip
+  // pinned to the bottom (`statusLive` adds a red live dot); `stream` is
+  // { embed, open?, label? } - an allowlisted https embed URL rendered as a
+  // large player above the strip with a button that opens `open` in the system
+  // browser; `stickers` is the palette [{ id, src }] a viewer can place over
+  // the stage, `placements` the placed set [{ id, sticker, x, y, s, r }] in
+  // stage-normalized coordinates, echoed back whole through `placements`
+  // after every add / move / pinch / remove. `immersive` fires true when the
+  // avatar takes the fullscreen stage and false when it leaves it.
   'ui-avatar': {
-    properties: ['pack', 'dance', 'listening', 'energy', 'reaction', 'intro', 'interactive', 'demo'],
+    properties: [
+      'pack', 'dance', 'listening', 'energy', 'reaction', 'intro', 'interactive', 'demo',
+      'status', 'statusLive', 'stream', 'stickers', 'placements',
+    ],
+    events: ['immersive', 'placements'],
   },
   // Standard page header - gives SDK pages the same title/tab chrome native pages
   // use. `tabs` is [{ key, label, disabled? }]; the host fires `change` with the key.

@@ -11,7 +11,7 @@
 // .agents/rules/context-provider-coverage.md - this component never throws
 // when mounted outside the catalog's PanelPreviewProvider.
 
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { User } from 'lucide-react';
 import type { HostProps } from './components';
 import { usePanelPreview } from '../../panel/widgets/common/PanelPreviewContext';
@@ -19,14 +19,22 @@ import { usePanelImmersive } from '../../panel/widgets/common/PanelImmersiveCont
 import { useTranslation } from '../../lib/i18n';
 import { Spinner } from '../../components/common/Spinner/Spinner';
 import { clampEnergy, parseReactionTrigger, resolveAvatarRenderMode, toBool } from './avatarProps';
+import {
+  STICKER_MAX_COUNT, newPlacement, parsePlacements, parseStickers, parseStream, type StickerPlacement,
+} from './avatarStickers';
+import { AvatarStickerLayer } from './AvatarStickerLayer';
+import { AvatarImmersiveDock } from './AvatarImmersiveDock';
 import type { AvatarSession } from './avatarSession';
 
 const wrapStyle: CSSProperties = {
   position: 'relative', display: 'flex', flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden',
 };
-const fadeStyle: CSSProperties = { position: 'absolute', inset: 0, background: '#000', opacity: 0, pointerEvents: 'none' };
+// top/left/right/bottom rather than inset: the Q-series panel is Chromium 83.
+const fadeStyle: CSSProperties = {
+  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: '#000', opacity: 0, pointerEvents: 'none',
+};
 const overlayStyle: CSSProperties = {
-  position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
   padding: 8, textAlign: 'center', color: 'var(--text-dim, currentColor)', fontSize: 12,
 };
 const previewStyle: CSSProperties = {
@@ -148,6 +156,13 @@ export function AvatarComposite(p: HostProps) {
   const reaction = typeof p.reaction === 'string' ? p.reaction : undefined;
   const intro = toBool(p.intro);
   const demo = toBool(p.demo);
+  // Immersive-only extras. Parsed every render (cheap) because remote-dom
+  // hands over fresh objects whenever the worker re-renders.
+  const status = typeof p.status === 'string' ? p.status.trim() : '';
+  const statusLive = toBool(p.statusLive);
+  const stream = useMemo(() => parseStream(p.stream), [p.stream]);
+  const stickers = useMemo(() => parseStickers(p.stickers), [p.stickers]);
+  const placementsProp = useMemo(() => parsePlacements(p.placements, stickers), [p.placements, stickers]);
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const fadeRef = useRef<HTMLDivElement | null>(null);
@@ -156,6 +171,52 @@ export function AvatarComposite(p: HostProps) {
   const [phase, setPhase] = useState<'loading' | 'ready' | 'error'>('loading');
 
   const livePack = mode.kind === 'live' ? mode.pack : null;
+
+  // Tells the worker when this mount takes / leaves the fullscreen stage. The
+  // immersive overlay runs its own worker, so its composite fires true on
+  // mount and false on unmount; a tile's composite never fires (false is the
+  // worker's starting assumption). Latest listener via ref: __events is a
+  // fresh object per synced render.
+  const eventsRef = useRef(p.__events);
+  eventsRef.current = p.__events;
+  useEffect(() => {
+    if (!immersive || mode.kind !== 'live') return;
+    eventsRef.current?.immersive?.(true);
+    return () => { eventsRef.current?.immersive?.(false); };
+  }, [immersive, mode.kind]);
+
+  // Sticker placements: the worker owns the persisted set, this mount owns
+  // the in-session copy so an edit shows at once and survives the round trip
+  // (emit -> worker local state -> prop) without a snap-back frame. A prop
+  // whose VALUE changes replaces the copy; a mere identity change does not.
+  const [placements, setPlacements] = useState<StickerPlacement[]>(placementsProp);
+  const placementsKey = JSON.stringify(placementsProp);
+  const lastKeyRef = useRef(placementsKey);
+  useEffect(() => {
+    if (lastKeyRef.current === placementsKey) return;
+    lastKeyRef.current = placementsKey;
+    setPlacements(placementsProp);
+  }, [placementsKey, placementsProp]);
+  const [stickerEditing, setStickerEditing] = useState(false);
+  const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
+  const commitPlacements = useCallback((next: StickerPlacement[]) => {
+    setPlacements(next);
+    lastKeyRef.current = JSON.stringify(next);
+    eventsRef.current?.placements?.(next);
+  }, []);
+  const addSticker = useCallback((stickerId: string) => {
+    if (placements.length >= STICKER_MAX_COUNT) return;
+    const added = newPlacement(stickerId);
+    setSelectedSticker(added.id);
+    commitPlacements([...placements, added]);
+  }, [placements, commitPlacements]);
+  const toggleStickerEditing = useCallback(() => {
+    setSelectedSticker(null);
+    setStickerEditing((v) => !v);
+  }, []);
+  useEffect(() => {
+    if (!immersive) setStickerEditing(false);
+  }, [immersive]);
 
   // True while this mount's wrapper holds the shared canvas. Holdership moves
   // outside React (applyClaim on acquire/release), so callers re-check per
@@ -361,6 +422,9 @@ export function AvatarComposite(p: HostProps) {
     );
   }
 
+  const showExtras = immersive && phase === 'ready';
+  const showDock = showExtras && (status !== '' || stream !== null || stickers.length > 0);
+
   return (
     // With gestures on (immersive), camera drags on the canvas must not arm
     // the overlay's swipe-down dismiss; exit stays on the grabber pill / ESC.
@@ -371,6 +435,27 @@ export function AvatarComposite(p: HostProps) {
       )}
       {phase === 'error' && (
         <div style={overlayStyle}>{t('sdk.avatar.loadError')}</div>
+      )}
+      {showExtras && stickers.length > 0 && (
+        <AvatarStickerLayer
+          stickers={stickers}
+          placements={placements}
+          editing={stickerEditing}
+          selectedId={selectedSticker}
+          onSelect={setSelectedSticker}
+          onChange={commitPlacements}
+        />
+      )}
+      {showDock && (
+        <AvatarImmersiveDock
+          status={status}
+          statusLive={statusLive}
+          stream={stream}
+          stickers={stickers}
+          editing={stickerEditing}
+          onToggleEditing={toggleStickerEditing}
+          onAddSticker={addSticker}
+        />
       )}
     </div>
   );

@@ -741,6 +741,33 @@ The full day/night world map + scrollable city cards. Self-ticking.
 |---|---|
 | `highlightTz` | `string` (IANA tz to highlight on the map) |
 
+#### `Avatar`
+A first-party 3D character (three.js) rendered host-side from a pack the app
+ships. In a tile it is inert; a tap opens the panel's fullscreen immersive
+view, where pointer orbit/zoom and the extras below live.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `pack` | `string` | URL to a pack directory or an encrypted `.nxpack` container (app-asset route) |
+| `dance` / `listening` | `boolean` | signal levels forwarded to the pack's bridge |
+| `energy` | `number` | 0..1 |
+| `reaction` | `string` | one-shot `"Trigger#seq"`; bump `seq` to re-fire |
+| `intro` | `boolean` | walk-in + camera push-in once on mount |
+| `interactive` | `boolean` | orbit/zoom in the immersive view (default true) |
+| `demo` | `boolean` | loops the authored reaction showcase |
+| `status` / `statusLive` | `string` / `boolean` | text strip pinned to the bottom of the immersive view; `statusLive` adds a live dot |
+| `stream` | `{ embed: string; open?: string; label?: string }` | a live player docked large at the bottom of the immersive view. `embed` must be a `https://www.youtube.com/embed/...` or `https://www.youtube-nocookie.com/embed/...` URL; the button opens `open` in the system browser |
+| `stickers` | `Array<{ id: string; src: string }>` | sticker palette; non-empty adds a Stickers button to the immersive dock. `src` is a same-origin app-asset URL (`/apps-api/installed/<id>/asset/...`) or `data:image`; third-party https is refused (the panel CSP would blank it) |
+| `placements` | `Array<{ id, sticker, x, y, s, r }>` | placed stickers: centre `x`/`y` as 0..1 of the stage, `s` scale multiplier, `r` degrees. Keep it in `useLocalState` |
+| `onPlacements` | `(placements) => void` | fires with the whole set after every add / drag / pinch / twist / remove |
+| `onImmersive` | `(immersive: boolean) => void` | `true` when the avatar takes the fullscreen stage, `false` when it leaves |
+
+Sticker mode (the dock's Stickers button) lets the viewer add from the
+palette, drag, pinch to scale (clamped), twist to rotate, and remove with the
+selected sticker's badge; stickers render over the stage but under the dock
+and the player, which folds away while editing. Outside the immersive view
+none of `status`, `stream` or `stickers` renders.
+
 ### `MediaImport`
 
 Host-mediated file pick + crop + upload. The app must list the `uploadPath` in

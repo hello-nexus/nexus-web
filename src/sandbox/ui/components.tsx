@@ -22,6 +22,7 @@ import { ICON_TABLE } from './icons';
 import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
 import { useTranslation } from '../../lib/i18n';
+import { isExternalHttpsUrl, openExternalUrl } from './openExternal';
 
 export interface HostProps {
   children?: ReactNode;
@@ -266,9 +267,15 @@ export function Button(p: HostProps) {
   const iconName = str(p.icon);
   const IconEl = iconName ? ICON_TABLE[iconName.toLowerCase()] : undefined;
   const iconNode: ReactNode = IconEl ? <IconEl size={size === 'sm' ? 12 : 16} aria-hidden="true" /> : undefined;
+  // `href` opens in the system browser on press; the worker still gets its
+  // press event so it can record the tap. Non-https values are ignored.
+  const href = isExternalHttpsUrl(p.href) ? p.href : undefined;
   const lp = useLongPress({
     onLongPress: p.__events?.longpress ? () => p.__events?.longpress?.() : undefined,
-    onPress: () => p.__events?.press?.(),
+    onPress: () => {
+      p.__events?.press?.();
+      if (href) void openExternalUrl(href);
+    },
     disabled,
   });
   return (
