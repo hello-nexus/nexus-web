@@ -18,14 +18,28 @@
 //   frame = nonce(12) || ciphertext || tag(16)
 //   nonce = [dir(1)] [counter(8, big-endian)] [0,0,0]
 //   dir = 1 host->client, 2 client->host; counter starts 0, +1 per frame per
-//   sender per connection. A fresh aeadKey per connection (new connSalt) means
-//   the (dir, counter) nonce space never repeats.
+//   sender per connection.
+//
+// Protocol v2 in-band rekey (defeats a frame recorded on one connection being
+// replayed on a later connection that reuses the same client-chosen connSalt):
+// immediately after the channel opens, the client seals {"c":"hello2"} under
+// aeadKey (K0) as its first frame; a v2 host replies under K0 with
+// {"c":"hn","hn":<base64url-nopad 16B>}, and the client switches to
+// K1 = deriveRekeyedAeadKey(relayRoot, connSalt, hostNonce), counters reset to
+// 0. A v1 host (anything else, or no reply within REKEY_TIMEOUT_MS) leaves the
+// channel on K0.
 
 const ROOT_INFO = 'nexus-relay-root-v1';
 const PAIRROOT_INFO = 'nexus-relay-pairroot-v1';
 const RENDEZVOUS_INFO = 'nexus-relay-rendezvous-v1';
 const HTTP_RENDEZVOUS_INFO = 'nexus-relay-http-rendezvous-v1';
 const AEAD_INFO = 'nexus-relay-aead-v1';
+const REKEY_INFO = 'nexus-relay-aead-v2';
+
+/** The client's first sealed frame on every rekey-capable channel. */
+export const REKEY_HELLO2 = '{"c":"hello2"}';
+/** How long the client waits for a v2 host's `hn` reply before falling back to K0. */
+export const REKEY_TIMEOUT_MS = 3000;
 
 const NONCE_LEN = 12;
 const TAG_LEN = 16;
@@ -106,6 +120,41 @@ export async function deriveAeadKey(relayRoot: Uint8Array, connSalt: Uint8Array)
   return crypto.subtle.importKey('raw', toArrayBuffer(raw), 'AES-GCM', false, ['encrypt', 'decrypt']);
 }
 
+/** Raw K1 HKDF output: HKDF(IKM=relayRoot, salt=connSalt||hostNonce, info="nexus-relay-aead-v2", L=32). */
+export async function deriveRekeyedAeadBytes(relayRoot: Uint8Array, connSalt: Uint8Array, hostNonce: Uint8Array): Promise<Uint8Array> {
+  const combinedSalt = new Uint8Array(connSalt.length + hostNonce.length);
+  combinedSalt.set(connSalt, 0);
+  combinedSalt.set(hostNonce, connSalt.length);
+  return hkdf(relayRoot, combinedSalt, REKEY_INFO, 32);
+}
+
+/**
+ * K1 = HKDF(IKM=relayRoot, salt=connSalt||hostNonce, info="nexus-relay-aead-v2", L=32), imported for AES-GCM.
+ * The post-handshake rekeyed key: connSalt is still this connection's own
+ * salt, but concatenating the host's fresh random nonce means K1 cannot be
+ * reproduced by presenting a recorded connSalt on a different connection.
+ */
+export async function deriveRekeyedAeadKey(relayRoot: Uint8Array, connSalt: Uint8Array, hostNonce: Uint8Array): Promise<CryptoKey> {
+  const raw = await deriveRekeyedAeadBytes(relayRoot, connSalt, hostNonce);
+  return crypto.subtle.importKey('raw', toArrayBuffer(raw), 'AES-GCM', false, ['encrypt', 'decrypt']);
+}
+
+interface HostNonceMessage {
+  c?: string;
+  hn?: string;
+}
+
+/** Parse a K0 frame's plaintext as the v2 host's rekey-nonce reply; null if it is not one (legacy host). */
+export function parseHostNonce(plaintext: string): string | null {
+  let msg: HostNonceMessage;
+  try {
+    msg = JSON.parse(plaintext) as HostNonceMessage;
+  } catch {
+    return null;
+  }
+  return msg.c === 'hn' && typeof msg.hn === 'string' && msg.hn.length > 0 ? msg.hn : null;
+}
+
 /**
  * Seal a UTF-8 plaintext string into a relay frame.
  * frame = nonce(12) || ciphertext || tag(16); WebCrypto appends the GCM tag
@@ -175,6 +224,15 @@ export function base64UrlNoPad(bytes: Uint8Array): string {
   let binary = '';
   for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** Inverse of base64UrlNoPad: base64url (no padding) to raw bytes. */
+export function base64UrlDecode(s: string): Uint8Array {
+  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+  const binary = atob(s.replace(/-/g, '+').replace(/_/g, '/') + pad);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 // Narrow a Uint8Array to a tight ArrayBuffer for the WebCrypto API. A subarray

@@ -3,7 +3,7 @@
 // canvas renderer, and the service client - kept separate from
 // usePhysicalDeckTarget.ts so the hook's effect logic stays readable.
 import { uploadStreamDeckKeyImage } from '../../../api/streamdeck';
-import { renderDeckKeyBitmap, type DeckKeyModel } from './renderDeckKeyBitmap';
+import { renderDeckKeyBitmap, type DeckKeyModel, type DeckKeyRenderOutcome } from './renderDeckKeyBitmap';
 import { deckImageSlotPath, type DeckUploadJob } from './deckTarget';
 
 /**
@@ -29,9 +29,13 @@ export async function pushDeckKeyImages(
     const key = `${slotPath}/${job.state}`;
     const signature = JSON.stringify(job.slot);
     if (uploaded.get(key) === signature) continue;
-    const bytes = await renderDeckKeyBitmap(job.slot, model);
+    const outcome: DeckKeyRenderOutcome = { siteIconMissing: false };
+    const bytes = await renderDeckKeyBitmap(job.slot, model, outcome);
     if (isStale()) return;
     const hash = await uploadStreamDeckKeyImage(serial, slotPath, job.state, bytes, model.format);
-    if (hash !== null) uploaded.set(key, signature);
+    // A key that fell back to the stock glyph because its site icon was not
+    // available yet stays unrecorded, so the next pass re-renders it instead of
+    // pinning the fallback for the life of the map.
+    if (hash !== null && !outcome.siteIconMissing) uploaded.set(key, signature);
   }
 }

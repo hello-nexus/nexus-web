@@ -14,14 +14,27 @@
 // dir=2 client→host, dir=1 host→client, per-channel counters starting at 0
 // under a per-channel key derived from a fresh random salt handed to the host
 // in the offer request. 256KB max frame either direction.
+//
+// Each channel opens with the same in-band rekey as the relay path
+// (relayCrypto.ts): the first frame sealed once the raw data channel opens is
+// {"c":"hello2"} under K0 (the salt-derived key from the offer); a v2 host
+// replies with {"c":"hn",...} and the channel switches to K1, counters reset;
+// a v1 host (anything else, or no reply within REKEY_TIMEOUT_MS) leaves the
+// channel on K0. RtcRuntimeChannel's readyState/onopen and RtcHttpTunnel's
+// request() gate are all held until this settles, per channel.
 
 import {
   DIR_CLIENT_TO_HOST,
   DIR_HOST_TO_CLIENT,
+  REKEY_HELLO2,
+  REKEY_TIMEOUT_MS,
+  base64UrlDecode,
   base64UrlNoPad,
   deriveAeadKey,
+  deriveRekeyedAeadKey,
   deriveRelayRoot,
   open as openFrame,
+  parseHostNonce,
   seal,
 } from './relayCrypto';
 import {
@@ -109,9 +122,16 @@ function waitForChannelOpen(dc: RTCDataChannel, timeoutMs: number): Promise<void
 /**
  * The "runtime" data channel wrapped in the same WebSocket-shaped seam
  * RelayChannel exposes, so useMultiplexSocket's wireTransport drives it
- * unchanged. The channel is already open by the time this is constructed by
- * openRtcDirect's caller in the common case; `onopen` fires (async) the moment
- * a handler is assigned if the channel got there first.
+ * unchanged. The raw channel is usually already open by the time this is
+ * constructed, but readyState stays CONNECTING and `onopen` withheld until the
+ * hello2/hn rekey handshake also settles - `onopen` then fires (async) the
+ * moment a handler is assigned if that already happened first. A legacy
+ * host's first (non-hn) frame is real data; it is queued and delivered to
+ * `onmessage` once a handler is attached, since that handler is normally
+ * assigned only after this class (and openRtcDirect) resolve the handshake.
+ * The queue holds one frame; a shipped host sends nothing else until the
+ * client subscribes, which can't happen before onopen, so a second frame
+ * arriving pre-attach (which would be dropped, not queued) is unreachable.
  */
 export class RtcRuntimeChannel {
   static readonly CONNECTING = 0;
@@ -120,7 +140,6 @@ export class RtcRuntimeChannel {
   static readonly CLOSED = 3;
 
   readyState: number;
-  onmessage: ((e: MessageEvent) => void) | null = null;
   onclose: ((e: CloseEvent) => void) | null = null;
   onerror: ((e: Event) => void) | null = null;
 
@@ -133,12 +152,25 @@ export class RtcRuntimeChannel {
     }
   }
 
+  private _onmessage: ((e: MessageEvent) => void) | null = null;
+  get onmessage(): ((e: MessageEvent) => void) | null { return this._onmessage; }
+  set onmessage(handler: ((e: MessageEvent) => void) | null) {
+    this._onmessage = handler;
+    if (handler && this.pendingMessage !== null) {
+      const data = this.pendingMessage;
+      this.pendingMessage = null;
+      queueMicrotask(() => this._onmessage === handler && handler(new MessageEvent('message', { data })));
+    }
+  }
+
   private sendCounter = 0;
   // Serializes outbound writes so frames reach the wire in counter order.
   private sendTail: Promise<void> = Promise.resolve();
   private lastRecvCounter = -1;
   private readonly dc: RTCDataChannel;
-  private readonly aeadKey: CryptoKey;
+  private readonly relayRoot: Uint8Array;
+  private readonly connSalt: Uint8Array;
+  private aeadKey: CryptoKey;
   private readonly onFatal: () => void;
   // Chains each handleMessage call onto the previous one's completion so the
   // (async) AEAD decrypts settle in delivery order - SCTP delivers this
@@ -146,16 +178,22 @@ export class RtcRuntimeChannel {
   // concurrently-kicked-off decrypts RESOLVE in that same order, which would
   // make the monotonic-counter check misfire on legitimate back-to-back frames.
   private inbox: Promise<void> = Promise.resolve();
+  // True once the post-open hello2/hn rekey handshake has resolved, either by
+  // switching aeadKey to K1 or falling back to K0 for a legacy host.
+  private rekeyDone = false;
+  private handshakeStarted = false;
+  private rekeyTimer: ReturnType<typeof setTimeout> | undefined;
+  // A legacy host's first (non-hn) frame, held until onmessage is attached.
+  private pendingMessage: string | null = null;
 
-  constructor(dc: RTCDataChannel, aeadKey: CryptoKey, onFatal: () => void) {
+  constructor(dc: RTCDataChannel, relayRoot: Uint8Array, connSalt: Uint8Array, aeadKey: CryptoKey, onFatal: () => void) {
     this.dc = dc;
+    this.relayRoot = relayRoot;
+    this.connSalt = connSalt;
     this.aeadKey = aeadKey;
     this.onFatal = onFatal;
-    this.readyState = dc.readyState === 'open' ? RtcRuntimeChannel.OPEN : RtcRuntimeChannel.CONNECTING;
-    dc.onopen = () => {
-      this.readyState = RtcRuntimeChannel.OPEN;
-      this._onopen?.(new Event('open'));
-    };
+    this.readyState = RtcRuntimeChannel.CONNECTING;
+    dc.onopen = () => { void this.beginRekey(); };
     dc.onclose = () => this.onFatal();
     dc.onerror = () => this.onFatal();
     // A rejection (a throwing onmessage consumer, not handleMessage itself -
@@ -165,12 +203,45 @@ export class RtcRuntimeChannel {
     dc.onmessage = (e) => {
       this.inbox = this.inbox.then(() => this.handleMessage(e)).catch(() => this.onFatal());
     };
+    if (dc.readyState === 'open') void this.beginRekey();
+  }
+
+  /** Seal {"c":"hello2"} under K0 as the first frame and arm the fallback timeout. */
+  private async beginRekey(): Promise<void> {
+    if (this.handshakeStarted) return;
+    this.handshakeStarted = true;
+    let helloFrame: Uint8Array;
+    try {
+      // Consumes sendCounter's 0 so a legacy K0 fallback's first real frame
+      // (which does NOT reset the counter) never reuses it under the same key.
+      helloFrame = await seal(this.aeadKey, DIR_CLIENT_TO_HOST, this.sendCounter++, REKEY_HELLO2);
+    } catch {
+      this.onFatal();
+      return;
+    }
+    if (this.readyState === RtcRuntimeChannel.CLOSED || this.dc.readyState !== 'open') return;
+    try {
+      this.dc.send(toArrayBuffer(helloFrame));
+    } catch {
+      this.onFatal();
+      return;
+    }
+    this.rekeyTimer = setTimeout(() => {
+      // No host frame at all within the window ⇒ legacy host; fall back to K0.
+      if (!this.rekeyDone) this.finishRekey(null);
+    }, REKEY_TIMEOUT_MS);
   }
 
   private async handleMessage(e: MessageEvent): Promise<void> {
-    if (this.readyState !== RtcRuntimeChannel.OPEN) return;
+    if (this.readyState === RtcRuntimeChannel.CLOSED) return;
     const frame = e.data instanceof ArrayBuffer ? new Uint8Array(e.data) : null;
     if (!frame || frame.byteLength > MAX_FRAME_BYTES) { this.onFatal(); return; }
+
+    if (!this.rekeyDone) {
+      await this.handleRekeyFrame(frame);
+      return;
+    }
+
     let opened;
     try {
       opened = await openFrame(this.aeadKey, frame);
@@ -179,8 +250,65 @@ export class RtcRuntimeChannel {
       return;
     }
     if (opened.dir !== DIR_HOST_TO_CLIENT || opened.counter <= this.lastRecvCounter) { this.onFatal(); return; }
+    if (parseHostNonce(opened.plaintext) !== null) {
+      // An hn frame after the handshake already settled means the host and
+      // client disagree on the key (e.g. the host switched to K1 only after
+      // our fallback timer had already committed us to K0) - unrecoverable.
+      this.onFatal();
+      return;
+    }
     this.lastRecvCounter = opened.counter;
     this.onmessage?.(new MessageEvent('message', { data: opened.plaintext }));
+  }
+
+  /** The first frame after hello2: either the v2 host's hn reply, or a legacy host's first real frame. */
+  private async handleRekeyFrame(frame: Uint8Array): Promise<void> {
+    clearTimeout(this.rekeyTimer);
+    let opened;
+    try {
+      opened = await openFrame(this.aeadKey, frame);
+    } catch {
+      // Tag-verify failure is a channel error, not a legacy-fallback signal.
+      this.onFatal();
+      return;
+    }
+    if (opened.dir !== DIR_HOST_TO_CLIENT) { this.onFatal(); return; }
+
+    const hn = parseHostNonce(opened.plaintext);
+    if (hn) {
+      let k1: CryptoKey;
+      try {
+        k1 = await deriveRekeyedAeadKey(this.relayRoot, this.connSalt, base64UrlDecode(hn));
+      } catch {
+        this.onFatal();
+        return;
+      }
+      this.aeadKey = k1;
+      this.sendCounter = 0;
+      this.lastRecvCounter = -1;
+      this.finishRekey(null);
+      return;
+    }
+
+    // Legacy host: this frame is real multiplex data under K0.
+    this.lastRecvCounter = opened.counter;
+    this.finishRekey(opened.plaintext);
+  }
+
+  /** Resolve the rekey handshake: go OPEN, then deliver a legacy-fallback frame (queued if no onmessage yet). */
+  private finishRekey(pendingPlaintext: string | null): void {
+    if (this.rekeyDone || this.readyState === RtcRuntimeChannel.CLOSED) return;
+    clearTimeout(this.rekeyTimer);
+    this.rekeyDone = true;
+    this.readyState = RtcRuntimeChannel.OPEN;
+    this._onopen?.(new Event('open'));
+    if (pendingPlaintext !== null) {
+      if (this._onmessage) {
+        this._onmessage(new MessageEvent('message', { data: pendingPlaintext }));
+      } else {
+        this.pendingMessage = pendingPlaintext;
+      }
+    }
   }
 
   send(text: string): void {
@@ -202,6 +330,7 @@ export class RtcRuntimeChannel {
   /** Idempotent local teardown - detaches the raw channel and fires onclose once. */
   close(): void {
     if (this.readyState === RtcRuntimeChannel.CLOSED) return;
+    clearTimeout(this.rekeyTimer);
     this.readyState = RtcRuntimeChannel.CLOSED;
     this.dc.onopen = null;
     this.dc.onmessage = null;
@@ -221,7 +350,9 @@ export class RtcRuntimeChannel {
 /**
  * The "http" data channel counterpart of RelayHttpTunnel: same id-multiplexed
  * request/response framing (httpTunnelFraming.ts), sealed the same way, but
- * over an already-open data channel instead of a lazily-dialed relay WS.
+ * over an already-open data channel instead of a lazily-dialed relay WS. Runs
+ * the identical hello2/hn rekey handshake as RtcRuntimeChannel; `request()`
+ * gates on it the same way RelayHttpTunnel's `ready` does.
  */
 export class RtcHttpTunnel {
   private dead = false;
@@ -231,17 +362,32 @@ export class RtcHttpTunnel {
   private lastRecvCounter = -1;
   private readonly tracker = new PendingRequestTracker();
   private readonly dc: RTCDataChannel;
-  private readonly aeadKey: CryptoKey;
+  private readonly relayRoot: Uint8Array;
+  private readonly connSalt: Uint8Array;
+  private aeadKey: CryptoKey;
   private readonly onFatal: () => void;
   // See RtcRuntimeChannel.inbox - serializes handleMessage so the async AEAD
   // decrypts settle in delivery order, keeping the monotonic-counter check
   // valid for concurrently-kicked-off responses.
   private inbox: Promise<void> = Promise.resolve();
+  // True once the post-open hello2/hn rekey handshake has resolved, either by
+  // switching aeadKey to K1 or falling back to K0 for a legacy host.
+  private rekeyDone = false;
+  private handshakeStarted = false;
+  private rekeyTimer: ReturnType<typeof setTimeout> | undefined;
+  // Resolves once the rekey handshake settles; request() awaits it so no real
+  // request is ever sealed under a key the handshake might still replace.
+  private readonly ready: Promise<void>;
+  private readyResolve!: () => void;
 
-  constructor(dc: RTCDataChannel, aeadKey: CryptoKey, onFatal: () => void) {
+  constructor(dc: RTCDataChannel, relayRoot: Uint8Array, connSalt: Uint8Array, aeadKey: CryptoKey, onFatal: () => void) {
     this.dc = dc;
+    this.relayRoot = relayRoot;
+    this.connSalt = connSalt;
     this.aeadKey = aeadKey;
     this.onFatal = onFatal;
+    this.ready = new Promise((resolve) => { this.readyResolve = resolve; });
+    dc.onopen = () => { void this.beginRekey(); };
     dc.onclose = () => this.onFatal();
     dc.onerror = () => this.onFatal();
     // See RtcRuntimeChannel's identical onmessage - the .catch() keeps a
@@ -250,12 +396,45 @@ export class RtcHttpTunnel {
     dc.onmessage = (e) => {
       this.inbox = this.inbox.then(() => this.handleMessage(e)).catch(() => this.onFatal());
     };
+    if (dc.readyState === 'open') void this.beginRekey();
+  }
+
+  /** Seal {"c":"hello2"} under K0 as the first request frame and arm the fallback timeout. */
+  private async beginRekey(): Promise<void> {
+    if (this.handshakeStarted) return;
+    this.handshakeStarted = true;
+    let helloFrame: Uint8Array;
+    try {
+      // Consumes sendCounter's 0 so a legacy K0 fallback's first real frame
+      // (which does NOT reset the counter) never reuses it under the same key.
+      helloFrame = await seal(this.aeadKey, DIR_CLIENT_TO_HOST, this.sendCounter++, REKEY_HELLO2);
+    } catch {
+      this.onFatal();
+      return;
+    }
+    if (this.dead || this.dc.readyState !== 'open') return;
+    try {
+      this.dc.send(toArrayBuffer(helloFrame));
+    } catch {
+      this.onFatal();
+      return;
+    }
+    this.rekeyTimer = setTimeout(() => {
+      // No host frame at all within the window ⇒ legacy host; fall back to K0.
+      if (!this.rekeyDone) this.finishRekey();
+    }, REKEY_TIMEOUT_MS);
   }
 
   private async handleMessage(e: MessageEvent): Promise<void> {
     if (this.dead) return;
     const frame = e.data instanceof ArrayBuffer ? new Uint8Array(e.data) : null;
     if (!frame || frame.byteLength > MAX_FRAME_BYTES) { this.onFatal(); return; }
+
+    if (!this.rekeyDone) {
+      await this.handleRekeyFrame(frame);
+      return;
+    }
+
     let opened;
     try {
       opened = await openFrame(this.aeadKey, frame);
@@ -264,14 +443,74 @@ export class RtcHttpTunnel {
       return;
     }
     if (opened.dir !== DIR_HOST_TO_CLIENT || opened.counter <= this.lastRecvCounter) { this.onFatal(); return; }
+    if (parseHostNonce(opened.plaintext) !== null) {
+      // An hn frame after the handshake already settled means the host and
+      // client disagree on the key (e.g. the host switched to K1 only after
+      // our fallback timer had already committed us to K0) - unrecoverable.
+      this.onFatal();
+      return;
+    }
     this.lastRecvCounter = opened.counter;
     let wire: HttpTunnelResponseWire;
     try { wire = JSON.parse(opened.plaintext) as HttpTunnelResponseWire; } catch { return; }
     this.tracker.resolve(wire);
   }
 
+  /** The first frame after hello2: either the v2 host's hn reply, or a legacy host's first real response. */
+  private async handleRekeyFrame(frame: Uint8Array): Promise<void> {
+    clearTimeout(this.rekeyTimer);
+    let opened;
+    try {
+      opened = await openFrame(this.aeadKey, frame);
+    } catch {
+      // Tag-verify failure is a channel error, not a legacy-fallback signal.
+      this.onFatal();
+      return;
+    }
+    if (opened.dir !== DIR_HOST_TO_CLIENT) { this.onFatal(); return; }
+
+    const hn = parseHostNonce(opened.plaintext);
+    if (hn) {
+      let k1: CryptoKey;
+      try {
+        k1 = await deriveRekeyedAeadKey(this.relayRoot, this.connSalt, base64UrlDecode(hn));
+      } catch {
+        this.onFatal();
+        return;
+      }
+      this.aeadKey = k1;
+      this.sendCounter = 0;
+      this.lastRecvCounter = -1;
+      this.finishRekey();
+      return;
+    }
+
+    // Legacy host: this frame is a real response (e.g. its 403/id:0 answer to
+    // hello2); route it through the normal id match, a no-op on an unknown id.
+    this.lastRecvCounter = opened.counter;
+    let wire: HttpTunnelResponseWire | null = null;
+    try { wire = JSON.parse(opened.plaintext) as HttpTunnelResponseWire; } catch { /* not JSON: nothing to match */ }
+    if (wire) this.tracker.resolve(wire);
+    this.finishRekey();
+  }
+
+  private finishRekey(): void {
+    if (this.rekeyDone || this.dead) return;
+    clearTimeout(this.rekeyTimer);
+    this.rekeyDone = true;
+    this.readyResolve();
+  }
+
   /** Seal an HTTP request frame and await the sealed response matched by id. */
   async request(method: RelayHttpMethod, path: string, body: string | null, contentType: string | null): Promise<RelayResponse> {
+    if (this.dead) throw new Error('rtc http: channel not open');
+    if (!this.rekeyDone) {
+      // Nothing armed the handshake at all (the raw channel never opened) - a
+      // request made against it will never proceed, so fail fast instead of
+      // hanging on `ready` forever.
+      if (!this.handshakeStarted) throw new Error('rtc http: channel not open');
+      await this.ready;
+    }
     if (this.dead || this.dc.readyState !== 'open') throw new Error('rtc http: channel not open');
     if (this.dc.bufferedAmount > MAX_BUFFERED_AMOUNT) throw new Error('rtc http: channel busy');
 
@@ -316,6 +555,10 @@ export class RtcHttpTunnel {
   close(): void {
     if (this.dead) return;
     this.dead = true;
+    clearTimeout(this.rekeyTimer);
+    // Unblock any request() awaiting the handshake gate; the post-await dead
+    // check then rejects it.
+    this.readyResolve();
     this.tracker.rejectAll(new Error('rtc http: tunnel closed'));
     this.dc.onopen = null;
     this.dc.onmessage = null;
@@ -340,9 +583,11 @@ interface RtcOfferResponse {
 /**
  * Attempt the WebRTC hole-punch: create the offerer peer connection + both
  * data channels, gather ICE (non-trickle, capped), exchange the offer/answer
- * over POST /rtc/offer, and await both channels opening. Rejects (closing the
- * peer connection first) on any failure - a 403 (killswitch off / invalid) is
- * just another rejection here; the caller's backoff keeps this from retrying
+ * over POST /rtc/offer, and await both channels opening AND the runtime
+ * channel's own hello2/hn rekey handshake settling (the caller checks
+ * conn.runtime.readyState synchronously). Rejects (closing the peer
+ * connection first) on any failure - a 403 (killswitch off / invalid) is just
+ * another rejection here; the caller's backoff keeps this from retrying
  * tightly.
  */
 export async function openRtcDirect(sessionToken: string): Promise<RtcDirectConnection> {
@@ -374,8 +619,8 @@ export async function openRtcDirect(sessionToken: string): Promise<RtcDirectConn
     const runtimeKey = await deriveAeadKey(relayRoot, runtimeSalt);
     const httpKey = await deriveAeadKey(relayRoot, httpSalt);
 
-    runtime = new RtcRuntimeChannel(runtimeDc, runtimeKey, teardown);
-    http = new RtcHttpTunnel(httpDc, httpKey, teardown);
+    runtime = new RtcRuntimeChannel(runtimeDc, relayRoot, runtimeSalt, runtimeKey, teardown);
+    http = new RtcHttpTunnel(httpDc, relayRoot, httpSalt, httpKey, teardown);
     pc.addEventListener('connectionstatechange', () => {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') teardown();
     });
@@ -404,6 +649,18 @@ export async function openRtcDirect(sessionToken: string): Promise<RtcDirectConn
       waitForChannelOpen(runtimeDc, CHANNEL_OPEN_TIMEOUT_MS),
       waitForChannelOpen(httpDc, CHANNEL_OPEN_TIMEOUT_MS),
     ]);
+
+    // useMultiplexSocket checks conn.runtime.readyState synchronously right
+    // after this resolves, so the runtime channel's own hello2/hn rekey
+    // handshake (armed the moment its raw data channel opened, above) must
+    // also have settled - OPEN via K1 or the legacy K0 fallback - before this
+    // returns.
+    if (runtime.readyState !== RtcRuntimeChannel.OPEN) {
+      await new Promise<void>((resolve, reject) => {
+        runtime!.onopen = () => resolve();
+        runtime!.onclose = () => reject(new Error('rtc direct: runtime channel closed during rekey'));
+      });
+    }
 
     return { pc, runtime, http, close: teardown };
   } catch (err) {

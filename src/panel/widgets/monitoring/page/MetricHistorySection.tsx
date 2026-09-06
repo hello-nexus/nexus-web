@@ -82,7 +82,7 @@ export interface MetricHistorySectionProps {
    *  the top of the selection line is offered. */
   onAddEventAt?: (t: number) => void;
   renderEventTooltip: (event: TimelineEvent) => ReactNode;
-  /** Global toggle (settings.monitoringFpsOverlayEnabled, off by default) -
+  /** Global toggle (settings.monitoringFpsOverlayEnabled, on by default) -
    *  gates both the overlay line and the session-range fetch that masks it. */
   fpsOverlayEnabled: boolean;
   /** Sessions overlapping the current window, for masking the fps series to
@@ -504,6 +504,7 @@ export function MetricHistorySection({
             tooltipExtra={tooltipExtra}
             tooltipHeaderExtra={tooltipHeaderTemp ?? undefined}
             onRangeSelect={history.onChartDragSelect}
+            onWheelZoom={history.onChartWheelZoom}
             stepSeconds={history.stepSeconds}
             yAxisSide="right"
             ribbons={ribbons}

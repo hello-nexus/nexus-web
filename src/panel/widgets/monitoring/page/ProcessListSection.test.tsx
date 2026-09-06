@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ProcessListSection, type ProcessListItem } from './ProcessListSection';
 import { reconcileLiveWithWindow } from './appWindowHelpers';
+import { I18nProvider } from '../../../../lib/i18n';
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { PrivacySession } from '../../../../api/monitoringPrivacy';
 
@@ -194,15 +195,48 @@ describe('ProcessListSection', () => {
     });
   });
 
-  it('shows the empty message when no items match', () => {
+  it('shows the no-match message, not the waiting message, when a search needle matches nothing in a non-empty list', () => {
     render(<ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
     fireEvent.change(screen.getByPlaceholderText('monitoring.history.process.searchPlaceholder'), { target: { value: 'zzz' } });
+    expect(screen.getByText('monitoring.history.process.noMatches')).toBeInTheDocument();
+    expect(screen.queryByText('monitoring.ranked.empty')).toBeNull();
+  });
+
+  it('shows the waiting message for an empty item list', () => {
+    render(<ProcessListSection items={[]} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
     expect(screen.getByText('monitoring.ranked.empty')).toBeInTheDocument();
   });
 
-  it('shows the empty message for an empty item list', () => {
-    render(<ProcessListSection items={[]} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />);
-    expect(screen.getByText('monitoring.ranked.empty')).toBeInTheDocument();
+  describe('search no-match vs missing-data empty state (real locale strings)', () => {
+    it('names the query in the no-match message when the needle matches nothing in a non-empty list', async () => {
+      render(
+        <I18nProvider>
+          <ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />
+        </I18nProvider>,
+      );
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'zzz' } });
+      expect(await screen.findByText('No processes match "zzz"')).toBeInTheDocument();
+    });
+
+    it('shows the waiting message, not a no-match message, when the underlying list itself is empty', async () => {
+      render(
+        <I18nProvider>
+          <ProcessListSection items={[]} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />
+        </I18nProvider>,
+      );
+      expect(await screen.findByText('Waiting for process data...')).toBeInTheDocument();
+    });
+
+    it('shows matching rows, not an empty state, when the needle matches', async () => {
+      render(
+        <I18nProvider>
+          <ProcessListSection items={items()} formatValue={v => `${v}%`} onSelectProcess={onSelectProcessMock} />
+        </I18nProvider>,
+      );
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: 'chr' } });
+      expect(await screen.findByText('Chrome')).toBeInTheDocument();
+      expect(screen.queryByText(/No processes match/)).toBeNull();
+    });
   });
 
   it('shows no privacy icon for a row with no matching session', () => {
@@ -486,9 +520,8 @@ describe('ProcessListSection', () => {
 
     // Generous enough to never flake under contention (measured locally
     // under jsdom at ~110ms for the initial mount, ~60ms for an
-    // all-new-values re-render; this workspace routinely runs several
-    // concurrent agent sessions on one machine - see
-    // .agents/rules/failure-log.md) while still catching a real regression
+    // all-new-values re-render; the dev box routinely runs several
+    // concurrent test sessions) while still catching a real regression
     // (an accidental unmemoized full-tree recompute, a stray O(n^2) pass).
     const BUDGET_MS = 2000;
 

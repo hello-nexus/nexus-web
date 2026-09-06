@@ -250,6 +250,110 @@ describe('TimeSeriesChart', () => {
     expect(tooltipHeader?.textContent).toMatch(/\d{1,2}:\d{2}/);
   });
 
+  describe('tooltip day badge', () => {
+    // makeSeries() sits at the epoch, so every hovered point is on a
+    // different calendar day from Date.now(); the same-day case uses points
+    // from the current hour instead.
+    it('stacks the calendar day under the time when the hovered point is not from today', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 60 });
+
+      const day = container.querySelector('[class*="tooltipDay"]');
+      expect(day?.textContent).toMatch(/19(69|70)/);
+      expect(container.querySelector('[class*="tooltipStamp"]')?.textContent).not.toBe(day?.textContent);
+    });
+
+    it('renders no day badge for a point from today', () => {
+      const now = Date.now();
+      const series: TimeSeriesSeries[] = [{
+        id: 'cpu', name: 'CPU', color: '#8b5cf6',
+        points: [{ t: now - 2 * 60_000, avg: 40, max: 45 }, { t: now - 60_000, avg: 50, max: 55 }, { t: now, avg: 60, max: 65 }],
+      }];
+      const { container } = render(<TimeSeriesChart series={series} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+
+      fireEvent.mouseMove(svg, { clientX: 220 });
+
+      expect(container.querySelector('[class*="tooltipHeader"]')).not.toBeNull();
+      expect(container.querySelector('[class*="tooltipDay"]')).toBeNull();
+    });
+  });
+
+  describe('wheel zoom', () => {
+    function stubRect(svg: SVGSVGElement) {
+      vi.spyOn(svg, 'getBoundingClientRect').mockReturnValue({
+        left: 0, top: 0, width: 440, height: 260, right: 440, bottom: 260, x: 0, y: 0, toJSON: () => ({}),
+      });
+    }
+
+    it('reports the time under the cursor and a widening factor for wheel down, and consumes the event once the handler took it', () => {
+      const onWheelZoom = vi.fn(() => true);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      const notConsumed = fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 });
+
+      expect(notConsumed).toBe(false);
+      expect(onWheelZoom).toHaveBeenCalledTimes(1);
+      const [anchorT, factor] = onWheelZoom.mock.calls[0];
+      expect(anchorT).toBeGreaterThan(0);
+      expect(anchorT).toBeLessThan(2 * HOUR);
+      expect(factor).toBeGreaterThan(1);
+    });
+
+    it('reports a narrowing factor for wheel up', () => {
+      const onWheelZoom = vi.fn(() => true);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      fireEvent.wheel(svg, { deltaY: -100, deltaMode: 0, clientX: 220 });
+
+      expect(onWheelZoom.mock.calls[0][1]).toBeLessThan(1);
+    });
+
+    it('lets mostly horizontal wheel motion (a trackpad pan) through untouched', () => {
+      const onWheelZoom = vi.fn(() => true);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      const notConsumed = fireEvent.wheel(svg, { deltaY: 3, deltaX: 40, deltaMode: 0, clientX: 220 });
+
+      expect(notConsumed).toBe(true);
+      expect(onWheelZoom).not.toHaveBeenCalled();
+    });
+
+    it('lets the wheel fall through to the page when the handler reports no change', () => {
+      const onWheelZoom = vi.fn(() => false);
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} onWheelZoom={onWheelZoom} />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      const notConsumed = fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 });
+
+      expect(onWheelZoom).toHaveBeenCalledTimes(1);
+      expect(notConsumed).toBe(true);
+    });
+
+    it('does nothing without the opt-in', () => {
+      const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
+      const svg = container.querySelector('svg')!;
+      stubRect(svg);
+
+      expect(fireEvent.wheel(svg, { deltaY: 100, deltaMode: 0, clientX: 220 })).toBe(true);
+    });
+  });
+
   it('clears the tooltip on mouse leave', () => {
     const { container } = render(<TimeSeriesChart series={makeSeries()} {...baseProps} />);
     const svg = container.querySelector('svg')!;

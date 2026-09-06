@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, resolveHttp } from './service';
+import { deleteService, fetchService, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 
@@ -138,7 +138,8 @@ export async function allocatePanelDeviceWithStatus(
   // to - tunnel the alloc over the relay so the panel registers without a
   // doomed mixed-content http://localhost call. Same status contract.
   if (isTunnelActive()) {
-    const { response, status } = await relayRequestWithStatus('POST', '/panel/devices', { displayName, capabilities });
+    const { response, status } = await relayRequestWithStatus(
+      'POST', '/panel/devices', { displayName, capabilities }, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (!response || !response.ok) return { ok: false, status };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
@@ -200,7 +201,12 @@ export type PanelDeviceFetchResult =
 // auto-persist loop when the kiosk holds an id the server no longer knows.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
   if (isTunnelActive()) {
-    const { response, status } = await relayRequestWithStatus('GET', `/panel/devices/${encodeURIComponent(id)}`);
+    // Bounded: the panel's loading gate is up until this settles, and an
+    // unreachable PC leaves the tunnel request pending indefinitely. On
+    // timeout the caller gets status 0 and stops auto-persisting, so the
+    // default layout it is still holding cannot overwrite the stored one.
+    const { response, status } = await relayRequestWithStatus(
+      'GET', `/panel/devices/${encodeURIComponent(id)}`, undefined, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
     return { found: false, status };
   }
@@ -231,12 +237,25 @@ export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDevic
 
 export type PanelDevicePatchResult =
   | { ok: true; record: PanelDeviceRecord }
-  | { ok: false; status: number };
+  | { ok: false; status: number; msg?: string };
+
+// Reads the ApiResponse.Fail body's `msg` off a failed response, so a caller
+// can distinguish which 403 (or other error) this was. Never throws - an
+// empty or non-JSON body just yields no msg.
+async function readErrorMsg(response: Response | null): Promise<string | undefined> {
+  if (!response) return undefined;
+  try {
+    return ((await response.json()) as { msg?: string })?.msg;
+  } catch {
+    return undefined;
+  }
+}
 
 export async function patchPanelDeviceWithStatus(id: string, patch: PanelDevicePatch): Promise<PanelDevicePatchResult> {
   if (isTunnelActive()) {
-    const { response, status } = await relayRequestWithStatus('POST', `/panel/devices/${encodeURIComponent(id)}`, patch);
-    if (!response || !response.ok) return { ok: false, status };
+    const { response, status } = await relayRequestWithStatus(
+      'POST', `/panel/devices/${encodeURIComponent(id)}`, patch, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
+    if (!response || !response.ok) return { ok: false, status, msg: await readErrorMsg(response) };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
   if (isRemoteOrigin) return { ok: false, status: 0 };
@@ -256,7 +275,7 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
         res = await fetch(url, buildInit());
       }
     }
-    if (!res.ok) return { ok: false, status: res.status };
+    if (!res.ok) return { ok: false, status: res.status, msg: await readErrorMsg(res) };
     return { ok: true, record: (await res.json()) as PanelDeviceRecord };
   } catch {
     return { ok: false, status: 0 };
@@ -446,6 +465,9 @@ export interface PanelPhonePairCodeRequestFrame {
   reason: PanelPhonePairCodeCancelReason | '';
 }
 
+/** Bound on the QR claim; an aborted claim surfaces as the pair-expired gate. */
+const CLAIM_TIMEOUT_MS = 8000;
+
 export async function claimPanelPhonePairing(pairToken: string, deviceId: string): Promise<PanelPhoneClaimResponse | null> {
   // resolveHttp points at http://localhost on a remote origin. The remote pair
   // flow claims over the relay (pairOverInternet) and lands on /panel/phone
@@ -456,11 +478,18 @@ export async function claimPanelPhonePairing(pairToken: string, deviceId: string
     // `deviceId` is the stable per-device id (carried from the LAN-direct
     // redirect's ?deviceId=, else this origin's own id) so the service dedups a
     // re-pair of the same device instead of minting a duplicate session.
+    // Hard timeout, same reasoning as pingService's: an https->localhost
+    // request can stall indefinitely on a browser's private-network preflight.
+    // The pair gate cannot offer Retry during the claim (its effect is not
+    // cancellable), so this bound is the only thing that ends a stalled claim.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CLAIM_TIMEOUT_MS);
     const res = await fetch(resolveHttp('/panel/phone/claim'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pairToken, deviceId, deviceName: deriveDeviceLabel() }),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
     if (!res.ok) {
       try { return (await res.json()) as PanelPhoneClaimResponse; }
       catch { return null; }

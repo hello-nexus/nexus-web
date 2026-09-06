@@ -68,7 +68,6 @@ interface PanelEmbedFrameProps {
   // 349px), below the y70 `@media (min-height:1500px)` breakpoint, so it paints
   // wrong gaps + an under-scaled cellScaler - the iframe looks squished while
   // the on-device panel is fine. The fix is here, NOT in PanelApp.module.scss.
-  // See .agents/rules/failure-log.md (2026-05-29).
   canvasIsCssPixels?: boolean;
   // Device physical density in CSS px (native dpi / device DPR), forwarded in
   // 'simulator/init' so the iframe's grid capacity math matches the on-device

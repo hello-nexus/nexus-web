@@ -1,11 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { deriveAeadKey, deriveRelayRoot, open as openFrame, seal, DIR_CLIENT_TO_HOST, DIR_HOST_TO_CLIENT } from './relayCrypto';
+import { pumpUntil, waitFor } from '../__tests__/asyncWait';
+import {
+  DIR_CLIENT_TO_HOST,
+  DIR_HOST_TO_CLIENT,
+  REKEY_HELLO2,
+  base64UrlDecode,
+  base64UrlNoPad,
+  deriveAeadKey,
+  deriveRekeyedAeadKey,
+  deriveRelayRoot,
+  open as openFrame,
+  seal,
+} from './relayCrypto';
 
 // Exercises the two RTCDataChannel wrappers (RtcRuntimeChannel, RtcHttpTunnel)
 // directly against a scriptable fake channel - no real WebRTC involved - plus
 // the openRtcDirect handshake against a fake RTCPeerConnection. The sealed
 // framing must interop byte-for-byte with the relay path, so the KAT vector is
-// the SAME one relayCrypto.test.ts locks (dir=1 counter=0 host->client).
+// the SAME one relayCrypto.test.ts locks (dir=1 counter=0 host->client). Both
+// wrappers run the same hello2/hn rekey as the relay path (relayChannel.test.ts,
+// relayHttp.test.ts) once their data channel opens - driveRekeyToK1 walks that
+// handshake for tests that need the channel past it.
 
 const authFetchWithStatusMock = vi.hoisted(() => vi.fn());
 vi.mock('./service', () => ({
@@ -86,56 +101,206 @@ class FakeDataChannel {
   }
 }
 
+async function deriveTestRoot(): Promise<Uint8Array> {
+  return deriveRelayRoot(KAT.token);
+}
+
 async function deriveTestKey(): Promise<CryptoKey> {
-  const root = await deriveRelayRoot(KAT.token);
+  const root = await deriveTestRoot();
   return deriveAeadKey(root, fromHex(KAT.connSalt));
 }
 
 // Yield real macrotask turns (not just microtasks) so a chained WebCrypto call
 // (seal/open, both genuinely async under jsdom's webcrypto shim) has settled
 // before the assertion reads its result.
-async function flushAsync(ticks = 8): Promise<void> {
+async function flushAsync(until?: () => boolean, ticks = 8): Promise<void> {
   for (let i = 0; i < ticks; i++) {
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
   }
+  // The turns alone race the real crypto on a loaded runner; a positive
+  // assertion passes its condition here.
+  if (until) await waitFor(until);
+}
+
+// Walks a channel through the v2 rekey handshake as a v2 host would: reads
+// dc.sent[0] as the client's sealed hello2 under K0, replies with a sealed
+// {"c":"hn",...} frame, and returns the resulting K1 (+ the hostNonce used).
+// Leaves dc.sent === [hello2] - subsequent sends land at dc.sent[1]...
+async function driveRekeyToK1(dc: FakeDataChannel, k0: CryptoKey, root: Uint8Array, connSalt: Uint8Array): Promise<{ k1: CryptoKey; hostNonce: Uint8Array }> {
+  await flushAsync(() => dc.sent.length >= 1);
+  expect(dc.sent).toHaveLength(1);
+  const hello = await openFrame(k0, new Uint8Array(dc.sent[0]));
+  expect(hello.dir).toBe(DIR_CLIENT_TO_HOST);
+  expect(hello.counter).toBe(0);
+  expect(hello.plaintext).toBe(REKEY_HELLO2);
+
+  const hostNonce = crypto.getRandomValues(new Uint8Array(16));
+  const hnFrame = await seal(k0, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: base64UrlNoPad(hostNonce) }));
+  dc.simulateMessage(toArrayBuffer(hnFrame));
+  await flushAsync();
+
+  const k1 = await deriveRekeyedAeadKey(root, connSalt, hostNonce);
+  return { k1, hostNonce };
 }
 
 describe('RtcRuntimeChannel sealed framing', () => {
-  it('opens the relayCrypto KAT frame (interop with the relay path)', async () => {
+  it('falls back to K0 when the first frame is not hn (a legacy host): delivered normally, KAT interop preserved', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open';
     const onFatal = vi.fn();
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, onFatal);
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
+    const opened = vi.fn();
+    channel.onopen = opened;
     const received: string[] = [];
     channel.onmessage = (e) => received.push(e.data as string);
 
+    await flushAsync(() => dc.sent.length >= 1);
+    expect(dc.sent).toHaveLength(1); // hello2, awaiting the host's reply
+
+    // The KAT frame is real multiplex data (not an hn reply) - a legacy host's
+    // answer, delivered as-is while the channel stays on K0.
     dc.simulateMessage(toArrayBuffer(fromHex(KAT.frame)));
-    await flushAsync();
+    await flushAsync(() => received.length >= 1);
 
     expect(received).toEqual([KAT.plaintext]);
+    expect(opened).toHaveBeenCalledTimes(1);
+    expect(channel.readyState).toBe(RtcRuntimeChannel.OPEN);
     expect(onFatal).not.toHaveBeenCalled();
   });
 
-  it('seals outbound sends as dir=client->host with an incrementing counter', async () => {
-    const key = await deriveTestKey();
+  it('seals hello2 under K0 first, then rekeys to K1 and seals outbound sends with an incrementing counter from 0', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open';
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, root, connSalt, k0, vi.fn());
+    const { k1 } = await driveRekeyToK1(dc, k0, root, connSalt);
 
     channel.send('{"sub":["monitoring"]}');
     channel.send('{"sub":["lighting"]}');
     await flushAsync();
-    await flushAsync();
+    await flushAsync(() => dc.sent.length >= 3);
 
-    expect(dc.sent).toHaveLength(2);
-    const first = await openFrame(key, new Uint8Array(dc.sent[0]));
-    const second = await openFrame(key, new Uint8Array(dc.sent[1]));
+    expect(dc.sent).toHaveLength(3); // [0] hello2 under K0, [1..2] under K1
+    const first = await openFrame(k1, new Uint8Array(dc.sent[1]));
+    const second = await openFrame(k1, new Uint8Array(dc.sent[2]));
     expect(first.dir).toBe(DIR_CLIENT_TO_HOST);
-    expect(first.counter).toBe(0);
+    expect(first.counter).toBe(0); // K1 counters restart at 0
     expect(first.plaintext).toBe('{"sub":["monitoring"]}');
     expect(second.counter).toBe(1);
     expect(second.plaintext).toBe('{"sub":["lighting"]}');
+  });
+
+  it('accepts a host frame under K1 counter 0 after rekey, and rejects one sealed under the superseded K0', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
+    const dc = new FakeDataChannel('runtime');
+    dc.readyState = 'open';
+    const onFatal = vi.fn();
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, root, connSalt, k0, onFatal);
+    const received: string[] = [];
+    channel.onmessage = (e) => received.push(e.data as string);
+    const { k1 } = await driveRekeyToK1(dc, k0, root, connSalt);
+
+    const k1Frame = await seal(k1, DIR_HOST_TO_CLIENT, 0, '{"t":"monitoring","d":{}}');
+    dc.simulateMessage(toArrayBuffer(k1Frame));
+    await flushAsync(() => received.length >= 1);
+    expect(received).toEqual(['{"t":"monitoring","d":{}}']);
+    expect(onFatal).not.toHaveBeenCalled();
+
+    // A frame sealed under the superseded K0 fails tag-verify under K1.
+    const staleK0Frame = await seal(k0, DIR_HOST_TO_CLIENT, 1, '{"t":"stale","d":{}}');
+    dc.simulateMessage(toArrayBuffer(staleK0Frame));
+    await flushAsync(() => received.length >= 1);
+    expect(received).toEqual(['{"t":"monitoring","d":{}}']);
+    expect(onFatal).toHaveBeenCalledTimes(1);
+  });
+
+  it('onFatal fires when an hn frame arrives after the handshake already settled (key desync)', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
+    const dc = new FakeDataChannel('runtime');
+    dc.readyState = 'open';
+    const onFatal = vi.fn();
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, root, connSalt, k0, onFatal);
+    const received: string[] = [];
+    channel.onmessage = (e) => received.push(e.data as string);
+    const { k1 } = await driveRekeyToK1(dc, k0, root, connSalt);
+
+    // The host apparently switched keys again after settling on K1 - an
+    // unrecoverable desync, not a second rekey.
+    const lateHn = await seal(k1, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: 'yQ' }));
+    dc.simulateMessage(toArrayBuffer(lateHn));
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
+
+    expect(received).toEqual([]);
+    expect(onFatal).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the connection when the hn field is not valid base64url', async () => {
+    const key = await deriveTestKey();
+    const dc = new FakeDataChannel('runtime');
+    dc.readyState = 'open';
+    const onFatal = vi.fn();
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
+    const opened = vi.fn();
+    channel.onopen = opened;
+
+    await flushAsync();
+    // A validly-sealed frame (tag verifies) whose hn value is not base64url.
+    const badHn = await seal(key, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: '!!!not base64!!!' }));
+    dc.simulateMessage(toArrayBuffer(badHn));
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
+
+    expect(opened).not.toHaveBeenCalled();
+    expect(onFatal).toHaveBeenCalledTimes(1);
+  });
+
+  it('falls back to K0 after REKEY_TIMEOUT_MS with no host reply at all', async () => {
+    vi.useFakeTimers();
+    try {
+      const k0 = await deriveTestKey();
+      const dc = new FakeDataChannel('runtime');
+      dc.readyState = 'open';
+      const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), k0, vi.fn());
+      const opened = vi.fn();
+      channel.onopen = opened;
+
+      await pumpUntil(() => opened.mock.calls.length > 0, 100); // past REKEY_TIMEOUT_MS, however slow the crypto
+      expect(opened).toHaveBeenCalledTimes(1);
+      expect(channel.readyState).toBe(RtcRuntimeChannel.OPEN);
+
+      channel.send('{"sub":["monitoring"]}');
+      await pumpUntil(() => dc.sent.length >= 2);
+      expect(dc.sent).toHaveLength(2); // [0] hello2, [1] the app's first send under K0
+      const sent = await openFrame(k0, new Uint8Array(dc.sent[1]));
+      expect(sent.counter).toBe(1); // 0 was hello2, never reused
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 20_000);
+
+  it('closes the connection on a tampered first frame instead of falling back', async () => {
+    const key = await deriveTestKey();
+    const dc = new FakeDataChannel('runtime');
+    dc.readyState = 'open';
+    const onFatal = vi.fn();
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
+    const opened = vi.fn();
+    channel.onopen = opened;
+
+    await flushAsync();
+    const tampered = new Uint8Array(await seal(key, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: 'x' })));
+    tampered[tampered.byteLength - 1] ^= 0xff;
+    dc.simulateMessage(toArrayBuffer(tampered));
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
+
+    expect(opened).not.toHaveBeenCalled();
+    expect(onFatal).toHaveBeenCalledTimes(1);
   });
 
   it('processes inbound frames in delivery order even when their decrypts would settle out of order', async () => {
@@ -144,14 +309,17 @@ describe('RtcRuntimeChannel sealed framing', () => {
     // have its monotonic-counter check run AFTER a faster later frame already
     // advanced lastRecvCounter, misfiring onFatal on legitimate traffic. Gate
     // the FIRST decrypt call to prove the second frame's decrypt is never even
-    // attempted until the first frame's handling has fully completed.
+    // attempted until the first frame's handling has fully completed. Frame0
+    // (a legacy first frame, not hn) also resolves the rekey handshake, so
+    // frame1 exercises the normal post-handshake path.
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open';
     const onFatal = vi.fn();
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, onFatal);
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
     const received: string[] = [];
     channel.onmessage = (e) => received.push(e.data as string);
+    await flushAsync(); // past hello2
 
     const frame0 = await seal(key, DIR_HOST_TO_CLIENT, 0, '{"t":"a","d":1}');
     const frame1 = await seal(key, DIR_HOST_TO_CLIENT, 1, '{"t":"b","d":2}');
@@ -169,14 +337,14 @@ describe('RtcRuntimeChannel sealed framing', () => {
     try {
       dc.simulateMessage(toArrayBuffer(frame0));
       dc.simulateMessage(toArrayBuffer(frame1));
-      await flushAsync();
+      await flushAsync(() => decryptCalls >= 1);
 
       // frame1's decrypt must not have started while frame0's is gated.
       expect(decryptCalls).toBe(1);
       expect(received).toEqual([]);
 
       releaseFirst();
-      await flushAsync();
+      await flushAsync(() => decryptCalls >= 2);
 
       expect(decryptCalls).toBe(2);
       expect(received).toEqual(['{"t":"a","d":1}', '{"t":"b","d":2}']);
@@ -191,88 +359,84 @@ describe('RtcRuntimeChannel sealed framing', () => {
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open';
     const onFatal = vi.fn();
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, onFatal);
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
     const received: string[] = [];
     channel.onmessage = (e) => received.push(e.data as string);
 
+    // A non-hn first frame both resolves the handshake (legacy K0) and is the
+    // "a" delivery below.
     const frame0 = await seal(key, DIR_HOST_TO_CLIENT, 0, '{"t":"a","d":1}');
     dc.simulateMessage(toArrayBuffer(frame0));
     await flushAsync();
     // Replay the same counter - must be rejected, not delivered.
     dc.simulateMessage(toArrayBuffer(frame0));
-    await flushAsync();
+    await flushAsync(() => received.length >= 1);
 
     expect(received).toEqual(['{"t":"a","d":1}']);
     expect(onFatal).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects a frame in the wrong direction (client->host reflected back)', async () => {
+  it('rejects a frame in the wrong direction (client->host reflected back) as the first frame', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open';
     const onFatal = vi.fn();
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, onFatal);
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
     const received: string[] = [];
     channel.onmessage = (e) => received.push(e.data as string);
 
     const wrongDir = await seal(key, DIR_CLIENT_TO_HOST, 0, '{"t":"a","d":1}');
     dc.simulateMessage(toArrayBuffer(wrongDir));
-    await flushAsync();
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
 
     expect(received).toEqual([]);
     expect(onFatal).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects a tampered frame (GCM tag verify fails) and closes the connection', async () => {
-    const key = await deriveTestKey();
-    const dc = new FakeDataChannel('runtime');
-    dc.readyState = 'open';
-    const onFatal = vi.fn();
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, onFatal);
-    const received: string[] = [];
-    channel.onmessage = (e) => received.push(e.data as string);
-
-    const frame = await seal(key, DIR_HOST_TO_CLIENT, 0, '{"t":"a","d":1}');
-    frame[frame.byteLength - 1] ^= 0xff; // flip a tag byte
-    dc.simulateMessage(toArrayBuffer(frame));
-    await flushAsync();
-
-    expect(received).toEqual([]);
-    expect(onFatal).toHaveBeenCalledTimes(1);
-  });
-
-  it('onopen fires (async) when assigned after the channel is already open', async () => {
+  it('onopen fires (async) when assigned after the handshake already resolved the channel to OPEN', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open'; // already open before the wrapper is constructed
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, vi.fn());
+
+    // Resolve the handshake (legacy fallback) before onopen is ever assigned.
+    await flushAsync();
+    dc.simulateMessage(toArrayBuffer(fromHex(KAT.frame)));
+    await flushAsync(() => channel.readyState === RtcRuntimeChannel.OPEN);
+    expect(channel.readyState).toBe(RtcRuntimeChannel.OPEN);
 
     const opened = vi.fn();
     channel.onopen = opened;
     expect(opened).not.toHaveBeenCalled(); // not synchronous
-    await flushAsync();
-    await flushAsync();
+    await flushAsync(() => opened.mock.calls.length >= 1);
     expect(opened).toHaveBeenCalledTimes(1);
   });
 
-  it('onopen fires when the channel opens after construction', async () => {
+  it('onopen only fires once the channel opens AND the rekey handshake resolves', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('runtime');
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, vi.fn());
     const opened = vi.fn();
     channel.onopen = opened;
     expect(opened).not.toHaveBeenCalled();
 
     dc.simulateOpen();
+    expect(opened).not.toHaveBeenCalled(); // raw open only starts the handshake
+    await flushAsync(() => dc.sent.length >= 1);
+    expect(dc.sent).toHaveLength(1); // hello2
+    expect(opened).not.toHaveBeenCalled(); // still awaiting the host's reply
+
+    dc.simulateMessage(toArrayBuffer(fromHex(KAT.frame))); // legacy fallback
+    await flushAsync(() => opened.mock.calls.length >= 1);
     expect(opened).toHaveBeenCalledTimes(1);
     expect(channel.readyState).toBe(RtcRuntimeChannel.OPEN);
   });
 
-  it('close() is idempotent and fires onclose once', async () => {
+  it('close() is idempotent and fires onclose once, even mid-handshake', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open';
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, vi.fn());
     const closed = vi.fn();
     channel.onclose = closed;
 
@@ -288,7 +452,7 @@ describe('RtcRuntimeChannel sealed framing', () => {
     const dc = new FakeDataChannel('runtime');
     dc.readyState = 'open';
     const onFatal = vi.fn();
-    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, key, onFatal);
+    const channel = new RtcRuntimeChannel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
     // Without a .catch() on the chained handleMessage promise, this throw
     // would leave the internal chain permanently rejected - .then() on a
     // rejected promise skips every later handler, so no frame after this one
@@ -297,29 +461,33 @@ describe('RtcRuntimeChannel sealed framing', () => {
 
     const frame0 = await seal(key, DIR_HOST_TO_CLIENT, 0, '{"t":"a","d":1}');
     dc.simulateMessage(toArrayBuffer(frame0));
-    await flushAsync();
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
 
     expect(onFatal).toHaveBeenCalledTimes(1);
   });
 });
 
 describe('RtcHttpTunnel', () => {
-  it('seals a request and resolves the matched sealed response', async () => {
-    const key = await deriveTestKey();
+  it('seals hello2 under K0 first, then rekeys to K1 and seals the real request under K1 counter 0', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
     const dc = new FakeDataChannel('http');
     dc.readyState = 'open';
-    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, vi.fn());
+    const { k1 } = await driveRekeyToK1(dc, k0, root, connSalt);
 
     const pending = tunnel.request('GET', '/panel/devices', null, null);
-    await flushAsync();
-    expect(dc.sent).toHaveLength(1);
-    const req = await openFrame(key, new Uint8Array(dc.sent[0]));
+    await flushAsync(() => dc.sent.length >= 2);
+    expect(dc.sent).toHaveLength(2); // [0] hello2 under K0, [1] the real request under K1
+    const req = await openFrame(k1, new Uint8Array(dc.sent[1]));
     expect(req.dir).toBe(DIR_CLIENT_TO_HOST);
+    expect(req.counter).toBe(0); // K1 counters restart at 0
     const parsedReq = JSON.parse(req.plaintext) as { id: number; method: string; path: string };
     expect(parsedReq.method).toBe('GET');
     expect(parsedReq.path).toBe('/panel/devices');
 
-    const replyFrame = await seal(key, DIR_HOST_TO_CLIENT, 0, JSON.stringify({
+    const replyFrame = await seal(k1, DIR_HOST_TO_CLIENT, 0, JSON.stringify({
       id: parsedReq.id, status: 200, body: '{"ok":true}', contentType: 'application/json', base64: false,
     }));
     dc.simulateMessage(toArrayBuffer(replyFrame));
@@ -329,69 +497,205 @@ describe('RtcHttpTunnel', () => {
     expect(res.body).toBe('{"ok":true}');
   });
 
-  it('multiplexes concurrent requests, matching replies out of order by id', async () => {
-    const key = await deriveTestKey();
+  it('multiplexes concurrent requests under K1, matching replies out of order by id', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
     const dc = new FakeDataChannel('http');
     dc.readyState = 'open';
-    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, vi.fn());
+    const { k1 } = await driveRekeyToK1(dc, k0, root, connSalt);
 
     const first = tunnel.request('GET', '/panel/a', null, null);
     const second = tunnel.request('GET', '/panel/b', null, null);
     await flushAsync();
-    await flushAsync();
-    expect(dc.sent).toHaveLength(2);
+    await flushAsync(() => dc.sent.length >= 3);
+    expect(dc.sent).toHaveLength(3); // hello2 + two requests
 
-    const reqA = await openFrame(key, new Uint8Array(dc.sent[0]));
-    const reqB = await openFrame(key, new Uint8Array(dc.sent[1]));
+    const reqA = await openFrame(k1, new Uint8Array(dc.sent[1]));
+    const reqB = await openFrame(k1, new Uint8Array(dc.sent[2]));
     const idA = (JSON.parse(reqA.plaintext) as { id: number }).id;
     const idB = (JSON.parse(reqB.plaintext) as { id: number }).id;
 
     // Reply to B first, then A - a correct impl matches strictly by id.
-    const replyB = await seal(key, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ id: idB, status: 200, body: '"b"', contentType: null, base64: false }));
+    const replyB = await seal(k1, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ id: idB, status: 200, body: '"b"', contentType: null, base64: false }));
     dc.simulateMessage(toArrayBuffer(replyB));
-    const replyA = await seal(key, DIR_HOST_TO_CLIENT, 1, JSON.stringify({ id: idA, status: 200, body: '"a"', contentType: null, base64: false }));
+    const replyA = await seal(k1, DIR_HOST_TO_CLIENT, 1, JSON.stringify({ id: idA, status: 200, body: '"a"', contentType: null, base64: false }));
     dc.simulateMessage(toArrayBuffer(replyA));
 
     expect(await first).toMatchObject({ body: '"a"' });
     expect(await second).toMatchObject({ body: '"b"' });
   });
 
-  it('rejects a new request as busy when bufferedAmount is over the backpressure threshold', async () => {
-    const key = await deriveTestKey();
+  it('rejects a response sealed under the superseded K0 after rekey (onFatal), without resolving the request', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
     const dc = new FakeDataChannel('http');
     dc.readyState = 'open';
-    dc.bufferedAmount = 8 * 1024 * 1024; // over the 4MB guard
-    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, key, vi.fn());
+    // onFatal only NOTIFIES the caller (see RtcHttpTunnel.handleMessage) - the
+    // caller (openRtcDirect's teardown, in production) is the one that closes
+    // the tunnel and rejects pending requests. Mirror that wiring here.
+    const onFatal = vi.fn(() => tunnel.close());
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, onFatal);
+    await driveRekeyToK1(dc, k0, root, connSalt);
 
+    const pending = tunnel.request('GET', '/panel/devices', null, null).catch((e: Error) => e);
+    await flushAsync();
+    const staleFrame = await seal(k0, DIR_HOST_TO_CLIENT, 5, JSON.stringify({ id: 0, status: 200, body: '"stale"', contentType: null, base64: false }));
+    dc.simulateMessage(toArrayBuffer(staleFrame));
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
+
+    expect(onFatal).toHaveBeenCalledTimes(1);
+    expect(await pending).toBeInstanceOf(Error);
+  });
+
+  it('onFatal fires when an hn frame arrives after the handshake already settled (key desync)', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
+    const dc = new FakeDataChannel('http');
+    dc.readyState = 'open';
+    const onFatal = vi.fn(() => tunnel.close());
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, onFatal);
+    const { k1 } = await driveRekeyToK1(dc, k0, root, connSalt);
+
+    const pending = tunnel.request('GET', '/panel/devices', null, null).catch((e: Error) => e);
+    await flushAsync();
+
+    // The host apparently switched keys again after settling on K1 - an
+    // unrecoverable desync, not a second rekey.
+    const lateHn = await seal(k1, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: 'yQ' }));
+    dc.simulateMessage(toArrayBuffer(lateHn));
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
+
+    expect(onFatal).toHaveBeenCalledTimes(1);
+    expect(await pending).toBeInstanceOf(Error);
+  });
+
+  it('falls back to K0 when the first frame is not hn (a legacy host), sealing the real request under K0 counter 1', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
+    const dc = new FakeDataChannel('http');
+    dc.readyState = 'open';
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, vi.fn());
+
+    await flushAsync(() => dc.sent.length >= 1);
+    expect(dc.sent).toHaveLength(1);
+    const hello = await openFrame(k0, new Uint8Array(dc.sent[0]));
+    expect(hello.plaintext).toBe(REKEY_HELLO2);
+
+    // A legacy host's generic answer to an unparseable request: id:0, 403.
+    const legacyReply = await seal(k0, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ id: 0, status: 403, body: '', contentType: null, base64: false }));
+    dc.simulateMessage(toArrayBuffer(legacyReply));
+    await flushAsync();
+
+    const pending = tunnel.request('GET', '/panel/devices', null, null);
+    await flushAsync(() => dc.sent.length >= 2);
+    expect(dc.sent).toHaveLength(2);
+    const req = await openFrame(k0, new Uint8Array(dc.sent[1]));
+    expect(req.counter).toBe(1); // 0 was hello2 under the same K0, never reused
+
+    const parsedReq = JSON.parse(req.plaintext) as { id: number };
+    const replyFrame = await seal(k0, DIR_HOST_TO_CLIENT, 1, JSON.stringify({ id: parsedReq.id, status: 200, body: '"ok"', contentType: null, base64: false }));
+    dc.simulateMessage(toArrayBuffer(replyFrame));
+    expect(await pending).toMatchObject({ status: 200, body: '"ok"' });
+  });
+
+  it('falls back to K0 after REKEY_TIMEOUT_MS when the host never answers hello2 at all', async () => {
+    vi.useFakeTimers();
+    try {
+      const k0 = await deriveTestKey();
+      const dc = new FakeDataChannel('http');
+      dc.readyState = 'open';
+      const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), k0, vi.fn());
+
+      const pending = tunnel.request('GET', '/panel/devices', null, null);
+      await pumpUntil(() => dc.sent.length >= 2, 100); // past REKEY_TIMEOUT_MS, however slow the crypto
+
+      expect(dc.sent).toHaveLength(2); // [0] hello2, [1] the real request, both under K0
+      const req = await openFrame(k0, new Uint8Array(dc.sent[1]));
+      expect(req.counter).toBe(1); // continues from hello2's 0, never reused
+
+      const parsedReq = JSON.parse(req.plaintext) as { id: number };
+      const replyFrame = await seal(k0, DIR_HOST_TO_CLIENT, 1, JSON.stringify({ id: parsedReq.id, status: 200, body: '"ok"', contentType: null, base64: false }));
+      dc.simulateMessage(toArrayBuffer(replyFrame));
+      for (let i = 0; i < 10; i++) await vi.advanceTimersByTimeAsync(0);
+      expect(await pending).toMatchObject({ status: 200, body: '"ok"' });
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 20_000);
+
+  it('rejects a new request as busy when bufferedAmount is over the backpressure threshold', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
+    const dc = new FakeDataChannel('http');
+    dc.readyState = 'open';
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, vi.fn());
+    await driveRekeyToK1(dc, k0, root, connSalt);
+
+    dc.bufferedAmount = 8 * 1024 * 1024; // over the 4MB guard
     await expect(tunnel.request('GET', '/panel/devices', null, null)).rejects.toThrow(/busy/);
-    expect(dc.sent).toHaveLength(0);
+    expect(dc.sent).toHaveLength(1); // still just hello2 - the busy request was never sent
   });
 
   it('rejects an oversized request without ever sending it', async () => {
-    const key = await deriveTestKey();
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
     const dc = new FakeDataChannel('http');
     dc.readyState = 'open';
-    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, vi.fn());
+    await driveRekeyToK1(dc, k0, root, connSalt);
 
     const hugeBody = 'x'.repeat(300 * 1024); // exceeds the 256KB frame cap once sealed
     await expect(tunnel.request('POST', '/panel/media', hugeBody, 'application/octet-stream')).rejects.toThrow(/large/);
-    expect(dc.sent).toHaveLength(0);
+    expect(dc.sent).toHaveLength(1); // still just hello2
   });
 
   it('rejects immediately when the channel is not open', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('http'); // readyState stays 'connecting'
-    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, vi.fn());
 
     await expect(tunnel.request('GET', '/panel/devices', null, null)).rejects.toThrow();
     expect(dc.sent).toHaveLength(0);
   });
 
-  it('close() rejects in-flight requests', async () => {
+  it('ignores a sealed response whose id matches no pending request, without disturbing a real in-flight one', async () => {
+    const k0 = await deriveTestKey();
+    const root = await deriveTestRoot();
+    const connSalt = fromHex(KAT.connSalt);
+    const dc = new FakeDataChannel('http');
+    dc.readyState = 'open';
+    const onFatal = vi.fn();
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, root, connSalt, k0, onFatal);
+    const { k1 } = await driveRekeyToK1(dc, k0, root, connSalt);
+
+    const pending = tunnel.request('GET', '/panel/devices', null, null);
+    await flushAsync();
+    const req = await openFrame(k1, new Uint8Array(dc.sent[1]));
+    const realId = (JSON.parse(req.plaintext) as { id: number }).id;
+
+    // An orphan response (an id that was never registered) arrives first.
+    const orphan = await seal(k1, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ id: 999999, status: 200, body: '"orphan"', contentType: null, base64: false }));
+    dc.simulateMessage(toArrayBuffer(orphan));
+    await flushAsync();
+    expect(onFatal).not.toHaveBeenCalled();
+
+    const real = await seal(k1, DIR_HOST_TO_CLIENT, 1, JSON.stringify({ id: realId, status: 200, body: '"ok"', contentType: null, base64: false }));
+    dc.simulateMessage(toArrayBuffer(real));
+    expect(await pending).toMatchObject({ status: 200, body: '"ok"' });
+  });
+
+  it('close() rejects in-flight requests awaiting the handshake', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('http');
     dc.readyState = 'open';
-    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, key, vi.fn());
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, vi.fn());
 
     const pending = tunnel.request('GET', '/panel/devices', null, null);
     await flushAsync();
@@ -400,21 +704,19 @@ describe('RtcHttpTunnel', () => {
     await expect(pending).rejects.toThrow();
   });
 
-  it('rejects a tampered response frame (tag verify fails), never resolving the request', async () => {
+  it('rejects a tampered first frame (tag verify fails, onFatal), never resolving the request', async () => {
     const key = await deriveTestKey();
     const dc = new FakeDataChannel('http');
     dc.readyState = 'open';
     const onFatal = vi.fn();
-    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, key, onFatal);
+    const tunnel = new RtcHttpTunnel(dc as unknown as RTCDataChannel, await deriveTestRoot(), fromHex(KAT.connSalt), key, onFatal);
 
     tunnel.request('GET', '/panel/devices', null, null).catch(() => {});
     await flushAsync();
-    const req = await openFrame(key, new Uint8Array(dc.sent[0]));
-    const id = (JSON.parse(req.plaintext) as { id: number }).id;
-    const frame = await seal(key, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ id, status: 200, body: '{}', contentType: null, base64: false }));
+    const frame = await seal(key, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ id: 0, status: 200, body: '{}', contentType: null, base64: false }));
     frame[frame.byteLength - 1] ^= 0xff;
     dc.simulateMessage(toArrayBuffer(frame));
-    await flushAsync();
+    await flushAsync(() => onFatal.mock.calls.length >= 1);
 
     expect(onFatal).toHaveBeenCalledTimes(1);
   });
@@ -470,10 +772,6 @@ class FakePeerConnection {
   }
 }
 
-async function flush(ticks = 12): Promise<void> {
-  for (let i = 0; i < ticks; i++) await Promise.resolve();
-}
-
 describe('openRtcDirect', () => {
   beforeEach(() => {
     FakePeerConnection.instances = [];
@@ -486,30 +784,98 @@ describe('openRtcDirect', () => {
     localStorage.clear();
   });
 
-  it('creates the runtime+http data channels, posts the offer over the tunnel-aware fetch, and resolves once both open', async () => {
-    authFetchWithStatusMock.mockResolvedValue({
-      response: new Response(JSON.stringify({ sdp: 'v=0\r\no=- fake-answer\r\n' }), { status: 200 }),
-      status: 200,
+  it('creates the runtime+http data channels, posts the offer over the tunnel-aware fetch, and resolves once both open AND the runtime channel rekeys to K1', async () => {
+    // The mock plays the signaling server AND the host's rekey reply as a side
+    // effect of answering the offer: open both raw channels (so each wrapper's
+    // beginRekey fires) and reply to their hello2 with a sealed hn frame,
+    // derived from the salts the client actually posted. Doing this inside the
+    // mock (rather than racing ticks against openRtcDirect's own internal
+    // await chain) lets the test just `await` the whole call once.
+    authFetchWithStatusMock.mockImplementation(async (_path: string, opts: { body: { runtimeSalt: string; httpSalt: string } }) => {
+      const pc = FakePeerConnection.instances[0];
+      const runtimeDc = pc.channels.find((c) => c.label === 'runtime')!;
+      const httpDc = pc.channels.find((c) => c.label === 'http')!;
+      runtimeDc.simulateOpen();
+      httpDc.simulateOpen();
+      const root = await deriveRelayRoot('session-token');
+      const runtimeK0 = await deriveAeadKey(root, base64UrlDecode(opts.body.runtimeSalt));
+      const httpK0 = await deriveAeadKey(root, base64UrlDecode(opts.body.httpSalt));
+      const hnReply = (k0: CryptoKey) => seal(k0, DIR_HOST_TO_CLIENT, 0, JSON.stringify({ c: 'hn', hn: base64UrlNoPad(crypto.getRandomValues(new Uint8Array(16))) }));
+      runtimeDc.simulateMessage(toArrayBuffer(await hnReply(runtimeK0)));
+      httpDc.simulateMessage(toArrayBuffer(await hnReply(httpK0)));
+      return {
+        response: new Response(JSON.stringify({ sdp: 'v=0\r\no=- fake-answer\r\n' }), { status: 200 }),
+        status: 200,
+      };
     });
 
-    const promise = openRtcDirect('session-token');
-    await flush();
+    const conn = await openRtcDirect('session-token');
+
+    expect(conn.runtime).toBeInstanceOf(RtcRuntimeChannel);
+    expect(conn.runtime.readyState).toBe(RtcRuntimeChannel.OPEN);
+    expect(conn.http).toBeInstanceOf(RtcHttpTunnel);
+    expect(authFetchWithStatusMock).toHaveBeenCalledTimes(1);
+    const [path, offerOpts] = authFetchWithStatusMock.mock.calls[0] as [string, { method: string; body: { sdp: string; runtimeSalt: string; httpSalt: string } }];
+    expect(path).toBe('/rtc/offer');
+    expect(offerOpts.method).toBe('POST');
+    expect(offerOpts.body.sdp).toContain('fake-offer');
+    expect(offerOpts.body.runtimeSalt).not.toBe(offerOpts.body.httpSalt);
+
     const pc = FakePeerConnection.instances[0];
     expect(pc.channels.map((c) => c.label).sort()).toEqual(['http', 'runtime']);
     expect(pc.channels.every((c) => c.binaryType === 'arraybuffer')).toBe(true);
-
-    for (const dc of pc.channels) dc.simulateOpen();
-    const conn = await promise;
-
-    expect(conn.runtime).toBeInstanceOf(RtcRuntimeChannel);
-    expect(conn.http).toBeInstanceOf(RtcHttpTunnel);
-    expect(authFetchWithStatusMock).toHaveBeenCalledTimes(1);
-    const [path, opts] = authFetchWithStatusMock.mock.calls[0] as [string, { method: string; body: { sdp: string; runtimeSalt: string; httpSalt: string } }];
-    expect(path).toBe('/rtc/offer');
-    expect(opts.method).toBe('POST');
-    expect(opts.body.sdp).toContain('fake-offer');
-    expect(opts.body.runtimeSalt).not.toBe(opts.body.httpSalt);
   });
+
+  it('resolves via the K0 legacy fallback when the host never answers either channel\'s hello2', async () => {
+    vi.useFakeTimers();
+    try {
+      // Same signaling-side-effect trick, but the mock never replies to
+      // hello2 on either channel - both must fall back to K0 after
+      // REKEY_TIMEOUT_MS, and openRtcDirect still resolves once that settles.
+      authFetchWithStatusMock.mockImplementation(async () => {
+        for (const dc of FakePeerConnection.instances[0].channels) dc.simulateOpen();
+        return {
+          response: new Response(JSON.stringify({ sdp: 'v=0\r\no=- fake-answer\r\n' }), { status: 200 }),
+          status: 200,
+        };
+      });
+
+      let settled = false;
+      const promise = openRtcDirect('session-token').finally(() => { settled = true; });
+      await pumpUntil(() => settled, 100); // past REKEY_TIMEOUT_MS, however slow the crypto
+
+      const conn = await promise;
+      expect(conn.runtime.readyState).toBe(RtcRuntimeChannel.OPEN);
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 20_000);
+
+  it('rejects when the runtime channel closes mid-rekey, before any reply or the fallback timeout', async () => {
+    authFetchWithStatusMock.mockImplementation(async () => {
+      for (const dc of FakePeerConnection.instances[0].channels) dc.simulateOpen();
+      return {
+        response: new Response(JSON.stringify({ sdp: 'v=0\r\no=- fake-answer\r\n' }), { status: 200 }),
+        status: 200,
+      };
+    });
+
+    const promise = openRtcDirect('session-token');
+    // Let both channels open, hello2 go out on each, and openRtcDirect reach
+    // its post-Promise.all rekey-wait (armed once both raw channels are open,
+    // done above inside the mock) - nobody replies to hello2, and the
+    // REKEY_TIMEOUT_MS fallback never fires within this test.
+    await flushAsync();
+    await flushAsync();
+
+    const runtimeDc = FakePeerConnection.instances[0].channels.find((c) => c.label === 'runtime')!;
+    // hello2 on the wire is the proof the rekey wait is armed; closing before
+    // that lands the close where nothing is listening for it.
+    await waitFor(() => runtimeDc.sent.length >= 1);
+    runtimeDc.close();
+
+    await expect(promise).rejects.toThrow();
+  }, 20_000);
 
   it('rejects on a 403 answer and closes the peer connection', async () => {
     authFetchWithStatusMock.mockResolvedValue({ response: new Response('', { status: 403 }), status: 403 });

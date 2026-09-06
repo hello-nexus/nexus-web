@@ -4,8 +4,7 @@ import styles from './StorybookModal.module.scss';
 
 /*
  * One catalog card. Header (name), description, file path, preview area.
- * Preview is optional for components that require live service state; see
- * `.agents/rules/storybook.md`.
+ * Preview is optional for components that require live service state.
  */
 export function StorybookCard({ entry }: { entry: StorybookEntry }) {
   const { t } = useTranslation();

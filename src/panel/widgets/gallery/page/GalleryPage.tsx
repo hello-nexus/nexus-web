@@ -17,6 +17,7 @@ import {
   excludeGalleryItem,
   fetchGalleryItems,
   fetchGallerySources,
+  galleryThumbWidth,
   galleryItemFileUrl,
   pickGalleryPaths,
   restoreGalleryExclusions,
@@ -67,8 +68,10 @@ export function GalleryPage() {
   useTopicCallback('gallery', true, refresh);
 
   // Preview blob cache (panel auth is token-based, <img> can't hit the route
-  // directly). Original bytes only - no server-side conversion exists; null
-  // marks an unreadable file so the grid shows a placeholder, never retried.
+  // directly). Grid-sized derivatives, not originals: a folder source can hold
+  // hundreds of photos and this cache never evicts, so full-resolution bytes
+  // here cost gigabytes. null marks an unreadable file so the grid shows a
+  // placeholder, never retried.
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
   useEffect(() => {
@@ -77,7 +80,7 @@ export function GalleryPage() {
       for (const item of items) {
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
-        const blob = await fetchServiceBlob(galleryItemFileUrl(item.id));
+        const blob = await fetchServiceBlob(galleryItemFileUrl(item.id, galleryThumbWidth()));
         if (cancelled) return;
         if (item.id in thumbsRef.current) continue;
         const url = blob ? URL.createObjectURL(blob) : null;

@@ -331,7 +331,11 @@ export function ProcessListSection({
       {frozen && <div className={styles.frozenNotice}>{t('monitoring.history.process.frozenNotice')}</div>}
       <div className={styles.rowsViewport}>
         {visible.length === 0 ? (
-          <div className={styles.empty}>{t('monitoring.ranked.empty')}</div>
+          <div className={styles.empty}>
+            {query.trim() && ranked.length > 0
+              ? t('monitoring.history.process.noMatches', { query: query.trim() })
+              : t('monitoring.ranked.empty')}
+          </div>
         ) : (
           <div className={frozen ? `${styles.rows} ${styles.rowsFrozen}` : styles.rows}>
             {appRows.length > 0 && (

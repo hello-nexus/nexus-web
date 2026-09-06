@@ -36,6 +36,7 @@ export function PanelEditorSheet({
   deviceTouch,
   touchPanelChrome = false,
   editingWidget,
+  saveForbidden = false,
   panelTheme,
   gridColumns,
   gridRows,
@@ -95,6 +96,10 @@ export function PanelEditorSheet({
   // the panel content like the Y70 instead of desktop-size chrome.
   touchPanelChrome?: boolean;
   editingWidget: PanelWidget | null;
+  // True right after the server refused the last layout save with 403
+  // deck_action_requires_desktop (a phone session tried to introduce a
+  // privileged deck action) - see usePanelLayout.saveForbidden.
+  saveForbidden?: boolean;
   panelTheme: PanelThemeState;
   gridColumns: number;
   gridRows: number;
@@ -288,6 +293,12 @@ export function PanelEditorSheet({
             <X size={17} />
           </button>
         </header>
+
+        {mode === 'settings' && saveForbidden && (
+          <p className={styles.editorForbiddenNotice} role="status" aria-live="polite">
+            {t('panel.settings.deck.saveForbidden')}
+          </p>
+        )}
 
         {mode === 'catalog' && (
           <PanelWidgetCatalog

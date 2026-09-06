@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import {
   TELEMETRY_EVENTS,
   AUTO_PROPERTIES,
+  PERSON_PROPERTIES,
   type TelemetryEventDoc,
   type TelemetryParam,
 } from './events';
@@ -53,6 +54,18 @@ export function TelemetryReference() {
         <h2>Automatic properties</h2>
         <p className={styles.dim}>Attached to every event - you never pass these yourself.</p>
         <ParamTable params={AUTO_PROPERTIES} />
+      </section>
+
+      <section className={styles.autoProps}>
+        <h2>Person properties</h2>
+        <p className={styles.dim}>
+          Attached to the anonymous install, not to any single event, and refreshed only when a
+          value changes. This is what lets every event below be broken down by hardware. The
+          hardware rows carry vendor model names reported by the hardware itself; the usage rows are
+          counts and fixed values. Nothing you authored is collected in either - widget titles,
+          devices you renamed, panel names, file paths and serials are all excluded.
+        </p>
+        <ParamTable params={PERSON_PROPERTIES} />
       </section>
 
       <div className={styles.list}>

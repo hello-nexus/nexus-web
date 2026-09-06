@@ -17,6 +17,7 @@ import { scoreEntry } from './match';
 import { frecencyBoost, recordUse, snapshotFrecency, type FrecencyMap } from './frecency';
 import { tryCalc } from './calc';
 import { useAssistantQuery } from './useAssistantQuery';
+import { DEV_TOOLS } from '../lib/devTools';
 import { emitRadialBloomFromElement } from '../lib/backgroundEffects';
 import { HelloGreeting } from './HelloGreeting';
 import { dismissHelloGreeting, useHelloGreetingPending } from './helloGreetingStore';
@@ -47,7 +48,8 @@ export function TopSearch({ pageTitle, online, platform }: { pageTitle: string; 
   const { profiles, activeId, switchProfile } = useProfiles(isOpen);
   const panel = usePanelToggles(isOpen);
   const live = useSearchLiveState(isOpen && online);
-  const assistantQuery = useAssistantQuery(isOpen && online);
+  // The local assistant is a dev-tools surface; a release build never asks.
+  const assistantQuery = useAssistantQuery(DEV_TOOLS && isOpen && online);
 
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);

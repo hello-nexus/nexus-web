@@ -4,8 +4,7 @@
 // Renders without the catalog's ErrorBoundary so a broken preview fails loudly
 // instead of becoming a silent error tile. The content table doubles as the
 // fixture-sync gate: when a widget's UI changes, its preview fixture and this
-// table must be re-verified (see .agents/rules/widget-preview-fixtures.md in
-// the master repo).
+// table must be re-verified.
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_REGISTRY, pickerSizeFor } from './registry';

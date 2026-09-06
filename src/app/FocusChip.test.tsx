@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import type { FocusMode, FocusStatus } from '../api/focus';
 
 vi.mock('../lib/i18n', () => ({
@@ -53,6 +53,9 @@ function statusFor(overrides: Partial<FocusStatus> = {}): FocusStatus {
 }
 
 describe('FocusChip', () => {
+  const realRect = Element.prototype.getBoundingClientRect;
+  afterEach(() => { Element.prototype.getBoundingClientRect = realRect; });
+
   beforeEach(() => {
     activate.mockClear();
     turnOff.mockClear();
@@ -74,6 +77,45 @@ describe('FocusChip', () => {
     status = statusFor({ activeModeId: 'streaming', reason: 'auto' });
     render(<FocusChip online />);
     expect(screen.getByRole('button', { name: 'focus.title: Streaming' })).toBeInTheDocument();
+  });
+
+  // jsdom lays nothing out, so the fit test is driven by stubbed geometry: a
+  // header wide enough for the label, or too narrow for it.
+  function layOutBar({ roomy }: { roomy: boolean }) {
+    const width = roomy ? 1600 : 240;
+    Element.prototype.getBoundingClientRect = function () {
+      if (this.tagName === 'HEADER') return { left: 0, right: width, width, top: 0, bottom: 40, height: 40, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+      // The hidden twin and the chip wrapper: a short label beside a chip that
+      // starts near the left edge.
+      const isMeasure = (this as HTMLElement).getAttribute?.('aria-hidden') === 'true';
+      const w = isMeasure ? 90 : 60;
+      return { left: 0, right: w, width: w, top: 0, bottom: 28, height: 28, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+    };
+  }
+
+  it('names the running game beside the icon when the bar has room', () => {
+    layOutBar({ roomy: true });
+    status = statusFor({
+      activeModeId: 'game',
+      reason: 'auto',
+      games: [{ key: 'steam:2473350', name: 'Huntdown: Overtime', pid: 1, sinceMs: 0 }],
+    });
+    render(<FocusChip online />, { container: document.body.appendChild(document.createElement('header')) });
+
+    expect(screen.getAllByText('Huntdown: Overtime').length).toBeGreaterThan(1);
+  });
+
+  it('keeps only the icon when the bar is too narrow for the name', () => {
+    layOutBar({ roomy: false });
+    status = statusFor({
+      activeModeId: 'game',
+      reason: 'auto',
+      games: [{ key: 'steam:2473350', name: 'Huntdown: Overtime', pid: 1, sinceMs: 0 }],
+    });
+    render(<FocusChip online />, { container: document.body.appendChild(document.createElement('header')) });
+
+    // Only the hidden measuring twin carries the text.
+    expect(screen.getAllByText('Huntdown: Overtime')).toHaveLength(1);
   });
 
   it('lists every mode, then Off, then Settings', () => {

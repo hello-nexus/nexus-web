@@ -47,10 +47,10 @@ export interface TabsProps {
 }
 
 /**
- * Horizontal tab bar - the canonical tab affordance across the app. A bordered
- * segmented group with a solid accent fill on the active tab; inactive tabs are
- * neutral-dim and hover to plain text. Text-only and icon+text tabs both flow
- * through this one component.
+ * Horizontal tab bar - the canonical tab affordance across the app. Flat at
+ * rest; the active tab carries the --bg pill (overridable per surface through
+ * --tab-active-bg), and inactive tabs are neutral-dim and hover to plain text.
+ * Text-only and icon+text tabs both flow through this one component.
  */
 export function Tabs({ tabs, activeKey, onChange, disabled, ariaLabel = 'Tabs', className, fullWidth = false }: TabsProps) {
   const navClass = classNames(styles.tabs, fullWidth && styles.fullWidth, className);

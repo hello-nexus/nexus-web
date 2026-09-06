@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyProfile, fetchCurves, fetchFanChannels, fetchProfiles, fetchTemperatureSources,
+  isFanDisconnected,
   releaseFanAuto, saveCurves,
   renameFan as apiRenameFan,
   resetPresetCurve as apiResetPresetCurve,
@@ -31,6 +32,7 @@ import {
 } from '../../../../api/qseries';
 import { useCoolingRealtime } from '../../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../../hooks/useCoolingCurves';
+import { usePersistentIdSet } from '../../../../hooks/usePersistentState';
 import { useMultiplex, useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { useServiceState } from '../../../../hooks/useServiceState';
 import { useTempSensorPrefs } from '../../../../hooks/useUiSettings';
@@ -39,7 +41,7 @@ import { defaultCurveSourceId } from '../../../../lib/tempSensorResolver';
 import { curveDefsFromApi, curveDefToApi, newCurve, MAX_CURVES, type CurveDef, type FanState } from '../../../../types/cooling';
 import { loadCoolingCache, saveCoolingCache, setCachedCoolingActivePreset } from '../coolingCache';
 import { isCoolingModeKey, type CoolingModeKey } from '../page/coolingModes';
-import type { FanCardHubMode } from '../page/FanCard';
+import type { FanBulkSelection, FanCardHubMode } from '../page/FanCard';
 
 // Optimistic-lock window shared with CoolingPage / CoolingWidget: after a
 // local preset change, stale topic / control-sync pushes are ignored for this
@@ -60,6 +62,14 @@ export interface CoolingImmersiveController {
   /** Server calibration in progress - fan controls must lock (same interlock
    *  as the desktop page's dimmed rail). */
   calibrating: boolean;
+  /** Fans a bulk action targets, shared with the desktop page's rail. */
+  selectedFanIds: Set<string>;
+  /** Fans that can carry a selection; must match FanCard's own drivable rule. */
+  selectableFanIds: string[];
+  setSelectedFanIds: (ids: Set<string>) => void;
+  toggleFanSelection: (id: string) => void;
+  /** The whole selection's shared state, for a card acting on all of it. */
+  bulkForFan: (ch: FanChannel) => FanBulkSelection | undefined;
   selectCurve: (id: string) => void;
   applyPreset: (key: CoolingModeKey) => void;
   setFanMode: (fanId: string, value: string) => void;
@@ -93,6 +103,9 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   // Seeded from the cached curves so a revisit paints the hero card
   // immediately (same as CoolingPage).
   const [selectedCurveId, setSelectedCurveId] = useState<string | null>(() => cachedSeed.curves[0]?.id ?? null);
+  // Shared with the desktop page's fan rail, so a selection made on either
+  // surface is the one the other acts on.
+  const [selectedFanIds, setSelectedFanIds] = usePersistentIdSet('nexus.cooling.selectedFans');
   const presetLockUntilRef = useRef(0);
   const activeProfileRef = useRef('');
   const tempPrefs = useTempSensorPrefs();
@@ -308,6 +321,41 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     await pushCurves(curves, { ...fanStates, [fanId]: { ...fanStates[fanId], curveId } });
   }, [fanStates, curves, pushCurves, exitOffToCustomIfNeeded]);
 
+  // Every selected fan in one write: pushCurves re-derives the active preset
+  // service-side, so a write per fan would race that derivation.
+  const assignCurveToFans = useCallback(async (ids: string[], curveId: string | null) => {
+    if (ids.length === 0) return;
+    // A hub must be in Software before the curve engine can drive it, and the
+    // mode is one byte per hub - so one write per hub, not per fan.
+    const hubs = new Set(
+      ids.map(id => channels.find(c => c.id === id)?.deviceId).filter((d): d is string => !!d),
+    );
+    for (const deviceId of hubs) {
+      if (!hubModes[deviceId] || hubModes[deviceId] === 'software') continue;
+      if (deviceId.startsWith('np50:')) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
+      else if (deviceId.startsWith('minihub:')) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
+      else if (deviceId.startsWith('qseries:')) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
+      hubModeLockUntilRef.current = Date.now() + PRESET_LOCK_MS;
+      setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
+    }
+    // Unconditional, like the single-fan path's call before it delegates here:
+    // binding a curve OR taking manual control is a change Off must yield to.
+    await exitOffToCustomIfNeeded();
+    const next = { ...fanStates };
+    const needSpeedSeed: string[] = [];
+    for (const id of ids) {
+      if (!next[id]?.softwareControl) needSpeedSeed.push(id);
+      next[id] = { ...next[id], softwareControl: true, curveId };
+    }
+    setFanStates(next);
+    for (const id of needSpeedSeed) await apiSetFanSpeed(id, 50);
+    await pushCurves(curves, next);
+    if (needSpeedSeed.length > 0) {
+      const fans = await fetchFanChannels();
+      if (fans?.channels) setChannels(fans.channels);
+    }
+  }, [channels, curves, fanStates, hubModes, pushCurves, exitOffToCustomIfNeeded]);
+
   // BIOS = release control; 'manual' = software control, no curve; curve id =
   // bind that curve; 'fw' = NP50 only. Same hub auto-switch semantics as
   // CoolingPage: the cooling mode is a single byte per hub, not per fan.
@@ -482,6 +530,76 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (fans?.channels) setChannels(fans.channels);
   }, [exitOffToCustomIfNeeded]);
 
+  // Only fans Nexus can actually drive carry a checkbox, matching the desktop
+  // rail: select-all must not put a card in the selection that refuses its own
+  // click, leaving no way to take it back out.
+  const selectableFanIds = useMemo(
+    () => channels
+      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed'
+        && c.controlled !== false)
+      .map(c => c.id),
+    [channels],
+  );
+
+  // A restored selection can name fans that are gone (hub unplugged between
+  // visits); bulk actions would target ids no card can show.
+  // Keyed on the id list, not on `channels`: the realtime merge reallocates
+  // every channel each tick, and the persisted setter always rewrites
+  // localStorage, so reacting to the array itself would write on every tick.
+  const channelIdKey = useMemo(() => channels.map(c => c.id).join('|'), [channels]);
+  useEffect(() => {
+    if (channelIdKey === '') return;
+    const present = new Set(channelIdKey.split('|'));
+    setSelectedFanIds(prev => {
+      const kept = [...prev].filter(id => present.has(id));
+      return kept.length === prev.size ? prev : new Set(kept);
+    });
+  }, [channelIdKey, setSelectedFanIds]);
+
+  // Touch has no multi-select modifier, so every tap toggles additively.
+  const toggleFanSelection = useCallback((id: string) => {
+    setSelectedFanIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }, [setSelectedFanIds]);
+
+  // A card inside a multi-selection acts on the whole selection, as the
+  // lighting device cards do. Aggregates read "any member still is", so one
+  // press lands every member on the same state.
+  const bulkForFan = useCallback((ch: FanChannel): FanBulkSelection | undefined => {
+    if (selectedFanIds.size < 2 || !selectedFanIds.has(ch.id)) return undefined;
+    const members = channels.filter(c => selectedFanIds.has(c.id));
+    if (members.length < 2) return undefined;
+    return {
+      count: members.length,
+      locked: members.some(c => c.locked === true),
+      controlled: members.some(c => c.controlled !== false),
+      setLocked: (locked: boolean) => { for (const c of members) void setFanLockHandler(c.id, locked); },
+      setControlled: (controlled: boolean) => { for (const c of members) void setFanControlledHandler(c.id, controlled); },
+    };
+  }, [channels, selectedFanIds, setFanLockHandler, setFanControlledHandler]);
+
+  // A mode picked on a selected card lands on the whole selection. Hub hand-off
+  // values stay per-fan, since each is its own device call.
+  const applyFanMode = useCallback((fanId: string, value: string) => {
+    const ids = selectedFanIds.has(fanId) ? [...selectedFanIds] : [fanId];
+    if (ids.length > 1 && value !== 'bios' && value !== 'fw') {
+      void assignCurveToFans(ids, value === 'manual' ? null : value);
+      return;
+    }
+    for (const id of ids) void setFanMode(id, value);
+  }, [assignCurveToFans, selectedFanIds, setFanMode]);
+
+  // Tapping a curve always opens it; with fans selected it also binds them,
+  // which is what the selection is for (same as the desktop page).
+  const selectCurve = useCallback((curveId: string) => {
+    setSelectedCurveId(curveId);
+    if (selectedFanIds.size === 0) return;
+    void assignCurveToFans([...selectedFanIds], curveId);
+  }, [assignCurveToFans, selectedFanIds]);
+
   // Keep the hero-card selection valid: default to the first curve and
   // re-point if the selected curve disappears (deleted, profile switch).
   useEffect(() => {
@@ -497,9 +615,14 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,
     calibrating,
-    selectCurve: setSelectedCurveId,
+    selectedFanIds,
+    selectableFanIds,
+    setSelectedFanIds,
+    toggleFanSelection,
+    bulkForFan,
+    selectCurve,
     applyPreset,
-    setFanMode: (fanId, value) => { void setFanMode(fanId, value); },
+    setFanMode: applyFanMode,
     createCurveAndAssign: (fanId) => { void createCurveAndAssign(fanId); },
     addCurve,
     deleteCurve: (id) => { void deleteCurve(id); },

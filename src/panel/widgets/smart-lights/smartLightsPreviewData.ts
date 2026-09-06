@@ -1,7 +1,7 @@
 // Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: the tile only
-// counts total/online. Keep in sync with what SmartLightsWidget renders (see
-// .agents/rules/widget-preview-fixtures.md in the master repo).
+// counts total/online. Keep in sync with what SmartLightsWidget renders
+// (previewMode.test.tsx is the fixture-sync gate).
 import type { SmartLight } from '../../../api/smartLights';
 
 export const SMART_LIGHTS_PREVIEW: SmartLight[] = [

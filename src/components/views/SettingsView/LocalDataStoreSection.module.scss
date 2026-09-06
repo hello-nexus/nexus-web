@@ -1,5 +1,11 @@
-// Second line under a toggle row - a right-aligned "Clear data" action, the
-// same aside idiom as QSeriesCoolerSettings' .saveRow.
+// Groups a row with its own clear-data line as one SettingsSection box child,
+// the same idiom as ThemeTab's .accentGroup - see LocalDataStoreSection.tsx.
+.rowGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+// Second line under a toggle row - a right-aligned "Clear data" action.
 .clearRow {
   display: flex;
   align-items: center;

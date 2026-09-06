@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PANEL_DEVICE_ID_KEY } from './panelRouting';
 
@@ -187,6 +187,10 @@ describe('PanelEntrypoint allocate-or-recover', () => {
 });
 
 describe('PanelEntrypoint failure gate', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('offers a Find your computer escape and calls the native bridge', async () => {
     // Native wrapper present: the gate is otherwise a dead end inside the app.
     const findComputer = vi.fn();
@@ -203,8 +207,8 @@ describe('PanelEntrypoint failure gate', () => {
       />,
     );
 
-    const button = await screen.findByRole('button', { name: 'panel.gate.findComputer' });
-    fireEvent.click(button);
+    await screen.findByText('panel.gate.fail.serviceHeadline');
+    fireEvent.click(screen.getByRole('button', { name: 'panel.gate.findComputer' }));
     expect(findComputer).toHaveBeenCalledTimes(1);
   });
 
@@ -226,6 +230,10 @@ describe('PanelEntrypoint failure gate', () => {
   });
 
   it('offers a Pair again escape when a stored paired-PC token is rejected (not a fresh claim)', async () => {
+    // Routes to the wrapper's pairing surface, NOT a bare /r/pair link:
+    // PairRedirect rejects that as an invalid link with no host/pair params.
+    const findComputer = vi.fn();
+    (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer };
     allocateMock.mockResolvedValueOnce({ ok: false, status: 401 });
 
     render(
@@ -238,8 +246,67 @@ describe('PanelEntrypoint failure gate', () => {
       />,
     );
 
-    const link = await screen.findByText('connection.sessionRevoked.pairAgain');
-    expect(link.closest('a')?.getAttribute('href')).toBe('/r/pair');
+    const button = await screen.findByRole('button', { name: 'connection.sessionRevoked.pairAgain' });
+    fireEvent.click(button);
+    expect(findComputer).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('a[href="/r/pair"]')).toBeNull();
+  });
+
+  it('shows the waiting gate with copy and an immediate escape, not a bare spinner', async () => {
+    vi.useFakeTimers();
+    const findComputer = vi.fn();
+    (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer };
+    // Never settles: the gate must stay usable while the request hangs.
+    allocateMock.mockImplementationOnce(() => new Promise(() => {}));
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair={false}
+        pairToken={null}
+        pairDeviceId={null}
+        pairSpki={null}
+      />,
+    );
+
+    // The ESCAPE is live from the first frame - a connect the user wants out
+    // of must be escapable immediately, not after the slow window elapses.
+    expect(screen.getByText('panel.gate.connecting')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.gate.findComputer' }));
+    expect(findComputer).toHaveBeenCalledTimes(1);
+    // Retry issues a second allocate, so it waits: a frame-one tap would
+    // orphan the device record the in-flight one is about to create.
+    expect(screen.queryByRole('button', { name: 'panel.gate.retry' })).toBeNull();
+    expect(screen.queryByText('panel.gate.slow')).toBeNull();
+
+    await act(async () => { vi.advanceTimersByTime(4000); });
+
+    expect(screen.getByText('panel.gate.slow')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'panel.gate.retry' })).toBeInTheDocument();
+  });
+
+  it('withholds Retry while the QR claim is in flight', async () => {
+    vi.useFakeTimers();
+    (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer: vi.fn() };
+    // Claiming has no cancellable effect: a Retry here would abandon this
+    // promise and let it setState over a mounted panel.
+    claimMock.mockImplementationOnce(() => new Promise(() => {}));
+
+    render(
+      <PanelEntrypoint
+        initialDeviceId={null}
+        isPhonePair
+        pairToken="pair-token"
+        pairDeviceId={null}
+        pairSpki={null}
+      />,
+    );
+
+    await act(async () => { vi.advanceTimersByTime(4000); });
+
+    expect(screen.getByText('panel.gate.slow')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'panel.gate.retry' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'panel.gate.findComputer' })).toBeInTheDocument();
   });
 
   it('hides the Pair again escape when the 401 happens during a fresh QR claim\'s own allocate step', async () => {

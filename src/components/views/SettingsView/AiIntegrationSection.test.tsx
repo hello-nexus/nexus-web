@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken, type AiStatusResponse,
-  fetchAssistantStatus, installRuntime, removeRuntime, pullModel, removeModel, selectModel,
+  fetchAssistantStatus, installRuntime, removeRuntime, setUseSystemOllama, pullModel, removeModel, selectModel,
   type AiAssistantStatus, type AiAssistantProgressFrame, type AssistantCatalogModel,
 } from '../../../api/aiIntegration';
 
@@ -24,6 +24,7 @@ vi.mock('../../../api/aiIntegration', () => ({
   fetchAssistantStatus: vi.fn(),
   installRuntime: vi.fn(),
   removeRuntime: vi.fn(),
+  setUseSystemOllama: vi.fn(),
   pullModel: vi.fn(),
   removeModel: vi.fn(),
   selectModel: vi.fn(),
@@ -37,6 +38,10 @@ const assistantWs = vi.hoisted(() => ({ frame: null as AiAssistantProgressFrame 
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useTopic: (topic: string) => (topic === 'aiAssistant' ? assistantWs.frame : null),
 }));
+
+// Build flavour under test; vitest's DEV env makes the real const always true.
+const build = vi.hoisted(() => ({ devTools: true }));
+vi.mock('../../../lib/devTools', () => ({ get DEV_TOOLS() { return build.devTools; } }));
 
 function makeStatus(overrides: Partial<AiStatusResponse> = {}): AiStatusResponse {
   return {
@@ -65,6 +70,7 @@ function makeAssistantStatus(overrides: Partial<AiAssistantStatus> = {}): AiAssi
   return {
     runtimeState: 'notInstalled',
     systemOllamaDetected: false,
+    useSystemOllama: false,
     downloadProgress: null,
     installedModels: [],
     activeModel: '',
@@ -78,6 +84,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } });
   assistantWs.frame = null;
+  build.devTools = true;
   vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
 });
 
@@ -115,6 +122,16 @@ describe('AiIntegrationSection', () => {
     expect(screen.getByText('http://127.0.0.1:9420/mcp')).toBeInTheDocument();
     // Masked by default - the raw token never renders until revealed.
     expect(screen.queryByText('secret-token')).not.toBeInTheDocument();
+  });
+
+  it('renders the AI Integration guide link with the docs URL when enabled', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    render(<AiIntegrationSection serviceOnline />);
+
+    const guideLink = await screen.findByRole('link', { name: 'settings.ai.guideLink' });
+    expect(guideLink).toHaveAttribute('href', 'https://hellonexus.com/docs/guides/ai/mcp-server');
+    expect(guideLink).toHaveAttribute('target', '_blank');
+    expect(guideLink).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('reveals the token on click and re-masks on a second click', async () => {
@@ -350,6 +367,18 @@ describe('AiIntegrationSection', () => {
 });
 
 describe('AiIntegrationSection - assistant', () => {
+  it('release build: keeps the MCP rows, renders no runtime/model rows, and never fetches assistant status', async () => {
+    build.devTools = false;
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true, token: 'secret-token' }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus({ runtimeState: 'installed', catalog: [QWEN_4B] }));
+    render(<AiIntegrationSection serviceOnline />);
+
+    expect(await screen.findByText('settings.ai.token.label')).toBeInTheDocument();
+    expect(screen.queryByText('settings.ai.assistant.runtime.label')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.ai.assistant.model.label')).not.toBeInTheDocument();
+    expect(fetchAssistantStatus).not.toHaveBeenCalled();
+  });
+
   it('shows the not-installed runtime state with a download button, and installing starts the runtime', async () => {
     vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
     vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
@@ -450,6 +479,25 @@ describe('AiIntegrationSection - assistant', () => {
     expect(await screen.findByText('settings.ai.assistant.runtime.status.systemDetected')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.download' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.remove' })).not.toBeInTheDocument();
+  });
+
+  it('the use-system-Ollama toggle is off by default and opts in on click', async () => {
+    vi.mocked(fetchAiStatus).mockResolvedValue(makeStatus({ enabled: true }));
+    vi.mocked(fetchAssistantStatus).mockResolvedValue(makeAssistantStatus());
+    vi.mocked(setUseSystemOllama).mockResolvedValue(
+      makeAssistantStatus({ runtimeState: 'running', systemOllamaDetected: true, useSystemOllama: true }),
+    );
+    render(<AiIntegrationSection serviceOnline />);
+
+    const toggle = await screen.findByRole('switch', { name: 'settings.ai.assistant.runtime.useSystem.label' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+    fireEvent.click(toggle);
+    expect(setUseSystemOllama).toHaveBeenCalledWith(true);
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'));
+    // Adopting the system runtime hides the download/remove controls, same as
+    // detection arriving any other way.
+    expect(screen.queryByRole('button', { name: 'settings.ai.assistant.runtime.download' })).not.toBeInTheDocument();
   });
 
   it('shows the model catalog with a recommended badge, and downloading a model calls pullModel', async () => {

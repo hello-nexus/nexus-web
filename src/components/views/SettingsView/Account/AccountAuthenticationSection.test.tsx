@@ -102,15 +102,32 @@ describe('AccountAuthenticationSection username cooldown', () => {
 });
 
 describe('AccountAuthenticationSection log out', () => {
-  it('sits with the account settings, not the danger zone, and calls onLoggedOut', async () => {
+  it('asks for confirmation first, then logs out and calls onLoggedOut', async () => {
     const logout = vi.fn().mockResolvedValue(undefined);
     const onLoggedOut = vi.fn();
     renderSection(makeBackend({ logout }), vi.fn(), onLoggedOut);
 
     fireEvent.click(screen.getByRole('button', { name: 'account.logOut.label' }));
+    expect(logout).not.toHaveBeenCalled();
+    expect(screen.getByText('account.logOut.confirmTitle')).toBeTruthy();
+
+    // The confirm button carries the same label as the row's button.
+    const buttons = screen.getAllByRole('button', { name: 'account.logOut.label' });
+    fireEvent.click(buttons[buttons.length - 1]);
 
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(onLoggedOut).toHaveBeenCalledTimes(1));
+  });
+
+  it('does nothing when the confirmation is cancelled', () => {
+    const logout = vi.fn().mockResolvedValue(undefined);
+    renderSection(makeBackend({ logout }), vi.fn(), vi.fn());
+
+    fireEvent.click(screen.getByRole('button', { name: 'account.logOut.label' }));
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+
+    expect(logout).not.toHaveBeenCalled();
+    expect(screen.queryByText('account.logOut.confirmTitle')).toBeNull();
   });
 
   it('renders after the private-account toggle', () => {

@@ -170,7 +170,9 @@ function renderInspector(slots: DeckSlot[] = [{}]) {
 /** Same round-tripping contract as Harness, but over a touch-widget target (the
  * one editing surface with no physical Stream Deck to actually apply
  * deckBrightness/deckSleep). */
-function WidgetHarness({ initialSlots }: { initialSlots: DeckSlot[] }) {
+function WidgetHarness({ initialSlots, surface, desktopEditor }: {
+  initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean;
+}) {
   const [widget, setWidget] = useState<PanelWidget>({
     id: 'w1', type: 'deck', size: '2x2', col: 0, row: 0,
     config: { deck: { pages: [{ slots: initialSlots }] } as never },
@@ -184,12 +186,14 @@ function WidgetHarness({ initialSlots }: { initialSlots: DeckSlot[] }) {
       onFolderPathChange={() => {}}
       selectedSlot={0}
       onSelectedSlotChange={() => {}}
+      surface={surface}
+      desktopEditor={desktopEditor}
     />
   );
 }
 
-function renderWidgetInspector(slots: DeckSlot[] = [{}]) {
-  render(<WidgetHarness initialSlots={slots} />);
+function renderWidgetInspector(slots: DeckSlot[] = [{}], opts: { surface?: PanelSurface; desktopEditor?: boolean } = {}) {
+  return render(<WidgetHarness initialSlots={slots} surface={opts.surface} desktopEditor={opts.desktopEditor} />);
 }
 
 function isBefore(a: Element, b: Element): boolean {
@@ -1035,5 +1039,96 @@ describe('DeckKeyInspector - empty key hint (split editor pane)', () => {
   it('leaves the stacked touch-widget layout unchanged - no hint for an unbound key there', () => {
     render(<Harness initialSlots={[{}]} part="all" />);
     expect(screen.queryByText('panel.settings.deck.emptyKeyHint')).toBeNull();
+  });
+});
+
+describe('DeckKeyInspector - privileged action authoring lock (phone companion)', () => {
+  it('disables privileged action kinds and shows the desktop-only hint on a phone session', () => {
+    renderWidgetInspector([{}], { surface: 'phone' });
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.openFile' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.openFolder' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.text' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.playAudio' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkeySwitch' })).toBeDisabled();
+    // An ordinary kind stays fully choosable.
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.launchApp' })).not.toBeDisabled();
+    expect(screen.getByText('panel.settings.deck.desktopOnlyAction')).toBeInTheDocument();
+  });
+
+  it('clicking a disabled privileged kind does not assign it to the slot', () => {
+    renderWidgetInspector([{}], { surface: 'phone' });
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.queryByText('panel.settings.deck.hotkey')).toBeNull();
+  });
+
+  it('leaves every kind choosable, and drops the hint, when the desktop app is editing this phone panel', () => {
+    renderWidgetInspector([{}], { surface: 'phone', desktopEditor: true });
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).not.toBeDisabled();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.text' })).not.toBeDisabled();
+    expect(screen.queryByText('panel.settings.deck.desktopOnlyAction')).toBeNull();
+  });
+
+  it('leaves every kind choosable on a non-phone surface (y70, wired to this host)', () => {
+    renderWidgetInspector([{}], { surface: 'y70' });
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).not.toBeDisabled();
+    expect(screen.queryByText('panel.settings.deck.desktopOnlyAction')).toBeNull();
+  });
+
+  it('locks the nested action-type dropdown for a sequence step too', () => {
+    renderWidgetInspector([{}], { surface: 'phone' });
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.sequence' }));
+    fireEvent.click(screen.getByText('panel.settings.deck.sequence.addStep'));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.actionType' }));
+
+    // Two "hotkey" entries exist once the step's own Select popup is open: the
+    // outer category picker's <button> and the popup's own <li>; disambiguate
+    // the same way the deckBrightness/deckSleep test above does.
+    const hotkeyOptions = screen.getAllByRole('option', { name: 'panel.settings.deck.action.hotkey' });
+    const nestedHotkeyOption = hotkeyOptions.find(o => o.tagName === 'LI');
+    expect(nestedHotkeyOption).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('disables an existing hotkey key\'s capture button and preset picker, and shows the desktop-only badge', () => {
+    renderWidgetInspector([{ action: { type: 'hotkey', keys: 'ctrl+c' } }], { surface: 'phone' });
+    expect(screen.getByText('ctrl+c').closest('button')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.hotkeyPreset.placeholder' })).toBeDisabled();
+    expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
+  });
+
+  it('disables both hotkeySwitch capture fields when locked', () => {
+    renderWidgetInspector([{ action: { type: 'hotkeySwitch', keysA: 'ctrl+1', keysB: 'ctrl+2' } }], { surface: 'phone' });
+    expect(screen.getByText('ctrl+1').closest('button')).toBeDisabled();
+    expect(screen.getByText('ctrl+2').closest('button')).toBeDisabled();
+  });
+
+  it('disables an existing text key\'s textarea when locked', () => {
+    const { container } = renderWidgetInspector([{ action: { type: 'text', text: 'hello' } }], { surface: 'phone' });
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea).toBeDisabled();
+    expect(textarea).toHaveAttribute('readonly');
+    expect(screen.getByText('common.desktopOnly')).toBeInTheDocument();
+  });
+
+  it('disables an existing openFile key\'s path input when locked', () => {
+    renderWidgetInspector([{ action: { type: 'openFile', path: 'C:\\a.txt' } }], { surface: 'phone' });
+    const pathInput = screen.getByDisplayValue('C:\\a.txt');
+    expect(pathInput).toBeDisabled();
+    expect(pathInput).toHaveAttribute('readonly');
+  });
+
+  it('disables an existing playAudio key\'s path input and volume slider when locked', () => {
+    renderWidgetInspector([{ action: { type: 'playAudio', path: '/tmp/boop.wav', volume: 80 } }], { surface: 'phone' });
+    expect(screen.getByDisplayValue('/tmp/boop.wav')).toBeDisabled();
+    expect(screen.getByRole('slider', { name: 'panel.settings.deck.volume' })).toBeDisabled();
+  });
+
+  it('leaves an existing privileged key\'s fields fully editable when the desktop app is editing this phone panel', () => {
+    const { container } = renderWidgetInspector([{ action: { type: 'text', text: 'hello' } }], { surface: 'phone', desktopEditor: true });
+    const textarea = container.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea).not.toBeDisabled();
+    expect(textarea).not.toHaveAttribute('readonly');
+    expect(screen.queryByText('common.desktopOnly')).toBeNull();
   });
 });

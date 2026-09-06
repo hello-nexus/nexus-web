@@ -73,9 +73,9 @@ export interface FpsSessionsInRangeResponse {
 /** Cover art for one game: the service redirects to the store CDN, or serves
  *  the installed executable's icon when the store has none. 404 when neither
  *  exists, which leaves the caller on its placeholder. */
-export const fpsGameArtUrl = (gameKey: string) => {
-  const auth = tokenParam();
-  return resolveHttp(`/api/fps/games/${encodeURIComponent(gameKey)}/art`) + (auth ? `?${auth}` : '');
+export const fpsGameArtUrl = (gameKey: string, iconOnly = false) => {
+  const query = [tokenParam(), iconOnly ? 'iconOnly=true' : ''].filter(Boolean).join('&');
+  return resolveHttp(`/api/fps/games/${encodeURIComponent(gameKey)}/art`) + (query ? `?${query}` : '');
 };
 
 export const getFpsTrackingStatus = () =>

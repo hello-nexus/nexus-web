@@ -8,7 +8,8 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { fetchServiceBlob } from '../../../api/service';
 import { fetchDeckImage } from '../../../api/deckImages';
-import { DECK_ICONS, autoIconName, deckCategory, categoryColor } from './deckIcons';
+import { fetchSiteIcon } from '../../../api/siteIcon';
+import { DECK_ICONS, autoIconName, deckCategory, categoryColor, slotAppId, slotSiteUrl } from './deckIcons';
 import { applyKeyTransform, applyOrientation, type DeckKeyTransform, type DeckOrientation } from './deckKeyTransform';
 import { encodeBmp } from './encodeBmp';
 import { resolveDeckTitleStyle, type ResolvedDeckTitleStyle } from './deckTitleStyle';
@@ -43,7 +44,12 @@ export function renderDeckBackKeyBitmap(model: DeckKeyModel): Promise<Uint8Array
   return renderDeckKeyBitmap(backSlot, model);
 }
 
-export async function renderDeckKeyBitmap(slot: DeckSlot, model: DeckKeyModel): Promise<Uint8Array> {
+/** Set when the slot wanted a site icon the service could not supply, so a caller caching by slot content knows this render is not final. */
+export interface DeckKeyRenderOutcome {
+  siteIconMissing: boolean;
+}
+
+export async function renderDeckKeyBitmap(slot: DeckSlot, model: DeckKeyModel, outcome?: DeckKeyRenderOutcome): Promise<Uint8Array> {
   const size = model.keyPixels;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -51,7 +57,7 @@ export async function renderDeckKeyBitmap(slot: DeckSlot, model: DeckKeyModel): 
   const ctx = canvas.getContext('2d');
   if (!ctx) return new Uint8Array();
 
-  await paintKey(ctx, size, slot);
+  await paintKey(ctx, size, slot, outcome);
 
   const raw = ctx.getImageData(0, 0, size, size);
   const oriented = applyOrientation({ width: size, height: size, data: raw.data }, model.orientation ?? 0);
@@ -61,7 +67,7 @@ export async function renderDeckKeyBitmap(slot: DeckSlot, model: DeckKeyModel): 
   return encodeJpeg(transformed);
 }
 
-async function paintKey(ctx: CanvasRenderingContext2D, size: number, slot: DeckSlot): Promise<void> {
+async function paintKey(ctx: CanvasRenderingContext2D, size: number, slot: DeckSlot, outcome?: DeckKeyRenderOutcome): Promise<void> {
   const isFolder = !!slot.folder;
   // An unassigned key (no action, folder, icon, or color) renders off (black),
   // matching the deck's own firmware, instead of the category-default fill.
@@ -74,7 +80,7 @@ async function paintKey(ctx: CanvasRenderingContext2D, size: number, slot: DeckS
 
   // The icon always fills the whole key - the label overlays on top instead
   // of sharing the canvas with it, mirroring DeckGrid's on-screen cell.
-  await paintIcon(ctx, slot, isFolder, size);
+  await paintIcon(ctx, slot, isFolder, size, outcome);
 
   const titleStyle = resolveDeckTitleStyle(slot.title);
   if (slot.label && titleStyle.show) paintLabel(ctx, slot.label, size, titleStyle);
@@ -93,11 +99,12 @@ export function shouldPaintIcon(slot: DeckSlot): boolean {
 }
 
 async function paintIcon(
-  ctx: CanvasRenderingContext2D, slot: DeckSlot, isFolder: boolean, canvasSize: number,
+  ctx: CanvasRenderingContext2D, slot: DeckSlot, isFolder: boolean, canvasSize: number, outcome?: DeckKeyRenderOutcome,
 ): Promise<void> {
   const icon = slot.icon;
   const action = slot.action;
-  const appId = action?.type === 'launchApp' ? action.appId : icon?.kind === 'app' ? icon.value : undefined;
+  const appId = slotAppId(icon, action);
+  const siteUrl = slotSiteUrl(action);
   const cx = canvasSize / 2;
   const cy = canvasSize / 2;
   const target = Math.round(canvasSize * ICON_FRACTION);
@@ -119,6 +126,12 @@ async function paintIcon(
   if (appId) {
     const img = await loadAppIcon(appId);
     if (img) { drawCentered(ctx, img, cx, cy, target); return; }
+  }
+
+  if (siteUrl) {
+    const img = await loadSiteIcon(siteUrl);
+    if (img) { drawCentered(ctx, img, cx, cy, target); return; }
+    if (outcome) outcome.siteIconMissing = true;
   }
 
   const name = icon?.kind === 'lucide' ? icon.value : autoIconName(action, isFolder);
@@ -204,6 +217,17 @@ async function loadAppIcon(appId: string): Promise<HTMLImageElement | null> {
     return await loadImage(url);
   } finally {
     URL.revokeObjectURL(url);
+  }
+}
+
+async function loadSiteIcon(url: string): Promise<HTMLImageElement | null> {
+  const blob = await fetchSiteIcon(url);
+  if (!blob || blob.size === 0) return null;
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    return await loadImage(objectUrl);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
   }
 }
 

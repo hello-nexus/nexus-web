@@ -112,6 +112,7 @@ export function EmptyCellDroppable({ pageId, col, row }: { pageId: string; col: 
 
 export function PanelTouchCell({
   widget,
+  deviceId,
   surface,
   deviceTouch,
   rearranging,
@@ -128,6 +129,7 @@ export function PanelTouchCell({
   editView,
   onEditViewChange,
   onUpdate,
+  editorPreview = false,
   clickthrough = false,
   onContextMenu,
   cellPointers,
@@ -138,6 +140,7 @@ export function PanelTouchCell({
   onConfigureWidget,
 }: {
   widget: PanelWidget;
+  deviceId?: string;
   surface?: PanelSurface;
   deviceTouch?: boolean;
   rearranging: boolean;
@@ -154,6 +157,7 @@ export function PanelTouchCell({
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
   onUpdate?: (config: Record<string, PanelConfigValue>) => void;
+  editorPreview?: boolean;
   clickthrough?: boolean;
   onContextMenu: (e: React.MouseEvent) => void;
   cellPointers: {
@@ -277,7 +281,7 @@ export function PanelTouchCell({
       >
         <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
           <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
-            <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
+            <Comp widget={widget} deviceId={deviceId} surface={surface} deviceTouch={deviceTouch} />
           </div>
         </div>
         <div className={styles.cellLabelStrip}>
@@ -344,6 +348,7 @@ export function PanelTouchCell({
         <div className={styles.cellScaler}>
           <Comp
             widget={widget}
+            deviceId={deviceId}
             surface={surface}
             deviceTouch={deviceTouch}
             selectedSlot={selectedSlot}
@@ -351,6 +356,7 @@ export function PanelTouchCell({
             editView={editView}
             onEditViewChange={onEditViewChange}
             onUpdate={onUpdate}
+            editorPreview={editorPreview}
             onSectionNavigate={onSectionNavigate}
             onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
           />

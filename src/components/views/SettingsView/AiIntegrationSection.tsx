@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot } from 'lucide-react';
+import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot, Server } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -9,13 +9,15 @@ import { Badge } from '../../common/Badge/Badge';
 import { UsageBar } from '../../common/UsageBar/UsageBar';
 import {
   fetchAiStatus, postAiConfig, rotateAiToken,
-  fetchAssistantStatus, installRuntime, removeRuntime,
+  fetchAssistantStatus, installRuntime, removeRuntime, setUseSystemOllama,
   pullModel, removeModel, selectModel,
   type AiCapabilities, type AiStatusResponse,
   type AiAssistantStatus, type AiAssistantProgressFrame,
 } from '../../../api/aiIntegration';
 import { useTopic } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
+import { DEV_TOOLS } from '../../../lib/devTools';
+import { AI_INTEGRATION_GUIDE_URL } from '../../../lib/externalLinks';
 import { formatBytes } from '../DiagnosticsView/diagnosticsHelpers';
 import { DEFAULT_NUMBER_FORMAT, type NumberFormat } from '../../../lib/units';
 import { isAssistantTransient, progressPercent } from './assistantProgress';
@@ -41,6 +43,23 @@ const CAPABILITY_ICONS: Record<CapabilityKey, ReactNode> = {
 // Decorative placeholder for the masked token - its length is unrelated to
 // the real token's length so the mask alone never leaks a size hint.
 const TOKEN_MASK = '•'.repeat(24);
+
+type TFunction = ReturnType<typeof useTranslation>['t'];
+
+// Splits the translated hint on the literal {guide} token and injects the
+// docs link there, same idiom as buildTelemetryConsentDescription.
+function buildAiHint(t: TFunction): ReactNode {
+  const [before, after] = t('settings.ai.hint').split('{guide}');
+  return (
+    <>
+      {before}
+      <a href={AI_INTEGRATION_GUIDE_URL} target="_blank" rel="noopener noreferrer">
+        {t('settings.ai.guideLink')}
+      </a>
+      {after}
+    </>
+  );
+}
 
 /**
  * "AI Integration" settings: the master MCP-endpoint toggle plus, once
@@ -72,7 +91,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
   const copyResetTimer = useRef<number | null>(null);
 
   // ── Local AI assistant ──
-  const assistantEnabled = serviceOnline && status?.enabled === true;
+  // Dev-tools builds only; a release build carries the MCP rows alone.
+  const assistantEnabled = DEV_TOOLS && serviceOnline && status?.enabled === true;
   const [assistant, setAssistant] = useState<AiAssistantStatus | null>(null);
   const [assistantMutating, setAssistantMutating] = useState(false);
   const [removeRuntimeConfirmOpen, setRemoveRuntimeConfirmOpen] = useState(false);
@@ -218,6 +238,8 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
   };
 
   const doInstallRuntime = () => void runAssistantMutation(installRuntime);
+
+  const doSetUseSystemOllama = (enabled: boolean) => void runAssistantMutation(() => setUseSystemOllama(enabled));
 
   const doRemoveRuntime = async () => {
     await runAssistantMutation(removeRuntime);
@@ -394,7 +416,7 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                   <InfoRow label={t('settings.ai.error.label')} value={status.lastError} tone="bad" />
                 )}
               </InfoList>
-              <p className={styles.note}>{t('settings.ai.hint')}</p>
+              <p className={styles.note}>{buildAiHint(t)}</p>
 
               {assistant !== null && (
                 <>
@@ -438,6 +460,15 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                       )}
                     </div>
                   </SettingRow>
+                  <SettingToggle
+                    label={t('settings.ai.assistant.runtime.useSystem.label')}
+                    icon={<Server />}
+                    iconLeading="subtle"
+                    description={t('settings.ai.assistant.runtime.useSystem.description')}
+                    checked={assistant.useSystemOllama}
+                    onChange={doSetUseSystemOllama}
+                    disabled={!serviceOnline || assistantBusy}
+                  />
                   {assistantActionError && <p className={styles.note}>{t('settings.ai.assistant.actionError')}</p>}
 
                   <SettingRow

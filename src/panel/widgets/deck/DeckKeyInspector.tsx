@@ -7,7 +7,7 @@ import { DECK_SWATCHES } from '../../../lib/settings';
 import { fetchService, isDirectActive, isRelayActive, pickSystemPath } from '../../../api/service';
 import { isMacAppShell, isWindowsAppShell } from '../../../app/windowActions';
 import { useSensors } from '../../../hooks/useSensors';
-import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
+import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
@@ -31,6 +31,7 @@ import {
 } from './deckTitleStyle';
 import { DECK_ICONS, autoIconName } from './deckIcons';
 import { DECK_MONITORING_CATEGORIES, resolveMonitoringSensor } from './deckMonitoring';
+import { buildNicNetworkSensors } from '../monitoring/networkSensors';
 import { CATEGORY_LABEL_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys } from '../monitoring/sensorPicker';
 import { labelForDevice } from '../monitoring/MonitoringWidget';
 import { LabelControls, SCALE_OPTIONS, parseFixedRangeInput } from '../monitoring/MonitoringSettings';
@@ -39,6 +40,7 @@ import { defaultFixedMax } from '../monitoring/perfDomain';
 import { WeatherLocationSearch } from '../weather/WeatherLocationSearch';
 import type { WeatherGeocodeResult } from '../../../api/weather';
 import { ANIMATE_EFFECTS } from '../../../types/lighting';
+import { PRIVILEGED_DECK_ACTION_TYPES } from './deckExecutor';
 import type {
   DeckAction, DeckActionType, DeckLightingMode, DeckMonitoringCategory, DeckMonitoringPress,
   DeckMonitoringStyle, DeckNexusAction, DeckNexusOp, DeckSlot, DeckTitleStyle,
@@ -46,6 +48,19 @@ import type {
 import styles from './DeckKeyInspector.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
+// A phone-companion session gets 403 from the service when it saves a layout
+// introducing one of these action types (PanelRoutes' DeckLayoutPolicy) -
+// authoring them is desktop-app-only. `desktopEditor` overrides this: the
+// desktop app's own device page can edit another panel's (including a
+// phone's) deck layout, and that save still carries the desktop token.
+function isPrivilegedPickerKind(kind: DeckPickerKind): boolean {
+  return (PRIVILEGED_DECK_ACTION_TYPES as ReadonlySet<string>).has(kind);
+}
+
+function deckAuthoringLocked(surface?: PanelSurface, desktopEditor?: boolean): boolean {
+  return surface === 'phone' && !desktopEditor;
+}
 
 // NOTE: audioOutput / audioInput are intentionally omitted from every
 // category - switching the default audio endpoint needs IPolicyConfig in the
@@ -228,7 +243,7 @@ function useServiceOptions(path: string, map: (data: unknown) => { value: string
   return opts;
 }
 
-function SelectField({ label, value, options, onChange, disabled }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void; disabled?: boolean }) {
+function SelectField({ label, value, options, onChange, disabled }: { label: string; value: string; options: { value: string; label: string; disabled?: boolean }[]; onChange: (v: string) => void; disabled?: boolean }) {
   return (
     <Field label={label}>
       <Select className={styles.selectWide} value={value} options={options} onChange={onChange} ariaLabel={label} disabled={disabled} />
@@ -240,13 +255,14 @@ function ActionEditor({ action, onChange, showType, allowed, surface, desktopEdi
   action: DeckAction; onChange: (a: DeckAction) => void; showType: boolean; allowed: DeckPickerKind[]; surface?: PanelSurface; desktopEditor?: boolean; pageCount?: number;
 }) {
   const { t } = useTranslation();
+  const locked = deckAuthoringLocked(surface, desktopEditor);
   return (
     <>
       {showType && (
         <SelectField
           label={t('panel.settings.deck.actionType')}
           value={actionPickerKind(action)}
-          options={allowed.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`) }))}
+          options={allowed.map(k => ({ value: k, label: t(`panel.settings.deck.action.${k}`), disabled: locked && isPrivilegedPickerKind(k) }))}
           onChange={k => onChange(defaultActionForPickerKind(k as Exclude<DeckPickerKind, 'folder'>))}
         />
       )}
@@ -266,6 +282,7 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
   // long as the user takes to answer it - this only guards against a
   // double-click re-opening a second dialog, not a brief request gap.
   const [browsing, setBrowsing] = useState(false);
+  const locked = deckAuthoringLocked(surface, desktopEditor);
 
   switch (action.type) {
     case 'launchApp':
@@ -303,13 +320,14 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       return (
         <Field label={t('panel.settings.deck.path')}>
           <div className={styles.pathRow}>
-            <input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} />
+            <input className={styles.input} type="text" value={action.path} readOnly={locked} disabled={locked} onChange={e => onChange({ ...action, path: e.target.value })} />
             {canBrowse && (
               <Button type="button" size="sm" tone="neutral" icon={<FolderOpen size={14} aria-hidden />} disabled={browsing} onClick={handleBrowse}>
                 {t('panel.settings.deck.browse')}
               </Button>
             )}
           </div>
+          {locked && <DesktopOnlyBadge />}
         </Field>
       );
     }
@@ -328,17 +346,30 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
       );
     }
     case 'hotkey':
-      return <Field label={t('panel.settings.deck.hotkey')}><HotkeyInput value={action.keys} onChange={keys => onChange({ ...action, keys })} /></Field>;
+      return (
+        <Field label={t('panel.settings.deck.hotkey')}>
+          <HotkeyInput value={action.keys} onChange={keys => onChange({ ...action, keys })} disabled={locked} />
+          {locked && <DesktopOnlyBadge />}
+        </Field>
+      );
     case 'hotkeySwitch':
       return (
         <>
-          <Field label={t('panel.settings.deck.hotkeySwitch.firstPress')}><HotkeyInput value={action.keysA} onChange={keysA => onChange({ ...action, keysA })} /></Field>
-          <Field label={t('panel.settings.deck.hotkeySwitch.secondPress')}><HotkeyInput value={action.keysB} onChange={keysB => onChange({ ...action, keysB })} /></Field>
+          <Field label={t('panel.settings.deck.hotkeySwitch.firstPress')}>
+            <HotkeyInput value={action.keysA} onChange={keysA => onChange({ ...action, keysA })} disabled={locked} />
+            {locked && <DesktopOnlyBadge />}
+          </Field>
+          <Field label={t('panel.settings.deck.hotkeySwitch.secondPress')}>
+            <HotkeyInput value={action.keysB} onChange={keysB => onChange({ ...action, keysB })} disabled={locked} />
+          </Field>
         </>
       );
     case 'text':
       return (
-        <Field label={t('panel.settings.deck.text')}><textarea className={styles.input} value={action.text} rows={2} onChange={e => onChange({ ...action, text: e.target.value })} /></Field>
+        <Field label={t('panel.settings.deck.text')}>
+          <textarea className={styles.input} value={action.text} rows={2} readOnly={locked} disabled={locked} onChange={e => onChange({ ...action, text: e.target.value })} />
+          {locked && <DesktopOnlyBadge />}
+        </Field>
       );
     case 'power': {
       const ops = ['lock', 'sleep', 'shutdown', 'restart', 'logout'];
@@ -578,11 +609,20 @@ function MonitoringFields({ action, onChange, surface, desktopEditor }: {
 }) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
-  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, action.category, sensors, [], EMPTY_SENSOR_EXTRAS)
+  // Hiding empty categories (visibleDeviceKeys below) needs every
+  // extras-backed category's real sensor count up front, not just the
+  // selected one - so the inspector subscribes while open, matching
+  // MonitoringSettings' own always-on subscription. It is transient, mounted
+  // only while a key is being edited. FPS deliberately has no subscription
+  // (it would start ETW capture): the picker falls back to
+  // FPS_SENSOR_TEMPLATE, again as the widget's settings pane does.
+  const extras = useSensorExtras(true);
+  const networkSensors = buildNicNetworkSensors(extras.nics);
+  const categoryOptions = visibleDeviceKeys(DECK_MONITORING_CATEGORIES, action.category, sensors, networkSensors, extras)
     .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }));
-  const sensorOptions = sensorsForDevice(sensors, [], EMPTY_SENSOR_EXTRAS, action.category);
+  const sensorOptions = sensorsForDevice(sensors, networkSensors, extras, action.category);
   const sensorValue = selectedSensorValue(sensorOptions, action.sensor);
-  const activeSensor = resolveMonitoringSensor(sensors, action.category, sensorValue);
+  const activeSensor = resolveMonitoringSensor(sensors, action.category, sensorValue, [], networkSensors, extras);
 
   // action.sensor starts '' (defaultActionFor has no live sensor data to pick
   // from) and must self-heal off a stale id after a category swap too - seed
@@ -795,6 +835,7 @@ function PlayAudioFields({ action, onChange, surface, desktopEditor }: {
   action: PlayAudioAction; onChange: (a: DeckAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
 }) {
   const { t } = useTranslation();
+  const locked = deckAuthoringLocked(surface, desktopEditor);
   const canBrowse = canEditFreeText(surface, desktopEditor)
     && (isWindowsAppShell() || isMacAppShell())
     && !isRelayActive() && !isDirectActive();
@@ -814,19 +855,21 @@ function PlayAudioFields({ action, onChange, surface, desktopEditor }: {
     <>
       <Field label={t('panel.settings.deck.path')}>
         <div className={styles.pathRow}>
-          <input className={styles.input} type="text" value={action.path} onChange={e => onChange({ ...action, path: e.target.value })} />
+          <input className={styles.input} type="text" value={action.path} readOnly={locked} disabled={locked} onChange={e => onChange({ ...action, path: e.target.value })} />
           {canBrowse && (
             <Button type="button" size="sm" tone="neutral" icon={<FolderOpen size={14} aria-hidden />} disabled={browsing} onClick={handleBrowse}>
               {t('panel.settings.deck.browse')}
             </Button>
           )}
         </div>
+        {locked && <DesktopOnlyBadge />}
       </Field>
       <Slider
         // eslint-disable-next-line i18next/no-literal-string -- Slider orientation enum value
         orientation="inline"
         editable
         trackFill
+        disabled={locked}
         label={t('panel.settings.deck.volume')}
         ariaLabel={t('panel.settings.deck.volume')}
         value={action.volume ?? 100}
@@ -888,9 +931,9 @@ function ToggleEditor({ action, onChange, allowed, surface, desktopEditor }: { a
  * the selected slot; dragging it onto a slot in the grid assigns it there (the
  * grid's DndContext, in StreamDeckDevicePage, resolves the `pick:<kind>` id).
  */
-function PickerKindItem({ kind, active, onPick }: { kind: DeckPickerKind; active: boolean; onPick: (k: DeckPickerKind) => void }) {
+function PickerKindItem({ kind, active, onPick, locked = false }: { kind: DeckPickerKind; active: boolean; onPick: (k: DeckPickerKind) => void; locked?: boolean }) {
   const { t } = useTranslation();
-  const drag = useDraggable({ id: `pick:${kind}` });
+  const drag = useDraggable({ id: `pick:${kind}`, disabled: locked });
   const Icon = pickerKindIcon(kind);
   return (
     <button
@@ -900,7 +943,9 @@ function PickerKindItem({ kind, active, onPick }: { kind: DeckPickerKind; active
       type="button"
       role="option"
       aria-selected={active}
-      className={`${styles.kindItem} ${active ? styles.kindItemActive : ''}`}
+      aria-disabled={locked || undefined}
+      disabled={locked}
+      className={`${styles.kindItem} ${active ? styles.kindItemActive : ''} ${locked ? styles.kindItemLocked : ''}`}
       // No transform here: the drag visual is a portal-rendered DragOverlay
       // (StreamDeckDevicePage), so it isn't clipped by the picker's overflow.
       // The original just dims in place while dragging.
@@ -942,6 +987,7 @@ function ActionCategoryPicker({ categories, activeKind, onPick, surface, desktop
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(categories.map(c => c.key)));
   const [query, setQuery] = useState('');
   const activeCategoryKey = categoryForKind(activeKind).key;
+  const locked = deckAuthoringLocked(surface, desktopEditor);
   useEffect(() => {
     setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));
   }, [activeCategoryKey]);
@@ -963,6 +1009,7 @@ function ActionCategoryPicker({ categories, activeKind, onPick, surface, desktop
 
   return (
     <div className={styles.categoryList}>
+      {locked && <p className={styles.description}>{t('panel.settings.deck.desktopOnlyAction')}</p>}
       {showSearch && (
         <SearchInput
           value={query}
@@ -983,7 +1030,7 @@ function ActionCategoryPicker({ categories, activeKind, onPick, surface, desktop
         >
           <div className={styles.kindList} role="listbox" aria-label={t(cat.labelKey)}>
             {cat.kinds.map(k => (
-              <PickerKindItem key={k} kind={k} active={k === activeKind} onPick={onPick} />
+              <PickerKindItem key={k} kind={k} active={k === activeKind} onPick={onPick} locked={locked && isPrivilegedPickerKind(k)} />
             ))}
           </div>
         </CollapsibleSection>

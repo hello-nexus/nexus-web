@@ -568,6 +568,41 @@ export const fetchStaticDeviceLooks = async () => {
   return fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
 };
 
+// --- Per-device colour tuning ---
+// Channel gains / temperature / saturation trims applied by the service on the
+// frame's way to the hardware. Calibration, not an effect: the canvas preview
+// keeps showing the untouched colour, exactly like per-device brightness.
+
+export interface LightingColorAdjust {
+  /** Red channel gain, 0.3..1.7. 1 = untouched. */
+  red: number;
+  green: number;
+  blue: number;
+  /** Colour-temperature shift, -1 (cool) .. +1 (warm). 0 = untouched. */
+  temperature: number;
+  /** Saturation multiplier around luma, 0..2. 1 = untouched. */
+  saturation: number;
+}
+
+export const NEUTRAL_COLOR_ADJUST: LightingColorAdjust = {
+  red: 1, green: 1, blue: 1, temperature: 0, saturation: 1,
+};
+
+// Sparse: only cards the user actually trimmed come back, so a fresh install
+// answers with an empty map and every device reads as neutral.
+export const fetchLightingColorAdjust = () =>
+  fetchService<{ adjustments: Record<string, LightingColorAdjust> }>('/devices/lighting-devices/color-adjust');
+
+/** What one write carries: only the controls the user actually moved, plus
+ *  brightness when that was the one that moved. */
+export type LightingColorAdjustPatch = Partial<LightingColorAdjust> & { brightness?: number };
+
+// One write for the whole selection, and only for the fields it names: the
+// service leaves anything absent alone, so moving one slider cannot flatten
+// the others across devices that disagree on them.
+export const setLightingColorAdjust = (ids: string[], patch: LightingColorAdjustPatch) =>
+  postService('/devices/lighting-devices/color-adjust', { ids, ...patch });
+
 // Master brightness cap (0..1). Caps every per-device value so the effective
 // brightness for an LED is `min(global, device / 100)` - never brighter.
 export const fetchGlobalBrightness = () =>

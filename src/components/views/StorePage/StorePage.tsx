@@ -1,18 +1,20 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Boxes, ChevronLeft, ShoppingBag } from 'lucide-react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import {
+  Boxes, ChevronLeft, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Tag,
+} from 'lucide-react';
+import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
-import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
 import {
   fetchStoreApp, fetchStoreApps, installStoreApp,
-  type StoreApp, type StoreAppDetail,
+  type StoreApp, type StoreAppDetail, type StoreVersion,
 } from '../../../api/store';
 import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
-import { RemoveAppButton } from './RemoveAppButton';
-import { StoreSignInModal } from './StoreSignInModal';
+import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
+import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import styles from './StorePage.module.scss';
 
 type InstallState = 'idle' | 'working' | 'failed';
@@ -42,23 +44,11 @@ function iconFor(app: { id: string; iconUrl: string | null }, installed?: Instal
   return app.iconUrl ?? installed?.iconUrl ?? null;
 }
 
-/** App Store subtitles are 30 characters; past this a card line stops being a subtitle. */
-const SUBTITLE_MAX = 40;
-
-/**
- * The App Store subtitle line: the app's own short line, never the publisher.
- * An app that set no tagline falls back to the first sentence of its
- * description, trimmed at a word - the full text is what the About section is
- * for.
- */
+/** The app's own short line: its tagline, else the first sentence of its description. Never abbreviated - a card clips its own line in CSS. */
 function shortDescription(app: { tagline?: string; description?: string }): string {
   const raw = (app.tagline || app.description || '').trim();
   if (!raw) return '';
-  const sentence = raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
-  if (sentence.length <= SUBTITLE_MAX) return sentence;
-  const cut = sentence.slice(0, SUBTITLE_MAX);
-  const lastSpace = cut.lastIndexOf(' ');
-  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trimEnd()}\u2026`;
+  return raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
 }
 
 function InstallButton({ app, installedVersion, onNeedsSignIn }: {
@@ -97,48 +87,54 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
     : t('store.install');
 
   return (
-    <button
+    <Button
       type="button"
-      className={`${styles.install} ${state === 'failed' ? styles.installFailed : ''}`}
-      onClick={() => { void install(); }}
+      tone={upToDate ? 'neutral' : state === 'failed' ? 'danger' : 'accent'}
       disabled={state === 'working' || upToDate}
+      // The row's whole card opens the app page; getting the app must not.
+      onClick={e => { e.stopPropagation(); void install(); }}
     >
       {label}
-    </button>
+    </Button>
   );
 }
 
-function AppIcon({ app, installed, large }: {
-  app: { id: string; iconUrl: string | null }; installed?: InstalledInfo; large?: boolean;
+function AppIcon({ app, installed, size = 'row' }: {
+  app: { id: string; iconUrl: string | null }; installed?: InstalledInfo; size?: 'row' | 'hero';
 }) {
   const icon = iconFor(app, installed);
   return (
-    <span className={large ? styles.detailIconBox : styles.iconBox}>
+    <span className={`${styles.iconBox} ${size === 'hero' ? styles.iconBoxHero : ''}`}>
       {icon
-        ? <img src={icon} alt="" className={large ? styles.detailIcon : styles.icon} />
+        ? <img src={icon} alt="" className={styles.icon} />
         : <Boxes className={styles.iconFallback} aria-hidden={true} />}
     </span>
   );
 }
 
-/**
- * Storefront card: icon, name, one line of copy. No Get button and no rating -
- * getting an app is a decision made on its page, the way the App Store does it.
- */
-function AppCard({ app, installed, onOpen }: {
+// disableInteractiveRole: the Install button inside is the focusable control;
+// role="button" here would nest a focusable descendant inside a button role.
+function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
   app: StoreApp; installed?: InstalledInfo; onOpen: () => void;
+  onNeedsSignIn: (retry: () => void) => void;
 }) {
-  const { t } = useTranslation();
   return (
     <Card
       interactive
+      disableInteractiveRole
       onClick={onOpen}
       icon={<AppIcon app={app} installed={installed} />}
-      title={app.name}
-      subtitle={<span className={styles.cardSubtitle}>{shortDescription(app)}</span>}
+      title={(
+        <button type="button" className={styles.rowTitle} onClick={e => { e.stopPropagation(); onOpen(); }}>
+          {app.name}
+        </button>
+      )}
+      subtitle={<span className={styles.rowSubtitle}>{shortDescription(app)}</span>}
       truncateSubtitle
     >
-      {installed && <span className={styles.installedTag}>{t('store.installed')}</span>}
+      <div className={styles.rowActions}>
+        <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
+      </div>
     </Card>
   );
 }
@@ -153,6 +149,80 @@ function StoreBanner() {
         <p className={styles.bannerBody}>{t('store.banner.body')}</p>
       </div>
     </div>
+  );
+}
+
+interface Highlight { key: string; icon: ReactNode; label: string; value: string }
+
+const HIGHLIGHT_ICON = 30;
+
+/** The sizes and Nexus-floor cells are each dropped when the app declares nothing for them. */
+function useHighlights(latest: StoreVersion): Highlight[] {
+  const { t } = useTranslation();
+  const out: Highlight[] = [
+    {
+      key: 'widget',
+      icon: <LayoutGrid size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      label: t('store.spec.widget'),
+      value: latest.hasWidget ? t('store.value.hasFeature') : t('store.value.noFeature'),
+    },
+  ];
+  if (latest.hasWidget && latest.sizes.length > 0) {
+    out.push({
+      key: 'sizes',
+      icon: <Ruler size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      label: t('store.spec.widgetSizes'),
+      // Deduped: sizes is wire data and a repeat renders twice.
+      value: [...new Set(latest.sizes)].join(' · '),
+    });
+  }
+  out.push(
+    {
+      key: 'touch',
+      icon: <Hand size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      label: t('store.spec.touch'),
+      value: latest.requiresTouch ? t('store.value.touchRequired') : t('store.value.touchAny'),
+    },
+    {
+      key: 'version',
+      icon: <Tag size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      label: t('store.spec.version'),
+      value: latest.version,
+    },
+    {
+      key: 'size',
+      icon: <HardDrive size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      label: t('store.spec.size'),
+      value: `${Math.max(1, Math.round(latest.size / 1024))} KB`,
+    },
+  );
+  if (latest.minNexusVersion) {
+    out.push({
+      key: 'requires',
+      icon: <ShieldCheck size={HIGHLIGHT_ICON} aria-hidden={true} />,
+      label: t('store.spec.requires'),
+      value: latest.minNexusVersion,
+    });
+  }
+  return out;
+}
+
+function Highlights({ latest }: { latest: StoreVersion }) {
+  const highlights = useHighlights(latest);
+  return (
+    <Card className={styles.highlightsCard}>
+      <dl className={styles.highlights}>
+        {highlights.map(h => (
+          <div key={h.key} className={styles.highlight}>
+            <dt className={styles.highlightLabel}>{h.label}</dt>
+            <dd className={styles.highlightBody}>
+              <span className={styles.highlightIcon}>{h.icon}</span>
+              <span className={styles.highlightValue}>{h.value}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
   );
 }
 
@@ -178,98 +248,62 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
 
   return (
     <div className={styles.detail}>
-      <button type="button" className={styles.back} onClick={onBack}>
-        <ChevronLeft size={16} aria-hidden={true} />
-        {t('store.back')}
-      </button>
+      <div className={styles.topBar}>
+        <button type="button" className={styles.back} onClick={onBack}>
+          <ChevronLeft size={16} aria-hidden={true} />
+          {t('store.back')}
+        </button>
+      </div>
 
-      <Card
-        icon={<AppIcon app={app} installed={installed} large />}
-        title={app.name}
-        subtitle={<span className={styles.cardSubtitle}>{shortDescription(app)}</span>}
-        actions={(
-          <div className={styles.cardActions}>
+      <header className={styles.hero}>
+        <AppIcon app={app} installed={installed} size="hero" />
+        <div className={styles.heroMain}>
+          <h1 className={styles.heroTitle}>{app.name}</h1>
+          {app.tagline.trim() && <p className={styles.heroSubtitle}>{app.tagline.trim()}</p>}
+          <div className={styles.heroActions}>
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
           </div>
-        )}
-      >
-        {installed && (
-          <span className={styles.installedVersion}>
-            {t('store.installedVersion', { version: installed.version })}
-          </span>
-        )}
-      </Card>
+          {installed && (
+            <span className={styles.installedVersion}>
+              {t('store.installedVersion', { version: installed.version })}
+            </span>
+          )}
+        </div>
+      </header>
 
+      {app.latest && <Highlights latest={app.latest} />}
+
+      {/* Media rides the service's store proxy, never the bundle: it must be readable before the app is installed. */}
       {app.screenshots.length > 0 && (
-        <SettingsSection title={t('store.section.preview')}>
-          <div className={styles.shots}>
-            {app.screenshots.map(url => (
-              <img key={url} src={url} alt="" className={styles.shot} loading="lazy" />
-            ))}
-          </div>
-        </SettingsSection>
-      )}
-
-      {app.description && (
-        <SettingsSection title={t('store.section.about')}>
-          <p className={styles.description}>{app.description}</p>
-        </SettingsSection>
-      )}
-
-      {app.latest && (
-        <SettingsSection title={t('store.section.details')}>
-          <dl className={styles.specs}>
-            <dt>{t('store.spec.widget')}</dt>
-            <dd>{app.latest.hasWidget ? t('store.value.hasFeature') : t('store.value.noFeature')}</dd>
-            {app.latest.hasWidget && app.latest.sizes.length > 0 && (
-              <>
-                <dt>{t('store.spec.widgetSizes')}</dt>
-                <dd className={styles.sizes}>
-                  {/* Deduped: sizes is wire data, and a repeat would collide on key. */}
-                  {[...new Set(app.latest.sizes)].map(size => (
-                    <span key={size} className={styles.size}>{size}</span>
-                  ))}
-                </dd>
-              </>
-            )}
-            <dt>{t('store.spec.touch')}</dt>
-            <dd>
-              {app.latest.requiresTouch
-                ? t('store.value.touchRequired')
-                : t('store.value.touchAny')}
-            </dd>
-            <dt>{t('store.spec.version')}</dt>
-            <dd>{app.latest.version}</dd>
-            <dt>{t('store.spec.size')}</dt>
-            <dd>{Math.max(1, Math.round(app.latest.size / 1024))} KB</dd>
-            {app.latest.minNexusVersion && (
-              <>
-                <dt>{t('store.spec.requires')}</dt>
-                <dd>{app.latest.minNexusVersion}</dd>
-              </>
-            )}
-          </dl>
-        </SettingsSection>
-      )}
-
-      {installed && (
-        <div className={styles.detailFooter}>
-          <RemoveAppButton app={{ id: app.id, name: app.name }} label={t('store.delete')} />
+        <div className={styles.shots}>
+          {app.screenshots.map((url, i) => (
+            <img
+              key={url}
+              src={url}
+              alt={t('store.screenshotAlt', { name: app.name, index: i + 1 })}
+              className={styles.shot}
+              loading="lazy"
+            />
+          ))}
         </div>
       )}
+
+      {app.description && <p className={styles.description}>{app.description}</p>}
     </div>
   );
 }
 
 /**
- * The Nexus Store. The catalog is answered per client - this build's version
- * decides which releases it is offered - so the page renders what it is given
- * rather than filtering locally.
+ * The Nexus Marketplace. The catalog is answered per client - this build's
+ * version decides which releases it is offered - so the page renders what it is
+ * given rather than filtering locally.
  */
-export function StorePage({ tab, onTabChange }: {
+export function StorePage({ tab, onTabChange, accounts }: {
   /** Route segment: the open app's id, so a store page is linkable. */
   tab?: string | null;
   onTabChange?: (tab: string) => void;
+  /** The app's shared account state: signing in from the store dialog signs the whole app in, so the top bar and account page have to hear about it. */
+  accounts?: UseCloudAccountsResult;
 }) {
   const { t } = useTranslation();
   const installed = useInstalled();
@@ -302,8 +336,9 @@ export function StorePage({ tab, onTabChange }: {
   const handleSignedIn = useCallback(() => {
     const retry = pendingInstall;
     setPendingInstall(null);
+    void accounts?.refresh();
     retry?.();
-  }, [pendingInstall]);
+  }, [accounts, pendingInstall]);
 
   return (
     <div className={styles.app}>
@@ -328,21 +363,24 @@ export function StorePage({ tab, onTabChange }: {
           ) : (
             <div className={styles.grid}>
               {apps.map(app => (
-                <AppCard
+                <AppRow
                   key={app.id}
                   app={app}
                   installed={installed.get(app.id)}
                   onOpen={() => open(app.id)}
+                  onNeedsSignIn={handleNeedsSignIn}
                 />
               ))}
             </div>
           )}
         </div>
       )}
-      <StoreSignInModal
+      <AccountSignInModal
         open={pendingInstall !== null}
         onClose={() => setPendingInstall(null)}
         onSignedIn={handleSignedIn}
+        ariaLabel={t('store.signIn.title')}
+        body={t('store.signIn.body')}
       />
     </div>
   );

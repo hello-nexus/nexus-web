@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchMonitoringHistory, type MetricHistorySeries } from '../api/monitoringHistory';
+import { fetchMonitoringHistory, type MetricHistoryResponse, type MetricHistorySeries } from '../api/monitoringHistory';
 import { MonitoringHistoryCache, sliceToWindow } from '../lib/monitoringHistoryCache';
+import { useMultiplex, useTopicCallback } from './useMultiplexSocket';
 import {
   initViewport,
   viewportReducer,
@@ -21,12 +22,20 @@ const VIEWPORT_REDECIMATE_MS = 60_000;
 // pause at least this long lets it through, upgrading the panned view to
 // freshly fetched fine data in place.
 const DRAG_FINE_REFRESH_MS = 180;
+// A wheel-zoom gesture is a synthetic brush drag (see onChartWheelZoom): its
+// 'end' fires this long after the last notch, so a burst of notches settles
+// into one fetch instead of one per notch.
+const WHEEL_SETTLE_MS = 250;
 
 const LIVE_TAIL_POLL_MS = 1_000;
 const LIVE_TAIL_MAX_POINTS = 50;
 // Fallback lookback for the very first tail poll (before any viewport
 // response has reported a newest point).
 const LIVE_TAIL_BOOTSTRAP_MS = 5_000;
+// Slack on the live-tail gap check - a push landing this far past the
+// expected next tick still counts as on-time, so per-tick server timing
+// jitter alone never triggers a gap-fill fetch.
+const TAIL_GAP_TOLERANCE_MS = 500;
 
 // A viewport left unchanged for this long warms the cache for the
 // immediately adjacent (same-width) windows, so a subsequent pan in either
@@ -69,7 +78,7 @@ export interface UseMetricHistoryResult {
    *  appear once the effective step is sub-minute). */
   stepSeconds: number | null;
   /** Bumped only by an explicit navigation action - setRange, onBrushChange,
-   *  onChartDragSelect, backToLive, or retry. NOT bumped by a live-follow
+   *  onChartDragSelect, onChartWheelZoom, backToLive, or retry. NOT bumped by a live-follow
    *  tick sliding the same window, nor by the periodic silhouette/viewport
    *  redecimation timers refreshing the same window in place. A caller that
    *  needs to know "the window the user is looking at meaningfully changed"
@@ -85,6 +94,15 @@ export interface UseMetricHistoryResult {
   /** A drag-select directly on the hero chart - sets the chart window to the
    *  exact selection and re-derives a strip around it, going 'custom'. */
   onChartDragSelect: (from: number, to: number) => void;
+  /** A mouse-wheel notch over the hero chart - scales the chart window by
+   *  `factor` about `anchorT` (the time under the cursor) within the strip,
+   *  exactly as resizing the TimelineBrush box would; the strip and rangeKey
+   *  are untouched. Rendered as a drag (live pan of the fine snapshot,
+   *  frozen Y ceiling) that settles WHEEL_SETTLE_MS after the last notch.
+   *  Returns false when the notch changed nothing (box already at the floor
+   *  or filling the strip, or a brush drag is held), so the chart can let
+   *  the wheel fall through to the page. */
+  onChartWheelZoom: (anchorT: number, factor: number) => boolean;
   /** Stops the live edge from advancing (following goes false) without
    *  otherwise touching the box/strip - a plain chart click's own detach,
    *  the same live/scrubbed transition a TimelineBrush drag off the live
@@ -141,6 +159,16 @@ function mergeTail(prev: readonly MetricHistorySeries[], tail: readonly MetricHi
   return [...merged, ...added];
 }
 
+/** The push topic broadcasts every tracked series regardless of which tab is
+ *  active - filters it down to only the ids/kinds the active seriesQuery
+ *  names, since a series outside that set has no business entering
+ *  `series`/`fineSnapshotRef`. An empty query names every series (matches
+ *  the server's own `series=` param contract). */
+function seriesMatchesQuery(s: MetricHistorySeries, query: string): boolean {
+  if (query === '') return true;
+  return query.split(',').some(token => token === s.id || token === s.kind);
+}
+
 /**
  * Owns the monitoring history chart's data: a decimated silhouette over the
  * current seek-bar STRIP (for the TimelineBrush minimap, refetched whenever
@@ -195,6 +223,11 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const silhouetteSeqRef = useRef(0);
   const viewportSeqRef = useRef(0);
   const tailSeqRef = useRef(0);
+  // True for the span between a runTailGapFill() call starting and its
+  // response committing - gates the reconnect effect below so it doesn't
+  // fire a redundant concurrent fetch while the bootstrap request (or a
+  // gap-detected one) is still in flight.
+  const tailInFlightRef = useRef(false);
   const lastLoadedTRef = useRef<number | null>(null);
   const cacheRef = useRef(new MonitoringHistoryCache());
   const silhouetteRef = useRef(silhouette);
@@ -223,6 +256,21 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     }
   }, []);
 
+  // Pending synthetic 'end' for a wheel-zoom gesture - reset by every notch,
+  // superseded by any real brush event (commitBoxPhase clears it), and
+  // cancelled with the drag-fine timer wherever the drag phase is force-ended.
+  const wheelSettleTimerRef = useRef<number | null>(null);
+  const clearWheelSettleTimer = useCallback(() => {
+    if (wheelSettleTimerRef.current !== null) {
+      window.clearTimeout(wheelSettleTimerRef.current);
+      wheelSettleTimerRef.current = null;
+    }
+  }, []);
+  const clearDragTimers = useCallback(() => {
+    clearDragFineTimer();
+    clearWheelSettleTimer();
+  }, [clearDragFineTimer, clearWheelSettleTimer]);
+
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -232,9 +280,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
       // survives) against leaving the ref stuck for any in-flight closure
       // still holding it.
       lastPhaseRef.current = 'end';
-      clearDragFineTimer();
+      clearDragTimers();
     };
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   // TimelineBrush can unmount without ever emitting its own 'end' event:
   // MetricHistorySection swaps to its <EmptyState> message box on `error`
@@ -252,9 +300,9 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     if (error || !supported) {
       lastPhaseRef.current = 'end';
       setDragging(false);
-      clearDragFineTimer();
+      clearDragTimers();
     }
-  }, [error, supported, clearDragFineTimer]);
+  }, [error, supported, clearDragTimers]);
 
   const bumpNow = useCallback((seriesList: readonly MetricHistorySeries[]) => {
     const t = newestT(seriesList);
@@ -531,55 +579,91 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     return () => window.clearInterval(timer);
   }, [enabled, supported, error]);
 
-  // Live tail: poll just the new edge every second REGARDLESS of following -
-  // this is what keeps nowRef (the server time base) advancing while the
-  // user browses a detached historical window, so backToLive() and a brush
-  // drag back to the live edge re-anchor to the actual current time rather
-  // than whatever moment the user happened to detach at (nowRef would
-  // otherwise freeze the instant following goes false, since the box's own
-  // fetches keep re-requesting the same static historical window and never
-  // observe a newer point). The DISPLAYED series only merges the tail while
-  // following AND not mid-drag (read from viewportRef/lastPhaseRef, not the
-  // effect's own closed-over `viewport`, so this doesn't need following in
-  // its dependency array and therefore doesn't tear the interval down and
-  // rebuild it on every attach/detach) - a detached scrub must never have
-  // its history mutated out from under it, and a drag that keeps following
-  // true throughout (the box's right edge pinned at "now") must not have
-  // its own frozen-snapshot pan (renderFinePanSlice) stomped by a
-  // concurrent tail merge. The frozen snapshot itself still absorbs the
-  // tail regardless of drag phase, so it is current again the moment the
-  // drag ends. `to` is anchored to the server time base (lastLoadedTRef, or
-  // nowRef before any response has landed) rather than the client clock - a
-  // client/relay clock skew against the client's Date.now() could
-  // otherwise request a window where from > to and freeze the tail.
+  // Live tail: the service pushes 'monitoring/history-tail' once per second
+  // while subscribed. One HTTP fetch still covers what the push can't: the
+  // bootstrap point before the first push lands, and whatever ticks were
+  // missed while the socket was down. `to` is anchored to the server time
+  // base (lastLoadedTRef, or nowRef before any response has landed) rather
+  // than the client clock - a client/relay clock skew against the client's
+  // Date.now() could otherwise request a window where from > to and freeze
+  // the tail.
+  // minTo widens the fetch past a known point beyond `to`'s usual +2 ticks
+  // of margin - a multi-tick gap needs the fetch to reach at least as far as
+  // the frame that revealed it, not just one tick past the last known point.
+  const runTailGapFill = useCallback((minTo?: number) => {
+    const base = lastLoadedTRef.current ?? nowRef.current;
+    const to = Math.max(base, minTo ?? base) + LIVE_TAIL_POLL_MS * 2;
+    const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
+    const seq = ++tailSeqRef.current;
+    tailInFlightRef.current = true;
+    void (async () => {
+      const result = await fetchMonitoringHistory({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQueryRef.current });
+      if (!mountedRef.current || seq !== tailSeqRef.current) return;
+      tailInFlightRef.current = false;
+      if (!result.data) return;
+      const tail = result.data.series;
+      const t = newestT(tail);
+      if (t === null) return;
+      if (viewportRef.current.following) {
+        fineSnapshotRef.current = mergeTail(fineSnapshotRef.current, tail);
+        if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, tail));
+      }
+      bumpNow(tail);
+      if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
+    })();
+  }, [bumpNow]);
+
+  // Subscribed regardless of `following`/drag phase - this is what keeps
+  // nowRef (the server time base) advancing while the user browses a
+  // detached historical window, so backToLive() and a brush drag back to
+  // the live edge re-anchor to the actual current time rather than whatever
+  // moment the user happened to detach at.
+  const tailActive = enabled && supported && !error;
+
+  // Bootstrap fetch: seeds lastLoadedTRef/nowRef before the first push
+  // frame lands.
   useEffect(() => {
-    if (!enabled || !supported || error) return;
-    const timer = window.setInterval(() => {
-      const base = lastLoadedTRef.current ?? nowRef.current;
-      const to = base + LIVE_TAIL_POLL_MS * 2;
-      const from = (lastLoadedTRef.current ?? base - LIVE_TAIL_BOOTSTRAP_MS) + 1;
-      const seq = ++tailSeqRef.current;
-      void (async () => {
-        const result = await fetchMonitoringHistory({ from, to, maxPoints: LIVE_TAIL_MAX_POINTS, series: seriesQuery });
-        if (!mountedRef.current || seq !== tailSeqRef.current || !result.data) return;
-        const tail = result.data.series;
-        const t = newestT(tail);
-        if (t === null) return;
-        if (viewportRef.current.following) {
-          fineSnapshotRef.current = mergeTail(fineSnapshotRef.current, tail);
-          if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, tail));
-        }
-        bumpNow(tail);
-        if (t > (lastLoadedTRef.current ?? -Infinity)) lastLoadedTRef.current = t;
-      })();
-    }, LIVE_TAIL_POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [enabled, seriesQuery, bumpNow, supported, error]);
+    if (!tailActive) return;
+    runTailGapFill();
+  }, [tailActive, runTailGapFill]);
+
+  // Reconnect fetch: a dropped socket misses every push tick until it
+  // reopens, so backfill the hole with one fetch rather than leave it.
+  // Edge-detected off `connected` (the multiplex context has no reconnect
+  // counter) so a steady connection never refetches. Skipped while the
+  // bootstrap fetch (or a gap-detected one) is still in flight - that
+  // request already covers the need once it lands.
+  const socketConnected = useMultiplex()?.connected ?? false;
+  const prevSocketConnectedRef = useRef(socketConnected);
+  useEffect(() => {
+    if (tailActive && socketConnected && !prevSocketConnectedRef.current && !tailInFlightRef.current) runTailGapFill();
+    prevSocketConnectedRef.current = socketConnected;
+  }, [tailActive, socketConnected, runTailGapFill]);
+
+  useTopicCallback('monitoring/history-tail', tailActive, (raw) => {
+    const payload = raw as MetricHistoryResponse | null;
+    if (!payload) return;
+    const relevant = payload.series.filter(s => seriesMatchesQuery(s, seriesQueryRef.current));
+    const t = newestT(relevant);
+    if (t === null) return;
+    const prevT = lastLoadedTRef.current;
+    if (viewportRef.current.following) {
+      fineSnapshotRef.current = mergeTail(fineSnapshotRef.current, relevant);
+      if (lastPhaseRef.current !== 'drag') setSeries(prev => mergeTail(prev, relevant));
+    }
+    bumpNow(relevant);
+    // A gap after a drop: this frame's newest point lands more than a tick
+    // (plus jitter tolerance) past the last one we had. Reads lastLoadedTRef
+    // before advancing it below - runTailGapFill anchors its fetch on that
+    // ref, so backfilling into the actual hole needs it still at prevT.
+    if (prevT !== null && t > prevT + LIVE_TAIL_POLL_MS + TAIL_GAP_TOLERANCE_MS) runTailGapFill(t);
+    if (t > (prevT ?? -Infinity)) lastLoadedTRef.current = t;
+  });
 
   const setRange = useCallback((key: PresetKey) => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => {
       const next = viewportReducer(prev, { type: 'setRange', key, now: nowRef.current });
       // A wide preset (e.g. 7d) picked on a shorter-retention install must
@@ -589,12 +673,17 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
-  const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
+  // The phase bookkeeping shared by a TimelineBrush event and a wheel-zoom
+  // notch, once the viewport itself has been dispatched: a 'drag' renders
+  // live off the fine snapshot and arms the paused-drag refetch, an 'end'
+  // cancels that and lets the settled viewport fetch run. Either supersedes
+  // a pending wheel settle.
+  const commitBoxPhase = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
+    clearWheelSettleTimer();
     lastPhaseRef.current = phase;
     setDragging(phase === 'drag');
-    setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
     if (phase === 'drag') {
       // Live rendering while dragging (item 29): pan/clip the fine snapshot
       // (see renderFinePanSlice) - independent of the fetchEpoch bump below,
@@ -610,19 +699,47 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     }
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [renderFinePanSlice, scheduleDragFineRefresh, clearDragFineTimer]);
+  }, [clearWheelSettleTimer, renderFinePanSlice, scheduleDragFineRefresh, clearDragFineTimer]);
+
+  const onBrushChange = useCallback((from: number, to: number, phase: 'drag' | 'end') => {
+    setViewport(prev => viewportReducer(prev, { type: 'brushChange', from, to, now: nowRef.current }));
+    commitBoxPhase(from, to, phase);
+  }, [commitBoxPhase]);
+
+  const onChartWheelZoom = useCallback((anchorT: number, factor: number) => {
+    // A held TimelineBrush drag (a 'drag' phase that no wheel settle owns)
+    // keeps the box; a wheel settle firing under it would flip the phase to
+    // 'end' and reopen the settled-fetch gate mid-gesture.
+    if (lastPhaseRef.current === 'drag' && wheelSettleTimerRef.current === null) return false;
+    const action = { type: 'wheelZoom' as const, anchorT, factor, now: nowRef.current };
+    // Pre-advance the ref: notches can land faster than React commits, and
+    // each must compound on the previous one rather than re-derive the same
+    // step from a stale box. The commit effect re-syncs it to the state
+    // React actually settled on.
+    const next = viewportReducer(viewportRef.current, action);
+    if (next === viewportRef.current) return false;
+    viewportRef.current = next;
+    setViewport(prev => viewportReducer(prev, action));
+    commitBoxPhase(next.from, next.to, 'drag');
+    wheelSettleTimerRef.current = window.setTimeout(() => {
+      wheelSettleTimerRef.current = null;
+      const { from, to } = viewportRef.current;
+      commitBoxPhase(from, to, 'end');
+    }, WHEEL_SETTLE_MS);
+    return true;
+  }, [commitBoxPhase]);
 
   const onChartDragSelect = useCallback((from: number, to: number) => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => viewportReducer(prev, {
       type: 'chartDragSelect', from, to, now: nowRef.current, retentionMs: retentionDaysRef.current * DAY_MS,
     }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   // No fetchEpoch/stripEpoch/viewportGeneration bump - the box/strip domain
   // is untouched (unlike setRange/onChartDragSelect/backToLive), so there is
@@ -630,19 +747,19 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const detach = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => viewportReducer(prev, { type: 'detach' }));
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   const backToLive = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setViewport(prev => viewportReducer(prev, { type: 'backToLive', now: nowRef.current }));
     setFetchEpoch(e => e + 1);
     setStripEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   // Resetting error/supported (rather than calling loadSilhouette directly)
   // re-arms the gated silhouette-poll effect above, which fires its own
@@ -651,12 +768,12 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
   const retry = useCallback(() => {
     lastPhaseRef.current = 'end';
     setDragging(false);
-    clearDragFineTimer();
+    clearDragTimers();
     setSupported(true);
     setError(false);
     setFetchEpoch(e => e + 1);
     setViewportGeneration(g => g + 1);
-  }, [clearDragFineTimer]);
+  }, [clearDragTimers]);
 
   return {
     silhouette,
@@ -677,6 +794,7 @@ export function useMetricHistory(enabled: boolean, seriesQuery: string): UseMetr
     setRange,
     onBrushChange,
     onChartDragSelect,
+    onChartWheelZoom,
     detach,
     backToLive,
     retry,

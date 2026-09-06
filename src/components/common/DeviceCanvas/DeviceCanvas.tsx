@@ -19,9 +19,13 @@ interface DeviceCanvasProps {
   canvasPixels: Uint8Array | null;
   canvasW: number;
   canvasH: number;
-  /** Ids of all currently selected device frames. Single tap = 1-element set,
-   *  marquee = N-element set, Cmd/Ctrl+click = toggle membership. Selected
-   *  frames render with the accent border and can be group-dragged together. */
+  /** Ids of the focused device frames. The canvas draws every device in
+   *  `devices` whether focused or not, and this set can name one it is not
+   *  drawing (a frame hidden by `hiddenFrameIds`, or one the caller dropped),
+   *  so derive targets from `devices` rather than from this set. Single tap =
+   *  1-element set, marquee = N-element set, Cmd/Ctrl+click = toggle
+   *  membership. Focused frames keep the white outline and can be group-dragged
+   *  together; every other frame recedes, all of them when the set is empty. */
   selectedIds: Set<string>;
   /** The single "primary" device whose LED dots render on top of its frame.
    *  Mirrors the device whose settings the side panel can focus on. Null when
@@ -392,11 +396,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         }
       }
       setMarquee({ ...marquee, curX: p.x, curY: p.y, moved, hits });
-      // Push live preview to parent so the right-side device panel
-      // highlights in lockstep. Primary stays pinned to whatever it was
-      // pre-drag so LED dots don't flicker and the LED-map fetch effect
-      // (deps include primaryDeviceId but not selectedDeviceIds) stays
-      // quiet during the drag.
+      // Push the live preview to the parent so the frames light up as the rect
+      // crosses them. Primary stays pinned to whatever it was pre-drag so LED
+      // dots don't flicker and the LED-map fetch effect (deps include
+      // primaryDeviceId but not the focus set) stays quiet during the drag.
       const effective = marquee.additive ? new Set([...marquee.preIds, ...hits]) : hits;
       onSetSelection(effective, primaryDeviceIdRef.current);
       return;
@@ -496,6 +499,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     }
     onDragActiveChange?.(false);
     setDrag(null);
+    // A group is what a DRAG acts on; a tap that never moved narrows the focus
+    // to the one frame it landed on. Without this the default "every frame
+    // focused" state swallows the click that is meant to single one out.
+    if (drag.groupOrigs && tap && !tap.moved) { onSelectDevice(drag.id); return; }
     // Tap-cycle (no drag, no group): step through the stack at the click point.
     // A tap on a name names its device outright, so it must not cycle - the
     // label is the escape hatch from having to guess the stacking order.
@@ -691,7 +698,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         // selectedIds is kept in sync with the live marquee preview by
         // handlePointerMove, so no marquee-specific branch is needed here.
         const selected = selectedIds.has(dev.id);
-        const deemphasized = selectedIds.size > 0 && !selected;
+        // Unfocused frames stay drawn and recede. An empty focus set recedes
+        // every one of them - that is the "clicked empty canvas" state.
+        const deemphasized = !selected;
         const isPrimary = dev.id === primaryDeviceId;
         const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
         const { w, h } = containerSizeRef.current;
@@ -729,7 +738,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       <div ref={labelLayerRef} className={styles.labelLayer}>
         {devices.map(dev => {
           const selected = selectedIds.has(dev.id);
-          const deemphasized = selectedIds.size > 0 && !selected;
+          const deemphasized = !selected;
           const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
           // Pre-measure fallback keeps the label at its frame's center, which is
           // where the un-decollided layout already puts it.

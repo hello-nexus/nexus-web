@@ -216,7 +216,7 @@ export function getDefaultSettings(): NexusSettings {
       conflictAutoKillExclusions: [],
       monitoringDetailedCollapsed: [],
       monitoringEventsEnabled: true,
-      monitoringFpsOverlayEnabled: false,
+      monitoringFpsOverlayEnabled: true,
       smartPollSeconds: {},
       smartPollDefaultSeconds: DEFAULT_SMART_POLL_SECONDS,
       smartPollPerDrive: false,

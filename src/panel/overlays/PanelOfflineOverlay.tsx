@@ -4,6 +4,7 @@ import { useTranslation } from '../../lib/i18n';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import type { PanelSurface } from '../types';
 import { wiredPanelClass } from '../device/wiredPanel';
+import { hasNativeFindComputerBridge, openFindComputer } from '../device/panelNativeBridge';
 import styles from './PanelOfflineOverlay.module.scss';
 
 interface PanelOfflineOverlayProps {
@@ -46,7 +47,11 @@ interface PanelOfflineOverlayProps {
   onOpenNativePairing: () => void;
 }
 
-const NEW_DEVICE_HREF = '/r/pair';
+// No bare `/r/pair` link anywhere here: PairRedirect requires host + pair
+// params and renders its invalid-link page without them, so every one of these
+// buttons was a guaranteed dead end. Pairing a new system is a native-wrapper
+// surface (its QR scanner); a plain browser has none, so the affordance is
+// hidden there and the card's copy stands on its own.
 
 /** Returns whole seconds remaining until target. The internal tick runs faster
  *  than once a second so the displayed integer transitions close to the actual
@@ -85,6 +90,7 @@ export function PanelOfflineOverlay({
 }: PanelOfflineOverlayProps) {
   const { t } = useTranslation();
   const secondsLeft = useCountdownSeconds(nextAttemptAt);
+  const canPairNewSystem = hasNativeFindComputerBridge();
 
   // Q-series stays mounted across host outages (qshell keeps the WebView) and
   // has no touch, so it shows no overlay: the panel itself swaps its rendered
@@ -108,10 +114,12 @@ export function PanelOfflineOverlay({
           <h2 id="panel-offline-title" className={styles.title}>{t('connection.sessionEnded.title')}</h2>
           <p className={styles.message}>{t('connection.sessionEnded.message')}</p>
           <div className={styles.actions}>
-            <a className={styles.primaryButton} href={NEW_DEVICE_HREF}>
-              <QrCode size={15} />
-              <span>{t('connection.sessionRevoked.pairAgain')}</span>
-            </a>
+            {canPairNewSystem && (
+              <button type="button" className={styles.primaryButton} onClick={openFindComputer}>
+                <QrCode size={15} />
+                <span>{t('connection.sessionRevoked.pairAgain')}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -137,10 +145,12 @@ export function PanelOfflineOverlay({
           <h2 id="panel-offline-title" className={styles.title}>{t('connection.sessionRevoked.title')}</h2>
           <p className={styles.message}>{t('connection.sessionRevoked.message')}</p>
           <div className={styles.actions}>
-            <a className={styles.primaryButton} href={NEW_DEVICE_HREF}>
-              <QrCode size={15} />
-              <span>{t('connection.sessionRevoked.pairAgain')}</span>
-            </a>
+            {canPairNewSystem && (
+              <button type="button" className={styles.primaryButton} onClick={openFindComputer}>
+                <QrCode size={15} />
+                <span>{t('connection.sessionRevoked.pairAgain')}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -291,14 +301,15 @@ export function PanelOfflineOverlay({
               <span>{t('connection.lost.pickDevice')}</span>
             </button>
           )}
-          {surface === 'phone' && (
-            <a
+          {surface === 'phone' && canPairNewSystem && (
+            <button
+              type="button"
               className={styles.secondaryButton}
-              href={NEW_DEVICE_HREF}
+              onClick={openFindComputer}
             >
               <QrCode size={15} />
               <span>{t('connection.lost.newDevice')}</span>
-            </a>
+            </button>
           )}
         </div>
       </div>

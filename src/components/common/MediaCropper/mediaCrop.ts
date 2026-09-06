@@ -60,3 +60,19 @@ export function serializeCrop(crop: NormalizedCrop): string {
   const mirror = crop.mirror ? 1 : 0;
   return rotate === 0 && mirror === 0 ? base : `${base},${rotate},${mirror}`;
 }
+
+/**
+ * Normalized w/h ratio that yields the target pixel aspect for an oriented
+ * source of ow x oh: (w*ow)/(h*oh) = aspect  =>  w/h = aspect*oh/ow.
+ */
+export function normAspectFor(aspect: number, ow: number, oh: number): number {
+  return ow && oh ? aspect * oh / ow : aspect;
+}
+
+/** The largest centred crop of an ow x oh oriented source at `aspect`. */
+export function centerCropForAspect(aspect: number, ow: number, oh: number): NormalizedCrop {
+  const r = normAspectFor(aspect, ow, oh);
+  const w = r <= 1 ? r : 1;
+  const h = r <= 1 ? 1 : 1 / r;
+  return { x: (1 - w) / 2, y: (1 - h) / 2, w, h };
+}

@@ -2,7 +2,13 @@ import { render, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const executeDeckAction = vi.fn();
-vi.mock('./deckExecutor', () => ({ executeDeckAction: (...a: unknown[]) => executeDeckAction(...a) }));
+vi.mock('./deckExecutor', async importOriginal => {
+  const actual = await importOriginal<typeof import('./deckExecutor')>();
+  // isPrivilegedDeckAction is pure (no REST side effect) - keep the real
+  // implementation so the widget's own privilege routing is exercised;
+  // executeDeckAction is the one REST-side-effecting call under test.
+  return { ...actual, executeDeckAction: (...a: unknown[]) => executeDeckAction(...a) };
+});
 vi.mock('./useDeckState', () => ({ useDeckLiveState: () => ({ isOn: () => undefined }) }));
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 
@@ -115,6 +121,96 @@ describe('DeckWidget', () => {
       expect(container.querySelector('[data-deck-slot-index="1"]')?.textContent).toContain('1/2');
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(container.querySelector('[data-deck-slot-index="1"]')?.textContent).toContain('2/2');
+    });
+  });
+
+  describe('privileged action dispatch', () => {
+    it('routes a privileged action through /panel/deck/dispatch when a deviceId is available', () => {
+      const deck: DeckPage[] = [{ slots: [{ action: { type: 'hotkey', keys: 'ctrl+c' } }] }];
+      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
+      expect(executeDeckAction).toHaveBeenCalledWith(
+        { type: 'hotkey', keys: 'ctrl+c' },
+        { deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [], slot: 0 },
+      );
+    });
+
+    it('keeps a non-privileged action on the unchanged single-argument call', () => {
+      const deck: DeckPage[] = [{ slots: [{ action: { type: 'openUrl', url: 'https://x.com' } }] }];
+      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
+      expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'https://x.com' });
+    });
+
+    it('does not dispatch a privileged action with no deviceId (falls back to the direct route)', () => {
+      const deck: DeckPage[] = [{ slots: [{ action: { type: 'hotkey', keys: 'ctrl+c' } }] }];
+      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
+      expect(executeDeckAction).toHaveBeenCalledWith({ type: 'hotkey', keys: 'ctrl+c' });
+    });
+
+    it('a toggle press dispatches the resolved branch\'s action with branch: on', () => {
+      const deck: DeckPage[] = [{
+        slots: [{
+          action: {
+            type: 'toggle',
+            on: { type: 'text', text: 'on-text' },
+            off: { type: 'openUrl', url: 'https://off.example' },
+          },
+        }],
+      }];
+      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
+      // No live state and no prior flip -> toggleOn() defaults to false, so the
+      // press turns it on and fires the 'on' branch.
+      expect(executeDeckAction).toHaveBeenCalledWith(
+        { type: 'text', text: 'on-text' },
+        { deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [], slot: 0 },
+        'on',
+      );
+    });
+
+    it('a press inside a folder dispatches with folderPath set to the folder\'s own outer index and slot to the pressed index within it', () => {
+      const deck: DeckPage[] = [{
+        slots: [
+          {},
+          { folder: { slots: [{}, {}, { action: { type: 'hotkey', keys: 'ctrl+c' } }] } },
+        ],
+      }];
+      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      fireEvent.click(container.querySelector('[data-deck-slot-index="1"]')!); // enter the folder at outer index 1
+      fireEvent.click(container.querySelector('[data-deck-slot-index="2"]')!); // press the folder's inner slot 2
+      expect(executeDeckAction).toHaveBeenCalledWith(
+        { type: 'hotkey', keys: 'ctrl+c' },
+        { deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [1], slot: 2 },
+      );
+    });
+
+    it('a sequence containing a privileged step dispatches the whole action once', () => {
+      const deck: DeckPage[] = [{
+        slots: [{
+          action: {
+            type: 'sequence',
+            steps: [
+              { action: { type: 'openUrl', url: 'https://x.com' } },
+              { action: { type: 'hotkey', keys: 'ctrl+v' } },
+            ],
+          },
+        }],
+      }];
+      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
+      expect(executeDeckAction).toHaveBeenCalledTimes(1);
+      expect(executeDeckAction).toHaveBeenCalledWith(
+        {
+          type: 'sequence',
+          steps: [
+            { action: { type: 'openUrl', url: 'https://x.com' } },
+            { action: { type: 'hotkey', keys: 'ctrl+v' } },
+          ],
+        },
+        { deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [], slot: 0 },
+      );
     });
   });
 });

@@ -1,10 +1,17 @@
 .editor {
+  // Match the ON fill of the bare IconLabelButton mode buttons in the cell
+  // above (IconLabelButton.module.scss); the Tabs default (--bg) barely clears
+  // a dark panel.
+  --tab-active-bg: var(--bg-card-hover);
+
   width: 100%;
   height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  // Wide enough that the pane's first row of controls reads as its own block
+  // rather than a second row of the tab bar.
+  gap: 14px;
 }
 
 .tabs {

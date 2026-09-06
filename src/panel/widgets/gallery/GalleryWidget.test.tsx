@@ -8,9 +8,11 @@ const mockItems = vi.hoisted(() => ({
   current: [] as { id: string; name: string; sourceId: string }[],
 }));
 
-vi.mock('../../../api/gallery', () => ({
+// Only the network call is stubbed; the width helpers are the real ones, so a
+// drift between them and the service's buckets shows up here.
+vi.mock('../../../api/gallery', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/gallery')>()),
   fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockItems.current })),
-  galleryItemFileUrl: (id: string) => `/gallery/items/${id}/file`,
 }));
 
 vi.mock('../../../api/service', () => ({
@@ -83,6 +85,77 @@ describe('GalleryWidget', () => {
     expect(document.querySelector('img')).toBeNull();
   });
 
+  // The pick has to reach the device, not just move the preview, so it lives
+  // in widget config rather than the module-level position memory.
+  it('persists the picked image when the user navigates in single mode', async () => {
+    mockItems.current = items('a', 'b', 'c');
+    const onUpdate = vi.fn();
+    render(<GalleryWidget widget={galleryWidget({ mode: 'single' })} onUpdate={onUpdate} />);
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+
+    fireEvent.click(screen.getByLabelText('Next image'));
+
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith({ imageId: 'b' }));
+  });
+
+  it('does not persist while a slideshow is running', async () => {
+    mockItems.current = items('a', 'b', 'c');
+    const onUpdate = vi.fn();
+    render(
+      <GalleryWidget
+        widget={galleryWidget({ mode: 'slideshow', interval: 5 })}
+        onUpdate={onUpdate}
+      />,
+    );
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+
+    // A deliberate move still advances the view, but a slideshow rewriting the
+    // layout every few seconds is what this guards against.
+    fireEvent.click(screen.getByLabelText('Next image'));
+    await waitFor(() => expect(shownImage()).toBe('blob:b'));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('opens on the picked image and follows a pick made elsewhere', async () => {
+    mockItems.current = items('a', 'b', 'c');
+    const { rerender } = render(<GalleryWidget widget={galleryWidget({ mode: 'single', imageId: 'c' }, 'w-pick')} />);
+    await waitFor(() => expect(shownImage()).toBe('blob:c'));
+
+    // The edit sheet (or another surface) writing the field must move this view.
+    rerender(<GalleryWidget widget={galleryWidget({ mode: 'single', imageId: 'b' }, 'w-pick')} />);
+
+    await waitFor(() => expect(shownImage()).toBe('blob:b'));
+  });
+
+  it('keeps an arrow tap off the cell click-to-edit handler', async () => {
+    mockItems.current = items('a', 'b');
+    const onCellClick = vi.fn();
+    render(
+      <div onClick={onCellClick}>
+        <GalleryWidget widget={galleryWidget({ mode: 'single' })} onUpdate={vi.fn()} />
+      </div>,
+    );
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+
+    fireEvent.click(screen.getByLabelText('Next image'));
+
+    // In the editing canvas the whole cell opens the settings sheet; the
+    // arrows sit inside it and must not trigger that.
+    expect(onCellClick).not.toHaveBeenCalled();
+  });
+
+  it('marks the tile for the editor-only hover reveal', async () => {
+    mockItems.current = items('a', 'b');
+    const { container, rerender } = render(<GalleryWidget widget={galleryWidget()} editorPreview />);
+    await waitFor(() => expect(shownImage()).toBe('blob:a'));
+    expect((container.firstElementChild as HTMLElement).getAttribute('data-editor-preview')).toBe('true');
+
+    // Absent on the device: a touch panel reveals the arrows by tap, and a
+    // stuck :hover would pin them on.
+    rerender(<GalleryWidget widget={galleryWidget()} />);
+    expect((container.firstElementChild as HTMLElement).getAttribute('data-editor-preview')).toBeNull();
+  });
+
   it('shows a single image without arrows', async () => {
     mockItems.current = items('a');
     render(<GalleryWidget widget={galleryWidget()} />);
@@ -140,6 +213,42 @@ describe('GalleryWidget', () => {
       await vi.advanceTimersByTimeAsync(5100);
     });
     expect(shownImage()).toBe('blob:b');
+  });
+
+  // The regression that shipped past review once: PanelApp mints a fresh
+  // onUpdate every render and a kiosk re-renders on its ~5s /ping poll, so a
+  // slideshow keyed on that callback re-armed its interval from zero forever
+  // and never advanced on a real device.
+  it('keeps advancing when the parent re-renders with a new onUpdate identity', async () => {
+    mockItems.current = items('a', 'b');
+    vi.useFakeTimers();
+    const widget = galleryWidget({ mode: 'slideshow', interval: 5 }, 'w-churn');
+    const { rerender } = render(<GalleryWidget widget={widget} onUpdate={() => {}} />);
+    await flushAsync();
+    expect(shownImage()).toBe('blob:a');
+
+    // Two parent re-renders inside one interval, each with a fresh callback.
+    for (let i = 0; i < 2; i++) {
+      await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+      rerender(<GalleryWidget widget={widget} onUpdate={() => {}} />);
+    }
+    await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
+
+    expect(shownImage()).toBe('blob:b');
+  });
+
+  it('an auto-advance never writes config', async () => {
+    mockItems.current = items('a', 'b');
+    vi.useFakeTimers();
+    const onUpdate = vi.fn();
+    render(<GalleryWidget widget={galleryWidget({ mode: 'slideshow', interval: 5 })} onUpdate={onUpdate} />);
+    await flushAsync();
+
+    // One tick only: two images and two ticks would land back on 'a'.
+    await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+
+    expect(shownImage()).toBe('blob:b');
+    expect(onUpdate).not.toHaveBeenCalled();
   });
 
   it('single mode never auto-advances', async () => {

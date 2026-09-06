@@ -1,6 +1,6 @@
 // Sidebar-item model: flat at rest, each tab rounds independently (no bar-end
-// rounding). The selected tab gets a recessed darker fill, brighter text, and
-// an accent-tinted icon - matching the sidebar nav rows.
+// rounding). The selected tab gets the --bg fill, brighter text, and an
+// accent-tinted icon - matching the sidebar nav rows.
 .tabs {
   display: inline-flex;
   gap: 2px;
@@ -40,7 +40,9 @@
 }
 
 .active {
-  background: var(--bg);
+  // --bg everywhere except the immersive lighting/cooling editors, whose
+  // shell overrides --tab-active-bg (EffectEditor.module.scss).
+  background: var(--tab-active-bg, var(--bg));
   color: var(--text);
 
   .tabIcon { color: var(--accent-glow); }

@@ -33,6 +33,16 @@
   &[data-arrows-visible='true'] .arrowBtn {
     opacity: 1;
   }
+
+  // Editing canvas only: hovering anywhere on the tile reveals both arrows, so
+  // the photo can be picked without hunting for the hit zone. The real device
+  // is deliberately excluded - a touch panel reveals them by tap instead, and
+  // a stuck :hover after a tap would leave them pinned on.
+  // Above the cell's click-to-edit notice, which covers the whole tile.
+  &[data-editor-preview='true']:hover .arrowBtn {
+    opacity: 1;
+    z-index: 2;
+  }
 }
 
 .image {

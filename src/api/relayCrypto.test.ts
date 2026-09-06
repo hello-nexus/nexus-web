@@ -6,10 +6,13 @@ import {
   deriveAeadBytes,
   deriveAeadKey,
   deriveHttpRid,
+  deriveRekeyedAeadBytes,
+  deriveRekeyedAeadKey,
   derivePairRoot,
   deriveRelayRoot,
   deriveRid,
   open,
+  parseHostNonce,
   seal,
 } from './relayCrypto';
 
@@ -81,6 +84,70 @@ describe('relayCrypto known-answer vectors', () => {
     expect(opened.dir).toBe(DIR_HOST_TO_CLIENT);
     expect(opened.counter).toBe(0);
     expect(opened.plaintext).toBe(KAT.plaintext);
+  });
+});
+
+// v2 in-band rekey known-answer vector - locks byte-for-byte interop with the
+// .NET host-side rekey derivation (SealedChannelKeys.cs) the same way the v1
+// KAT block above does for the original aeadKey.
+const REKEY_KAT = {
+  relayRoot: '0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20',
+  connSalt: 'a0a1a2a3a4a5a6a7a8a9aaabacadaeaf',
+  hostNonce: 'b0b1b2b3b4b5b6b7b8b9babbbcbdbebf',
+  // Sanity: the existing (v1) aeadKey for the SAME relayRoot + connSalt, so a
+  // regression that accidentally reuses the v1 derivation is caught here too.
+  aeadKeyV1: '3ee9775c9c7a4501e0a9992ba5a1724289b8a5168fa6e32ab3a5eb79de0545af',
+  k1: 'c4c69c871369455a57f8dde385b7ace9bb9695b9d96ea63828e3a3cfb115c173',
+};
+
+describe('relayCrypto v2 rekey known-answer vector', () => {
+  it('deriveAeadKey (v1) on the rekey vector inputs matches the pinned sanity value', async () => {
+    const root = fromHex(REKEY_KAT.relayRoot);
+    const raw = await deriveAeadBytes(root, fromHex(REKEY_KAT.connSalt));
+    expect(hex(raw)).toBe(REKEY_KAT.aeadKeyV1);
+  });
+
+  it('deriveRekeyedAeadBytes (K1) matches the pinned interop vector', async () => {
+    const root = fromHex(REKEY_KAT.relayRoot);
+    const raw = await deriveRekeyedAeadBytes(root, fromHex(REKEY_KAT.connSalt), fromHex(REKEY_KAT.hostNonce));
+    expect(hex(raw)).toBe(REKEY_KAT.k1);
+  });
+
+  it('deriveRekeyedAeadKey seals/opens under the same K1 bytes', async () => {
+    const root = fromHex(REKEY_KAT.relayRoot);
+    const connSalt = fromHex(REKEY_KAT.connSalt);
+    const hostNonce = fromHex(REKEY_KAT.hostNonce);
+    const key = await deriveRekeyedAeadKey(root, connSalt, hostNonce);
+    const frame = await seal(key, DIR_HOST_TO_CLIENT, 0, '{"t":"ping","d":1}');
+    const opened = await open(key, frame);
+    expect(opened.plaintext).toBe('{"t":"ping","d":1}');
+  });
+
+  it('K1 differs from the v1 aeadKey derived from the same relayRoot+connSalt', async () => {
+    const root = fromHex(REKEY_KAT.relayRoot);
+    const connSalt = fromHex(REKEY_KAT.connSalt);
+    const v1 = await deriveAeadBytes(root, connSalt);
+    const v2 = await deriveRekeyedAeadBytes(root, connSalt, fromHex(REKEY_KAT.hostNonce));
+    expect(hex(v1)).not.toBe(hex(v2));
+  });
+});
+
+describe('parseHostNonce', () => {
+  it('extracts hn from a valid {"c":"hn","hn":...} message', () => {
+    expect(parseHostNonce('{"c":"hn","hn":"abc123"}')).toBe('abc123');
+  });
+
+  it('returns null for a non-hn message (legacy host data)', () => {
+    expect(parseHostNonce('{"t":"ping","d":1}')).toBeNull();
+  });
+
+  it('returns null for malformed JSON', () => {
+    expect(parseHostNonce('not json')).toBeNull();
+  });
+
+  it('returns null when hn is missing or empty', () => {
+    expect(parseHostNonce('{"c":"hn"}')).toBeNull();
+    expect(parseHostNonce('{"c":"hn","hn":""}')).toBeNull();
   });
 });
 

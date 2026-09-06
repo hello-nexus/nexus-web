@@ -17,7 +17,8 @@ vi.mock('../../../api/fps', () => ({
   fetchFpsGameSessions: (gameKey: string, limit?: number) => fetchFpsGameSessionsMock(gameKey, limit),
   deleteFpsSession: (id: string) => deleteFpsSessionMock(id),
   deleteFpsGame: (gameKey: string) => deleteFpsGameMock(gameKey),
-  fpsGameArtUrl: (gameKey: string) => `/api/fps/games/${encodeURIComponent(gameKey)}/art`,
+  fpsGameArtUrl: (gameKey: string, iconOnly = false) =>
+    `/api/fps/games/${encodeURIComponent(gameKey)}/art${iconOnly ? '?iconOnly=true' : ''}`,
 }));
 
 const fetchMonitoringHistoryMock = vi.fn();
@@ -176,12 +177,9 @@ describe('FramesPage - History tab states', () => {
       '/api/fps/games/steam%3A730/art',
       '/api/fps/games/epic%3Afoo/art',
     ]);
-    // Store art fills the capsule frame; an executable icon is contained and
-    // centred instead, so the two carry different classes.
-    expect(art[0].className).not.toEqual(art[1].className);
   });
 
-  it('falls back to the store badge when art fails to load', async () => {
+  it('retries store art as the installed icon before giving up on it', async () => {
     fpsGamesResult = {
       supported: true,
       gamesByKey: gamesByKey(game({ gameKey: 'epic:foo', name: 'Some Epic Game', store: 'epic', steamAppId: null })),
@@ -191,11 +189,28 @@ describe('FramesPage - History tab states', () => {
     await flush();
     await screen.findByText('Some Epic Game');
 
-    const img = container.querySelector('img[src*="/art"]')!;
-    fireEvent.error(img);
+    // A store url is a guess and can 404 in the browser, so the first failure
+    // asks for the executable's icon rather than surrendering to the badge.
+    fireEvent.error(container.querySelector('img[src*="/art"]')!);
+    expect(container.querySelector('img[src*="iconOnly=true"]')).toBeInTheDocument();
 
+    fireEvent.error(container.querySelector('img[src*="/art"]')!);
     expect(container.querySelector('img[src*="/art"]')).toBeNull();
-    expect(screen.getAllByText('epic').length).toBeGreaterThan(0);
+  });
+
+  it('marks the store with its own glyph beside the fps reading', async () => {
+    fpsGamesResult = {
+      supported: true,
+      gamesByKey: gamesByKey(game(), game({ gameKey: 'epic:foo', name: 'Some Epic Game', store: 'epic', steamAppId: null })),
+      refetch: refetchGamesMock,
+    };
+    renderPage();
+    await flush();
+    await screen.findByText('Counter-Strike 2');
+
+    // Labelled rather than written out: the glyph replaced the text badge.
+    expect(screen.getByRole('img', { name: 'steam' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'epic' })).toBeInTheDocument();
   });
 
   it('shows the 1% low value and its dim label under the avg, and drops the 99th percentile from the card face', async () => {

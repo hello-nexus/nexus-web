@@ -1,8 +1,7 @@
 // Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: scene strip
 // (4x2+) and compact controls (2x2) both render from this. Keep in sync with
-// what ObsWidget renders (see .agents/rules/widget-preview-fixtures.md in the
-// master repo).
+// what ObsWidget renders (previewMode.test.tsx is the fixture-sync gate).
 import type { ObsStatusResponse } from '../../../api/obs';
 
 export const OBS_PREVIEW: ObsStatusResponse = {

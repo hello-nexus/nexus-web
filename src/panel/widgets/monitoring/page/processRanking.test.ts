@@ -174,9 +174,8 @@ describe('updateRanking - order stability', () => {
   });
 
   describe('performance at scale (item 37: full process list, no top-N wire cap)', () => {
-    // Generous enough to never flake under contention (this workspace runs
-    // several concurrent agent sessions sharing one machine - see
-    // .agents/rules/failure-log.md's entries on multi-session slowdown),
+    // Generous enough to never flake under contention (the dev box runs
+    // several concurrent test sessions sharing one machine),
     // tight enough to catch an accidental O(n^2)/O(n^3) regression (either
     // would blow well past this at n=300, even given how cheap each
     // comparison is).

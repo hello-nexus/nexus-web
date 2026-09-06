@@ -468,16 +468,43 @@ function base64ToBytes(b64: string): ArrayBuffer {
  * the LAN. Used only when isTunnelActive(); the LAN path is the unchanged
  * window.fetch below.
  */
+/**
+ * Bound on a boot-path relay request. The tunnel is a WS-framed request, not a
+ * fetch, so there is no AbortController to hang it on: an unreachable host
+ * leaves the promise pending indefinitely. Callers that gate a whole screen on
+ * the answer (the panel pair gate, the service ping) pass this so the screen
+ * can fail over to something with a way out instead of spinning.
+ */
+export const RELAY_BOOT_TIMEOUT_MS = 6000;
+
+async function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('relay request timed out')), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 export async function relayRequestWithStatus(
   method: RelayHttpMethod,
   path: string,
   body?: unknown,
+  opts?: { timeoutMs?: number },
 ): Promise<{ response: Response | null; status: number }> {
   try {
     const hasBody = body !== undefined;
     const payload = hasBody ? JSON.stringify(body) : null;
     const contentType = hasBody ? 'application/json' : null;
-    const res = await tunnelRequest(method, path, payload, contentType);
+    const request = tunnelRequest(method, path, payload, contentType);
+    // A timed-out request lands on the same `status: 0` transport-failure
+    // contract every caller already handles.
+    const res = opts?.timeoutMs ? await withTimeout(request, opts.timeoutMs) : await request;
     return { response: toResponse(res.status, res.body, res.contentType, res.base64), status: res.status };
   } catch {
     return { response: null, status: 0 };
@@ -584,11 +611,12 @@ export async function patchService<T>(path: string, body: unknown): Promise<T | 
   return r ? (await r.json()) as T : null;
 }
 
-export async function postServiceForm<T>(path: string, form: FormData): Promise<T | null> {
-  // Form uploads can't be JSON-tunneled (the relay HTTP frame carries a string
-  // body, not multipart). On a remote origin there's no localhost to reach, so
-  // rather than fire a doomed mixed-content request, fail closed like a
-  // non-2xx. (Media import is a LAN/desktop affordance; off-LAN it's a no-op.)
+// Multipart POST with the bearer retry. Form uploads can't be JSON-tunneled
+// (the relay HTTP frame carries a string body, not multipart). On a remote
+// origin there's no localhost to reach, so rather than fire a doomed
+// mixed-content request, fail closed like a non-2xx. (Media import is a
+// LAN/desktop affordance; off-LAN it's a no-op.)
+async function postForm(path: string, form: FormData): Promise<Response | null> {
   if (isTunnelActive() || blockedLocalhostFetch()) return null;
   try {
     const token = await getToken();
@@ -602,11 +630,43 @@ export async function postServiceForm<T>(path: string, form: FormData): Promise<
         response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method: 'POST', headers, body: form });
       }
     }
-    if (!response.ok) return null;
+    return response;
+  } catch {
+    return null;
+  }
+}
+
+export async function postServiceForm<T>(path: string, form: FormData): Promise<T | null> {
+  const response = await postForm(path, form);
+  if (!response?.ok) return null;
+  try {
     return (await response.json()) as T;
   } catch {
     return null;
   }
+}
+
+/** The service answered an upload and did not accept it. */
+export interface ServiceRefusal { error: true; msg: string }
+
+// postServiceForm for a caller that must tell a refused upload from an
+// unreachable service: any answer the service gave without accepting comes
+// back as an {error, msg} body (the route's own message, else the HTTP
+// status), and null is reserved for a request that never got an answer.
+export async function postServiceFormResult<T extends { error: boolean; msg: string }>(
+  path: string,
+  form: FormData,
+): Promise<T | ServiceRefusal | null> {
+  const response = await postForm(path, form);
+  if (!response) return null;
+  let body: (Partial<T> & { detail?: string; title?: string }) | null = null;
+  try {
+    body = await response.json();
+  } catch {
+    // Not JSON: the status carries what there is.
+  }
+  if (response.ok && body) return body as T;
+  return { error: true, msg: body?.msg || body?.detail || body?.title || `HTTP ${response.status}` };
 }
 
 /**
@@ -682,7 +742,12 @@ export async function fetchServiceBlobWithHeaders(path: string): Promise<{ blob:
  * mixed-content-blocked); the host answers it over the rid_http channel. */
 export async function pingService(): Promise<PingResponse | null> {
   if (isTunnelActive()) {
-    const { response } = await relayRequestWithStatus('GET', '/ping');
+    // Bounded, but NOT at the direct path's 3s: that one is a localhost fetch,
+    // this is phone -> regional relay -> PC, where a healthy cellular link can
+    // exceed 3s and would read as "service offline". Generous enough to only
+    // catch a genuinely unreachable host, which otherwise parks the status hook
+    // in 'checking' and leaves the panel spinning.
+    const { response } = await relayRequestWithStatus('GET', '/ping', undefined, { timeoutMs: 8000 });
     if (!response || !response.ok) return null;
     return (await response.json()) as PingResponse;
   }

@@ -11,7 +11,7 @@ import {
   Activity, CloudSun,
   type LucideIcon,
 } from 'lucide-react';
-import type { DeckAction, DeckSlot } from './types';
+import type { DeckAction, DeckIcon, DeckSlot } from './types';
 
 /** Curated stock icon set - the IconPicker source and the auto-icon source. */
 export const DECK_ICONS: Record<string, LucideIcon> = {
@@ -28,6 +28,37 @@ export const DECK_ICONS: Record<string, LucideIcon> = {
 };
 
 export const DECK_ICON_NAMES: string[] = Object.keys(DECK_ICONS);
+
+// A deck key bound to a game usually points at its exe rather than a Start-Menu
+// entry, and /shortcuts/icon takes either a targetId or an executable path.
+const EXECUTABLE_PATH = /\.(?:exe|lnk|app)$/i;
+
+/** The /shortcuts/icon target a slot's icon comes from: an explicit app icon, a launchApp's id, or an openFile path pointing at an executable. */
+export function slotAppId(icon: DeckIcon | undefined, action: DeckAction | undefined): string | undefined {
+  if (action?.type === 'launchApp') return action.appId || undefined;
+  if (icon?.kind === 'app') return icon.value;
+  if (action?.type === 'openFile' && EXECUTABLE_PATH.test(action.path)) return action.path;
+  return undefined;
+}
+
+/**
+ * The URL whose site icon a slot shows, or undefined when there is nothing
+ * worth fetching. The inspector writes `url` on every keystroke with no
+ * debounce, so anything short of a parseable absolute http(s) URL is rejected
+ * here rather than spending a media-fetch permit on a half-typed host.
+ */
+export function slotSiteUrl(action: DeckAction | undefined): string | undefined {
+  if (action?.type !== 'openUrl') return undefined;
+  const url = action.url.trim();
+  if (!url) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return undefined;
+  }
+  return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : undefined;
+}
 
 export type DeckCategory =
   | 'launch' | 'open' | 'volume' | 'media' | 'brightness' | 'keyboard' | 'text'

@@ -8,7 +8,6 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
-import { Spinner } from '../components/common/Spinner/Spinner';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -103,6 +102,7 @@ import {
   usePhonePanelManifest,
 } from './device/panelPhone';
 import { useNativeSettingsBridge } from './device/panelNativeBridge';
+import { PanelLoadingGate } from './PanelLoadingGate';
 import {
   type EditorDockMotion,
   buildEditorDockMotionStyle,
@@ -136,6 +136,11 @@ const WIDGET_RESIZE_MOTION_MS = 220;
 interface PanelLayoutState {
   layout: PanelLayout;
   loaded: boolean;
+  // 403 deck_action_requires_desktop from the last save attempt (phone
+  // session, privileged deck action) - see usePanelLayout. Undefined on
+  // layout sources that can never hit it (the embedded dashboard, the
+  // device-page simulator).
+  saveForbidden?: boolean;
   setLayout: (next: PanelLayout) => void;
 }
 
@@ -333,7 +338,7 @@ export function PanelContent({
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
-  const { layout, loaded, setLayout } = layoutState;
+  const { layout, loaded, saveForbidden, setLayout } = layoutState;
   const panelTheme = usePanelTheme(deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state
@@ -1525,7 +1530,7 @@ export function PanelContent({
           />
         )}
         {!loaded ? (
-          <div className={styles.loading}><Spinner size={28} /></div>
+          <PanelLoadingGate surface={surface} />
         ) : (
           <>
             <div className={styles.panelStage}>
@@ -1546,6 +1551,7 @@ export function PanelContent({
                           <ErrorBoundary key={w.id} label={w.type}>
                             <PanelTouchCell
                               widget={w}
+                              deviceId={deviceId}
                               surface={surface}
                               deviceTouch={deviceTouch}
                               rearranging={touch.rearranging}
@@ -1561,7 +1567,10 @@ export function PanelContent({
                               onSelectSlot={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setSelectedMonitoringSlot : undefined}
                               editView={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? deckEditView : undefined}
                               onEditViewChange={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? setDeckEditView : undefined}
-                              onUpdate={sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
+                              onUpdate={(lookupApp(w.type)?.meta.persistsFromTile
+                                || (sheetMode === 'settings' && editingWidgetId === w.id && lookupApp(w.type)?.meta.usesSlotSelection))
+                                ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
+                              editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
                               onContextMenu={surfaceSupportsTouch(surface, deviceTouch) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
                               cellPointers={surfaceSupportsTouch(surface, deviceTouch) ? touch.bindCellPointers(w) : noopCellPointers}
@@ -1785,6 +1794,7 @@ export function PanelContent({
           deviceTouch={deviceTouch}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
+          saveForbidden={saveForbidden}
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}
           gridRows={runtimeGrid.rows}

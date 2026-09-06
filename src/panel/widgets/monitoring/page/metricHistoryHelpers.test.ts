@@ -31,6 +31,7 @@ import {
   formatSelectedFrameTime,
   type FanRoleMap,
   type ViewportState,
+  zoomBoxAround,
 } from './metricHistoryHelpers';
 import type { FpsRangeSession } from '../../../../api/fps';
 import type { MetricHistorySeries } from '../../../../api/monitoringHistory';
@@ -805,6 +806,14 @@ describe('resolveSelectedFrame (point-in-time snapshot)', () => {
 });
 
 describe('findFpsSessionAt / maskFpsPointsToSessions / buildFpsOverlaySeries', () => {
+  it('treats a session flagged in progress as open-ended past its reported end', () => {
+    const live = { id: 'live', gameKey: 'g', name: 'G', store: 'steam', startedUtcMs: 1000, endedUtcMs: 5000, avgFps: 60, inProgress: true };
+    const done = { ...live, id: 'done', startedUtcMs: 100, endedUtcMs: 500, inProgress: false };
+    expect(findFpsSessionAt([live, done], 9000)?.id).toBe('live');
+    expect(findFpsSessionAt([done], 900)).toBeNull();
+    expect(maskFpsPointsToSessions([{ t: 400, avg: 1, max: 1 }, { t: 700, avg: 1, max: 1 }, { t: 9000, avg: 1, max: 1 }], [live, done]).map(p => p.t)).toEqual([400, 9000]);
+  });
+
   function fpsSession(over: Partial<FpsRangeSession> = {}): FpsRangeSession {
     return { id: 's1', gameKey: 'steam:730', name: 'Counter-Strike 2', store: 'steam', startedUtcMs: 1000, endedUtcMs: 2000, avgFps: 132, ...over };
   }
@@ -872,5 +881,100 @@ describe('findFpsSessionAt / maskFpsPointsToSessions / buildFpsOverlaySeries', (
       const out = buildFpsOverlaySeries([{ t: 1000, avg: 0, max: 0 }], 'var(--text)');
       expect(out?.fixedYDomain).toEqual([0, 1]);
     });
+  });
+});
+
+describe('zoomBoxAround', () => {
+  const now = 10_000_000;
+  const stripFrom = now - 3 * HOUR;
+  const stripTo = now;
+
+  it('scales the box about the anchor, keeping the anchor at the same fraction of the box', () => {
+    const from = now - HOUR;
+    const to = now;
+    const anchor = from + 15 * MINUTE; // a quarter of the way in
+    const [nextFrom, nextTo] = zoomBoxAround(from, to, stripFrom, stripTo, anchor, 0.5);
+    expect(nextTo - nextFrom).toBe(30 * MINUTE);
+    expect((anchor - nextFrom) / (nextTo - nextFrom)).toBeCloseTo(0.25, 6);
+  });
+
+  it('keeps the live edge pinned when the anchor sits on it', () => {
+    const [, nextTo] = zoomBoxAround(now - HOUR, now, stripFrom, stripTo, now, 0.5);
+    expect(nextTo).toBe(now);
+  });
+
+  it('floors the box at MIN_BOX_WINDOW_MS', () => {
+    const [nextFrom, nextTo] = zoomBoxAround(now - HOUR, now, stripFrom, stripTo, now - 30 * MINUTE, 1e-9);
+    expect(nextTo - nextFrom).toBe(MIN_BOX_WINDOW_MS);
+  });
+
+  it('caps the box at the strip and shifts, rather than truncating, when the scaled box would overrun an edge', () => {
+    const [nextFrom, nextTo] = zoomBoxAround(now - HOUR, now, stripFrom, stripTo, now - 30 * MINUTE, 10);
+    expect([nextFrom, nextTo]).toEqual([stripFrom, stripTo]);
+
+    const [leftFrom, leftTo] = zoomBoxAround(now - 3 * HOUR, now - 2 * HOUR, stripFrom, stripTo, now - 2 * HOUR, 2);
+    expect(leftFrom).toBe(stripFrom);
+    expect(leftTo).toBe(stripFrom + 2 * HOUR);
+  });
+
+  it('clamps an anchor outside the box to the nearest box edge', () => {
+    const [nextFrom, nextTo] = zoomBoxAround(now - HOUR, now, stripFrom, stripTo, now - 2 * HOUR, 0.5);
+    expect(nextFrom).toBe(now - HOUR);
+    expect(nextTo).toBe(now - 30 * MINUTE);
+  });
+});
+
+describe('viewportReducer wheelZoom', () => {
+  const now = 10_000_000;
+  const base: ViewportState = {
+    from: now - HOUR, to: now,
+    stripFrom: now - 3 * HOUR, stripTo: now,
+    rangeKey: '3h', lastPresetKey: '3h', following: true,
+  };
+
+  it('resizes only the box, leaving the strip and rangeKey untouched', () => {
+    const next = viewportReducer(base, { type: 'wheelZoom', anchorT: now - 30 * MINUTE, factor: 0.5, now });
+    expect(next.to - next.from).toBe(30 * MINUTE);
+    expect(next.stripFrom).toBe(base.stripFrom);
+    expect(next.stripTo).toBe(base.stripTo);
+    expect(next.rangeKey).toBe('3h');
+    expect(next.following).toBe(false);
+  });
+
+  it('keeps following when the zoom leaves the box at the live edge', () => {
+    const next = viewportReducer(base, { type: 'wheelZoom', anchorT: now, factor: 0.5, now });
+    expect(next.to).toBe(now);
+    expect(next.following).toBe(true);
+  });
+
+  it('snaps an anchor just inside the live edge onto it while following, so a zoom-in there keeps the live slide', () => {
+    const next = viewportReducer(base, { type: 'wheelZoom', anchorT: now - MINUTE, factor: 0.5, now });
+    expect(next.to).toBe(now);
+    expect(next.to - next.from).toBe(30 * MINUTE);
+    expect(next.following).toBe(true);
+  });
+
+  it('does not snap to the live edge once detached', () => {
+    const detached: ViewportState = { ...base, following: false };
+    const next = viewportReducer(detached, { type: 'wheelZoom', anchorT: now - MINUTE, factor: 0.5, now });
+    expect(next.to).toBeLessThan(now);
+    expect(next.following).toBe(false);
+  });
+
+  it('returns the same state when the box is already at the floor or the strip', () => {
+    const full: ViewportState = { ...base, from: base.stripFrom, to: base.stripTo };
+    expect(viewportReducer(full, { type: 'wheelZoom', anchorT: now - HOUR, factor: 2, now })).toBe(full);
+  });
+
+  it('does not re-anchor a detached strip to now when a zoom-out fills it, unlike a brushChange to the strip edge', () => {
+    const detached: ViewportState = {
+      from: now - 2 * HOUR, to: now - 90 * MINUTE,
+      stripFrom: now - 4 * HOUR, stripTo: now - HOUR,
+      rangeKey: 'custom', lastPresetKey: '3h', following: false,
+    };
+    const next = viewportReducer(detached, { type: 'wheelZoom', anchorT: now - 100 * MINUTE, factor: 100, now });
+    expect([next.from, next.to]).toEqual([detached.stripFrom, detached.stripTo]);
+    expect([next.stripFrom, next.stripTo]).toEqual([detached.stripFrom, detached.stripTo]);
+    expect(next.following).toBe(false);
   });
 });

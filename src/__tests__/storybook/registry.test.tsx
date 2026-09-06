@@ -12,7 +12,6 @@ const REPO_ROOT = join(__dirname, '..', '..', '..');
  *  - every shared component dir is cataloged or explicitly excluded
  *  - every Preview renders without throwing (a render canary for the whole
  *    primitives catalogue - most of these components have no other test)
- * See `.agents/rules/storybook.md` in the parent repo.
  */
 
 // Non-visual utilities that live under components/common but are not catalog

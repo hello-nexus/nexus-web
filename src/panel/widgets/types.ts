@@ -21,6 +21,13 @@ import type { PanelConfigValue, PanelSurface, PanelWidget, PanelWidgetSize } fro
 
 export interface WidgetProps {
   widget: PanelWidget;
+  // This panel's own device record id (PanelDeviceRecord.id), passed by
+  // PanelKioskContent (a real device kiosk) and PanelSimulatorContent (the
+  // device-page simulator). Undefined for the desktop dashboard's own "My
+  // Computer" preview (PanelEmbeddedContent), which has no backing device
+  // record. The deck widget uses it to route a privileged key press through
+  // /panel/deck/dispatch.
+  deviceId?: string;
   surface?: PanelSurface;
   // Companion to `surface` for surfaceSupportsTouch: 'monitor' is interactive
   // per-DEVICE (a promoted Xeneon Edge has a digitizer, a plain monitor does
@@ -47,8 +54,14 @@ export interface WidgetProps {
   editView?: DeckEditView;
   onEditViewChange?: (view: DeckEditView) => void;
   // Persist a config patch from the live tile (e.g. deck drag-reorder in edit
-  // mode). Wired by PanelApp only while editing a slot-selection widget.
+  // mode). Wired by PanelApp while editing a slot-selection widget, and on
+  // every surface for a persistsFromTile widget.
   onUpdate?: (config: Record<string, PanelConfigValue>) => void;
+  // True while this tile is drawn in the device-page editing canvas (the
+  // /panel?simulator=1 iframe). Widgets use it for editor-only affordances
+  // that must not appear on the real device - the gallery reveals its nav
+  // arrows on hover, which a touch panel does by tap instead.
+  editorPreview?: boolean;
 }
 
 // Which page + folder path a paged/foldered widget (deck) is currently
@@ -144,6 +157,11 @@ export interface AppMetadata {
   // starter actions). Called once at insert time; returns a fresh object so two
   // widgets never share mutable config. Absent → the widget starts config-less.
   defaultConfig?: () => Record<string, PanelConfigValue>;
+  // Whether the live tile writes its own config (the gallery's picked image).
+  // PanelApp passes onUpdate on every surface when set - unlike
+  // usesSlotSelection, which only wires it while its edit sheet is open,
+  // because the pick has to persist from the device too, not just the editor.
+  persistsFromTile?: boolean;
 }
 
 // Initial sheet state derived from where the user invoked the edit flow.

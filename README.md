@@ -156,7 +156,7 @@ npm run test:e2e         # playwright (run `npx playwright install` once first)
 npm run test:e2e:ui      # playwright UI mode
 npm run test:e2e:sandbox # playwright, SDK sandbox only (needs `cd sdk && npm ci && npm run build` once)
 npm run audit:locales    # locale key sync check
-npm run audit:styles     # style audits (also: audit:css-chunks, audit:text-styles)
+npm run audit:styles     # style audits (also: audit:text-styles)
 ```
 
 Tests default to the `jsdom` environment, and building one is the largest cost

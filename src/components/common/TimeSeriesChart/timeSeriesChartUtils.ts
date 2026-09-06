@@ -278,12 +278,19 @@ export function ribbonOpacityFraction(value: number, min: number, max: number): 
  * current effective point spacing) is sub-minute - at a coarse zoom level a
  * seconds digit is meaningless precision the data doesn't actually have.
  */
+function tooltipStampFlags(at: Date, nowMs: number, stepSeconds?: number | null) {
+  const now = new Date(nowMs);
+  const sameYear = at.getFullYear() === now.getFullYear();
+  return {
+    sameDay: sameYear && at.getMonth() === now.getMonth() && at.getDate() === now.getDate(),
+    sameYear,
+    showSeconds: stepSeconds != null && stepSeconds < 60,
+  };
+}
+
 export function formatTooltipTimestamp(t: number, nowMs: number, timeFormat: TimeFormat, locale?: string, stepSeconds?: number | null): string {
   const at = new Date(t);
-  const now = new Date(nowMs);
-  const sameDay = at.getFullYear() === now.getFullYear() && at.getMonth() === now.getMonth() && at.getDate() === now.getDate();
-  const sameYear = at.getFullYear() === now.getFullYear();
-  const showSeconds = stepSeconds != null && stepSeconds < 60;
+  const { sameDay, sameYear, showSeconds } = tooltipStampFlags(at, nowMs, stepSeconds);
   return at.toLocaleString(locale, {
     year: sameYear ? undefined : 'numeric',
     month: sameDay ? undefined : 'short',
@@ -293,4 +300,46 @@ export function formatTooltipTimestamp(t: number, nowMs: number, timeFormat: Tim
     second: showSeconds ? '2-digit' : undefined,
     hour12: hour12OptionFor(timeFormat),
   });
+}
+
+export interface TooltipTimestampParts {
+  time: string;
+  /** The point's calendar day (month + day, plus the year once that differs
+   *  too) when it is not today - null on the current day, so the header
+   *  carries a date only where one disambiguates. */
+  day: string | null;
+}
+
+/** formatTooltipTimestamp split into its time and (non-today) day, for a
+ *  header that stacks the day under the time as a badge instead of running
+ *  the two together in one line. */
+export function formatTooltipTimestampParts(t: number, nowMs: number, timeFormat: TimeFormat, locale?: string, stepSeconds?: number | null): TooltipTimestampParts {
+  const at = new Date(t);
+  const { sameDay, sameYear, showSeconds } = tooltipStampFlags(at, nowMs, stepSeconds);
+  const time = at.toLocaleString(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+    second: showSeconds ? '2-digit' : undefined,
+    hour12: hour12OptionFor(timeFormat),
+  });
+  const day = sameDay ? null : at.toLocaleString(locale, {
+    year: sameYear ? undefined : 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+  return { time, day };
+}
+
+// Wheel travel per doubling of the window; a mouse notch is under half of it,
+// a trackpad's finer deltas scale proportionally.
+const WHEEL_ZOOM_PX_PER_DOUBLING = 250;
+// Pixel equivalents for the line and page delta modes.
+const WHEEL_LINE_PX = 16;
+const WHEEL_PAGE_PX = 100;
+
+/** The window scale for one wheel event: >1 (wheel down) widens the window
+ *  - zooms out - and <1 (wheel up) narrows it. */
+export function wheelZoomFactor(deltaY: number, deltaMode: number): number {
+  const px = deltaMode === 1 ? deltaY * WHEEL_LINE_PX : deltaMode === 2 ? deltaY * WHEEL_PAGE_PX : deltaY;
+  return 2 ** (px / WHEEL_ZOOM_PX_PER_DOUBLING);
 }

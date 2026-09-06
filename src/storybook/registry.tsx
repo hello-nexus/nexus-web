@@ -124,7 +124,7 @@ import styles from './StorybookModal.module.scss';
  * Component registry. This is the source of truth for the Storybook viewer.
  * Add an entry here whenever a new shared component lands under
  * src/components/ (or a sub-component used by 2+ views). Removing a component
- * means removing its entry here. See `.agents/rules/storybook.md`.
+ * means removing its entry here.
  *
  * Entries should have a `Preview` when they can render with stable local stub
  * props. View-level orchestration (whole pages, shells, drawers tied to live
@@ -2456,7 +2456,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Tabs', category: 'navigation',
     filePath: 'src/components/common/Tabs/Tabs.tsx',
-    description: 'Bordered segmented tab group - one shared border around the whole bar, solid accent fill on the active tab. Supports optional leading icons through TabDef.icon, per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
+    description: 'Segmented tab group, flat at rest - the active tab carries the --bg pill (the immersive editors override it through --tab-active-bg). Supports optional leading icons through TabDef.icon, per-tab disable via TabDef.disabled, and an optional right-aligned trailing control via TabDef.trailing (shown here on Month) - rendered as a sibling of the tab\'s own button sharing one pill, never nested inside it, so its clicks are shielded from the tab\'s onChange without creating an invalid nested-interactive-control. Used inside ViewHeader for page-level tabs and standalone for in-page toggles (panel theme settings, icon picker).', Preview: PreviewTabs,
     notes: 'Pairs with ViewHeader - do not roll your own tab bars. Disabled tabs get opacity 0.4 + not-allowed cursor.',
   },
   {

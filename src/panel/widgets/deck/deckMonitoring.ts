@@ -3,41 +3,84 @@
 // testable, and shared verbatim between the touch-widget tile and the
 // physical-deck grid preview (both render through DeckMonitoringCell).
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
+import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { resolveSensor } from '../monitoring/MonitoringWidget';
-import type { DeviceKey } from '../monitoring/perfSlots';
+import { isExtrasBackedDevice, type DeviceKey } from '../monitoring/perfSlots';
 import type { ScaleMode } from '../monitoring/perfDomain';
 import type { DeckMonitoringCategory } from './types';
 
-// v1 category set per the wire contract - excludes network/fps (name-keyed,
-// source-mismatched between web and service) and the extras-topic categories.
+// Every category the monitoring widget's picker offers, in its order.
+// deckMonitoring.test asserts this stays equal to sensorPicker.ts'
+// DEVICE_OPTION_KEYS, which is itself every DeviceKey but the legacy 'fan'.
 export const DECK_MONITORING_CATEGORIES: readonly DeckMonitoringCategory[] = [
-  'quick', 'cpu', 'gpu', 'memory', 'motherboard', 'storage',
+  'quick', 'cpu', 'gpu', 'memory', 'memoryModule', 'motherboard',
+  'storage', 'smart', 'network', 'fps',
+  'battery', 'cooler', 'psu', 'embeddedController',
 ];
+
+/**
+ * Whether a category resolves out of the "extras" topic, so a caller knows to
+ * subscribe (useSensorExtras). Wider than the widget's isExtrasBackedDevice
+ * by 'network': a deck key sums the NIC throughput sensors extras carries
+ * (buildNicNetworkSensors) rather than the widget's per-process rates, since
+ * that is the only network source nexus-service can reproduce for the
+ * physical-deck render.
+ */
+export function deckCategoryUsesExtras(category: DeckMonitoringCategory): boolean {
+  return isExtrasBackedDevice(category) || category === 'network';
+}
+
+/** Whether a category needs the "fps" topic, whose subscription starts ETW capture. */
+export function deckCategoryUsesFps(category: DeckMonitoringCategory): boolean {
+  return category === 'fps';
+}
 
 export const DECK_MONITORING_DEFAULT_COLOR = '#4da3ff';
 export const DECK_MONITORING_TILE_BG = '#0e1116';
 
-/** Shared history-buffer key, mirroring MonitoringWidget's PerfSlot convention. */
+/**
+ * History-buffer key, deliberately equal to MonitoringWidget's PerfSlot
+ * convention so a deck tile and a widget slot watching the same sensor fill
+ * one shared buffer.
+ *
+ * Network is the exception: both sides would build `network::Network Total`,
+ * but they resolve DIFFERENT series behind that name - the widget sums
+ * per-process rates (buildNetworkSensors), a deck key sums NIC throughput
+ * (buildNicNetworkSensors). pushPanelSensorSample keeps only the first sample
+ * per key per frame, so sharing would let whichever mounted first own the
+ * buffer and draw its series under the other's value text. Scoping the deck's
+ * network key keeps the two apart.
+ */
 export function monitoringSensorKey(category: DeckMonitoringCategory, sensorId: string): string {
-  return `${category}::${sensorId || 'default'}`;
+  const scope = category === 'network' ? 'deck-network' : category;
+  return `${scope}::${sensorId || 'default'}`;
 }
 
 /**
  * Resolves the stored (category, concrete sensor id) against live sensor
  * state via MonitoringWidget.resolveSensor. Its cpu/gpu branches special-case
  * a sensorKey literally equal to the string 'Temperature' as the preferred-
- * sensor sentinel regardless of tempPrefs - the monitoring action's contract
- * guarantees `sensor` is always a concrete HardwareSensor.id, so that string
- * never occurs here and the sentinel branch is unreachable in practice.
- * fps/network resolution paths are unreachable too, since
- * DeckMonitoringCategory excludes those from the v1 category set.
+ * sensor sentinel regardless of tempPrefs. The picker only ever stores a
+ * concrete HardwareSensor.id for those two categories (network and fps store
+ * a sensor NAME instead - see sensorsForDevice), so that string never occurs
+ * here and the sentinel branch is unreachable in practice.
+ *
+ * `networkSensors` must come from buildNicNetworkSensors, not
+ * buildNetworkSensors: the aggregate the physical deck renders is summed
+ * service-side over the same NIC components. Callers that hold none of the
+ * gated sources (a preview, a provider-less mount) pass empty ones and the
+ * matching categories resolve to undefined, the same unresolved placeholder
+ * an absent sensor id already produces.
  */
 export function resolveMonitoringSensor(
   sensors: SensorState,
   category: DeckMonitoringCategory,
   sensorId: string,
+  fpsSensors: HardwareSensor[],
+  networkSensors: HardwareSensor[],
+  extras: SensorExtras,
 ): HardwareSensor | undefined {
-  return resolveSensor(sensors, [], [], category as DeviceKey, sensorId);
+  return resolveSensor(sensors, fpsSensors, networkSensors, category as DeviceKey, sensorId, undefined, extras);
 }
 
 /**

@@ -1,3 +1,5 @@
+@use '../../../styles/badges' as *;
+
 .chartWrap {
   position: relative;
   border: var(--border-width) solid transparent;
@@ -71,4 +73,18 @@
 .legendName {
   font-size: var(--type-small);
   color: var(--text-dim);
+}
+
+// The tooltip header's timestamp: the time, with the calendar day stacked
+// under it (same chip as the seek bar's edge labels) whenever the hovered
+// point is not from today.
+.tooltipStamp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.tooltipDay {
+  @include day-badge;
 }

@@ -5,11 +5,20 @@ import { upsertPairedPc, activatePairedPc, markActivePcNeedsRepair } from '../..
 
 const TOKEN_KEY = 'nexus_token';
 
+/** The wrapper's find-computer bridge, which gates every pairing affordance
+ *  here (a bare /r/pair link is an invalid-link dead end). */
+function setNativeBridge() {
+  const findComputer = vi.fn();
+  (window as { nexusNative?: { findComputer: () => void } }).nexusNative = { findComputer };
+  return findComputer;
+}
+
 describe('PairedPcsContent', () => {
   let assignSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     localStorage.clear();
+    delete (window as { nexusNative?: unknown }).nexusNative;
     assignSpy = vi.fn();
     vi.stubGlobal('location', { ...window.location, assign: assignSpy });
   });
@@ -20,17 +29,27 @@ describe('PairedPcsContent', () => {
   });
 
   it('offers a Pair a new PC action when the list is empty', () => {
+    const findComputer = setNativeBridge();
     render(<PairedPcsContent />);
-    const link = screen.getByText('connection.lost.newDevice').closest('a');
-    expect(link?.getAttribute('href')).toBe('/r/pair');
+    fireEvent.click(screen.getByText('connection.lost.newDevice'));
+    expect(findComputer).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('a[href="/r/pair"]')).toBeNull();
   });
 
   it('still offers the Pair a new PC action alongside a non-empty list', () => {
+    setNativeBridge();
     upsertPairedPc({ machineName: 'Tower', token: 't1', spki: 'AA' });
     render(<PairedPcsContent />);
-    const link = screen.getByText('connection.lost.newDevice').closest('a');
-    expect(link?.getAttribute('href')).toBe('/r/pair');
+    expect(screen.getByText('connection.lost.newDevice')).toBeInTheDocument();
     expect(screen.getByText('Tower')).toBeInTheDocument();
+  });
+
+  it('hides the Pair a new PC action outside the native app', () => {
+    // A bare /r/pair link lands on PairRedirect's invalid-link page, so there
+    // is nothing to offer without the wrapper's QR scanner.
+    render(<PairedPcsContent />);
+    expect(screen.queryByText('connection.lost.newDevice')).toBeNull();
+    expect(document.querySelector('a[href="/r/pair"]')).toBeNull();
   });
 
   it('lists every stored PC by machine name', () => {
@@ -74,6 +93,7 @@ describe('PairedPcsContent', () => {
   });
 
   it('shows a re-pair link instead of a connect button for a needsRepair record', () => {
+    const findComputer = setNativeBridge();
     const record = upsertPairedPc({ machineName: 'Tower', token: 't1', spki: 'AA' });
     activatePairedPc(record.id);
     markActivePcNeedsRepair();
@@ -86,8 +106,9 @@ describe('PairedPcsContent', () => {
     render(<PairedPcsContent />);
 
     expect(screen.getByText('pairedPcs.statusNeedsRepair')).toBeInTheDocument();
-    const link = screen.getByText('connection.sessionRevoked.pairAgain').closest('a');
-    expect(link?.getAttribute('href')).toBe('/r/pair');
+    fireEvent.click(screen.getByText('connection.sessionRevoked.pairAgain'));
+    expect(findComputer).toHaveBeenCalledTimes(1);
+    expect(document.querySelector('a[href="/r/pair"]')).toBeNull();
     expect(screen.queryAllByText('pairedPcs.connect')).toHaveLength(1); // only Laptop's
   });
 

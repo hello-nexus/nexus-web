@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AccountView } from './AccountView';
 import { ToastProvider } from '../../../common/Toast/Toast';
@@ -113,5 +113,70 @@ describe('AccountView sign-in refreshes the accounts hook', () => {
     fireEvent.click(screen.getByRole('button', { name: 'account.signIn.submit' }));
 
     await waitFor(() => expect(accounts.refresh).toHaveBeenCalled());
+  });
+});
+
+describe('AccountView tabs', () => {
+  it('keeps the account sections on the first tab and purchases on the second', async () => {
+    const { unmount } = renderView(null, 'acct-1');
+
+    expect(await screen.findByText('account.authentication.title')).toBeInTheDocument();
+    expect(screen.queryByText('account.purchases.title')).toBeNull();
+    unmount();
+
+    renderView('purchases', 'acct-1');
+
+    expect(await screen.findByText('account.purchases.title')).toBeInTheDocument();
+    expect(screen.queryByText('account.authentication.title')).toBeNull();
+  });
+});
+
+describe('AccountView post-recovery password prompt', () => {
+  it('prompts once when the service reports a recovery-fresh session, not on every visit', async () => {
+    const { localServiceBackend } = await import('../../../../api/localServiceBackend');
+    vi.mocked(localServiceBackend.recoveryStatus).mockResolvedValue({ status: 'idle', recoveryFresh: true });
+
+    const first = renderView(null, 'acct-1');
+    // The modal title repeats the row button's label, so two matches means open.
+    await waitFor(() => expect(screen.getAllByText('account.password.change')).toHaveLength(2));
+    first.unmount();
+
+    const calls = vi.mocked(localServiceBackend.recoveryStatus).mock.calls;
+    const before = calls.length;
+    renderView(null, 'acct-1');
+    await waitFor(() => expect(calls.length).toBe(before + 1));
+    // Let the status promise's continuation run before asserting nothing opened.
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getAllByText('account.password.change')).toHaveLength(1);
+  });
+});
+
+describe('AccountView dismissed password prompt', () => {
+  it('does not reopen the prompt when the section remounts after the user closed it', async () => {
+    const { localServiceBackend } = await import('../../../../api/localServiceBackend');
+    vi.mocked(localServiceBackend.recoveryStatus).mockResolvedValue({ status: 'idle', recoveryFresh: true });
+
+    const view = render(
+      <ToastProvider>
+        <AccountView serviceOnline accounts={makeAccounts('acct-2')} sync={SYNC} tab={null} onTabChange={vi.fn()} />
+      </ToastProvider>,
+    );
+    await waitFor(() => expect(screen.getAllByText('account.password.change')).toHaveLength(2));
+    fireEvent.click(screen.getByRole('button', { name: 'app.window.close' }));
+    await waitFor(() => expect(screen.getAllByText('account.password.change')).toHaveLength(1));
+
+    // The Purchases tab unmounts the authentication section; coming back remounts it.
+    view.rerender(
+      <ToastProvider>
+        <AccountView serviceOnline accounts={makeAccounts('acct-2')} sync={SYNC} tab="purchases" onTabChange={vi.fn()} />
+      </ToastProvider>,
+    );
+    view.rerender(
+      <ToastProvider>
+        <AccountView serviceOnline accounts={makeAccounts('acct-2')} sync={SYNC} tab={null} onTabChange={vi.fn()} />
+      </ToastProvider>,
+    );
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getAllByText('account.password.change')).toHaveLength(1);
   });
 });

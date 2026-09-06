@@ -12,6 +12,7 @@ import {
   type PairedPcRecord,
 } from '../../../api/pairedPcs';
 import styles from './PairedPcsContent.module.scss';
+import { hasNativeFindComputerBridge, openFindComputer } from '../../../panel/device/panelNativeBridge';
 
 /**
  * The phone's own remembered PCs - independent of LAN reachability, so a PC
@@ -40,17 +41,24 @@ export function PairedPcsContent() {
     setActiveId(getActivePcId());
   };
 
+  // Pairing a new system is a native-wrapper surface (its QR scanner). A bare
+  // /r/pair link is an invalid-link dead end - PairRedirect needs host + pair
+  // params - so outside the app the affordance is hidden.
+  const canPairNewSystem = hasNativeFindComputerBridge();
+
   return (
     <div className={styles.root}>
-      <Button
-        size="sm"
-        tone="neutral"
-        icon={<QrCode size={14} />}
-        href="/r/pair"
-        className={styles.addNew}
-      >
-        {t('connection.lost.newDevice')}
-      </Button>
+      {canPairNewSystem && (
+        <Button
+          size="sm"
+          tone="neutral"
+          icon={<QrCode size={14} />}
+          onClick={openFindComputer}
+          className={styles.addNew}
+        >
+          {t('connection.lost.newDevice')}
+        </Button>
+      )}
       {records.length === 0 ? (
         <p className={styles.empty}>{t('pairedPcs.empty')}</p>
       ) : (
@@ -72,9 +80,11 @@ export function PairedPcsContent() {
                     {statusLabel}
                   </span>
                   {isActive ? null : pc.needsRepair ? (
-                    <Button size="sm" tone="accent" href="/r/pair">
-                      {t('connection.sessionRevoked.pairAgain')}
-                    </Button>
+                    canPairNewSystem ? (
+                      <Button size="sm" tone="accent" onClick={openFindComputer}>
+                        {t('connection.sessionRevoked.pairAgain')}
+                      </Button>
+                    ) : null
                   ) : (
                     <Button size="sm" tone="accent" onClick={() => handleConnect(pc.id)}>
                       {t('pairedPcs.connect')}

@@ -18,6 +18,7 @@ import { useSearchSignal } from '../search/signals';
 import { TopSearch } from '../search/TopSearch';
 import { DISCORD_INVITE_URL } from '../lib/externalLinks';
 import { CaptionButtons } from './CaptionButtons';
+import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { FocusChip } from './FocusChip';
 import { usePageChrome } from './PageChrome';
 import { useWindowDragRegion } from './useWindowDragRegion';
@@ -224,7 +225,14 @@ export function TopBar({
             </button>
           </HoverTooltip>
         )}
-        {!fullscreen && <FocusChip online={online} />}
+        {/* Boundaried on its own: the chip measures live layout, and TopBar
+            sits outside Dashboard's boundary, so an error here would blank
+            the whole window rather than one control. */}
+        {!fullscreen && (
+          <ErrorBoundary>
+            <FocusChip online={online} />
+          </ErrorBoundary>
+        )}
         {/* Page tabs move up here in fullscreen. Inside leftCluster so they
             inherit the macOS traffic-light inset, and every tab is a <button>,
             which the drag region already excludes - so the bar still drags
@@ -236,7 +244,7 @@ export function TopBar({
           pill. Desktop-app build only; hidden in fullscreen along with the
           rest of the bar's navigation chrome. */}
       {__SERVICE_BUILD__ && !fullscreen && (
-        <div className={styles.navArrows}>
+        <div className={styles.navArrows} data-topbar-arrows>
           <HoverTooltip body={t('nav.back')} side="bottom">
             <button type="button" className={styles.iconButton}
               onClick={goBack} disabled={!canGoBack} aria-label={t('nav.back')}>

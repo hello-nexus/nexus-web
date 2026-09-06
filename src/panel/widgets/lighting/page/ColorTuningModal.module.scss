@@ -1,0 +1,132 @@
+@use '../../../../styles/text' as *;
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.sectionTitle {
+  @include text-label;
+  color: var(--text-dim);
+}
+
+// The devices this tuning writes to. Read-only, so it is plain text rather
+// than anything that looks pressable.
+.deviceList {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+// The shift ribbon: two stacked bands over the same reference colours, source
+// above and tuned below, each row's cells butted together so a column is one
+// before/after pair. The label column keeps the rows self-describing without a
+// separate legend line.
+.ribbon {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.2rem 0.5rem;
+}
+
+.ribbonLabel {
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+.ribbonRow {
+  display: flex;
+  height: 1.6rem;
+  overflow: hidden;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.ribbonCell {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  // The ribbon is a dense block of colour; without this the Brightness label
+  // sits right under the Tuned band and reads as part of it.
+  margin-top: var(--space-sm);
+}
+
+.control {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+// Sits over the slider's own head row so the badge reads as part of the label
+// line without the Slider needing to know about mixed values. The right inset
+// clears the Slider's value column, which is widest on the temperature row
+// (its formatter emits words, not a percentage).
+.controlHead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 5.5rem;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+// Info (i) stacked above the master-brightness caret inside the slider track;
+// shrink the trigger so the indicator group stays compact.
+.markerInfo button {
+  width: 16px;
+  height: 16px;
+}
+
+.mixed {
+  padding: 0 0.35rem;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+// A control the scoped devices disagree on: the thumb is showing an average
+// nobody is actually set to, so the track is muted until the user commits one.
+.sliderMixed {
+  opacity: 0.7;
+}
+
+// The channel sliders carry their channel's colour on the fill, so the three
+// rows are distinguishable without reading their labels. The track gradient
+// reads --accent-glow (falling back to --accent), so overriding both on the
+// row is the whole change - no extra selector into the Slider primitive.
+.red {
+  --accent: #e05252;
+  --accent-glow: #e05252;
+}
+
+.green {
+  --accent: #3fae5a;
+  --accent-glow: #3fae5a;
+}
+
+.blue {
+  --accent: #4a83e0;
+  --accent-glow: #4a83e0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

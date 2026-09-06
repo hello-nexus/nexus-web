@@ -12,6 +12,8 @@ interface RemoveAppButtonProps {
   onRemoved?: () => void;
   /** Button label; the confirm dialog reuses it as its confirm action. */
   label: string;
+  /** Renders the trash glyph alone, for a row action that has no room for a label. */
+  iconOnly?: boolean;
 }
 
 /**
@@ -19,7 +21,7 @@ interface RemoveAppButtonProps {
  * orphaned widgets silently, so a user who uninstalls without being told would
  * find widgets simply missing from panels they were not thinking about.
  */
-export function RemoveAppButton({ app, onRemoved, label }: RemoveAppButtonProps) {
+export function RemoveAppButton({ app, onRemoved, label, iconOnly }: RemoveAppButtonProps) {
   const { t } = useTranslation();
   const [usage, setUsage] = useState<AppUsage | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,8 +47,16 @@ export function RemoveAppButton({ app, onRemoved, label }: RemoveAppButtonProps)
 
   return (
     <>
-      <Button type="button" tone="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => void ask()}>
-        {label}
+      <Button
+        type="button"
+        tone="danger"
+        size="sm"
+        icon={<Trash2 size={14} />}
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
+        onClick={() => void ask()}
+      >
+        {iconOnly ? null : label}
       </Button>
       <ConfirmModal
         open={usage !== null}

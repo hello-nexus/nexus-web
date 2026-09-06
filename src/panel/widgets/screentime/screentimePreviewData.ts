@@ -2,7 +2,7 @@
 // ONE complete full-state snapshot, independent of widget size: the short
 // tiles (2x2/4x2) show the top few apps, the taller tiles (2x4/4x4) more, all
 // under the total-time header. Keep in sync with what ScreentimeWidget renders
-// (see .agents/rules/widget-preview-fixtures.md in the master repo).
+// (previewMode.test.tsx is the fixture-sync gate).
 import type { ScreenTimeData } from '../../../hooks/useScreenTime';
 
 export const SCREENTIME_PREVIEW: ScreenTimeData = {

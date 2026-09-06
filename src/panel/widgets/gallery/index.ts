@@ -27,6 +27,9 @@ export const galleryApp: AppManifest = {
     supportsImmersive: { portrait: true, landscape: true },
     hasConfig: true,
     touch: false,
+    // The nav arrows write the picked image straight from the tile, on the
+    // device as well as in the editor.
+    persistsFromTile: true,
   },
   Widget: GalleryWidget,
   Page: GalleryPage,
