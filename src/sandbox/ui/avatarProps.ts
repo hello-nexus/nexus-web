@@ -23,6 +23,18 @@ export function toBool(v: unknown): boolean {
   return !!v;
 }
 
+/**
+ * Whether the observed element is on screen after a batch of intersection
+ * records. An observer can deliver several crossings in ONE callback (the
+ * immersive overlay slides in from below, so "left the viewport" and
+ * "entered it" arrive together on a busy frame); only the newest record is
+ * the truth. Reading the first one parked the render loop for good on the
+ * Y70 kiosk. An empty batch changes nothing.
+ */
+export function inViewFromEntries(entries: ReadonlyArray<{ isIntersecting: boolean }>, previous: boolean): boolean {
+  return entries.length > 0 ? entries[entries.length - 1].isIntersecting : previous;
+}
+
 /** Clamps to the contract's 0..1 range; a non-finite input reads as 0. */
 export function clampEnergy(v: unknown): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return 0;
