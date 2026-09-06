@@ -19,7 +19,7 @@ import { usePanelImmersive } from '../../panel/widgets/common/PanelImmersiveCont
 import { useImmersiveExit } from '../../panel/overlays/immersiveExit';
 import { useTranslation } from '../../lib/i18n';
 import { Spinner } from '../../components/common/Spinner/Spinner';
-import { clampEnergy, parseReactionTrigger, resolveAvatarRenderMode, toBool } from './avatarProps';
+import { clampEnergy, inViewFromEntries, parseReactionTrigger, resolveAvatarRenderMode, toBool } from './avatarProps';
 import {
   STICKER_MAX_COUNT, newPlacement, parsePlacements, parseStickers, parseStream, type StickerPlacement,
 } from './avatarStickers';
@@ -445,7 +445,7 @@ export function AvatarComposite(p: HostProps) {
     let io: IntersectionObserver | null = null;
     if (el && typeof IntersectionObserver !== 'undefined') {
       io = new IntersectionObserver((entries) => {
-        inView = entries[0]?.isIntersecting ?? true;
+        inView = inViewFromEntries(entries, inView);
         if (shouldRun()) resume(); else pause();
       }, { threshold: 0.01 });
       io.observe(el);

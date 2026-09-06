@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { clampEnergy, parseReactionTrigger, resolveAvatarRenderMode, toBool } from '../ui/avatarProps';
+import { clampEnergy, inViewFromEntries, parseReactionTrigger, resolveAvatarRenderMode, toBool } from '../ui/avatarProps';
+
+describe('inViewFromEntries', () => {
+  it('takes the newest record of a batch, not the first', () => {
+    expect(inViewFromEntries([{ isIntersecting: false }, { isIntersecting: true }], false)).toBe(true);
+    expect(inViewFromEntries([{ isIntersecting: true }, { isIntersecting: false }], true)).toBe(false);
+  });
+
+  it('keeps the previous state for an empty batch', () => {
+    expect(inViewFromEntries([], true)).toBe(true);
+    expect(inViewFromEntries([], false)).toBe(false);
+  });
+});
 
 describe('resolveAvatarRenderMode', () => {
   it('preview always wins, even with a valid pack', () => {
