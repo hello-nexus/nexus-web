@@ -50,8 +50,15 @@ export function useOemAppSeed({
   // the cell rendered blank: an SDK app could be added to a panel and would
   // simply never appear.
   useEffect(() => {
-    if (isMarketplaceRegistryStale()) void loadMarketplaceApps();
-    return subscribeMarketplaceRegistry(forceRender);
+    // TEMP EXPERIMENT: retry while stale. A kiosk panel can reach this effect
+    // before its token is usable; the single original attempt then failed and
+    // the registry stayed empty for the life of the page, so every app:<id>
+    // widget rendered as a blank cell.
+    const tick = () => { if (isMarketplaceRegistryStale()) void loadMarketplaceApps(); };
+    tick();
+    const timer = setInterval(tick, 5_000);
+    const unsubscribe = subscribeMarketplaceRegistry(forceRender);
+    return () => { clearInterval(timer); unsubscribe(); };
   }, [forceRender]);
 
   // Guards a duplicate run within one mount (e.g. React StrictMode's

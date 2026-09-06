@@ -24,6 +24,18 @@ export function workerBootScript(): string {
 const WORKER_BOOT = `
 "use strict";
 
+// TEMP EXPERIMENT: WeakRef is Chrome 84; the Q60 panel is a Chromium 83
+// WebView. @quilted/threads uses a BARE \`new WeakRef(...)\` on the path that
+// retains a function passed across the thread boundary - and the host always
+// passes api.persistLocal / api.dispatch - so render() threw ReferenceError
+// and NO SDK widget could mount on a Q60. FinalizationRegistry is already
+// typeof-guarded upstream; WeakRef is not. The shim holds a strong reference
+// (no collection), which is correct-but-leaky and fine for a kiosk panel.
+if (typeof WeakRef === "undefined") {
+  self.WeakRef = function (target) { this._t = target; };
+  self.WeakRef.prototype.deref = function () { return this._t; };
+}
+
 // Strip privileged globals. The worker can still author with vanilla JS
 // (Promises, Math, JSON, setTimeout, structuredClone) but cannot reach
 // the network, persist state, or signal cross-tab except through nexus.*.

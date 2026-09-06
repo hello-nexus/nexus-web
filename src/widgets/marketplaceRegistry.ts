@@ -40,6 +40,7 @@ const cache = new Map<string, AppInstalledListing>();
 const listeners = new Set<() => void>();
 let loadInFlight: Promise<void> | null = null;
 let lastLoadAt = 0;
+let lastLoadError = '';
 const STALE_AFTER_MS = 30_000;
 
 export function getMarketplaceListing(id: string): AppInstalledListing | undefined {
@@ -87,6 +88,8 @@ export function subscribeMarketplaceRegistry(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
+export function marketplaceLoadError(): string { return lastLoadError; }
+
 export function isMarketplaceRegistryStale(): boolean {
   return cache.size === 0 || Date.now() - lastLoadAt > STALE_AFTER_MS;
 }
@@ -115,9 +118,16 @@ export async function loadMarketplaceApps(): Promise<void> {
       cache.clear();
       for (const widget of list) cache.set(widget.id, widget);
       lastLoadAt = Date.now();
+      lastLoadError = '';
       for (const fn of listeners) {
         try { fn(); } catch { /* listener bug, swallow */ }
       }
+    } catch (e) {
+      // TEMP EXPERIMENT: previously this threw out of a `void` call, so a single
+      // failed boot-time load left the cache empty and lastLoadAt at 0 forever -
+      // a kiosk panel then resolved every app:<id> to undefined and rendered a
+      // blank cell. Record it and stay stale so a caller can retry.
+      lastLoadError = String((e as Error)?.message ?? e).slice(0, 60);
     } finally {
       loadInFlight = null;
     }
