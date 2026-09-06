@@ -85,10 +85,13 @@ const LISTING = {
   trusted: true,
 };
 
-// The shape of a channel /live page for a broadcast that is on air, reduced
-// to the markers the app's parser reads (verified against captured pages).
-const livePage = (videoId: string) =>
-  `<html>${'x'.repeat(200)}"videoDetails":{"videoId":"${videoId}","title":"e2e live","lengthSeconds":"0","isLive":true}</html>`;
+// The two brokered answers behind live detection, in the service proxy's
+// envelope shape: the channel /live page comes back as text cut at the body
+// cap (so not ok) with the broadcast in its canonical link, and the player
+// call comes back as parsed JSON flagging it live.
+const livePageHead = (videoId: string) =>
+  `<!DOCTYPE html><html><head><link rel="canonical" href="https://www.youtube.com/watch?v=${videoId}"></head>${'x'.repeat(2000)}`;
+const playerAnswer = (videoId: string) => ({ videoDetails: { videoId, title: 'e2e live', isLive: true }, playabilityStatus: { status: 'OK' } });
 
 async function gotoPanel(page: Page, opened: string[]) {
   const widgetMjs = readAppFile('widget.mjs')!;
@@ -166,11 +169,13 @@ async function gotoPanel(page: Page, opened: string[]) {
     status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, result: { variant: PANEL_VARIANT } }),
   }));
   // The brokered channel poll: on air, with the real 24/7 broadcast's id.
-  await page.route('**/apps-api/proxy', route => route.fulfill({
-    status: 200,
-    contentType: 'application/json',
-    body: JSON.stringify({ ok: true, status: 200, statusText: 'OK', headers: {}, body: livePage(LIVE_VIDEO_ID) }),
-  }));
+  await page.route('**/apps-api/proxy', route => {
+    const url = String((route.request().postDataJSON() as { url?: string }).url ?? '');
+    const envelope = url.includes('/youtubei/v1/player')
+      ? { ok: true, status: 200, statusText: 'OK', headers: {}, body: playerAnswer(LIVE_VIDEO_ID) }
+      : { ok: false, status: 200, statusText: 'OK', headers: {}, bodyText: livePageHead(LIVE_VIDEO_ID), error: 'response exceeded 1048576-byte cap; truncated' };
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(envelope) });
+  });
   await page.route('**/system/open-url', route => {
     opened.push((route.request().postDataJSON() as { url: string }).url);
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ error: false, msg: '' }) });

@@ -187,15 +187,19 @@ const nexus = {
         body: opts.body == null ? undefined : (typeof opts.body === "string" ? opts.body : JSON.stringify(opts.body)),
       }).then((res) => {
         // Mirror the WHATWG Response shape narrowly so authors can use
-        // \`await res.json()\` / \`.text()\` / read \`.status\`.
+        // \`await res.json()\` / \`.text()\` / read \`.status\`. The proxy
+        // parses a JSON upstream into \`body\` and hands any other content
+        // type over verbatim as \`bodyText\` (also what a body cut at the
+        // size cap arrives as), so text() must read both.
         const r = res || {};
+        const raw = typeof r.bodyText === "string" ? r.bodyText : (typeof r.body === "string" ? r.body : null);
         return {
           ok: r.ok === true,
           status: r.status || 0,
           statusText: r.statusText || "",
           headers: r.headers || {},
-          async text() { return r.body ? (typeof r.body === "string" ? r.body : JSON.stringify(r.body)) : ""; },
-          async json() { return r.body && typeof r.body === "object" ? r.body : JSON.parse(r.body || "null"); },
+          async text() { return raw !== null ? raw : (r.body ? JSON.stringify(r.body) : ""); },
+          async json() { return r.body && typeof r.body === "object" ? r.body : JSON.parse(raw || "null"); },
         };
       });
     },
