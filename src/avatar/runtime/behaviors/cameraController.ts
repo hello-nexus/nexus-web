@@ -43,6 +43,13 @@ export interface CameraControllerOptions {
   minDistance?: number;
   /** 0..1 strength of the square-canvas pull-in; 0 keeps baseDistance on every aspect. */
   aspectFraming?: number;
+  /**
+   * Resting zoom as a fraction of maxZoomLevel (0 = full body, the default;
+   * 1 = the head-bone closeup the wheel otherwise has to be driven to). Rest
+   * is what the camera returns to after the intro and the demo tour, so this
+   * moves the whole neutral framing rather than nudging one transition.
+   */
+  restZoomFraction?: number;
   /** Yaw (degrees) blended in with zoom depth, so full zoom frames a 3/4 view. */
   zoomYawOffsetDeg?: number;
   /** World-Y added to zoomFocusTarget's position (head bones anchor at the chin). */
@@ -127,6 +134,7 @@ export class CameraController {
   private readonly baseDistance: number;
   private readonly minDistance: number;
   private readonly aspectFraming: number;
+  private readonly restZoomLevel: number;
   private readonly zoomYawOffsetDeg: number;
   private readonly zoomFocusHeightOffset: number;
   private readonly runDemoOnStart: boolean;
@@ -202,6 +210,8 @@ export class CameraController {
     this.baseDistance = options.baseDistance ?? 2.3;
     this.minDistance = options.minDistance ?? 0.7;
     this.aspectFraming = options.aspectFraming ?? 1;
+    this.restZoomLevel = this.maxZoomLevel * clamp01(options.restZoomFraction ?? 0);
+    this.zoomLevel = this.restZoomLevel;
     this.zoomYawOffsetDeg = options.zoomYawOffsetDeg ?? 0;
     this.zoomFocusHeightOffset = options.zoomFocusHeightOffset ?? 0;
     this.runDemoOnStart = options.runDemoOnStart ?? true;
@@ -235,7 +245,7 @@ export class CameraController {
     this.demoActive = false;
     this.introActive = true;
     this.introElapsed = 0;
-    this.zoomLevel = 0;
+    this.zoomLevel = this.restZoomLevel;
     this.yawDeg = 0;
     this.pitchDeg = 0;
     this.introDistanceBoost = this.introStartExtraDistance;
@@ -246,7 +256,7 @@ export class CameraController {
     this.introDistanceBoost = 0;
     this.demoActive = true;
     this.demoElapsed = 0;
-    this.zoomLevel = 0;
+    this.zoomLevel = this.restZoomLevel;
     this.yawDeg = 0;
     this.pitchDeg = 0;
   }
@@ -254,7 +264,7 @@ export class CameraController {
   stopDemoTour(): void {
     if (!this.demoActive) return;
     this.demoActive = false;
-    this.zoomLevel = 0;
+    this.zoomLevel = this.restZoomLevel;
     this.yawDeg = 0;
     this.pitchDeg = 0;
   }
@@ -319,7 +329,7 @@ export class CameraController {
     if (this.introElapsed >= this.introPanDuration) {
       this.introActive = false;
       this.introDistanceBoost = 0;
-      this.zoomLevel = 0;
+      this.zoomLevel = this.restZoomLevel;
       this.yawDeg = 0;
       this.pitchDeg = 0;
       if (this.runDemoOnStart) {
@@ -331,7 +341,7 @@ export class CameraController {
 
     const p = smooth01(this.introElapsed / this.introPanDuration);
     this.introDistanceBoost = this.introStartExtraDistance * (1 - p);
-    this.zoomLevel = 0;
+    this.zoomLevel = this.restZoomLevel;
     this.yawDeg = 0;
     this.pitchDeg = 0;
   }
@@ -342,7 +352,7 @@ export class CameraController {
 
     if (elapsed >= total) {
       this.demoActive = false;
-      this.zoomLevel = 0;
+      this.zoomLevel = this.restZoomLevel;
       this.yawDeg = 0;
       this.pitchDeg = 0;
       return;
@@ -350,7 +360,7 @@ export class CameraController {
 
     // Initial idle hold before any motion.
     if (elapsed < this.demoInitialDelay) {
-      this.zoomLevel = 0;
+      this.zoomLevel = this.restZoomLevel;
       this.yawDeg = 0;
       this.pitchDeg = 0;
       return;

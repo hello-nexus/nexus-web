@@ -90,7 +90,21 @@ export async function createAvatarSession(
   // stall measured); compileAsync uses KHR_parallel_shader_compile so the
   // programs build in parallel while the composite's loading state is up, and
   // the warm-up frame compiles whatever the scene compile misses.
-  await renderer.compileAsync(runtime.scene, runtime.camera);
+  // compileAsync polls WebGLProgram.isReady(), which reads COMPLETION_STATUS_KHR
+  // from KHR_parallel_shader_compile. Without that extension the parameter is
+  // undefined, getProgramParameter returns null, no program is ever "ready",
+  // and the promise never settles - the Q60's Chromium 83 / PowerVR WebView hit
+  // exactly this and sat on a blank canvas forever. Take the synchronous path
+  // there (the ~800ms stall this avoids is a nicety, not a requirement), and
+  // keep a timeout so a slow driver can still never strand the load.
+  if (renderer.extensions.has('KHR_parallel_shader_compile')) {
+    await Promise.race([
+      renderer.compileAsync(runtime.scene, runtime.camera),
+      new Promise((r) => setTimeout(r, 5000)),
+    ]);
+  } else {
+    renderer.compile(runtime.scene, runtime.camera);
+  }
   renderFrame();
 
   // Host policy, independent of the pack's own inspector-tuned fields: no
@@ -112,6 +126,9 @@ export async function createAvatarSession(
     aspectFraming: 0,
     baseDistance: 2.05,
     minDistance: 0.6,
+    // Rest AT the closeup: the wheel's deepest framing (3/4 face, pivoting
+    // on the head bone) is the neutral pose rather than the far end of a zoom.
+    restZoomFraction: 1,
     zoomYawOffsetDeg: 15,
     zoomFocusHeightOffset: 0.06,
   });
