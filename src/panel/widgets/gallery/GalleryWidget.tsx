@@ -19,8 +19,8 @@ import styles from './GalleryWidget.module.scss';
 const ARROW_HIDE_DELAY_MS = 2500;
 
 // Catalog preview fixture - one abstract-wallpaper data-URI, zero network.
-// Keep in sync with the viewer render; see
-// .agents/rules/widget-preview-fixtures.md in the master repo.
+// Keep in sync with the viewer render; previewMode.test.tsx is the
+// fixture-sync gate.
 const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
 
 /**

@@ -520,9 +520,8 @@ describe('ProcessListSection', () => {
 
     // Generous enough to never flake under contention (measured locally
     // under jsdom at ~110ms for the initial mount, ~60ms for an
-    // all-new-values re-render; this workspace routinely runs several
-    // concurrent agent sessions on one machine - see
-    // .agents/rules/failure-log.md) while still catching a real regression
+    // all-new-values re-render; the dev box routinely runs several
+    // concurrent test sessions) while still catching a real regression
     // (an accidental unmemoized full-tree recompute, a stray O(n^2) pass).
     const BUDGET_MS = 2000;
 

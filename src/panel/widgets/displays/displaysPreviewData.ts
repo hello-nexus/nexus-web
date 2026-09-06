@@ -1,8 +1,7 @@
 // Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size; seeds the two
 // widget states (display list + brightness values map). Keep in sync with what
-// DisplaysWidget renders (see .agents/rules/widget-preview-fixtures.md in the
-// master repo).
+// DisplaysWidget renders (previewMode.test.tsx is the fixture-sync gate).
 import type { Display } from '../../../api/displays';
 
 interface DisplaysPreviewData {

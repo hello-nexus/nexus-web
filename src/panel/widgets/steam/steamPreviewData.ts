@@ -1,9 +1,9 @@
 // Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete full-state snapshot, independent of widget size: every tab/list
 // the widget can show at any size renders from this. Keep in sync with what
-// SteamWidget renders (see .agents/rules/widget-preview-fixtures.md in the
-// master repo). No current game: the Playing banner is an external CDN URL the
-// preview must never load, so the coherent state is "online, not in a game".
+// SteamWidget renders (previewMode.test.tsx is the fixture-sync gate). No
+// current game: the Playing banner is an external CDN URL the preview must
+// never load, so the coherent state is "online, not in a game".
 import type {
   SteamAchievement,
   SteamFriendSummary,

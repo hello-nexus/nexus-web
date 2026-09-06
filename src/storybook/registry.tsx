@@ -124,7 +124,7 @@ import styles from './StorybookModal.module.scss';
  * Component registry. This is the source of truth for the Storybook viewer.
  * Add an entry here whenever a new shared component lands under
  * src/components/ (or a sub-component used by 2+ views). Removing a component
- * means removing its entry here. See `.agents/rules/storybook.md`.
+ * means removing its entry here.
  *
  * Entries should have a `Preview` when they can render with stable local stub
  * props. View-level orchestration (whole pages, shells, drawers tied to live

@@ -1,9 +1,9 @@
 // Catalog preview fixture - fake server payload, untranslated by design. One
-// complete snapshot; the widget's own rendering slices it (see
-// .agents/rules/widget-preview-fixtures.md in the master repo). Kept
-// independent of diagnosticsMock.ts (the dev-only 404-fallback fixtures) so
-// this always-shipped preview data doesn't pull that dev-only module into
-// the production bundle.
+// complete snapshot; the widget's own rendering slices it
+// (previewMode.test.tsx is the fixture-sync gate). Kept independent of
+// diagnosticsMock.ts (the dev-only 404-fallback fixtures) so this
+// always-shipped preview data doesn't pull that dev-only module into the
+// production bundle.
 import type { DiagnosticsHealth } from '../../../api/diagnostics';
 
 export const DIAGNOSTICS_PREVIEW: DiagnosticsHealth = {

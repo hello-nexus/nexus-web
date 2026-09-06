@@ -1,8 +1,8 @@
 // Catalog preview fixture - fake server payloads, untranslated by design.
 // ONE complete size-independent snapshot: the 4x4 tile and the 2x4 q-series
 // tile both slice this same list, and it carries a coloured name, an uncoloured
-// name, and an emote run so every render branch is exercised (see
-// .agents/rules/widget-preview-fixtures.md in the master repo).
+// name, and an emote run so every render branch is exercised
+// (previewMode.test.tsx is the fixture-sync gate).
 import type { TwitchChatFrame } from '../../../api/twitch';
 
 export const TWITCH_PREVIEW_CHANNEL = 'nova_streams';

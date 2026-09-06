@@ -32,8 +32,8 @@ import styles from './CoolingWidget.module.scss';
 const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['silent', 'balanced', 'turbo'];
 const TEMP_MAX = 100;
 // Catalog preview shows a deterministic preset (label via the existing
-// cooling.mode.balanced key). Keep in sync with the simple-mode render -
-// see .agents/rules/widget-preview-fixtures.md in the master repo.
+// cooling.mode.balanced key). Keep in sync with the simple-mode render;
+// previewMode.test.tsx is the fixture-sync gate.
 const COOLING_PREVIEW_PRESET: CoolingModeKey = 'balanced';
 
 interface CoolingSlot {

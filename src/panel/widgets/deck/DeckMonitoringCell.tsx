@@ -30,7 +30,7 @@ import styles from './DeckMonitoringCell.module.scss';
 
 // Frozen fixture for the add-widget catalog preview + provider-less mounts:
 // a believable CPU-usage reading so the tile looks populated with zero I/O.
-// See .agents/rules/widget-preview-fixtures.md in the master repo.
+// previewMode.test.tsx is the fixture-sync gate.
 const PREVIEW_SENSOR_NAME = 'CPU Total';
 const PREVIEW_FORMATTED = '58 %';
 const PREVIEW_VALUE = 58;

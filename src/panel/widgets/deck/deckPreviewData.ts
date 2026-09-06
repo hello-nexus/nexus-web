@@ -1,9 +1,9 @@
 // Catalog preview fixture - untranslated by design. ONE size-independent
 // config: 2x2 truncates to the first 4 slots, 4x4 pads to 16 (padSlots). Keep
-// in sync with what DeckWidget renders (see
-// .agents/rules/widget-preview-fixtures.md in the master repo). Slots carry
-// explicit lucide icons (names in DECK_ICONS) + palette colors and NO action:
-// icon-only slots render as populated, onCell no-ops, no app-icon fetches.
+// in sync with what DeckWidget renders (previewMode.test.tsx is the
+// fixture-sync gate). Slots carry explicit lucide icons (names in DECK_ICONS)
+// + palette colors and NO action: icon-only slots render as populated, onCell
+// no-ops, no app-icon fetches.
 import type { DeckConfig, DeckSlot } from './types';
 
 // Icon-only by design: no slot carries a label, so the preview reads as a

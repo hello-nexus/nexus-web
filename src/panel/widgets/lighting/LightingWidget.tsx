@@ -59,8 +59,7 @@ import styles from './LightingWidget.module.scss';
 
 // Catalog preview pins screen mode (pass-through, reactive=false):
 // the icon view renders with zero fetch/socket/blob traffic. Keep in sync with
-// the simple-mode render - see .agents/rules/widget-preview-fixtures.md in the
-// master repo.
+// the simple-mode render; previewMode.test.tsx is the fixture-sync gate.
 const LIGHTING_PREVIEW_MODE: LightingMode = 'screen';
 
 export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
