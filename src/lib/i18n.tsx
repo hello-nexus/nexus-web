@@ -40,13 +40,17 @@ function resolveModulePath(lang: Language): string {
  * `initialLanguage` overrides the persisted-settings default for surfaces
  * with their own detection (the marketing site matches navigator.languages).
  */
-export function I18nProvider({ children, initialLanguage }: {
+export function I18nProvider({ children, initialLanguage, initialTranslations }: {
   children: ReactNode;
   initialLanguage?: Language;
+  /** Strings for `initialLanguage`, already loaded. A prerendered page must
+   * hydrate with the same text it was rendered with; the lazy locale load
+   * below lands one effect later, which is one render too late for that. */
+  initialTranslations?: Translations;
 }) {
   const [language, setLanguageState] = useState<Language>(
     () => initialLanguage ?? loadSettings().general.language);
-  const [translations, setTranslations] = useState<Translations>({});
+  const [translations, setTranslations] = useState<Translations>(() => initialTranslations ?? {});
 
   useEffect(() => {
     const path = resolveModulePath(language);
