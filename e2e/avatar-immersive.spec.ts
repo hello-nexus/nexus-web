@@ -205,6 +205,20 @@ async function tapCenter(page: Page, box: { x: number; y: number; width: number;
   await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
 }
 
+// A control that has just mounted can still be sliding into place (the tile
+// re-lays out around it); tapping the box read a frame earlier lands beside
+// it. Wait for two identical reads before trusting the box.
+async function stableBox(page: Page, locator: ReturnType<Page['locator']>) {
+  let prev = await locator.boundingBox();
+  for (let i = 0; i < 20; i++) {
+    await page.waitForTimeout(100);
+    const next = await locator.boundingBox();
+    if (prev && next && Math.abs(prev.x - next.x) < 0.5 && Math.abs(prev.y - next.y) < 0.5) return next;
+    prev = next;
+  }
+  return prev!;
+}
+
 test.describe('avatar immersive: live stream dock + stickers', () => {
   test.skip(
     APP_DIR === '' || APP_ID === '' || PANEL_VARIANT === '' || readAppFile('widget.mjs') === null
@@ -224,7 +238,10 @@ test.describe('avatar immersive: live stream dock + stickers', () => {
     // watch page through the service, never a new window in the panel.
     const watch = cell.getByRole('button', { name: /Watch on YouTube/ });
     await watch.waitFor({ timeout: 15_000 });
-    await tapCenter(page, (await watch.boundingBox())!);
+    await stableBox(page, watch);
+    // Playwright's own tap hit-tests the target, so a tile still settling
+    // around the new row cannot turn this into a tap on the character.
+    await watch.tap();
     await expect.poll(() => opened, { timeout: 5_000 }).toContain(`https://www.youtube.com/watch?v=${LIVE_VIDEO_ID}`);
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 
@@ -236,8 +253,15 @@ test.describe('avatar immersive: live stream dock + stickers', () => {
     await dialog.locator('canvas').waitFor({ timeout: 30_000 });
     await expect(dialog).toHaveAttribute('data-entered', 'true');
 
-    // The dock carries the embed (large, 16:9) and the open button; the
-    // tile's own watch button is an in-tile affordance only.
+    // The drawer opens on entry; Live pops the embed (large, 16:9) with the
+    // open button beside it. The tile's own watch button is an in-tile
+    // affordance only.
+    const drawer = dialog.locator('[data-avatar-dock]');
+    await expect(drawer).toHaveAttribute('data-avatar-drawer', 'open');
+    await expect(dialog.locator('[data-avatar-stream]')).toHaveCount(0);
+    const liveBtn = dialog.getByRole('button', { name: 'Live' });
+    await liveBtn.waitFor({ timeout: 30_000 });
+    await tapCenter(page, (await liveBtn.boundingBox())!);
     const stream = dialog.locator('[data-avatar-stream]');
     await stream.waitFor({ timeout: 30_000 });
     const iframe = stream.locator('iframe');
@@ -270,6 +294,21 @@ test.describe('avatar immersive: live stream dock + stickers', () => {
     await expect.poll(() => opened.length, { timeout: 5_000 }).toBe(2);
     expect(opened[1]).toBe(`https://www.youtube.com/watch?v=${LIVE_VIDEO_ID}`);
     await expect(dialog).toBeVisible();
+
+    // The chevron folds the drawer to its lip (and takes the player with it);
+    // the lip brings it back. The drawer's X exits the immersive view.
+    await tapCenter(page, (await dialog.getByRole('button', { name: 'Hide controls' }).boundingBox())!);
+    await expect(drawer).toHaveAttribute('data-avatar-drawer', 'closed');
+    await expect(dialog.locator('[data-avatar-stream]')).toHaveCount(0);
+    // The fold is a slide; read the lip once it has settled at the bottom edge.
+    const lip = dialog.getByRole('button', { name: 'Show controls' });
+    const lipBox = await stableBox(page, lip);
+    expect(lipBox.y + lipBox.height).toBeGreaterThan(dialogBox.height * 0.9);
+    await lip.tap();
+    await expect(drawer).toHaveAttribute('data-avatar-drawer', 'open');
+    await tapCenter(page, (await drawer.getByRole('button', { name: 'Close immersive view' }).boundingBox())!);
+    await expect(dialog).toHaveCount(0, { timeout: 5_000 });
+    await expect(cell.locator('canvas')).toHaveCount(1);
   });
 
   test('sticker mode: add, drag, pinch, twist, persist, remove', async ({ page }) => {
@@ -302,9 +341,6 @@ test.describe('avatar immersive: live stream dock + stickers', () => {
     await palette.waitFor({ timeout: 5_000 });
     const layer = dialog.locator('[data-avatar-stickers]');
     await expect(layer).toHaveAttribute('data-avatar-stickers', 'editing');
-    // The player folds away in sticker mode (it would otherwise sit over any
-    // sticker dragged beneath it) and returns on Done.
-    await expect(dialog.locator('[data-avatar-stream]')).toBeHidden();
     await tapCenter(page, (await palette.locator('button').first().boundingBox())!);
     const sticker = layer.locator('[data-sticker-id]');
     await expect(sticker).toHaveCount(1);
@@ -343,7 +379,6 @@ test.describe('avatar immersive: live stream dock + stickers', () => {
     await expect(layer).toHaveAttribute('data-avatar-stickers', 'view');
     await expect(layer).toHaveCSS('pointer-events', 'none');
     await expect(sticker).toHaveCount(1);
-    await expect(dialog.locator('[data-avatar-stream]')).toBeVisible();
 
     // Back into sticker mode, select the sticker, remove it with its badge.
     await tapCenter(page, (await dialog.getByRole('button', { name: 'Stickers' }).boundingBox())!);

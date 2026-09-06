@@ -16,6 +16,7 @@ import { User } from 'lucide-react';
 import type { HostProps } from './components';
 import { usePanelPreview } from '../../panel/widgets/common/PanelPreviewContext';
 import { usePanelImmersive } from '../../panel/widgets/common/PanelImmersiveContext';
+import { useImmersiveExit } from '../../panel/overlays/immersiveExit';
 import { useTranslation } from '../../lib/i18n';
 import { Spinner } from '../../components/common/Spinner/Spinner';
 import { clampEnergy, parseReactionTrigger, resolveAvatarRenderMode, toBool } from './avatarProps';
@@ -23,7 +24,8 @@ import {
   STICKER_MAX_COUNT, newPlacement, parsePlacements, parseStickers, parseStream, type StickerPlacement,
 } from './avatarStickers';
 import { AvatarStickerLayer } from './AvatarStickerLayer';
-import { AvatarImmersiveDock } from './AvatarImmersiveDock';
+import { AvatarImmersiveDrawer, type LivePopup } from './AvatarImmersiveDrawer';
+import { isStickerSrcAllowed } from './avatarStickers';
 import type { AvatarSession } from './avatarSession';
 
 const wrapStyle: CSSProperties = {
@@ -76,6 +78,10 @@ interface CachedAvatar {
 }
 const avatarCache = new Map<string, CachedAvatar>();
 const DISPOSE_GRACE_MS = 5000;
+/** Idle time on the stage before the controls drawer folds to its lip. */
+export const DRAWER_IDLE_MS = 30_000;
+/** How long the "not live" card stays up after a Live press with no stream. */
+const IDLE_CARD_MS = 4000;
 
 // Reparents the canvas into `wrap` and applies that claimant's gesture state
 // and box size. Sizing uses client* (layout px): ResizeObserver won't refire
@@ -163,6 +169,8 @@ export function AvatarComposite(p: HostProps) {
   const stream = useMemo(() => parseStream(p.stream), [p.stream]);
   const stickers = useMemo(() => parseStickers(p.stickers), [p.stickers]);
   const placementsProp = useMemo(() => parsePlacements(p.placements, stickers), [p.placements, stickers]);
+  const offlineArt = typeof p.offlineArt === 'string' && isStickerSrcAllowed(p.offlineArt) ? p.offlineArt : null;
+  const exitImmersive = useImmersiveExit();
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const fadeRef = useRef<HTMLDivElement | null>(null);
@@ -217,6 +225,84 @@ export function AvatarComposite(p: HostProps) {
   useEffect(() => {
     if (!immersive) setStickerEditing(false);
   }, [immersive]);
+
+  // Controls drawer: open on every entry (this composite mounts per entry),
+  // folds to its lip after DRAWER_IDLE_MS without a touch on the stage, and
+  // stays put while stickers are being edited or the stream is playing (a
+  // fold takes the player with it, and watching hands-off is the point of
+  // Live). Any pointer or wheel activity anywhere on the stage restarts the
+  // idle clock.
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [livePopup, setLivePopup] = useState<LivePopup>('none');
+  const idleCardTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearIdleCard = useCallback(() => {
+    if (idleCardTimer.current) clearTimeout(idleCardTimer.current);
+    idleCardTimer.current = null;
+  }, []);
+  // Folding the drawer is the stream's off switch too (nothing plays unseen).
+  const closeDrawer = useCallback(() => { setDrawerOpen(false); setLivePopup('none'); clearIdleCard(); }, [clearIdleCard]);
+  const openDrawer = useCallback(() => setDrawerOpen(true), []);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playerUp = livePopup === 'player';
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!immersive || !drawerOpen || stickerEditing || playerUp || !wrap) return;
+    const arm = () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(closeDrawer, DRAWER_IDLE_MS);
+    };
+    arm();
+    wrap.addEventListener('pointerdown', arm, true);
+    wrap.addEventListener('wheel', arm, true);
+    return () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      idleTimer.current = null;
+      wrap.removeEventListener('pointerdown', arm, true);
+      wrap.removeEventListener('wheel', arm, true);
+    };
+  }, [immersive, drawerOpen, stickerEditing, playerUp, closeDrawer]);
+
+  // Live button: the stream pops when one is on; otherwise a short "not live"
+  // card over the app's art, and the worker is asked to re-check at once. A
+  // stream arriving while the card is up swaps it for the player.
+  const onLivePress = useCallback(() => {
+    if (stream) {
+      clearIdleCard();
+      setLivePopup((v) => (v === 'player' ? 'none' : 'player'));
+      return;
+    }
+    eventsRef.current?.livecheck?.();
+    setLivePopup('idle');
+    clearIdleCard();
+    idleCardTimer.current = setTimeout(() => { idleCardTimer.current = null; setLivePopup('none'); }, IDLE_CARD_MS);
+  }, [stream, clearIdleCard]);
+  useEffect(() => {
+    if (stream && livePopup === 'idle') { clearIdleCard(); setLivePopup('player'); }
+    if (!stream && livePopup === 'player') setLivePopup('none');
+  }, [stream, livePopup, clearIdleCard]);
+  useEffect(() => () => clearIdleCard(), [clearIdleCard]);
+
+  // Camera zoom slider, in the session's 0..1 depth. Seeded from the camera
+  // once the session is up, and re-read after every canvas gesture (wheel,
+  // pinch, drag) so the thumb tracks zoom the camera changed on its own.
+  const [zoom, setZoom] = useState<number | null>(null);
+  useEffect(() => {
+    if (!session || !immersive) return;
+    const sync = () => setZoom(Math.round(session.getZoom() * 100));
+    sync();
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    wrap.addEventListener('pointerup', sync, true);
+    wrap.addEventListener('wheel', sync, true);
+    return () => {
+      wrap.removeEventListener('pointerup', sync, true);
+      wrap.removeEventListener('wheel', sync, true);
+    };
+  }, [session, immersive]);
+  const onZoom = useCallback((v: number) => {
+    setZoom(v);
+    session?.setZoom(v / 100);
+  }, [session]);
 
   // True while this mount's wrapper holds the shared canvas. Holdership moves
   // outside React (applyClaim on acquire/release), so callers re-check per
@@ -423,7 +509,9 @@ export function AvatarComposite(p: HostProps) {
   }
 
   const showExtras = immersive && phase === 'ready';
-  const showDock = showExtras && (status !== '' || stream !== null || stickers.length > 0);
+  // The drawer always shows on stage: it carries the exit and zoom controls
+  // even for an app that passes no stream, art, or stickers.
+  const showDock = showExtras;
 
   return (
     // With gestures on (immersive), camera drags on the canvas must not arm
@@ -447,14 +535,23 @@ export function AvatarComposite(p: HostProps) {
         />
       )}
       {showDock && (
-        <AvatarImmersiveDock
+        <AvatarImmersiveDrawer
+          open={drawerOpen}
+          onOpen={openDrawer}
+          onClose={closeDrawer}
+          onExit={exitImmersive}
           status={status}
           statusLive={statusLive}
           stream={stream}
+          offlineArt={offlineArt}
+          livePopup={livePopup}
+          onLivePress={onLivePress}
           stickers={stickers}
           editing={stickerEditing}
           onToggleEditing={toggleStickerEditing}
           onAddSticker={addSticker}
+          zoom={zoom}
+          onZoom={onZoom}
         />
       )}
     </div>

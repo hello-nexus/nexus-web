@@ -177,14 +177,16 @@ export const UI_ELEMENTS = {
   // browser; `stickers` is the palette [{ id, src }] a viewer can place over
   // the stage, `placements` the placed set [{ id, sticker, x, y, s, r }] in
   // stage-normalized coordinates, echoed back whole through `placements`
-  // after every add / move / pinch / remove. `immersive` fires true when the
-  // avatar takes the fullscreen stage and false when it leaves it.
+  // after every add / move / pinch / remove. `offlineArt` is the image the
+  // drawer's Live button animates when no stream is on; pressing it also fires
+  // `livecheck` so the app can re-poll at once. `immersive` fires true when
+  // the avatar takes the fullscreen stage and false when it leaves it.
   'ui-avatar': {
     properties: [
       'pack', 'dance', 'listening', 'energy', 'reaction', 'intro', 'interactive', 'demo',
-      'status', 'statusLive', 'stream', 'stickers', 'placements',
+      'status', 'statusLive', 'stream', 'stickers', 'placements', 'offlineArt',
     ],
-    events: ['immersive', 'placements'],
+    events: ['immersive', 'placements', 'livecheck'],
   },
   // Standard page header - gives SDK pages the same title/tab chrome native pages
   // use. `tabs` is [{ key, label, disabled? }]; the host fires `change` with the key.
