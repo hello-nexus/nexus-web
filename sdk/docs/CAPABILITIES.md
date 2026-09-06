@@ -757,16 +757,22 @@ view, where pointer orbit/zoom and the extras below live.
 | `demo` | `boolean` | loops the authored reaction showcase |
 | `status` / `statusLive` | `string` / `boolean` | text strip pinned to the bottom of the immersive view; `statusLive` adds a live dot |
 | `stream` | `{ embed: string; open?: string; label?: string }` | a live player docked large at the bottom of the immersive view. `embed` must be a `https://www.youtube.com/embed/...` or `https://www.youtube-nocookie.com/embed/...` URL; the button opens `open` in the system browser |
-| `stickers` | `Array<{ id: string; src: string }>` | sticker palette; non-empty adds a Stickers button to the immersive dock. `src` is a same-origin app-asset URL (`/apps-api/installed/<id>/asset/...`) or `data:image`; third-party https is refused (the panel CSP would blank it) |
+| `stickers` | `Array<{ id: string; src: string }>` | sticker palette; non-empty adds a Stickers button to the immersive drawer. `src` is a same-origin app-asset URL (`/apps-api/installed/<id>/asset/...`) or `data:image`; third-party https is refused (the panel CSP would blank it) |
 | `placements` | `Array<{ id, sticker, x, y, s, r }>` | placed stickers: centre `x`/`y` as 0..1 of the stage, `s` scale multiplier, `r` degrees. Keep it in `useLocalState` |
 | `onPlacements` | `(placements) => void` | fires with the whole set after every add / drag / pinch / twist / remove |
+| `offlineArt` | `string` | image (same-origin app-asset URL or `data:image`) the drawer's Live button animates when there is no `stream` |
+| `onLiveCheck` | `() => void` | fires when the viewer presses Live; re-poll the presence source at once |
 | `onImmersive` | `(immersive: boolean) => void` | `true` when the avatar takes the fullscreen stage, `false` when it leaves |
 
-Sticker mode (the dock's Stickers button) lets the viewer add from the
-palette, drag, pinch to scale (clamped), twist to rotate, and remove with the
-selected sticker's badge; stickers render over the stage but under the dock
-and the player, which folds away while editing. Outside the immersive view
-none of `status`, `stream` or `stickers` renders.
+The immersive view carries a controls drawer at the bottom: open on every
+entry, it folds to a lip after 30 seconds without a touch on the stage (or on
+its own chevron) and the lip brings it back. It holds Live (pops the docked
+player when `stream` is set, otherwise a short "not live" animation over
+`offlineArt` plus an `onLiveCheck`), Stickers, a camera zoom slider, and the
+immersive exit. Sticker mode lets the viewer add from the palette, drag, pinch
+to scale (clamped), twist to rotate, and remove with the selected sticker's
+badge; stickers render over the stage but under the drawer. Outside the
+immersive view none of `status`, `stream`, `stickers` or `offlineArt` renders.
 
 ### `MediaImport`
 

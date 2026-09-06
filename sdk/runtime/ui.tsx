@@ -220,6 +220,13 @@ export interface AvatarProps {
   /** Fires with the whole placed set after every add, move, pinch, or remove. */
   onPlacements?: (placements: AvatarStickerPlacement[]) => void;
   /**
+   * Image (same-origin app-asset URL or data:image) the drawer's Live button
+   * animates when there is no `stream` to show.
+   */
+  offlineArt?: string;
+  /** Fires when the viewer presses Live; re-poll the presence source at once. */
+  onLiveCheck?: () => void;
+  /**
    * Fires with `true` when the avatar enters the panel's fullscreen immersive
    * view and `false` when it leaves. Lets the app gate work (e.g. polling the
    * presence source behind `status`) on actually being on stage.
@@ -384,7 +391,7 @@ export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-in
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
-export const Avatar = eventComponent<AvatarProps>('ui-avatar', ELEMENT_CTORS['ui-avatar'], [['onImmersive', 'immersive'], ['onPlacements', 'placements']]);
+export const Avatar = eventComponent<AvatarProps>('ui-avatar', ELEMENT_CTORS['ui-avatar'], [['onImmersive', 'immersive'], ['onPlacements', 'placements'], ['onLiveCheck', 'livecheck']]);
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);

@@ -58,7 +58,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `Scroll`, `Layer`; content - `Text`, `Icon`, `Image`, `Sprite`, `Badge`, `Empty`, `Section`, `Card`; data viz -
   `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider` (see `trackFill` /
   `orientation` below), `Button`, `Stepper`, `Input`, `Toggle`, `Segmented`, `Color` (native HSV
-  picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `Avatar` (host-rendered 3D character with an immersive live-stream dock + sticker mode), `ClockFace`,
+  picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `Avatar` (host-rendered 3D character with an immersive controls drawer: live-stream pop-up, sticker mode, zoom, exit), `ClockFace`,
   `WorldClock`, `ViewHeader` (real native tab bar), `MediaImport` (host-mediated file pick +
   crop + upload). Props are semantic (`tone`/`size`/`weight`/`variant`) and theme through panel
   tokens. No `style`/`className` - that is deliberate (consistency). `Button`/`Card` also take

@@ -427,6 +427,17 @@ export class CameraController {
     this.zoomLevel = clamp(this.zoomLevel + increment, this.minZoomLevel, this.maxZoomLevel);
   }
 
+  /** Zoom depth as a fraction of the deepest closeup, the unit a host slider speaks. */
+  getZoomFraction(): number {
+    return this.maxZoomLevel > 0 ? clamp01(this.zoomLevel / this.maxZoomLevel) : 0;
+  }
+
+  /** Jumps the zoom to a fraction of the deepest closeup; ignored while a scripted move owns the camera. */
+  setZoomFraction(fraction: number): void {
+    if (this.scriptedActive) return;
+    this.zoomLevel = clamp(this.maxZoomLevel * clamp01(fraction), this.minZoomLevel, this.maxZoomLevel);
+  }
+
   private discardInput(): void {
     this.pendingDx = 0;
     this.pendingDy = 0;

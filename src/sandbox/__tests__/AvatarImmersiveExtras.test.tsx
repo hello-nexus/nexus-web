@@ -1,13 +1,15 @@
 // The immersive-only extras of the `ui-avatar` composite: the immersive
-// event, the bottom dock (status strip, allowlisted stream embed, open
-// button) and sticker mode (palette add -> placements event, remove). The
-// three.js session is mocked so no WebGL context is needed; the composite is
-// rendered directly with the synced-prop shape RemoteTree hands it.
+// event, the controls drawer (open on entry, idle fold, lip, Live pop-up,
+// zoom, exit) and sticker mode (palette add -> placements event, remove).
+// The three.js session is mocked so no WebGL context is needed; the
+// composite is rendered directly with the synced-prop shape RemoteTree hands it.
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, fireEvent, act } from '@testing-library/react';
 import { PanelImmersiveProvider } from '../../panel/widgets/common/PanelImmersiveContext';
+import { ImmersiveExitProvider } from '../../panel/overlays/immersiveExit';
 
+const setZoom = vi.fn();
 vi.mock('../ui/avatarSession', () => ({
   createAvatarSession: vi.fn(async () => ({
     resize: () => {},
@@ -16,13 +18,15 @@ vi.mock('../ui/avatarSession', () => ({
     triggerReaction: () => {},
     setDemo: () => {},
     startIntro: () => {},
+    getZoom: () => 0.5,
+    setZoom: (f: number) => setZoom(f),
     dispose: () => {},
   })),
 }));
 vi.mock('../../api/service', () => ({ postService: vi.fn(async () => ({ error: false, msg: '' })) }));
 vi.mock('../../api/auth', () => ({ getToken: async () => 'tok', getTokenSync: () => 'tok' }));
 
-import { AvatarComposite } from '../ui/AvatarComposite';
+import { AvatarComposite, DRAWER_IDLE_MS } from '../ui/AvatarComposite';
 import { postService } from '../../api/service';
 
 const STICKERS = [{ id: 'star', src: '/apps-api/installed/com.x.y/asset/assets/stickers/star.png' }];
@@ -38,15 +42,17 @@ function renderImmersive(props: Record<string, unknown>, events: Record<string, 
 
 async function ready(container: HTMLElement) {
   await waitFor(() => expect(container.querySelector('canvas')).toBeTruthy());
-  // The dock mounts once the session is ready; the status strip is the cheapest tell.
+  // The drawer mounts once the session is ready.
   await waitFor(() => expect(container.querySelector('[data-avatar-dock]')).toBeTruthy());
 }
 
 beforeEach(() => {
   vi.mocked(postService).mockClear();
+  setZoom.mockClear();
 });
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 describe('ui-avatar immersive extras', () => {
@@ -77,17 +83,84 @@ describe('ui-avatar immersive extras', () => {
     expect(tile.container.querySelector('[data-avatar-stickers]')).toBeNull();
   });
 
-  it('docks an allowlisted stream with an open button that goes through the service, and refuses other hosts', async () => {
+  it('Live pops an allowlisted stream with an open button that goes through the service; a refused host reads as offline', async () => {
     const view = renderImmersive({ stream: STREAM });
     await ready(view.container);
+    expect(screen.queryByRole('button', { name: 'Watch' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'sdk.avatar.live' }));
     // jsdom has no layout: the player box waits on a measured width, but the
-    // button renders regardless.
+    // open button renders regardless.
     fireEvent.click(screen.getByRole('button', { name: 'Watch' }));
     await waitFor(() => expect(postService).toHaveBeenCalledWith('/system/open-url', { url: STREAM.open }));
+    // Live again folds the pop-up.
+    fireEvent.click(screen.getByRole('button', { name: 'sdk.avatar.live' }));
+    expect(screen.queryByRole('button', { name: 'Watch' })).toBeNull();
+    cleanup();
 
-    const other = renderImmersive({ stream: { embed: 'https://evil.example/embed/abc123def45', open: 'https://evil.example/' } });
-    await waitFor(() => expect(other.container.querySelector('canvas')).toBeTruthy());
-    expect(other.container.querySelector('[data-avatar-dock]')).toBeNull();
+    const livecheck = vi.fn();
+    const other = renderImmersive({ stream: { embed: 'https://evil.example/embed/abc123def45', open: 'https://evil.example/' }, offlineArt: 'data:image/png;base64,AA' }, { livecheck });
+    await ready(other.container);
+    fireEvent.click(screen.getByRole('button', { name: 'sdk.avatar.live' }));
+    expect(livecheck).toHaveBeenCalledTimes(1);
+    expect(other.container.querySelector('[data-avatar-stream]')).toBeNull();
+    const idle = other.container.querySelector('[data-avatar-idle]')!;
+    expect(idle.textContent).toContain('sdk.avatar.notLive');
+    expect(idle.querySelector('img')?.getAttribute('src')).toBe('data:image/png;base64,AA');
+  });
+
+  it('the drawer opens on entry, folds to its lip after the idle spell, and a touch on the stage restarts the clock', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const view = renderImmersive({});
+    await ready(view.container);
+    const drawer = () => view.container.querySelector('[data-avatar-dock]')!.getAttribute('data-avatar-drawer');
+    expect(drawer()).toBe('open');
+    // Stage activity just before the deadline keeps it open past it.
+    await act(async () => { vi.advanceTimersByTime(DRAWER_IDLE_MS - 1000); });
+    fireEvent.pointerDown(view.container.querySelector('canvas')!);
+    await act(async () => { vi.advanceTimersByTime(DRAWER_IDLE_MS - 1000); });
+    expect(drawer()).toBe('open');
+    await act(async () => { vi.advanceTimersByTime(2000); });
+    expect(drawer()).toBe('closed');
+    // The lip brings it back; its own chevron folds it again.
+    fireEvent.click(screen.getByRole('button', { name: 'sdk.avatar.controlsShow' }));
+    expect(drawer()).toBe('open');
+    fireEvent.click(screen.getByRole('button', { name: 'sdk.avatar.controlsHide' }));
+    expect(drawer()).toBe('closed');
+  });
+
+  it('a playing stream holds the drawer open past the idle spell; the chevron then folds both', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const view = renderImmersive({ stream: STREAM });
+    await ready(view.container);
+    fireEvent.click(screen.getByRole('button', { name: 'sdk.avatar.live' }));
+    expect(screen.getByRole('button', { name: 'Watch' })).toBeTruthy();
+    await act(async () => { vi.advanceTimersByTime(DRAWER_IDLE_MS * 2); });
+    const drawer = () => view.container.querySelector('[data-avatar-dock]')!.getAttribute('data-avatar-drawer');
+    expect(drawer()).toBe('open');
+    fireEvent.click(screen.getByRole('button', { name: 'sdk.avatar.controlsHide' }));
+    expect(drawer()).toBe('closed');
+    expect(screen.queryByRole('button', { name: 'Watch' })).toBeNull();
+  });
+
+  it('exits through the overlay provider, and the zoom slider drives the camera', async () => {
+    const exit = vi.fn();
+    const view = render(
+      <ImmersiveExitProvider value={exit}>
+        <PanelImmersiveProvider value={true}>
+          <AvatarComposite pack="/packs/exit/" __events={{}} />
+        </PanelImmersiveProvider>
+      </ImmersiveExitProvider>,
+    );
+    await ready(view.container);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.immersive.close' }));
+    expect(exit).toHaveBeenCalledTimes(1);
+    // The zoom row needs the seed effect's commit after the drawer mounts.
+    await waitFor(() => expect(view.container.querySelector('[data-avatar-zoom] input[type="range"]')).toBeTruthy());
+    const slider = view.container.querySelector('[data-avatar-zoom] input[type="range"]') as HTMLInputElement;
+    // Seeded from the session's resting zoom.
+    expect(slider.value).toBe('50');
+    fireEvent.change(slider, { target: { value: '80' } });
+    expect(setZoom).toHaveBeenLastCalledWith(0.8);
   });
 
   it('sticker mode adds from the palette and reports the whole set; remove reports it empty', async () => {
@@ -127,8 +200,9 @@ describe('ui-avatar immersive extras', () => {
       ],
     });
     await ready(view.container);
+    // The layer sizes itself in an effect before it draws, one commit after the drawer.
+    await waitFor(() => expect(view.container.querySelectorAll('[data-sticker-id]')).toHaveLength(1));
     const placed = view.container.querySelectorAll('[data-sticker-id]');
-    expect(placed).toHaveLength(1);
     expect((placed[0] as HTMLElement).style.transform).toBe('rotate(30deg) scale(2)');
     expect((placed[0] as HTMLElement).style.left).toBe('25%');
   });

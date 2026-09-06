@@ -43,6 +43,9 @@ export interface AvatarSession {
   triggerReaction(trigger: string): void;
   setDemo(on: boolean): void;
   startIntro(): void;
+  /** Camera zoom as 0..1 of the deepest closeup. */
+  getZoom(): number;
+  setZoom(fraction: number): void;
   dispose(): void;
 }
 
@@ -172,6 +175,13 @@ export async function createAvatarSession(
       runtime.camera.aspect = width / Math.max(height, 1);
       runtime.camera.updateProjectionMatrix();
       outline?.setSize(width, height, pixelRatio);
+    },
+    getZoom() {
+      return camera.getZoomFraction();
+    },
+    setZoom(fraction) {
+      if (disposed) return;
+      camera.setZoomFraction(fraction);
     },
     tick(dt) {
       if (disposed) return;
