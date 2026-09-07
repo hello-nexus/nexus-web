@@ -104,9 +104,26 @@ describe('AccountSignedIn log out bridging', () => {
 });
 
 describe('AccountSignedIn password modal', () => {
-  it('opens the change-password modal automatically on a recovery-fresh mount', () => {
+  it('stays closed on a recovery-fresh mount', () => {
     renderSignedIn({ recoveryFresh: true });
+    expect(screen.queryByLabelText('account.password.new')).toBeNull();
+  });
+
+  it('stays closed on an ordinary mount', () => {
+    renderSignedIn();
+    expect(screen.queryByLabelText('account.password.new')).toBeNull();
+  });
+
+  it('opens on the button, passwordless while the session is recovery-fresh', () => {
+    renderSignedIn({ recoveryFresh: true });
+    fireEvent.click(screen.getByRole('button', { name: 'account.password.change' }));
     expect(screen.getByLabelText('account.password.new')).toBeInTheDocument();
     expect(screen.queryByLabelText('account.password.current')).toBeNull();
+  });
+
+  it('opens on the button asking for the current password otherwise', () => {
+    renderSignedIn();
+    fireEvent.click(screen.getByRole('button', { name: 'account.password.change' }));
+    expect(screen.getByLabelText('account.password.current')).toBeInTheDocument();
   });
 });

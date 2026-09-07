@@ -13,8 +13,8 @@ import { usePublicAccount } from './usePublicAccount';
  * browser). Distinct from /auth/recover, which is the magic-link landing the
  * email itself points at. Once the poll reports approved, this page renders
  * the Authentication + Danger zone blocks in place (a passwordless,
- * recovery-fresh session), prompting the password-change modal - no
- * redirect, matching the in-app AccountView's same-page transition.
+ * recovery-fresh session) - no redirect, matching the in-app AccountView's
+ * same-page transition.
  */
 export function ForgotPasswordPage() {
   const { account, refresh } = usePublicAccount();

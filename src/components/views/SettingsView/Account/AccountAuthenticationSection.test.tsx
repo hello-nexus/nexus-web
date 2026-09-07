@@ -137,3 +137,49 @@ describe('AccountAuthenticationSection log out', () => {
     expect(text.indexOf('account.privacy.label')).toBeLessThan(text.indexOf('account.logOut.label'));
   });
 });
+
+// This component is what the public /recover and /account pages render on
+// their own, so these cover that surface too - it has no test file of its own.
+describe('AccountAuthenticationSection password modal', () => {
+  function renderWith(recoveryFresh: boolean, account: AuthAccount = ACCOUNT) {
+    return render(
+      <ToastProvider>
+        <AccountAuthenticationSection
+          backend={makeBackend()}
+          account={account}
+          onAccountChanged={vi.fn()}
+          recoveryFresh={recoveryFresh}
+          onRecoveryFreshConsumed={vi.fn()}
+          onLoggedOut={vi.fn()}
+        />
+      </ToastProvider>,
+    );
+  }
+
+  it('stays closed on mount even when the session is recovery-fresh', () => {
+    renderWith(true);
+    expect(screen.queryByLabelText('account.password.new')).toBeNull();
+  });
+
+  it('closes when the account switches under an open modal', () => {
+    const view = renderWith(true);
+    fireEvent.click(screen.getByRole('button', { name: 'account.password.change' }));
+    expect(screen.getByLabelText('account.password.new')).toBeInTheDocument();
+
+    view.rerender(
+      <ToastProvider>
+        <AccountAuthenticationSection
+          backend={makeBackend()}
+          account={{ ...ACCOUNT, accountId: 'acct-2', username: 'beta' }}
+          onAccountChanged={vi.fn()}
+          recoveryFresh
+          onRecoveryFreshConsumed={vi.fn()}
+          onLoggedOut={vi.fn()}
+        />
+      </ToastProvider>,
+    );
+    // A modal opened for the account that just went away must not carry over,
+    // recovery-fresh or not.
+    expect(screen.queryByLabelText('account.password.new')).toBeNull();
+  });
+});
