@@ -8,7 +8,7 @@ import {
   ThermometerSun, AlertTriangle, CheckCircle2, Info, Power, TrendingUp,
   TrendingDown, ArrowUpRight, ArrowDownRight, BarChart3, Newspaper, Coins,
   Play, Pause, Square, RotateCcw, ChevronUp, ChevronDown, Plus, Minus, AppWindow,
-  SkipBack, SkipForward, Film, ExternalLink,
+  SkipBack, SkipForward, Film, X, Radio, Sticker, ZoomIn, ExternalLink, Trash2, Image as ImageIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -28,4 +28,6 @@ export const ICON_TABLE: Record<string, LucideIcon> = {
   'rotate-ccw': RotateCcw, 'chevron-up': ChevronUp, 'chevron-down': ChevronDown,
   plus: Plus, minus: Minus, 'app-window': AppWindow,
   'skip-back': SkipBack, 'skip-forward': SkipForward, film: Film,
+  x: X, radio: Radio, sticker: Sticker, 'zoom-in': ZoomIn, 'external-link': ExternalLink,
+  trash: Trash2, image: ImageIcon,
 };

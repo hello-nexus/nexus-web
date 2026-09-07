@@ -29,6 +29,8 @@ export interface SandboxContext {
    *  the SDK's useDevTools(). Lets an app relax a ship-time gate on an
    *  internal build without a second bundle. */
   devTools?: boolean;
+  /** This worker renders the panel's fullscreen immersive view. */
+  immersive?: boolean;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -45,6 +47,8 @@ export interface SandboxContext {
      *  sources (e.g. screentime.today). The action must be in the manifest's
      *  capabilities.dispatch allowlist. */
     dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
+    /** The overlay's animated exit; only wired for the immersive worker. */
+    exitImmersive?(): void;
   };
 }
 

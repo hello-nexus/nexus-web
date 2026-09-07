@@ -1,6 +1,6 @@
 import { Boxes } from 'lucide-react';
 import { appIconComponent } from '../../components/icons/AppIconImage';
-import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
+import { MarketplaceTouch, MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
 import {
@@ -167,8 +167,10 @@ const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '
 
 // One shared immersive adapter for every SDK app: makeWidgetTouchView returns a
 // new component per call, so building it inline would remount the sandbox on
-// each render.
-const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceWidget);
+// each render. The Touch facet spawns the app's own immersive-surface worker
+// (useImmersive() reads true there); wrapping the cell widget would share the
+// tile's worker and render its tile face fullscreen.
+const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceTouch);
 
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real

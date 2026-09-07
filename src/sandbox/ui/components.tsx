@@ -3,7 +3,7 @@
 // feeds them synced properties + event listeners. An author can ONLY cause one of
 // these to render, which is the structural visual-consistency guarantee.
 
-import { type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { Spinner as NativeSpinner } from '../../components/common/Spinner/Spinner';
 import { Stepper as NativeStepper } from '../../components/common/Stepper/Stepper';
@@ -23,6 +23,7 @@ import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './token
 import { useLongPress } from './useLongPress';
 import { useTranslation } from '../../lib/i18n';
 import { isExternalHttpsUrl, openExternalUrl } from './openExternal';
+import { getTokenSync } from '../../api/auth';
 
 export interface HostProps {
   children?: ReactNode;
@@ -338,9 +339,27 @@ export function CopyButton(p: HostProps) {
 
 // Only these schemes load - never a bare http: or javascript: URL from a worker.
 const SAFE_IMG = /^(https:|data:image\/|blob:)/i;
+// The app's own bundled assets are the one same-origin source an image may
+// use; an <img> cannot carry the Bearer header that route wants, so the
+// session token rides the query string, as the app icon's does.
+const APP_ASSET_PREFIX = '/apps-api/installed/';
+// A dot segment or a backslash (raw or encoded) would let the browser
+// normalise the path onto another same-origin route with the token attached.
+function isAppAsset(src: string): boolean {
+  return src.startsWith(APP_ASSET_PREFIX)
+    && !/\.\.|\\|%2e|%5c/i.test(src)
+    && new URL(src, 'http://x').pathname.startsWith(APP_ASSET_PREFIX);
+}
+function appAssetSrc(src: string): string {
+  const tok = getTokenSync();
+  return tok ? `${src}${src.includes('?') ? '&' : '?'}token=${encodeURIComponent(tok)}` : src;
+}
+
 export function Image(p: HostProps) {
-  const src = str(p.src);
-  if (!src || !SAFE_IMG.test(src)) return null;
+  let src = str(p.src);
+  if (!src) return null;
+  if (isAppAsset(src)) src = appAssetSrc(src);
+  else if (!SAFE_IMG.test(src)) return null;
   const style: CSSProperties = {
     objectFit: (str(p.fit) ?? 'cover') as CSSProperties['objectFit'],
     width: num(p.width) ?? '100%', height: num(p.height),
@@ -387,38 +406,6 @@ function safeAtlasUrl(src: string | undefined): string | undefined {
   return src;
 }
 
-// A positioned stage. Establishes the containing block `ui-sprite` children
-// position against, and clips them at its edge so a fish that swims out of
-// frame does not paint over the rest of the tile.
-export function Layer(p: HostProps) {
-  const interactive = !!p.interactive;
-  const style: CSSProperties = {
-    position: 'relative',
-    overflow: 'hidden',
-    padding: num(p.padding),
-    aspectRatio: p.aspect != null ? String(p.aspect) : undefined,
-    background: p.tone ? toneVar(str(p.tone)) : undefined,
-    borderRadius: num(p.radius) ?? 0,
-    // height as well as flex: the stage clips its children, so a Layer that
-    // collapsed to zero height in a non-flex parent would hide every sprite.
-    flex: p.grow ? 1 : undefined,
-    width: '100%',
-    height: p.grow ? '100%' : undefined,
-    minWidth: 0, minHeight: 0,
-    touchAction: interactive ? 'manipulation' : undefined,
-    cursor: interactive ? 'pointer' : undefined,
-  };
-  // The tap coordinate is resolved against the layer's own box before it crosses
-  // back to the worker: the worker has no DOM, so it could not do this itself.
-  const onClick = interactive
-    ? (e: ReactMouseEvent<HTMLDivElement>) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        p.__events?.press?.({ x: e.clientX - r.left, y: e.clientY - r.top });
-      }
-    : undefined;
-  return <div style={style} onClick={onClick}>{p.children}</div>;
-}
-
 // One cell of a sprite atlas. Drawn as a background-position offset into the
 // atlas so animating a frame costs one number, and moved with a transform so
 // the compositor handles motion without a layout pass.
@@ -463,7 +450,9 @@ export function Scroll(p: HostProps) {
     gap: num(p.gap), padding: num(p.padding),
     overflowX: dir === 'horizontal' || dir === 'both' ? 'auto' : 'hidden',
     overflowY: dir === 'vertical' || dir === 'both' ? 'auto' : 'hidden',
-    flex: p.grow ? 1 : undefined, minWidth: 0, minHeight: 0,
+    // Never wider than the parent: a centred column gives its children their
+    // fit-content width, which for a row of thumbs is the whole strip.
+    flex: p.grow ? 1 : undefined, minWidth: 0, minHeight: 0, maxWidth: '100%',
   };
   return <div style={style}>{p.children}</div>;
 }

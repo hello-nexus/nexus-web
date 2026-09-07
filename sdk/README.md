@@ -58,18 +58,22 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `Scroll`, `Layer`; content - `Text`, `Icon`, `Image`, `Sprite`, `Badge`, `Empty`, `Section`, `Card`; data viz -
   `Ring`, `Bar`, `Range`, `Gauge`, `Sparkline`, `Chart`; input - `Slider` (see `trackFill` /
   `orientation` below), `Button`, `Stepper`, `Input`, `Toggle`, `Segmented`, `Color` (native HSV
-  picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `Avatar` (host-rendered 3D character with an immersive controls drawer: live-stream pop-up, sticker mode, zoom, exit), `ClockFace`,
+  picker), `Curve` (draggable curve editor), `Spinner`; blessed composites - `Avatar` (host-rendered 3D character), `ClockFace`,
   `WorldClock`, `ViewHeader` (real native tab bar), `MediaImport` (host-mediated file pick +
   crop + upload). Props are semantic (`tone`/`size`/`weight`/`variant`) and theme through panel
   tokens. No `style`/`className` - that is deliberate (consistency). `Button`/`Card` also take
   `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
-  `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`,
+  `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`, `useImmersive`,
   `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
 - **`Slider` additions**: `trackFill` controls the accent fill (auto from value, or pass a
   `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
   full-width track), or `'bare'` (track only, for custom label layouts).
+- **`Manipulable`** inside a `Layer` with `gestures`: a host-driven drag / pinch / twist on a
+  placed child (any blessed content), reported back as a normalized transform. **`YouTube`**:
+  an embed player by video id. **`useImmersive()`**: whether the render is the fullscreen
+  immersive view, plus its exit.
 - **`Layer` + `Sprite`**: the one escape from the closed layout set. `Layer` is a clipped,
   positioned stage whose `Sprite` children carry `x`/`y`/`z`/`scale`/`flip` and may overlap;
   `Layer`'s `onPress` reports a layer-local `{ x, y }`, the only coordinate an author can
