@@ -202,6 +202,17 @@ const preview = usePreview();
 if (preview) return <Text value="42 °C" />;
 ```
 
+### `useImmersive()`
+
+Returns `{ active, exit }`: whether this render is the panel's fullscreen
+immersive view (its own worker, so `active` is static for the render) and the
+host's animated way out of it. `exit` is a no-op anywhere else.
+
+```tsx
+const { active, exit } = useImmersive();
+if (active) return <Stage onClose={exit} />;
+```
+
 ### `useLocalState<T>(defaults)`
 
 Per-instance state bag, persisted by the host across reloads (localStorage,
@@ -744,7 +755,9 @@ The full day/night world map + scrollable city cards. Self-ticking.
 #### `Avatar`
 A first-party 3D character (three.js) rendered host-side from a pack the app
 ships. In a tile it is inert; a tap opens the panel's fullscreen immersive
-view, where pointer orbit/zoom and the extras below live.
+view, where pointer orbit/zoom lives. Everything around the character (a
+controls bar, a stream, stickers) is the app's to build from the primitives
+below; the composite carries only the character.
 
 | Prop | Type | Notes |
 |---|---|---|
@@ -755,24 +768,53 @@ view, where pointer orbit/zoom and the extras below live.
 | `intro` | `boolean` | walk-in + camera push-in once on mount |
 | `interactive` | `boolean` | orbit/zoom in the immersive view (default true) |
 | `demo` | `boolean` | loops the authored reaction showcase |
-| `status` / `statusLive` | `string` / `boolean` | text strip pinned to the bottom of the immersive view; `statusLive` adds a live dot |
-| `stream` | `{ embed: string; open?: string; label?: string }` | a live player docked large at the bottom of the immersive view. `embed` must be a `https://www.youtube.com/embed/...` or `https://www.youtube-nocookie.com/embed/...` URL; the button opens `open` in the system browser |
-| `stickers` | `Array<{ id: string; src: string }>` | sticker palette; non-empty adds a Stickers button to the immersive drawer. `src` is a same-origin app-asset URL (`/apps-api/installed/<id>/asset/...`) or `data:image`; third-party https is refused (the panel CSP would blank it) |
-| `placements` | `Array<{ id, sticker, x, y, s, r }>` | placed stickers: centre `x`/`y` as 0..1 of the stage, `s` scale multiplier, `r` degrees. Keep it in `useLocalState` |
-| `onPlacements` | `(placements) => void` | fires with the whole set after every add / drag / pinch / twist / remove |
-| `offlineArt` | `string` | image (same-origin app-asset URL or `data:image`) the drawer's Live button animates when there is no `stream` |
-| `onLiveCheck` | `() => void` | fires when the viewer presses Live; re-poll the presence source at once |
-| `onImmersive` | `(immersive: boolean) => void` | `true` when the avatar takes the fullscreen stage, `false` when it leaves |
+| `zoom` | `number` | camera depth as 0..1 of the deepest closeup; omit to leave the camera to its own gestures |
+| `onZoom` | `(fraction: number) => void` | the depth after a wheel or pinch on the canvas, so a control can track it |
+| `onInteraction` | `() => void` | throttled, on any pointer or wheel activity on the stage (idle timers) |
 
-The immersive view carries a controls drawer at the bottom: open on every
-entry, it folds to a lip after 30 seconds without a touch on the stage (or on
-its own chevron) and the lip brings it back. It holds Live (pops the docked
-player when `stream` is set, otherwise a short "not live" animation over
-`offlineArt` plus an `onLiveCheck`), Stickers, a camera zoom slider, and the
-immersive exit. Sticker mode lets the viewer add from the palette, drag, pinch
-to scale (clamped), twist to rotate, and remove with the selected sticker's
-badge; stickers render over the stage but under the drawer. Outside the
-immersive view none of `status`, `stream`, `stickers` or `offlineArt` renders.
+#### `Manipulable`
+A freely placed, transformable child of a `Layer`. With the layer's
+`gestures` on and `editable` set, the host drags, pinches (scale, clamped) and
+twists it and reports the settled transform; a tap fires `onPress`. Wraps any
+blessed content, typically an `Image`. Coordinates are resolution independent:
+centre `x`/`y` as 0..1 of the layer box, `size` as a fraction of the layer's
+shorter side, `scale` multiplier, `rotation` in degrees.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `id` | `string` | required, stable |
+| `x` / `y` | `number` | centre, 0..1 of the layer |
+| `scale` / `rotation` | `number` | multiplier / degrees |
+| `size` | `number` | unscaled size as a fraction of the layer's shorter side (default 0.24) |
+| `z` | `number` | stacking within the layer |
+| `minScale` / `maxScale` | `number` | pinch clamp (defaults 0.35 / 3) |
+| `editable` | `boolean` | the layer's gestures may move it |
+| `selected` | `boolean` | draws the selection outline |
+| `onPress` | `() => void` | a tap on it |
+| `onChange` | `(t: { x, y, scale, rotation }) => void` | after a drag, pinch or twist |
+
+```tsx
+<Layer grow gestures={editing} onPress={() => setSelected(null)}>
+  {items.map((it) => (
+    <Manipulable key={it.id} id={it.id} {...it.transform} editable={editing}
+      selected={selected === it.id} onPress={() => setSelected(it.id)}
+      onChange={(t) => update(it.id, t)}>
+      <Image src={it.src} fit="contain" />
+    </Manipulable>
+  ))}
+</Layer>
+```
+
+#### `YouTube`
+A YouTube embed player by video id (the host builds the privacy-enhanced
+embed URL; nothing else can be framed). 16:9 at the full width of its parent.
+
+| Prop | Type |
+|---|---|
+| `videoId` | `string` (required) |
+| `autoplay` | `boolean` (muted autoplay, default true) |
+| `title` | `string` (accessible frame title) |
+| `radius` | `number` |
 
 ### `MediaImport`
 

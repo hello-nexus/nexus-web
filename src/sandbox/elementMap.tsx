@@ -9,8 +9,9 @@ import type { HostProps } from './ui/components';
 import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
   Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
-  Image, Video, Layer, Sprite, Scroll, Input, Chart, Badge, Spinner, CopyButton,
+  Image, Video, Sprite, Scroll, Input, Chart, Badge, Spinner, CopyButton,
 } from './ui/components';
+import { Layer, Manipulable, YouTube } from './ui/LayerStage';
 import {
   WorldClock, ClockFace, ViewHeaderHost,
   ToggleHost, Segmented, SelectHost, ChipGroupHost, CardHost, EmptyHost, Section, ColorHost,
@@ -38,7 +39,9 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-stepper': Stepper,
   'ui-image': Image,
   'ui-video': Video,
+  'ui-youtube': YouTube,
   'ui-layer': Layer,
+  'ui-manipulable': Manipulable,
   'ui-sprite': Sprite,
   'ui-scroll': Scroll,
   'ui-input': Input,

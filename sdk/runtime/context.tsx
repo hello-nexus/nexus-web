@@ -13,6 +13,9 @@ export interface WidgetHostApi {
    *  `{ ok, result }` envelope so the same call powers control writes and
    *  host-action data sources. */
   dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
+  /** Closes the panel's fullscreen immersive view this worker renders into
+   *  (animated, host-owned). Absent outside the immersive view. */
+  exitImmersive?(): void;
 }
 
 export type WidgetSurface = 'cell' | 'page';
@@ -27,6 +30,8 @@ export interface WidgetContextInit {
   preview?: boolean;
   /** Host is a DEV_TOOLS build; default false. */
   devTools?: boolean;
+  /** This worker renders the panel's fullscreen immersive view; default false. */
+  immersive?: boolean;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -45,6 +50,7 @@ export interface WidgetStore {
   readonly surface: WidgetSurface;
   readonly preview: boolean;
   readonly devTools: boolean;
+  readonly immersive: boolean;
   readonly api: WidgetHostApi;
   getSnapshot(): WidgetState;
   subscribe(cb: () => void): () => void;
@@ -66,6 +72,7 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     surface: init.surface ?? 'cell',
     preview: init.preview ?? false,
     devTools: init.devTools ?? false,
+    immersive: init.immersive ?? false,
     api: init.api,
     getSnapshot: () => state,
     subscribe: (cb) => { subs.add(cb); return () => { subs.delete(cb); }; },

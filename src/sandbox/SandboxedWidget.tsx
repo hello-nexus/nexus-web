@@ -9,6 +9,7 @@ import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 import { MediaImportProvider } from './mediaImportContext';
+import { useImmersiveExit } from '../panel/overlays/immersiveExit';
 
 export interface SandboxedWidgetProps {
   /** Blob URL of the host-shared SDK runtime; the worker imports it before the
@@ -68,6 +69,12 @@ const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
 export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport }: SandboxedWidgetProps) {
+  // The overlay's animated close, for the immersive worker's useImmersive().
+  // Read through a ref so the api object created once per worker sees the
+  // provider's latest value.
+  const exitImmersive = useImmersiveExit();
+  const exitImmersiveRef = useRef(exitImmersive);
+  exitImmersiveRef.current = exitImmersive;
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide; ':preview' keeps a preview worker
@@ -116,6 +123,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         // contract (useSurface) knows 'cell' | 'page', and the immersive
         // worker renders the cell face.
         surface: surface === 'page' ? 'page' : 'cell',
+        immersive: surface === 'immersive',
         preview: !!preview,
         devTools: DEV_TOOLS,
         size,
@@ -134,6 +142,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           dispatch: preview
             ? () => Promise.resolve({ ok: false })
             : (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
+          exitImmersive: surface === 'immersive' ? () => exitImmersiveRef.current?.() : undefined,
         },
       };
       entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [] };

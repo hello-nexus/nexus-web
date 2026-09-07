@@ -125,7 +125,43 @@ export interface LayerProps extends WithChildren {
   tone?: UiTone; radius?: number;
   /** Make the stage tappable; onPress reports layer-local { x, y }. */
   interactive?: boolean;
+  /**
+   * Manipulation stage: a drag, pinch or twist that starts on an editable
+   * `Manipulable` child edits it, and a second finger anywhere on the layer
+   * joins the gesture. Implies `interactive` (a tap on empty stage still
+   * fires onPress, the usual "deselect").
+   */
+  gestures?: boolean;
   onPress?: (at: { x: number; y: number }) => void;
+}
+/** The transform of a `Manipulable`: centre as 0..1 of the layer box, scale
+ *  multiplier, rotation in degrees. */
+export interface ManipulableTransform { x: number; y: number; scale: number; rotation: number }
+export interface ManipulableProps extends WithChildren, ManipulableTransform {
+  /** Stable id, echoed in events. */
+  id: string;
+  /** Unscaled size as a fraction of the layer's shorter side (default 0.24). */
+  size?: number;
+  z?: number;
+  minScale?: number; maxScale?: number;
+  /** Lets the layer's gestures move it (the layer needs `gestures` too). */
+  editable?: boolean;
+  /** Draws the selection outline. */
+  selected?: boolean;
+  alt?: string;
+  /** A tap on it (editable or not). */
+  onPress?: () => void;
+  /** The settled transform after a drag, pinch or twist. */
+  onChange?: (t: ManipulableTransform) => void;
+}
+/** A YouTube embed player by video id; 16:9, full width of its parent. */
+export interface YouTubeProps {
+  videoId: string;
+  /** Muted autoplay (default true). */
+  autoplay?: boolean;
+  /** Accessible frame title. */
+  title?: string;
+  radius?: number;
 }
 export interface SpriteProps {
   /** The atlas, shipped once as an https/data/blob URL. */
@@ -194,57 +230,13 @@ export interface AvatarProps {
   interactive?: boolean;
   /** Loops the authored reaction showcase (wave/cheer/dance/...). Default false. */
   demo?: boolean;
-  /**
-   * Text strip pinned to the bottom of the fullscreen immersive view (e.g. a
-   * live-presence line). Hidden in a widget tile and when empty/absent.
-   */
-  status?: string;
-  /** Adds a red live dot ahead of the status text. Default false. */
-  statusLive?: boolean;
-  /**
-   * A live player docked large at the bottom of the immersive view, with a
-   * button that opens `open` in the system browser. Hidden in a widget tile
-   * and when absent. `embed` must be an https embed URL on an allowlisted
-   * player host (YouTube today); anything else renders nothing.
-   */
-  stream?: AvatarStream;
-  /**
-   * Sticker palette for the immersive view. Non-empty shows a Stickers button
-   * in the bottom dock; sticker mode lets the viewer add, drag, pinch-scale,
-   * twist-rotate and remove stickers over the stage. `src` is a same-origin
-   * app-asset URL or data:image; third-party https is refused.
-   */
-  stickers?: AvatarSticker[];
-  /** The placed stickers; keep this in local state and feed `onPlacements` back into it. */
-  placements?: AvatarStickerPlacement[];
-  /** Fires with the whole placed set after every add, move, pinch, or remove. */
-  onPlacements?: (placements: AvatarStickerPlacement[]) => void;
-  /**
-   * Image (same-origin app-asset URL or data:image) the drawer's Live button
-   * animates when there is no `stream` to show.
-   */
-  offlineArt?: string;
-  /** Fires when the viewer presses Live; re-poll the presence source at once. */
-  onLiveCheck?: () => void;
-  /**
-   * Fires with `true` when the avatar enters the panel's fullscreen immersive
-   * view and `false` when it leaves. Lets the app gate work (e.g. polling the
-   * presence source behind `status`) on actually being on stage.
-   */
-  onImmersive?: (immersive: boolean) => void;
+  /** Camera depth as 0..1 of the deepest closeup. Omit to leave the camera to its own gestures. */
+  zoom?: number;
+  /** Fires with the depth after a wheel or pinch on the canvas, so a control can track it. */
+  onZoom?: (fraction: number) => void;
+  /** Fires, throttled, on any pointer or wheel activity on the stage. */
+  onInteraction?: () => void;
 }
-export interface AvatarStream {
-  /** https embed URL on an allowlisted player host. */
-  embed: string;
-  /** https page the dock's button opens in the system browser. */
-  open?: string;
-  /** Button label; the host supplies a generic one when absent. */
-  label?: string;
-}
-export interface AvatarSticker { id: string; src: string }
-/** One placed sticker: centre `x`/`y` as 0..1 of the stage box, `s` scale
- *  multiplier of the host's base sticker size, `r` rotation in degrees. */
-export interface AvatarStickerPlacement { id: string; sticker: string; x: number; y: number; s: number; r: number }
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }
 export interface ViewHeaderProps {
   title: string;
@@ -385,13 +377,15 @@ export const Stepper = eventComponent<StepperProps>('ui-stepper', ELEMENT_CTORS[
 export const Image = createRemoteComponent('ui-image' as any, ELEMENT_CTORS['ui-image']) as unknown as React.FC<ImageProps>;
 export const Video = createRemoteComponent('ui-video' as any, ELEMENT_CTORS['ui-video']) as unknown as React.FC<VideoProps>;
 export const Layer = eventComponent<LayerProps>('ui-layer', ELEMENT_CTORS['ui-layer'], [['onPress', 'press']]);
+export const Manipulable = eventComponent<ManipulableProps>('ui-manipulable', ELEMENT_CTORS['ui-manipulable'], [['onPress', 'press'], ['onChange', 'change']]);
+export const YouTube = createRemoteComponent('ui-youtube' as any, ELEMENT_CTORS['ui-youtube']) as unknown as React.FC<YouTubeProps>;
 export const Sprite = createRemoteComponent('ui-sprite' as any, ELEMENT_CTORS['ui-sprite']) as unknown as React.FC<SpriteProps>;
 export const Scroll = createRemoteComponent('ui-scroll' as any, ELEMENT_CTORS['ui-scroll']) as unknown as React.FC<ScrollProps>;
 export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-input'], [['onValueChange', 'input'], ['onEnter', 'submit'], ['onLeave', 'blur']]);
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
-export const Avatar = eventComponent<AvatarProps>('ui-avatar', ELEMENT_CTORS['ui-avatar'], [['onImmersive', 'immersive'], ['onPlacements', 'placements'], ['onLiveCheck', 'livecheck']]);
+export const Avatar = eventComponent<AvatarProps>('ui-avatar', ELEMENT_CTORS['ui-avatar'], [['onZoom', 'zoom'], ['onInteraction', 'interaction']]);
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);
