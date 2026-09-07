@@ -59,4 +59,13 @@ describe('isMarketplaceIdEnabled', () => {
     _seedMarketplaceRegistryForTests([listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true })]);
     expect(isMarketplaceIdEnabled('com.ibuypower.control')).toBe(true);
   });
+
+  it('is true for an app the user installed from the store, page or not', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hyte.account', name: 'HYTE', source: 'user', page: true }),
+      listing({ id: 'com.hellonexus.aquarium', name: 'Aquarium', source: 'user', page: false }),
+    ]);
+    expect(isMarketplaceIdEnabled('com.hyte.account')).toBe(true);
+    expect(isMarketplaceIdEnabled('com.hellonexus.aquarium')).toBe(true);
+  });
 });
