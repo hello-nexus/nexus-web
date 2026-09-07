@@ -68,6 +68,9 @@ export interface UnifiedDevice {
   // StreamDeckDevicePage so the page shows exactly this deck - one sidebar
   // entry per deck, no in-page picker.
   streamdeckSerial?: string;
+  // Transport the device lives on; drives the Devices-page section grouping.
+  // Undefined means 'usb'.
+  bus?: 'usb' | 'smbus';
 }
 
 // A simulated panel carries the marker on its panel record; the Tryx sim sets
@@ -84,6 +87,9 @@ const CATEGORY_ICONS: Record<string, string> = {
   display: '/assets/devices/y70.svg',
   controller: '/assets/devices/cnvs.svg',
   cooler: '/assets/devices/np50.svg',
+  // No RAM-specific glyph yet; the generic device fallback reads fine at
+  // thumbnail size.
+  memory: '/assets/devices/device.svg',
 };
 
 const CURATED_ICONS: Record<string, string> = {
@@ -171,7 +177,7 @@ export function useUnifiedDevices(enabled: boolean) {
     // surface (Devices page, sidebar, search, detail route). Managed from the
     // Pair Phone modal via /panel/phone/sessions instead.
     const filteredPanels = panels.devices.filter(p => !isRemotePanel(p.connectionKind));
-    const list = buildUnifiedList(filteredPanels, devices, deviceApps);
+    const list = buildUnifiedList(filteredPanels, devices, deviceApps, t);
 
     // Stream Deck: one sidebar/Devices-page entry PER physical deck (real or
     // simulated), keyed by serial - not the single 'streamdeck' handler row
@@ -224,6 +230,7 @@ export function useUnifiedDevices(enabled: boolean) {
         experimental: false,
         warning: deck.warning,
         conflictAppId: deck.conflictAppId,
+        bus: 'usb',
       });
     }
 
@@ -245,6 +252,7 @@ export function useUnifiedDevices(enabled: boolean) {
         nexusControlEnabled: true,
         supportsNexusControl: false,
         experimental: false,
+        bus: 'usb',
       });
     }
     return list;
@@ -260,6 +268,7 @@ function buildUnifiedList(
   panelDevices: PanelDevice[],
   curated: DeviceListItem[],
   deviceApps: AppInstalledListing[] = [],
+  t: (key: string) => string,
 ): UnifiedDevice[] {
   const list: UnifiedDevice[] = [];
   const claimedCuratedIds = new Set<string>();
@@ -304,6 +313,7 @@ function buildUnifiedList(
       experimental: backing?.experimental ?? false,
       warning: p.warning ?? undefined,
       conflictAppId: backing?.conflictAppId,
+      bus: 'usb',
     });
   }
 
@@ -313,10 +323,14 @@ function buildUnifiedList(
     // useUnifiedDevices, so the singleton handler row never doubles them up.
     if (d.id === 'streamdeck') continue;
     if (!d.connected) continue;
+    // The service sends the plain word "Memory" for the SMBus pseudo-device,
+    // not a product name, so it goes through i18n like every other UI string
+    // instead of the wire value every other curated device keeps.
+    const displayName = d.id === 'smbus-dram' ? t('devices.smbusDram.name') : d.name;
     list.push({
       key: `curated-${d.id}`,
-      shortName: CURATED_SHORT_NAMES[d.id] || d.name,
-      name: d.name,
+      shortName: CURATED_SHORT_NAMES[d.id] || displayName,
+      name: displayName,
       subtitle: d.category,
       category: d.category,
       iconSrc: CURATED_ICONS[d.id] || CATEGORY_ICONS[d.category] || FALLBACK_ICON,
@@ -329,6 +343,7 @@ function buildUnifiedList(
       experimental: d.experimental ?? false,
       warning: d.warning ?? undefined,
       conflictAppId: d.conflictAppId,
+      bus: d.bus ?? 'usb',
     });
   }
 
@@ -346,6 +361,7 @@ function buildUnifiedList(
       nexusControlEnabled: true,
       supportsNexusControl: false,
       experimental: false,
+      bus: 'usb',
     });
   }
 

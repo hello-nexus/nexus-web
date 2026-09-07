@@ -30,6 +30,8 @@ export interface DeviceListItem {
   // False when the device's controls live on shared pages (Cooling/Lighting).
   // Undefined on an older service; callers treat that as having a page.
   hasPage?: boolean;
+  // Transport the device lives on. Undefined on an older service means 'usb'.
+  bus?: 'usb' | 'smbus';
 }
 
 export function useDevices(enabled: boolean) {

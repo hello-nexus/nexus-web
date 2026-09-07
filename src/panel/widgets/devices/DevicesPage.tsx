@@ -8,6 +8,7 @@ import { useFlashStatus, type FlashStatus } from '../../../hooks/useFlashStatus'
 import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
+import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
@@ -92,6 +93,31 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
     [unified],
   );
 
+  // No SMBus device (macOS/Linux, an older service) keeps headersShown false,
+  // so the tab renders today's single unheaded list.
+  const usbDevices = useMemo(() => orderedDevices.filter(d => (d.bus ?? 'usb') === 'usb'), [orderedDevices]);
+  const smbusDevices = useMemo(() => orderedDevices.filter(d => d.bus === 'smbus'), [orderedDevices]);
+  const headersShown = smbusDevices.length > 0;
+
+  const renderDeviceCard = useCallback((d: UnifiedDevice) => {
+    const linkDisplayId = d.kind === 'panel' ? d.panelDevice?.displayId : undefined;
+    const onToggleControl = !d.supportsNexusControl
+      ? undefined
+      : linkDisplayId
+        ? (next: boolean) => toggleLink(linkDisplayId, next)
+        : d.curatedId
+          ? (next: boolean) => void controlDevice(d.curatedId as string, next)
+          : undefined;
+    return (
+      <DeviceCard
+        key={d.key}
+        device={d}
+        onClick={() => onDeviceSelect(d.key)}
+        onToggleControl={onToggleControl}
+      />
+    );
+  }, [controlDevice, onDeviceSelect, toggleLink]);
+
   const tabs = [
     { key: 'available', label: t('devices.tabs.available'), icon: <Usb size={14} /> },
     { key: 'displays', label: t('displays.title'), icon: <Monitor size={14} /> },
@@ -128,26 +154,24 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
 
               {unified.length === 0 ? (
                 <div className={styles.empty}>{t('devices.available.none')}</div>
+              ) : headersShown ? (
+                <>
+                  {usbDevices.length > 0 && (
+                    <>
+                      <SectionHeader className={styles.sectionHeader}>{t('devices.section.usb')}</SectionHeader>
+                      <div className={styles.list}>
+                        {usbDevices.map(renderDeviceCard)}
+                      </div>
+                    </>
+                  )}
+                  <SectionHeader className={styles.sectionHeader}>{t('devices.section.smbus')}</SectionHeader>
+                  <div className={styles.list}>
+                    {smbusDevices.map(renderDeviceCard)}
+                  </div>
+                </>
               ) : (
                 <div className={styles.list}>
-                  {orderedDevices.map(d => {
-                    const linkDisplayId = d.kind === 'panel' ? d.panelDevice?.displayId : undefined;
-                    const onToggleControl = !d.supportsNexusControl
-                      ? undefined
-                      : linkDisplayId
-                        ? (next: boolean) => toggleLink(linkDisplayId, next)
-                        : d.curatedId
-                          ? (next: boolean) => void controlDevice(d.curatedId as string, next)
-                          : undefined;
-                    return (
-                      <DeviceCard
-                        key={d.key}
-                        device={d}
-                        onClick={() => onDeviceSelect(d.key)}
-                        onToggleControl={onToggleControl}
-                      />
-                    );
-                  })}
+                  {orderedDevices.map(renderDeviceCard)}
                 </div>
               )}
             </>
@@ -223,9 +247,14 @@ function DeviceCard({
   onToggleControl?: (next: boolean) => void;
 }) {
   const { t } = useTranslation();
-  // Connection state is the dimmed card and category is the icon, so only a
-  // simulated device has a fact left for a second line.
-  const meta = isSimulatedDevice(device) ? t('devices.simulated') : '';
+  // Connection state is the dimmed card and category is the icon, so a
+  // simulated device or an off shared-bus device is what's left for a second
+  // line. Simulated takes precedence - a device can't be both.
+  const busControlOff = device.bus != null && device.bus !== 'usb'
+    && device.supportsNexusControl && !device.nexusControlEnabled;
+  const meta = isSimulatedDevice(device)
+    ? t('devices.simulated')
+    : busControlOff ? t('devices.busControlOff') : '';
   const body = (
     <>
       <span className={styles.rowIconTile}>

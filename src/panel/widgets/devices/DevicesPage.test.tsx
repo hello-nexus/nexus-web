@@ -97,6 +97,27 @@ function curatedRow(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
   };
 }
 
+function smbusRow(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
+  return {
+    key: 'curated-smbus-dram',
+    shortName: 'devices.smbusDram.name',
+    name: 'devices.smbusDram.name',
+    subtitle: 'memory',
+    category: 'memory',
+    iconSrc: '/assets/devices/device.svg',
+    connected: true,
+    kind: 'curated',
+    curatedId: 'smbus-dram',
+    navigable: false,
+    nexusControlEnabled: true,
+    supportsNexusControl: true,
+    experimental: false,
+    conflictAppId: 'icue',
+    bus: 'smbus',
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   promoteDisplayToPanelMock.mockReset();
   demoteDisplayPanelMock.mockReset();
@@ -207,5 +228,77 @@ describe('DevicesPage device-card secondary line', () => {
     render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
 
     expect(screen.getByText('devices.simulated')).toBeTruthy();
+  });
+
+  it('shows the bus-control-off subtitle for an off shared-bus device', () => {
+    mockUnified = [smbusRow({ nexusControlEnabled: false })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByText('devices.busControlOff')).toBeTruthy();
+  });
+
+  it('renders nothing under the name for an on shared-bus device', () => {
+    mockUnified = [smbusRow({ nexusControlEnabled: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('devices.busControlOff')).toBeNull();
+  });
+
+  it('leaves an off USB device (bus undefined) without the shared-bus subtitle', () => {
+    mockUnified = [curatedRow({ nexusControlEnabled: false, supportsNexusControl: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('devices.busControlOff')).toBeNull();
+  });
+
+  it('prefers the simulated label over the bus-control-off subtitle', () => {
+    mockUnified = [smbusRow({ nexusControlEnabled: false, simulated: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByText('devices.simulated')).toBeTruthy();
+    expect(screen.queryByText('devices.busControlOff')).toBeNull();
+  });
+});
+
+describe('DevicesPage Available tab bus sections', () => {
+  it('renders no section headers when every device is on the USB bus, unchanged from today', () => {
+    mockUnified = [curatedRow(), monitorRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('devices.section.usb')).toBeNull();
+    expect(screen.queryByText('devices.section.smbus')).toBeNull();
+    expect(screen.getByText('Stream Deck')).toBeTruthy();
+    expect(screen.getByText('Xeneon Edge')).toBeTruthy();
+  });
+
+  it('renders both headers once an SMBus device is present', () => {
+    mockUnified = [curatedRow(), smbusRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.getByText('devices.section.usb')).toBeTruthy();
+    expect(screen.getByText('devices.section.smbus')).toBeTruthy();
+  });
+
+  it('sorts a USB device under the USB header and the SMBus device under its own', () => {
+    mockUnified = [smbusRow(), curatedRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    const usbHeader = screen.getByText('devices.section.usb');
+    const smbusHeader = screen.getByText('devices.section.smbus');
+    const usbCard = screen.getByText('Stream Deck');
+    const smbusCard = screen.getByText('devices.smbusDram.name');
+
+    // DOM order: USB header, USB card, SMBus header, SMBus card.
+    expect(usbHeader.compareDocumentPosition(usbCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(usbCard.compareDocumentPosition(smbusHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(smbusHeader.compareDocumentPosition(smbusCard) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders only the SMBus header and list when no USB device is present', () => {
+    mockUnified = [smbusRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('devices.section.usb')).toBeNull();
+    expect(screen.getByText('devices.section.smbus')).toBeTruthy();
   });
 });

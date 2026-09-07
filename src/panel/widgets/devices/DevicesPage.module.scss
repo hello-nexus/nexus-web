@@ -15,6 +15,12 @@
   margin-top: 1rem;
 }
 
+// Available-tab bus grouping ("USB Devices" / "SMBus Devices"). Only rendered
+// once a second bus is present; see DevicesPage.tsx.
+.sectionHeader {
+  margin-top: 1rem;
+}
+
 // Device row: icon tile, name + meta column, optional Nexus Control toggle.
 .card {
   display: flex;
