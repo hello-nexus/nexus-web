@@ -26,10 +26,6 @@ interface AccountAuthenticationSectionProps {
   onAccountChanged: () => void;
   recoveryFresh: boolean;
   onRecoveryFreshConsumed: () => void;
-  /** Opens the change-password modal unprompted; defaults to recoveryFresh so a fresh recovery lands on it once. */
-  promptPasswordChange?: boolean;
-  /** The prompted modal was closed without a change; the caller drops promptPasswordChange so a remount does not reopen it. */
-  onPasswordPromptClosed?: () => void;
   onLoggedOut: () => void;
 }
 
@@ -109,7 +105,7 @@ function useRetryCountdown(retryAt: string | null): { hours: number; minutes: nu
 // shared by the in-app Account page and the public /account and /recover
 // pages (the public surface renders this block alone, no profile sync).
 export function AccountAuthenticationSection({
-  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, promptPasswordChange = recoveryFresh, onPasswordPromptClosed, onLoggedOut,
+  backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, onLoggedOut,
 }: AccountAuthenticationSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
@@ -193,13 +189,6 @@ export function AccountAuthenticationSection({
   // ── Password ────────────────────────────────────────────────────────────
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
-  // A recovery-approved session (from the email magic link) opens the
-  // change-password modal directly, passwordless, instead of the user
-  // having to find and click the button themselves.
-  useEffect(() => {
-    if (promptPasswordChange) setPasswordModalOpen(true);
-  }, [promptPasswordChange]);
-
   // ── Privacy ─────────────────────────────────────────────────────────────
   const [privacySaving, setPrivacySaving] = useState(false);
   const handlePrivacyToggle = async () => {
@@ -228,9 +217,6 @@ export function AccountAuthenticationSection({
   // Defensive reset if `account.accountId` ever changes while this component
   // stays mounted (e.g. a stale username cooldown message or a half-typed
   // password field from the prior account bleeding into the new one's form).
-  // The password modal stays open through the reset only when a
-  // recovery-fresh session is live, so a passwordless recovery in progress
-  // is never force-closed.
   const accountId = account.accountId;
   const previousAccountId = useRef(accountId);
   useEffect(() => {
@@ -238,9 +224,9 @@ export function AccountAuthenticationSection({
     previousAccountId.current = accountId;
     setUsernameError(null);
     setUsernameRetryAt(null);
-    if (!recoveryFresh) setPasswordModalOpen(false);
+    setPasswordModalOpen(false);
     setAvatarError(null);
-  }, [accountId, recoveryFresh]);
+  }, [accountId]);
 
   return (
     <SettingsSection title={t('account.authentication.title')}>
@@ -355,7 +341,7 @@ export function AccountAuthenticationSection({
 
       <ChangePasswordModal
         open={passwordModalOpen}
-        onClose={() => { setPasswordModalOpen(false); onPasswordPromptClosed?.(); }}
+        onClose={() => setPasswordModalOpen(false)}
         recoveryFresh={recoveryFresh}
         onRecoveryFreshConsumed={onRecoveryFreshConsumed}
         changePassword={backend.changePassword}

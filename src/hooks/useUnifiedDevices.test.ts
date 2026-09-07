@@ -282,6 +282,62 @@ describe('useUnifiedDevices - iBUYPOWER AW5', () => {
   });
 });
 
+describe('useUnifiedDevices - smbus-dram pseudo-device', () => {
+  function makeSmbusDram(over: Partial<DeviceListItem> = {}): DeviceListItem {
+    return makeHandlerRow({
+      id: 'smbus-dram',
+      name: 'Memory',
+      category: 'memory',
+      bus: 'smbus',
+      connected: true,
+      supportsNexusControl: true,
+      hasPage: false,
+      conflictAppId: 'icue',
+      ...over,
+    });
+  }
+
+  it('carries the smbus bus through from the wire field', () => {
+    mockUseDevices.mockReturnValue({ devices: [makeSmbusDram()], controlDevice: vi.fn() });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.curatedId === 'smbus-dram');
+
+    expect(entry?.bus).toBe('smbus');
+    expect(entry?.navigable).toBe(false);
+  });
+
+  it('defaults bus to usb for a curated device that omits the field (older service)', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ id: 'legacy', category: 'hub', connected: true, bus: undefined })],
+      controlDevice: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'legacy')?.bus).toBe('usb');
+  });
+
+  it('renders the plain word "Memory" through i18n instead of the wire name', () => {
+    mockUseDevices.mockReturnValue({ devices: [makeSmbusDram()], controlDevice: vi.fn() });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    const entry = result.current.unified.find(d => d.curatedId === 'smbus-dram');
+
+    expect(entry?.name).toBe('devices.smbusDram.name');
+    expect(entry?.shortName).toBe('devices.smbusDram.name');
+  });
+
+  it('leaves every other curated device name at the wire value', () => {
+    mockUseDevices.mockReturnValue({
+      devices: [makeHandlerRow({ id: 'y70', name: 'Y70 Touch', category: 'display', connected: true })],
+      controlDevice: vi.fn(),
+    });
+
+    const { result } = renderHook(() => useUnifiedDevices(true));
+    expect(result.current.unified.find(d => d.curatedId === 'y70')?.name).toBe('Y70 Touch');
+  });
+});
+
 describe('useUnifiedDevices - hasPage gates navigable', () => {
   it('follows the flag, not the device id', () => {
     // Nothing here knows which devices lack a page; the service says so per

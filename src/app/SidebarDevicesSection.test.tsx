@@ -343,3 +343,27 @@ describe('SidebarDevicesSection context menu staleness', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 });
+
+describe('SidebarDevicesSection SMBus pseudo-device exclusion', () => {
+  // The Memory (SMBus) card has no settings page of its own (hasPage: false
+  // on the wire, which useUnifiedDevices maps to navigable: false), so the
+  // sidebar's own `.filter(d => d.navigable)` keeps it out without any
+  // bus-specific check here.
+  it('never lists the non-navigable SMBus device', () => {
+    mockUnified = [monitorDevice({
+      key: 'curated-smbus-dram',
+      shortName: 'devices.smbusDram.name',
+      name: 'devices.smbusDram.name',
+      kind: 'curated',
+      curatedId: 'smbus-dram',
+      panelDevice: undefined,
+      navigable: false,
+      supportsNexusControl: true,
+      nexusControlEnabled: true,
+      bus: 'smbus',
+    })];
+    renderSidebar();
+    expect(screen.queryByText('devices.smbusDram.name')).not.toBeInTheDocument();
+    expect(screen.getByText('sidebar.devices.empty')).toBeInTheDocument();
+  });
+});

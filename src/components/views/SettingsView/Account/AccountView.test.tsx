@@ -131,52 +131,42 @@ describe('AccountView tabs', () => {
   });
 });
 
-describe('AccountView post-recovery password prompt', () => {
-  it('prompts once when the service reports a recovery-fresh session, not on every visit', async () => {
+describe('AccountView recovery-fresh session', () => {
+  // The modal title repeats the row button's label, so one match means closed
+  // and two means open. `recoveryFresh` reaching the modal is asserted by the
+  // absence of the current-password field once it IS open, which also proves
+  // the recoveryStatus read still works.
+  const openModal = () => fireEvent.click(screen.getByRole('button', { name: 'account.password.change' }));
+
+  it('never opens the change-password modal, however many times the page is opened', async () => {
     const { localServiceBackend } = await import('../../../../api/localServiceBackend');
     vi.mocked(localServiceBackend.recoveryStatus).mockResolvedValue({ status: 'idle', recoveryFresh: true });
 
     const first = renderView(null, 'acct-1');
-    // The modal title repeats the row button's label, so two matches means open.
-    await waitFor(() => expect(screen.getAllByText('account.password.change')).toHaveLength(2));
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getAllByText('account.password.change')).toHaveLength(1);
     first.unmount();
 
-    const calls = vi.mocked(localServiceBackend.recoveryStatus).mock.calls;
-    const before = calls.length;
+    // The reopen-on-every-load regression: a second visit inside the same
+    // 30-minute service window must still land closed, with the window live.
     renderView(null, 'acct-1');
-    await waitFor(() => expect(calls.length).toBe(before + 1));
-    // Let the status promise's continuation run before asserting nothing opened.
     await act(async () => { await Promise.resolve(); });
     expect(screen.getAllByText('account.password.change')).toHaveLength(1);
+
+    openModal();
+    expect(screen.getAllByText('account.password.change')).toHaveLength(2);
+    expect(screen.queryByLabelText('account.password.current')).toBeNull();
   });
-});
 
-describe('AccountView dismissed password prompt', () => {
-  it('does not reopen the prompt when the section remounts after the user closed it', async () => {
+  it('asks for the current password when the window is not fresh', async () => {
     const { localServiceBackend } = await import('../../../../api/localServiceBackend');
-    vi.mocked(localServiceBackend.recoveryStatus).mockResolvedValue({ status: 'idle', recoveryFresh: true });
+    vi.mocked(localServiceBackend.recoveryStatus).mockResolvedValue({ status: 'idle', recoveryFresh: false });
 
-    const view = render(
-      <ToastProvider>
-        <AccountView serviceOnline accounts={makeAccounts('acct-2')} sync={SYNC} tab={null} onTabChange={vi.fn()} />
-      </ToastProvider>,
-    );
-    await waitFor(() => expect(screen.getAllByText('account.password.change')).toHaveLength(2));
-    fireEvent.click(screen.getByRole('button', { name: 'app.window.close' }));
-    await waitFor(() => expect(screen.getAllByText('account.password.change')).toHaveLength(1));
-
-    // The Purchases tab unmounts the authentication section; coming back remounts it.
-    view.rerender(
-      <ToastProvider>
-        <AccountView serviceOnline accounts={makeAccounts('acct-2')} sync={SYNC} tab="purchases" onTabChange={vi.fn()} />
-      </ToastProvider>,
-    );
-    view.rerender(
-      <ToastProvider>
-        <AccountView serviceOnline accounts={makeAccounts('acct-2')} sync={SYNC} tab={null} onTabChange={vi.fn()} />
-      </ToastProvider>,
-    );
+    renderView(null, 'acct-1');
     await act(async () => { await Promise.resolve(); });
     expect(screen.getAllByText('account.password.change')).toHaveLength(1);
+
+    openModal();
+    expect(screen.getByLabelText('account.password.current')).toBeInTheDocument();
   });
 });
