@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useKioskWatchdog } from './useKioskWatchdog';
 import type { PanelSurface } from '../types';
 import { pingService } from '../../api/service';
 import { setPanelHostName } from '../../api/panel';
 
-// Host PC display name in the tray. Kiosk watchdog (3s ping) keeps it fresh;
-// phone (no watchdog) seeds it with one ping on mount.
+// Host PC display name in the tray. The service status poll keeps it fresh;
+// a phone seeds it with one ping on mount, before that poll has answered.
 export function useMachineName(
   kioskBehavior: boolean,
   surface: PanelSurface,
@@ -18,22 +17,16 @@ export function useMachineName(
     let cancelled = false;
     pingService().then(res => {
       if (!cancelled && res?.machineName) setMachineName(res.machineName);
-    });
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [phoneSeed]);
-  useKioskWatchdog({
-    enabled: kioskBehavior && surface !== 'phone',
-    onPing: response => {
-      if (response.machineName) setMachineName(response.machineName);
-    },
-  });
   useEffect(() => {
     const next = serviceStatusPingMachineName?.trim();
     if (next) setMachineName(next);
   }, [serviceStatusPingMachineName]);
   const onMachineNameCommit = useCallback((next: string) => {
-    // Optimistic update; the next ping overwrites with the server's
-    // normalised value (trim, dedup whitespace, OS-name fallback if cleared).
+    // Optimistic; the next ping overwrites with the server's normalised value
+    // (trim, dedup whitespace, OS-name fallback if cleared).
     setMachineName(next);
     setPanelHostName(next).then(res => {
       if (res?.machineName) setMachineName(res.machineName);

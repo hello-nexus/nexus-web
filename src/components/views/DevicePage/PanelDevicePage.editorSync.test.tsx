@@ -31,6 +31,7 @@ vi.mock('../../../api/profiles', () => ({
   savePreferences: vi.fn().mockResolvedValue(null),
 }));
 vi.mock('../../../api/panel', () => ({
+  fetchPanelDeviceWithStatus: vi.fn().mockResolvedValue({ found: false, status: 404 }),
   allocatePanelDevice: vi.fn().mockResolvedValue({ id: 'dev1' }),
   fetchPanelDevice: (...a: unknown[]) => fetchPanelDeviceMock(...a),
   fetchPanelDevices: (...a: unknown[]) => fetchPanelDevicesMock(...a),

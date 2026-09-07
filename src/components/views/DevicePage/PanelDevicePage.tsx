@@ -78,6 +78,7 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
+import { usePanelRecord } from '../../../panel/engine/usePanelRecord';
 import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
@@ -391,7 +392,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
   // service's persisted state.
-  const panelTheme = usePanelTheme(editingDeviceId);
+  const panelRecord = usePanelRecord(editingDeviceId);
+  const panelTheme = usePanelTheme(panelRecord, editingDeviceId);
   const theme = panelTheme.theme;
   const effectiveThemeMode = theme.themeSyncWithDesktop
     ? (theme.appResolvedThemeMode || theme.appThemeMode)

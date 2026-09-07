@@ -129,6 +129,17 @@ export function resolvePanelBackground(
 // desktop shows through, animated wallpapers included.
 export type PanelBackdrop = 'theme' | 'wallpaper' | 'desktop';
 
+/**
+ * The backdrop the kiosk host passed on the URL. It knows the answer before
+ * the page loads, so a see-through panel can paint nothing from its first
+ * frame instead of showing a background until the record arrives. The record
+ * always supersedes it.
+ */
+export function backdropHintFromUrl(): PanelBackdrop | null {
+  if (typeof window === 'undefined') return null;
+  return normalizePanelBackdrop(new URLSearchParams(window.location.search).get('backdrop'));
+}
+
 export function normalizePanelBackdrop(value: string | null | undefined): PanelBackdrop | null {
   return value === 'theme' || value === 'wallpaper' || value === 'desktop' ? value : null;
 }

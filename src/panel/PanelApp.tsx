@@ -8,6 +8,8 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
+import { backdropHintFromUrl } from './background/panelBackground';
+import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
@@ -58,7 +60,7 @@ import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
 import { applyHtmlChromeTheme } from '../lib/settings';
-import { fetchPanelDevice, patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
+import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
 import { spawnDropRing } from '../lib/dropRing';
@@ -146,31 +148,38 @@ interface PanelLayoutState {
 
 
 export default function PanelApp({ deviceId }: { deviceId: string }) {
-  // Resolve the device record once on mount; the surface + touch capability
-  // stamped on it drive widget filtering. If the record is missing on the
-  // server (cleared profile etc.), fall back to a viewport-inferred surface
-  // so the panel still mounts instead of showing a blank page.
-  const [resolved, setResolved] = useState<{ surface: PanelSurface; touch?: boolean; dpi?: number; displayBound?: boolean } | null>(null);
-  // Record's last-known capabilities, kept for the rotation re-report below
-  // so the viewport patch preserves fields this kiosk doesn't own (dpi etc.).
+  const recordState = usePanelRecord(deviceId);
+  const { record, loaded } = recordState;
+  // The record's own capabilities where it has them; a viewport inference
+  // keeps the panel mounting when the server has no record for this id.
+  const caps = record?.capabilities;
+  const resolved = useMemo(() => ({
+    surface: (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface,
+    touch: caps?.touch,
+    dpi: caps?.dpi,
+    displayBound: !!record?.displayId,
+  }), [caps?.surface, caps?.touch, caps?.dpi, record?.displayId]);
   const recordCapsRef = useRef<PanelDeviceCapabilitiesDto | null>(null);
+  const hasCaps = !!caps;
+  useEffect(() => { recordCapsRef.current = caps ?? null; }, [caps]);
+  // The host's URL hint also covers the window before the record lands, which
+  // is exactly when it matters; PanelContent takes the class over from here.
   useEffect(() => {
-    let cancelled = false;
-    fetchPanelDevice(deviceId).then(record => {
-      if (cancelled) return;
-      const surfaceFromRecord = record?.capabilities?.surface;
-      recordCapsRef.current = record?.capabilities ?? null;
-      setResolved({
-        surface: surfaceFromRecord ?? inferSurfaceFromViewport(false),
-        touch: record?.capabilities?.touch,
-        dpi: record?.capabilities?.dpi,
-        displayBound: !!record?.displayId,
-      });
-    }).catch(() => {
-      if (!cancelled) setResolved({ surface: inferSurfaceFromViewport(false) });
-    });
-    return () => { cancelled = true; };
-  }, [deviceId]);
+    if (backdropHintFromUrl() !== 'desktop') return undefined;
+    const root = document.documentElement;
+    root.classList.add('panel-see-through');
+    return () => root.classList.remove('panel-see-through');
+  }, []);
+  // A reconnect can follow edits made while the socket was down, and the
+  // refetch bumps LastSeenAt so the host sees the panel came back on its own.
+  const connected = useMultiplex()?.connected ?? false;
+  const wasConnected = useRef(connected);
+  const { refetch } = recordState;
+  useEffect(() => {
+    if (connected && !wasConnected.current) refetch();
+    wasConnected.current = connected;
+  }, [connected, refetch]);
+
   // Keep the record's viewport facts truthful across a display rotation. The
   // Y70 record is not display-bound, so the promoted-monitor topology sync
   // never rewrites it - this kiosk is the only writer - and the device page
@@ -179,7 +188,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // behind. Debounced past the rotation's resize storm; the patched record's
   // panel/device broadcast then updates any open editor live.
   useEffect(() => {
-    if (resolved?.surface !== 'y70' || resolved.displayBound) return undefined;
+    if (resolved.surface !== 'y70' || resolved.displayBound) return undefined;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const report = () => {
       timer = null;
@@ -222,31 +231,22 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
     };
-  }, [resolved?.surface, resolved?.displayBound, deviceId]);
-  // The service re-derives promoted-monitor capabilities on topology changes
-  // (rotation, display rescale, a service update stamping new curated facts)
-  // and broadcasts panel/device. Refetch so a kiosk that mounted before the
-  // sync picks the fresh density/touch without a reload.
-  useTopicCallback('panel/device', true, (raw) => {
-    const frame = raw as { deviceId?: string } | null;
-    if (frame?.deviceId !== deviceId) return;
-    fetchPanelDevice(deviceId).then(record => {
-      const caps = record?.capabilities;
-      if (!caps) return;
-      recordCapsRef.current = caps;
-      setResolved(prev => {
-        if (!prev) return prev;
-        const surface = caps.surface ?? prev.surface;
-        if (surface === prev.surface && caps.touch === prev.touch && caps.dpi === prev.dpi) return prev;
-        return { surface, touch: caps.touch, dpi: caps.dpi };
-      });
-    }).catch(() => {});
-  });
-  if (!resolved) {
-    return null;
+  }, [resolved.surface, resolved.displayBound, deviceId, hasCaps]);
+  if (!loaded) {
+    return <PanelLoadingGate surface={resolved.surface} />;
   }
-  return <PanelKioskContent deviceId={deviceId} surface={resolved.surface} deviceTouch={resolved.touch} deviceDpi={resolved.dpi} displayBound={resolved.displayBound} />;
+  return (
+    <PanelKioskContent
+      recordState={recordState}
+      deviceId={deviceId}
+      surface={resolved.surface}
+      deviceTouch={resolved.touch}
+      deviceDpi={resolved.dpi}
+      displayBound={resolved.displayBound}
+    />
+  );
 }
+
 export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
   openCatalogSignal?: number;
   appAccentColor?: string;
@@ -271,19 +271,20 @@ export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, on
   );
 }
 
-function PanelKioskContent({ deviceId, surface, deviceTouch, deviceDpi, displayBound }: { deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; displayBound?: boolean }) {
-  const layoutState = usePanelLayout(deviceId, surface, deviceTouch);
+function PanelKioskContent({ recordState, deviceId, surface, deviceTouch, deviceDpi, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; displayBound?: boolean }) {
+  const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch);
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
       label="Panel"
     >
-      <PanelContent surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
+      <PanelContent recordState={recordState} surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
     </ErrorBoundary>
   );
 }
 
 export function PanelContent({
+  recordState = INERT_PANEL_RECORD,
   surface,
   deviceId,
   deviceTouch,
@@ -314,6 +315,7 @@ export function PanelContent({
   // set). Distinguishes kiosk-hosted 'monitor' panels from streamed ones for
   // the desktop see-through gate.
   displayBound?: boolean;
+  recordState?: PanelRecordState;
   layoutState: PanelLayoutState;
   embedded?: boolean;
   simulator?: boolean;
@@ -339,7 +341,7 @@ export function PanelContent({
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
   const { layout, loaded, saveForbidden, setLayout } = layoutState;
-  const panelTheme = usePanelTheme(deviceId ?? null, kioskBehavior);
+  const panelTheme = usePanelTheme(recordState, deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state
   // wherever the runtime would read panelTheme.theme; otherwise the iframe
@@ -348,7 +350,7 @@ export function PanelContent({
   // resolveEffectivePanelTheme for what each surface forces.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
   const effectiveTheme = useMemo(() => resolveEffectivePanelTheme(baseTheme, surface), [baseTheme, surface]);
-  usePanelLanguageSync(kioskBehavior);
+  usePanelLanguageSync(kioskBehavior, panelTheme.prefs);
   // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
   // tracking the desktop OS); fall back to appThemeMode when unpublished -
   // 'system' there would re-resolve against THIS device's OS (the wrong OS).

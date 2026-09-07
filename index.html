@@ -21,9 +21,11 @@
     <link rel="preload" href="/fonts/lexend/lexend-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- crossorigin makes the sheet's cssRules readable, which the panel
+    <!-- Loaded without blocking first paint: a kiosk with no route to the
+         internet would otherwise wait out the request before rendering.
+         crossorigin makes the sheet's cssRules readable, which the panel
          screenshot exporter needs to inline @font-face for the capture. -->
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;800&display=swap" rel="stylesheet" crossorigin="anonymous" media="print" onload="this.media='all'" />
     <title>Nexus</title>
     <script>
       // Sync polyfills for Chromium 83 (HYTE Q60 Android System WebView).

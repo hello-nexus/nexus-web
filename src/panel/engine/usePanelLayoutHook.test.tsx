@@ -20,7 +20,14 @@ vi.mock('./panelSync', () => ({
 }));
 
 import { usePanelLayout } from './usePanelLayout';
+import { usePanelRecord } from './usePanelRecord';
 import { defaultLayoutForSurface } from './defaultLayout';
+import type { PanelSurface } from '../types';
+
+// The kiosk composition under test: one record store feeding the layout hook.
+function useLayoutFor(deviceId: string, surface: PanelSurface) {
+  return usePanelLayout(usePanelRecord(deviceId), deviceId, surface);
+}
 
 beforeEach(() => {
   fetchMock.mockReset();
@@ -37,7 +44,7 @@ describe('usePanelLayout device-missing guard', () => {
   it('suppresses patch when the server has no record for the deviceId', async () => {
     fetchMock.mockResolvedValue({ found: false, status: 404 });
 
-    const { result } = renderHook(() => usePanelLayout('missing-id', 'y70'));
+    const { result } = renderHook(() => useLayoutFor('missing-id', 'y70'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.deviceMissing).toBe(true);
 
@@ -60,7 +67,7 @@ describe('usePanelLayout device-missing guard', () => {
     // tunnel, where the follow-up PATCH succeeds.
     fetchMock.mockResolvedValue({ found: false, status: 0 });
 
-    const { result } = renderHook(() => usePanelLayout('phone-id', 'phone'));
+    const { result } = renderHook(() => useLayoutFor('phone-id', 'phone'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.deviceMissing).toBe(true);
 
@@ -77,7 +84,7 @@ describe('usePanelLayout device-missing guard', () => {
   it('suppresses patch when the fetch throws', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    const { result } = renderHook(() => usePanelLayout('phone-id', 'phone'));
+    const { result } = renderHook(() => useLayoutFor('phone-id', 'phone'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     act(() => {
@@ -101,7 +108,7 @@ describe('usePanelLayout device-missing guard', () => {
     fetchMock.mockResolvedValue({ found: true, record: liveRecord });
     patchMock.mockResolvedValue({ ok: true, record: liveRecord });
 
-    const { result } = renderHook(() => usePanelLayout('live', 'y70'));
+    const { result } = renderHook(() => useLayoutFor('live', 'y70'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.deviceMissing).toBe(false);
 
@@ -126,7 +133,7 @@ describe('usePanelLayout device-missing guard', () => {
     fetchMock.mockResolvedValue({ found: true, record: liveRecord });
     patchMock.mockResolvedValue({ ok: false, status: 403, msg: 'deck_action_requires_desktop' });
 
-    const { result } = renderHook(() => usePanelLayout('live', 'y70'));
+    const { result } = renderHook(() => useLayoutFor('live', 'y70'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
     expect(result.current.saveForbidden).toBe(false);
 
@@ -148,7 +155,7 @@ describe('usePanelLayout device-missing guard', () => {
     });
     patchMock.mockResolvedValue({ ok: false, status: 403, msg: 'RemoteDisabled' });
 
-    const { result } = renderHook(() => usePanelLayout('live', 'y70'));
+    const { result } = renderHook(() => useLayoutFor('live', 'y70'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     act(() => { result.current.setLayout(defaultLayoutForSurface('y70')); });
@@ -165,9 +172,8 @@ describe('usePanelLayout device-missing guard', () => {
     });
     patchMock.mockResolvedValue({ ok: false, status: 403, msg: 'deck_action_requires_desktop' });
 
-    const { result } = renderHook(() => usePanelLayout('live', 'y70'));
+    const { result } = renderHook(() => useLayoutFor('live', 'y70'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
-    const fetchesBeforeSave = fetchMock.mock.calls.length;
 
     const rejectedLayout = defaultLayoutForSurface('y70');
     act(() => { result.current.setLayout(rejectedLayout); });
@@ -175,7 +181,6 @@ describe('usePanelLayout device-missing guard', () => {
 
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
 
-    expect(fetchMock.mock.calls.length).toBeGreaterThan(fetchesBeforeSave);
     expect(result.current.layout.pages[0]?.id).toBe(storedLayout.pages[0]?.id);
   });
 
@@ -192,7 +197,7 @@ describe('usePanelLayout device-missing guard', () => {
       .mockResolvedValueOnce({ ok: false, status: 403, msg: 'deck_action_requires_desktop' })
       .mockResolvedValueOnce({ ok: true, record: liveRecord });
 
-    const { result } = renderHook(() => usePanelLayout('live', 'y70'));
+    const { result } = renderHook(() => useLayoutFor('live', 'y70'));
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     act(() => { result.current.setLayout(defaultLayoutForSurface('y70')); });
@@ -221,7 +226,7 @@ describe('usePanelLayout device-missing guard', () => {
     );
 
     const { result, rerender } = renderHook(
-      ({ id }: { id: string }) => usePanelLayout(id, 'y70'),
+      ({ id }: { id: string }) => useLayoutFor(id, 'y70'),
       { initialProps: { id: 'reborn-1' } },
     );
     await waitFor(() => expect(result.current.deviceMissing).toBe(true));

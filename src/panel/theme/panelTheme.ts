@@ -5,17 +5,14 @@ import {
   DEFAULT_ACCENT, LANGUAGES, THEME_MODES, deriveAccentVars, resolveTheme,
   type Language, type ThemeMode,
 } from '../../lib/settings';
-import { fetchPreferences } from '../../api/profiles';
-import { fetchPanelDevice, patchPanelDevice, type PanelDevicePatch } from '../../api/panel';
-import { broadcastLayoutChanged, onLayoutChanged } from '../engine/panelSync';
+import { fetchPreferences, type Preferences } from '../../api/profiles';
+import { patchPanelDevice, type PanelDevicePatch, type PanelDeviceRecord } from '../../api/panel';
+import { broadcastLayoutChanged } from '../engine/panelSync';
+import type { PanelRecordState } from '../engine/usePanelRecord';
 import {
-  DEFAULT_PANEL_BACKGROUND_EFFECT,
-  DEFAULT_PANEL_BACKGROUND_FROST,
   DEFAULT_PANEL_BACKGROUND_TEMPLATE,
   defaultBackgroundOpacityForMode,
-  defaultPanelWidgetLabels,
-  defaultPanelWidgetOpacity,
-  defaultPanelWidgetPadding,
+  backdropHintFromUrl,
   normalizePanelBackgroundEffect,
   resolvePanelBackdrop,
   type PanelBackdrop,
@@ -133,11 +130,9 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
 // never mutated). Single-widget surfaces (q-series) force labels off so the
 // tile fills the canvas, and force widget blur off + opacity 0 so the tile
 // floats clean over the shader with no card chrome. The embedded desktop
-// dashboard has no per-device theme record - usePanelTheme's fetch is gated
-// on `enabled` (false whenever the caller passes kioskBehavior, itself false
-// when embedded) - so its widgetPadding never resolves past baseTheme's
-// initial default; this forces it to the slider's maximum (100%) as a
-// surface-level default instead.
+// dashboard has no per-device theme record (INERT_PANEL_RECORD), so its
+// widgetPadding never resolves past the initial default; this forces it to the
+// slider's maximum (100%) as a surface-level default instead.
 export function resolveEffectivePanelTheme(baseTheme: PanelThemeState, surface: PanelSurface): PanelThemeState {
   if (isSingleWidgetSurface(surface)) {
     return { ...baseTheme, widgetLabels: false, widgetOpacity: 0, widgetPadding: 0 };
@@ -149,29 +144,126 @@ export function resolveEffectivePanelTheme(baseTheme: PanelThemeState, surface: 
 }
 
 // Panel browsers (kiosk Edge, iOS WKWebView, other tabs) have their own
-// localStorage; this fetch surfaces the desktop app's language choice.
-// Mirrors usePanelTheme's fetch-and-apply shape.
-export function usePanelLanguageSync(enabled = true) {
-  const { language, setLanguage } = useTranslation();
-  const languageRef = useRef(language);
-  useEffect(() => { languageRef.current = language; }, [language]);
+// localStorage, so the desktop app's choice arrives with the preferences the
+// theme hook already read.
+const PREFS_RETRY_MS = [2000, 4000, 8000];
 
-  const syncLanguage = useCallback(() => {
+export function usePanelLanguageSync(enabled: boolean, prefs: Preferences | null) {
+  const { language, setLanguage } = useTranslation();
+  const next = prefs?.theme?.language;
+  useEffect(() => {
+    if (!enabled || typeof next !== 'string' || next === language) return;
+    if (!(LANGUAGES as readonly string[]).includes(next)) return;
+    setLanguage(next as Language);
+  }, [enabled, next, language, setLanguage]);
+}
+
+/**
+ * The panel's theme as the service describes it: desktop preferences supply
+ * the sync sources (theme mode, accent), the device record everything
+ * per-panel. Both may be absent, in which case every field takes its default.
+ */
+export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRecord | null): PanelThemeState {
+  const t = prefs?.theme;
+  const r = record;
+  // Single-widget immersive surfaces (q60) fill the screen with one tile, so a
+  // solid background or an opaque widget would hide the lighting: they default
+  // to a plasma shader behind a transparent widget.
+  const single = isSingleWidgetSurface(r?.capabilities?.surface as PanelSurface);
+  // Back-compat: seed the active shader's preset from the legacy scalar when
+  // the per-shader map does not carry it.
+  const effect = r?.backgroundEffect == null && single
+    ? 'plasma'
+    : normalizePanelBackgroundEffect(r?.backgroundEffect);
+  const templates: Record<string, number> = { ...(r?.backgroundTemplates ?? {}) };
+  if (templates[effect] === undefined) {
+    templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);
+  }
+  const bgMode: PanelBackgroundMode = r?.backgroundMode == null && single
+    ? 'shader'
+    : normalizePanelBackgroundMode(r?.backgroundMode);
+  const backdrop = resolvePanelBackdrop(
+    r?.backdrop,
+    supportsDesktopWallpaper((r?.capabilities?.surface ?? '') as PanelSurface, !!r?.displayId),
+  );
+  return {
+    appThemeMode: normalizePanelThemeMode(t?.themeMode),
+    appResolvedThemeMode: t?.resolvedThemeMode === 'dark' || t?.resolvedThemeMode === 'light'
+      ? t.resolvedThemeMode : '',
+    themeSyncWithDesktop: normalizePanelDesktopSync(r?.themeSyncWithDesktop),
+    themeMode: normalizePanelThemeMode(r?.themeMode),
+    appAccentColor: t?.accentColor || DEFAULT_ACCENT,
+    accentSyncWithDesktop: normalizePanelDesktopSync(r?.accentSyncWithDesktop),
+    accentColor: r?.accentColor ?? '',
+    backgroundColor: r?.backgroundColor ?? '',
+    backgroundColorLight: r?.backgroundColorLight ?? '',
+    backgroundMode: bgMode,
+    backgroundEffect: effect,
+    backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
+    backgroundTemplates: templates,
+    // No stored opacity: mode-aware default (solid opaque, overlay 50%), except
+    // under a non-theme backdrop, which is opaque so see-through never
+    // inherits a shader/media dim.
+    backgroundOpacity: r?.backgroundOpacity == null
+      ? (backdrop !== 'theme' ? 1 : defaultBackgroundOpacityForMode(bgMode))
+      : normalizePanelBackgroundOpacity(r.backgroundOpacity),
+    backdrop,
+    backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
+    backgroundMediaId: r?.backgroundMediaId ?? null,
+    backgroundMediaType: r?.backgroundMediaType ?? null,
+    backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
+    widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
+    widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
+    widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
+  };
+}
+
+/**
+ * Desktop preferences, retried until they arrive and refreshed on the `prefs`
+ * topic. A failed read keeps the last good copy: the panel must not snap back
+ * to defaults because one request timed out.
+ */
+function usePanelPreferences(enabled: boolean): Preferences | null {
+  const [prefs, setPrefs] = useState<Preferences | null>(null);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attempt = useRef(0);
+  const generation = useRef(0);
+
+  const load = useCallback(() => {
     if (!enabled) return;
-    fetchPreferences().then(prefs => {
-      const next = prefs?.theme?.language;
-      if (typeof next !== 'string') return;
-      if (!(LANGUAGES as readonly string[]).includes(next)) return;
-      if (next === languageRef.current) return;
-      setLanguage(next as Language);
-    }).catch(() => { /* keep current language */ });
-  }, [enabled, setLanguage]);
+    if (retryTimer.current) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
+    const mine = ++generation.current;
+    const retryLater = () => {
+      if (mine !== generation.current) return;
+      const delay = PREFS_RETRY_MS[Math.min(attempt.current++, PREFS_RETRY_MS.length - 1)];
+      retryTimer.current = setTimeout(load, delay);
+    };
+    void fetchPreferences().then(next => {
+      if (mine !== generation.current) return;
+      if (next) {
+        attempt.current = 0;
+        setPrefs(next);
+        return;
+      }
+      retryLater();
+    }).catch(retryLater);
+  }, [enabled]);
 
   useEffect(() => {
-    if (!enabled) return undefined;
-    syncLanguage();
-    return onLayoutChanged(syncLanguage);
-  }, [enabled, syncLanguage]);
+    load();
+    return () => {
+      if (retryTimer.current) {
+        clearTimeout(retryTimer.current);
+        retryTimer.current = null;
+      }
+    };
+  }, [load]);
+  useTopicCallback('prefs', enabled, load);
+
+  return prefs;
 }
 
 // Panel theme/visual settings are PER-PANEL on the device record
@@ -179,30 +271,18 @@ export function usePanelLanguageSync(enabled = true) {
 // `prefs.panel`. `deviceId` selects which panel's settings, so editing the Q60
 // never touches the Y70. The only cross-surface link is the desktop app theme
 // (`prefs.theme`), the sync source for theme-mode + accent when sync is on.
-export function usePanelTheme(deviceId: string | null | undefined, enabled = true, persist = true) {
-  const [theme, setTheme] = useState<PanelThemeState>({
-    appThemeMode: 'system',
-    appResolvedThemeMode: '',
-    themeSyncWithDesktop: true,
-    themeMode: 'system',
-    appAccentColor: DEFAULT_ACCENT,
-    accentSyncWithDesktop: true,
-    accentColor: '',
-    backgroundColor: '',
-    backgroundColorLight: '',
-    backgroundMode: 'solid',
-    backgroundEffect: DEFAULT_PANEL_BACKGROUND_EFFECT,
-    backgroundTemplate: DEFAULT_PANEL_BACKGROUND_TEMPLATE,
-    backgroundTemplates: {},
-    backgroundOpacity: defaultBackgroundOpacityForMode('solid'),
-    backdrop: 'theme',
-    backgroundEffectState: panelBackgroundState(DEFAULT_PANEL_BACKGROUND_EFFECT, DEFAULT_PANEL_BACKGROUND_TEMPLATE),
-    backgroundMediaId: null,
-    backgroundMediaType: null,
-    backgroundFrost: DEFAULT_PANEL_BACKGROUND_FROST,
-    widgetOpacity: defaultPanelWidgetOpacity(),
-    widgetLabels: defaultPanelWidgetLabels(),
-    widgetPadding: defaultPanelWidgetPadding(),
+export function usePanelTheme(
+  recordState: PanelRecordState,
+  deviceId: string | null | undefined,
+  enabled = true,
+  persist = true,
+) {
+  const { record, loaded: recordLoaded } = recordState;
+  const prefs = usePanelPreferences(enabled);
+  const [theme, setTheme] = useState<PanelThemeState>(() => {
+    const base = buildPanelTheme(null, null);
+    const hint = backdropHintFromUrl();
+    return hint && hint !== 'theme' ? { ...base, backdrop: hint, backgroundOpacity: 1 } : base;
   });
   const resolvedMode = useResolvedPanelThemeMode(
     // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
@@ -228,88 +308,10 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
   const [draftBackgroundState, setDraftBackgroundState] = useState<EffectState | null>(null);
   useEffect(() => { setDraftBackgroundState(null); }, [globalTemplates]);
 
-  const fetchTheme = useCallback(() => {
-    if (!enabled) return;
-    Promise.all([
-      fetchPreferences(),
-      deviceId ? fetchPanelDevice(deviceId).catch(() => null) : Promise.resolve(null),
-    ]).then(([prefs, record]) => {
-      // `t` = desktop app theme (sync source); `r` = this panel's per-device
-      // theme. Absent record fields fall back to defaults via normalize*.
-      const t = prefs?.theme;
-      const r = record;
-      // Single-widget immersive surfaces (q60) fill the screen with one tile, so
-      // a solid background or an opaque widget would hide the lighting. Their
-      // unset theme fields default to a plasma shader behind a transparent
-      // widget; an explicit per-device value always wins.
-      const single = isSingleWidgetSurface(r?.capabilities?.surface as PanelSurface);
-      // Per-shader preset map. Back-compat: seed the active shader's entry from
-      // the legacy scalar when the map doesn't carry it (old records, or a fresh
-      // record that only wrote backgroundTemplate).
-      const effect = r?.backgroundEffect == null && single
-        ? 'plasma'
-        : normalizePanelBackgroundEffect(r?.backgroundEffect);
-      const templates: Record<string, number> = { ...(r?.backgroundTemplates ?? {}) };
-      if (templates[effect] === undefined) {
-        templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);
-      }
-      const bgMode: PanelBackgroundMode = r?.backgroundMode == null && single
-        ? 'shader'
-        : normalizePanelBackgroundMode(r?.backgroundMode);
-      // Wallpaper-capable panels default to redrawing the wallpaper when the
-      // record carries no explicit choice; see resolvePanelBackdrop.
-      const backdrop = resolvePanelBackdrop(
-        r?.backdrop,
-        supportsDesktopWallpaper((r?.capabilities?.surface ?? '') as PanelSurface, !!r?.displayId),
-      );
-      setTheme({
-        appThemeMode: normalizePanelThemeMode(t?.themeMode),
-        appResolvedThemeMode: t?.resolvedThemeMode === 'dark' || t?.resolvedThemeMode === 'light'
-          ? t.resolvedThemeMode : '',
-        themeSyncWithDesktop: normalizePanelDesktopSync(r?.themeSyncWithDesktop),
-        themeMode: normalizePanelThemeMode(r?.themeMode),
-        appAccentColor: t?.accentColor || DEFAULT_ACCENT,
-        accentSyncWithDesktop: normalizePanelDesktopSync(r?.accentSyncWithDesktop),
-        accentColor: r?.accentColor ?? '',
-        backgroundColor: r?.backgroundColor ?? '',
-        backgroundColorLight: r?.backgroundColorLight ?? '',
-        backgroundMode: bgMode,
-        backgroundEffect: effect,
-        backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
-        backgroundTemplates: templates,
-        // No stored opacity -> mode-aware default (solid opaque, overlay 50%).
-        // Wallpaper mode (stored OR defaulted) defaults opaque regardless of
-        // the latent mode, so see-through never inherits a shader/media dim.
-        backgroundOpacity: r?.backgroundOpacity == null
-          ? (backdrop !== 'theme' ? 1 : defaultBackgroundOpacityForMode(bgMode))
-          : normalizePanelBackgroundOpacity(r.backgroundOpacity),
-        backdrop,
-        // Static fallback; the returned value below is derived from the global
-        // presets + the live draft.
-        backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
-        backgroundMediaId: r?.backgroundMediaId ?? null,
-        backgroundMediaType: r?.backgroundMediaType ?? null,
-        backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
-        widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
-        widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
-        widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
-      });
-    }).catch(() => { /* keep local theme */ });
-  }, [enabled, deviceId]);
-
   useEffect(() => {
-    if (!enabled) return undefined;
-    fetchTheme();
-    return onLayoutChanged(fetchTheme);
-  }, [enabled, fetchTheme]);
-  // Desktop app-theme push (the sync source) re-runs the fetch...
-  useTopicCallback('prefs', enabled, fetchTheme);
-  // ...as does a change to THIS panel's own device record (e.g. the dashboard
-  // editor patching the theme while the kiosk is live). Filter to our id.
-  useTopicCallback('panel/device', enabled, (raw) => {
-    const frame = raw as { deviceId?: string } | null;
-    if (frame?.deviceId === deviceId) fetchTheme();
-  });
+    if (!recordLoaded) return;
+    setTheme(buildPanelTheme(prefs, record));
+  }, [prefs, record, recordLoaded]);
 
   // `persist=false` (e.g. simulator) or a missing deviceId keeps changes
   // local-only (preview reacts, no write). Writes go to THIS panel's device
@@ -490,5 +492,6 @@ export function usePanelTheme(deviceId: string | null | undefined, enabled = tru
       { ...prev, widgetPadding: normalizePanelWidgetPadding(percent) }
     )),
     commitWidgetPadding,
+    prefs,
   };
 }

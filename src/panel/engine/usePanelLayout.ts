@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchPanelDeviceWithStatus, patchPanelDeviceWithStatus } from '../../api/panel';
-import { useMultiplex, useTopicCallback } from '../../hooks/useMultiplexSocket';
+import { patchPanelDeviceWithStatus } from '../../api/panel';
 import {
   isSingleWidgetSurface,
   normalizePanelWidgetSizeForSurface,
@@ -11,7 +10,8 @@ import {
 } from '../types';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from '../widgets/registry';
 import { defaultLayoutForSurface } from './defaultLayout';
-import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
+import type { PanelRecordState } from './usePanelRecord';
+import { broadcastLayoutChanged } from './panelSync';
 import {
   getMarketplaceListing,
   hasMarketplaceLoadedOnce,
@@ -114,18 +114,15 @@ interface UsePanelLayoutResult {
   layout: PanelLayout;
   loaded: boolean;
   /**
-   * True when the server has no record for this deviceId (e.g. a profile
-   * switch wiped the panel registry). The panel renders a default layout
-   * but auto-persist is suppressed because every patch would 404 in a
-   * tight loop with the auto-paginate effect.
+   * No stored layout is in hand (the record is missing, or the service has
+   * not answered yet), so the panel renders a default that must never be
+   * written back over the stored one.
    */
   deviceMissing: boolean;
   /**
-   * True right after the server rejected a save with 403 deck_action_requires_
-   * desktop (a phone session tried to introduce a privileged deck action).
-   * The layout still applied locally - only the persisted copy was refused -
-   * so this only drives a transient notice, not a rollback. Clears on the
-   * next save attempt or after a few seconds.
+   * The last save was refused as a privileged deck edit from a phone session
+   * (PanelRoutes' DeckLayoutPolicy). Drives a transient notice; cleared by
+   * the next successful save.
    */
   saveForbidden: boolean;
   setLayout: (next: PanelLayout) => void;
@@ -169,117 +166,58 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
 }
 
 /**
- * Reads the per-device panel layout from /panel/devices/{deviceId}, persists
- * changes back with a 250 ms debounce, and listens on BroadcastChannel for
- * layout-changed events from sibling tabs (kiosk + editor in the same
- * browser stay in sync). Cross-device sync arrives via the multiplex
- * panel/device topic - subscribed in PanelApp via useTopic.
+ * The panel's layout, read from the shared device record and written back
+ * with a 250 ms debounce. Sibling tabs and other devices refresh through the
+ * record store; this hook owns only the local edit path.
  */
-export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTouch?: boolean): UsePanelLayoutResult {
+export function usePanelLayout(
+  recordState: PanelRecordState,
+  deviceId: string,
+  surface: PanelSurface,
+  deviceTouch?: boolean,
+): UsePanelLayoutResult {
+  const { record, loaded, missing, refetch } = recordState;
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
-  const [loaded, setLoaded] = useState(false);
-  const [deviceMissing, setDeviceMissing] = useState(false);
   const [saveForbidden, setSaveForbidden] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Mirror of `deviceMissing` so setLayout (whose deps must stay stable)
-  // can read the latest value without rebinding on every change.
-  const deviceMissingRef = useRef(false);
-  useEffect(() => { deviceMissingRef.current = deviceMissing; }, [deviceMissing]);
-
-  const fetchLayout = useCallback(() => {
-    fetchPanelDeviceWithStatus(deviceId).then(result => {
-      if (result.found) {
-        const next = result.record.layout ?? defaultLayoutForSurface(surface);
-        // Update the ref synchronously alongside the state setter so a
-        // setLayout call later in the same commit sees the cleared flag,
-        // not the stale value the mirror effect hasn't yet written.
-        deviceMissingRef.current = false;
-        setLayoutState(normalizePanelLayout(next, surface, deviceTouch));
-        setDeviceMissing(false);
-      } else if (result.status === 404) {
-        // Device record is gone server-side (profile switch, manual delete).
-        // Render a default layout but flag the device as missing so we do
-        // NOT auto-persist - every patch would 404 in a tight loop.
-        deviceMissingRef.current = true;
-        setLayoutState(normalizePanelLayout(defaultLayoutForSurface(surface), surface, deviceTouch));
-        setDeviceMissing(true);
-      } else {
-        // We never reached the record (network, 401 after re-pair, or the
-        // bounded relay timeout). `layout` is still the local default, so
-        // auto-persist MUST stay off: `loaded` flips below either way, and
-        // the debounced write would otherwise overwrite the stored layout
-        // with that default. A later successful refetch clears the flag.
-        deviceMissingRef.current = true;
-        setDeviceMissing(true);
-      }
-      // fetchPanelDeviceWithStatus never throws today, so the .catch below
-      // only guards against a future refactor that surfaces exceptions.
-      setLoaded(true);
-    }).catch(() => {
-      // Same reasoning as the un-found branch above: nothing was loaded, so
-      // the default layout must never be persisted over the stored one.
-      deviceMissingRef.current = true;
-      setDeviceMissing(true);
-      setLoaded(true);
-    });
-  }, [deviceId, surface, deviceTouch]);
+  // Writes are allowed only against a layout we actually read back.
+  const storedLayout = record?.layout ?? null;
+  const storedRef = useRef(storedLayout);
+  useEffect(() => { storedRef.current = storedLayout; }, [storedLayout]);
+  const writable = !missing && record !== null;
+  const writableRef = useRef(writable);
+  // No dependency list: a 404 clears the ref directly, and a later successful
+  // read can hand back the same `writable` value, which would never re-arm it.
+  useEffect(() => { writableRef.current = writable; });
 
   useEffect(() => {
-    fetchLayout();
-    const unsub = onLayoutChanged(fetchLayout);
-    return unsub;
-  }, [fetchLayout]);
-  // Cross-device push: every PanelDevice mutation broadcasts 'panel/device'
-  // with the deviceId that changed. Refetch only when it's ours so two
-  // panels do not refresh on each other's edits.
-  useTopicCallback('panel/device', true, (raw) => {
-    const frame = raw as { deviceId?: string } | null;
-    if (frame?.deviceId === deviceId) fetchLayout();
-  });
-
-  // Re-pull the record when the live socket reconnects after an outage: picks
-  // up layout/theme edits made while offline, and bumps the device's
-  // LastSeenAt so the host (the Q-series watcher) can tell the panel
-  // reconnected on its own and skip a recovery reboot. useMultiplex is null
-  // outside the kiosk tree (editor/simulator), where there's nothing to
-  // reconnect.
-  const connected = useMultiplex()?.connected ?? false;
-  const prevConnectedRef = useRef(connected);
-  useEffect(() => {
-    if (connected && !prevConnectedRef.current) fetchLayout();
-    prevConnectedRef.current = connected;
-  }, [connected, fetchLayout]);
+    setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
+  }, [storedLayout, surface, deviceTouch]);
 
   const setLayout = useCallback((next: PanelLayout) => {
     const normalized = normalizePanelLayout(next, surface, deviceTouch);
     setLayoutState(normalized);
-    if (deviceMissingRef.current) return;
+    if (!writableRef.current) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
-      patchPanelDeviceWithStatus(deviceId, { layout: normalized }).then(result => {
+      void patchPanelDeviceWithStatus(deviceId, { layout: normalized }).then(result => {
         if (result.ok) {
           setSaveForbidden(false);
           broadcastLayoutChanged();
         } else if (result.status === 404) {
-          // Device went away mid-session: stop persisting until something
-          // re-registers. Set the ref synchronously so any same-tick
-          // setLayout call already in the queue is suppressed too;
-          // setDeviceMissing only kicks in next render.
-          deviceMissingRef.current = true;
-          setDeviceMissing(true);
+          writableRef.current = false;
+          refetch();
         } else if (result.status === 403 && result.msg === DECK_ACTION_REQUIRES_DESKTOP_MSG) {
-          // A phone session tried to introduce a privileged deck action
-          // (PanelRoutes' DeckLayoutPolicy) - the desktop app owns those.
-          // Refetch so local state snaps back to the stored copy: the
-          // refused edit stays showing (and re-patching) otherwise, and a
-          // later press on the divergent key would fire the stale action.
+          // The desktop app owns privileged deck actions; snap back to the
+          // stored copy so the refused edit stops re-patching.
           setSaveForbidden(true);
-          fetchLayout();
+          setLayoutState(normalizePanelLayout(
+            storedRef.current ?? defaultLayoutForSurface(surface), surface, deviceTouch));
         }
       });
     }, 250);
-  }, [deviceId, surface, deviceTouch, fetchLayout]);
+  }, [deviceId, surface, deviceTouch, refetch]);
 
   useEffect(() => {
     if (!saveForbidden) return undefined;
@@ -294,5 +232,5 @@ export function usePanelLayout(deviceId: string, surface: PanelSurface, deviceTo
     }
   }, []);
 
-  return { layout, loaded, deviceMissing, saveForbidden, setLayout };
+  return { layout, loaded, deviceMissing: !writable, saveForbidden, setLayout };
 }
