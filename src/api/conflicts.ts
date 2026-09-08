@@ -19,6 +19,10 @@ export interface DetectedConflict {
 // nexus-service's ConflictAppDefinitions.cs.
 export const HYTE_NEXUS2_CONFLICT_ID = 'hyte-nexus-2';
 
+// Catalog id of the Lian Li L-Connect conflict; same file, and the app the
+// service's DeviceControlPolicy maps every Lian Li handler to.
+export const L_CONNECT_CONFLICT_ID = 'lian-li-l-connect';
+
 export interface GetConflictsResponse {
   conflicts: DetectedConflict[];
 }

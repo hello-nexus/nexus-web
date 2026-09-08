@@ -2,7 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Fan, MonitorSmartphone, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
-import { getLianLiWirelessState, type LianLiWirelessState } from '../../../api/lianli-wireless';
+import { getLianLiWirelessState, type LianLiWirelessLinkStatus, type LianLiWirelessState } from '../../../api/lianli-wireless';
+import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
+import { L_CONNECT_CONFLICT_ID } from '../../../api/conflicts';
+import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
@@ -12,6 +15,16 @@ import styles from './LianLiWirelessDevicePage.module.scss';
 const RPM_POLL_MS = 2000;
 
 type LianLiWirelessTab = 'fans' | 'screen';
+
+// One hint line under the disconnected title. 'none' has none: the title
+// already says nothing is connected.
+const LINK_HINT_KEYS: Partial<Record<LianLiWirelessLinkStatus, string>> = {
+  txMissing: 'devices.lianli-wireless.linkTxMissing',
+  rxMissing: 'devices.lianli-wireless.linkRxMissing',
+  busy: 'devices.lianli-wireless.linkBusy',
+  openFailed: 'devices.lianli-wireless.linkOpenFailed',
+  noResponse: 'devices.lianli-wireless.linkNoResponse',
+};
 
 interface LianLiWirelessDevicePageProps {
   onSectionNavigate?: (section: string) => void;
@@ -26,6 +39,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   const { t } = useTranslation();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   const [state, setState] = useState<LianLiWirelessState | null>(null);
+  const [linkStatus, setLinkStatus] = useState<LianLiWirelessLinkStatus | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<LianLiWirelessTab>('fans');
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
@@ -34,6 +48,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
     const s = await getLianLiWirelessState();
     if (!aliveRef.current) return;
     if (s === null) return;
+    setLinkStatus(s.linkStatus);
     if (!s.isConnected) {
       connectedRef.current = false;
       setConnection('disconnected');
@@ -51,6 +66,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
     if (!connectedRef.current) { void refresh(); return; }
     const s = await getLianLiWirelessState();
     if (!aliveRef.current || s === null) return;
+    setLinkStatus(s.linkStatus);
     if (!s.isConnected) {
       connectedRef.current = false;
       setConnection('disconnected');
@@ -74,6 +90,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   }, [refresh, refreshLive]);
 
   const disconnected = connection === 'disconnected';
+  const hintKey = linkStatus ? LINK_HINT_KEYS[linkStatus] : undefined;
+  // Only polled while the reason for being down is an app holding the dongle.
+  const { conflicts } = useConflictApps(disconnected && linkStatus === 'busy');
+  const blockingApp = conflicts.find(c => c.id === L_CONNECT_CONFLICT_ID);
 
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.fans'), icon: <Fan size={14} /> },
@@ -90,7 +110,14 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
       />
       <div className={`${styles.pageBody} pageBody`}>
-        {disconnected && <EmptyState icon={<Unplug size={40} />} title={t('devices.lianli-wireless.notConnected')} />}
+        {disconnected && (
+          <EmptyState
+            icon={<Unplug size={40} />}
+            title={t('devices.lianli-wireless.notConnected')}
+            hint={hintKey ? t(hintKey) : undefined}
+            action={blockingApp ? <ConflictAppCard conflict={blockingApp} /> : undefined}
+          />
+        )}
         {/* Tab body stays mounted across a transient disconnect so a fan's
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>

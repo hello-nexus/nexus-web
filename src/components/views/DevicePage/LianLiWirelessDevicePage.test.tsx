@@ -12,6 +12,15 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
+const mockConflicts = { conflicts: [] as any[], ready: true, enabledWith: [] as boolean[] };
+
+vi.mock('../../../hooks/useConflictApps', () => ({
+  useConflictApps: (enabled: boolean) => {
+    mockConflicts.enabledWith.push(enabled);
+    return mockConflicts;
+  },
+}));
+
 const mockGetLianLiWirelessState = vi.fn();
 const mockBindLianLiWirelessFan = vi.fn();
 const mockUnbindLianLiWirelessFan = vi.fn();
@@ -48,6 +57,8 @@ const connectedState = {
 beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
+  mockConflicts.conflicts = [];
+  mockConflicts.enabledWith = [];
   mockGetLianLiWirelessState.mockResolvedValue(connectedState);
   mockBindLianLiWirelessFan.mockResolvedValue(true);
   mockUnbindLianLiWirelessFan.mockResolvedValue(true);
@@ -150,6 +161,62 @@ describe('LianLiWirelessDevicePage', () => {
       render(<LianLiWirelessDevicePage />);
     });
     expect(screen.getByText('devices.lianli-wireless.notConnected')).toBeInTheDocument();
+  });
+
+  // The module presents its transmitter and receiver as two USB devices, so the
+  // disconnected state names which half is missing instead of a bare "not connected".
+  it('names the missing half of the controller under the disconnected title', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      isConnected: false,
+      linkStatus: 'txMissing',
+      masterMac: '',
+      channel: 0,
+      txFirmwareVersion: 0,
+      fans: [],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.notConnected')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.linkTxMissing')).toBeInTheDocument();
+    // The conflicts topic is a live subscription: only 'busy' has a use for it.
+    expect(mockConflicts.enabledWith).not.toContain(true);
+  });
+
+  it('shows no hint when nothing enumerated at all', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      isConnected: false,
+      linkStatus: 'none',
+      masterMac: '',
+      channel: 0,
+      txFirmwareVersion: 0,
+      fans: [],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.notConnected')).toBeInTheDocument();
+    expect(screen.queryByText(/devices\.lianli-wireless\.link/)).not.toBeInTheDocument();
+  });
+
+  it('offers the blocking app when the dongle is held by another app', async () => {
+    mockConflicts.conflicts = [
+      { id: 'lian-li-l-connect', displayName: 'L-Connect', category: 'lighting', processName: 'L-Connect-Service.exe', pid: 7 },
+    ];
+    mockGetLianLiWirelessState.mockResolvedValue({
+      isConnected: false,
+      linkStatus: 'busy',
+      masterMac: '',
+      channel: 0,
+      txFirmwareVersion: 0,
+      fans: [],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.linkBusy')).toBeInTheDocument();
+    expect(screen.getByText('L-Connect')).toBeInTheDocument();
+    expect(mockConflicts.enabledWith).toContain(true);
   });
 
   it('shows the empty-fans note when connected but nothing is paired', async () => {

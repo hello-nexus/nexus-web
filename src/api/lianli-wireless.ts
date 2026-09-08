@@ -18,8 +18,20 @@ export interface LianLiWirelessFan {
   pwm: number[];
 }
 
+/** Why the link is down, for the device page. Absent on a service older than the field. */
+export type LianLiWirelessLinkStatus =
+  | 'ok'
+  | 'unknown'
+  | 'none'
+  | 'txMissing'
+  | 'rxMissing'
+  | 'busy'
+  | 'openFailed'
+  | 'noResponse';
+
 export interface LianLiWirelessState {
   isConnected: boolean;
+  linkStatus?: LianLiWirelessLinkStatus;
   masterMac: string;
   channel: number;
   txFirmwareVersion: number;
