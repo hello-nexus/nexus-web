@@ -8,7 +8,7 @@ import {
   ThermometerSun, AlertTriangle, CheckCircle2, Info, Power, TrendingUp,
   TrendingDown, ArrowUpRight, ArrowDownRight, BarChart3, Newspaper, Coins,
   Play, Pause, Square, RotateCcw, ChevronUp, ChevronDown, Plus, Minus, AppWindow,
-  SkipBack, SkipForward, Film,
+  SkipBack, SkipForward, Film, ExternalLink,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -22,6 +22,8 @@ export const ICON_TABLE: Record<string, LucideIcon> = {
   thermometer: ThermometerSun, warning: AlertTriangle, check: CheckCircle2, info: Info,
   power: Power, 'trending-up': TrendingUp, 'trending-down': TrendingDown,
   'arrow-up-right': ArrowUpRight, 'arrow-down-right': ArrowDownRight, chart: BarChart3,
+  // The glyph native settings use for a link that leaves the app.
+  'external-link': ExternalLink,
   news: Newspaper, coins: Coins, play: Play, pause: Pause, square: Square,
   'rotate-ccw': RotateCcw, 'chevron-up': ChevronUp, 'chevron-down': ChevronDown,
   plus: Plus, minus: Minus, 'app-window': AppWindow,
