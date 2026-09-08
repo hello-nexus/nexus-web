@@ -16,6 +16,11 @@
 .container[data-surface='kraken'],
 .container[data-surface='lcd-round'] {
   border-radius: 50%;
+  // The iframe is composited (transform-scaled) and a full-opacity video
+  // background takes its own layer, which Blink does not clip against an
+  // ancestor's border-radius. ellipse(), not circle(): it tracks the radius
+  // on a non-square canvas, which a kiosk-reported liveCanvas can produce.
+  clip-path: ellipse(50% 50%);
 }
 
 // The iframe itself is rendered at device-native canvas dimensions and
