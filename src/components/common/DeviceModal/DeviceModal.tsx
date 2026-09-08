@@ -8,6 +8,8 @@ interface DeviceModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** Smaller dim text beside the title - e.g. the hardware name a renamed device replaced. */
+  subtitle?: string;
   icon?: ReactNode;
   large?: boolean;
   wide?: boolean;
@@ -22,7 +24,7 @@ interface DeviceModalProps {
   children: ReactNode;
 }
 
-export function DeviceModal({ open, onClose, title, icon, large, wide, fullscreen, fit, medium, closable = true, headerRight, children }: DeviceModalProps) {
+export function DeviceModal({ open, onClose, title, subtitle, icon, large, wide, fullscreen, fit, medium, closable = true, headerRight, children }: DeviceModalProps) {
   const { t } = useTranslation();
   const variantClass = fullscreen ? styles.modalFullscreen
     : wide ? styles.modalWide
@@ -42,6 +44,7 @@ export function DeviceModal({ open, onClose, title, icon, large, wide, fullscree
         <div className={styles.titleRow}>
           {icon && <span className={styles.icon}>{icon}</span>}
           <h3 className={styles.title}>{title}</h3>
+          {subtitle && <span className={styles.subtitle}>{subtitle}</span>}
         </div>
         <div className={styles.headerRight}>
           {headerRight}

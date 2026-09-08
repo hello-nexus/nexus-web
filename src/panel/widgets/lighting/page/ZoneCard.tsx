@@ -5,6 +5,7 @@ import {
   type LightingDevice,
 } from '../../../../api/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { EditableText } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
@@ -73,6 +74,7 @@ export function ZoneCard({
   onToggleControlled,
   onOpenSettings,
   onOpenColorTuning,
+  onRename,
   drag,
   communityCount,
   onOpenCommunity,
@@ -108,6 +110,11 @@ export function ZoneCard({
   /** Opens the colour-tuning modal. Unlike the LED map it is meaningful for a
    *  whole selection, so the row stays on the menu in bulk mode. */
   onOpenColorTuning?: () => void;
+  /** Commits a new display name for this card. Omitted by surfaces that only
+   *  pick devices (onboarding, the immersive Static picker), where the name is
+   *  a label and not a control. Committing an empty string is impossible -
+   *  EditableText drops it - so clearing a rename is not offered here. */
+  onRename?: (name: string) => void;
   /** Optional dnd-kit drag wiring for reorderable lists. */
   drag?: SortableRowArgs;
   /** Available community layout count; the badge renders only when positive. */
@@ -168,6 +175,9 @@ export function ZoneCard({
   const menuEnabled = !toggleMode && !selectOnly
     && (firmwareControlled ? !!onTakeControl : true)
     && !(bulk && unavailable && bulk.identifyCount === 0);
+  // Same surfaces the action row is on. A card whose whole body is a switch
+  // (onboarding) or a bare pick target (Static picker) keeps a plain label.
+  const renameEnabled = !!onRename && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
 
   // Persistent marker for a card that is not in its default state, so the
   // reason is readable without hovering. An ignored device is not driven at
@@ -311,7 +321,22 @@ export function ZoneCard({
     >
       <div className={styles.deviceCardBody}>
       <div className={styles.deviceNameRow}>
-        <span className={styles.deviceName}>{displayName ?? device.name}</span>
+        {renameEnabled ? (
+          /* display:contents span carries data-no-dnd onto a real DOM node
+             (EditableText doesn't forward unknown props) so a press on the name
+             edits it instead of starting a card drag; no layout change. The
+             click guard is the card's, not the sort list's: ZoneCard selects on
+             any bare-surface click, which would fight the edit. */
+          <span data-no-dnd style={{ display: 'contents' }} onClick={e => e.stopPropagation()}>
+            <EditableText
+              value={displayName ?? device.name}
+              onCommit={onRename!}
+              className={styles.deviceName}
+            />
+          </span>
+        ) : (
+          <span className={styles.deviceName}>{displayName ?? device.name}</span>
+        )}
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
       </div>
       <div className={styles.deviceMetaRow}>

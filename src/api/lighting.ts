@@ -321,7 +321,10 @@ export const setLockBlackout = (enabled: boolean) =>
 
 export interface LightingDevice {
   id: string;
+  /** What the UI shows: the user's custom name once the card is renamed, the hardware name otherwise. */
   name: string;
+  /** The hardware name the rename replaced. Set only on a renamed card. */
+  originalName?: string;
   type?: string;
   iconType?: string;
   ledsOn: boolean;
@@ -384,6 +387,11 @@ export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | 
 
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
+
+/** Renames one lighting card. An empty name clears the rename and the card
+ *  goes back to its hardware name. */
+export const renameLightingDevice = (id: string, name: string) =>
+  postService('/devices/lighting-devices/name', { id, name });
 
 // Clears every persisted device-frame layout so each card snaps to its
 // provider-computed default position/size/rotation on the next GetAll. The

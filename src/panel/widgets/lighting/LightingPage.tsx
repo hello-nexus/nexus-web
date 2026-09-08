@@ -6,6 +6,7 @@ import {
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
+  renameLightingDevice,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   fetchStaticDeviceLooks,
@@ -1193,6 +1194,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setLightingDeviceControlled(id, controlled).catch(() => { /* 3s poll reconciles */ });
     setDevices(prev => prev.map(d => d.id === id ? { ...d, controlled } : d));
   }, []);
+  // The card keeps the hardware name it is replacing, so the LED settings
+  // modal can still show what the device calls itself. A rename off an already
+  // renamed card must not overwrite that with the previous custom name.
+  const handleRenameDevice = useCallback((id: string, name: string) => {
+    renameLightingDevice(id, name).catch(() => { /* 3s poll reconciles */ });
+    setDevices(prev => prev.map(d => d.id === id
+      ? { ...d, name, originalName: d.originalName ?? d.name }
+      : d));
+  }, []);
 
   // Device list ordering: HTML5 drag/drop on ZoneCard, persisted to
   // localStorage. Mirrors the fan-card reorder pattern, but local-only -
@@ -1991,6 +2001,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             lightingOff={effectiveMode === 'none'}
             onOpenSettings={handleOpenSettings}
             onOpenColorTuning={handleOpenColorTuning}
+            onRenameDevice={handleRenameDevice}
             onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
             communityCounts={mappingCounts}
             onOpenCommunity={handleOpenCommunity}

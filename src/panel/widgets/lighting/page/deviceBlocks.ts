@@ -78,10 +78,14 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
 // Zone names come in as "{Motherboard Name} - {Zone Name}". The parent header
 // only needs the motherboard part. Fall back to the zone name if the service
 // didn't use the separator convention.
+// Reads the hardware name, not the shown one: a renamed zone carries a name
+// the user wrote for that strip alone, and deriving the group header from it
+// would relabel the whole motherboard.
 function deriveParentName(zone: LightingDevice): string {
-  const dash = zone.name.indexOf(' - ');
-  if (dash > 0) return zone.name.slice(0, dash);
-  return zone.name;
+  const hardwareName = zone.originalName ?? zone.name;
+  const dash = hardwareName.indexOf(' - ');
+  if (dash > 0) return hardwareName.slice(0, dash);
+  return hardwareName;
 }
 
 // Strip the parent name (plus a separator) off the front of a child zone's

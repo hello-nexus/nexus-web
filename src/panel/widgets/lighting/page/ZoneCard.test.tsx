@@ -573,3 +573,58 @@ describe('ZoneCard menu highlight', () => {
   });
 });
 
+
+describe('ZoneCard rename', () => {
+  const renderRenameable = (
+    props: Partial<React.ComponentProps<typeof ZoneCard>> = {},
+    onRename: (name: string) => void = () => {},
+  ) => render(
+    <ZoneCard
+      device={baseDevice}
+      selected={false}
+      indent={false}
+      onSelect={() => {}}
+      onTogglePower={() => {}}
+      onToggleControlled={() => {}}
+      onOpenSettings={() => {}}
+      onRename={onRename}
+      {...props}
+    />,
+  );
+
+  it('commits the trimmed name on Enter', () => {
+    const onRename = vi.fn();
+    renderRenameable({}, onRename);
+    fireEvent.click(screen.getByText('Test Strip'));
+    const input = screen.getByDisplayValue('Test Strip');
+    fireEvent.change(input, { target: { value: '  Top intake  ' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onRename).toHaveBeenCalledWith('Top intake');
+  });
+
+  it('does not select the card when the name is clicked to edit it', () => {
+    const onSelect = vi.fn();
+    renderRenameable({ onSelect });
+    fireEvent.click(screen.getByText('Test Strip'));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('edits the shown name, so a grouped zone renames off its stripped label', () => {
+    const onRename = vi.fn();
+    renderRenameable({ displayName: 'ARGB header 1', indent: true }, onRename);
+    fireEvent.click(screen.getByText('ARGB header 1'));
+    expect(screen.getByDisplayValue('ARGB header 1')).toBeTruthy();
+  });
+
+  it('leaves the name a plain label where the card is only a pick target', () => {
+    renderRenameable({ selectOnly: true });
+    fireEvent.click(screen.getByText('Test Strip'));
+    expect(screen.queryByDisplayValue('Test Strip')).toBeNull();
+  });
+
+  it('leaves the name a plain label on a detection-failed card', () => {
+    renderRenameable({ device: { ...baseDevice, ledCount: 0 } });
+    fireEvent.click(screen.getByText('Test Strip'));
+    expect(screen.queryByDisplayValue('Test Strip')).toBeNull();
+  });
+});

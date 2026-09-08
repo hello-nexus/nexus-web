@@ -185,6 +185,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // resizability, the smart-light colour, and the community deviceKey all
   // resolve through it.
   const zoneCard = devices.find(d => d.id === selectedZoneId);
+  // The editor's own card, when the device is a single card the user can
+  // rename. Present only once renamed - originalName is what it replaced.
+  const renamed = devices.find(d => d.id === deviceId && d.originalName != null);
 
   // Community layouts modal, stacked on top of the editor modal. Community
   // only exists for fingerprintable zones (non-empty card deviceKey);
@@ -2006,12 +2009,17 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       onClose={handleClose}
       title={(() => {
         const base = t('lighting.ledMap.title');
+        // A rename outranks the zones API's name, which is always the hardware
+        // one. Only a card that IS the device counts: on a multi-zone device
+        // deviceId is the parent, which carries no name of its own.
+        if (renamed) return `${renamed.name.trim()} - ${base}`;
         const structName = structure?.name?.trim();
         if (structName) return `${structName} - ${base}`;
         const deviceName = devices.find(d => (d.deviceId ?? d.id) === deviceId)?.name?.trim();
         if (deviceName) return `${deviceName} - ${base}`;
         return base;
       })()}
+      subtitle={renamed?.originalName}
       wide
     >
       {loading ? (
