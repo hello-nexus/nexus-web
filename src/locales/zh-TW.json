@@ -442,6 +442,7 @@
   "cropper.converting": "轉換中…",
   "cropper.flipH": "水平翻轉",
   "cropper.flipV": "垂直翻轉",
+  "cropper.keepTransparency": "保留透明度",
   "cropper.reset": "重設",
   "cropper.rotateCcw": "逆時針旋轉",
   "cropper.rotateCw": "順時針旋轉",

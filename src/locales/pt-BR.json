@@ -442,6 +442,7 @@
   "cropper.converting": "Convertendo…",
   "cropper.flipH": "Inverter horizontalmente",
   "cropper.flipV": "Inverter verticalmente",
+  "cropper.keepTransparency": "Manter a transparência",
   "cropper.reset": "Redefinir",
   "cropper.rotateCcw": "Girar no sentido anti-horário",
   "cropper.rotateCw": "Girar no sentido horário",

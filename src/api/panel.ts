@@ -51,6 +51,7 @@ export interface PanelDeviceRecord {
   backdrop?: string | null;
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
+  backgroundMediaAlpha?: boolean | null;
   // Frost strength, percent 0-100. Absent/null defaults to
   // DEFAULT_PANEL_BACKGROUND_FROST (normalizePanelBackgroundFrost).
   backgroundFrostLevel?: number | null;
@@ -104,6 +105,7 @@ export interface PanelDevicePatch {
   backgroundMediaId?: string | null;
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
   backgroundMediaType?: 'static' | 'animated' | '' | null;
+  backgroundMediaAlpha?: boolean | null;
   backgroundFrostLevel?: number;
   widgetOpacity?: number;
   widgetLabels?: boolean;

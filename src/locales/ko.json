@@ -442,6 +442,7 @@
   "cropper.converting": "변환 중…",
   "cropper.flipH": "좌우 반전",
   "cropper.flipV": "상하 반전",
+  "cropper.keepTransparency": "투명도 유지",
   "cropper.reset": "초기화",
   "cropper.rotateCcw": "반시계 방향으로 회전",
   "cropper.rotateCw": "시계 방향으로 회전",

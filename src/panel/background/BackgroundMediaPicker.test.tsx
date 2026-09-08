@@ -25,7 +25,7 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
   }),
   probeBackgroundMediaStageSize: vi.fn((_deviceId: string, stageId: string) => Promise.resolve(api.sizes[stageId] ?? null)),
   commitBackgroundMedia: vi.fn((_deviceId: string, stageId: string) => Promise.resolve({
-    item: { id: `item-${stageId}`, name: stageId, sourceExt: '.jpg', type: 'static', width: 720, height: 1280, importedAtUnixMs: 1, durationSec: 0 },
+    item: { id: `item-${stageId}`, name: stageId, sourceExt: '.jpg', type: 'static', width: 720, height: 1280, importedAtUnixMs: 1, durationSec: 0, alpha: false },
     error: false,
     msg: '',
   })),
@@ -124,7 +124,7 @@ describe('BackgroundMediaPicker folder import', () => {
     // evenly left and right.
     expect(commitBackgroundMedia).toHaveBeenNthCalledWith(2, 'dev1', 'stage-b.jpg', '0.359375,0.000000,0.281250,1.000000', 720, 1280);
     expect(api.refresh).toHaveBeenCalled();
-    expect(onSelect).toHaveBeenCalledWith('item-stage-a.mp4', 'static');
+    expect(onSelect).toHaveBeenCalledWith('item-stage-a.mp4', 'static', false);
     expect(screen.queryByText(/importFolderPartial|importFolderEmpty/)).toBeNull();
   });
 
@@ -138,7 +138,7 @@ describe('BackgroundMediaPicker folder import', () => {
       new File(['x'], 'b.png', { type: 'image/png' }),
     ]);
 
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-b.png', 'static'));
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-b.png', 'static', false));
     expect(screen.getByText('lighting.controls.importFolderPartial:failed=1:total=2')).toBeInTheDocument();
     expect(commitBackgroundMedia).toHaveBeenCalledTimes(1);
   });
@@ -169,7 +169,7 @@ describe('BackgroundMediaPicker folder import', () => {
       new File(['x'], 'c.jpg', { type: 'image/jpeg' }),
     ]);
 
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-a.jpg', 'static'));
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-a.jpg', 'static', false));
     expect(screen.getByText('lighting.controls.importNetworkError')).toBeInTheDocument();
     expect(vi.mocked(stageBackgroundMedia).mock.calls.map(c => c[1].name)).toEqual(['a.jpg', 'b.jpg']);
     expect(commitBackgroundMedia).toHaveBeenCalledTimes(1);

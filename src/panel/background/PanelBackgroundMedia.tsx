@@ -2,10 +2,12 @@ import { type CSSProperties, useEffect, useRef } from 'react';
 import { backgroundMediaFileUrl } from '../../api/panelBackgroundMedia';
 import styles from '../PanelApp.module.scss';
 
-export function PanelBackgroundMedia({ id, deviceId, type, opacity }: {
+export function PanelBackgroundMedia({ id, deviceId, type, alpha, opacity }: {
   id: string;
   deviceId: string;
   type: 'static' | 'animated';
+  /** Transparent assets are png/gif, so an animated one still renders in an <img>. */
+  alpha?: boolean;
   opacity: number;
 }) {
   const url = backgroundMediaFileUrl(deviceId, id);
@@ -24,7 +26,7 @@ export function PanelBackgroundMedia({ id, deviceId, type, opacity }: {
       style={style}
       aria-hidden="true"
     >
-      {type === 'static' ? (
+      {type === 'static' || alpha ? (
         <img
           src={url}
           alt=""

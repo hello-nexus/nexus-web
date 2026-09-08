@@ -442,6 +442,7 @@
   "cropper.converting": "変換中…",
   "cropper.flipH": "左右反転",
   "cropper.flipV": "上下反転",
+  "cropper.keepTransparency": "透明部分を保持",
   "cropper.reset": "リセット",
   "cropper.rotateCcw": "反時計回りに回転",
   "cropper.rotateCw": "時計回りに回転",

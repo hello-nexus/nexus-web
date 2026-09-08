@@ -1389,7 +1389,7 @@ function PreviewPanelThemeSettings() {
     backgroundOpacity: 0.4,
     backdrop: 'theme' as const,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
-    backgroundMediaId: null, backgroundMediaType: null, backgroundFrost: 0,
+    backgroundMediaId: null, backgroundMediaType: null, backgroundMediaAlpha: false, backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));

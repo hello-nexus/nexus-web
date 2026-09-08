@@ -9,12 +9,14 @@ export interface BackgroundMediaItem {
   height: number;
   importedAtUnixMs: number;
   durationSec: number;
+  /** Baked with a real alpha channel: the media is png (static) or gif (animated). */
+  alpha: boolean;
 }
 
 export const fetchBackgroundMediaLibrary = (deviceId: string) =>
   fetchService<{ items: BackgroundMediaItem[] }>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/library`);
 
-export interface BackgroundMediaStageResult { stageId: string; error: boolean; msg: string }
+export interface BackgroundMediaStageResult { stageId: string; alpha: boolean; error: boolean; msg: string }
 
 // Stage and commit answer a refusal (oversize, unsupported, unreadable) with
 // its message and null only when the service is unreachable, so a folder
@@ -49,12 +51,20 @@ export function probeBackgroundMediaStageSize(deviceId: string, stageId: string)
 
 export interface BackgroundMediaCommitResult { item: BackgroundMediaItem | null; error: boolean; msg: string }
 
-export async function commitBackgroundMedia(deviceId: string, stageId: string, crop: string, w: number, h: number): Promise<BackgroundMediaCommitResult | ServiceRefusal | null> {
+export async function commitBackgroundMedia(
+  deviceId: string,
+  stageId: string,
+  crop: string,
+  w: number,
+  h: number,
+  keepTransparency = true,
+): Promise<BackgroundMediaCommitResult | ServiceRefusal | null> {
   const form = new FormData();
   form.append('stageId', stageId);
   form.append('crop', crop);
   form.append('w', String(w));
   form.append('h', String(h));
+  form.append('keepTransparency', keepTransparency ? '1' : '0');
   return postServiceFormResult<BackgroundMediaCommitResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/commit`, form);
 }
 
