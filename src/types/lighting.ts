@@ -127,12 +127,13 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   mandelbrot: 'geometric', circuit: 'geometric', crystaltunnel: 'geometric',
   ringtunnel: 'geometric', vortextunnel: 'geometric', helixtunnel: 'geometric',
   boxtunnel: 'geometric', harlequin: 'geometric', mosaic: 'geometric',
-  // Pattern: waves, gradients, abstract graphic shapes (18).
+  // Pattern: waves, gradients, abstract graphic shapes (19).
   rainbow: 'pattern', matrix: 'pattern', ripple: 'pattern', wave: 'pattern',
   gradientwave: 'pattern', ball: 'pattern', radar: 'pattern', pulse: 'pattern',
   interference: 'pattern', domainwarp: 'pattern', dotmatrix: 'pattern',
   prismwave: 'pattern', ribbonflow: 'pattern', meshgradient: 'pattern',
   tide: 'pattern', ridgeline: 'pattern', chevron: 'pattern', terrace: 'pattern',
+  sharplines: 'pattern',
 };
 
 export const BASE_DEFAULTS: Omit<EffectState, 'params'> = {
@@ -264,6 +265,14 @@ export const EFFECTS: EffectDef[] = [
   { key: 'rainbow',     labelKey: 'lighting.controls.rainbow',     params: [
       { name: 'u_density',  label: 'Density', labelKey: 'lighting.controls.param.density',  min: 0.2, max: 3,   step: 0.05, defaultValue: 1 },
       { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation', min: 0,   max: 360, step: 5,    defaultValue: 0 },
+  ]},
+  // Brushstrokes' hard-edged sibling: flat hue bars with black between them.
+  // Position slides the colour/black split inside each bar, so it thickens the
+  // gaps the way splitsharp's Position grows one side of the frame.
+  { key: 'sharplines',  labelKey: 'lighting.controls.sharplines',  params: [
+      { name: 'u_density',  label: 'Density', labelKey: 'lighting.controls.param.density',  min: 1,    max: 10,  step: 0.5,  defaultValue: 5 },
+      { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation', min: 0,    max: 360, step: 5,    defaultValue: 0 },
+      { name: 'u_position', label: 'Position', labelKey: 'lighting.controls.param.position', min: 0.05, max: 1,    step: 0.01, defaultValue: 0.5 },
   ]},
   { key: 'spiral',       labelKey: 'lighting.controls.spiral',       params: [
       { name: 'u_arms',      label: 'Arms', labelKey: 'lighting.controls.param.arms',      min: 1, max: 10, step: 1,   defaultValue: 5 },
