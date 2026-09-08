@@ -96,7 +96,15 @@
   color: var(--text);
 }
 
-// Secondary label beside the title - the hardware name a renamed device
+// Title plus its optional secondary line, stacked so the subtitle reads as
+// belonging to the title rather than sitting beside the icon.
+.titleStack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+// Secondary label under the title - the hardware name a renamed device
 // replaced. Deliberately smaller and dim so the title still leads.
 .subtitle {
   font-size: var(--type-small);

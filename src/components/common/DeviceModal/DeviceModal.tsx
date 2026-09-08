@@ -8,7 +8,7 @@ interface DeviceModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  /** Smaller dim text beside the title - e.g. the hardware name a renamed device replaced. */
+  /** Smaller dim line under the title - e.g. the hardware name a renamed device replaced. */
   subtitle?: string;
   icon?: ReactNode;
   large?: boolean;
@@ -43,8 +43,10 @@ export function DeviceModal({ open, onClose, title, subtitle, icon, large, wide,
       <div className={styles.header}>
         <div className={styles.titleRow}>
           {icon && <span className={styles.icon}>{icon}</span>}
-          <h3 className={styles.title}>{title}</h3>
-          {subtitle && <span className={styles.subtitle}>{subtitle}</span>}
+          <div className={styles.titleStack}>
+            <h3 className={styles.title}>{title}</h3>
+            {subtitle && <span className={styles.subtitle}>{subtitle}</span>}
+          </div>
         </div>
         <div className={styles.headerRight}>
           {headerRight}

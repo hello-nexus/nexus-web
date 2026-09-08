@@ -188,6 +188,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // The editor's own card, when the device is a single card the user can
   // rename. Present only once renamed - originalName is what it replaced.
   const renamed = devices.find(d => d.id === deviceId && d.originalName != null);
+  // A zone's card carries the id the structure gives its zone, so a card
+  // renamed on the device rail names its chip here too.
+  const zoneDisplayName = (zone: { id: string; name: string }) =>
+    devices.find(d => d.id === zone.id && d.originalName != null)?.name ?? zone.name;
 
   // Community layouts modal, stacked on top of the editor modal. Community
   // only exists for fingerprintable zones (non-empty card deviceKey);
@@ -2008,16 +2012,15 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       open
       onClose={handleClose}
       title={(() => {
-        const base = t('lighting.ledMap.title');
         // A rename outranks the zones API's name, which is always the hardware
         // one. Only a card that IS the device counts: on a multi-zone device
         // deviceId is the parent, which carries no name of its own.
-        if (renamed) return `${renamed.name.trim()} - ${base}`;
+        if (renamed) return renamed.name.trim();
         const structName = structure?.name?.trim();
-        if (structName) return `${structName} - ${base}`;
+        if (structName) return structName;
         const deviceName = devices.find(d => (d.deviceId ?? d.id) === deviceId)?.name?.trim();
-        if (deviceName) return `${deviceName} - ${base}`;
-        return base;
+        if (deviceName) return deviceName;
+        return t('lighting.ledMap.title');
       })()}
       subtitle={renamed?.originalName}
       wide
@@ -2063,7 +2066,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                       className={styles.zoneChipName}
                       onClick={e => handleZoneChipClick(z.id, isMultiSelectModifier(e))}
                     >
-                      {z.name}
+                      {zoneDisplayName(z)}
                       <span className={styles.zoneChipCount}>
                         {formatZoneChipCount(enabledByZone.get(z.id) ?? 0, zoneLedCount(z))}
                       </span>

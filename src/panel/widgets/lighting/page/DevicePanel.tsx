@@ -181,7 +181,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
 
   const renderBlock = (block: DeviceBlock, a: SortableRowArgs | null) => {
     if (block.kind === 'single') return renderCard(block.device, false, undefined, undefined, a ?? undefined);
-    const { groupKey, label, isBrand, isSmartHub, devices: members } = block;
+    const { groupKey, label, stripLabel, parentDeviceId, isBrand, isSmartHub, devices: members } = block;
     const groupOn = members.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of members) onSetPower(z.id, target); };
     const groupControlled = members.some(z => z.controlled !== false);
@@ -208,6 +208,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     const memberIds = members.map(d => d.id);
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
+        onRename={onRenameDevice && parentDeviceId ? name => onRenameDevice(parentDeviceId, name) : undefined}
         groupOn={groupOn} onTogglePower={handleToggle}
         groupControlled={groupControlled} onToggleControlled={handleToggleControlled}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
@@ -237,7 +238,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
             if (!z) return null;
             return isBrand
               ? renderCard(z, true, undefined, undefined, da)
-              : renderCard(z, true, stripParentPrefix(z.name, label), isSmartHub && fwOn, da);
+              : renderCard(z, true, stripParentPrefix(z.name, stripLabel), isSmartHub && fwOn, da);
           }}
         />
       </MotherboardGroup>

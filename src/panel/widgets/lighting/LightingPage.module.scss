@@ -1150,6 +1150,10 @@
   min-width: 0;
 
   .deviceName { flex: 1 1 auto; min-width: 0; }
+
+  // Click-to-edit name: the hit area is the text itself, not the whole row, so
+  // a click beside a short name still selects the card. Matches the fan card.
+  .deviceNameEditable { flex: 0 1 auto; max-width: 100%; }
 }
 
 .deviceName {

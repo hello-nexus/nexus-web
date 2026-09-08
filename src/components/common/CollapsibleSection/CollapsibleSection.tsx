@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type SortableRowArgs } from '../SortableList/SortableList';
+import { EditableText } from '../Editable/EditableText';
 import styles from './CollapsibleSection.module.scss';
 
 /**
@@ -30,6 +31,7 @@ export function CollapsibleSection({
   ariaLabel,
   sectionId,
   drag,
+  onTitleRename,
   children,
 }: {
   title: ReactNode;
@@ -63,9 +65,15 @@ export function CollapsibleSection({
   /** When set, the whole section becomes reorderable among its siblings via
    *  dnd-kit. The toggle button is the drag handle. */
   drag?: SortableRowArgs;
+  /** Makes the header title click-to-edit. Requires a string `title`; the title
+   *  then leaves the toggle button (a text field cannot nest in one), so the
+   *  chevron and the bar's empty run toggle the section and the title alone
+   *  edits. */
+  onTitleRename?: (name: string) => void;
   children: ReactNode;
 }) {
   const Chevron = open ? ChevronDown : ChevronRight;
+  const editableTitle = onTitleRename !== undefined && typeof title === 'string';
 
   const classNames = [
     styles.section,
@@ -90,21 +98,55 @@ export function CollapsibleSection({
         {/* The toggle (chevron + title + any non-interactive `right` content) is
             the drag handle; an interactive `right` control sits outside it so a
             press-drag on a power switch never starts a group reorder. */}
-        <button
-          type="button"
-          className={styles.toggle}
-          data-drag-handle={drag ? 'true' : undefined}
-          aria-expanded={open}
-          aria-label={ariaLabel}
-          onClick={onToggle}
-          {...(drag?.listeners ?? {})}
-        >
-          <Chevron className={styles.chevron} aria-hidden />
-          <span className={styles.title}>{title}</span>
-          {titleAfter}
-          {right !== undefined && !rightInteractive && <span className={styles.right}>{right}</span>}
-        </button>
-        {right !== undefined && rightInteractive && <div className={styles.right}>{right}</div>}
+        {editableTitle ? (
+          <>
+            <button
+              type="button"
+              className={styles.toggleChevron}
+              data-drag-handle={drag ? 'true' : undefined}
+              aria-expanded={open}
+              aria-label={ariaLabel}
+              onClick={onToggle}
+              {...(drag?.listeners ?? {})}
+            >
+              <Chevron className={styles.chevron} aria-hidden />
+            </button>
+            <EditableText
+              value={title as string}
+              onCommit={onTitleRename!}
+              className={styles.title}
+            />
+            {titleAfter}
+            {/* Keeps the bar's empty run a toggle target now that the title owns
+                its own clicks. Hidden from a11y: the chevron is the control. */}
+            <button
+              type="button"
+              className={styles.toggleFill}
+              tabIndex={-1}
+              aria-hidden="true"
+              onClick={onToggle}
+            />
+            {right !== undefined && <div className={styles.right}>{right}</div>}
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={styles.toggle}
+              data-drag-handle={drag ? 'true' : undefined}
+              aria-expanded={open}
+              aria-label={ariaLabel}
+              onClick={onToggle}
+              {...(drag?.listeners ?? {})}
+            >
+              <Chevron className={styles.chevron} aria-hidden />
+              <span className={styles.title}>{title}</span>
+              {titleAfter}
+              {right !== undefined && !rightInteractive && <span className={styles.right}>{right}</span>}
+            </button>
+            {right !== undefined && rightInteractive && <div className={styles.right}>{right}</div>}
+          </>
+        )}
       </div>
       {open && <div className={styles.body}>{children}</div>}
     </div>

@@ -331,7 +331,7 @@ export function ZoneCard({
             <EditableText
               value={displayName ?? device.name}
               onCommit={onRename!}
-              className={styles.deviceName}
+              className={`${styles.deviceName} ${styles.deviceNameEditable}`}
             />
           </span>
         ) : (

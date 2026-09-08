@@ -140,17 +140,71 @@ describe('LedMapEditor header on a renamed device', () => {
 
   it('titles the modal with the custom name, not the name the zones API reports', async () => {
     renderRenamed({ ...q60, name: 'Top intake', originalName: 'HYTE Q60' });
-    await waitFor(() => expect(screen.getByText('Top intake - lighting.ledMap.title')).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Top intake' })).toBeTruthy());
   });
 
-  it('keeps the hardware name visible beside it', async () => {
+  it('keeps the hardware name visible under it', async () => {
     renderRenamed({ ...q60, name: 'Top intake', originalName: 'HYTE Q60' });
     await waitFor(() => expect(screen.getByText('HYTE Q60')).toBeTruthy());
   });
 
+  it('titles with the device name alone, without the LED map suffix', async () => {
+    renderRenamed(q60);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Q60' })).toBeTruthy());
+  });
+
   it('shows no second name when the device was never renamed', async () => {
     renderRenamed(q60);
-    await waitFor(() => expect(screen.getByText('HYTE Q60 - lighting.ledMap.title')).toBeTruthy());
-    expect(screen.queryByText('HYTE Q60')).toBeNull();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Q60' })).toBeTruthy());
+    expect(screen.queryAllByText('HYTE Q60')).toHaveLength(1);
+  });
+});
+
+// A keeb-shaped device: two zones whose ids ARE the device-rail card ids, so a
+// card renamed on the rail has to name its chip here too.
+describe('LedMapEditor zone chips on a renamed zone card', () => {
+  const parent = 'keeb:tkl-1';
+  const keys = { ...q60, id: `${parent}:keys`, name: 'HYTE Keeb TKL - Keys', parentDeviceId: parent, zoneIndex: 0, deviceId: parent };
+  const under = { ...q60, id: `${parent}:underglow`, name: 'HYTE Keeb TKL - Underglow', parentDeviceId: parent, zoneIndex: 1, deviceId: parent };
+
+  const renderKeeb = (cards: LightingDevice[]) => {
+    api.fetchDeviceStructure.mockResolvedValue({
+      id: parent, name: 'HYTE Keeb TKL', deviceKey: 'k', isDefaultPartition: true,
+      segments: [
+        { index: 0, name: 'Keys', ledCount: 96, resizable: false, zoneType: 'matrix' },
+        { index: 1, name: 'Underglow', ledCount: 51, resizable: false, zoneType: 'linear' },
+      ],
+      zones: [
+        { id: keys.id, name: 'Keys', slices: [{ segment: 0, start: 0, count: 96 }] },
+        { id: under.id, name: 'Underglow', slices: [{ segment: 1, start: 0, count: 51 }] },
+      ],
+    });
+    api.fetchDeviceMap.mockResolvedValue({ id: parent, aspectRatio: 0, segments: [] });
+    return render(
+      <LedMapEditor
+        deviceId={parent}
+        initialZoneId={under.id}
+        devices={cards}
+        zoneCustomizable
+        onClose={() => {}}
+      />,
+    );
+  };
+
+  it('names the chip with the card rename, not the zones API name', async () => {
+    renderKeeb([keys, { ...under, name: 'Desk glow', originalName: 'HYTE Keeb TKL - Underglow' }]);
+    await waitFor(() => expect(screen.getByText('Desk glow')).toBeTruthy());
+    expect(screen.queryByText('Underglow')).toBeNull();
+  });
+
+  it('leaves an unrenamed zone on its zones API name', async () => {
+    renderKeeb([keys, under]);
+    await waitFor(() => expect(screen.getByText('Underglow')).toBeTruthy());
+  });
+
+  it('adds no second name line for a zone rename', async () => {
+    renderKeeb([keys, { ...under, name: 'Desk glow', originalName: 'HYTE Keeb TKL - Underglow' }]);
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Keeb TKL' })).toBeTruthy());
+    expect(screen.queryByText('HYTE Keeb TKL - Underglow')).toBeNull();
   });
 });

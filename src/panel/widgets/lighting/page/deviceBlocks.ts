@@ -25,7 +25,19 @@ function brandLabel(prefix: string): string {
 
 export type DeviceBlock =
   | { kind: 'single'; device: LightingDevice }
-  | { kind: 'group'; groupKey: string; label: string; isBrand: boolean; isSmartHub: boolean; devices: LightingDevice[] };
+  | {
+      kind: 'group';
+      groupKey: string;
+      /** Header text: the group's custom name once renamed, else the hardware one. */
+      label: string;
+      /** The hardware name always, so a renamed group still strips the prefix off its children. */
+      stripLabel: string;
+      /** Rename target, absent on brand groups (a brand label belongs to no device). */
+      parentDeviceId?: string;
+      isBrand: boolean;
+      isSmartHub: boolean;
+      devices: LightingDevice[];
+    };
 
 /**
  * One ordered list of blocks: a single card, a motherboard group, or a
@@ -52,11 +64,21 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
     const brand = brandKeyFor(d.id);
     if (brand) {
       const key = 'brand:' + brand;
-      addToGroup(key, () => ({ kind: 'group', groupKey: key, label: brandLabel(brand), isBrand: true, isSmartHub: false, devices: [d] }), d);
+      const brandName = brandLabel(brand);
+      addToGroup(key, () => ({ kind: 'group', groupKey: key, label: brandName, stripLabel: brandName, isBrand: true, isSmartHub: false, devices: [d] }), d);
     } else if (d.parentDeviceId && d.zoneIndex != null) {
       const parentId = d.parentDeviceId;
       const key = 'mb:' + parentId;
-      addToGroup(key, () => ({ kind: 'group', groupKey: key, label: deriveParentName(d), isBrand: false, isSmartHub: parentId.startsWith('smarthub:'), devices: [d] }), d);
+      addToGroup(key, () => ({
+        kind: 'group',
+        groupKey: key,
+        label: d.parentName ?? deriveParentName(d),
+        stripLabel: deriveParentName(d),
+        parentDeviceId: parentId,
+        isBrand: false,
+        isSmartHub: parentId.startsWith('smarthub:'),
+        devices: [d],
+      }), d);
     } else {
       blocks.push({ kind: 'single', device: d });
     }

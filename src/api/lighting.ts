@@ -325,6 +325,8 @@ export interface LightingDevice {
   name: string;
   /** The hardware name the rename replaced. Set only on a renamed card. */
   originalName?: string;
+  /** Custom name for this card's group, set only when the group header itself was renamed. */
+  parentName?: string;
   type?: string;
   iconType?: string;
   ledsOn: boolean;

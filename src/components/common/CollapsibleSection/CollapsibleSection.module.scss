@@ -68,6 +68,35 @@
   }
 }
 
+// Editable-title variant: the chevron is its own control and the bar's empty
+// run is a second, a11y-hidden toggle target, so the title in between can own
+// its clicks.
+.toggleChevron {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease-fast);
+
+  &:hover { color: var(--text); }
+}
+
+.toggleFill {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .chevron {
   flex-shrink: 0;
   width: 16px;

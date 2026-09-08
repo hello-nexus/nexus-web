@@ -32,6 +32,7 @@ export function MotherboardGroup({
   notice,
   drag,
   hideActions,
+  onRename,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -62,6 +63,9 @@ export function MotherboardGroup({
   /** Header collapses only - no actions menu. The immersive picker groups
    *  cards for selection; power and Nexus Control belong to the page. */
   hideActions?: boolean;
+  /** Commits a new header name. Omitted where the group names no device (a
+   *  smart-light brand) or where the surface only picks cards. */
+  onRename?: (name: string) => void;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -93,6 +97,7 @@ export function MotherboardGroup({
         open={expanded}
         onToggle={onToggleCollapsed}
         ariaLabel={toggleLabel}
+        onTitleRename={onRename}
         titleAfter={notice != null ? <DeviceNotice notice={notice} /> : undefined}
         drag={drag}
         rightInteractive

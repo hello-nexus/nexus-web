@@ -74,3 +74,34 @@ describe('MotherboardGroup actions menu', () => {
     expect(screen.getByRole('button', { name: /menuControlOff/ })).toBeTruthy();
   });
 });
+
+describe('MotherboardGroup rename', () => {
+  it('commits the trimmed header name on Enter', () => {
+    const onRename = vi.fn();
+    renderGroup({ onRename });
+    fireEvent.click(screen.getByText('Test Board'));
+    const input = screen.getByDisplayValue('Test Board');
+    fireEvent.change(input, { target: { value: '  Motherboard  ' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onRename).toHaveBeenCalledWith('Motherboard');
+  });
+
+  it('does not collapse the group when the title is clicked to edit it', () => {
+    const props = renderGroup({ onRename: vi.fn() });
+    fireEvent.click(screen.getByText('Test Board'));
+    expect(props.onToggleCollapsed).not.toHaveBeenCalled();
+  });
+
+  it('keeps the chevron collapsing the group', () => {
+    const props = renderGroup({ onRename: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: /motherboardHeader/ }));
+    expect(props.onToggleCollapsed).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the title a plain label with no rename handler', () => {
+    renderGroup();
+    fireEvent.click(screen.getByText('Test Board'));
+    expect(screen.queryByDisplayValue('Test Board')).toBeNull();
+  });
+});
+
