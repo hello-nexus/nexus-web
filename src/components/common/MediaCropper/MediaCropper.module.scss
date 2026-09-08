@@ -95,3 +95,28 @@
   &:disabled { opacity: 0.4; cursor: default; }
 }
 
+
+// Checkerboard behind the media element itself (not the wrap), so the letterbox
+// stays flat black and only genuinely transparent pixels read as transparent.
+.checker {
+  background-color: #767676;
+  background-image:
+    linear-gradient(45deg, #4a4a4a 25%, transparent 25%, transparent 75%, #4a4a4a 75%),
+    linear-gradient(45deg, #4a4a4a 25%, transparent 25%, transparent 75%, #4a4a4a 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
+
+.keepAlpha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+
+  input { cursor: pointer; }
+  &:hover { color: var(--text); }
+}

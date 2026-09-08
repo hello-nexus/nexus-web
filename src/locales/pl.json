@@ -447,6 +447,7 @@
   "cropper.converting": "Konwersja…",
   "cropper.flipH": "Odbij w poziomie",
   "cropper.flipV": "Odbij w pionie",
+  "cropper.keepTransparency": "Zachowaj przezroczystość",
   "cropper.reset": "Resetuj",
   "cropper.rotateCcw": "Obróć w lewo",
   "cropper.rotateCw": "Obróć w prawo",

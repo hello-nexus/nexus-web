@@ -57,7 +57,7 @@ export function BackgroundMediaPicker({
   deviceAspect: number;
   deviceW: number;
   deviceH: number;
-  onSelect: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
+  onSelect: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
 }) {
   const { t } = useTranslation();
   const { items, thumbs, refresh, removeLocal } = useBackgroundMedia(deviceId);
@@ -66,7 +66,7 @@ export function BackgroundMediaPicker({
   const [importProgress, setImportProgress] = useState<{ n: number; total: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
-  const [cropState, setCropState] = useState<{ stageId: string; src: string } | null>(null);
+  const [cropState, setCropState] = useState<{ stageId: string; src: string; alpha: boolean } | null>(null);
   const [converting, setConverting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const folderRef = useRef<HTMLInputElement | null>(null);
@@ -101,7 +101,11 @@ export function BackgroundMediaPicker({
     }
     setImporting(false);
     setImportingName(null);
-    setCropState({ stageId: result.stageId, src: backgroundMediaStagePreviewUrl(deviceId, result.stageId) });
+    setCropState({
+      stageId: result.stageId,
+      src: backgroundMediaStagePreviewUrl(deviceId, result.stageId),
+      alpha: result.alpha,
+    });
   };
 
   // One folder file, start to finish: the cropper's default (largest centred
@@ -163,17 +167,17 @@ export function BackgroundMediaPicker({
     if (first) {
       await refresh();
       if (!aliveRef.current) return;
-      onSelect(first.id, first.type);
+      onSelect(first.id, first.type, !!first.alpha);
     }
   };
 
-  const handleCropConfirm = async (crop: NormalizedCrop) => {
+  const handleCropConfirm = async (crop: NormalizedCrop, keepTransparency: boolean) => {
     if (!cropState) return;
     const { stageId } = cropState;
     const cropStr = serializeCrop(crop);
     setConverting(true);
     setImportError(null);
-    const result = await commitBackgroundMedia(deviceId, stageId, cropStr, deviceW, deviceH);
+    const result = await commitBackgroundMedia(deviceId, stageId, cropStr, deviceW, deviceH, keepTransparency);
     setConverting(false);
     if (!result) {
       setImportError(t('lighting.controls.importNetworkError'));
@@ -188,7 +192,7 @@ export function BackgroundMediaPicker({
       return;
     }
     await refresh();
-    onSelect(result.item.id, result.item.type);
+    onSelect(result.item.id, result.item.type, !!result.item.alpha);
     setCropState(null);
   };
 
@@ -203,7 +207,7 @@ export function BackgroundMediaPicker({
   const handleGridPlay = (id: string) => {
     const selectedItem = items.find(item => item.id === id);
     if (!selectedItem) return;
-    onSelect(id, selectedItem.type);
+    onSelect(id, selectedItem.type, !!selectedItem.alpha);
   };
 
   const handleDelete = async (id: string) => {
@@ -214,8 +218,8 @@ export function BackgroundMediaPicker({
     removeLocal(id);
     await refresh();
     if (isActive) {
-      if (nextItem) onSelect(nextItem.id, nextItem.type);
-      else onSelect(null, null);
+      if (nextItem) onSelect(nextItem.id, nextItem.type, !!nextItem.alpha);
+      else onSelect(null, null, false);
     }
   };
 
@@ -238,6 +242,7 @@ export function BackgroundMediaPicker({
           src={cropState.src}
           aspect={deviceAspect}
           busy={converting}
+          allowTransparency={cropState.alpha}
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />

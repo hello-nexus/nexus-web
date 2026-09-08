@@ -442,6 +442,7 @@
   "cropper.converting": "Convirtiendo…",
   "cropper.flipH": "Voltear horizontalmente",
   "cropper.flipV": "Voltear verticalmente",
+  "cropper.keepTransparency": "Mantener la transparencia",
   "cropper.reset": "Restablecer",
   "cropper.rotateCcw": "Girar a la izquierda",
   "cropper.rotateCw": "Girar a la derecha",

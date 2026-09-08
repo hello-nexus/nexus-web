@@ -447,6 +447,7 @@
   "cropper.converting": "Конвертация…",
   "cropper.flipH": "Отразить по горизонтали",
   "cropper.flipV": "Отразить по вертикали",
+  "cropper.keepTransparency": "Сохранить прозрачность",
   "cropper.reset": "Сбросить",
   "cropper.rotateCcw": "Повернуть против часовой стрелки",
   "cropper.rotateCw": "Повернуть по часовой стрелке",

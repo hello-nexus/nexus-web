@@ -45,14 +45,16 @@ function orientedDims(w: number, h: number, rotate: number): { w: number; h: num
   return rotate === 90 || rotate === 270 ? { w: h, h: w } : { w, h };
 }
 
-export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, onConfirm, onCancel }: {
+export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, allowTransparency, onConfirm, onCancel }: {
   src: string;
   /** 'video' renders a <video> frame to crop against; 'image' (default) an <img>. */
   kind?: 'image' | 'video';
   aspect: number;
   initialCrop?: NormalizedCrop;
   busy?: boolean;
-  onConfirm: (crop: NormalizedCrop) => void;
+  /** Offer the "keep transparency" choice. Only pass it for a source that has alpha to keep. */
+  allowTransparency?: boolean;
+  onConfirm: (crop: NormalizedCrop, keepTransparency: boolean) => void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
@@ -65,6 +67,9 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, o
     mirror: !!initialCrop?.mirror,
   });
   const [crop, setCrop] = useState<NormalizedCrop>(initialCrop ?? { x: 0, y: 0, w: 1, h: 1 });
+  const [keepTransparency, setKeepTransparency] = useState(true);
+  const keepTransparencyRef = useRef(keepTransparency);
+  useEffect(() => { keepTransparencyRef.current = keepTransparency; }, [keepTransparency]);
   const cropRef = useRef(crop);
   useEffect(() => { cropRef.current = crop; }, [crop]);
   const orientRef = useRef(orient);
@@ -205,17 +210,23 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, o
     mirror: orientRef.current.mirror,
   }), []);
 
+  const confirm = useCallback(() => {
+    onConfirm(buildResult(), keepTransparencyRef.current);
+  }, [onConfirm, buildResult]);
+
   // DeviceModal/Overlay handles Escape→cancel; Enter confirms. Both no-op when busy.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (busy) return;
-      if (e.key === 'Enter') { e.preventDefault(); onConfirm(buildResult()); }
+      if (e.key === 'Enter') { e.preventDefault(); confirm(); }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [busy, onConfirm, buildResult]);
+  }, [busy, confirm]);
 
   const setRef = (el: MediaEl | null) => { mediaRef.current = el; };
+
+  const showChecker = !!allowTransparency && keepTransparency;
 
   const mediaStyle = layout
     ? {
@@ -253,7 +264,15 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, o
             onLoadedData={onMediaLoad}
           />
         ) : (
-          <img ref={setRef} src={src} alt="" className={styles.img} style={mediaStyle} onLoad={onMediaLoad} draggable={false} />
+          <img
+            ref={setRef}
+            src={src}
+            alt=""
+            className={`${styles.img} ${showChecker ? styles.checker : ''}`}
+            style={mediaStyle}
+            onLoad={onMediaLoad}
+            draggable={false}
+          />
         )}
         {layout && (
           <div
@@ -292,11 +311,22 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, o
         <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipVertical(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipV')} title={t('cropper.flipV')}>
           <FlipVertical2 size={16} />
         </button>
+        {allowTransparency && (
+          <label className={styles.keepAlpha}>
+            <input
+              type="checkbox"
+              checked={keepTransparency}
+              disabled={busy}
+              onChange={() => setKeepTransparency(prev => !prev)}
+            />
+            <span>{t('cropper.keepTransparency')}</span>
+          </label>
+        )}
       </div>
       <div className={styles.footer}>
         <Button tone="ghost" className={styles.resetBtn} onClick={handleReset} disabled={busy}>{t('cropper.reset')}</Button>
         <Button tone="neutral" onClick={onCancel} disabled={busy}>{t('cropper.cancel')}</Button>
-        <Button tone="accent" onClick={() => onConfirm(buildResult())} disabled={busy}>{t('cropper.confirm')}</Button>
+        <Button tone="accent" onClick={confirm} disabled={busy}>{t('cropper.confirm')}</Button>
       </div>
     </DeviceModal>
   );

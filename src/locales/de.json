@@ -442,6 +442,7 @@
   "cropper.converting": "Konvertierung…",
   "cropper.flipH": "Horizontal spiegeln",
   "cropper.flipV": "Vertikal spiegeln",
+  "cropper.keepTransparency": "Transparenz beibehalten",
   "cropper.reset": "Zurücksetzen",
   "cropper.rotateCcw": "Gegen den Uhrzeigersinn drehen",
   "cropper.rotateCw": "Im Uhrzeigersinn drehen",

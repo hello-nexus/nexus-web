@@ -53,6 +53,7 @@ export interface PanelThemeSettingsState {
   backgroundEffectState: EffectState;
   backgroundMediaId: string | null;
   backgroundMediaType: 'static' | 'animated' | null;
+  backgroundMediaAlpha: boolean;
   // Frosted-glass blur over the background layer (shader / media / wallpaper),
   // percent 0-100 (see DEFAULT_PANEL_BACKGROUND_FROST).
   backgroundFrost: number;
@@ -80,7 +81,7 @@ export interface PanelThemeSettingsProps {
   onBackgroundEffectStateCommit: (state: EffectState) => void;
   onBackgroundOpacityPreview: (opacity: number) => void;
   onBackgroundOpacityCommit: (opacity: number) => void;
-  onBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
+  onBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
   onBackgroundFrostPreview: (percent: number) => void;
   onBackgroundFrostCommit: (percent: number) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
@@ -401,7 +402,7 @@ export function PanelThemeSettings({
                 deviceAspect={deviceAspect}
                 deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
                 deviceH={deviceH ?? 1280}
-                onSelect={(mediaId, type) => onBackgroundMediaCommit(mediaId, type)}
+                onSelect={(mediaId, type, alpha) => onBackgroundMediaCommit(mediaId, type, alpha)}
               />
             </>
           ) : (

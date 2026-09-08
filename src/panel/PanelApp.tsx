@@ -1512,6 +1512,7 @@ export function PanelContent({
             id={effectiveTheme.backgroundMediaId}
             deviceId={deviceId}
             type={effectiveTheme.backgroundMediaType}
+            alpha={effectiveTheme.backgroundMediaAlpha}
             opacity={effectiveTheme.backgroundOpacity}
           />
         )}

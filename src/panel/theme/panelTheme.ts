@@ -211,6 +211,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundEffectState: panelBackgroundState(effect, normalizePanelBackgroundTemplate(templates[effect])),
     backgroundMediaId: r?.backgroundMediaId ?? null,
     backgroundMediaType: r?.backgroundMediaType ?? null,
+    backgroundMediaAlpha: r?.backgroundMediaAlpha ?? false,
     backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
     widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
     widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
@@ -419,11 +420,11 @@ export function usePanelTheme(
     persistPatch({ backgroundOpacity: nextOpacity });
   }, [persistPatch]);
 
-  const commitBackgroundMedia = useCallback((mediaId: string | null, type: 'static' | 'animated' | null) => {
-    setTheme(prev => ({ ...prev, backgroundMediaId: mediaId, backgroundMediaType: type }));
+  const commitBackgroundMedia = useCallback((mediaId: string | null, type: 'static' | 'animated' | null, alpha = false) => {
+    setTheme(prev => ({ ...prev, backgroundMediaId: mediaId, backgroundMediaType: type, backgroundMediaAlpha: alpha }));
     // The service patch-merge ignores a JSON null (means "no change"); an empty
     // string clears the field via NullIfEmpty, same as the other theme fields.
-    persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '' });
+    persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
   }, [persistPatch]);
 
   const commitBackgroundFrost = useCallback((percent: number) => {

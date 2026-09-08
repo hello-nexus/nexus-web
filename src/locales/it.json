@@ -442,6 +442,7 @@
   "cropper.converting": "Conversione in corso…",
   "cropper.flipH": "Capovolgi orizzontalmente",
   "cropper.flipV": "Capovolgi verticalmente",
+  "cropper.keepTransparency": "Mantieni la trasparenza",
   "cropper.reset": "Reimposta",
   "cropper.rotateCcw": "Ruota in senso antiorario",
   "cropper.rotateCw": "Ruota in senso orario",

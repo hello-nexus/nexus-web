@@ -442,6 +442,7 @@
   "cropper.converting": "Dönüştürülüyor…",
   "cropper.flipH": "Yatay çevir",
   "cropper.flipV": "Dikey çevir",
+  "cropper.keepTransparency": "Saydamlığı koru",
   "cropper.reset": "Sıfırla",
   "cropper.rotateCcw": "Saat yönünün tersine döndür",
   "cropper.rotateCw": "Saat yönünde döndür",
