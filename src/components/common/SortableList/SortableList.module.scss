@@ -36,14 +36,22 @@
 }
 
 // An empty group's body. It collapses to nothing at rest so the header sits on
-// its own, and opens into a real drop target the moment a drag starts.
+// its own, and opens into a slim drop target the moment a drag starts. The
+// height is CONSTANT for the whole drag: sizing it per-hover would move rows
+// under the pointer, which is what oscillated the drop target before.
 .groupBodyEmpty {
   min-height: 0;
-  transition: min-height var(--ease-fast);
 
   &[data-dragging='true'] {
-    min-height: 2.75rem;
+    min-height: 1.5rem;
     border: 1px dashed var(--border);
     border-radius: var(--radius-sm);
   }
+}
+
+// The floating clone. Opaque, or the row it passes over reads through it and
+// two labels stack in the same box.
+.overlayOpaque {
+  background: var(--bg);
+  border-radius: var(--radius);
 }

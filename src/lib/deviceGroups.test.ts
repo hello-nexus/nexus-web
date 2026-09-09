@@ -44,6 +44,11 @@ describe('groupedRows', () => {
     expect(rows.map(r => r.id)).toEqual(['g1', 'a', 'b', 'c', 'd']);
   });
 
+  it('tails a group whose anchor is null, the shape the service sends for one never placed', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: null }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'b', 'c', 'd', 'g1']);
+  });
+
   it('tails a group whose anchor row is gone', () => {
     const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: 'unplugged' }]);
     expect(rows.map(r => r.id)).toEqual(['a', 'b', 'c', 'd', 'g1']);

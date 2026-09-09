@@ -14,10 +14,11 @@ export interface DeviceGroup {
   name: string;
   /** Ids of the blocks in this group, in display order. */
   members: string[];
-  /** Id of the rail row this group sits after; '' pins it to the top. Anchoring
-   *  to the first member cannot hold an emptied group in place, so the rail
-   *  order the user last dropped is stored instead. */
-  after?: string;
+  /** Id of the rail row this group sits after; '' pins it to the top and
+   *  null/absent means never placed, which tails it. Anchoring to the first
+   *  member cannot hold an emptied group in place, so the rail order the user
+   *  last dropped is stored instead. */
+  after?: string | null;
 }
 
 /** One rail row: an ungrouped block, or a user group holding blocks. */
@@ -71,7 +72,9 @@ export function groupedRows<B>(
   // Groups anchored to a row, keyed by the row they follow. '' pins to the top.
   const anchored = new Map<string, string[]>();
   for (const group of groups) {
-    if (group.after === undefined) continue;
+    // == null covers both absent and the JSON null the service sends for a
+    // group that has never been placed; only '' means "pin to the top".
+    if (group.after == null) continue;
     const list = anchored.get(group.after) ?? [];
     list.push(group.id);
     anchored.set(group.after, list);

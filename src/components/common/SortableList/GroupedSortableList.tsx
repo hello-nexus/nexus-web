@@ -167,7 +167,7 @@ export function GroupedSortableList({
       </SortableContext>
       <DragOverlay dropAnimation={null}>
         {activeId !== null && (
-          <div className={styles.overlay}>
+          <div className={`${styles.overlay} ${styles.overlayOpaque}`}>
             {activeId in live.groupMembers
               ? renderGroup(activeId, {
                   ref: () => {}, style: {}, attributes: {}, listeners: undefined,
