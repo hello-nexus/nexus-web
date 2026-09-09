@@ -97,25 +97,31 @@
 
 // Max's entrance: the funnel spins up from its own tip. The vortex is sold by
 // flipping scaleX through zero - the glyph turns edge-on and back, the way a
-// spinning ribbon does - while the whole shape grows and a decaying lean whips
-// it upright. The ease-out curve does the deceleration: evenly spaced flips
-// land fast then slow, so it spins up and settles rather than strobing.
+// spinning ribbon does. The rhythm is what makes it read as a spin rather than
+// a twitch: each crossing is a fast 5-6% transit and the shape then DWELLS at
+// full width, instead of drifting between the two. No lean or skew - a wobble
+// on top of the flip is what made it jitter. The ease-out curve slows the
+// later revolutions so it spins down rather than stopping dead.
 // transform-origin keeps the funnel's tip planted while the head swings.
 // Cleared on animationend like the fan, so a finished fill-mode animation
 // stops holding a compositor layer.
 .simpleMax[data-spinning='true'] {
-  animation: maxSpinUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: maxSpinUp 0.6s cubic-bezier(0.2, 0.75, 0.3, 1) both;
   transform-origin: center bottom;
 }
 
 @keyframes maxSpinUp {
-  0%   { opacity: 0; transform: translateY(8%) scale(0.28) scaleX(1) rotate(-10deg); }
-  14%  { opacity: 1; }
-  26%  { transform: translateY(0) scale(0.58) scaleX(-0.78) rotate(7deg); }
-  44%  { transform: translateY(0) scale(0.84) scaleX(0.88) rotate(-5deg); }
-  62%  { transform: translateY(0) scale(1.06) scaleX(-0.94) rotate(3deg); }
-  80%  { transform: translateY(0) scale(0.99) scaleX(1) rotate(-1.5deg); }
-  100% { opacity: 1; transform: translateY(0) scale(1) scaleX(1) rotate(0deg); }
+  0%   { opacity: 0; transform: scale(0.4) scaleX(1); }
+  8%   { opacity: 1; }
+  20%  { transform: scale(0.62) scaleX(1); }
+  26%  { transform: scale(0.72) scaleX(-1); }
+  44%  { transform: scale(0.86) scaleX(-1); }
+  50%  { transform: scale(0.95) scaleX(1); }
+  66%  { transform: scale(1.05) scaleX(1); }
+  71%  { transform: scale(1.03) scaleX(-1); }
+  84%  { transform: scale(1) scaleX(-1); }
+  89%  { transform: scale(1) scaleX(1); }
+  100% { opacity: 1; transform: scale(1) scaleX(1); }
 }
 
 @keyframes maxFadeIn {
