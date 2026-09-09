@@ -185,12 +185,13 @@ export function usePanelLayout(
   deviceTouch?: boolean,
 ): UsePanelLayoutResult {
   const { record, loaded, missing, refetch } = recordState;
-  // Seeded from the record when it is already in hand (the kiosk mounts this
-  // subtree only after the fetch settles), so the panel's first paint is the
-  // user's layout rather than a frame of the local seed.
-  const [layout, setLayoutState] = useState<PanelLayout>(
-    () => normalizePanelLayout(record?.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
-  const [hydrated, setHydrated] = useState(() => (record?.layout ?? null) !== null);
+  const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
+  // Starts false even when the record is already in hand: the effect below is
+  // what puts the stored layout into `layout`, and both must flip in the same
+  // commit. Seeding this from the record instead would let the auto-persist
+  // effect run in the MOUNT commit, where the runtime grid is still the
+  // window-derived estimate rather than the measured one.
+  const [hydrated, setHydrated] = useState(false);
   const [saveForbidden, setSaveForbidden] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Writes are allowed only against a layout we actually read back.

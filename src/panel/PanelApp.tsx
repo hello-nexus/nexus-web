@@ -649,21 +649,16 @@ export function PanelContent({
     [layout, capacity],
   );
   useEffect(() => {
-    // CRITICAL: only auto-persist after the server fetch populates `layout`.
-    // Before `loaded`, `layout` is the local fallback default; persisting a
-    // re-paginated default would race the in-flight fetch and overwrite the
-    // user's saved edits.
+    // CRITICAL: only auto-persist once `layout` holds the STORED layout.
+    // `loaded` is the record's fetch flag and `layout` is the local seed for a
+    // render past it, so `hydrated` is the one that gates a write; persisting
+    // a re-paginated seed overwrites the user's saved layout.
     //
     // Never auto-persist from the simulator: the parent (PanelDevicePage)
     // owns the persisted bytes per PanelEmbedFrame's set-layout /
     // layout-changed contract and conforms them to the editor capacity
     // itself; the simulator renders the repaginated shape locally and echoes
     // only user edits (see panelEditorLayoutSync.test.ts).
-    // `loaded` is the RECORD's fetch flag, not "the stored layout is in
-    // `layout`" - usePanelLayout swaps the seed out one render later. A
-    // promoted monitor seeds from the desktop layout, which does not survive
-    // repagination onto its grid unchanged, so persisting inside that gap
-    // wrote the seed over the user's saved layout on every kiosk load.
     if (!loaded || simulator || hydrated === false) return;
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
   }, [paginatedLayout, layout, setLayout, loaded, simulator, hydrated]);
