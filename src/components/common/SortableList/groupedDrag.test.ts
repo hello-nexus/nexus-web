@@ -121,3 +121,35 @@ describe('sameArrangement', () => {
     expect(sameArrangement(before, moveTo(before, 'c', 'c'))).toBe(true);
   });
 });
+
+// Removing the dragged row first shifts anything below it up by one, so a
+// downward move that simply takes the target's slot lands back where it began.
+describe('moveTo direction', () => {
+  const flat = (): Arrangement => ({ rowIds: ['a', 'b', 'c', 'd'], groupMembers: {} });
+
+  it('moves a row DOWN past the one it was dropped on', () => {
+    expect(moveTo(flat(), 'a', 'b').rowIds).toEqual(['b', 'a', 'c', 'd']);
+  });
+
+  it('moves a row down across several positions', () => {
+    expect(moveTo(flat(), 'a', 'c').rowIds).toEqual(['b', 'c', 'a', 'd']);
+  });
+
+  it('moves a row UP into the slot it was dropped on', () => {
+    expect(moveTo(flat(), 'd', 'b').rowIds).toEqual(['a', 'd', 'b', 'c']);
+  });
+
+  it('moves a row up to the very top', () => {
+    expect(moveTo(flat(), 'c', 'a').rowIds).toEqual(['c', 'a', 'b', 'd']);
+  });
+
+  it('reorders downward inside a group too', () => {
+    const arrangement: Arrangement = { rowIds: ['g1'], groupMembers: { g1: ['x', 'y', 'z'] } };
+    expect(moveTo(arrangement, 'x', 'y').groupMembers.g1).toEqual(['y', 'x', 'z']);
+  });
+
+  it('reorders upward inside a group', () => {
+    const arrangement: Arrangement = { rowIds: ['g1'], groupMembers: { g1: ['x', 'y', 'z'] } };
+    expect(moveTo(arrangement, 'z', 'y').groupMembers.g1).toEqual(['x', 'z', 'y']);
+  });
+});

@@ -68,12 +68,19 @@ export function moveTo(arr: Arrangement, activeId: string, overId: string): Arra
   if (isGroup && target !== ROOT) target = ROOT;
   if (activeId === overId && containerOf(arr, activeId) === target) return arr;
 
+  const before = target === ROOT ? arr.rowIds : arr.groupMembers[target] ?? [];
+  const fromIndex = before.indexOf(activeId);
+  const overIndexBefore = before.indexOf(overId);
+
   const stripped = withoutId(arr, activeId);
   const list = target === ROOT ? stripped.rowIds : stripped.groupMembers[target] ?? [];
   // Dropping on the container itself (header or empty body) appends; dropping
-  // on a row takes that row's slot.
+  // on a row takes that row's slot. Moving DOWN within one container, removing
+  // the row first shifts the target up by one, so taking its slot would land
+  // the card back where it started - it has to go after the target instead.
   const overIndex = list.indexOf(overId);
-  const index = overIndex === -1 ? list.length : overIndex;
+  const movingDown = fromIndex !== -1 && overIndexBefore !== -1 && fromIndex < overIndexBefore;
+  const index = overIndex === -1 ? list.length : overIndex + (movingDown ? 1 : 0);
   const placed = insert(list, activeId, index);
 
   return target === ROOT
