@@ -132,8 +132,7 @@ export interface UiSettingsValue {
   updateChannel: UpdateChannel;
   lastDismissedUpdateVersion: string;
   // Diagnostics Settings tab preferences (preferences.diagnostics), server-only
-  // like the update block above. Flattened leaves of the wire contract in
-  // plans/diagnostics-monitoring-search-improvements.md "#2 wire contract" -
+  // like the update block above. Flattened leaves of the wire contract -
   // see DIAGNOSTICS_SETTINGS_DEFAULTS below for the contract defaults.
   diagnosticsCpuTempC: number;
   diagnosticsGpuTempC: number;

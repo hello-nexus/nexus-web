@@ -4,7 +4,7 @@ import { fetchFpsGames, type FpsGameSummary } from '../api/fps';
 const REFETCH_MS = 60_000;
 
 export interface UseFpsGamesResult {
-  /** False on a platform with no capture (see plan's Windows-only decision) -
+  /** False on a platform with no capture (Windows-only today) -
    *  games stays empty either way, so callers rarely need to branch on this. */
   supported: boolean;
   gamesByKey: ReadonlyMap<string, FpsGameSummary>;

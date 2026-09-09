@@ -1,6 +1,6 @@
 // Monitoring timeline events API client - typed wrapper over the local
-// service's GET/POST/DELETE /monitoring/events (contract:
-// plans/monitoring-event-pins.md). Same dev-only 404-mock-fallback idiom as
+// service's GET/POST/DELETE /monitoring/events. Same dev-only
+// 404-mock-fallback idiom as
 // api/monitoringHistory.ts / api/monitoringPrivacy.ts.
 //
 // Privacy-access sessions (webcam/microphone/location/screen) are NOT part

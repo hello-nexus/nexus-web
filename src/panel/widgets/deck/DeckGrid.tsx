@@ -47,8 +47,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   const empty = !action && !isFolder && !icon;
 
   // A monitoring tile draws its own name/graph/value content (never
-  // slot.icon) - see the tile layout contract in
-  // plans/deck-monitoring-and-presets.md. It's never "empty" (always shows a
+  // slot.icon). It's never "empty" (always shows a
   // live or placeholder reading) and uses a near-black default accent instead
   // of the auto category color, since it has no icon to color-code.
   if (action?.type === 'monitoring') {

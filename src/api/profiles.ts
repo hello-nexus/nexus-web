@@ -87,8 +87,7 @@ export interface OverlaySettings {
 
 // preferences.diagnostics - thresholds/notifications/component monitoring for
 // the Diagnostics Settings tab. Mirrors nexus-service's DiagnosticsSettings
-// POCOs verbatim (see plans/diagnostics-monitoring-search-improvements.md
-// "#2 wire contract"). Optional on Preferences: an older service omits it,
+// POCOs verbatim. Optional on Preferences: an older service omits it,
 // which the client treats as the contract defaults.
 export interface DiagnosticsThresholds {
   cpuC: number;

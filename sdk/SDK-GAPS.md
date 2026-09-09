@@ -87,12 +87,12 @@ Closes the positioning half of **E** and gives **D**'s "no canvas" a bounded ans
 ## B. Control the SDK can't do (major)
 - Only **`displays.setBrightness`** is a registered write. Cannot drive: cooling presets / fan
   duty, lighting modes / effects, media transport, system volume, macros / deck, app launch,
-  power. Each needs a registered `WidgetAction` (the plan's parametric cooling broker is unbuilt;
+  power. Each needs a registered `WidgetAction` (the parametric cooling broker is unbuilt;
   `dispatch.ts` even references a non-existent `lighting.setMode`).
 - **`rgb.read` / `rgb.write`** manifest grants are dead (no verb consumes them).
 
-## C. Security / trust (vs the third-party-app-sdk plan)
-- **Grants come from the manifest, not a signed cert** - the plan's central thesis. Any installed
+## C. Security / trust
+- **Grants come from the manifest, not a signed cert.** Any installed
   widget can self-grant `dispatch` actions + `net.fetch` hosts by editing its own `manifest.json`.
   Backstops today: few actions exist + the SSRF guard. (`net.fetch` allowlist IS enforced
   server-side; sensors.read is now enforced on the SDK path.)

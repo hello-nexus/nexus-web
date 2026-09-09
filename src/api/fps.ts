@@ -109,7 +109,7 @@ export const deleteFpsSession = (id: string) =>
 export const deleteFpsGame = (gameKey: string) =>
   deleteService<FpsDeleteResult>(`/api/fps/games/${encodeURIComponent(gameKey)}`);
 
-/** Steam's canonical gameKey shape - see plan's "Signature key" decisions. */
+/** Steam's canonical gameKey shape. */
 export function steamGameKey(appId: number): string {
   return `steam:${appId}`;
 }
