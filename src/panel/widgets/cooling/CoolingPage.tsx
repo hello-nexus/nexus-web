@@ -1602,7 +1602,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                     <GroupedSortableList
                       arrangement={arrangement}
                       onArrange={handleArrange}
-                      collapsedGroupIds={collapsedFanGroups}
                       renderBlock={renderBlock}
                       renderGroup={(groupId, a, children, isDropTarget) => {
                         const group = fanGroups.find(g => g.id === groupId);

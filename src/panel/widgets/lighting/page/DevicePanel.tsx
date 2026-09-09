@@ -313,7 +313,6 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
         <GroupedSortableList
           arrangement={arrangement}
           onArrange={handleArrange}
-          collapsedGroupIds={collapsedGroups}
           renderBlock={(blockId, a) => {
             const block = blockMap.get(blockId);
             if (!block) return null;

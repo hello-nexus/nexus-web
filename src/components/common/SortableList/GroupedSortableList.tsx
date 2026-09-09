@@ -6,9 +6,11 @@ import {
   MeasuringStrategy,
   PointerSensor,
   closestCenter,
+  pointerWithin,
   useDroppable,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -39,9 +41,6 @@ export interface GroupedSortableListProps {
   /** Renders the group shell; `children` is its nested list. `isDropTarget` is
    *  true while a drag would land inside this group, so the shell can say so. */
   renderGroup: (id: string, args: SortableRowArgs, children: ReactNode, isDropTarget: boolean) => ReactNode;
-  /** Groups showing no body. Their header stands in as the drop target, since
-   *  there is nothing else to aim at. */
-  collapsedGroupIds?: readonly string[];
   className?: string;
   ariaLabel?: string;
 }
@@ -78,32 +77,31 @@ function Row({ id, render }: { id: string; render: (id: string, args: SortableRo
   })}</>;
 }
 
-/** A group's body: its own sortable context plus a droppable so an empty group still takes a card. */
-function GroupBody({ groupId, members, renderBlock, dragging }: {
+/**
+ * A group's body: its own sortable context plus a droppable, so a group takes a
+ * card whether or not it already holds one. The blank slot appears ONLY while
+ * this group is the drop target - reserving one for every group up front shifted
+ * the whole rail the moment a drag began.
+ */
+function GroupBody({ groupId, members, renderBlock, isDropTarget }: {
   groupId: string;
   members: string[];
   renderBlock: GroupedSortableListProps['renderBlock'];
-  /** A drag is in flight, so an empty body opens up as a real drop target. */
-  dragging: boolean;
+  isDropTarget: boolean;
 }) {
   const { setNodeRef } = useDroppable({ id: bodyDroppableId(groupId) });
-  const empty = members.length === 0;
   return (
     <SortableContext items={members} strategy={verticalListSortingStrategy}>
-      <div
-        ref={setNodeRef}
-        className={`${styles.list} ${empty ? styles.groupBodyEmpty : ''}`.trim()}
-        data-dragging={empty && dragging ? 'true' : undefined}
-        role="list"
-      >
+      <div ref={setNodeRef} className={styles.list} role="list">
         {members.map(id => <Row key={id} id={id} render={renderBlock} />)}
+        {isDropTarget && <div className={styles.groupDropSlot} aria-hidden />}
       </div>
     </SortableContext>
   );
 }
 
 export function GroupedSortableList({
-  arrangement, onArrange, renderBlock, renderGroup, collapsedGroupIds = [], className, ariaLabel,
+  arrangement, onArrange, renderBlock, renderGroup, className, ariaLabel,
 }: GroupedSortableListProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   // The group a drop would land in right now, so its shell can highlight.
@@ -114,6 +112,11 @@ export function GroupedSortableList({
   // depth"). The destination ring is what tells the user where the drop lands.
   const live = arrangement;
 
+  const collisionDetection: CollisionDetection = args => {
+    const within = pointerWithin(args);
+    return within.length > 0 ? within : closestCenter(args);
+  };
+
   const sensors = useSensors(
     useSensor(GuardedPointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -123,13 +126,13 @@ export function GroupedSortableList({
     const { active, over } = e;
     if (!over) { setDropGroupId(null); return; }
     const activeIsGroup = String(active.id) in live.groupMembers;
-    const target = dropContainer(live, String(over.id), collapsedGroupIds);
+    const target = dropContainer(live, String(over.id));
     setDropGroupId(!activeIsGroup && target !== null && target !== ROOT ? target : null);
   };
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
-    const next = over ? moveTo(live, String(active.id), String(over.id), collapsedGroupIds) : live;
+    const next = over ? moveTo(live, String(active.id), String(over.id)) : live;
     setActiveId(null);
     setDropGroupId(null);
     if (!sameArrangement(live, next)) onArrange(next);
@@ -138,7 +141,7 @@ export function GroupedSortableList({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
       modifiers={[restrictToVerticalAxis]}
       measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
       onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
@@ -157,7 +160,7 @@ export function GroupedSortableList({
                   groupId={rowId}
                   members={live.groupMembers[rowId] ?? []}
                   renderBlock={renderBlock}
-                  dragging={activeId !== null}
+                  isDropTarget={dropGroupId === rowId}
                 />,
                 dropGroupId === rowId,
               )} />
