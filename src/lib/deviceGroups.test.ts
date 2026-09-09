@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addGroup, anchorGroups, groupOf, groupedRows, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup,
+  addGroup, anchorGroups, groupOf, groupedRows, MAX_DEVICE_GROUPS, moveBlock, nextGroupName, removeGroup, renameGroup,
   type DeviceGroup,
 } from './deviceGroups';
 
@@ -181,5 +181,47 @@ describe('anchorGroups', () => {
   it('leaves a group absent from the rail untouched', () => {
     const groups = [{ id: 'g1', name: 'One', members: [], after: 'a' }];
     expect(anchorGroups(groups, ['b', 'c'])).toEqual(groups);
+  });
+});
+
+describe('group naming', () => {
+  const named = (...names: string[]): DeviceGroup[] =>
+    names.map((name, i) => ({ id: `g${i}`, name, members: [] }));
+
+  it('numbers a new group from one, and keeps counting past the ones in use', () => {
+    expect(addGroup([], 'Group')[0].name).toBe('Group 1');
+    expect(nextGroupName(named('Group 1'), 'Group')).toBe('Group 2');
+    expect(nextGroupName(named('Group 1', 'Group 2'), 'Group')).toBe('Group 3');
+  });
+
+  it('fills the lowest free number rather than counting the groups', () => {
+    expect(nextGroupName(named('Group 1', 'Group 3'), 'Group')).toBe('Group 2');
+  });
+
+  it('ignores case and surrounding space when deciding a name is taken', () => {
+    expect(nextGroupName(named('  group 1 '), 'Group')).toBe('Group 2');
+  });
+
+  it('keeps a typed rename that nothing else wears', () => {
+    const groups = named('Group 1', 'Group 2');
+    expect(renameGroup(groups, 'g1', 'Desk')[1].name).toBe('Desk');
+  });
+
+  it('numbers a rename onto a name another group wears', () => {
+    const groups = named('Desk', 'Group 2');
+    expect(renameGroup(groups, 'g1', 'Desk')[1].name).toBe('Desk 1');
+  });
+
+  it('lets a group keep its own name', () => {
+    const groups = named('Desk', 'Shelf');
+    expect(renameGroup(groups, 'g0', 'Desk')[0].name).toBe('Desk');
+  });
+
+  it('keeps a numbered name inside the length cap', () => {
+    const long = 'ABCDEFGHIJKLMNOPQRST';
+    expect(long).toHaveLength(20);
+    const name = nextGroupName(named(), long);
+    expect(name.length).toBeLessThanOrEqual(20);
+    expect(name.endsWith(' 1')).toBe(true);
   });
 });

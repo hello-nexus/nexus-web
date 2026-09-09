@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, FolderInput, FolderPlus, FolderMinus, Folder, Unlink, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -33,9 +33,11 @@ export function zoneCardUnavailable(device: LightingDevice): boolean {
   return device.ledCount <= 0 && !resizable;
 }
 
-/** Whether a card can carry a selection. Nexus Control off and lights off both
- *  mean a pick has nowhere to land, so the card trades its checkbox for a state
- *  glyph and takes no card-click selection - what a detection failure gets. */
+/** Whether a PICK can land on a card: Nexus Control off and lights off both
+ *  mean it has nowhere to go, so the card trades its checkbox for a state
+ *  glyph. Such a card still takes a click - selecting is how the user reaches
+ *  the rows that turn those back on - but it is not a target for a colour, and
+ *  a pick-only surface refuses it outright. */
 export function zoneCardSelectable(device: LightingDevice): boolean {
   return !zoneCardUnavailable(device) && device.controlled !== false && device.ledsOn;
 }
@@ -47,6 +49,9 @@ export interface BulkSelection {
   /** Members that can actually flash, so the identify row never promises to
    *  light a device with no LEDs. */
   identifyCount: number;
+  /** Members a colour trim can reach, so the row never promises to tune a card
+   *  the modal will drop. */
+  tunableCount: number;
   controlled: boolean;
   ledsOn: boolean;
   setControlled: (controlled: boolean) => void;
@@ -80,6 +85,7 @@ export function ZoneCard({
   onOpenCommunity,
   firmwareControlled,
   onTakeControl,
+  groupMove,
   notice,
   toggleMode,
   selectOnly,
@@ -127,6 +133,18 @@ export function ZoneCard({
    *  Nexus (the Lian Li hub's per-LED "custom" mode). Gives a firmware-owned
    *  card its only menu row; absent, such a card stays menu-less. */
   onTakeControl?: () => void;
+  /** Group placement for the rail block this card belongs to, driving the
+   *  "Move to group" flyout. A card inside a hardware group moves the whole
+   *  block, the way dragging one does. */
+  groupMove?: {
+    /** User groups it can move into; the one it already sits in is left out. */
+    targets: readonly { id: string; name: string }[];
+    onMove: (groupId: string) => void;
+    /** Present only while the block sits in a user group; the row names it. */
+    onRemove?: { name: string; run: () => void };
+    /** Absent once the group cap is reached. */
+    onMoveToNew?: () => void;
+  };
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
   /** Onboarding selection mode: the whole card is a controlled/ignored
@@ -195,9 +213,14 @@ export function ZoneCard({
         : !device.ledsOn
           ? { icon: <PowerOff size={11} />, label: t('lighting.devices.stateLightsOff') }
           : null;
-  // A pick can only land on a device Nexus drives and that is lit; the badge
-  // under the name says which of the two is missing.
-  const pickable = controlled && device.ledsOn;
+  // Nexus Control off and lights off each mean a pick has nowhere to land, and
+  // selecting is how the user reaches the rows that fix them, so neither blocks
+  // a click. A detection failure and firmware ownership still do: there is
+  // nothing behind those to act on. A pick-only surface carries no menu, so
+  // there it keeps the old rule - a tap would commit a look the device cannot
+  // show, and its own select-all skips those cards.
+  const clickable = !unavailable && !firmwareControlled
+    && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
 
   const menuItems = (): DeviceMenuItem[] => {
@@ -217,11 +240,10 @@ export function ZoneCard({
       return items;
     }
     // Leads the menu and names the device, so it is unambiguous which card the
-    // selection is about to narrow to. A card wearing a state glyph cannot be
-    // selected, so it gets no row.
-    // Narrowing to this card is pointless when it IS the whole selection, so
-    // the row becomes the only useful thing left: clearing it.
-    if (pickable && selected && !bulk) {
+    // selection is about to narrow to. Narrowing to this card is pointless when
+    // it IS the whole selection, so the row becomes the only useful thing left:
+    // clearing it.
+    if (clickable && selected && !bulk) {
       items.push({
         key: 'deselect',
         icon: <MousePointerClick size={14} />,
@@ -229,7 +251,7 @@ export function ZoneCard({
         onSelect: () => onSelect(true),
         separatorAfter: true,
       });
-    } else if (onSelectOnly && pickable) {
+    } else if (onSelectOnly && clickable) {
       items.push({
         key: 'selectOnly',
         icon: <MousePointerClick size={14} />,
@@ -255,32 +277,15 @@ export function ZoneCard({
     }
     // Colour tuning is per device but reads the same for a whole selection -
     // trimming eight strips to match each other is the point - so unlike the
-    // LED map it keeps its row in bulk mode. Gated on the same predicate the
-    // modal scopes itself with: a card with lights off, Nexus Control off or
-    // no LEDs would open a modal with nothing in scope.
-    if (!bulk && renameEnabled) {
-      items.push({
-        key: 'rename',
-        icon: <Pencil size={14} />,
-        label: t('lighting.devices.rename'),
-        onSelect: () => nameRef.current?.startEditing(),
-      });
-    }
-    // Clearing a rename has no inline affordance - an empty commit is dropped -
-    // so the menu is the only way back to the hardware name.
-    if (!bulk && renameEnabled && device.originalName != null) {
-      items.push({
-        key: 'resetName',
-        icon: <RotateCcw size={14} />,
-        label: t('lighting.devices.resetName'),
-        onSelect: () => onRename?.(''),
-      });
-    }
-    if (onOpenColorTuning && (bulk || zoneCardSelectable(device))) {
+    // LED map it keeps its row in bulk mode. The modal scopes itself to the
+    // cards a trim can reach and drops the rest, so the row counts THOSE: a
+    // selection may now hold dark and un-driven cards it will not touch.
+    const tunableCount = bulk ? bulk.tunableCount : (zoneCardSelectable(device) ? 1 : 0);
+    if (onOpenColorTuning && tunableCount > 0) {
       items.push({
         key: 'colorTuning',
         icon: <SlidersHorizontal size={14} />,
-        label: bulkMenuLabel(t, language, bulk, 'lighting.colorTuning.menu', 'lighting.colorTuning.menuCount'),
+        label: bulkMenuLabel(t, language, bulk && { count: tunableCount }, 'lighting.colorTuning.menu', 'lighting.colorTuning.menuCount'),
         onSelect: onOpenColorTuning,
       });
     }
@@ -301,6 +306,61 @@ export function ZoneCard({
       items.push(isOn
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
         : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });
+    }
+    // Naming and grouping close the menu, under a rule: they change what the
+    // card IS, where everything above acts on what it does.
+    const organise: DeviceMenuItem[] = [];
+    if (!bulk && renameEnabled) {
+      organise.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('lighting.devices.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
+      });
+      // Clearing a rename has no inline affordance - an empty commit is
+      // dropped - so the menu is the only way back to the hardware name.
+      if (device.originalName != null) {
+        organise.push({
+          key: 'resetName',
+          icon: <RotateCcw size={14} />,
+          label: t('lighting.devices.resetName'),
+          onSelect: () => onRename?.(''),
+        });
+      }
+    }
+    const groupRows: DeviceMenuItem[] = [];
+    if (!bulk && groupMove) {
+      for (const target of groupMove.targets) {
+        groupRows.push({
+          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
+          onSelect: () => groupMove.onMove(target.id),
+        });
+      }
+      if (groupMove.onMoveToNew) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:new', icon: <FolderPlus size={14} />,
+          label: t('lighting.devices.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
+        });
+      }
+      if (groupMove.onRemove) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:none', icon: <FolderMinus size={14} />,
+          label: t('lighting.devices.removeFromGroup', { name: groupMove.onRemove.name }),
+          onSelect: groupMove.onRemove.run,
+        });
+      }
+    }
+    if (groupRows.length > 0) {
+      organise.push({
+        key: 'moveToGroup', icon: <FolderInput size={14} />,
+        label: t('lighting.devices.moveToGroup'), submenu: groupRows,
+      });
+    }
+    if (organise.length > 0) {
+      if (items.length > 0) items[items.length - 1].separatorAfter = true;
+      items.push(...organise);
     }
     return items;
   };
@@ -335,11 +395,10 @@ export function ZoneCard({
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
       onClick={e => {
-        if (unavailable || firmwareControlled) return;
+        if (!clickable) return;
         // Toggle mode is how an un-driven device gets turned back on, so it
         // runs before the Nexus-Control gate rather than after it.
         if (toggleMode) { onToggleControlled?.(); return; }
-        if (!pickable) return;
         onSelect(isMultiSelectModifier(e));
       }}
       onContextMenu={menuEnabled ? e => {

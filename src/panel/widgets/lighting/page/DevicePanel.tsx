@@ -3,7 +3,7 @@ import { Cpu, FolderPlus, Plus } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
-import { ZoneCard, type BulkSelection } from './ZoneCard';
+import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
 import { type LedPick } from './DeviceLedStrip';
 import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
@@ -14,7 +14,7 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../../components/common/SortableList/groupedDrag';
-import { addGroup, anchorGroups, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../../lib/deviceGroups';
+import { addGroup, anchorGroups, groupedRows, groupOf, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup } from '../../../../lib/deviceGroups';
 import { buildDeviceBlocks, stripParentPrefix, type DeviceBlock } from './deviceBlocks';
 import styles from '../LightingPage.module.scss';
 
@@ -98,6 +98,33 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
   const blockIds = blocks.map(b => b.kind === 'single' ? b.device.id : b.groupKey);
   const blockMap = new Map<string, DeviceBlock>(blocks.map((b, i) => [blockIds[i], b]));
 
+  // A card's group membership is its BLOCK's: a zone inside a hardware group
+  // moves with the whole block, the way dragging one does.
+  const blockIdOfDevice = new Map<string, string>();
+  blocks.forEach((block, i) => {
+    if (block.kind === 'single') blockIdOfDevice.set(block.device.id, blockIds[i]);
+    else for (const member of block.devices) blockIdOfDevice.set(member.id, blockIds[i]);
+  });
+
+  const groupMoveFor = (deviceId: string) => {
+    const blockId = blockIdOfDevice.get(deviceId);
+    if (!onGroupsChange || blockId === undefined) return undefined;
+    const current = groupOf(groups, blockId);
+    return {
+      targets: groups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
+      onMove: (groupId: string) => onGroupsChange(moveBlock(groups, blockId, groupId, Number.MAX_SAFE_INTEGER)),
+      onRemove: current
+        ? { name: current.name, run: () => onGroupsChange(moveBlock(groups, blockId, null, 0)) }
+        : undefined,
+      onMoveToNew: groups.length < MAX_DEVICE_GROUPS
+        ? () => {
+            const withNew = addGroup(groups, t('lighting.devices.groupDefaultName'));
+            onGroupsChange(moveBlock(withNew, blockId, withNew[withNew.length - 1].id, 0));
+          }
+        : undefined,
+    };
+  };
+
   // Single click handler so cards and zones share the exact same selection
   // semantics as the canvas: plain click = single-replace, Cmd/Ctrl+click =
   // toggle this id's membership in the set.
@@ -138,6 +165,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     return {
       count: selectedDevices.length,
       identifyCount: selectedDevices.filter(x => x.ledCount > 0).length,
+      tunableCount: selectedDevices.filter(zoneCardSelectable).length,
       controlled: selectedDevices.some(x => x.controlled !== false),
       ledsOn: selectedDevices.some(x => x.ledsOn),
       setControlled: (controlled: boolean) => selectedDevices.forEach(x => onSetControlled(x.id, controlled)),
@@ -183,6 +211,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
       // Grouped members carry the notice on their group header instead.
       notice={indent ? undefined : noticeFor(d)}
       bulk={bulkFor(d)}
+      groupMove={groupMoveFor(d.id)}
     />
   );
 

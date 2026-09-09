@@ -375,7 +375,7 @@ describe('FanCard with Nexus Control off', () => {
     expect(screen.getByText('cooling.fan.notControlled')).toBeTruthy();
   });
 
-  it('takes no card selection while control is off', () => {
+  it('still takes a card selection while control is off', () => {
     const onSelect = vi.fn();
     const { container } = render(
       <FanCard channel={makeChannel({ controlled: false })} state={manualState} curves={[]}
@@ -383,7 +383,8 @@ describe('FanCard with Nexus Control off', () => {
         onToggleLock={() => {}} onSetRole={() => {}} onSelect={onSelect} onToggleControlled={() => {}} />,
     );
     fireEvent.click(container.firstElementChild!);
-    expect(onSelect).not.toHaveBeenCalled();
+    // Selecting is how the user reaches the row that turns control back on.
+    expect(onSelect).toHaveBeenCalled();
   });
 
   it('keeps the lock visible where there is no dropdown to carry it', () => {
@@ -407,5 +408,49 @@ describe('FanCard with Nexus Control off', () => {
     expect(screen.getByText('cooling.fan.menuControlOn')).toBeTruthy();
     // Lock is meaningless while nothing drives the channel.
     expect(screen.queryByText('cooling.lock.unlock')).toBeNull();
+  });
+});
+
+describe('FanCard move-to-group flyout', () => {
+  function openMenu(move: NonNullable<Parameters<typeof FanCard>[0]['groupMove']>) {
+    render(
+      <FanCard channel={makeChannel()} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}} groupMove={move} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
+  }
+
+  it('lists every group behind one row, and moves the fan into the one picked', () => {
+    const onMove = vi.fn();
+    openMenu({ targets: [{ id: 'g1', name: 'Front' }, { id: 'g2', name: 'Top' }], onMove });
+    expect(screen.queryByText('Front')).toBeNull();
+    fireEvent.click(screen.getByText('cooling.fan.moveToGroup'));
+    fireEvent.click(screen.getByText('Top'));
+    expect(onMove).toHaveBeenCalledWith('g2');
+  });
+
+  it('carries no row at all when there is nowhere to move the fan', () => {
+    openMenu({ targets: [], onMove: vi.fn() });
+    expect(screen.queryByText('cooling.fan.moveToGroup')).toBeNull();
+  });
+});
+
+describe('FanCard menu bands', () => {
+  it('splits naming and grouping off from the actions below', () => {
+    render(
+      <FanCard channel={makeChannel()} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}}
+        onSelectOnly={() => {}}
+        groupMove={{ targets: [{ id: 'g1', name: 'Front' }], onMove: () => {} }} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
+    const menu = document.querySelector('[class*="_menu_"]')!;
+    const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent?.trim() : '|');
+    expect(rows[0]).toMatch(/^cooling\.fan\.selectOnly/);
+    expect(rows[1]).toBe('|');
+    // Naming and grouping close the menu, behind a rule of their own.
+    expect(rows.slice(-3)).toEqual(['|', 'cooling.fan.rename', 'cooling.fan.moveToGroup']);
   });
 });

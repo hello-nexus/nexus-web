@@ -59,7 +59,7 @@ import { CollapsibleSection } from '../../../components/common/CollapsibleSectio
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../components/common/SortableList/groupedDrag';
-import { addGroup, anchorGroups, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../lib/deviceGroups';
+import { addGroup, anchorGroups, groupedRows, groupOf, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup } from '../../../lib/deviceGroups';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -1136,15 +1136,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
-  // Only fans Nexus can actually drive carry a checkbox, so only they can be
-  // bulk-selected. Must match FanCard's own state-glyph rule.
+  // Fans a click can select, which is what select-all has to match. Nexus
+  // Control off is NOT excluded: the card takes its click, and turning control
+  // back on over a whole selection is the reason to gather them.
   const selectableFanIds = useMemo(
     () => orderedChannels
-      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed'
-        // Nexus Control off joined FanCard's undrivable rule, so it has to join
-        // this one too: select-all would otherwise put a card in the selection
-        // that refuses its own click, leaving no way to take it back out.
-        && c.controlled !== false)
+      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed')
       .map(c => c.id),
     [orderedChannels],
   );
@@ -1492,6 +1489,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               const moboIds = mobo.map(c => c.id);
               const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
 
+              // A fan's group membership is its BLOCK's: a fan on a hub moves
+              // with the whole block, the way dragging one does.
+              const groupMoveFor = (ch: FanChannel) => {
+                const blockId = ch.deviceId || ch.id;
+                const current = groupOf(fanGroups, blockId);
+                return {
+                  targets: fanGroups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
+                  onMove: (groupId: string) => setFanGroups(moveBlock(fanGroups, blockId, groupId, Number.MAX_SAFE_INTEGER)),
+                  onRemove: current
+                    ? { name: current.name, run: () => setFanGroups(moveBlock(fanGroups, blockId, null, 0)) }
+                    : undefined,
+                  onMoveToNew: fanGroups.length < MAX_DEVICE_GROUPS
+                    ? () => {
+                        const withNew = addGroup(fanGroups, t('cooling.fan.groupDefaultName'));
+                        setFanGroups(moveBlock(withNew, blockId, withNew[withNew.length - 1].id, 0));
+                      }
+                    : undefined,
+                };
+              };
+
               const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => (
                 <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
                   compact
@@ -1514,6 +1531,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onSetRole={handleSetRole}
                   onClearOffset={handleClearOffset}
                   drag={drag}
+                  groupMove={groupMoveFor(ch)}
                 />
               );
 

@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Gpu, Link2, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, Folder, FolderInput, FolderMinus, FolderPlus, Gpu, Link2, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -58,7 +58,7 @@ export const FanCard = memo(function FanCard({
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
   onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, onToggleControlled, onSetRole, onClearOffset, drag,
-  onSelectOnly, bulk,
+  onSelectOnly, bulk, groupMove,
 }: {
   channel: FanChannel;
   state: FanState | undefined;
@@ -110,6 +110,18 @@ export const FanCard = memo(function FanCard({
   /** Narrow the selection to this card alone. Offered on every menu except a
    *  card that cannot be selected at all. */
   onSelectOnly?: () => void;
+  /** Group placement for the rail block this card belongs to, driving the
+   *  "Move to group" flyout. A fan on a hub moves with its whole block, the
+   *  way dragging one does. */
+  groupMove?: {
+    /** User groups it can move into; the one it already sits in is left out. */
+    targets: readonly { id: string; name: string }[];
+    onMove: (groupId: string) => void;
+    /** Present only while the block sits in a user group; the row names it. */
+    onRemove?: { name: string; run: () => void };
+    /** Absent once the group cap is reached. */
+    onMoveToNew?: () => void;
+  };
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the lighting device card. */
   bulk?: FanBulkSelection;
@@ -159,7 +171,10 @@ export const FanCard = memo(function FanCard({
   // drops its mode dropdown entirely rather than showing a mode we do not own -
   // the lighting device card's treatment for the same state.
   const controlled = channel.controlled !== false;
-  const undrivable = isHwDisconnected || isFixed || isReadOnly || !controlled;
+  // Nexus Control off does not block a click: selecting is how the user
+  // reaches the row that turns it back on. A disconnected, fixed-speed or
+  // BIOS-owned fan has nothing behind it to act on, so those still do.
+  const clickable = !isHwDisconnected && !isFixed && !isReadOnly;
   const stateBadge = isHwDisconnected
     ? { icon: <Unplug size={11} />, label: t('cooling.fan.disconnected') }
     : isFixed ? { icon: <CircleSlash size={11} />, label: t('cooling.fan.fixed') }
@@ -313,7 +328,7 @@ export const FanCard = memo(function FanCard({
     // Leads the menu and names the fan, so it is unambiguous which card the
     // selection is about to narrow to. Matches the lighting card, including
     // the rule under it.
-    if (!undrivable && selected && !bulk && onSelect) {
+    if (clickable && selected && !bulk && onSelect) {
       // Narrowing to this card is pointless when it IS the whole selection.
       items.push({
         key: 'deselect',
@@ -322,31 +337,13 @@ export const FanCard = memo(function FanCard({
         onSelect: () => onSelect(true),
         separatorAfter: true,
       });
-    } else if (onSelectOnly && !undrivable) {
+    } else if (onSelectOnly && clickable) {
       items.push({
         key: 'selectOnly',
         icon: <MousePointerClick size={14} />,
         label: t('cooling.fan.selectOnly', { name: channel.name }),
         onSelect: onSelectOnly,
         separatorAfter: true,
-      });
-    }
-    if (!bulk) {
-      items.push({
-        key: 'rename',
-        icon: <Pencil size={14} />,
-        label: t('cooling.fan.rename'),
-        onSelect: () => nameRef.current?.startEditing(),
-      });
-    }
-    // Clearing a rename has no inline affordance - an empty commit is dropped -
-    // so the menu is the only way back to the hardware name.
-    if (!bulk && channel.originalName != null) {
-      items.push({
-        key: 'resetName',
-        icon: <RotateCcw size={14} />,
-        label: t('cooling.fan.resetName'),
-        onSelect: () => onRename(channel.id, ''),
       });
     }
     // Aggregates read "any member still is", so one press lands the whole
@@ -376,6 +373,61 @@ export const FanCard = memo(function FanCard({
         // Highlighted for the same reason the lighting card highlights it: it
         // is the row that un-sticks the card's current state.
         : { key: 'controlled', icon: <Link2 size={14} />, label: label('cooling.fan.menuControlOn', 'cooling.fan.menuControlOnCount'), onSelect: () => setControlled(true), highlighted: true });
+    }
+    // Naming and grouping close the menu, under a rule: they change what the
+    // fan IS, where everything above acts on what it does.
+    const organise: DeviceMenuItem[] = [];
+    if (!bulk) {
+      organise.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('cooling.fan.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
+      });
+      // Clearing a rename has no inline affordance - an empty commit is
+      // dropped - so the menu is the only way back to the hardware name.
+      if (channel.originalName != null) {
+        organise.push({
+          key: 'resetName',
+          icon: <RotateCcw size={14} />,
+          label: t('cooling.fan.resetName'),
+          onSelect: () => onRename(channel.id, ''),
+        });
+      }
+    }
+    const groupRows: DeviceMenuItem[] = [];
+    if (!bulk && groupMove) {
+      for (const target of groupMove.targets) {
+        groupRows.push({
+          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
+          onSelect: () => groupMove.onMove(target.id),
+        });
+      }
+      if (groupMove.onMoveToNew) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:new', icon: <FolderPlus size={14} />,
+          label: t('cooling.fan.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
+        });
+      }
+      if (groupMove.onRemove) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:none', icon: <FolderMinus size={14} />,
+          label: t('cooling.fan.removeFromGroup', { name: groupMove.onRemove.name }),
+          onSelect: groupMove.onRemove.run,
+        });
+      }
+    }
+    if (groupRows.length > 0) {
+      organise.push({
+        key: 'moveToGroup', icon: <FolderInput size={14} />,
+        label: t('cooling.fan.moveToGroup'), submenu: groupRows,
+      });
+    }
+    if (organise.length > 0) {
+      if (items.length > 0) items[items.length - 1].separatorAfter = true;
+      items.push(...organise);
     }
     return items;
   };
@@ -433,7 +485,7 @@ export const FanCard = memo(function FanCard({
         // a curve was picked. Anything outside the card is not ours.
         if (!e.currentTarget.contains(target)) return;
         if (target.closest('[data-no-dnd],button,input,select,textarea,a')) return;
-        if (undrivable) return;
+        if (!clickable) return;
         onSelect(isMultiSelectModifier(e));
       } : undefined}
       onMouseEnter={onWireHover ? () => onWireHover(channel.id) : undefined}
