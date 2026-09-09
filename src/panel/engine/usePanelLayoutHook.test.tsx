@@ -236,3 +236,97 @@ describe('usePanelLayout device-missing guard', () => {
     await waitFor(() => expect(result.current.deviceMissing).toBe(false));
   });
 });
+
+describe('usePanelLayout hydration gate', () => {
+  const storedLayout = {
+    layoutSchemaVersion: 2 as const,
+    surface: 'monitor' as PanelSurface,
+    pages: [{ id: 'STORED', widgets: [{ id: 'w1', type: 'clock', size: '4x2' as const, col: 0, row: 0 }] }],
+  };
+  const recordWith = (id: string, layout: typeof storedLayout | undefined) => ({
+    id, displayName: 'CRX ED00', firstSeenAt: 0, lastSeenAt: 0, layout,
+  });
+
+  // The kiosk's repagination effect keys off `hydrated`. If it can ever read
+  // `hydrated === true` while `layout` is still the local seed, it persists
+  // the seed over the user's stored layout - the promoted-monitor reset.
+  it('never reports hydrated while layout is still the local seed', async () => {
+    fetchMock.mockResolvedValue({ found: true, record: recordWith('edge-1', storedLayout) });
+
+    const samples: Array<{ hydrated: boolean; pageId: string }> = [];
+    const { result } = renderHook(() => {
+      const state = useLayoutFor('edge-1', 'monitor');
+      samples.push({ hydrated: state.hydrated, pageId: state.layout.pages[0]?.id ?? '' });
+      return state;
+    });
+
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    expect(result.current.layout.pages[0].id).toBe('STORED');
+    expect(samples.some(s => s.hydrated && s.pageId !== 'STORED')).toBe(false);
+    // Nothing the hook did on its own may reach the service.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(patchMock).not.toHaveBeenCalled();
+  });
+
+  // Production shape: PanelApp renders this subtree only once the record has
+  // settled, so the hook mounts with one already in hand. Even then the first
+  // render must not report hydrated - `layout` is still the seed until the
+  // effect swaps it, and the auto-persist effect reads both in one snapshot.
+  it('is not hydrated on the mount render even when the record is already in hand', async () => {
+    const recordState = {
+      record: recordWith('edge-mounted', storedLayout),
+      loaded: true,
+      missing: false,
+      refetch: () => {},
+    };
+
+    const samples: Array<{ hydrated: boolean; pageId: string }> = [];
+    const { result } = renderHook(() => {
+      const state = usePanelLayout(recordState, 'edge-mounted', 'monitor');
+      samples.push({ hydrated: state.hydrated, pageId: state.layout.pages[0]?.id ?? '' });
+      return state;
+    });
+
+    expect(samples[0].hydrated).toBe(false);
+    expect(samples[0].pageId).not.toBe('STORED');
+
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    expect(result.current.layout.pages[0].id).toBe('STORED');
+    expect(samples.some(s => s.hydrated && s.pageId !== 'STORED')).toBe(false);
+  });
+
+  it('stays un-hydrated for a record the server does not have', async () => {
+    fetchMock.mockResolvedValue({ found: false, status: 404 });
+
+    const { result } = renderHook(() => useLayoutFor('gone', 'monitor'));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.hydrated).toBe(false);
+    expect(result.current.deviceMissing).toBe(true);
+  });
+
+  // The kiosk boots while the service is still binding: the first fetch fails
+  // (loaded flips true with no record), and the record lands on a retry.
+  it('does not hydrate on a failed fetch, then hydrates when the retry lands', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ found: false, status: 0 })
+      .mockResolvedValue({
+        found: true,
+        record: recordWith('edge-2', { ...storedLayout, pages: [{ ...storedLayout.pages[0], id: 'STORED2' }] }),
+      });
+
+    const { result } = renderHook(() => useLayoutFor('edge-2', 'monitor'));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.hydrated).toBe(false);
+
+    // Past RETRY_MS[0] (usePanelRecord), the first backoff step.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    expect(result.current.layout.pages[0].id).toBe('STORED2');
+  });
+});
