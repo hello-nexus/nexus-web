@@ -156,8 +156,7 @@ export function GameSyncLeftPane() {
     </div>
   );
 
-  // SettingsSection's own trailing slot, so the link lands on the box's
-  // content edge rather than trailing Rescan mid-row.
+  // SettingsSection's action slot puts this on the box's content edge.
   const docsLink = (
     <Button
       size="sm"
