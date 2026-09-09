@@ -512,8 +512,6 @@ export function Select({
                   key={`${opt.value}-${i}`}
                   id={optionId(i)}
                   role="option"
-                  // Surfaces the full label when an option ellipsizes.
-                  title={opt.label}
                   aria-selected={opt.value === value}
                   aria-disabled={opt.disabled || undefined}
                   className={classNames(

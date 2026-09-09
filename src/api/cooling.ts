@@ -162,7 +162,7 @@ export interface WireCurve {
     step: number;
     deadband: number;
   } | null;
-  preset?: 'silent' | 'balanced' | 'turbo' | null;
+  preset?: 'silent' | 'balanced' | 'turbo' | 'max' | null;
   /** For preset curves only: true when the curve's Type + Linear params
    *  still match the service's PresetDefaults. Drives the Reset button's
    *  enabled state. Null for user curves. */

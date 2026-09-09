@@ -972,7 +972,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
   }, [cpuTemp?.id, curves, exitOffToCustomIfNeeded, fanStates, pushCurves, setSelectedCurveId, setSelectedFanIds, sources]);
 
-  // Reset a preset curve (silent/balanced/turbo) back to defaults via
+  // Reset a preset curve (silent/balanced/turbo/max) back to defaults via
   // the service endpoint. Fan attachments are preserved server-side, so the
   // active preset stays in place; we just refetch to pick up the new template
   // values.
@@ -1216,10 +1216,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   };
   const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({
     key: p.key,
-    // Silent/Balanced/Turbo apply to every fan, so the tab reads "All <preset>".
-    label: p.key === 'silent' || p.key === 'balanced' || p.key === 'turbo'
-      ? `${t('cooling.mode.allPrefix')} ${t(p.i18nKey)}`
-      : t(p.i18nKey),
+    // Plain mode names, matching the simple-mode tiles. They used to read
+    // "All <mode>", which stopped being true once pumps and GPU fans started
+    // defaulting out of a preset apply (FanProfiles.IsLockedByDefault).
+    label: t(p.i18nKey),
     icon: <p.Icon size={14} />,
   }))];
   // The strip marks the mode tab while cooling is off - it is the tab Off now

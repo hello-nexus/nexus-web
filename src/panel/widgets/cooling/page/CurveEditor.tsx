@@ -546,7 +546,7 @@ export const CurveCard = memo(function CurveCard({
   children?: ReactNode;
   onChange: (c: CurveDef) => void;
   onDelete: () => void;
-  /** Reset a preset curve (silent/balanced/turbo) back to its defaults. Only
+  /** Reset a preset curve (silent/balanced/turbo/max) back to its defaults. Only
    *  rendered when curve.preset is set; gated by isModeCurveDirty. */
   onResetPreset?: () => void;
 }) {

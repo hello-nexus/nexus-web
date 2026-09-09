@@ -8,7 +8,7 @@ import type { WidgetProps } from '../types';
 /**
  * Fullscreen cooling controller. Two cells (stacked in portrait, side by
  * side in landscape):
- *  - Cell 1: preset mode buttons (off / silent / balanced / turbo / custom)
+ *  - Cell 1: preset mode buttons (off / silent / balanced / turbo / max / custom)
  *    over the live thermals trend chart.
  *  - Cell 2 (the fill cell): the desktop cooling page's layout - the pinned
  *    hero CurveCard with the curve-selector chips, over the fan list with

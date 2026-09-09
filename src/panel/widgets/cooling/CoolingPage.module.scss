@@ -484,6 +484,15 @@
   svg { width: 13px; height: 13px; }
 }
 
+// The role picker is an inline <Popover>, so it paints inside this card's
+// box in the list's stacking order - the next card down, being later in the
+// DOM, covered it. Lifting the card that owns the open menu puts the popover
+// over its siblings. (The mode dropdown has no such problem: Select portals
+// to <body> at --z-popover.)
+.fanCardMenuOpen {
+  z-index: var(--z-dropdown);
+}
+
 .fanCardSelected {
   border-color: var(--accent);
   background: var(--surface-selected, color-mix(in srgb, var(--accent) 12%, transparent));

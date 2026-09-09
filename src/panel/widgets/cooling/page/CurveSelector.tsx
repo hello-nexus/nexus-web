@@ -47,7 +47,7 @@ export const CurveSelector = memo(function CurveSelector({
     didInitFanCounts.current = true;
   }, [curveFanCounts]);
 
-  const presetOrder = ['silent', 'balanced', 'turbo'] as const;
+  const presetOrder = ['silent', 'balanced', 'turbo', 'max'] as const;
   const ordered = [
     ...presetOrder.map(p => curves.find(c => c.preset === p)).filter((c): c is CurveDef => !!c),
     ...curves.filter(c => !c.preset),

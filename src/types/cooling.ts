@@ -11,11 +11,11 @@ export type MixFn = 'min' | 'max' | 'avg' | 'sum' | 'subtract';
 
 /**
  * Marks the shared preset curve. When set, this curve is the single
- * Silent / Balanced / Turbo curve attached to all fans whenever the
+ * Silent / Balanced / Turbo / Max curve attached to all fans whenever the
  * matching preset is active. Independent of CurveType so a preset curve
  * can change its Type without losing its preset identity.
  */
-export type CurvePreset = 'silent' | 'balanced' | 'turbo';
+export type CurvePreset = 'silent' | 'balanced' | 'turbo' | 'max';
 
 export interface CurveDef {
   id: string;

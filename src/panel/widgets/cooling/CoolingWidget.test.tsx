@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gaugeReadings } from '../../../__tests__/panel/visibleText';
 import type { PanelWidget } from '../../types';
-import { fetchProfiles } from '../../../api/cooling';
+import { applyProfile, fetchProfiles } from '../../../api/cooling';
 import { CoolingWidget } from './CoolingWidget';
 
 const sensorFixture = vi.hoisted(() => {
@@ -75,6 +75,7 @@ vi.mock('../../../lib/i18n', () => ({
       'cooling.mode.silent': 'Silent',
       'cooling.mode.balanced': 'Balanced',
       'cooling.mode.turbo': 'Turbo',
+      'cooling.mode.max': 'Max',
       'cooling.mode.custom': 'Custom',
       'cooling.label.cpu': 'CPU',
       'cooling.label.gpu': 'GPU',
@@ -191,6 +192,58 @@ describe('CoolingWidget', () => {
       fireEvent.click(screen.getByLabelText('Next fan profile'));
       await waitFor(() => {
         expect(document.querySelector('[data-spinning="true"][data-level="3"]')).toBeInTheDocument();
+      });
+    });
+
+    it('cycles past Turbo into Max, the top rung of the arrow cycle', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Turbo')).toBeInTheDocument());
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+
+      await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+      expect(applyProfile).toHaveBeenLastCalledWith('max');
+      // Max renders the tornado rather than a fourth bar, but it still drives
+      // the fan spin one rung past Turbo.
+      expect(document.querySelector('[data-spinning="true"][data-level="4"]')).toBeInTheDocument();
+    });
+
+    it('renders one fan and one tornado on Max, not a duplicated fan', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+
+      // The fan and the tornado remount on the same pulse; sharing a key made
+      // React reconcile them as one element and paint a second fan.
+      expect(document.querySelectorAll('.lucide-fan')).toHaveLength(1);
+      expect(document.querySelectorAll('.lucide-tornado')).toHaveLength(1);
+    });
+
+    it('leaving Max refills the bars from empty rather than snapping to level', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+
+      // balanced -> turbo -> max -> wraps to silent.
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+      // Max unmounts the bars entirely, which is what breaks the fill.
+      expect(document.querySelector('[data-bar-highlight="1"]')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Silent')).toBeInTheDocument());
+
+      // Mounted empty first, so the transition has somewhere to fill from...
+      const bar1 = document.querySelector('[data-bar-highlight="1"]');
+      expect(bar1).toHaveStyle({ transform: 'scaleY(0)' });
+      // ...then the first bar fills on the following frames.
+      await waitFor(() => {
+        expect(document.querySelector('[data-bar-highlight="1"]')).toHaveStyle({ transform: 'scaleY(1)' });
       });
     });
 

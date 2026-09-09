@@ -452,7 +452,7 @@ const NEXUS_LIGHTING_MODES: DeckLightingMode[] = ['animate', 'gif', 'screen'];
 
 // Same keys FanProfiles.GetBuiltInProfiles() canonicalizes to; "off" (BIOS
 // control) and the legacy "auto" synonym are not offered as a key action.
-const NEXUS_COOLING_MODES = ['silent', 'balanced', 'turbo', 'custom'];
+const NEXUS_COOLING_MODES = ['silent', 'balanced', 'turbo', 'max', 'custom'];
 
 /**
  * A freshly picked op carries every field its executor branch reads, so a key

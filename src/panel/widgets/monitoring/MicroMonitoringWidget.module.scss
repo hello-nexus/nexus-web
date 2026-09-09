@@ -48,3 +48,26 @@
   white-space: nowrap;
   padding: 0 4px;
 }
+
+// Outline offset clear of the bar, leaving the row's layout box untouched;
+// .slot would clip it, and the doubled class outranks the perf module's ::after.
+.rowSelectable.rowSelectable {
+  overflow: visible;
+  // The button UA centers its text and cross-axis items; the bars must render
+  // identically in and out of edit.
+  text-align: inherit;
+  align-items: stretch;
+
+  &::after {
+    top: -4px;
+    right: -5px;
+    bottom: -4px;
+    left: -5px;
+  }
+}
+
+// The fill and backdrop bars grow to share the column height, which they can
+// only do if the wrapper grows with them.
+.rowSelectableGrow.rowSelectableGrow {
+  flex: 1;
+}
