@@ -56,17 +56,13 @@ const TurboIcon: IconComponent = ({ size, className }) => (
 );
 
 // Max leaves the bars scale on purpose - it is a flat 100%, not a steeper
-// curve - and Custom uses lucide Gauge so neither competes with the set.
-const MaxIcon: IconComponent = ({ size, className }) => (
-  <CheckeredFlagIcon size={size} className={className} />
-);
-
+// curve - and Custom uses lucide Gauge, so neither competes with the set.
 export const COOLING_MODES: readonly CoolingModeDef[] = [
   { key: 'off',      i18nKey: 'cooling.mode.off',      Icon: Power },
   { key: 'silent',   i18nKey: 'cooling.mode.silent',   Icon: SilentIcon },
   { key: 'balanced', i18nKey: 'cooling.mode.balanced', Icon: BalancedIcon },
   { key: 'turbo',    i18nKey: 'cooling.mode.turbo',    Icon: TurboIcon },
-  { key: 'max',      i18nKey: 'cooling.mode.max',      Icon: MaxIcon },
+  { key: 'max',      i18nKey: 'cooling.mode.max',      Icon: CheckeredFlagIcon },
   { key: 'custom',   i18nKey: 'cooling.mode.custom',   Icon: Gauge },
 ] as const;
 
