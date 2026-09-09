@@ -28,6 +28,8 @@ export interface Display {
   model: string;
   isInternal: boolean;
   isDdcCapable: boolean;
+  /** False when the user turned brightness control off for this display; Nexus then sends it no DDC/CI at all. */
+  ddcEnabled: boolean;
   capabilities: DisplayCapabilities;
   brightnessControl: DisplayBrightnessControl;
 }
@@ -78,6 +80,8 @@ export interface TopologyDisplay {
   orientation: string;
   /** The Y70's own monitor: auto-managed, never promotable here. */
   isY70: boolean;
+  /** False when the user turned brightness control off for this display. */
+  ddcEnabled: boolean;
   hostingSupported: boolean;
   assignedPanelDeviceId: string | null;
   assignedPanelName: string | null;
@@ -113,6 +117,15 @@ export async function demoteDisplayPanel(id: string): Promise<{ error?: boolean 
 
 export async function rotateDisplay(id: string, orientation: string): Promise<{ error?: boolean } | null> {
   return postService<{ error?: boolean }>(`/displays/${encodeURIComponent(id)}/rotation`, { orientation });
+}
+
+/**
+ * Turn DDC/CI brightness control on or off for one display. Off means the
+ * service sends that monitor nothing at all, capability probe included - the
+ * escape hatch for a panel whose firmware hangs on a DDC transaction.
+ */
+export async function setDisplayDdc(id: string, enabled: boolean): Promise<{ enabled: boolean } | null> {
+  return postService<{ enabled: boolean }>(`/displays/${encodeURIComponent(id)}/ddc`, { enabled });
 }
 
 export async function fetchDisplayBrightness(id: string): Promise<DisplayBrightnessResponse | null> {

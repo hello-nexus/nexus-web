@@ -17,6 +17,7 @@ const DISPLAYS: Display[] = [
     model: 'Laptop Panel',
     isInternal: true,
     isDdcCapable: false,
+    ddcEnabled: true,
     capabilities: { brightness: true, contrast: false, colorTempPresets: [], inputSources: [], volume: false },
     brightnessControl: {
       supported: true, min: 0, max: 100, current: 72,
@@ -31,6 +32,7 @@ const DISPLAYS: Display[] = [
     model: 'LX27Q',
     isInternal: false,
     isDdcCapable: true,
+    ddcEnabled: true,
     capabilities: { brightness: true, contrast: false, colorTempPresets: [], inputSources: [], volume: false },
     brightnessControl: {
       supported: true, min: 0, max: 100, current: 45,
