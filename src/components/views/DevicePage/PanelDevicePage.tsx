@@ -1036,6 +1036,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
+                docked={dockPreview}
                 onBack={() => setConfiguringWidgetId(null)}
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
@@ -1509,6 +1510,9 @@ interface InlineWidgetSettingsProps {
   // Panel accent vars injected onto the preview root so the widget preview
   // highlights in the panel's accent, not the desktop chrome's.
   themeStyle?: CSSProperties;
+  // Set when the canvas is docked below (landscape strips), which gives this
+  // block the full page width.
+  docked?: boolean;
   onBack: () => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
@@ -1516,7 +1520,7 @@ interface InlineWidgetSettingsProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, onBack, onUpdate, onResize, onRemove, onSectionNavigate }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -1549,7 +1553,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   const Icon = def?.meta.icon;
 
   return (
-    <div className={styles.inlineSettings}>
+    <div className={styles.inlineSettings} data-docked={docked ? 'true' : undefined}>
       <div className={styles.inlineSettingsHeader}>
         <button type="button" className={styles.backBtn} onClick={onBack} aria-label={t('devices.panels.widgetSettings.back')}>
           <ArrowLeft size={16} />
@@ -1574,41 +1578,43 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
         </div>
       </div>
 
-      <div className={styles.inlineSettingsPreview}>
-        {def && (() => {
-          const Comp = def.Widget;
-          const span = sizeToSpan(widget.size);
-          const previewW = span.cols * 90 + (span.cols - 1) * 6;
-          const previewH = span.rows * 90 + (span.rows - 1) * 6;
-          return (
-            <div
-              className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
-              data-theme={themeMode}
-              style={{ ...themeStyle, width: previewW, height: previewH }}
-            >
-              <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
-                <ErrorBoundary label={widget.type}>
-                  <Comp
-                    widget={widget}
-                    // The preview mirrors the target surface's interactivity.
-                    surface={surface}
-                    deviceTouch={deviceTouch}
-                    selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
-                    onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
-                    editView={usesSlotSelection ? deckEditView : undefined}
-                    onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
-                    // Same semantics as the canvas tile: this preview shows the
-                    // same nav arrows, so pressing one has to mean the same
-                    // thing rather than moving a throwaway view.
-                    onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
-                    editorPreview={def.meta.persistsFromTile ? true : undefined}
-                  />
-                </ErrorBoundary>
+      {def && (
+        <div className={styles.inlineSettingsPreview}>
+          {(() => {
+            const Comp = def.Widget;
+            const span = sizeToSpan(widget.size);
+            const previewW = span.cols * 90 + (span.cols - 1) * 6;
+            const previewH = span.rows * 90 + (span.rows - 1) * 6;
+            return (
+              <div
+                className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
+                data-theme={themeMode}
+                style={{ ...themeStyle, width: previewW, height: previewH }}
+              >
+                <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
+                  <ErrorBoundary label={widget.type}>
+                    <Comp
+                      widget={widget}
+                      // The preview mirrors the target surface's interactivity.
+                      surface={surface}
+                      deviceTouch={deviceTouch}
+                      selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+                      onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+                      editView={usesSlotSelection ? deckEditView : undefined}
+                      onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
+                      // Same semantics as the canvas tile: this preview shows the
+                      // same nav arrows, so pressing one has to mean the same
+                      // thing rather than moving a throwaway view.
+                      onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
+                      editorPreview={def.meta.persistsFromTile ? true : undefined}
+                    />
+                  </ErrorBoundary>
+                </div>
               </div>
-            </div>
-          );
-        })()}
-      </div>
+            );
+          })()}
+        </div>
+      )}
 
       <div className={styles.inlineSettingsBody}>
         {(sizes.length > 1 || slotLayoutOptions.length > 1) && (

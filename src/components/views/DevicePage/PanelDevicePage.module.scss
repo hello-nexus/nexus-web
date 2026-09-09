@@ -383,6 +383,28 @@
   gap: 0.75rem;
 }
 
+// Docked-canvas pages give this block the full page width, which leaves the
+// preview a lonely band across the top and the scroller squeezed underneath.
+.inlineSettings[data-docked='true'] {
+  display: grid;
+  // Floor keeps a small widget's preview off the divider; the column still
+  // grows for a wide one.
+  grid-template-columns: minmax(200px, auto) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 1.25rem;
+}
+
+.inlineSettings[data-docked='true'] .inlineSettingsHeader {
+  grid-column: 1 / -1;
+}
+
+.inlineSettings[data-docked='true'] .inlineSettingsPreview {
+  align-items: flex-start;
+  padding: 1rem 1.25rem 1rem 0;
+  border-bottom: none;
+  border-right: 1px solid var(--separator);
+}
+
 .inlineSettingsEmpty {
   padding: 2rem 0;
   text-align: center;
