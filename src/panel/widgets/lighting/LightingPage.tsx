@@ -6,7 +6,7 @@ import {
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
-  renameLightingDevice,
+  renameLightingDevice, saveLightingGroups,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   fetchStaticDeviceLooks,
@@ -15,6 +15,7 @@ import {
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto, type PresetApp,
 } from '../../../api/lighting';
+import { type DeviceGroup } from '../../../lib/deviceGroups';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
@@ -187,6 +188,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     scanning: serviceState.lighting?.scanning ?? false,
   };
   const [devices, setDevices] = useState<LightingDevice[]>([]);
+  // User-made rail groups. The service owns them (they ride the device list),
+  // so a write is optimistic and the lighting topic reconciles.
+  const [deviceGroups, setDeviceGroups] = useState<DeviceGroup[]>([]);
   const deviceDraggingRef = useRef(false);
   const pushLayoutRef = useRef<((snap: LayoutHistorySnapshot) => void) | null>(null);
   const layoutActiveIdRef = useRef<string | null>(null);
@@ -368,6 +372,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleCompositionChanged = useCallback(async (hubId: string) => {
     const data = await fetchLightingDevices();
     if (!data) return;
+    setDeviceGroups(data.groups ?? []);
     const next = (data.devices ?? []).map(d => ({
       ...d,
       canvasW: Math.max(60, d.canvasW),
@@ -1197,6 +1202,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // The card keeps the hardware name it is replacing, so the LED settings
   // modal can still show what the device calls itself. A rename off an already
   // renamed card must not overwrite that with the previous custom name.
+  const handleGroupsChange = useCallback((next: DeviceGroup[]) => {
+    setDeviceGroups(next);
+    saveLightingGroups(next).catch(() => { /* 3s poll reconciles */ });
+  }, []);
+
   const handleRenameDevice = useCallback((id: string, name: string) => {
     renameLightingDevice(id, name).catch(() => { /* 3s poll reconciles */ });
     setDevices(prev => prev.map(d => d.id === id
@@ -1333,6 +1343,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       canvasH: Math.max(60, d.canvasH),
     }));
     setDevices(devices);
+    setDeviceGroups(data.groups ?? []);
   }, []);
 
   useEffect(() => {
@@ -2002,6 +2013,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onOpenSettings={handleOpenSettings}
             onOpenColorTuning={handleOpenColorTuning}
             onRenameDevice={handleRenameDevice}
+            groups={deviceGroups}
+            onGroupsChange={handleGroupsChange}
             onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
             communityCounts={mappingCounts}
             onOpenCommunity={handleOpenCommunity}

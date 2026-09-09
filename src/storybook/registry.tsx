@@ -75,7 +75,9 @@ import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/edito
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
-import { SortableList } from '../components/common/SortableList/SortableList';
+import { SortableList, type SortableRowArgs } from '../components/common/SortableList/SortableList';
+import { GroupedSortableList } from '../components/common/SortableList/GroupedSortableList';
+import { type Arrangement } from '../components/common/SortableList/groupedDrag';
 import { SettingsSection } from '../components/common/SettingsSection/SettingsSection';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../components/common/SettingRow/SettingRow';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
@@ -1365,6 +1367,42 @@ function PreviewSortableList() {
   );
 }
 
+function PreviewGroupedSortableList() {
+  const [arrangement, setArrangement] = useState<Arrangement>({
+    rowIds: ['Card 1', 'g1', 'Card 2'],
+    groupMembers: { g1: ['Card 3'], g2: [] },
+  });
+  const row = (id: string, a: SortableRowArgs, tint: string) => (
+    <div
+      ref={a.ref}
+      role="listitem"
+      style={{ ...a.style, padding: '0.5rem', background: tint, borderRadius: 'var(--radius-sm)', cursor: 'grab' }}
+      {...a.attributes}
+      {...a.listeners}
+      className={a.isDragging ? a.placeholderClassName : undefined}
+    >
+      {id}
+    </div>
+  );
+  return (
+    <div style={{ width: 260 }}>
+      <GroupedSortableList
+        arrangement={arrangement}
+        onArrange={setArrangement}
+        renderBlock={(id, a) => row(id, a, 'var(--surface)')}
+        renderGroup={(id, a, children) => (
+          <div ref={a.ref} style={{ ...a.style, border: '1px dashed var(--border)', borderRadius: 'var(--radius)', padding: '0.35rem' }} {...a.attributes}>
+            <div {...a.listeners} style={{ cursor: 'grab', padding: '0.25rem', color: 'var(--text-dim)', fontSize: 'var(--type-mini)', textTransform: 'uppercase' }}>
+              {id === 'g1' ? 'Desk' : 'Empty group'}
+            </div>
+            {children}
+          </div>
+        )}
+      />
+    </div>
+  );
+}
+
 function PreviewSettingsSection() {
   return (
     <div style={{ width: 340, display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -2619,6 +2657,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/SortableList/SortableList.tsx',
     description: 'Shared vertical drag-to-reorder list built on @dnd-kit. Rows slide apart during drag, a floating clone follows the cursor, and a drop ring pulses at the resting slot. Consumers render each row via renderRow, spreading the supplied args. Mark interactive children with data-no-dnd to prevent drag hijack.',
     Preview: PreviewSortableList,
+  },
+  {
+    name: 'GroupedSortableList', category: 'panel-kit' as StorybookCategory,
+    filePath: 'src/components/common/SortableList/GroupedSortableList.tsx',
+    description: 'Two-level drag list: top-level rows plus one nested list per group, all under ONE DndContext so a row can be dragged into, out of and between groups. Used by the lighting and cooling rails for user-made device groups. SortableList stays the choice for a flat list - it owns its own context, so two of them can never exchange rows. Nesting is one level: a group row never enters another group.',
+    Preview: PreviewGroupedSortableList,
   },
   {
     name: 'SettingsSection', category: 'panel-kit',

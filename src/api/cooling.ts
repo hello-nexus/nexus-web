@@ -1,6 +1,7 @@
 // Cooling API wrapper - authenticated fetch/post to the local service.
 
 import { fetchService, postService, putService, deleteService } from './service';
+import { type DeviceGroup } from '../lib/deviceGroups';
 
 // ── Types ──
 
@@ -103,6 +104,8 @@ export interface CurvePoint {
 
 interface FanChannelsResponse {
   channels: FanChannel[];
+  /** User-made fan groups, in display order. Absent on older services. */
+  groups?: DeviceGroup[];
 }
 
 interface TemperatureSourcesResponse {
@@ -179,6 +182,10 @@ export const fetchCurves = () =>
 
 export const fetchFanChannels = () =>
   fetchService<FanChannelsResponse>('/cooling/fans');
+
+/** Whole-list replace; the page owns group order and membership. */
+export const saveFanGroups = (groups: DeviceGroup[]) =>
+  putService<{ groups: DeviceGroup[] }>('/cooling/fan-groups', { groups });
 
 export const fetchTemperatureSources = () =>
   fetchService<TemperatureSourcesResponse>('/cooling/sources');

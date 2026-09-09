@@ -1,6 +1,7 @@
 // Lighting API wrapper - authenticated fetch/post to the local service.
 
 import { fetchService, postService, deleteService, putService, authFetchWithStatus, resolveAuthWs } from './service';
+import { type DeviceGroup } from '../lib/deviceGroups';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
@@ -368,7 +369,13 @@ export interface LightingDevice {
 export interface LightingDevicesResponse {
   isInit: boolean;
   devices: LightingDevice[];
+  /** User-made card groups, in display order. Absent on older services. */
+  groups?: DeviceGroup[];
 }
+
+/** Whole-list replace; the page owns group order and membership. */
+export const saveLightingGroups = (groups: DeviceGroup[]) =>
+  putService<{ groups: DeviceGroup[] }>('/devices/lighting-devices/groups', { groups });
 
 // Dev-tools builds stand in mock hardware when the host has none, so the
 // lighting page can be driven on a machine with no RGB devices.

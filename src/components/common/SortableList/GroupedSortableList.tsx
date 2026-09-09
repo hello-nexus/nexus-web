@@ -1,0 +1,165 @@
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  MeasuringStrategy,
+  PointerSensor,
+  closestCenter,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { bodyDroppableId, moveTo, type Arrangement } from './groupedDrag';
+import { type SortableRowArgs } from './SortableList';
+import styles from './SortableList.module.scss';
+
+/**
+ * Two-level drag list: top-level rows (blocks and group headers) plus one
+ * nested list per group, all under ONE DndContext so a block can be dragged
+ * into, out of and between groups. {@link SortableList} stays the choice for a
+ * flat list - it owns its own context, so two of them can never exchange rows.
+ *
+ * Nesting is one level: a group row reorders among its siblings and never
+ * enters another group. Rows inside a group that the consumer marks fixed are
+ * not rendered here at all; a hardware group is one draggable block, so it
+ * moves whole.
+ */
+export interface GroupedSortableListProps {
+  arrangement: Arrangement;
+  /** Receives the whole new arrangement after a drop. */
+  onArrange: (next: Arrangement) => void;
+  renderBlock: (id: string, args: SortableRowArgs) => ReactNode;
+  /** Renders the group shell; `children` is its nested list. */
+  renderGroup: (id: string, args: SortableRowArgs, children: ReactNode) => ReactNode;
+  className?: string;
+  ariaLabel?: string;
+}
+
+// Same guard SortableList uses: a press inside [data-no-dnd] (buttons, the
+// inline name editor) never starts a drag.
+class GuardedPointerSensor extends PointerSensor {
+  static activators = [
+    {
+      eventName: 'onPointerDown' as const,
+      handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }) => {
+        if (!event.isPrimary || event.button !== 0) return false;
+        let el = event.target as HTMLElement | null;
+        while (el) {
+          if (el.dataset && el.dataset.noDnd === 'true') return false;
+          el = el.parentElement;
+        }
+        return true;
+      },
+    },
+  ];
+}
+
+function Row({ id, render }: { id: string; render: (id: string, args: SortableRowArgs) => ReactNode }) {
+  const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({ id });
+  const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition };
+  return <>{render(id, {
+    ref: setNodeRef,
+    style,
+    attributes: attributes as unknown as Record<string, unknown>,
+    listeners: listeners as unknown as Record<string, unknown> | undefined,
+    isDragging,
+    placeholderClassName: styles.placeholder,
+  })}</>;
+}
+
+/** A group's body: its own sortable context plus a droppable so an empty group still takes a card. */
+function GroupBody({ groupId, members, renderBlock }: {
+  groupId: string;
+  members: string[];
+  renderBlock: GroupedSortableListProps['renderBlock'];
+}) {
+  const { setNodeRef } = useDroppable({ id: bodyDroppableId(groupId) });
+  return (
+    <SortableContext items={members} strategy={verticalListSortingStrategy}>
+      <div ref={setNodeRef} className={styles.list} role="list">
+        {members.map(id => <Row key={id} id={id} render={renderBlock} />)}
+      </div>
+    </SortableContext>
+  );
+}
+
+export function GroupedSortableList({
+  arrangement, onArrange, renderBlock, renderGroup, className, ariaLabel,
+}: GroupedSortableListProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // The arrangement as it looks mid-drag: onDragOver transfers rows between
+  // containers so the drop slot is where the pointer is, and the committed
+  // value only lands on drop.
+  const [dragging, setDragging] = useState<Arrangement | null>(null);
+  const live = dragging ?? arrangement;
+
+  const sensors = useSensors(
+    useSensor(GuardedPointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragOver = (e: DragOverEvent) => {
+    const { active, over } = e;
+    if (!over) return;
+    setDragging(moveTo(live, String(active.id), String(over.id)));
+  };
+
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    const next = over ? moveTo(live, String(active.id), String(over.id)) : live;
+    setActiveId(null);
+    setDragging(null);
+    onArrange(next);
+  };
+
+  return (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      modifiers={[restrictToVerticalAxis]}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+      onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
+      onDragOver={onDragOver}
+      onDragEnd={onDragEnd}
+      onDragCancel={() => { setActiveId(null); setDragging(null); }}
+    >
+      <SortableContext items={live.rowIds} strategy={verticalListSortingStrategy}>
+        <div className={className ? `${styles.list} ${className}` : styles.list} aria-label={ariaLabel} role="list">
+          {live.rowIds.map(id => id in live.groupMembers
+            ? (
+              <Row key={id} id={id} render={(rowId, args) => renderGroup(
+                rowId,
+                args,
+                <GroupBody groupId={rowId} members={live.groupMembers[rowId] ?? []} renderBlock={renderBlock} />,
+              )} />
+            )
+            : <Row key={id} id={id} render={renderBlock} />)}
+        </div>
+      </SortableContext>
+      <DragOverlay dropAnimation={null}>
+        {activeId !== null && (
+          <div className={styles.overlay}>
+            {activeId in live.groupMembers
+              ? renderGroup(activeId, {
+                  ref: () => {}, style: {}, attributes: {}, listeners: undefined,
+                  isDragging: false, placeholderClassName: styles.placeholder,
+                }, null)
+              : renderBlock(activeId, {
+                  ref: () => {}, style: {}, attributes: {}, listeners: undefined,
+                  isDragging: false, placeholderClassName: styles.placeholder,
+                })}
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+export default GroupedSortableList;

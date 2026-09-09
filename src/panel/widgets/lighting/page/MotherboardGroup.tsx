@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Power, PowerOff, Unlink, Link2, MoreVertical } from 'lucide-react';
+import { Power, PowerOff, Unlink, Link2, MoreVertical, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -33,6 +33,7 @@ export function MotherboardGroup({
   drag,
   hideActions,
   onRename,
+  onDelete,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -66,6 +67,10 @@ export function MotherboardGroup({
   /** Commits a new header name. Omitted where the group names no device (a
    *  smart-light brand) or where the surface only picks cards. */
   onRename?: (name: string) => void;
+  /** Dissolves the group, returning its cards to the rail. Present only on
+   *  user-made groups: a hardware group describes how the device is wired and
+   *  cannot be taken apart. */
+  onDelete?: () => void;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -84,6 +89,10 @@ export function MotherboardGroup({
       items.push(groupOn
         ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
         : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: onTogglePower });
+    }
+    if (onDelete) {
+      if (items.length > 0) items[items.length - 1].separatorAfter = true;
+      items.push({ key: 'delete', icon: <Trash2 size={14} />, label: t('lighting.devices.groupDelete'), onSelect: onDelete });
     }
     return items;
   };

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, FolderPlus, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -33,6 +33,7 @@ import {
   resetPresetCurve, isFanDisconnected,
   type FanChannel, type FanRole, type TemperatureSource,
   type FanCalibration,
+  saveFanGroups,
 } from '../../../api/cooling';
 import { useCoolingRealtime } from '../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../hooks/useCoolingCurves';
@@ -56,6 +57,10 @@ import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
+import { GroupedSortableList } from '../../../components/common/SortableList/GroupedSortableList';
+import { type Arrangement } from '../../../components/common/SortableList/groupedDrag';
+import { addGroup, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../lib/deviceGroups';
+import { FanGroupHeader } from './page/FanGroupHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
@@ -214,6 +219,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
 
     if (fans?.channels) setChannels(fans.channels);
+    if (fans) setFanGroupsState(fans.groups ?? []);
 
     // fanStates joins the fan list with the curve outputs, so it can only be
     // rebuilt when BOTH fetches land - fetchService returns null on any non-2xx.
@@ -1068,6 +1074,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // ── Fan card reordering (drag/drop, grip-gated, persisted per profile) ────
   const { settings: uiSettings, update: updateUiSettings } = useUiSettings();
+  // User-made fan groups. The service owns them (they ride the channel list),
+  // so a write is optimistic and the cooling topic reconciles.
+  const [fanGroupsState, setFanGroupsState] = useState<DeviceGroup[]>([]);
+  const fanGroups = fanGroupsState;
+  const setFanGroups = useCallback((next: DeviceGroup[]) => {
+    setFanGroupsState(next);
+    saveFanGroups(next).catch(() => { /* the cooling topic reconciles */ });
+  }, []);
+
   const savedFanOrder = uiSettings.fanChannelOrder;
   const [fanOrder, setFanOrder] = useState<string[]>([]);
   const savedFanOrderKey = savedFanOrder.join('|');
@@ -1487,79 +1502,144 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 />
               );
 
+              // Rail blocks: one per motherboard fan card, one per hub device
+              // group. A hub group is ONE block, so dragging it into a user
+              // group moves the whole hub and its ports are never split.
+              const blockIds = [...moboIds, ...deviceKeys];
+              const expand = (blockId: string): string[] => {
+                if (!deviceKeys.includes(blockId)) return [blockId];
+                const memberIds = (groups.get(blockId) ?? []).map(c => c.id);
+                const ordered = fanOrder.filter(id => memberIds.includes(id));
+                return ordered.length > 0 ? ordered : memberIds;
+              };
+              const rows = groupedRows(blockIds, id => id, fanGroups);
+              const arrangement: Arrangement = {
+                rowIds: rows.map(r => r.id),
+                groupMembers: Object.fromEntries(fanGroups.map(g => [
+                  g.id,
+                  (rows.find(r => r.id === g.id && r.kind === 'group') as { blocks: string[] } | undefined)?.blocks ?? [],
+                ])),
+              };
+              const handleArrange = (next: Arrangement) => {
+                setFanGroups(next.rowIds
+                  .filter(id => id in next.groupMembers)
+                  .map(id => ({
+                    ...(fanGroups.find(g => g.id === id) ?? { id, name: '' }),
+                    members: next.groupMembers[id] ?? [],
+                  })));
+                const order: string[] = [];
+                for (const rowId of next.rowIds) {
+                  if (rowId in next.groupMembers) {
+                    for (const memberId of next.groupMembers[rowId] ?? []) order.push(...expand(memberId));
+                  } else {
+                    order.push(...expand(rowId));
+                  }
+                }
+                order.push(...disconnectedIds);
+                setFanOrder(order);
+                if (serviceOnline) updateUiSettings({ fanChannelOrder: order });
+              };
+
+              const renderBlock = (blockId: string, a: SortableRowArgs) => {
+                if (!deviceKeys.includes(blockId)) {
+                  const ch = channels.find(c => c.id === blockId);
+                  return ch ? renderFanCard(ch, a) : null;
+                }
+                const list = groups.get(blockId) ?? [];
+                const memberIds = list.map(c => c.id);
+                return (
+                  <FanGroupHeader
+                    name={fanDeviceGroupName(blockId, list[0]?.deviceName)}
+                    count={list.length}
+                    collapsed={isFanGroupCollapsed(blockId)}
+                    onToggleCollapsed={() => toggleFanGroup(blockId)}
+                    groupControlled={list.some(c => c.controlled !== false)}
+                    onToggleControlled={() => {
+                      const target = !list.some(c => c.controlled !== false);
+                      for (const c of list) handleSetFanControlled(c.id, target);
+                    }}
+                    groupLocked={list.some(c => c.locked)}
+                    onToggleLock={() => {
+                      const target = !list.some(c => c.locked);
+                      for (const c of list) handleToggleLock(c.id, target);
+                    }}
+                    onRename={name => handleRename(blockId, name)}
+                    drag={a}
+                  >
+                    <div className={styles.fanGroupChildren}>
+                      <SortableList
+                        ids={memberIds}
+                        onReorder={(newIds) => {
+                          const firstIdx = fanOrder.findIndex(id => memberIds.includes(id));
+                          const without = fanOrder.filter(id => !memberIds.includes(id));
+                          const next = [
+                            ...without.slice(0, firstIdx < 0 ? without.length : firstIdx),
+                            ...newIds,
+                            ...without.slice(firstIdx < 0 ? without.length : firstIdx),
+                          ];
+                          setFanOrder(next);
+                          if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
+                        }}
+                        renderRow={(fanId, fa) => {
+                          const ch = channels.find(c => c.id === fanId);
+                          if (!ch) return null;
+                          return renderFanCard(ch, fa);
+                        }}
+                      />
+                    </div>
+                  </FanGroupHeader>
+                );
+              };
+
               return (
                 <>
-                  {moboIds.length > 0 && (
-                    <SortableList
-                      ids={moboIds}
-                      onReorder={(newIds) => {
-                        const nonMobo = fanOrder.filter(id => !moboIds.includes(id));
-                        const next = [...newIds, ...nonMobo];
-                        setFanOrder(next);
-                        if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
-                      }}
-                      renderRow={(id, a) => {
-                        const ch = channels.find(c => c.id === id);
-                        if (!ch) return null;
-                        return renderFanCard(ch, a);
-                      }}
-                    />
-                  )}
-                  {deviceKeys.length > 0 && (
-                    <SortableList
-                      ids={deviceKeys}
-                      onReorder={(newGroupKeys) => {
-                        const next: string[] = [...moboIds];
-                        for (const gKey of newGroupKeys) {
-                          const members = groups.get(gKey) ?? [];
-                          const memberIds = members.map(c => c.id);
-                          const ordered = fanOrder.filter(id => memberIds.includes(id));
-                          next.push(...(ordered.length > 0 ? ordered : memberIds));
-                        }
-                        next.push(...disconnectedIds);
-                        setFanOrder(next);
-                        if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
-                      }}
-                      renderRow={(key, a) => {
-                        const list = groups.get(key)!;
-                        const memberIds = list.map(c => c.id);
-                        const deviceName = fanDeviceGroupName(key, list[0]?.deviceName);
+                  {blockIds.length > 0 && (
+                    <GroupedSortableList
+                      arrangement={arrangement}
+                      onArrange={handleArrange}
+                      renderBlock={renderBlock}
+                      renderGroup={(groupId, a, children) => {
+                        const group = fanGroups.find(g => g.id === groupId);
+                        if (!group) return null;
+                        const members = (arrangement.groupMembers[groupId] ?? [])
+                          .flatMap(id => expand(id))
+                          .map(id => channels.find(c => c.id === id))
+                          .filter((c): c is FanChannel => c !== undefined);
                         return (
-                          <CollapsibleSection
-                            key={key + '-hdr'}
-                            compact
-                            title={deviceName}
-                            ariaLabel={deviceName}
-                            open={!isFanGroupCollapsed(key)}
-                            onToggle={() => toggleFanGroup(key)}
+                          <FanGroupHeader
+                            name={group.name}
+                            count={members.length}
+                            collapsed={isFanGroupCollapsed(groupId)}
+                            onToggleCollapsed={() => toggleFanGroup(groupId)}
+                            groupControlled={members.some(c => c.controlled !== false)}
+                            onToggleControlled={() => {
+                              const target = !members.some(c => c.controlled !== false);
+                              for (const c of members) handleSetFanControlled(c.id, target);
+                            }}
+                            groupLocked={members.some(c => c.locked)}
+                            onToggleLock={() => {
+                              const target = !members.some(c => c.locked);
+                              for (const c of members) handleToggleLock(c.id, target);
+                            }}
+                            onRename={name => setFanGroups(renameGroup(fanGroups, groupId, name))}
+                            onDelete={() => setFanGroups(removeGroup(fanGroups, groupId))}
                             drag={a}
-                            right={<span className={styles.fanGroupCount}>{list.length}</span>}
                           >
-                            <div className={styles.fanGroupChildren}>
-                              <SortableList
-                                ids={memberIds}
-                                onReorder={(newIds) => {
-                                  const firstIdx = fanOrder.findIndex(id => memberIds.includes(id));
-                                  const without = fanOrder.filter(id => !memberIds.includes(id));
-                                  const next = [
-                                    ...without.slice(0, firstIdx < 0 ? without.length : firstIdx),
-                                    ...newIds,
-                                    ...without.slice(firstIdx < 0 ? without.length : firstIdx),
-                                  ];
-                                  setFanOrder(next);
-                                  if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
-                                }}
-                                renderRow={(fanId, fa) => {
-                                  const ch = channels.find(c => c.id === fanId);
-                                  if (!ch) return null;
-                                  return renderFanCard(ch, fa);
-                                }}
-                              />
-                            </div>
-                          </CollapsibleSection>
+                            <div className={styles.fanGroupChildren}>{children}</div>
+                          </FanGroupHeader>
                         );
                       }}
                     />
+                  )}
+                  {fanGroups.length < MAX_DEVICE_GROUPS && (
+                    <button
+                      type="button"
+                      className={styles.addFanGroup}
+                      onClick={() => setFanGroups(addGroup(fanGroups, t('cooling.fan.groupDefaultName')))}
+                    >
+                      <FolderPlus size={18} aria-hidden />
+                      <span>{t('cooling.fan.groupAdd')}</span>
+                    </button>
                   )}
                   {disconnected.length > 0 && (
                     <CollapsibleSection key="disconnected-hdr" compact

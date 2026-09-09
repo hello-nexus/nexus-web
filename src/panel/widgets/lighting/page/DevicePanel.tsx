@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Cpu, Plus } from 'lucide-react';
+import { Cpu, FolderPlus, Plus } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
@@ -12,6 +12,9 @@ import { MotherboardGroup } from './MotherboardGroup';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
+import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
+import { type Arrangement } from '../../../../components/common/SortableList/groupedDrag';
+import { addGroup, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../../lib/deviceGroups';
 import { buildDeviceBlocks, stripParentPrefix, type DeviceBlock } from './deviceBlocks';
 import styles from '../LightingPage.module.scss';
 
@@ -22,7 +25,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false }: {
+export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   header?: ReactNode;
@@ -74,6 +77,10 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
   /** Tail card explaining a short list; absent once a mode is running. */
   discovery?: DiscoveryState;
   rgbRunning?: boolean;
+  /** User-made groups, in display order. */
+  groups?: DeviceGroup[];
+  /** Absent leaves the rail ungroupable (no drag between groups, no add button). */
+  onGroupsChange?: (groups: DeviceGroup[]) => void;
 }) {
   const { t } = useTranslation();
 
@@ -245,6 +252,54 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     );
   };
 
+  // Rail arrangement: hardware blocks that no user group claims stay at the top
+  // level, each user group sits where its first present member sat, and a group
+  // row's members are the blocks it owns. A hardware group is ONE block here, so
+  // dragging it moves the whole thing and its zones can never be split.
+  const grouped = groupedRows(blocks, b => (b.kind === 'single' ? b.device.id : b.groupKey), groups);
+  const arrangement: Arrangement = {
+    rowIds: grouped.map(r => r.id),
+    groupMembers: Object.fromEntries(groups.map(g => [
+      g.id,
+      grouped.find(r => r.kind === 'group' && r.id === g.id)?.kind === 'group'
+        ? (grouped.find(r => r.id === g.id) as { blocks: DeviceBlock[] }).blocks
+            .map(b => b.kind === 'single' ? b.device.id : b.groupKey)
+        : [],
+    ])),
+  };
+
+  // One drop rewrites both halves: which group holds which block, and the flat
+  // device order the page persists.
+  const handleArrange = (next: Arrangement) => {
+    if (onGroupsChange) {
+      onGroupsChange(
+        next.rowIds
+          .filter(id => id in next.groupMembers)
+          .map(id => ({
+            ...(groups.find(g => g.id === id) ?? { id, name: '' }),
+            members: next.groupMembers[id] ?? [],
+          })),
+      );
+    }
+    if (!onDeviceReorder) return;
+    const expand = (blockId: string): string[] => {
+      const b = blockMap.get(blockId);
+      if (!b) return [];
+      return b.kind === 'single' ? [b.device.id] : b.devices.map(d => d.id);
+    };
+    const order: string[] = [];
+    for (const rowId of next.rowIds) {
+      if (rowId in next.groupMembers) {
+        for (const memberId of next.groupMembers[rowId] ?? []) order.push(...expand(memberId));
+      } else {
+        order.push(...expand(rowId));
+      }
+    }
+    onDeviceReorder(order);
+  };
+
+  const canAddGroup = onGroupsChange !== undefined && groups.length < MAX_DEVICE_GROUPS;
+
   return (
     <aside className={styles.devicePanel}>
       <div className={styles.deviceList}>
@@ -252,26 +307,53 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
         {devices.length === 0 && (
           <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
         )}
-        <SortableList
-          ids={blockIds}
-          onReorder={(newBlockIds) => {
-            if (!onDeviceReorder) return;
-            const newOrder: string[] = [];
-            for (const bId of newBlockIds) {
-              const b = blockMap.get(bId);
-              if (!b) continue;
-              if (b.kind === 'single') newOrder.push(b.device.id);
-              else newOrder.push(...b.devices.map(d => d.id));
-            }
-            onDeviceReorder(newOrder);
-          }}
-          renderRow={(blockId, a) => {
+        <GroupedSortableList
+          arrangement={arrangement}
+          onArrange={handleArrange}
+          renderBlock={(blockId, a) => {
             const block = blockMap.get(blockId);
             if (!block) return null;
             return renderBlock(block, a);
           }}
+          renderGroup={(groupId, a, children) => {
+            const group = groups.find(g => g.id === groupId);
+            if (!group) return null;
+            const members = (arrangement.groupMembers[groupId] ?? [])
+              .flatMap(id => blockMap.get(id)?.kind === 'single'
+                ? [(blockMap.get(id) as { device: LightingDevice }).device]
+                : (blockMap.get(id) as { devices: LightingDevice[] } | undefined)?.devices ?? []);
+            const groupOn = members.some(z => z.ledsOn);
+            const groupControlled = members.some(z => z.controlled !== false);
+            return (
+              <MotherboardGroup
+                parentName={group.name}
+                ariaLabel={group.name}
+                groupOn={groupOn}
+                onTogglePower={() => { const target = !groupOn; for (const z of members) onSetPower(z.id, target); }}
+                groupControlled={groupControlled}
+                onToggleControlled={() => { const target = !groupControlled; for (const z of members) onSetControlled(z.id, target); }}
+                collapsed={isCollapsed(groupId)}
+                onToggleCollapsed={() => toggleCollapsed(groupId)}
+                onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
+                onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
+                drag={a}
+              >
+                {children}
+              </MotherboardGroup>
+            );
+          }}
         />
         {discovery && <DeviceDiscoveryCard state={discovery} rgbRunning={rgbRunning} />}
+        {canAddGroup && (
+          <button
+            type="button"
+            className={styles.addSmartLights}
+            onClick={() => onGroupsChange?.(addGroup(groups, t('lighting.devices.groupDefaultName')))}
+          >
+            <FolderPlus size={22} aria-hidden />
+            <span>{t('lighting.devices.groupAdd')}</span>
+          </button>
+        )}
         {onOpenSmartLights && (
           <button type="button" className={styles.addSmartLights} onClick={onOpenSmartLights}>
             <Plus size={22} aria-hidden />

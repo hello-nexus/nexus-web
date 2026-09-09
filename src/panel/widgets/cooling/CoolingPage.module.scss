@@ -294,6 +294,41 @@
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
+
+// Overflow button on a fan group header. Matches the lighting rail's group
+// menu button: bare icon, dim until the header is hovered.
+.fanGroupMenuBtn {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast);
+
+  &:hover { color: var(--text); }
+}
+
+// Dashed "new group" entry at the foot of the fan rail, matching the lighting
+// rail's add entry.
+.addFanGroup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  cursor: pointer;
+  transition: color var(--ease-fast), border-color var(--ease-fast);
+
+  &:hover { color: var(--text); border-color: var(--accent); }
+}
 // Calibrate button pinned near the bottom of the fan sidebar, lifted off the
 // edge so it doesn't read as flush against the container bottom.
 .empty { color: var(--text-dim); font-size: var(--type-body); text-align: center; padding: 3rem 0; }

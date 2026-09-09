@@ -1,0 +1,118 @@
+// User-made groups on the lighting and cooling rails. Both pages already build
+// their own intrinsic blocks (a card, or a hardware group like a motherboard's
+// headers); these helpers layer the user's grouping over whatever those are, so
+// the two pages share one model, one cap and one set of drag rules.
+
+/** Mirrors DeviceGroupList.MaxGroups in nexus-service; the service caps too. */
+export const MAX_DEVICE_GROUPS = 10;
+
+/** Name cap, matching the rename field on cards and group headers. */
+export const GROUP_NAME_MAX = 20;
+
+export interface DeviceGroup {
+  id: string;
+  name: string;
+  /** Ids of the blocks in this group, in display order. */
+  members: string[];
+}
+
+/** One rail row: an ungrouped block, or a user group holding blocks. */
+export type GroupedRow<B> =
+  | { kind: 'block'; id: string; block: B }
+  | { kind: 'group'; id: string; group: DeviceGroup; blocks: B[] };
+
+export function newGroupId(): string {
+  const rand = Math.random().toString(16).slice(2, 10);
+  return `grp-${rand}`;
+}
+
+/**
+ * The rail's rows. A group sits where its first present member sits in block
+ * order, so a group and an ungrouped block interleave the way two blocks do,
+ * and adding a card to a group never jumps the group somewhere new. A group
+ * whose members are all absent (hardware unplugged) still renders, empty, so
+ * the user can see it and drop into it.
+ */
+export function groupedRows<B>(
+  blocks: readonly B[],
+  idOf: (block: B) => string,
+  groups: readonly DeviceGroup[],
+): GroupedRow<B>[] {
+  const byId = new Map(blocks.map(b => [idOf(b), b]));
+  const owner = new Map<string, string>();
+  for (const group of groups) {
+    for (const member of group.members) {
+      if (!owner.has(member)) owner.set(member, group.id);
+    }
+  }
+
+  const rows: GroupedRow<B>[] = [];
+  const placed = new Set<string>();
+  const emit = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group || placed.has(groupId)) return;
+    placed.add(groupId);
+    rows.push({
+      kind: 'group',
+      id: groupId,
+      group,
+      // Only the members this group actually owns: a repeated id belongs to the
+      // first group that claimed it, matching what the service stores.
+      blocks: group.members
+        .filter(m => owner.get(m) === groupId)
+        .map(m => byId.get(m))
+        .filter((b): b is B => b !== undefined),
+    });
+  };
+
+  for (const block of blocks) {
+    const id = idOf(block);
+    const groupId = owner.get(id);
+    if (groupId !== undefined) { emit(groupId); continue; }
+    rows.push({ kind: 'block', id, block });
+  }
+  // Groups with nothing plugged in have no anchor above; they tail the list.
+  for (const group of groups) emit(group.id);
+  return rows;
+}
+
+/** Adds an empty group, or returns the list unchanged once the cap is reached. */
+export function addGroup(groups: readonly DeviceGroup[], name: string): DeviceGroup[] {
+  if (groups.length >= MAX_DEVICE_GROUPS) return [...groups];
+  return [...groups, { id: newGroupId(), name: name.slice(0, GROUP_NAME_MAX), members: [] }];
+}
+
+/** Drops the group; its members return to the top level, keeping block order. */
+export function removeGroup(groups: readonly DeviceGroup[], groupId: string): DeviceGroup[] {
+  return groups.filter(g => g.id !== groupId);
+}
+
+export function renameGroup(groups: readonly DeviceGroup[], groupId: string, name: string): DeviceGroup[] {
+  return groups.map(g => g.id === groupId ? { ...g, name: name.slice(0, GROUP_NAME_MAX) } : g);
+}
+
+/**
+ * Moves one block into `toGroupId` at `toIndex`, or out to the top level when
+ * that is null. The block leaves whatever group held it, so membership stays
+ * single-valued without the caller tracking where it came from.
+ */
+export function moveBlock(
+  groups: readonly DeviceGroup[],
+  blockId: string,
+  toGroupId: string | null,
+  toIndex: number,
+): DeviceGroup[] {
+  const stripped = groups.map(g => ({ ...g, members: g.members.filter(m => m !== blockId) }));
+  if (toGroupId === null) return stripped;
+  return stripped.map(g => {
+    if (g.id !== toGroupId) return g;
+    const members = [...g.members];
+    members.splice(Math.max(0, Math.min(toIndex, members.length)), 0, blockId);
+    return { ...g, members };
+  });
+}
+
+/** The group holding this block, or null when it sits at the top level. */
+export function groupOf(groups: readonly DeviceGroup[], blockId: string): DeviceGroup | null {
+  return groups.find(g => g.members.includes(blockId)) ?? null;
+}
