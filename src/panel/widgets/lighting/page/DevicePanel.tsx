@@ -113,7 +113,9 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     return {
       targets: groups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
       onMove: (groupId: string) => onGroupsChange(moveBlock(groups, blockId, groupId, Number.MAX_SAFE_INTEGER)),
-      onRemove: current ? () => onGroupsChange(moveBlock(groups, blockId, null, 0)) : undefined,
+      onRemove: current
+        ? { name: current.name, run: () => onGroupsChange(moveBlock(groups, blockId, null, 0)) }
+        : undefined,
       onMoveToNew: groups.length < MAX_DEVICE_GROUPS
         ? () => {
             const withNew = addGroup(groups, t('lighting.devices.groupDefaultName'));

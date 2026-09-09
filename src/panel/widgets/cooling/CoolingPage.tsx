@@ -1496,7 +1496,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 return {
                   targets: fanGroups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
                   onMove: (groupId: string) => setFanGroups(moveBlock(fanGroups, blockId, groupId, Number.MAX_SAFE_INTEGER)),
-                  onRemove: current ? () => setFanGroups(moveBlock(fanGroups, blockId, null, 0)) : undefined,
+                  onRemove: current
+                    ? { name: current.name, run: () => setFanGroups(moveBlock(fanGroups, blockId, null, 0)) }
+                    : undefined,
                   onMoveToNew: fanGroups.length < MAX_DEVICE_GROUPS
                     ? () => {
                         const withNew = addGroup(fanGroups, t('cooling.fan.groupDefaultName'));

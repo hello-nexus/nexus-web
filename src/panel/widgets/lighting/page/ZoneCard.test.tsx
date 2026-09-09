@@ -673,14 +673,17 @@ describe('ZoneCard move-to-group flyout', () => {
     expect(move.onMove).toHaveBeenCalledWith('g2');
   });
 
-  it('offers the group it already sits in no row, and offers leaving instead', () => {
-    const onRemove = vi.fn();
-    const move = groupMove({ targets: [{ id: 'g2', name: 'Shelf' }], onRemove });
+  it('offers the group it already sits in no row, and names it on the leave row', () => {
+    const run = vi.fn();
+    const move = groupMove({ targets: [{ id: 'g2', name: 'Shelf' }], onRemove: { name: 'Desk', run } });
     openMenu(move);
     fireEvent.click(screen.getByText('lighting.devices.moveToGroup'));
+    // Desk is where it sits, so it is not a target - only the leave row names it.
     expect(screen.queryByText('Desk')).toBeNull();
-    fireEvent.click(screen.getByText('lighting.devices.removeFromGroup'));
-    expect(onRemove).toHaveBeenCalled();
+    const leave = screen.getByText(/^lighting\.devices\.removeFromGroup/);
+    expect(leave.textContent).toContain('Desk');
+    fireEvent.click(leave);
+    expect(run).toHaveBeenCalled();
   });
 
   it('carries no row at all when there is nowhere to move the card', () => {
@@ -710,11 +713,9 @@ describe('ZoneCard menu bands', () => {
     const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent?.trim() : '|');
     // The select row interpolates the card name, so match its head only.
     expect(rows[0]).toMatch(/^lighting\.devices\.selectOnly/);
-    expect(rows.slice(1, 5)).toEqual([
-      '|',
-      'lighting.devices.moveToGroup',
-      'lighting.devices.rename',
-      '|',
-    ]);
+    expect(rows[1]).toBe('|');
+    // Naming and grouping close the menu, behind a rule of their own. This
+    // device carries no hardware name to reset, so there are two rows.
+    expect(rows.slice(-3)).toEqual(['|', 'lighting.devices.rename', 'lighting.devices.moveToGroup']);
   });
 });

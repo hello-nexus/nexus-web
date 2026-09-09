@@ -117,8 +117,8 @@ export const FanCard = memo(function FanCard({
     /** User groups it can move into; the one it already sits in is left out. */
     targets: readonly { id: string; name: string }[];
     onMove: (groupId: string) => void;
-    /** Present only while the block sits in a user group. */
-    onRemove?: () => void;
+    /** Present only while the block sits in a user group; the row names it. */
+    onRemove?: { name: string; run: () => void };
     /** Absent once the group cap is reached. */
     onMoveToNew?: () => void;
   };
@@ -346,56 +346,6 @@ export const FanCard = memo(function FanCard({
         separatorAfter: true,
       });
     }
-    const groupRows: DeviceMenuItem[] = [];
-    if (!bulk && groupMove) {
-      for (const target of groupMove.targets) {
-        groupRows.push({
-          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
-          onSelect: () => groupMove.onMove(target.id),
-        });
-      }
-      if (groupMove.onMoveToNew) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:new', icon: <FolderPlus size={14} />,
-          label: t('cooling.fan.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
-        });
-      }
-      if (groupMove.onRemove) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:none', icon: <FolderMinus size={14} />,
-          label: t('cooling.fan.removeFromGroup'), onSelect: groupMove.onRemove,
-        });
-      }
-    }
-    if (groupRows.length > 0) {
-      items.push({
-        key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('cooling.fan.moveToGroup'), submenu: groupRows,
-      });
-    }
-    if (!bulk) {
-      items.push({
-        key: 'rename',
-        icon: <Pencil size={14} />,
-        label: t('cooling.fan.rename'),
-        onSelect: () => nameRef.current?.startEditing(),
-      });
-    }
-    // Clearing a rename has no inline affordance - an empty commit is dropped -
-    // so the menu is the only way back to the hardware name.
-    if (!bulk && channel.originalName != null) {
-      items.push({
-        key: 'resetName',
-        icon: <RotateCcw size={14} />,
-        label: t('cooling.fan.resetName'),
-        onSelect: () => onRename(channel.id, ''),
-      });
-    }
-    // The naming and grouping rows are their own band: what the fan IS, split
-    // off from what it DOES below.
-    if (items.length > 0) items[items.length - 1].separatorAfter = true;
     // Aggregates read "any member still is", so one press lands the whole
     // selection on the same state.
     const isLocked = bulk ? bulk.locked : locked;
@@ -423,6 +373,61 @@ export const FanCard = memo(function FanCard({
         // Highlighted for the same reason the lighting card highlights it: it
         // is the row that un-sticks the card's current state.
         : { key: 'controlled', icon: <Link2 size={14} />, label: label('cooling.fan.menuControlOn', 'cooling.fan.menuControlOnCount'), onSelect: () => setControlled(true), highlighted: true });
+    }
+    // Naming and grouping close the menu, under a rule: they change what the
+    // fan IS, where everything above acts on what it does.
+    const organise: DeviceMenuItem[] = [];
+    if (!bulk) {
+      organise.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('cooling.fan.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
+      });
+      // Clearing a rename has no inline affordance - an empty commit is
+      // dropped - so the menu is the only way back to the hardware name.
+      if (channel.originalName != null) {
+        organise.push({
+          key: 'resetName',
+          icon: <RotateCcw size={14} />,
+          label: t('cooling.fan.resetName'),
+          onSelect: () => onRename(channel.id, ''),
+        });
+      }
+    }
+    const groupRows: DeviceMenuItem[] = [];
+    if (!bulk && groupMove) {
+      for (const target of groupMove.targets) {
+        groupRows.push({
+          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
+          onSelect: () => groupMove.onMove(target.id),
+        });
+      }
+      if (groupMove.onMoveToNew) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:new', icon: <FolderPlus size={14} />,
+          label: t('cooling.fan.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
+        });
+      }
+      if (groupMove.onRemove) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:none', icon: <FolderMinus size={14} />,
+          label: t('cooling.fan.removeFromGroup', { name: groupMove.onRemove.name }),
+          onSelect: groupMove.onRemove.run,
+        });
+      }
+    }
+    if (groupRows.length > 0) {
+      organise.push({
+        key: 'moveToGroup', icon: <FolderInput size={14} />,
+        label: t('cooling.fan.moveToGroup'), submenu: groupRows,
+      });
+    }
+    if (organise.length > 0) {
+      if (items.length > 0) items[items.length - 1].separatorAfter = true;
+      items.push(...organise);
     }
     return items;
   };

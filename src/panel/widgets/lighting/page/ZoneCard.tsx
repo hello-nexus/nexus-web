@@ -140,8 +140,8 @@ export function ZoneCard({
     /** User groups it can move into; the one it already sits in is left out. */
     targets: readonly { id: string; name: string }[];
     onMove: (groupId: string) => void;
-    /** Present only while the block sits in a user group. */
-    onRemove?: () => void;
+    /** Present only while the block sits in a user group; the row names it. */
+    onRemove?: { name: string; run: () => void };
     /** Absent once the group cap is reached. */
     onMoveToNew?: () => void;
   };
@@ -260,56 +260,6 @@ export function ZoneCard({
         separatorAfter: true,
       });
     }
-    const groupRows: DeviceMenuItem[] = [];
-    if (!bulk && groupMove) {
-      for (const target of groupMove.targets) {
-        groupRows.push({
-          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
-          onSelect: () => groupMove.onMove(target.id),
-        });
-      }
-      if (groupMove.onMoveToNew) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:new', icon: <FolderPlus size={14} />,
-          label: t('lighting.devices.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
-        });
-      }
-      if (groupMove.onRemove) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:none', icon: <FolderMinus size={14} />,
-          label: t('lighting.devices.removeFromGroup'), onSelect: groupMove.onRemove,
-        });
-      }
-    }
-    if (groupRows.length > 0) {
-      items.push({
-        key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('lighting.devices.moveToGroup'), submenu: groupRows,
-      });
-    }
-    if (!bulk && renameEnabled) {
-      items.push({
-        key: 'rename',
-        icon: <Pencil size={14} />,
-        label: t('lighting.devices.rename'),
-        onSelect: () => nameRef.current?.startEditing(),
-      });
-    }
-    // Clearing a rename has no inline affordance - an empty commit is dropped -
-    // so the menu is the only way back to the hardware name.
-    if (!bulk && renameEnabled && device.originalName != null) {
-      items.push({
-        key: 'resetName',
-        icon: <RotateCcw size={14} />,
-        label: t('lighting.devices.resetName'),
-        onSelect: () => onRename?.(''),
-      });
-    }
-    // The naming and grouping rows are their own band: what the card IS, split
-    // off from what it DOES below.
-    if (items.length > 0) items[items.length - 1].separatorAfter = true;
     if (bulk) {
       if (bulk.identifyCount > 0) {
         items.push({ key: 'identify', icon: <Eye size={14} />, label: t(pluralKey('lighting.devices.identifyCount', language, bulk.identifyCount), { count: bulk.identifyCount }), onSelect: bulk.identify });
@@ -356,6 +306,61 @@ export function ZoneCard({
       items.push(isOn
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
         : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });
+    }
+    // Naming and grouping close the menu, under a rule: they change what the
+    // card IS, where everything above acts on what it does.
+    const organise: DeviceMenuItem[] = [];
+    if (!bulk && renameEnabled) {
+      organise.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('lighting.devices.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
+      });
+      // Clearing a rename has no inline affordance - an empty commit is
+      // dropped - so the menu is the only way back to the hardware name.
+      if (device.originalName != null) {
+        organise.push({
+          key: 'resetName',
+          icon: <RotateCcw size={14} />,
+          label: t('lighting.devices.resetName'),
+          onSelect: () => onRename?.(''),
+        });
+      }
+    }
+    const groupRows: DeviceMenuItem[] = [];
+    if (!bulk && groupMove) {
+      for (const target of groupMove.targets) {
+        groupRows.push({
+          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
+          onSelect: () => groupMove.onMove(target.id),
+        });
+      }
+      if (groupMove.onMoveToNew) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:new', icon: <FolderPlus size={14} />,
+          label: t('lighting.devices.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
+        });
+      }
+      if (groupMove.onRemove) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:none', icon: <FolderMinus size={14} />,
+          label: t('lighting.devices.removeFromGroup', { name: groupMove.onRemove.name }),
+          onSelect: groupMove.onRemove.run,
+        });
+      }
+    }
+    if (groupRows.length > 0) {
+      organise.push({
+        key: 'moveToGroup', icon: <FolderInput size={14} />,
+        label: t('lighting.devices.moveToGroup'), submenu: groupRows,
+      });
+    }
+    if (organise.length > 0) {
+      if (items.length > 0) items[items.length - 1].separatorAfter = true;
+      items.push(...organise);
     }
     return items;
   };

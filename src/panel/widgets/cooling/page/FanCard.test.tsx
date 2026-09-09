@@ -448,12 +448,9 @@ describe('FanCard menu bands', () => {
     fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
     const menu = document.querySelector('[class*="_menu_"]')!;
     const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent?.trim() : '|');
-    expect(rows.slice(0, 5)).toEqual([
-      'cooling.fan.selectOnly',
-      '|',
-      'cooling.fan.moveToGroup',
-      'cooling.fan.rename',
-      '|',
-    ]);
+    expect(rows[0]).toMatch(/^cooling\.fan\.selectOnly/);
+    expect(rows[1]).toBe('|');
+    // Naming and grouping close the menu, behind a rule of their own.
+    expect(rows.slice(-3)).toEqual(['|', 'cooling.fan.rename', 'cooling.fan.moveToGroup']);
   });
 });
