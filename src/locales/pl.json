@@ -2144,6 +2144,7 @@
   "lighting.gameSync.games.rescanning": "Skanowanie...",
   "lighting.gameSync.games.scanning": "Skanowanie gier...",
   "lighting.gameSync.games.title": "Obsługiwane gry",
+  "lighting.gameSync.guideLink": "Jak działa Game Sync",
   "lighting.gameSync.signal.idle": "Oczekiwanie na grę...",
   "lighting.gameSync.signal.receiving": "Odbieranie od {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Gra steruje Twoim oświetleniem.",

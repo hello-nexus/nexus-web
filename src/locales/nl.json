@@ -2122,6 +2122,7 @@
   "lighting.gameSync.games.rescanning": "Scannen...",
   "lighting.gameSync.games.scanning": "Zoeken naar games...",
   "lighting.gameSync.games.title": "Ondersteunde games",
+  "lighting.gameSync.guideLink": "Hoe Game Sync werkt",
   "lighting.gameSync.signal.idle": "Wachten op een game...",
   "lighting.gameSync.signal.receiving": "Ontvangen van {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Een game stuurt je verlichting aan.",

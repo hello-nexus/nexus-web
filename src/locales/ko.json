@@ -2122,6 +2122,7 @@
   "lighting.gameSync.games.rescanning": "검색 중...",
   "lighting.gameSync.games.scanning": "게임 검색 중...",
   "lighting.gameSync.games.title": "지원 게임",
+  "lighting.gameSync.guideLink": "Game Sync 작동 방식",
   "lighting.gameSync.signal.idle": "게임을 기다리는 중...",
   "lighting.gameSync.signal.receiving": "{activeApp}에서 수신 중",
   "lighting.gameSync.signal.receivingUnknown": "게임이 조명을 제어하고 있습니다.",

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, ExternalLink, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -76,6 +76,7 @@ import { DevicePanel } from './page/DevicePanel';
 import { type DiscoveryState } from './page/DeviceDiscoveryCard';
 import { zoneCardSelectable, zoneCardUnavailable } from './page/ZoneCard';
 import { Button } from '../../../components/common/Button/Button';
+import { GAME_SYNC_GUIDE_URL } from '../../../lib/externalLinks';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { ColorTuningModal } from './page/ColorTuningModal';
@@ -2061,6 +2062,17 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   games={gameSyncGames}
                 />
               </div>
+              <Button
+                className={styles.gameSyncGuideLink}
+                size="sm"
+                tone="ghost"
+                iconTrailing={<ExternalLink size={13} aria-hidden />}
+                href={GAME_SYNC_GUIDE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('lighting.gameSync.guideLink')}
+              </Button>
               <div className={styles.controls}>
                 <GameSyncLeftPane />
               </div>

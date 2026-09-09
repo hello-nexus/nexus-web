@@ -2122,6 +2122,7 @@
   "lighting.gameSync.games.rescanning": "Daûr a scansionâ...",
   "lighting.gameSync.games.scanning": "Daûr a cirî zûcs...",
   "lighting.gameSync.games.title": "Zûcs supuartâts",
+  "lighting.gameSync.guideLink": "Cemût che al funzione Game Sync",
   "lighting.gameSync.signal.idle": "In spiete di un zûc...",
   "lighting.gameSync.signal.receiving": "Daûr a ricevi di {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un zûc al controle la tô iluminazion.",
