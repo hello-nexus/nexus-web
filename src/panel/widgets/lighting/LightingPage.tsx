@@ -2062,17 +2062,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   games={gameSyncGames}
                 />
               </div>
-              <Button
-                className={styles.gameSyncGuideLink}
-                size="sm"
-                tone="ghost"
-                iconTrailing={<ExternalLink size={13} aria-hidden />}
-                href={GAME_SYNC_GUIDE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('lighting.gameSync.guideLink')}
-              </Button>
               <div className={styles.controls}>
                 <GameSyncLeftPane />
               </div>
@@ -2344,6 +2333,17 @@ function GameSyncActivityBlock({ isReceiving, activeApp, games }: GameSyncActivi
               : t('lighting.gameSync.signal.receivingUnknown'))
           : t('lighting.gameSync.signal.idle')}
       </span>
+      {/* Anchored to the frame rather than the page: the guide explains what
+          this frame is showing, so it belongs on it. */}
+      <a
+        className={styles.gameSyncGuideLink}
+        href={GAME_SYNC_GUIDE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t('lighting.gameSync.guideLink')}
+        <ExternalLink size={12} aria-hidden />
+      </a>
     </div>
   );
 }
