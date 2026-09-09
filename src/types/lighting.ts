@@ -109,31 +109,32 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   audiotunnel: 'audio', bassbloom: 'audio', beatbuilder: 'audio',
   spectrumaurora: 'audio', neonwaveform: 'audio', liquidbeat: 'audio',
   beatburst: 'audio',
-  // Cosmic: space, sky, electric (13).
+  // Cosmic: space, sky, electric (15).
   aurora: 'cosmic', starfield: 'cosmic', nebula: 'cosmic', cosmicdust: 'cosmic',
   caustics: 'cosmic', galaxy: 'cosmic', starpath: 'cosmic', meteor: 'cosmic',
   bokeh: 'cosmic', bursts: 'cosmic', lightning: 'cosmic', plasmaglobe: 'cosmic',
-  neonrain: 'cosmic',
-  // Organic: fluid, fire, smoke, natural texture (16).
+  neonrain: 'cosmic', constellation: 'cosmic', hyperspace: 'cosmic',
+  // Organic: fluid, fire, smoke, natural texture (17).
   plasma: 'organic', fire: 'organic', watercolor: 'organic', jellyfish: 'organic',
   lavalamp: 'organic', inkbloom: 'organic', oilslick: 'organic',
   ferrofluid: 'organic', liquidchrome: 'organic', flowfield: 'organic',
   bubbles: 'organic', silkwave: 'organic', vapor: 'organic', satinflow: 'organic',
-  lavafissure: 'organic', sandstorm: 'organic',
-  // Geometric: tunnels, lattices, fractals, structured (18).
+  lavafissure: 'organic', sandstorm: 'organic', contourbands: 'organic',
+  // Geometric: tunnels, lattices, fractals, structured (19).
   spiral: 'geometric', voronoi: 'geometric', kaleidoscope: 'geometric',
   wormhole: 'geometric', sacredgeometry: 'geometric', tessellation: 'geometric',
   chromaspiral: 'geometric', neongrid: 'geometric', hextunnel: 'geometric',
   mandelbrot: 'geometric', circuit: 'geometric', crystaltunnel: 'geometric',
   ringtunnel: 'geometric', vortextunnel: 'geometric', helixtunnel: 'geometric',
   boxtunnel: 'geometric', harlequin: 'geometric', mosaic: 'geometric',
-  // Pattern: waves, gradients, abstract graphic shapes (19).
+  cybertunnel: 'geometric',
+  // Pattern: waves, gradients, abstract graphic shapes (21).
   rainbow: 'pattern', matrix: 'pattern', ripple: 'pattern', wave: 'pattern',
   gradientwave: 'pattern', ball: 'pattern', radar: 'pattern', pulse: 'pattern',
   interference: 'pattern', domainwarp: 'pattern', dotmatrix: 'pattern',
   prismwave: 'pattern', ribbonflow: 'pattern', meshgradient: 'pattern',
   tide: 'pattern', ridgeline: 'pattern', chevron: 'pattern', terrace: 'pattern',
-  sharplines: 'pattern',
+  sharplines: 'pattern', synthwave: 'pattern', retropetals: 'pattern',
 };
 
 export const BASE_DEFAULTS: Omit<EffectState, 'params'> = {
@@ -561,6 +562,38 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_cells', label: 'Cells', labelKey: 'lighting.controls.param.cells', min: 3,   max: 18,  step: 1,    defaultValue: 9 },
       { name: 'u_wave',  label: 'Wave', labelKey: 'lighting.controls.param.wave',  min: 0.5, max: 4.0, step: 0.05, defaultValue: 1.5 },
       { name: 'u_pop',   label: 'Pop', labelKey: 'lighting.controls.param.pop',   min: 0.0, max: 1.5, step: 0.05, defaultValue: 0.7 },
+  ]},
+  // Constellation mesh plus the Nexus 2 theme set. Param ranges mirror the
+  // clamps in each .frag; defaults mirror DefaultParamsFor in nexus-service.
+  { key: 'constellation', labelKey: 'lighting.controls.constellation', params: [
+      { name: 'u_points', label: 'Points', labelKey: 'lighting.controls.param.points', min: 3,   max: 10,  step: 1,    defaultValue: 6 },
+      { name: 'u_reach',  label: 'Spread', labelKey: 'lighting.controls.param.spread', min: 0.6, max: 1.5, step: 0.05, defaultValue: 1.4 },
+      { name: 'u_dots',   label: 'Size', labelKey: 'lighting.controls.param.size',   min: 0.2, max: 2.0, step: 0.05, defaultValue: 1.3 },
+  ]},
+  { key: 'cybertunnel',   labelKey: 'lighting.controls.cybertunnel',   params: [
+      { name: 'u_rings',  label: 'Rings', labelKey: 'lighting.controls.param.rings',  min: 2,   max: 20,  step: 1,    defaultValue: 6 },
+      { name: 'u_spokes', label: 'Spokes', labelKey: 'lighting.controls.param.spokes', min: 0,   max: 24,  step: 1,    defaultValue: 8 },
+      { name: 'u_glow',   label: 'Glow', labelKey: 'lighting.controls.param.glow',   min: 0.2, max: 3.0, step: 0.05, defaultValue: 1.2 },
+  ]},
+  { key: 'hyperspace',    labelKey: 'lighting.controls.hyperspace',    params: [
+      { name: 'u_streaks', label: 'Streaks', labelKey: 'lighting.controls.param.streaks', min: 8,   max: 120, step: 1,    defaultValue: 40 },
+      { name: 'u_depth',   label: 'Depth', labelKey: 'lighting.controls.param.depth',   min: 0.2, max: 2.0, step: 0.05, defaultValue: 1.0 },
+      { name: 'u_core',    label: 'Core', labelKey: 'lighting.controls.param.core',    min: 0.0, max: 3.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'synthwave',     labelKey: 'lighting.controls.synthwave',     params: [
+      { name: 'u_lines',     label: 'Lines', labelKey: 'lighting.controls.param.lines',     min: 6,   max: 90,  step: 1,    defaultValue: 36 },
+      { name: 'u_amplitude', label: 'Amplitude', labelKey: 'lighting.controls.param.amplitude', min: 0.0, max: 0.5, step: 0.01, defaultValue: 0.18 },
+      { name: 'u_flow',      label: 'Flow', labelKey: 'lighting.controls.param.flow',      min: 0.0, max: 2.0, step: 0.05, defaultValue: 1.0 },
+  ]},
+  { key: 'retropetals',   labelKey: 'lighting.controls.retropetals',   params: [
+      { name: 'u_petals', label: 'Petals', labelKey: 'lighting.controls.param.petals', min: 3,    max: 24,  step: 1,    defaultValue: 8 },
+      { name: 'u_wave',   label: 'Wave', labelKey: 'lighting.controls.param.wave',   min: 0.0,  max: 1.2, step: 0.05, defaultValue: 0.8 },
+      { name: 'u_spin',   label: 'Spin', labelKey: 'lighting.controls.param.spin',   min: -3.0, max: 3.0, step: 0.05, defaultValue: 1.0, zeroMarker: true },
+  ]},
+  { key: 'contourbands',  labelKey: 'lighting.controls.contourbands',  params: [
+      { name: 'u_bands', label: 'Bands', labelKey: 'lighting.controls.param.bands', min: 1,   max: 12,  step: 1,    defaultValue: 4 },
+      { name: 'u_scale', label: 'Scale', labelKey: 'lighting.controls.param.scale', min: 0.6, max: 6.0, step: 0.05, defaultValue: 2.2 },
+      { name: 'u_flow',  label: 'Flow', labelKey: 'lighting.controls.param.flow',  min: 0.0, max: 3.0, step: 0.05, defaultValue: 1.0 },
   ]},
   { key: 'beatbuilder', labelKey: 'lighting.controls.beatbuilder', audio: true, hideSpeed: true, params: [
       { name: 'u_colorMode', labelKey: 'lighting.controls.bb.colorMode', label: 'Color Mode',
