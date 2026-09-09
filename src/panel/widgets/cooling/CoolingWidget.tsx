@@ -283,9 +283,12 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
           />
           <div className={styles.simpleCenter}>
             <div className={`${styles.simpleIconGroup} ${level || isMax ? '' : styles.simpleIconMuted}`}>
-              {/* Keyed remount restarts the spin if the preset changes mid-spin. */}
+              {/* Keyed remount restarts the spin if the preset changes mid-spin.
+                  The key is prefixed because the tornado beside it remounts on
+                  the same pulse, and two siblings sharing a key reconcile as one
+                  element - which duplicated the fan on every Max entrance. */}
               <Fan
-                key={spinPulse}
+                key={`fan-${spinPulse}`}
                 size={56}
                 aria-hidden
                 // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean
@@ -298,7 +301,7 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
                 ? (
                   /* Keyed remount restarts the touchdown if Max is re-picked. */
                   <Tornado
-                    key={spinPulse}
+                    key={`max-${spinPulse}`}
                     size={56}
                     aria-hidden
                     // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean

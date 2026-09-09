@@ -95,23 +95,27 @@
   flex-shrink: 0;
 }
 
-// Max's entrance: the funnel drops in, overshoots, and whips itself straight
-// through two decaying skews - a vortex settling rather than a shape sliding
-// in. Deliberately shorter than the fan's spin beside it so the two read as
-// one gesture landing, not a race. Cleared on animationend like the fan, so a
-// finished fill-mode animation stops holding a compositor layer.
+// Max's entrance: the funnel spins up from its own tip. The vortex is sold by
+// flipping scaleX through zero - the glyph turns edge-on and back, the way a
+// spinning ribbon does - while the whole shape grows and a decaying lean whips
+// it upright. The ease-out curve does the deceleration: evenly spaced flips
+// land fast then slow, so it spins up and settles rather than strobing.
+// transform-origin keeps the funnel's tip planted while the head swings.
+// Cleared on animationend like the fan, so a finished fill-mode animation
+// stops holding a compositor layer.
 .simpleMax[data-spinning='true'] {
-  animation: maxTouchdown 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: maxSpinUp 0.85s cubic-bezier(0.16, 1, 0.3, 1) both;
   transform-origin: center bottom;
 }
 
-@keyframes maxTouchdown {
-  0%   { opacity: 0; transform: translateY(-24%) scale(0.5) skewX(16deg); }
-  45%  { opacity: 1; }
-  58%  { transform: translateY(0) scale(1.08) skewX(-9deg); }
-  74%  { transform: translateY(0) scale(0.97) skewX(5deg); }
-  88%  { transform: translateY(0) scale(1.02) skewX(-2deg); }
-  100% { opacity: 1; transform: translateY(0) scale(1) skewX(0); }
+@keyframes maxSpinUp {
+  0%   { opacity: 0; transform: translateY(8%) scale(0.28) scaleX(1) rotate(-10deg); }
+  14%  { opacity: 1; }
+  26%  { transform: translateY(0) scale(0.58) scaleX(-0.78) rotate(7deg); }
+  44%  { transform: translateY(0) scale(0.84) scaleX(0.88) rotate(-5deg); }
+  62%  { transform: translateY(0) scale(1.06) scaleX(-0.94) rotate(3deg); }
+  80%  { transform: translateY(0) scale(0.99) scaleX(1) rotate(-1.5deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) scaleX(1) rotate(0deg); }
 }
 
 @keyframes maxFadeIn {

@@ -210,6 +210,20 @@ describe('CoolingWidget', () => {
       expect(document.querySelector('[data-spinning="true"][data-level="4"]')).toBeInTheDocument();
     });
 
+    it('renders one fan and one tornado on Max, not a duplicated fan', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+
+      // The fan and the tornado remount on the same pulse; sharing a key made
+      // React reconcile them as one element and paint a second fan.
+      expect(document.querySelectorAll('.lucide-fan')).toHaveLength(1);
+      expect(document.querySelectorAll('.lucide-tornado')).toHaveLength(1);
+    });
+
     it('leaving Max refills the bars from empty rather than snapping to level', async () => {
       render(<CoolingWidget widget={coolingWidget('4x2')} />);
       await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
