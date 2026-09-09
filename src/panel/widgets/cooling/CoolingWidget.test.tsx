@@ -205,8 +205,8 @@ describe('CoolingWidget', () => {
 
       await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
       expect(applyProfile).toHaveBeenLastCalledWith('max');
-      // Max renders the at-the-limit mark rather than a fourth bar, but it
-      // still drives the fan spin one rung past Turbo.
+      // Max renders the flame rather than a fourth bar, but it still drives
+      // the fan spin one rung past Turbo.
       expect(document.querySelector('[data-spinning="true"][data-level="4"]')).toBeInTheDocument();
     });
 
