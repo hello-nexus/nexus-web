@@ -83,6 +83,11 @@ export function FanGroupHeader({
         onToggle={onToggleCollapsed}
         onTitleRename={onRename}
         titleRenameRef={nameRef}
+        onHeaderContextMenu={e => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMenuAt({ x: e.clientX, y: e.clientY, seq: ++menuSeq.current });
+        }}
         drag={drag}
         rightInteractive
         right={(

@@ -128,6 +128,11 @@ export function MotherboardGroup({
         ariaLabel={toggleLabel}
         onTitleRename={onRename}
         titleRenameRef={nameRef}
+        onHeaderContextMenu={hideActions ? undefined : e => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMenuAt({ x: e.clientX, y: e.clientY, seq: ++menuSeq.current });
+        }}
         titleAfter={notice != null ? <DeviceNotice notice={notice} /> : undefined}
         drag={drag}
         rightInteractive
