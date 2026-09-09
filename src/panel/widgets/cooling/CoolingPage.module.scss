@@ -310,6 +310,15 @@
   &:hover { color: var(--text); }
 }
 
+// A group a dragged fan card is about to land in. Rings the whole section so
+// the destination reads before the drop, not after it.
+.fanGroupDropTarget {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
 // Dashed "new group" entry at the foot of the fan rail, matching the lighting
 // rail's add entry.
 .addFanGroup {

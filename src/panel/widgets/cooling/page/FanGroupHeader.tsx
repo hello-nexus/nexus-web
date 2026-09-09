@@ -18,7 +18,7 @@ export function FanGroupHeader({
   name, count, collapsed, onToggleCollapsed,
   groupControlled, onToggleControlled,
   groupLocked, onToggleLock,
-  onRename, onDelete, drag, children,
+  onRename, onDelete, drag, dropTarget, children,
 }: {
   name: string;
   count: number;
@@ -33,6 +33,9 @@ export function FanGroupHeader({
   onRename?: (name: string) => void;
   onDelete?: () => void;
   drag?: SortableRowArgs;
+  /** True while a dragged card would land in this group; rings the header so the
+   *  destination is unambiguous before the drop. */
+  dropTarget?: boolean;
   children: React.ReactNode;
 }) {
   const { t } = useTranslation();
@@ -60,6 +63,7 @@ export function FanGroupHeader({
     <>
       <CollapsibleSection
         compact
+        className={dropTarget ? styles.fanGroupDropTarget : undefined}
         title={name}
         ariaLabel={name}
         open={!collapsed}

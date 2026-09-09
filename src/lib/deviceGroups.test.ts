@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addGroup, groupOf, groupedRows, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup,
+  addGroup, anchorGroups, groupOf, groupedRows, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup,
   type DeviceGroup,
 } from './deviceGroups';
 
@@ -32,6 +32,26 @@ describe('groupedRows', () => {
     const rows = groupedRows(blocks, idOf, [group('g1', 'Desk', 'b', 'gone')]);
     const g = rows.find(r => r.kind === 'group');
     expect(g && g.kind === 'group' && g.blocks).toEqual(['b']);
+  });
+
+  it('holds an emptied group at its anchor instead of sliding it to the tail', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: 'a' }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'b', 'c', 'd']);
+  });
+
+  it('pins a group anchored to the top of the rail', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: '' }]);
+    expect(rows.map(r => r.id)).toEqual(['g1', 'a', 'b', 'c', 'd']);
+  });
+
+  it('tails a group whose anchor row is gone', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: 'unplugged' }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'b', 'c', 'd', 'g1']);
+  });
+
+  it('keeps an anchored group in place when it holds members too', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: ['d'], after: 'a' }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'b', 'c']);
   });
 
   it('still renders a group with nothing plugged in, at the tail', () => {
@@ -99,5 +119,24 @@ describe('moveBlock', () => {
   it('clamps an index past the end', () => {
     const next = moveBlock(two, 'c', 'g1', 99);
     expect(next[0].members).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('anchorGroups', () => {
+  it('records the row each group now follows', () => {
+    const groups: DeviceGroup[] = [group('g1', 'One'), group('g2', 'Two')];
+    const next = anchorGroups(groups, ['a', 'g1', 'b', 'g2']);
+    expect(next[0].after).toBe('a');
+    expect(next[1].after).toBe('b');
+  });
+
+  it('pins a group that leads the rail with an empty anchor', () => {
+    const next = anchorGroups([group('g1', 'One')], ['g1', 'a']);
+    expect(next[0].after).toBe('');
+  });
+
+  it('leaves a group absent from the rail untouched', () => {
+    const groups = [{ id: 'g1', name: 'One', members: [], after: 'a' }];
+    expect(anchorGroups(groups, ['b', 'c'])).toEqual(groups);
   });
 });

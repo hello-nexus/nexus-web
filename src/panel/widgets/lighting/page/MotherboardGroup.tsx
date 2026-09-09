@@ -34,6 +34,7 @@ export function MotherboardGroup({
   hideActions,
   onRename,
   onDelete,
+  dropTarget,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -71,6 +72,9 @@ export function MotherboardGroup({
    *  user-made groups: a hardware group describes how the device is wired and
    *  cannot be taken apart. */
   onDelete?: () => void;
+  /** True while a dragged card would land in this group; rings the header so the
+   *  destination is unambiguous before the drop. */
+  dropTarget?: boolean;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -101,7 +105,7 @@ export function MotherboardGroup({
     <>
       <CollapsibleSection
         compact
-        className={styles.motherboardGroup}
+        className={`${styles.motherboardGroup}${dropTarget ? ` ${styles.groupDropTarget}` : ''}`}
         title={parentName}
         open={expanded}
         onToggle={onToggleCollapsed}

@@ -28,16 +28,24 @@ export function containerOf(arr: Arrangement, id: string): string | null {
 }
 
 /**
- * The container a drop over `overId` targets. Dropping onto a group's header
- * or body puts the block INSIDE it; dropping onto a block targets whatever
- * container that block sits in.
+ * The container a drop over `overId` targets. A group's BODY takes the block
+ * inside; the header row does not - it is a top-level row like any other, so a
+ * card can be dropped BETWEEN two groups rather than always being sucked into
+ * the one under the pointer. A collapsed group has no body on screen, so its
+ * header stands in for one.
  */
-export function dropContainer(arr: Arrangement, overId: string): string | null {
+export function dropContainer(
+  arr: Arrangement,
+  overId: string,
+  collapsedGroupIds: readonly string[] = [],
+): string | null {
   if (overId.endsWith(BODY_SUFFIX)) {
     const groupId = overId.slice(0, -BODY_SUFFIX.length);
     return groupId in arr.groupMembers ? groupId : null;
   }
-  if (overId in arr.groupMembers) return overId;
+  if (overId in arr.groupMembers) {
+    return collapsedGroupIds.includes(overId) ? overId : ROOT;
+  }
   return containerOf(arr, overId);
 }
 
@@ -60,9 +68,14 @@ function insert(list: string[], id: string, index: number): string[] {
  * never enters another group: nesting is one level deep, so a group dragged
  * over another group just reorders at the top level.
  */
-export function moveTo(arr: Arrangement, activeId: string, overId: string): Arrangement {
+export function moveTo(
+  arr: Arrangement,
+  activeId: string,
+  overId: string,
+  collapsedGroupIds: readonly string[] = [],
+): Arrangement {
   const isGroup = activeId in arr.groupMembers;
-  let target = dropContainer(arr, overId);
+  let target = dropContainer(arr, overId, collapsedGroupIds);
   if (target === null) return arr;
   if (isGroup && target !== ROOT) target = ROOT;
   if (activeId === overId && containerOf(arr, activeId) === target) return arr;

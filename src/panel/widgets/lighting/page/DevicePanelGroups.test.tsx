@@ -102,4 +102,24 @@ describe('DevicePanel user groups', () => {
     );
     expect(screen.queryByText('lighting.devices.groupAdd')).toBeNull();
   });
+
+  it('keeps an emptied group where it sat, rather than sliding it to the tail', () => {
+    // 'after' is what holds the slot: the group owns no card to anchor to.
+    renderPanel([{ id: 'g1', name: 'Desk', members: [], after: 'd1' }]);
+    const rail = document.querySelectorAll('[class*="deviceCard"], [class*="motherboardGroup"]');
+    const labels = Array.from(rail).map(el => el.textContent ?? '');
+    const groupAt = labels.findIndex(l => l.includes('Desk'));
+    const lastAt = labels.findIndex(l => l.includes('Strip three'));
+    expect(groupAt).toBeGreaterThanOrEqual(0);
+    expect(groupAt).toBeLessThan(lastAt);
+  });
+
+  it('records the anchor when a group is renamed, so the slot survives the write', () => {
+    const onGroupsChange = renderPanel([{ id: 'g1', name: 'Desk', members: ['d2'] }]);
+    fireEvent.click(screen.getByText('Desk'));
+    const input = screen.getByDisplayValue('Desk');
+    fireEvent.change(input, { target: { value: 'Shelf' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onGroupsChange.mock.calls[0][0][0].name).toBe('Shelf');
+  });
 });

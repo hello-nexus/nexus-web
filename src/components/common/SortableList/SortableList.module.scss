@@ -34,3 +34,16 @@
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
   border-radius: var(--radius);
 }
+
+// An empty group's body. It collapses to nothing at rest so the header sits on
+// its own, and opens into a real drop target the moment a drag starts.
+.groupBodyEmpty {
+  min-height: 0;
+  transition: min-height var(--ease-fast);
+
+  &[data-dragging='true'] {
+    min-height: 2.75rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+  }
+}

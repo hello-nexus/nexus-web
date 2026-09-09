@@ -25,8 +25,12 @@ describe('containerOf', () => {
 });
 
 describe('dropContainer', () => {
-  it('targets the group when the drop is on its header', () => {
-    expect(dropContainer(arr(), 'g1')).toBe('g1');
+  it('treats an expanded group\'s header as a sibling slot, so a card can land BETWEEN groups', () => {
+    expect(dropContainer(arr(), 'g1')).toBe(ROOT);
+  });
+
+  it('takes a collapsed group\'s header as its body, since it shows none', () => {
+    expect(dropContainer(arr(), 'g1', ['g1'])).toBe('g1');
   });
 
   it('targets the group when the drop is on its body, so an empty one takes a card', () => {
@@ -46,8 +50,14 @@ describe('moveTo', () => {
     expect(next.groupMembers.g1).toEqual(['c', 'a', 'd']);
   });
 
-  it('appends when the drop lands on the group header', () => {
+  it('reorders past an expanded group rather than entering it', () => {
     const next = moveTo(arr(), 'a', 'g1');
+    expect(next.groupMembers.g1).toEqual(['c', 'd']);
+    expect(next.rowIds).toEqual(['a', 'g1', 'b']);
+  });
+
+  it('drops into a collapsed group through its header', () => {
+    const next = moveTo(arr(), 'a', 'g1', ['g1']);
     expect(next.groupMembers.g1).toEqual(['c', 'd', 'a']);
   });
 

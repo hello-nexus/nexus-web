@@ -16,7 +16,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { bodyDroppableId, moveTo, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, dropContainer, moveTo, ROOT, type Arrangement } from './groupedDrag';
 import { type SortableRowArgs } from './SortableList';
 import styles from './SortableList.module.scss';
 
@@ -36,8 +36,12 @@ export interface GroupedSortableListProps {
   /** Receives the whole new arrangement after a drop. */
   onArrange: (next: Arrangement) => void;
   renderBlock: (id: string, args: SortableRowArgs) => ReactNode;
-  /** Renders the group shell; `children` is its nested list. */
-  renderGroup: (id: string, args: SortableRowArgs, children: ReactNode) => ReactNode;
+  /** Renders the group shell; `children` is its nested list. `isDropTarget` is
+   *  true while a drag would land inside this group, so the shell can say so. */
+  renderGroup: (id: string, args: SortableRowArgs, children: ReactNode, isDropTarget: boolean) => ReactNode;
+  /** Groups showing no body. Their header stands in as the drop target, since
+   *  there is nothing else to aim at. */
+  collapsedGroupIds?: readonly string[];
   className?: string;
   ariaLabel?: string;
 }
@@ -75,15 +79,23 @@ function Row({ id, render }: { id: string; render: (id: string, args: SortableRo
 }
 
 /** A group's body: its own sortable context plus a droppable so an empty group still takes a card. */
-function GroupBody({ groupId, members, renderBlock }: {
+function GroupBody({ groupId, members, renderBlock, dragging }: {
   groupId: string;
   members: string[];
   renderBlock: GroupedSortableListProps['renderBlock'];
+  /** A drag is in flight, so an empty body opens up as a real drop target. */
+  dragging: boolean;
 }) {
   const { setNodeRef } = useDroppable({ id: bodyDroppableId(groupId) });
+  const empty = members.length === 0;
   return (
     <SortableContext items={members} strategy={verticalListSortingStrategy}>
-      <div ref={setNodeRef} className={styles.list} role="list">
+      <div
+        ref={setNodeRef}
+        className={`${styles.list} ${empty ? styles.groupBodyEmpty : ''}`.trim()}
+        data-dragging={empty && dragging ? 'true' : undefined}
+        role="list"
+      >
         {members.map(id => <Row key={id} id={id} render={renderBlock} />)}
       </div>
     </SortableContext>
@@ -91,9 +103,11 @@ function GroupBody({ groupId, members, renderBlock }: {
 }
 
 export function GroupedSortableList({
-  arrangement, onArrange, renderBlock, renderGroup, className, ariaLabel,
+  arrangement, onArrange, renderBlock, renderGroup, collapsedGroupIds = [], className, ariaLabel,
 }: GroupedSortableListProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  // The group a drop would land in right now, so its shell can highlight.
+  const [dropGroupId, setDropGroupId] = useState<string | null>(null);
   // The arrangement as it looks mid-drag: onDragOver transfers rows between
   // containers so the drop slot is where the pointer is, and the committed
   // value only lands on drop.
@@ -107,15 +121,19 @@ export function GroupedSortableList({
 
   const onDragOver = (e: DragOverEvent) => {
     const { active, over } = e;
-    if (!over) return;
-    setDragging(moveTo(live, String(active.id), String(over.id)));
+    if (!over) { setDropGroupId(null); return; }
+    const activeIsGroup = String(active.id) in live.groupMembers;
+    const target = dropContainer(live, String(over.id), collapsedGroupIds);
+    setDropGroupId(!activeIsGroup && target !== null && target !== ROOT ? target : null);
+    setDragging(moveTo(live, String(active.id), String(over.id), collapsedGroupIds));
   };
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
-    const next = over ? moveTo(live, String(active.id), String(over.id)) : live;
+    const next = over ? moveTo(live, String(active.id), String(over.id), collapsedGroupIds) : live;
     setActiveId(null);
     setDragging(null);
+    setDropGroupId(null);
     onArrange(next);
   };
 
@@ -128,7 +146,7 @@ export function GroupedSortableList({
       onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      onDragCancel={() => { setActiveId(null); setDragging(null); }}
+      onDragCancel={() => { setActiveId(null); setDragging(null); setDropGroupId(null); }}
     >
       <SortableContext items={live.rowIds} strategy={verticalListSortingStrategy}>
         <div className={className ? `${styles.list} ${className}` : styles.list} aria-label={ariaLabel} role="list">
@@ -137,7 +155,13 @@ export function GroupedSortableList({
               <Row key={id} id={id} render={(rowId, args) => renderGroup(
                 rowId,
                 args,
-                <GroupBody groupId={rowId} members={live.groupMembers[rowId] ?? []} renderBlock={renderBlock} />,
+                <GroupBody
+                  groupId={rowId}
+                  members={live.groupMembers[rowId] ?? []}
+                  renderBlock={renderBlock}
+                  dragging={activeId !== null}
+                />,
+                dropGroupId === rowId,
               )} />
             )
             : <Row key={id} id={id} render={renderBlock} />)}
@@ -150,7 +174,7 @@ export function GroupedSortableList({
               ? renderGroup(activeId, {
                   ref: () => {}, style: {}, attributes: {}, listeners: undefined,
                   isDragging: false, placeholderClassName: styles.placeholder,
-                }, null)
+                }, null, false)
               : renderBlock(activeId, {
                   ref: () => {}, style: {}, attributes: {}, listeners: undefined,
                   isDragging: false, placeholderClassName: styles.placeholder,

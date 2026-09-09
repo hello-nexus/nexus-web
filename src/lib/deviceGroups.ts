@@ -14,6 +14,10 @@ export interface DeviceGroup {
   name: string;
   /** Ids of the blocks in this group, in display order. */
   members: string[];
+  /** Id of the rail row this group sits after; '' pins it to the top. Anchoring
+   *  to the first member cannot hold an emptied group in place, so the rail
+   *  order the user last dropped is stored instead. */
+  after?: string;
 }
 
 /** One rail row: an ungrouped block, or a user group holding blocks. */
@@ -64,16 +68,43 @@ export function groupedRows<B>(
         .filter((b): b is B => b !== undefined),
     });
   };
+  // Groups anchored to a row, keyed by the row they follow. '' pins to the top.
+  const anchored = new Map<string, string[]>();
+  for (const group of groups) {
+    if (group.after === undefined) continue;
+    const list = anchored.get(group.after) ?? [];
+    list.push(group.id);
+    anchored.set(group.after, list);
+  }
+  const emitAnchored = (afterId: string) => {
+    for (const groupId of anchored.get(afterId) ?? []) emit(groupId);
+  };
 
+  emitAnchored('');
   for (const block of blocks) {
     const id = idOf(block);
     const groupId = owner.get(id);
-    if (groupId !== undefined) { emit(groupId); continue; }
+    // An unanchored group still falls back to its first present member, so a
+    // group stored before anchors existed keeps a sensible slot.
+    if (groupId !== undefined) { emit(groupId); emitAnchored(id); continue; }
     rows.push({ kind: 'block', id, block });
+    emitAnchored(id);
   }
-  // Groups with nothing plugged in have no anchor above; they tail the list.
+  // Anything left: a group whose anchor row is gone, or one that never had one.
   for (const group of groups) emit(group.id);
   return rows;
+}
+
+/**
+ * Rewrites every group's anchor from the rail order it now sits in, so an
+ * emptied group stays where the user left it instead of sliding to the tail.
+ */
+export function anchorGroups(groups: readonly DeviceGroup[], rowIds: readonly string[]): DeviceGroup[] {
+  return groups.map(group => {
+    const index = rowIds.indexOf(group.id);
+    if (index === -1) return group;
+    return { ...group, after: index === 0 ? '' : rowIds[index - 1] };
+  });
 }
 
 /** Adds an empty group, or returns the list unchanged once the cap is reached. */
