@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Nexus-aansturing inschakelen ({count} ventilator)",
   "cooling.fan.menuControlOnCount.other": "Nexus-aansturing inschakelen ({count} ventilatoren)",
   "cooling.fan.moreActions": "Meer acties",
+  "cooling.fan.motherboardGroup": "Moederbord",
   "cooling.fan.moveToGroup": "Naar groep verplaatsen",
   "cooling.fan.moveToNewGroup": "Nieuwe groep",
   "cooling.fan.notControlled": "Geen Nexus Control",

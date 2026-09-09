@@ -30,6 +30,8 @@ export interface FanChannel {
   classification?: string | null; // "Controllable" | "Fixed" | "Stalling" | "Unresponsive"
   calibrated?: boolean;
   role?: FanRole;
+  /** Enumerated from a GPU hardware node. Motherboard-header fans are the deviceId-less channels where this is false. */
+  isGpu?: boolean;
   /** Duty points added to whatever drives this fan, in [-100,100]. 0 when it has none. */
   offset?: number;
   seriesId?: string; // sanitized id; "fan:" + seriesId is the monitoring series id

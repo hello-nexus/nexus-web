@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Power, PowerOff, Unlink, Link2, MoreVertical, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { Power, PowerOff, Unlink, Link, MoreVertical, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
@@ -101,15 +101,16 @@ export function MotherboardGroup({
   const nameRef = useRef<EditableTextHandle>(null);
 
   const menuItems = (): DeviceMenuItem[] => {
-    const items: DeviceMenuItem[] = empty ? [] : [
-      groupControlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: onToggleControlled }
-        : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: onToggleControlled },
-    ];
+    const items: DeviceMenuItem[] = [];
     if (!hideLights && !empty) {
       items.push(groupOn
         ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
         : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: onTogglePower });
+    }
+    if (!empty) {
+      items.push(groupControlled
+        ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: onToggleControlled }
+        : { key: 'controlled', icon: <Link size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: onToggleControlled });
     }
     if (onRename) {
       items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });

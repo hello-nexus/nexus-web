@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Nexus 制御をオンにする（{count} 基）",
   "cooling.fan.menuControlOnCount.other": "Nexus 制御をオンにする（{count} 基）",
   "cooling.fan.moreActions": "その他の操作",
+  "cooling.fan.motherboardGroup": "マザーボード",
   "cooling.fan.moveToGroup": "グループに移動",
   "cooling.fan.moveToNewGroup": "新しいグループ",
   "cooling.fan.notControlled": "Nexus Control なし",

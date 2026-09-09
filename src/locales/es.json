@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Activar el control de Nexus ({count} ventilador)",
   "cooling.fan.menuControlOnCount.other": "Activar el control de Nexus ({count} ventiladores)",
   "cooling.fan.moreActions": "Más acciones",
+  "cooling.fan.motherboardGroup": "Placa base",
   "cooling.fan.moveToGroup": "Mover al grupo",
   "cooling.fan.moveToNewGroup": "Nuevo grupo",
   "cooling.fan.notControlled": "Sin Nexus Control",

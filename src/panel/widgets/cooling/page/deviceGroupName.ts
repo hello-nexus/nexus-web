@@ -17,3 +17,7 @@ export function fanDeviceGroupName(deviceId: string, deviceName?: string | null)
   }
   return deviceId;
 }
+
+// Synthetic block id for the motherboard's own fan headers, which carry no
+// deviceId of their own. Not a real device id, so it must never be sent.
+export const MOTHERBOARD_BLOCK_ID = 'motherboard';

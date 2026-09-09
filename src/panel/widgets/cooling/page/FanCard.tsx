@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Folder, FolderInput, FolderMinus, FolderPlus, Gpu, Link2, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, Folder, FolderInput, FolderMinus, FolderPlus, Gpu, Link, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -372,7 +372,7 @@ export const FanCard = memo(function FanCard({
         ? { key: 'controlled', icon: <Unlink size={14} />, label: label('cooling.fan.menuControlOff', 'cooling.fan.menuControlOffCount'), onSelect: () => setControlled(false) }
         // Highlighted for the same reason the lighting card highlights it: it
         // is the row that un-sticks the card's current state.
-        : { key: 'controlled', icon: <Link2 size={14} />, label: label('cooling.fan.menuControlOn', 'cooling.fan.menuControlOnCount'), onSelect: () => setControlled(true), highlighted: true });
+        : { key: 'controlled', icon: <Link size={14} />, label: label('cooling.fan.menuControlOn', 'cooling.fan.menuControlOnCount'), onSelect: () => setControlled(true), highlighted: true });
     }
     // Naming and grouping close the menu, under a rule: they change what the
     // fan IS, where everything above acts on what it does.

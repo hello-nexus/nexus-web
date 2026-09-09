@@ -137,40 +137,43 @@ export function GameSyncLeftPane() {
   const headerWithScan = (
     <div className={styles.gameSyncGamesHeader}>
       <span>{t('lighting.gameSync.games.mine')}</span>
-      <div className={styles.gameSyncGamesHeaderActions}>
-        <Button
-          type="button"
-          size="sm"
-          tone="neutral"
-          icon={
-            <RefreshCw
-              size={14}
-              aria-hidden
-              className={rescanning || scanning ? styles.rescanIconSpinning : undefined}
-            />
-          }
-          onClick={() => void handleRescan()}
-          disabled={rescanning || scanning}
-        >
-          {rescanning ? t('lighting.gameSync.games.rescanning') : t('lighting.gameSync.games.rescan')}
-        </Button>
-        <Button
-          size="sm"
-          tone="neutral"
-          iconTrailing={<ExternalLink size={14} aria-hidden />}
-          href={GAME_SYNC_SUPPORTED_GAMES_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {t('lighting.gameSync.games.docsLink')}
-        </Button>
-      </div>
+      <Button
+        type="button"
+        size="sm"
+        tone="neutral"
+        icon={
+          <RefreshCw
+            size={14}
+            aria-hidden
+            className={rescanning || scanning ? styles.rescanIconSpinning : undefined}
+          />
+        }
+        onClick={() => void handleRescan()}
+        disabled={rescanning || scanning}
+      >
+        {rescanning ? t('lighting.gameSync.games.rescanning') : t('lighting.gameSync.games.rescan')}
+      </Button>
     </div>
+  );
+
+  // SettingsSection's own trailing slot, so the link lands on the box's
+  // content edge rather than trailing Rescan mid-row.
+  const docsLink = (
+    <Button
+      size="sm"
+      tone="neutral"
+      icon={<ExternalLink size={14} aria-hidden />}
+      href={GAME_SYNC_SUPPORTED_GAMES_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {t('lighting.gameSync.games.docsLink')}
+    </Button>
   );
 
   return (
     <div className={styles.gameSyncLeftPane}>
-      <SettingsSection title={headerWithScan}>
+      <SettingsSection title={headerWithScan} action={docsLink}>
         {scanning && supported.length === 0 ? (
           <p className={styles.gameSyncGamesScanning}>{t('lighting.gameSync.games.scanning')}</p>
         ) : supported.length === 0 ? (

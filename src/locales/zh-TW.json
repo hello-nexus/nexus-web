@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "開啟 Nexus 控制（{count} 個風扇）",
   "cooling.fan.menuControlOnCount.other": "開啟 Nexus 控制（{count} 個風扇）",
   "cooling.fan.moreActions": "更多操作",
+  "cooling.fan.motherboardGroup": "主機板",
   "cooling.fan.moveToGroup": "移動到群組",
   "cooling.fan.moveToNewGroup": "新增群組",
   "cooling.fan.notControlled": "無 Nexus Control",

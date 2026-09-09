@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Ative il control Nexus ({count} ventilatôr)",
   "cooling.fan.menuControlOnCount.other": "Ative il control Nexus ({count} ventilatôrs)",
   "cooling.fan.moreActions": "Altris azions",
+  "cooling.fan.motherboardGroup": "Plache mari",
   "cooling.fan.moveToGroup": "Sposte tal grup",
   "cooling.fan.moveToNewGroup": "Gnûf grup",
   "cooling.fan.notControlled": "Nissun Nexus Control",

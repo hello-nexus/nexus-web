@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Nexus 제어 켜기({count}개)",
   "cooling.fan.menuControlOnCount.other": "Nexus 제어 켜기({count}개)",
   "cooling.fan.moreActions": "추가 작업",
+  "cooling.fan.motherboardGroup": "메인보드",
   "cooling.fan.moveToGroup": "그룹으로 이동",
   "cooling.fan.moveToNewGroup": "새 그룹",
   "cooling.fan.notControlled": "Nexus Control 없음",

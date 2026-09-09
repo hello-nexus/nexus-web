@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, FolderInput, FolderPlus, FolderMinus, Folder, Unlink, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, FolderInput, FolderPlus, FolderMinus, Folder, Unlink, Link, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -231,7 +231,7 @@ export function ZoneCard({
       if (onTakeControl) {
         items.push({
           key: 'takeControl',
-          icon: <Link2 size={14} />,
+          icon: <Link size={14} />,
           label: t('lighting.devices.menuTakeControl'),
           onSelect: onTakeControl,
           highlighted: true,
@@ -298,14 +298,14 @@ export function ZoneCard({
       const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower?.();
       const label = (single: string, counted: string) => bulkMenuLabel(t, language, bulk, single, counted);
       // Whichever row un-sticks the card's current state gets the accent. An
-      // un-driven device ignores its power state, so control leads and lights
-      // only light up once control is back on.
-      items.push(isControlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
-        : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
+      // un-driven device ignores its power state, so lights only light up once
+      // control is back on.
       items.push(isOn
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
         : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });
+      items.push(isControlled
+        ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
+        : { key: 'controlled', icon: <Link size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
     }
     // Naming and grouping close the menu, under a rule: they change what the
     // card IS, where everything above acts on what it does.

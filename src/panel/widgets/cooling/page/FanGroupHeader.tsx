@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link2, Lock, MoreVertical, Pencil, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
+import { Link, Lock, MoreVertical, Pencil, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
@@ -58,7 +58,7 @@ export function FanGroupHeader({
     const items: DeviceMenuItem[] = count === 0 ? [] : [
       groupControlled
         ? { key: 'controlled', icon: <Unlink size={14} />, label: t('cooling.fan.menuControlOff'), onSelect: onToggleControlled }
-        : { key: 'controlled', icon: <Link2 size={14} />, label: t('cooling.fan.menuControlOn'), onSelect: onToggleControlled },
+        : { key: 'controlled', icon: <Link size={14} />, label: t('cooling.fan.menuControlOn'), onSelect: onToggleControlled },
       groupLocked
         ? { key: 'lock', icon: <Unlock size={14} />, label: t('cooling.lock.unlock'), onSelect: onToggleLock }
         : { key: 'lock', icon: <Lock size={14} />, label: t('cooling.lock.lock'), onSelect: onToggleLock },

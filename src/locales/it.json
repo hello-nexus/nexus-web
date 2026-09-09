@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Attiva il controllo Nexus ({count} ventola)",
   "cooling.fan.menuControlOnCount.other": "Attiva il controllo Nexus ({count} ventole)",
   "cooling.fan.moreActions": "Altre azioni",
+  "cooling.fan.motherboardGroup": "Scheda madre",
   "cooling.fan.moveToGroup": "Sposta nel gruppo",
   "cooling.fan.moveToNewGroup": "Nuovo gruppo",
   "cooling.fan.notControlled": "Nessun Nexus Control",

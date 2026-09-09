@@ -12,8 +12,8 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   tone?: ButtonTone;
   pill?: boolean;
   // Icon-only buttons render square; otherwise icon sits to the leading edge.
+  // There is no trailing slot: every button in the app puts its icon first.
   icon?: ReactNode;
-  iconTrailing?: ReactNode;
   // Trailing green/red dot reflecting a live state (e.g. the OpenRGB subprocess).
   status?: ButtonStatus;
   // Disables the button and renders a spinner in place of the icon. For the
@@ -47,7 +47,6 @@ export function Button({
   tone = 'neutral',
   pill = false,
   icon,
-  iconTrailing,
   status,
   loading = false,
   loadingHidesLabel = false,
@@ -61,7 +60,7 @@ export function Button({
   rel,
   ...rest
 }: ButtonProps) {
-  const isIconOnly = !children && Boolean(icon || iconTrailing);
+  const isIconOnly = !children && Boolean(icon);
   const isDisabled = disabled || loading;
   const hideLabel = loading && loadingHidesLabel;
 
@@ -81,7 +80,6 @@ export function Button({
         ? <span className={classNames(styles.spinner, hideLabel && styles.spinnerCentered)} aria-hidden="true" />
         : icon && <span className={styles.icon}>{icon}</span>}
       {children && <span className={classNames(styles.label, hideLabel && styles.labelHidden)}>{children}</span>}
-      {!loading && iconTrailing && <span className={styles.iconTrailing}>{iconTrailing}</span>}
       {status && (
         <span
           className={classNames(styles.statusDot, status === 'online' ? styles.statusOnline : styles.statusOffline)}

@@ -382,6 +382,7 @@
   "cooling.fan.menuControlOnCount.one": "Włącz sterowanie Nexus ({count} wentylator)",
   "cooling.fan.menuControlOnCount.other": "Włącz sterowanie Nexus ({count} wentylatorów)",
   "cooling.fan.moreActions": "Więcej akcji",
+  "cooling.fan.motherboardGroup": "Płyta główna",
   "cooling.fan.moveToGroup": "Przenieś do grupy",
   "cooling.fan.moveToNewGroup": "Nowa grupa",
   "cooling.fan.notControlled": "Brak Nexus Control",

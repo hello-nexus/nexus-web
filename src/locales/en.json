@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Turn on Nexus Control ({count} fan)",
   "cooling.fan.menuControlOnCount.other": "Turn on Nexus Control ({count} fans)",
   "cooling.fan.moreActions": "More actions",
+  "cooling.fan.motherboardGroup": "Motherboard",
   "cooling.fan.moveToGroup": "Move to group",
   "cooling.fan.moveToNewGroup": "New group",
   "cooling.fan.notControlled": "No Nexus Control",

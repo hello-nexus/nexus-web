@@ -95,7 +95,7 @@ describe('ZoneCard actions menu', () => {
   it('labels both rows with the action they perform, not the state they are in', () => {
     renderCard({ ...baseDevice, controlled: false, ledsOn: true });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    expect(rowIcon(/menuControlOn/)).toContain('lucide-link-2');
+    expect(rowIcon(/menuControlOn/)).toContain('lucide-link');
     expect(rowIcon(/menuLightsOff/)).toContain('lucide-power-off');
   });
 

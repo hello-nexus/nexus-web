@@ -280,7 +280,7 @@ export function SmartLightsAddColumn({
                   className={styles.guideLink}
                   size="sm"
                   tone="ghost"
-                  iconTrailing={<ExternalLink size={13} aria-hidden />}
+                  icon={<ExternalLink size={13} aria-hidden />}
                   href={SMART_LIGHT_GUIDE_URLS[brand]}
                   target="_blank"
                   rel="noopener noreferrer"

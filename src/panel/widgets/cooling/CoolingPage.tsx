@@ -66,7 +66,8 @@ import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkel
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
-import { fanDeviceGroupName } from './page/deviceGroupName';
+import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID } from './page/deviceGroupName';
+import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
@@ -651,6 +652,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   // `id` is a channel id, or the device id of a group header. An empty name
   // clears the rename and the card falls back to the hardware name it carries.
+  const { specs } = useSystemSpecs(serviceOnline);
+
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
     setChannels(prev => prev.map(ch => {
@@ -1530,9 +1533,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 blockIdList.flatMap(b => allByBlock.get(b) ?? []);
               const groupBlockIds = (groupId: string) =>
                 fanGroups.find(g => g.id === groupId)?.members ?? [];
+              // Motherboard-header fans share a synthetic block so they render
+              // under one group named for the board, the way the lighting page
+              // groups a motherboard's ARGB headers. GPU fans keep the null key
+              // and stay loose cards - they belong to the card, not the board.
               const groups = new Map<string | null, FanChannel[]>();
               for (const ch of live) {
-                const key = ch.deviceId || null;
+                const key = ch.deviceId || (ch.isGpu ? null : MOTHERBOARD_BLOCK_ID);
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(ch);
               }
@@ -1639,7 +1646,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 const memberIds = list.map(c => c.id);
                 return (
                   <FanGroupHeader
-                    name={fanDeviceGroupName(blockId, list[0]?.deviceName)}
+                    name={blockId === MOTHERBOARD_BLOCK_ID
+                      ? (specs?.motherboard || t('cooling.fan.motherboardGroup'))
+                      : fanDeviceGroupName(blockId, list[0]?.deviceName)}
                     count={list.length}
                     hasUncontrolled={(allByBlock.get(blockId) ?? []).some(c => c.controlled === false)}
                     collapsed={isFanGroupCollapsed(blockId)}
@@ -1654,8 +1663,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       const target = !list.some(c => c.locked);
                       for (const c of list) handleToggleLock(c.id, target);
                     }}
-                    onRename={name => handleRename(blockId, name)}
-                    onResetName={list[0]?.originalDeviceName != null ? () => handleRename(blockId, '') : undefined}
+                    onRename={blockId === MOTHERBOARD_BLOCK_ID ? undefined : name => handleRename(blockId, name)}
+                    onResetName={blockId !== MOTHERBOARD_BLOCK_ID && list[0]?.originalDeviceName != null
+                      ? () => handleRename(blockId, '')
+                      : undefined}
                     drag={a}
                   >
                     <div className={styles.fanGroupChildren}>

@@ -304,7 +304,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           <Button
             tone="neutral"
             size="sm"
-            iconTrailing={<ExternalLink size={14} aria-hidden />}
+            icon={<ExternalLink size={14} aria-hidden />}
             href="https://github.com/hello-nexus/nexus-service/issues"
             target="_blank"
             rel="noopener noreferrer"

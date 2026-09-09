@@ -144,8 +144,7 @@
 
 // ── Slot styles ───────────────────────────────────────────────────────────
 
-.icon,
-.iconTrailing {
+.icon {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
@@ -159,13 +158,11 @@
   }
 }
 
-.size-lg .icon svg,
-.size-lg .iconTrailing svg {
+.size-lg .icon svg {
   --icon-size: 18px;
 }
 
-.size-sm .icon svg,
-.size-sm .iconTrailing svg {
+.size-sm .icon svg {
   --icon-size: 14px;
 }
 

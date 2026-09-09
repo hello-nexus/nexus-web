@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Nexus kontrolünü aç ({count} fan)",
   "cooling.fan.menuControlOnCount.other": "Nexus kontrolünü aç ({count} fan)",
   "cooling.fan.moreActions": "Diğer işlemler",
+  "cooling.fan.motherboardGroup": "Anakart",
   "cooling.fan.moveToGroup": "Gruba taşı",
   "cooling.fan.moveToNewGroup": "Yeni grup",
   "cooling.fan.notControlled": "Nexus Control yok",

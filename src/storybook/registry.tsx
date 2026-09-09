@@ -2057,7 +2057,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Button', category: 'inputs',
     filePath: 'src/components/common/Button/Button.tsx',
-    description: 'Canonical button. Replaces every ad-hoc button SCSS class across views. Three sizes (sm/md/lg) x five tones (neutral/accent/danger/danger-solid/ghost), optional pill shape, optional leading/trailing icon, optional loading + disabled states. Icon-only buttons render square automatically when no children are passed.',
+    description: 'Canonical button. Replaces every ad-hoc button SCSS class across views. Three sizes (sm/md/lg) x five tones (neutral/accent/danger/danger-solid/ghost), optional pill shape, an optional leading icon (there is no trailing slot), optional loading + disabled states. Icon-only buttons render square automatically when no children are passed.',
     Preview: PreviewButtonMatrix,
     fullWidth: true,
     notes: 'Reach for size="md" tone="neutral" for tertiary actions. tone="accent" for primary CTAs. tone="danger" for destructive. tone="danger-solid" for a destructive modal confirm, where the outline reads too quietly. tone="ghost" when bordered chrome would compete with adjacent UI. accent and danger-solid carry a raised bottom edge, which is what separates a primary action from a selected chip on the same fill.',

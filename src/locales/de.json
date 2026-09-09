@@ -380,6 +380,7 @@
   "cooling.fan.menuControlOnCount.one": "Nexus-Steuerung aktivieren ({count} Lüfter)",
   "cooling.fan.menuControlOnCount.other": "Nexus-Steuerung aktivieren ({count} Lüfter)",
   "cooling.fan.moreActions": "Weitere Aktionen",
+  "cooling.fan.motherboardGroup": "Mainboard",
   "cooling.fan.moveToGroup": "In Gruppe verschieben",
   "cooling.fan.moveToNewGroup": "Neue Gruppe",
   "cooling.fan.notControlled": "Keine Nexus-Steuerung",

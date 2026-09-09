@@ -382,6 +382,7 @@
   "cooling.fan.menuControlOnCount.one": "Включить управление Nexus ({count} вентилятор)",
   "cooling.fan.menuControlOnCount.other": "Включить управление Nexus ({count} вентиляторов)",
   "cooling.fan.moreActions": "Другие действия",
+  "cooling.fan.motherboardGroup": "Материнская плата",
   "cooling.fan.moveToGroup": "Переместить в группу",
   "cooling.fan.moveToNewGroup": "Новая группа",
   "cooling.fan.notControlled": "Без Nexus Control",
