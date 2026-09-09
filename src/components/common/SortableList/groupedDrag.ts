@@ -92,3 +92,24 @@ export function moveTo(
     ? { rowIds: placed, groupMembers: stripped.groupMembers }
     : { rowIds: stripped.rowIds, groupMembers: { ...stripped.groupMembers, [target]: placed } };
 }
+
+/** True when two arrangements hold the same rows in the same order. */
+export function sameArrangement(a: Arrangement, b: Arrangement): boolean {
+  if (a === b) return true;
+  if (a.rowIds.length !== b.rowIds.length) return false;
+  for (let i = 0; i < a.rowIds.length; i++) {
+    if (a.rowIds[i] !== b.rowIds[i]) return false;
+  }
+  const aKeys = Object.keys(a.groupMembers);
+  const bKeys = Object.keys(b.groupMembers);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const key of aKeys) {
+    const left = a.groupMembers[key];
+    const right = b.groupMembers[key];
+    if (right === undefined || left.length !== right.length) return false;
+    for (let i = 0; i < left.length; i++) {
+      if (left[i] !== right[i]) return false;
+    }
+  }
+  return true;
+}

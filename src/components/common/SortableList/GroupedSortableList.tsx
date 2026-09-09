@@ -16,7 +16,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { bodyDroppableId, dropContainer, moveTo, ROOT, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, dropContainer, moveTo, ROOT, sameArrangement, type Arrangement } from './groupedDrag';
 import { type SortableRowArgs } from './SortableList';
 import styles from './SortableList.module.scss';
 
@@ -108,11 +108,11 @@ export function GroupedSortableList({
   const [activeId, setActiveId] = useState<string | null>(null);
   // The group a drop would land in right now, so its shell can highlight.
   const [dropGroupId, setDropGroupId] = useState<string | null>(null);
-  // The arrangement as it looks mid-drag: onDragOver transfers rows between
-  // containers so the drop slot is where the pointer is, and the committed
-  // value only lands on drop.
-  const [dragging, setDragging] = useState<Arrangement | null>(null);
-  const live = dragging ?? arrangement;
+  // Rows do NOT move between containers mid-drag. Transferring on every
+  // dragOver resizes the container the row left, which re-measures, flips the
+  // target back, and oscillates until React gives up (#185, "maximum update
+  // depth"). The destination ring is what tells the user where the drop lands.
+  const live = arrangement;
 
   const sensors = useSensors(
     useSensor(GuardedPointerSensor, { activationConstraint: { distance: 6 } }),
@@ -125,16 +125,14 @@ export function GroupedSortableList({
     const activeIsGroup = String(active.id) in live.groupMembers;
     const target = dropContainer(live, String(over.id), collapsedGroupIds);
     setDropGroupId(!activeIsGroup && target !== null && target !== ROOT ? target : null);
-    setDragging(moveTo(live, String(active.id), String(over.id), collapsedGroupIds));
   };
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     const next = over ? moveTo(live, String(active.id), String(over.id), collapsedGroupIds) : live;
     setActiveId(null);
-    setDragging(null);
     setDropGroupId(null);
-    onArrange(next);
+    if (!sameArrangement(live, next)) onArrange(next);
   };
 
   return (
@@ -146,7 +144,7 @@ export function GroupedSortableList({
       onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      onDragCancel={() => { setActiveId(null); setDragging(null); setDropGroupId(null); }}
+      onDragCancel={() => { setActiveId(null); setDropGroupId(null); }}
     >
       <SortableContext items={live.rowIds} strategy={verticalListSortingStrategy}>
         <div className={className ? `${styles.list} ${className}` : styles.list} aria-label={ariaLabel} role="list">

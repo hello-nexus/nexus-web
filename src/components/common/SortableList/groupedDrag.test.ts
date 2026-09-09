@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, sameArrangement, type Arrangement } from './groupedDrag';
 
 const arr = (): Arrangement => ({
   rowIds: ['a', 'g1', 'b'],
@@ -98,5 +98,35 @@ describe('moveTo', () => {
   it('leaves the arrangement alone for an unknown drop target', () => {
     const before = arr();
     expect(moveTo(before, 'a', 'nope')).toEqual(before);
+  });
+});
+
+// The drop handler skips onArrange when nothing moved. Without that, a drag
+// that ends where it started re-renders the rail for no reason, and the same
+// equality is what kept the old mid-drag transfer from looping forever.
+describe('sameArrangement', () => {
+  it('accepts an identical arrangement built separately', () => {
+    expect(sameArrangement(arr(), arr())).toBe(true);
+  });
+
+  it('sees a reordered top level', () => {
+    expect(sameArrangement(arr(), { ...arr(), rowIds: ['g1', 'a', 'b'] })).toBe(false);
+  });
+
+  it('sees a changed membership', () => {
+    expect(sameArrangement(arr(), { ...arr(), groupMembers: { g1: ['d', 'c'], g2: [] } })).toBe(false);
+  });
+
+  it('sees a member added to a group', () => {
+    expect(sameArrangement(arr(), { ...arr(), groupMembers: { g1: ['c', 'd'], g2: ['e'] } })).toBe(false);
+  });
+
+  it('sees a group appearing', () => {
+    expect(sameArrangement(arr(), { ...arr(), groupMembers: { g1: ['c', 'd'] } })).toBe(false);
+  });
+
+  it('reports a no-op move as unchanged, which is what stops the drop churn', () => {
+    const before = arr();
+    expect(sameArrangement(before, moveTo(before, 'c', 'c'))).toBe(true);
   });
 });
