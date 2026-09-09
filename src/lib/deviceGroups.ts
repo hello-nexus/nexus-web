@@ -87,9 +87,15 @@ export function groupedRows<B>(
   for (const block of blocks) {
     const id = idOf(block);
     const groupId = owner.get(id);
-    // An unanchored group still falls back to its first present member, so a
-    // group stored before anchors existed keeps a sensible slot.
-    if (groupId !== undefined) { emit(groupId); emitAnchored(id); continue; }
+    if (groupId !== undefined) {
+      // An anchor is where the user dropped the group, so it outranks the
+      // member fallback: emitting at the first member would drag the group
+      // back up whenever a member sits earlier in the rail than the anchor.
+      const group = groups.find(g => g.id === groupId);
+      if (group?.after == null) emit(groupId);
+      emitAnchored(id);
+      continue;
+    }
     rows.push({ kind: 'block', id, block });
     emitAnchored(id);
   }

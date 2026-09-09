@@ -54,6 +54,13 @@ describe('groupedRows', () => {
     expect(rows.map(r => r.id)).toEqual(['a', 'b', 'c', 'd', 'g1']);
   });
 
+  it('honours the anchor even when a member sits earlier in the rail', () => {
+    // The group holds 'a' but was dropped after 'c'. Emitting at the first
+    // member would drag it back to the top, which is what T1 showed.
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: ['a'], after: 'c' }]);
+    expect(rows.map(r => r.id)).toEqual(['b', 'c', 'g1', 'd']);
+  });
+
   it('keeps an anchored group in place when it holds members too', () => {
     const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: ['d'], after: 'a' }]);
     expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'b', 'c']);
