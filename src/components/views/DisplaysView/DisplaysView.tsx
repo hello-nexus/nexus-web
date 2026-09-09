@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { LayoutDashboard, Star } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useDisplayTopology } from '../../../hooks/useDisplayTopology';
-import { demoteDisplayPanel, promoteDisplayToPanel, type TopologyDisplay } from '../../../api/displays';
+import { demoteDisplayPanel, promoteDisplayToPanel, setDisplayDdc, type TopologyDisplay } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
+import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { MonitorMap } from './MonitorMap';
@@ -28,6 +29,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
   const { topology, loading, refresh } = useDisplayTopology(serviceOnline);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [ddcPendingId, setDdcPendingId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const displays = useMemo(() => topology?.displays ?? [], [topology]);
@@ -54,6 +56,18 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
       </section>
     );
   }
+
+  const toggleDdc = async (display: TopologyDisplay, next: boolean) => {
+    setError('');
+    setDdcPendingId(display.id);
+    const result = await setDisplayDdc(display.id, next);
+    setDdcPendingId(null);
+    if (!result) {
+      setError(t('displays.ddc.error'));
+      return;
+    }
+    await refresh();
+  };
 
   const promote = async (display: TopologyDisplay) => {
     setError('');
@@ -130,6 +144,25 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                   <span className={styles.chip}>{t('displays.touch')}</span>
                 )}
               </div>
+
+              {/* Not offered for the Y70: its brightness rides a dedicated
+                  transport in the service that does not go through the
+                  DDC opt-out, so the switch would promise something it
+                  cannot deliver. That panel is driven from its own page. */}
+              {!selected.isY70 && (
+              <div className={styles.ddcRow}>
+                <div className={styles.ddcText}>
+                  <span className={styles.ddcLabel}>{t('displays.ddc.label')}</span>
+                  <span className={styles.hint}>{t('displays.ddc.hint')}</span>
+                </div>
+                <Toggle
+                  checked={selected.ddcEnabled}
+                  disabled={ddcPendingId === selected.id}
+                  ariaLabel={t('displays.ddc.label')}
+                  onChange={next => void toggleDdc(selected, next)}
+                />
+              </div>
+              )}
 
               <div className={styles.actions}>
                 {selected.isY70 ? (

@@ -111,3 +111,22 @@
   color: var(--bad);
   font-size: var(--type-small);
 }
+
+.ddcRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ddcText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ddcLabel {
+  color: var(--text);
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
+}
