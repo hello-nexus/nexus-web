@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addGroup, groupOf, groupedRows, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup,
+  addGroup, anchorGroups, groupOf, groupedRows, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup,
   type DeviceGroup,
 } from './deviceGroups';
 
@@ -32,6 +32,38 @@ describe('groupedRows', () => {
     const rows = groupedRows(blocks, idOf, [group('g1', 'Desk', 'b', 'gone')]);
     const g = rows.find(r => r.kind === 'group');
     expect(g && g.kind === 'group' && g.blocks).toEqual(['b']);
+  });
+
+  it('holds an emptied group at its anchor instead of sliding it to the tail', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: 'a' }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'b', 'c', 'd']);
+  });
+
+  it('pins a group anchored to the top of the rail', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: '' }]);
+    expect(rows.map(r => r.id)).toEqual(['g1', 'a', 'b', 'c', 'd']);
+  });
+
+  it('tails a group whose anchor is null, the shape the service sends for one never placed', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: null }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'b', 'c', 'd', 'g1']);
+  });
+
+  it('tails a group whose anchor row is gone', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: [], after: 'unplugged' }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'b', 'c', 'd', 'g1']);
+  });
+
+  it('honours the anchor even when a member sits earlier in the rail', () => {
+    // The group holds 'a' but was dropped after 'c'. Emitting at the first
+    // member would drag it back to the top, which is what T1 showed.
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: ['a'], after: 'c' }]);
+    expect(rows.map(r => r.id)).toEqual(['b', 'c', 'g1', 'd']);
+  });
+
+  it('keeps an anchored group in place when it holds members too', () => {
+    const rows = groupedRows(blocks, idOf, [{ id: 'g1', name: 'Desk', members: ['d'], after: 'a' }]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'b', 'c']);
   });
 
   it('still renders a group with nothing plugged in, at the tail', () => {
@@ -76,6 +108,27 @@ describe('group mutations', () => {
   });
 });
 
+describe('groupedRows anchored to another group', () => {
+  const anchored = (id: string, after: string | null, ...members: string[]): DeviceGroup =>
+    ({ id, name: id, members, after });
+
+  it('follows the group its anchor names, which is what two groups in a row produce', () => {
+    const rows = groupedRows(blocks, idOf, [anchored('g1', 'a', 'c'), anchored('g2', 'g1', 'd')]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'g2', 'b']);
+  });
+
+  it('chains through empty groups', () => {
+    const rows = groupedRows(blocks, idOf, [anchored('g1', 'a'), anchored('g2', 'g1'), anchored('g3', 'g2')]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'g2', 'g3', 'b', 'c', 'd']);
+  });
+
+  it('emits a group whose anchor cycles back to it exactly once', () => {
+    const rows = groupedRows(blocks, idOf, [anchored('g1', 'g2'), anchored('g2', 'g1')]);
+    expect(rows.filter(r => r.id === 'g1')).toHaveLength(1);
+    expect(rows.filter(r => r.id === 'g2')).toHaveLength(1);
+  });
+});
+
 describe('moveBlock', () => {
   const two = [group('g1', 'One', 'a', 'b'), group('g2', 'Two', 'c')];
 
@@ -99,5 +152,34 @@ describe('moveBlock', () => {
   it('clamps an index past the end', () => {
     const next = moveBlock(two, 'c', 'g1', 99);
     expect(next[0].members).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('removeGroup anchors', () => {
+  it('hands the deleted group\'s anchor to whatever followed it', () => {
+    const next = removeGroup(
+      [{ id: 'g1', name: 'One', members: [], after: 'a' }, { id: 'g2', name: 'Two', members: [], after: 'g1' }],
+      'g1',
+    );
+    expect(next).toEqual([{ id: 'g2', name: 'Two', members: [], after: 'a' }]);
+  });
+});
+
+describe('anchorGroups', () => {
+  it('records the row each group now follows', () => {
+    const groups: DeviceGroup[] = [group('g1', 'One'), group('g2', 'Two')];
+    const next = anchorGroups(groups, ['a', 'g1', 'b', 'g2']);
+    expect(next[0].after).toBe('a');
+    expect(next[1].after).toBe('b');
+  });
+
+  it('pins a group that leads the rail with an empty anchor', () => {
+    const next = anchorGroups([group('g1', 'One')], ['g1', 'a']);
+    expect(next[0].after).toBe('');
+  });
+
+  it('leaves a group absent from the rail untouched', () => {
+    const groups = [{ id: 'g1', name: 'One', members: [], after: 'a' }];
+    expect(anchorGroups(groups, ['b', 'c'])).toEqual(groups);
   });
 });

@@ -59,7 +59,7 @@ import { CollapsibleSection } from '../../../components/common/CollapsibleSectio
 import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../components/common/SortableList/groupedDrag';
-import { addGroup, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../lib/deviceGroups';
+import { addGroup, anchorGroups, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../lib/deviceGroups';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -649,9 +649,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     void saveActivePreset();
   }, [exitOffToCustomIfNeeded, saveActivePreset, pushHistory]);
 
+  // `id` is a channel id, or the device id of a group header. An empty name
+  // clears the rename and the card falls back to the hardware name it carries.
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
-    setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, name } : ch));
+    setChannels(prev => prev.map(ch => {
+      if (ch.id === id) {
+        return name === ''
+          ? { ...ch, name: ch.originalName ?? ch.name, originalName: undefined }
+          : { ...ch, name, originalName: ch.originalName ?? ch.name };
+      }
+      if (ch.deviceId === id) {
+        return name === ''
+          ? { ...ch, deviceName: ch.originalDeviceName ?? ch.deviceName, originalDeviceName: undefined }
+          : { ...ch, deviceName: name, originalDeviceName: ch.originalDeviceName ?? ch.deviceName ?? undefined };
+      }
+      return ch;
+    }));
   }, []);
 
   const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
@@ -1521,12 +1535,17 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 ])),
               };
               const handleArrange = (next: Arrangement) => {
-                setFanGroups(next.rowIds
-                  .filter(id => id in next.groupMembers)
-                  .map(id => ({
-                    ...(fanGroups.find(g => g.id === id) ?? { id, name: '' }),
-                    members: next.groupMembers[id] ?? [],
-                  })));
+                // anchorGroups records the row each group now follows, so a group
+                // emptied by this very drop keeps its slot instead of tailing.
+                setFanGroups(anchorGroups(
+                  next.rowIds
+                    .filter(id => id in next.groupMembers)
+                    .map(id => ({
+                      ...(fanGroups.find(g => g.id === id) ?? { id, name: '' }),
+                      members: next.groupMembers[id] ?? [],
+                    })),
+                  next.rowIds,
+                ));
                 const order: string[] = [];
                 for (const rowId of next.rowIds) {
                   if (rowId in next.groupMembers) {
@@ -1564,6 +1583,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       for (const c of list) handleToggleLock(c.id, target);
                     }}
                     onRename={name => handleRename(blockId, name)}
+                    onResetName={list[0]?.originalDeviceName != null ? () => handleRename(blockId, '') : undefined}
                     drag={a}
                   >
                     <div className={styles.fanGroupChildren}>
@@ -1598,7 +1618,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       arrangement={arrangement}
                       onArrange={handleArrange}
                       renderBlock={renderBlock}
-                      renderGroup={(groupId, a, children) => {
+                      renderGroup={(groupId, a, children, isDropTarget) => {
                         const group = fanGroups.find(g => g.id === groupId);
                         if (!group) return null;
                         const members = (arrangement.groupMembers[groupId] ?? [])
@@ -1623,6 +1643,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                             }}
                             onRename={name => setFanGroups(renameGroup(fanGroups, groupId, name))}
                             onDelete={() => setFanGroups(removeGroup(fanGroups, groupId))}
+                            dropTarget={isDropTarget}
                             drag={a}
                           >
                             <div className={styles.fanGroupChildren}>{children}</div>

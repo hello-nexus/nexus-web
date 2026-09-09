@@ -14,7 +14,7 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../../components/common/SortableList/groupedDrag';
-import { addGroup, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../../lib/deviceGroups';
+import { addGroup, anchorGroups, groupedRows, MAX_DEVICE_GROUPS, removeGroup, renameGroup, type DeviceGroup } from '../../../../lib/deviceGroups';
 import { buildDeviceBlocks, stripParentPrefix, type DeviceBlock } from './deviceBlocks';
 import styles from '../LightingPage.module.scss';
 
@@ -216,6 +216,9 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
         onRename={onRenameDevice && parentDeviceId ? name => onRenameDevice(parentDeviceId, name) : undefined}
+        onResetName={onRenameDevice && parentDeviceId && members[0]?.parentName != null
+          ? () => onRenameDevice(parentDeviceId, '')
+          : undefined}
         groupOn={groupOn} onTogglePower={handleToggle}
         groupControlled={groupControlled} onToggleControlled={handleToggleControlled}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
@@ -272,14 +275,17 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
   // device order the page persists.
   const handleArrange = (next: Arrangement) => {
     if (onGroupsChange) {
-      onGroupsChange(
+      // anchorGroups records the row each group now follows, so a group emptied
+      // by this very drop keeps its slot instead of sliding to the tail.
+      onGroupsChange(anchorGroups(
         next.rowIds
           .filter(id => id in next.groupMembers)
           .map(id => ({
             ...(groups.find(g => g.id === id) ?? { id, name: '' }),
             members: next.groupMembers[id] ?? [],
           })),
-      );
+        next.rowIds,
+      ));
     }
     if (!onDeviceReorder) return;
     const expand = (blockId: string): string[] => {
@@ -315,7 +321,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
             if (!block) return null;
             return renderBlock(block, a);
           }}
-          renderGroup={(groupId, a, children) => {
+          renderGroup={(groupId, a, children, isDropTarget) => {
             const group = groups.find(g => g.id === groupId);
             if (!group) return null;
             const members = (arrangement.groupMembers[groupId] ?? [])
@@ -336,6 +342,8 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
                 onToggleCollapsed={() => toggleCollapsed(groupId)}
                 onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
+                dropTarget={isDropTarget}
+                empty={members.length === 0}
                 drag={a}
               >
                 {children}

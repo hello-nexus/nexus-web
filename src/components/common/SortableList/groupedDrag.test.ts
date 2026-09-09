@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
 
 const arr = (): Arrangement => ({
   rowIds: ['a', 'g1', 'b'],
@@ -25,7 +25,7 @@ describe('containerOf', () => {
 });
 
 describe('dropContainer', () => {
-  it('targets the group when the drop is on its header', () => {
+  it('takes the group when the pointer is on its header, collapsed or not', () => {
     expect(dropContainer(arr(), 'g1')).toBe('g1');
   });
 
@@ -37,6 +37,10 @@ describe('dropContainer', () => {
     expect(dropContainer(arr(), 'c')).toBe('g1');
     expect(dropContainer(arr(), 'b')).toBe(ROOT);
   });
+
+  it('sends the strip under the last row to the top level', () => {
+    expect(dropContainer(arr(), TAIL)).toBe(ROOT);
+  });
 });
 
 describe('moveTo', () => {
@@ -46,9 +50,10 @@ describe('moveTo', () => {
     expect(next.groupMembers.g1).toEqual(['c', 'a', 'd']);
   });
 
-  it('appends when the drop lands on the group header', () => {
+  it('drops into a group through its header', () => {
     const next = moveTo(arr(), 'a', 'g1');
     expect(next.groupMembers.g1).toEqual(['c', 'd', 'a']);
+    expect(next.rowIds).toEqual(['g1', 'b']);
   });
 
   it('fills an empty group from its body droppable', () => {
@@ -88,5 +93,95 @@ describe('moveTo', () => {
   it('leaves the arrangement alone for an unknown drop target', () => {
     const before = arr();
     expect(moveTo(before, 'a', 'nope')).toEqual(before);
+  });
+});
+
+// The drop handler skips onArrange when nothing moved. Without that, a drag
+// that ends where it started re-renders the rail for no reason, and the same
+// equality is what kept the old mid-drag transfer from looping forever.
+describe('moveTo onto the tail', () => {
+  it('takes a group member out and puts it last, so a trailing group cannot swallow the bottom', () => {
+    const next = moveTo(arr(), 'c', TAIL);
+    expect(next.rowIds).toEqual(['a', 'g1', 'b', 'c']);
+    expect(next.groupMembers.g1).toEqual(['d']);
+  });
+
+  it('sends a top-level block to the end', () => {
+    const next = moveTo(arr(), 'a', TAIL);
+    expect(next.rowIds).toEqual(['g1', 'b', 'a']);
+  });
+});
+
+describe('moveTo onto a group the row is already in', () => {
+  it('leaves a member alone when it is dropped on its own group header', () => {
+    expect(moveTo(arr(), 'c', 'g1')).toEqual(arr());
+  });
+
+  it('leaves a member alone when it is dropped on its own group body', () => {
+    expect(moveTo(arr(), 'c', bodyDroppableId('g1'))).toEqual(arr());
+  });
+
+  it('still reorders a GROUP dragged over another group, which is a sibling not a container', () => {
+    const twoGroups: Arrangement = { rowIds: ['g1', 'a', 'g2'], groupMembers: { g1: [], g2: [] } };
+    expect(moveTo(twoGroups, 'g1', 'g2').rowIds).toEqual(['a', 'g2', 'g1']);
+  });
+});
+
+describe('sameArrangement', () => {
+  it('accepts an identical arrangement built separately', () => {
+    expect(sameArrangement(arr(), arr())).toBe(true);
+  });
+
+  it('sees a reordered top level', () => {
+    expect(sameArrangement(arr(), { ...arr(), rowIds: ['g1', 'a', 'b'] })).toBe(false);
+  });
+
+  it('sees a changed membership', () => {
+    expect(sameArrangement(arr(), { ...arr(), groupMembers: { g1: ['d', 'c'], g2: [] } })).toBe(false);
+  });
+
+  it('sees a member added to a group', () => {
+    expect(sameArrangement(arr(), { ...arr(), groupMembers: { g1: ['c', 'd'], g2: ['e'] } })).toBe(false);
+  });
+
+  it('sees a group appearing', () => {
+    expect(sameArrangement(arr(), { ...arr(), groupMembers: { g1: ['c', 'd'] } })).toBe(false);
+  });
+
+  it('reports a no-op move as unchanged, which is what stops the drop churn', () => {
+    const before = arr();
+    expect(sameArrangement(before, moveTo(before, 'c', 'c'))).toBe(true);
+  });
+});
+
+// Removing the dragged row first shifts anything below it up by one, so a
+// downward move that simply takes the target's slot lands back where it began.
+describe('moveTo direction', () => {
+  const flat = (): Arrangement => ({ rowIds: ['a', 'b', 'c', 'd'], groupMembers: {} });
+
+  it('moves a row DOWN past the one it was dropped on', () => {
+    expect(moveTo(flat(), 'a', 'b').rowIds).toEqual(['b', 'a', 'c', 'd']);
+  });
+
+  it('moves a row down across several positions', () => {
+    expect(moveTo(flat(), 'a', 'c').rowIds).toEqual(['b', 'c', 'a', 'd']);
+  });
+
+  it('moves a row UP into the slot it was dropped on', () => {
+    expect(moveTo(flat(), 'd', 'b').rowIds).toEqual(['a', 'd', 'b', 'c']);
+  });
+
+  it('moves a row up to the very top', () => {
+    expect(moveTo(flat(), 'c', 'a').rowIds).toEqual(['c', 'a', 'b', 'd']);
+  });
+
+  it('reorders downward inside a group too', () => {
+    const arrangement: Arrangement = { rowIds: ['g1'], groupMembers: { g1: ['x', 'y', 'z'] } };
+    expect(moveTo(arrangement, 'x', 'y').groupMembers.g1).toEqual(['y', 'x', 'z']);
+  });
+
+  it('reorders upward inside a group', () => {
+    const arrangement: Arrangement = { rowIds: ['g1'], groupMembers: { g1: ['x', 'y', 'z'] } };
+    expect(moveTo(arrangement, 'z', 'y').groupMembers.g1).toEqual(['x', 'z', 'y']);
   });
 });

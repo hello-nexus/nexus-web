@@ -14,6 +14,11 @@ export interface DeviceGroup {
   name: string;
   /** Ids of the blocks in this group, in display order. */
   members: string[];
+  /** Id of the rail row this group sits after; '' pins it to the top and
+   *  null/absent means never placed, which tails it. Anchoring to the first
+   *  member cannot hold an emptied group in place, so the rail order the user
+   *  last dropped is stored instead. */
+  after?: string | null;
 }
 
 /** One rail row: an ungrouped block, or a user group holding blocks. */
@@ -27,11 +32,11 @@ export function newGroupId(): string {
 }
 
 /**
- * The rail's rows. A group sits where its first present member sits in block
- * order, so a group and an ungrouped block interleave the way two blocks do,
- * and adding a card to a group never jumps the group somewhere new. A group
- * whose members are all absent (hardware unplugged) still renders, empty, so
- * the user can see it and drop into it.
+ * The rail's rows. A group sits after the row its anchor names, or, with no
+ * anchor, where its first present member sits in block order, so a group and an
+ * ungrouped block interleave the way two blocks do. A group whose members are
+ * all absent (hardware unplugged) still renders, empty, so the user can see it
+ * and drop into it.
  */
 export function groupedRows<B>(
   blocks: readonly B[],
@@ -63,17 +68,56 @@ export function groupedRows<B>(
         .map(m => byId.get(m))
         .filter((b): b is B => b !== undefined),
     });
+    // A group can be anchored to another group - two groups in a row is what
+    // the add button produces - so the ones following THIS row come next.
+    // `placed` ends any cycle.
+    emitAnchored(groupId);
+  };
+  // Groups anchored to a row, keyed by the row they follow. '' pins to the top.
+  const anchored = new Map<string, string[]>();
+  for (const group of groups) {
+    // == null covers both absent and the JSON null the service sends for a
+    // group that has never been placed; only '' means "pin to the top".
+    if (group.after == null) continue;
+    const list = anchored.get(group.after) ?? [];
+    list.push(group.id);
+    anchored.set(group.after, list);
+  }
+  const emitAnchored = (afterId: string) => {
+    for (const groupId of anchored.get(afterId) ?? []) emit(groupId);
   };
 
+  emitAnchored('');
   for (const block of blocks) {
     const id = idOf(block);
     const groupId = owner.get(id);
-    if (groupId !== undefined) { emit(groupId); continue; }
+    if (groupId !== undefined) {
+      // An anchor is where the user dropped the group, so it outranks the
+      // member fallback: emitting at the first member would drag the group
+      // back up whenever a member sits earlier in the rail than the anchor.
+      const group = groups.find(g => g.id === groupId);
+      if (group?.after == null) emit(groupId);
+      emitAnchored(id);
+      continue;
+    }
     rows.push({ kind: 'block', id, block });
+    emitAnchored(id);
   }
-  // Groups with nothing plugged in have no anchor above; they tail the list.
+  // Anything left: a group whose anchor row is gone, or one that never had one.
   for (const group of groups) emit(group.id);
   return rows;
+}
+
+/**
+ * Rewrites every group's anchor from the rail order it now sits in, so an
+ * emptied group stays where the user left it instead of sliding to the tail.
+ */
+export function anchorGroups(groups: readonly DeviceGroup[], rowIds: readonly string[]): DeviceGroup[] {
+  return groups.map(group => {
+    const index = rowIds.indexOf(group.id);
+    if (index === -1) return group;
+    return { ...group, after: index === 0 ? '' : rowIds[index - 1] };
+  });
 }
 
 /** Adds an empty group, or returns the list unchanged once the cap is reached. */
@@ -84,7 +128,12 @@ export function addGroup(groups: readonly DeviceGroup[], name: string): DeviceGr
 
 /** Drops the group; its members return to the top level, keeping block order. */
 export function removeGroup(groups: readonly DeviceGroup[], groupId: string): DeviceGroup[] {
-  return groups.filter(g => g.id !== groupId);
+  // Anything anchored to the group inherits its anchor, or the rail would drop
+  // those groups at the tail the next time it renders.
+  const inherited = groups.find(g => g.id === groupId)?.after;
+  return groups
+    .filter(g => g.id !== groupId)
+    .map(g => (g.after === groupId ? { ...g, after: inherited } : g));
 }
 
 export function renameGroup(groups: readonly DeviceGroup[], groupId: string, name: string): DeviceGroup[] {

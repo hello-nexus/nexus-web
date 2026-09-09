@@ -1156,6 +1156,14 @@
   .deviceNameEditable { flex: 0 1 auto; max-width: 100%; }
 }
 
+// A group a dragged card is about to land in. Only a soft wash: the inset drop
+// slot inside it is the precise indicator, and outlining the section too read
+// as two competing highlights.
+.groupDropTarget {
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
 .deviceName {
   font-size: var(--type-small);
   font-weight: var(--weight-body);
