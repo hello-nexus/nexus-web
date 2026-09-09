@@ -64,7 +64,12 @@ class GuardedPointerSensor extends PointerSensor {
   ];
 }
 
-function Row({ id, render }: { id: string; render: (id: string, args: SortableRowArgs) => ReactNode }) {
+function Row({ id, render, quietPlaceholder }: {
+  id: string;
+  render: (id: string, args: SortableRowArgs) => ReactNode;
+  /** The drop is heading into a group, so this row's own gap draws nothing. */
+  quietPlaceholder?: boolean;
+}) {
   const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({ id });
   const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition };
   return <>{render(id, {
@@ -73,7 +78,7 @@ function Row({ id, render }: { id: string; render: (id: string, args: SortableRo
     attributes: attributes as unknown as Record<string, unknown>,
     listeners: listeners as unknown as Record<string, unknown> | undefined,
     isDragging,
-    placeholderClassName: styles.placeholder,
+    placeholderClassName: quietPlaceholder ? styles.placeholderQuiet : styles.placeholder,
   })}</>;
 }
 
@@ -83,17 +88,18 @@ function Row({ id, render }: { id: string; render: (id: string, args: SortableRo
  * this group is the drop target - reserving one for every group up front shifted
  * the whole rail the moment a drag began.
  */
-function GroupBody({ groupId, members, renderBlock, isDropTarget }: {
+function GroupBody({ groupId, members, renderBlock, isDropTarget, quiet }: {
   groupId: string;
   members: string[];
   renderBlock: GroupedSortableListProps['renderBlock'];
   isDropTarget: boolean;
+  quiet: boolean;
 }) {
   const { setNodeRef } = useDroppable({ id: bodyDroppableId(groupId) });
   return (
     <SortableContext items={members} strategy={verticalListSortingStrategy}>
       <div ref={setNodeRef} className={styles.list} role="list">
-        {members.map(id => <Row key={id} id={id} render={renderBlock} />)}
+        {members.map(id => <Row key={id} id={id} render={renderBlock} quietPlaceholder={quiet} />)}
         {isDropTarget && <div className={styles.groupDropSlot} aria-hidden />}
       </div>
     </SortableContext>
@@ -161,11 +167,12 @@ export function GroupedSortableList({
                   members={live.groupMembers[rowId] ?? []}
                   renderBlock={renderBlock}
                   isDropTarget={dropGroupId === rowId}
+                  quiet={dropGroupId !== null}
                 />,
                 dropGroupId === rowId,
               )} />
             )
-            : <Row key={id} id={id} render={renderBlock} />)}
+            : <Row key={id} id={id} render={renderBlock} quietPlaceholder={dropGroupId !== null} />)}
         </div>
       </SortableContext>
       <DragOverlay dropAnimation={null}>

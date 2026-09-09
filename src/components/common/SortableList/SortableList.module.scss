@@ -35,6 +35,14 @@
   border-radius: var(--radius);
 }
 
+// The dragged row's own gap while the drop is heading INTO a group. It still
+// reserves the space (collapsing it would move rows under the pointer) but
+// draws nothing, so the slot inside the group is the only marker on screen.
+.placeholderQuiet {
+  position: relative;
+  > * { visibility: hidden; }
+}
+
 // The blank landing spot inside the group a card is about to drop into. Inset
 // so it reads as belonging to the group, and rendered only for that one group,
 // so nothing moves until the pointer is actually over a destination.

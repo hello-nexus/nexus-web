@@ -310,13 +310,12 @@
   &:hover { color: var(--text); }
 }
 
-// A group a dragged fan card is about to land in. Rings the whole section so
-// the destination reads before the drop, not after it.
+// A group a dragged fan card is about to land in. Only a soft wash: the inset
+// drop slot inside it is the precise indicator, and outlining the section too
+// read as two competing highlights.
 .fanGroupDropTarget {
-  outline: 1px solid var(--accent);
-  outline-offset: 2px;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
 // Dashed "new group" entry at the foot of the fan rail, matching the lighting
