@@ -64,19 +64,14 @@ class GuardedPointerSensor extends PointerSensor {
   ];
 }
 
-function Row({ id, render, quietPlaceholder, frozen }: {
+function Row({ id, render, quietPlaceholder }: {
   id: string;
   render: (id: string, args: SortableRowArgs) => ReactNode;
   /** The drop is heading into a group, so this row's own gap draws nothing. */
   quietPlaceholder?: boolean;
-  /** Hold the row still: the drop is going INTO a group, so previewing a
-   *  top-level reorder would slide the destination out from under the pointer. */
-  frozen?: boolean;
 }) {
   const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({ id });
-  const style: CSSProperties = frozen
-    ? {}
-    : { transform: CSS.Transform.toString(transform), transition };
+  const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition };
   return <>{render(id, {
     ref: setNodeRef,
     style,
@@ -179,7 +174,7 @@ export function GroupedSortableList({
         >
           {live.rowIds.map(id => id in live.groupMembers
             ? (
-              <Row key={id} id={id} frozen={dropGroupId !== null} render={(rowId, args) => renderGroup(
+              <Row key={id} id={id} render={(rowId, args) => renderGroup(
                 rowId,
                 args,
                 <GroupBody
@@ -192,13 +187,7 @@ export function GroupedSortableList({
                 dropGroupId === rowId,
               )} />
             )
-            : <Row
-                key={id}
-                id={id}
-                render={renderBlock}
-                quietPlaceholder={dropGroupId !== null}
-                frozen={dropGroupId !== null}
-              />)}
+            : <Row key={id} id={id} render={renderBlock} quietPlaceholder={dropGroupId !== null} />)}
         </div>
       </SortableContext>
       <DragOverlay dropAnimation={null}>
