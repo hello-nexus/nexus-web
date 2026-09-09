@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical, MousePointerClick, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
 } from '../../../../api/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
-import { EditableText } from '../../../../components/common/Editable/EditableText';
+import { EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
@@ -198,6 +198,7 @@ export function ZoneCard({
   // A pick can only land on a device Nexus drives and that is lit; the badge
   // under the name says which of the two is missing.
   const pickable = controlled && device.ledsOn;
+  const nameRef = useRef<EditableTextHandle>(null);
 
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
@@ -218,7 +219,17 @@ export function ZoneCard({
     // Leads the menu and names the device, so it is unambiguous which card the
     // selection is about to narrow to. A card wearing a state glyph cannot be
     // selected, so it gets no row.
-    if (onSelectOnly && pickable) {
+    // Narrowing to this card is pointless when it IS the whole selection, so
+    // the row becomes the only useful thing left: clearing it.
+    if (pickable && selected && !bulk) {
+      items.push({
+        key: 'deselect',
+        icon: <MousePointerClick size={14} />,
+        label: t('lighting.devices.deselect'),
+        onSelect: () => onSelect(true),
+        separatorAfter: true,
+      });
+    } else if (onSelectOnly && pickable) {
       items.push({
         key: 'selectOnly',
         icon: <MousePointerClick size={14} />,
@@ -247,6 +258,24 @@ export function ZoneCard({
     // LED map it keeps its row in bulk mode. Gated on the same predicate the
     // modal scopes itself with: a card with lights off, Nexus Control off or
     // no LEDs would open a modal with nothing in scope.
+    if (!bulk && renameEnabled) {
+      items.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('lighting.devices.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
+      });
+    }
+    // Clearing a rename has no inline affordance - an empty commit is dropped -
+    // so the menu is the only way back to the hardware name.
+    if (!bulk && renameEnabled && device.originalName != null) {
+      items.push({
+        key: 'resetName',
+        icon: <RotateCcw size={14} />,
+        label: t('lighting.devices.resetName'),
+        onSelect: () => onRename?.(''),
+      });
+    }
     if (onOpenColorTuning && (bulk || zoneCardSelectable(device))) {
       items.push({
         key: 'colorTuning',
@@ -329,6 +358,7 @@ export function ZoneCard({
              any bare-surface click, which would fight the edit. */
           <span data-no-dnd style={{ display: 'contents' }} onClick={e => e.stopPropagation()}>
             <EditableText
+              ref={nameRef}
               value={displayName ?? device.name}
               onCommit={onRename!}
               className={`${styles.deviceName} ${styles.deviceNameEditable}`}

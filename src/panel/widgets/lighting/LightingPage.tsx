@@ -1209,9 +1209,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const handleRenameDevice = useCallback((id: string, name: string) => {
     renameLightingDevice(id, name).catch(() => { /* 3s poll reconciles */ });
-    setDevices(prev => prev.map(d => d.id === id
-      ? { ...d, name, originalName: d.originalName ?? d.name }
-      : d));
+    setDevices(prev => prev.map(d => {
+      if (d.id === id) {
+        // An empty name clears the rename: fall back to the hardware name the
+        // card has been carrying, so the revert shows before the refetch.
+        return name === ''
+          ? { ...d, name: d.originalName ?? d.name, originalName: undefined }
+          : { ...d, name, originalName: d.originalName ?? d.name };
+      }
+      // A group rename is keyed on the parent, so it lands on every member.
+      if (d.parentDeviceId === id) {
+        return name === ''
+          ? { ...d, parentName: undefined }
+          : { ...d, parentName: name };
+      }
+      return d;
+    }));
   }, []);
 
   // Device list ordering: HTML5 drag/drop on ZoneCard, persisted to

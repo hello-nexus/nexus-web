@@ -1,3 +1,4 @@
+import { forwardRef, useImperativeHandle } from 'react';
 import { useEditable } from './useEditable';
 import styles from './Editable.module.scss';
 
@@ -8,6 +9,8 @@ import styles from './Editable.module.scss';
  *
  * `maxLength` defaults to 20 (the fan/curve rename limit); pass a different
  * number for a wider input. The trimmed value is committed; empty is dropped.
+ *
+ * The ref opens edit mode from a menu's Rename row.
  */
 export interface EditableTextProps {
   value: string;
@@ -17,7 +20,13 @@ export interface EditableTextProps {
   ariaLabel?: string;
 }
 
-export function EditableText({ value, onCommit, maxLength = 20, className, ariaLabel }: EditableTextProps) {
+export interface EditableTextHandle {
+  startEditing: () => void;
+}
+
+export const EditableText = forwardRef<EditableTextHandle, EditableTextProps>(function EditableText(
+  { value, onCommit, maxLength = 20, className, ariaLabel }, ref,
+) {
   const editable = useEditable<string>({
     value,
     onCommit,
@@ -26,6 +35,8 @@ export function EditableText({ value, onCommit, maxLength = 20, className, ariaL
       return trimmed ? trimmed : null;
     },
   });
+
+  useImperativeHandle(ref, () => ({ startEditing: () => editable.start() }));
 
   if (editable.editing) {
     return <input className={`${styles.input} ${className ?? ''}`} maxLength={maxLength} aria-label={ariaLabel} {...editable.inputProps} />;
@@ -43,4 +54,4 @@ export function EditableText({ value, onCommit, maxLength = 20, className, ariaL
       {value}
     </span>
   );
-}
+});

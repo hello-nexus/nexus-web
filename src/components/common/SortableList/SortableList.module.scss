@@ -15,6 +15,13 @@
 // marks the drop slot. Kept at the row's natural size so the gap matches.
 .placeholder {
   position: relative;
+  // Drop the row's own fill and border: a selected card or an active fan card
+  // paints one, and it reads as a second highlight layer under the dashed box.
+  // !important because those live in the consumer's module, at equal or higher
+  // specificity, so load order would otherwise decide it.
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
   > * { visibility: hidden; }
 
   &::after {
@@ -33,4 +40,28 @@
   cursor: grabbing;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
   border-radius: var(--radius);
+}
+
+// The clone's fill. --backdrop-base is the one opaque surface token; every
+// other one is translucent, and the row the clone passes over reads through it
+// so two labels stack in the same box.
+.overlayOpaque {
+  background: var(--backdrop-base);
+}
+
+// The outer list of a GroupedSortableList: the containing block .dropTail
+// anchors to. Kept off .list, which every nested and flat list shares.
+.groupedList {
+  position: relative;
+}
+
+// Landing strip under the last row, present only mid-drag. Gives a rail whose
+// last row is a group somewhere to say "outside it, at the bottom". Positioned
+// out of flow so appearing mid-drag cannot nudge whatever sits below the list.
+.dropTail {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 2.75rem;
 }

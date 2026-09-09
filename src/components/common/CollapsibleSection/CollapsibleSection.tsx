@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type SortableRowArgs } from '../SortableList/SortableList';
-import { EditableText } from '../Editable/EditableText';
+import { EditableText, type EditableTextHandle } from '../Editable/EditableText';
 import styles from './CollapsibleSection.module.scss';
 
 /**
@@ -32,6 +32,8 @@ export function CollapsibleSection({
   sectionId,
   drag,
   onTitleRename,
+  titleRenameRef,
+  onHeaderContextMenu,
   children,
 }: {
   title: ReactNode;
@@ -63,13 +65,19 @@ export function CollapsibleSection({
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
   sectionId?: string;
   /** When set, the whole section becomes reorderable among its siblings via
-   *  dnd-kit. The toggle button is the drag handle. */
+   *  dnd-kit. The header bar is the drag handle, minus the title and any
+   *  interactive `right` control. */
   drag?: SortableRowArgs;
   /** Makes the header title click-to-edit. Requires a string `title`; the title
    *  then leaves the toggle button (a text field cannot nest in one), so the
    *  chevron and the bar's empty run toggle the section and the title alone
    *  edits. */
   onTitleRename?: (name: string) => void;
+  /** Opens the title editor from outside, for a Rename row in the section's own menu. */
+  titleRenameRef?: React.Ref<EditableTextHandle>;
+  /** Right-click on the header bar, for sections that carry their own menu. Not
+   *  fired from inside the title editor, which keeps the browser's own menu. */
+  onHeaderContextMenu?: (e: React.MouseEvent) => void;
   children: ReactNode;
 }) {
   const Chevron = open ? ChevronDown : ChevronRight;
@@ -94,10 +102,16 @@ export function CollapsibleSection({
         className={styles.header}
         data-compact={compact ? 'true' : undefined}
         data-collapsed={open ? undefined : 'true'}
+        onContextMenu={onHeaderContextMenu && (e => {
+          if ((e.target as HTMLElement).closest('input, textarea, [contenteditable]')) return;
+          onHeaderContextMenu(e);
+        })}
       >
         {/* The toggle (chevron + title + any non-interactive `right` content) is
             the drag handle; an interactive `right` control sits outside it so a
-            press-drag on a power switch never starts a group reorder. */}
+            press-drag on a power switch never starts a group reorder. With an
+            editable title the bar's empty run carries the listeners too, or the
+            chevron would be the only spot a group could be dragged by. */}
         {editableTitle ? (
           <>
             <button
@@ -112,6 +126,7 @@ export function CollapsibleSection({
               <Chevron className={styles.chevron} aria-hidden />
             </button>
             <EditableText
+              ref={titleRenameRef}
               value={title as string}
               onCommit={onTitleRename!}
               className={styles.title}
@@ -122,9 +137,11 @@ export function CollapsibleSection({
             <button
               type="button"
               className={styles.toggleFill}
+              data-drag-handle={drag ? 'true' : undefined}
               tabIndex={-1}
               aria-hidden="true"
               onClick={onToggle}
+              {...(drag?.listeners ?? {})}
             />
             {right !== undefined && <div className={styles.right}>{right}</div>}
           </>

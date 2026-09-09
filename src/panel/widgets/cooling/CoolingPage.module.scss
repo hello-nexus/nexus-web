@@ -310,6 +310,14 @@
   &:hover { color: var(--text); }
 }
 
+// A group a dragged fan card is about to land in. Only a soft wash: the inset
+// drop slot inside it is the precise indicator, and outlining the section too
+// read as two competing highlights.
+.fanGroupDropTarget {
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
 // Dashed "new group" entry at the foot of the fan rail, matching the lighting
 // rail's add entry.
 .addFanGroup {
@@ -357,8 +365,9 @@
 
 // ── Shared editable name ───────────────────────────────────────────────────
 .editableName {
-  composes: affordance from '../../../styles/editable.module.scss';
-  // Match the lighting page's device-card title (.deviceName).
+  // Typography only. EditableText's own display class carries the affordance,
+  // and composing it again lands on the INPUT too, whose accent border then
+  // sits inside the affordance's focus outline.
   font-size: var(--type-small); font-weight: var(--weight-body); color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
 }
