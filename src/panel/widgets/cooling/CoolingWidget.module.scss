@@ -97,11 +97,11 @@
 
 // Max's entrance: the funnel spins up from its own tip. The vortex is sold by
 // flipping scaleX through zero - the glyph turns edge-on and back, the way a
-// spinning ribbon does. The rhythm is what makes it read as a spin rather than
-// a twitch: each crossing is a fast 5-6% transit and the shape then DWELLS at
-// full width, instead of drifting between the two. No lean or skew - a wobble
-// on top of the flip is what made it jitter. The ease-out curve slows the
-// later revolutions so it spins down rather than stopping dead.
+// spinning ribbon does - and each flip dips the overall scale as it passes
+// edge-on, so the turn reads as depth rather than a width that snaps. Both
+// flips finish while the shape is still growing: once it is at full size it
+// only settles, never spins, which is what made the end look like a stutter.
+// No lean or skew - a wobble on top of the flip is what made it jitter.
 // transform-origin keeps the funnel's tip planted while the head swings.
 // Cleared on animationend like the fan, so a finished fill-mode animation
 // stops holding a compositor layer.
@@ -111,16 +111,15 @@
 }
 
 @keyframes maxSpinUp {
-  0%   { opacity: 0; transform: scale(0.4) scaleX(1); }
-  8%   { opacity: 1; }
-  20%  { transform: scale(0.62) scaleX(1); }
-  26%  { transform: scale(0.72) scaleX(-1); }
-  44%  { transform: scale(0.86) scaleX(-1); }
-  50%  { transform: scale(0.95) scaleX(1); }
-  66%  { transform: scale(1.05) scaleX(1); }
-  71%  { transform: scale(1.03) scaleX(-1); }
-  84%  { transform: scale(1) scaleX(-1); }
-  89%  { transform: scale(1) scaleX(1); }
+  0%   { opacity: 0; transform: scale(0.35) scaleX(1); }
+  10%  { opacity: 1; }
+  24%  { transform: scale(0.6) scaleX(1); }
+  30%  { transform: scale(0.57) scaleX(0); }
+  36%  { transform: scale(0.68) scaleX(-1); }
+  52%  { transform: scale(0.8) scaleX(-1); }
+  58%  { transform: scale(0.77) scaleX(0); }
+  64%  { transform: scale(0.9) scaleX(1); }
+  82%  { transform: scale(1.06) scaleX(1); }
   100% { opacity: 1; transform: scale(1) scaleX(1); }
 }
 
