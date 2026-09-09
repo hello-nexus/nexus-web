@@ -2116,6 +2116,7 @@
   "lighting.gameSync.games.rescanning": "スキャン中...",
   "lighting.gameSync.games.scanning": "ゲームをスキャン中...",
   "lighting.gameSync.games.title": "対応ゲーム",
+  "lighting.gameSync.guideLink": "Game Sync の使い方",
   "lighting.gameSync.signal.idle": "ゲームを待機中...",
   "lighting.gameSync.signal.receiving": "{activeApp} から受信中",
   "lighting.gameSync.signal.receivingUnknown": "ゲームが照明を制御しています。",

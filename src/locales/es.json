@@ -2116,6 +2116,7 @@
   "lighting.gameSync.games.rescanning": "Buscando...",
   "lighting.gameSync.games.scanning": "Buscando juegos...",
   "lighting.gameSync.games.title": "Juegos compatibles",
+  "lighting.gameSync.guideLink": "Cómo funciona Game Sync",
   "lighting.gameSync.signal.idle": "Esperando un juego...",
   "lighting.gameSync.signal.receiving": "Recibiendo de {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un juego está controlando tu iluminación.",

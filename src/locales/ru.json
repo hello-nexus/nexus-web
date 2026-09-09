@@ -2138,6 +2138,7 @@
   "lighting.gameSync.games.rescanning": "Сканирование...",
   "lighting.gameSync.games.scanning": "Поиск игр...",
   "lighting.gameSync.games.title": "Поддерживаемые игры",
+  "lighting.gameSync.guideLink": "Как работает Game Sync",
   "lighting.gameSync.signal.idle": "Ожидание игры...",
   "lighting.gameSync.signal.receiving": "Получение от {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Игра управляет вашим освещением.",

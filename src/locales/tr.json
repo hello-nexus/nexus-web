@@ -2116,6 +2116,7 @@
   "lighting.gameSync.games.rescanning": "Taranıyor...",
   "lighting.gameSync.games.scanning": "Oyunlar taranıyor...",
   "lighting.gameSync.games.title": "Desteklenen oyunlar",
+  "lighting.gameSync.guideLink": "Game Sync nasıl çalışır",
   "lighting.gameSync.signal.idle": "Oyun bekleniyor...",
   "lighting.gameSync.signal.receiving": "{activeApp} kaynağından alınıyor",
   "lighting.gameSync.signal.receivingUnknown": "Bir oyun aydınlatmanızı yönetiyor.",
