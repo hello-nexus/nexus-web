@@ -25,12 +25,16 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
    *  still report members the rail is hiding. Defaults to `devices`. */
   allDevices?: LightingDevice[];
+  /** True while the eye is hiding Nexus-Control-off devices. Passed rather than
+   *  inferred from the two list lengths, which are equal whenever nothing is
+   *  uncontrolled and so cannot tell the two states apart. */
+  hidingUncontrolled?: boolean;
   header?: ReactNode;
   /** Per-device static pick keyed by device id; it overrides what the card's
    *  LED strip samples from the effect canvas. Each pick names its own preset
@@ -337,10 +341,9 @@ export function DevicePanel({ devices, allDevices, header, devicePicks, versionF
   };
 
   const every = allDevices ?? devices;
-  const hidingUncontrolled = every.length > devices.length;
   // The same block keying over the unfiltered list, so a group header can
   // resolve members the rail is currently hiding.
-  const allBlocks = hidingUncontrolled ? buildDeviceBlocks(every) : blocks;
+  const allBlocks = every === devices ? blocks : buildDeviceBlocks(every);
   const allByBlockId = new Map<string, LightingDevice[]>(allBlocks.map(b =>
     b.kind === 'single' ? [b.device.id, [b.device]] : [b.groupKey, b.devices]));
 

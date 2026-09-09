@@ -1149,6 +1149,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Ids the eye is holding back. A drag rebuilds fanOrder from what is on
   // screen, and orderedChannels DROPS any channel missing from that order, so
   // without re-appending these a reorder while hiding would erase them.
+  // What the eye holds back: a fan Nexus does not drive, or one the hardware
+  // stopped answering. The group badge stays narrower - it means "no Nexus
+  // Control" and must not fire for a fan that is merely disconnected.
+  const isHiddenFan = useCallback(
+    (c: FanChannel) => c.controlled === false || isFanDisconnected(c),
+    [],
+  );
   const hiddenFanIds = useMemo(() => {
     if (!hideUncontrolled) return [] as string[];
     const shown = new Set(visibleChannels.map(c => c.id));
@@ -1509,10 +1516,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             {(() => {
               const disconnected = visibleChannels.filter(isFanDisconnected);
               const live = visibleChannels.filter(c => !isFanDisconnected(c));
-              // Group headers report hidden members from the unfiltered list, so
-              // a collapsed group still says it holds Nexus-Control-off fans.
+              // Group headers report members from the unfiltered list, so a
+              // group still accounts for the fans the eye is holding back.
+              // Disconnected fans are in here too: they hide on the same
+              // switch, so the vanish rule below has to see them.
               const allByBlock = new Map<string, FanChannel[]>();
-              for (const ch of orderedChannels.filter(c => !isFanDisconnected(c))) {
+              for (const ch of orderedChannels) {
                 const key = ch.deviceId || ch.id;
                 const bucket = allByBlock.get(key);
                 if (bucket) bucket.push(ch); else allByBlock.set(key, [ch]);
@@ -1684,12 +1693,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       renderGroup={(groupId, a, children, isDropTarget) => {
                         const group = fanGroups.find(g => g.id === groupId);
                         if (!group) return null;
-                        // A group holding only Nexus-Control-off fans goes with
-                        // them. One the user just made is empty, not hidden, so
-                        // it stays put as a drop target.
+                        // A group holding nothing the eye lets through goes
+                        // with its members. One the user just made is empty, not
+                        // hidden, so it stays put as a drop target.
                         const groupAll = blockChannels(groupBlockIds(groupId));
                         if (hideUncontrolled && groupAll.length > 0
-                          && groupAll.every(c => c.controlled === false)) return null;
+                          && groupAll.every(isHiddenFan)) return null;
                         const members = (arrangement.groupMembers[groupId] ?? [])
                           .flatMap(id => expand(id))
                           .map(id => channels.find(c => c.id === id))

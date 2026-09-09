@@ -2043,6 +2043,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           <DevicePanel
             devices={railDevices}
             allDevices={orderedDevices}
+            hidingUncontrolled={hideUncontrolled}
             // A mode that reaches every device overrides what any one of them
             // was assigned, so the picks stop applying - the strips go back to
             // sampling the shared canvas. They are kept, not cleared, so
