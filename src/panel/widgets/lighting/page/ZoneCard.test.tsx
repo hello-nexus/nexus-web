@@ -477,13 +477,13 @@ describe('ZoneCard selection gate', () => {
 });
 
 describe('ZoneCard select-only row', () => {
-  function renderWithSelectOnly(onSelectOnly?: () => void) {
+  function renderWithSelectOnly(onSelectOnly?: () => void, over: { selected?: boolean; onSelect?: (a: boolean) => void } = {}) {
     return render(
       <ZoneCard
         device={baseDevice}
-        selected
+        selected={over.selected ?? false}
         indent={false}
-        onSelect={() => {}}
+        onSelect={over.onSelect ?? (() => {})}
         onSelectOnly={onSelectOnly}
         onTogglePower={() => {}}
         onToggleControlled={() => {}}
@@ -508,6 +508,16 @@ describe('ZoneCard select-only row', () => {
     expect(rows[0].textContent).toContain('Test Strip');
     fireEvent.click(rows[0]);
     expect(onSelectOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers Deselect instead once this card IS the whole selection', () => {
+    const onSelect = vi.fn();
+    renderWithSelectOnly(vi.fn(), { selected: true, onSelect });
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    expect(screen.queryByText(/lighting\.devices\.selectOnly/)).toBeNull();
+    fireEvent.click(screen.getByText('lighting.devices.deselect'));
+    // Additive toggle on an already-selected card clears it.
+    expect(onSelect).toHaveBeenCalledWith(true);
   });
 });
 

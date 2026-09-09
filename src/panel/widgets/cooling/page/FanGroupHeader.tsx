@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link2, Lock, MoreVertical, Trash2, Unlink, Unlock } from 'lucide-react';
+import { Link2, Lock, MoreVertical, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
@@ -18,7 +18,7 @@ export function FanGroupHeader({
   name, count, collapsed, onToggleCollapsed,
   groupControlled, onToggleControlled,
   groupLocked, onToggleLock,
-  onRename, onDelete, drag, dropTarget, children,
+  onRename, onDelete, onResetName, drag, dropTarget, children,
 }: {
   name: string;
   count: number;
@@ -32,6 +32,9 @@ export function FanGroupHeader({
   onToggleLock: () => void;
   onRename?: (name: string) => void;
   onDelete?: () => void;
+  /** Present only on a renamed HARDWARE group; puts the header back on the name
+   *  the device reports. A user group's name has nothing to fall back to. */
+  onResetName?: () => void;
   drag?: SortableRowArgs;
   /** True while a dragged card would land in this group; rings the header so the
    *  destination is unambiguous before the drop. */
@@ -52,6 +55,9 @@ export function FanGroupHeader({
         ? { key: 'lock', icon: <Unlock size={14} />, label: t('cooling.lock.unlock'), onSelect: onToggleLock }
         : { key: 'lock', icon: <Lock size={14} />, label: t('cooling.lock.lock'), onSelect: onToggleLock },
     ];
+    if (onResetName) {
+      items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('cooling.fan.resetName'), onSelect: onResetName });
+    }
     if (onDelete) {
       items[items.length - 1].separatorAfter = true;
       items.push({ key: 'delete', icon: <Trash2 size={14} />, label: t('cooling.fan.groupDelete'), onSelect: onDelete });

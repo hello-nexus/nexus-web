@@ -216,6 +216,9 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
         onRename={onRenameDevice && parentDeviceId ? name => onRenameDevice(parentDeviceId, name) : undefined}
+        onResetName={onRenameDevice && parentDeviceId && members[0]?.parentName != null
+          ? () => onRenameDevice(parentDeviceId, '')
+          : undefined}
         groupOn={groupOn} onTogglePower={handleToggle}
         groupControlled={groupControlled} onToggleControlled={handleToggleControlled}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Power, PowerOff, Unlink, Link2, MoreVertical, Trash2 } from 'lucide-react';
+import { Power, PowerOff, Unlink, Link2, MoreVertical, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -34,6 +34,7 @@ export function MotherboardGroup({
   hideActions,
   onRename,
   onDelete,
+  onResetName,
   dropTarget,
 }: {
   parentName: string;
@@ -72,6 +73,9 @@ export function MotherboardGroup({
    *  user-made groups: a hardware group describes how the device is wired and
    *  cannot be taken apart. */
   onDelete?: () => void;
+  /** Present only on a renamed HARDWARE group; puts the header back on the name
+   *  the device reports. A user group's name has nothing to fall back to. */
+  onResetName?: () => void;
   /** True while a dragged card would land in this group; rings the header so the
    *  destination is unambiguous before the drop. */
   dropTarget?: boolean;
@@ -93,6 +97,9 @@ export function MotherboardGroup({
       items.push(groupOn
         ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
         : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: onTogglePower });
+    }
+    if (onResetName) {
+      items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: onResetName });
     }
     if (onDelete) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;

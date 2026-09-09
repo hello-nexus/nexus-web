@@ -10,6 +10,10 @@ import { type DeviceGroup } from '../lib/deviceGroups';
 export type FanRole = 'none' | 'cpu' | 'gpu';
 
 export interface FanChannel {
+  /** The hardware name a rename replaced. Set only on a renamed channel. */
+  originalName?: string;
+  /** The hardware name the group header's rename replaced. Set only when renamed. */
+  originalDeviceName?: string;
   id: string;
   name: string;
   dutyPercent: number;

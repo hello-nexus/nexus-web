@@ -312,13 +312,32 @@ export const FanCard = memo(function FanCard({
     // Leads the menu and names the fan, so it is unambiguous which card the
     // selection is about to narrow to. Matches the lighting card, including
     // the rule under it.
-    if (onSelectOnly && !undrivable) {
+    if (!undrivable && selected && !bulk && onSelect) {
+      // Narrowing to this card is pointless when it IS the whole selection.
+      items.push({
+        key: 'deselect',
+        icon: <MousePointerClick size={14} />,
+        label: t('cooling.fan.deselect'),
+        onSelect: () => onSelect(true),
+        separatorAfter: true,
+      });
+    } else if (onSelectOnly && !undrivable) {
       items.push({
         key: 'selectOnly',
         icon: <MousePointerClick size={14} />,
         label: t('cooling.fan.selectOnly', { name: channel.name }),
         onSelect: onSelectOnly,
         separatorAfter: true,
+      });
+    }
+    // Clearing a rename has no inline affordance - an empty commit is dropped -
+    // so the menu is the only way back to the hardware name.
+    if (!bulk && channel.originalName != null) {
+      items.push({
+        key: 'resetName',
+        icon: <RotateCcw size={14} />,
+        label: t('cooling.fan.resetName'),
+        onSelect: () => onRename(channel.id, ''),
       });
     }
     // Aggregates read "any member still is", so one press lands the whole

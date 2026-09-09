@@ -649,9 +649,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     void saveActivePreset();
   }, [exitOffToCustomIfNeeded, saveActivePreset, pushHistory]);
 
+  // `id` is a channel id, or the device id of a group header. An empty name
+  // clears the rename and the card falls back to the hardware name it carries.
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
-    setChannels(prev => prev.map(ch => ch.id === id ? { ...ch, name } : ch));
+    setChannels(prev => prev.map(ch => {
+      if (ch.id === id) {
+        return name === ''
+          ? { ...ch, name: ch.originalName ?? ch.name, originalName: undefined }
+          : { ...ch, name, originalName: ch.originalName ?? ch.name };
+      }
+      if (ch.deviceId === id) {
+        return name === ''
+          ? { ...ch, deviceName: ch.originalDeviceName ?? ch.deviceName, originalDeviceName: undefined }
+          : { ...ch, deviceName: name, originalDeviceName: ch.originalDeviceName ?? ch.deviceName ?? undefined };
+      }
+      return ch;
+    }));
   }, []);
 
   const handleToggleLock = useCallback(async (id: string, locked: boolean) => {
@@ -1569,6 +1583,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       for (const c of list) handleToggleLock(c.id, target);
                     }}
                     onRename={name => handleRename(blockId, name)}
+                    onResetName={list[0]?.originalDeviceName != null ? () => handleRename(blockId, '') : undefined}
                     drag={a}
                   >
                     <div className={styles.fanGroupChildren}>
