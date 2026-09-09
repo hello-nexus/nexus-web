@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { FastForward, Gauge, Power } from 'lucide-react';
+import { ArrowUpToLine, Gauge, Power } from 'lucide-react';
 import { SignalBarsIcon } from '../SignalBarsIcon';
 import type { CurveDef } from '../../../../types/cooling';
 
@@ -61,7 +61,7 @@ export const COOLING_MODES: readonly CoolingModeDef[] = [
   { key: 'silent',   i18nKey: 'cooling.mode.silent',   Icon: SilentIcon },
   { key: 'balanced', i18nKey: 'cooling.mode.balanced', Icon: BalancedIcon },
   { key: 'turbo',    i18nKey: 'cooling.mode.turbo',    Icon: TurboIcon },
-  { key: 'max',      i18nKey: 'cooling.mode.max',      Icon: FastForward },
+  { key: 'max',      i18nKey: 'cooling.mode.max',      Icon: ArrowUpToLine },
   { key: 'custom',   i18nKey: 'cooling.mode.custom',   Icon: Gauge },
 ] as const;
 

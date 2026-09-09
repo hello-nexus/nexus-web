@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
-import { Fan, FastForward } from 'lucide-react';
+import { ArrowUpToLine, Fan } from 'lucide-react';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import {
   applyProfile, fetchProfiles,
@@ -233,7 +233,7 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
   if (simpleMode) {
     // Identical layout at every size: fan-with-signal-bars icon centered,
     // current-mode label below, prev/next arrows on either side.
-    // Max renders the fast-forward mark instead of bars, so it sits outside
+    // Max renders the at-the-limit mark instead of bars, so it sits outside
     // the 1/2/3 scale but still drives the fan's spin as the top rung.
     const isMax = active === 'max';
     const level: 1 | 2 | 3 | null =
@@ -273,7 +273,7 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
                 onAnimationEnd={() => setSpinDoneAt(spinPulse)}
               />
               {isMax
-                ? <FastForward size={56} aria-hidden className={styles.simpleBars} />
+                ? <ArrowUpToLine size={56} aria-hidden className={styles.simpleBars} />
                 : <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />}
             </div>
             {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
