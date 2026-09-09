@@ -415,7 +415,7 @@ describe('ZoneCard selection gate', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
   });
 
-  it('drops the checkbox and refuses card-click selection with Nexus Control off', () => {
+  it('drops the checkbox but still takes a card-click with Nexus Control off', () => {
     const onSelect = vi.fn();
     render(
       <ZoneCard
@@ -429,7 +429,8 @@ describe('ZoneCard selection gate', () => {
       />,
     );
     fireEvent.click(document.querySelector(`.${styles.deviceCard}`)!);
-    expect(onSelect).not.toHaveBeenCalled();
+    // Selecting is how the user reaches the row that turns control back on.
+    expect(onSelect).toHaveBeenCalled();
   });
 
   it('still lets toggle mode switch an un-driven device back on', () => {
@@ -457,7 +458,7 @@ describe('ZoneCard selection gate', () => {
     expect(zoneCardSelectable({ ...baseDevice, ledCount: 0 })).toBe(false);
   });
 
-  it('drops the checkbox and refuses selection with the lights off', () => {
+  it('drops the checkbox but still takes a card-click with the lights off', () => {
     const onSelect = vi.fn();
     render(
       <ZoneCard
@@ -472,7 +473,7 @@ describe('ZoneCard selection gate', () => {
     );
     expect(screen.getByText('lighting.devices.stateLightsOff')).toBeTruthy();
     fireEvent.click(document.querySelector(`.${styles.deviceCard}`)!);
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalled();
   });
 });
 
@@ -548,7 +549,7 @@ describe('ZoneCard menu highlight', () => {
     expect(row('lighting.devices.menuLightsOn')?.className).not.toContain('itemAccent');
   });
 
-  it('offers no select-only row on a card that cannot be selected', () => {
+  it('offers select-only on a card whose lights are off, which a click can select', () => {
     render(
       <ZoneCard
         device={{ ...baseDevice, ledsOn: false }}
@@ -562,7 +563,7 @@ describe('ZoneCard menu highlight', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    expect(screen.queryByText(/lighting\.devices\.selectOnly/)).toBeNull();
+    expect(screen.getByText(/lighting\.devices\.selectOnly/)).toBeTruthy();
   });
 
   it('offers select-only on a selectable card even with nothing else selected', () => {
@@ -636,5 +637,54 @@ describe('ZoneCard rename', () => {
     renderRenameable({ device: { ...baseDevice, ledCount: 0 } });
     fireEvent.click(screen.getByText('Test Strip'));
     expect(screen.queryByDisplayValue('Test Strip')).toBeNull();
+  });
+});
+
+describe('ZoneCard move-to-group flyout', () => {
+  const groupMove = (over: Partial<Parameters<typeof ZoneCard>[0]['groupMove'] & object> = {}) => ({
+    targets: [{ id: 'g1', name: 'Desk' }, { id: 'g2', name: 'Shelf' }],
+    onMove: vi.fn(),
+    ...over,
+  });
+
+  function openMenu(move: NonNullable<Parameters<typeof ZoneCard>[0]['groupMove']>) {
+    render(
+      <ZoneCard
+        device={baseDevice}
+        selected={false}
+        indent={false}
+        onSelect={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+        groupMove={move}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+  }
+
+  it('lists every group behind one row, and moves the card into the one picked', () => {
+    const move = groupMove();
+    openMenu(move);
+    const row = screen.getByText('lighting.devices.moveToGroup');
+    expect(screen.queryByText('Desk')).toBeNull();
+    fireEvent.click(row);
+    fireEvent.click(screen.getByText('Shelf'));
+    expect(move.onMove).toHaveBeenCalledWith('g2');
+  });
+
+  it('offers the group it already sits in no row, and offers leaving instead', () => {
+    const onRemove = vi.fn();
+    const move = groupMove({ targets: [{ id: 'g2', name: 'Shelf' }], onRemove });
+    openMenu(move);
+    fireEvent.click(screen.getByText('lighting.devices.moveToGroup'));
+    expect(screen.queryByText('Desk')).toBeNull();
+    fireEvent.click(screen.getByText('lighting.devices.removeFromGroup'));
+    expect(onRemove).toHaveBeenCalled();
+  });
+
+  it('carries no row at all when there is nowhere to move the card', () => {
+    openMenu({ targets: [], onMove: vi.fn() });
+    expect(screen.queryByText('lighting.devices.moveToGroup')).toBeNull();
   });
 });

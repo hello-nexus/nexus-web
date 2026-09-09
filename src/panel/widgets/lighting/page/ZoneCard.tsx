@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, FolderInput, FolderPlus, FolderMinus, Folder, Unlink, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -80,6 +80,7 @@ export function ZoneCard({
   onOpenCommunity,
   firmwareControlled,
   onTakeControl,
+  groupMove,
   notice,
   toggleMode,
   selectOnly,
@@ -127,6 +128,18 @@ export function ZoneCard({
    *  Nexus (the Lian Li hub's per-LED "custom" mode). Gives a firmware-owned
    *  card its only menu row; absent, such a card stays menu-less. */
   onTakeControl?: () => void;
+  /** Group placement for the rail block this card belongs to, driving the
+   *  "Move to group" flyout. A card inside a hardware group moves the whole
+   *  block, the way dragging one does. */
+  groupMove?: {
+    /** User groups it can move into; the one it already sits in is left out. */
+    targets: readonly { id: string; name: string }[];
+    onMove: (groupId: string) => void;
+    /** Present only while the block sits in a user group. */
+    onRemove?: () => void;
+    /** Absent once the group cap is reached. */
+    onMoveToNew?: () => void;
+  };
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
   /** Onboarding selection mode: the whole card is a controlled/ignored
@@ -195,9 +208,11 @@ export function ZoneCard({
         : !device.ledsOn
           ? { icon: <PowerOff size={11} />, label: t('lighting.devices.stateLightsOff') }
           : null;
-  // A pick can only land on a device Nexus drives and that is lit; the badge
-  // under the name says which of the two is missing.
-  const pickable = controlled && device.ledsOn;
+  // Nexus Control off and lights off each mean a pick has nowhere to land, and
+  // selecting is how the user reaches the rows that fix them, so neither blocks
+  // a click. A detection failure and firmware ownership still do: there is
+  // nothing behind those to act on.
+  const clickable = !unavailable && !firmwareControlled;
   const nameRef = useRef<EditableTextHandle>(null);
 
   const menuItems = (): DeviceMenuItem[] => {
@@ -221,7 +236,7 @@ export function ZoneCard({
     // selected, so it gets no row.
     // Narrowing to this card is pointless when it IS the whole selection, so
     // the row becomes the only useful thing left: clearing it.
-    if (pickable && selected && !bulk) {
+    if (clickable && selected && !bulk) {
       items.push({
         key: 'deselect',
         icon: <MousePointerClick size={14} />,
@@ -229,7 +244,7 @@ export function ZoneCard({
         onSelect: () => onSelect(true),
         separatorAfter: true,
       });
-    } else if (onSelectOnly && pickable) {
+    } else if (onSelectOnly && clickable) {
       items.push({
         key: 'selectOnly',
         icon: <MousePointerClick size={14} />,
@@ -274,6 +289,36 @@ export function ZoneCard({
         icon: <RotateCcw size={14} />,
         label: t('lighting.devices.resetName'),
         onSelect: () => onRename?.(''),
+      });
+    }
+    const groupRows: DeviceMenuItem[] = [];
+    if (!bulk && groupMove) {
+      for (const target of groupMove.targets) {
+        groupRows.push({
+          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
+          onSelect: () => groupMove.onMove(target.id),
+        });
+      }
+      if (groupMove.onMoveToNew) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:new', icon: <FolderPlus size={14} />,
+          label: t('lighting.devices.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
+        });
+      }
+      if (groupMove.onRemove) {
+        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
+        groupRows.push({
+          key: 'group:none', icon: <FolderMinus size={14} />,
+          label: t('lighting.devices.removeFromGroup'), onSelect: groupMove.onRemove,
+        });
+      }
+    }
+    if (groupRows.length > 0) {
+      items.push({
+        key: 'moveToGroup', icon: <FolderInput size={14} />,
+        label: t('lighting.devices.moveToGroup'), onSelect: () => { /* opens the flyout */ },
+        submenu: groupRows,
       });
     }
     if (onOpenColorTuning && (bulk || zoneCardSelectable(device))) {
@@ -335,11 +380,10 @@ export function ZoneCard({
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
       onClick={e => {
-        if (unavailable || firmwareControlled) return;
+        if (!clickable) return;
         // Toggle mode is how an un-driven device gets turned back on, so it
         // runs before the Nexus-Control gate rather than after it.
         if (toggleMode) { onToggleControlled?.(); return; }
-        if (!pickable) return;
         onSelect(isMultiSelectModifier(e));
       }}
       onContextMenu={menuEnabled ? e => {

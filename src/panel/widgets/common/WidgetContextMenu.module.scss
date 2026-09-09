@@ -177,3 +177,9 @@
   --panel-element-bg-hover: var(--bg-card-hover);
 }
 
+// Trailing chevron on a row that opens a submenu.
+.itemChevron {
+  margin-left: auto;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
