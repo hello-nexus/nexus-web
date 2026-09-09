@@ -1136,15 +1136,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
-  // Only fans Nexus can actually drive carry a checkbox, so only they can be
-  // bulk-selected. Must match FanCard's own state-glyph rule.
+  // Fans a click can select, which is what select-all has to match. Nexus
+  // Control off is NOT excluded: the card takes its click, and turning control
+  // back on over a whole selection is the reason to gather them.
   const selectableFanIds = useMemo(
     () => orderedChannels
-      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed'
-        // Nexus Control off joined FanCard's undrivable rule, so it has to join
-        // this one too: select-all would otherwise put a card in the selection
-        // that refuses its own click, leaving no way to take it back out.
-        && c.controlled !== false)
+      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed')
       .map(c => c.id),
     [orderedChannels],
   );

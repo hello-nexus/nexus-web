@@ -329,7 +329,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const visibleDevices = useMemo(() => visibleCards(devices), [devices]);
   const hiddenFrameIds = useMemo(() => {
     const set = new Set<string>();
-    for (const d of visibleDevices) if (!d.ledsOn) set.add(d.id);
+    // Nexus Control off joins lights off: both mean the hardware is not wearing
+    // what the engine renders, and such a card can now be selected onto the
+    // canvas.
+    for (const d of visibleDevices) if (!d.ledsOn || d.controlled === false) set.add(d.id);
     return set;
   }, [visibleDevices]);
 
@@ -1260,11 +1263,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return out;
   }, [visibleDevices, deviceOrder]);
 
-  // Cards that can carry a selection; a zone the service could not drive, or
-  // one with Nexus Control off, is excluded - matching what ZoneCard renders
-  // as non-interactive.
+  // Cards a PICK can land on: a zone the service could not drive, one with
+  // Nexus Control off, or one with its lights off is excluded, because a colour
+  // written to it would go nowhere. Seeds the first selection and scopes the
+  // palette writes.
   const selectableIds = useMemo(
     () => orderedDevices.filter(zoneCardSelectable).map(d => d.id),
+    [orderedDevices],
+  );
+  // Cards a SELECTION can hold, which is wider: a click lands on a dark or
+  // un-driven card too, since selecting it is how its menu gets opened.
+  const selectionKeepIds = useMemo(
+    () => orderedDevices.filter(d => !zoneCardUnavailable(d)).map(d => d.id),
     [orderedDevices],
   );
 
@@ -1329,18 +1339,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [selectionSeeded, selectableIds, setSelectionSeeded, setSelectedDeviceIds, setPrimaryDeviceId]);
 
   // A restored selection can name devices that are gone (unplugged between
-  // visits) or that stopped being selectable (Nexus Control switched off).
-  // Drop those once the list has loaded, or the preview count and the
-  // scoped-look checks count devices no pick can reach.
+  // visits). Drop those once the list has loaded. Judged against what a click
+  // can select, NOT the pick targets: this effect re-runs on every device
+  // poll, so pruning to the narrower set would quietly undo the selection of a
+  // card the user picked precisely because its lights were off.
   useEffect(() => {
     if (orderedDevices.length === 0) return;
-    const keep = new Set(selectableIds);
+    const keep = new Set(selectionKeepIds);
     setSelectedDeviceIds(prev => {
       if ([...prev].every(id => keep.has(id))) return prev;
       return new Set([...prev].filter(id => keep.has(id)));
     });
     setPrimaryDeviceId(prev => (prev && !keep.has(prev) ? null : prev));
-  }, [orderedDevices, selectableIds, setSelectedDeviceIds, setPrimaryDeviceId]);
+  }, [orderedDevices, selectionKeepIds, setSelectedDeviceIds, setPrimaryDeviceId]);
 
   // Devices list: fetch on entry + profile change, then refresh push-driven.
   // The `lighting` topic fires on every /lighting mutation (layout edits,

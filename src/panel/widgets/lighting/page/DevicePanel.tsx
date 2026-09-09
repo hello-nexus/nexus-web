@@ -3,7 +3,7 @@ import { Cpu, FolderPlus, Plus } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
-import { ZoneCard, type BulkSelection } from './ZoneCard';
+import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
 import { type LedPick } from './DeviceLedStrip';
 import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
@@ -163,6 +163,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     return {
       count: selectedDevices.length,
       identifyCount: selectedDevices.filter(x => x.ledCount > 0).length,
+      tunableCount: selectedDevices.filter(zoneCardSelectable).length,
       controlled: selectedDevices.some(x => x.controlled !== false),
       ledsOn: selectedDevices.some(x => x.ledsOn),
       setControlled: (controlled: boolean) => selectedDevices.forEach(x => onSetControlled(x.id, controlled)),

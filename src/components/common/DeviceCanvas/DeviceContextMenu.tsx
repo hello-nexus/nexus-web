@@ -8,7 +8,8 @@ export interface DeviceMenuItem {
   key: string;
   icon: ReactNode;
   label: string;
-  onSelect: () => void;
+  /** Omitted on a row that only opens a `submenu`. */
+  onSelect?: () => void;
   /** Rule under this row, splitting it off from the rows below. */
   separatorAfter?: boolean;
   /** Accent-fills the row: it is the one that resolves the state the card is
@@ -33,8 +34,11 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
   const [pos, setPos] = useState({ x, y });
   const [origin, setOrigin] = useState({ x: 18, y: 18 });
   const [closing, setClosing] = useState(false);
-  // The open submenu, anchored on the row that owns it.
-  const [sub, setSub] = useState<{ key: string; items: DeviceMenuItem[]; x: number; y: number } | null>(null);
+  // The open submenu, anchored on the row that owns it. Only the key is held:
+  // the rows come from the live `items` on every render, or a flyout left open
+  // across a poll would act on the groups as they were when it opened.
+  const [sub, setSub] = useState<{ key: string; x: number; y: number } | null>(null);
+  const subItems = sub ? items.find(i => i.key === sub.key)?.submenu : undefined;
 
   const requestClose = useCallback(() => {
     if (closeTimerRef.current) return;
@@ -96,7 +100,7 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
   const openSub = (item: DeviceMenuItem, row: HTMLElement) => {
     if (!item.submenu || item.submenu.length === 0) return;
     const r = row.getBoundingClientRect();
-    setSub({ key: item.key, items: item.submenu, x: r.right + 2, y: r.top - 10 });
+    setSub({ key: item.key, x: r.right + 2, y: r.top - 10 });
   };
 
   const renderItems = (list: DeviceMenuItem[], nested: boolean) => list.map(item => (
@@ -113,7 +117,7 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
         onClick={e => {
           // A parent row only opens its flyout; touch has no hover to do it.
           if (item.submenu) { openSub(item, e.currentTarget); return; }
-          item.onSelect();
+          item.onSelect?.();
           requestClose();
         }}
       >
@@ -150,7 +154,7 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
       >
         {renderItems(items, false)}
       </div>
-      {sub && (
+      {sub && subItems && subItems.length > 0 && (
         <SubMenu
           ref={subRef}
           x={sub.x}
@@ -160,7 +164,7 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
           // the viewport, so a rail menu near the window edge still opens.
           flipFrom={pos.x}
         >
-          {renderItems(sub.items, true)}
+          {renderItems(subItems, true)}
         </SubMenu>
       )}
     </>,
@@ -197,7 +201,6 @@ function SubMenu({ ref, x, y, closing, flipFrom, children }: {
       className={`panel-root ${styles.menu} ${styles.menuAutoWidth}`}
       data-surface="desktop"
       data-state={closing ? 'closing' : 'open'}
-      role="menu"
       style={{ left: pos.x, top: pos.y, '--menu-origin-x': '0px', '--menu-origin-y': '16px' } as CSSProperties}
     >
       {children}

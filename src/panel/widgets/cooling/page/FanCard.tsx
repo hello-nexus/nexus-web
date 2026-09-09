@@ -372,8 +372,7 @@ export const FanCard = memo(function FanCard({
     if (groupRows.length > 0) {
       items.push({
         key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('cooling.fan.moveToGroup'), onSelect: () => { /* opens the flyout */ },
-        submenu: groupRows,
+        label: t('cooling.fan.moveToGroup'), submenu: groupRows,
       });
     }
     if (!bulk) {

@@ -33,9 +33,11 @@ export function zoneCardUnavailable(device: LightingDevice): boolean {
   return device.ledCount <= 0 && !resizable;
 }
 
-/** Whether a card can carry a selection. Nexus Control off and lights off both
- *  mean a pick has nowhere to land, so the card trades its checkbox for a state
- *  glyph and takes no card-click selection - what a detection failure gets. */
+/** Whether a PICK can land on a card: Nexus Control off and lights off both
+ *  mean it has nowhere to go, so the card trades its checkbox for a state
+ *  glyph. Such a card still takes a click - selecting is how the user reaches
+ *  the rows that turn those back on - but it is not a target for a colour, and
+ *  a pick-only surface refuses it outright. */
 export function zoneCardSelectable(device: LightingDevice): boolean {
   return !zoneCardUnavailable(device) && device.controlled !== false && device.ledsOn;
 }
@@ -47,6 +49,9 @@ export interface BulkSelection {
   /** Members that can actually flash, so the identify row never promises to
    *  light a device with no LEDs. */
   identifyCount: number;
+  /** Members a colour trim can reach, so the row never promises to tune a card
+   *  the modal will drop. */
+  tunableCount: number;
   controlled: boolean;
   ledsOn: boolean;
   setControlled: (controlled: boolean) => void;
@@ -211,8 +216,11 @@ export function ZoneCard({
   // Nexus Control off and lights off each mean a pick has nowhere to land, and
   // selecting is how the user reaches the rows that fix them, so neither blocks
   // a click. A detection failure and firmware ownership still do: there is
-  // nothing behind those to act on.
-  const clickable = !unavailable && !firmwareControlled;
+  // nothing behind those to act on. A pick-only surface carries no menu, so
+  // there it keeps the old rule - a tap would commit a look the device cannot
+  // show, and its own select-all skips those cards.
+  const clickable = !unavailable && !firmwareControlled
+    && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
 
   const menuItems = (): DeviceMenuItem[] => {
@@ -232,10 +240,9 @@ export function ZoneCard({
       return items;
     }
     // Leads the menu and names the device, so it is unambiguous which card the
-    // selection is about to narrow to. A card wearing a state glyph cannot be
-    // selected, so it gets no row.
-    // Narrowing to this card is pointless when it IS the whole selection, so
-    // the row becomes the only useful thing left: clearing it.
+    // selection is about to narrow to. Narrowing to this card is pointless when
+    // it IS the whole selection, so the row becomes the only useful thing left:
+    // clearing it.
     if (clickable && selected && !bulk) {
       items.push({
         key: 'deselect',
@@ -279,8 +286,7 @@ export function ZoneCard({
     if (groupRows.length > 0) {
       items.push({
         key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('lighting.devices.moveToGroup'), onSelect: () => { /* opens the flyout */ },
-        submenu: groupRows,
+        label: t('lighting.devices.moveToGroup'), submenu: groupRows,
       });
     }
     if (!bulk && renameEnabled) {
@@ -321,14 +327,15 @@ export function ZoneCard({
     }
     // Colour tuning is per device but reads the same for a whole selection -
     // trimming eight strips to match each other is the point - so unlike the
-    // LED map it keeps its row in bulk mode. Gated on the same predicate the
-    // modal scopes itself with: a card with lights off, Nexus Control off or
-    // no LEDs would open a modal with nothing in scope.
-    if (onOpenColorTuning && (bulk || zoneCardSelectable(device))) {
+    // LED map it keeps its row in bulk mode. The modal scopes itself to the
+    // cards a trim can reach and drops the rest, so the row counts THOSE: a
+    // selection may now hold dark and un-driven cards it will not touch.
+    const tunableCount = bulk ? bulk.tunableCount : (zoneCardSelectable(device) ? 1 : 0);
+    if (onOpenColorTuning && tunableCount > 0) {
       items.push({
         key: 'colorTuning',
         icon: <SlidersHorizontal size={14} />,
-        label: bulkMenuLabel(t, language, bulk, 'lighting.colorTuning.menu', 'lighting.colorTuning.menuCount'),
+        label: bulkMenuLabel(t, language, bulk && { count: tunableCount }, 'lighting.colorTuning.menu', 'lighting.colorTuning.menuCount'),
         onSelect: onOpenColorTuning,
       });
     }
