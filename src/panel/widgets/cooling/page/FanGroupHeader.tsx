@@ -96,7 +96,6 @@ export function FanGroupHeader({
         rightInteractive
         right={(
           <>
-            <span className={styles.fanGroupCount}>{count}</span>
             {hasUncontrolled && (
               <HoverTooltip body={t('devices.hidden.groupHasUncontrolled')} side="top">
                 <span className={styles.fanGroupUncontrolled} aria-label={t('devices.hidden.groupHasUncontrolled')}>
@@ -104,6 +103,7 @@ export function FanGroupHeader({
                 </span>
               </HoverTooltip>
             )}
+            <span className={styles.fanGroupCount}>{count}</span>
             <HoverTooltip body={t('cooling.fan.groupActions', { name })} side="top">
               <button
                 type="button"

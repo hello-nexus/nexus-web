@@ -145,7 +145,6 @@ export function MotherboardGroup({
         rightInteractive
         right={hideActions ? leftAction : (
           <>
-            {count !== undefined && <span className={styles.deviceGroupCount}>{count}</span>}
             {hasUncontrolled && (
               <HoverTooltip body={t('devices.hidden.groupHasUncontrolled')} side="top">
                 <span className={styles.deviceGroupUncontrolled} aria-label={t('devices.hidden.groupHasUncontrolled')}>
@@ -153,6 +152,7 @@ export function MotherboardGroup({
                 </span>
               </HoverTooltip>
             )}
+            {count !== undefined && <span className={styles.deviceGroupCount}>{count}</span>}
             {leftAction}
             <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
               <button

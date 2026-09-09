@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, Eye, EyeClosed, FolderPlus, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -1397,7 +1397,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               <Button
                 tone="ghost"
                 size="sm"
-                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
+                icon={hideUncontrolled ? <EyeClosed /> : <Eye />}
                 aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
                 aria-pressed={hideUncontrolled}
                 onClick={() => updateUiSettings({ showUncontrolledDevices: hideUncontrolled })}
