@@ -688,3 +688,33 @@ describe('ZoneCard move-to-group flyout', () => {
     expect(screen.queryByText('lighting.devices.moveToGroup')).toBeNull();
   });
 });
+
+describe('ZoneCard menu bands', () => {
+  it('splits naming and grouping off from the actions below', () => {
+    render(
+      <ZoneCard
+        device={baseDevice}
+        selected={false}
+        indent={false}
+        onSelect={() => {}}
+        onSelectOnly={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={() => {}}
+        onRename={() => {}}
+        groupMove={{ targets: [{ id: 'g1', name: 'Desk' }], onMove: () => {} }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    const menu = document.querySelector('[class*="_menu_"]')!;
+    const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent?.trim() : '|');
+    // The select row interpolates the card name, so match its head only.
+    expect(rows[0]).toMatch(/^lighting\.devices\.selectOnly/);
+    expect(rows.slice(1, 5)).toEqual([
+      '|',
+      'lighting.devices.moveToGroup',
+      'lighting.devices.rename',
+      '|',
+    ]);
+  });
+});

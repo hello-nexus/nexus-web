@@ -253,44 +253,6 @@ export function ZoneCard({
         separatorAfter: true,
       });
     }
-    if (bulk) {
-      if (bulk.identifyCount > 0) {
-        items.push({ key: 'identify', icon: <Eye size={14} />, label: t(pluralKey('lighting.devices.identifyCount', language, bulk.identifyCount), { count: bulk.identifyCount }), onSelect: bulk.identify });
-      }
-    } else if (device.ledCount > 0) {
-      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
-    }
-    // The LED map edits one device's zones, so a selection has nothing to
-    // open - same rule the canvas menu applies.
-    if (!bulk) {
-      items.push({
-        key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
-        onSelect: () => onOpenSettings?.(),
-      });
-    }
-    // Colour tuning is per device but reads the same for a whole selection -
-    // trimming eight strips to match each other is the point - so unlike the
-    // LED map it keeps its row in bulk mode. Gated on the same predicate the
-    // modal scopes itself with: a card with lights off, Nexus Control off or
-    // no LEDs would open a modal with nothing in scope.
-    if (!bulk && renameEnabled) {
-      items.push({
-        key: 'rename',
-        icon: <Pencil size={14} />,
-        label: t('lighting.devices.rename'),
-        onSelect: () => nameRef.current?.startEditing(),
-      });
-    }
-    // Clearing a rename has no inline affordance - an empty commit is dropped -
-    // so the menu is the only way back to the hardware name.
-    if (!bulk && renameEnabled && device.originalName != null) {
-      items.push({
-        key: 'resetName',
-        icon: <RotateCcw size={14} />,
-        label: t('lighting.devices.resetName'),
-        onSelect: () => onRename?.(''),
-      });
-    }
     const groupRows: DeviceMenuItem[] = [];
     if (!bulk && groupMove) {
       for (const target of groupMove.targets) {
@@ -321,6 +283,47 @@ export function ZoneCard({
         submenu: groupRows,
       });
     }
+    if (!bulk && renameEnabled) {
+      items.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('lighting.devices.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
+      });
+    }
+    // Clearing a rename has no inline affordance - an empty commit is dropped -
+    // so the menu is the only way back to the hardware name.
+    if (!bulk && renameEnabled && device.originalName != null) {
+      items.push({
+        key: 'resetName',
+        icon: <RotateCcw size={14} />,
+        label: t('lighting.devices.resetName'),
+        onSelect: () => onRename?.(''),
+      });
+    }
+    // The naming and grouping rows are their own band: what the card IS, split
+    // off from what it DOES below.
+    if (items.length > 0) items[items.length - 1].separatorAfter = true;
+    if (bulk) {
+      if (bulk.identifyCount > 0) {
+        items.push({ key: 'identify', icon: <Eye size={14} />, label: t(pluralKey('lighting.devices.identifyCount', language, bulk.identifyCount), { count: bulk.identifyCount }), onSelect: bulk.identify });
+      }
+    } else if (device.ledCount > 0) {
+      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
+    }
+    // The LED map edits one device's zones, so a selection has nothing to
+    // open - same rule the canvas menu applies.
+    if (!bulk) {
+      items.push({
+        key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
+        onSelect: () => onOpenSettings?.(),
+      });
+    }
+    // Colour tuning is per device but reads the same for a whole selection -
+    // trimming eight strips to match each other is the point - so unlike the
+    // LED map it keeps its row in bulk mode. Gated on the same predicate the
+    // modal scopes itself with: a card with lights off, Nexus Control off or
+    // no LEDs would open a modal with nothing in scope.
     if (onOpenColorTuning && (bulk || zoneCardSelectable(device))) {
       items.push({
         key: 'colorTuning',

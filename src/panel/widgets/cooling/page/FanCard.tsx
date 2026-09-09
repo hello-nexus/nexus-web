@@ -346,24 +346,6 @@ export const FanCard = memo(function FanCard({
         separatorAfter: true,
       });
     }
-    if (!bulk) {
-      items.push({
-        key: 'rename',
-        icon: <Pencil size={14} />,
-        label: t('cooling.fan.rename'),
-        onSelect: () => nameRef.current?.startEditing(),
-      });
-    }
-    // Clearing a rename has no inline affordance - an empty commit is dropped -
-    // so the menu is the only way back to the hardware name.
-    if (!bulk && channel.originalName != null) {
-      items.push({
-        key: 'resetName',
-        icon: <RotateCcw size={14} />,
-        label: t('cooling.fan.resetName'),
-        onSelect: () => onRename(channel.id, ''),
-      });
-    }
     const groupRows: DeviceMenuItem[] = [];
     if (!bulk && groupMove) {
       for (const target of groupMove.targets) {
@@ -394,6 +376,27 @@ export const FanCard = memo(function FanCard({
         submenu: groupRows,
       });
     }
+    if (!bulk) {
+      items.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('cooling.fan.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
+      });
+    }
+    // Clearing a rename has no inline affordance - an empty commit is dropped -
+    // so the menu is the only way back to the hardware name.
+    if (!bulk && channel.originalName != null) {
+      items.push({
+        key: 'resetName',
+        icon: <RotateCcw size={14} />,
+        label: t('cooling.fan.resetName'),
+        onSelect: () => onRename(channel.id, ''),
+      });
+    }
+    // The naming and grouping rows are their own band: what the fan IS, split
+    // off from what it DOES below.
+    if (items.length > 0) items[items.length - 1].separatorAfter = true;
     // Aggregates read "any member still is", so one press lands the whole
     // selection on the same state.
     const isLocked = bulk ? bulk.locked : locked;

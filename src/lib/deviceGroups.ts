@@ -120,10 +120,38 @@ export function anchorGroups(groups: readonly DeviceGroup[], rowIds: readonly st
   });
 }
 
+/**
+ * `base` with the lowest number no other group is wearing, trimmed to fit the
+ * name cap. `keepBare` returns `base` itself when it is free, which is what a
+ * rename wants; a new group always takes a number, so its rows never read the
+ * same in the move-to-group list.
+ */
+function freeName(
+  groups: readonly DeviceGroup[],
+  base: string,
+  { exceptId, keepBare }: { exceptId?: string; keepBare?: boolean } = {},
+): string {
+  const taken = new Set(
+    groups.filter(g => g.id !== exceptId).map(g => g.name.trim().toLowerCase()),
+  );
+  const trimmed = base.trim().slice(0, GROUP_NAME_MAX);
+  if (keepBare && trimmed.length > 0 && !taken.has(trimmed.toLowerCase())) return trimmed;
+  for (let n = 1; ; n++) {
+    const suffix = ` ${n}`;
+    const name = `${base.trim().slice(0, GROUP_NAME_MAX - suffix.length).trim()}${suffix}`;
+    if (!taken.has(name.toLowerCase())) return name;
+  }
+}
+
+/** The name a new group takes: the base word plus the lowest free number. */
+export function nextGroupName(groups: readonly DeviceGroup[], base: string): string {
+  return freeName(groups, base);
+}
+
 /** Adds an empty group, or returns the list unchanged once the cap is reached. */
 export function addGroup(groups: readonly DeviceGroup[], name: string): DeviceGroup[] {
   if (groups.length >= MAX_DEVICE_GROUPS) return [...groups];
-  return [...groups, { id: newGroupId(), name: name.slice(0, GROUP_NAME_MAX), members: [] }];
+  return [...groups, { id: newGroupId(), name: nextGroupName(groups, name), members: [] }];
 }
 
 /** Drops the group; its members return to the top level, keeping block order. */
@@ -137,7 +165,11 @@ export function removeGroup(groups: readonly DeviceGroup[], groupId: string): De
 }
 
 export function renameGroup(groups: readonly DeviceGroup[], groupId: string, name: string): DeviceGroup[] {
-  return groups.map(g => g.id === groupId ? { ...g, name: name.slice(0, GROUP_NAME_MAX) } : g);
+  // A name another group already wears takes a number instead: the rail and the
+  // move-to-group list name groups, so two alike are indistinguishable there.
+  return groups.map(g => g.id === groupId
+    ? { ...g, name: freeName(groups, name, { exceptId: groupId, keepBare: true }) }
+    : g);
 }
 
 /**

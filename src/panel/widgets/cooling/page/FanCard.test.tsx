@@ -435,3 +435,25 @@ describe('FanCard move-to-group flyout', () => {
     expect(screen.queryByText('cooling.fan.moveToGroup')).toBeNull();
   });
 });
+
+describe('FanCard menu bands', () => {
+  it('splits naming and grouping off from the actions below', () => {
+    render(
+      <FanCard channel={makeChannel()} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} onToggleControlled={() => {}}
+        onSelectOnly={() => {}}
+        groupMove={{ targets: [{ id: 'g1', name: 'Front' }], onMove: () => {} }} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.fan.moreActions' }));
+    const menu = document.querySelector('[class*="_menu_"]')!;
+    const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent?.trim() : '|');
+    expect(rows.slice(0, 5)).toEqual([
+      'cooling.fan.selectOnly',
+      '|',
+      'cooling.fan.moveToGroup',
+      'cooling.fan.rename',
+      '|',
+    ]);
+  });
+});
