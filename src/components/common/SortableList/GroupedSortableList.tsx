@@ -64,6 +64,11 @@ class GuardedPointerSensor extends PointerSensor {
   ];
 }
 
+/** Measured height of the row being dragged, whichever rect dnd-kit has filled in. */
+function activeRectHeight(active: { rect: { current: { initial?: { height: number } | null; translated?: { height: number } | null } } }): number | null {
+  return active.rect.current.initial?.height ?? active.rect.current.translated?.height ?? null;
+}
+
 function Row({ id, render, quietPlaceholder }: {
   id: string;
   render: (id: string, args: SortableRowArgs) => ReactNode;
@@ -133,6 +138,11 @@ export function GroupedSortableList({
 
   const onDragOver = (e: DragOverEvent) => {
     const { active, over } = e;
+    // The initial rect is not always populated by the time the drag starts.
+    if (activeHeight === null) {
+      const h = activeRectHeight(active);
+      if (h !== null) setActiveHeight(h);
+    }
     if (!over) { setDropGroupId(null); return; }
     const activeIsGroup = String(active.id) in live.groupMembers;
     const target = dropContainer(live, String(over.id));
@@ -159,7 +169,7 @@ export function GroupedSortableList({
       measuring={{ droppable: { strategy: MeasuringStrategy.WhileDragging } }}
       onDragStart={(e: DragStartEvent) => {
         setActiveId(String(e.active.id));
-        setActiveHeight(e.active.rect.current.initial?.height ?? null);
+        setActiveHeight(activeRectHeight(e.active));
       }}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
