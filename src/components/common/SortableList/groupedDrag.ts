@@ -69,8 +69,14 @@ function insert(list: string[], id: string, index: number): string[] {
  * never enters another group: nesting is one level deep, so a group dragged
  * over another group just reorders at the top level.
  */
-export function moveTo(arr: Arrangement, activeId: string, overId: string): Arrangement {
+export function moveTo(arr: Arrangement, activeId: string, overIdRaw: string): Arrangement {
   const isGroup = activeId in arr.groupMembers;
+  // A group only ever lands among the top-level rows, so a drop on a card
+  // inside some group means that group's row. Left as the member id it is
+  // absent from the top-level list, and taking "no slot" appends to the end.
+  const overId = isGroup && !arr.rowIds.includes(overIdRaw) && overIdRaw !== TAIL
+    ? dropContainer(arr, overIdRaw) ?? overIdRaw
+    : overIdRaw;
   let target = dropContainer(arr, overId);
   if (target === null) return arr;
   // Releasing on a group's own header or body while the row already lives there

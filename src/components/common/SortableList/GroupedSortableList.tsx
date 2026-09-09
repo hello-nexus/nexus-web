@@ -18,7 +18,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { bodyDroppableId, containerOf, dropContainer, moveTo, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
 import { type SortableRowArgs } from './SortableList';
 import styles from './SortableList.module.scss';
 
@@ -139,7 +139,22 @@ export function GroupedSortableList({
   // reliably than comparing rect centres, which made a short group hard to hit.
   const collisionDetection: CollisionDetection = args => {
     const within = pointerWithin(args);
-    return within.length > 0 ? within : closestCenter(args);
+    const hits = within.length > 0 ? within : closestCenter(args);
+    if (!(String(args.active.id) in live.groupMembers)) return hits;
+    // A group can only land among the top-level rows, so a hit on a card inside
+    // some group means that group's row. Left as the member id, it is absent
+    // from the top-level list: dnd-kit previews nothing, snapping the gap back
+    // to where the group started, and the drop lands at the end.
+    const seen = new Set<string>();
+    const rows = [];
+    for (const hit of hits) {
+      const id = String(hit.id);
+      const rowId = id === TAIL || live.rowIds.includes(id) ? id : dropContainer(live, id);
+      if (rowId === null || rowId === ROOT || seen.has(rowId)) continue;
+      seen.add(rowId);
+      rows.push({ ...hit, id: rowId });
+    }
+    return rows.length > 0 ? rows : hits;
   };
 
   const onDragOver = (e: DragOverEvent) => {
@@ -179,7 +194,9 @@ export function GroupedSortableList({
       onDragEnd={onDragEnd}
       onDragCancel={() => { setActiveId(null); setWorking(null); }}
     >
-      <SortableContext items={live.rowIds} strategy={verticalListSortingStrategy}>
+      {/* The tail rides in the item list so hovering it previews the row at the
+          end; an id dnd-kit cannot index has no transform to give. */}
+      <SortableContext items={[...live.rowIds, TAIL]} strategy={verticalListSortingStrategy}>
         <div
           className={[styles.list, styles.groupedList, className].filter(Boolean).join(' ')}
           aria-label={ariaLabel}

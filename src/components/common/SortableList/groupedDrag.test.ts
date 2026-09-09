@@ -127,6 +127,18 @@ describe('moveTo onto a group the row is already in', () => {
   });
 });
 
+describe('moveTo with a GROUP over a card inside another group', () => {
+  it('takes the slot of the group that owns the card, not the end of the rail', () => {
+    const two: Arrangement = { rowIds: ['g1', 'g2', 'z'], groupMembers: { g1: ['x'], g2: ['y'] } };
+    expect(moveTo(two, 'g1', 'y').rowIds).toEqual(['g2', 'g1', 'z']);
+  });
+
+  it('takes that slot when dragged upward too', () => {
+    const two: Arrangement = { rowIds: ['g1', 'g2'], groupMembers: { g1: ['x'], g2: ['y'] } };
+    expect(moveTo(two, 'g2', 'x').rowIds).toEqual(['g2', 'g1']);
+  });
+});
+
 describe('sameArrangement', () => {
   it('accepts an identical arrangement built separately', () => {
     expect(sameArrangement(arr(), arr())).toBe(true);
