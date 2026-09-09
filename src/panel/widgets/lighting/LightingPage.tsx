@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Eye, EyeClosed, ExternalLink, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, Eye, EyeOff, ExternalLink, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -1967,7 +1967,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               <Button
                 tone="ghost"
                 size="sm"
-                icon={hideUncontrolled ? <EyeClosed /> : <Eye />}
+                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
                 aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
                 aria-pressed={hideUncontrolled}
                 onClick={() => updateUiSettings({ showUncontrolledDevices: hideUncontrolled })}

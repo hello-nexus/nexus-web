@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, Eye, EyeClosed, FolderPlus, Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -1141,9 +1141,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // unfiltered list stays available for the group headers' indicator.
   const hideUncontrolled = !uiSettings.showUncontrolledDevices;
   const visibleChannels = useMemo(
-    () => hideUncontrolled ? orderedChannels.filter(c => c.controlled !== false) : orderedChannels,
+    () => hideUncontrolled
+      ? orderedChannels.filter(c => c.controlled !== false && !isFanDisconnected(c))
+      : orderedChannels,
     [orderedChannels, hideUncontrolled],
   );
+  // Ids the eye is holding back. A drag rebuilds fanOrder from what is on
+  // screen, and orderedChannels DROPS any channel missing from that order, so
+  // without re-appending these a reorder while hiding would erase them.
+  const hiddenFanIds = useMemo(() => {
+    if (!hideUncontrolled) return [] as string[];
+    const shown = new Set(visibleChannels.map(c => c.id));
+    return orderedChannels.filter(c => !shown.has(c.id)).map(c => c.id);
+  }, [orderedChannels, visibleChannels, hideUncontrolled]);
 
   // Fans a click can select, which is what select-all has to match. Nexus
   // Control off is NOT excluded: the card takes its click, and turning control
@@ -1397,7 +1407,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               <Button
                 tone="ghost"
                 size="sm"
-                icon={hideUncontrolled ? <EyeClosed /> : <Eye />}
+                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
                 aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
                 aria-pressed={hideUncontrolled}
                 onClick={() => updateUiSettings({ showUncontrolledDevices: hideUncontrolled })}
@@ -1606,7 +1616,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                     order.push(...expand(rowId));
                   }
                 }
-                order.push(...disconnectedIds);
+                order.push(...disconnectedIds, ...hiddenFanIds);
                 setFanOrder(order);
                 if (serviceOnline) updateUiSettings({ fanChannelOrder: order });
               };
