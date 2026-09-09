@@ -112,6 +112,9 @@ export function GroupedSortableList({
   const [activeId, setActiveId] = useState<string | null>(null);
   // The group a drop would land in right now, so its shell can highlight.
   const [dropGroupId, setDropGroupId] = useState<string | null>(null);
+  // Height of the row being dragged, so the landing slot is the same size as
+  // the gap it left behind rather than an arbitrary bar.
+  const [activeHeight, setActiveHeight] = useState<number | null>(null);
   // Rows do NOT move between containers mid-drag. Transferring on every
   // dragOver resizes the container the row left, which re-measures, flips the
   // target back, and oscillates until React gives up (#185, "maximum update
@@ -141,6 +144,7 @@ export function GroupedSortableList({
     const next = over ? moveTo(live, String(active.id), String(over.id)) : live;
     setActiveId(null);
     setDropGroupId(null);
+    setActiveHeight(null);
     if (!sameArrangement(live, next)) onArrange(next);
   };
 
@@ -149,14 +153,25 @@ export function GroupedSortableList({
       sensors={sensors}
       collisionDetection={collisionDetection}
       modifiers={[restrictToVerticalAxis]}
-      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
-      onDragStart={(e: DragStartEvent) => setActiveId(String(e.active.id))}
+      // Measured once when the drag starts, NOT continuously: opening the
+      // landing slot changes the group's height, and re-measuring on that made
+      // the target flip straight back off the group.
+      measuring={{ droppable: { strategy: MeasuringStrategy.WhileDragging } }}
+      onDragStart={(e: DragStartEvent) => {
+        setActiveId(String(e.active.id));
+        setActiveHeight(e.active.rect.current.initial?.height ?? null);
+      }}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      onDragCancel={() => { setActiveId(null); setDropGroupId(null); }}
+      onDragCancel={() => { setActiveId(null); setDropGroupId(null); setActiveHeight(null); }}
     >
       <SortableContext items={live.rowIds} strategy={verticalListSortingStrategy}>
-        <div className={className ? `${styles.list} ${className}` : styles.list} aria-label={ariaLabel} role="list">
+        <div
+          className={className ? `${styles.list} ${className}` : styles.list}
+          style={activeHeight != null ? ({ ['--drop-slot-height']: `${activeHeight}px` } as CSSProperties) : undefined}
+          aria-label={ariaLabel}
+          role="list"
+        >
           {live.rowIds.map(id => id in live.groupMembers
             ? (
               <Row key={id} id={id} render={(rowId, args) => renderGroup(
