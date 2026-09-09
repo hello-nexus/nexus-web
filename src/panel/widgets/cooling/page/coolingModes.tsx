@@ -1,7 +1,6 @@
 import type { ComponentType } from 'react';
-import { Gauge, Power } from 'lucide-react';
+import { FastForward, Gauge, Power } from 'lucide-react';
 import { SignalBarsIcon } from '../SignalBarsIcon';
-import { CheckeredFlagIcon } from '../CheckeredFlagIcon';
 import type { CurveDef } from '../../../../types/cooling';
 
 /**
@@ -18,8 +17,8 @@ export type CoolingModeKey = 'off' | 'silent' | 'balanced' | 'turbo' | 'max' | '
 
 /**
  * Widened from `LucideIcon` so the silent/balanced/turbo modes can render the
- * shared <SignalBarsIcon /> (1/2/3 cellphone-style bars) and max the local
- * <CheckeredFlagIcon />; off and custom keep lucide-react icons.
+ * shared <SignalBarsIcon /> (1/2/3 cellphone-style bars); every other mode
+ * keeps a lucide-react icon.
  */
 export type IconComponent = ComponentType<{
   size?: number | string;
@@ -55,14 +54,14 @@ const TurboIcon: IconComponent = ({ size, className }) => (
     className={className} />
 );
 
-// Max leaves the bars scale on purpose - it is a flat 100%, not a steeper
+// Max leaves the bars scale on purpose - it is a fixed 100%, not a steeper
 // curve - and Custom uses lucide Gauge, so neither competes with the set.
 export const COOLING_MODES: readonly CoolingModeDef[] = [
   { key: 'off',      i18nKey: 'cooling.mode.off',      Icon: Power },
   { key: 'silent',   i18nKey: 'cooling.mode.silent',   Icon: SilentIcon },
   { key: 'balanced', i18nKey: 'cooling.mode.balanced', Icon: BalancedIcon },
   { key: 'turbo',    i18nKey: 'cooling.mode.turbo',    Icon: TurboIcon },
-  { key: 'max',      i18nKey: 'cooling.mode.max',      Icon: CheckeredFlagIcon },
+  { key: 'max',      i18nKey: 'cooling.mode.max',      Icon: FastForward },
   { key: 'custom',   i18nKey: 'cooling.mode.custom',   Icon: Gauge },
 ] as const;
 

@@ -1216,11 +1216,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   };
   const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({
     key: p.key,
-    // Every built-in mode but Custom applies to every fan, so those tabs
-    // read "All <preset>". (Off is already filtered out above.)
-    label: p.key === 'custom'
-      ? t(p.i18nKey)
-      : `${t('cooling.mode.allPrefix')} ${t(p.i18nKey)}`,
+    // Plain mode names, matching the simple-mode tiles. They used to read
+    // "All <mode>", which stopped being true once pumps and GPU fans started
+    // defaulting out of a preset apply (FanProfiles.IsLockedByDefault).
+    label: t(p.i18nKey),
     icon: <p.Icon size={14} />,
   }))];
   // The strip marks the mode tab while cooling is off - it is the tab Off now

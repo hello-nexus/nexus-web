@@ -472,7 +472,7 @@ export const FanCard = memo(function FanCard({
       style={drag?.style ?? {}}
       {...(drag?.attributes ?? {})}
       {...(drag?.listeners ?? {})}
-      className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
+      className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${roleMenuOpen ? styles.fanCardMenuOpen : ''} ${dragClasses}`}
       onClick={onSelect ? e => {
         // Controls inside the card own their own clicks; only bare card
         // surface toggles selection. Matched via the same [data-no-dnd] marker
