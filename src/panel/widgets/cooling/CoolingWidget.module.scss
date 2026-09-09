@@ -106,7 +106,10 @@
 // Cleared on animationend like the fan, so a finished fill-mode animation
 // stops holding a compositor layer.
 .simpleMax[data-spinning='true'] {
-  animation: maxSpinUp 0.6s cubic-bezier(0.2, 0.75, 0.3, 1) both;
+  // Duration lives in a custom property, matching .simpleFan's --spin-duration
+  // above: the shorthand then carries a token, not a raw time.
+  --max-spin-duration: calc(var(--ease-slow) * 2);
+  animation: maxSpinUp var(--max-spin-duration) cubic-bezier(0.2, 0.75, 0.3, 1) both;
   transform-origin: center bottom;
 }
 
@@ -131,7 +134,7 @@
 @media (prefers-reduced-motion: reduce) {
   .simpleMax[data-spinning='true'] {
     animation-name: maxFadeIn;
-    animation-duration: 0.2s;
+    animation-duration: var(--ease);
   }
 }
 
@@ -157,7 +160,7 @@
   // the top rung, so it keeps the progression going.
   &[data-level='4'] {
     --spin-turns: 1440deg;
-    --spin-duration: 2.5s;
+    --spin-duration: calc(var(--ease-slow) * 8);
   }
 }
 
