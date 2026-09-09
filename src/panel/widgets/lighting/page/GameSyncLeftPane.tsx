@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ExternalLink, RefreshCw } from 'lucide-react';
+import { Button } from '../../../../components/common/Button/Button';
 import {
   fetchGameSyncGames,
   triggerGameSyncScan,
@@ -135,30 +136,34 @@ export function GameSyncLeftPane() {
 
   const headerWithScan = (
     <div className={styles.gameSyncGamesHeader}>
-      <span>{t('lighting.gameSync.games.title')}</span>
+      <span>{t('lighting.gameSync.games.mine')}</span>
       <div className={styles.gameSyncGamesHeaderActions}>
-        <a
-          className={styles.gameSyncGamesDocsBtn}
+        <Button
+          type="button"
+          size="sm"
+          tone="neutral"
+          icon={
+            <RefreshCw
+              size={14}
+              aria-hidden
+              className={rescanning || scanning ? styles.rescanIconSpinning : undefined}
+            />
+          }
+          onClick={() => void handleRescan()}
+          disabled={rescanning || scanning}
+        >
+          {rescanning ? t('lighting.gameSync.games.rescanning') : t('lighting.gameSync.games.rescan')}
+        </Button>
+        <Button
+          size="sm"
+          tone="neutral"
+          iconTrailing={<ExternalLink size={14} aria-hidden />}
           href={GAME_SYNC_SUPPORTED_GAMES_URL}
           target="_blank"
           rel="noopener noreferrer"
         >
-          {t('lighting.gameSync.games.title')}
-          <ExternalLink size={12} aria-hidden />
-        </a>
-        <button
-          type="button"
-          className={styles.gameSyncGamesRescanBtn}
-          onClick={() => void handleRescan()}
-          disabled={rescanning || scanning}
-        >
-          <RefreshCw
-            size={12}
-            aria-hidden
-            className={rescanning || scanning ? styles.rescanIconSpinning : undefined}
-          />
-          {rescanning ? t('lighting.gameSync.games.rescanning') : t('lighting.gameSync.games.rescan')}
-        </button>
+          {t('lighting.gameSync.games.docsLink')}
+        </Button>
       </div>
     </div>
   );

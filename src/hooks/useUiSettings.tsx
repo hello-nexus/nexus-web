@@ -111,6 +111,8 @@ export interface UiSettingsValue {
   // seeds pre-existing installs to 'advanced'.
   lightingDashboardMode: DashboardMode;
   coolingDashboardMode: DashboardMode;
+  // False hides Nexus-Control-off devices from the lighting + cooling rails.
+  showUncontrolledDevices: boolean;
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -233,6 +235,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     lightingDashboardMode: src.general.lightingDashboardMode,
     coolingDashboardMode: src.general.coolingDashboardMode,
+    showUncontrolledDevices: src.general.showUncontrolledDevices,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
@@ -294,6 +297,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       widgetAdvancedMode: src.widgetAdvancedMode,
       lightingDashboardMode: src.lightingDashboardMode,
       coolingDashboardMode: src.coolingDashboardMode,
+      showUncontrolledDevices: src.showUncontrolledDevices,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
@@ -338,7 +342,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
@@ -347,6 +351,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (patch.lightingDashboardMode !== undefined) ui.lightingDashboardMode = patch.lightingDashboardMode;
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
+  if (patch.showUncontrolledDevices !== undefined) ui.showUncontrolledDevices = patch.showUncontrolledDevices;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -443,6 +448,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     coolingDashboardMode: server.ui?.coolingDashboardMode === 'simple' || server.ui?.coolingDashboardMode === 'advanced'
       ? server.ui.coolingDashboardMode
       : base.coolingDashboardMode,
+    showUncontrolledDevices: server.ui?.showUncontrolledDevices ?? base.showUncontrolledDevices,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,

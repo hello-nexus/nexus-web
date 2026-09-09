@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, ExternalLink, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
+import { Ban, CheckCheck, Eye, EyeOff, ExternalLink, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
   fetchStaticSettings,
@@ -1268,6 +1268,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Nexus Control off, or one with its lights off is excluded, because a colour
   // written to it would go nowhere. Seeds the first selection and scopes the
   // palette writes.
+  // Nexus Control off means a vendor app owns the device, so the eye hides it
+  // from the rail. The unfiltered list stays for the group headers' indicator.
+  const hideUncontrolled = !uiSettings.showUncontrolledDevices;
+  const railDevices = useMemo(
+    () => hideUncontrolled ? orderedDevices.filter(d => d.controlled !== false) : orderedDevices,
+    [orderedDevices, hideUncontrolled],
+  );
+
   const selectableIds = useMemo(
     () => orderedDevices.filter(zoneCardSelectable).map(d => d.id),
     [orderedDevices],
@@ -1951,7 +1959,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <div className={styles.paneTitleGroup}>
             <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
-            <Badge label={String(orderedDevices.length)} compact color="var(--text-dim)" />
+            <Badge label={String(railDevices.length)} compact color="var(--text-dim)" />
+            <HoverTooltip
+              body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+              side="bottom"
+            >
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
+                aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+                aria-pressed={hideUncontrolled}
+                onClick={() => updateUiSettings({ showUncontrolledDevices: hideUncontrolled })}
+              />
+            </HoverTooltip>
           </div>
           <div className={styles.deviceHeaderActions}>
             <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
@@ -2020,7 +2041,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         )}
         <div className={styles.devicePane}>
           <DevicePanel
-            devices={orderedDevices}
+            devices={railDevices}
+            allDevices={orderedDevices}
+            hidingUncontrolled={hideUncontrolled}
             // A mode that reaches every device overrides what any one of them
             // was assigned, so the picks stop applying - the strips go back to
             // sampling the shared canvas. They are kept, not cleared, so

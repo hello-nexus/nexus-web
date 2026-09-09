@@ -38,6 +38,8 @@ export function MotherboardGroup({
   onResetName,
   dropTarget,
   empty,
+  count,
+  hasUncontrolled = false,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -84,6 +86,11 @@ export function MotherboardGroup({
   /** A user group nobody has dragged a card into yet. Its state rows would act
    *  over nothing, so the menu drops them. */
   empty?: boolean;
+  /** Members currently listed under this group, shown on the far right. */
+  count?: number;
+  /** True iff at least one member has Nexus Control off, whether or not the eye
+   *  is hiding it - the badge is how a hidden device stays accounted for. */
+  hasUncontrolled?: boolean;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -138,6 +145,14 @@ export function MotherboardGroup({
         rightInteractive
         right={hideActions ? leftAction : (
           <>
+            {hasUncontrolled && (
+              <HoverTooltip body={t('devices.hidden.groupHasUncontrolled')} side="top">
+                <span className={styles.deviceGroupUncontrolled} aria-label={t('devices.hidden.groupHasUncontrolled')}>
+                  <Unlink size={11} aria-hidden />
+                </span>
+              </HoverTooltip>
+            )}
+            {count !== undefined && <span className={styles.deviceGroupCount}>{count}</span>}
             {leftAction}
             <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
               <button

@@ -102,12 +102,13 @@ describe('GameSyncLeftPane', () => {
 
     render(<GameSyncLeftPane />);
 
-    const link = await screen.findByRole('link', { name: /lighting\.gameSync\.games\.title/ });
+    const link = await screen.findByRole('link', { name: /lighting\.gameSync\.games\.docsLink/ });
     expect(link).toHaveAttribute(
       'href',
       'https://hellonexus.com/docs/guides/lighting/game-sync#which-games-are-supported',
     );
     expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
   it('disables Rescan while a scan is running', async () => {

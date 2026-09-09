@@ -20,6 +20,7 @@ export function FanGroupHeader({
   groupControlled, onToggleControlled,
   groupLocked, onToggleLock,
   onRename, onDelete, onResetName, drag, dropTarget, children,
+  hasUncontrolled = false,
 }: {
   name: string;
   count: number;
@@ -30,6 +31,9 @@ export function FanGroupHeader({
   onToggleControlled: () => void;
   /** True iff at least one member is locked, so the menu offers to unlock. */
   groupLocked: boolean;
+  /** True iff at least one member has Nexus Control off, whether or not the eye
+   *  is currently hiding it - the badge is how a hidden fan stays accounted for. */
+  hasUncontrolled?: boolean;
   onToggleLock: () => void;
   onRename?: (name: string) => void;
   onDelete?: () => void;
@@ -92,6 +96,13 @@ export function FanGroupHeader({
         rightInteractive
         right={(
           <>
+            {hasUncontrolled && (
+              <HoverTooltip body={t('devices.hidden.groupHasUncontrolled')} side="top">
+                <span className={styles.fanGroupUncontrolled} aria-label={t('devices.hidden.groupHasUncontrolled')}>
+                  <Unlink size={11} aria-hidden />
+                </span>
+              </HoverTooltip>
+            )}
             <span className={styles.fanGroupCount}>{count}</span>
             <HoverTooltip body={t('cooling.fan.groupActions', { name })} side="top">
               <button

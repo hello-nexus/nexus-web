@@ -98,6 +98,23 @@
   min-width: 0;
 }
 
+// Member count on a device group header, matching the cooling rail.
+.deviceGroupCount {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+// Sits beside the count: this group holds Nexus-Control-off devices, which the
+// eye may be hiding from the rail.
+.deviceGroupUncontrolled {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+
 .deviceHeaderActions {
   display: flex;
   align-items: center;
@@ -1352,7 +1369,6 @@
 
 // ── Game Sync games panel ─────────────────────────────────────────────────────
 
-// Header row: section title on the left, Scan button flush right.
 .gameSyncGamesHeader {
   display: flex;
   align-items: center;
@@ -1366,48 +1382,6 @@
   gap: 0.5rem;
 }
 
-.gameSyncGamesDocsBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.2rem;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  text-decoration: none;
-  transition: color var(--ease-fast);
-
-  &:hover,
-  &:focus-visible {
-    color: var(--accent);
-  }
-}
-
-.gameSyncGamesRescanBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid transparent;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover:not(:disabled),
-  &:focus-visible {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--bg-card-hover);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-}
 
 
 .gameSyncGamesList {
