@@ -27,6 +27,9 @@ export interface PanelDeviceCapabilitiesDto {
   dpi?: number;
   // Curated display family id (e.g. 'xeneon-edge') driving sidebar branding.
   family?: string;
+  // The panel's backlight is host-settable, so the settings tab offers the
+  // brightness control. Absent on every surface that cannot dim.
+  supportsBrightness?: boolean;
 }
 
 export interface PanelDeviceRecord {
@@ -76,6 +79,9 @@ export interface PanelDeviceRecord {
   // the service transport, so everything else renders upright. Absent/null = off.
   flip180?: boolean;
   mirror?: boolean;
+  // Cooler LCDs whose panel takes a brightness command: backlight percent
+  // 0-100. Absent/null = the panel's default; the hardware reset writes null.
+  lcdBrightness?: number | null;
   // Display-bound panels: false = turned off (record + config kept; no
   // kiosk). Absent/null = on.
   enabled?: boolean | null;
@@ -120,6 +126,8 @@ export interface PanelDevicePatch {
   // Pushed-frame cooler LCDs only; ignored for other panels.
   flip180?: boolean;
   mirror?: boolean;
+  // Dimmable cooler LCDs only; ignored for other panels.
+  lcdBrightness?: number;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 
