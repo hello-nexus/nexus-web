@@ -3902,6 +3902,7 @@
   "store.back": "Atrás",
   "store.banner.body": "Aquí vivirán las apps de la comunidad. Vuelve a menudo para ver las novedades.",
   "store.banner.title": "El Marketplace está en camino",
+  "store.comingSoon": "Disponible el {date}",
   "store.empty": "Aún no hay apps",
   "store.incompatible": "No compatible",
   "store.install": "Instalar",

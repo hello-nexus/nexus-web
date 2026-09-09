@@ -3902,6 +3902,7 @@
   "store.back": "戻る",
   "store.banner.body": "ここにコミュニティのアプリが並びます。新着をこまめにチェックしてください。",
   "store.banner.title": "Marketplace は準備中です",
+  "store.comingSoon": "{date} 提供開始",
   "store.empty": "アプリはまだありません",
   "store.incompatible": "非対応",
   "store.install": "インストール",

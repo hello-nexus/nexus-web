@@ -5,6 +5,7 @@ import type { StoreApp, StoreAppDetail } from '../../../api/store';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
+    language: 'en',
     t: (key: string, params?: Record<string, string | number>) => {
       let text = key;
       if (params) for (const [k, v] of Object.entries(params)) text += ` ${k}=${v}`;
@@ -240,5 +241,43 @@ describe('StorePage sign-in', () => {
 
     await waitFor(() => expect(accounts.refresh).toHaveBeenCalled());
     await waitFor(() => expect(installStoreApp).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe('StorePage launch day', () => {
+  const inDays = (days: number) => new Date(Date.now() + days * 86400_000).toISOString();
+
+  it('replaces Install with the launch day for an app that is not out yet', async () => {
+    const at = inDays(30);
+    fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: at }]);
+    render(<StorePage />);
+
+    const day = new Date(at).toLocaleDateString('en', { month: 'long', day: 'numeric' });
+    expect(await screen.findByText(`store.comingSoon date=${day}`)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+  });
+
+  it('carries the launch day onto the app page too', async () => {
+    const at = inDays(30);
+    fetchStoreApp.mockResolvedValue({ ...detail, releaseDate: at });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    const day = new Date(at).toLocaleDateString('en', { month: 'long', day: 'numeric' });
+    expect(await screen.findByText(`store.comingSoon date=${day}`)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+  });
+
+  it('offers Install again once the launch day has passed', async () => {
+    fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: inDays(-1) }]);
+    render(<StorePage />);
+
+    expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+  });
+
+  it('ignores a launch day it cannot read rather than hiding the app behind it', async () => {
+    fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: 'not-a-date' }]);
+    render(<StorePage />);
+
+    expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
   });
 });

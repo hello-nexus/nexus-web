@@ -33,6 +33,8 @@ export interface StoreApp {
   publisher: string;
   category: string;
   iconUrl: string | null;
+  /** Launch day, ISO. Absent or null means available now; a future date means the service refuses the install until then. */
+  releaseDate?: string | null;
   rating: StoreRating;
   latest: StoreVersion | null;
 }
@@ -47,7 +49,7 @@ export interface StoreInstallResult {
   appId: string;
   version: string;
   ok: boolean;
-  /** 'sign_in_required' is the account gate; the rest are download/verify failures. */
+  /** 'sign_in_required' is the account gate, 'not_yet_released' the launch-day one; the rest are download/verify failures. */
   reason?: string;
 }
 

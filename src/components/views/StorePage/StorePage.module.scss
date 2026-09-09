@@ -164,6 +164,15 @@ $card-gap: 0.6rem;
   color: var(--text-dim);
 }
 
+/* Where the Install button sits until the app's launch day. Accent rather than
+   dim: it is an announcement, not the "not compatible" dead end above. */
+.comingSoon {
+  flex-shrink: 0;
+  font-size: var(--type-tiny);
+  font-weight: var(--weight-strong);
+  color: var(--accent);
+}
+
 .detail {
   display: flex;
   flex-direction: column;

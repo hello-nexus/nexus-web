@@ -51,12 +51,30 @@ function shortDescription(app: { tagline?: string; description?: string }): stri
   return raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
 }
 
+/**
+ * The launch day while it is still ahead of us. A past date is simply
+ * "available", which is also what an app that never set one is.
+ */
+function upcomingRelease(app: { releaseDate?: string | null }): Date | null {
+  if (!app.releaseDate) return null;
+  const at = new Date(app.releaseDate);
+  if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) return null;
+  return at;
+}
+
+/** The year is carried only when it is not this one, so a normal launch reads "October 13". */
+function formatLaunchDay(at: Date, language: string): string {
+  const year = at.getFullYear() === new Date().getFullYear() ? undefined : 'numeric';
+  return at.toLocaleDateString(language, { month: 'long', day: 'numeric', year });
+}
+
 function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   app: StoreApp; installedVersion?: string; onNeedsSignIn: (retry: () => void) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [state, setState] = useState<InstallState>('idle');
   const latest = app.latest;
+  const launch = upcomingRelease(app);
 
   const install = useCallback(async () => {
     if (!latest) return;
@@ -77,6 +95,15 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
     setState('failed');
   }, [app.id, latest, onNeedsSignIn]);
 
+  // Ahead of compatibility: an app that is not out yet has nothing to say about
+  // whether this build could run it, and the service refuses the install anyway.
+  if (launch) {
+    return (
+      <span className={styles.comingSoon}>
+        {t('store.comingSoon', { date: formatLaunchDay(launch, language) })}
+      </span>
+    );
+  }
   if (!latest) return <span className={styles.incompatible}>{t('store.incompatible')}</span>;
 
   const upToDate = installedVersion === latest.version;
