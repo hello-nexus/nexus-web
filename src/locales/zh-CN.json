@@ -2118,6 +2118,7 @@
   "lighting.gameSync.games.rescanning": "扫描中...",
   "lighting.gameSync.games.scanning": "正在扫描游戏...",
   "lighting.gameSync.games.title": "支持的游戏",
+  "lighting.gameSync.guideLink": "Game Sync 如何工作",
   "lighting.gameSync.signal.idle": "等待游戏...",
   "lighting.gameSync.signal.receiving": "正在从 {activeApp} 接收",
   "lighting.gameSync.signal.receivingUnknown": "游戏正在控制您的灯光。",

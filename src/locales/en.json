@@ -2118,6 +2118,7 @@
   "lighting.gameSync.games.rescanning": "Scanning...",
   "lighting.gameSync.games.scanning": "Scanning for games...",
   "lighting.gameSync.games.title": "Supported games",
+  "lighting.gameSync.guideLink": "How Game Sync works",
   "lighting.gameSync.signal.idle": "Waiting for a game...",
   "lighting.gameSync.signal.receiving": "Receiving from {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "A game is driving your lighting.",
