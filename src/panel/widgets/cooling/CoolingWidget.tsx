@@ -56,12 +56,34 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
   // Cleared on animationend: a finished fill-mode animation stays active
   // on the node (holding a compositor layer) until the attribute drops.
   const [spinDoneAt, setSpinDoneAt] = useState(0);
+  // Max's tornado runs its own entrance, on its own clock: it is much shorter
+  // than the fan's coast-to-stop, and sharing spinDoneAt would let whichever
+  // finished first cut the other off mid-animation.
+  const [maxDoneAt, setMaxDoneAt] = useState(0);
   // Enabled one render after hydration commits, so the bars snap to the
   // initial server state instead of transitioning to it.
   const [barsAnimate, setBarsAnimate] = useState(false);
   useEffect(() => {
     if (hydrated) setBarsAnimate(true);
   }, [hydrated]);
+  // Leaving Max unmounts the bars, so on the way back they mount at their
+  // final level with nothing to transition from and the fill never plays.
+  // Hold them empty for two frames - one to paint empty, one to start the
+  // fill - so Max to Silent reads as the first bar filling, not appearing.
+  const maxActive = active === 'max';
+  const [barsFillIn, setBarsFillIn] = useState(false);
+  useEffect(() => {
+    if (maxActive) {
+      setBarsFillIn(true);
+      return;
+    }
+    if (!barsFillIn) return;
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setBarsFillIn(false));
+    });
+    return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner); };
+  }, [maxActive, barsFillIn]);
   const [curves, setCurves] = useState<CurveDef[]>([]);
   const [fanStates, setFanStates] = useState<Record<string, FanState>>({});
   const [channels, setChannels] = useState<FanChannel[]>([]);
@@ -273,8 +295,19 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
                 onAnimationEnd={() => setSpinDoneAt(spinPulse)}
               />
               {isMax
-                ? <Tornado size={56} aria-hidden className={styles.simpleBars} />
-                : <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />}
+                ? (
+                  /* Keyed remount restarts the touchdown if Max is re-picked. */
+                  <Tornado
+                    key={spinPulse}
+                    size={56}
+                    aria-hidden
+                    // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean
+                    data-spinning={spinPulse > maxDoneAt ? 'true' : undefined}
+                    className={`${styles.simpleBars} ${styles.simpleMax}`}
+                    onAnimationEnd={() => setMaxDoneAt(spinPulse)}
+                  />
+                )
+                : <SignalBarsIcon level={barsFillIn ? 0 : level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />}
             </div>
             {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
           </div>

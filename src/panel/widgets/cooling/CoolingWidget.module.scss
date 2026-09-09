@@ -95,6 +95,37 @@
   flex-shrink: 0;
 }
 
+// Max's entrance: the funnel drops in, overshoots, and whips itself straight
+// through two decaying skews - a vortex settling rather than a shape sliding
+// in. Deliberately shorter than the fan's spin beside it so the two read as
+// one gesture landing, not a race. Cleared on animationend like the fan, so a
+// finished fill-mode animation stops holding a compositor layer.
+.simpleMax[data-spinning='true'] {
+  animation: maxTouchdown 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: center bottom;
+}
+
+@keyframes maxTouchdown {
+  0%   { opacity: 0; transform: translateY(-24%) scale(0.5) skewX(16deg); }
+  45%  { opacity: 1; }
+  58%  { transform: translateY(0) scale(1.08) skewX(-9deg); }
+  74%  { transform: translateY(0) scale(0.97) skewX(5deg); }
+  88%  { transform: translateY(0) scale(1.02) skewX(-2deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) skewX(0); }
+}
+
+@keyframes maxFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simpleMax[data-spinning='true'] {
+    animation-name: maxFadeIn;
+    animation-duration: 0.2s;
+  }
+}
+
 // Preset-change feedback: coast-to-stop spin scaled to the chosen level -
 // one turn per rung, +0.5s per rung. Custom/off (no level) gets the 1-turn
 // baseline.

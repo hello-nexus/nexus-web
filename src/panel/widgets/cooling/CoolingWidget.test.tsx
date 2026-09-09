@@ -210,6 +210,29 @@ describe('CoolingWidget', () => {
       expect(document.querySelector('[data-spinning="true"][data-level="4"]')).toBeInTheDocument();
     });
 
+    it('leaving Max refills the bars from empty rather than snapping to level', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+
+      // balanced -> turbo -> max -> wraps to silent.
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+      // Max unmounts the bars entirely, which is what breaks the fill.
+      expect(document.querySelector('[data-bar-highlight="1"]')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Silent')).toBeInTheDocument());
+
+      // Mounted empty first, so the transition has somewhere to fill from...
+      const bar1 = document.querySelector('[data-bar-highlight="1"]');
+      expect(bar1).toHaveStyle({ transform: 'scaleY(0)' });
+      // ...then the first bar fills on the following frames.
+      await waitFor(() => {
+        expect(document.querySelector('[data-bar-highlight="1"]')).toHaveStyle({ transform: 'scaleY(1)' });
+      });
+    });
+
     it('per-widget config.advancedMode=true overrides the global default and shows the rich UI', async () => {
       // Even with the global default OFF (simple), an explicit per-widget
       // advancedMode=true override takes precedence - the rich 2x2

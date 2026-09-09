@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
  * Cellphone-style signal-bars icon used to communicate a cooling speed
  * profile at a glance:
  *
+ *   0 bars lit → the empty state an entrance fills from
  *   1 bar lit  → silent
  *   2 bars lit → balanced
  *   3 bars lit → turbo
@@ -24,7 +25,7 @@ import type { CSSProperties } from 'react';
  * a fan icon is needed (e.g. the app manifest icon, the page header).
  */
 interface SignalBarsIconProps {
-  level: 1 | 2 | 3;
+  level: 0 | 1 | 2 | 3;
   /** Optional explicit pixel width. When omitted, the SVG sizes itself via CSS
    *  (the caller's className controls width/height) - preferred for fluid
    *  responsive layouts. */
