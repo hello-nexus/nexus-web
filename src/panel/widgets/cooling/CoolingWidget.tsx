@@ -15,6 +15,7 @@ import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { SignalBarsIcon } from './SignalBarsIcon';
+import { CheckeredFlagIcon } from './CheckeredFlagIcon';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
@@ -29,7 +30,7 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { CoolingResponseChart } from './CoolingResponseChart';
 import styles from './CoolingWidget.module.scss';
 
-const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['silent', 'balanced', 'turbo'];
+const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['silent', 'balanced', 'turbo', 'max'];
 const TEMP_MAX = 100;
 // Catalog preview shows a deterministic preset (label via the existing
 // cooling.mode.balanced key). Keep in sync with the simple-mode render;
@@ -197,11 +198,11 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
     applyProfile(key).catch(() => { /* best-effort */ });
   }, []);
 
-  // Simple mode handlers: arrows cycle ONLY silent/balanced/turbo.
+  // Simple mode handlers: arrows cycle ONLY silent/balanced/turbo/max.
   // Center always shows the current `active` state - could be one of
-  // those three, or 'custom' / 'off'. First press from a non-cycle
+  // those four, or 'custom' / 'off'. First press from a non-cycle
   // state jumps to the first item in the cycle direction: right →
-  // silent, left → turbo (per user spec).
+  // silent, left → max (per user spec).
   const cyclePreset = useCallback((delta: number) => {
     const idx = WIDGET_PRESET_KEYS.indexOf(active as CoolingModeKey);
     let nextIdx: number;
@@ -233,15 +234,20 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
   if (simpleMode) {
     // Identical layout at every size: fan-with-signal-bars icon centered,
     // current-mode label below, prev/next arrows on either side.
+    // Max renders the checkered flag instead of bars, so it sits outside
+    // the 1/2/3 scale but still drives the fan's spin as the top rung.
+    const isMax = active === 'max';
     const level: 1 | 2 | 3 | null =
       active === 'silent' ? 1
       : active === 'balanced' ? 2
       : active === 'turbo' ? 3
       : null;
+    const spinLevel = isMax ? 4 : level;
     const labelKey =
       active === 'silent' ? 'cooling.mode.silent'
       : active === 'balanced' ? 'cooling.mode.balanced'
       : active === 'turbo' ? 'cooling.mode.turbo'
+      : isMax ? 'cooling.mode.max'
       : active === 'off' ? 'cooling.mode.off'
       : 'cooling.mode.custom';
     const showLabel = widget.size !== '2x2';
@@ -255,7 +261,7 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
             ariaLabel={t('cooling.panel.prev')}
           />
           <div className={styles.simpleCenter}>
-            <div className={`${styles.simpleIconGroup} ${level ? '' : styles.simpleIconMuted}`}>
+            <div className={`${styles.simpleIconGroup} ${level || isMax ? '' : styles.simpleIconMuted}`}>
               {/* Keyed remount restarts the spin if the preset changes mid-spin. */}
               <Fan
                 key={spinPulse}
@@ -263,11 +269,13 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
                 aria-hidden
                 // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean
                 data-spinning={spinPulse > spinDoneAt ? 'true' : undefined}
-                data-level={level ?? undefined}
+                data-level={spinLevel ?? undefined}
                 className={styles.simpleFan}
                 onAnimationEnd={() => setSpinDoneAt(spinPulse)}
               />
-              <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />
+              {isMax
+                ? <CheckeredFlagIcon size={56} className={styles.simpleBars} />
+                : <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />}
             </div>
             {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
           </div>

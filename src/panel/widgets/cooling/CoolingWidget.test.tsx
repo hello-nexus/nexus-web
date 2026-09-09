@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { gaugeReadings } from '../../../__tests__/panel/visibleText';
 import type { PanelWidget } from '../../types';
-import { fetchProfiles } from '../../../api/cooling';
+import { applyProfile, fetchProfiles } from '../../../api/cooling';
 import { CoolingWidget } from './CoolingWidget';
 
 const sensorFixture = vi.hoisted(() => {
@@ -75,6 +75,7 @@ vi.mock('../../../lib/i18n', () => ({
       'cooling.mode.silent': 'Silent',
       'cooling.mode.balanced': 'Balanced',
       'cooling.mode.turbo': 'Turbo',
+      'cooling.mode.max': 'Max',
       'cooling.mode.custom': 'Custom',
       'cooling.label.cpu': 'CPU',
       'cooling.label.gpu': 'GPU',
@@ -192,6 +193,21 @@ describe('CoolingWidget', () => {
       await waitFor(() => {
         expect(document.querySelector('[data-spinning="true"][data-level="3"]')).toBeInTheDocument();
       });
+    });
+
+    it('cycles past Turbo into Max, the top rung of the arrow cycle', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Turbo')).toBeInTheDocument());
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+
+      await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+      expect(applyProfile).toHaveBeenLastCalledWith('max');
+      // Max renders the checkered flag rather than a fourth bar, but it still
+      // drives the fan spin one rung past Turbo.
+      expect(document.querySelector('[data-spinning="true"][data-level="4"]')).toBeInTheDocument();
     });
 
     it('per-widget config.advancedMode=true overrides the global default and shows the rich UI', async () => {

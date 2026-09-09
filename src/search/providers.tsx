@@ -87,7 +87,7 @@ const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
   // pairs with the direct actions (search "silent" or "mirror" → preset/mode
   // action + the page to see more).
   { view: 'lighting',   labelKey: 'lighting.title', keywords: ['rgb', 'led', 'leds', 'effects', 'color', 'colour', 'animation', 'effect', 'mirror', 'media', 'brightness', 'off'] },
-  { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'custom', 'curve', 'off'] },
+  { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'max', 'custom', 'curve', 'off'] },
   { view: 'devices',    labelKey: 'devices.title',  keywords: ['usb', 'peripherals', 'hardware', 'connected'] },
   { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup', 'settings', 'update', 'updates', 'software update'] },
 ];

@@ -43,7 +43,7 @@ export interface DeckNexusAction {
   mode?: DeckLightingMode; // rgbEffect; absent = 'animate'
   effect?: string;        // rgbEffect, mode 'animate'
   presetId?: string;      // lightingPreset, coolingPreset
-  profile?: string;       // fanProfile: off | silent | balanced | turbo | custom
+  profile?: string;       // fanProfile: off | silent | balanced | turbo | max | custom
   value?: number;         // lightingBrightness (0..1), y70Brightness (0..100)
   on?: boolean;           // y70Power
   orientation?: string;   // y70Rotation

@@ -96,7 +96,7 @@
 }
 
 // Preset-change feedback: coast-to-stop spin scaled to the chosen level -
-// one turn per bar, +0.5s per bar. Custom/off (no level) gets the 1-turn
+// one turn per rung, +0.5s per rung. Custom/off (no level) gets the 1-turn
 // baseline.
 .simpleFan[data-spinning='true'] {
   --spin-turns: 360deg;
@@ -111,6 +111,13 @@
   &[data-level='3'] {
     --spin-turns: 1080deg;
     --spin-duration: 2s;
+  }
+
+  // Max has no bar of its own (it renders the checkered flag), but it is
+  // the top rung, so it keeps the progression going.
+  &[data-level='4'] {
+    --spin-turns: 1440deg;
+    --spin-duration: 2.5s;
   }
 }
 
@@ -133,7 +140,7 @@
   color: var(--text);
   // Full available width - the .simpleCenter padding already keeps the
   // label clear of the arrows. Ellipsis is a safety net for very long
-  // future labels; the four current values (Silent / Balanced / Turbo /
+  // future labels; the current values (Silent / Balanced / Turbo / Max /
   // Custom / Off) all fit comfortably at 16px.
   max-width: 100%;
   overflow: hidden;
