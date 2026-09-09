@@ -75,7 +75,8 @@ export function CollapsibleSection({
   onTitleRename?: (name: string) => void;
   /** Opens the title editor from outside, for a Rename row in the section's own menu. */
   titleRenameRef?: React.Ref<EditableTextHandle>;
-  /** Right-click on the header bar, for sections that carry their own menu. */
+  /** Right-click on the header bar, for sections that carry their own menu. Not
+   *  fired from inside the title editor, which keeps the browser's own menu. */
   onHeaderContextMenu?: (e: React.MouseEvent) => void;
   children: ReactNode;
 }) {
@@ -101,7 +102,10 @@ export function CollapsibleSection({
         className={styles.header}
         data-compact={compact ? 'true' : undefined}
         data-collapsed={open ? undefined : 'true'}
-        onContextMenu={onHeaderContextMenu}
+        onContextMenu={onHeaderContextMenu && (e => {
+          if ((e.target as HTMLElement).closest('input, textarea, [contenteditable]')) return;
+          onHeaderContextMenu(e);
+        })}
       >
         {/* The toggle (chevron + title + any non-interactive `right` content) is
             the drag handle; an interactive `right` control sits outside it so a

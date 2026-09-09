@@ -32,11 +32,11 @@ export function newGroupId(): string {
 }
 
 /**
- * The rail's rows. A group sits where its first present member sits in block
- * order, so a group and an ungrouped block interleave the way two blocks do,
- * and adding a card to a group never jumps the group somewhere new. A group
- * whose members are all absent (hardware unplugged) still renders, empty, so
- * the user can see it and drop into it.
+ * The rail's rows. A group sits after the row its anchor names, or, with no
+ * anchor, where its first present member sits in block order, so a group and an
+ * ungrouped block interleave the way two blocks do. A group whose members are
+ * all absent (hardware unplugged) still renders, empty, so the user can see it
+ * and drop into it.
  */
 export function groupedRows<B>(
   blocks: readonly B[],
@@ -68,6 +68,10 @@ export function groupedRows<B>(
         .map(m => byId.get(m))
         .filter((b): b is B => b !== undefined),
     });
+    // A group can be anchored to another group - two groups in a row is what
+    // the add button produces - so the ones following THIS row come next.
+    // `placed` ends any cycle.
+    emitAnchored(groupId);
   };
   // Groups anchored to a row, keyed by the row they follow. '' pins to the top.
   const anchored = new Map<string, string[]>();
@@ -124,7 +128,12 @@ export function addGroup(groups: readonly DeviceGroup[], name: string): DeviceGr
 
 /** Drops the group; its members return to the top level, keeping block order. */
 export function removeGroup(groups: readonly DeviceGroup[], groupId: string): DeviceGroup[] {
-  return groups.filter(g => g.id !== groupId);
+  // Anything anchored to the group inherits its anchor, or the rail would drop
+  // those groups at the tail the next time it renders.
+  const inherited = groups.find(g => g.id === groupId)?.after;
+  return groups
+    .filter(g => g.id !== groupId)
+    .map(g => (g.after === groupId ? { ...g, after: inherited } : g));
 }
 
 export function renameGroup(groups: readonly DeviceGroup[], groupId: string, name: string): DeviceGroup[] {

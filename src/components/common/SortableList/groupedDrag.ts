@@ -73,6 +73,12 @@ export function moveTo(arr: Arrangement, activeId: string, overId: string): Arra
   const isGroup = activeId in arr.groupMembers;
   let target = dropContainer(arr, overId);
   if (target === null) return arr;
+  // Releasing on a group's own header or body while the row already lives there
+  // is not a reorder: no preview ever moved it, and taking the container's slot
+  // would send it to the end. Checked before a dragged GROUP is coerced to the
+  // top level, where the group under the pointer is a sibling, not a container.
+  const overIsGroupChrome = overId in arr.groupMembers || overId.endsWith(BODY_SUFFIX);
+  if (overIsGroupChrome && !isGroup && containerOf(arr, activeId) === target) return arr;
   if (isGroup && target !== ROOT) target = ROOT;
   if (activeId === overId && containerOf(arr, activeId) === target) return arr;
 

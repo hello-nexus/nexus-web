@@ -112,6 +112,21 @@ describe('moveTo onto the tail', () => {
   });
 });
 
+describe('moveTo onto a group the row is already in', () => {
+  it('leaves a member alone when it is dropped on its own group header', () => {
+    expect(moveTo(arr(), 'c', 'g1')).toEqual(arr());
+  });
+
+  it('leaves a member alone when it is dropped on its own group body', () => {
+    expect(moveTo(arr(), 'c', bodyDroppableId('g1'))).toEqual(arr());
+  });
+
+  it('still reorders a GROUP dragged over another group, which is a sibling not a container', () => {
+    const twoGroups: Arrangement = { rowIds: ['g1', 'a', 'g2'], groupMembers: { g1: [], g2: [] } };
+    expect(moveTo(twoGroups, 'g1', 'g2').rowIds).toEqual(['a', 'g2', 'g1']);
+  });
+});
+
 describe('sameArrangement', () => {
   it('accepts an identical arrangement built separately', () => {
     expect(sameArrangement(arr(), arr())).toBe(true);

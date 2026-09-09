@@ -114,7 +114,7 @@ describe('DevicePanel user groups', () => {
     expect(groupAt).toBeLessThan(lastAt);
   });
 
-  it('records the anchor when a group is renamed, so the slot survives the write', () => {
+  it('renames a group from the header title', () => {
     const onGroupsChange = renderPanel([{ id: 'g1', name: 'Desk', members: ['d2'] }]);
     fireEvent.click(screen.getByText('Desk'));
     const input = screen.getByDisplayValue('Desk');

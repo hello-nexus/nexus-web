@@ -78,8 +78,8 @@ export function MotherboardGroup({
   /** Present only on a renamed HARDWARE group; puts the header back on the name
    *  the device reports. A user group's name has nothing to fall back to. */
   onResetName?: () => void;
-  /** True while a dragged card would land in this group; rings the header so the
-   *  destination is unambiguous before the drop. */
+  /** True while a dragged card would land in this group; washes the section so
+   *  the destination is unambiguous before the drop. */
   dropTarget?: boolean;
   /** A user group nobody has dragged a card into yet. Its state rows would act
    *  over nothing, so the menu drops them. */

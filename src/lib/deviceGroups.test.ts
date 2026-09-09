@@ -108,6 +108,27 @@ describe('group mutations', () => {
   });
 });
 
+describe('groupedRows anchored to another group', () => {
+  const anchored = (id: string, after: string | null, ...members: string[]): DeviceGroup =>
+    ({ id, name: id, members, after });
+
+  it('follows the group its anchor names, which is what two groups in a row produce', () => {
+    const rows = groupedRows(blocks, idOf, [anchored('g1', 'a', 'c'), anchored('g2', 'g1', 'd')]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'g2', 'b']);
+  });
+
+  it('chains through empty groups', () => {
+    const rows = groupedRows(blocks, idOf, [anchored('g1', 'a'), anchored('g2', 'g1'), anchored('g3', 'g2')]);
+    expect(rows.map(r => r.id)).toEqual(['a', 'g1', 'g2', 'g3', 'b', 'c', 'd']);
+  });
+
+  it('emits a group whose anchor cycles back to it exactly once', () => {
+    const rows = groupedRows(blocks, idOf, [anchored('g1', 'g2'), anchored('g2', 'g1')]);
+    expect(rows.filter(r => r.id === 'g1')).toHaveLength(1);
+    expect(rows.filter(r => r.id === 'g2')).toHaveLength(1);
+  });
+});
+
 describe('moveBlock', () => {
   const two = [group('g1', 'One', 'a', 'b'), group('g2', 'Two', 'c')];
 
@@ -131,6 +152,16 @@ describe('moveBlock', () => {
   it('clamps an index past the end', () => {
     const next = moveBlock(two, 'c', 'g1', 99);
     expect(next[0].members).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('removeGroup anchors', () => {
+  it('hands the deleted group\'s anchor to whatever followed it', () => {
+    const next = removeGroup(
+      [{ id: 'g1', name: 'One', members: [], after: 'a' }, { id: 'g2', name: 'Two', members: [], after: 'g1' }],
+      'g1',
+    );
+    expect(next).toEqual([{ id: 'g2', name: 'Two', members: [], after: 'a' }]);
   });
 });
 

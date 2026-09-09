@@ -145,13 +145,13 @@ export function GroupedSortableList({
   const onDragOver = (e: DragOverEvent) => {
     const { active, over } = e;
     if (!over) return;
-    const activeId = String(active.id);
+    const movingId = String(active.id);
     const overId = String(over.id);
-    if (activeId in live.groupMembers) return; // a group never enters a group
-    const from = containerOf(live, activeId);
+    if (movingId in live.groupMembers) return; // a group never enters a group
+    const from = containerOf(live, movingId);
     const to = dropContainer(live, overId);
     if (to === null || from === to) return;    // same container: dnd-kit previews it
-    const next = moveTo(live, activeId, overId);
+    const next = moveTo(live, movingId, overId);
     if (!sameArrangement(live, next)) setWorking(next);
   };
 
@@ -180,7 +180,11 @@ export function GroupedSortableList({
       onDragCancel={() => { setActiveId(null); setWorking(null); }}
     >
       <SortableContext items={live.rowIds} strategy={verticalListSortingStrategy}>
-        <div className={className ? `${styles.list} ${className}` : styles.list} aria-label={ariaLabel} role="list">
+        <div
+          className={[styles.list, styles.groupedList, className].filter(Boolean).join(' ')}
+          aria-label={ariaLabel}
+          role="list"
+        >
           {live.rowIds.map(id => id in live.groupMembers
             ? (
               <Row key={id} id={id} render={(rowId, args) => renderGroup(

@@ -37,8 +37,8 @@ export function FanGroupHeader({
    *  the device reports. A user group's name has nothing to fall back to. */
   onResetName?: () => void;
   drag?: SortableRowArgs;
-  /** True while a dragged card would land in this group; rings the header so the
-   *  destination is unambiguous before the drop. */
+  /** True while a dragged card would land in this group; washes the section so
+   *  the destination is unambiguous before the drop. */
   dropTarget?: boolean;
   children: React.ReactNode;
 }) {
