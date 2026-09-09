@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, FolderPlus, Gauge, Power } from 'lucide-react';
+import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -1136,6 +1136,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
+  // Nexus Control off means the motherboard or a vendor app owns the fan, so
+  // the eye hides it here rather than showing a card that drives nothing. The
+  // unfiltered list stays available for the group headers' indicator.
+  const hideUncontrolled = !uiSettings.showUncontrolledDevices;
+  const visibleChannels = useMemo(
+    () => hideUncontrolled ? orderedChannels.filter(c => c.controlled !== false) : orderedChannels,
+    [orderedChannels, hideUncontrolled],
+  );
+
   // Fans a click can select, which is what select-all has to match. Nexus
   // Control off is NOT excluded: the card takes its click, and turning control
   // back on over a whole selection is the reason to gather them.
@@ -1380,7 +1389,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <div className={styles.paneTitleGroup}>
             <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
-            <Badge label={String(channels.length)} compact color="var(--text-dim)" />
+            <Badge label={String(visibleChannels.length)} compact color="var(--text-dim)" />
+            <HoverTooltip
+              body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+              side="bottom"
+            >
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
+                aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+                aria-pressed={hideUncontrolled}
+                onClick={() => updateUiSettings({ showUncontrolledDevices: hideUncontrolled })}
+              />
+            </HoverTooltip>
           </div>
           <div className={styles.fanHeaderActions}>
             <HoverTooltip
@@ -1475,8 +1497,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             >
             {offStatusCard}
             {(() => {
-              const disconnected = orderedChannels.filter(isFanDisconnected);
-              const live = orderedChannels.filter(c => !isFanDisconnected(c));
+              const disconnected = visibleChannels.filter(isFanDisconnected);
+              const live = visibleChannels.filter(c => !isFanDisconnected(c));
+              // Group headers report hidden members from the unfiltered list, so
+              // a collapsed group still says it holds Nexus-Control-off fans.
+              const allByBlock = new Map<string, FanChannel[]>();
+              for (const ch of orderedChannels.filter(c => !isFanDisconnected(c))) {
+                const key = ch.deviceId || ch.id;
+                const bucket = allByBlock.get(key);
+                if (bucket) bucket.push(ch); else allByBlock.set(key, [ch]);
+              }
+              const blockChannels = (blockIdList: readonly string[]) =>
+                blockIdList.flatMap(b => allByBlock.get(b) ?? []);
+              const groupBlockIds = (groupId: string) =>
+                fanGroups.find(g => g.id === groupId)?.members ?? [];
               const groups = new Map<string | null, FanChannel[]>();
               for (const ch of live) {
                 const key = ch.deviceId || null;
@@ -1588,6 +1622,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   <FanGroupHeader
                     name={fanDeviceGroupName(blockId, list[0]?.deviceName)}
                     count={list.length}
+                    hasUncontrolled={(allByBlock.get(blockId) ?? []).some(c => c.controlled === false)}
                     collapsed={isFanGroupCollapsed(blockId)}
                     onToggleCollapsed={() => toggleFanGroup(blockId)}
                     groupControlled={list.some(c => c.controlled !== false)}
@@ -1639,6 +1674,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       renderGroup={(groupId, a, children, isDropTarget) => {
                         const group = fanGroups.find(g => g.id === groupId);
                         if (!group) return null;
+                        // A group holding only Nexus-Control-off fans goes with
+                        // them. One the user just made is empty, not hidden, so
+                        // it stays put as a drop target.
+                        const groupAll = blockChannels(groupBlockIds(groupId));
+                        if (hideUncontrolled && groupAll.length > 0
+                          && groupAll.every(c => c.controlled === false)) return null;
                         const members = (arrangement.groupMembers[groupId] ?? [])
                           .flatMap(id => expand(id))
                           .map(id => channels.find(c => c.id === id))
@@ -1647,6 +1688,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                           <FanGroupHeader
                             name={group.name}
                             count={members.length}
+                            hasUncontrolled={groupAll.some(c => c.controlled === false)}
                             collapsed={isFanGroupCollapsed(groupId)}
                             onToggleCollapsed={() => toggleFanGroup(groupId)}
                             groupControlled={members.some(c => c.controlled !== false)}

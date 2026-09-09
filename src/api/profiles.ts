@@ -172,6 +172,7 @@ export interface UiPrefs {
   // client keeps its local values.
   lightingDashboardMode?: string;
   coolingDashboardMode?: string;
+  showUncontrolledDevices?: boolean;
 }
 
 export interface UpdatePrefs {

@@ -167,6 +167,10 @@ export interface GeneralSettings {
   // ui.coolingDashboardMode.
   lightingDashboardMode: DashboardMode;
   coolingDashboardMode: DashboardMode;
+  // False hides every device with Nexus Control off from the lighting and
+  // cooling device rails. Server-mirrored under ui.showUncontrolledDevices;
+  // one switch drives both pages.
+  showUncontrolledDevices: boolean;
   // Display-unit choices. Server-mirrored under the preferences `units` block
   // so they follow the profile. See lib/units.ts for their meaning. The
   // monitoring temperature unit governs in-app hardware temps only; outdoor
@@ -229,6 +233,7 @@ export function getDefaultSettings(): NexusSettings {
       widgetAdvancedMode: false,
       lightingDashboardMode: 'simple',
       coolingDashboardMode: 'simple',
+      showUncontrolledDevices: true,
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,

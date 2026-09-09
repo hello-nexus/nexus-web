@@ -98,6 +98,23 @@
   min-width: 0;
 }
 
+// Member count on a device group header, matching the cooling rail.
+.deviceGroupCount {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+// Sits beside the count: this group holds Nexus-Control-off devices, which the
+// eye may be hiding from the rail.
+.deviceGroupUncontrolled {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+
 .deviceHeaderActions {
   display: flex;
   align-items: center;

@@ -25,9 +25,12 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange }: {
+export function DevicePanel({ devices, allDevices, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
+  /** Every device before the Nexus-Control-off filter, so a group header can
+   *  still report members the rail is hiding. Defaults to `devices`. */
+  allDevices?: LightingDevice[];
   header?: ReactNode;
   /** Per-device static pick keyed by device id; it overrides what the card's
    *  LED strip samples from the effect canvas. Each pick names its own preset
@@ -333,6 +336,14 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
     onDeviceReorder(order);
   };
 
+  const every = allDevices ?? devices;
+  const hidingUncontrolled = every.length > devices.length;
+  // The same block keying over the unfiltered list, so a group header can
+  // resolve members the rail is currently hiding.
+  const allBlocks = hidingUncontrolled ? buildDeviceBlocks(every) : blocks;
+  const allByBlockId = new Map<string, LightingDevice[]>(allBlocks.map(b =>
+    b.kind === 'single' ? [b.device.id, [b.device]] : [b.groupKey, b.devices]));
+
   const canAddGroup = onGroupsChange !== undefined && groups.length < MAX_DEVICE_GROUPS;
 
   return (
@@ -359,6 +370,13 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
                 : (blockMap.get(id) as { devices: LightingDevice[] } | undefined)?.devices ?? []);
             const groupOn = members.some(z => z.ledsOn);
             const groupControlled = members.some(z => z.controlled !== false);
+            // Counted off the unfiltered list, so a group that is nothing but
+            // Nexus-Control-off devices goes with them while one the user just
+            // made stays as a drop target.
+            const groupAll = (groups.find(g => g.id === groupId)?.members ?? [])
+              .flatMap(b => allByBlockId.get(b) ?? []);
+            if (hidingUncontrolled && groupAll.length > 0
+              && groupAll.every(d => d.controlled === false)) return null;
             return (
               <MotherboardGroup
                 parentName={group.name}
@@ -373,6 +391,8 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
                 dropTarget={isDropTarget}
                 empty={members.length === 0}
+                count={members.length}
+                hasUncontrolled={groupAll.some(d => d.controlled === false)}
                 drag={a}
               >
                 {children}

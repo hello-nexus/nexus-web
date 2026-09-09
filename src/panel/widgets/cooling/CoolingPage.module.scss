@@ -289,6 +289,15 @@
   margin-left: 0.3rem;
 }
 // Small muted fan count in the group header's right slot.
+// Sits beside the member count: this group holds Nexus-Control-off devices,
+// which the eye may be hiding from the list.
+.fanGroupUncontrolled {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+
 .fanGroupCount {
   font-size: var(--type-mini);
   color: var(--text-dim);
