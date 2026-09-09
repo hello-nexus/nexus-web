@@ -246,7 +246,7 @@ export function LabelControls({
   );
 }
 
-export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
+export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot = 0, onSelectedSlotChange }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
   const layout = resolvedSlotLayout(widget.size, widget.config);
@@ -402,7 +402,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               const sOverride = (widget.config?.[`micro_sensor${i}_label`] as string | undefined) ?? '';
               const sAuto = microAutoLabel(microDevice, name, sensors, networkSensors, extras);
               return (
-                <div key={i} className={styles.microSensorRow}>
+                <div
+                  key={i}
+                  className={styles.microSensorRow}
+                  // Selects the sensor so the live tile marks the bar being edited.
+                  onFocusCapture={() => onSelectedSlotChange?.(i)}
+                  onPointerDownCapture={() => onSelectedSlotChange?.(i)}
+                >
                   <Select
                     className={styles.selectWide}
                     value={selectedSensorValue(microSensorOptions, name)}

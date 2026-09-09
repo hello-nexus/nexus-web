@@ -230,7 +230,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const tempPrefs: TempSensorPrefs = useTempSensorPrefs();
 
   if (isMicro) {
-    return <MicroMonitoringWidget widget={widget} count={count} />;
+    return <MicroMonitoringWidget widget={widget} count={count} selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} />;
   }
 
   const selectable = typeof onSelectSlot === 'function';

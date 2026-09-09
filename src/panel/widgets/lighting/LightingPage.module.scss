@@ -1377,7 +1377,32 @@
   width: 100%;
 }
 
+.gameSyncGamesHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gameSyncGamesDocsBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.2rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  text-decoration: none;
+  transition: color var(--ease-fast);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--accent);
+  }
+}
+
 .gameSyncGamesRescanBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.15rem 0.6rem;
   border-radius: var(--radius-sm);
   border: var(--border-width) solid transparent;
@@ -1400,6 +1425,7 @@
     cursor: default;
   }
 }
+
 
 .gameSyncGamesList {
   list-style: none;
@@ -1478,16 +1504,28 @@
   padding: 0.75rem 0.5rem 1rem 0;
 }
 
-// Docs link directly under the activity frame. Same shape as Smart Lights'
-// own "How to connect" link (SmartLightsPage.module.scss .guideLink), down to
-// the type step, so the app's two docs links read identically.
-// `.main` is the page's flex column, so align-self places the link the way
-// Smart Lights' own guide link does; `margin: auto` could not, since Button
-// renders an inline-flex box.
+// Width-fitted so the frame's whole bottom strip is not a click target.
 .gameSyncGuideLink {
-  align-self: center;
-  margin-top: 0.4rem;
+  position: absolute;
+  bottom: 0.55rem;
+  left: 0;
+  right: 0;
+  width: fit-content;
+  margin-inline: auto;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
   font-size: var(--type-small);
+  color: rgb(255 255 255 / var(--alpha-strong));
+  text-decoration: none;
+  transition: color var(--ease-fast);
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+  }
 }
 
 .gameSyncActivity {
@@ -1496,8 +1534,10 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  // Matches DeviceCanvas dark frame dimensions; 21:9-capped width.
-  height: 190px;
+  // Matches DeviceCanvas dark frame dimensions; 21:9-capped width, plus the
+  // height and pad that seat the guide link below the centred group.
+  height: 230px;
+  padding-bottom: 1.9rem;
   width: min(100%, calc(380px * 21 / 9));
   background: #080808;
   border: 1px solid transparent;
@@ -1507,7 +1547,7 @@
 }
 
 .gameSyncActivityIcon {
-  color: var(--text-dim);
+  color: #fff;
   opacity: 0.35;
   transition: color var(--ease-fast), opacity var(--ease-fast);
 }
@@ -1529,9 +1569,11 @@
   z-index: 1;
 }
 
+// The frame keeps its dark fill in both themes, so its contents are pinned
+// light: a themed token is unreadable on it in light mode.
 .gameSyncActivityLabel {
   font-size: var(--type-body);
-  color: var(--text-dim);
+  color: #fff;
   text-align: center;
   padding: 0 0.5rem;
   z-index: 2;
@@ -1541,7 +1583,7 @@
 // without it (icon state) the label flows directly beneath the icon.
 .gameSyncActivityLabelOverArt {
   position: absolute;
-  bottom: 0.6rem;
+  bottom: 2.5rem;
   left: 0;
   right: 0;
 }

@@ -92,19 +92,22 @@
 .microSensorList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
-// Each micro row stacks its sensor select above its label controls; a divider
-// keeps the per-sensor groups visually distinct in the taller list.
+// Each micro row stacks its sensor select above its label controls. Zebra
+// striping (same tint as the Monitoring > Detailed rows) separates the
+// per-sensor groups; the negative inset matches SettingsSection's box padding
+// so the stripe spans the card while the controls stay aligned with the
+// sections above.
 .microSensorRow {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-bottom: 8px;
+  padding: 10px 1.1rem;
+  margin: 0 -1.1rem;
 
-  &:not(:last-child) {
-    border-bottom: 1px solid var(--border);
+  &:nth-child(odd) {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
   }
 }
 

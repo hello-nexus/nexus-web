@@ -26,10 +26,14 @@ import { MicroBar } from './MicroBar';
 import { formatSensorValue } from './sensorValueFormat';
 import type { NumberFormat, TempUnit } from '../../../lib/units';
 import styles from './MicroMonitoringWidget.module.scss';
+import perfStyles from './MonitoringWidget.module.scss';
 
 interface MicroMonitoringWidgetProps {
   widget: PanelWidget;
   count: number;
+  // Editing only: the bar the settings sheet is on, drawn as a selected slot.
+  selectedSlot?: number;
+  onSelectSlot?: (slot: number) => void;
 }
 
 // Micro mode persists in its own keyspace (`micro_device`, `micro_sensorN`)
@@ -72,7 +76,7 @@ export function bottomLabelForDevice(
   }
 }
 
-export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetProps) {
+export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlot }: MicroMonitoringWidgetProps) {
   const { t } = useTranslation();
   const device = readMicroDevice(widget);
   const sensorNames = Array.from({ length: count }, (_, i) => readMicroSensorName(widget, i));
@@ -105,26 +109,59 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const microDesign = (widget.config?.micro_design as GaugeDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
   const twoColumn = isTwoColumnMicro(widget.size, count);
 
-  const rowEls = sensorNames.map((rawName, i) => (
-    <MicroRow
-      key={`${i}-${device}-${rawName}`}
-      sensors={sensors}
-      fpsSensors={fpsSensors}
-      networkSensors={networkSensors}
-      extras={extras}
-      device={device}
-      sensorName={rawName}
-      labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
-      labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
-      design={microDesign}
-      scale={microScale}
-      fixedMin={microMin}
-      fixedMax={microMax}
-      tempPrefs={tempPrefs}
-      monitoringTempUnit={monitoringTempUnit}
-      numberFormat={numberFormat}
-    />
-  ));
+  const selectable = typeof onSelectSlot === 'function';
+  const activeSlot = selectedSlot == null ? 0 : Math.max(0, Math.min(selectedSlot, count - 1));
+
+  // Only the bar design sizes itself to its content; fill and backdrop stretch.
+  const growsRow = microDesign === 'fill' || microDesign === 'backdrop';
+
+  const rowEls = sensorNames.map((rawName, i) => {
+    const key = `${i}-${device}-${rawName}`;
+    const row = (
+      <MicroRow
+        key={key}
+        sensors={sensors}
+        fpsSensors={fpsSensors}
+        networkSensors={networkSensors}
+        extras={extras}
+        device={device}
+        sensorName={rawName}
+        labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
+        labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
+        design={microDesign}
+        scale={microScale}
+        fixedMin={microMin}
+        fixedMax={microMax}
+        tempPrefs={tempPrefs}
+        monitoringTempUnit={monitoringTempUnit}
+        numberFormat={numberFormat}
+      />
+    );
+
+    if (!selectable) return row;
+    const selected = i === activeSlot;
+    return (
+      <button
+        key={key}
+        type="button"
+        className={`${perfStyles.slot} ${perfStyles.slotSelectable} ${styles.rowSelectable} ${growsRow ? styles.rowSelectableGrow : ''} ${selected ? perfStyles.slotSelected : ''}`}
+        aria-pressed={selected}
+        onClick={event => {
+          event.stopPropagation();
+          onSelectSlot?.(i);
+        }}
+        onPointerDown={event => event.stopPropagation()}
+        onPointerUp={event => {
+          event.stopPropagation();
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          onSelectSlot?.(i);
+        }}
+        onContextMenu={event => event.stopPropagation()}
+      >
+        {row}
+      </button>
+    );
+  });
   const half = Math.ceil(count / 2);
 
   return (
