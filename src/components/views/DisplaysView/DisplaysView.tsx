@@ -145,6 +145,11 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                 )}
               </div>
 
+              {/* Not offered for the Y70: its brightness rides a dedicated
+                  transport in the service that does not go through the
+                  DDC opt-out, so the switch would promise something it
+                  cannot deliver. That panel is driven from its own page. */}
+              {!selected.isY70 && (
               <div className={styles.ddcRow}>
                 <div className={styles.ddcText}>
                   <span className={styles.ddcLabel}>{t('displays.ddc.label')}</span>
@@ -157,6 +162,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
                   onChange={next => void toggleDdc(selected, next)}
                 />
               </div>
+              )}
 
               <div className={styles.actions}>
                 {selected.isY70 ? (
