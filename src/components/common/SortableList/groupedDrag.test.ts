@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, sameArrangement, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
 
 const arr = (): Arrangement => ({
   rowIds: ['a', 'g1', 'b'],
@@ -36,6 +36,10 @@ describe('dropContainer', () => {
   it('targets a block\'s own container', () => {
     expect(dropContainer(arr(), 'c')).toBe('g1');
     expect(dropContainer(arr(), 'b')).toBe(ROOT);
+  });
+
+  it('sends the strip under the last row to the top level', () => {
+    expect(dropContainer(arr(), TAIL)).toBe(ROOT);
   });
 });
 
@@ -95,6 +99,19 @@ describe('moveTo', () => {
 // The drop handler skips onArrange when nothing moved. Without that, a drag
 // that ends where it started re-renders the rail for no reason, and the same
 // equality is what kept the old mid-drag transfer from looping forever.
+describe('moveTo onto the tail', () => {
+  it('takes a group member out and puts it last, so a trailing group cannot swallow the bottom', () => {
+    const next = moveTo(arr(), 'c', TAIL);
+    expect(next.rowIds).toEqual(['a', 'g1', 'b', 'c']);
+    expect(next.groupMembers.g1).toEqual(['d']);
+  });
+
+  it('sends a top-level block to the end', () => {
+    const next = moveTo(arr(), 'a', TAIL);
+    expect(next.rowIds).toEqual(['g1', 'b', 'a']);
+  });
+});
+
 describe('sameArrangement', () => {
   it('accepts an identical arrangement built separately', () => {
     expect(sameArrangement(arr(), arr())).toBe(true);

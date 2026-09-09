@@ -4,6 +4,7 @@
 // the cursor in the DragOverlay.
 
 .list {
+  position: relative;
   display: flex;
   flex-direction: column;
   // Default small gap between rows so cards in a list don't stick together;
@@ -15,6 +16,13 @@
 // marks the drop slot. Kept at the row's natural size so the gap matches.
 .placeholder {
   position: relative;
+  // Drop the row's own fill and border: a selected card or an active fan card
+  // paints one, and it reads as a second highlight layer under the dashed box.
+  // !important because those live in the consumer's module, at equal or higher
+  // specificity, so load order would otherwise decide it.
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
   > * { visibility: hidden; }
 
   &::after {
@@ -41,4 +49,15 @@
 .overlayOpaque {
   background: var(--bg);
   border-radius: var(--radius);
+}
+
+// Landing strip under the last row, present only mid-drag. Gives a rail whose
+// last row is a group somewhere to say "outside it, at the bottom". Positioned
+// out of flow so appearing mid-drag cannot nudge whatever sits below the list.
+.dropTail {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 2.75rem;
 }

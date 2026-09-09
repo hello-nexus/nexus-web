@@ -7,6 +7,13 @@ export const ROOT = '__root__';
 /** Suffix marking a group's body droppable, so an empty group still takes a drop. */
 export const BODY_SUFFIX = '::body';
 
+/**
+ * Droppable sitting under the last row while a drag is in flight. Without it a
+ * rail whose last row is a group has no reachable spot for "outside the group,
+ * at the bottom" - every pixel down there is inside the group.
+ */
+export const TAIL = '__tail__';
+
 export interface Arrangement {
   /** Top-level rows in order: group ids and ungrouped block ids. */
   rowIds: string[];
@@ -34,6 +41,7 @@ export function containerOf(arr: Arrangement, id: string): string | null {
  * started. To leave a group, drop the card on a row outside it.
  */
 export function dropContainer(arr: Arrangement, overId: string): string | null {
+  if (overId === TAIL) return ROOT;
   if (overId.endsWith(BODY_SUFFIX)) {
     const groupId = overId.slice(0, -BODY_SUFFIX.length);
     return groupId in arr.groupMembers ? groupId : null;

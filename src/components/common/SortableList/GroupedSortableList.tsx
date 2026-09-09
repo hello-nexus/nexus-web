@@ -18,7 +18,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { bodyDroppableId, containerOf, dropContainer, moveTo, sameArrangement, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, containerOf, dropContainer, moveTo, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
 import { type SortableRowArgs } from './SortableList';
 import styles from './SortableList.module.scss';
 
@@ -72,7 +72,15 @@ class GuardedPointerSensor extends PointerSensor {
 
 function Row({ id, render }: { id: string; render: (id: string, args: SortableRowArgs) => ReactNode }) {
   const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({ id });
-  const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition };
+  // The dragged row's own gap snaps; only the rows it displaces animate. When
+  // it changes container it is inserted at one slot and previewed at another
+  // (dnd-kit puts a row hovering a tall neighbour on that neighbour's far
+  // side), and animating that correction reads as the gap flying across the
+  // rail before settling.
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? undefined : transition,
+  };
   return <>{render(id, {
     ref: setNodeRef,
     style,
@@ -81,6 +89,16 @@ function Row({ id, render }: { id: string; render: (id: string, args: SortableRo
     isDragging,
     placeholderClassName: styles.placeholder,
   })}</>;
+}
+
+/**
+ * The strip under the last row, live only while something is being dragged. It
+ * is the only way to reach "top level, at the very bottom" when the last row is
+ * a group, since the group itself owns every pixel it covers.
+ */
+function DropTail() {
+  const { setNodeRef } = useDroppable({ id: TAIL });
+  return <div ref={setNodeRef} className={styles.dropTail} aria-hidden />;
 }
 
 /**
@@ -173,6 +191,7 @@ export function GroupedSortableList({
               )} />
             )
             : <Row key={id} id={id} render={renderBlock} />)}
+          {activeId !== null && <DropTail />}
         </div>
       </SortableContext>
       <DragOverlay dropAnimation={null}>
