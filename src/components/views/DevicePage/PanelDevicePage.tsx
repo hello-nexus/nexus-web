@@ -161,6 +161,10 @@ interface XeneonEdgeSettingsValues {
   blue: number;
 }
 
+// Backlight a dimmable cooler LCD runs at until the user moves the slider.
+// Matches LianLiAioHandshake.DefaultBrightness in nexus-service.
+const DEFAULT_LCD_BRIGHTNESS = 100;
+
 // Bench-measured factory defaults (nexus-service XeneonEdgeDefaults); used
 // only as a fallback if a settings read comes back with an unset field.
 const XENEON_EDGE_DEFAULTS: XeneonEdgeSettingsValues = {
@@ -270,6 +274,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
   const [recordFlip180, setRecordFlip180] = useState(false);
   const [recordMirror, setRecordMirror] = useState(false);
+  const [recordLcdBrightness, setRecordLcdBrightness] = useState(DEFAULT_LCD_BRIGHTNESS);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
   // Curated display family (capabilities.family, e.g. 'xeneon-edge') off the
   // matched record - drives which promoted-monitor-only settings apply.
@@ -332,6 +337,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // The iCUE LINK cooler's LCD: its screen module's own controls live in this tab, the
   // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
+  // Cooler LCDs whose firmware takes a backlight command. The service decides
+  // which those are and stamps the capability on the record, so a new dimmable
+  // model needs no edit here. The setting lives on the record, so it rides the
+  // same PATCH as the mounting toggles below rather than its own endpoint.
+  const [recordSupportsBrightness, setRecordSupportsBrightness] = useState(false);
+  const isDimmableLcdPanel = recordSupportsBrightness && !isSimulated;
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
   // bench) - null hides the whole block until the read completes.
   const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
@@ -387,7 +398,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // open empty.
     || (surface === 'kraken' && !isSimulated)
     // Cooler glass fed pushed frames: the tab hosts its mount orientation.
-    || (surfaceSupportsMountOrientation(surface) && !isSimulated);
+    || (surfaceSupportsMountOrientation(surface) && !isSimulated)
+    // A dimmable panel earns the tab on its own, so the capability does not
+    // depend on the surface also being mount-orientable.
+    || isDimmableLcdPanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -462,6 +476,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordAutoOrient(match?.autoOrient ?? true);
       setRecordFlip180(match?.flip180 ?? false);
       setRecordMirror(match?.mirror ?? false);
+      setRecordLcdBrightness(match?.lcdBrightness ?? DEFAULT_LCD_BRIGHTNESS);
+      setRecordSupportsBrightness(match?.capabilities?.supportsBrightness ?? false);
       setRecordFamily(match?.capabilities?.family);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       const touchFromRecord = match?.capabilities?.touch ?? device?.capabilities.touch;
@@ -1229,6 +1245,35 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <QSeriesCoolerSettings />
                     </div>
                   )}
+                  {activeTab === 'settings' && isDimmableLcdPanel && (
+                    <MonitorSettingsPanel
+                      brightness={recordLcdBrightness}
+                      onBrightnessPreview={setRecordLcdBrightness}
+                      onBrightness={(value) => {
+                        setRecordLcdBrightness(value);
+                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { lcdBrightness: value }).catch(() => {});
+                      }}
+                      // Backlight is the only hardware control this panel family
+                      // exposes; mounting lives in its own section below.
+                      orientation={null}
+                      onOrientation={() => {}}
+                      orientationOptions={[]}
+                      screenOff={null}
+                      onScreenOffToggle={() => {}}
+                      sleepWithHost={null}
+                      onSleepWithHostToggle={() => {}}
+                      sleepWhenLocked={null}
+                      onSleepWhenLockedToggle={() => {}}
+                      autoOrient={null}
+                      onAutoOrientToggle={() => {}}
+                      reserveMonitor={null}
+                      onReserveMonitorToggle={() => {}}
+                      xeneonSettings={null}
+                      onXeneonChange={() => {}}
+                      onXeneonCommit={() => {}}
+                      hardwareResetBusy={resettingHardware}
+                    />
+                  )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
                       (its own section below), so the software flip would double-apply. */}
                   {activeTab === 'settings' && surfaceSupportsMountOrientation(surface) && !isSimulated
@@ -1668,6 +1713,11 @@ function OrientationSelectRow({ value, onChange, options }: OrientationSelectRow
 interface MonitorSettingsPanelProps {
   brightness: number | null;
   onBrightness: (v: number) => void;
+  // Live value during a drag. Given one, the row persists on commit only - a
+  // consumer whose brightness is a panel-record field cannot afford a write per
+  // tick. Without one every change persists, which is what the DDC and
+  // Q-series rows have always done.
+  onBrightnessPreview?: (v: number) => void;
   orientation: Y70Orientation | null;
   onOrientation: (v: Y70Orientation) => void;
   orientationOptions: readonly Y70Orientation[];
@@ -1695,7 +1745,7 @@ interface MonitorSettingsPanelProps {
 }
 
 function MonitorSettingsPanel({
-  brightness, onBrightness,
+  brightness, onBrightness, onBrightnessPreview,
   orientation, onOrientation, orientationOptions,
   screenOff, onScreenOffToggle,
   sleepWithHost, onSleepWithHostToggle,
@@ -1717,7 +1767,16 @@ function MonitorSettingsPanel({
           value={brightness}
           min={0}
           max={100}
-          onChange={onBrightness}
+          // A reset that owns this value rewrites it, so the row must not take
+          // input while one is in flight.
+          disabled={hardwareResetBusy}
+          onChange={(value) => {
+            // With a preview handler every write comes from onCommit, which the
+            // slider fires for a drag, a keyboard step and a typed edit alike.
+            // Persisting here too would write a typed edit twice.
+            if (onBrightnessPreview) onBrightnessPreview(value);
+            else onBrightness(value);
+          }}
           onCommit={onBrightness}
         />
       )}
