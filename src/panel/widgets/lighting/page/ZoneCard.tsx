@@ -297,9 +297,9 @@ export function ZoneCard({
       const setControlled = () => bulk ? bulk.setControlled(!isControlled) : onToggleControlled?.();
       const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower?.();
       const label = (single: string, counted: string) => bulkMenuLabel(t, language, bulk, single, counted);
-      // Whichever row un-sticks the card's current state gets the accent. An
-      // un-driven device ignores its power state, so lights only light up once
-      // control is back on.
+      // Whichever row un-sticks the card's current state gets the accent, and
+      // only one ever does: an un-driven device ignores its power state, so
+      // lights take the accent only once control is back on.
       items.push(isOn
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
         : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });

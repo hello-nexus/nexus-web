@@ -2364,8 +2364,8 @@ function GameSyncActivityBlock({ isReceiving, activeApp, games }: GameSyncActivi
         target="_blank"
         rel="noopener noreferrer"
       >
-        {t('lighting.gameSync.guideLink')}
         <ExternalLink size={12} aria-hidden />
+        {t('lighting.gameSync.guideLink')}
       </a>
     </div>
   );

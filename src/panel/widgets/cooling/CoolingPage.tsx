@@ -66,7 +66,7 @@ import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkel
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
-import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID } from './page/deviceGroupName';
+import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID, blockIdOf } from './page/deviceGroupName';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
@@ -1094,7 +1094,24 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // User-made fan groups. The service owns them (they ride the channel list),
   // so a write is optimistic and the cooling topic reconciles.
   const [fanGroupsState, setFanGroupsState] = useState<DeviceGroup[]>([]);
-  const fanGroups = fanGroupsState;
+  // Board fans were their own rail blocks before they were grouped, so a saved
+  // group can still hold their fan ids. Left as-is those members resolve to no
+  // block, get dropped from the rebuilt arrangement, and the next drag saves
+  // the pruned list - the grouping would be gone from settings, not just the
+  // view. Map them onto the block they now live in.
+  const boardFanIds = useMemo(
+    () => new Set(channels.filter(c => !c.deviceId && !c.isGpu).map(c => c.id)),
+    [channels],
+  );
+  const fanGroups = useMemo(() => fanGroupsState.map(g => {
+    const members: string[] = [];
+    for (const m of g.members) {
+      const mapped = boardFanIds.has(m) ? MOTHERBOARD_BLOCK_ID : m;
+      if (!members.includes(mapped)) members.push(mapped);
+    }
+    const unchanged = members.length === g.members.length && members.every((m, i) => m === g.members[i]);
+    return unchanged ? g : { ...g, members };
+  }), [fanGroupsState, boardFanIds]);
   const setFanGroups = useCallback((next: DeviceGroup[]) => {
     setFanGroupsState(next);
     saveFanGroups(next).catch(() => { /* the cooling topic reconciles */ });
@@ -1525,7 +1542,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               // switch, so the vanish rule below has to see them.
               const allByBlock = new Map<string, FanChannel[]>();
               for (const ch of orderedChannels) {
-                const key = ch.deviceId || ch.id;
+                const key = blockIdOf(ch);
                 const bucket = allByBlock.get(key);
                 if (bucket) bucket.push(ch); else allByBlock.set(key, [ch]);
               }
@@ -1539,19 +1556,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               // and stay loose cards - they belong to the card, not the board.
               const groups = new Map<string | null, FanChannel[]>();
               for (const ch of live) {
-                const key = ch.deviceId || (ch.isGpu ? null : MOTHERBOARD_BLOCK_ID);
+                const key = ch.isGpu && !ch.deviceId ? null : blockIdOf(ch);
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(ch);
               }
               const disconnectedIds = disconnected.map(c => c.id);
-              const mobo = groups.get(null) ?? [];
-              const moboIds = mobo.map(c => c.id);
+              // The null bucket is GPU fans: they belong to the card, not the
+              // board, so they stay loose cards rather than joining the group.
+              const looseIds = (groups.get(null) ?? []).map(c => c.id);
               const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
 
               // A fan's group membership is its BLOCK's: a fan on a hub moves
               // with the whole block, the way dragging one does.
               const groupMoveFor = (ch: FanChannel) => {
-                const blockId = ch.deviceId || ch.id;
+                const blockId = blockIdOf(ch);
                 const current = groupOf(fanGroups, blockId);
                 return {
                   targets: fanGroups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
@@ -1594,10 +1612,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 />
               );
 
-              // Rail blocks: one per motherboard fan card, one per hub device
-              // group. A hub group is ONE block, so dragging it into a user
-              // group moves the whole hub and its ports are never split.
-              const blockIds = [...moboIds, ...deviceKeys];
+              // Rail blocks: one per loose GPU fan card, one per device group
+              // (hubs, and the board's own headers). A group is ONE block, so
+              // dragging it moves the whole device and its ports never split.
+              const blockIds = [...looseIds, ...deviceKeys];
               const expand = (blockId: string): string[] => {
                 if (!deviceKeys.includes(blockId)) return [blockId];
                 const memberIds = (groups.get(blockId) ?? []).map(c => c.id);
