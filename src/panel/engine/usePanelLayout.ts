@@ -125,6 +125,14 @@ interface UsePanelLayoutResult {
    * the next successful save.
    */
   saveForbidden: boolean;
+  /**
+   * `layout` is derived from the record's STORED layout, not from the local
+   * seed. Auto-persisting callers (PanelApp's repagination effect) must wait
+   * for this: `loaded` only says the record fetch settled, and the effect
+   * that swaps the seed out for the stored layout lands one render later.
+   * Persisting in that gap writes the seed over the user's saved layout.
+   */
+  hydrated: boolean;
   setLayout: (next: PanelLayout) => void;
 }
 
@@ -177,7 +185,12 @@ export function usePanelLayout(
   deviceTouch?: boolean,
 ): UsePanelLayoutResult {
   const { record, loaded, missing, refetch } = recordState;
-  const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
+  // Seeded from the record when it is already in hand (the kiosk mounts this
+  // subtree only after the fetch settles), so the panel's first paint is the
+  // user's layout rather than a frame of the local seed.
+  const [layout, setLayoutState] = useState<PanelLayout>(
+    () => normalizePanelLayout(record?.layout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
+  const [hydrated, setHydrated] = useState(() => (record?.layout ?? null) !== null);
   const [saveForbidden, setSaveForbidden] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Writes are allowed only against a layout we actually read back.
@@ -192,6 +205,9 @@ export function usePanelLayout(
 
   useEffect(() => {
     setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
+    // State, not a ref: the auto-persist effect reads this in the SAME commit
+    // that queues the swap above, and must still see the pre-swap value.
+    setHydrated(storedLayout !== null);
   }, [storedLayout, surface, deviceTouch]);
 
   const setLayout = useCallback((next: PanelLayout) => {
@@ -232,5 +248,5 @@ export function usePanelLayout(
     }
   }, []);
 
-  return { layout, loaded, deviceMissing: !writable, saveForbidden, setLayout };
+  return { layout, loaded, deviceMissing: !writable, saveForbidden, hydrated, setLayout };
 }

@@ -143,6 +143,11 @@ interface PanelLayoutState {
   // layout sources that can never hit it (the embedded dashboard, the
   // device-page simulator).
   saveForbidden?: boolean;
+  // `layout` reflects the record's STORED layout rather than the local seed.
+  // Undefined on sources that own their own persistence and can never write
+  // a seed over stored bytes (the embedded dashboard, the device-page
+  // simulator); only the kiosk's usePanelLayout reports it.
+  hydrated?: boolean;
   setLayout: (next: PanelLayout) => void;
 }
 
@@ -340,7 +345,7 @@ export function PanelContent({
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
-  const { layout, loaded, saveForbidden, setLayout } = layoutState;
+  const { layout, loaded, saveForbidden, hydrated, setLayout } = layoutState;
   const panelTheme = usePanelTheme(recordState, deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state
@@ -654,9 +659,14 @@ export function PanelContent({
     // layout-changed contract and conforms them to the editor capacity
     // itself; the simulator renders the repaginated shape locally and echoes
     // only user edits (see panelEditorLayoutSync.test.ts).
-    if (!loaded || simulator) return;
+    // `loaded` is the RECORD's fetch flag, not "the stored layout is in
+    // `layout`" - usePanelLayout swaps the seed out one render later. A
+    // promoted monitor seeds from the desktop layout, which does not survive
+    // repagination onto its grid unchanged, so persisting inside that gap
+    // wrote the seed over the user's saved layout on every kiosk load.
+    if (!loaded || simulator || hydrated === false) return;
     if (paginatedLayout !== layout) setLayout(paginatedLayout);
-  }, [paginatedLayout, layout, setLayout, loaded, simulator]);
+  }, [paginatedLayout, layout, setLayout, loaded, simulator, hydrated]);
 
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
   // predates the service reporting it - the embedded desktop dashboard is

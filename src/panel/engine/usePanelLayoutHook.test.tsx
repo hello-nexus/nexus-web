@@ -236,3 +236,70 @@ describe('usePanelLayout device-missing guard', () => {
     await waitFor(() => expect(result.current.deviceMissing).toBe(false));
   });
 });
+
+describe('usePanelLayout hydration gate', () => {
+  const storedLayout = {
+    layoutSchemaVersion: 2 as const,
+    surface: 'monitor' as PanelSurface,
+    pages: [{ id: 'STORED', widgets: [{ id: 'w1', type: 'clock', size: '4x2' as const, col: 0, row: 0 }] }],
+  };
+
+  // The kiosk's repagination effect keys off `hydrated`. If it can ever read
+  // `hydrated === true` while `layout` is still the local seed, it persists
+  // the seed over the user's stored layout - the promoted-monitor reset.
+  it('never reports hydrated while layout is still the local seed', async () => {
+    fetchMock.mockResolvedValue({
+      found: true,
+      record: {
+        id: 'edge-1', displayName: 'CRX ED00', firstSeenAt: 0, lastSeenAt: 0,
+        layout: storedLayout,
+      },
+    });
+
+    const samples: Array<{ hydrated: boolean; pageId: string }> = [];
+    const { result } = renderHook(() => {
+      const state = useLayoutFor('edge-1', 'monitor');
+      samples.push({ hydrated: state.hydrated, pageId: state.layout.pages[0]?.id ?? '' });
+      return state;
+    });
+
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    expect(result.current.layout.pages[0].id).toBe('STORED');
+    expect(samples.some(s => s.hydrated && s.pageId !== 'STORED')).toBe(false);
+  });
+
+  it('stays un-hydrated while the record is missing, so nothing is persisted', async () => {
+    fetchMock.mockResolvedValue({ found: false, status: 404 });
+
+    const { result } = renderHook(() => useLayoutFor('gone', 'monitor'));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.hydrated).toBe(false);
+    expect(result.current.deviceMissing).toBe(true);
+  });
+
+  // The kiosk boots while the service is still binding: the first fetch fails
+  // (loaded flips true with no record), and the record lands on a retry.
+  it('does not hydrate on a failed fetch, then hydrates when the retry lands', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ found: false, status: 0 })
+      .mockResolvedValue({
+        found: true,
+        record: {
+          id: 'edge-2', displayName: 'CRX ED00', firstSeenAt: 0, lastSeenAt: 0,
+          layout: { ...storedLayout, pages: [{ ...storedLayout.pages[0], id: 'STORED2' }] },
+        },
+      });
+
+    const { result } = renderHook(() => useLayoutFor('edge-2', 'monitor'));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.hydrated).toBe(false);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    expect(result.current.layout.pages[0].id).toBe('STORED2');
+  });
+});
