@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { Power, PowerOff, Unlink, Link2, MoreVertical, RotateCcw, Trash2 } from 'lucide-react';
+import { Power, PowerOff, Unlink, Link2, MoreVertical, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
+import { type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
@@ -36,6 +37,7 @@ export function MotherboardGroup({
   onDelete,
   onResetName,
   dropTarget,
+  empty,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -79,6 +81,9 @@ export function MotherboardGroup({
   /** True while a dragged card would land in this group; rings the header so the
    *  destination is unambiguous before the drop. */
   dropTarget?: boolean;
+  /** A user group nobody has dragged a card into yet. Its state rows would act
+   *  over nothing, so the menu drops them. */
+  empty?: boolean;
 }) {
   const { t } = useTranslation();
   const expanded = !collapsed;
@@ -86,17 +91,21 @@ export function MotherboardGroup({
   // seq remounts the menu on every open; see ZoneCard for the same pattern.
   const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
   const menuSeq = useRef(0);
+  const nameRef = useRef<EditableTextHandle>(null);
 
   const menuItems = (): DeviceMenuItem[] => {
-    const items: DeviceMenuItem[] = [
+    const items: DeviceMenuItem[] = empty ? [] : [
       groupControlled
         ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: onToggleControlled }
         : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: onToggleControlled },
     ];
-    if (!hideLights) {
+    if (!hideLights && !empty) {
       items.push(groupOn
         ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
         : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: onTogglePower });
+    }
+    if (onRename) {
+      items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });
     }
     if (onResetName) {
       items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: onResetName });
@@ -118,6 +127,7 @@ export function MotherboardGroup({
         onToggle={onToggleCollapsed}
         ariaLabel={toggleLabel}
         onTitleRename={onRename}
+        titleRenameRef={nameRef}
         titleAfter={notice != null ? <DeviceNotice notice={notice} /> : undefined}
         drag={drag}
         rightInteractive

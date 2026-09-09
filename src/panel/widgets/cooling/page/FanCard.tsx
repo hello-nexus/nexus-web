@@ -1,13 +1,13 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Gpu, Link2, Lock, LockOpen, MoreVertical, MousePointerClick, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, Gpu, Link2, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { formatNumber } from '../../../../lib/units';
 import type { CurveDef, FanState } from '../../../../types/cooling';
-import { EditableText } from '../../../../components/common/Editable/EditableText';
+import { EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
@@ -192,6 +192,7 @@ export const FanCard = memo(function FanCard({
   // shape as ZoneCard.
   const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
   const menuSeq = useRef(0);
+  const nameRef = useRef<EditableTextHandle>(null);
   const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
   const roleChoices: Array<{ value: FanRole; label: string; Icon: typeof Fan }> = [
     { value: 'none', label: t('cooling.fanRole.generic'), Icon: Fan },
@@ -328,6 +329,14 @@ export const FanCard = memo(function FanCard({
         label: t('cooling.fan.selectOnly', { name: channel.name }),
         onSelect: onSelectOnly,
         separatorAfter: true,
+      });
+    }
+    if (!bulk) {
+      items.push({
+        key: 'rename',
+        icon: <Pencil size={14} />,
+        label: t('cooling.fan.rename'),
+        onSelect: () => nameRef.current?.startEditing(),
       });
     }
     // Clearing a rename has no inline affordance - an empty commit is dropped -
@@ -496,7 +505,7 @@ export const FanCard = memo(function FanCard({
             (EditableText doesn't forward unknown props) so a press on the name
             edits it instead of starting a card drag; no layout change. */}
         <span data-no-dnd style={{ display: 'contents' }}>
-          <EditableText value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
+          <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
         </span>
         <span className={styles.fanRpmReadout}>
           <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>

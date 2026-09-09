@@ -343,6 +343,7 @@ export function DevicePanel({ devices, header, devicePicks, versionForSlot, ledF
                 onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
                 dropTarget={isDropTarget}
+                empty={members.length === 0}
                 drag={a}
               >
                 {children}
