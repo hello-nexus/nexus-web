@@ -59,33 +59,143 @@ export interface BulkSelection {
   identify: () => void;
 }
 
-/** Where a card sits in a split card's stack; see {@link ZoneCardStack}. */
-export type StackPosition = 'first' | 'middle' | 'last';
+/** Where a card sits under a {@link ZoneCardStack} header: every member seams
+ *  to the row above it, only the last rounds the bottom. */
+export type StackPosition = 'inner' | 'last';
 
-export function stackPosition(index: number, count: number): StackPosition {
-  return index === 0 ? 'first' : index === count - 1 ? 'last' : 'middle';
+/** Device-level actions behind a stack header's kebab; the group header's rows,
+ *  minus the ones only a user group has. */
+export interface StackMenu {
+  /** True iff at least one zone has its LEDs on, so the row offers to turn the device off. */
+  on: boolean;
+  onTogglePower: () => void;
+  /** True iff at least one zone is controlled, so the row offers to release the device. */
+  controlled: boolean;
+  onToggleControlled: () => void;
+  /** Omits the lights row - firmware owns the device's LEDs. */
+  hideLights?: boolean;
+  /** Commits a new device name; absent where no stored name could come back. */
+  onRename?: (name: string) => void;
+  /** Present only on a renamed device; puts the header back on the hardware name. */
+  onResetName?: () => void;
 }
 
 /**
- * One device's zones as a single card. Each member is a full ZoneCard with its
- * own selection and menu; the stack owns the outer corners and the rail drag,
- * so the device moves as one block and its zones can never be split up.
+ * One device's zones under its name, as a single card. Each member is a full
+ * ZoneCard with its own selection and menu; the stack owns the corners and the
+ * rail drag, so the device moves as one block and its zones can never be split
+ * up - which is why the name is a row inside the card, not a group header.
+ * The header row is the device: clicking it selects every zone, and its kebab
+ * acts on them all.
  */
-export function ZoneCardStack({ drag, children }: {
+export function ZoneCardStack({ name, drag, onSelect, menu, children }: {
+  /** The device name, shown once above the zones. */
+  name: string;
   /** Optional dnd-kit drag wiring for the whole stack. */
   drag?: SortableRowArgs;
+  /** Header click, with whether the multi-select modifier was held, the way a
+   *  card's onSelect reports it. Absent leaves the header a plain label. */
+  onSelect?: (additive: boolean) => void;
+  /** Absent on pick-only surfaces, which get no kebab. */
+  menu?: StackMenu;
   children: ReactNode;
 }) {
+  const { t } = useTranslation();
+  // seq remounts the menu on every open; see ZoneCard for the same pattern.
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
+  const menuSeq = useRef(0);
+  const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
+  const nameRef = useRef<EditableTextHandle>(null);
+
+  const menuItems = (): DeviceMenuItem[] => {
+    if (!menu) return [];
+    const items: DeviceMenuItem[] = [];
+    if (!menu.hideLights) {
+      items.push(menu.on
+        ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
+        : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: menu.onTogglePower });
+    }
+    items.push(menu.controlled
+      ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: menu.onToggleControlled }
+      : { key: 'controlled', icon: <Link size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: menu.onToggleControlled });
+    if (menu.onRename) {
+      items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });
+    }
+    if (menu.onResetName) {
+      items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: menu.onResetName });
+    }
+    return items;
+  };
+
   return (
-    <div
-      ref={drag?.ref ?? (() => {})}
-      style={drag?.style ?? {}}
-      {...(drag?.attributes ?? {})}
-      {...(drag?.listeners ?? {})}
-      className={`${styles.deviceCardStack}${drag?.isDragging ? ` ${drag.placeholderClassName}` : ''}`}
-    >
-      {children}
-    </div>
+    <>
+      <div
+        ref={drag?.ref ?? (() => {})}
+        style={drag?.style ?? {}}
+        {...(drag?.attributes ?? {})}
+        {...(drag?.listeners ?? {})}
+        className={`${styles.deviceCardStack}${drag?.isDragging ? ` ${drag.placeholderClassName}` : ''}`}
+      >
+        <div
+          className={`${styles.deviceCardStackHeader}${onSelect ? ` ${styles.deviceCardStackHeaderSelectable}` : ''}`}
+          onClick={onSelect ? e => onSelect(isMultiSelectModifier(e)) : undefined}
+          onContextMenu={menu ? e => {
+            e.preventDefault();
+            e.stopPropagation();
+            openMenu(e.clientX, e.clientY);
+          } : undefined}
+        >
+          {menu?.onRename ? (
+            /* data-no-dnd so a press on the name edits instead of dragging the
+               stack. Only a click inside the open editor is kept from the
+               header: on the label it must still select the zones. */
+            <span
+              data-no-dnd
+              style={{ display: 'contents' }}
+              onClick={e => { if ((e.target as HTMLElement).tagName === 'INPUT') e.stopPropagation(); }}
+            >
+              <EditableText
+                ref={nameRef}
+                value={name}
+                onCommit={menu.onRename}
+                className={styles.deviceCardStackName}
+                clickToEdit={false}
+              />
+            </span>
+          ) : (
+            <span className={styles.deviceCardStackName}>{name}</span>
+          )}
+          {menu && (
+            <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
+              <button
+                type="button"
+                className={`${styles.deviceSettingsBtn} ${styles.deviceMenuBtn} ${styles.deviceCardStackMenuBtn}`}
+                aria-label={t('lighting.devices.groupActions', { name })}
+                data-no-dnd
+                onClick={e => {
+                  e.stopPropagation();
+                  if (menuAt) { setMenuAt(null); return; }
+                  const r = e.currentTarget.getBoundingClientRect();
+                  openMenu(r.right, r.bottom + 4);
+                }}
+              >
+                <MoreVertical />
+              </button>
+            </HoverTooltip>
+          )}
+        </div>
+        {children}
+      </div>
+      {menuAt && (
+        <DeviceContextMenu
+          key={menuAt.seq}
+          x={menuAt.x}
+          y={menuAt.y}
+          items={menuItems()}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -192,8 +302,8 @@ export function ZoneCard({
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the device canvas's right-click. */
   bulk?: BulkSelection;
-  /** Set on a member of a {@link ZoneCardStack}: squares the edges this zone
-   *  shares with its neighbours and draws the seam above it. */
+  /** Set on a member of a {@link ZoneCardStack}: squares the corners, draws
+   *  the seam above it, and rounds the bottom on the last member. */
   stacked?: StackPosition;
 }) {
   const { t, language } = useTranslation();
@@ -427,9 +537,7 @@ export function ZoneCard({
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
         stacked ? styles.deviceCardStacked : '',
-        stacked === 'first' ? styles.deviceCardStackFirst : '',
         stacked === 'last' ? styles.deviceCardStackLast : '',
-        stacked && stacked !== 'first' ? styles.deviceCardStackSeam : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
       onClick={e => {

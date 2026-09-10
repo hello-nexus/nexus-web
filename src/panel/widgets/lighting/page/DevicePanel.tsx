@@ -3,7 +3,7 @@ import { Cpu, FolderPlus, Plus } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
-import { ZoneCard, ZoneCardStack, stackPosition, zoneCardSelectable, type BulkSelection, type StackPosition } from './ZoneCard';
+import { ZoneCard, ZoneCardStack, zoneCardSelectable, zoneCardUnavailable, type BulkSelection, type StackPosition } from './ZoneCard';
 import { type LedPick } from './DeviceLedStrip';
 import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
@@ -15,7 +15,7 @@ import { SortableList, type SortableRowArgs } from '../../../../components/commo
 import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../../components/common/SortableList/groupedDrag';
 import { addGroup, anchorGroups, groupedRows, groupOf, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup } from '../../../../lib/deviceGroups';
-import { buildDeviceBlocks, stripParentPrefix, type DeviceBlock } from './deviceBlocks';
+import { blockKey, buildDeviceBlocks, stripParentPrefix, type DeviceBlock, type ZoneBlock } from './deviceBlocks';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -133,6 +133,15 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     };
   };
 
+  // Primary after a removal follows the last remaining card in device order;
+  // Set-insertion order would pick a different one.
+  const lastSelected = (next: Set<string>): string | null => {
+    for (let i = devices.length - 1; i >= 0; i--) {
+      if (next.has(devices[i].id)) return devices[i].id;
+    }
+    return null;
+  };
+
   // Single click handler so cards and zones share the exact same selection
   // semantics as the canvas: plain click = single-replace, Cmd/Ctrl+click =
   // toggle this id's membership in the set.
@@ -141,13 +150,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       const next = new Set(selectedIds);
       if (next.has(id)) {
         next.delete(id);
-        // Primary follows the last remaining card in device order;
-        // Set-insertion order would pick a different one.
-        let nextPrimary: string | null = null;
-        for (let i = devices.length - 1; i >= 0; i--) {
-          if (next.has(devices[i].id)) { nextPrimary = devices[i].id; break; }
-        }
-        onSetSelection(next, nextPrimary);
+        onSetSelection(next, lastSelected(next));
       } else {
         next.add(id);
         onSetSelection(next, id);
@@ -155,6 +158,24 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       return;
     }
     onSetSelection(new Set([id]), id);
+  };
+
+  // A split card's header stands for every zone under it: the same two
+  // gestures as a card, over the whole set. Additive toggles the set as one,
+  // so a device already fully selected comes out.
+  const handleStackSelect = (ids: string[], additive: boolean) => {
+    if (!additive) {
+      onSetSelection(new Set(ids), ids[0]);
+      return;
+    }
+    const next = new Set(selectedIds);
+    if (ids.every(id => next.has(id))) {
+      ids.forEach(id => next.delete(id));
+      onSetSelection(next, lastSelected(next));
+    } else {
+      ids.forEach(id => next.add(id));
+      onSetSelection(next, ids[0]);
+    }
   };
 
   const selectOnlyFor = (d: LightingDevice) => () => onSetSelection(new Set([d.id]), d.id);
@@ -224,17 +245,46 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     />
   );
 
+  // The stack carries the drag, so any zone drags the whole device. Power and
+  // Nexus Control routes are card-keyed, so the header's toggles fan out over
+  // the zones the way the group header's do.
+  const renderStack = (block: Extract<ZoneBlock, { kind: 'split' }>, drag?: SortableRowArgs, indent = false, fwControlled?: boolean) => {
+    const members = block.devices;
+    const last = members.length - 1;
+    const fwOf = (d: LightingDevice) => !!fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'));
+    // The same gate a card's own click has.
+    const selectable = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
+    const stackOn = members.some(z => z.ledsOn);
+    const stackControlled = members.some(z => z.controlled !== false);
+    // The service echoes a stored name back on a card by its id or on a run by
+    // its parent id, and nowhere else, so a port device (neither) offers no
+    // rename until it has a name slot.
+    const renameTarget = onRenameDevice && members[0]?.parentDeviceId === block.deviceId ? block.deviceId : undefined;
+    return (
+      <ZoneCardStack
+        key={block.groupKey}
+        name={block.label}
+        drag={drag}
+        onSelect={selectable.length > 0 ? additive => handleStackSelect(selectable, additive) : undefined}
+        menu={{
+          on: stackOn,
+          onTogglePower: () => { const target = !stackOn; for (const z of members) onSetPower(z.id, target); },
+          controlled: stackControlled,
+          onToggleControlled: () => { const target = !stackControlled; for (const z of members) onSetControlled(z.id, target); },
+          hideLights: fwControlled,
+          onRename: renameTarget ? name => onRenameDevice!(renameTarget, name) : undefined,
+          onResetName: renameTarget && members[0]?.parentName != null ? () => onRenameDevice!(renameTarget, '') : undefined,
+        }}
+      >
+        {members.map((z, i) => renderCard(z, indent, stripParentPrefix(z.name, block.stripLabel), fwControlled, undefined, i === last ? 'last' : 'inner'))}
+      </ZoneCardStack>
+    );
+  };
+
   const renderBlock = (block: DeviceBlock, a: SortableRowArgs | null) => {
     if (block.kind === 'single') return renderCard(block.device, false, undefined, undefined, a ?? undefined);
-    if (block.kind === 'split') {
-      // The stack carries the drag, so any zone drags the whole device.
-      return (
-        <ZoneCardStack key={block.groupKey} drag={a ?? undefined}>
-          {block.devices.map((z, i) => renderCard(z, false, undefined, undefined, undefined, stackPosition(i, block.devices.length)))}
-        </ZoneCardStack>
-      );
-    }
-    const { groupKey, label, stripLabel, parentDeviceId, isBrand, isSmartHub, devices: members } = block;
+    if (block.kind === 'split') return renderStack(block, a ?? undefined);
+    const { groupKey, label, stripLabel, parentDeviceId, isBrand, isSmartHub, devices: members, blocks: rows } = block;
     const groupOn = members.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of members) onSetPower(z.id, target); };
     const groupControlled = members.some(z => z.controlled !== false);
@@ -258,7 +308,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         </button>
       </HoverTooltip>
     ) : undefined;
-    const memberIds = members.map(d => d.id);
+    const rowIds = rows.map(blockKey);
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
         onRename={onRenameDevice && parentDeviceId ? name => onRenameDevice(parentDeviceId, name) : undefined}
@@ -272,9 +322,14 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         notice={noticeFor(members[0])}
         drag={a ?? undefined}>
         <SortableList
-          ids={memberIds}
-          onReorder={(newMemberIds) => {
+          ids={rowIds}
+          onReorder={(newRowIds) => {
             if (!onDeviceReorder) return;
+            // A row is one device: its zones move with it.
+            const newMemberIds = newRowIds.flatMap(id => {
+              const row = rows.find(r => blockKey(r) === id);
+              return !row ? [] : row.kind === 'single' ? [row.device.id] : row.devices.map(d => d.id);
+            });
             const newOrder: string[] = [];
             for (const bId of blockIds) {
               const b = blockMap.get(bId);
@@ -289,12 +344,13 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
             }
             onDeviceReorder(newOrder);
           }}
-          renderRow={(devId, da) => {
-            const z = members.find(d => d.id === devId);
-            if (!z) return null;
+          renderRow={(rowId, da) => {
+            const row = rows.find(r => blockKey(r) === rowId);
+            if (!row) return null;
+            if (row.kind === 'split') return renderStack(row, da, true, isSmartHub && fwOn);
             return isBrand
-              ? renderCard(z, true, undefined, undefined, da)
-              : renderCard(z, true, stripParentPrefix(z.name, stripLabel), isSmartHub && fwOn, da);
+              ? renderCard(row.device, true, undefined, undefined, da)
+              : renderCard(row.device, true, stripParentPrefix(row.device.name, stripLabel), isSmartHub && fwOn, da);
           }}
         />
       </MotherboardGroup>

@@ -374,44 +374,6 @@
   margin: 0 0.15rem;
 }
 
-.ledCountField {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
-
-.ledCountLabel {
-  color: var(--text-dim);
-}
-
-.ledCountReadonly {
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.ledCountInput {
-  width: 3.5rem;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  outline: none;
-  transition: border-color var(--ease-fast);
-
-  &:hover { border-color: var(--border-strong); }
-  &:focus { border-color: var(--accent); }
-
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button { -webkit-appearance: none; }
-  -moz-appearance: textfield;
-}
-
 // Compact icon-track-value layout for the smart-light hue / saturation
 // sliders in the toolbar.
 .brightnessField {
@@ -531,82 +493,6 @@
   padding: 2rem;
   color: var(--text-dim);
   font-size: var(--type-small);
-}
-
-// Zone rail: one compact chip row listing the device's zones, plus the
-// partition actions (rename / merge / split / reset) and the community
-// layouts button at the right edge.
-.zonesBar {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-
-.zonesLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  margin-right: 0.15rem;
-  white-space: nowrap;
-}
-
-.zoneChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.1rem;
-  padding: 0.1rem 0.25rem 0.1rem 0;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius);
-  background: var(--surface);
-  transition: border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover {
-    background: var(--bg-card-hover);
-  }
-}
-
-// Marked for merge (modifier+click). Accent border only, so the editable
-// (active) zone's filled treatment stays distinguishable.
-.zoneChipMarked {
-  border-color: var(--accent);
-}
-
-// The zone whose LEDs are editable on the canvas.
-.zoneChipActive {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.zoneChipName {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.15rem 0.3rem 0.15rem 0.6rem;
-  font-size: var(--type-small);
-  border: none;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  white-space: nowrap;
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-// LED count beside the zone name.
-.zoneChipCount {
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-// Lock affordance for zones pinned to a resizable segment (partition wall).
-.zoneChipLock {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  color: var(--text-dim);
 }
 
 .ledMergeTarget {

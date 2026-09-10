@@ -51,8 +51,11 @@ function channelCard(ledCount: number): LightingDevice {
 
 function mockZone(ledCount: number) {
   const id = 'nollie-s-ABC:ch0';
+  // One addressable port carrying a generic strip: the count is the user's to type.
   api.fetchDeviceStructure.mockResolvedValue({
     id, name: 'Channel 1', deviceKey: 'k', isDefaultPartition: true,
+    chainable: true,
+    chain: [{ key: 'generic:strip', name: 'Generic Strip', ledCount, editableCount: true }],
     segments: [{ index: 0, name: 'Channel 1', ledCount, resizable: true, zoneType: 'linear' }],
     zones: [{ id, name: 'Channel 1', slices: [{ segment: 0, start: 0, count: ledCount }] }],
   });
@@ -118,7 +121,7 @@ describe('LedMapEditor large zones', () => {
     await waitFor(() => {
       expect(document.querySelector('[class*="mappingUnavailable"]')).not.toBeNull();
     });
-    const input = document.querySelector<HTMLInputElement>('[class*="ledCountInput"]');
+    const input = document.querySelector<HTMLInputElement>('[class*="zoneCountInput"]');
     expect(input).not.toBeNull();
     expect(input?.value).toBe('630');
   });

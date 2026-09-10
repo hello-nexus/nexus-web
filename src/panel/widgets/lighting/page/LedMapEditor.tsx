@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square,
-  Pencil, Merge, Scissors, ListRestart, Lock, Users, Palette, Droplet, Lightbulb, CircleDot,
+  Pencil, Merge, Scissors, ListRestart, Users, Palette, Droplet, Lightbulb, CircleDot,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
   highlightLeds, testLedPattern, clearLedEditor, postLedPreviewLayout,
-  setZoneLedCount, setLightingDeviceColor, setHubComposition,
-  type ApiEnvelope, type DeviceStructureResponse, type DeviceZone, type LightingDevice,
-  type HubCompositionPatch,
+  setDeviceChain, setLightingDeviceColor, setHubComposition,
+  type ChainEntryBody, type DeviceStructureResponse, type DeviceZone, type LightingDevice, type HubCompositionPatch,
 } from '../../../../api/lighting';
 import { HubCompositionPanel } from './HubCompositionPanel';
 import { useTranslation } from '../../../../lib/i18n';
@@ -22,13 +21,13 @@ import { Slider } from '../../../../components/common/Slider/Slider';
 import { useThrottle } from '../../../../hooks/cadence';
 import { isApplePlatform, isMultiSelectModifier } from '../../../../lib/platform';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
-import { AssignDeviceBar } from './AssignDeviceBar';
+import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
-  flattenDeviceMap, formatZoneChipCount, isStagedZoneId, mergeStagedZones, orderZones,
+  flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
   pushHistory, redoHistory, relabelLedZones, renameZone, segmentOffsets, splitStagedZones,
   splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
-  zoneEnabledCounts, zoneLedCount, zoneTouchesResizable,
+  zoneEnabledCounts, zoneLedCount,
   type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type StagedPartition,
 } from './zoneUtils';
 import { shouldConsumeEditorEscape } from './ledMapEscape';
@@ -73,7 +72,6 @@ const PARK_ROW_HEIGHT = 11;
 const MAX_MAPPABLE_LEDS = 300;
 // Input ceiling only; the service clamps to the device's real per-channel max
 // (a Nollie 1 takes 630, a Nollie 16 takes 256).
-const MAX_LED_COUNT = 1024;
 // Pixel nudge step for arrow-key movement. Shift multiplies this by 5 for
 // coarse nudges when reshaping wide selections.
 const NUDGE_STEP_UV = 0.005;
@@ -125,6 +123,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const { push } = useToast();
 
   const [structure, setStructure] = useState<DeviceStructureResponse | null>(null);
+  const [chainBusy, setChainBusy] = useState(false);
   const [leds, setLeds] = useState<EditorLed[]>([]);
   // Loaded state (position + disabled flag) of LEDs without a stored user
   // override: the resolved baseline a session edit can return to without
@@ -159,9 +158,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [stagedPartition, setStagedPartition] = useState<StagedPartition | null>(null);
   const stagedPartitionRef = useRef(stagedPartition);
   stagedPartitionRef.current = stagedPartition;
-  // Pending soft-count for SmartHub zones: persisted on Save, not on commit.
-  // Keyed by zone id; only ever holds a single zone at a time (single-zone SmartHub cards).
-  const softCountPendingRef = useRef<Map<string, number>>(new Map());
   // Monotonic temp-id source for zones created by staged edits.
   const stagedIdSeqRef = useRef(0);
   const nextStagedId = useCallback(() => stagedZoneId(stagedIdSeqRef.current++), []);
@@ -172,6 +168,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [dragDelta, setDragDelta] = useState<{ du: number; dv: number } | null>(null);
   const [dragMergeTarget, setDragMergeTarget] = useState<number | null>(null);
   const [ringVfx, setRingVfx] = useState<{ id: number; u: number; v: number; kind: 'merge' | 'split' }[]>([]);
+  // Ring ids: a counter, so rings spawned in one tick never share an id.
+  const ringSeqRef = useRef(0);
   // Free-cursor drag for a single parked LED. The stored u,v is not useful
   // mid-drag (it's frozen at the last in-frame position); we track the
   // cursor directly and only commit a new u,v on release inside the frame.
@@ -280,12 +278,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const activeZone: DeviceZone | null = zonesOrdered.find(z => z.id === selectedZoneId) ?? null;
 
-  const walledZoneIds = useMemo(() => {
-    const segs = structure?.segments ?? [];
-    return new Set(zonesOrdered.filter(z => zoneTouchesResizable(z, segs)).map(z => z.id));
-  }, [zonesOrdered, structure]);
-  const activeZoneWalled = activeZone !== null && walledZoneIds.has(activeZone.id);
-
   const zoneNameById = useMemo(
     () => new Map(zonesOrdered.map(z => [z.id, z.name])),
     [zonesOrdered],
@@ -323,12 +315,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     [zoneMultiSel, zonesCurrent, structure, offsets],
   );
 
-  // Split candidate from the current LED selection. Hidden entirely inside
-  // resizable segments (header sub-split is a recorded v2 follow-up).
+  // Split candidate from the current LED selection.
   const splitParts = useMemo(() => {
-    if (!activeZone || activeZoneWalled || saving) return null;
+    if (!activeZone || saving) return null;
     return splitZone(activeZone, offsets, selected);
-  }, [activeZone, activeZoneWalled, saving, offsets, selected]);
+  }, [activeZone, saving, offsets, selected]);
 
   // ── Undo / redo ───────────────────────────────────────────────────────
   // Snapshots carry the LED state and the staged partition together, so one
@@ -503,7 +494,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setUndoLen(0);
     setRedoLen(0);
     setStagedPartition(null);
-    softCountPendingRef.current = new Map();
     setLoading(false);
     setDirty(false);
     setSelected(new Set());
@@ -702,7 +692,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   };
 
 
-  const handleZoneChipClick = (zoneId: string, multi: boolean) => {
+  const handleZoneRowClick = (zoneId: string, multi: boolean) => {
     if (saving) return;
     if (multi) {
       setZoneMultiSel(prev => {
@@ -1204,7 +1194,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           const key = `${u.toFixed(4)},${v.toFixed(4)}`;
           if (!seen.has(key)) {
             seen.add(key);
-            newRings.push({ id: Date.now() + Math.round(Math.random() * 9999), u, v, kind: 'merge' });
+            newRings.push({ id: ++ringSeqRef.current, u, v, kind: 'merge' });
           }
         }
         if (newRings.length > 0) setRingVfx(prev => [...prev, ...newRings]);
@@ -1266,19 +1256,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const handleSave = async () => {
     setSaving(true);
-
-    // Persist any pending SmartHub soft counts before the map POST.
-    // The service must know the new segment size before it can accept
-    // overrides for indices beyond the old count.
-    for (const [zoneId, count] of softCountPendingRef.current) {
-      const countResp = await setZoneLedCount(zoneId, count) as ApiEnvelope | null;
-      if (!countResp || countResp.error) {
-        setSaving(false);
-        push({ title: t('lighting.ledMap.saveFailed') });
-        return;
-      }
-    }
-    softCountPendingRef.current = new Map();
 
     // The map body builder keeps applied-mapping state (mapping-disabled
     // LEDs, mapping ratio) out of the user delta: only LEDs the user owns
@@ -1407,86 +1384,26 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return () => clearTimeout(previewTimerRef.current);
   }, [leds, selectedZoneId, loading, saving, zoneScoped]);
 
-  // Editable LED count for resizable zones. For hardware zones (OpenRGB
-  // motherboard headers) the count sends RESIZEZONE and round-trips through
-  // load(). For SmartHub soft-count zones the count is deferred: updated
-  // locally (leds + structure) and persisted only on Save.
-  // With no resolved zone the card's own count is the zone-scoped number;
-  // leds is the whole device's map, so it is only the last resort.
-  const activeZoneLedCount = activeZone
-    ? zoneLedCount(activeZone)
-    : (zoneCard?.ledCount ?? leds.length);
-  const activeZoneLedCountRef = useRef(activeZoneLedCount);
-  activeZoneLedCountRef.current = activeZoneLedCount;
-  const [ledCountDraft, setLedCountDraft] = useState(String(activeZoneLedCount));
-  const ledCountEscapeRef = useRef(false);
-  const resizingCountRef = useRef(false);
-  // No resolved zone means no count to resize: without this the input stays
-  // live after a failed load and a commit rewrites leds against a null structure.
-  const canEditLedCount = zoneCard?.zoneResizable === true && activeZone !== undefined;
-  useEffect(() => { setLedCountDraft(String(activeZoneLedCount)); }, [activeZoneLedCount, selectedZoneId]);
-
-  const handleLedCountCommit = useCallback((n: number) => {
-    const clamped = Math.max(1, Math.min(MAX_LED_COUNT, n));
-    if (!canEditLedCount || resizingCountRef.current) return;
-    if (clamped === activeZoneLedCountRef.current) {
-      setLedCountDraft(String(clamped));
-      return;
-    }
-
-    const zoneId = selectedZoneIdRef.current;
-
-    if (zoneId.startsWith('smarthub:')) {
-      // Soft-count path: update leds and structure locally, mark dirty.
-      // setZoneLedCount deferred to handleSave. Undo/redo is NOT wired for
-      // the count change itself: EditorSnapshot does not carry segment counts,
-      // and patching zoneUtils types would risk the shared editor invariants.
-      setLedCountDraft(String(clamped));
-      softCountPendingRef.current = new Map(softCountPendingRef.current).set(zoneId, clamped);
-
-      setLeds(prev => {
-        const next: EditorLed[] = prev.filter(l => l.index < clamped);
-        for (let i = next.length; i < clamped; i++) {
-          next.push({ segment: 0, ledIndex: i, index: i, u: 0.5, v: 0.5, disabled: false, zoneId, isCustom: false });
-        }
-        return next;
-      });
-
-      setStructure(prev => {
-        if (!prev) return prev;
-        const segments = prev.segments.map(seg =>
-          seg.index === 0 ? { ...seg, ledCount: clamped } : seg,
-        );
-        const zones = prev.zones.map(z =>
-          z.id === zoneId
-            ? { ...z, slices: z.slices.map((sl, i) => i === 0 ? { ...sl, count: clamped } : sl) }
-            : z,
-        );
-        return { ...prev, segments, zones };
-      });
-
-      setDirty(true);
-      return;
-    }
-
-    // Hardware resize path (OpenRGB / motherboard headers): confirm discard,
-    // then round-trip through setZoneLedCount + load().
-    setLedCountDraft(String(activeZoneLedCountRef.current));
+  // ── Chain (what is wired to a port) ───────────────────────────────────
+  // Every edit re-posts the whole chain: a pick, a retyped count, an added or
+  // removed zone. The service rebuilds the port's zones and cards from it, so
+  // the editor reloads rather than patching its own copy.
+  const chainEntries = useCallback((): ChainEntryBody[] =>
+    (structure?.chain ?? []).map(e => e.editableCount ? { key: e.key, ledCount: e.ledCount } : { key: e.key }), [structure]);
+  const applyChain = useCallback((entries: ChainEntryBody[]) => {
     confirmDiscardEdits(() => {
-      resizingCountRef.current = true;
-      setLedCountDraft(String(clamped));
       void (async () => {
-        try {
-          await setZoneLedCount(zoneId, clamped);
-          await load();
-        } catch {
-          setLedCountDraft(String(activeZoneLedCountRef.current));
-        } finally {
-          resizingCountRef.current = false;
+        setChainBusy(true);
+        const resp = await setDeviceChain(deviceId, entries);
+        setChainBusy(false);
+        if (!resp || resp.error) {
+          push({ title: t('lighting.ledMap.assignFailed') });
+          return;
         }
+        await load();
       })();
     });
-  }, [canEditLedCount, confirmDiscardEdits, load]);
+  }, [confirmDiscardEdits, deviceId, load, push, t]);
 
   // Factory reset: the service drops the device's stored LED overrides and
   // aspect ratio, then the editor refetches structure + map. load() keeps
@@ -1826,7 +1743,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       return p ? { ...l, u: p.u, v: p.v, isCustom: true } : l;
     }));
     setDirty(true);
-    setRingVfx(prev => [...prev, { id: Date.now() + Math.round(Math.random() * 9999), u: centerU, v: centerV, kind: 'split' }]);
+    setRingVfx(prev => [...prev, { id: ++ringSeqRef.current, u: centerU, v: centerV, kind: 'split' }]);
   }, [pushUndo]);
 
   const handleGroupSelected = useCallback(() => {
@@ -1840,7 +1757,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       return { ...l, u: centroidU, v: centroidV, isCustom: true };
     }));
     setDirty(true);
-    setRingVfx(prev => [...prev, { id: Date.now() + Math.round(Math.random() * 9999), u: centroidU, v: centroidV, kind: 'merge' }]);
+    setRingVfx(prev => [...prev, { id: ++ringSeqRef.current, u: centroidU, v: centroidV, kind: 'merge' }]);
   }, [leds, selected, pushUndo]);
 
   const handleRotate90 = useCallback(() => {
@@ -1999,7 +1916,26 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         ? t('lighting.ledMap.zoneMergeAdjacentOnly')
         : t('lighting.ledMap.zoneMergeHint', { mod: isMac ? 'Cmd' : 'Ctrl' });
 
-  const showZonesBar = zoneCustomizable && zonesOrdered.length > 0;
+  // Rows follow the resolved zones in wire order, the chain alongside them; a
+  // chained row is named by its product, the way the port lists it. Before the
+  // structure resolves the card is the one zone, at its own count.
+  const chainable = structure?.chainable === true && zonesOrdered.length > 0;
+  const chainRows: ChainRow[] = zonesOrdered.length > 0
+    ? zonesOrdered.map((z, i) => {
+        const link = chainable ? structure?.chain?.[i] : undefined;
+        return {
+          zoneId: z.id,
+          name: link?.name ?? zoneDisplayName(z),
+          ledCount: zoneLedCount(z),
+          enabledCount: enabledByZone.get(z.id) ?? 0,
+          key: link?.key,
+          editableCount: link?.editableCount === true,
+        };
+      })
+    : zoneCard
+      ? [{ zoneId: zoneCard.id, name: zoneCard.name, ledCount: zoneCard.ledCount, enabledCount: zoneCard.ledCount, editableCount: false }]
+      : [];
+  const showZoneTools = zoneCustomizable && zonesOrdered.length > 0;
 
   // Reset-zones visibility: hidden once a reset is already staged; shown for
   // staged edits (revert them to the default) and for a loaded custom
@@ -2046,164 +1982,101 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               }
             />
           )}
-          {showZonesBar && (
-            <div className={styles.zonesBar}>
-              <span className={styles.zonesLabel}>{t('lighting.ledMap.zones')}</span>
-              {zonesOrdered.map(z => {
-                const active = z.id === selectedZoneId;
-                const marked = zoneMultiSel.has(z.id);
-                const walled = walledZoneIds.has(z.id);
-                return (
-                  <div
-                    key={z.id}
-                    className={[
-                      styles.zoneChip,
-                      marked ? styles.zoneChipMarked : '',
-                      active ? styles.zoneChipActive : '',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    <button
-                      type="button"
-                      className={styles.zoneChipName}
-                      onClick={e => handleZoneChipClick(z.id, isMultiSelectModifier(e))}
+          {/* The zone list is also the port's wiring: on a chainable port each
+              row picks what sits at that position, so there is no separate
+              assign row or LED count field. */}
+          <ZoneChainList
+            rows={chainRows}
+            chainable={chainable}
+            selectedZoneId={selectedZoneId}
+            markedIds={zoneMultiSel}
+            disabled={saving || chainBusy}
+            onSelect={handleZoneRowClick}
+            onChange={(i, entry) => { const entries = chainEntries(); entries[i] = entry; applyChain(entries); }}
+            onAdd={entry => applyChain([...chainEntries(), entry])}
+            onRemove={i => applyChain(chainEntries().filter((_, j) => j !== i))}
+            actions={showZoneTools ? (
+              <>
+                {/* Partition tools stay off a chainable port: the chain is its
+                    partition. */}
+                {!chainable && (
+                  <>
+                    <HoverTooltip body={t('lighting.ledMap.zoneRename')} side="top">
+                      <button
+                        type="button"
+                        className={styles.iconBtn}
+                        disabled={!activeZone || saving}
+                        aria-label={t('lighting.ledMap.zoneRename')}
+                        onClick={handleRenameClick}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    </HoverTooltip>
+                    <HoverTooltip body={mergeTooltip} side="top">
+                      <button
+                        type="button"
+                        className={styles.iconBtn}
+                        disabled={!mergeCheck.ok || saving}
+                        aria-label={t('lighting.ledMap.zoneMerge')}
+                        onClick={handleMergeClick}
+                      >
+                        <Merge size={13} />
+                      </button>
+                    </HoverTooltip>
+                    <HoverTooltip
+                      body={splitParts ? t('lighting.ledMap.zoneSplit') : t('lighting.ledMap.zoneSplitHint')}
+                      side="top"
                     >
-                      {zoneDisplayName(z)}
-                      <span className={styles.zoneChipCount}>
-                        {formatZoneChipCount(enabledByZone.get(z.id) ?? 0, zoneLedCount(z))}
-                      </span>
-                    </button>
-                    {walled && (
-                      <HoverTooltip body={t('lighting.ledMap.zoneWallTooltip')} side="top">
-                        <span className={styles.zoneChipLock}>
-                          <Lock size={11} aria-label={t('lighting.ledMap.zoneWallTooltip')} />
-                        </span>
+                      <button
+                        type="button"
+                        className={styles.iconBtn}
+                        disabled={!splitParts}
+                        aria-label={t('lighting.ledMap.zoneSplit')}
+                        onClick={handleSplitClick}
+                      >
+                        <Scissors size={13} />
+                      </button>
+                    </HoverTooltip>
+                    {canResetPartition && (
+                      <HoverTooltip body={t('lighting.ledMap.zoneResetPartition')} side="top">
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
+                          disabled={saving}
+                          aria-label={t('lighting.ledMap.zoneResetPartition')}
+                          onClick={() => setResetPartitionConfirm(true)}
+                        >
+                          <ListRestart size={13} />
+                        </button>
                       </HoverTooltip>
                     )}
-                  </div>
-                );
-              })}
-              <div className={styles.spacer} />
-              <HoverTooltip body={t('lighting.ledMap.zoneRename')} side="top">
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  disabled={!activeZone || saving}
-                  aria-label={t('lighting.ledMap.zoneRename')}
-                  onClick={handleRenameClick}
-                >
-                  <Pencil size={13} />
-                </button>
-              </HoverTooltip>
-              <HoverTooltip body={mergeTooltip} side="top">
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  disabled={!mergeCheck.ok || saving}
-                  aria-label={t('lighting.ledMap.zoneMerge')}
-                  onClick={handleMergeClick}
-                >
-                  <Merge size={13} />
-                </button>
-              </HoverTooltip>
-              {!activeZoneWalled && (
+                    <div className={styles.separator} />
+                  </>
+                )}
+                {/* Community layouts for the selected zone, in a modal stacked
+                    on the editor. Zones without a deviceKey (custom partitions,
+                    staged temp zones) cannot be fingerprinted, so the button
+                    disables with an explanatory tooltip for them. */}
                 <HoverTooltip
-                  body={splitParts ? t('lighting.ledMap.zoneSplit') : t('lighting.ledMap.zoneSplitHint')}
+                  body={communityEnabled ? t('lighting.ledMap.community') : t('lighting.ledMap.communityUnavailable')}
                   side="top"
                 >
                   <button
                     type="button"
-                    className={styles.iconBtn}
-                    disabled={!splitParts}
-                    aria-label={t('lighting.ledMap.zoneSplit')}
-                    onClick={handleSplitClick}
+                    className={`${styles.btn} ${styles.communityBtn}`}
+                    disabled={!communityEnabled || saving}
+                    aria-label={t('lighting.ledMap.community')}
+                    onClick={() => setCommunityRequested(true)}
                   >
-                    <Scissors size={13} />
+                    <Users size={13} aria-hidden />
+                    {t('lighting.ledMap.community')}
                   </button>
                 </HoverTooltip>
-              )}
-              {canResetPartition && (
-                <HoverTooltip body={t('lighting.ledMap.zoneResetPartition')} side="top">
-                  <button
-                    type="button"
-                    className={styles.iconBtn}
-                    disabled={saving}
-                    aria-label={t('lighting.ledMap.zoneResetPartition')}
-                    onClick={() => setResetPartitionConfirm(true)}
-                  >
-                    <ListRestart size={13} />
-                  </button>
-                </HoverTooltip>
-              )}
-              <div className={styles.separator} />
-              {/* Community layouts for the selected zone, in a modal stacked
-                  on the editor. Zones without a deviceKey (custom partitions,
-                  staged temp zones) cannot be fingerprinted, so the button
-                  disables with an explanatory tooltip for them. */}
-              <HoverTooltip
-                body={communityEnabled ? t('lighting.ledMap.community') : t('lighting.ledMap.communityUnavailable')}
-                side="top"
-              >
-                <button
-                  type="button"
-                  className={`${styles.btn} ${styles.communityBtn}`}
-                  disabled={!communityEnabled || saving}
-                  aria-label={t('lighting.ledMap.community')}
-                  onClick={() => setCommunityRequested(true)}
-                >
-                  <Users size={13} aria-hidden />
-                  {t('lighting.ledMap.community')}
-                </button>
-              </HoverTooltip>
-            </div>
-          )}
-          {/* What is wired to the selected zone's port. A header reports a LED
-              count and never what is plugged into it, so the layout can only
-              come from the user saying which product it is. Sits below the
-              zone rail because the assignment is per zone: switching zones
-              switches what this row is talking about. */}
-          <AssignDeviceBar
-            deviceId={selectedZoneId}
-            disabled={saving || isStagedZoneId(selectedZoneId)}
-            onLedMapChanged={() => { void load(); }}
-            confirmDiscardEdits={confirmDiscardEdits}
+              </>
+            ) : undefined}
           />
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
-            {canEditLedCount ? (
-              <label className={styles.ledCountField}>
-                <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
-                <input
-                  type="number"
-                  className={styles.ledCountInput}
-                  value={ledCountDraft}
-                  min={1}
-                  max={MAX_LED_COUNT}
-                  aria-label={t('lighting.ledMap.ledCount')}
-                  onChange={e => setLedCountDraft(e.target.value)}
-                  onBlur={e => {
-                    if (ledCountEscapeRef.current) { ledCountEscapeRef.current = false; return; }
-                    if (resizingCountRef.current) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
-                    const n = parseInt(e.currentTarget.value, 10);
-                    if (isNaN(n)) { setLedCountDraft(String(activeZoneLedCountRef.current)); return; }
-                    handleLedCountCommit(n);
-                  }}
-                  onKeyDown={e => {
-                    e.stopPropagation();
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                    if (e.key === 'Escape') {
-                      ledCountEscapeRef.current = true;
-                      setLedCountDraft(String(activeZoneLedCountRef.current));
-                      (e.target as HTMLInputElement).blur();
-                    }
-                  }}
-                />
-              </label>
-            ) : (
-              <span className={styles.ledCountField}>
-                <span className={styles.ledCountLabel}>{t('lighting.ledMap.ledCount')}</span>
-                <span className={styles.ledCountReadonly}>{activeZoneLedCount}</span>
-              </span>
-            )}
             <div className={styles.spacer} />
             {hasRestorable && (
               <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">

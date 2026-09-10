@@ -51,9 +51,10 @@ export const EditableText = forwardRef<EditableTextHandle, EditableTextProps>(fu
   }
 
   // Without click-to-edit the text is not a control, so it must not advertise
-  // itself as one: no button role, no tab stop, no Enter/Space handler.
+  // itself as one: no button role, no tab stop, no Enter/Space handler, and
+  // none of the hover affordance either.
   if (!clickToEdit) {
-    return <span className={`${styles.display} ${className ?? ''}`}>{value}</span>;
+    return <span className={`${styles.displayStatic} ${className ?? ''}`}>{value}</span>;
   }
 
   return (

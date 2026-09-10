@@ -1054,33 +1054,57 @@
   }
 }
 
-// One device's zones stacked into a single card (ZoneCardStack). No gap: the
-// stack owns the outer corners, each member squares the edges it shares, and
-// the seam is the lower zone's own top border, so a hover or selection outline
-// still traces exactly one zone.
+// One device's zones under its name, stacked into a single card
+// (ZoneCardStack). No gap: the header rounds the top, the last zone rounds the
+// bottom, and each zone's seam is its own top border, so a hover or selection
+// outline still traces exactly one zone.
 .deviceCardStack {
   display: flex;
   flex-direction: column;
 }
 
+// Same border + padding inset as .deviceCard so the name lines up with the
+// zone names under it; the seam below is the first zone's border. The kebab
+// takes the far right, where the group header keeps its own.
+.deviceCardStackHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem 0.3rem;
+  border: var(--border-width) solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--surface);
+  font-size: var(--type-small);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.deviceCardStackHeaderSelectable {
+  cursor: pointer;
+}
+
+.deviceCardStackName {
+  flex: 0 1 auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.deviceCardStackMenuBtn {
+  margin-left: auto;
+}
+
+// One class deep on purpose: .deviceCard's hover and selected rules are two
+// deep and must keep recolouring the seam along with the rest of the outline.
 .deviceCardStacked {
   border-radius: 0;
-
-  &.deviceCardStackFirst {
-    border-top-left-radius: var(--radius);
-    border-top-right-radius: var(--radius);
-  }
+  border-top-color: var(--border);
 
   &.deviceCardStackLast {
     border-bottom-left-radius: var(--radius);
     border-bottom-right-radius: var(--radius);
   }
-}
-
-// One class deep on purpose: .deviceCard's hover and selected rules are two
-// deep and must keep recolouring the seam along with the rest of the outline.
-.deviceCardStackSeam {
-  border-top-color: var(--border);
 }
 
 // Second line of the device card: LED count on the left, action icons

@@ -763,6 +763,10 @@ export interface DeviceStructureResponse {
   zones: DeviceZone[];
   isDefaultPartition: boolean;
   hubComposition?: HubComposition;
+  /** True when the device is a single addressable port, so its zones are whatever is wired to it. */
+  chainable?: boolean;
+  /** What is wired to a chainable port, one entry per zone in wire order. */
+  chain?: ChainEntry[];
   /** Set when the service has no structure for the device; the body is otherwise an empty shell at HTTP 200. */
   error?: boolean;
   msg?: string;
@@ -975,6 +979,8 @@ export interface BuiltInMappingSummary {
   /** Fan | Strip | AIO | Case | Cable | Water Block | ... */
   type: string;
   ledCount: number;
+  /** True for the generic fan and strip, whose geometry the service generates from a count the user types. Absent on services before them. */
+  parametric?: boolean;
 }
 
 export interface MappingCatalogResponse extends ApiEnvelope {
@@ -1007,6 +1013,32 @@ export const fetchMappingCatalog = (query: string, type?: string, limit = 50) =>
  */
 export const assignDeviceMapping = (id: string, key: string) =>
   postService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/assign`, { key });
+
+/** One link of a port's chain; matches the resolved zones one-for-one, in wire order. */
+export interface ChainEntry {
+  key: string;
+  name: string;
+  ledCount: number;
+  /** True for a generic fan or strip: the count is the user's to type. A real product's count is its artifact's. */
+  editableCount: boolean;
+}
+
+/** A catalog product. The count is required for a generic key and ignored for a real product. */
+export interface ChainEntryBody {
+  key: string;
+  ledCount?: number;
+}
+
+export interface SetChainResponse extends ApiEnvelope {
+  /** The port's LED count, the sum of its entries. */
+  ledCount: number;
+  /** Card ids the chain produced, one per entry, in wire order. */
+  zoneIds: string[];
+}
+
+/** Wire what is plugged into a port, in order. An empty list clears the chain. */
+export const setDeviceChain = (deviceId: string, entries: ChainEntryBody[]) =>
+  postService<SetChainResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/mappings/chain`, { entries });
 
 // --- Game Sync ---
 

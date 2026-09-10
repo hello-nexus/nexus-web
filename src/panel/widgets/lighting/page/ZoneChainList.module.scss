@@ -1,0 +1,204 @@
+// The editor's zone list: one row per zone, then a footer with the add button,
+// the zone tools and the LED total at its right edge.
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.35rem 0.1rem 0;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover { background: var(--bg-card-hover); }
+}
+
+// Marked for merge (modifier+click). Accent border only, so the editable
+// (active) zone's filled treatment stays distinguishable.
+.rowMarked { border-color: var(--accent); }
+
+// The zone whose LEDs are editable on the canvas.
+.rowActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+// A custom zone not sized yet: dashed until its count is typed.
+.rowPending {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+.zoneName {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.25rem 0.3rem 0.25rem 0.6rem;
+  font-size: var(--type-small);
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:disabled { cursor: default; }
+}
+
+.pick,
+.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: var(--text); background: var(--surface-hover); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.zoneCount {
+  flex-shrink: 0;
+  min-width: 2.5rem;
+  text-align: right;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.zoneCountInput {
+  flex-shrink: 0;
+  width: 3.5rem;
+  padding: 0.2rem 0.4rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  -moz-appearance: textfield;
+
+  &:focus { outline: none; border-color: var(--accent); }
+  &:disabled { opacity: 0.5; }
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+// Anchors the add picker under its button.
+.addWrap { position: relative; }
+
+.add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: var(--border-width) dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), color var(--ease-fast);
+
+  &:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+
+.spacer { flex: 1; }
+
+.total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.totalCount {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 20;
+  width: min(26rem, 100%);
+  min-width: 18rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.result {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-small);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover, &.active { background: var(--surface-hover); }
+}
+
+.resultName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultMeta {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: var(--type-tiny);
+}
+
+.empty {
+  padding: 0.5rem 0.45rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
