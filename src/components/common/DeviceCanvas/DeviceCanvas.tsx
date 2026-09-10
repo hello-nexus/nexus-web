@@ -78,8 +78,8 @@ const MIN_BOX_H = 60;
 /** Inset of the default grid. Distinct from PAD, which is the drag clamp. */
 const GRID_PAD = 12;
 /** Half the vertical offset between neighbouring grid columns. A name is drawn
- *  at its card's center, so a row of cards sharing one center line stacks every
- *  name on that line. */
+ *  under its card, so a row of cards sharing one bottom edge stacks every name
+ *  on that line. */
 const COLUMN_STAGGER_Y = 24;
 
 /** The slot a layout reset would give this device: a square-ish grid scaled to
@@ -144,14 +144,15 @@ type LabelSize = { w: number; h: number };
 /** Resolved label center in canvas units. */
 type LabelPos = { cx: number; cy: number };
 
+/** Gap between a frame's bottom edge and its name, and between stacked name rows. */
 const LABEL_GAP = 5;
 
-/** Resolves each label's center so no two labels overlap. A label keeps its
- *  frame's center X and steps up/down in alternating whole-row increments until
- *  its box is clear, so labels that are far apart horizontally never move.
- *  Smallest frames place first: a large frame's label yields to the small
- *  frames stacked on top of it, and stays inside its own box either way.
- *  `pinned` ids place before everything: they hold their frame's center and the
+/** Resolves each label's center so no two labels overlap. A label sits just
+ *  under its frame, centred on it, and steps down/up in alternating whole-row
+ *  increments until its box is clear, so labels that are far apart
+ *  horizontally never move. Smallest frames place first: a large frame's label
+ *  yields to the small frames stacked on top of it.
+ *  `pinned` ids place before everything: they hold their home row and the
  *  rest yield, so the name on the card the user is dragging or has selected
  *  tracks its frame instead of hopping rows as other labels come and go.
  *  Returns id -> center in canvas units; ids with no measured size are absent. */
@@ -180,7 +181,9 @@ function layoutLabels(
     const x1 = cx - halfW;
     const x2 = cx + halfW;
     const step = size.h + LABEL_GAP;
-    const home = Math.max(halfH, Math.min(CH - halfH, dev.canvasY + dev.canvasH / 2));
+    // Clamped so a bottom-edge frame keeps its name, over its own bottom band,
+    // rather than losing it to the overflow clip.
+    const home = Math.max(halfH, Math.min(CH - halfH, dev.canvasY + dev.canvasH + LABEL_GAP + halfH));
     let best = home;
     // The alternating sequence spends half its steps on the side the home row is
     // nearest, so the budget must span the canvas twice over to reach the far
@@ -640,12 +643,12 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     return () => { alive = false; };
   }, []);
 
-  // A label's box only changes when its text, rotation, the font, or the
-  // container scale does - never when a frame moves. Keying the measure on that
+  // A label's box only changes when its text, the font, or the container
+  // scale does - never when a frame moves or turns. Keying the measure on that
   // signature keeps a drag (which re-renders at pointer rate) off the
   // layout-thrash path. JSON encodes the fields unambiguously without needing
   // a delimiter no device name can contain.
-  const labelSig = JSON.stringify(devices.map(d => [d.id, d.name, d.canvasRotation ?? 0]));
+  const labelSig = JSON.stringify(devices.map(d => [d.id, d.name]));
   const { w: contW, h: contH } = containerSizeRef.current;
   useLayoutEffect(() => {
     const el = labelLayerRef.current;
@@ -654,8 +657,6 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     if (r.width === 0 || r.height === 0) return;
     const next = new Map<string, LabelSize>();
     for (const [id, span] of labelElsRef.current) {
-      // getBoundingClientRect is the post-transform box, so a rotated label
-      // reports the swapped extents the AABB de-collision needs.
       const b = span.getBoundingClientRect();
       next.set(id, { w: (b.width / r.width) * CW, h: (b.height / r.height) * CH });
     }
@@ -734,24 +735,25 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       })}
       {/* Labels live above every frame so a name is always readable and always
           hittable, whatever the frame stacking is. The layer itself is
-          click-through; only the names take pointer events. */}
+          click-through; only the names take pointer events. A name sits under
+          its frame and stays horizontal: rotation already shows in the frame's
+          footprint (the rect swaps sides) and in the LED dots. */}
       <div ref={labelLayerRef} className={styles.labelLayer}>
         {devices.map(dev => {
           const selected = selectedIds.has(dev.id);
           const deemphasized = !selected;
-          const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
-          // Pre-measure fallback keeps the label at its frame's center, which is
-          // where the un-decollided layout already puts it.
+          // Pre-measure fallback sits on the frame's bottom edge; the layout
+          // effect measures before paint, so it is never drawn.
           const pos = labelLayout.get(dev.id);
           const cx = pos?.cx ?? dev.canvasX + dev.canvasW / 2;
-          const cy = pos?.cy ?? dev.canvasY + dev.canvasH / 2;
+          const cy = pos?.cy ?? dev.canvasY + dev.canvasH + LABEL_GAP;
           return (
             <span key={dev.id}
               ref={el => { if (el) labelElsRef.current.set(dev.id, el); else labelElsRef.current.delete(dev.id); }}
               className={`${styles.deviceLabel} ${deemphasized ? styles.deemphasized : ''}`}
               style={{
                 left: `${(cx / CW) * 100}%`, top: `${(cy / CH) * 100}%`,
-                transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+                transform: 'translate(-50%, -50%)',
               }}
               onPointerDown={e => handleFramePointerDown(e, dev, true)}
               onContextMenu={e => handleFrameContextMenu(e, dev)}

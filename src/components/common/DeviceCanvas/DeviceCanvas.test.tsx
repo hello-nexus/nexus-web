@@ -101,7 +101,7 @@ describe('DeviceCanvas', () => {
     expect(onLayoutCommit).toHaveBeenCalled();
   });
 
-  it('label transform uses canvasRotation so undo/redo restores the correct angle', () => {
+  it('keeps the name horizontal under the frame through a rotation and its undo', () => {
     const device = {
       id: 'dev3',
       name: 'Test Device 3',
@@ -127,12 +127,23 @@ describe('DeviceCanvas', () => {
       />
     );
 
-    // Rotate CW: device.canvasRotation becomes 90.
-    fireEvent.contextMenu(screen.getByText('Test Device 3'));
-    fireEvent.click(screen.getByText('lighting.devices.rotateCw'));
+    // Unmeasured in jsdom, so the name sits on the frame's bottom edge plus
+    // the gap: (100 + 100 + 5) / 600.
+    const label = () => screen.getByText('Test Device 3');
+    expect(label().style.top).toBe(`${(205 / 600) * 100}%`);
+    expect(label().style.left).toBe('20%');
 
-    // Simulate undo restoring the layout: canvasRotation reset to 0 via new props.
-    device.canvasRotation = 0;
+    // Rotate CW: the footprint swaps to 100x200 about the same centre, so the
+    // bottom edge drops to 250 and the name follows it; the text itself does
+    // not turn.
+    fireEvent.contextMenu(label());
+    fireEvent.click(screen.getByText('lighting.devices.rotateCw'));
+    expect(device.canvasRotation).toBe(90);
+    expect(label().style.top).toBe(`${(255 / 600) * 100}%`);
+    expect(label().style.transform).toBe('translate(-50%, -50%)');
+
+    // Simulate undo restoring the layout via new props.
+    Object.assign(device, { canvasX: 100, canvasY: 100, canvasW: 200, canvasH: 100, canvasRotation: 0 });
     rerender(
       <DeviceCanvas
         devices={[device]}
@@ -146,8 +157,8 @@ describe('DeviceCanvas', () => {
       />
     );
 
-    const label = screen.getByText('Test Device 3');
-    expect(label.style.transform).toBe('translate(-50%, -50%) rotate(0deg)');
+    expect(label().style.top).toBe(`${(205 / 600) * 100}%`);
+    expect(label().style.transform).toBe('translate(-50%, -50%)');
   });
 
   it('a tap that does not move fires no onBeforeLayoutSave (no no-op undo snapshot)', () => {
@@ -200,7 +211,8 @@ describe('DeviceCanvas', () => {
     });
   }
 
-  /** Both frames share the exact center, the state the minimize preset produces. */
+  /** Both frames share the exact rect, the state the minimize preset produces;
+   *  the bottom edge at 310 puts the name's home row at 325 (100x20 label). */
   function stackedDevice(id: string, name: string): LightingDevice {
     return {
       id, name, ledsOn: true, ledCount: 0,
@@ -218,10 +230,10 @@ describe('DeviceCanvas', () => {
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
     );
-    // Equal area, so id breaks the tie: 'a' keeps the home row at cy=300
-    // (300/600 = 50%), 'b' steps one row down to 325 (325/600 = 54.17%).
-    expect(screen.getByText('Alpha').style.top).toBe('50%');
-    expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
+    // Equal area, so id breaks the tie: 'a' keeps the home row under the frame
+    // at cy=325, 'b' steps one row further down to 350.
+    expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Bravo').style.top).toBe(`${(350 / 600) * 100}%`);
     // Same center X: de-collision only moves labels vertically.
     expect(screen.getByText('Alpha').style.left).toBe('50%');
     expect(screen.getByText('Bravo').style.left).toBe('50%');
@@ -240,8 +252,42 @@ describe('DeviceCanvas', () => {
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
     );
-    expect(screen.getByText('Alpha').style.top).toBe('50%');
-    expect(screen.getByText('Bravo').style.top).toBe('50%');
+    expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
+    rectSpy.mockRestore();
+  });
+
+  it('sits a name under its frame, centred on it', () => {
+    const rectSpy = mockLabelRects();
+    const d = stackedDevice('a', 'Alpha');
+    d.canvasX = 100; d.canvasY = 100; d.canvasW = 200; d.canvasH = 100;
+    render(
+      <DeviceCanvas
+        devices={[d]} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    // Bottom edge 200, gap 5, half the 20-unit label: centre at 215.
+    expect(screen.getByText('Alpha').style.top).toBe(`${(215 / 600) * 100}%`);
+    expect(screen.getByText('Alpha').style.left).toBe('20%');
+    rectSpy.mockRestore();
+  });
+
+  it('keeps a bottom-edge frame\'s name inside the canvas', () => {
+    const rectSpy = mockLabelRects();
+    const low = stackedDevice('a', 'Alpha');
+    low.canvasY = 560; low.canvasH = 40; // bottom edge on the canvas edge
+    render(
+      <DeviceCanvas
+        devices={[low]} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+      />
+    );
+    // Under the frame would centre at 615, off the canvas; clamped to 590 the
+    // name rides the frame's bottom band instead of being clipped away.
+    expect(screen.getByText('Alpha').style.top).toBe(`${(590 / 600) * 100}%`);
     rectSpy.mockRestore();
   });
 
@@ -313,11 +359,12 @@ describe('DeviceCanvas', () => {
 
   it('pins the dragged card\'s name to its frame instead of shuffling it', () => {
     const rectSpy = mockLabelRects();
-    // Both centered on (500,300). 'Bravo' is the bigger frame, so by area it
-    // normally loses the home row to 'Alpha' and gets pushed down.
+    // Both bottom edges at 310, so both names want the row at 325. 'Bravo' is
+    // the bigger frame, so by area it normally loses that row to 'Alpha' and
+    // gets pushed down.
     const small = stackedDevice('a', 'Alpha');
     const big = stackedDevice('b', 'Bravo');
-    big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 400;
+    big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 210;
     const { container } = render(
       <DeviceCanvas
         devices={[small, big]} canvasPixels={null} canvasW={1000} canvasH={500}
@@ -326,15 +373,15 @@ describe('DeviceCanvas', () => {
       />
     );
     // Undragged: the small frame owns the home row.
-    expect(screen.getByText('Alpha').style.top).toBe('50%');
-    expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Bravo').style.top).toBe(`${(350 / 600) * 100}%`);
 
-    // Grab the big frame: its name must take the home row (its frame's centre)
+    // Grab the big frame: its name must take the home row (under its frame)
     // and 'Alpha' yields, so the dragged name tracks the cursor.
     const bigFrame = container.querySelectorAll(`.${styles.device}`)[1];
     fireEvent.pointerDown(bigFrame, { button: 0, clientX: 500, clientY: 300 });
-    expect(screen.getByText('Bravo').style.top).toBe('50%');
-    expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Alpha').style.top).toBe(`${(350 / 600) * 100}%`);
     rectSpy.mockRestore();
   });
 
@@ -345,7 +392,7 @@ describe('DeviceCanvas', () => {
     // drag clears, or the name hops back the instant the button releases.
     const small = stackedDevice('a', 'Alpha');
     const big = stackedDevice('b', 'Bravo');
-    big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 400;
+    big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 210;
     render(
       <DeviceCanvas
         devices={[small, big]} canvasPixels={null} canvasW={1000} canvasH={500}
@@ -353,8 +400,8 @@ describe('DeviceCanvas', () => {
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
     );
-    expect(screen.getByText('Bravo').style.top).toBe('50%');
-    expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
+    expect(screen.getByText('Alpha').style.top).toBe(`${(350 / 600) * 100}%`);
     rectSpy.mockRestore();
   });
 
@@ -423,10 +470,11 @@ describe('DeviceCanvas', () => {
 
   it('fans labels down the canvas from a top-edge pile', () => {
     const rectSpy = mockLabelRects();
-    // 20 frames pinned at the top edge, so every upward step is wasted and the
-    // 20th label needs 20 downward rows. The alternating search spends half its
-    // steps upward, so the budget has to span the canvas twice over to get
-    // there. 20 * 25 units fits CH=600, so every label should get its own row.
+    // 20 frames pinned at the top edge: their names all want the row under the
+    // frame at 35, only one upward step exists, and the 20th label needs 19
+    // downward rows. The alternating search spends half its steps upward, so
+    // the budget has to span the canvas twice over to get there. 35 + 19 * 25
+    // fits CH=600, so every label should get its own row.
     const devices = Array.from({ length: 20 }, (_, i) => {
       const d = stackedDevice(`d${i}`, `Device ${i}`);
       d.canvasY = 0; d.canvasH = 20;
