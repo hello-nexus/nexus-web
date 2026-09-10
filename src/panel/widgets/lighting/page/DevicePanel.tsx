@@ -256,14 +256,16 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     const selectable = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
     const stackOn = members.some(z => z.ledsOn);
     const stackControlled = members.some(z => z.controlled !== false);
-    // The service echoes a stored name back on a card by its id or on a run by
-    // its parent id, and nowhere else, so a port device (neither) offers no
-    // rename until it has a name slot.
-    const renameTarget = onRenameDevice && members[0]?.parentDeviceId === block.deviceId ? block.deviceId : undefined;
+    // A rename is keyed on the device id and comes back as deviceName; a
+    // service before that field names a standalone device through its parent
+    // rename, which is the same id for the keeb.
+    const renamed = members[0]?.deviceName != null
+      || (members[0]?.parentDeviceId === block.deviceId && members[0]?.parentName != null);
     return (
       <ZoneCardStack
         key={block.groupKey}
         name={block.label}
+        selected={members.some(z => selectedIds.has(z.id))}
         drag={drag}
         onSelect={selectable.length > 0 ? additive => handleStackSelect(selectable, additive) : undefined}
         menu={{
@@ -272,8 +274,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
           controlled: stackControlled,
           onToggleControlled: () => { const target = !stackControlled; for (const z of members) onSetControlled(z.id, target); },
           hideLights: fwControlled,
-          onRename: renameTarget ? name => onRenameDevice!(renameTarget, name) : undefined,
-          onResetName: renameTarget && members[0]?.parentName != null ? () => onRenameDevice!(renameTarget, '') : undefined,
+          onRename: onRenameDevice ? name => onRenameDevice(block.deviceId, name) : undefined,
+          onResetName: onRenameDevice && renamed ? () => onRenameDevice(block.deviceId, '') : undefined,
         }}
       >
         {members.map((z, i) => renderCard(z, indent, stripParentPrefix(z.name, block.stripLabel), fwControlled, undefined, i === last ? 'last' : 'inner'))}

@@ -96,12 +96,20 @@ describe('buildDeviceBlocks split card', () => {
 
   it('heads the card with the device rename while still stripping the hardware prefix', () => {
     const blocks = buildDeviceBlocks([
-      keebZone('keys', { parentName: 'Desk keyboard' }),
-      keebZone('underglow', { parentName: 'Desk keyboard' }),
+      keebZone('keys', { deviceName: 'Desk keyboard' }),
+      keebZone('underglow', { deviceName: 'Desk keyboard' }),
     ]);
     const block = blocks[0];
     expect(block.kind === 'split' && block.label).toBe('Desk keyboard');
     expect(block.kind === 'split' && block.stripLabel).toBe('HYTE Keeb TKL');
+  });
+
+  it('falls back to the parent rename on a service without deviceName', () => {
+    const blocks = buildDeviceBlocks([
+      keebZone('keys', { parentName: 'Desk keyboard' }),
+      keebZone('underglow', { parentName: 'Desk keyboard' }),
+    ]);
+    expect(blocks[0].kind === 'split' && blocks[0].label).toBe('Desk keyboard');
   });
 
   it('keeps a motherboard a group: each header routes to itself, not the board', () => {
@@ -206,6 +214,17 @@ describe('buildDeviceBlocks board ports', () => {
     expect(chain.kind === 'split' && chain.stripLabel).toBe('B850I AORUS PRO');
     expect(chain.kind === 'split' && chain.devices.map(d => stripParentPrefix(d.name, chain.stripLabel)))
       .toEqual(['ARGB_V2_2', 'ARGB_V2_2 - Tail']);
+  });
+
+  it('heads a chained port with its device rename over the derived port name', () => {
+    const g = groupOf(buildDeviceBlocks([
+      port('0', '0', 'ARGB_V2_1'),
+      port('1:z0', '1', 'ARGB_V2_2 - QX Fan 1', { deviceName: 'Front fans' }),
+      port('1:z1', '1', 'ARGB_V2_2 - QL Fan 2', { deviceName: 'Front fans' }),
+    ]));
+    const chain = g.blocks[1];
+    expect(chain.kind === 'split' && chain.label).toBe('Front fans');
+    expect(chain.kind === 'split' && chain.stripLabel).toBe('B850I AORUS PRO - ARGB_V2_2');
   });
 
   it('reads the prefix off hardware names, so a renamed zone does not break the run', () => {

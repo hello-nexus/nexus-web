@@ -124,14 +124,16 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
     if (b.kind !== 'group') continue;
     b.blocks = zoneBlocksOf(b.devices);
     b.devices = b.blocks.flatMap(z => z.kind === 'single' ? [z.device] : z.devices);
+    // A device rename lands as deviceName; a service before that field names a
+    // standalone device (the keeb) through its parent rename instead.
     if (!b.isBrand && !b.isSmartHub && b.blocks.length === 1) {
       const only = b.blocks[0];
       blocks[i] = only.kind === 'split'
-        ? { ...only, label: only.devices[0].parentName ?? only.stripLabel }
+        ? { ...only, label: only.devices[0].deviceName ?? only.devices[0].parentName ?? only.stripLabel }
         : only;
     } else {
       for (const z of b.blocks) {
-        if (z.kind === 'split') z.label = stripParentPrefix(z.stripLabel, b.stripLabel);
+        if (z.kind === 'split') z.label = z.devices[0].deviceName ?? stripParentPrefix(z.stripLabel, b.stripLabel);
       }
     }
   }

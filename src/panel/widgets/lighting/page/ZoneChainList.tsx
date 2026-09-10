@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, Plus, X } from 'lucide-react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react';
 import { fetchMappingCatalog, type BuiltInMappingSummary, type ChainEntryBody } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { isMultiSelectModifier } from '../../../../lib/platform';
@@ -21,27 +21,27 @@ export interface ChainRow {
   enabledCount: number;
   /** The product wired at this position; marks the picker's current choice. */
   key?: string;
-  /** A generic fan or strip: the count is typed on the row. A product's count is locked to its artifact. */
+  /** A generic fan or strip: the count is typed on the chip. A product's count is locked to its artifact. */
   editableCount: boolean;
 }
 
 /**
- * The editor's zone list. Each row is one zone: its name selects that zone
- * for editing on the canvas (modifier-click marks it for a merge), and on a
- * chainable port the row is also what is wired there - a catalog product,
- * whose count is typed on the row when the product is a generic. A device
- * with fixed zones (a keeb) gets the same rows read-only.
+ * The editor's Devices section: one chip per zone, in wire order. A chip's
+ * name selects that zone for editing on the canvas (modifier-click marks it
+ * for a merge), and on a chainable port the chip is also what is wired there -
+ * a catalog product, whose count is typed on the chip when the product is a
+ * generic. A device with fixed zones (a keeb) gets the same chips read-only.
  */
 export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disabled, onSelect, onChange, onAdd, onRemove, actions }: {
   rows: ChainRow[];
-  /** A single addressable port: rows can be picked, retyped, added and removed. */
+  /** A single addressable port: chips can be picked, retyped, added and removed. */
   chainable: boolean;
   selectedZoneId: string;
   /** Zones marked for a merge. */
   markedIds: Set<string>;
   disabled?: boolean;
   onSelect: (zoneId: string, multi: boolean) => void;
-  /** Row `index` becomes this product, at this count when it is a generic. */
+  /** Chip `index` becomes this product, at this count when it is a generic. */
   onChange: (index: number, entry: ChainEntryBody) => void;
   onAdd: (entry: ChainEntryBody) => void;
   onRemove: (index: number) => void;
@@ -49,7 +49,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   actions?: ReactNode;
 }) {
   const { t } = useTranslation();
-  // Which row's product picker is open; 'add' is the one behind the + button.
+  // Which chip's product picker is open; 'add' is the one behind the + button.
   const [picker, setPicker] = useState<number | 'add' | null>(null);
   // A generic being added lives only here until its count is typed, so no
   // chain is posted for a zone the user has not sized yet.
@@ -58,92 +58,99 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   const total = rows.reduce((n, r) => n + r.ledCount, 0);
 
   return (
-    <div className={styles.list}>
-      {rows.map((row, i) => {
-        const editable = chainable && row.editableCount;
-        return (
-          <div
-            key={row.zoneId}
-            className={[
-              styles.row,
-              markedIds.has(row.zoneId) ? styles.rowMarked : '',
-              row.zoneId === selectedZoneId ? styles.rowActive : '',
-            ].filter(Boolean).join(' ')}
-          >
-            <button
-              type="button"
-              className={styles.zoneName}
-              disabled={disabled}
-              onClick={e => onSelect(row.zoneId, isMultiSelectModifier(e))}
-            >
-              {row.name}
-            </button>
-            {chainable && (
-              <button
-                type="button"
-                className={styles.pick}
-                disabled={disabled}
-                aria-haspopup="listbox"
-                aria-expanded={picker === i}
-                aria-label={t('lighting.ledMap.assignDevice')}
-                onClick={() => setPicker(picker === i ? null : i)}
+    <div className={styles.section}>
+      <div className={styles.header}>{t('lighting.rightPane.devices')}</div>
+      <div className={styles.chips}>
+        {rows.map((row, i) => {
+          const editable = chainable && row.editableCount;
+          return (
+            <Fragment key={row.zoneId}>
+              {/* Wire order down the port is what the chain means, so it is drawn. */}
+              {chainable && i > 0 && <ChevronRight size={12} className={styles.chainSep} aria-hidden />}
+              <div
+                className={[
+                  styles.chip,
+                  markedIds.has(row.zoneId) ? styles.chipMarked : '',
+                  row.zoneId === selectedZoneId ? styles.chipActive : '',
+                ].filter(Boolean).join(' ')}
               >
-                <ChevronDown size={13} aria-hidden />
-              </button>
-            )}
-            {editable ? (
-              <CountInput value={row.ledCount} disabled={disabled} onCommit={n => onChange(i, { key: row.key!, ledCount: n })} />
-            ) : (
-              <span className={styles.zoneCount}>{formatZoneChipCount(row.enabledCount, row.ledCount)}</span>
-            )}
-            {chainable && rows.length > 1 && (
-              <HoverTooltip body={t('lighting.ledMap.chainRemove')} side="top">
                 <button
                   type="button"
-                  className={styles.remove}
+                  className={styles.chipName}
                   disabled={disabled}
-                  aria-label={t('lighting.ledMap.chainRemove')}
-                  onClick={() => onRemove(i)}
+                  onClick={e => onSelect(row.zoneId, isMultiSelectModifier(e))}
                 >
-                  <X size={12} aria-hidden />
+                  {row.name}
                 </button>
-              </HoverTooltip>
-            )}
-            {picker === i && (
-              <ProductPicker
-                current={row.key}
-                onClose={() => setPicker(null)}
-                // A generic keeps the row's count; the field only unlocks.
-                onPick={item => {
-                  setPicker(null);
-                  onChange(i, item.parametric ? { key: item.key, ledCount: row.ledCount } : { key: item.key });
-                }}
+                {chainable && (
+                  <button
+                    type="button"
+                    className={styles.pick}
+                    disabled={disabled}
+                    aria-haspopup="listbox"
+                    aria-expanded={picker === i}
+                    aria-label={t('lighting.ledMap.assignDevice')}
+                    onClick={() => setPicker(picker === i ? null : i)}
+                  >
+                    <ChevronDown size={13} aria-hidden />
+                  </button>
+                )}
+                {editable ? (
+                  <CountInput value={row.ledCount} disabled={disabled} onCommit={n => onChange(i, { key: row.key!, ledCount: n })} />
+                ) : (
+                  <span className={styles.zoneCount}>{formatZoneChipCount(row.enabledCount, row.ledCount)}</span>
+                )}
+                {chainable && rows.length > 1 && (
+                  <HoverTooltip body={t('lighting.ledMap.chainRemove')} side="top">
+                    <button
+                      type="button"
+                      className={styles.remove}
+                      disabled={disabled}
+                      aria-label={t('lighting.ledMap.chainRemove')}
+                      onClick={() => onRemove(i)}
+                    >
+                      <X size={12} aria-hidden />
+                    </button>
+                  </HoverTooltip>
+                )}
+                {picker === i && (
+                  <ProductPicker
+                    current={row.key}
+                    onClose={() => setPicker(null)}
+                    // A generic keeps the chip's count; the field only unlocks.
+                    onPick={item => {
+                      setPicker(null);
+                      onChange(i, item.parametric ? { key: item.key, ledCount: row.ledCount } : { key: item.key });
+                    }}
+                  />
+                )}
+              </div>
+            </Fragment>
+          );
+        })}
+        {pending && (
+          <>
+            {rows.length > 0 && <ChevronRight size={12} className={styles.chainSep} aria-hidden />}
+            <div className={`${styles.chip} ${styles.chipPending}`}>
+              <span className={styles.chipName}>{pending.name}</span>
+              <CountInput
+                value={null}
+                autoFocus
+                disabled={disabled}
+                onCommit={n => onAdd({ key: pending.key, ledCount: n })}
+                onCancel={() => setPending(null)}
               />
-            )}
-          </div>
-        );
-      })}
-      {pending && (
-        <div className={`${styles.row} ${styles.rowPending}`}>
-          <span className={styles.zoneName}>{pending.name}</span>
-          <CountInput
-            value={null}
-            autoFocus
-            disabled={disabled}
-            onCommit={n => onAdd({ key: pending.key, ledCount: n })}
-            onCancel={() => setPending(null)}
-          />
-          <button
-            type="button"
-            className={styles.remove}
-            aria-label={t('lighting.ledMap.chainRemove')}
-            onClick={() => setPending(null)}
-          >
-            <X size={12} aria-hidden />
-          </button>
-        </div>
-      )}
-      <div className={styles.footer}>
+              <button
+                type="button"
+                className={styles.remove}
+                aria-label={t('lighting.ledMap.chainRemove')}
+                onClick={() => setPending(null)}
+              >
+                <X size={12} aria-hidden />
+              </button>
+            </div>
+          </>
+        )}
         {chainable && (
           <div className={styles.addWrap}>
             <HoverTooltip body={t('lighting.ledMap.chainAdd')} side="top">
@@ -182,7 +189,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   );
 }
 
-/** A generic's LED count. Commits on blur or Enter, reverts on Escape; a null value is a blank field for a zone not sized yet. */
+/** A generic's LED count. Commits on blur or Enter, reverts on Escape; a null value is a blank field for a chip not sized yet. */
 function CountInput({ value, autoFocus, disabled, onCommit, onCancel }: {
   value: number | null;
   autoFocus?: boolean;
@@ -235,13 +242,13 @@ function CountInput({ value, autoFocus, disabled, onCommit, onCancel }: {
 }
 
 /**
- * Catalog search for one row. An ARGB port reports a LED count and never what
+ * Catalog search for one chip. An ARGB port reports a LED count and never what
  * is plugged in, so the user has to say; the generic fan and strip cover
  * hardware the catalog does not name. Served from the service binary, so it
  * works with no network and no account.
  */
 function ProductPicker({ current, onPick, onClose }: {
-  /** The row's product key; absent for the add picker. */
+  /** The chip's product key; absent for the add picker. */
   current?: string;
   onPick: (item: BuiltInMappingSummary) => void;
   onClose: () => void;
@@ -306,7 +313,7 @@ function ProductPicker({ current, onPick, onClose }: {
             onClick={() => onPick(item)}
           >
             <span className={styles.resultName}>{item.name}</span>
-            {/* A generic has no count of its own; the row's field supplies it. */}
+            {/* A generic has no count of its own; the chip's field supplies it. */}
             {!item.parametric && (
               <span className={styles.resultMeta}>
                 {t('lighting.ledMap.assignLeds', { count: item.ledCount })}

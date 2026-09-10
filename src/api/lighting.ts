@@ -328,6 +328,8 @@ export interface LightingDevice {
   originalName?: string;
   /** Custom name for this card's group, set only when the group header itself was renamed. */
   parentName?: string;
+  /** Custom name for the device this card's zone belongs to (deviceId), set only when that device was renamed. */
+  deviceName?: string | null;
   type?: string;
   iconType?: string;
   ledsOn: boolean;

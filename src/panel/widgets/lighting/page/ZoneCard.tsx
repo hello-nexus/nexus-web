@@ -88,9 +88,13 @@ export interface StackMenu {
  * The header row is the device: clicking it selects every zone, and its kebab
  * acts on them all.
  */
-export function ZoneCardStack({ name, drag, onSelect, menu, children }: {
+export function ZoneCardStack({ name, selected, drag, onSelect, menu, children }: {
   /** The device name, shown once above the zones. */
   name: string;
+  /** True while any zone under the header is selected: the header takes the
+   *  selected fill (no border - that stays on the zone) so the device reads as
+   *  one unit with something selected. */
+  selected?: boolean;
   /** Optional dnd-kit drag wiring for the whole stack. */
   drag?: SortableRowArgs;
   /** Header click, with whether the multi-select modifier was held, the way a
@@ -137,7 +141,11 @@ export function ZoneCardStack({ name, drag, onSelect, menu, children }: {
         className={`${styles.deviceCardStack}${drag?.isDragging ? ` ${drag.placeholderClassName}` : ''}`}
       >
         <div
-          className={`${styles.deviceCardStackHeader}${onSelect ? ` ${styles.deviceCardStackHeaderSelectable}` : ''}`}
+          className={[
+            styles.deviceCardStackHeader,
+            onSelect ? styles.deviceCardStackHeaderSelectable : '',
+            selected ? styles.deviceCardStackHeaderSelected : '',
+          ].filter(Boolean).join(' ')}
           onClick={onSelect ? e => onSelect(isMultiSelectModifier(e)) : undefined}
           onContextMenu={menu ? e => {
             e.preventDefault();

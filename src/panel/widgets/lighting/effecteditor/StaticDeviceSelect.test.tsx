@@ -148,6 +148,18 @@ describe('StaticDeviceSelect grouping', () => {
     expect(onSetSelection.mock.calls[1][1]).toBeNull();
   });
 
+  it('tints the stack header while one of its zones is picked', () => {
+    const keebZone = (suffix: string, name: string, index: number): LightingDevice => ({
+      ...zone(`keeb:tkl-1:${suffix}`, 'keeb:tkl-1', name, index), deviceId: 'keeb:tkl-1',
+    });
+    const zones = [keebZone('keys', 'HYTE Keeb TKL - Keys', 0), keebZone('underglow', 'HYTE Keeb TKL - Underglow', 1)];
+    const { rerender } = render(<StaticDeviceSelect devices={zones} selectedIds={new Set()} onSetSelection={vi.fn()} />);
+    const header = () => document.querySelector('[class*="deviceCardStackHeader"]')!;
+    expect(header().className).not.toContain('deviceCardStackHeaderSelected');
+    rerender(<StaticDeviceSelect devices={zones} selectedIds={new Set(['keeb:tkl-1:keys'])} onSetSelection={vi.fn()} />);
+    expect(header().className).toContain('deviceCardStackHeaderSelected');
+  });
+
   it('gives a pick-only stack no kebab', () => {
     const keebZone = (suffix: string, name: string, index: number): LightingDevice => ({
       ...zone(`keeb:tkl-1:${suffix}`, 'keeb:tkl-1', name, index), deviceId: 'keeb:tkl-1',

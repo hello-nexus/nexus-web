@@ -360,12 +360,40 @@ describe('DevicePanel split card header', () => {
     expect(onRenameDevice).toHaveBeenCalledWith('keeb:tkl-1', '');
   });
 
-  it('offers no rename on a board port, whose name the service has no slot for', () => {
-    renderRail(board);
+  it('renames a board port from its header, keyed on the port device id', () => {
+    const { onRenameDevice } = renderRail(board);
     openMenu('ARGB_V2_2');
-    expect(screen.getByRole('button', { name: /menuLightsOff/ })).toBeTruthy();
-    expect(screen.queryByText('lighting.devices.rename')).toBeNull();
     expect(screen.queryByText('lighting.devices.resetName')).toBeNull();
+    fireEvent.click(screen.getByText('lighting.devices.rename'));
+    const input = screen.getByDisplayValue('ARGB_V2_2');
+    fireEvent.change(input, { target: { value: 'Front fans' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onRenameDevice).toHaveBeenCalledWith('openrgb-C000-1', 'Front fans');
+  });
+
+  it('shows a port rename in its header and offers to reset it', () => {
+    const { onRenameDevice } = renderRail(board.map(d => d.deviceId === 'openrgb-C000-1' ? { ...d, deviceName: 'Front fans' } : d));
+    expect(headerName('Front fans')).toBeTruthy();
+    expect(screen.getByText('ARGB_V2_1')).toBeTruthy();
+    openMenu('Front fans');
+    fireEvent.click(screen.getByRole('button', { name: /resetName/ }));
+    expect(onRenameDevice).toHaveBeenCalledWith('openrgb-C000-1', '');
+  });
+
+  it('tints the header while any zone under it is selected, with no border of its own', () => {
+    renderRail(keeb, { selectedIds: new Set(['keeb:tkl-1:underglow']) });
+    const header = document.querySelector(`.${styles.deviceCardStackHeader}`)!;
+    expect(header.className).toContain(styles.deviceCardStackHeaderSelected);
+    expect(header.className).not.toContain(styles.deviceCardSelected);
+    const members = document.querySelectorAll(`.${styles.deviceCardStack} .${styles.deviceCard}`);
+    expect(members[0].className).not.toContain(styles.deviceCardSelected);
+    expect(members[1].className).toContain(styles.deviceCardSelected);
+  });
+
+  it('drops the header tint once nothing under it is selected', () => {
+    renderRail([device('d9', 'Strip'), ...keeb], { selectedIds: new Set(['d9']) });
+    const header = document.querySelector(`.${styles.deviceCardStackHeader}`)!;
+    expect(header.className).not.toContain(styles.deviceCardStackHeaderSelected);
   });
 
   it('leaves the header a plain label with no rename handler', () => {

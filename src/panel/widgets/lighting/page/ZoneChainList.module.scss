@@ -1,17 +1,30 @@
-// The editor's zone list: one row per zone, then a footer with the add button,
-// the zone tools and the LED total at its right edge.
-.list {
+// The editor's Devices section: a header, then one chip per zone flowing in
+// wire order and wrapping, the add button after the last chip, the zone tools
+// and the LED total at the right edge.
+.section {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
 }
 
-.row {
-  position: relative;
+.header {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.chips {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  padding: 0.1rem 0.35rem 0.1rem 0;
+  flex-wrap: wrap;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.1rem 0.25rem 0.1rem 0;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
   background: var(--surface);
@@ -22,35 +35,41 @@
 
 // Marked for merge (modifier+click). Accent border only, so the editable
 // (active) zone's filled treatment stays distinguishable.
-.rowMarked { border-color: var(--accent); }
+.chipMarked { border-color: var(--accent); }
 
 // The zone whose LEDs are editable on the canvas.
-.rowActive {
+.chipActive {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
 
-// A custom zone not sized yet: dashed until its count is typed.
-.rowPending {
+// A generic not sized yet: dashed until its count is typed.
+.chipPending {
   border-style: dashed;
   border-color: var(--border-strong);
 }
 
-.zoneName {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 0.25rem 0.3rem 0.25rem 0.6rem;
+.chipName {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.3rem 0.15rem 0.6rem;
   font-size: var(--type-small);
   border: none;
   background: transparent;
   color: var(--text);
   cursor: pointer;
-  text-align: left;
   white-space: nowrap;
+  max-width: 12rem;
   overflow: hidden;
   text-overflow: ellipsis;
 
   &:disabled { cursor: default; }
+}
+
+// Wire order down the port, drawn between chips.
+.chainSep {
+  flex-shrink: 0;
+  color: var(--text-dim);
 }
 
 .pick,
@@ -74,8 +93,7 @@
 
 .zoneCount {
   flex-shrink: 0;
-  min-width: 2.5rem;
-  text-align: right;
+  padding: 0 0.15rem;
   font-size: var(--type-small);
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
@@ -83,7 +101,7 @@
 
 .zoneCountInput {
   flex-shrink: 0;
-  width: 3.5rem;
+  width: 3.2rem;
   padding: 0.2rem 0.4rem;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
@@ -98,13 +116,6 @@
   &:disabled { opacity: 0.5; }
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-}
-
-.footer {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-wrap: wrap;
 }
 
 // Anchors the add picker under its button.

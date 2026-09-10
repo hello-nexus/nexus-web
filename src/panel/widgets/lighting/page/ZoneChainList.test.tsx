@@ -62,12 +62,26 @@ const countInputs = () => document.querySelectorAll<HTMLInputElement>(`.${styles
 const pickButtons = () => screen.queryAllByRole('button', { name: 'lighting.ledMap.assignDevice' });
 
 describe('ZoneChainList on a chainable port', () => {
-  it('lists one row per zone by its product name, plus the total', () => {
+  it('lists one chip per zone by its product name under a Devices header, plus the total', () => {
     setup(port, true);
+    expect(screen.getByText('lighting.rightPane.devices')).toBeTruthy();
     expect(screen.getByText('Generic Fan')).toBeTruthy();
     expect(screen.getByText('Corsair QX Fan')).toBeTruthy();
     expect(screen.getByText('Generic Strip')).toBeTruthy();
     expect(total()).toBe('76');
+  });
+
+  it('flows the chips inline in wire order, an order mark between each pair, the add button after the last', () => {
+    setup(port, true);
+    const chips = document.querySelectorAll(`.${styles.chips}`);
+    expect(chips).toHaveLength(1);
+    const kinds = Array.from(chips[0].children).map(el =>
+      el.classList.contains(styles.chip) ? 'chip'
+        : el.classList.contains(styles.chainSep) ? 'sep'
+          : el.classList.contains(styles.addWrap) ? 'add'
+            : el.classList.contains(styles.total) ? 'total'
+              : 'other');
+    expect(kinds.filter(k => k !== 'other')).toEqual(['chip', 'sep', 'chip', 'sep', 'chip', 'add', 'total']);
   });
 
   it('locks a product count to the enabled/total readout and types a generic count', () => {
@@ -87,16 +101,16 @@ describe('ZoneChainList on a chainable port', () => {
     expect(onSelect).toHaveBeenLastCalledWith('p:z0', true);
   });
 
-  it('marks the active and merge-marked rows', () => {
+  it('marks the active and merge-marked chips', () => {
     setup(port, true, { selectedZoneId: 'p:z1', markedIds: new Set(['p:z1', 'p:z2']) });
-    const rows = document.querySelectorAll(`.${styles.row}`);
-    expect(rows[1].className).toContain(styles.rowActive);
-    expect(rows[2].className).toContain(styles.rowMarked);
-    expect(rows[2].className).not.toContain(styles.rowActive);
-    expect(rows[0].className).not.toContain(styles.rowMarked);
+    const chips = document.querySelectorAll(`.${styles.chip}`);
+    expect(chips[1].className).toContain(styles.chipActive);
+    expect(chips[2].className).toContain(styles.chipMarked);
+    expect(chips[2].className).not.toContain(styles.chipActive);
+    expect(chips[0].className).not.toContain(styles.chipMarked);
   });
 
-  it('picks a product for a row from the catalog, with no count of its own', async () => {
+  it('picks a product for a chip from the catalog, with no count of its own', async () => {
     const { onChange } = setup(port, true);
     fireEvent.click(pickButtons()[0]);
     await waitFor(() => expect(fetchMappingCatalog).toHaveBeenCalled());
@@ -105,14 +119,14 @@ describe('ZoneChainList on a chainable port', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
   });
 
-  it('picks a generic for a row at the row\'s current count', async () => {
+  it('picks a generic for a chip at the chip\'s current count', async () => {
     const { onChange } = setup(port, true);
     fireEvent.click(pickButtons()[1]);
     fireEvent.click(await screen.findByRole('option', { name: GENERIC_FAN.name }));
     expect(onChange).toHaveBeenCalledWith(1, { key: 'generic:fan', ledCount: 34 });
   });
 
-  it('marks the row\'s current product in the picker and hides a generic\'s count there', async () => {
+  it('marks the chip\'s current product in the picker and hides a generic\'s count there', async () => {
     setup(port, true);
     fireEvent.click(pickButtons()[1]);
     const current = await screen.findByRole('option', { name: new RegExp(QX.name) });
@@ -142,13 +156,13 @@ describe('ZoneChainList on a chainable port', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('removes a row', () => {
+  it('removes a chip', () => {
     const { onRemove } = setup(port, true);
     fireEvent.click(screen.getAllByRole('button', { name: 'lighting.ledMap.chainRemove' })[2]);
     expect(onRemove).toHaveBeenCalledWith(2);
   });
 
-  it('keeps the last row: a port always has a zone', () => {
+  it('keeps the last chip: a port always has a zone', () => {
     setup([port[1]], true);
     expect(screen.queryByRole('button', { name: 'lighting.ledMap.chainRemove' })).toBeNull();
   });
@@ -166,6 +180,8 @@ describe('ZoneChainList on a chainable port', () => {
     fireEvent.click(await screen.findByRole('option', { name: GENERIC_FAN.name }));
     expect(onAdd).not.toHaveBeenCalled();
     expect(screen.getAllByText('Generic Fan')).toHaveLength(2);
+    expect(document.querySelectorAll(`.${styles.chipPending}`)).toHaveLength(1);
+    expect(document.querySelectorAll(`.${styles.chainSep}`)).toHaveLength(3);
     const pending = countInputs()[2];
     expect(pending.value).toBe('');
     fireEvent.change(pending, { target: { value: '16' } });
@@ -196,8 +212,10 @@ describe('ZoneChainList on a chainable port', () => {
 });
 
 describe('ZoneChainList on a device with fixed zones', () => {
-  it('renders every row read-only with its count and the total', () => {
+  it('renders every chip read-only with its count and the total, and no order marks', () => {
     setup(keeb, false);
+    expect(screen.getByText('lighting.rightPane.devices')).toBeTruthy();
+    expect(document.querySelectorAll(`.${styles.chainSep}`)).toHaveLength(0);
     expect(screen.getByText('Keys')).toBeTruthy();
     expect(screen.getByText('Underglow')).toBeTruthy();
     expect(screen.getByText('96')).toBeTruthy();
@@ -209,7 +227,7 @@ describe('ZoneChainList on a device with fixed zones', () => {
     expect(screen.queryByRole('button', { name: 'lighting.ledMap.chainRemove' })).toBeNull();
   });
 
-  it('still selects a zone from its row', () => {
+  it('still selects a zone from its chip', () => {
     const { onSelect } = setup(keeb, false);
     fireEvent.click(screen.getByText('Underglow'));
     expect(onSelect).toHaveBeenCalledWith('k:under', false);

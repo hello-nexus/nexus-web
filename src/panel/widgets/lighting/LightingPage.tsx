@@ -1227,6 +1227,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           ? { ...d, parentName: undefined }
           : { ...d, parentName: name };
       }
+      // A device rename is keyed on the device id, so it lands on every zone
+      // of that device (a board port's chain).
+      if (d.deviceId === id) {
+        return name === ''
+          ? { ...d, deviceName: undefined }
+          : { ...d, deviceName: name };
+      }
       return d;
     }));
   }, []);

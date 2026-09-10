@@ -90,6 +90,7 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
       <ZoneCardStack
         key={block.groupKey}
         name={block.label}
+        selected={block.devices.some(d => selectedIds.has(d.id))}
         onSelect={pickable.length > 0 ? () => toggleAll(pickable) : undefined}
       >
         {block.devices.map((d, i) => card(d, indent, stripParentPrefix(d.name, block.stripLabel), i === block.devices.length - 1 ? 'last' : 'inner'))}

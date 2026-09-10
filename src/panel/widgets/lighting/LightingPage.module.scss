@@ -1085,6 +1085,12 @@
   cursor: pointer;
 }
 
+// Any zone under the header selected: the fill only, so the selected zone's
+// own accent border stays the one outline in the card.
+.deviceCardStackHeaderSelected {
+  background: var(--accent-soft);
+}
+
 .deviceCardStackName {
   flex: 0 1 auto;
   min-width: 0;
