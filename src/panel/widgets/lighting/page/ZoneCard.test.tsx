@@ -624,6 +624,15 @@ describe('ZoneCard rename', () => {
     expect(screen.queryByDisplayValue('Test Strip')).toBeNull();
   });
 
+  it('selects the card when the name is clicked, like any other part of it', () => {
+    // The name used to swallow the click so it could open an editor; with
+    // rename on the menu it is just part of the card surface.
+    const onSelect = vi.fn();
+    renderRenameable({ onSelect });
+    fireEvent.click(screen.getByText('Test Strip'));
+    expect(onSelect).toHaveBeenCalled();
+  });
+
   it('edits the shown name, so a grouped zone renames off its stripped label', () => {
     const onRename = vi.fn();
     renderRenameable({ displayName: 'ARGB header 1', indent: true }, onRename);

@@ -566,10 +566,14 @@ export function ZoneCard({
         {renameEnabled ? (
           /* display:contents span carries data-no-dnd onto a real DOM node
              (EditableText doesn't forward unknown props) so a press on the name
-             edits it instead of starting a card drag; no layout change. The
-             click guard is the card's, not the sort list's: ZoneCard selects on
-             any bare-surface click, which would fight the edit. */
-          <span data-no-dnd style={{ display: 'contents' }} onClick={e => e.stopPropagation()}>
+             does not start a card drag while a rename is open; no layout change.
+             Only a click inside the open editor is withheld from the card - on
+             the label it must select, like any other part of the card. */
+          <span
+            data-no-dnd
+            style={{ display: 'contents' }}
+            onClick={e => { if ((e.target as HTMLElement).tagName === 'INPUT') e.stopPropagation(); }}
+          >
             {/* Rename is a context-menu action: clicking a card's name should
                 select the card, not open a text field under the cursor. */}
             <EditableText
