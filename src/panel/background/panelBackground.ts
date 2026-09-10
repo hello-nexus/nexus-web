@@ -21,13 +21,12 @@ export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
 export const DEFAULT_PANEL_BACKGROUND_TEMPLATE = 0;
-// Background opacity defaults are mode-aware: a solid colour reads as the full
-// backdrop (opaque), while a shader/media overlay sits half-strength over the
-// theme background so widgets stay legible. Applied at record-read time when a
-// panel has no stored opacity; normalizePanelBackgroundOpacity only clamps an
-// already-stored concrete value.
+// A panel with no stored opacity shows its background at full strength in
+// every mode - a new panel is meant to look like the background the user
+// picked, not a dimmed one. Applied at record-read time;
+// normalizePanelBackgroundOpacity only clamps an already-stored concrete value.
 export const DEFAULT_SOLID_BACKGROUND_OPACITY = 1;
-export const DEFAULT_OVERLAY_BACKGROUND_OPACITY = 0.5;
+export const DEFAULT_OVERLAY_BACKGROUND_OPACITY = 1;
 
 export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): number {
   return mode === 'solid' ? DEFAULT_SOLID_BACKGROUND_OPACITY : DEFAULT_OVERLAY_BACKGROUND_OPACITY;
@@ -37,13 +36,13 @@ export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): numb
 // the install-defaults cache. Read through the cache for one source of truth
 // (as defaultLayout.ts does). The literals below are only the bootstrap-race
 // fallback before the cache fills, and must match the JSON.
-const WIDGET_OPACITY_FALLBACK = 0.5;
+const WIDGET_OPACITY_FALLBACK = 0.7;
 const WIDGET_LABELS_FALLBACK = false;
 // Not read from install-defaults: install-defaults.json has no widgetPadding
 // entry (the service DTO stores it as a nullable percent, defaulting to this
 // constant client-side, same as a null WidgetOpacity would if it had no
 // install-defaults entry either).
-const WIDGET_PADDING_DEFAULT_PERCENT = 50;
+const WIDGET_PADDING_DEFAULT_PERCENT = 100;
 
 export const defaultPanelWidgetOpacity = (): number =>
   getInstallDefaults()?.panel.widgetOpacity ?? WIDGET_OPACITY_FALLBACK;

@@ -114,11 +114,11 @@ describe('panelBackgroundPair', () => {
 });
 
 describe('normalizePanelWidgetPadding', () => {
-  it('defaults to 50 percent', () => {
-    expect(defaultPanelWidgetPadding()).toBe(50);
-    expect(normalizePanelWidgetPadding(null)).toBe(50);
-    expect(normalizePanelWidgetPadding(undefined)).toBe(50);
-    expect(normalizePanelWidgetPadding(Number.NaN)).toBe(50);
+  it('defaults to 100 percent', () => {
+    expect(defaultPanelWidgetPadding()).toBe(100);
+    expect(normalizePanelWidgetPadding(null)).toBe(100);
+    expect(normalizePanelWidgetPadding(undefined)).toBe(100);
+    expect(normalizePanelWidgetPadding(Number.NaN)).toBe(100);
   });
 
   it('clamps a stored value to 0-100', () => {

@@ -42,6 +42,15 @@
   --panel-scrim-bg: rgb(0 0 0 / var(--alpha-strong));
 
   --panel-card-radius: var(--radius);
+  // Cell-scaled card radius. Surfaces opt in by assigning it to
+  // --panel-card-radius (PanelApp.module.scss); it lives here so the grid and
+  // the drag clone portaled out of the panel root share one formula. Keys off
+  // the smaller cell axis so a wide cell reads as rounded as a small one.
+  --panel-card-radius-auto: clamp(
+    var(--radius-lg),
+    calc(min(var(--panel-cell-size), var(--panel-row-size, var(--panel-cell-size))) * 0.14),
+    40px
+  );
   // Inner widget elements (Steam/cooling/lighting sub-cards, the Discord card
   // border) read --panel-card-bg = the shared translucent --surface directly.
   --panel-card-bg: var(--surface);

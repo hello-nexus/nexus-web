@@ -201,9 +201,10 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundEffect: effect,
     backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
     backgroundTemplates: templates,
-    // No stored opacity: mode-aware default (solid opaque, overlay 50%), except
-    // under a non-theme backdrop, which is opaque so see-through never
-    // inherits a shader/media dim.
+    // No stored opacity: full strength in every mode (see
+    // defaultBackgroundOpacityForMode, which keeps the per-mode seam), and
+    // likewise under a non-theme backdrop, which must stay opaque so
+    // see-through never inherits a shader/media dim.
     backgroundOpacity: r?.backgroundOpacity == null
       ? (backdrop !== 'theme' ? 1 : defaultBackgroundOpacityForMode(bgMode))
       : normalizePanelBackgroundOpacity(r.backgroundOpacity),

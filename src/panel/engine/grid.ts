@@ -27,9 +27,8 @@ export const DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES = 4;
 // are both solved as a fraction of the resolved cell size (resolvePanelSpacing),
 // so the inset reads as the same proportion of a widget on every device
 // instead of a flat px value that reads thicker on a small cell and thinner
-// on a large one. 50% (the default) reproduces the panel's original y70
-// look; this constant is the ratio at 100%, tune it to change the slider's
-// entire range proportionally.
+// on a large one. This constant is the ratio at 100%; tune it to change the
+// slider's entire range proportionally.
 export const PANEL_WIDGET_PADDING_MAX_RATIO = 0.09;
 
 export function panelWidgetPaddingRatio(percent: number): number {

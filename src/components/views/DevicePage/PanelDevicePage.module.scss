@@ -178,6 +178,15 @@
   }
 }
 
+// Tab-row actions (Change background, screenshot). Ghost buttons here sit on
+// the bare page backdrop with no resting fill, so the tone's --bg-card-hover
+// hover block reads as a card appearing out of nowhere. Doubled class to
+// outrank Button's own .tone-ghost:hover rule regardless of module order; the
+// hover still brightens the label + icon via the tone's colour change.
+.headerAction.headerAction:hover:not(:disabled) {
+  background: transparent;
+}
+
 .tabContent {
   flex: 1;
   min-height: 0;

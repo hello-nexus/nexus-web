@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
@@ -112,6 +112,14 @@ export interface PanelThemeSettingsProps {
   /** Show the backdrop selector. Kiosk-hosted surfaces (y70 / monitor) only:
    * the wallpaper and see-through modes need a desktop behind the panel. */
   showBackdropSelector?: boolean;
+  /** Bumped by the caller to scroll the Background section into view (the
+   * header's "Change background" action, which switches to this tab first).
+   * 0 = nothing pending, so a plain tab switch keeps the scroll at the top. */
+  scrollToBackgroundSignal?: number;
+  /** Called once the scroll above has been performed. The caller MUST clear
+   * the signal here: the Theme tab unmounts on every tab switch, so a signal
+   * left standing would re-scroll on each remount. */
+  onBackgroundScrollHandled?: () => void;
 }
 
 export function PanelThemeSettings({
@@ -148,6 +156,8 @@ export function PanelThemeSettings({
   hideWidgetLabelsToggle = false,
   hideWidgetChromeControls = false,
   showBackdropSelector = false,
+  scrollToBackgroundSignal = 0,
+  onBackgroundScrollHandled,
 }: PanelThemeSettingsProps) {
   const { t } = useTranslation();
   const label = (key: string, fallback: string) => {
@@ -182,6 +192,18 @@ export function PanelThemeSettings({
   // EffectEditor shell) so the preview + tab bars + chips can sit in one
   // sticky dock while the grid / controls scroll with the page.
   const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
+
+  // Background is the last section, so the request has to scroll the settings
+  // scrollport. The effect also covers the mount case: the caller bumps the
+  // signal while switching to the Theme tab, so this component is mounting
+  // with the new value rather than seeing it change. Clearing it through the
+  // callback is what keeps a later remount of this tab from re-scrolling.
+  const backgroundSectionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!scrollToBackgroundSignal) return;
+    backgroundSectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    onBackgroundScrollHandled?.();
+  }, [scrollToBackgroundSignal, onBackgroundScrollHandled]);
 
   // The same Options | Effect editing surface as the immersive lighting view,
   // here targeting this panel's per-device background effect (animate-only).
@@ -337,126 +359,128 @@ export function PanelThemeSettings({
         </div>
       </SettingsSection>
 
-      <SettingsSection title={label('devices.y70.theme.background', 'Background')} boxClassName={styles.backgroundBox}>
-        {/* Single aside child so the box adds no row dividers between the
-            opacity slider, mode tabs, and the mode content. */}
-        <div className={styles.backgroundContent} data-settings-aside>
-          {showBackdropSelector && (
-            <SettingRow
-              label={label('panel.settings.backdrop', 'Backdrop')}
-              description={backdropDescription}
-              descriptionBelow
-            >
-              <ChipGroup
-                ariaLabel={label('panel.settings.backdrop', 'Backdrop')}
-                activeKey={theme.backdrop}
-                onChange={key => onBackdropCommit(key as PanelBackdrop)}
-                options={backdropOptions}
-              />
-            </SettingRow>
-          )}
-          {/* Frost and opacity stay visible under every backdrop, which
-              hides the theme-only mode controls below. */}
-          <SettingSlider
-            // Slider does not forward `disabled` to the editable value, whose
-            // display span is focusable - gate it here or a keyboard user can
-            // still commit through a disabled control.
-            editable={frostApplies}
-            trackFill
-            disabled={!frostApplies}
-            label={label('panel.settings.backgroundFrost', 'Frosted glass')}
-            description={label('panel.settings.backgroundFrost.desc', 'Improves clarity on busy backdrops')}
-            descriptionBelow
-            value={theme.backgroundFrost}
-            min={0}
-            max={100}
-            step={PANEL_BACKGROUND_FROST_STEP}
-            formatValue={v => `${v}%`}
-            onChange={(v, commit) => {
-              if (commit) onBackgroundFrostCommit(v);
-              else onBackgroundFrostPreview(v);
-            }}
-            onCommit={onBackgroundFrostCommit}
-          />
-          {theme.backdrop === 'desktop' ? null : backgroundOpacitySlider}
-          {theme.backdrop !== 'theme' ? null : (
-          <>
-          {theme.backgroundMode === 'solid' ? (
-            <>
-              {backgroundModeChips}
-              <ColorPickerWithPresets
-                value={resolvePanelBackground(theme.backgroundColor, theme.backgroundColorLight, resolvedThemeMode)}
-                presets={panelBackgroundPresets(resolvedThemeMode)}
-                fallback={panelBackgroundDefault(resolvedThemeMode)}
-                onPreview={onBackgroundPreview}
-                onCommit={onBackgroundCommit}
-                allowCustom
-              />
-            </>
-          ) : theme.backgroundMode === 'media' ? (
-            <>
-              {backgroundModeChips}
-              <BackgroundMediaPicker
-                deviceId={deviceId ?? ''}
-                activeId={theme.backgroundMediaId}
-                deviceAspect={deviceAspect}
-                deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
-                deviceH={deviceH ?? 1280}
-                onSelect={(mediaId, type, alpha) => onBackgroundMediaCommit(mediaId, type, alpha)}
-              />
-            </>
-          ) : (
-            <>
-              <div className={styles.backgroundDock}>
-                {backgroundModeChips}
-                <BackgroundEffectPreview
-                  effect={backgroundEffect}
-                  template={backgroundTemplate}
-                  effectState={theme.backgroundEffectState}
-                />
+      <div ref={backgroundSectionRef}>
+        <SettingsSection title={label('devices.y70.theme.background', 'Background')} boxClassName={styles.backgroundBox}>
+          {/* Single aside child so the box adds no row dividers between the
+              opacity slider, mode tabs, and the mode content. */}
+          <div className={styles.backgroundContent} data-settings-aside>
+            {showBackdropSelector && (
+              <SettingRow
+                label={label('panel.settings.backdrop', 'Backdrop')}
+                description={backdropDescription}
+                descriptionBelow
+              >
                 <ChipGroup
-                  fullWidth
-                  options={[
-                    // eslint-disable-next-line i18next/no-literal-string -- editor tab id
-                    { key: 'options', label: t('lighting.editor.options') },
-                    // eslint-disable-next-line i18next/no-literal-string -- editor tab id
-                    { key: 'effect', label: t('lighting.rightPane.effect') },
-                  ]}
-                  activeKey={editorTab}
-                  onChange={key => setEditorTab(key as 'options' | 'effect')}
-                  ariaLabel={t('lighting.rightPane.label')}
+                  ariaLabel={label('panel.settings.backdrop', 'Backdrop')}
+                  activeKey={theme.backdrop}
+                  onChange={key => onBackdropCommit(key as PanelBackdrop)}
+                  options={backdropOptions}
                 />
-              </div>
-              {editorTab === 'options' ? (
-                <AnimateGrid
-                  effect={backgroundEffect}
-                  onSelect={onBackgroundEffectCommit}
-                  effects={PANEL_BACKGROUND_EFFECTS}
-                  slotFor={backgroundController.slotFor}
-                  versionFor={backgroundController.versionFor}
-                  rgbActiveEffect={backgroundController.rgbActiveEffect}
-                  panelEffects={panelUsage.effects}
+              </SettingRow>
+            )}
+            {/* Frost and opacity stay visible under every backdrop, which
+                hides the theme-only mode controls below. */}
+            <SettingSlider
+              // Slider does not forward `disabled` to the editable value, whose
+              // display span is focusable - gate it here or a keyboard user can
+              // still commit through a disabled control.
+              editable={frostApplies}
+              trackFill
+              disabled={!frostApplies}
+              label={label('panel.settings.backgroundFrost', 'Frosted glass')}
+              description={label('panel.settings.backgroundFrost.desc', 'Improves clarity on busy backdrops')}
+              descriptionBelow
+              value={theme.backgroundFrost}
+              min={0}
+              max={100}
+              step={PANEL_BACKGROUND_FROST_STEP}
+              formatValue={v => `${v}%`}
+              onChange={(v, commit) => {
+                if (commit) onBackgroundFrostCommit(v);
+                else onBackgroundFrostPreview(v);
+              }}
+              onCommit={onBackgroundFrostCommit}
+            />
+            {theme.backdrop === 'desktop' ? null : backgroundOpacitySlider}
+            {theme.backdrop !== 'theme' ? null : (
+            <>
+            {theme.backgroundMode === 'solid' ? (
+              <>
+                {backgroundModeChips}
+                <ColorPickerWithPresets
+                  value={resolvePanelBackground(theme.backgroundColor, theme.backgroundColorLight, resolvedThemeMode)}
+                  presets={panelBackgroundPresets(resolvedThemeMode)}
+                  fallback={panelBackgroundDefault(resolvedThemeMode)}
+                  onPreview={onBackgroundPreview}
+                  onCommit={onBackgroundCommit}
+                  allowCustom
                 />
-              ) : (
-                <EffectControls
-                  effect={backgroundController.effect}
-                  state={backgroundController.state}
-                  bundle={backgroundController.bundle}
-                  canReset={backgroundController.canReset}
-                  onTemplateSelect={backgroundController.onTemplateSelect}
-                  onChange={backgroundController.onChange}
-                  onCommit={backgroundController.onCommit}
-                  onReset={backgroundController.onReset}
-                  rgbActiveSlot={backgroundController.rgbActiveSlot}
-                  panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
+              </>
+            ) : theme.backgroundMode === 'media' ? (
+              <>
+                {backgroundModeChips}
+                <BackgroundMediaPicker
+                  deviceId={deviceId ?? ''}
+                  activeId={theme.backgroundMediaId}
+                  deviceAspect={deviceAspect}
+                  deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
+                  deviceH={deviceH ?? 1280}
+                  onSelect={(mediaId, type, alpha) => onBackgroundMediaCommit(mediaId, type, alpha)}
                 />
-              )}
+              </>
+            ) : (
+              <>
+                <div className={styles.backgroundDock}>
+                  {backgroundModeChips}
+                  <BackgroundEffectPreview
+                    effect={backgroundEffect}
+                    template={backgroundTemplate}
+                    effectState={theme.backgroundEffectState}
+                  />
+                  <ChipGroup
+                    fullWidth
+                    options={[
+                      // eslint-disable-next-line i18next/no-literal-string -- editor tab id
+                      { key: 'options', label: t('lighting.editor.options') },
+                      // eslint-disable-next-line i18next/no-literal-string -- editor tab id
+                      { key: 'effect', label: t('lighting.rightPane.effect') },
+                    ]}
+                    activeKey={editorTab}
+                    onChange={key => setEditorTab(key as 'options' | 'effect')}
+                    ariaLabel={t('lighting.rightPane.label')}
+                  />
+                </div>
+                {editorTab === 'options' ? (
+                  <AnimateGrid
+                    effect={backgroundEffect}
+                    onSelect={onBackgroundEffectCommit}
+                    effects={PANEL_BACKGROUND_EFFECTS}
+                    slotFor={backgroundController.slotFor}
+                    versionFor={backgroundController.versionFor}
+                    rgbActiveEffect={backgroundController.rgbActiveEffect}
+                    panelEffects={panelUsage.effects}
+                  />
+                ) : (
+                  <EffectControls
+                    effect={backgroundController.effect}
+                    state={backgroundController.state}
+                    bundle={backgroundController.bundle}
+                    canReset={backgroundController.canReset}
+                    onTemplateSelect={backgroundController.onTemplateSelect}
+                    onChange={backgroundController.onChange}
+                    onCommit={backgroundController.onCommit}
+                    onReset={backgroundController.onReset}
+                    rgbActiveSlot={backgroundController.rgbActiveSlot}
+                    panelSlots={panelUsage.slotsByEffect.get(backgroundController.effect)}
+                  />
+                )}
+              </>
+            )}
             </>
-          )}
-          </>
-          )}
-        </div>
-      </SettingsSection>
+            )}
+          </div>
+        </SettingsSection>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -250,6 +250,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const missedBroadcastRef = useRef(false);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
+  // Bumped by the header's "Change background" action: switches to the Theme
+  // tab and asks PanelThemeSettings to scroll its Background section into view.
+  const [backgroundScrollSignal, setBackgroundScrollSignal] = useState(0);
   const [resetPersonalizationConfirmOpen, setResetPersonalizationConfirmOpen] = useState(false);
   const [resettingPersonalization, setResettingPersonalization] = useState(false);
   const [resetHardwareConfirmOpen, setResetHardwareConfirmOpen] = useState(false);
@@ -802,6 +805,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout(next);
   }, [editorCapacity, layout, updateLayout]);
 
+  // Cleared as soon as the theme tab has scrolled: the tab unmounts on every
+  // tab switch, and a standing signal would re-scroll on each remount.
+  const clearBackgroundScrollSignal = useCallback(() => setBackgroundScrollSignal(0), []);
+
   // Page navigation. The active page rides in layout.activePageId; writing it
   // moves the preview iframe (via set-layout) and the on-device panel (via the
   // panel/device refetch), keeping both in step. PanelContent maps the id back
@@ -992,15 +999,31 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         // disconnected states render an EmptyState with no embed frame, so the
         // button could do nothing but report an error.
         tabActions={showFwGate || showDisconnected ? undefined : (
-          <Button
-            size="sm"
-            tone="ghost"
-            icon={<Camera size={14} />}
-            title={t('devices.panels.screenshot')}
-            aria-label={t('devices.panels.screenshot')}
-            loading={screenshotBusy}
-            onClick={() => { void takeScreenshot(); }}
-          />
+          <>
+            <Button
+              size="sm"
+              tone="ghost"
+              className={styles.headerAction}
+              icon={<Wallpaper size={14} />}
+              onClick={() => {
+                setConfiguringWidgetId(null);
+                setTab('theme');
+                setBackgroundScrollSignal(n => n + 1);
+              }}
+            >
+              {t('devices.panels.changeBackground')}
+            </Button>
+            <Button
+              size="sm"
+              tone="ghost"
+              className={styles.headerAction}
+              icon={<Camera size={14} />}
+              title={t('devices.panels.screenshot')}
+              aria-label={t('devices.panels.screenshot')}
+              loading={screenshotBusy}
+              onClick={() => { void takeScreenshot(); }}
+            />
+          </>
         )}
       />
       <div className={`${styles.pageBody} pageBody`}>
@@ -1110,6 +1133,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         deviceH={nativeH}
                         hideWidgetLabelsToggle={singleWidget}
                         hideWidgetChromeControls={singleWidget}
+                        scrollToBackgroundSignal={backgroundScrollSignal}
+                        onBackgroundScrollHandled={clearBackgroundScrollSignal}
                       />
                     );
                   })()}

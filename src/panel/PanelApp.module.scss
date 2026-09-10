@@ -23,9 +23,6 @@
   // Inner padding between the card edge and widget contents. 0 = contents
   // reach the rounded edge; raise for uniform breathing room on all sides.
   --panel-widget-card-inner-pad: 0px;
-  // Kiosk surfaces use a larger corner radius so big cells read as
-  // proportionally rounded as the smaller desktop cells (--radius=10px).
-  --panel-card-radius: var(--radius-lg);
   &[data-show-widget-labels='false'] {
     --panel-widget-label-strip: 0px;
     --panel-widget-card-margin-x: 0px;
@@ -52,6 +49,17 @@
   // Prevent text selection and long-press context menu on the kiosk.
   user-select: none;
   -webkit-user-select: none;
+}
+
+// Card radius for every panel surface that doesn't set its own below.
+// MUST stay on [data-surface]: the same element also carries the global
+// `panel-root` class, whose tokens.scss block sets --panel-card-radius at
+// equal specificity, and that chunk loads later - a plain .panelRoot rule
+// here never applies, which is how kiosk cards ended up at the desktop
+// --radius. Scaled off the smaller cell axis so a wide cell reads as rounded
+// as a small one instead of nearly square; --radius-lg is the floor.
+.panelRoot[data-surface] {
+  --panel-card-radius: var(--panel-card-radius-auto);
 }
 
 .backgroundShader {
@@ -1746,6 +1754,22 @@
   height: auto;
   background: transparent;
   overflow: visible;
+}
+
+// The clone is portaled to <body>, outside .panelRoot, so none of the
+// per-surface radius rules above reach it - mirror them here or a picked-up
+// tile renders at a different corner radius than the cells behind it.
+.dragOverlayHost[data-surface] {
+  --panel-card-radius: var(--panel-card-radius-auto);
+}
+
+.dragOverlayHost[data-surface='phone'],
+.dragOverlayHost[data-surface='q60'] {
+  --panel-card-radius: var(--radius-lg);
+}
+
+.dragOverlayHost[data-surface='desktop'] {
+  --panel-card-radius: var(--radius);
 }
 
 .dragOverlayCell {
