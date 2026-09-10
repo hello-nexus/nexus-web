@@ -13,6 +13,16 @@ vi.mock('../../../../lib/i18n', () => ({
   }),
 }));
 
+const identify = vi.hoisted(() => ({ api: vi.fn(() => Promise.resolve(null)), flash: vi.fn() }));
+vi.mock('../../../../api/lighting', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../../api/lighting')>()),
+  identifyLightingDevice: identify.api,
+}));
+vi.mock('../../../../lib/identifyFlash', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../../lib/identifyFlash')>()),
+  startIdentify: identify.flash,
+}));
+
 const device = (id: string, name: string, extra: Partial<LightingDevice> = {}): LightingDevice => ({
   id, name, ledsOn: true, ledCount: 10,
   canvasX: 0, canvasY: 0, canvasW: 1, canvasH: 1, canvasRotation: 0,
@@ -250,7 +260,7 @@ describe('DevicePanel split card header', () => {
   ];
 
   function renderRail(list: LightingDevice[], over: Partial<React.ComponentProps<typeof DevicePanel>> = {}) {
-    const mocks = { onSetSelection: vi.fn(), onSetPower: vi.fn(), onSetControlled: vi.fn(), onRenameDevice: vi.fn() };
+    const mocks = { onSetSelection: vi.fn(), onSetPower: vi.fn(), onSetControlled: vi.fn(), onRenameDevice: vi.fn(), onOpenSettings: vi.fn() };
     render(
       <DevicePanel
         devices={list}
@@ -261,7 +271,7 @@ describe('DevicePanel split card header', () => {
         onToggleControlled={() => {}}
         onSetControlled={mocks.onSetControlled}
         lightingOff={false}
-        onOpenSettings={() => {}}
+        onOpenSettings={mocks.onOpenSettings}
         onRenameDevice={mocks.onRenameDevice}
         {...over}
       />,
@@ -316,6 +326,53 @@ describe('DevicePanel split card header', () => {
     expect(header.children).toHaveLength(2);
     expect(header.lastElementChild?.tagName).toBe('BUTTON');
     expect(header.lastElementChild?.className).toContain(styles.deviceCardStackMenuBtn);
+  });
+
+  it('orders the header menu the way a card orders its own rows', () => {
+    renderRail(keeb.map(d => ({ ...d, deviceName: 'Desk keyboard' })));
+    openMenu('Desk keyboard');
+    const rows = screen.getAllByRole('button').map(b => b.textContent ?? '').filter(x => x.startsWith('lighting.'));
+    expect(rows).toEqual([
+      'lighting.devices.identify',
+      'lighting.ledMap.settings',
+      'lighting.devices.menuLightsOff',
+      'lighting.devices.menuControlOff',
+      'lighting.devices.rename',
+      'lighting.devices.resetName',
+    ]);
+  });
+
+  it('identifies every zone of the device from the header menu, not only the first', () => {
+    identify.api.mockClear();
+    identify.flash.mockClear();
+    renderRail(keeb);
+    openMenu('HYTE Keeb TKL');
+    fireEvent.click(screen.getByRole('button', { name: /devices\.identify/ }));
+    expect(identify.flash.mock.calls.map(c => c[0])).toEqual(['keeb:tkl-1:keys', 'keeb:tkl-1:underglow']);
+    expect(identify.api.mock.calls.map(c => c[0])).toEqual(['keeb:tkl-1:keys', 'keeb:tkl-1:underglow']);
+  });
+
+  it('skips zones with no LEDs when identifying, and drops the row when none has any', () => {
+    identify.flash.mockClear();
+    renderRail([keeb[0], { ...keeb[1], ledCount: 0 }]);
+    openMenu('HYTE Keeb TKL');
+    fireEvent.click(screen.getByRole('button', { name: /devices\.identify/ }));
+    expect(identify.flash.mock.calls.map(c => c[0])).toEqual(['keeb:tkl-1:keys']);
+    fireEvent.click(screen.getByRole('button', { name: /devices\.identify/ }));
+  });
+
+  it('opens the LED map editor for the device from the header menu', () => {
+    const { onOpenSettings } = renderRail(board);
+    openMenu('ARGB_V2_2');
+    fireEvent.click(screen.getByRole('button', { name: /ledMap\.settings/ }));
+    expect(onOpenSettings).toHaveBeenCalledWith('openrgb-C000-1:z0');
+  });
+
+  it('offers the same rows from a right-click on the header', () => {
+    const { onOpenSettings } = renderRail(keeb);
+    fireEvent.contextMenu(headerName('HYTE Keeb TKL'));
+    fireEvent.click(screen.getByRole('button', { name: /ledMap\.settings/ }));
+    expect(onOpenSettings).toHaveBeenCalledWith('keeb:tkl-1:keys');
   });
 
   it('turns every zone of the device off from the header menu', () => {

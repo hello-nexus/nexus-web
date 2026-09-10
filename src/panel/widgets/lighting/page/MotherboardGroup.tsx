@@ -136,7 +136,6 @@ export function MotherboardGroup({
         ariaLabel={toggleLabel}
         onTitleRename={onRename}
         titleRenameRef={nameRef}
-        titleClickToRename={false}
         onHeaderContextMenu={hideActions ? undefined : e => {
           e.preventDefault();
           e.stopPropagation();

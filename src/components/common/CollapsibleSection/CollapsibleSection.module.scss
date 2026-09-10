@@ -147,10 +147,8 @@
   }
 }
 
-// Wrapper around a title whose rename lives on the context menu: it carries the
-// toggle click so the strip between the chevron and the fill is not dead.
+// A title whose rename lives on the context menu: it toggles like the rest of
+// the bar, so it shows the hand. The editor replaces it while a rename is open.
 .titleSlot {
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
+  cursor: pointer;
 }

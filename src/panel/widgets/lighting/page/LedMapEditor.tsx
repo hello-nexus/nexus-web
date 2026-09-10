@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square,
-  Pencil, Merge, Scissors, ListRestart, Users, Palette, Droplet, Lightbulb, CircleDot,
+  Merge, Scissors, ListRestart, Users, Palette, Droplet, Lightbulb, CircleDot,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
@@ -25,7 +25,7 @@ import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
-  pushHistory, redoHistory, relabelLedZones, renameZone, segmentOffsets, splitStagedZones,
+  pushHistory, redoHistory, relabelLedZones, segmentOffsets, splitStagedZones,
   splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
   zoneEnabledCounts, zoneLedCount,
   type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type StagedPartition,
@@ -86,7 +86,9 @@ type EditorMode = 'animation' | 'horizontal' | 'vertical' | 'none';
 
 type SavedLedState = { u: number; v: number; disabled: boolean; isCustom: boolean };
 
-type ZonePrompt = { mode: 'rename' } | { mode: 'split' };
+type ZonePrompt = { mode: 'split' };
+/** The community layouts button is hidden for now; the panel stays reachable from a card's community badge. */
+const COMMUNITY_BUTTON = false;
 
 // Sane client-side cap for zone names; mirrors the artifact name caps
 // enforced service-side.
@@ -712,11 +714,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setSelected(new Set());
   };
 
-  const handleRenameClick = () => {
-    if (!activeZone || saving) return;
-    setZonePrompt({ mode: 'rename' });
-  };
-
   const handleMergeClick = () => {
     if (!mergeCheck.ok || saving) return;
     const members = zonesOrdered.filter(z => zoneMultiSel.has(z.id));
@@ -736,15 +733,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setZonePrompt(null);
     const name = value.trim();
     if (!prompt || !name || !activeZone) return;
-    if (prompt.mode === 'rename') {
-      if (name === activeZone.name) return;
-      pushUndo();
-      // Rename keeps every zone's id (incl. the renamed one), so the live
-      // per-card endpoints keep working and no LED relabel is needed.
-      setStagedPartition({ kind: 'edited', zones: renameZone(zonesCurrent, activeZone.id, name) });
-      setDirty(true);
-      return;
-    }
     // The selection cannot have changed while the prompt was open, but the
     // parts are recomputed from live state to be safe.
     const parts = splitZone(activeZone, offsets, selected);
@@ -2001,17 +1989,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                     partition. */}
                 {!chainable && (
                   <>
-                    <HoverTooltip body={t('lighting.ledMap.zoneRename')} side="top">
-                      <button
-                        type="button"
-                        className={styles.iconBtn}
-                        disabled={!activeZone || saving}
-                        aria-label={t('lighting.ledMap.zoneRename')}
-                        onClick={handleRenameClick}
-                      >
-                        <Pencil size={13} />
-                      </button>
-                    </HoverTooltip>
                     <HoverTooltip body={mergeTooltip} side="top">
                       <button
                         type="button"
@@ -2050,28 +2027,32 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                         </button>
                       </HoverTooltip>
                     )}
-                    <div className={styles.separator} />
                   </>
                 )}
                 {/* Community layouts for the selected zone, in a modal stacked
                     on the editor. Zones without a deviceKey (custom partitions,
                     staged temp zones) cannot be fingerprinted, so the button
                     disables with an explanatory tooltip for them. */}
-                <HoverTooltip
-                  body={communityEnabled ? t('lighting.ledMap.community') : t('lighting.ledMap.communityUnavailable')}
-                  side="top"
-                >
-                  <button
-                    type="button"
-                    className={`${styles.btn} ${styles.communityBtn}`}
-                    disabled={!communityEnabled || saving}
-                    aria-label={t('lighting.ledMap.community')}
-                    onClick={() => setCommunityRequested(true)}
-                  >
-                    <Users size={13} aria-hidden />
-                    {t('lighting.ledMap.community')}
-                  </button>
-                </HoverTooltip>
+                {COMMUNITY_BUTTON && (
+                  <>
+                    <div className={styles.separator} />
+                    <HoverTooltip
+                      body={communityEnabled ? t('lighting.ledMap.community') : t('lighting.ledMap.communityUnavailable')}
+                      side="top"
+                    >
+                      <button
+                        type="button"
+                        className={`${styles.btn} ${styles.communityBtn}`}
+                        disabled={!communityEnabled || saving}
+                        aria-label={t('lighting.ledMap.community')}
+                        onClick={() => setCommunityRequested(true)}
+                      >
+                        <Users size={13} aria-hidden />
+                        {t('lighting.ledMap.community')}
+                      </button>
+                    </HoverTooltip>
+                  </>
+                )}
               </>
             ) : undefined}
           />
@@ -2668,10 +2649,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       />
       <PromptModal
         open={zonePrompt !== null}
-        title={zonePrompt?.mode === 'split' ? t('lighting.ledMap.zoneSplitTitle') : t('lighting.ledMap.zoneRename')}
+        title={t('lighting.ledMap.zoneSplitTitle')}
         message={t('lighting.ledMap.zoneNameMessage')}
         placeholder={t('lighting.ledMap.zoneNamePlaceholder')}
-        initialValue={zonePrompt?.mode === 'rename' ? activeZone?.name ?? '' : ''}
+        initialValue=""
         maxLength={MAX_ZONE_NAME_LENGTH}
         onConfirm={handleZonePromptConfirm}
         onCancel={() => setZonePrompt(null)}

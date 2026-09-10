@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { DeviceCanvas } from './DeviceCanvas';
+import { DeviceCanvas, canvasLabelName } from './DeviceCanvas';
 import styles from './DeviceCanvas.module.scss';
 import type { LightingDevice } from '../../../api/lighting';
 
@@ -255,6 +255,40 @@ describe('DeviceCanvas', () => {
     expect(screen.getByText('Alpha').style.top).toBe(`${(325 / 600) * 100}%`);
     expect(screen.getByText('Bravo').style.top).toBe(`${(325 / 600) * 100}%`);
     rectSpy.mockRestore();
+  });
+
+  // Hardware names carry their ancestry ("{board} - {port} - {product}") for
+  // the rail; the frame only has room for the card's own part.
+  describe('label text', () => {
+    const named = (name: string, originalName?: string): LightingDevice =>
+      ({ ...dragDevice('n', name), originalName }) as LightingDevice;
+
+    it('shows a chained zone as its product, and a keeb zone as its zone', () => {
+      expect(canvasLabelName(named('B850I AORUS PRO - ARGB_V2_1 - Asiahorse Matrix 360'))).toBe('Asiahorse Matrix 360');
+      expect(canvasLabelName(named('HYTE Keeb TKL - Keys'))).toBe('Keys');
+    });
+
+    it('shows a renamed card verbatim, dashes included', () => {
+      expect(canvasLabelName(named('Front - intake', 'B850I AORUS PRO - ARGB_V2_1'))).toBe('Front - intake');
+    });
+
+    it('leaves a name with no separator alone', () => {
+      expect(canvasLabelName(named('Corsair M65 PRO'))).toBe('Corsair M65 PRO');
+      expect(canvasLabelName(named('Trailing - '))).toBe('Trailing - ');
+    });
+
+    it('draws the own part on the frame', () => {
+      render(
+        <DeviceCanvas
+          devices={[named('B850I AORUS PRO - ARGB_V2_1 - Asiahorse Matrix 360')]}
+          canvasPixels={null} canvasW={1000} canvasH={500}
+          selectedIds={new Set()} primaryDeviceId={null}
+          onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+        />
+      );
+      expect(screen.getByText('Asiahorse Matrix 360')).toBeTruthy();
+      expect(screen.queryByText('B850I AORUS PRO - ARGB_V2_1 - Asiahorse Matrix 360')).toBeNull();
+    });
   });
 
   it('sits a name under its frame, centred on it', () => {

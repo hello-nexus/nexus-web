@@ -6,6 +6,7 @@ import { isMultiSelectModifier } from '../../../../lib/platform';
 import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { formatZoneChipCount } from './zoneUtils';
+import { loadRecentProducts, pushRecentProduct } from './recentProducts';
 import styles from './ZoneChainList.module.scss';
 
 /** Debounce on the catalog query, ms. Local lookup, so this can be short. */
@@ -120,6 +121,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
                     // A generic keeps the chip's count; the field only unlocks.
                     onPick={item => {
                       setPicker(null);
+                      pushRecentProduct(item);
                       onChange(i, item.parametric ? { key: item.key, ledCount: row.ledCount } : { key: item.key });
                     }}
                   />
@@ -171,6 +173,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
                 onClose={() => setPicker(null)}
                 onPick={item => {
                   setPicker(null);
+                  pushRecentProduct(item);
                   if (item.parametric) setPending({ key: item.key, name: item.name });
                   else onAdd({ key: item.key });
                 }}
@@ -245,7 +248,8 @@ function CountInput({ value, autoFocus, disabled, onCommit, onCancel }: {
  * Catalog search for one chip. An ARGB port reports a LED count and never what
  * is plugged in, so the user has to say; the generic fan and strip cover
  * hardware the catalog does not name. Served from the service binary, so it
- * works with no network and no account.
+ * works with no network and no account. With the box empty the last few picks
+ * lead the list; typing replaces them with the search.
  */
 function ProductPicker({ current, onPick, onClose }: {
   /** The chip's product key; absent for the add picker. */
@@ -256,10 +260,25 @@ function ProductPicker({ current, onPick, onClose }: {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<BuiltInMappingSummary[]>([]);
+  const [recents, setRecents] = useState<BuiltInMappingSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  // Recent picks re-resolve through the catalog by name, so one it no longer
+  // lists is dropped rather than offered dead, and the rows carry its current
+  // name and count. The generics are always in it.
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all(loadRecentProducts().map(r => r.parametric
+      ? Promise.resolve<BuiltInMappingSummary | null>(r)
+      : fetchMappingCatalog(r.name, undefined, RESULT_LIMIT).then(resp => resp?.items.find(i => i.key === r.key) ?? null),
+    )).then(found => {
+      if (!cancelled) setRecents(found.filter((r): r is BuiltInMappingSummary => r !== null));
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   // Debounced catalog lookup. An empty query is a valid search - it returns the
   // head of the catalog, so the list is never blank on first open.
@@ -293,6 +312,25 @@ function ProductPicker({ current, onPick, onClose }: {
     };
   }, []);
 
+  const row = (item: BuiltInMappingSummary, keyPrefix: string) => (
+    <button
+      type="button"
+      key={keyPrefix + item.key}
+      role="option"
+      aria-selected={current === item.key}
+      className={`${styles.result} ${current === item.key ? styles.active : ''}`}
+      onClick={() => onPick(item)}
+    >
+      <span className={styles.resultName}>{item.name}</span>
+      {/* A generic has no count of its own; the chip's field supplies it. */}
+      {!item.parametric && (
+        <span className={styles.resultMeta}>
+          {t('lighting.ledMap.assignLeds', { count: item.ledCount })}
+        </span>
+      )}
+    </button>
+  );
+
   return (
     <div className={styles.popover} ref={rootRef}>
       <SearchInput
@@ -303,24 +341,14 @@ function ProductPicker({ current, onPick, onClose }: {
         ariaLabel={t('lighting.ledMap.assignSearch')}
       />
       <div className={styles.results} role="listbox">
-        {items.map(item => (
-          <button
-            type="button"
-            key={item.key}
-            role="option"
-            aria-selected={current === item.key}
-            className={`${styles.result} ${current === item.key ? styles.active : ''}`}
-            onClick={() => onPick(item)}
-          >
-            <span className={styles.resultName}>{item.name}</span>
-            {/* A generic has no count of its own; the chip's field supplies it. */}
-            {!item.parametric && (
-              <span className={styles.resultMeta}>
-                {t('lighting.ledMap.assignLeds', { count: item.ledCount })}
-              </span>
-            )}
-          </button>
-        ))}
+        {query === '' && recents.length > 0 && (
+          <>
+            <div className={styles.resultsHeading}>{t('search.section.recent')}</div>
+            {recents.map(item => row(item, 'recent:'))}
+            <div className={styles.resultsDivider} />
+          </>
+        )}
+        {items.map(item => row(item, ''))}
         {!loading && items.length === 0 && (
           <div className={styles.empty}>{t('lighting.ledMap.assignNoResults')}</div>
         )}

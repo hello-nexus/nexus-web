@@ -88,7 +88,6 @@ export function FanGroupHeader({
         onToggle={onToggleCollapsed}
         onTitleRename={onRename}
         titleRenameRef={nameRef}
-        titleClickToRename={false}
         onHeaderContextMenu={e => {
           e.preventDefault();
           e.stopPropagation();

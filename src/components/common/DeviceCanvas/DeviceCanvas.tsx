@@ -147,6 +147,19 @@ type LabelPos = { cx: number; cy: number };
 /** Gap between a frame's bottom edge and its name, and between stacked name rows. */
 const LABEL_GAP = 5;
 
+/** The name a frame wears: the card's own part of a hardware name built as
+ *  "{device} - {zone}" (or "{board} - {port} - {product}" on a chained port),
+ *  which is the context the rail needs and the canvas cannot fit. A renamed
+ *  card (originalName set) shows its name verbatim: a human typed it, dashes
+ *  and all. */
+export function canvasLabelName(dev: Pick<LightingDevice, 'name' | 'originalName'>): string {
+  if (dev.originalName != null) return dev.name;
+  const last = dev.name.lastIndexOf(' - ');
+  if (last < 0) return dev.name;
+  const own = dev.name.slice(last + 3).trim();
+  return own || dev.name;
+}
+
 /** Resolves each label's center so no two labels overlap. A label sits just
  *  under its frame, centred on it, and steps down/up in alternating whole-row
  *  increments until its box is clear, so labels that are far apart
@@ -648,7 +661,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // signature keeps a drag (which re-renders at pointer rate) off the
   // layout-thrash path. JSON encodes the fields unambiguously without needing
   // a delimiter no device name can contain.
-  const labelSig = JSON.stringify(devices.map(d => [d.id, d.name]));
+  const labelSig = JSON.stringify(devices.map(d => [d.id, canvasLabelName(d)]));
   const { w: contW, h: contH } = containerSizeRef.current;
   useLayoutEffect(() => {
     const el = labelLayerRef.current;
@@ -759,7 +772,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
               onContextMenu={e => handleFrameContextMenu(e, dev)}
               onPointerEnter={() => setHoveredLabelId(dev.id)}
               onPointerLeave={() => setHoveredLabelId(cur => (cur === dev.id ? null : cur))}>
-              {dev.name}
+              {canvasLabelName(dev)}
             </span>
           );
         })}

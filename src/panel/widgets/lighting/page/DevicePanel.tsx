@@ -256,6 +256,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     const selectable = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
     const stackOn = members.some(z => z.ledsOn);
     const stackControlled = members.some(z => z.controlled !== false);
+    const flashable = members.filter(z => z.ledCount > 0);
     // A rename is keyed on the device id and comes back as deviceName; a
     // service before that field names a standalone device through its parent
     // rename, which is the same id for the keeb.
@@ -269,6 +270,14 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         drag={drag}
         onSelect={selectable.length > 0 ? additive => handleStackSelect(selectable, additive) : undefined}
         menu={{
+          onIdentify: flashable.length > 0 ? () => {
+            for (const z of flashable) {
+              startIdentify(z.id, IDENTIFY_MS);
+              identifyLightingDevice(z.id, IDENTIFY_MS).catch(() => { /* silent */ });
+            }
+          } : undefined,
+          // The editor lists every zone of the device whichever one opens it.
+          onOpenSettings: () => onOpenSettings(members[0].id),
           on: stackOn,
           onTogglePower: () => { const target = !stackOn; for (const z of members) onSetPower(z.id, target); },
           controlled: stackControlled,

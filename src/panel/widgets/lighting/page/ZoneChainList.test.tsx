@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import styles from './ZoneChainList.module.scss';
 
@@ -37,10 +37,20 @@ const keeb: ChainRow[] = [
   { zoneId: 'k:under', name: 'Underglow', ledCount: 51, enabledCount: 51, editableCount: false },
 ];
 
+const CATALOG = [GENERIC_FAN, QX];
+const RECENTS_KEY = 'lighting.ledMap.recentProducts';
+const storedRecents = () => (JSON.parse(localStorage.getItem(RECENTS_KEY) ?? '[]') as { key: string }[]).map(r => r.key);
+
 beforeEach(() => {
   vi.clearAllMocks();
-  fetchMappingCatalog.mockResolvedValue({ error: false, msg: '', items: [GENERIC_FAN, QX], total: 2 });
+  localStorage.clear();
+  // Empty query: the catalog head. A name query: the rows containing it.
+  fetchMappingCatalog.mockImplementation((query: string) => Promise.resolve({
+    error: false, msg: '', total: CATALOG.length,
+    items: query ? CATALOG.filter(i => i.name.toLowerCase().includes(query.toLowerCase())) : CATALOG,
+  }));
 });
+afterEach(() => { vi.restoreAllMocks(); });
 
 function setup(rows: ChainRow[], chainable: boolean, over: Partial<Parameters<typeof ZoneChainList>[0]> = {}) {
   const handlers = { onSelect: vi.fn(), onChange: vi.fn(), onAdd: vi.fn(), onRemove: vi.fn() };
@@ -236,5 +246,71 @@ describe('ZoneChainList on a device with fixed zones', () => {
   it('renders the zone tools it is given', () => {
     setup(keeb, false, { actions: <button type="button">tool</button> });
     expect(screen.getByText('tool')).toBeTruthy();
+  });
+});
+
+// The last few picks lead the picker so a chain of the same fan is one click
+// per link rather than a search per link.
+describe('ZoneChainList recent picks', () => {
+  const openAddPicker = () => fireEvent.click(screen.getByRole('button', { name: 'lighting.ledMap.chainAdd' }));
+  const recentRows = () => {
+    const heading = screen.queryByText('search.section.recent');
+    if (!heading) return [];
+    const rows: string[] = [];
+    let el = heading.nextElementSibling;
+    while (el && el.getAttribute('role') === 'option') { rows.push(el.textContent ?? ''); el = el.nextElementSibling; }
+    return rows;
+  };
+
+  it('shows recent picks above the results while the box is empty, and drops them once the user types', async () => {
+    localStorage.setItem(RECENTS_KEY, JSON.stringify([QX]));
+    setup(port, true);
+    openAddPicker();
+    await screen.findByText('search.section.recent');
+    expect(recentRows()).toHaveLength(1);
+    expect(recentRows()[0]).toContain(QX.name);
+    // Once in the recents and once in the catalog head, as ordinary rows; the
+    // head arrives after the debounced search, so wait for it.
+    await waitFor(() => expect(screen.getAllByRole('option', { name: new RegExp(QX.name) })).toHaveLength(2));
+    fireEvent.change(screen.getByLabelText('lighting.ledMap.assignSearch'), { target: { value: 'qx' } });
+    await waitFor(() => expect(screen.queryByText('search.section.recent')).toBeNull());
+  });
+
+  it('records a pick at the front without duplicating it', async () => {
+    localStorage.setItem(RECENTS_KEY, JSON.stringify([GENERIC_FAN, QX]));
+    setup(port, true);
+    openAddPicker();
+    fireEvent.click(await screen.findAllByRole('option', { name: new RegExp(QX.name) }).then(r => r[r.length - 1]));
+    expect(storedRecents()).toEqual([QX.key, GENERIC_FAN.key]);
+    openAddPicker();
+    fireEvent.click(await screen.findAllByRole('option', { name: new RegExp(QX.name) }).then(r => r[r.length - 1]));
+    expect(storedRecents()).toEqual([QX.key, GENERIC_FAN.key]);
+  });
+
+  it('keeps the newest three', async () => {
+    localStorage.setItem(RECENTS_KEY, JSON.stringify([
+      { ...QX, key: 'product:a', name: 'A' }, { ...QX, key: 'product:b', name: 'B' }, { ...QX, key: 'product:c', name: 'C' },
+    ]));
+    setup(port, true);
+    openAddPicker();
+    fireEvent.click(await screen.findByRole('option', { name: GENERIC_FAN.name }));
+    expect(storedRecents()).toEqual([GENERIC_FAN.key, 'product:a', 'product:b']);
+  });
+
+  it('drops a recent the catalog no longer lists, and keeps a generic without asking', async () => {
+    localStorage.setItem(RECENTS_KEY, JSON.stringify([{ ...QX, key: 'product:gone', name: 'Old Fan' }, GENERIC_FAN]));
+    setup(port, true);
+    openAddPicker();
+    await screen.findByText('search.section.recent');
+    expect(recentRows()).toEqual([GENERIC_FAN.name]);
+    expect(screen.queryByText('Old Fan')).toBeNull();
+  });
+
+  it('renders the plain results when storage is unavailable', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
+    setup(port, true);
+    openAddPicker();
+    await screen.findByRole('option', { name: GENERIC_FAN.name });
+    expect(screen.queryByText('search.section.recent')).toBeNull();
   });
 });

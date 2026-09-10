@@ -66,6 +66,10 @@ export type StackPosition = 'inner' | 'last';
 /** Device-level actions behind a stack header's kebab; the group header's rows,
  *  minus the ones only a user group has. */
 export interface StackMenu {
+  /** Flashes every zone that has LEDs; absent when none does. */
+  onIdentify?: () => void;
+  /** Opens the LED map editor on the device, which lists all of its zones. */
+  onOpenSettings?: () => void;
   /** True iff at least one zone has its LEDs on, so the row offers to turn the device off. */
   on: boolean;
   onTogglePower: () => void;
@@ -111,9 +115,17 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, children }
   const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
   const nameRef = useRef<EditableTextHandle>(null);
 
+  // Same order as a card's menu: what the device does first, then its state,
+  // then what it is called.
   const menuItems = (): DeviceMenuItem[] => {
     if (!menu) return [];
     const items: DeviceMenuItem[] = [];
+    if (menu.onIdentify) {
+      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: menu.onIdentify });
+    }
+    if (menu.onOpenSettings) {
+      items.push({ key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'), onSelect: menu.onOpenSettings });
+    }
     if (!menu.hideLights) {
       items.push(menu.on
         ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
