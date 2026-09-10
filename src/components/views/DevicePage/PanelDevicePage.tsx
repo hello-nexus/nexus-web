@@ -56,7 +56,10 @@ import {
   getQSeriesDisplay,
   setQSeriesDisplay,
   rebootQSeriesPanel,
+  getQSeriesLinkState,
+  repairQSeriesLink,
   type QSeriesOrientation,
+  type QSeriesLinkState,
 } from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
@@ -122,6 +125,15 @@ const REBOOT_COMPLETION_TIMEOUT_MS = 300_000;
 
 // Q60/Q80 mount portrait or portrait-flipped only; no landscape orientation exists.
 const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFlipped'];
+
+// While the disconnected empty state is showing, re-poll the USB/adb link so
+// the page can tell apart "unplugged", "enumerated but adb wedged", and
+// "Windows deferred the USB reset" without a full reload.
+const QSERIES_LINK_POLL_INTERVAL_MS = 5_000;
+// After a manual repair, poll faster and give up once the recovery pass has
+// had a realistic chance to bring adb back.
+const QSERIES_LINK_REPAIR_POLL_INTERVAL_MS = 3_000;
+const QSERIES_LINK_REPAIR_POLL_TIMEOUT_MS = 60_000;
 
 function normalizeOrientation(value: string | undefined | null): Y70Orientation {
   // The Y70 panel is a fixed portrait strip; an unset/unknown value defaults to
@@ -988,6 +1000,73 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled && !panelOperationInFlight;
   const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable && !panelOperationInFlight;
 
+  // Distinguishes why a Q-series panel isn't reachable: unplugged, USB
+  // enumerated but adb wedged, or Windows holding a deferred USB reset that
+  // only a host restart clears. Null (endpoint failed, or not yet fetched)
+  // reads the same as usbPresent=false - the unplugged copy.
+  const [qseriesLinkState, setQseriesLinkState] = useState<QSeriesLinkState | null>(null);
+  const [repairingQseriesLink, setRepairingQseriesLink] = useState(false);
+  const qseriesLinkMountedRef = useRef(true);
+  useEffect(() => () => { qseriesLinkMountedRef.current = false; }, []);
+  // The background poll and a repair poll loop both call getQSeriesLinkState;
+  // only the response to the most recently issued call is applied, so a slow
+  // background tick can never overwrite a fresher repair result out of order.
+  const qseriesLinkRequestIdRef = useRef(0);
+  // Bumped on every repair click. A loop compares its own token each tick and
+  // stops touching state once superseded, so a panel-state flap that resets
+  // repairingQseriesLink and lets the user re-click can't leave two loops
+  // fighting over the same spinner.
+  const qseriesLinkRepairTokenRef = useRef(0);
+
+  useEffect(() => {
+    if (!showDisconnected) {
+      setQseriesLinkState(null);
+      setRepairingQseriesLink(false);
+      qseriesLinkRepairTokenRef.current += 1;
+      return;
+    }
+    let cancelled = false;
+    const refresh = async () => {
+      const requestId = ++qseriesLinkRequestIdRef.current;
+      const state = await getQSeriesLinkState();
+      if (cancelled || requestId !== qseriesLinkRequestIdRef.current) return;
+      setQseriesLinkState(state);
+    };
+    void refresh();
+    const intervalId = window.setInterval(() => { void refresh(); }, QSERIES_LINK_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [showDisconnected]);
+
+  // Fire-and-forget repair: the response carries no outcome, so poll the link
+  // state until adb comes back or the bound expires, driving the button's
+  // spinner off either result.
+  const repairQseriesLinkNow = useCallback(async () => {
+    const myToken = ++qseriesLinkRepairTokenRef.current;
+    setRepairingQseriesLink(true);
+    await repairQSeriesLink();
+    const deadline = Date.now() + QSERIES_LINK_REPAIR_POLL_TIMEOUT_MS;
+    const poll = async () => {
+      const requestId = ++qseriesLinkRequestIdRef.current;
+      const state = await getQSeriesLinkState();
+      if (!qseriesLinkMountedRef.current || myToken !== qseriesLinkRepairTokenRef.current) return;
+      if (requestId === qseriesLinkRequestIdRef.current) setQseriesLinkState(state);
+      if (state?.adbOnline || Date.now() >= deadline) {
+        setRepairingQseriesLink(false);
+        return;
+      }
+      window.setTimeout(() => { void poll(); }, QSERIES_LINK_REPAIR_POLL_INTERVAL_MS);
+    };
+    void poll();
+  }, []);
+
+  const showQseriesUnresponsive = showDisconnected
+    && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && !qseriesLinkState.hostRebootPending;
+  const showQseriesNeedsHostReboot = showDisconnected
+    && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && qseriesLinkState.hostRebootPending;
+
   return (
     <section className={styles.page}>
       <ViewHeader
@@ -1029,6 +1108,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       <div className={`${styles.pageBody} pageBody`}>
       {!fwGateReady ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : showQseriesUnresponsive ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.unresponsive.title')}
+          hint={t('devices.qseries.unresponsive.hint')}
+          action={
+            <Button type="button" tone="accent" loading={repairingQseriesLink} onClick={() => { void repairQseriesLinkNow(); }}>
+              {t('devices.qseries.unresponsive.cta')}
+            </Button>
+          }
+        />
+      ) : showQseriesNeedsHostReboot ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.needsHostReboot.title')}
+          hint={t('devices.qseries.needsHostReboot.hint')}
+        />
       ) : showDisconnected ? (
         <EmptyState
           icon={<Unplug size={48} />}
