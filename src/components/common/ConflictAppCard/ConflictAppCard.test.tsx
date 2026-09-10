@@ -220,3 +220,73 @@ describe('selectedOwner', () => {
     expect(selectedOwner([{ key: 'a', name: 'a', owner: 'mixed' }])).toBe('');
   });
 });
+
+describe('ConflictAppCard auto start', () => {
+  const entry = { kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' };
+
+  it('offers nothing when the service reported no recipe for the app', () => {
+    render(<ConflictAppCard conflict={conflict} onDisableAutostart={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'conflicts.modal.disableAutostart' })).not.toBeInTheDocument();
+  });
+
+  it('offers nothing when the app has a recipe but nothing starts it at boot', () => {
+    render(<ConflictAppCard conflict={conflict} autostart={[]} onDisableAutostart={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'conflicts.modal.disableAutostart' })).not.toBeInTheDocument();
+  });
+
+  it('offers the action under End task while an entry is live', () => {
+    render(<ConflictAppCard conflict={conflict} autostart={[entry]} onDisableAutostart={vi.fn()} />);
+    const buttons = screen.getAllByRole('button');
+    expect(buttons[0]).toHaveTextContent('conflicts.modal.endTask');
+    expect(buttons[1]).toHaveTextContent('conflicts.modal.disableAutostart');
+  });
+
+  it('names what will be turned off, rather than claiming the app auto-starts', () => {
+    render(
+      <ConflictAppCard
+        conflict={conflict}
+        autostart={[entry, { kind: 'service', entryName: 'CAMService' }]}
+        onDisableAutostart={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('conflicts.modal.autostartTargetStartup:Corsair iCUE5 Software')).toBeInTheDocument();
+    expect(screen.getByText('conflicts.modal.autostartTargetService:CAMService')).toBeInTheDocument();
+  });
+
+  it('keeps the action on a terminated row - ending the task does not stop the next boot', () => {
+    render(<ConflictAppCard conflict={conflict} autostart={[entry]} onDisableAutostart={vi.fn()} terminated />);
+    expect(screen.queryByRole('button', { name: 'conflicts.modal.endTask' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'conflicts.modal.disableAutostart' })).toBeInTheDocument();
+  });
+
+  it('confirms once the entry list comes back empty', async () => {
+    const onDisable = vi.fn().mockResolvedValue(true);
+    const { rerender } = render(
+      <ConflictAppCard conflict={conflict} autostart={[entry]} onDisableAutostart={onDisable} />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.disableAutostart' }));
+    });
+    expect(onDisable).toHaveBeenCalledTimes(1);
+
+    // The parent re-reads after the write; the confirmation replaces the
+    // button only once the service says nothing starts the app any more.
+    rerender(<ConflictAppCard conflict={conflict} autostart={[]} onDisableAutostart={onDisable} />);
+    expect(screen.getByText('conflicts.modal.autostartDisabled')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'conflicts.modal.disableAutostart' })).not.toBeInTheDocument();
+  });
+
+  it('reports a partial or failed disable and leaves the button up', async () => {
+    const onDisable = vi.fn().mockResolvedValue(false);
+    render(<ConflictAppCard conflict={conflict} autostart={[entry]} onDisableAutostart={onDisable} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.disableAutostart' }));
+    });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('conflicts.modal.autostartFailed:iCUE');
+    expect(screen.getByRole('button', { name: 'conflicts.modal.disableAutostart' })).toBeInTheDocument();
+  });
+});

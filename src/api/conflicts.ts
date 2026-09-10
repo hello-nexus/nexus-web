@@ -73,3 +73,46 @@ export async function fetchConflictCatalog(): Promise<ConflictCatalogApp[] | nul
   const result = await fetchService<GetConflictCatalogResponse>('/conflicts/catalog');
   return result ? result.apps ?? [] : null;
 }
+
+/**
+ * One thing still launching a conflicting app at boot - a Run-key entry or an
+ * Automatic Windows service. Shape mirrors
+ * `Models.Conflicts.ConflictAutostartEntry`; the registry path and service
+ * name stay server-side, and the SPA only ever addresses an app by catalog id.
+ */
+export interface ConflictAutostartEntry {
+  /** "runKeyMachine" | "runKeyUser" | "service" | "scheduledTask" */
+  kind: string;
+  entryName: string;
+}
+
+/**
+ * Autostart state of one detected app. Only apps whose mechanism the service
+ * has a verified recipe for are listed at all, so an app missing from the
+ * response is one the UI must not offer the action for. An empty `entries`
+ * means the app is listed but nothing currently starts it at boot.
+ */
+export interface ConflictAutostartStatus {
+  id: string;
+  entries: ConflictAutostartEntry[];
+}
+
+export interface GetConflictAutostartResponse {
+  apps: ConflictAutostartStatus[];
+}
+
+export interface DisableConflictAutostartResponse {
+  error: boolean;
+  msg: string;
+  disabled: number;
+}
+
+/** Null when the read failed; an empty array means no detected app supports the action. */
+export async function fetchConflictAutostart(): Promise<ConflictAutostartStatus[] | null> {
+  const result = await fetchService<GetConflictAutostartResponse>('/conflicts/autostart');
+  return result ? result.apps ?? [] : null;
+}
+
+export function disableConflictAutostart(id: string): Promise<DisableConflictAutostartResponse | null> {
+  return postService<DisableConflictAutostartResponse>('/conflicts/autostart/disable', { id });
+}

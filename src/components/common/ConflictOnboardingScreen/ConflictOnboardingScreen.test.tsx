@@ -14,6 +14,10 @@ vi.mock('../../../lib/i18n', () => ({
 const mockKill = vi.fn();
 vi.mock('../../../api/conflicts', () => ({
   killConflict: (...args: any[]) => mockKill(...args),
+  // The boot-entry read has its own tests; here it only has to resolve so the
+  // screen renders without an unhandled rejection.
+  fetchConflictAutostart: () => Promise.resolve([]),
+  disableConflictAutostart: () => Promise.resolve({ error: false, msg: 'Ok', disabled: 0 }),
 }));
 
 beforeEach(() => {

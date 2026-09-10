@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { killConflict, type DetectedConflict } from '../../../api/conflicts';
+import { PowerOff } from 'lucide-react';
+import { killConflict, type ConflictAutostartEntry, type DetectedConflict } from '../../../api/conflicts';
 import type { ConflictDevice } from '../../../hooks/useConflictDevices';
+import { Button } from '../Button/Button';
 import { ChipGroup } from '../ChipGroup/ChipGroup';
 import { EndTaskButton } from '../EndTaskButton/EndTaskButton';
 import { useTranslation } from '../../../lib/i18n';
@@ -10,6 +12,7 @@ export type ConflictOwnerChoice = 'nexus' | 'app';
 
 const NEXUS_OWNER: ConflictOwnerChoice = 'nexus';
 const APP_OWNER: ConflictOwnerChoice = 'app';
+const AUTOSTART_ICON_SIZE = 14;
 
 interface ConflictAppCardProps {
   conflict: DetectedConflict;
@@ -21,6 +24,14 @@ interface ConflictAppCardProps {
   terminated?: boolean;
   /** Reports a kill that stuck, from either the button or the owner switch. */
   onTerminated?: () => void;
+  /**
+   * What still launches this app at boot. Undefined means the service has no
+   * verified way to stop this app starting with Windows, and the action is
+   * not offered at all; an empty array means nothing starts it any more.
+   */
+  autostart?: readonly ConflictAutostartEntry[];
+  /** Turns off everything in `autostart`. Required for the action to render; resolves false when any entry survived. */
+  onDisableAutostart?: () => Promise<boolean>;
 }
 
 /** The switch position the device list already agrees on; '' when the devices are split. */
@@ -42,7 +53,9 @@ export function selectedOwner(devices: readonly ConflictDevice[]): ConflictOwner
  * as well, so it cannot keep fighting for handles Nexus is about to claim;
  * handing it to the app leaves the app running.
  */
-export function ConflictAppCard({ conflict, devices, onSetOwner, terminated, onTerminated }: ConflictAppCardProps) {
+export function ConflictAppCard({
+  conflict, devices, onSetOwner, terminated, onTerminated, autostart, onDisableAutostart,
+}: ConflictAppCardProps) {
   const { t } = useTranslation();
   // Which owner is being applied, or null when idle. Held as the choice rather
   // than a flag because only the Nexus path ends the app, and End task must
@@ -51,6 +64,11 @@ export function ConflictAppCard({ conflict, devices, onSetOwner, terminated, onT
   // Set when handing over to Nexus did not end the app: the devices are now
   // Nexus-controlled but the app is still up, so the row stays and says so.
   const [endFailed, setEndFailed] = useState(false);
+  const [disablingAutostart, setDisablingAutostart] = useState(false);
+  // Sticky for the life of the card: the entry list goes empty on success, so
+  // without this the confirmation would vanish in the same frame it appeared.
+  const [autostartDisabled, setAutostartDisabled] = useState(false);
+  const [autostartFailed, setAutostartFailed] = useState(false);
   // The kill clears this row through the watcher, so the card can unmount
   // mid-await; only a still-mounted card resets its busy state.
   const mountedRef = useRef(true);
@@ -91,6 +109,34 @@ export function ConflictAppCard({ conflict, devices, onSetOwner, terminated, onT
     }
   }, [applying, conflict.id, onSetOwner, onTerminated, selection]);
 
+  const handleDisableAutostart = useCallback(async () => {
+    if (!onDisableAutostart || disablingAutostart) return;
+    setDisablingAutostart(true);
+    setAutostartFailed(false);
+    try {
+      const ok = await onDisableAutostart();
+      if (!mountedRef.current) return;
+      if (ok) setAutostartDisabled(true);
+      else setAutostartFailed(true);
+    } finally {
+      if (mountedRef.current) setDisablingAutostart(false);
+    }
+  }, [disablingAutostart, onDisableAutostart]);
+
+  // Offered only for an app the service has a verified recipe for, and only
+  // while something is still starting it. Ending the task does not stop the
+  // next boot, so a terminated row keeps the action.
+  const showAutostart = autostart !== undefined && onDisableAutostart !== undefined && autostart.length > 0;
+
+  // What each entry is, in the user's terms. The button acts on a Windows
+  // startup entry, not on the vendor app's own switch, and saying so is the
+  // difference between an honest label and a claim about the app.
+  const entryLabel = (entry: ConflictAutostartEntry): string => {
+    if (entry.kind === 'service') return t('conflicts.modal.autostartTargetService', { name: entry.entryName });
+    if (entry.kind === 'scheduledTask') return t('conflicts.modal.autostartTargetTask', { name: entry.entryName });
+    return t('conflicts.modal.autostartTargetStartup', { name: entry.entryName });
+  };
+
   const ownerLabel = (device: ConflictDevice): string => {
     if (device.owner === 'nexus') return t('brand');
     if (device.owner === 'app') return conflict.displayName;
@@ -117,8 +163,39 @@ export function ConflictAppCard({ conflict, devices, onSetOwner, terminated, onT
             terminated={terminated}
             onKilled={onTerminated}
           />
+          {showAutostart && (
+            <Button
+              tone="neutral"
+              size="sm"
+              loading={disablingAutostart}
+              loadingHidesLabel
+              onClick={() => { void handleDisableAutostart(); }}
+            >
+              {t('conflicts.modal.disableAutostart')}
+            </Button>
+          )}
+          {!showAutostart && autostartDisabled && (
+            <span className={styles.autostartOff} role="status">
+              <PowerOff size={AUTOSTART_ICON_SIZE} aria-hidden />
+              {t('conflicts.modal.autostartDisabled')}
+            </span>
+          )}
         </div>
       </div>
+
+      {showAutostart && (
+        <ul className={styles.autostartTargets}>
+          {autostart!.map(entry => (
+            <li key={`${entry.kind}:${entry.entryName}`}>{entryLabel(entry)}</li>
+          ))}
+        </ul>
+      )}
+
+      {autostartFailed && (
+        <p className={styles.autostartFailed} role="alert">
+          {t('conflicts.modal.autostartFailed', { app: conflict.displayName })}
+        </p>
+      )}
 
       {showDevices && (
         <div className={styles.devices}>

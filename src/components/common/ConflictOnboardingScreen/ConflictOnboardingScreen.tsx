@@ -5,6 +5,7 @@ import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
+import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import type { DetectedConflict } from '../../../api/conflicts';
@@ -37,6 +38,7 @@ export function ConflictOnboardingScreen({
   // does not empty out under the user as they work through it.
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
+  const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
   const heading = t('conflicts.onboarding.title');
 
   return (
@@ -83,6 +85,8 @@ export function ConflictOnboardingScreen({
                   onSetOwner={owner => setOwner(entry.conflict.id, owner)}
                   terminated={entry.terminated}
                   onTerminated={() => markTerminated(entry.conflict.id)}
+                  autostart={autostartByApp.get(entry.conflict.id)}
+                  onDisableAutostart={() => disableAutostart(entry.conflict.id)}
                 />
               </div>
             ))}

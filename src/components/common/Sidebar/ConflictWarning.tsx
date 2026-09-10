@@ -5,6 +5,7 @@ import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
+import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import styles from './ConflictWarning.module.scss';
@@ -85,6 +86,7 @@ export function ConflictWarningModal({
   // here keeps its place, marked terminated, instead of vanishing mid-read.
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
+  const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
 
   if (!open) return null;
 
@@ -112,6 +114,8 @@ export function ConflictWarningModal({
                   onSetOwner={owner => setOwner(entry.conflict.id, owner)}
                   terminated={entry.terminated}
                   onTerminated={() => markTerminated(entry.conflict.id)}
+                  autostart={autostartByApp.get(entry.conflict.id)}
+                  onDisableAutostart={() => disableAutostart(entry.conflict.id)}
                 />
               </li>
             ))}
