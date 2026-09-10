@@ -425,10 +425,9 @@ export function Sidebar({
           {headerSlot}
         </div>
       )}
-      {renderSectionHeader()}
-
       {sortable ? (
         <div className={styles.tailScroll} data-sidebar-tail-scroll="true">
+          {renderSectionHeader()}
           <DndContext
             sensors={sensors}
             collisionDetection={collisionDetection}
@@ -486,6 +485,7 @@ export function Sidebar({
         </div>
       ) : (
         <div className={styles.tailScroll}>
+          {renderSectionHeader()}
           {tail.map((item) => (
             <SidebarRow
               key={item.key}
