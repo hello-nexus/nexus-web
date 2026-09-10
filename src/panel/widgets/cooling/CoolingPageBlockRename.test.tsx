@@ -68,6 +68,13 @@ function renderAdvanced() {
 const toggleMenu = (blockIndex: number) =>
   fireEvent.click(screen.getAllByRole('button', { name: /groupActions/ })[blockIndex]);
 const BOARD = 0;
+const GPU = 1;
+
+// Rename is a context-menu action, not a click on the title.
+const startRename = (blockIndex: number) => {
+  toggleMenu(blockIndex);
+  fireEvent.click(screen.getByText(/fan\.rename$/));
+};
 
 describe('CoolingPage rail block renames', () => {
   beforeEach(() => {
@@ -87,7 +94,7 @@ describe('CoolingPage rail block renames', () => {
     renderAdvanced();
     await waitFor(() => expect(screen.getByText('NVIDIA GeForce RTX 3070')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('NVIDIA GeForce RTX 3070'));
+    startRename(GPU);
     const input = screen.getByDisplayValue('NVIDIA GeForce RTX 3070');
     fireEvent.change(input, { target: { value: 'Main card' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -106,13 +113,13 @@ describe('CoolingPage rail block renames', () => {
     expect(screen.queryByRole('button', { name: /resetName/ })).toBeNull();
     toggleMenu(BOARD);
 
-    fireEvent.click(screen.getByText('ROG STRIX Z790-E'));
+    startRename(BOARD);
     const input = screen.getByDisplayValue('ROG STRIX Z790-E');
     fireEvent.change(input, { target: { value: 'Board headers' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(screen.getByText('Board headers')).toBeInTheDocument());
 
-    toggleMenu(BOARD);
+    // startRename left the menu open, so Reset name is already on screen.
     fireEvent.click(screen.getByRole('button', { name: /resetName/ }));
     expect(renameFan).toHaveBeenCalledWith('motherboard', '');
     await waitFor(() => expect(screen.getByText('ROG STRIX Z790-E')).toBeInTheDocument());

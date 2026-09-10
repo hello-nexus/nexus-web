@@ -557,7 +557,8 @@ export const FanCard = memo(function FanCard({
             (EditableText doesn't forward unknown props) so a press on the name
             edits it instead of starting a card drag; no layout change. */}
         <span data-no-dnd style={{ display: 'contents' }}>
-          <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
+          {/* Rename lives on the context menu; a click on the name belongs to the card. */}
+          <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} />
         </span>
         <span className={styles.fanRpmReadout}>
           <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>

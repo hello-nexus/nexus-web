@@ -416,11 +416,14 @@ export function ZoneCard({
              click guard is the card's, not the sort list's: ZoneCard selects on
              any bare-surface click, which would fight the edit. */
           <span data-no-dnd style={{ display: 'contents' }} onClick={e => e.stopPropagation()}>
+            {/* Rename is a context-menu action: clicking a card's name should
+                select the card, not open a text field under the cursor. */}
             <EditableText
               ref={nameRef}
               value={displayName ?? device.name}
               onCommit={onRename!}
               className={`${styles.deviceName} ${styles.deviceNameEditable}`}
+              clickToEdit={false}
             />
           </span>
         ) : (

@@ -18,6 +18,14 @@ export interface EditableTextProps {
   maxLength?: number;
   className?: string;
   ariaLabel?: string;
+  /**
+   * Whether clicking the text starts an edit. False leaves renaming to the
+   * imperative handle alone, for names that sit on something else clickable -
+   * a device card or a group header, where a click on the title should select
+   * or collapse rather than drop into a text field. The context menu's Rename
+   * still works, because that calls startEditing() directly.
+   */
+  clickToEdit?: boolean;
 }
 
 export interface EditableTextHandle {
@@ -25,7 +33,7 @@ export interface EditableTextHandle {
 }
 
 export const EditableText = forwardRef<EditableTextHandle, EditableTextProps>(function EditableText(
-  { value, onCommit, maxLength = 20, className, ariaLabel }, ref,
+  { value, onCommit, maxLength = 20, className, ariaLabel, clickToEdit = true }, ref,
 ) {
   const editable = useEditable<string>({
     value,
@@ -40,6 +48,12 @@ export const EditableText = forwardRef<EditableTextHandle, EditableTextProps>(fu
 
   if (editable.editing) {
     return <input className={`${styles.input} ${className ?? ''}`} maxLength={maxLength} aria-label={ariaLabel} {...editable.inputProps} />;
+  }
+
+  // Without click-to-edit the text is not a control, so it must not advertise
+  // itself as one: no button role, no tab stop, no Enter/Space handler.
+  if (!clickToEdit) {
+    return <span className={`${styles.display} ${className ?? ''}`}>{value}</span>;
   }
 
   return (

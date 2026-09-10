@@ -79,7 +79,8 @@ describe('DevicePanel user groups', () => {
 
   it('renames a group from its header title', () => {
     const onGroupsChange = renderPanel([{ id: 'g1', name: 'Desk', members: ['d2'] }]);
-    fireEvent.click(screen.getByText('Desk'));
+    fireEvent.click(screen.getAllByRole('button', { name: /groupActions/ })[0]);
+    fireEvent.click(screen.getByText('lighting.devices.rename'));
     const input = screen.getByDisplayValue('Desk');
     fireEvent.change(input, { target: { value: 'Shelf' } });
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -116,7 +117,8 @@ describe('DevicePanel user groups', () => {
 
   it('renames a group from the header title', () => {
     const onGroupsChange = renderPanel([{ id: 'g1', name: 'Desk', members: ['d2'] }]);
-    fireEvent.click(screen.getByText('Desk'));
+    fireEvent.click(screen.getAllByRole('button', { name: /groupActions/ })[0]);
+    fireEvent.click(screen.getByText('lighting.devices.rename'));
     const input = screen.getByDisplayValue('Desk');
     fireEvent.change(input, { target: { value: 'Shelf' } });
     fireEvent.keyDown(input, { key: 'Enter' });

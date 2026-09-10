@@ -603,27 +603,31 @@ describe('ZoneCard rename', () => {
     />,
   );
 
+  const startRename = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    fireEvent.click(screen.getByText('lighting.devices.rename'));
+  };
+
   it('commits the trimmed name on Enter', () => {
     const onRename = vi.fn();
     renderRenameable({}, onRename);
-    fireEvent.click(screen.getByText('Test Strip'));
+    startRename();
     const input = screen.getByDisplayValue('Test Strip');
     fireEvent.change(input, { target: { value: '  Top intake  ' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onRename).toHaveBeenCalledWith('Top intake');
   });
 
-  it('does not select the card when the name is clicked to edit it', () => {
-    const onSelect = vi.fn();
-    renderRenameable({ onSelect });
+  it('does not start a rename when the name is clicked', () => {
+    renderRenameable({ onSelect: vi.fn() });
     fireEvent.click(screen.getByText('Test Strip'));
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.queryByDisplayValue('Test Strip')).toBeNull();
   });
 
   it('edits the shown name, so a grouped zone renames off its stripped label', () => {
     const onRename = vi.fn();
     renderRenameable({ displayName: 'ARGB header 1', indent: true }, onRename);
-    fireEvent.click(screen.getByText('ARGB header 1'));
+    startRename();
     expect(screen.getByDisplayValue('ARGB header 1')).toBeTruthy();
   });
 

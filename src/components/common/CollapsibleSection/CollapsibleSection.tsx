@@ -33,6 +33,7 @@ export function CollapsibleSection({
   drag,
   onTitleRename,
   titleRenameRef,
+  titleClickToRename,
   onHeaderContextMenu,
   children,
 }: {
@@ -75,6 +76,8 @@ export function CollapsibleSection({
   onTitleRename?: (name: string) => void;
   /** Opens the title editor from outside, for a Rename row in the section's own menu. */
   titleRenameRef?: React.Ref<EditableTextHandle>;
+  /** False leaves renaming to the context menu; a click on the title then falls through to the section toggle. */
+  titleClickToRename?: boolean;
   /** Right-click on the header bar, for sections that carry their own menu. Not
    *  fired from inside the title editor, which keeps the browser's own menu. */
   onHeaderContextMenu?: (e: React.MouseEvent) => void;
@@ -125,12 +128,23 @@ export function CollapsibleSection({
             >
               <Chevron className={styles.chevron} aria-hidden />
             </button>
-            <EditableText
-              ref={titleRenameRef}
-              value={title as string}
-              onCommit={onTitleRename!}
-              className={styles.title}
-            />
+            {/* With click-to-rename off the title would be a dead strip between
+                the chevron and the fill, so it toggles like the rest of the bar.
+                The input is exempt: a rename is in progress there. */}
+            <span
+              className={styles.titleSlot}
+              onClick={titleClickToRename === false
+                ? (e => { if (!(e.target as HTMLElement).closest('input')) onToggle(); })
+                : undefined}
+            >
+              <EditableText
+                ref={titleRenameRef}
+                value={title as string}
+                onCommit={onTitleRename!}
+                className={styles.title}
+                clickToEdit={titleClickToRename}
+              />
+            </span>
             {titleAfter}
             {/* Keeps the bar's empty run a toggle target now that the title owns
                 its own clicks. Hidden from a11y: the chevron is the control. */}

@@ -146,3 +146,11 @@
     height: 14px;
   }
 }
+
+// Wrapper around a title whose rename lives on the context menu: it carries the
+// toggle click so the strip between the chevron and the fill is not dead.
+.titleSlot {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
