@@ -59,11 +59,12 @@
   // ~50%. Theme-independent (accent is shared), so defined once here.
   --control-border-accent: color-mix(in srgb, var(--accent) 50%, transparent);
 
-  // Recessed-channel fill for unfilled gauge tracks, graph backdrops, and the
-  // cooling duty bars. A light overlay on dark (black can't darken a near-black
-  // surface, so it would vanish) and a dark overlay on light - symmetric so the
-  // channel reads equally in both themes. The accent fill carries the contrast.
-  --gauge-track: rgba(255, 255, 255, 0.05);
+  // Fill for unfilled gauge tracks, graph backdrops, the cooling duty bars, and
+  // the gauge shapes drawn with it alone (Battery shell + cap, Thermometer
+  // tube). A light overlay on dark (black can't darken a near-black surface, so
+  // it would vanish) and a dark overlay on light - symmetric so the channel
+  // reads equally in both themes.
+  --gauge-track: rgba(255, 255, 255, 0.2);
 
   // Zebra wash for SupportedDevicesList: dedicated (not --bg-card-hover) so a
   // host page rendering that component outside the app (the marketing site)
@@ -262,7 +263,7 @@
   --border-strong: #c6c6c6;
   --surface: rgba(255, 255, 255, 0.6);
   --surface-hover: rgba(255, 255, 255, 0.8);  // hover: a variation of --surface
-  --gauge-track: rgba(0, 0, 0, 0.06);
+  --gauge-track: rgba(0, 0, 0, 0.2);
   --devices-row-alt: rgba(0, 0, 0, 0.035);
   --devices-row-hover: rgba(0, 0, 0, 0.07);
 

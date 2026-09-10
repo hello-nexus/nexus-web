@@ -66,7 +66,7 @@ export function AnimateGrid({ effect, onSelect, effects = EFFECTS, slotFor, vers
   /** Rendered above the category groups, inside the same scroll container. */
   leading?: ReactNode;
   /** Effect pool to show. Defaults to the full RGB set; panel backgrounds pass
-   *  PANEL_BACKGROUND_EFFECTS (no audio-reactive effects). */
+   *  their own narrower pool, so categories it drops render no section. */
   effects?: EffectDef[];
   /** Preset slot to show per effect (this device's selection). Defaults to 0. */
   slotFor?: (key: string) => number;
