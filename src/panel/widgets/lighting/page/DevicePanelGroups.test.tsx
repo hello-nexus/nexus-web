@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DevicePanel } from './DevicePanel';
 import type { LightingDevice } from '../../../../api/lighting';
 import { MAX_DEVICE_GROUPS, type DeviceGroup } from '../../../../lib/deviceGroups';
+import styles from '../LightingPage.module.scss';
 
 vi.mock('../../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -123,5 +124,77 @@ describe('DevicePanel user groups', () => {
     fireEvent.change(input, { target: { value: 'Shelf' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onGroupsChange.mock.calls[0][0][0].name).toBe('Shelf');
+  });
+});
+
+// One device's zones (the keeb's keys + underglow) stack into one card with no
+// group header; a motherboard's headers keep theirs.
+describe('DevicePanel split card', () => {
+  const keeb = [
+    device('keeb:tkl-1:keys', 'HYTE Keeb TKL - Keys', { parentDeviceId: 'keeb:tkl-1', zoneIndex: 0, deviceId: 'keeb:tkl-1', type: 'ledstrip' }),
+    device('keeb:tkl-1:underglow', 'HYTE Keeb TKL - Underglow', { parentDeviceId: 'keeb:tkl-1', zoneIndex: 1, deviceId: 'keeb:tkl-1', type: 'ledstrip' }),
+  ];
+  const board = [
+    device('openrgb-0-0', 'B850I - ARGB header 1', { parentDeviceId: 'openrgb-0', zoneIndex: 0, deviceId: 'openrgb-0', type: 'motherboard' }),
+    device('openrgb-0-1', 'B850I - ARGB header 2', { parentDeviceId: 'openrgb-0', zoneIndex: 1, deviceId: 'openrgb-0', type: 'motherboard' }),
+  ];
+
+  function renderRail(list: LightingDevice[], onSetSelection = vi.fn()) {
+    render(
+      <DevicePanel
+        devices={list}
+        selectedIds={new Set()}
+        onSetSelection={onSetSelection}
+        onTogglePower={() => {}}
+        onSetPower={() => {}}
+        onToggleControlled={() => {}}
+        onSetControlled={() => {}}
+        lightingOff={false}
+        onOpenSettings={() => {}}
+      />,
+    );
+    return onSetSelection;
+  }
+
+  it('stacks the keeb into one card with both zones and no group header', () => {
+    renderRail(keeb);
+    expect(screen.queryByRole('button', { name: /motherboardHeader/ })).toBeNull();
+    const stack = document.querySelector(`.${styles.deviceCardStack}`);
+    expect(stack).not.toBeNull();
+    const members = stack!.querySelectorAll(`.${styles.deviceCard}`);
+    expect(members).toHaveLength(2);
+    expect(members[0].textContent).toContain('HYTE Keeb TKL - Keys');
+    expect(members[1].textContent).toContain('HYTE Keeb TKL - Underglow');
+  });
+
+  it('rounds only the outer corners of the stack and seams the zones', () => {
+    renderRail(keeb);
+    const members = document.querySelectorAll(`.${styles.deviceCardStack} .${styles.deviceCard}`);
+    expect(members[0].className).toContain(styles.deviceCardStackFirst);
+    expect(members[0].className).not.toContain(styles.deviceCardStackSeam);
+    expect(members[1].className).toContain(styles.deviceCardStackLast);
+    expect(members[1].className).toContain(styles.deviceCardStackSeam);
+  });
+
+  it('selects each zone of the stack on its own', () => {
+    const onSetSelection = renderRail(keeb);
+    fireEvent.click(screen.getByText('HYTE Keeb TKL - Underglow'));
+    expect(onSetSelection).toHaveBeenCalledWith(new Set(['keeb:tkl-1:underglow']), 'keeb:tkl-1:underglow');
+    fireEvent.click(screen.getByText('HYTE Keeb TKL - Keys'));
+    expect(onSetSelection).toHaveBeenLastCalledWith(new Set(['keeb:tkl-1:keys']), 'keeb:tkl-1:keys');
+  });
+
+  it('gives each zone of the stack its own menu', () => {
+    renderRail(keeb);
+    expect(screen.getAllByRole('button', { name: 'lighting.devices.moreActions' })).toHaveLength(2);
+  });
+
+  it('keeps a motherboard under a group header with one card per header', () => {
+    renderRail(board);
+    expect(screen.getByRole('button', { name: /motherboardHeader/ })).toBeTruthy();
+    expect(document.querySelector(`.${styles.deviceCardStack}`)).toBeNull();
+    expect(screen.getByText('B850I')).toBeTruthy();
+    expect(screen.getByText('ARGB header 1')).toBeTruthy();
+    expect(screen.getByText('ARGB header 2')).toBeTruthy();
   });
 });

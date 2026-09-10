@@ -3,7 +3,7 @@ import { Cpu, FolderPlus, Plus } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
-import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
+import { ZoneCard, ZoneCardStack, stackPosition, zoneCardSelectable, type BulkSelection, type StackPosition } from './ZoneCard';
 import { type LedPick } from './DeviceLedStrip';
 import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
@@ -20,7 +20,8 @@ import styles from '../LightingPage.module.scss';
 
 /**
  * Right-side sidebar listing detected RGB devices. Native PC devices render as
- * before - flat cards, with multi-header motherboards under a collapsible group.
+ * before - flat cards, with multi-header motherboards under a collapsible group
+ * and one device's zones (the keeb's keys + underglow) stacked into one card.
  * Each smart-light brand (Philips Hue, …) renders as its OWN collapsible group
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
@@ -192,11 +193,12 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     return { ...pick, version: versionForSlot?.(pick.key, pick.slot) ?? '0' };
   };
 
-  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs) => (
+  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs, stacked?: StackPosition) => (
     <ZoneCard
       key={d.id}
       device={d}
       displayName={displayName}
+      stacked={stacked}
       selected={selectedIds.has(d.id)}
       ledPick={ledPickFor(d.id)}
       ledFullscreen={ledFullscreen}
@@ -224,6 +226,14 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
 
   const renderBlock = (block: DeviceBlock, a: SortableRowArgs | null) => {
     if (block.kind === 'single') return renderCard(block.device, false, undefined, undefined, a ?? undefined);
+    if (block.kind === 'split') {
+      // The stack carries the drag, so any zone drags the whole device.
+      return (
+        <ZoneCardStack key={block.groupKey} drag={a ?? undefined}>
+          {block.devices.map((z, i) => renderCard(z, false, undefined, undefined, undefined, stackPosition(i, block.devices.length)))}
+        </ZoneCardStack>
+      );
+    }
     const { groupKey, label, stripLabel, parentDeviceId, isBrand, isSmartHub, devices: members } = block;
     const groupOn = members.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of members) onSetPower(z.id, target); };

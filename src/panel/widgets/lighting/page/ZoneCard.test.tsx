@@ -723,3 +723,38 @@ describe('ZoneCard menu bands', () => {
     expect(rows.slice(-3)).toEqual(['|', 'lighting.devices.rename', 'lighting.devices.moveToGroup']);
   });
 });
+
+describe('ZoneCard stacked', () => {
+  const cardClass = () => document.querySelector(`.${styles.deviceCard}`)?.className ?? '';
+  const renderStacked = (stacked: 'first' | 'middle' | 'last') => render(
+    <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={() => {}} stacked={stacked} />,
+  );
+
+  it('carries no stack classes on its own', () => {
+    renderCard(baseDevice);
+    expect(cardClass()).not.toContain(styles.deviceCardStacked);
+    expect(cardClass()).not.toContain(styles.deviceCardStackSeam);
+  });
+
+  it('keeps the top corners and draws no seam as the first member', () => {
+    renderStacked('first');
+    expect(cardClass()).toContain(styles.deviceCardStacked);
+    expect(cardClass()).toContain(styles.deviceCardStackFirst);
+    expect(cardClass()).not.toContain(styles.deviceCardStackLast);
+    expect(cardClass()).not.toContain(styles.deviceCardStackSeam);
+  });
+
+  it('squares every corner and draws the seam as a middle member', () => {
+    renderStacked('middle');
+    expect(cardClass()).toContain(styles.deviceCardStackSeam);
+    expect(cardClass()).not.toContain(styles.deviceCardStackFirst);
+    expect(cardClass()).not.toContain(styles.deviceCardStackLast);
+  });
+
+  it('keeps the bottom corners and draws the seam as the last member', () => {
+    renderStacked('last');
+    expect(cardClass()).toContain(styles.deviceCardStackLast);
+    expect(cardClass()).toContain(styles.deviceCardStackSeam);
+    expect(cardClass()).not.toContain(styles.deviceCardStackFirst);
+  });
+});

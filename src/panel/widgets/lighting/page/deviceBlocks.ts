@@ -26,6 +26,14 @@ function brandLabel(prefix: string): string {
 export type DeviceBlock =
   | { kind: 'single'; device: LightingDevice }
   | {
+      /** One device's zones, drawn as a single card with no header. */
+      kind: 'split';
+      /** The key the same device carries as a group ('mb:<parent>'): a user
+       *  group that already holds it stored that key as its member. */
+      groupKey: string;
+      devices: LightingDevice[];
+    }
+  | {
       kind: 'group';
       groupKey: string;
       /** Header text: the group's custom name once renamed, else the hardware one. */
@@ -40,10 +48,11 @@ export type DeviceBlock =
     };
 
 /**
- * One ordered list of blocks: a single card, a motherboard group, or a
- * smart-light brand group. Each block is positioned by the first occurrence of
- * one of its members in the incoming device order, so groups and singles
- * interleave in that order and any block reorders the same way a card does.
+ * One ordered list of blocks: a single card, a split card (one device's zones),
+ * a motherboard group, or a smart-light brand group. Each block is positioned
+ * by the first occurrence of one of its members in the incoming device order,
+ * so groups and singles interleave in that order and any block reorders the
+ * same way a card does.
  *
  * Shared so the device rail and the immersive Static picker group identically.
  */
@@ -86,15 +95,29 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
 
   // A parent-device group that collapsed to a single zone (e.g. a keeb whose
   // keys + underglow were merged into one) renders as a standalone card, not a
-  // one-child category. Brand and smart-hub groups keep their header even at one
-  // member: it carries the brand/firmware-control affordances a card can't.
+  // one-child category, and one whose zones all belong to the parent itself
+  // renders as a split card. Brand and smart-hub groups keep their header even
+  // at one member: it carries the brand/firmware-control affordances a card
+  // can't.
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
-    if (b.kind === 'group' && !b.isBrand && !b.isSmartHub && b.devices.length === 1) {
+    if (b.kind !== 'group' || b.isBrand || b.isSmartHub) continue;
+    if (b.devices.length === 1) {
       blocks[i] = { kind: 'single', device: b.devices[0] };
+    } else if (b.devices.every(isZoneOfParent)) {
+      blocks[i] = { kind: 'split', groupKey: b.groupKey, devices: b.devices };
     }
   }
   return blocks;
+}
+
+// One device carved into zones (keeb keys + underglow, a partitioned strip,
+// the Galahad's rings): its cards route to the parent as their deviceId. A
+// hub's port cards route to the port device, so hubs stay groups; a
+// motherboard's headers route to the board but each carries its own strip,
+// so the board is carved out by type. No deviceId (older service) = group.
+function isZoneOfParent(d: LightingDevice): boolean {
+  return d.deviceId != null && d.deviceId === d.parentDeviceId && d.type !== 'motherboard';
 }
 
 // Zone names come in as "{Motherboard Name} - {Zone Name}". The parent header

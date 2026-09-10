@@ -4,7 +4,7 @@ import { EmptyState } from '../../../../components/common/EmptyState/EmptyState'
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingDevice } from '../../../../api/lighting';
-import { ZoneCard, zoneCardSelectable } from '../page/ZoneCard';
+import { ZoneCard, ZoneCardStack, stackPosition, zoneCardSelectable, type StackPosition } from '../page/ZoneCard';
 import { MotherboardGroup } from '../page/MotherboardGroup';
 import { buildDeviceBlocks, stripParentPrefix } from '../page/deviceBlocks';
 import { visibleCards } from '../page/zoneUtils';
@@ -59,11 +59,12 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
     onSetSelection(next, primary);
   };
 
-  const card = (d: LightingDevice, indent: boolean, displayName?: string) => (
+  const card = (d: LightingDevice, indent: boolean, displayName?: string, stacked?: StackPosition) => (
     <ZoneCard
       key={d.id}
       device={d}
       displayName={displayName}
+      stacked={stacked}
       selectOnly
       ledFullscreen
       ledPickOnly
@@ -99,6 +100,12 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
       <div className={styles.grid} role="group" aria-label={t('lighting.rightPane.devices')}>
         {blocks.map(block => block.kind === 'single'
           ? card(block.device, false)
+          : block.kind === 'split'
+          ? (
+            <ZoneCardStack key={block.groupKey}>
+              {block.devices.map((d, i) => card(d, false, undefined, stackPosition(i, block.devices.length)))}
+            </ZoneCardStack>
+          )
           : (
             <MotherboardGroup
               key={block.groupKey}

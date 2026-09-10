@@ -106,6 +106,24 @@ describe('StaticDeviceSelect grouping', () => {
     expect(screen.getByText('Port 2')).toBeInTheDocument();
   });
 
+  it('stacks one device\'s zones into a split card with no header, each pickable on its own', () => {
+    const onSetSelection = vi.fn();
+    const keebZone = (suffix: string, name: string, index: number): LightingDevice => ({
+      ...zone(`keeb:tkl-1:${suffix}`, 'keeb:tkl-1', name, index), deviceId: 'keeb:tkl-1', type: 'ledstrip',
+    });
+    render(
+      <StaticDeviceSelect
+        devices={[keebZone('keys', 'HYTE Keeb TKL - Keys', 0), keebZone('underglow', 'HYTE Keeb TKL - Underglow', 1)]}
+        selectedIds={new Set()}
+        onSetSelection={onSetSelection}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /motherboardHeader/ })).toBeNull();
+    expect(screen.getByText('HYTE Keeb TKL - Keys')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('HYTE Keeb TKL - Underglow'));
+    expect([...onSetSelection.mock.calls[0][0]]).toEqual(['keeb:tkl-1:underglow']);
+  });
+
   it('heads a smart-light brand with its own group', () => {
     render(
       <StaticDeviceSelect

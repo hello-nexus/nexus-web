@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, FolderInput, FolderPlus, FolderMinus, Folder, Unlink, Link, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
@@ -59,6 +59,36 @@ export interface BulkSelection {
   identify: () => void;
 }
 
+/** Where a card sits in a split card's stack; see {@link ZoneCardStack}. */
+export type StackPosition = 'first' | 'middle' | 'last';
+
+export function stackPosition(index: number, count: number): StackPosition {
+  return index === 0 ? 'first' : index === count - 1 ? 'last' : 'middle';
+}
+
+/**
+ * One device's zones as a single card. Each member is a full ZoneCard with its
+ * own selection and menu; the stack owns the outer corners and the rail drag,
+ * so the device moves as one block and its zones can never be split up.
+ */
+export function ZoneCardStack({ drag, children }: {
+  /** Optional dnd-kit drag wiring for the whole stack. */
+  drag?: SortableRowArgs;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      ref={drag?.ref ?? (() => {})}
+      style={drag?.style ?? {}}
+      {...(drag?.attributes ?? {})}
+      {...(drag?.listeners ?? {})}
+      className={`${styles.deviceCardStack}${drag?.isDragging ? ` ${drag.placeholderClassName}` : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 /**
  * One card for either a whole OpenRGB device or a motherboard ARGB zone. The
  * service splits motherboards with more than one ARGB header into separate
@@ -91,6 +121,7 @@ export function ZoneCard({
   selectOnly,
   onSelectOnly,
   bulk,
+  stacked,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -161,6 +192,9 @@ export function ZoneCard({
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the device canvas's right-click. */
   bulk?: BulkSelection;
+  /** Set on a member of a {@link ZoneCardStack}: squares the edges this zone
+   *  shares with its neighbours and draws the seam above it. */
+  stacked?: StackPosition;
 }) {
   const { t, language } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -392,6 +426,10 @@ export function ZoneCard({
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
+        stacked ? styles.deviceCardStacked : '',
+        stacked === 'first' ? styles.deviceCardStackFirst : '',
+        stacked === 'last' ? styles.deviceCardStackLast : '',
+        stacked && stacked !== 'first' ? styles.deviceCardStackSeam : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
       onClick={e => {
