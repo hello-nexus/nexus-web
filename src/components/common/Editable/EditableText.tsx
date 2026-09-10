@@ -12,6 +12,13 @@ import styles from './Editable.module.scss';
  *
  * The ref opens edit mode from a menu's Rename row.
  */
+/**
+ * Cap for a lighting or cooling device or group name. Longer than the 20-char
+ * default because these are the names users write sentences into - "Front
+ * radiator intake", "Corsair QL Fan 3" - and the service stores them uncapped.
+ */
+export const DEVICE_NAME_MAX_LENGTH = 40;
+
 export interface EditableTextProps {
   value: string;
   onCommit: (value: string) => void;

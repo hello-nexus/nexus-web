@@ -7,7 +7,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { formatNumber } from '../../../../lib/units';
 import type { CurveDef, FanState } from '../../../../types/cooling';
-import { EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
+import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
@@ -558,7 +558,7 @@ export const FanCard = memo(function FanCard({
             edits it instead of starting a card drag; no layout change. */}
         <span data-no-dnd style={{ display: 'contents' }}>
           {/* Rename lives on the context menu; a click on the name belongs to the card. */}
-          <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} />
+          <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} maxLength={DEVICE_NAME_MAX_LENGTH} />
         </span>
         <span className={styles.fanRpmReadout}>
           <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>

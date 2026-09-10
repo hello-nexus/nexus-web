@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type SortableRowArgs } from '../SortableList/SortableList';
-import { EditableText, type EditableTextHandle } from '../Editable/EditableText';
+import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../Editable/EditableText';
 import styles from './CollapsibleSection.module.scss';
 
 /**
@@ -141,6 +141,7 @@ export function CollapsibleSection({
                 ref={titleRenameRef}
                 value={title as string}
                 onCommit={onTitleRename!}
+                maxLength={DEVICE_NAME_MAX_LENGTH}
                 className={styles.title}
                 clickToEdit={titleClickToRename}
               />

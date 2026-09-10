@@ -5,7 +5,7 @@ import {
   type LightingDevice,
 } from '../../../../api/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
-import { EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
+import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
@@ -166,6 +166,7 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, children }
                 ref={nameRef}
                 value={name}
                 onCommit={menu.onRename}
+                maxLength={DEVICE_NAME_MAX_LENGTH}
                 className={styles.deviceCardStackName}
                 clickToEdit={false}
               />
@@ -580,6 +581,7 @@ export function ZoneCard({
               ref={nameRef}
               value={displayName ?? device.name}
               onCommit={onRename!}
+              maxLength={DEVICE_NAME_MAX_LENGTH}
               className={`${styles.deviceName} ${styles.deviceNameEditable}`}
               clickToEdit={false}
             />
