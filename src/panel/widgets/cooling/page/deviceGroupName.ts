@@ -18,12 +18,12 @@ export function fanDeviceGroupName(deviceId: string, deviceName?: string | null)
   return deviceId;
 }
 
-// Rail block id for the motherboard's own fan headers, which carry no deviceId.
-// It IS persisted, as a fanGroups member and a collapsed-group key, but it is
-// never a device id: it must not reach a rename or a per-channel call.
+// Rail block id for the board's own fan headers, the only channels on no device.
+// Persisted as a fanGroups member, a collapsed-group key and a rename key, but it
+// is not a device id: it must not reach a per-channel call.
 export const MOTHERBOARD_BLOCK_ID = 'motherboard';
 
 /** The rail block a channel belongs to: its device, or the board's own group. */
-export function blockIdOf(ch: { deviceId?: string | null; isGpu?: boolean; id: string }): string {
-  return ch.deviceId || (ch.isGpu ? ch.id : MOTHERBOARD_BLOCK_ID);
+export function blockIdOf(ch: { deviceId?: string | null }): string {
+  return ch.deviceId || MOTHERBOARD_BLOCK_ID;
 }

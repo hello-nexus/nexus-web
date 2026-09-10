@@ -37,8 +37,9 @@ export function FanGroupHeader({
   onToggleLock: () => void;
   onRename?: (name: string) => void;
   onDelete?: () => void;
-  /** Present only on a renamed HARDWARE group; puts the header back on the name
-   *  the device reports. A user group's name has nothing to fall back to. */
+  /** Present only on a renamed hardware or synthetic group; puts the header back
+   *  on the name the device reports, or the one system specs give the board or
+   *  the card. A user group's name has nothing to fall back to. */
   onResetName?: () => void;
   drag?: SortableRowArgs;
   /** True while a dragged card would land in this group; washes the section so
