@@ -35,14 +35,15 @@ export interface FanChannel {
   /** Duty points added to whatever drives this fan, in [-100,100]. 0 when it has none. */
   offset?: number;
   seriesId?: string; // sanitized id; "fan:" + seriesId is the monitoring series id
-  // ── External-device metadata.
-  // All null for motherboard/GPU fans; populated by the service only when the
-  // channel lives on a USB hub like NP50. Drives device-grouped rendering on
-  // the cooling page.
-  deviceId?: string | null;     // e.g. "np50:1A2B3C"
-  // Product name from the service (e.g. "HYTE NP50" or "iBUYPOWER MiniHub").
-  // Same for every channel on a device; used as the device-group header
-  // label on the cooling page.
+  // ── Owning-device metadata.
+  // Set for a channel on a USB hub like NP50 and for a GPU fan; null for a
+  // motherboard header. Drives device-grouped rendering on the cooling page.
+  deviceId?: string | null;     // e.g. "np50:1A2B3C" or a GPU's "/gpu-nvidia/0"
+  // Product name from the service (e.g. "HYTE NP50" or "NVIDIA GeForce RTX 3070").
+  // Same for every channel on a device; used as the device-group header label on
+  // the cooling page. On a motherboard header it is null until the board's block
+  // is renamed; that block falls back to system specs, never to
+  // originalDeviceName.
   deviceName?: string | null;
   portLabel?: string | null;    // e.g. "Port 1" | "Legacy 4-pin"
   fanModel?: string | null;     // e.g. "LS30" | "LS10" | "FP12"

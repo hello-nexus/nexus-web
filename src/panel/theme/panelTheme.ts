@@ -168,13 +168,11 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
   const r = record;
   // Single-widget immersive surfaces (q60) fill the screen with one tile, so a
   // solid background or an opaque widget would hide the lighting: they default
-  // to a plasma shader behind a transparent widget.
+  // to the shader background behind a transparent widget.
   const single = isSingleWidgetSurface(r?.capabilities?.surface as PanelSurface);
   // Back-compat: seed the active shader's preset from the legacy scalar when
   // the per-shader map does not carry it.
-  const effect = r?.backgroundEffect == null && single
-    ? 'plasma'
-    : normalizePanelBackgroundEffect(r?.backgroundEffect);
+  const effect = normalizePanelBackgroundEffect(r?.backgroundEffect);
   const templates: Record<string, number> = { ...(r?.backgroundTemplates ?? {}) };
   if (templates[effect] === undefined) {
     templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);

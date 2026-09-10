@@ -140,9 +140,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Manual on any one fan of a hub. Seeded from the same persistent
   // cache so the per-fan dropdowns don't blink to a default on visit.
   const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>(() => cachedSeed.hubModes);
-  // Per-group collapse state for the fan grid (external hub groups + the
-  // Disconnected group), persisted across restarts. Keyed by the group's
-  // deviceId, plus the literal 'disconnected'. Default: only Disconnected
+  // Per-group collapse state for the fan grid, persisted across restarts. Keyed
+  // by rail block id (a device id or the board's synthetic one), by user-group
+  // id, plus the literal 'disconnected'. Default: only Disconnected
   // starts collapsed so a calibration-flagged-unresponsive fan doesn't
   // visually dominate the section; hub groups start expanded.
   const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', ['disconnected']);
@@ -650,10 +650,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     void saveActivePreset();
   }, [exitOffToCustomIfNeeded, saveActivePreset, pushHistory]);
 
-  // `id` is a channel id, or the device id of a group header. An empty name
-  // clears the rename and the card falls back to the hardware name it carries.
   const { specs } = useSystemSpecs(serviceOnline);
+  // The board's block has no hardware name; the spec sheet's board model stands in.
+  const boardBlockName = specs?.motherboard || t('cooling.fan.motherboardGroup');
 
+  // `id` is a channel id, a group header's device id, or the board's block id.
+  // An empty name clears the rename and the header falls back to what it carries.
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
     setChannels(prev => prev.map(ch => {
@@ -666,6 +668,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         return name === ''
           ? { ...ch, deviceName: ch.originalDeviceName ?? ch.deviceName, originalDeviceName: undefined }
           : { ...ch, deviceName: name, originalDeviceName: ch.originalDeviceName ?? ch.deviceName ?? undefined };
+      }
+      // The board block's rename rides deviceName on every one of its fans.
+      if (id === MOTHERBOARD_BLOCK_ID && !ch.deviceId) {
+        return { ...ch, deviceName: name === '' ? undefined : name };
       }
       return ch;
     }));
@@ -1094,24 +1100,26 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // User-made fan groups. The service owns them (they ride the channel list),
   // so a write is optimistic and the cooling topic reconciles.
   const [fanGroupsState, setFanGroupsState] = useState<DeviceGroup[]>([]);
-  // Board fans were their own rail blocks before they were grouped, so a saved
-  // group can still hold their fan ids. Left as-is those members resolve to no
-  // block, get dropped from the rebuilt arrangement, and the next drag saves
-  // the pruned list - the grouping would be gone from settings, not just the
-  // view. Map them onto the block they now live in.
-  const boardFanIds = useMemo(
-    () => new Set(channels.filter(c => !c.deviceId && !c.isGpu).map(c => c.id)),
-    [channels],
-  );
+  // A saved group can still hold a bare fan id from before that fan's rail block
+  // existed. Unmapped it resolves to no block, gets dropped from the rebuilt
+  // arrangement, and the next drag persists the pruned list.
+  const legacyBlockIds = useMemo(() => {
+    const byFanId = new Map<string, string>();
+    for (const c of channels) {
+      const block = blockIdOf(c);
+      if (block !== c.id) byFanId.set(c.id, block);
+    }
+    return byFanId;
+  }, [channels]);
   const fanGroups = useMemo(() => fanGroupsState.map(g => {
     const members: string[] = [];
     for (const m of g.members) {
-      const mapped = boardFanIds.has(m) ? MOTHERBOARD_BLOCK_ID : m;
+      const mapped = legacyBlockIds.get(m) ?? m;
       if (!members.includes(mapped)) members.push(mapped);
     }
     const unchanged = members.length === g.members.length && members.every((m, i) => m === g.members[i]);
     return unchanged ? g : { ...g, members };
-  }), [fanGroupsState, boardFanIds]);
+  }), [fanGroupsState, legacyBlockIds]);
   const setFanGroups = useCallback((next: DeviceGroup[]) => {
     setFanGroupsState(next);
     saveFanGroups(next).catch(() => { /* the cooling topic reconciles */ });
@@ -1550,21 +1558,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 blockIdList.flatMap(b => allByBlock.get(b) ?? []);
               const groupBlockIds = (groupId: string) =>
                 fanGroups.find(g => g.id === groupId)?.members ?? [];
-              // Motherboard-header fans share a synthetic block so they render
-              // under one group named for the board, the way the lighting page
-              // groups a motherboard's ARGB headers. GPU fans keep the null key
-              // and stay loose cards - they belong to the card, not the board.
-              const groups = new Map<string | null, FanChannel[]>();
+              // Every fan lands in a block: its device, or the synthetic block
+              // the board's own headers share.
+              const groups = new Map<string, FanChannel[]>();
               for (const ch of live) {
-                const key = ch.isGpu && !ch.deviceId ? null : blockIdOf(ch);
+                const key = blockIdOf(ch);
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(ch);
               }
               const disconnectedIds = disconnected.map(c => c.id);
-              // The null bucket is GPU fans: they belong to the card, not the
-              // board, so they stay loose cards rather than joining the group.
-              const looseIds = (groups.get(null) ?? []).map(c => c.id);
-              const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
+              // A group is ONE block, so dragging it moves the whole device and
+              // its ports never split.
+              const blockIds = Array.from(groups.keys());
 
               // A fan's group membership is its BLOCK's: a fan on a hub moves
               // with the whole block, the way dragging one does.
@@ -1612,12 +1617,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 />
               );
 
-              // Rail blocks: one per loose GPU fan card, one per device group
-              // (hubs, and the board's own headers). A group is ONE block, so
-              // dragging it moves the whole device and its ports never split.
-              const blockIds = [...looseIds, ...deviceKeys];
               const expand = (blockId: string): string[] => {
-                if (!deviceKeys.includes(blockId)) return [blockId];
                 const memberIds = (groups.get(blockId) ?? []).map(c => c.id);
                 const ordered = fanOrder.filter(id => memberIds.includes(id));
                 return ordered.length > 0 ? ordered : memberIds;
@@ -1656,17 +1656,17 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               };
 
               const renderBlock = (blockId: string, a: SortableRowArgs) => {
-                if (!deviceKeys.includes(blockId)) {
-                  const ch = channels.find(c => c.id === blockId);
-                  return ch ? renderFanCard(ch, a) : null;
-                }
                 const list = groups.get(blockId) ?? [];
                 const memberIds = list.map(c => c.id);
+                // On the board's block deviceName carries the rename and nothing
+                // else, so an un-renamed one has no name to reset to.
+                const custom = list[0]?.deviceName;
+                const isBoard = blockId === MOTHERBOARD_BLOCK_ID;
                 return (
                   <FanGroupHeader
-                    name={blockId === MOTHERBOARD_BLOCK_ID
-                      ? (specs?.motherboard || t('cooling.fan.motherboardGroup'))
-                      : fanDeviceGroupName(blockId, list[0]?.deviceName)}
+                    name={isBoard
+                      ? (custom || boardBlockName)
+                      : fanDeviceGroupName(blockId, custom)}
                     count={list.length}
                     hasUncontrolled={(allByBlock.get(blockId) ?? []).some(c => c.controlled === false)}
                     collapsed={isFanGroupCollapsed(blockId)}
@@ -1681,8 +1681,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       const target = !list.some(c => c.locked);
                       for (const c of list) handleToggleLock(c.id, target);
                     }}
-                    onRename={blockId === MOTHERBOARD_BLOCK_ID ? undefined : name => handleRename(blockId, name)}
-                    onResetName={blockId !== MOTHERBOARD_BLOCK_ID && list[0]?.originalDeviceName != null
+                    onRename={name => handleRename(blockId, name)}
+                    onResetName={(isBoard ? custom != null : list[0]?.originalDeviceName != null)
                       ? () => handleRename(blockId, '')
                       : undefined}
                     drag={a}

@@ -36,7 +36,7 @@ import styles from '../CoolingPage.module.scss';
  *   - 'firmware'   : NP50 and Q-series. Hub plays its firmware speed setpoint.
  *      Reads as a new "FW Control" option on every NP50 and Q-series fan.
  *   - 'software'   : Nexus drives. Fall through to per-fan state.
- * Motherboard fans (no deviceId) leave this undefined.
+ * Undefined on anything that is not one of those hubs, GPU fans included.
  */
 export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 
