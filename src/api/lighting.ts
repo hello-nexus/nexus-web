@@ -672,10 +672,10 @@ export interface LedGroup {
 
 /** Local apply state for a community / file mapping on one device. */
 export interface AppliedMappingSummary {
-  /** Registry id when the mapping came from the community; null for file imports. */
+  /** Registry id for a community mapping, product key for a built-in; null for file imports. */
   mappingId: string | null;
   name: string;
-  /** "community" | "file" */
+  /** "community" | "file" | "builtin" */
   source: string;
   contentHash: string;
   autoApplied: boolean;
@@ -690,7 +690,7 @@ export interface LedMapResponse {
   aspectRatio: number;
   /** Named LED segments (resolved: user delta wins over the applied mapping's groups). */
   groups?: LedGroup[];
-  /** Set when a community/file mapping is applied to this device. */
+  /** Set when a built-in, community or file mapping is applied to this device. */
   applied?: AppliedMappingSummary | null;
   deviceKey?: string;
 }
@@ -963,6 +963,50 @@ export const publishDeviceMapping = (id: string) =>
 /** Cache-only count lookup for the device-card badges; never hits the network. */
 export const fetchAvailableMappings = () =>
   fetchService<MappingsAvailableResponse>('/devices/lighting-devices/mappings/available');
+
+// --- built-in mapping catalog (assign a product to an ARGB port) ---
+
+/** One product in the catalog that ships inside the service binary. */
+export interface BuiltInMappingSummary {
+  /** Virtual product key, e.g. "product:corsair-qx-fan". */
+  key: string;
+  name: string;
+  brand: string;
+  /** Fan | Strip | AIO | Case | Cable | Water Block | ... */
+  type: string;
+  ledCount: number;
+}
+
+export interface MappingCatalogResponse extends ApiEnvelope {
+  items: BuiltInMappingSummary[];
+  /** Catalog size before the query and limit. */
+  total: number;
+}
+
+/**
+ * Search the pre-built product catalog. Served from an embedded resource, so
+ * this works with no network and no account - which is the point: an ARGB
+ * header cannot report what is plugged into it, so the picker is the only way
+ * for the user to say, and it has to work on a machine that has never been
+ * online.
+ */
+export const fetchMappingCatalog = (query: string, type?: string, limit = 50) => {
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  if (type) params.set('type', type);
+  params.set('limit', String(limit));
+  return fetchService<MappingCatalogResponse>(
+    `/devices/lighting-devices/mappings/catalog?${params.toString()}`,
+  );
+};
+
+/**
+ * Assign a catalog product to a device. The user's own edits keep layering on
+ * top (they are stored separately), so re-assigning restores the shipped
+ * layout rather than whatever the last edit left behind.
+ */
+export const assignDeviceMapping = (id: string, key: string) =>
+  postService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/assign`, { key });
 
 // --- Game Sync ---
 

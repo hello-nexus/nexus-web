@@ -22,6 +22,7 @@ import { Slider } from '../../../../components/common/Slider/Slider';
 import { useThrottle } from '../../../../hooks/cadence';
 import { isApplePlatform, isMultiSelectModifier } from '../../../../lib/platform';
 import { CommunityMappingsPanel } from './CommunityMappingsPanel';
+import { AssignDeviceBar } from './AssignDeviceBar';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, formatZoneChipCount, isStagedZoneId, mergeStagedZones, orderZones,
@@ -2029,6 +2030,16 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         <div className={styles.loading}>{t('lighting.ledMap.title')}...</div>
       ) : (
         <div className={styles.content}>
+          {/* What is wired to this port. A header reports a LED count and
+              nothing else, so the layout can only come from the user saying
+              which product it is; their own edits layer on top and are never
+              folded back into the assigned mapping. */}
+          <AssignDeviceBar
+            deviceId={selectedZoneId}
+            disabled={saving || isStagedZoneId(selectedZoneId)}
+            onLedMapChanged={() => { void load(); }}
+            confirmDiscardEdits={confirmDiscardEdits}
+          />
           {structure?.hubComposition && (
             <HubCompositionPanel
               composition={structure.hubComposition}
