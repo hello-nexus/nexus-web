@@ -116,3 +116,34 @@ export async function fetchConflictAutostart(): Promise<ConflictAutostartStatus[
 export function disableConflictAutostart(id: string): Promise<DisableConflictAutostartResponse | null> {
   return postService<DisableConflictAutostartResponse>('/conflicts/autostart/disable', { id });
 }
+
+/**
+ * Windows' own Dynamic Lighting settings - the one conflicting "app" that
+ * ships with the OS, driving the same HID LampArray devices as Nexus. Shape
+ * mirrors `Models.Conflicts.WindowsDynamicLightingState`. `available` is false
+ * off Windows and whenever the service could not read the console user's
+ * Lighting key, in which case every other field is meaningless.
+ */
+export interface WindowsDynamicLightingState {
+  available: boolean;
+  enabled: boolean;
+  foregroundAppControl: boolean;
+  deviceCount: number;
+  devicesEnabled: number;
+}
+
+/** A field left out is not written; the response is the state re-read afterwards. */
+export interface SetWindowsDynamicLightingBody {
+  enabled?: boolean;
+  foregroundAppControl?: boolean;
+  deviceLighting?: boolean;
+}
+
+/** Null when the read failed - distinct from an `available: false` state the service reported. */
+export function fetchDynamicLighting(): Promise<WindowsDynamicLightingState | null> {
+  return fetchService<WindowsDynamicLightingState>('/conflicts/dynamic-lighting');
+}
+
+export function setDynamicLighting(body: SetWindowsDynamicLightingBody): Promise<WindowsDynamicLightingState | null> {
+  return postService<WindowsDynamicLightingState>('/conflicts/dynamic-lighting', body);
+}

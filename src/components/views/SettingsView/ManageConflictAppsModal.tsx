@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Toggle } from '../../common/Toggle/Toggle';
-import { fetchConflictCatalog, type ConflictCatalogApp } from '../../../api/conflicts';
+import {
+  fetchConflictCatalog, fetchDynamicLighting, setDynamicLighting,
+  type ConflictCatalogApp, type SetWindowsDynamicLightingBody, type WindowsDynamicLightingState,
+} from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ManageConflictAppsModal.module.scss';
@@ -72,6 +75,28 @@ export function ManageConflictAppsModal({
     return () => { cancelled = true; };
   }, [open]);
 
+  // A failed read leaves this null, which hides the section rather than
+  // rendering toggles whose position is a guess.
+  const [lighting, setLighting] = useState<WindowsDynamicLightingState | null>(null);
+  // Writes race: each answers with a full re-read, so without a sequence the
+  // slower of two quick toggles would land last and revert the newer one.
+  const lightingRequest = useRef(0);
+
+  useEffect(() => {
+    if (!open) return;
+    const seq = ++lightingRequest.current;
+    fetchDynamicLighting().then(state => {
+      if (seq === lightingRequest.current) setLighting(state);
+    });
+  }, [open]);
+
+  const applyLighting = (body: SetWindowsDynamicLightingBody) => {
+    const seq = ++lightingRequest.current;
+    setDynamicLighting(body).then(state => {
+      if (state && seq === lightingRequest.current) setLighting(state);
+    });
+  };
+
   const excluded = useMemo(() => new Set(exclusions), [exclusions]);
   const runningIds = useMemo(() => new Set(conflicts.map(c => c.id)), [conflicts]);
 
@@ -127,6 +152,31 @@ export function ManageConflictAppsModal({
           onChange={onAutoShutdownChange}
           stackOnNarrow
         />
+
+        {lighting?.available && (
+          <section className={styles.group}>
+            <h4 className={styles.groupTitle}>{t('settings.conflictApps.dynamicLighting.title')}</h4>
+            <SettingToggle
+              label={t('settings.conflictApps.dynamicLighting.enabled')}
+              checked={lighting.enabled}
+              onChange={next => applyLighting({ enabled: next })}
+            />
+            <SettingToggle
+              label={t('settings.conflictApps.dynamicLighting.foreground')}
+              checked={lighting.foregroundAppControl}
+              onChange={next => applyLighting({ foregroundAppControl: next })}
+            />
+            {lighting.deviceCount > 0 && (
+              <SettingToggle
+                label={t('settings.conflictApps.dynamicLighting.devices')}
+                // Windows stores this per device; one switch covers them all,
+                // and any device still on reads as on.
+                checked={lighting.devicesEnabled > 0}
+                onChange={next => applyLighting({ deviceLighting: next })}
+              />
+            )}
+          </section>
+        )}
 
         <p className={styles.listIntro}>{t('settings.conflictApps.listIntro')}</p>
 
