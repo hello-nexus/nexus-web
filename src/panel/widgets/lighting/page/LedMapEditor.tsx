@@ -2030,16 +2030,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         <div className={styles.loading}>{t('lighting.ledMap.title')}...</div>
       ) : (
         <div className={styles.content}>
-          {/* What is wired to this port. A header reports a LED count and
-              nothing else, so the layout can only come from the user saying
-              which product it is; their own edits layer on top and are never
-              folded back into the assigned mapping. */}
-          <AssignDeviceBar
-            deviceId={selectedZoneId}
-            disabled={saving || isStagedZoneId(selectedZoneId)}
-            onLedMapChanged={() => { void load(); }}
-            confirmDiscardEdits={confirmDiscardEdits}
-          />
           {structure?.hubComposition && (
             <HubCompositionPanel
               composition={structure.hubComposition}
@@ -2166,6 +2156,17 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </HoverTooltip>
             </div>
           )}
+          {/* What is wired to the selected zone's port. A header reports a LED
+              count and never what is plugged into it, so the layout can only
+              come from the user saying which product it is. Sits below the
+              zone rail because the assignment is per zone: switching zones
+              switches what this row is talking about. */}
+          <AssignDeviceBar
+            deviceId={selectedZoneId}
+            disabled={saving || isStagedZoneId(selectedZoneId)}
+            onLedMapChanged={() => { void load(); }}
+            confirmDiscardEdits={confirmDiscardEdits}
+          />
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
             {canEditLedCount ? (
@@ -2203,15 +2204,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 <span className={styles.ledCountReadonly}>{activeZoneLedCount}</span>
               </span>
             )}
-            <div className={styles.hint}>
-              {t('lighting.ledMap.hint', {
-                count: leds.length,
-                drag: t('lighting.ledMap.dragHint'),
-                mod: isMac ? 'Cmd' : 'Ctrl',
-                multi: t('lighting.ledMap.clickMulti'),
-                del: t('lighting.ledMap.deleteHint'),
-              })}
-            </div>
             <div className={styles.spacer} />
             {hasRestorable && (
               <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">
@@ -2354,6 +2346,21 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             onPointerUp={mappingUnavailable ? undefined : (e => handlePointerUp(e))}
             onPointerLeave={mappingUnavailable ? undefined : (() => handlePointerUp())}
           >
+            {/* Selection/move help, pinned inside the canvas rather than in the
+                toolbar so it sits with the thing it describes. Never
+                interactive: it overlaps the lasso area, so a pointer must fall
+                through to the canvas handlers. */}
+            {!mappingUnavailable && (
+              <div className={styles.hint}>
+                {t('lighting.ledMap.hint', {
+                  count: leds.length,
+                  drag: t('lighting.ledMap.dragHint'),
+                  mod: isMac ? 'Cmd' : 'Ctrl',
+                  multi: t('lighting.ledMap.clickMulti'),
+                  del: t('lighting.ledMap.deleteHint'),
+                })}
+              </div>
+            )}
             {mappingUnavailable && (
               <div className={styles.mappingUnavailable} role="status">
                 <span className={styles.mappingUnavailableTitle}>

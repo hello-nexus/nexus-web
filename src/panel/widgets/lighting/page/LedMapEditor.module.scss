@@ -509,8 +509,21 @@
 }
 
 .hint {
+  // Same size as when it lived in the toolbar; only the position changed.
   font-size: 0.65rem;
   color: var(--text-dim);
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.5rem;
+  z-index: 2;
+  max-width: calc(100% - 1.2rem);
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  // The canvas is a dark dot grid and LEDs can sit under the text, so the
+  // line needs its own ground to stay legible.
+  background: rgba(0, 0, 0, 0.55);
+  // The lasso starts anywhere on the canvas, including here.
+  pointer-events: none;
 }
 
 .loading {
