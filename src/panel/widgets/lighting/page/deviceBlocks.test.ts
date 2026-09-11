@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildDeviceBlocks, stripParentPrefix } from './deviceBlocks';
+import { buildDeviceBlocks, sortZonesWithinDevice, stripParentPrefix } from './deviceBlocks';
 import type { LightingDevice } from '../../../../api/lighting';
 
 const zone = (id: string, name: string, extra: Partial<LightingDevice> = {}): LightingDevice => ({
@@ -256,5 +256,37 @@ describe('stripParentPrefix', () => {
 
   it('leaves a renamed zone alone - it no longer carries the prefix', () => {
     expect(stripParentPrefix('Top intake', 'B650E')).toBe('Top intake');
+  });
+});
+
+describe('sortZonesWithinDevice', () => {
+  const card = (id: string, deviceId: string, zoneIndex: number): LightingDevice =>
+    ({ id, name: id, deviceId, zoneIndex } as LightingDevice);
+
+  it("puts a device's zones back in the order the device reports them", () => {
+    // The saved drag order pinned :z1 ahead of :z0; reordering the chain moves
+    // the products between those ids and the page has to follow.
+    const out = sortZonesWithinDevice([
+      card('port:z1', 'port', 1),
+      card('port:z0', 'port', 0),
+      card('port:z2', 'port', 2),
+    ]);
+    expect(out.map(d => d.id)).toEqual(['port:z0', 'port:z1', 'port:z2']);
+  });
+
+  it('keeps the run where the device first appeared, so devices do not jump', () => {
+    const out = sortZonesWithinDevice([
+      card('solo', 'solo', 0),
+      card('port:z1', 'port', 1),
+      card('other', 'other', 0),
+      card('port:z0', 'port', 0),
+    ]);
+    // 'port' first appears second, so its zones sit there together.
+    expect(out.map(d => d.id)).toEqual(['solo', 'port:z0', 'port:z1', 'other']);
+  });
+
+  it('leaves a list of single-zone devices exactly as given', () => {
+    const input = [card('a', 'a', 0), card('b', 'b', 0)];
+    expect(sortZonesWithinDevice(input)).toBe(input);
   });
 });

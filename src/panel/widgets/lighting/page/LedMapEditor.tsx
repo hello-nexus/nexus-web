@@ -691,6 +691,18 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     run?.();
   }, [pendingDiscardAction]);
 
+  // Save first, then do the thing that would have discarded the edits. A
+  // failed save keeps both the edits and the prompt, so nothing is lost.
+  const handleSaveThenPending = useCallback(() => {
+    void (async () => {
+      const ok = await handleSaveRef.current();
+      if (!ok) return;
+      const run = pendingDiscardAction;
+      setPendingDiscardAction(null);
+      run?.();
+    })();
+  }, [pendingDiscardAction]);
+
   // ── Zone rail actions ─────────────────────────────────────────────────
   // Split / merge / rename / reset are staged locally: they replace the
   // rendered zone list, relabel LED membership, ride the shared undo stack,
@@ -2690,6 +2702,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         message={t('lighting.mappings.discardEditsMessage')}
         confirmLabel={t('lighting.ledMap.discard')}
         cancelLabel={t('lighting.ledMap.keepEditing')}
+        // Same way out as the close prompt: keep the work and carry on,
+        // rather than making the user cancel and find Save first.
+        primaryAction={{
+          label: t('lighting.ledMap.save'),
+          onSelect: handleSaveThenPending,
+          disabled: saving,
+        }}
         destructive
         onConfirm={handlePendingDiscardConfirm}
         onCancel={() => setPendingDiscardAction(null)}

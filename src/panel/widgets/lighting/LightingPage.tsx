@@ -27,6 +27,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
+import { sortZonesWithinDevice } from './page/deviceBlocks';
 import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
@@ -1259,16 +1260,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [devices]);
   const orderedDevices = useMemo(() => {
     if (visibleDevices.length === 0) return visibleDevices;
-    if (deviceOrder.length === 0) return visibleDevices;
-    const byId = new Map(visibleDevices.map(d => [d.id, d]));
-    const out: LightingDevice[] = [];
-    const seen = new Set<string>();
-    for (const id of deviceOrder) {
-      const d = byId.get(id);
-      if (d) { out.push(d); seen.add(id); }
+    let out: LightingDevice[] = visibleDevices;
+    if (deviceOrder.length > 0) {
+      const byId = new Map(visibleDevices.map(d => [d.id, d]));
+      const ordered: LightingDevice[] = [];
+      const seen = new Set<string>();
+      for (const id of deviceOrder) {
+        const d = byId.get(id);
+        if (d) { ordered.push(d); seen.add(id); }
+      }
+      for (const d of visibleDevices) if (!seen.has(d.id)) ordered.push(d);
+      out = ordered;
     }
-    for (const d of visibleDevices) if (!seen.has(d.id)) out.push(d);
-    return out;
+    // Cards that are zones of one device stay in the order that device
+    // reports them: on an ARGB port that is the order the user wired the
+    // chain in, and the saved drag order is a flat list that would otherwise
+    // pin them where they used to sit.
+    return sortZonesWithinDevice(out);
   }, [visibleDevices, deviceOrder]);
 
   // Cards a PICK can land on: a zone the service could not drive, one with

@@ -201,3 +201,45 @@ export function stripParentPrefix(name: string, parentName: string): string {
   }
   return name;
 }
+
+/**
+ * Keep the zones of one device adjacent and in the order that device reports
+ * them, without disturbing where devices sit relative to each other.
+ *
+ * The saved drag order is a flat list of card ids, so once a chain's zones are
+ * in it they stay pinned to those positions - reordering the chain in the LED
+ * map editor moves the products between zone ids and the page would not
+ * follow. A device's own zone order is not the user's to drag on this page;
+ * it is the chain.
+ */
+export function sortZonesWithinDevice(devices: LightingDevice[]): LightingDevice[] {
+  const owner = (d: LightingDevice) => d.deviceId || d.id;
+  // Where each device first appears decides where its whole run goes.
+  const firstAt = new Map<string, number>();
+  devices.forEach((d, i) => { if (!firstAt.has(owner(d))) firstAt.set(owner(d), i); });
+  const members = new Map<string, LightingDevice[]>();
+  for (const d of devices) {
+    const key = owner(d);
+    const list = members.get(key);
+    if (list) list.push(d);
+    else members.set(key, [d]);
+  }
+  // Only a device with several cards has an internal order to restore.
+  let reordered = false;
+  for (const list of members.values()) {
+    if (list.length < 2) continue;
+    reordered = true;
+    list.sort((a, b) => (a.zoneIndex ?? 0) - (b.zoneIndex ?? 0));
+  }
+  if (!reordered) return devices;
+  const out: LightingDevice[] = [];
+  const emitted = new Set<string>();
+  for (const d of devices) {
+    const key = owner(d);
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    if (firstAt.get(key) === undefined) continue;
+    out.push(...(members.get(key) ?? []));
+  }
+  return out;
+}
