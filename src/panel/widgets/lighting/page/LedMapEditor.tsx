@@ -2057,8 +2057,17 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Drag/keyboard reorder of the chain rows: the same entries the chain
   // already posts, in the dropped-to zone id order.
   const handleChainReorder = (zoneIds: string[]) => {
-    const reordered = reorderChainEntries(chainEntries(), chainRows.map(r => r.zoneId), zoneIds);
-    if (reordered) applyChain(reordered);
+    const order = chainRows.map(r => r.zoneId);
+    const reordered = reorderChainEntries(chainEntries(), order, zoneIds);
+    if (!reordered) return;
+    // Move the rows now. Zone ids are positional, so the list dnd-kit drops
+    // back into is the one it started with; without this the row springs back
+    // to its old slot and only swaps content once the preview lands, which
+    // reads as the drag having been rejected - and is invisible when two rows
+    // carry the same product.
+    const rowOrder = reorderChainEntries(structure?.chain ?? [], order, zoneIds);
+    if (rowOrder) setStructure(prev => (prev ? { ...prev, chain: rowOrder } : prev));
+    applyChain(reordered);
   };
 
   const showZoneTools = zoneCustomizable && zonesOrdered.length > 0;
