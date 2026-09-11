@@ -70,11 +70,13 @@ const CW = 1000;
 const CH = 600;
 const PAD = 0;
 
-/** The minimize preset's rect. MIN_BOX_H is at the height floor LightingPage
- *  applies to every incoming device rect, so a minimized frame survives a reload
- *  unchanged (at 30 it silently came back doubled). */
-const MIN_BOX_W = 240;
-const MIN_BOX_H = 60;
+/** The default card's shape, which the minimize preset also lands on. Roughly
+ *  square so a grid or ring LED map is not letterboxed in it, and taller than
+ *  the height floor LightingPage applies to every incoming device rect, so a
+ *  minimized frame survives a reload unchanged (at 30 it silently came back
+ *  doubled). */
+const MIN_BOX_W = 140;
+const MIN_BOX_H = 120;
 /** Inset of the default grid. Distinct from PAD, which is the drag clamp. */
 const GRID_PAD = 12;
 /** Half the vertical offset between neighbouring grid columns. A name is drawn
@@ -97,8 +99,11 @@ function defaultSlot(index: number, totalCount: number): { x: number; y: number;
   const rows = Math.max(1, Math.ceil(n / cols));
   const cellW = availW / cols;
   const cellH = availH / rows;
-  const w = Math.min(MIN_BOX_W, cellW * 0.92);
-  const h = Math.min(MIN_BOX_H, cellH * 0.7);
+  // Held to the MIN_BOX aspect at every density: clamping each axis on its own
+  // turns the card wide and short in a wide cell.
+  const fit = Math.min(Math.min(MIN_BOX_W, cellW * 0.92) / MIN_BOX_W, Math.min(MIN_BOX_H, cellH * 0.7) / MIN_BOX_H);
+  const w = MIN_BOX_W * fit;
+  const h = MIN_BOX_H * fit;
   const total = cols * rows;
   const s = ((index % total) + total) % total;
   const col = s % cols;
@@ -111,8 +116,8 @@ function defaultSlot(index: number, totalCount: number): { x: number; y: number;
   const stagger = Math.min(COLUMN_STAGGER_Y, slack);
   let x = GRID_PAD + col * cellW + (cellW - w) * 0.5;
   let y = GRID_PAD + row * cellH + slack + (col % 2 === 0 ? -stagger : stagger);
-  if (x + w > CW - GRID_PAD) x = CW - GRID_PAD - w;
-  if (y + h > CH - GRID_PAD) y = CH - GRID_PAD - h;
+  if (x > CW - GRID_PAD - w) x = CW - GRID_PAD - w;
+  if (y > CH - GRID_PAD - h) y = CH - GRID_PAD - h;
   if (x < GRID_PAD) x = GRID_PAD;
   if (y < GRID_PAD) y = GRID_PAD;
   return { x, y, w, h };

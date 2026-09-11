@@ -348,8 +348,8 @@ describe('DeviceCanvas', () => {
     fireEvent.click(screen.getByText('lighting.devices.minimizeCount.other'));
 
     for (const d of devices) {
-      expect(d.canvasW).toBe(240);
-      expect(d.canvasH).toBe(60);
+      expect(d.canvasW).toBe(140);
+      expect(d.canvasH).toBe(120);
     }
     for (let i = 0; i < devices.length; i++)
     for (let j = i + 1; j < devices.length; j++) {
