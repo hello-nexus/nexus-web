@@ -1392,7 +1392,7 @@
   "frames.drill.deleteAllConfirmTitle": "Alle Aufzeichnungen für {name} löschen?",
   "frames.drill.noSessions": "Keine Sitzungen aufgezeichnet",
   "frames.drill.timeline": "FPS-Verlauf",
-  "frames.empty.hint": "Sitzungen werden automatisch nach 5 Minuten Spielzeit aufgezeichnet, solange die FPS-Verfolgung aktiviert ist.",
+  "frames.empty.hint": "Sitzungen werden automatisch aufgezeichnet, solange die FPS-Verfolgung aktiviert ist.",
   "frames.empty.title": "Noch keine Sitzungen",
   "frames.rig.title": "Ihr PC",
   "frames.session.deleteAria": "Diese Aufzeichnung löschen",

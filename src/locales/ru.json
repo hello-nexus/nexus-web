@@ -1402,7 +1402,7 @@
   "frames.drill.deleteAllConfirmTitle": "Удалить все записи для {name}?",
   "frames.drill.noSessions": "Сессии не записаны",
   "frames.drill.timeline": "Хронология FPS",
-  "frames.empty.hint": "Сессии записываются автоматически после 5 минут игры, пока включено отслеживание FPS.",
+  "frames.empty.hint": "Сессии записываются автоматически, пока включено отслеживание FPS.",
   "frames.empty.title": "Пока нет сессий",
   "frames.rig.title": "Ваш ПК",
   "frames.session.deleteAria": "Удалить эту запись",

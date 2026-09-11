@@ -1392,7 +1392,7 @@
   "frames.drill.deleteAllConfirmTitle": "{name}のすべての記録を削除しますか？",
   "frames.drill.noSessions": "記録されたセッションはありません",
   "frames.drill.timeline": "FPSタイムライン",
-  "frames.empty.hint": "FPSトラッキングがオンの間、5分間プレイすると自動的にセッションが記録されます。",
+  "frames.empty.hint": "FPSトラッキングがオンの間、セッションは自動的に記録されます。",
   "frames.empty.title": "まだセッションがありません",
   "frames.rig.title": "あなたのPC",
   "frames.session.deleteAria": "この記録を削除",

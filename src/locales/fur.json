@@ -1392,7 +1392,7 @@
   "frames.drill.deleteAllConfirmTitle": "Eliminâ dutis lis regjistrazions par {name}?",
   "frames.drill.noSessions": "Nissune session regjistrade",
   "frames.drill.timeline": "Cronologjie FPS",
-  "frames.empty.hint": "Lis sessions a vegnin regjistradis in automatic dopo 5 minûts di zûc cuant che il track dai FPS al è ativât.",
+  "frames.empty.hint": "Lis sessions a vegnin regjistradis in automatic cuant che il track dai FPS al è ativât.",
   "frames.empty.title": "Ancjemò nissune session",
   "frames.rig.title": "Il to PC",
   "frames.session.deleteAria": "Elimine cheste regjistrazion",

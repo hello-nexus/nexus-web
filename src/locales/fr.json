@@ -1392,7 +1392,7 @@
   "frames.drill.deleteAllConfirmTitle": "Supprimer tous les enregistrements de {name} ?",
   "frames.drill.noSessions": "Aucune session enregistrée",
   "frames.drill.timeline": "Chronologie FPS",
-  "frames.empty.hint": "Les sessions sont enregistrées automatiquement après 5 minutes de jeu tant que le suivi des FPS est activé.",
+  "frames.empty.hint": "Les sessions sont enregistrées automatiquement tant que le suivi des FPS est activé.",
   "frames.empty.title": "Aucune session pour le moment",
   "frames.rig.title": "Votre PC",
   "frames.session.deleteAria": "Supprimer cet enregistrement",

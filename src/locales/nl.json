@@ -1392,7 +1392,7 @@
   "frames.drill.deleteAllConfirmTitle": "Alle opnamen voor {name} verwijderen?",
   "frames.drill.noSessions": "Geen sessies vastgelegd",
   "frames.drill.timeline": "FPS-tijdlijn",
-  "frames.empty.hint": "Sessies worden automatisch vastgelegd na 5 minuten spelen zolang FPS-tracking aan staat.",
+  "frames.empty.hint": "Sessies worden automatisch vastgelegd zolang FPS-tracking aan staat.",
   "frames.empty.title": "Nog geen sessies",
   "frames.rig.title": "Jouw PC",
   "frames.session.deleteAria": "Deze opname verwijderen",

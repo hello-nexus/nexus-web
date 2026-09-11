@@ -1402,7 +1402,7 @@
   "frames.drill.deleteAllConfirmTitle": "Usunąć wszystkie nagrania dla {name}?",
   "frames.drill.noSessions": "Brak zarejestrowanych sesji",
   "frames.drill.timeline": "Oś czasu FPS",
-  "frames.empty.hint": "Sesje są rejestrowane automatycznie po 5 minutach gry, gdy śledzenie FPS jest włączone.",
+  "frames.empty.hint": "Sesje są rejestrowane automatycznie, gdy śledzenie FPS jest włączone.",
   "frames.empty.title": "Brak sesji",
   "frames.rig.title": "Twój PC",
   "frames.session.deleteAria": "Usuń to nagranie",

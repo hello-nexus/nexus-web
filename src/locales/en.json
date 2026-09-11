@@ -1392,7 +1392,7 @@
   "frames.drill.deleteAllConfirmTitle": "Delete all recordings for {name}?",
   "frames.drill.noSessions": "No sessions recorded",
   "frames.drill.timeline": "FPS Timeline",
-  "frames.empty.hint": "Sessions are recorded automatically after 5 minutes of play while FPS tracking is on.",
+  "frames.empty.hint": "Sessions are recorded automatically while FPS tracking is on.",
   "frames.empty.title": "No sessions yet",
   "frames.rig.title": "Your Rig",
   "frames.session.deleteAria": "Delete this recording",

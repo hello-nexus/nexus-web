@@ -1392,7 +1392,7 @@
   "frames.drill.deleteAllConfirmTitle": "{name} için tüm kayıtlar silinsin mi?",
   "frames.drill.noSessions": "Kaydedilmiş oturum yok",
   "frames.drill.timeline": "FPS Zaman Çizelgesi",
-  "frames.empty.hint": "FPS izleme açıkken 5 dakikalık oyundan sonra oturumlar otomatik olarak kaydedilir.",
+  "frames.empty.hint": "FPS izleme açıkken oturumlar otomatik olarak kaydedilir.",
   "frames.empty.title": "Henüz oturum yok",
   "frames.rig.title": "PC'niz",
   "frames.session.deleteAria": "Bu kaydı sil",
