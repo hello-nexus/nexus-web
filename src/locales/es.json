@@ -3727,7 +3727,7 @@
   "sidebar.devices.empty": "No hay dispositivos conectados",
   "sidebar.expand": "Expandir barra lateral",
   "sidebar.pin": "Anclar a la barra lateral",
-  "sidebar.removeFromRecents": "Quitar de la barra lateral",
+  "sidebar.removeFromRecents": "Quitar de recientes",
   "sidebar.section.apps": "Aplicaciones",
   "sidebar.section.devices": "Dispositivos",
   "sidebar.unpin": "Desanclar de la barra lateral",

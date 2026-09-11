@@ -79,9 +79,9 @@ describe('sanitizeRecents', () => {
       .toEqual(['monitoring', 'lighting']);
   });
 
-  it('caps to the last 3 entries - the newest - in input order', () => {
+  it('caps to the last 2 entries - the newest - in input order', () => {
     expect(sanitizeRecents(['monitoring', 'lighting', 'cooling', 'clock']))
-      .toEqual(['lighting', 'cooling', 'clock']);
+      .toEqual(['cooling', 'clock']);
   });
 
   it('returns an empty array for undefined or non-array input', () => {
@@ -101,15 +101,15 @@ describe('appendRecent', () => {
     expect(next).toEqual(['monitoring', 'lighting']);
   });
 
-  it('evicts the oldest (index 0) once the list would exceed the cap of 3', () => {
-    expect(appendRecent(['monitoring', 'lighting', 'cooling'], 'clock'))
-      .toEqual(['lighting', 'cooling', 'clock']);
+  it('evicts the oldest (index 0) once the list would exceed the cap of 2', () => {
+    expect(appendRecent(['monitoring', 'lighting'], 'cooling'))
+      .toEqual(['lighting', 'cooling']);
   });
 
   it('never moves an existing entry, even one about to be evicted by a different append', () => {
     // Re-opening 'monitoring' does not move it to the end - eviction order is
     // purely first-insertion order, not recency of re-open.
-    const list = ['monitoring', 'lighting', 'cooling'];
-    expect(appendRecent(list, 'monitoring')).toEqual(['monitoring', 'lighting', 'cooling']);
+    const list = ['monitoring', 'lighting'];
+    expect(appendRecent(list, 'monitoring')).toEqual(['monitoring', 'lighting']);
   });
 });

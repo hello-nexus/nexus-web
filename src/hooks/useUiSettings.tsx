@@ -26,7 +26,7 @@ import {
 } from '../lib/units';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
-import { sanitizePinnedTail, sanitizeRecents } from '../app/sidebarApps';
+import { sanitizePinnedTail } from '../app/sidebarApps';
 
 /**
  * Unified user-settings hook.
@@ -93,11 +93,6 @@ export interface UiSettingsValue {
   // but nexus-service has no matching field yet - see UiPrefs.pinnedSidebarApps
   // in api/profiles.ts for the durability gap this leaves.
   pinnedSidebarApps: string[];
-  // Recently opened unpinned apps, oldest first - the sidebar's below-separator
-  // "recently opened" rows (macOS dock semantics). Posted under
-  // ui.recentSidebarApps; same durability gap as pinnedSidebarApps above (see
-  // UiPrefs.recentSidebarApps in api/profiles.ts).
-  recentSidebarApps: string[];
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile (see useOemAppSeed). Server-only,
   // like the update block below - not mirrored to localStorage.
@@ -230,7 +225,6 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuTempSensorId: '',
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
-    recentSidebarApps: sanitizeRecents(src.general.recentSidebarApps),
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     lightingDashboardMode: src.general.lightingDashboardMode,
@@ -293,7 +287,6 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       showWindowsTrayIcon: src.showWindowsTrayIcon,
       rememberLastPage: src.rememberLastPage,
       pinnedSidebarApps: src.pinnedSidebarApps,
-      recentSidebarApps: src.recentSidebarApps,
       widgetAdvancedMode: src.widgetAdvancedMode,
       lightingDashboardMode: src.lightingDashboardMode,
       coolingDashboardMode: src.coolingDashboardMode,
@@ -342,12 +335,11 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
-  if (patch.recentSidebarApps !== undefined) ui.recentSidebarApps = patch.recentSidebarApps;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (patch.lightingDashboardMode !== undefined) ui.lightingDashboardMode = patch.lightingDashboardMode;
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
@@ -469,12 +461,6 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
-    // server.ui.recentSidebarApps is always undefined today (no service
-    // support - see the field comment above), so this always keeps `base`,
-    // same load-bearing fallback as pinnedSidebarApps.
-    recentSidebarApps: server.ui?.recentSidebarApps !== undefined
-      ? sanitizeRecents(server.ui.recentSidebarApps)
-      : base.recentSidebarApps,
     oemAppSeeded: server.ui?.oemAppSeeded ?? base.oemAppSeeded,
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
@@ -659,7 +645,6 @@ export function UiSettingsProvider({
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
         showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
         pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
-        recentSidebarApps: prefs.ui?.recentSidebarApps,
       });
     }).catch(() => { /* best-effort */ });
   }, [serviceOnline, persistLocal, setLanguage, manageDom, scheduleServerWrite]);

@@ -3727,7 +3727,7 @@
   "sidebar.devices.empty": "未連接任何裝置",
   "sidebar.expand": "展開側邊欄",
   "sidebar.pin": "釘選到側邊欄",
-  "sidebar.removeFromRecents": "從側邊欄移除",
+  "sidebar.removeFromRecents": "從最近項目移除",
   "sidebar.section.apps": "應用程式",
   "sidebar.section.devices": "裝置",
   "sidebar.unpin": "從側邊欄取消釘選",

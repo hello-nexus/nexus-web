@@ -3727,7 +3727,7 @@
   "sidebar.devices.empty": "Bağlı cihaz yok",
   "sidebar.expand": "Kenar cubugunu genislet",
   "sidebar.pin": "Kenar çubuğuna sabitle",
-  "sidebar.removeFromRecents": "Kenar çubuğundan sil",
+  "sidebar.removeFromRecents": "Son kullanılanlardan kaldır",
   "sidebar.section.apps": "Uygulamalar",
   "sidebar.section.devices": "Cihazlar",
   "sidebar.unpin": "Kenar çubuğundan kaldır",
