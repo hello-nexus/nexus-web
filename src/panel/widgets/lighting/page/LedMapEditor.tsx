@@ -7,8 +7,8 @@ import {
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
   highlightLeds, testLedPattern, clearLedEditor, postLedPreviewLayout,
-  previewDeviceChain, setDeviceChain, setLightingDeviceColor, setHubComposition,
-  type ChainEntryBody, type DeviceMapResponse, type DeviceStructureResponse, type DeviceZone, type LightingDevice, type HubCompositionPatch,
+  previewDeviceChain, setDeviceChain, setZoneLedCount, setLightingDeviceColor, setHubComposition,
+  type ApiEnvelope, type ChainEntryBody, type DeviceMapResponse, type DeviceStructureResponse, type DeviceZone, type LightingDevice, type HubCompositionPatch,
 } from '../../../../api/lighting';
 import { HubCompositionPanel } from './HubCompositionPanel';
 import { useTranslation } from '../../../../lib/i18n';
@@ -134,6 +134,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const { push } = useToast();
 
   const [structure, setStructure] = useState<DeviceStructureResponse | null>(null);
+  const structureRef = useRef(structure);
+  structureRef.current = structure;
   const [chainBusy, setChainBusy] = useState(false);
   const [leds, setLeds] = useState<EditorLed[]>([]);
   // Loaded state (position + disabled flag) of LEDs without a stored user
@@ -396,6 +398,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     rectRatio: rectRatioRef.current,
     partition: stagedPartitionRef.current,
     chain: stagedChainRef.current,
+    structure: structureRef.current,
   }), []);
 
   const pushUndo = useCallback(() => {
@@ -426,19 +429,17 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setRectRatio(restored.rectRatio);
     setStagedPartition(restored.partition);
     if (chainChanged) {
-      // The zone list itself differs, and only the service can rebuild it
-      // (product geometry lives there). Re-preview the restored chain, or go
-      // back to what is on disk when the step being undone was the first one.
+      // The zone list differs, and the snapshot carries the one this chain
+      // resolved to - restored directly rather than re-derived. Reloading from
+      // disk for the step back to "no staged chain" used to take the unsaved
+      // LED work and the whole history with it.
       setStagedChain(restored.chain);
-      void (async () => {
-        if (restored.chain === null) {
-          await load(undefined, { silent: true });
-          setDirty(true);
-          return;
-        }
-        const resp = await previewDeviceChain(deviceId, restored.chain);
-        if (resp && !resp.error && resp.structure && resp.map) applyPreview(resp.structure, resp.map);
-      })();
+      if (restored.structure) {
+        // chainKeys re-mint themselves during render when the link count moves.
+        setStructure(restored.structure);
+        reconcileZoneSelection(restored.structure.zones);
+        setSelected(new Set());
+      }
     }
     if (partitionChanged) {
       // The LED selection may straddle zones of the other partition; the
@@ -2063,6 +2064,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const chainRows: ChainRow[] = zonesOrdered.length > 0
     ? zonesOrdered.map((z, i) => {
         const link = chainable ? structure?.chain?.[i] : undefined;
+        // Off a chain, a resizable zone's count IS the hardware zone size, and
+        // this row is the only place left to set it (NP50, MiniHub ports 1-2,
+        // Q-series are resizable but not partitionable, so they carry no chain).
+        const resizable = !chainable && devices.find(d => d.id === z.id)?.zoneResizable === true;
         return {
           zoneId: z.id,
           rowKey: chainKeys[i] ?? z.id,
@@ -2070,12 +2075,33 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           ledCount: zoneLedCount(z),
           enabledCount: enabledByZone.get(z.id) ?? 0,
           key: link?.key,
-          editableCount: link?.editableCount === true,
+          editableCount: chainable ? link?.editableCount === true : resizable,
+          resizable,
         };
       })
     : zoneCard
       ? [{ zoneId: zoneCard.id, rowKey: zoneCard.id, name: zoneCard.name, ledCount: zoneCard.ledCount, enabledCount: zoneCard.ledCount, editableCount: false }]
       : [];
+
+  // A resizable zone off a chain: the count is the hardware zone's size, so it
+  // round-trips through the resize route and reloads. Destructive to unsaved
+  // LED work (the service re-seeds the map at the new count), hence the prompt.
+  const handleZoneResize = (index: number, count: number) => {
+    const row = chainRows[index];
+    if (!row) return;
+    confirmDiscardEdits(() => {
+      void (async () => {
+        setChainBusy(true);
+        const resp = await setZoneLedCount(row.zoneId, count) as ApiEnvelope | null;
+        setChainBusy(false);
+        if (!resp || resp.error) {
+          push({ title: t('lighting.ledMap.zonesUpdateFailed') });
+          return;
+        }
+        await load();
+      })();
+    });
+  };
 
   // Drag/keyboard reorder of the chain rows: the same entries the chain
   // already posts, in the dropped-to row order.
@@ -2161,6 +2187,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             }}
             onAdd={entry => applyChain([...chainEntries(), entry])}
             onRemove={i => applyChain(chainEntries().filter((_, j) => j !== i))}
+            onResize={handleZoneResize}
             onReorder={handleChainReorder}
             actions={showZoneTools ? (
               <>

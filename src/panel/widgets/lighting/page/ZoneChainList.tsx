@@ -38,6 +38,8 @@ export interface ChainRow {
   key?: string;
   /** A generic fan or strip: the count is typed on the row. A product's count is locked to its artifact. */
   editableCount: boolean;
+  /** The count is the hardware zone's own size, so committing it resizes the zone rather than restating a chain link. */
+  resizable?: boolean;
 }
 
 /**
@@ -50,7 +52,7 @@ export interface ChainRow {
  * row can be dragged (or reordered via arrow keys while lifted with Space)
  * to change its position in the chain.
  */
-export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disabled, onSelect, onChange, onAdd, onRemove, onReorder, actions }: {
+export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disabled, onSelect, onChange, onAdd, onRemove, onResize, onReorder, actions }: {
   rows: ChainRow[];
   /** A single addressable port: rows can be picked, retyped, added, removed and reordered. */
   chainable: boolean;
@@ -63,6 +65,8 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   onChange: (index: number, entry: ChainEntryBody) => void;
   onAdd: (entry: ChainEntryBody) => void;
   onRemove: (index: number) => void;
+  /** Commit for a row whose count IS the zone's size (a resizable zone on a device that carries no chain). */
+  onResize?: (index: number, count: number) => void;
   /** New wire order, as row keys, from a drag or keyboard reorder; posts the same entries in that order. */
   onReorder: (rowKeys: string[]) => void;
   /** Zone tools, rendered in the footer beside the add button. */
@@ -82,7 +86,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   const canReorder = chainable && rows.length > 1;
 
   const renderRow = (row: ChainRow, i: number, drag?: SortableRowArgs) => {
-    const editable = chainable && row.editableCount;
+    const editable = row.editableCount;
     return (
       <div
         ref={drag?.ref}
@@ -130,7 +134,11 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
           </button>
         )}
         {editable ? (
-          <CountInput value={row.ledCount} disabled={disabled} onCommit={n => onChange(i, { key: row.key!, ledCount: n })} />
+          <CountInput
+            value={row.ledCount}
+            disabled={disabled}
+            onCommit={n => (row.resizable ? onResize?.(i, n) : onChange(i, { key: row.key!, ledCount: n }))}
+          />
         ) : (
           <span className={styles.zoneCount}>
             <LedIcon />

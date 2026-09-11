@@ -3,7 +3,7 @@
 // computation, partition POST bodies, and save-body construction. Kept free
 // of React/DOM so they are unit-testable.
 
-import type { ChainEntryBody, DeviceMapOverride, DeviceMapResponse, DeviceSegment, DeviceZone, DeviceZoneDef, ZoneSlice } from '../../../../api/lighting';
+import type { ChainEntryBody, DeviceMapOverride, DeviceMapResponse, DeviceSegment, DeviceStructureResponse, DeviceZone, DeviceZoneDef, ZoneSlice } from '../../../../api/lighting';
 
 /** One LED of the flattened device map, addressable three ways: by segment-local index (the override key), by device-space index (canvas identity), and by zone membership. */
 export interface EditorLed {
@@ -539,8 +539,14 @@ export interface EditorSnapshot {
   leds: EditorLed[];
   rectRatio: number;
   partition: StagedPartition | null;
-  /** Chain staged but not saved, or null when the port still holds what was loaded. Restoring one re-previews it. */
+  /** Chain staged but not saved, or null when the port still holds what was loaded. */
   chain: ChainEntryBody[] | null;
+  /**
+   * Zone list the chain above resolved to. Held so undo restores it directly:
+   * re-deriving it means a service round trip, and reloading from disk throws
+   * away unsaved LED work and the history along with it.
+   */
+  structure: DeviceStructureResponse | null;
 }
 
 export interface EditorHistory {

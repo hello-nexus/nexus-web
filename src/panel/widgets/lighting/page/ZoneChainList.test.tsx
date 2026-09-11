@@ -32,6 +32,11 @@ const port: ChainRow[] = [
   { zoneId: 'p:z1', rowKey: 'p:z1', name: 'Corsair QX Fan', ledCount: 34, enabledCount: 30, key: QX.key, editableCount: false },
   { zoneId: 'p:z2', rowKey: 'p:z2', name: 'Generic Strip', ledCount: 30, enabledCount: 30, key: 'generic:strip', editableCount: true },
 ];
+// A resizable zone on a device that carries no chain (NP50 / Q-series shape):
+// the row's count IS the hardware zone size.
+const resizableZone: ChainRow[] = [
+  { zoneId: 'np50:z0', rowKey: 'np50:z0', name: 'NP50', ledCount: 30, enabledCount: 30, editableCount: true, resizable: true },
+];
 const keeb: ChainRow[] = [
   { zoneId: 'k:keys', rowKey: 'k:keys', name: 'Keys', ledCount: 96, enabledCount: 96, editableCount: false },
   { zoneId: 'k:under', rowKey: 'k:under', name: 'Underglow', ledCount: 51, enabledCount: 51, editableCount: false },
@@ -53,7 +58,7 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); });
 
 function setup(rows: ChainRow[], chainable: boolean, over: Partial<Parameters<typeof ZoneChainList>[0]> = {}) {
-  const handlers = { onSelect: vi.fn(), onChange: vi.fn(), onAdd: vi.fn(), onRemove: vi.fn(), onReorder: vi.fn() };
+  const handlers = { onSelect: vi.fn(), onChange: vi.fn(), onAdd: vi.fn(), onRemove: vi.fn(), onResize: vi.fn(), onReorder: vi.fn() };
   render(
     <ZoneChainList
       rows={rows}
@@ -330,5 +335,19 @@ describe('ZoneChainList recent picks', () => {
     openAddPicker();
     await screen.findByRole('option', { name: GENERIC_FAN.name });
     expect(screen.queryByText('search.section.recent')).toBeNull();
+  });
+});
+
+describe('ZoneChainList on a resizable zone that carries no chain', () => {
+  it('types the count and commits it as a resize, not as a chain entry', () => {
+    const h = setup(resizableZone, false);
+    const input = countInputs()[0];
+    expect(input).toBeTruthy();
+    fireEvent.change(input, { target: { value: '42' } });
+    fireEvent.blur(input);
+    // NP50 / MiniHub ports 1-2 / Q-series are resizable but not partitionable,
+    // so they carry no chain and this row is the only LED-count field left.
+    expect(h.onResize).toHaveBeenCalledWith(0, 42);
+    expect(h.onChange).not.toHaveBeenCalled();
   });
 });
