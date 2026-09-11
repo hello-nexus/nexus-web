@@ -252,8 +252,9 @@
 
 .marquee {
   position: absolute;
-  border: 1px dashed var(--accent);
-  background: var(--accent-soft);
+  // White, not accent: the accent tint vanishes over a lit LED canvas.
+  border: 1px dashed rgb(255 255 255);
+  background: rgb(255 255 255 / 0.12);
   pointer-events: none;
   z-index: 15;
 }
