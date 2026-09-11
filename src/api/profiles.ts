@@ -157,12 +157,6 @@ export interface UiPrefs {
   // local cache for the current profile/window context, not across it. The
   // client falls back to DEFAULT_PINNED_TAIL when absent.
   pinnedSidebarApps?: string[];
-  // Recently opened unpinned apps, oldest first (macOS dock "recent items"
-  // semantics). Same "service does not implement" durability gap as
-  // pinnedSidebarApps above: GET /preferences never returns it and POST
-  // /preferences silently drops it, so this is durable only within the
-  // browser's own local cache for the current profile/window context.
-  recentSidebarApps?: string[];
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile. Optional - older services
   // return Preferences without this field, which the client treats as false.

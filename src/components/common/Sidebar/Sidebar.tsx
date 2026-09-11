@@ -57,7 +57,7 @@ interface SidebarProps {
   // Optional context-menu hook fired by a right-click on an item row
   // (pinned tail rows AND the transient running row).
   onItemContextMenu?: (key: string, event: React.MouseEvent) => void;
-  // Recently opened, unpinned apps (open/last-3, not pinned). Rendered after
+  // Recently opened, unpinned apps (the last RECENTS_CAP opened, not pinned). Rendered after
   // the tail behind a single hairline separator, inside the same sortable
   // context so any of them can be dragged above the fold to pin it (macOS
   // dock semantics). Stable order - not reorderable among themselves.

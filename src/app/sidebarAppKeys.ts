@@ -75,7 +75,7 @@ export function sanitizePinnedTail(input: readonly unknown[] | undefined): strin
 // FIFO window for the sidebar's below-separator "recently opened" rows
 // (macOS dock semantics) - the last RECENTS_CAP unpinned apps opened,
 // oldest first.
-const RECENTS_CAP = 3;
+const RECENTS_CAP = 2;
 
 // Normalize a recents array read from settings/server: same legacy-prefix
 // rewrite and pinnable-key filter as sanitizePinnedTail, deduped preserving

@@ -49,6 +49,7 @@ import {
   resetPanelDevice,
   resetPanelDeviceHardware,
   factoryResetPanelDevice,
+  type PanelDeviceRecord,
 } from '../../../api/panel';
 import {
   getQSeriesRotation,
@@ -56,7 +57,10 @@ import {
   getQSeriesDisplay,
   setQSeriesDisplay,
   rebootQSeriesPanel,
+  getQSeriesLinkState,
+  repairQSeriesLink,
   type QSeriesOrientation,
+  type QSeriesLinkState,
 } from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
@@ -122,6 +126,15 @@ const REBOOT_COMPLETION_TIMEOUT_MS = 300_000;
 
 // Q60/Q80 mount portrait or portrait-flipped only; no landscape orientation exists.
 const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFlipped'];
+
+// While the disconnected empty state is showing, re-poll the USB/adb link so
+// the page can tell apart "unplugged", "enumerated but adb wedged", and
+// "Windows deferred the USB reset" without a full reload.
+const QSERIES_LINK_POLL_INTERVAL_MS = 5_000;
+// After a manual repair, poll faster and give up once the recovery pass has
+// had a realistic chance to bring adb back.
+const QSERIES_LINK_REPAIR_POLL_INTERVAL_MS = 3_000;
+const QSERIES_LINK_REPAIR_POLL_TIMEOUT_MS = 60_000;
 
 function normalizeOrientation(value: string | undefined | null): Y70Orientation {
   // The Y70 panel is a fixed portrait strip; an unset/unknown value defaults to
@@ -196,6 +209,24 @@ const XENEON_EDGE_CONTROLS: { key: XeneonEdgeControlKey; labelKey: string; min: 
   { key: 'blue', labelKey: 'devices.xeneonEdge.blue', min: 0, max: 255 },
 ];
 
+// Record-backed entries (promoted monitors) bind by their explicit record id:
+// several records share the 'monitor' surface, so a surface scan would grab
+// whichever was last seen. Everything else (Y70 / Q-series / simulators) takes
+// the most recently active record for its surface (/panel/devices is sorted by
+// lastSeenAt desc). Display-bound records are excluded from the surface match:
+// they are per-physical-monitor and only their own row (panelRecordId) may edit
+// them - a simulated monitor otherwise binds a real display's record, PATCHes
+// its layout, and inherits its canvas instead of the preset's.
+function matchPanelRecord(
+  records: PanelDeviceRecord[] | undefined,
+  panelRecordId: string | undefined,
+  surface: PanelSurface,
+): PanelDeviceRecord | undefined {
+  return panelRecordId
+    ? records?.find(d => d.id === panelRecordId)
+    : records?.find(d => d.capabilities?.surface === surface && !d.displayId);
+}
+
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t } = useTranslation();
   const isQSeries = device?.runtimeSurface === 'q60';
@@ -248,6 +279,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // genuine device edit inside the window would be lost until some unrelated
   // broadcast - the very bug this page is being fixed for.
   const missedBroadcastRef = useRef(false);
+  // The first edit on a record-less surface allocates; the service broadcasts
+  // that record before the POST returns. The unbound topic branch must not
+  // bind from the broadcast, or a second edit persists ahead of the first.
+  const allocatingRef = useRef(false);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
   // Bumped by the header's "Change background" action: switches to the Theme
@@ -455,19 +490,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
-      // Record-backed entries (promoted monitors) bind by their explicit
-      // record id - several records share the 'monitor' surface, so a
-      // surface scan would grab whichever was last seen. Everything else
-      // (Y70 / Q-series / simulators) keeps the surface match: pick the most
-      // recently active record for this surface (/panel/devices is sorted
-      // by lastSeenAt desc). Display-bound records are excluded from the
-      // surface match: they are per-physical-monitor and only their own row
-      // (panelRecordId) may edit them - a simulated monitor otherwise binds a
-      // real display's record, PATCHes its layout, and inherits its canvas
-      // instead of the preset's.
-      const match = device?.panelRecordId
-        ? devices?.devices.find(d => d.id === device.panelRecordId)
-        : devices?.devices.find(d => d.capabilities?.surface === surface && !d.displayId);
+      const match = matchPanelRecord(devices?.devices, device?.panelRecordId, surface);
       setEditingDeviceId(match?.id ?? null);
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
@@ -691,12 +714,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       void persist(editingDeviceId);
       return;
     }
+    allocatingRef.current = true;
     void allocatePanelDevice({ surface }, `${surface} panel`).then(record => {
       if (record?.id) {
         setEditingDeviceId(record.id);
         return persist(record.id);
       }
-    });
+    }).finally(() => { allocatingRef.current = false; });
   }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived, refetchDeviceRecord]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
@@ -706,7 +730,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // own writes a no-op. Mirrors usePanelLayout's panel/device subscription.
   useTopicCallback('panel/device', true, (raw) => {
     const frame = raw as { deviceId?: string } | null;
-    if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
+    // No record bound yet: the frame may be the panel's first page load
+    // creating one. Bind it so the record-bound controls arm, and complete a
+    // pending reboot the panel has come back from. Only the id is taken: the
+    // full settings load would re-apply a server snapshot over an edit whose
+    // PATCH has not been issued yet. Our own allocate binds on its response.
+    if (!editingDeviceId) {
+      if (allocatingRef.current) return;
+      void fetchPanelDevices().then(list => {
+        const match = matchPanelRecord(list?.devices, device?.panelRecordId, surface);
+        if (!match) return;
+        setEditingDeviceId(match.id);
+        const since = rebootRequestedAtRef.current;
+        if (since !== null && (match.lastSeenAt ?? 0) > since) {
+          rebootRequestedAtRef.current = null;
+          setRebootingPanel(false);
+        }
+      }).catch(() => {});
+      return;
+    }
+    if (frame?.deviceId !== editingDeviceId) return;
     // The frame carries no payload and fires for this client's own writes too,
     // so its arrival cannot end a reboot on its own. lastSeenAt advancing past
     // the request is what proves the panel came back; checked ahead of the
@@ -988,6 +1031,73 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled && !panelOperationInFlight;
   const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable && !panelOperationInFlight;
 
+  // Distinguishes why a Q-series panel isn't reachable: unplugged, USB
+  // enumerated but adb wedged, or Windows holding a deferred USB reset that
+  // only a host restart clears. Null (endpoint failed, or not yet fetched)
+  // reads the same as usbPresent=false - the unplugged copy.
+  const [qseriesLinkState, setQseriesLinkState] = useState<QSeriesLinkState | null>(null);
+  const [repairingQseriesLink, setRepairingQseriesLink] = useState(false);
+  const qseriesLinkMountedRef = useRef(true);
+  useEffect(() => () => { qseriesLinkMountedRef.current = false; }, []);
+  // The background poll and a repair poll loop both call getQSeriesLinkState;
+  // only the response to the most recently issued call is applied, so a slow
+  // background tick can never overwrite a fresher repair result out of order.
+  const qseriesLinkRequestIdRef = useRef(0);
+  // Bumped on every repair click. A loop compares its own token each tick and
+  // stops touching state once superseded, so a panel-state flap that resets
+  // repairingQseriesLink and lets the user re-click can't leave two loops
+  // fighting over the same spinner.
+  const qseriesLinkRepairTokenRef = useRef(0);
+
+  useEffect(() => {
+    if (!showDisconnected) {
+      setQseriesLinkState(null);
+      setRepairingQseriesLink(false);
+      qseriesLinkRepairTokenRef.current += 1;
+      return;
+    }
+    let cancelled = false;
+    const refresh = async () => {
+      const requestId = ++qseriesLinkRequestIdRef.current;
+      const state = await getQSeriesLinkState();
+      if (cancelled || requestId !== qseriesLinkRequestIdRef.current) return;
+      setQseriesLinkState(state);
+    };
+    void refresh();
+    const intervalId = window.setInterval(() => { void refresh(); }, QSERIES_LINK_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [showDisconnected]);
+
+  // Fire-and-forget repair: the response carries no outcome, so poll the link
+  // state until adb comes back or the bound expires, driving the button's
+  // spinner off either result.
+  const repairQseriesLinkNow = useCallback(async () => {
+    const myToken = ++qseriesLinkRepairTokenRef.current;
+    setRepairingQseriesLink(true);
+    await repairQSeriesLink();
+    const deadline = Date.now() + QSERIES_LINK_REPAIR_POLL_TIMEOUT_MS;
+    const poll = async () => {
+      const requestId = ++qseriesLinkRequestIdRef.current;
+      const state = await getQSeriesLinkState();
+      if (!qseriesLinkMountedRef.current || myToken !== qseriesLinkRepairTokenRef.current) return;
+      if (requestId === qseriesLinkRequestIdRef.current) setQseriesLinkState(state);
+      if (state?.adbOnline || Date.now() >= deadline) {
+        setRepairingQseriesLink(false);
+        return;
+      }
+      window.setTimeout(() => { void poll(); }, QSERIES_LINK_REPAIR_POLL_INTERVAL_MS);
+    };
+    void poll();
+  }, []);
+
+  const showQseriesUnresponsive = showDisconnected
+    && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && !qseriesLinkState.hostRebootPending;
+  const showQseriesNeedsHostReboot = showDisconnected
+    && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && qseriesLinkState.hostRebootPending;
+
   return (
     <section className={styles.page}>
       <ViewHeader
@@ -1029,6 +1139,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       <div className={`${styles.pageBody} pageBody`}>
       {!fwGateReady ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : showQseriesUnresponsive ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.unresponsive.title')}
+          hint={t('devices.qseries.unresponsive.hint')}
+          action={
+            <Button type="button" tone="accent" loading={repairingQseriesLink} onClick={() => { void repairQseriesLinkNow(); }}>
+              {t('devices.qseries.unresponsive.cta')}
+            </Button>
+          }
+        />
+      ) : showQseriesNeedsHostReboot ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.needsHostReboot.title')}
+          hint={t('devices.qseries.needsHostReboot.hint')}
+        />
       ) : showDisconnected ? (
         <EmptyState
           icon={<Unplug size={48} />}
@@ -1338,10 +1465,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     </div>
                   )}
                   {/* Panel devices with a settings tab (Y70 / Q-series /
-                      promoted monitors) get the two per-device resets below
-                      the surface-specific settings: personalization (the
-                      Widgets + Theme tabs) and hardware settings (this tab). */}
-                  {activeTab === 'settings' && editingDeviceId && (
+                      promoted monitors) get the per-device resets below the
+                      surface-specific settings: personalization (the Widgets +
+                      Theme tabs) and hardware settings (this tab). Gated on the
+                      device, not its panel record: the record is created by the
+                      panel page's first load, Reboot panel takes no record id,
+                      and the record-bound resets disable until one binds. */}
+                  {activeTab === 'settings' && !isSimulated && (
                     <div className={`${styles.settingsContent} ${styles.settingsContentDanger}`}>
                       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
                       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
@@ -1354,7 +1484,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             tone="danger"
                             size="sm"
                             onClick={() => setResetPersonalizationConfirmOpen(true)}
-                            disabled={resettingPersonalization}
+                            disabled={resettingPersonalization || !editingDeviceId}
                           >
                             {t('devices.panels.resetPersonalization.button')}
                           </Button>
@@ -1370,7 +1500,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             tone="danger"
                             size="sm"
                             onClick={() => setResetHardwareConfirmOpen(true)}
-                            disabled={resettingHardware}
+                            disabled={resettingHardware || !editingDeviceId}
                           >
                             {t('devices.panels.resetHardware.button')}
                           </Button>
@@ -1402,7 +1532,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 tone="danger"
                                 size="sm"
                                 onClick={() => setFactoryResetConfirmOpen(true)}
-                                disabled={factoryResettingPanel || rebootingPanel}
+                                disabled={factoryResettingPanel || rebootingPanel || !editingDeviceId}
                               >
                                 {factoryResettingPanel
                                   ? t('devices.q60.factoryResetPanel.busy')

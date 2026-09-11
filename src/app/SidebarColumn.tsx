@@ -4,6 +4,7 @@ import { LayoutGrid, Pin, PinOff, X } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { useUiSettings, type UiSettingsValue } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
+import { useSessionRecents } from '../hooks/useSessionRecents';
 import { useTranslation } from '../lib/i18n';
 import { SidebarBrand } from './sidebar';
 import { PairPhoneButton } from './PairPhoneModal';
@@ -17,7 +18,6 @@ import {
   getSidebarAppMeta,
   isPinnableAppKey,
   sanitizePinnedTail,
-  sanitizeRecents,
 } from './sidebarApps';
 import { useCrossZoneDrag } from './CrossZoneDrag';
 import styles from '../App.module.scss';
@@ -85,6 +85,9 @@ export function SidebarColumn({
 }: SidebarColumnProps) {
   const { t } = useTranslation();
   const { settings, update } = useUiSettings();
+  // Session-scoped, not a setting: a reopened window keeps the rows, a fresh
+  // service start does not (see useSessionRecents).
+  const { recents: storedRecentsRaw, loaded: recentsLoaded, setRecents } = useSessionRecents(online);
 
   // The APPS section header IS the Dashboard entry; there's no separate
   // "Dashboard" row. The pinned-apps list below is the user-ordered tail.
@@ -122,13 +125,11 @@ export function SidebarColumn({
   // from recents - an app is never shown both above and below the separator.
   const handlePin = (key: string) => {
     if (!isPinnableAppKey(key) || tail.includes(key)) return;
-    update({
-      pinnedSidebarApps: [...tail, key],
-      recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== key),
-    });
+    update({ pinnedSidebarApps: [...tail, key] });
+    setRecents(storedRecentsRaw.filter(k => k !== key));
   };
   const handleRemoveRecent = (key: string) => {
-    update({ recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== key) });
+    setRecents(storedRecentsRaw.filter(k => k !== key));
   };
 
   // Taskbar / macOS-dock semantics: recently opened pinnable apps that
@@ -136,8 +137,8 @@ export function SidebarColumn({
   // separator), stable FIFO order, oldest evicted first. Excludes anything
   // already pinned - handlePin/handleRunningPinAt/handlePinDrop strip the
   // recents entry the moment it's pinned, but this filter also guards a
-  // stale/hand-edited prefs blob.
-  const storedRecents = sanitizeRecents(settings.recentSidebarApps).filter(k => !tail.includes(k));
+  // list stored before the pin landed.
+  const storedRecents = storedRecentsRaw.filter(k => !tail.includes(k));
   // Render the just-opened app immediately, even a tick before the append
   // effect below persists it - otherwise navigating to a new unpinned app
   // flashes an empty slot for one render.
@@ -151,16 +152,17 @@ export function SidebarColumn({
   });
 
   // Persists the FIFO append: stable order, no-op when the app is already in
-  // the list (appendRecent enforces the cap). Depends on the raw settings
-  // arrays - not `tail` / `recents` above, which are freshly allocated every
-  // render and would refire this effect (and loop) on every render.
+  // the list (appendRecent enforces the cap). Waits for the stored list, so
+  // the page a window opens on is appended to it rather than over it. Depends
+  // on the raw arrays - not `tail` / `recents` above, which are freshly
+  // allocated every render and would refire this effect (and loop) on every
+  // render.
   useEffect(() => {
-    if (!isPinnableAppKey(serviceNavActive)) return;
+    if (!recentsLoaded || !isPinnableAppKey(serviceNavActive)) return;
     if (sanitizePinnedTail(settings.pinnedSidebarApps).includes(serviceNavActive)) return;
-    const recentsNow = sanitizeRecents(settings.recentSidebarApps);
-    const next = appendRecent(recentsNow, serviceNavActive);
-    if (next !== recentsNow) update({ recentSidebarApps: next });
-  }, [serviceNavActive, settings.pinnedSidebarApps, settings.recentSidebarApps, update]);
+    const next = appendRecent(storedRecentsRaw, serviceNavActive);
+    if (next !== storedRecentsRaw) setRecents(next);
+  }, [recentsLoaded, serviceNavActive, settings.pinnedSidebarApps, storedRecentsRaw, setRecents]);
 
   // Add from the drawer: pin it, then open it. Picking an app out of a list of
   // apps reads as "I want this one", so landing on its page is the expected
@@ -176,10 +178,8 @@ export function SidebarColumn({
     if (!isPinnableAppKey(key) || tail.includes(key)) return;
     const next = [...tail];
     next.splice(Math.max(0, Math.min(index, next.length)), 0, key);
-    update({
-      pinnedSidebarApps: next,
-      recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== key),
-    });
+    update({ pinnedSidebarApps: next });
+    setRecents(storedRecentsRaw.filter(k => k !== key));
   };
 
   // Cross-zone drop from the dashboard panel. Published by PanelContent
@@ -191,10 +191,8 @@ export function SidebarColumn({
     const next = [...tail];
     const idx = Math.max(0, Math.min(insertionIndex, next.length));
     next.splice(idx, 0, draggingPinnableType);
-    update({
-      pinnedSidebarApps: next,
-      recentSidebarApps: sanitizeRecents(settings.recentSidebarApps).filter(k => k !== draggingPinnableType),
-    });
+    update({ pinnedSidebarApps: next });
+    setRecents(storedRecentsRaw.filter(k => k !== draggingPinnableType));
   };
 
   return (
@@ -257,7 +255,6 @@ export function SidebarColumn({
               key: 'unpin',
               label: t('sidebar.unpin'),
               icon: <PinOff size={14} />,
-              danger: true,
               onSelect: () => handleUnpin(ctxMenu.key),
             },
           ] : [
