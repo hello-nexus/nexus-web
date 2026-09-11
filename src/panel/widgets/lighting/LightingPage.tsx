@@ -1827,6 +1827,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     && scoped.explicit && !isPaletteKey(scoped.key)
     ? { key: scoped.key, slot: scoped.slot }
     : null;
+  // The picker tiles stand for "this selection's colour was chosen by hand", so
+  // only an explicit palette pick lights one. Keying them off `!staticPattern`
+  // also lit one for a selection with NO pick, which wears the running effect -
+  // and the grid lights that effect, so both read as selected at once.
+  const colorScoped = effectiveMode === 'static' && scoped.kind === 'pick'
+    && scoped.explicit && isPaletteKey(scoped.key);
   const pickerDevices = useMemo(
     () => canvasDevices.map(d => ({ id: d.id, name: d.name, hex: livePicks[d.id]?.hex ?? '' })),
     [canvasDevices, livePicks],
@@ -2187,14 +2193,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                           overlay
                           label={t('lighting.static.pickerSegmented')}
                           thumbUrl={PICKER_SEGMENTED_SVG}
-                          active={!staticPattern && pickerSegmented}
+                          active={colorScoped && pickerSegmented}
                           onClick={() => handlePickerSelect(true)}
                         />
                         <EffectCard
                           overlay
                           label={t('lighting.static.picker')}
                           thumbUrl={PICKER_FIELD_SVG}
-                          active={!staticPattern && !pickerSegmented}
+                          active={colorScoped && !pickerSegmented}
                           onClick={() => handlePickerSelect(false)}
                         />
                       </div>
