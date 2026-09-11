@@ -153,20 +153,15 @@ describe('LedMapEditor header on a renamed device', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Top intake' })).toBeTruthy());
   });
 
-  it('keeps the hardware name visible under it', async () => {
-    renderRenamed({ ...q60, name: 'Top intake', originalName: 'HYTE Q60' });
-    await waitFor(() => expect(screen.getByText('HYTE Q60')).toBeTruthy());
-  });
-
   it('titles with the device name alone, without the LED map suffix', async () => {
     renderRenamed(q60);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Q60' })).toBeTruthy());
   });
 
-  it('shows no second name when the device was never renamed', async () => {
-    renderRenamed(q60);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Q60' })).toBeTruthy());
-    expect(screen.queryAllByText('HYTE Q60')).toHaveLength(1);
+  it('drops the hardware name rather than repeating it under the rename', async () => {
+    renderRenamed({ ...q60, name: 'Top intake', originalName: 'HYTE Q60' });
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Top intake' })).toBeTruthy());
+    expect(screen.queryByText('HYTE Q60')).toBeNull();
   });
 });
 

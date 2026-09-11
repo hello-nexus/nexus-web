@@ -691,10 +691,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const deviceRename = members.find(d => d.deviceName)?.deviceName?.trim();
     const groupRename = members.find(d => d.parentName)?.parentName?.trim();
     const name = renamed?.name.trim() || deviceRename || hardware || members[0]?.name?.trim();
-    const title = groupRename && name ? `${groupRename} - ${name}` : (name || t('lighting.ledMap.title'));
-    // Only worth a subtitle when it says something the title does not.
-    const subtitle = hardware && hardware !== name ? hardware : undefined;
-    return { title, subtitle };
+    return groupRename && name ? `${groupRename} - ${name}` : (name || t('lighting.ledMap.title'));
   }, [devices, deviceId, structure, renamed, t]);
 
   const handleClose = useCallback(() => {
@@ -2119,8 +2116,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     <DeviceModal
       open
       onClose={handleClose}
-      title={editorTitle.title}
-      subtitle={editorTitle.subtitle}
+      title={editorTitle}
       wide
     >
       {loading ? (

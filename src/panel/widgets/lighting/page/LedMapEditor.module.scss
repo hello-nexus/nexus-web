@@ -336,24 +336,6 @@
   }
 }
 
-// Thin horizontal divider drawn just below the device frame to visually
-// separate the live-canvas from the parking row where deleted LEDs live.
-.parkSeparator {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--separator);
-  pointer-events: none;
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 // Compact control groups in the row above the canvas: preview tooling
 // (test patterns + brightness) on the left, selection tooling on the right.
 .controlsRow {
