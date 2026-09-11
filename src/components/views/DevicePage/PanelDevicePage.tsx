@@ -49,6 +49,7 @@ import {
   resetPanelDevice,
   resetPanelDeviceHardware,
   factoryResetPanelDevice,
+  type PanelDeviceRecord,
 } from '../../../api/panel';
 import {
   getQSeriesRotation,
@@ -208,6 +209,24 @@ const XENEON_EDGE_CONTROLS: { key: XeneonEdgeControlKey; labelKey: string; min: 
   { key: 'blue', labelKey: 'devices.xeneonEdge.blue', min: 0, max: 255 },
 ];
 
+// Record-backed entries (promoted monitors) bind by their explicit record id:
+// several records share the 'monitor' surface, so a surface scan would grab
+// whichever was last seen. Everything else (Y70 / Q-series / simulators) takes
+// the most recently active record for its surface (/panel/devices is sorted by
+// lastSeenAt desc). Display-bound records are excluded from the surface match:
+// they are per-physical-monitor and only their own row (panelRecordId) may edit
+// them - a simulated monitor otherwise binds a real display's record, PATCHes
+// its layout, and inherits its canvas instead of the preset's.
+function matchPanelRecord(
+  records: PanelDeviceRecord[] | undefined,
+  panelRecordId: string | undefined,
+  surface: PanelSurface,
+): PanelDeviceRecord | undefined {
+  return panelRecordId
+    ? records?.find(d => d.id === panelRecordId)
+    : records?.find(d => d.capabilities?.surface === surface && !d.displayId);
+}
+
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t } = useTranslation();
   const isQSeries = device?.runtimeSurface === 'q60';
@@ -260,6 +279,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // genuine device edit inside the window would be lost until some unrelated
   // broadcast - the very bug this page is being fixed for.
   const missedBroadcastRef = useRef(false);
+  // The first edit on a record-less surface allocates; the service broadcasts
+  // that record before the POST returns. The unbound topic branch must not
+  // bind from the broadcast, or a second edit persists ahead of the first.
+  const allocatingRef = useRef(false);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
   // Bumped by the header's "Change background" action: switches to the Theme
@@ -467,19 +490,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
-      // Record-backed entries (promoted monitors) bind by their explicit
-      // record id - several records share the 'monitor' surface, so a
-      // surface scan would grab whichever was last seen. Everything else
-      // (Y70 / Q-series / simulators) keeps the surface match: pick the most
-      // recently active record for this surface (/panel/devices is sorted
-      // by lastSeenAt desc). Display-bound records are excluded from the
-      // surface match: they are per-physical-monitor and only their own row
-      // (panelRecordId) may edit them - a simulated monitor otherwise binds a
-      // real display's record, PATCHes its layout, and inherits its canvas
-      // instead of the preset's.
-      const match = device?.panelRecordId
-        ? devices?.devices.find(d => d.id === device.panelRecordId)
-        : devices?.devices.find(d => d.capabilities?.surface === surface && !d.displayId);
+      const match = matchPanelRecord(devices?.devices, device?.panelRecordId, surface);
       setEditingDeviceId(match?.id ?? null);
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
@@ -703,12 +714,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       void persist(editingDeviceId);
       return;
     }
+    allocatingRef.current = true;
     void allocatePanelDevice({ surface }, `${surface} panel`).then(record => {
       if (record?.id) {
         setEditingDeviceId(record.id);
         return persist(record.id);
       }
-    });
+    }).finally(() => { allocatingRef.current = false; });
   }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived, refetchDeviceRecord]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
@@ -718,7 +730,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // own writes a no-op. Mirrors usePanelLayout's panel/device subscription.
   useTopicCallback('panel/device', true, (raw) => {
     const frame = raw as { deviceId?: string } | null;
-    if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
+    // No record bound yet: the frame may be the panel's first page load
+    // creating one. Bind it so the record-bound controls arm, and complete a
+    // pending reboot the panel has come back from. Only the id is taken: the
+    // full settings load would re-apply a server snapshot over an edit whose
+    // PATCH has not been issued yet. Our own allocate binds on its response.
+    if (!editingDeviceId) {
+      if (allocatingRef.current) return;
+      void fetchPanelDevices().then(list => {
+        const match = matchPanelRecord(list?.devices, device?.panelRecordId, surface);
+        if (!match) return;
+        setEditingDeviceId(match.id);
+        const since = rebootRequestedAtRef.current;
+        if (since !== null && (match.lastSeenAt ?? 0) > since) {
+          rebootRequestedAtRef.current = null;
+          setRebootingPanel(false);
+        }
+      }).catch(() => {});
+      return;
+    }
+    if (frame?.deviceId !== editingDeviceId) return;
     // The frame carries no payload and fires for this client's own writes too,
     // so its arrival cannot end a reboot on its own. lastSeenAt advancing past
     // the request is what proves the panel came back; checked ahead of the
@@ -1434,10 +1465,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     </div>
                   )}
                   {/* Panel devices with a settings tab (Y70 / Q-series /
-                      promoted monitors) get the two per-device resets below
-                      the surface-specific settings: personalization (the
-                      Widgets + Theme tabs) and hardware settings (this tab). */}
-                  {activeTab === 'settings' && editingDeviceId && (
+                      promoted monitors) get the per-device resets below the
+                      surface-specific settings: personalization (the Widgets +
+                      Theme tabs) and hardware settings (this tab). Gated on the
+                      device, not its panel record: the record is created by the
+                      panel page's first load, Reboot panel takes no record id,
+                      and the record-bound resets disable until one binds. */}
+                  {activeTab === 'settings' && !isSimulated && (
                     <div className={`${styles.settingsContent} ${styles.settingsContentDanger}`}>
                       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
                       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
@@ -1450,7 +1484,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             tone="danger"
                             size="sm"
                             onClick={() => setResetPersonalizationConfirmOpen(true)}
-                            disabled={resettingPersonalization}
+                            disabled={resettingPersonalization || !editingDeviceId}
                           >
                             {t('devices.panels.resetPersonalization.button')}
                           </Button>
@@ -1466,7 +1500,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             tone="danger"
                             size="sm"
                             onClick={() => setResetHardwareConfirmOpen(true)}
-                            disabled={resettingHardware}
+                            disabled={resettingHardware || !editingDeviceId}
                           >
                             {t('devices.panels.resetHardware.button')}
                           </Button>
@@ -1498,7 +1532,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 tone="danger"
                                 size="sm"
                                 onClick={() => setFactoryResetConfirmOpen(true)}
-                                disabled={factoryResettingPanel || rebootingPanel}
+                                disabled={factoryResettingPanel || rebootingPanel || !editingDeviceId}
                               >
                                 {factoryResettingPanel
                                   ? t('devices.q60.factoryResetPanel.busy')
