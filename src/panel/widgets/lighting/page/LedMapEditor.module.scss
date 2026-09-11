@@ -61,14 +61,10 @@
   // Box shape (aspect-ratio) comes inline from CANVAS_RATIO in
   // LedMapEditor.tsx, which also derives the device frame's default
   // placement from it so the frame-to-edge gap is equal on all sides.
-  background-color: #080808;
-  // Very faint lines on the snap grid: GRID_COLS x GRID_ROWS in LedMapEditor.tsx,
-  // whose ratio matches CANVAS_RATIO so the cells are square on screen.
-  background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
-  background-size: calc(100% / 32) calc(100% / 18);
-  border: 1px solid transparent;
+  // No fill and no rim of its own: the device frame below is the black box,
+  // and the strip under it is where removed LEDs park.
+  background: transparent;
+  border: none;
   border-radius: var(--radius);
   overflow: hidden;
   touch-action: none;
@@ -80,9 +76,13 @@
   position: absolute;
   border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
   border-radius: var(--radius-sm);
-  background-color: transparent;
-  background-image: radial-gradient(circle, rgb(0 0 0 / var(--alpha-medium)) 0.7px, transparent 1.1px);
-  background-size: 4px 4px;
+  background-color: #080808;
+  // Very faint lines on the snap grid: GRID_COLS x GRID_ROWS in
+  // LedMapEditor.tsx, whose ratio matches the frame's so cells stay square.
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+  background-size: calc(100% / 32) calc(100% / 18);
   pointer-events: none;
   z-index: 0;
 }
@@ -398,14 +398,22 @@
 }
 
 .modeBtnsLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  margin-right: 0.15rem;
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text);
+  // Reads as a section title rather than a button label, so it needs air
+  // between it and the first mode.
+  margin-right: 0.45rem;
   white-space: nowrap;
 }
 
 .modeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.3rem 0.6rem;
+  line-height: 1;
+  white-space: nowrap;
   font-size: var(--type-small);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
@@ -530,22 +538,12 @@
   gap: 0.3rem;
 }
 
+// Outside the frame, under the canvas: nothing overlaps the map, so the line
+// needs no ground of its own and cannot swallow a lasso drag.
 .hint {
-  // Same size as when it lived in the toolbar; only the position changed.
   font-size: 0.65rem;
   color: var(--text-dim);
-  position: absolute;
-  left: 0.6rem;
-  bottom: 0.5rem;
-  z-index: 2;
-  max-width: calc(100% - 1.2rem);
-  padding: 0.15rem 0.4rem;
-  border-radius: var(--radius-sm);
-  // The canvas is a dark dot grid and LEDs can sit under the text, so the
-  // line needs its own ground to stay legible.
-  background: rgba(0, 0, 0, 0.55);
-  // The lasso starts anywhere on the canvas, including here.
-  pointer-events: none;
+  padding: 0 0.15rem;
 }
 
 .loading {
@@ -589,14 +587,13 @@
   animation: ringExpand 280ms ease-out forwards;
 }
 
+// The centre of the DEVICE FRAME, not of the canvas: the frame is what a
+// layout is centred on, and it no longer fills the canvas. Both are placed
+// inline from devRect. A step above the snap grid, which is deliberately
+// near-invisible.
 .centerGuideV {
   position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
   width: 1px;
-  // A step above the snap grid, which is deliberately near-invisible: these
-  // two are what a device gets lined up on.
   background: rgb(255 255 255 / 0.18);
   pointer-events: none;
   z-index: 0;
@@ -604,13 +601,24 @@
 
 .centerGuideH {
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
   height: 1px;
   background: rgb(255 255 255 / 0.18);
   pointer-events: none;
   z-index: 0;
+}
+
+// Where a multi-LED selection snaps: the selection's own centre is the point
+// that lands on the grid, so it is the point that has to be visible.
+.selectionAnchor {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.55), 0 0 6px var(--accent);
+  pointer-events: none;
+  z-index: 3;
 }
 
 // Shown instead of the LED swarm above MAX_MAPPABLE_LEDS. Centred in the

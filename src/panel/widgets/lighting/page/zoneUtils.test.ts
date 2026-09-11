@@ -12,6 +12,8 @@ import {
   flattenDeviceMap,
   GRID_COLS,
   GRID_ROWS,
+  selectionCenter,
+  selectionSnapAdjust,
   settleLed,
   formatZoneChipCount,
   isCardFullyParked,
@@ -682,5 +684,36 @@ describe('settleLed', () => {
       expect(r.v).toBeGreaterThanOrEqual(0);
       expect(r.v).toBeLessThanOrEqual(1);
     }
+  });
+});
+
+describe('selectionSnapAdjust', () => {
+  const pts = [{ u: 0.20, v: 0.30 }, { u: 0.40, v: 0.50 }];
+
+  it('moves a selection by the offset that puts its centre on the grid', () => {
+    const adj = selectionSnapAdjust(pts, true);
+    const center = selectionCenter(pts)!;
+    expect(center.u).toBeCloseTo(0.30, 10);
+    expect(center.v).toBeCloseTo(0.40, 10);
+    // Every member shifts by the same amount, so the spacing inside the
+    // selection is untouched.
+    const moved = pts.map(p => ({ u: p.u + adj.du, v: p.v + adj.dv }));
+    expect(moved[1].u - moved[0].u).toBeCloseTo(0.2, 10);
+    expect(moved[1].v - moved[0].v).toBeCloseTo(0.2, 10);
+    // ...and the centre lands on a grid point.
+    const movedCenter = selectionCenter(moved)!;
+    expect(movedCenter.u * GRID_COLS).toBeCloseTo(Math.round(movedCenter.u * GRID_COLS), 10);
+    expect(movedCenter.v * GRID_ROWS).toBeCloseTo(Math.round(movedCenter.v * GRID_ROWS), 10);
+  });
+
+  it('does nothing with snapping off or nothing selected', () => {
+    expect(selectionSnapAdjust(pts, false)).toEqual({ du: 0, dv: 0 });
+    expect(selectionSnapAdjust([], true)).toEqual({ du: 0, dv: 0 });
+    expect(selectionCenter([])).toBeNull();
+  });
+
+  it('takes the bounding box centre, not the average, so outliers do not drag it', () => {
+    expect(selectionCenter([{ u: 0, v: 0 }, { u: 0, v: 0 }, { u: 1, v: 1 }]))
+      .toEqual({ u: 0.5, v: 0.5 });
   });
 });

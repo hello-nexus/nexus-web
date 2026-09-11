@@ -608,6 +608,39 @@ export function snapToGrid(u: number, v: number): { u: number; v: number } {
 }
 
 /**
+ * Centre of a selection's bounding box. A multi-LED drag snaps THIS point to
+ * the grid and moves every member by the same delta, so the shape the user
+ * arranged survives the snap - snapping each LED on its own would collapse
+ * neighbours onto one cell and quantise the spacing between them.
+ */
+export function selectionCenter(points: ReadonlyArray<{ u: number; v: number }>): { u: number; v: number } | null {
+  if (points.length === 0) return null;
+  let minU = points[0].u, maxU = points[0].u;
+  let minV = points[0].v, maxV = points[0].v;
+  for (const p of points) {
+    if (p.u < minU) minU = p.u;
+    if (p.u > maxU) maxU = p.u;
+    if (p.v < minV) minV = p.v;
+    if (p.v > maxV) maxV = p.v;
+  }
+  return { u: (minU + maxU) / 2, v: (minV + maxV) / 2 };
+}
+
+/**
+ * The offset to add to every member of a dragged selection so its centre lands
+ * on the grid. Zero when snapping is off or there is nothing selected.
+ */
+export function selectionSnapAdjust(
+  points: ReadonlyArray<{ u: number; v: number }>,
+  snap: boolean,
+): { du: number; dv: number } {
+  const center = snap ? selectionCenter(points) : null;
+  if (!center) return { du: 0, dv: 0 };
+  const snapped = snapToGrid(center.u, center.v);
+  return { du: snapped.u - center.u, dv: snapped.v - center.v };
+}
+
+/**
  * Where a dragged LED lands. Snapping to the grid subsumes the centre snap;
  * with it off only the centre still pulls, which is the pre-grid behaviour.
  */

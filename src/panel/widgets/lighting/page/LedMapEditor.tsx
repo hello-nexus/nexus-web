@@ -26,7 +26,8 @@ import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
   GRID_COLS, GRID_ROWS,
-  pushHistory, redoHistory, relabelLedZones, reorderChainEntries, segmentOffsets, settleLed,
+  pushHistory, redoHistory, relabelLedZones, reorderChainEntries, segmentOffsets,
+  selectionCenter, selectionSnapAdjust, settleLed,
   splitStagedZones,
   splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
   zoneEnabledCounts, zoneLedCount,
@@ -1134,7 +1135,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               mergedToTarget = true;
             }
           }
-          if (!mergedToTarget) {
+          if (!mergedToTarget && currentSelected.size <= 1) {
             const settled = settleLed(snapU, snapV, snapGridRef.current);
             snapU = settled.u;
             snapV = settled.v;
@@ -1155,6 +1156,19 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             }
           }
         }
+        // One offset for the whole selection, so the arrangement inside it
+        // survives the snap; a lone LED snaps itself below.
+        const groupAdjust = currentSelected.size > 1
+          ? selectionSnapAdjust(
+            prev
+              .filter(l => currentSelected.has(l.index) && !l.disabled)
+              .map(l => ({
+                u: Math.max(0, Math.min(1, l.u + currentDelta.du)),
+                v: Math.max(0, Math.min(1, l.v + currentDelta.dv)),
+              })),
+            snapGridRef.current,
+          )
+          : { du: 0, dv: 0 };
         return prev.map(led => {
           if (!currentSelected.has(led.index)) return led;
           if (pastBottom) {
@@ -1175,9 +1189,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             }
           }
           if (minDist === MERGE_EPSILON) {
-            const settled = settleLed(snapU, snapV, snapGridRef.current);
-            snapU = settled.u;
-            snapV = settled.v;
+            if (currentSelected.size > 1) {
+              snapU = Math.max(0, Math.min(1, snapU + groupAdjust.du));
+              snapV = Math.max(0, Math.min(1, snapV + groupAdjust.dv));
+            } else {
+              const settled = settleLed(snapU, snapV, snapGridRef.current);
+              snapU = settled.u;
+              snapV = settled.v;
+            }
           }
           return { ...led, u: snapU, v: snapV, isCustom: true };
         });
@@ -1864,6 +1883,31 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   };
   selectedSizeRef.current = selected.size;
 
+  // Where the selected LEDs sit mid-drag, before any snap. Both the snap
+  // adjustment and the anchor dot are derived from this one list.
+  const draggedSelectionPoints = useMemo(() => {
+    if (!dragging || !dragDelta || selected.size <= 1) return [];
+    const pts: { u: number; v: number }[] = [];
+    for (const led of leds) {
+      if (!selected.has(led.index) || led.disabled) continue;
+      pts.push({
+        u: Math.max(0, Math.min(1, led.u + dragDelta.du)),
+        v: Math.max(0, Math.min(1, led.v + dragDelta.dv)),
+      });
+    }
+    return pts;
+  }, [dragging, dragDelta, selected, leds]);
+
+  // The point that actually snaps for a multi-LED drag, so the user can see
+  // what the grid is pulling.
+  const selectionAnchor = useMemo(() => {
+    if (draggedSelectionPoints.length <= 1) return null;
+    const center = selectionCenter(draggedSelectionPoints);
+    if (!center) return null;
+    const adj = selectionSnapAdjust(draggedSelectionPoints, snapGrid);
+    return { u: center.u + adj.du, v: center.v + adj.dv };
+  }, [draggedSelectionPoints, snapGrid]);
+
   const getLedPosition = (led: EditorLed) => {
     const dragOverride = dragging && dragDelta ? dragDelta : undefined;
     let snapTarget: { u: number; v: number } | null = null;
@@ -1880,9 +1924,19 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           }
         }
       }
-      if (!snapTarget) {
+      if (!snapTarget && selected.size <= 1) {
         const settled = settleLed(newU, newV, snapGrid);
         if (settled.u !== newU || settled.v !== newV) snapTarget = settled;
+      } else if (!snapTarget && snapGrid) {
+        // Every member shifts by the same amount, the one that puts the
+        // selection's centre on the grid.
+        const adj = selectionSnapAdjust(draggedSelectionPoints, true);
+        if (adj.du !== 0 || adj.dv !== 0) {
+          snapTarget = {
+            u: Math.max(0, Math.min(1, newU + adj.du)),
+            v: Math.max(0, Math.min(1, newV + adj.dv)),
+          };
+        }
       }
     }
     return getLedCanvasPos(led, disabledOrder, dragOverride, snapTarget);
@@ -2234,21 +2288,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             onPointerUp={mappingUnavailable ? undefined : (e => handlePointerUp(e))}
             onPointerLeave={mappingUnavailable ? undefined : (() => handlePointerUp())}
           >
-            {/* Selection/move help, pinned inside the canvas rather than in the
-                toolbar so it sits with the thing it describes. Never
-                interactive: it overlaps the lasso area, so a pointer must fall
-                through to the canvas handlers. */}
-            {!mappingUnavailable && (
-              <div className={styles.hint}>
-                {t('lighting.ledMap.hint', {
-                  count: leds.length,
-                  drag: t('lighting.ledMap.dragHint'),
-                  mod: isMac ? 'Cmd' : 'Ctrl',
-                  multi: t('lighting.ledMap.clickMulti'),
-                  del: t('lighting.ledMap.deleteHint'),
-                })}
-              </div>
-            )}
             {mappingUnavailable && (
               <div className={styles.mappingUnavailable} role="status">
                 <span className={styles.mappingUnavailableTitle}>
@@ -2261,8 +2300,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             )}
             {!mappingUnavailable && (
             <>
-            <div className={styles.centerGuideV} />
-            <div className={styles.centerGuideH} />
+            {/* The frame's centre, which is what a layout gets centred on. */}
+            <div
+              className={styles.centerGuideV}
+              style={{
+                left: `${devRect.x + devRect.w / 2}%`,
+                top: `${devRect.y}%`,
+                height: `${devRect.h}%`,
+              }}
+            />
+            <div
+              className={styles.centerGuideH}
+              style={{
+                top: `${devRect.y + devRect.h / 2}%`,
+                left: `${devRect.x}%`,
+                width: `${devRect.w}%`,
+              }}
+            />
             <div
               className={styles.deviceRect}
               style={{
@@ -2609,7 +2663,30 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 </div>
               );
             })()}
+            {selectionAnchor && (() => {
+              const ax = devRect.x + selectionAnchor.u * devRect.w;
+              const ay = devRect.y + selectionAnchor.v * devRect.h;
+              return (
+                <div
+                  className={styles.selectionAnchor}
+                  style={{ left: `${ax}%`, top: `${ay}%` }}
+                />
+              );
+            })()}
           </div>
+          {/* Outside the frame, where removed LEDs also line up: nothing here
+              overlaps the map, so it cannot swallow a lasso drag. */}
+          {!mappingUnavailable && (
+            <div className={styles.hint}>
+              {t('lighting.ledMap.hint', {
+                count: leds.length,
+                drag: t('lighting.ledMap.dragHint'),
+                mod: isMac ? 'Cmd' : 'Ctrl',
+                multi: t('lighting.ledMap.clickMulti'),
+                del: t('lighting.ledMap.deleteHint'),
+              })}
+            </div>
+          )}
           </div>
           </div>
         </div>

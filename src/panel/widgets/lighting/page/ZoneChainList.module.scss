@@ -7,9 +7,11 @@
   gap: 0.3rem;
 }
 
+// Same weight as the lighting page's own pane titles, which this sits beside.
 .header {
-  font-size: var(--type-small);
-  color: var(--text-dim);
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text);
 }
 
 .list {
