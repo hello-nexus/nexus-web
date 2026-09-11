@@ -94,6 +94,7 @@ import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { StableDigits } from '../panel/widgets/common/StableDigits';
+import { FitLine } from '../panel/widgets/common/FitLine';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
@@ -1298,6 +1299,16 @@ function PreviewStableDigits() {
       <div><StableDigits text="04:59.17" /></div>
       <div><StableDigits text="11:11.11" /></div>
       <div><StableDigits text="10:08 AM" /></div>
+    </div>
+  );
+}
+
+function PreviewFitLine() {
+  return (
+    <div className={styles.previewStack} style={{ gap: 10, width: 140, fontSize: 18, color: 'var(--text)' }}>
+      <FitLine text="Sep 2026" />
+      <FitLine text="September 2026" />
+      <FitLine text="septiembre de 2026" align="start" />
     </div>
   );
 }
@@ -2735,6 +2746,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/StableDigits.tsx',
     description: 'Renders a numeric string with every digit in a fixed-width cell so ticking values (clock, timer, stopwatch) keep a constant width. Lexend has no tabular-figures feature, so font-variant-numeric: tabular-nums silently does nothing - use this for any centered readout whose digits change over time.',
     Preview: PreviewStableDigits,
+  },
+  {
+    name: 'FitLine', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/FitLine.tsx',
+    description: 'One line of text that scales down to its container width instead of wrapping or ellipsizing (clock date, calendar month). className goes on the box so font rules inherit; align="start" keeps a shrunk line on the left edge.',
+    Preview: PreviewFitLine,
   },
   {
     name: 'SizeIcons', category: 'panel-kit',

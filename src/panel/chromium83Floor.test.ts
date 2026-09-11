@@ -26,6 +26,7 @@ const RUNTIME_DIRS = [
 const RUNTIME_FILES = [
   'widgets/common/PanelWidgetChrome.module.scss',
   'widgets/common/PanelMixerSlider.module.scss',
+  'widgets/common/FitLine.module.scss',
 ];
 // Editor-only surfaces (rendered in the app or on touch panels, never on q60).
 const EXCLUDE = /Settings|Page\.|Touch|Modal|Search|Immersive|Editor|Picker|EditSheet|ContextMenu|WorldClockMap|ClockWorldView|[\\/]page[\\/]/;

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ClockLayout } from './types';
 import { useFitWidth } from '../../common/useFitWidth';
+import { FitLine } from '../../common/FitLine';
 import styles from './layout.module.scss';
 
 // A stacked line is half the width of a horizontal row, so the face may grow
@@ -29,15 +30,7 @@ export function useClockFit(stacked: boolean) {
 // between one and two lines on a few pixels of tile width. Scaling it down
 // instead keeps every surface showing the same thing.
 export function ClockDate({ text, className }: { text: string; className?: string }) {
-  const { boxRef, contentRef, scale } = useFitWidth();
-
-  return (
-    <div ref={boxRef} className={`${className ?? ''} ${styles.dateBox}`}>
-      <span ref={contentRef} className={styles.dateText} style={{ transform: `scale(${scale})` }}>
-        {text}
-      </span>
-    </div>
-  );
+  return <FitLine text={text} className={className} />;
 }
 
 // One line of a clock face. AM/PM sits after the digits and is balanced by an
