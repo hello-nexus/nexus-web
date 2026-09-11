@@ -45,18 +45,17 @@ const SMART_LIGHT_BRANDS = [
 const isSmartLightId = (id: string) =>
   SMART_LIGHT_BRANDS.some(brand => id.startsWith(`${brand}:`));
 // Canvas box shape. Applied as an inline style so TS owns the single source;
-// the device frame's default placement derives from it below so the
-// frame-to-edge gap is identical on all four sides.
+// the device frame's default placement derives from it below.
 const CANVAS_RATIO = 16 / 9;
-// Default gap between the device frame and the canvas edges, as a percent of
-// canvas height; the horizontal percent is derived from CANVAS_RATIO so the
-// pixel gap is identical on all four sides.
-const FRAME_PAD_PCT = 11;
+// The frame runs to the top, left and right edges - dead canvas around three
+// sides just shrinks the LEDs. The bottom keeps a band, which is where
+// removed LEDs are parked.
+const FRAME_BOTTOM_BAND_PCT = 14;
 const DEFAULT_DEV_RECT = {
-  x: FRAME_PAD_PCT / CANVAS_RATIO,
-  y: FRAME_PAD_PCT,
-  w: 100 - 2 * (FRAME_PAD_PCT / CANVAS_RATIO),
-  h: 100 - 2 * FRAME_PAD_PCT,
+  x: 0,
+  y: 0,
+  w: 100,
+  h: 100 - FRAME_BOTTOM_BAND_PCT,
 };
 const RECT_PAD_PX = 10;
 const MAX_HISTORY = 50;
@@ -451,8 +450,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // containing that device-space LED after a partition edit (zone ids can be
   // reassigned by the service); otherwise the current selection is kept when
   // it survives, falling back to the first zone in device order.
-  const load = useCallback(async (selectDeviceIndex?: number) => {
-    setLoading(true);
+  // silent: keep the current body on screen while refetching. A chain edit
+  // re-derives zone ids server-side, so it has to reload - but swapping the
+  // whole modal for the loading line on every drop reads as the modal
+  // resetting under the pointer.
+  const load = useCallback(async (selectDeviceIndex?: number, opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     const [rawSt, rawDm] = await Promise.all([
       fetchDeviceStructure(deviceId),
       fetchDeviceMap(deviceId),
@@ -467,7 +470,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     // present that mismatch as saved. Keep the last good state instead.
     if (!st || !dm) {
       loadFailedNoteRef.current();
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
       return;
     }
     setStructure(st);
@@ -1388,7 +1391,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           push({ title: t('lighting.ledMap.assignFailed') });
           return;
         }
-        await load();
+        await load(undefined, { silent: true });
       })();
     });
   }, [confirmDiscardEdits, deviceId, load, push, t]);
@@ -2112,6 +2115,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             </button>
           </div>
 
+          </div>
+          <div className={styles.canvasColumn}>
           {/* Preview + selection tooling above the canvas, as two compact
               grouped sections: test pattern toggles (plus a smart light's own
               colour) on the left, select all / clear selection on the right.
@@ -2200,8 +2205,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </HoverTooltip>
             </div>
           </div>
-          </div>
-          <div className={styles.canvasColumn}>
 
           <div
             ref={canvasRef}
