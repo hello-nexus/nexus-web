@@ -728,6 +728,8 @@ export interface DeviceSegment {
   ledCount: number;
   /** True when the protocol lets the user re-wire the LED count (motherboard ARGB headers); such segments are partition walls. */
   resizable: boolean;
+  /** Most LEDs this port can drive, 0 when the hardware declares no ceiling. Past it the firmware lights only the head of the chain. */
+  maxLedCount: number;
   zoneType: string;
 }
 

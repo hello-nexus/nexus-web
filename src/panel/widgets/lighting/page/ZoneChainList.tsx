@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, GripVertical, Lightbulb, Plus, X } from 'lucide-react';
+import { AlertTriangle, ChevronDown, GripVertical, Lightbulb, Plus, X } from 'lucide-react';
 import { fetchMappingCatalog, type BuiltInMappingSummary, type ChainEntryBody } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { isMultiSelectModifier } from '../../../../lib/platform';
@@ -52,7 +52,7 @@ export interface ChainRow {
  * row can be dragged (or reordered via arrow keys while lifted with Space)
  * to change its position in the chain.
  */
-export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disabled, onSelect, onChange, onAdd, onRemove, onResize, onReorder, actions }: {
+export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disabled, onSelect, onChange, onAdd, onRemove, onResize, onReorder, maxLedCount = 0, actions }: {
   rows: ChainRow[];
   /** A single addressable port: rows can be picked, retyped, added, removed and reordered. */
   chainable: boolean;
@@ -69,6 +69,8 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   onResize?: (index: number, count: number) => void;
   /** New wire order, as row keys, from a drag or keyboard reorder; posts the same entries in that order. */
   onReorder: (rowKeys: string[]) => void;
+  /** Most LEDs the port can drive; 0 when it declares no ceiling. At it, the chain can still be saved but not grown. */
+  maxLedCount?: number;
   /** Zone tools, rendered in the footer beside the add button. */
   actions?: ReactNode;
 }) {
@@ -84,6 +86,9 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   useEffect(() => { setPending(null); }, [rows.length]);
   const total = rows.reduce((n, r) => n + r.ledCount, 0);
   const canReorder = chainable && rows.length > 1;
+  // A full port keeps what it has - the chain still saves - but cannot grow:
+  // the firmware takes the count and lights only the head of it.
+  const atCap = maxLedCount > 0 && total >= maxLedCount;
 
   const renderRow = (row: ChainRow, i: number, drag?: SortableRowArgs) => {
     const editable = row.editableCount;
@@ -219,11 +224,11 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
       <div className={styles.footer}>
         {chainable && (
           <div className={styles.addWrap}>
-            <HoverTooltip body={t('lighting.ledMap.chainAdd')} side="top">
+            <HoverTooltip body={atCap ? t('lighting.ledMap.chainFull', { max: maxLedCount }) : t('lighting.ledMap.chainAdd')} side="top">
               <button
                 type="button"
                 className={styles.add}
-                disabled={disabled || pending !== null}
+                disabled={disabled || pending !== null || atCap}
                 aria-haspopup="listbox"
                 aria-expanded={picker === 'add'}
                 aria-label={t('lighting.ledMap.chainAdd')}
@@ -252,8 +257,12 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
         {rows.length > 1 && (
           <span className={styles.total}>
             {t('lighting.ledMap.chainTotal')}
-            <span className={styles.totalCount}>
-              <LedIcon />
+            <span className={`${styles.totalCount} ${atCap ? styles.totalCountCapped : ''}`}>
+              {atCap
+                ? <HoverTooltip body={t('lighting.ledMap.chainFull', { max: maxLedCount })} side="top">
+                    <span className={styles.capWarn}><AlertTriangle size={12} aria-hidden /></span>
+                  </HoverTooltip>
+                : <LedIcon />}
               {total}
             </span>
             {/* Stands in for the row's remove button so the counts share a

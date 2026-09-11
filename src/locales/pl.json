@@ -2204,6 +2204,7 @@
   "lighting.ledMap.assignNone": "Brak",
   "lighting.ledMap.assignSearch": "Szukaj wentylatorów, taśm, AIO",
   "lighting.ledMap.chainAdd": "Dodaj strefę",
+  "lighting.ledMap.chainFull": "Port jest pełny - może obsłużyć najwyżej {max} diod",
   "lighting.ledMap.chainRemove": "Usuń strefę",
   "lighting.ledMap.chainReorder": "Zmień kolejność {name}",
   "lighting.ledMap.chainTotal": "Łącznie",

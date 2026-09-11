@@ -2204,6 +2204,7 @@
   "lighting.ledMap.assignNone": "Нет",
   "lighting.ledMap.assignSearch": "Поиск вентиляторов, лент, СЖО",
   "lighting.ledMap.chainAdd": "Добавить зону",
+  "lighting.ledMap.chainFull": "Порт заполнен - он может питать не более {max} светодиодов",
   "lighting.ledMap.chainRemove": "Удалить зону",
   "lighting.ledMap.chainReorder": "Переместить {name}",
   "lighting.ledMap.chainTotal": "Всего",

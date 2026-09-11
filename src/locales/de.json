@@ -2182,6 +2182,7 @@
   "lighting.ledMap.assignNone": "Keins",
   "lighting.ledMap.assignSearch": "Lüfter, Strips, AIOs suchen",
   "lighting.ledMap.chainAdd": "Zone hinzufügen",
+  "lighting.ledMap.chainFull": "Port ist voll - mehr als {max} LEDs kann er nicht ansteuern",
   "lighting.ledMap.chainRemove": "Zone entfernen",
   "lighting.ledMap.chainReorder": "{name} verschieben",
   "lighting.ledMap.chainTotal": "Gesamt",

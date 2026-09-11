@@ -351,3 +351,22 @@ describe('ZoneChainList on a resizable zone that carries no chain', () => {
     expect(h.onChange).not.toHaveBeenCalled();
   });
 });
+
+describe('ZoneChainList on a port at its LED ceiling', () => {
+  // port is 12 + 34 + 30 = 76 LEDs.
+  it('warns on the total and closes the add button, without touching the rows', () => {
+    setup(port, true, { maxLedCount: 76 });
+    const add = screen.getByRole('button', { name: 'lighting.ledMap.chainAdd' });
+    expect((add as HTMLButtonElement).disabled).toBe(true);
+    expect(document.querySelector(`.${styles.totalCountCapped}`)).toBeTruthy();
+    // What is already wired still saves; only growing it is blocked.
+    expect(countInputs().length).toBeGreaterThan(0);
+  });
+
+  it('leaves the add button open below the ceiling', () => {
+    setup(port, true, { maxLedCount: 200 });
+    const add = screen.getByRole('button', { name: 'lighting.ledMap.chainAdd' });
+    expect((add as HTMLButtonElement).disabled).toBe(false);
+    expect(document.querySelector(`.${styles.totalCountCapped}`)).toBeNull();
+  });
+});

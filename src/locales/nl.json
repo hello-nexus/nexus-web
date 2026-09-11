@@ -2182,6 +2182,7 @@
   "lighting.ledMap.assignNone": "Geen",
   "lighting.ledMap.assignSearch": "Zoek fans, strips, AIO's",
   "lighting.ledMap.chainAdd": "Zone toevoegen",
+  "lighting.ledMap.chainFull": "Poort is vol - {max} LED's is alles wat hij kan aansturen",
   "lighting.ledMap.chainRemove": "Zone verwijderen",
   "lighting.ledMap.chainReorder": "{name} herordenen",
   "lighting.ledMap.chainTotal": "Totaal",

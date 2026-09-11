@@ -2182,6 +2182,7 @@
   "lighting.ledMap.assignNone": "Nessuno",
   "lighting.ledMap.assignSearch": "Cerca ventole, strisce, AIO",
   "lighting.ledMap.chainAdd": "Aggiungi zona",
+  "lighting.ledMap.chainFull": "Porta piena: {max} LED è tutto ciò che può pilotare",
   "lighting.ledMap.chainRemove": "Rimuovi zona",
   "lighting.ledMap.chainReorder": "Riordina {name}",
   "lighting.ledMap.chainTotal": "Totale",

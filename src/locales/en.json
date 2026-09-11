@@ -2182,6 +2182,7 @@
   "lighting.ledMap.assignNone": "None",
   "lighting.ledMap.assignSearch": "Search fans, strips, AIOs",
   "lighting.ledMap.chainAdd": "Add zone",
+  "lighting.ledMap.chainFull": "Port is full - {max} LEDs is all it can drive",
   "lighting.ledMap.chainRemove": "Remove zone",
   "lighting.ledMap.chainReorder": "Reorder {name}",
   "lighting.ledMap.chainTotal": "Total",

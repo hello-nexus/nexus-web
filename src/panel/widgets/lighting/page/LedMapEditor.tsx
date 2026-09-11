@@ -2188,6 +2188,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             onAdd={entry => applyChain([...chainEntries(), entry])}
             onRemove={i => applyChain(chainEntries().filter((_, j) => j !== i))}
             onResize={handleZoneResize}
+            maxLedCount={structure?.segments?.[0]?.maxLedCount ?? 0}
             onReorder={handleChainReorder}
             actions={showZoneTools ? (
               <>

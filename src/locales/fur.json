@@ -2182,6 +2182,7 @@
   "lighting.ledMap.assignNone": "Nissun",
   "lighting.ledMap.assignSearch": "Cîr ventuladôrs, stritis, AIO",
   "lighting.ledMap.chainAdd": "Zonte une zone",
+  "lighting.ledMap.chainFull": "Puarte plene - {max} LED e je dut ce che e pues guidâ",
   "lighting.ledMap.chainRemove": "Gjave la zone",
   "lighting.ledMap.chainReorder": "Torne a ordenâ {name}",
   "lighting.ledMap.chainTotal": "Totâl",

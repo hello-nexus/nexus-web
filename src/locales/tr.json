@@ -2182,6 +2182,7 @@
   "lighting.ledMap.assignNone": "Yok",
   "lighting.ledMap.assignSearch": "Fan, şerit, AIO ara",
   "lighting.ledMap.chainAdd": "Bölge ekle",
+  "lighting.ledMap.chainFull": "Bağlantı noktası dolu - sürebileceği en fazla {max} LED",
   "lighting.ledMap.chainRemove": "Bölgeyi kaldır",
   "lighting.ledMap.chainReorder": "{name} öğesini yeniden sırala",
   "lighting.ledMap.chainTotal": "Toplam",

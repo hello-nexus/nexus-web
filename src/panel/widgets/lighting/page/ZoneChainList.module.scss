@@ -300,3 +300,15 @@ $count-column: 4.4rem;
   color: var(--text-dim);
   font-size: var(--type-small);
 }
+
+// The port is carrying everything it can drive: the count wears a warning and
+// the add button is closed, though what is already there still saves.
+.totalCountCapped {
+  color: var(--warn);
+}
+
+.capWarn {
+  display: inline-flex;
+  align-items: center;
+  color: var(--warn);
+}

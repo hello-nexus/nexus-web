@@ -2182,6 +2182,7 @@
   "lighting.ledMap.assignNone": "無",
   "lighting.ledMap.assignSearch": "搜尋風扇、燈條、一體式水冷",
   "lighting.ledMap.chainAdd": "新增區域",
+  "lighting.ledMap.chainFull": "連接埠已滿 - 它最多只能驅動 {max} 顆 LED",
   "lighting.ledMap.chainRemove": "移除區域",
   "lighting.ledMap.chainReorder": "重新排序 {name}",
   "lighting.ledMap.chainTotal": "總計",
