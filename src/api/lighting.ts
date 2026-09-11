@@ -1029,6 +1029,8 @@ export interface ChainEntry {
 export interface ChainEntryBody {
   key: string;
   ledCount?: number;
+  /** Ordinal this link holds in the chain on disk, so the service moves its rename with it; omitted for a link the user just added. */
+  fromOrdinal?: number;
 }
 
 export interface SetChainResponse extends ApiEnvelope {

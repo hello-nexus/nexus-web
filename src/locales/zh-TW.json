@@ -2222,7 +2222,7 @@
   "lighting.ledMap.saveFailed": "無法儲存 LED 映射",
   "lighting.ledMap.selectAll": "全選",
   "lighting.ledMap.selectNone": "清空選擇",
-  "lighting.ledMap.settings": "指派裝置 LED",
+  "lighting.ledMap.settings": "指派裝置",
   "lighting.ledMap.snapToGrid": "吸附",
   "lighting.ledMap.snapToGridHint": "將 LED 吸附到格線",
   "lighting.ledMap.testH": "水平掃描",

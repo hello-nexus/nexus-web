@@ -144,7 +144,9 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
 
   // Single click handler so cards and zones share the exact same selection
   // semantics as the canvas: plain click = single-replace, Cmd/Ctrl+click =
-  // toggle this id's membership in the set.
+  // toggle this id's membership in the set. Clicking the one card already
+  // selected clears the selection, matching the cooling page's fan cards -
+  // otherwise a lone selection can only be dropped from the canvas.
   const handleZoneSelect = (id: string, additive: boolean) => {
     if (additive) {
       const next = new Set(selectedIds);
@@ -157,6 +159,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       }
       return;
     }
+    if (selectedIds.size === 1 && selectedIds.has(id)) {
+      onSetSelection(new Set(), null);
+      return;
+    }
     onSetSelection(new Set([id]), id);
   };
 
@@ -165,6 +171,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   // so a device already fully selected comes out.
   const handleStackSelect = (ids: string[], additive: boolean) => {
     if (!additive) {
+      if (selectedIds.size === ids.length && ids.every(id => selectedIds.has(id))) {
+        onSetSelection(new Set(), null);
+        return;
+      }
       onSetSelection(new Set(ids), ids[0]);
       return;
     }

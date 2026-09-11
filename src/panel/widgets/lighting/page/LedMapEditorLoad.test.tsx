@@ -280,9 +280,11 @@ describe('LedMapEditor on a chainable port', () => {
     });
     fireEvent.change(input, { target: { value: '24' } });
     fireEvent.blur(input);
+    // fromOrdinal names the slot each link holds on disk, so a rename follows
+    // its device rather than its position; a retyped count keeps the device.
     await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [
-      { key: 'product:corsair-qx-fan' },
-      { key: 'generic:strip', ledCount: 24 },
+      { key: 'product:corsair-qx-fan', fromOrdinal: 0 },
+      { key: 'generic:strip', ledCount: 24, fromOrdinal: 1 },
     ]));
     // Nothing is on disk until Save, so an abandoned edit leaves no trace.
     expect(api.setDeviceChain).not.toHaveBeenCalled();
@@ -292,7 +294,7 @@ describe('LedMapEditor on a chainable port', () => {
     renderPort();
     const remove = await screen.findAllByRole('button', { name: 'lighting.ledMap.chainRemove' });
     fireEvent.click(remove[0]);
-    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20 }]));
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20, fromOrdinal: 1 }]));
     expect(api.setDeviceChain).not.toHaveBeenCalled();
   });
 
@@ -302,7 +304,7 @@ describe('LedMapEditor on a chainable port', () => {
     fireEvent.click(remove[0]);
     await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalled());
     fireEvent.click(await screen.findByRole('button', { name: 'lighting.ledMap.save' }));
-    await waitFor(() => expect(api.setDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20 }]));
+    await waitFor(() => expect(api.setDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20, fromOrdinal: 1 }]));
   });
 
   it('reports a rejected chain instead of showing it', async () => {

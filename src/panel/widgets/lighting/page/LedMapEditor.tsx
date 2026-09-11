@@ -1473,8 +1473,16 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // Every edit re-posts the whole chain: a pick, a retyped count, an added or
   // removed zone. The service rebuilds the port's zones and cards from it, so
   // the editor reloads rather than patching its own copy.
+  // The staged list wins once there is one: its fromOrdinals point at the chain
+  // on DISK, and re-deriving them from the previewed structure would renumber
+  // them to the staged order, so a rename would stop following its device.
   const chainEntries = useCallback((): ChainEntryBody[] =>
-    (structure?.chain ?? []).map(e => e.editableCount ? { key: e.key, ledCount: e.ledCount } : { key: e.key }), [structure]);
+    // A copy: callers edit the array in place, and the staged one is held by
+    // the history snapshots.
+    stagedChainRef.current?.slice()
+      ?? (structure?.chain ?? []).map((e, i) => e.editableCount
+        ? { key: e.key, ledCount: e.ledCount, fromOrdinal: i }
+        : { key: e.key, fromOrdinal: i }), [structure]);
   /**
    * Show what a chain would do without committing it. The product geometry is
    * built in the service, so this still round-trips - but it writes nothing,
@@ -2119,7 +2127,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             markedIds={zoneMultiSel}
             disabled={saving || chainBusy}
             onSelect={handleZoneRowClick}
-            onChange={(i, entry) => { const entries = chainEntries(); entries[i] = entry; applyChain(entries); }}
+            onChange={(i, entry) => {
+              // Retyping a count leaves the same device in the slot, so its
+              // rename stays; picking a different product replaces it.
+              const entries = chainEntries();
+              const prev = entries[i];
+              entries[i] = prev?.key === entry.key ? { ...entry, fromOrdinal: prev.fromOrdinal } : entry;
+              applyChain(entries);
+            }}
             onAdd={entry => applyChain([...chainEntries(), entry])}
             onRemove={i => applyChain(chainEntries().filter((_, j) => j !== i))}
             onReorder={handleChainReorder}
@@ -2196,29 +2211,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </>
             ) : undefined}
           />
-          {/* General tooling: history, restore, reset, save. */}
-          {/* Instructions sit at the foot of the sidebar, away from the map
-              they describe, with the long-form version a click away. */}
-          <div className={styles.sidebarFoot}>
-            <div className={styles.hint}>
-              {t('lighting.ledMap.hint', {
-                drag: t('lighting.ledMap.dragHint'),
-                mod: isMac ? 'Cmd' : 'Ctrl',
-                multi: t('lighting.ledMap.clickMulti'),
-                del: t('lighting.ledMap.deleteHint'),
-              })}
-            </div>
-            <a
-              className={styles.hintLink}
-              href={LED_MAP_DOCS_URL}
-              target="_blank"
-              rel="noreferrer noopener"
-            >
-              {t('lighting.ledMap.docsLink')}
-              <ExternalLink size={12} aria-hidden />
-            </a>
-          </div>
-
           </div>
           <div className={styles.canvasColumn}>
           {/* Preview + selection tooling above the canvas, as two compact
@@ -2771,6 +2763,27 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             </button>
           </div>
           </div>
+          </div>
+          {/* Instructions run the full width under both columns, away from the
+              map they describe, with the long-form version a click away. */}
+          <div className={styles.modalFoot}>
+            <div className={styles.hint}>
+              {t('lighting.ledMap.hint', {
+                drag: t('lighting.ledMap.dragHint'),
+                mod: isMac ? 'Cmd' : 'Ctrl',
+                multi: t('lighting.ledMap.clickMulti'),
+                del: t('lighting.ledMap.deleteHint'),
+              })}
+            </div>
+            <a
+              className={styles.hintLink}
+              href={LED_MAP_DOCS_URL}
+              target="_blank"
+              rel="noreferrer noopener"
+            >
+              {t('lighting.ledMap.docsLink')}
+              <ExternalLink size={12} aria-hidden />
+            </a>
           </div>
         </div>
       )}

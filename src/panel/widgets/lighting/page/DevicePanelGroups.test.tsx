@@ -156,11 +156,11 @@ describe('DevicePanel split card', () => {
     port('1:z2', '1', 'ARGB_V2_2 - Corsair QL Fan - 34 LED 3', 34),
   ];
 
-  function renderRail(list: LightingDevice[], onSetSelection = vi.fn()) {
+  function renderRail(list: LightingDevice[], onSetSelection = vi.fn(), selectedIds = new Set<string>()) {
     render(
       <DevicePanel
         devices={list}
-        selectedIds={new Set()}
+        selectedIds={selectedIds}
         onSetSelection={onSetSelection}
         onTogglePower={() => {}}
         onSetPower={() => {}}
@@ -205,6 +205,19 @@ describe('DevicePanel split card', () => {
     expect(onSetSelection).toHaveBeenCalledWith(new Set(['keeb:tkl-1:underglow']), 'keeb:tkl-1:underglow');
     fireEvent.click(screen.getByText('Keys'));
     expect(onSetSelection).toHaveBeenLastCalledWith(new Set(['keeb:tkl-1:keys']), 'keeb:tkl-1:keys');
+  });
+
+  it('clicking the one selected zone clears the selection, as the cooling cards do', () => {
+    const onSetSelection = renderRail(keeb, vi.fn(), new Set(['keeb:tkl-1:keys']));
+    fireEvent.click(screen.getByText('Keys'));
+    expect(onSetSelection).toHaveBeenCalledWith(new Set(), null);
+  });
+
+  it('clicking a stack header that is wholly selected clears the selection', () => {
+    const ids = new Set(['keeb:tkl-1:keys', 'keeb:tkl-1:underglow']);
+    const onSetSelection = renderRail(keeb, vi.fn(), ids);
+    fireEvent.click(screen.getByText('HYTE Keeb TKL'));
+    expect(onSetSelection).toHaveBeenCalledWith(new Set(), null);
   });
 
   it('shows each zone its own LED count and no total on the header', () => {

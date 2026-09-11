@@ -2245,7 +2245,7 @@
   "lighting.ledMap.saveFailed": "Не удалось сохранить карту LED",
   "lighting.ledMap.selectAll": "Выделить всё",
   "lighting.ledMap.selectNone": "Снять выделение",
-  "lighting.ledMap.settings": "Назначить светодиоды устройства",
+  "lighting.ledMap.settings": "Назначить устройства",
   "lighting.ledMap.snapToGrid": "Привязка",
   "lighting.ledMap.snapToGridHint": "Привязывать светодиоды к сетке",
   "lighting.ledMap.testH": "Гориз.",

@@ -2222,7 +2222,7 @@
   "lighting.ledMap.saveFailed": "LED haritası kaydedilemedi",
   "lighting.ledMap.selectAll": "Tumunu sec",
   "lighting.ledMap.selectNone": "Secimi temizle",
-  "lighting.ledMap.settings": "Cihaz LED'i ata",
+  "lighting.ledMap.settings": "Cihaz ata",
   "lighting.ledMap.snapToGrid": "Yapıştır",
   "lighting.ledMap.snapToGridHint": "LED'leri ızgaraya yapıştır",
   "lighting.ledMap.testH": "Yatay",

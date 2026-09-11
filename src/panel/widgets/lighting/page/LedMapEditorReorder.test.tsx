@@ -111,6 +111,7 @@ beforeEach(async () => {
   ]));
   api.fetchDeviceMap.mockResolvedValue(emptyMap);
   api.fetchMappingCatalog.mockResolvedValue({ items: [], total: 0 });
+  api.postLedPreviewLayout.mockResolvedValue(undefined);
   // The swap, as the service would answer it.
   api.previewDeviceChain.mockResolvedValue({
     error: false,
@@ -139,10 +140,11 @@ describe('LedMapEditor chain reorder', () => {
     await screen.findByText('FR12');
     fireEvent.click(await screen.findByTestId('swap-first-two'));
 
-    // The entries are permuted, not re-sent as they were.
+    // The entries are permuted, not re-sent as they were - and each one keeps
+    // the slot it came from, which is what moves its rename with it.
     await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [
-      { key: 'product:hyte-y50-solo' },
-      { key: 'product:hyte-fr12' },
+      { key: 'product:hyte-y50-solo', fromOrdinal: 1 },
+      { key: 'product:hyte-fr12', fromOrdinal: 0 },
     ]));
 
     // ...and the list shows what came back, rather than snapping back.

@@ -2222,7 +2222,7 @@
   "lighting.ledMap.saveFailed": "LED 맵을 저장할 수 없습니다",
   "lighting.ledMap.selectAll": "모두 선택",
   "lighting.ledMap.selectNone": "선택 해제",
-  "lighting.ledMap.settings": "장치 LED 할당",
+  "lighting.ledMap.settings": "장치 할당",
   "lighting.ledMap.snapToGrid": "스냅",
   "lighting.ledMap.snapToGridHint": "LED를 격자에 맞추기",
   "lighting.ledMap.testH": "수평 스와이프",

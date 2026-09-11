@@ -2222,7 +2222,7 @@
   "lighting.ledMap.saveFailed": "No se pudo guardar el mapa LED",
   "lighting.ledMap.selectAll": "Seleccionar todo",
   "lighting.ledMap.selectNone": "Quitar seleccion",
-  "lighting.ledMap.settings": "Asignar LED del dispositivo",
+  "lighting.ledMap.settings": "Asignar dispositivos",
   "lighting.ledMap.snapToGrid": "Ajustar",
   "lighting.ledMap.snapToGridHint": "Ajustar los LED a la cuadrícula",
   "lighting.ledMap.testH": "Barrido H",

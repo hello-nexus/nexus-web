@@ -533,14 +533,15 @@
   min-height: 26px;
 }
 
-// Foot of the sidebar: away from the map, so it needs no ground of its own
-// and cannot swallow a lasso drag. Pushed to the bottom of the column.
-.sidebarFoot {
-  margin-top: auto;
-  padding-top: 0.5rem;
+// Foot of the whole modal, spanning both columns: away from the map, so it
+// needs no ground of its own and cannot swallow a lasso drag.
+.modalFoot {
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  padding-top: 0.25rem;
 }
 
 .hint {
@@ -553,7 +554,6 @@
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  align-self: flex-start;
   font-size: var(--type-small);
   color: var(--accent);
   text-decoration: none;
