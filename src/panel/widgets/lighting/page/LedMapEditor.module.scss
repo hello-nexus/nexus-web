@@ -368,12 +368,6 @@
   white-space: nowrap;
 }
 
-.iconBtnActive {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  color: var(--text);
-}
-
 .modeBtn {
   display: inline-flex;
   align-items: center;
@@ -462,6 +456,22 @@
     opacity: 0.3;
     cursor: not-allowed;
     &:hover { background: var(--surface); border-color: var(--border); color: var(--text-dim); }
+  }
+}
+
+// Must follow .iconBtn: equal specificity, so source order decides which
+// background wins and the base one would paint over the active state.
+.iconBtnActive {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  // The glyph carries the state too - a toggle read at a glance from a 28px
+  // square needs more than a tinted ground.
+  color: var(--accent);
+
+  &:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
   }
 }
 

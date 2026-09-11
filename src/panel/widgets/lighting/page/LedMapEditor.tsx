@@ -166,7 +166,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [chainKeys, setChainKeys] = useState<string[]>([]);
   const chainKeySeq = useRef(0);
 
-  const [snapGrid, setSnapGrid] = useState(true);
+  const [snapGrid, setSnapGrid] = useState(false);
   const snapGridRef = useRef(snapGrid);
   snapGridRef.current = snapGrid;
 
@@ -2301,8 +2301,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             </div>
             <div className={styles.spacer} />
             <div className={styles.controlGroup}>
-              {/* Snapping is on by default; off is for placing an LED between
-                  grid points, which is rare enough to be the opt-in. */}
+              {/* Off by default: a mapping traced from a photo puts LEDs where
+                  the hardware has them, not on grid points. */}
               <HoverTooltip body={t('lighting.ledMap.snapToGridHint')} side="bottom">
                 <button
                   type="button"
