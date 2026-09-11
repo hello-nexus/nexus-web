@@ -2186,6 +2186,7 @@
   "lighting.ledMap.delete": "マップから削除",
   "lighting.ledMap.deleteHint": "Delキーで削除",
   "lighting.ledMap.discard": "変更を破棄",
+  "lighting.ledMap.docsLink": "LED マッピングの仕組み",
   "lighting.ledMap.dragHint": "LEDをドラッグして位置変更",
   "lighting.ledMap.flipH": "水平反転",
   "lighting.ledMap.flipV": "垂直反転",

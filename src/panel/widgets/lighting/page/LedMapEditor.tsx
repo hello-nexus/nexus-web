@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Undo2, Redo2, AlignHorizontalDistributeCenter, Grid3x3, RotateCw,
   Trash2, FlipHorizontal2, FlipVertical2, RotateCcw, CheckSquare, Square,
-  Merge, Scissors, ListRestart, Users, Palette, Droplet, Lightbulb, CircleDot,
+  Merge, Scissors, ListRestart, Users, Palette, Droplet, Lightbulb, CircleDot, ExternalLink,
 } from 'lucide-react';
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
@@ -38,6 +38,12 @@ import { shouldConsumeEditorEscape } from './ledMapEscape';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = isApplePlatform();
+// Long-form guide for this editor. Absolute: the app is served from the local
+// service, so a site-relative path would resolve against it.
+// The selection toolbar is ~150x30px; past these the canvas would clip it.
+const TOOLBAR_FLIP_X_PCT = 22;
+const TOOLBAR_FLIP_Y_PCT = 10;
+const LED_MAP_DOCS_URL = 'https://hellonexus.com/docs/guides/lighting/led-maps';
 const DEFAULT_RATIO = 16 / 9;
 
 // Smart-light card ids are brand-prefixed (`govee:…`, `hue:…`); the brand set
@@ -198,6 +204,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // The editor's own card, when the device is a single card the user can
   // rename. Present only once renamed - originalName is what it replaced.
   const renamed = devices.find(d => d.id === deviceId && d.originalName != null);
+
   // A zone's card carries the id the structure gives its zone, so a card
   // renamed on the device rail names its chip here too.
   const zoneDisplayName = (zone: { id: string; name: string }) =>
@@ -607,6 +614,26 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const showUnsavedConfirmRef = useRef(showUnsavedConfirm);
   showUnsavedConfirmRef.current = showUnsavedConfirm;
+  // What the modal is called. Every rename the user made outranks the zones
+  // API's name, which is always the hardware one: a card renamed on the rail,
+  // a DEVICE renamed through a split card's header, or the group it sits in.
+  // On a multi-zone device no card IS the device, so the device rename only
+  // ever arrives on its zones as deviceName.
+  const editorTitle = useMemo(() => {
+    const members = devices.filter(d => (d.deviceId ?? d.id) === deviceId);
+    const hardware = structure?.name?.trim()
+      || renamed?.originalName?.trim()
+      || members[0]?.originalName?.trim()
+      || '';
+    const deviceRename = members.find(d => d.deviceName)?.deviceName?.trim();
+    const groupRename = members.find(d => d.parentName)?.parentName?.trim();
+    const name = renamed?.name.trim() || deviceRename || hardware || members[0]?.name?.trim();
+    const title = groupRename && name ? `${groupRename} - ${name}` : (name || t('lighting.ledMap.title'));
+    // Only worth a subtitle when it says something the title does not.
+    const subtitle = hardware && hardware !== name ? hardware : undefined;
+    return { title, subtitle };
+  }, [devices, deviceId, structure, renamed, t]);
+
   const handleClose = useCallback(() => {
     // Confirm dialog owns Escape while it's open - don't loop the prompt.
     // Same for the zone prompt, the community publish dialog, and the
@@ -1979,18 +2006,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     <DeviceModal
       open
       onClose={handleClose}
-      title={(() => {
-        // A rename outranks the zones API's name, which is always the hardware
-        // one. Only a card that IS the device counts: on a multi-zone device
-        // deviceId is the parent, which carries no name of its own.
-        if (renamed) return renamed.name.trim();
-        const structName = structure?.name?.trim();
-        if (structName) return structName;
-        const deviceName = devices.find(d => (d.deviceId ?? d.id) === deviceId)?.name?.trim();
-        if (deviceName) return deviceName;
-        return t('lighting.ledMap.title');
-      })()}
-      subtitle={renamed?.originalName}
+      title={editorTitle.title}
+      subtitle={editorTitle.subtitle}
       wide
     >
       {loading ? (
@@ -2103,35 +2120,26 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             ) : undefined}
           />
           {/* General tooling: history, restore, reset, save. */}
-          <div className={styles.toolbar}>
-            {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
-            <HoverTooltip body={`${t('lighting.ledMap.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`} side="bottom">
-              <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0} aria-label={t('lighting.ledMap.undo')}>
-                <Undo2 size={15} />
-              </button>
-            </HoverTooltip>
-            {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
-            <HoverTooltip body={`${t('lighting.ledMap.redo')} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`} side="bottom">
-              <button type="button" className={styles.iconBtn} onClick={handleRedo} disabled={redoLen === 0} aria-label={t('lighting.ledMap.redo')}>
-                <Redo2 size={15} />
-              </button>
-            </HoverTooltip>
-            <button
-              type="button"
-              className={styles.btn}
-              onClick={() => setResetMapConfirm(true)}
-              disabled={resetBusy}
+          {/* Instructions sit at the foot of the sidebar, away from the map
+              they describe, with the long-form version a click away. */}
+          <div className={styles.sidebarFoot}>
+            <div className={styles.hint}>
+              {t('lighting.ledMap.hint', {
+                drag: t('lighting.ledMap.dragHint'),
+                mod: isMac ? 'Cmd' : 'Ctrl',
+                multi: t('lighting.ledMap.clickMulti'),
+                del: t('lighting.ledMap.deleteHint'),
+              })}
+            </div>
+            <a
+              className={styles.hintLink}
+              href={LED_MAP_DOCS_URL}
+              target="_blank"
+              rel="noreferrer noopener"
             >
-              {t('lighting.ledMap.reset')}
-            </button>
-            <button
-              type="button"
-              className={`${styles.btn} ${styles.btnPrimary}`}
-              onClick={handleSave}
-              disabled={!dirty || saving}
-            >
-              {t('lighting.ledMap.save')}
-            </button>
+              {t('lighting.ledMap.docsLink')}
+              <ExternalLink size={12} aria-hidden />
+            </a>
           </div>
 
           </div>
@@ -2205,12 +2213,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               <HoverTooltip body={t('lighting.ledMap.snapToGridHint')} side="bottom">
                 <button
                   type="button"
-                  className={`${styles.modeBtn} ${snapGrid ? styles.modeBtnActive : ''}`}
+                  className={`${styles.iconBtn} ${snapGrid ? styles.iconBtnActive : ''}`}
                   onClick={() => setSnapGrid(v => !v)}
                   aria-pressed={snapGrid}
+                  aria-label={t('lighting.ledMap.snapToGrid')}
                 >
-                  <Grid3x3 size={13} aria-hidden />
-                  {t('lighting.ledMap.snapToGrid')}
+                  <Grid3x3 size={15} />
                 </button>
               </HoverTooltip>
               <div className={styles.separator} />
@@ -2234,6 +2242,32 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   aria-label={t('lighting.ledMap.selectNone')}
                 >
                   <Square size={15} />
+                </button>
+              </HoverTooltip>
+              <div className={styles.separator} />
+              {/* Reset, then history: the same order the lighting presets use. */}
+              <HoverTooltip body={t('lighting.ledMap.reset')} side="bottom">
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => setResetMapConfirm(true)}
+                  disabled={resetBusy}
+                  aria-label={t('lighting.ledMap.reset')}
+                >
+                  <RotateCcw size={15} />
+                </button>
+              </HoverTooltip>
+              <div className={styles.separator} />
+              {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
+              <HoverTooltip body={`${t('lighting.ledMap.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`} side="bottom">
+                <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0} aria-label={t('lighting.ledMap.undo')}>
+                  <Undo2 size={15} />
+                </button>
+              </HoverTooltip>
+              {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
+              <HoverTooltip body={`${t('lighting.ledMap.redo')} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`} side="bottom">
+                <button type="button" className={styles.iconBtn} onClick={handleRedo} disabled={redoLen === 0} aria-label={t('lighting.ledMap.redo')}>
+                  <Redo2 size={15} />
                 </button>
               </HoverTooltip>
             </div>
@@ -2401,6 +2435,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 style={{
                   left: `${selectionToolbarAnchor.cx}%`,
                   top: `${selectionToolbarAnchor.cy}%`,
+                  // The canvas clips, so a selection near an edge anchors from
+                  // the other side instead of hanging off it. Thresholds are
+                  // the toolbar's own footprint as a share of the canvas.
+                  ['--sel-toolbar-x' as string]: selectionToolbarAnchor.cx < TOOLBAR_FLIP_X_PCT ? '0%' : '-100%',
+                  ['--sel-toolbar-y' as string]: selectionToolbarAnchor.cy < TOOLBAR_FLIP_Y_PCT ? '0%' : '-100%',
                 }}
                 onPointerDown={e => e.stopPropagation()}
               >
@@ -2631,32 +2670,29 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               );
             })()}
           </div>
-          {/* Outside the frame, where removed LEDs also line up: nothing here
-              overlaps the map, so it cannot swallow a lasso drag. */}
-          {!mappingUnavailable && (
-            <div className={styles.hintRow}>
-              <div className={styles.hint}>
-                {t('lighting.ledMap.hint', {
-                  drag: t('lighting.ledMap.dragHint'),
-                  mod: isMac ? 'Cmd' : 'Ctrl',
-                  multi: t('lighting.ledMap.clickMulti'),
-                  del: t('lighting.ledMap.deleteHint'),
-                })}
-              </div>
-              {/* Removed LEDs leave the canvas, so this row is the only thing
-                  that says they exist - and the only way back. */}
-              {removedCount > 0 && (
-                <button
-                  type="button"
-                  className={styles.modeBtn}
-                  onClick={handleRestoreAll}
-                >
-                  <ListRestart size={13} aria-hidden />
-                  {t(pluralKey('lighting.ledMap.restoreRemovedCount', language, removedCount), { count: removedCount })}
-                </button>
-              )}
-            </div>
-          )}
+          {/* Under the canvas: what was removed on the left, Save on the
+              right. Fixed height so the restore button appearing does not
+              grow the modal under the pointer. */}
+          <div className={styles.hintRow}>
+            {removedCount > 0 ? (
+              <button
+                type="button"
+                className={styles.modeBtn}
+                onClick={handleRestoreAll}
+              >
+                <ListRestart size={13} aria-hidden />
+                {t(pluralKey('lighting.ledMap.restoreRemovedCount', language, removedCount), { count: removedCount })}
+              </button>
+            ) : <span />}
+            <button
+              type="button"
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              onClick={handleSave}
+              disabled={!dirty || saving}
+            >
+              {t('lighting.ledMap.save')}
+            </button>
+          </div>
           </div>
           </div>
         </div>

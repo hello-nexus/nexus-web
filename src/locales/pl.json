@@ -2208,6 +2208,7 @@
   "lighting.ledMap.delete": "Usun z mapy",
   "lighting.ledMap.deleteHint": "Del aby usunac",
   "lighting.ledMap.discard": "Odrzuc zmiany",
+  "lighting.ledMap.docsLink": "Jak działa mapowanie diod",
   "lighting.ledMap.dragHint": "Przeciagnij diody LED, aby zmienic pozycje",
   "lighting.ledMap.flipH": "Odbij w poziomie",
   "lighting.ledMap.flipV": "Odbij w pionie",

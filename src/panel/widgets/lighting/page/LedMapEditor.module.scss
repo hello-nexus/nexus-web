@@ -245,7 +245,10 @@
   position: absolute;
   display: flex;
   gap: 0.25rem;
-  transform: translate(-100%, -100%);
+  // Hangs up-left of the selection by default. The canvas clips, so near an
+  // edge the anchoring flips instead - the variables are set inline from the
+  // measured anchor.
+  transform: translate(var(--sel-toolbar-x, -100%), var(--sel-toolbar-y, -100%));
   margin-top: -4px;
   margin-left: -2px;
   padding: 0.2rem;
@@ -383,6 +386,12 @@
   white-space: nowrap;
 }
 
+.iconBtnActive {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .modeBtn {
   display: inline-flex;
   align-items: center;
@@ -513,8 +522,7 @@
   gap: 0.3rem;
 }
 
-// Under the canvas: the drag hint on the left, and on the right the only
-// thing that says removed LEDs exist, since they leave the canvas entirely.
+// Under the canvas: what was removed on the left, Save on the right.
 .hintRow {
   display: flex;
   align-items: center;
@@ -525,12 +533,32 @@
   min-height: 26px;
 }
 
-// Nothing overlaps the map here, so the line needs no ground of its own and
-// cannot swallow a lasso drag.
+// Foot of the sidebar: away from the map, so it needs no ground of its own
+// and cannot swallow a lasso drag. Pushed to the bottom of the column.
+.sidebarFoot {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .hint {
-  font-size: 0.65rem;
+  font-size: var(--type-small);
+  line-height: 1.45;
   color: var(--text-dim);
-  padding: 0 0.15rem;
+}
+
+.hintLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  align-self: flex-start;
+  font-size: var(--type-small);
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
 }
 
 .loading {

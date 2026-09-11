@@ -2186,6 +2186,7 @@
   "lighting.ledMap.delete": "Rimuovi dalla mappa",
   "lighting.ledMap.deleteHint": "Canc per rimuovere",
   "lighting.ledMap.discard": "Scarta modifiche",
+  "lighting.ledMap.docsLink": "Come funziona la mappatura dei LED",
   "lighting.ledMap.dragHint": "Trascina i LED per riposizionare",
   "lighting.ledMap.flipH": "Capovolgi orizzontalmente",
   "lighting.ledMap.flipV": "Capovolgi verticalmente",

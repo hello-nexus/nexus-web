@@ -2208,6 +2208,7 @@
   "lighting.ledMap.delete": "Удалить с карты",
   "lighting.ledMap.deleteHint": "Del для удаления",
   "lighting.ledMap.discard": "Отменить изменения",
+  "lighting.ledMap.docsLink": "Как работает карта светодиодов",
   "lighting.ledMap.dragHint": "Перетащите светодиоды для изменения позиции",
   "lighting.ledMap.flipH": "Отразить по горизонтали",
   "lighting.ledMap.flipV": "Отразить по вертикали",

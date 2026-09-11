@@ -2186,6 +2186,7 @@
   "lighting.ledMap.delete": "Verwijderen uit kaart",
   "lighting.ledMap.deleteHint": "Del om te verwijderen",
   "lighting.ledMap.discard": "Wijzigingen negeren",
+  "lighting.ledMap.docsLink": "Hoe led-mapping werkt",
   "lighting.ledMap.dragHint": "Sleep LEDs om te herpositioneren",
   "lighting.ledMap.flipH": "Horizontaal spiegelen",
   "lighting.ledMap.flipV": "Verticaal spiegelen",

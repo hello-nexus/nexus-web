@@ -2186,6 +2186,7 @@
   "lighting.ledMap.delete": "從映射移除",
   "lighting.ledMap.deleteHint": "Del 鍵移除",
   "lighting.ledMap.discard": "放棄變更",
+  "lighting.ledMap.docsLink": "LED 對應的運作方式",
   "lighting.ledMap.dragHint": "拖動 LED 重新定位",
   "lighting.ledMap.flipH": "水平翻轉",
   "lighting.ledMap.flipV": "垂直翻轉",

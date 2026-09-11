@@ -2186,6 +2186,7 @@
   "lighting.ledMap.delete": "Haritadan kaldir",
   "lighting.ledMap.deleteHint": "Kaldirmak icin Del",
   "lighting.ledMap.discard": "Degisiklikleri iptal et",
+  "lighting.ledMap.docsLink": "LED haritalama nasıl çalışır",
   "lighting.ledMap.dragHint": "Yeniden konumlandirmak icin LED'leri surukleyin",
   "lighting.ledMap.flipH": "Yatay cevir",
   "lighting.ledMap.flipV": "Dikey cevir",
