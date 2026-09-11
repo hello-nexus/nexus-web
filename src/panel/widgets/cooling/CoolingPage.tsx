@@ -140,6 +140,13 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Manual on any one fan of a hub. Seeded from the same persistent
   // cache so the per-fan dropdowns don't blink to a default on visit.
   const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>(() => cachedSeed.hubModes);
+  // The hub-mode polls below skip while this page's own hub write is fresh,
+  // so a read already in flight cannot put the pre-switch mode back.
+  const hubModeLockUntilRef = useRef(0);
+  const writeHubMode = useCallback((deviceId: string, kind: FanCardHubMode) => {
+    hubModeLockUntilRef.current = Date.now() + 4000;
+    setHubModes(prev => ({ ...prev, [deviceId]: kind }));
+  }, []);
   // Per-group collapse state for the fan grid, persisted across restarts. Keyed
   // by rail block id (a device id or the board's synthetic one), by user-group
   // id, plus the literal 'disconnected'. Default: only Disconnected
@@ -284,8 +291,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return () => { cancelled = true; };
   }, [serviceOnline, hasNp50Fan]);
 
-  // Seed the Q-series pump's hub mode from the cooler's reported control mode
-  // (Software/Motherboard/Firmware) so its fan-card dropdown shows the live mode.
+  // Poll the Q-series cooler's reported control mode (Software/Motherboard/
+  // Firmware) on the NP50 poll's cadence, so its fan cards follow a hand-back
+  // the service makes on its own - the last curve unbound, a cooling reset, a
+  // profile switch - not just the modes this page sets.
   const hasQSeriesPump = useMemo(
     () => channels.some(c => c.deviceId?.startsWith('qseries:')),
     [channels],
@@ -293,15 +302,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   useEffect(() => {
     if (!serviceOnline || !hasQSeriesPump) return;
     let cancelled = false;
-    (async () => {
+    const tick = async () => {
       const s = await getQSeriesState();
       if (cancelled || !s?.connected || !s.deviceId) return;
+      if (Date.now() < hubModeLockUntilRef.current) return;
       const kind = s.controlMode === QSERIES_MODE_SOFTWARE ? 'software'
         : s.controlMode === QSERIES_MODE_FIRMWARE ? 'firmware'
         : 'motherboard';
-      setHubModes(prev => ({ ...prev, [s.deviceId]: kind }));
-    })();
-    return () => { cancelled = true; };
+      setHubModes(prev => prev[s.deviceId] === kind ? prev : { ...prev, [s.deviceId]: kind });
+    };
+    void tick();
+    const id = window.setInterval(tick, 3000);
+    return () => { cancelled = true; window.clearInterval(id); };
   }, [serviceOnline, hasQSeriesPump]);
 
   useEffect(() => subscribeControlSync(event => {
@@ -383,6 +395,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const tick = async () => {
       const conn = await getNp50ConnectionState();
       if (cancelled || !conn || !conn.connected || !conn.deviceId) return;
+      if (Date.now() < hubModeLockUntilRef.current) return;
       const kind = np50HubModeFromName(conn.coolingMode);
       if (!kind) return;
       setHubModes(prev => prev[conn.deviceId] === kind ? prev : { ...prev, [conn.deviceId]: kind });
@@ -789,7 +802,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
       await setNp50FirmwareControl();
-      setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
+      writeHubMode(deviceId, 'firmware');
       return;
     }
 
@@ -799,18 +812,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
       await setQSeriesControlMode(QSERIES_MODE_FIRMWARE);
-      setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
+      writeHubMode(deviceId, 'firmware');
       return;
     }
 
     if (value === 'bios') {
       if (isMiniHub && deviceId) {
         await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_MOTHERBOARD);
-        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+        writeHubMode(deviceId, 'motherboard');
       }
       if (isQSeries && deviceId) {
         await setQSeriesControlMode(QSERIES_MODE_MOTHERBOARD);
-        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+        writeHubMode(deviceId, 'motherboard');
       }
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
@@ -826,7 +839,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       if (isNp50) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
       else if (isMiniHub) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
       else if (isQSeries) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
-      setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
+      writeHubMode(deviceId, 'software');
     }
 
     await exitOffToCustomIfNeeded();
@@ -842,7 +855,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     } else {
       await assignCurve(fanId, targetCurveId);
     }
-  }, [channels, fanStates, curves, hubModes, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded]);
+  }, [channels, fanStates, curves, hubModes, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded, writeHubMode]);
 
   // A change on a card that is part of the selection applies to the whole
   // selection; an unselected card still acts alone.
@@ -912,7 +925,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       if (deviceId.startsWith('np50:')) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
       else if (deviceId.startsWith('minihub:')) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
       else if (deviceId.startsWith('qseries:')) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
-      setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
+      writeHubMode(deviceId, 'software');
     }
     await exitOffToCustomIfNeeded();
 
@@ -931,7 +944,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
     }
-  }, [channels, curves, exitOffToCustomIfNeeded, fanStates, hubModes, pushCurves, pushHistory]);
+  }, [channels, curves, exitOffToCustomIfNeeded, fanStates, hubModes, pushCurves, pushHistory, writeHubMode]);
 
   const applyFanMode = useCallback((fanId: string, value: string) => {
     const ids = selectedFanIds.has(fanId) ? [...selectedFanIds] : [fanId];

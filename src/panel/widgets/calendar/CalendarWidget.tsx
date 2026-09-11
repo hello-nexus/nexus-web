@@ -3,6 +3,7 @@ import type { WidgetProps } from '../types';
 import { widgetLayoutSize, type PanelWidgetSize } from '../../types';
 import { useTranslation } from '../../../lib/i18n';
 import { buildMonthCells, resolveWeekStart, weekdayInitials, type WeekStartConfig } from './calendar';
+import { FitLine } from '../common/FitLine';
 import styles from './CalendarWidget.module.scss';
 
 /**
@@ -46,9 +47,9 @@ function DateCard({ now, locale, size }: { now: Date; locale: string; size: Pane
   const monthYear = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(now);
   return (
     <div className={`${styles.card} ${styles[`s-${size}`]}`}>
-      <div className={styles.weekday}>{weekday}</div>
+      <FitLine className={styles.weekday} text={weekday} />
       <div className={styles.day}>{day}</div>
-      <div className={styles.monthYear}>{monthYear}</div>
+      <FitLine className={styles.monthYear} text={monthYear} />
     </div>
   );
 }
@@ -81,7 +82,7 @@ function MonthView({
         </div>
       )}
       <div className={styles.calBody}>
-        {showHeader && <div className={styles.header}>{headerLabel}</div>}
+        {showHeader && <FitLine className={styles.header} text={headerLabel} align="start" />}
         <div className={styles.weekRow}>
           {initials.map((w, i) => (
             <span key={i} className={styles.weekName}>{w}</span>

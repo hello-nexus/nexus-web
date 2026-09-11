@@ -18,23 +18,20 @@
   &.s-4x2 { font-size: 2.3em; }
   &.s-4x4 { font-size: 3.2em; padding: 22px; }
   &.s-2x4 { font-size: 2.6em; padding: 20px; }
+  // The tall strip is narrower than a 2x2, so the month line keeps the 2x2's
+  // pixel size and English renders at full scale rather than shrunk.
+  &.s-2x4 .monthYear { font-size: 0.4em; }
 }
 
 .weekday {
   font-size: 0.62em;
-  // 1.25 is Lexend's content box (see styles/_text.scss). These three rules
-  // ellipsize, so they clip themselves, and the card's line-height: 1 left
-  // every descender (and the accented capitals of fr/pt/tr/vi) outside the
-  // box - "August" lost the tail of its g on every size.
+  // The fit box clips, so the line keeps Lexend's content box (styles/_text.scss)
+  // or descenders and accented capitals lose their tails.
   line-height: var(--leading-tight);
   font-weight: var(--weight-body);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--panel-accent);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .day {
@@ -50,10 +47,6 @@
   line-height: var(--leading-tight);
   font-weight: var(--weight-body);
   color: var(--text-dim);
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 // ── Month grid ───────────────────────────────────────────────────
@@ -73,7 +66,9 @@
   &.s-2x2 { flex-direction: column; padding: 18px 26px; }
   &.s-4x2 { flex-direction: row; align-items: stretch; @include hgap(20px); padding: 16px 40px; }
   &.s-4x4 { flex-direction: column; padding: 30px 32px; }
-  &.s-2x4 { flex-direction: column; justify-content: space-between; @include vgap(14px); padding: 30px 26px; }
+  // The tall strip's inset is the only frame around the date block above the
+  // grid (its card padding is zeroed below); more and the last row is cut off.
+  &.s-2x4 { flex-direction: column; justify-content: space-between; @include vgap(14px); padding: 22px; }
 }
 
 .calBody {
@@ -94,7 +89,7 @@
 // Large + portrait grids stay at content height (compact rows) rather than
 // stretching to fill; the portrait is pinned low.
 .s-4x4 .grid { flex: 0 0 auto; /* c83:allow - .grid is display: grid */ row-gap: 0.55em; margin-bottom: auto; padding-bottom: 0.5em; }
-.s-2x4 .grid { flex: 0 0 auto; /* c83:allow - .grid is display: grid */ row-gap: 0.5em; }
+.s-2x4 .grid { flex: 0 0 auto; /* c83:allow - .grid is display: grid */ row-gap: 0.4em; }
 
 // Center the weekday row + days in the space below the month header so the
 // block sits lower instead of crowding the top.
@@ -110,9 +105,6 @@
   line-height: var(--leading-tight);
   font-weight: var(--weight-display);
   letter-spacing: -0.01em;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .weekRow {
@@ -171,14 +163,19 @@
   flex-direction: column;
   justify-content: center;
   flex-shrink: 0;
+  // The date lines fit themselves to the aside, so a long month name must not
+  // widen it past its basis and crush the grid beside it.
+  min-width: 0;
 }
 
 .s-4x2 .aside {
-  flex-basis: 42%;
+  flex-basis: 50%;
   text-align: center;
 }
 
 .s-2x4 .aside {
   align-items: center;
   text-align: center;
+
+  .card { padding: 0; }
 }

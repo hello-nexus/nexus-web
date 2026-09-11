@@ -1,0 +1,17 @@
+.box {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+}
+
+.text {
+  white-space: nowrap;
+  transform-origin: center;
+}
+
+.start {
+  justify-content: flex-start;
+
+  .text { transform-origin: left center; }
+}
