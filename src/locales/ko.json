@@ -2323,6 +2323,7 @@
   "lighting.pane.effects": "이펙트",
   "lighting.pane.offHint": "활성화할 조명 모드를 선택하세요",
   "lighting.pane.pickDevices": "색상을 선택하려면 장치를 하나 이상 선택하세요",
+  "lighting.pane.selectAllControlled": "제어 중인 장치 모두 선택",
   "lighting.pane.selectedCount.one": "{count}개 장치 선택됨",
   "lighting.pane.selectedCount.other": "{count}개 장치 선택됨",
   "lighting.pane.selectedNone": "선택된 장치 없음",

@@ -2345,6 +2345,7 @@
   "lighting.pane.effects": "Efekty",
   "lighting.pane.offHint": "Wybierz tryb podświetlenia, aby go włączyć",
   "lighting.pane.pickDevices": "Wybierz co najmniej jedno urządzenie, aby wybrać kolor",
+  "lighting.pane.selectAllControlled": "Zaznacz wszystkie sterowane urządzenia",
   "lighting.pane.selectedCount.few": "Wybrano {count} urzadzenia",
   "lighting.pane.selectedCount.one": "Wybrano {count} urządzenie",
   "lighting.pane.selectedCount.other": "Wybrano {count} urzadzen",

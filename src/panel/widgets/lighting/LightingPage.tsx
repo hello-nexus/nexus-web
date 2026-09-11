@@ -1283,6 +1283,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [orderedDevices, hideUncontrolled],
   );
 
+  // zoneCardSelectable already drops unavailable cards and anything with Nexus
+  // Control off, which is also what the page hides when hiding uncontrolled
+  // devices - so select-all never builds a selection the user cannot see.
   const selectableIds = useMemo(
     () => orderedDevices.filter(zoneCardSelectable).map(d => d.id),
     [orderedDevices],
@@ -1987,12 +1990,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <>
               <span className={styles.headerSep} aria-hidden />
               {/* Icon-only: the rail is too narrow for both labels beside the title. */}
-              <HoverTooltip body={t('lighting.ledMap.selectAll')} side="bottom">
+              <HoverTooltip body={t('lighting.pane.selectAllControlled')} side="bottom">
                 <Button
                   tone="ghost"
                   size="sm"
                   icon={<CheckCheck />}
-                  aria-label={t('lighting.ledMap.selectAll')}
+                  aria-label={t('lighting.pane.selectAllControlled')}
                   disabled={allSelected}
                   onClick={() => handleSetSelection(new Set(selectableIds), selectableIds[0] ?? null)}
                 />

@@ -285,7 +285,7 @@ describe('LightingPage selection in a drive-everything mode', () => {
 
     // Seeded selection is everything, so the canvas carries both devices and
     // only "select none" has anything left to do.
-    const selectAll = await findByLabelText('lighting.ledMap.selectAll');
+    const selectAll = await findByLabelText('lighting.pane.selectAllControlled');
     const selectNone = await findByLabelText('lightingOnboarding.selectNone');
     await waitFor(() => expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']));
     expect(selectAll).toBeDisabled();
@@ -294,9 +294,9 @@ describe('LightingPage selection in a drive-everything mode', () => {
     fireEvent.click(selectNone);
 
     await waitFor(() => expect(canvasDeviceIds.current).toEqual([]));
-    expect(await findByLabelText('lighting.ledMap.selectAll')).not.toBeDisabled();
+    expect(await findByLabelText('lighting.pane.selectAllControlled')).not.toBeDisabled();
 
-    fireEvent.click(await findByLabelText('lighting.ledMap.selectAll'));
+    fireEvent.click(await findByLabelText('lighting.pane.selectAllControlled'));
 
     await waitFor(() => expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']));
   });
@@ -340,7 +340,7 @@ describe('LightingPage selection in a drive-everything mode', () => {
     // on what the marquee swept.
     fireEvent.click(await findByLabelText('lightingOnboarding.selectNone'));
     await waitFor(() => expect(canvasDeviceIds.current).toEqual([]));
-    fireEvent.click(await findByLabelText('lighting.ledMap.selectAll'));
+    fireEvent.click(await findByLabelText('lighting.pane.selectAllControlled'));
 
     await waitFor(() => expect(canvasFocusIds.current).toEqual(['dev-a', 'dev-b']));
   });

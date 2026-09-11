@@ -1193,9 +1193,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Fans a click can select, which is what select-all has to match. Nexus
   // Control off is NOT excluded: the card takes its click, and turning control
   // back on over a whole selection is the reason to gather them.
+  // Select-all takes only fans it can actually drive. A fan with Nexus Control
+  // off is deliberately left to its firmware - and is hidden outright when the
+  // page is hiding uncontrolled devices, so selecting it would build a
+  // selection the user cannot see.
   const selectableFanIds = useMemo(
     () => orderedChannels
-      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed')
+      .filter(c => !isFanDisconnected(c)
+        && !(c.readOnly ?? false)
+        && c.classification !== 'Fixed'
+        && c.controlled !== false)
       .map(c => c.id),
     [orderedChannels],
   );
@@ -1467,12 +1474,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             <>
               <span className={styles.headerSep} aria-hidden />
               {/* Icon-only, matching the lighting rail: too narrow for labels. */}
-              <HoverTooltip body={t('lighting.ledMap.selectAll')} side="bottom">
+              <HoverTooltip body={t('lighting.pane.selectAllControlled')} side="bottom">
                 <Button
                   tone="ghost"
                   size="sm"
                   icon={<CheckCheck />}
-                  aria-label={t('lighting.ledMap.selectAll')}
+                  aria-label={t('lighting.pane.selectAllControlled')}
                   disabled={allFansSelected}
                   onClick={() => setSelectedFanIds(new Set(selectableFanIds))}
                 />

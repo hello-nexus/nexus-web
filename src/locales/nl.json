@@ -2323,6 +2323,7 @@
   "lighting.pane.effects": "Effecten",
   "lighting.pane.offHint": "Kies een verlichtingsmodus om te activeren",
   "lighting.pane.pickDevices": "Selecteer een of meer apparaten om een kleur te kiezen",
+  "lighting.pane.selectAllControlled": "Alle aangestuurde apparaten selecteren",
   "lighting.pane.selectedCount.one": "{count} apparaat geselecteerd",
   "lighting.pane.selectedCount.other": "{count} apparaten geselecteerd",
   "lighting.pane.selectedNone": "Geen apparaten geselecteerd",

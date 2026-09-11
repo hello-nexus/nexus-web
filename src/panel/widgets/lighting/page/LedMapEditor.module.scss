@@ -81,8 +81,8 @@
   // Very faint lines on the snap grid: GRID_COLS x GRID_ROWS in
   // LedMapEditor.tsx, whose ratio matches the frame's so cells stay square.
   background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
+    linear-gradient(to right, rgb(255 255 255 / calc(var(--alpha-faint) / 2)) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / calc(var(--alpha-faint) / 2)) 1px, transparent 1px);
   background-size: calc(100% / 32) calc(100% / 18);
   pointer-events: none;
   z-index: 0;
@@ -195,7 +195,7 @@
   text-shadow:
     0 0 2px #000,
     0 0 3px #000,
-    0 1px 1px rgb(0 0 0 / 0.9);
+    0 1px 1px #000;
   pointer-events: none;
   user-select: none;
 }
@@ -413,7 +413,6 @@
   align-items: center;
   gap: 0.3rem;
   padding: 0.3rem 0.6rem;
-  line-height: 1;
   white-space: nowrap;
   font-size: var(--type-small);
   border: var(--border-width) solid transparent;
@@ -595,17 +594,19 @@
 .centerGuideV {
   position: absolute;
   width: 1px;
-  background: rgb(255 255 255 / 0.18);
+  background: rgb(255 255 255 / var(--alpha-medium));
   pointer-events: none;
-  z-index: 0;
+  // Above the frame: the frame is painted after these in DOM order, so at the
+  // same depth its grid covered them. Still below the LEDs.
+  z-index: 1;
 }
 
 .centerGuideH {
   position: absolute;
   height: 1px;
-  background: rgb(255 255 255 / 0.18);
+  background: rgb(255 255 255 / var(--alpha-medium));
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
 }
 
 // Where a multi-LED selection snaps: the selection's own centre is the point
@@ -617,7 +618,9 @@
   margin: -4.5px 0 0 -4.5px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 2px rgb(0 0 0 / 0.55), 0 0 6px var(--accent);
+  // Ring rather than a shadow: it has to stay readable over both the black
+  // frame and a lit LED right under it.
+  outline: 2px solid rgb(0 0 0 / var(--alpha-strong));
   pointer-events: none;
   z-index: 3;
 }

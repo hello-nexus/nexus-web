@@ -2323,6 +2323,7 @@
   "lighting.pane.effects": "Efektler",
   "lighting.pane.offHint": "Etkinleştirmek için bir aydınlatma modu seçin",
   "lighting.pane.pickDevices": "Renk seçmek için bir veya daha fazla cihaz seçin",
+  "lighting.pane.selectAllControlled": "Kontrol edilen tüm cihazları seç",
   "lighting.pane.selectedCount.one": "{count} cihaz seçildi",
   "lighting.pane.selectedCount.other": "{count} cihaz seçildi",
   "lighting.pane.selectedNone": "Cihaz seçilmedi",

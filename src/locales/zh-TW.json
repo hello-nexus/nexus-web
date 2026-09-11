@@ -2323,6 +2323,7 @@
   "lighting.pane.effects": "效果",
   "lighting.pane.offHint": "選擇一種燈光模式以啟用",
   "lighting.pane.pickDevices": "請先選擇一個或多個裝置，再選擇顏色",
+  "lighting.pane.selectAllControlled": "選取所有受控裝置",
   "lighting.pane.selectedCount.one": "已選擇 {count} 個裝置",
   "lighting.pane.selectedCount.other": "已選擇 {count} 個裝置",
   "lighting.pane.selectedNone": "未選擇裝置",

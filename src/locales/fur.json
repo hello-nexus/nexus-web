@@ -2323,6 +2323,7 @@
   "lighting.pane.effects": "Efiets",
   "lighting.pane.offHint": "Sielç une modalitât di iluminazion par ativâle",
   "lighting.pane.pickDevices": "Sielç un o plui dispositîfs par sielzi un colôr",
+  "lighting.pane.selectAllControlled": "Selezione ducj i dispositîfs controlâts",
   "lighting.pane.selectedCount.one": "{count} dispositîf selezionât",
   "lighting.pane.selectedCount.other": "{count} dispositîfs selezionâts",
   "lighting.pane.selectedNone": "Nissun dispositîf selezionât",

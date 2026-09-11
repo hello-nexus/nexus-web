@@ -651,6 +651,18 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return () => document.removeEventListener('keydown', handler, true);
   }, []);
 
+  // Save, then leave - but only if the save actually landed, so a failed one
+  // keeps the editor open with the edits intact rather than dropping them.
+  const handleSaveAndClose = useCallback(() => {
+    void (async () => {
+      const ok = await handleSaveRef.current();
+      if (!ok) return;
+      setShowUnsavedConfirm(false);
+      if (!isStagedZoneId(selectedZoneIdRef.current)) clearLedEditor(selectedZoneIdRef.current);
+      onClose();
+    })();
+  }, [onClose]);
+
   const handleDiscardAndClose = useCallback(() => {
     setShowUnsavedConfirm(false);
     if (!isStagedZoneId(selectedZoneIdRef.current)) clearLedEditor(selectedZoneIdRef.current);
@@ -1273,7 +1285,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   // ── Save / revert ─────────────────────────────────────────────────────
 
-  const handleSave = async () => {
+  /** True when everything the plan asked for landed, so a caller can close behind it. */
+  const handleSave = async (): Promise<boolean> => {
     setSaving(true);
 
     // The map body builder keeps applied-mapping state (mapping-disabled
@@ -1302,7 +1315,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       if (!zonesResp || zonesResp.error) {
         setSaving(false);
         push({ title: t('lighting.ledMap.zonesUpdateFailed') });
-        return;
+        return false;
       }
       // The partition is persisted now; commit it client-side BEFORE the
       // map POST so a map failure cannot leave the editor holding staged
@@ -1357,14 +1370,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       push({
         title: t(plan.partition ? 'lighting.ledMap.zonesSavedMapFailed' : 'lighting.ledMap.saveFailed'),
       });
-      return;
+      return false;
     }
     if (plan.partition) {
       // Full reload: per-zone prefs / layouts were dropped with the
       // partition, so the resolved baseline may have changed too.
       await load(selIdx);
       setSaving(false);
-      return;
+      return true;
     }
     // What was just sent is now the stored baseline.
     if (plan.map.aspectRatio > 0) loadedRatioRef.current = plan.map.aspectRatio;
@@ -1377,7 +1390,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setDirty(false);
     clearTimeout(previewTimerRef.current);
     if (!isStagedZoneId(selectedZoneIdRef.current)) clearLedEditor(selectedZoneIdRef.current);
+    return true;
   };
+
+  // handleSave is redefined every render; the close prompt's Save is a stable
+  // callback, so it reaches the current one through a ref.
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
 
   // ── Live preview push ─────────────────────────────────────────────────
 
@@ -2719,7 +2738,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         message={t('lighting.ledMap.unsavedMessage')}
         confirmLabel={t('lighting.ledMap.discard')}
         cancelLabel={t('lighting.ledMap.keepEditing')}
-        destructive
+        // Leaving with the work done is the likeliest intent, so it is offered
+        // here rather than making the user cancel out and find Save.
+        primaryAction={{
+          label: t('lighting.ledMap.save'),
+          onSelect: handleSaveAndClose,
+          disabled: saving,
+        }}
         onConfirm={handleDiscardAndClose}
         onCancel={() => setShowUnsavedConfirm(false)}
       />

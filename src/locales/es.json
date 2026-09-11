@@ -2323,6 +2323,7 @@
   "lighting.pane.effects": "Efectos",
   "lighting.pane.offHint": "Selecciona un modo de iluminación para activarlo",
   "lighting.pane.pickDevices": "Selecciona uno o más dispositivos para elegir un color",
+  "lighting.pane.selectAllControlled": "Seleccionar todos los dispositivos controlados",
   "lighting.pane.selectedCount.one": "{count} dispositivo seleccionado",
   "lighting.pane.selectedCount.other": "{count} dispositivos seleccionados",
   "lighting.pane.selectedNone": "Ningún dispositivo seleccionado",

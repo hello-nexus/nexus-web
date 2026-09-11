@@ -2323,6 +2323,7 @@
   "lighting.pane.effects": "エフェクト",
   "lighting.pane.offHint": "有効にするライティングモードを選択してください",
   "lighting.pane.pickDevices": "色を選ぶには、デバイスを1つ以上選択してください",
+  "lighting.pane.selectAllControlled": "制御中のデバイスをすべて選択",
   "lighting.pane.selectedCount.one": "{count} 台のデバイスを選択中",
   "lighting.pane.selectedCount.other": "{count} 台のデバイスを選択中",
   "lighting.pane.selectedNone": "デバイスが選択されていません",
