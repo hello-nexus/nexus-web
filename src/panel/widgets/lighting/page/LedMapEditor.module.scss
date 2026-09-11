@@ -62,8 +62,12 @@
   // LedMapEditor.tsx, which also derives the device frame's default
   // placement from it so the frame-to-edge gap is equal on all sides.
   background-color: #080808;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 20px 20px;
+  // Very faint lines on the snap grid: GRID_COLS x GRID_ROWS in LedMapEditor.tsx,
+  // whose ratio matches CANVAS_RATIO so the cells are square on screen.
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: calc(100% / 32) calc(100% / 18);
   border: 1px solid transparent;
   border-radius: var(--radius);
   overflow: hidden;
@@ -114,8 +118,8 @@
   // Bigger than a dot so the LED index sits legibly inside the circle.
   // Still small enough to pack hundreds of keys on a keyboard matrix without
   // the circles merging into one blob.
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   cursor: grab;
@@ -180,18 +184,24 @@
 // the coloured LED fills (accent, good, warn). pointer-events none so the
 // underlying .led still owns drag + click.
 .ledIndex {
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   font-weight: var(--weight-display);
   line-height: 1;
   color: #fff;
-  text-shadow: 0 0 3px rgb(0 0 0 / var(--alpha-strong));
+  // The circle underneath is whatever colour the LED renders, including a
+  // pale one, so the number carries its own dark outline rather than relying
+  // on the fill for contrast.
+  text-shadow:
+    0 0 2px #000,
+    0 0 3px #000,
+    0 1px 1px rgb(0 0 0 / 0.9);
   pointer-events: none;
   user-select: none;
 }
 
 .ledGroup {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   box-shadow: 0 0 0 2.5px var(--accent), 0 0 0 4px var(--accent-soft);
 }
 
@@ -585,7 +595,9 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgb(255 255 255 / var(--alpha-faint));
+  // A step above the snap grid, which is deliberately near-invisible: these
+  // two are what a device gets lined up on.
+  background: rgb(255 255 255 / 0.18);
   pointer-events: none;
   z-index: 0;
 }
@@ -596,7 +608,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: rgb(255 255 255 / var(--alpha-faint));
+  background: rgb(255 255 255 / 0.18);
   pointer-events: none;
   z-index: 0;
 }

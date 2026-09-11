@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Select all",
   "lighting.ledMap.selectNone": "Clear selection",
   "lighting.ledMap.settings": "Assign Device LED",
+  "lighting.ledMap.snapToGrid": "Snap",
+  "lighting.ledMap.snapToGridHint": "Snap LEDs to the grid",
   "lighting.ledMap.testH": "H Swipe",
   "lighting.ledMap.testSection": "Preview",
   "lighting.ledMap.testV": "V Swipe",

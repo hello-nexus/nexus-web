@@ -2242,6 +2242,8 @@
   "lighting.ledMap.selectAll": "Zaznacz wszystko",
   "lighting.ledMap.selectNone": "Wyczysc zaznaczenie",
   "lighting.ledMap.settings": "Przypisz LED urządzenia",
+  "lighting.ledMap.snapToGrid": "Przyciąganie",
+  "lighting.ledMap.snapToGridHint": "Przyciągaj diody do siatki",
   "lighting.ledMap.testH": "Przesuniecie H",
   "lighting.ledMap.testSection": "Podgląd",
   "lighting.ledMap.testV": "Przesuniecie V",

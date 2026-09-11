@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "全选",
   "lighting.ledMap.selectNone": "清空选择",
   "lighting.ledMap.settings": "分配设备 LED",
+  "lighting.ledMap.snapToGrid": "吸附",
+  "lighting.ledMap.snapToGridHint": "将 LED 吸附到网格",
   "lighting.ledMap.testH": "水平扫描",
   "lighting.ledMap.testSection": "预览",
   "lighting.ledMap.testV": "垂直扫描",

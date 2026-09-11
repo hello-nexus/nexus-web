@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Tout selectionner",
   "lighting.ledMap.selectNone": "Effacer la selection",
   "lighting.ledMap.settings": "Attribuer les LED de l'appareil",
+  "lighting.ledMap.snapToGrid": "Aimanter",
+  "lighting.ledMap.snapToGridHint": "Aimanter les LED sur la grille",
   "lighting.ledMap.testH": "Balayage H",
   "lighting.ledMap.testSection": "Aperçu",
   "lighting.ledMap.testV": "Balayage V",

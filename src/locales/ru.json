@@ -2242,6 +2242,8 @@
   "lighting.ledMap.selectAll": "Выделить всё",
   "lighting.ledMap.selectNone": "Снять выделение",
   "lighting.ledMap.settings": "Назначить светодиоды устройства",
+  "lighting.ledMap.snapToGrid": "Привязка",
+  "lighting.ledMap.snapToGridHint": "Привязывать светодиоды к сетке",
   "lighting.ledMap.testH": "Гориз.",
   "lighting.ledMap.testSection": "Предпросмотр",
   "lighting.ledMap.testV": "Верт.",

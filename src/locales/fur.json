@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Selezione dut",
   "lighting.ledMap.selectNone": "Nete la selezion",
   "lighting.ledMap.settings": "Assegne i LED dal dispositîf",
+  "lighting.ledMap.snapToGrid": "Tache",
+  "lighting.ledMap.snapToGridHint": "Tache i LED ae grile",
   "lighting.ledMap.testH": "Passade O",
   "lighting.ledMap.testSection": "Anteprime",
   "lighting.ledMap.testV": "Passade V",

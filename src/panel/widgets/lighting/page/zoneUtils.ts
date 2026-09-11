@@ -585,3 +585,35 @@ export function redoHistory(
 
 /** How long an identify blink runs, on the hardware and on the card readout. */
 export const IDENTIFY_MS = 2000;
+
+// ── LED snap grid ───────────────────────────────────────────────────────────
+
+/**
+ * Snap grid for the LED map canvas. The column/row ratio matches the canvas
+ * aspect ratio so a cell is square on screen, and both counts are even so the
+ * canvas centre is a grid point: with snapping on, the old centre snap is just
+ * the middle cell.
+ */
+export const GRID_COLS = 32;
+export const GRID_ROWS = 18;
+
+/** Distance in UV within which a dragged LED is pulled onto the canvas centre when the grid is off. */
+export const CENTER_SNAP_EPSILON = 0.02;
+
+export function snapToGrid(u: number, v: number): { u: number; v: number } {
+  return {
+    u: Math.round(u * GRID_COLS) / GRID_COLS,
+    v: Math.round(v * GRID_ROWS) / GRID_ROWS,
+  };
+}
+
+/**
+ * Where a dragged LED lands. Snapping to the grid subsumes the centre snap;
+ * with it off only the centre still pulls, which is the pre-grid behaviour.
+ */
+export function settleLed(u: number, v: number, snap: boolean): { u: number; v: number } {
+  if (snap) return snapToGrid(u, v);
+  const du = u - 0.5;
+  const dv = v - 0.5;
+  return Math.sqrt(du * du + dv * dv) < CENTER_SNAP_EPSILON ? { u: 0.5, v: 0.5 } : { u, v };
+}

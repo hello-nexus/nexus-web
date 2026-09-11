@@ -25,7 +25,9 @@ import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
-  pushHistory, redoHistory, relabelLedZones, reorderChainEntries, segmentOffsets, splitStagedZones,
+  GRID_COLS, GRID_ROWS,
+  pushHistory, redoHistory, relabelLedZones, reorderChainEntries, segmentOffsets, settleLed,
+  splitStagedZones,
   splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
   zoneEnabledCounts, zoneLedCount,
   type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type StagedPartition,
@@ -76,7 +78,7 @@ const MAX_MAPPABLE_LEDS = 300;
 const NUDGE_STEP_UV = 0.005;
 const NUDGE_STEP_UV_COARSE = 0.025;
 const MERGE_EPSILON = 0.018;
-const CENTER_SNAP_EPSILON = 0.02;
+
 // A Lian Li port device's ring segment holds one LED ring per fan, so dividing
 // the segment's LED count by the per-fan ring size recovers the fan count.
 const LIANLI_LEDS_PER_FAN = 16;
@@ -138,6 +140,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hoveredLed, setHoveredLed] = useState<number | null>(null);
+  // On by default: hand-placed LEDs end up on a grid rather than a pixel off
+  // one another. The pointer handlers read it through a ref because they run
+  // from listeners bound once.
+  const [snapGrid, setSnapGrid] = useState(true);
+  const snapGridRef = useRef(snapGrid);
+  snapGridRef.current = snapGrid;
 
   // The zone whose LEDs are editable; every other zone renders dimmed.
   const [selectedZoneId, setSelectedZoneId] = useState(initialZoneId);
@@ -1126,14 +1134,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               mergedToTarget = true;
             }
           }
-          const cdu = snapU - 0.5;
-          const cdv = snapV - 0.5;
-          if (Math.sqrt(cdu * cdu + cdv * cdv) < CENTER_SNAP_EPSILON) {
-            snapU = 0.5;
-            snapV = 0.5;
+          if (!mergedToTarget) {
+            const settled = settleLed(snapU, snapV, snapGridRef.current);
+            snapU = settled.u;
+            snapV = settled.v;
           }
           // Only a snap onto another LED counts as a merge (ring + select-on-merge);
-          // a bare center-snap is not a merge.
+          // a bare grid or centre snap is not a merge.
           if (mergedToTarget) {
             snapResults.set(led.index, { u: snapU, v: snapV });
           }
@@ -1167,11 +1174,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               snapV = t.v;
             }
           }
-          const cdu = snapU - 0.5;
-          const cdv = snapV - 0.5;
-          if (Math.sqrt(cdu * cdu + cdv * cdv) < CENTER_SNAP_EPSILON) {
-            snapU = 0.5;
-            snapV = 0.5;
+          if (minDist === MERGE_EPSILON) {
+            const settled = settleLed(snapU, snapV, snapGridRef.current);
+            snapU = settled.u;
+            snapV = settled.v;
           }
           return { ...led, u: snapU, v: snapV, isCustom: true };
         });
@@ -1875,11 +1881,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         }
       }
       if (!snapTarget) {
-        const cdu = newU - 0.5;
-        const cdv = newV - 0.5;
-        if (Math.sqrt(cdu * cdu + cdv * cdv) < CENTER_SNAP_EPSILON) {
-          snapTarget = { u: 0.5, v: 0.5 };
-        }
+        const settled = settleLed(newU, newV, snapGrid);
+        if (settled.u !== newU || settled.v !== newV) snapTarget = settled;
       }
     }
     return getLedCanvasPos(led, disabledOrder, dragOverride, snapTarget);
@@ -2181,6 +2184,20 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             </div>
             <div className={styles.spacer} />
             <div className={styles.controlGroup}>
+              {/* Snapping is on by default; off is for placing an LED between
+                  grid points, which is rare enough to be the opt-in. */}
+              <HoverTooltip body={t('lighting.ledMap.snapToGridHint')} side="bottom">
+                <button
+                  type="button"
+                  className={`${styles.modeBtn} ${snapGrid ? styles.modeBtnActive : ''}`}
+                  onClick={() => setSnapGrid(v => !v)}
+                  aria-pressed={snapGrid}
+                >
+                  <Grid3x3 size={13} aria-hidden />
+                  {t('lighting.ledMap.snapToGrid')}
+                </button>
+              </HoverTooltip>
+              <div className={styles.separator} />
               {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
               <HoverTooltip body={`${t('lighting.ledMap.selectAll')} (${isMac ? 'Cmd' : 'Ctrl'}+A)`} side="bottom">
                 <button
@@ -2210,6 +2227,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             ref={canvasRef}
             className={styles.canvas}
             style={{ aspectRatio: String(CANVAS_RATIO) }}
+            data-grid-cols={GRID_COLS}
+            data-grid-rows={GRID_ROWS}
             onPointerDown={mappingUnavailable ? undefined : handleCanvasPointerDown}
             onPointerMove={mappingUnavailable ? undefined : handlePointerMove}
             onPointerUp={mappingUnavailable ? undefined : (e => handlePointerUp(e))}

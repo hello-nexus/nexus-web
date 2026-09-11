@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Selecionar tudo",
   "lighting.ledMap.selectNone": "Limpar selecao",
   "lighting.ledMap.settings": "Atribuir LED do dispositivo",
+  "lighting.ledMap.snapToGrid": "Alinhar",
+  "lighting.ledMap.snapToGridHint": "Alinhar os LEDs à grade",
   "lighting.ledMap.testH": "Var. H",
   "lighting.ledMap.testSection": "Visualização",
   "lighting.ledMap.testV": "Var. V",

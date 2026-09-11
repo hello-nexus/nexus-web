@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Alles selecteren",
   "lighting.ledMap.selectNone": "Selectie wissen",
   "lighting.ledMap.settings": "Apparaat-LED toewijzen",
+  "lighting.ledMap.snapToGrid": "Uitlijnen",
+  "lighting.ledMap.snapToGridHint": "LED's uitlijnen op het raster",
   "lighting.ledMap.testH": "H-veeg",
   "lighting.ledMap.testSection": "Voorbeeld",
   "lighting.ledMap.testV": "V-veeg",

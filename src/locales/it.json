@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Seleziona tutto",
   "lighting.ledMap.selectNone": "Deseleziona tutto",
   "lighting.ledMap.settings": "Assegna LED dispositivo",
+  "lighting.ledMap.snapToGrid": "Aggancia",
+  "lighting.ledMap.snapToGridHint": "Aggancia i LED alla griglia",
   "lighting.ledMap.testH": "Sweep H",
   "lighting.ledMap.testSection": "Anteprima",
   "lighting.ledMap.testV": "Sweep V",

@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "全選",
   "lighting.ledMap.selectNone": "清空選擇",
   "lighting.ledMap.settings": "指派裝置 LED",
+  "lighting.ledMap.snapToGrid": "吸附",
+  "lighting.ledMap.snapToGridHint": "將 LED 吸附到格線",
   "lighting.ledMap.testH": "水平掃描",
   "lighting.ledMap.testSection": "預覽",
   "lighting.ledMap.testV": "垂直掃描",

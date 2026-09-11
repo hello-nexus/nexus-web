@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Alle auswaehlen",
   "lighting.ledMap.selectNone": "Auswahl aufheben",
   "lighting.ledMap.settings": "Geräte-LED zuweisen",
+  "lighting.ledMap.snapToGrid": "Raster",
+  "lighting.ledMap.snapToGridHint": "LEDs am Raster ausrichten",
   "lighting.ledMap.testH": "H-Wisch",
   "lighting.ledMap.testSection": "Vorschau",
   "lighting.ledMap.testV": "V-Wisch",

@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "Tumunu sec",
   "lighting.ledMap.selectNone": "Secimi temizle",
   "lighting.ledMap.settings": "Cihaz LED'i ata",
+  "lighting.ledMap.snapToGrid": "Yapıştır",
+  "lighting.ledMap.snapToGridHint": "LED'leri ızgaraya yapıştır",
   "lighting.ledMap.testH": "Yatay",
   "lighting.ledMap.testSection": "Önizleme",
   "lighting.ledMap.testV": "Dikey",

@@ -2220,6 +2220,8 @@
   "lighting.ledMap.selectAll": "すべて選択",
   "lighting.ledMap.selectNone": "選択解除",
   "lighting.ledMap.settings": "デバイスLEDを割り当て",
+  "lighting.ledMap.snapToGrid": "スナップ",
+  "lighting.ledMap.snapToGridHint": "LED をグリッドにスナップ",
   "lighting.ledMap.testH": "横スワイプ",
   "lighting.ledMap.testSection": "プレビュー",
   "lighting.ledMap.testV": "縦スワイプ",

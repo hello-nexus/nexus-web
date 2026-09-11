@@ -10,6 +10,9 @@ import {
   defaultPartitionGuess,
   emptyHistory,
   flattenDeviceMap,
+  GRID_COLS,
+  GRID_ROWS,
+  settleLed,
   formatZoneChipCount,
   isCardFullyParked,
   isStagedZoneId,
@@ -646,5 +649,38 @@ describe('reorderChainEntries', () => {
 
   it('returns null when a zone id is not in the current order', () => {
     expect(reorderChainEntries(entries, order, ['z0', 'z1', 'unknown'])).toBeNull();
+  });
+});
+
+describe('settleLed', () => {
+  it('puts a dragged LED on the nearest grid point', () => {
+    // 1/32 = 0.03125 across, 1/18 = 0.0555... down.
+    expect(settleLed(0.1, 0.1, true)).toEqual({ u: 3 / GRID_COLS, v: 2 / GRID_ROWS });
+    expect(settleLed(0.999, 0.999, true)).toEqual({ u: 1, v: 1 });
+    expect(settleLed(0, 0, true)).toEqual({ u: 0, v: 0 });
+  });
+
+  it('makes the canvas centre a grid point, so centre snapping comes for free', () => {
+    expect(GRID_COLS % 2).toBe(0);
+    expect(GRID_ROWS % 2).toBe(0);
+    expect(settleLed(0.5, 0.5, true)).toEqual({ u: 0.5, v: 0.5 });
+    expect(settleLed(0.505, 0.503, true)).toEqual({ u: 0.5, v: 0.5 });
+  });
+
+  it('leaves a position alone with the grid off, except near the centre', () => {
+    expect(settleLed(0.1234, 0.4321, false)).toEqual({ u: 0.1234, v: 0.4321 });
+    // Inside CENTER_SNAP_EPSILON of the middle.
+    expect(settleLed(0.505, 0.505, false)).toEqual({ u: 0.5, v: 0.5 });
+    expect(settleLed(0.55, 0.55, false)).toEqual({ u: 0.55, v: 0.55 });
+  });
+
+  it('keeps every snapped point inside the canvas', () => {
+    for (const [u, v] of [[-0.2, -0.2], [1.4, 1.4], [0.5, 1.2]] as const) {
+      const r = settleLed(Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v)), true);
+      expect(r.u).toBeGreaterThanOrEqual(0);
+      expect(r.u).toBeLessThanOrEqual(1);
+      expect(r.v).toBeGreaterThanOrEqual(0);
+      expect(r.v).toBeLessThanOrEqual(1);
+    }
   });
 });
