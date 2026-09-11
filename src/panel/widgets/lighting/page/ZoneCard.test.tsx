@@ -178,6 +178,7 @@ describe('ZoneCard bulk selection', () => {
       identifyCount: 3,
       controlled: true,
       ledsOn: true,
+      oneDevice: false,
       setControlled: vi.fn(),
       setPower: vi.fn(),
       identify: vi.fn(),
@@ -212,9 +213,16 @@ describe('ZoneCard bulk selection', () => {
     expect(screen.getByRole('button', { name: /menuLightsOffCount.*"count":3/ })).toBeTruthy();
   });
 
-  it('hides the LED map row, which edits one device only', () => {
+  it('hides the LED map row when the selection spans devices', () => {
     renderBulkAndOpen(bulkProps());
     expect(screen.queryByRole('button', { name: /ledMap.settings/ })).toBeNull();
+  });
+
+  it('keeps the LED map row when the selection is one device\'s own zones', () => {
+    // Selecting a keeb's keys and underglow still names one device, and the
+    // editor opens on that device and lists both.
+    renderBulkAndOpen(bulkProps({ oneDevice: true }));
+    expect(screen.getByRole('button', { name: /ledMap.settings/ })).toBeTruthy();
   });
 
   it('drives the whole selection to one state, not per-device toggles', () => {

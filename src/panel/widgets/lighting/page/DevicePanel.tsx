@@ -197,6 +197,9 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       tunableCount: selectedDevices.filter(zoneCardSelectable).length,
       controlled: selectedDevices.some(x => x.controlled !== false),
       ledsOn: selectedDevices.some(x => x.ledsOn),
+      // deviceId falls back to the card id, so cards without one are each
+      // their own device and a mixed selection is correctly not one.
+      oneDevice: new Set(selectedDevices.map(x => x.deviceId || x.id)).size === 1,
       setControlled: (controlled: boolean) => selectedDevices.forEach(x => onSetControlled(x.id, controlled)),
       setPower: (on: boolean) => selectedDevices.forEach(x => onSetPower(x.id, on)),
       identify: () => selectedDevices

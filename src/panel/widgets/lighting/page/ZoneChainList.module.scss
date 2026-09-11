@@ -224,13 +224,11 @@ $count-column: 4.4rem;
   width: 22px;
 }
 
+// Portaled to <body> and pinned to its trigger in JS: the sidebar it opens
+// from is a scroll container, which clipped it when it was absolutely
+// positioned inside. Position, width and height come inline.
 .popover {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  z-index: 20;
-  width: min(26rem, 100%);
-  min-width: 18rem;
+  z-index: 2000;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -244,9 +242,10 @@ $count-column: 4.4rem;
 .results {
   display: flex;
   flex-direction: column;
-  // Tall enough to browse the catalog without paging through it four rows at
-  // a time; still bounded so the popover cannot outgrow the modal.
-  max-height: min(60vh, 34rem);
+  // The popover's own max-height is the viewport room its trigger leaves, so
+  // the list just takes what it is given rather than capping itself short.
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
 }
 

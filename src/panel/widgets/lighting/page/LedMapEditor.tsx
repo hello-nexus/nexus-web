@@ -50,15 +50,18 @@ const isSmartLightId = (id: string) =>
 // Canvas box shape. Applied as an inline style so TS owns the single source;
 // the device frame's default placement derives from it below.
 const CANVAS_RATIO = 16 / 9;
-// The frame runs to the top, left and right edges - dead canvas around three
-// sides just shrinks the LEDs. The bottom keeps a band, which is where
-// removed LEDs are parked.
-const FRAME_BOTTOM_BAND_PCT = 14;
+// Plain black margin around the frame - no grid, no rim - so an LED sitting on
+// an edge is still drawn whole instead of half-clipped. The horizontal percent
+// is derived from CANVAS_RATIO so the margin is the same number of pixels on
+// every side.
+const FRAME_PAD_PCT = 3;
+// Below the frame, where removed LEDs park and the drag hint sits.
+const FRAME_BOTTOM_BAND_PCT = 12;
 const DEFAULT_DEV_RECT = {
-  x: 0,
-  y: 0,
-  w: 100,
-  h: 100 - FRAME_BOTTOM_BAND_PCT,
+  x: FRAME_PAD_PCT / CANVAS_RATIO,
+  y: FRAME_PAD_PCT,
+  w: 100 - 2 * (FRAME_PAD_PCT / CANVAS_RATIO),
+  h: 100 - FRAME_PAD_PCT - FRAME_BOTTOM_BAND_PCT,
 };
 const RECT_PAD_PX = 10;
 const MAX_HISTORY = 50;

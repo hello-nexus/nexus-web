@@ -54,6 +54,8 @@ export interface BulkSelection {
   tunableCount: number;
   controlled: boolean;
   ledsOn: boolean;
+  /** True when every selected card is a zone of the SAME device, so the LED map still has one device to open. */
+  oneDevice: boolean;
   setControlled: (controlled: boolean) => void;
   setPower: (on: boolean) => void;
   identify: () => void;
@@ -432,9 +434,11 @@ export function ZoneCard({
     } else if (device.ledCount > 0) {
       items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
     }
-    // The LED map edits one device's zones, so a selection has nothing to
-    // open - same rule the canvas menu applies.
-    if (!bulk) {
+    // The LED map edits one device's zones, so it needs the selection to name
+    // exactly one - which a multi-zone device's own zones do (the keeb's keys
+    // plus underglow are one device). A selection spanning devices has nothing
+    // to open; same rule the canvas menu applies.
+    if (!bulk || bulk.oneDevice) {
       items.push({
         key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
         onSelect: () => onOpenSettings?.(),

@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, GripVertical, Lightbulb, Plus, X } from 'lucide-react';
 import { fetchMappingCatalog, type BuiltInMappingSummary, type ChainEntryBody } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
@@ -12,6 +13,11 @@ import styles from './ZoneChainList.module.scss';
 
 /** Debounce on the catalog query, ms. Local lookup, so this can be short. */
 const SEARCH_DEBOUNCE_MS = 120;
+/** Gap kept between the popover and the viewport edges. */
+const POPOVER_MARGIN = 8;
+/** Below this much room under the trigger, the popover opens upward instead. */
+const MIN_POPOVER_HEIGHT = 220;
+const POPOVER_WIDTH = 320;
 const RESULT_LIMIT = 50;
 const MAX_LED_COUNT = 1024;
 
@@ -58,6 +64,9 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   const { t } = useTranslation();
   // Which row's product picker is open; 'add' is the one behind the + button.
   const [picker, setPicker] = useState<number | 'add' | null>(null);
+  // Only one picker is ever open, so one anchor is enough; captured from the
+  // click so no per-row ref plumbing is needed.
+  const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null);
   // A generic being added lives only here until its count is typed, so no
   // chain is posted for a zone the user has not sized yet.
   const [pending, setPending] = useState<{ key: string; name: string } | null>(null);
@@ -108,7 +117,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
             aria-haspopup="listbox"
             aria-expanded={picker === i}
             aria-label={t('lighting.ledMap.assignDevice')}
-            onClick={() => setPicker(picker === i ? null : i)}
+            onClick={e => { setPickerAnchor(e.currentTarget); setPicker(picker === i ? null : i); }}
           >
             <ChevronDown size={13} aria-hidden />
           </button>
@@ -136,6 +145,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
         )}
         {picker === i && (
           <ProductPicker
+            anchor={pickerAnchor}
             current={row.key}
             onClose={() => setPicker(null)}
             // A generic keeps the row's count; the field only unlocks.
@@ -202,13 +212,14 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
                 aria-haspopup="listbox"
                 aria-expanded={picker === 'add'}
                 aria-label={t('lighting.ledMap.chainAdd')}
-                onClick={() => setPicker(picker === 'add' ? null : 'add')}
+                onClick={e => { setPickerAnchor(e.currentTarget); setPicker(picker === 'add' ? null : 'add'); }}
               >
                 <Plus size={13} aria-hidden />
               </button>
             </HoverTooltip>
             {picker === 'add' && (
               <ProductPicker
+                anchor={pickerAnchor}
                 onClose={() => setPicker(null)}
                 onPick={item => {
                   setPicker(null);
@@ -307,7 +318,9 @@ function LedIcon() {
  * works with no network and no account. With the box empty the last few picks
  * lead the list; typing replaces them with the search.
  */
-function ProductPicker({ current, onPick, onClose }: {
+function ProductPicker({ anchor, current, onPick, onClose }: {
+  /** The button that opened it. The popover is portaled to <body>, so it has to be told where to sit. */
+  anchor: HTMLElement | null;
   /** The row's product key; absent for the add picker. */
   current?: string;
   onPick: (item: BuiltInMappingSummary) => void;
@@ -387,8 +400,56 @@ function ProductPicker({ current, onPick, onClose }: {
     </button>
   );
 
-  return (
-    <div className={styles.popover} ref={rootRef}>
+  // The sidebar is a scroll container, so an absolutely positioned popover is
+  // clipped by it. Portal to <body> and pin to the trigger instead, flipping
+  // above when there is more room there, and take all the height available.
+  const [coords, setCoords] = useState<{ top: number; left: number; width: number; maxHeight: number; scale: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!anchor) return;
+    const place = () => {
+      const r = anchor.getBoundingClientRect();
+      const base = anchor.offsetWidth || r.width;
+      const scale = base > 0 ? r.width / base : 1;
+      const below = window.innerHeight - r.bottom - POPOVER_MARGIN;
+      const above = r.top - POPOVER_MARGIN;
+      const flip = below < MIN_POPOVER_HEIGHT && above > below;
+      const width = Math.min(POPOVER_WIDTH, (window.innerWidth - 2 * POPOVER_MARGIN) / scale);
+      const left = Math.max(
+        POPOVER_MARGIN,
+        Math.min(r.left, window.innerWidth - width * scale - POPOVER_MARGIN),
+      );
+      setCoords({
+        top: flip ? POPOVER_MARGIN : r.bottom + 4,
+        left,
+        width,
+        maxHeight: (flip ? above : below) / scale,
+        scale,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [anchor]);
+
+  return createPortal(
+    <div
+      className={styles.popover}
+      ref={rootRef}
+      style={{
+        position: 'fixed',
+        top: coords?.top ?? 0,
+        left: coords?.left ?? 0,
+        width: coords?.width,
+        maxHeight: coords?.maxHeight,
+        transform: coords ? `scale(${coords.scale})` : undefined,
+        transformOrigin: 'top left',
+        visibility: coords ? 'visible' : 'hidden',
+      }}
+    >
       <SearchInput
         value={query}
         onChange={setQuery}
@@ -409,6 +470,7 @@ function ProductPicker({ current, onPick, onClose }: {
           <div className={styles.empty}>{t('lighting.ledMap.assignNoResults')}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

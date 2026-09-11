@@ -61,9 +61,9 @@
   // Box shape (aspect-ratio) comes inline from CANVAS_RATIO in
   // LedMapEditor.tsx, which also derives the device frame's default
   // placement from it so the frame-to-edge gap is equal on all sides.
-  // No fill and no rim of its own: the device frame below is the black box,
-  // and the strip under it is where removed LEDs park.
-  background: transparent;
+  // Black, and only black: the grid belongs to the device frame, so the margin
+  // around it stays clear and an LED on an edge is drawn whole.
+  background-color: #080808;
   border: none;
   border-radius: var(--radius);
   overflow: hidden;
@@ -74,9 +74,10 @@
 
 .deviceRect {
   position: absolute;
-  border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
-  border-radius: var(--radius-sm);
-  background-color: #080808;
+  // No outline: the grid is what marks the mappable area, the same way the
+  // lighting canvas reads. An edge LED would otherwise sit on a line.
+  border: none;
+  background-color: transparent;
   // Very faint lines on the snap grid: GRID_COLS x GRID_ROWS in
   // LedMapEditor.tsx, whose ratio matches the frame's so cells stay square.
   background-image:
