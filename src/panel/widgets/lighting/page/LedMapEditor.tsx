@@ -158,6 +158,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const stagedChainRef = useRef(stagedChain);
   stagedChainRef.current = stagedChain;
 
+  // Drag identity per chain link, permuted with the links rather than derived
+  // from their slot. dnd-kit animates a row from the position its id held to
+  // the position it holds after the drop, so dragging with the positional zone
+  // ids hands it back an identical list and it animates the row home again -
+  // the drop then reads as two animations, the second undoing the first.
+  const [chainKeys, setChainKeys] = useState<string[]>([]);
+  const chainKeySeq = useRef(0);
+
   const [snapGrid, setSnapGrid] = useState(true);
   const snapGridRef = useRef(snapGrid);
   snapGridRef.current = snapGrid;
@@ -298,6 +306,15 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     () => orderZones(zonesCurrent, offsets),
     [zonesCurrent, offsets],
   );
+
+  // Minted only when the number of links changes - a load, an add, a remove.
+  // A reorder keeps the count, so the permuted keys survive it and dnd-kit
+  // sees the list it dropped into. Set during render rather than in an effect:
+  // React re-runs this pass before committing, so no row is ever painted under
+  // a key it is about to lose, which would remount every row on mount.
+  if (chainKeys.length !== zonesOrdered.length) {
+    setChainKeys(Array.from({ length: zonesOrdered.length }, () => `link-${chainKeySeq.current++}`));
+  }
 
   const activeZone: DeviceZone | null = zonesOrdered.find(z => z.id === selectedZoneId) ?? null;
 
@@ -2051,6 +2068,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         const link = chainable ? structure?.chain?.[i] : undefined;
         return {
           zoneId: z.id,
+          rowKey: chainKeys[i] ?? z.id,
           name: link?.name ?? zoneDisplayName(z),
           ledCount: zoneLedCount(z),
           enabledCount: enabledByZone.get(z.id) ?? 0,
@@ -2059,22 +2077,32 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         };
       })
     : zoneCard
-      ? [{ zoneId: zoneCard.id, name: zoneCard.name, ledCount: zoneCard.ledCount, enabledCount: zoneCard.ledCount, editableCount: false }]
+      ? [{ zoneId: zoneCard.id, rowKey: zoneCard.id, name: zoneCard.name, ledCount: zoneCard.ledCount, enabledCount: zoneCard.ledCount, editableCount: false }]
       : [];
 
   // Drag/keyboard reorder of the chain rows: the same entries the chain
-  // already posts, in the dropped-to zone id order.
-  const handleChainReorder = (zoneIds: string[]) => {
-    const order = chainRows.map(r => r.zoneId);
-    const reordered = reorderChainEntries(chainEntries(), order, zoneIds);
+  // already posts, in the dropped-to row order.
+  const handleChainReorder = (rowKeys: string[]) => {
+    const order = chainRows.map(r => r.rowKey);
+    const reordered = reorderChainEntries(chainEntries(), order, rowKeys);
     if (!reordered) return;
-    // Move the rows now. Zone ids are positional, so the list dnd-kit drops
-    // back into is the one it started with; without this the row springs back
-    // to its old slot and only swaps content once the preview lands, which
-    // reads as the drag having been rejected - and is invisible when two rows
-    // carry the same product.
-    const rowOrder = reorderChainEntries(structure?.chain ?? [], order, zoneIds);
+    // Move the rows now: the preview is a round trip, and leaving them in the
+    // old order until it lands reads as the drag having been rejected.
+    const rowOrder = reorderChainEntries(structure?.chain ?? [], order, rowKeys);
     if (rowOrder) setStructure(prev => (prev ? { ...prev, chain: rowOrder } : prev));
+    const keyOrder = reorderChainEntries(order, order, rowKeys);
+    if (keyOrder) setChainKeys(keyOrder);
+    // Zone ids stay put while their products move between them, so the
+    // selection has to be re-pointed at the slot the selected device landed
+    // in; without this the highlight stays behind on whatever moved into its
+    // old slot.
+    const from = chainRows.findIndex(r => r.zoneId === selectedZoneId);
+    const to = from === -1 ? -1 : rowKeys.indexOf(order[from]);
+    const landed = to === -1 ? undefined : chainRows[to];
+    if (landed) {
+      setSelectedZoneId(landed.zoneId);
+      setZoneMultiSel(new Set([landed.zoneId]));
+    }
     applyChain(reordered);
   };
 

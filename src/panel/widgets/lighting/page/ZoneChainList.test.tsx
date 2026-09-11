@@ -28,13 +28,13 @@ const GENERIC_FAN = { key: 'generic:fan', name: 'Generic Fan', brand: '', type: 
 
 // The T1 port: a generic fan, a product, a generic strip.
 const port: ChainRow[] = [
-  { zoneId: 'p:z0', name: 'Generic Fan', ledCount: 12, enabledCount: 12, key: 'generic:fan', editableCount: true },
-  { zoneId: 'p:z1', name: 'Corsair QX Fan', ledCount: 34, enabledCount: 30, key: QX.key, editableCount: false },
-  { zoneId: 'p:z2', name: 'Generic Strip', ledCount: 30, enabledCount: 30, key: 'generic:strip', editableCount: true },
+  { zoneId: 'p:z0', rowKey: 'p:z0', name: 'Generic Fan', ledCount: 12, enabledCount: 12, key: 'generic:fan', editableCount: true },
+  { zoneId: 'p:z1', rowKey: 'p:z1', name: 'Corsair QX Fan', ledCount: 34, enabledCount: 30, key: QX.key, editableCount: false },
+  { zoneId: 'p:z2', rowKey: 'p:z2', name: 'Generic Strip', ledCount: 30, enabledCount: 30, key: 'generic:strip', editableCount: true },
 ];
 const keeb: ChainRow[] = [
-  { zoneId: 'k:keys', name: 'Keys', ledCount: 96, enabledCount: 96, editableCount: false },
-  { zoneId: 'k:under', name: 'Underglow', ledCount: 51, enabledCount: 51, editableCount: false },
+  { zoneId: 'k:keys', rowKey: 'k:keys', name: 'Keys', ledCount: 96, enabledCount: 96, editableCount: false },
+  { zoneId: 'k:under', rowKey: 'k:under', name: 'Underglow', ledCount: 51, enabledCount: 51, editableCount: false },
 ];
 
 const CATALOG = [GENERIC_FAN, QX];

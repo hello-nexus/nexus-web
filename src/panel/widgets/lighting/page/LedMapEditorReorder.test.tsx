@@ -53,6 +53,7 @@ vi.mock('../../../../components/common/SortableList/SortableList', () => ({
     renderRow: (id: string, args: Record<string, unknown>) => unknown;
   }) => (
     <div>
+      <div data-testid="ids">{ids.join('|')}</div>
       <button
         type="button"
         data-testid="swap-first-two"
@@ -155,5 +156,45 @@ describe('LedMapEditor chain reorder', () => {
     });
     // Nothing persisted.
     expect(api.setDeviceChain).not.toHaveBeenCalled();
+  });
+
+  it('hands dnd-kit an id list that actually permuted', async () => {
+    render(
+      <LedMapEditor
+        deviceId={portId}
+        initialZoneId={zones[0].id}
+        devices={zones.map(card)}
+        zoneCustomizable
+        onClose={vi.fn()}
+      />,
+    );
+    const before = (await screen.findByTestId('ids')).textContent!.split('|');
+    fireEvent.click(screen.getByTestId('swap-first-two'));
+
+    // Zone ids are positional, so reordering with those hands dnd-kit back the
+    // list it started with and it animates the row home again - the drop then
+    // reads as two animations, the second undoing the first.
+    await waitFor(() => {
+      const after = screen.getByTestId('ids').textContent!.split('|');
+      expect(after).toEqual([before[1], before[0]]);
+    });
+  });
+
+  it('moves the selection to the slot the selected device landed in', async () => {
+    render(
+      <LedMapEditor
+        deviceId={portId}
+        initialZoneId={zones[0].id}
+        devices={zones.map(card)}
+        zoneCustomizable
+        onClose={vi.fn()}
+      />,
+    );
+    // FR12 starts selected at z0; after the swap it sits at z1.
+    await screen.findByText('FR12');
+    const active = () => document.querySelector('[class*="rowActive"]')?.textContent;
+    await waitFor(() => expect(active()).toContain('FR12'));
+    fireEvent.click(screen.getByTestId('swap-first-two'));
+    await waitFor(() => expect(active()).toContain('FR12'));
   });
 });

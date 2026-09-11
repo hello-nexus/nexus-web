@@ -23,6 +23,13 @@ const MAX_LED_COUNT = 1024;
 
 export interface ChainRow {
   zoneId: string;
+  /**
+   * Drag identity of the link, which travels with it across a reorder. Zone
+   * ids are positional, so dragging with those leaves the id list identical
+   * and dnd-kit animates the row back to the slot it came from before the new
+   * order renders - two animations for one drop.
+   */
+  rowKey: string;
   name: string;
   ledCount: number;
   /** LEDs not parked, for the enabled/total readout. */
@@ -56,8 +63,8 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   onChange: (index: number, entry: ChainEntryBody) => void;
   onAdd: (entry: ChainEntryBody) => void;
   onRemove: (index: number) => void;
-  /** New wire order, as zone ids, from a drag or keyboard reorder; posts the same entries in that order. */
-  onReorder: (zoneIds: string[]) => void;
+  /** New wire order, as row keys, from a drag or keyboard reorder; posts the same entries in that order. */
+  onReorder: (rowKeys: string[]) => void;
   /** Zone tools, rendered in the footer beside the add button. */
   actions?: ReactNode;
 }) {
@@ -167,16 +174,16 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
         <SortableList
           className={styles.list}
           ariaLabel={t('lighting.rightPane.devices')}
-          ids={rows.map(r => r.zoneId)}
+          ids={rows.map(r => r.rowKey)}
           onReorder={onReorder}
           renderRow={(id, a) => {
-            const i = rows.findIndex(r => r.zoneId === id);
+            const i = rows.findIndex(r => r.rowKey === id);
             return i === -1 ? null : renderRow(rows[i], i, a);
           }}
         />
       ) : (
         <div className={styles.list} role="list">
-          {rows.map((row, i) => <Fragment key={row.zoneId}>{renderRow(row, i)}</Fragment>)}
+          {rows.map((row, i) => <Fragment key={row.rowKey}>{renderRow(row, i)}</Fragment>)}
         </div>
       )}
       {pending && (
