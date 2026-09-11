@@ -4,6 +4,50 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  // The wide modal body is a row flex container; without an explicit grow
+  // this sole child shrinks to its own content width instead of filling it.
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+// Sidebar (device list + editor tooling) beside the canvas, which stays the
+// dominant element. Below the phone-width breakpoint the two stack, sidebar
+// first, matching SettingRow's stackNarrow convention.
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+}
+
+.sidebar {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  // The wide DeviceModal body is `overflow: hidden` (it expects a two-pane
+  // layout to scroll each pane on its own), and the canvas's height is fixed
+  // by its aspect ratio rather than the available space - so a long device
+  // chain needs its own scroll region instead of being clipped silently.
+  max-height: 70vh;
+  overflow-y: auto;
+
+  @media (max-width: 480px) {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+.canvasColumn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .canvas {

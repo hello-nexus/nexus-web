@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "搜索风扇、灯带、一体式水冷",
   "lighting.ledMap.chainAdd": "添加区域",
   "lighting.ledMap.chainRemove": "移除区域",
+  "lighting.ledMap.chainReorder": "重新排序 {name}",
   "lighting.ledMap.chainTotal": "总计",
   "lighting.ledMap.clickMulti": "点击多选",
   "lighting.ledMap.community": "社区",

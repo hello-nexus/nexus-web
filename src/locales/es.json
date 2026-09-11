@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "Buscar ventiladores, tiras, AIO",
   "lighting.ledMap.chainAdd": "Añadir zona",
   "lighting.ledMap.chainRemove": "Quitar zona",
+  "lighting.ledMap.chainReorder": "Reordenar {name}",
   "lighting.ledMap.chainTotal": "Total",
   "lighting.ledMap.clickMulti": "Clic para seleccion multiple",
   "lighting.ledMap.community": "Comunidad",

@@ -25,7 +25,7 @@ import { ZoneChainList, type ChainRow } from './ZoneChainList';
 import {
   baselineFrom, buildSavePlan, checkMerge, defaultPartitionGuess, emptyHistory,
   flattenDeviceMap, isStagedZoneId, mergeStagedZones, orderZones,
-  pushHistory, redoHistory, relabelLedZones, segmentOffsets, splitStagedZones,
+  pushHistory, redoHistory, relabelLedZones, reorderChainEntries, segmentOffsets, splitStagedZones,
   splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
   zoneEnabledCounts, zoneLedCount,
   type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type StagedPartition,
@@ -1923,6 +1923,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     : zoneCard
       ? [{ zoneId: zoneCard.id, name: zoneCard.name, ledCount: zoneCard.ledCount, enabledCount: zoneCard.ledCount, editableCount: false }]
       : [];
+
+  // Drag/keyboard reorder of the chain rows: the same entries the chain
+  // already posts, in the dropped-to zone id order.
+  const handleChainReorder = (zoneIds: string[]) => {
+    const reordered = reorderChainEntries(chainEntries(), chainRows.map(r => r.zoneId), zoneIds);
+    if (reordered) applyChain(reordered);
+  };
+
   const showZoneTools = zoneCustomizable && zonesOrdered.length > 0;
 
   // Reset-zones visibility: hidden once a reset is already staged; shown for
@@ -1970,6 +1978,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               }
             />
           )}
+          <div className={styles.layout}>
+          <div className={styles.sidebar}>
           {/* The zone list is also the port's wiring: on a chainable port each
               row picks what sits at that position, so there is no separate
               assign row or LED count field. */}
@@ -1983,6 +1993,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             onChange={(i, entry) => { const entries = chainEntries(); entries[i] = entry; applyChain(entries); }}
             onAdd={entry => applyChain([...chainEntries(), entry])}
             onRemove={i => applyChain(chainEntries().filter((_, j) => j !== i))}
+            onReorder={handleChainReorder}
             actions={showZoneTools ? (
               <>
                 {/* Partition tools stay off a chainable port: the chain is its
@@ -2058,7 +2069,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           />
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
-            <div className={styles.spacer} />
             {hasRestorable && (
               <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">
                 <button
@@ -2190,6 +2200,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               </HoverTooltip>
             </div>
           </div>
+          </div>
+          <div className={styles.canvasColumn}>
 
           <div
             ref={canvasRef}
@@ -2575,6 +2587,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 </div>
               );
             })()}
+          </div>
+          </div>
           </div>
         </div>
       )}

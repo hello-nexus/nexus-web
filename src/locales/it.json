@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "Cerca ventole, strisce, AIO",
   "lighting.ledMap.chainAdd": "Aggiungi zona",
   "lighting.ledMap.chainRemove": "Rimuovi zona",
+  "lighting.ledMap.chainReorder": "Riordina {name}",
   "lighting.ledMap.chainTotal": "Totale",
   "lighting.ledMap.clickMulti": "Clic per selezione multipla",
   "lighting.ledMap.community": "Community",

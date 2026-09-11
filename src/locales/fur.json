@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "Cîr ventuladôrs, stritis, AIO",
   "lighting.ledMap.chainAdd": "Zonte une zone",
   "lighting.ledMap.chainRemove": "Gjave la zone",
+  "lighting.ledMap.chainReorder": "Torne a ordenâ {name}",
   "lighting.ledMap.chainTotal": "Totâl",
   "lighting.ledMap.clickMulti": "Frache par selezion multiple",
   "lighting.ledMap.community": "Comunitât",

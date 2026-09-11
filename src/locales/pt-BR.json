@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "Buscar ventoinhas, fitas, AIO",
   "lighting.ledMap.chainAdd": "Adicionar zona",
   "lighting.ledMap.chainRemove": "Remover zona",
+  "lighting.ledMap.chainReorder": "Reordenar {name}",
   "lighting.ledMap.chainTotal": "Total",
   "lighting.ledMap.clickMulti": "Clique para selecionar varios",
   "lighting.ledMap.community": "Comunidade",

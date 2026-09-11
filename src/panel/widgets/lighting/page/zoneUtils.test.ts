@@ -21,6 +21,7 @@ import {
   redoHistory,
   relabelLedZones,
   renameZone,
+  reorderChainEntries,
   segmentOffsets,
   splitStagedZones,
   splitZone,
@@ -624,5 +625,26 @@ describe('visibleCards', () => {
       { id: 'c-1', deviceId: 'c', ledCount: 10 },
     ];
     expect(visibleCards(cards).map(c => c.id)).toEqual(['a-1', 'b-1', 'c-1']);
+  });
+});
+
+describe('reorderChainEntries', () => {
+  const order = ['z0', 'z1', 'z2'];
+  const entries = [{ key: 'a' }, { key: 'b' }, { key: 'c' }];
+
+  it('reorders entries to match the dropped-to zone id order', () => {
+    expect(reorderChainEntries(entries, order, ['z2', 'z0', 'z1'])).toEqual([{ key: 'c' }, { key: 'a' }, { key: 'b' }]);
+  });
+
+  it('is a no-op when the order is unchanged', () => {
+    expect(reorderChainEntries(entries, order, order)).toEqual(entries);
+  });
+
+  it('returns null when the new order has a different length', () => {
+    expect(reorderChainEntries(entries, order, ['z0', 'z1'])).toBeNull();
+  });
+
+  it('returns null when a zone id is not in the current order', () => {
+    expect(reorderChainEntries(entries, order, ['z0', 'z1', 'unknown'])).toBeNull();
   });
 });

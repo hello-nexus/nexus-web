@@ -53,7 +53,7 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); });
 
 function setup(rows: ChainRow[], chainable: boolean, over: Partial<Parameters<typeof ZoneChainList>[0]> = {}) {
-  const handlers = { onSelect: vi.fn(), onChange: vi.fn(), onAdd: vi.fn(), onRemove: vi.fn() };
+  const handlers = { onSelect: vi.fn(), onChange: vi.fn(), onAdd: vi.fn(), onRemove: vi.fn(), onReorder: vi.fn() };
   render(
     <ZoneChainList
       rows={rows}
@@ -70,6 +70,7 @@ function setup(rows: ChainRow[], chainable: boolean, over: Partial<Parameters<ty
 const total = () => document.querySelector(`.${styles.totalCount}`)?.textContent;
 const countInputs = () => document.querySelectorAll<HTMLInputElement>(`.${styles.zoneCountInput}`);
 const pickButtons = () => screen.queryAllByRole('button', { name: 'lighting.ledMap.assignDevice' });
+const dragHandles = () => document.querySelectorAll(`.${styles.dragHandle}`);
 
 describe('ZoneChainList on a chainable port', () => {
   it('lists one chip per zone by its product name under a Devices header, plus the total', () => {
@@ -81,17 +82,35 @@ describe('ZoneChainList on a chainable port', () => {
     expect(total()).toBe('76');
   });
 
-  it('flows the chips inline in wire order, an order mark between each pair, the add button after the last', () => {
+  it('lists the rows top to bottom in wire order, with a drag handle on each, then the add button and total in the footer', () => {
     setup(port, true);
-    const chips = document.querySelectorAll(`.${styles.chips}`);
-    expect(chips).toHaveLength(1);
-    const kinds = Array.from(chips[0].children).map(el =>
-      el.classList.contains(styles.chip) ? 'chip'
-        : el.classList.contains(styles.chainSep) ? 'sep'
-          : el.classList.contains(styles.addWrap) ? 'add'
-            : el.classList.contains(styles.total) ? 'total'
-              : 'other');
-    expect(kinds.filter(k => k !== 'other')).toEqual(['chip', 'sep', 'chip', 'sep', 'chip', 'add', 'total']);
+    const list = document.querySelectorAll(`.${styles.list}`);
+    expect(list).toHaveLength(1);
+    const names = Array.from(list[0].querySelectorAll(`.${styles.rowName}`)).map(el => el.textContent);
+    expect(names).toEqual(['Generic Fan', 'Corsair QX Fan', 'Generic Strip']);
+    expect(dragHandles()).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.chainAdd' })).toBeTruthy();
+    expect(total()).toBe('76');
+  });
+
+  it('hides the drag handle when the port has only one entry', () => {
+    setup([port[1]], true);
+    expect(dragHandles()).toHaveLength(0);
+  });
+
+  it('names each drag handle after its row, for keyboard and screen-reader reordering', () => {
+    setup(port, true);
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.chainReorder:{"name":"Corsair QX Fan"}' })).toBeTruthy();
+  });
+
+  it('wires the real dnd-kit sortable role onto the row root, with the handle as its own focusable control', () => {
+    setup(port, true);
+    const rowEls = document.querySelectorAll(`.${styles.row}`);
+    expect(rowEls[0].getAttribute('role')).toBe('button');
+    expect(rowEls[0].getAttribute('tabindex')).toBe('0');
+    const handle = dragHandles()[0];
+    expect(handle.tagName).toBe('BUTTON');
+    expect(handle.getAttribute('data-drag-handle')).toBe('true');
   });
 
   it('locks a product count to the enabled/total readout and types a generic count', () => {
@@ -111,13 +130,13 @@ describe('ZoneChainList on a chainable port', () => {
     expect(onSelect).toHaveBeenLastCalledWith('p:z0', true);
   });
 
-  it('marks the active and merge-marked chips', () => {
+  it('marks the active and merge-marked rows', () => {
     setup(port, true, { selectedZoneId: 'p:z1', markedIds: new Set(['p:z1', 'p:z2']) });
-    const chips = document.querySelectorAll(`.${styles.chip}`);
-    expect(chips[1].className).toContain(styles.chipActive);
-    expect(chips[2].className).toContain(styles.chipMarked);
-    expect(chips[2].className).not.toContain(styles.chipActive);
-    expect(chips[0].className).not.toContain(styles.chipMarked);
+    const rowEls = document.querySelectorAll(`.${styles.row}`);
+    expect(rowEls[1].className).toContain(styles.rowActive);
+    expect(rowEls[2].className).toContain(styles.rowMarked);
+    expect(rowEls[2].className).not.toContain(styles.rowActive);
+    expect(rowEls[0].className).not.toContain(styles.rowMarked);
   });
 
   it('picks a product for a chip from the catalog, with no count of its own', async () => {
@@ -190,8 +209,7 @@ describe('ZoneChainList on a chainable port', () => {
     fireEvent.click(await screen.findByRole('option', { name: GENERIC_FAN.name }));
     expect(onAdd).not.toHaveBeenCalled();
     expect(screen.getAllByText('Generic Fan')).toHaveLength(2);
-    expect(document.querySelectorAll(`.${styles.chipPending}`)).toHaveLength(1);
-    expect(document.querySelectorAll(`.${styles.chainSep}`)).toHaveLength(3);
+    expect(document.querySelectorAll(`.${styles.rowPending}`)).toHaveLength(1);
     const pending = countInputs()[2];
     expect(pending.value).toBe('');
     fireEvent.change(pending, { target: { value: '16' } });
@@ -222,10 +240,10 @@ describe('ZoneChainList on a chainable port', () => {
 });
 
 describe('ZoneChainList on a device with fixed zones', () => {
-  it('renders every chip read-only with its count and the total, and no order marks', () => {
+  it('renders every zone read-only with its count and the total, and no drag handle', () => {
     setup(keeb, false);
     expect(screen.getByText('lighting.rightPane.devices')).toBeTruthy();
-    expect(document.querySelectorAll(`.${styles.chainSep}`)).toHaveLength(0);
+    expect(dragHandles()).toHaveLength(0);
     expect(screen.getByText('Keys')).toBeTruthy();
     expect(screen.getByText('Underglow')).toBeTruthy();
     expect(screen.getByText('96')).toBeTruthy();

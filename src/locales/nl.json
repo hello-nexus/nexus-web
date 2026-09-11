@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "Zoek fans, strips, AIO's",
   "lighting.ledMap.chainAdd": "Zone toevoegen",
   "lighting.ledMap.chainRemove": "Zone verwijderen",
+  "lighting.ledMap.chainReorder": "{name} herordenen",
   "lighting.ledMap.chainTotal": "Totaal",
   "lighting.ledMap.clickMulti": "Klik om meerdere te selecteren",
   "lighting.ledMap.community": "Community",

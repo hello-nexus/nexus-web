@@ -75,6 +75,18 @@ export function formatZoneChipCount(enabled: number, total: number): string {
   return enabled === total ? String(total) : `${enabled}/${total}`;
 }
 
+/**
+ * Reorders `entries` (the chain POST body, in wire order) to match a new zone
+ * id order, given the order the entries currently correspond to. Null when
+ * the id sets don't match one-to-one, so the caller can no-op rather than
+ * post a corrupt chain.
+ */
+export function reorderChainEntries<T>(entries: T[], order: string[], zoneIds: string[]): T[] | null {
+  if (zoneIds.length !== entries.length) return null;
+  const reordered = zoneIds.map(id => entries[order.indexOf(id)]);
+  return reordered.every(e => e !== undefined) ? reordered : null;
+}
+
 /** Enabled LED count of a device card, falling back to the total for services that predate the field. */
 export function cardEnabledLedCount(card: { ledCount: number; enabledLedCount?: number }): number {
   return card.enabledLedCount ?? card.ledCount;

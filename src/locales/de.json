@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "Lüfter, Strips, AIOs suchen",
   "lighting.ledMap.chainAdd": "Zone hinzufügen",
   "lighting.ledMap.chainRemove": "Zone entfernen",
+  "lighting.ledMap.chainReorder": "{name} verschieben",
   "lighting.ledMap.chainTotal": "Gesamt",
   "lighting.ledMap.clickMulti": "Klicken zur Mehrfachauswahl",
   "lighting.ledMap.community": "Community",

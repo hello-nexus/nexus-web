@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "ファン、ストリップ、AIO を検索",
   "lighting.ledMap.chainAdd": "ゾーンを追加",
   "lighting.ledMap.chainRemove": "ゾーンを削除",
+  "lighting.ledMap.chainReorder": "{name}を並べ替え",
   "lighting.ledMap.chainTotal": "合計",
   "lighting.ledMap.clickMulti": "クリックで複数選択",
   "lighting.ledMap.community": "コミュニティ",

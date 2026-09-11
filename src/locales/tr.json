@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "Fan, şerit, AIO ara",
   "lighting.ledMap.chainAdd": "Bölge ekle",
   "lighting.ledMap.chainRemove": "Bölgeyi kaldır",
+  "lighting.ledMap.chainReorder": "{name} öğesini yeniden sırala",
   "lighting.ledMap.chainTotal": "Toplam",
   "lighting.ledMap.clickMulti": "Coklu secim icin tikla",
   "lighting.ledMap.community": "Topluluk",

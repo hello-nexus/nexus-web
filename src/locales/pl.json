@@ -2200,6 +2200,7 @@
   "lighting.ledMap.assignSearch": "Szukaj wentylatorów, taśm, AIO",
   "lighting.ledMap.chainAdd": "Dodaj strefę",
   "lighting.ledMap.chainRemove": "Usuń strefę",
+  "lighting.ledMap.chainReorder": "Zmień kolejność {name}",
   "lighting.ledMap.chainTotal": "Łącznie",
   "lighting.ledMap.clickMulti": "Kliknij, aby wybrac wiele",
   "lighting.ledMap.community": "Społeczność",

@@ -2200,6 +2200,7 @@
   "lighting.ledMap.assignSearch": "Поиск вентиляторов, лент, СЖО",
   "lighting.ledMap.chainAdd": "Добавить зону",
   "lighting.ledMap.chainRemove": "Удалить зону",
+  "lighting.ledMap.chainReorder": "Переместить {name}",
   "lighting.ledMap.chainTotal": "Всего",
   "lighting.ledMap.clickMulti": "Клик для множественного выбора",
   "lighting.ledMap.community": "Сообщество",

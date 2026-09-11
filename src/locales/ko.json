@@ -2178,6 +2178,7 @@
   "lighting.ledMap.assignSearch": "팬, 스트립, AIO 검색",
   "lighting.ledMap.chainAdd": "영역 추가",
   "lighting.ledMap.chainRemove": "영역 제거",
+  "lighting.ledMap.chainReorder": "{name} 순서 변경",
   "lighting.ledMap.chainTotal": "합계",
   "lighting.ledMap.clickMulti": "클릭하여 다중 선택",
   "lighting.ledMap.community": "커뮤니티",
