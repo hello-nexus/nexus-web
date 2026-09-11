@@ -13,7 +13,7 @@ vi.mock('../../../api/conflicts', () => ({
   setDynamicLighting: vi.fn(),
 }));
 
-const LIGHTING_OFF_PLATFORM = { available: false, enabled: false, foregroundAppControl: false, deviceCount: 0, devicesEnabled: 0 };
+const LIGHTING_OFF_PLATFORM = { available: false, enabled: false, deviceCount: 0 };
 
 vi.mock('../../../hooks/useConflictApps', () => ({
   useConflictApps: vi.fn(),
@@ -108,89 +108,75 @@ describe('ManageConflictAppsModal', () => {
     expect(headings).not.toContain('settings.conflictApps.category.monitoring');
   });
 
-  it('hides the Dynamic Lighting section when the service cannot read it', async () => {
+  it('hides the Dynamic Lighting switch when the service cannot read it', async () => {
     vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
     vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
     renderModal();
 
     await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
-    expect(screen.queryByText('settings.conflictApps.dynamicLighting.title')).toBeNull();
+    expect(screen.queryByLabelText('settings.conflictApps.dynamicLighting.title')).toBeNull();
   });
 
-  it('renders the Dynamic Lighting toggles from the state the service reported', async () => {
+  it('renders the Dynamic Lighting switch from the state the service reported', async () => {
     vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
     vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
-    vi.mocked(fetchDynamicLighting).mockResolvedValue({
-      available: true, enabled: true, foregroundAppControl: false, deviceCount: 3, devicesEnabled: 2,
-    });
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 1 });
     renderModal();
 
-    await waitFor(() => expect(screen.getByText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
-    expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.enabled').getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.foreground').getAttribute('aria-checked')).toBe('false');
-    // Any device still on reads as on - the one switch covers them all.
-    expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.devices').getAttribute('aria-checked')).toBe('true');
+    await waitFor(() => expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
+    expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked')).toBe('true');
   });
 
-  it('drops the per-device switch when Windows has registered no devices', async () => {
+  it('hides the switch when nothing compatible is connected', async () => {
     vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
     vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
-    vi.mocked(fetchDynamicLighting).mockResolvedValue({
-      available: true, enabled: true, foregroundAppControl: true, deviceCount: 0, devicesEnabled: 0,
-    });
+    // Windows carries the setting on every machine; with no compatible
+    // hardware attached it contends for nothing, so there is nothing to offer.
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 0 });
     renderModal();
 
-    await waitFor(() => expect(screen.getByText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
-    expect(screen.queryByLabelText('settings.conflictApps.dynamicLighting.devices')).toBeNull();
+    await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
+    expect(screen.queryByLabelText('settings.conflictApps.dynamicLighting.title')).toBeNull();
   });
 
-  it('writes only the toggled setting, and renders what the service read back', async () => {
+  it('writes the switch and renders what the service read back', async () => {
     vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
     vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
-    vi.mocked(fetchDynamicLighting).mockResolvedValue({
-      available: true, enabled: true, foregroundAppControl: true, deviceCount: 3, devicesEnabled: 3,
-    });
-    vi.mocked(setDynamicLighting).mockResolvedValue({
-      available: true, enabled: false, foregroundAppControl: true, deviceCount: 3, devicesEnabled: 3,
-    });
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 1 });
+    vi.mocked(setDynamicLighting).mockResolvedValue({ available: true, enabled: false, deviceCount: 1 });
     renderModal();
 
-    await waitFor(() => expect(screen.getByText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
-    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.enabled'));
+    await waitFor(() => expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
     expect(setDynamicLighting).toHaveBeenCalledWith({ enabled: false });
     await waitFor(() => expect(
-      screen.getByLabelText('settings.conflictApps.dynamicLighting.enabled').getAttribute('aria-checked'),
+      screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
     ).toBe('false'));
   });
 
   it('a slow earlier write does not overwrite the newer one', async () => {
     vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
     vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
-    vi.mocked(fetchDynamicLighting).mockResolvedValue({
-      available: true, enabled: true, foregroundAppControl: true, deviceCount: 3, devicesEnabled: 3,
-    });
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 1 });
 
     let resolveFirst: (v: WindowsDynamicLightingState) => void = () => {};
     vi.mocked(setDynamicLighting)
       .mockReturnValueOnce(new Promise<WindowsDynamicLightingState>(r => { resolveFirst = r; }))
-      .mockResolvedValueOnce({
-        available: true, enabled: true, foregroundAppControl: false, deviceCount: 3, devicesEnabled: 3,
-      });
+      .mockResolvedValueOnce({ available: true, enabled: true, deviceCount: 1 });
     renderModal();
 
-    await waitFor(() => expect(screen.getByText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
-    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.enabled'));
-    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.foreground'));
+    await waitFor(() => expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
+    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
 
     await waitFor(() => expect(
-      screen.getByLabelText('settings.conflictApps.dynamicLighting.foreground').getAttribute('aria-checked'),
-    ).toBe('false'));
+      screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
+    ).toBe('true'));
 
     // The first write lands last, carrying a snapshot taken before the second.
-    resolveFirst({ available: true, enabled: false, foregroundAppControl: true, deviceCount: 3, devicesEnabled: 3 });
+    resolveFirst({ available: true, enabled: false, deviceCount: 1 });
     await waitFor(() => expect(
-      screen.getByLabelText('settings.conflictApps.dynamicLighting.foreground').getAttribute('aria-checked'),
-    ).toBe('false'));
-    expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.enabled').getAttribute('aria-checked')).toBe('true');
+      screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
+    ).toBe('true'));
   });
 });

@@ -127,16 +127,13 @@ export function disableConflictAutostart(id: string): Promise<DisableConflictAut
 export interface WindowsDynamicLightingState {
   available: boolean;
   enabled: boolean;
-  foregroundAppControl: boolean;
+  /** Compatible devices attached right now - with none there is nothing to contend for. */
   deviceCount: number;
-  devicesEnabled: number;
 }
 
-/** A field left out is not written; the response is the state re-read afterwards. */
+/** Omitting `enabled` writes nothing; the response is the state re-read afterwards. */
 export interface SetWindowsDynamicLightingBody {
   enabled?: boolean;
-  foregroundAppControl?: boolean;
-  deviceLighting?: boolean;
 }
 
 /** Null when the read failed - distinct from an `available: false` state the service reported. */

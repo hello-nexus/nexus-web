@@ -153,35 +153,14 @@ export function ManageConflictAppsModal({
           stackOnNarrow
         />
 
-        {lighting?.available && (
-          <section className={styles.group}>
-            <h4 className={styles.groupTitle}>{t('settings.conflictApps.dynamicLighting.title')}</h4>
-            <SettingToggle
-              label={t('settings.conflictApps.dynamicLighting.enabled')}
-              description={t('settings.conflictApps.dynamicLighting.enabledDescription')}
-              checked={lighting.enabled}
-              onChange={next => applyLighting({ enabled: next })}
-              stackOnNarrow
-            />
-            <SettingToggle
-              label={t('settings.conflictApps.dynamicLighting.foreground')}
-              description={t('settings.conflictApps.dynamicLighting.foregroundDescription')}
-              checked={lighting.foregroundAppControl}
-              onChange={next => applyLighting({ foregroundAppControl: next })}
-              stackOnNarrow
-            />
-            {lighting.deviceCount > 0 && (
-              <SettingToggle
-                label={t('settings.conflictApps.dynamicLighting.devices')}
-                description={t('settings.conflictApps.dynamicLighting.devicesDescription')}
-                // Windows stores this per device; one switch covers them all,
-                // and any device still on reads as on.
-                checked={lighting.devicesEnabled > 0}
-                onChange={next => applyLighting({ deviceLighting: next })}
-                stackOnNarrow
-              />
-            )}
-          </section>
+        {lighting?.available && lighting.deviceCount > 0 && (
+          <SettingToggle
+            label={t('settings.conflictApps.dynamicLighting.title')}
+            description={t('settings.conflictApps.dynamicLighting.description')}
+            checked={lighting.enabled}
+            onChange={next => applyLighting({ enabled: next })}
+            stackOnNarrow
+          />
         )}
 
         <p className={styles.listIntro}>{t('settings.conflictApps.listIntro')}</p>
