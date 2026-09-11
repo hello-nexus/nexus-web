@@ -3,9 +3,7 @@
 // computation, partition POST bodies, and save-body construction. Kept free
 // of React/DOM so they are unit-testable.
 
-import type {
-  DeviceMapOverride, DeviceMapResponse, DeviceSegment, DeviceZone, DeviceZoneDef, ZoneSlice,
-} from '../../../../api/lighting';
+import type { ChainEntryBody, DeviceMapOverride, DeviceMapResponse, DeviceSegment, DeviceZone, DeviceZoneDef, ZoneSlice } from '../../../../api/lighting';
 
 /** One LED of the flattened device map, addressable three ways: by segment-local index (the override key), by device-space index (canvas identity), and by zone membership. */
 export interface EditorLed {
@@ -541,6 +539,8 @@ export interface EditorSnapshot {
   leds: EditorLed[];
   rectRatio: number;
   partition: StagedPartition | null;
+  /** Chain staged but not saved, or null when the port still holds what was loaded. Restoring one re-previews it. */
+  chain: ChainEntryBody[] | null;
 }
 
 export interface EditorHistory {

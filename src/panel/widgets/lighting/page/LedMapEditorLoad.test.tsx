@@ -20,6 +20,7 @@ const api = vi.hoisted(() => ({
   fetchDeviceStructure: vi.fn(),
   fetchDeviceMap: vi.fn(),
   setDeviceChain: vi.fn(),
+  previewDeviceChain: vi.fn(),
   fetchMappingCatalog: vi.fn(),
 }));
 vi.mock('../../../../api/lighting', async importOriginal => {
@@ -29,6 +30,7 @@ vi.mock('../../../../api/lighting', async importOriginal => {
     fetchDeviceStructure: api.fetchDeviceStructure,
     fetchDeviceMap: api.fetchDeviceMap,
     setDeviceChain: api.setDeviceChain,
+    previewDeviceChain: api.previewDeviceChain,
     fetchMappingCatalog: api.fetchMappingCatalog,
     highlightLeds: vi.fn(),
     testLedPattern: vi.fn(),
@@ -70,6 +72,7 @@ beforeEach(() => {
   api.fetchDeviceStructure.mockReset();
   api.fetchDeviceMap.mockReset();
   api.setDeviceChain.mockReset();
+  api.previewDeviceChain.mockReset();
   api.fetchMappingCatalog.mockReset();
   api.fetchMappingCatalog.mockResolvedValue({ error: false, msg: '', items: [], total: 0 });
 });
@@ -227,19 +230,24 @@ describe('LedMapEditor on a chainable port', () => {
     ...q60, id: z.id, name: z.name, ledCount: i === 0 ? 34 : 20, parentDeviceId: 'openrgb-C000', zoneIndex: i, deviceId: portId,
   }));
 
+  const portStructure = () => ({
+    id: portId, name: 'ARGB_V2_2', deviceKey: 'k', isDefaultPartition: false,
+    segments: [{ index: 0, name: 'ARGB_V2_2', ledCount: 54, resizable: true, zoneType: 'linear' }],
+    zones,
+    chainable: true,
+    chain: [
+      { key: 'product:corsair-qx-fan', name: 'Corsair QX Fan', ledCount: 34, editableCount: false },
+      { key: 'generic:strip', name: 'Generic Strip', ledCount: 20, editableCount: true },
+    ],
+  });
+  const portMap = () => ({ id: portId, aspectRatio: 0, segments: [] });
+
   const renderPort = () => {
-    api.fetchDeviceStructure.mockResolvedValue({
-      id: portId, name: 'ARGB_V2_2', deviceKey: 'k', isDefaultPartition: false,
-      segments: [{ index: 0, name: 'ARGB_V2_2', ledCount: 54, resizable: true, zoneType: 'linear' }],
-      zones,
-      chainable: true,
-      chain: [
-        { key: 'product:corsair-qx-fan', name: 'Corsair QX Fan', ledCount: 34, editableCount: false },
-        { key: 'generic:strip', name: 'Generic Strip', ledCount: 20, editableCount: true },
-      ],
-    });
-    api.fetchDeviceMap.mockResolvedValue({ id: portId, aspectRatio: 0, segments: [] });
+    api.fetchDeviceStructure.mockResolvedValue(portStructure());
+    api.fetchDeviceMap.mockResolvedValue(portMap());
     api.setDeviceChain.mockResolvedValue({ error: false, msg: '', ledCount: 54, zoneIds: zones.map(z => z.id) });
+    // A chain edit previews; only Save posts it.
+    api.previewDeviceChain.mockResolvedValue({ error: false, msg: '', structure: portStructure(), map: portMap() });
     return render(
       <LedMapEditor
         deviceId={portId}
@@ -263,7 +271,7 @@ describe('LedMapEditor on a chainable port', () => {
     expect(screen.queryByRole('button', { name: 'lighting.ledMap.zoneMerge' })).toBeNull();
   });
 
-  it('re-posts the whole chain with a retyped generic count and reloads', async () => {
+  it('previews a retyped generic count without committing it', async () => {
     renderPort();
     const input = await waitFor(() => {
       const el = document.querySelector<HTMLInputElement>('[class*="zoneCountInput"]');
@@ -272,27 +280,38 @@ describe('LedMapEditor on a chainable port', () => {
     });
     fireEvent.change(input, { target: { value: '24' } });
     fireEvent.blur(input);
-    await waitFor(() => expect(api.setDeviceChain).toHaveBeenCalledWith(portId, [
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [
       { key: 'product:corsair-qx-fan' },
       { key: 'generic:strip', ledCount: 24 },
     ]));
-    await waitFor(() => expect(api.fetchDeviceStructure).toHaveBeenCalledTimes(2));
+    // Nothing is on disk until Save, so an abandoned edit leaves no trace.
+    expect(api.setDeviceChain).not.toHaveBeenCalled();
   });
 
-  it('removes a zone by re-posting the chain without it', async () => {
+  it('previews a removed zone without committing it', async () => {
     renderPort();
     const remove = await screen.findAllByRole('button', { name: 'lighting.ledMap.chainRemove' });
     fireEvent.click(remove[0]);
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20 }]));
+    expect(api.setDeviceChain).not.toHaveBeenCalled();
+  });
+
+  it('posts the staged chain when the editor is saved', async () => {
+    renderPort();
+    const remove = await screen.findAllByRole('button', { name: 'lighting.ledMap.chainRemove' });
+    fireEvent.click(remove[0]);
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalled());
+    fireEvent.click(await screen.findByRole('button', { name: 'lighting.ledMap.save' }));
     await waitFor(() => expect(api.setDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20 }]));
   });
 
-  it('reports a rejected chain instead of reloading', async () => {
+  it('reports a rejected chain instead of showing it', async () => {
     renderPort();
-    api.setDeviceChain.mockResolvedValue({ error: true, msg: 'unknown mapping' });
+    api.previewDeviceChain.mockResolvedValue({ error: true, msg: 'unknown mapping' });
     const remove = await screen.findAllByRole('button', { name: 'lighting.ledMap.chainRemove' });
     fireEvent.click(remove[0]);
     await waitFor(() => expect(toast.push).toHaveBeenCalled());
     expect(toast.push.mock.calls[0][0].title).toContain('assignFailed');
-    expect(api.fetchDeviceStructure).toHaveBeenCalledTimes(1);
+    expect(api.setDeviceChain).not.toHaveBeenCalled();
   });
 });

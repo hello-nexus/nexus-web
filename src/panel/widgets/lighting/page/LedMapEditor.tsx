@@ -7,8 +7,8 @@ import {
 import {
   fetchDeviceStructure, fetchDeviceMap, saveDeviceMap, saveDeviceZones, resetDeviceMap, resetDeviceZones,
   highlightLeds, testLedPattern, clearLedEditor, postLedPreviewLayout,
-  setDeviceChain, setLightingDeviceColor, setHubComposition,
-  type ChainEntryBody, type DeviceStructureResponse, type DeviceZone, type LightingDevice, type HubCompositionPatch,
+  previewDeviceChain, setDeviceChain, setLightingDeviceColor, setHubComposition,
+  type ChainEntryBody, type DeviceMapResponse, type DeviceStructureResponse, type DeviceZone, type LightingDevice, type HubCompositionPatch,
 } from '../../../../api/lighting';
 import { HubCompositionPanel } from './HubCompositionPanel';
 import { useTranslation } from '../../../../lib/i18n';
@@ -151,6 +151,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // On by default: hand-placed LEDs end up on a grid rather than a pixel off
   // one another. The pointer handlers read it through a ref because they run
   // from listeners bound once.
+  // A chain the user composed but has not saved. Null means the port still
+  // holds whatever was loaded. The preview that produced it is already on
+  // screen, so this is only what Save has to post.
+  const [stagedChain, setStagedChain] = useState<ChainEntryBody[] | null>(null);
+  const stagedChainRef = useRef(stagedChain);
+  stagedChainRef.current = stagedChain;
+
   const [snapGrid, setSnapGrid] = useState(true);
   const snapGridRef = useRef(snapGrid);
   snapGridRef.current = snapGrid;
@@ -346,10 +353,32 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [undoLen, setUndoLen] = useState(0);
   const [redoLen, setRedoLen] = useState(0);
 
+  /**
+   * Put a previewed chain on screen. Deliberately NOT a load: the saved
+   * baseline stays where it was, so the unsaved rings keep pointing at what
+   * the service actually holds, and the undo history survives.
+   */
+  const applyPreview = useCallback((st: DeviceStructureResponse, dm: DeviceMapResponse) => {
+    setStructure(st);
+    const flat = flattenDeviceMap(dm);
+    setLeds(flat);
+    if (dm.aspectRatio > 0) setRectRatio(dm.aspectRatio);
+    const offs = segmentOffsets(st.segments);
+    const current = selectedZoneIdRef.current;
+    const nextZone = st.zones.find(z => z.id === current) ?? orderZones(st.zones, offs)[0];
+    if (nextZone) {
+      setSelectedZoneId(nextZone.id);
+      setZoneMultiSel(new Set([nextZone.id]));
+    }
+    // A selection from the previous zone list may name LEDs this one does not.
+    setSelected(new Set());
+  }, []);
+
   const snapshotCurrent = useCallback((): EditorSnapshot => ({
     leds: ledsRef.current.map(l => ({ ...l })),
     rectRatio: rectRatioRef.current,
     partition: stagedPartitionRef.current,
+    chain: stagedChainRef.current,
   }), []);
 
   const pushUndo = useCallback(() => {
@@ -375,9 +404,25 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const applyRestored = (restored: EditorSnapshot) => {
     const partitionChanged = restored.partition !== stagedPartitionRef.current;
+    const chainChanged = restored.chain !== stagedChainRef.current;
     setLeds(restored.leds);
     setRectRatio(restored.rectRatio);
     setStagedPartition(restored.partition);
+    if (chainChanged) {
+      // The zone list itself differs, and only the service can rebuild it
+      // (product geometry lives there). Re-preview the restored chain, or go
+      // back to what is on disk when the step being undone was the first one.
+      setStagedChain(restored.chain);
+      void (async () => {
+        if (restored.chain === null) {
+          await load(undefined, { silent: true });
+          setDirty(true);
+          return;
+        }
+        const resp = await previewDeviceChain(deviceId, restored.chain);
+        if (resp && !resp.error && resp.structure && resp.map) applyPreview(resp.structure, resp.map);
+      })();
+    }
     if (partitionChanged) {
       // The LED selection may straddle zones of the other partition; the
       // active-zone invariant (selection only contains editable LEDs) is
@@ -514,6 +559,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setUndoLen(0);
     setRedoLen(0);
     setStagedPartition(null);
+    setStagedChain(null);
     setLoading(false);
     setDirty(false);
     setSelected(new Set());
@@ -1290,7 +1336,22 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     // Device-space anchor for re-selecting the active zone after the
     // service reassigns zone ids on a partition change.
     const selIdx = activeZone ? firstDeviceIndexOf(activeZone) : undefined;
-    if (plan.partition) {
+
+    // The chain writes the port's partition, its LED count and a mapping per
+    // product, so it goes first and makes any staged partition moot: the zones
+    // the user sees ARE the chain.
+    const chain = stagedChainRef.current;
+    if (chain) {
+      const chainResp = await setDeviceChain(deviceId, chain);
+      if (!chainResp || chainResp.error) {
+        setSaving(false);
+        push({ title: t('lighting.ledMap.assignFailed') });
+        return false;
+      }
+      setStagedChain(null);
+    }
+
+    if (plan.partition && !chain) {
       // Partition first: the service drops per-zone prefs / layouts and
       // reassigns zone ids on a partition change, so the map overrides must
       // land after it. The body is id-free, so a failed-then-retried save
@@ -1358,7 +1419,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       });
       return false;
     }
-    if (plan.partition) {
+    if (plan.partition || chain) {
       // Full reload: per-zone prefs / layouts were dropped with the
       // partition, so the resolved baseline may have changed too.
       await load(selIdx);
@@ -1414,20 +1475,27 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // the editor reloads rather than patching its own copy.
   const chainEntries = useCallback((): ChainEntryBody[] =>
     (structure?.chain ?? []).map(e => e.editableCount ? { key: e.key, ledCount: e.ledCount } : { key: e.key }), [structure]);
+  /**
+   * Show what a chain would do without committing it. The product geometry is
+   * built in the service, so this still round-trips - but it writes nothing,
+   * which is what lets a chain edit ride the undo stack and be abandoned by
+   * closing the editor. Save is what posts it.
+   */
   const applyChain = useCallback((entries: ChainEntryBody[]) => {
-    confirmDiscardEdits(() => {
-      void (async () => {
-        setChainBusy(true);
-        const resp = await setDeviceChain(deviceId, entries);
-        setChainBusy(false);
-        if (!resp || resp.error) {
-          push({ title: t('lighting.ledMap.assignFailed') });
-          return;
-        }
-        await load(undefined, { silent: true });
-      })();
-    });
-  }, [confirmDiscardEdits, deviceId, load, push, t]);
+    void (async () => {
+      setChainBusy(true);
+      const resp = await previewDeviceChain(deviceId, entries);
+      setChainBusy(false);
+      if (!resp || resp.error || !resp.structure || !resp.map) {
+        push({ title: t('lighting.ledMap.assignFailed') });
+        return;
+      }
+      pushUndo();
+      applyPreview(resp.structure, resp.map);
+      setStagedChain(entries);
+      setDirty(true);
+    })();
+  }, [deviceId, push, t, pushUndo, applyPreview]);
 
   // Factory reset: the service drops the device's stored LED overrides and
   // aspect ratio, then the editor refetches structure + map. load() keeps

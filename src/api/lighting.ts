@@ -1042,6 +1042,24 @@ export interface SetChainResponse extends ApiEnvelope {
 export const setDeviceChain = (deviceId: string, entries: ChainEntryBody[]) =>
   postService<SetChainResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/mappings/chain`, { entries });
 
+export interface ChainPreviewResponse {
+  /** What GET .../structure would answer once this chain is saved. */
+  structure?: DeviceStructureResponse;
+  /** What GET .../device-map would answer once this chain is saved, product geometry included. */
+  map?: DeviceMapResponse;
+  error?: boolean;
+  msg?: string;
+}
+
+/**
+ * What a chain WOULD produce, computed without persisting anything. The LED
+ * geometry of each product lives in the service binary, so the editor cannot
+ * derive it locally; this lets a chain edit preview live and still commit only
+ * on Save. It rejects exactly what the real chain POST rejects.
+ */
+export const previewDeviceChain = (deviceId: string, entries: ChainEntryBody[]) =>
+  postService<ChainPreviewResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/mappings/chain/preview`, { entries });
+
 // --- Game Sync ---
 
 export interface GameSyncDevice {
