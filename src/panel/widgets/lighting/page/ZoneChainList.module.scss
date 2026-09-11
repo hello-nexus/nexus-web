@@ -107,29 +107,59 @@
   &:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
+// One column for every LED count in the list, editable or not, so the numbers
+// and their icons line up down the rows and with the total below them.
+$count-column: 4.4rem;
+
+.ledIcon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
 .zoneCount {
   flex-shrink: 0;
-  padding: 0 0.15rem;
+  box-sizing: border-box;
+  width: $count-column;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
   font-size: var(--type-small);
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
 
-.zoneCountInput {
+.zoneCountField {
   flex-shrink: 0;
-  width: 3.2rem;
+  box-sizing: border-box;
+  width: $count-column;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   padding: 0.2rem 0.4rem;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   background: var(--bg);
+
+  &:focus-within { border-color: var(--accent); }
+}
+
+.zoneCountFieldDisabled { opacity: 0.5; }
+
+.zoneCountInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
   color: var(--text);
   font-size: var(--type-small);
   font-variant-numeric: tabular-nums;
   text-align: right;
   -moz-appearance: textfield;
 
-  &:focus { outline: none; border-color: var(--accent); }
-  &:disabled { opacity: 0.5; }
+  &:focus { outline: none; }
   &::-webkit-outer-spin-button,
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
@@ -167,7 +197,7 @@
 
 .total {
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.35rem;
   font-size: var(--type-small);
   color: var(--text-dim);
@@ -175,8 +205,21 @@
 }
 
 .totalCount {
+  box-sizing: border-box;
+  width: $count-column;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+
+// Matches .remove, which sits after every row's count but not after the total.
+.removeSpacer {
+  flex-shrink: 0;
+  width: 22px;
 }
 
 .popover {

@@ -1277,7 +1277,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // palette writes.
   // Nexus Control off means a vendor app owns the device, so the eye hides it
   // from the rail. The unfiltered list stays for the group headers' indicator.
-  const hideUncontrolled = !uiSettings.showUncontrolledDevices;
+  const hideUncontrolled = !uiSettings.showUncontrolledLightingDevices;
   const railDevices = useMemo(
     () => hideUncontrolled ? orderedDevices.filter(d => d.controlled !== false) : orderedDevices,
     [orderedDevices, hideUncontrolled],
@@ -1977,7 +1977,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 icon={hideUncontrolled ? <EyeOff /> : <Eye />}
                 aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
                 aria-pressed={hideUncontrolled}
-                onClick={() => updateUiSettings({ showUncontrolledDevices: hideUncontrolled })}
+                onClick={() => updateUiSettings({ showUncontrolledLightingDevices: hideUncontrolled })}
               />
             </HoverTooltip>
           </div>

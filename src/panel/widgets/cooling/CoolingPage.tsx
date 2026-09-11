@@ -1167,7 +1167,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Nexus Control off means the motherboard or a vendor app owns the fan, so
   // the eye hides it here rather than showing a card that drives nothing. The
   // unfiltered list stays available for the group headers' indicator.
-  const hideUncontrolled = !uiSettings.showUncontrolledDevices;
+  const hideUncontrolled = !uiSettings.showUncontrolledCoolingDevices;
   const visibleChannels = useMemo(
     () => hideUncontrolled
       ? orderedChannels.filter(c => c.controlled !== false && !isFanDisconnected(c))
@@ -1445,7 +1445,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 icon={hideUncontrolled ? <EyeOff /> : <Eye />}
                 aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
                 aria-pressed={hideUncontrolled}
-                onClick={() => updateUiSettings({ showUncontrolledDevices: hideUncontrolled })}
+                onClick={() => updateUiSettings({ showUncontrolledCoolingDevices: hideUncontrolled })}
               />
             </HoverTooltip>
           </div>

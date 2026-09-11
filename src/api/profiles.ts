@@ -172,7 +172,10 @@ export interface UiPrefs {
   // client keeps its local values.
   lightingDashboardMode?: string;
   coolingDashboardMode?: string;
+  /** Pre-split flag, still sent so an older service keeps working; each page's own flag falls back to it. */
   showUncontrolledDevices?: boolean;
+  showUncontrolledLightingDevices?: boolean;
+  showUncontrolledCoolingDevices?: boolean;
 }
 
 export interface UpdatePrefs {

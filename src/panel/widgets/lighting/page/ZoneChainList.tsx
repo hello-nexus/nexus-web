@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, GripVertical, Plus, X } from 'lucide-react';
+import { ChevronDown, GripVertical, Lightbulb, Plus, X } from 'lucide-react';
 import { fetchMappingCatalog, type BuiltInMappingSummary, type ChainEntryBody } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { isMultiSelectModifier } from '../../../../lib/platform';
@@ -116,7 +116,10 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
         {editable ? (
           <CountInput value={row.ledCount} disabled={disabled} onCommit={n => onChange(i, { key: row.key!, ledCount: n })} />
         ) : (
-          <span className={styles.zoneCount}>{formatZoneChipCount(row.enabledCount, row.ledCount)}</span>
+          <span className={styles.zoneCount}>
+            <LedIcon />
+            {formatZoneChipCount(row.enabledCount, row.ledCount)}
+          </span>
         )}
         {chainable && rows.length > 1 && (
           <HoverTooltip body={t('lighting.ledMap.chainRemove')} side="top">
@@ -219,10 +222,19 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
         )}
         {actions}
         <span className={styles.spacer} />
-        <span className={styles.total}>
-          {t('lighting.ledMap.chainTotal')}
-          <span className={styles.totalCount}>{total}</span>
-        </span>
+        {/* One device is its own total. */}
+        {rows.length > 1 && (
+          <span className={styles.total}>
+            {t('lighting.ledMap.chainTotal')}
+            <span className={styles.totalCount}>
+              <LedIcon />
+              {total}
+            </span>
+            {/* Stands in for the row's remove button so the counts share a
+                column with the rows above. */}
+            {chainable && <span className={styles.removeSpacer} aria-hidden />}
+          </span>
+        )}
       </div>
     </div>
   );
@@ -248,6 +260,8 @@ function CountInput({ value, autoFocus, disabled, onCommit, onCancel }: {
     if (value === null) onCancel?.();
   };
   return (
+    <span className={`${styles.zoneCountField} ${disabled ? styles.zoneCountFieldDisabled : ''}`}>
+    <LedIcon />
     <input
       ref={inputRef}
       type="number"
@@ -277,7 +291,13 @@ function CountInput({ value, autoFocus, disabled, onCommit, onCancel }: {
         }
       }}
     />
+    </span>
   );
+}
+
+/** Marks a number as a LED count, so every count in the list reads the same whether or not it is editable. */
+function LedIcon() {
+  return <Lightbulb size={11} strokeWidth={2} className={styles.ledIcon} aria-hidden />;
 }
 
 /**
