@@ -228,7 +228,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [editorMode, setEditorMode] = useState<EditorMode>('animation');
 
   const [devRect, setDevRect] = useState({ ...DEFAULT_DEV_RECT });
-  const [rectResizing, setRectResizing] = useState(false);
   // Selection-bbox resize: drag a corner handle to proportionally stretch
   // every selected LED relative to the fixed opposite corner.
   const [selectionResizing, setSelectionResizing] = useState(false);
@@ -240,7 +239,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     origV: number;
     initialLeds: Map<number, { u: number; v: number }>;
   } | null>(null);
-  const rectResizeRef = useRef<{ startX: number; startY: number; rect: typeof devRect } | null>(null);
   const [rectRatio, setRectRatio] = useState(DEFAULT_RATIO);
   // Ratio as it arrived on load. It may originate from an applied community
   // mapping rather than a stored user delta, so the save flow only sends the
@@ -944,7 +942,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).dataset.led) return;
-    if ((e.target as HTMLElement).dataset.rectResize) return;
     if ((e.target as HTMLElement).dataset.selectionHandle) return;
     const { x: px, y: py } = getCanvasPercent(e);
 
@@ -989,20 +986,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         const v = Math.max(0, Math.min(1, anchorV + (init.v - anchorV) * sy));
         return { ...l, u, v, isCustom: true };
       }));
-      return;
-    }
-
-    if (rectResizing && rectResizeRef.current) {
-      setDragMergeTarget(null);
-      const { x: px, y: py } = getCanvasPercent(e);
-      const r = rectResizeRef.current;
-      const dx = px - r.startX;
-      const dy = py - r.startY;
-      const newW = Math.max(15, Math.min(95, r.rect.w + dx));
-      const newH = Math.max(15, Math.min(95, r.rect.h + dy));
-      setDevRect({ ...r.rect, w: newW, h: newH });
-      setRectRatio(newW / newH);
-      setDirty(true);
       return;
     }
 
@@ -1082,12 +1065,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       setSelectionResizing(false);
       selectionResizeRef.current = null;
       setDirty(true);
-      return;
-    }
-
-    if (rectResizing) {
-      setRectResizing(false);
-      rectResizeRef.current = null;
       return;
     }
 
@@ -1251,15 +1228,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
     selectionResizeRef.current = { corner, anchorU, anchorV, origU, origV, initialLeds };
     setSelectionResizing(true);
-  };
-
-  const handleRectResizeDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    pushUndo();
-    const { x: px, y: py } = getCanvasPercent(e);
-    rectResizeRef.current = { startX: px, startY: py, rect: { ...devRect } };
-    setRectResizing(true);
   };
 
   // ── Save / revert ─────────────────────────────────────────────────────
@@ -2308,11 +2276,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                 height: `${devRect.h}%`,
               }}
             >
-              <div
-                data-rect-resize="1"
-                className={styles.rectResize}
-                onPointerDown={handleRectResizeDown}
-              />
             </div>
 
             {/* Parking-row separator so the boundary between "live" LEDs and
