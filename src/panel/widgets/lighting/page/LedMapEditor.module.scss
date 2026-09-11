@@ -305,7 +305,7 @@
 
 .sweepLine {
   position: absolute;
-  background: rgb(255 255 255 / var(--alpha-medium));
+  background: rgb(255 255 255 / calc(var(--alpha-faint) * 2));
   pointer-events: none;
   z-index: 0;
 }
@@ -538,8 +538,17 @@
   gap: 0.3rem;
 }
 
-// Outside the frame, under the canvas: nothing overlaps the map, so the line
-// needs no ground of its own and cannot swallow a lasso drag.
+// Under the canvas: the drag hint on the left, and on the right the only
+// thing that says removed LEDs exist, since they leave the canvas entirely.
+.hintRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+// Nothing overlaps the map here, so the line needs no ground of its own and
+// cannot swallow a lasso drag.
 .hint {
   font-size: 0.65rem;
   color: var(--text-dim);
@@ -594,7 +603,7 @@
 .centerGuideV {
   position: absolute;
   width: 1px;
-  background: rgb(255 255 255 / var(--alpha-medium));
+  background: rgb(255 255 255 / calc(var(--alpha-faint) * 2));
   pointer-events: none;
   // Above the frame: the frame is painted after these in DOM order, so at the
   // same depth its grid covered them. Still below the LEDs.
@@ -604,7 +613,7 @@
 .centerGuideH {
   position: absolute;
   height: 1px;
-  background: rgb(255 255 255 / var(--alpha-medium));
+  background: rgb(255 255 255 / calc(var(--alpha-faint) * 2));
   pointer-events: none;
   z-index: 1;
 }

@@ -12,6 +12,7 @@ import {
 } from '../../../../api/lighting';
 import { HubCompositionPanel } from './HubCompositionPanel';
 import { useTranslation } from '../../../../lib/i18n';
+import { pluralKey } from '../../../../lib/pluralKey';
 import { useToast } from '../../../../components/common/Toast/Toast';
 import { DeviceModal } from '../../../../components/common/DeviceModal/DeviceModal';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
@@ -55,13 +56,11 @@ const CANVAS_RATIO = 16 / 9;
 // is derived from CANVAS_RATIO so the margin is the same number of pixels on
 // every side.
 const FRAME_PAD_PCT = 3;
-// Below the frame, where removed LEDs park and the drag hint sits.
-const FRAME_BOTTOM_BAND_PCT = 12;
 const DEFAULT_DEV_RECT = {
   x: FRAME_PAD_PCT / CANVAS_RATIO,
   y: FRAME_PAD_PCT,
   w: 100 - 2 * (FRAME_PAD_PCT / CANVAS_RATIO),
-  h: 100 - FRAME_PAD_PCT - FRAME_BOTTOM_BAND_PCT,
+  h: 100 - 2 * FRAME_PAD_PCT,
 };
 const RECT_PAD_PX = 10;
 const MAX_HISTORY = 50;
@@ -70,7 +69,6 @@ const MAX_HISTORY = 50;
 const SELECTION_BBOX_PAD_UV = 0.04;
 // Height (canvas %) of the parking row below the device frame where deleted
 // LEDs sit. Enough to show the LED circle + 1-indexed label comfortably.
-const PARK_ROW_HEIGHT = 11;
 // Above this the per-LED canvas stops being usable (and stops being drawable
 // at a readable dot size), so the mapper declines rather than rendering a
 // meaningless swarm. The count stays editable; only the visual map opts out.
@@ -126,7 +124,7 @@ interface Props {
 }
 
 export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizable, onClose, initialCommunityOpen, onCompositionChanged, onNavigateToDevicePage }: Props) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { push } = useToast();
 
   const [structure, setStructure] = useState<DeviceStructureResponse | null>(null);
@@ -826,19 +824,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // disabledOrder: the sorted list of disabled LED indices in the current
   // map, so each disabled LED knows its slot + the total number of slots.
   // snapTarget: when set, overrides the drag-adjusted UV (live snap preview).
-  const getLedCanvasPos = useCallback((led: EditorLed, disabledOrder: number[], dragOverride?: { du: number; dv: number }, snapTarget?: { u: number; v: number } | null) => {
+  const getLedCanvasPos = useCallback((led: EditorLed, dragOverride?: { du: number; dv: number }, snapTarget?: { u: number; v: number } | null) => {
     if (parkedDrag && parkedDrag.index === led.index) {
       return { cx: parkedDrag.cx, cy: parkedDrag.cy };
     }
+    // A removed LED is not drawn at all: the canvas is only the grid now, and
+    // the count plus the restore button below it is what says they exist.
     if (led.disabled) {
-      const n = disabledOrder.length;
-      const slot = Math.max(0, disabledOrder.indexOf(led.index));
-      const u = n > 1 ? (slot + 0.5) / n : 0.5;
-      const cx = u * 100;
-      // Clamp so the parking row stays visible even when the device rect
-      // was resized large enough to touch the canvas bottom.
-      const cy = Math.min(devRect.y + devRect.h + PARK_ROW_HEIGHT * 0.5, 100 - PARK_ROW_HEIGHT * 0.5);
-      return { cx, cy };
+      return null;
     }
     let u = led.u;
     let v = led.v;
@@ -852,7 +845,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       }
     }
     return uvToCanvas(u, v);
-  }, [uvToCanvas, devRect, selected, parkedDrag]);
+  }, [uvToCanvas, selected, parkedDrag]);
 
   // Canvas point is "inside the device frame" when within the padded inner
   // rect. Used to decide whether a dragged LED should be re-enabled (dropped
@@ -870,25 +863,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const maxY = Math.max(m.y1, m.y2);
 
     // Compute the parked row slots inline so the marquee can hit-test them
-    // correctly - using the LED's stored u,v would point at wherever the
-    // LED was before it was parked, not at the parking row below the frame.
-    const parkedIndices = leds.filter(l => l.disabled).map(l => l.index).sort((a, b) => a - b);
-    const parkedN = parkedIndices.length;
-
+    // Removed LEDs are off the canvas entirely, so a lasso cannot reach one.
     const inBox = new Set<number>();
     for (const led of leds) {
-      if (!isLedEnabled(led)) continue;
-      let cx: number, cy: number;
-      if (led.disabled) {
-        const slot = parkedIndices.indexOf(led.index);
-        const u = parkedN > 1 ? (slot + 0.5) / parkedN : 0.5;
-        cx = u * 100;
-        cy = Math.min(devRect.y + devRect.h + PARK_ROW_HEIGHT * 0.5, 100 - PARK_ROW_HEIGHT * 0.5);
-      } else {
-        const pos = uvToCanvas(led.u, led.v);
-        cx = pos.cx;
-        cy = pos.cy;
-      }
+      if (!isLedEnabled(led) || led.disabled) continue;
+      const { cx, cy } = uvToCanvas(led.u, led.v);
       if (cx >= minX && cx <= maxX && cy >= minY && cy <= maxY) {
         inBox.add(led.index);
       }
@@ -911,7 +890,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       return merged;
     }
     return expanded;
-  }, [leds, uvToCanvas, isLedEnabled, devRect]);
+  }, [leds, uvToCanvas, isLedEnabled]);
 
   const handleLedPointerDown = (e: React.PointerEvent, ledIndex: number) => {
     e.preventDefault();
@@ -1685,9 +1664,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
   // Any parked LED at all keeps the parking-row separator visible; the
   // restore-all affordance only counts the editable zone's parked LEDs.
-  const hasParked = useMemo(() => leds.some(l => l.disabled), [leds]);
+  const removedCount = useMemo(() => leds.filter(l => l.disabled && isLedEnabled(l)).length, [leds, isLedEnabled]);
   const mappingUnavailable = leds.length > MAX_MAPPABLE_LEDS;
-  const hasRestorable = useMemo(() => leds.some(l => l.disabled && isLedEnabled(l)), [leds, isLedEnabled]);
 
   // Set of LED indices that differ from the last-saved snapshot. Only these
   // render with the dashed "unsaved change" ring; persisted customisations
@@ -1858,12 +1836,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return { minX: tl.cx, maxX: br.cx, minY: tl.cy, maxY: br.cy };
   }, [leds, selected, getSelectionUvBounds, uvToCanvas]);
 
-  // Sorted disabled-LED indices so each parked LED has a deterministic slot
-  // and the row re-packs when more get deleted / re-enabled.
-  const disabledOrder = useMemo(() => {
-    return leds.filter(l => l.disabled).map(l => l.index).sort((a, b) => a - b);
-  }, [leds]);
-
   // Show the selection toolbar whenever at least one LED is selected (even
   // a single parked LED gets the trash + restore affordance so group-of-1
   // deletes work). The anchor is the selection bbox when available, else
@@ -1873,9 +1845,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     if (selected.size === 0) return null;
     const anyLed = leds.find(l => selected.has(l.index));
     if (!anyLed) return null;
-    const pos = getLedCanvasPos(anyLed, disabledOrder);
+    const pos = getLedCanvasPos(anyLed);
+    if (!pos) return null;
     return { cx: pos.cx + 3, cy: pos.cy - 3 };
-  }, [selectionCanvasBounds, selected, leds, disabledOrder, getLedCanvasPos]);
+  }, [selectionCanvasBounds, selected, leds, getLedCanvasPos]);
 
   // Any selected LED that's currently parked -> show the Restore button
   // in the selection toolbar. Any selected LED that's currently enabled ->
@@ -1961,7 +1934,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         }
       }
     }
-    return getLedCanvasPos(led, disabledOrder, dragOverride, snapTarget);
+    return getLedCanvasPos(led, dragOverride, snapTarget);
   };
 
   const ledTypeClass = (led: EditorLed) => {
@@ -2151,19 +2124,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           />
           {/* General tooling: history, restore, reset, save. */}
           <div className={styles.toolbar}>
-            {hasRestorable && (
-              <HoverTooltip body={t('lighting.ledMap.restoreAll')} side="bottom">
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={handleRestoreAll}
-                  aria-label={t('lighting.ledMap.restoreAll')}
-                >
-                  <RotateCcw size={15} />
-                </button>
-              </HoverTooltip>
-            )}
-            <div className={styles.separator} />
             {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
             <HoverTooltip body={`${t('lighting.ledMap.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`} side="bottom">
               <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0} aria-label={t('lighting.ledMap.undo')}>
@@ -2358,12 +2318,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             {/* Parking-row separator so the boundary between "live" LEDs and
                 deleted ones is obvious. A subtle line across the canvas just
                 below the device frame. */}
-            {hasParked && (
-              <div
-                className={styles.parkSeparator}
-                style={{ top: `${devRect.y + devRect.h}%` }}
-              />
-            )}
 
             {(() => {
               const rendered = new Set<number>();
@@ -2376,7 +2330,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   if (rendered.has(repIdx)) continue;
                   rendered.add(repIdx);
                   const repLed = leds.find(l => l.index === repIdx)!;
-                  const { cx, cy } = getLedPosition(repLed);
+                  const repPos = getLedPosition(repLed);
+                  if (!repPos) continue;
+                  const { cx, cy } = repPos;
                   const isSelected = members.every(m => selected.has(m));
                   const isDraggingGroup = dragging && members.some(m => selected.has(m));
                   const isUnsaved = members.some(m => unsavedLedSet.has(m));
@@ -2405,7 +2361,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   );
                   continue;
                 }
-                const { cx, cy } = getLedPosition(led);
+                const ledPos = getLedPosition(led);
+                if (!ledPos) continue;
+                const { cx, cy } = ledPos;
                 const isSelected = selected.has(led.index);
                 const beingParkedDragged = parkedDrag?.index === led.index;
                 elements.push(
@@ -2665,7 +2623,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             })}
 
             {hoveredEntry && !dragging && !parkedDrag && (() => {
-              const { cx, cy } = getLedPosition(hoveredEntry);
+              const hoverPos = getLedPosition(hoveredEntry);
+              if (!hoverPos) return null;
+              const { cx, cy } = hoverPos;
               const zoneName = zoneNameById.get(hoveredEntry.zoneId);
               const local = (zoneLocalByDevice.get(hoveredEntry.index) ?? hoveredEntry.index) + 1;
               const groupMembers = ledGroups.get(hoveredEntry.index);
@@ -2699,14 +2659,27 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           {/* Outside the frame, where removed LEDs also line up: nothing here
               overlaps the map, so it cannot swallow a lasso drag. */}
           {!mappingUnavailable && (
-            <div className={styles.hint}>
-              {t('lighting.ledMap.hint', {
-                count: leds.length,
-                drag: t('lighting.ledMap.dragHint'),
-                mod: isMac ? 'Cmd' : 'Ctrl',
-                multi: t('lighting.ledMap.clickMulti'),
-                del: t('lighting.ledMap.deleteHint'),
-              })}
+            <div className={styles.hintRow}>
+              <div className={styles.hint}>
+                {t('lighting.ledMap.hint', {
+                  drag: t('lighting.ledMap.dragHint'),
+                  mod: isMac ? 'Cmd' : 'Ctrl',
+                  multi: t('lighting.ledMap.clickMulti'),
+                  del: t('lighting.ledMap.deleteHint'),
+                })}
+              </div>
+              {/* Removed LEDs leave the canvas, so this row is the only thing
+                  that says they exist - and the only way back. */}
+              {removedCount > 0 && (
+                <button
+                  type="button"
+                  className={styles.modeBtn}
+                  onClick={handleRestoreAll}
+                >
+                  <ListRestart size={13} aria-hidden />
+                  {t(pluralKey('lighting.ledMap.restoreRemovedCount', language, removedCount), { count: removedCount })}
+                </button>
+              )}
             </div>
           )}
           </div>
