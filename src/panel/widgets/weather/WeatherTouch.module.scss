@@ -19,8 +19,8 @@
   min-height: 0;
 }
 
-// Hero cell: the conditions block takes the height the hourly strip leaves.
+// Hero cell: the conditions block takes the height the hourly strip leaves,
+// never less than its own content.
 .grow > :first-child {
   flex: 1 1 auto;
-  min-height: 0;
 }

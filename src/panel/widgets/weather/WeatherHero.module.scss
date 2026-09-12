@@ -54,11 +54,11 @@
 
 .immersive {
   justify-content: center;
-  padding: 1.25rem;
+  padding: 1rem;
 
-  .location { font-size: var(--type-display); }
-  .condition { font-size: var(--type-heading); }
-  .metaRow { font-size: var(--type-body); }
+  .location { font-size: var(--type-heading); }
+  .condition { font-size: var(--type-body); }
+  .metaRow { font-size: var(--type-small); }
 }
 
 // Landscape cells are short: tighten the immersive hero so the hourly strip

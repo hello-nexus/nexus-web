@@ -85,9 +85,7 @@
 
 .immersive {
   .scroller > * { overflow-x: hidden; }
-  .column { @include vgap(0.5rem); }
-  .hour { font-size: var(--type-small); }
-  .icon { width: 2em; height: 2em; }
-  .precip { font-size: var(--type-small); }
+  .column { @include vgap(0.35rem); }
+  .icon { width: 1.6em; height: 1.6em; }
   .temp { font-size: var(--type-body); }
 }

@@ -38,22 +38,36 @@
 
 .cellGrid .tile {
   min-height: 0;
-  padding: 0.5rem 0.65rem;
+  padding: 0.4rem 0.6rem;
+  // Card's own header/body gap, tightened; the tile never renders on the Q60.
+  /* c83:allow */ gap: 0.15rem;
 
   // Card's body wrapper sits between the tile and .tileBody; both must be
   // shrinkable for the graphics below to give up height.
   > :last-child { flex: 1 1 auto; min-height: 0; }
+  .tileBody { @include vgap(0.1rem); }
+  .scale { margin-top: 0.25rem; }
 
   .tileTitle { font-size: var(--type-tiny); }
   .big { font-size: var(--type-heading); }
   .sub { font-size: var(--type-mini); }
-  // A third readout line (the precipitation tile's "expected tomorrow") does
-  // not fit a compact row.
-  .sub:nth-of-type(n+4) { display: none; }
-  // Graphics take whatever height the readouts leave; on a short phone row
-  // that is nothing, on the Y70 the full drawing.
+  // Graphics take whatever height the readouts leave.
   .sunArc, .dial { flex: 1 1 0; min-height: 0; height: 100%; }
   .compass { width: 4rem; height: 4rem; }
+}
+
+// Each immersive slot is a size container: a short row (a phone, a Y70 page
+// holding three cells) keeps one readout line per tile and drops the
+// drawings; a tall one shows everything.
+.cellGrid .slot {
+  container-type: size;
+}
+
+@container (max-height: 7.5rem) {
+  .tile .sub:nth-of-type(n+3),
+  .tile .sunArc,
+  .tile .dial,
+  .tile .compass { display: none; }
 }
 
 .tileTitle {
