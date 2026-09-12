@@ -1602,7 +1602,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     deviceStacksRef.current = next;
     setSelectedDeviceIds(prev => withStacked(next, prev));
     saveLightingStacks(next).catch(() => { /* 3s poll reconciles */ });
-    const fresh = next.filter(l => !before.some(b => b.id === l.id));
+    const fresh = next.filter(s => !before.some(b => b.id === s.id));
     if (fresh.length > 0) {
       handleBeforeLayoutSave();
       const rect = new Map<string, { x: number; y: number; w: number; h: number; r: number }>();

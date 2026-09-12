@@ -8,7 +8,7 @@ export type DeviceStack = DeviceGroup;
 
 /** The stack holding `id`, or null. */
 export function stackOf(stacks: readonly DeviceStack[], id: string): DeviceStack | null {
-  return stacks.find(l => l.members.includes(id)) ?? null;
+  return stacks.find(s => s.members.includes(id)) ?? null;
 }
 
 /** Every card stacked with `id`, itself included; just `[id]` when unstacked. */
@@ -65,8 +65,8 @@ export function stackDevices(stacks: readonly DeviceStack[], ids: readonly strin
 export function unstackDevices(stacks: readonly DeviceStack[], ids: readonly string[]): DeviceStack[] {
   const gone = new Set(ids);
   return stacks
-    .map(l => ({ ...l, members: l.members.filter(m => !gone.has(m)) }))
-    .filter(l => l.members.length >= 2);
+    .map(s => ({ ...s, members: s.members.filter(m => !gone.has(m)) }))
+    .filter(s => s.members.length >= 2);
 }
 
 /** Whether every one of `ids` sits in one stack that holds nothing else. */

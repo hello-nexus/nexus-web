@@ -559,6 +559,19 @@ describe('DeviceCanvas stacks', () => {
     expect(screen.queryByText('Left')).toBeNull();
   });
 
+  it('keeps a named stack\'s header name while the primary is outside it', () => {
+    render(
+      <DeviceCanvas
+        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['dev-c'])} primaryDeviceId="dev-c"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={[{ id: 's1', name: 'Keeb', members: ['dev-a', 'dev-b'] }]}
+      />
+    );
+    expect(screen.getByText('Keeb')).toBeTruthy();
+    expect(screen.queryByText('Left')).toBeNull();
+    expect(screen.queryByText('Right')).toBeNull();
+  });
+
   it('drags every member with the frame that stands for them', () => {
     const devices = pair();
     const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(

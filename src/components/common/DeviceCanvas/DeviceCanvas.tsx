@@ -270,7 +270,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
 }) {
   const { t, language } = useTranslation();
   // Stack members, self included; the first shown one owns the frame.
-  const stackedWith = useCallback((id: string): string[] => stacks?.find(l => l.members.includes(id))?.members ?? [id], [stacks]);
+  const stackedWith = useCallback((id: string): string[] => stacks?.find(s => s.members.includes(id))?.members ?? [id], [stacks]);
   const frameOwner = useCallback((id: string): string => {
     const members = stackedWith(id);
     return members.length > 1 ? devices.find(d => members.includes(d.id) && !hiddenIds.has(d.id))?.id ?? id : id;
@@ -297,7 +297,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     /** Set iff this is a group drag. Maps id -> orig top-left rect. The dragged
      *  frame is included so the iteration is uniform. */
     groupOrigs?: Map<string, { x: number; y: number; w: number; h: number }>;
-    /** The group is one stack, not a multi-selection: a tap still cycles the stack. */
+    /** The group is one stack, not a multi-selection: a tap still cycles through the frames under it. */
     stackOnly?: boolean;
   } | null>(null);
   // Marquee state. preIds + additive let a Cmd/Ctrl-drag merge with the previous
@@ -561,18 +561,19 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     // to the one frame it landed on. Without this the default "every frame
     // focused" state swallows the click that is meant to single one out.
     if (drag.groupOrigs && !drag.stackOnly && tap && !tap.moved) { onSelectDevice(drag.id); return; }
-    // Tap-cycle (no drag, no group): step through the stack at the click point.
+    // Tap-cycle (no drag, no group): step through the frames under the click
+    // point, top first.
     // A tap on a name names its device outright, so it must not cycle - the
     // label is the escape hatch from having to guess the stacking order.
     if (!tap || tap.moved || tap.viaLabel || (drag.groupOrigs && !drag.stackOnly)) return;
-    const stack = [...drawn].reverse().filter(d =>
+    const underPointer = [...drawn].reverse().filter(d =>
       drag.startX >= d.canvasX && drag.startX <= d.canvasX + d.canvasW &&
       drag.startY >= d.canvasY && drag.startY <= d.canvasY + d.canvasH
     );
-    const idx = stack.findIndex(d => d.id === tap.prevPrimary);
+    const idx = underPointer.findIndex(d => d.id === tap.prevPrimary);
     if (idx === -1) return; // fresh selection: topmost already selected via startDrag
-    if (idx === stack.length - 1) { onSelectDevice(null); return; } // bottom of stack: deselect
-    onSelectDevice(stack[idx + 1].id); // step one level deeper
+    if (idx === underPointer.length - 1) { onSelectDevice(null); return; } // bottom-most already: deselect
+    onSelectDevice(underPointer[idx + 1].id); // step one level deeper
   }, [drag, marquee, devices, drawn, stackedWith, onSelectDevice, onSetSelection, onDragActiveChange]);
 
   // Mutates dev's rect in place by one 90° step; no save/render side effects so
@@ -713,7 +714,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
       const primary = devices.find(d => d.id === primaryDeviceId);
       if (primary) return canvasLabelName(primary);
     }
-    return stacks?.find(l => l.members.includes(dev.id))?.name || canvasLabelName(dev);
+    return stacks?.find(s => s.members.includes(dev.id))?.name || canvasLabelName(dev);
   };
 
   // A label's box only changes when its text, the font, or the container
