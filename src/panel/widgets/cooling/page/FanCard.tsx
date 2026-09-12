@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Folder, FolderInput, FolderMinus, FolderPlus, Gpu, Link, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, Folder, FolderInput, FolderMinus, FolderPlus, GaugeCircle, Gpu, Link, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -560,10 +560,19 @@ export const FanCard = memo(function FanCard({
           {/* Rename lives on the context menu; a click on the name belongs to the card. */}
           <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} maxLength={DEVICE_NAME_MAX_LENGTH} />
         </span>
-        <span className={styles.fanRpmReadout}>
-          <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>
-          <span className={styles.fanRpmLabel}>RPM</span>
-        </span>
+        {channel.rpmUnavailable ? (
+          <HoverTooltip body={t('cooling.fan.rpmUnavailableHint')}>
+            <span className={styles.fanRpmReadout}>
+              <GaugeCircle size={12} aria-hidden="true" />
+              <span className={styles.fanRpmLabel}>{t('cooling.fan.rpmUnavailable')}</span>
+            </span>
+          </HoverTooltip>
+        ) : (
+          <span className={styles.fanRpmReadout}>
+            <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>
+            <span className={styles.fanRpmLabel}>RPM</span>
+          </span>
+        )}
       </div>
 
       {offset !== 0 && (
