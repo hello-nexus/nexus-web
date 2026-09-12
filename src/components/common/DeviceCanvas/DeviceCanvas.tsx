@@ -249,8 +249,11 @@ const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW,
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, links, linkActionsFor }: {
+const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, links, linkActionsFor }: {
+  /** Every device, hidden frames included: a hidden link member still moves with its frame. */
   devices: LightingDevice[];
+  /** Frames the eye is hiding: never drawn, never hit, but linked ones follow their frame. */
+  hiddenIds: Set<string>;
   selectedIds: Set<string>;
   primaryDeviceId: string | null;
   onSelectDevice: (id: string | null) => void;
@@ -266,13 +269,19 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   linkActionsFor?: (ids: string[]) => LinkActions;
 }) {
   const { t, language } = useTranslation();
-  // Link members, self included; the first one in `devices` owns the frame.
+  // Link members, self included; the first shown one owns the frame.
   const linkedWith = useCallback((id: string): string[] => links?.find(l => l.members.includes(id))?.members ?? [id], [links]);
   const frameOwner = useCallback((id: string): string => {
     const members = linkedWith(id);
-    return members.length > 1 ? devices.find(d => members.includes(d.id))?.id ?? id : id;
+    return members.length > 1 ? devices.find(d => members.includes(d.id) && !hiddenIds.has(d.id))?.id ?? id : id;
+  }, [devices, hiddenIds, linkedWith]);
+  const drawn = devices.filter(d => !hiddenIds.has(d.id) && frameOwner(d.id) === d.id);
+  // `ids` with every link filled in, over the devices the canvas holds.
+  const withLinks = useCallback((ids: Iterable<string>): LightingDevice[] => {
+    const all = new Set<string>();
+    for (const id of ids) for (const m of linkedWith(id)) all.add(m);
+    return devices.filter(d => all.has(d.id));
   }, [devices, linkedWith]);
-  const drawn = devices.filter(d => frameOwner(d.id) === d.id);
   const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
   onBeforeLayoutSaveRef.current = onBeforeLayoutSave;
   const onLayoutCommitRef = useRef(onLayoutCommit);
@@ -288,6 +297,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     /** Set iff this is a group drag. Maps id -> orig top-left rect. The dragged
      *  frame is included so the iteration is uniform. */
     groupOrigs?: Map<string, { x: number; y: number; w: number; h: number }>;
+    /** The group is one link, not a multi-selection: a tap still cycles the stack. */
+    linkOnly?: boolean;
   } | null>(null);
   // Marquee state. preIds + additive let a Cmd/Ctrl-drag merge with the previous
   // selection so the user can refine a multi-select instead of starting over.
@@ -373,21 +384,20 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     // multi-selection (size >= 2), and always carries the frame's link.
     // Otherwise we collapse the selection to just the grabbed frame (matches
     // "click an unselected thing → select only it").
-    const inSelection = selectedIds.has(dev.id) && selectedIds.size >= 2;
+    const shownSelection = [...selectedIds].filter(id => !hiddenIds.has(id));
+    const inSelection = selectedIds.has(dev.id) && shownSelection.length >= 2;
     if (!inSelection) {
       onSelectDevice(dev.id);
     }
-    const dragIds = new Set(inSelection ? selectedIds : [dev.id]);
-    for (const m of linkedWith(dev.id)) dragIds.add(m);
-    const isGroup = mode === 'move' && dragIds.size >= 2;
+    const dragged = withLinks(inSelection ? shownSelection : [dev.id]);
+    const isGroup = mode === 'move' && dragged.length >= 2;
     const groupOrigs = isGroup
       ? new Map<string, { x: number; y: number; w: number; h: number }>(
-          devices.filter(d => dragIds.has(d.id))
-            .map(d => [d.id, { x: d.canvasX, y: d.canvasY, w: d.canvasW, h: d.canvasH }])
+          dragged.map(d => [d.id, { x: d.canvasX, y: d.canvasY, w: d.canvasW, h: d.canvasH }])
         )
       : undefined;
-    setDrag({ id: dev.id, mode, startX: p.x, startY: p.y, origX: dev.canvasX, origY: dev.canvasY, origW: dev.canvasW, origH: dev.canvasH, groupOrigs });
-  }, [toCanvas, onSelectDevice, onDragActiveChange, selectedIds, devices, linkedWith]);
+    setDrag({ id: dev.id, mode, startX: p.x, startY: p.y, origX: dev.canvasX, origY: dev.canvasY, origW: dev.canvasW, origH: dev.canvasH, groupOrigs, linkOnly: isGroup && !inSelection });
+  }, [toCanvas, onSelectDevice, onDragActiveChange, selectedIds, hiddenIds, withLinks]);
 
   // Cmd/Ctrl+click on a frame: toggle membership without starting a drag. Plain
   // click on a frame still falls through to startDrag. A link toggles whole.
@@ -431,7 +441,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       const x2 = Math.max(marquee.startX, p.x);
       const y2 = Math.max(marquee.startY, p.y);
       const hits = new Set<string>();
-      for (const dev of devices) {
+      for (const dev of drawn) {
         if (!(dev.canvasX + dev.canvasW < x1 || dev.canvasX > x2 || dev.canvasY + dev.canvasH < y1 || dev.canvasY > y2)) {
           hits.add(dev.id);
         }
@@ -501,7 +511,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       }
     }
     forceRender(n => n + 1);
-  }, [drag, marquee, devices, toCanvas, onSetSelection, linkedWith]);
+  }, [drag, marquee, devices, drawn, toCanvas, onSetSelection, linkedWith]);
 
   const handlePointerUp = useCallback(async () => {
     if (marquee) {
@@ -550,11 +560,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     // A group is what a DRAG acts on; a tap that never moved narrows the focus
     // to the one frame it landed on. Without this the default "every frame
     // focused" state swallows the click that is meant to single one out.
-    if (drag.groupOrigs && tap && !tap.moved) { onSelectDevice(drag.id); return; }
+    if (drag.groupOrigs && !drag.linkOnly && tap && !tap.moved) { onSelectDevice(drag.id); return; }
     // Tap-cycle (no drag, no group): step through the stack at the click point.
     // A tap on a name names its device outright, so it must not cycle - the
     // label is the escape hatch from having to guess the stacking order.
-    if (!tap || tap.moved || tap.viaLabel || drag.groupOrigs) return;
+    if (!tap || tap.moved || tap.viaLabel || (drag.groupOrigs && !drag.linkOnly)) return;
     const stack = [...drawn].reverse().filter(d =>
       drag.startX >= d.canvasX && drag.startX <= d.canvasX + d.canvasW &&
       drag.startY >= d.canvasY && drag.startY <= d.canvasY + d.canvasH
@@ -754,7 +764,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         // Unfocused frames stay drawn and recede. An empty focus set recedes
         // every one of them - that is the "clicked empty canvas" state.
         const deemphasized = !selected;
-        const isPrimary = dev.id === primaryDeviceId;
+        const isPrimary = primaryDeviceId !== null && frameOwner(primaryDeviceId) === dev.id;
         const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
         const { w, h } = containerSizeRef.current;
         const bgX = -(dev.canvasX / CW) * w;
@@ -828,7 +838,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         // frames and yield "(1 devices)" labels / partial application. A
         // right-click outside the selection (or a single visible target) stays
         // single-device and keeps LED settings.
-        const targets = selectedIds.has(dev.id) ? devices.filter(d => selectedIds.has(d.id)) : [dev];
+        // A linked frame's targets are its whole link, hidden members included,
+        // so every row keeps the link on one rect.
+        const picked = selectedIds.has(dev.id) ? drawn.filter(d => selectedIds.has(d.id)) : [dev];
+        const targets = withLinks(picked.map(d => d.id));
         const group = targets.length >= 2;
         const count = targets.length;
         const items: DeviceMenuItem[] = [];
@@ -847,7 +860,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         // LED-map editor is single-device only (it edits one device's zones), so
         // it is hidden for a group selection. For a single device it opens even
         // at 0 LEDs (positional mapping is always available).
-        if (onOpenSettings && !group) {
+        if (onOpenSettings && picked.length === 1) {
           items.push({
             key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
             onSelect: () => onOpenSettings(dev.id),
@@ -883,9 +896,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
             : t(anyOn ? 'lighting.devices.menuLightsOff' : 'lighting.devices.menuLightsOn'),
           onSelect: () => onSetDevicesPower?.(targets.map(d => d.id), !anyOn),
         });
-        // A linked frame's targets are its whole link, so the rows read unlink.
-        const linkTargets = [...new Set(targets.flatMap(d => linkedWith(d.id)))];
-        const linkRows = linkMenuItems(t, language, linkActionsFor?.(linkTargets), linkTargets.length);
+        const linkRows = linkMenuItems(t, language, linkActionsFor?.(targets.map(d => d.id)), count);
         if (linkRows.length > 0) {
           items[items.length - 1].separatorAfter = true;
           items.push(...linkRows);
@@ -915,14 +926,12 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
 
   shaderStateRef.current = shaderState ?? null;
   const { ready } = useShaderRenderer(glCanvasRef, shaderEffect ?? null, shaderStateRef, audioRef, undefined, shaderPaused);
-  const visibleDevices = hiddenFrameIds && hiddenFrameIds.size > 0
-    ? devices.filter(d => !hiddenFrameIds.has(d.id))
-    : devices;
+  const hiddenIds = hiddenFrameIds ?? new Set<string>();
   return (
     <div ref={containerRef} className={styles.canvas}>
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} links={links} linkActionsFor={linkActionsFor} />
+      <DeviceOverlays devices={devices} hiddenIds={hiddenIds} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} links={links} linkActionsFor={linkActionsFor} />
       <CanvasNoticeBar
         visible={notice != null && shaderEffect != null}
         message={notice ? t(notice.key) : ''}

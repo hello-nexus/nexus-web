@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LightingDevice } from '../../../../api/lighting';
 import { buildDeviceBlocks } from './deviceBlocks';
-import { canLink, frameOwner, isLinkedSet, linkDevices, linkedWith, rowOfDevice, unlinkDevices, withLinked, type DeviceLink } from './deviceLinks';
+import { canLink, isLinkedSet, linkDevices, linkedWith, rowOfDevice, unlinkDevices, withLinked, type DeviceLink } from './deviceLinks';
 
 const device = (id: string, name: string, extra: Partial<LightingDevice> = {}): LightingDevice => ({
   id, name, ledsOn: true, ledCount: 10, canvasX: 0, canvasY: 0, canvasW: 1, canvasH: 1, canvasRotation: 0, ...extra,
@@ -49,11 +49,5 @@ describe('deviceLinks', () => {
     expect(isLinkedSet(links, ['b', 'a'])).toBe(true);
     expect(isLinkedSet(links, ['a'])).toBe(false);
     expect(isLinkedSet(links, ['a', 'b', 'c'])).toBe(false);
-  });
-
-  it('lets the first drawn member own the frame', () => {
-    expect(frameOwner(links, devices, devices[1])).toBe('a');
-    expect(frameOwner(links, devices.slice(1), devices[1])).toBe('b');
-    expect(frameOwner(links, devices, devices[2])).toBe('c');
   });
 });

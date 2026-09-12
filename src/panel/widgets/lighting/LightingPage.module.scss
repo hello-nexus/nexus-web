@@ -1251,9 +1251,6 @@
   word-break: break-word;
 }
 
-// The (i) notice icon at the end of a device label or group title. Bare icon
-// (no button) so it can nest inside the group-header toggle; HoverTooltip owns
-// the hover reveal.
 // The link badge on a card linked to others; sits in the name row's corner.
 .deviceLinked {
   flex-shrink: 0;
@@ -1263,6 +1260,9 @@
   color: var(--accent);
 }
 
+// The (i) notice icon at the end of a device label or group title. Bare icon
+// (no button) so it can nest inside the group-header toggle; HoverTooltip owns
+// the hover reveal.
 .deviceNotice {
   flex-shrink: 0;
   display: inline-flex;

@@ -1,4 +1,3 @@
-import type { LightingDevice } from '../../../../api/lighting';
 import { groupOf, newGroupId, type DeviceGroup } from '../../../../lib/deviceGroups';
 import { blockKey, type DeviceBlock } from './deviceBlocks';
 
@@ -75,11 +74,4 @@ export function isLinkedSet(links: readonly DeviceLink[], ids: readonly string[]
   if (ids.length < 2) return false;
   const link = linkOf(links, ids[0]);
   return link !== null && link.members.length === new Set(ids).size && ids.every(id => link.members.includes(id));
-}
-
-/** The frame that stands for `device` on the canvas: the first linked member the canvas draws, or itself. */
-export function frameOwner(links: readonly DeviceLink[], drawn: readonly LightingDevice[], device: LightingDevice): string {
-  const link = linkOf(links, device.id);
-  if (!link) return device.id;
-  return drawn.find(d => link.members.includes(d.id))?.id ?? device.id;
 }

@@ -1220,7 +1220,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     saveLightingGroups(next).catch(() => { /* 3s poll reconciles */ });
   }, []);
 
-
   const handleRenameDevice = useCallback((id: string, name: string) => {
     renameLightingDevice(id, name).catch(() => { /* 3s poll reconciles */ });
     setDevices(prev => prev.map(d => {
@@ -1595,9 +1594,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   // A new link lands every member on the first member's frame, so the set
   // shares one rect from then on; the selection grows to hold whole links.
+  // The links save first: a layout save's broadcast must not refetch the old
+  // list and drop the badge until the second lands.
   const handleLinksChange = useCallback((next: DeviceLink[]) => {
     const before = deviceLinksRef.current;
-    const fresh = next.filter(l => !before.some(b => b.id === l.id && b.members.join() === l.members.join()));
+    setDeviceLinks(next);
+    deviceLinksRef.current = next;
+    setSelectedDeviceIds(prev => withLinked(next, prev));
+    saveLightingLinks(next).catch(() => { /* 3s poll reconciles */ });
+    const fresh = next.filter(l => !before.some(b => b.id === l.id));
     if (fresh.length > 0) {
       handleBeforeLayoutSave();
       const rect = new Map<string, { x: number; y: number; w: number; h: number; r: number }>();
@@ -1616,11 +1621,32 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         .then(() => handleLayoutCommit())
         .catch(() => { /* 3s poll reconciles */ });
     }
-    setDeviceLinks(next);
-    deviceLinksRef.current = next;
-    setSelectedDeviceIds(prev => withLinked(next, prev));
-    saveLightingLinks(next).catch(() => { /* 3s poll reconciles */ });
   }, [handleBeforeLayoutSave, handleLayoutCommit, setSelectedDeviceIds]);
+
+  // Links outlive an undo or a preset load, which restore per-device rects;
+  // a member that drifted off its frame is put back on it and saved.
+  useEffect(() => {
+    if (deviceDraggingRef.current || deviceLinks.length === 0) return;
+    const drift: [string, LightingDevice][] = [];
+    for (const link of deviceLinks) {
+      const members = devices.filter(d => link.members.includes(d.id));
+      const lead = members[0];
+      if (!lead) continue;
+      for (const m of members.slice(1)) {
+        if (m.canvasX !== lead.canvasX || m.canvasY !== lead.canvasY || m.canvasW !== lead.canvasW
+          || m.canvasH !== lead.canvasH || (m.canvasRotation ?? 0) !== (lead.canvasRotation ?? 0)) drift.push([m.id, lead]);
+      }
+    }
+    if (drift.length === 0) return;
+    const to = new Map(drift);
+    setDevices(prev => prev.map(d => {
+      const lead = to.get(d.id);
+      return lead ? { ...d, canvasX: lead.canvasX, canvasY: lead.canvasY, canvasW: lead.canvasW, canvasH: lead.canvasH, canvasRotation: lead.canvasRotation ?? 0 } : d;
+    }));
+    for (const [id, lead] of drift) {
+      saveDeviceLayout(id, lead.canvasX, lead.canvasY, lead.canvasW, lead.canvasH, lead.canvasRotation ?? 0).catch(() => { /* 3s poll reconciles */ });
+    }
+  }, [devices, deviceLinks]);
 
   // The canvas menu's link rows over a frame selection: the same rule the
   // rail applies, over the rail's own blocks.

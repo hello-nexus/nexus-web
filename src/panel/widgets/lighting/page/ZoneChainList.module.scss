@@ -168,16 +168,20 @@ $count-column: 4.4rem;
   &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 }
 
-// Below the row list: the add button, the zone tools, and the LED total.
+// Below the row list: the add button full width, then the zone tools and the
+// LED total on their own line, the count under the rows' count column.
 .footer {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.3rem;
-  flex-wrap: wrap;
 }
 
-// Anchors the add picker under its button; the button fills the run before the total.
-.addWrap { position: relative; flex: 1; }
+// Anchors the add picker under its button.
+.addWrap { position: relative; }
+
+// Carries the hover a disabled add button cannot.
+.addHover { display: block; }
 
 .add {
   display: flex;
@@ -201,11 +205,10 @@ $count-column: 4.4rem;
   &:disabled { opacity: 0.3; cursor: not-allowed; }
 }
 
-.spacer { flex: 1; }
-
 .total {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.35rem;
   font-size: var(--type-small);
   color: var(--text-dim);
