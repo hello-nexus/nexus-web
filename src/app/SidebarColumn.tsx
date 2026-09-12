@@ -215,7 +215,7 @@ export function SidebarColumn({
         onItemContextMenu={handleItemContextMenu}
         runningItems={recentItems}
         onRunningPinAt={handleRunningPinAt}
-        addItem={{ label: t('sidebar.addApp'), onClick: () => setAddAppOpen(true) }}
+        addItem={{ label: t('sidebar.moreApps'), onClick: () => setAddAppOpen(true) }}
         compact={compact}
         extraItems={portalNav}
         extraSectionLabel=""
