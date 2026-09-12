@@ -273,7 +273,8 @@ export function WeatherDetailTiles({ snap, unit, nowMs }: WeatherDetailTilesProp
   return <div className={styles.grid}>{tiles.map(tile => <div key={tile.key} className={styles.slot}>{tile.node}</div>)}</div>;
 }
 
-// Immersive cell: a fixed 2x2 that fills the cell without scrolling.
+// Immersive cell: two columns of equal-height rows filling the cell without
+// scrolling; the infographics shrink to the row height a phone leaves.
 export function WeatherDetailTileCell({ tiles }: { tiles: WeatherTile[] }) {
   return <div className={styles.cellGrid}>{tiles.map(tile => <div key={tile.key} className={styles.slot}>{tile.node}</div>)}</div>;
 }

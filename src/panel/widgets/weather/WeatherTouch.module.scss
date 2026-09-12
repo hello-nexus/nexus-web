@@ -13,8 +13,7 @@
   > * { flex: 0 0 auto; }
 }
 
-// The cell's one block owns the whole height (the place list, the daily list,
-// a tile grid).
+// The cell's one block owns the whole height (the daily list, the tile grid).
 .fill > * {
   flex: 1 1 auto;
   min-height: 0;

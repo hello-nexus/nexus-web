@@ -7,15 +7,20 @@
   gap: 0.75rem;
 }
 
-// Immersive: a fixed 2x2 that takes the whole cell, rows sharing the height.
+// Immersive: two columns taking the whole cell, rows sharing the height.
 .cellGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-rows: minmax(0, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
   width: 100%;
   height: 100%;
   min-height: 0;
+}
+
+// Landscape pages are short and wide: four columns, two rows.
+:global([data-orientation='landscape']) .cellGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .slot {
@@ -33,6 +38,22 @@
 
 .cellGrid .tile {
   min-height: 0;
+  padding: 0.5rem 0.65rem;
+
+  // Card's body wrapper sits between the tile and .tileBody; both must be
+  // shrinkable for the graphics below to give up height.
+  > :last-child { flex: 1 1 auto; min-height: 0; }
+
+  .tileTitle { font-size: var(--type-tiny); }
+  .big { font-size: var(--type-heading); }
+  .sub { font-size: var(--type-mini); }
+  // A third readout line (the precipitation tile's "expected tomorrow") does
+  // not fit a compact row.
+  .sub:nth-of-type(n+4) { display: none; }
+  // Graphics take whatever height the readouts leave; on a short phone row
+  // that is nothing, on the Y70 the full drawing.
+  .sunArc, .dial { flex: 1 1 0; min-height: 0; height: 100%; }
+  .compass { width: 4rem; height: 4rem; }
 }
 
 .tileTitle {
@@ -93,6 +114,7 @@
 }
 
 .sunArc {
+  flex: 0 0 auto;
   width: 100%;
   height: auto;
   max-height: 4.5rem;
@@ -165,6 +187,7 @@
 }
 
 .dial {
+  flex: 0 0 auto;
   width: 100%;
   height: auto;
   max-height: 4.5rem;

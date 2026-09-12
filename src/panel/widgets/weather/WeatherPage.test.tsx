@@ -197,32 +197,32 @@ describe('WeatherTouch', () => {
     resetWeatherSnapshotCache();
     api.fetchWeather.mockReset().mockImplementation((loc: WeatherLocation | null) => routeFetch(loc ? loc.label : ''));
     api.fetchWeatherPrefs.mockReset().mockResolvedValue({ unit: 'auto', locations: [BERLIN] });
-    api.saveWeatherPrefs.mockReset().mockImplementation((patch: Record<string, unknown>) =>
-      Promise.resolve({ unit: 'auto', locations: [BERLIN], ...patch }));
+    api.saveWeatherPrefs.mockReset();
   });
 
   function widget(config?: Record<string, unknown>): PanelWidget {
     return { id: 'w', type: 'weather', size: '4x4', col: 0, row: 0, config: config as PanelWidget['config'] };
   }
 
-  it('starts on the tile\'s configured place and keeps a pick that is not in the saved list', async () => {
+  it('shows only the tile\'s configured place: conditions, hourly, daily and tiles, no switcher', async () => {
     render(<WeatherTouch widget={widget({ location: TOKYO })} surface="y70" immersiveGrid={{ columns: 4, rows: 12 }} />);
     await flush();
-    const rows = within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option');
-    expect(rows.map(r => r.getAttribute('aria-selected'))).toEqual(['false', 'false', 'true']);
-    expect(within(rows[2]).getByText('Tokyo, JP')).toBeInTheDocument();
-    // Keyboard-less surface: no search box.
+    expect(screen.queryByRole('listbox')).toBeNull();
     expect(screen.queryByPlaceholderText('Search for a city...')).toBeNull();
+    expect(screen.getByText('Tokyo, JP')).toBeInTheDocument();
+    expect(screen.getByText('Feels like 25°')).toBeInTheDocument();
+    expect(screen.getByText('Hourly forecast')).toBeInTheDocument();
+    expect(screen.getByText('2-day forecast')).toBeInTheDocument();
+    expect(screen.getByText('Air quality')).toBeInTheDocument();
+    // The hero already carries feels-like, so that tile is left out.
+    expect(screen.queryByText('Feels like')).toBeNull();
+    expect(api.fetchWeatherPrefs).not.toHaveBeenCalled();
   });
 
-  it('switches place locally without touching the widget config', async () => {
+  it('falls back to the auto place and its resolved label without a configured location', async () => {
     render(<WeatherTouch widget={widget()} surface="phone" immersiveGrid={{ columns: 4, rows: 8 }} />);
     await flush();
-    const rows = within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option');
-    fireEvent.click(rows[1]);
-    await flush();
-    expect(rows[1]).toHaveAttribute('aria-selected', 'true');
-    expect(api.saveWeatherPrefs).not.toHaveBeenCalled();
-    expect(screen.getByPlaceholderText('Search for a city...')).toBeInTheDocument();
+    expect(api.fetchWeather).toHaveBeenCalledWith(null);
+    expect(screen.getByText('Trieste, IT')).toBeInTheDocument();
   });
 });
