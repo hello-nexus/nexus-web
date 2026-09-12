@@ -96,6 +96,25 @@ describe('GalleryPage', () => {
     expect(screen.getAllByLabelText('gallery.page.video')).toHaveLength(2);
   });
 
+  it('names a tile through the in-house tooltip, not the native title', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = [
+      { id: 'i1', name: 'a-very-long-photo-name.png', sourceId: 'Pictures', kind: 'image' },
+      { id: 'i2', name: 'b.mp4', sourceId: 'Pictures', kind: 'video' },
+    ];
+    const { container } = render(<GalleryPage />);
+    await screen.findByText('Pictures');
+
+    expect(container.querySelectorAll('[title]')).toHaveLength(0);
+    const tiles = container.querySelectorAll('figure');
+    // Focus opens the shared tooltip without the pointer-rest delay.
+    fireEvent.focus(tiles[1]);
+    // Clip tooltip carries the kind as its title line above the file name.
+    const tip = await screen.findByRole('tooltip');
+    expect(tip.textContent).toContain('gallery.page.video');
+    expect(tip.textContent).toContain('b.mp4');
+  });
+
   it('add-folder opens the native picker and adds the chosen path', async () => {
     const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
     render(<GalleryPage />);
