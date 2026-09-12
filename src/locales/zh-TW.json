@@ -1394,7 +1394,7 @@
   "frames.drill.deleteAllConfirmTitle": "刪除 {name} 的所有記錄？",
   "frames.drill.noSessions": "沒有記錄的工作階段",
   "frames.drill.timeline": "FPS 時間軸",
-  "frames.empty.hint": "在 FPS 追蹤開啟期間，遊玩滿 5 分鐘後工作階段即會自動記錄。",
+  "frames.empty.hint": "在 FPS 追蹤開啟期間，工作階段會自動記錄。",
   "frames.empty.title": "尚無工作階段",
   "frames.rig.title": "你的配置",
   "frames.session.deleteAria": "刪除此記錄",

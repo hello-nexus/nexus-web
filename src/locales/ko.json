@@ -1394,7 +1394,7 @@
   "frames.drill.deleteAllConfirmTitle": "{name}의 모든 기록을 삭제할까요?",
   "frames.drill.noSessions": "기록된 세션이 없습니다",
   "frames.drill.timeline": "FPS 타임라인",
-  "frames.empty.hint": "FPS 추적이 켜져 있는 동안 5분간 플레이하면 세션이 자동으로 기록됩니다.",
+  "frames.empty.hint": "FPS 추적이 켜져 있는 동안 세션이 자동으로 기록됩니다.",
   "frames.empty.title": "아직 세션이 없습니다",
   "frames.rig.title": "내 PC",
   "frames.session.deleteAria": "이 기록 삭제",

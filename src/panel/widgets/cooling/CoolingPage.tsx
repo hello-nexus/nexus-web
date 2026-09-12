@@ -1316,8 +1316,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     />
   );
 
+  // Sits at the right edge of the Curves header while Off is active, at the
+  // header's own control height so the row never grows when it appears.
   const offStatusCard = activeMode === 'off' ? (
-    <div className={styles.offStatus}
+    <div className={`${styles.offStatus} ${styles.offStatusHeader}`}
       role="status"
       aria-label={t('cooling.mode.off.banner')}>
       <Power size={13} aria-hidden />
@@ -1508,6 +1510,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
+          {offStatusCard}
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
@@ -1553,7 +1556,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               aria-hidden={calibrating || undefined}
               className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}
             >
-            {offStatusCard}
             {(() => {
               const disconnected = visibleChannels.filter(isFanDisconnected);
               const live = visibleChannels.filter(c => !isFanDisconnected(c));

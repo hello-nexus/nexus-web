@@ -395,6 +395,7 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_density', label: 'Cells', labelKey: 'lighting.controls.param.cells',  min: 3,   max: 30,  step: 1,    defaultValue: 12 },
       { name: 'u_pulse',   label: 'Pulse', labelKey: 'lighting.controls.param.pulse',  min: 0.0, max: 2.5, step: 0.05, defaultValue: 1.2 },
       { name: 'u_glow',    label: 'Glow', labelKey: 'lighting.controls.param.glow',   min: 0.2, max: 3.0, step: 0.05, defaultValue: 1.2 },
+      { name: 'u_spread',  label: 'Spread', labelKey: 'lighting.controls.param.spread', min: 0.0, max: 1.5, step: 0.05, defaultValue: 0.75 },
   ]},
   { key: 'oilslick',      labelKey: 'lighting.controls.oilslick',     params: [
       { name: 'u_flow',         label: 'Flow', labelKey: 'lighting.controls.param.flow',         min: 0.1, max: 3.0, step: 0.05, defaultValue: 1.5 },

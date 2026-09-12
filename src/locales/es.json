@@ -1394,7 +1394,7 @@
   "frames.drill.deleteAllConfirmTitle": "¿Eliminar todas las grabaciones de {name}?",
   "frames.drill.noSessions": "No hay sesiones registradas",
   "frames.drill.timeline": "Cronología de FPS",
-  "frames.empty.hint": "Las sesiones se registran automáticamente después de 5 minutos de juego mientras el seguimiento de FPS está activado.",
+  "frames.empty.hint": "Las sesiones se registran automáticamente mientras el seguimiento de FPS está activado.",
   "frames.empty.title": "Aún no hay sesiones",
   "frames.rig.title": "Tu equipo",
   "frames.session.deleteAria": "Eliminar esta grabación",

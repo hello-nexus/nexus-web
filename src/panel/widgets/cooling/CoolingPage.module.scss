@@ -9,10 +9,10 @@
   height: 100%;
 }
 
-// Notice banner that anchors the top of the fan list while the Off preset
-// is active. Accent-tinted to read as "this is why these fans aren't being
-// driven by the curves below" without taking the visual weight of a fan
-// card. Width tracks the fan list column.
+// Notice shown while the Off preset is active. Accent-tinted to read as
+// "this is why these fans aren't being driven by the curves" without taking
+// the visual weight of a fan card. The touch editor anchors it at the top of
+// its fan list; the desktop page places it in the Curves header (below).
 .offStatus {
   display: flex;
   align-items: center;
@@ -27,6 +27,16 @@
   cursor: default;
 }
 .offStatusLabel { letter-spacing: 0.02em; }
+// The desktop page's placement: right end of the Curves header, capped at the
+// same control height as the fan header's buttons so the two headers keep one
+// row height whether or not the notice is showing.
+.offStatusHeader {
+  margin-left: auto;
+  height: var(--size-sm);
+  padding-block: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 
 // ── Body ────────────────────────────────────────────────────────────────────
 // Two columns: the curve block (left) flexes, the fan sidebar (right) is a
