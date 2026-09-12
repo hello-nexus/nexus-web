@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, sanitizePinnedTail } from './sidebarApps';
-import { Boxes } from 'lucide-react';
+import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, sanitizePinnedTail, sanitizeRecents } from './sidebarApps';
+import { Boxes, Film } from 'lucide-react';
 import { appIconComponent } from '../components/icons/AppIconImage';
 import {
   _resetMarketplaceRegistryForTests,
@@ -80,6 +80,25 @@ describe('page-only apps (Store)', () => {
 
   it('is not in the default pinned tail', () => {
     expect(DEFAULT_PINNED_TAIL).not.toContain('store');
+  });
+});
+
+describe('page-only apps (Frames)', () => {
+  it('resolves sidebar meta from the page-only registry, not the widget registry', () => {
+    const meta = getSidebarAppMeta('frames');
+    expect(meta).not.toBeNull();
+    expect(meta!.i18nKey).toBe('panel.widget.frames');
+    expect((meta!.icon as ReactElement).type).toBe(Film);
+  });
+
+  it('keeps an existing pin and recents entry after leaving the widget registry', () => {
+    expect(isPinnableAppKey('frames')).toBe(true);
+    expect(sanitizePinnedTail(['frames'])).toEqual(['frames']);
+    expect(sanitizeRecents(['frames'])).toEqual(['frames']);
+  });
+
+  it('is not in the default pinned tail', () => {
+    expect(DEFAULT_PINNED_TAIL).not.toContain('frames');
   });
 });
 
