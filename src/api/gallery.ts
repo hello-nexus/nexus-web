@@ -1,8 +1,8 @@
-import { deleteService, fetchService, postService } from './service';
+import { deleteService, fetchService, postService, resolveHttp, tokenParam } from './service';
 
 // Per-system shared gallery: every panel surface of one PC reads the same
 // source set, and sources are pure path references - Nexus never stores or
-// deletes image bytes. Item/file reads are panel-accessible; source
+// deletes media bytes. Item/file reads are panel-accessible; source
 // management and the native picker are desktop-tier only.
 
 export type GallerySourceKind = 'file' | 'folder';
@@ -18,10 +18,16 @@ export interface GallerySource {
   excluded: string[];
 }
 
+// Decided by the service from the file extension. A video is only ever a
+// browser-native container (mp4/m4v/webm/mov): nothing transcodes, so the
+// panel's own <video> plays the referenced file as-is.
+export type GalleryItemKind = 'image' | 'video';
+
 export interface GalleryItem {
   id: string;
   name: string;
   sourceId: string;
+  kind: GalleryItemKind;
 }
 
 export interface GalleryPickResponse {
@@ -101,9 +107,22 @@ export function snapGalleryWidth(px: number): number {
 }
 
 // `width` requests a panel-sized JPEG instead of the user's original file.
-// The service falls back to the original whenever it cannot derive one
-// (animated/alpha formats, no ffmpeg), so callers never handle a resize error.
+// For an image the service falls back to the original whenever it cannot
+// derive one (animated/alpha formats, no ffmpeg), so callers never handle a
+// resize error. For a video the JPEG is a first-frame poster, and there is no
+// fallback: it 404s rather than hand the clip to an <img>.
 export function galleryItemFileUrl(id: string, width?: number): string {
   const path = `/gallery/items/${encodeURIComponent(id)}/file`;
   return typeof width === 'number' && width > 0 ? `${path}?w=${width}` : path;
+}
+
+// Direct URL for a <video src>. Unlike images, a clip is not pulled through
+// fetchServiceBlob: the element streams it with byte ranges, and a whole
+// clip as one in-memory blob is exactly what the panel WebViews cannot hold.
+// The session token rides as a query param, same as the panel background
+// video, because an element load cannot send a Bearer header.
+export function galleryItemVideoUrl(id: string): string {
+  const base = resolveHttp(galleryItemFileUrl(id));
+  const tok = tokenParam();
+  return tok ? `${base}?${tok}` : base;
 }

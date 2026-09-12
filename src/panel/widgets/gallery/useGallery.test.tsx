@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useGalleryRenderWidth } from './useGallery';
+import { filterGalleryItems, readGalleryMediaFilter, useGalleryRenderWidth } from './useGallery';
 
 vi.mock('../../../api/service', () => ({
   fetchServiceBlob: vi.fn(() => Promise.resolve(null)),
@@ -47,5 +47,25 @@ describe('useGalleryRenderWidth', () => {
     const { result } = renderHook(() => useGalleryRenderWidth());
     act(() => result.current.boxRef(boxPainting(0)));
     expect(result.current.width).toBe(640);
+  });
+});
+
+describe('gallery media filter', () => {
+  const list = [
+    { id: 'a', name: 'a.png', sourceId: 's', kind: 'image' as const },
+    { id: 'v', name: 'v.mp4', sourceId: 's', kind: 'video' as const },
+  ];
+
+  it('reads the config field and falls back to both for anything unknown', () => {
+    expect(readGalleryMediaFilter(undefined)).toBe('both');
+    expect(readGalleryMediaFilter({ media: 'videos' })).toBe('videos');
+    expect(readGalleryMediaFilter({ media: 'images' })).toBe('images');
+    expect(readGalleryMediaFilter({ media: 'nope' })).toBe('both');
+  });
+
+  it('narrows by kind and returns the same list untouched for both', () => {
+    expect(filterGalleryItems(list, 'both')).toBe(list);
+    expect(filterGalleryItems(list, 'images').map(i => i.id)).toEqual(['a']);
+    expect(filterGalleryItems(list, 'videos').map(i => i.id)).toEqual(['v']);
   });
 });

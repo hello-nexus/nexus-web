@@ -4,7 +4,7 @@ import { GalleryPage } from './GalleryPage';
 
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
-  items: [] as { id: string; name: string; sourceId: string }[],
+  items: [] as { id: string; name: string; sourceId: string; kind?: 'image' | 'video' }[],
   bridgeAvailable: false,
 }));
 
@@ -80,6 +80,20 @@ describe('GalleryPage', () => {
     expect(await screen.findByText('Pictures')).toBeTruthy();
     expect(screen.getByText('/home/user/Pictures')).toBeTruthy();
     expect(screen.getByText('gallery.page.itemCount:count=2')).toBeTruthy();
+  });
+
+  it('marks clips in the grid', async () => {
+    mockState.sources = [folderSource('Pictures'), fileSource('solo')];
+    mockState.items = [
+      { id: 'i1', name: 'a.png', sourceId: 'Pictures', kind: 'image' },
+      { id: 'i2', name: 'b.mp4', sourceId: 'Pictures', kind: 'video' },
+      { id: 'i3', name: 'solo.mp4', sourceId: 'solo', kind: 'video' },
+    ];
+    render(<GalleryPage />);
+    await screen.findByText('Pictures');
+
+    // One badge per clip, none on the image.
+    expect(screen.getAllByLabelText('gallery.page.video')).toHaveLength(2);
   });
 
   it('add-folder opens the native picker and adds the chosen path', async () => {

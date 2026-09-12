@@ -3,22 +3,26 @@ import type { WidgetSettingsProps } from '../types';
 import { SettingsRow, SettingsSelect, SettingsSection, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
-import { useGalleryItems } from './useGallery';
+import { filterGalleryItems, readGalleryMediaFilter, useGalleryItems } from './useGallery';
 import styles from './GallerySettings.module.scss';
 
 const INTERVAL_SECONDS = [5, 10, 15, 30, 60];
 
-// Per-instance display settings only. The image sources are per-system
+// Per-instance display settings only. The media sources are per-system
 // shared and managed on the gallery page, never from the edit sheet.
 export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const interval = String(((widget.config?.interval as number | undefined) ?? 10));
   const fit = ((widget.config?.fit as boolean | undefined) ?? false);
+  const mediaFilter = readGalleryMediaFilter(widget.config);
+  const finishVideos = ((widget.config?.finishVideos as boolean | undefined) ?? true);
   // Same config field the tile's nav arrows write, so a pick here and a pick
   // on the canvas or the device are the same edit.
   const pickedId = widget.config?.imageId as string | undefined;
-  const { items } = useGalleryItems();
+  const { items: allItems } = useGalleryItems();
+  // The picker steps through what the tile will actually show.
+  const items = filterGalleryItems(allItems, mediaFilter);
   const pickedIndex = pickedId ? items.findIndex(i => i.id === pickedId) : -1;
   const current = pickedIndex >= 0 ? pickedIndex : 0;
   const step = (delta: 1 | -1) => {
@@ -30,6 +34,19 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
   return (
     <div className={styles.settings}>
       <SettingsSection title={t('gallery.settings.title')}>
+        <SettingsSelect
+          label={t('gallery.settings.media')}
+          value={mediaFilter}
+          options={[
+            // eslint-disable-next-line i18next/no-literal-string -- config enum value
+            { value: 'both', label: t('gallery.settings.mediaBoth') },
+            // eslint-disable-next-line i18next/no-literal-string -- config enum value
+            { value: 'images', label: t('gallery.settings.mediaImages') },
+            // eslint-disable-next-line i18next/no-literal-string -- config enum value
+            { value: 'videos', label: t('gallery.settings.mediaVideos') },
+          ]}
+          onChange={v => onUpdate({ media: v })}
+        />
         <div className={styles.toggleReveal}>
           <SettingsSelect
             label={t('gallery.settings.mode')}
@@ -53,9 +70,17 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
               onChange={v => onUpdate({ interval: Number(v) })}
             />
           )}
+          {mode === 'slideshow' && mediaFilter !== 'images' && (
+            <SettingsToggle
+              label={t('gallery.settings.finishVideos')}
+              description={t('gallery.settings.finishVideosHint')}
+              checked={finishVideos}
+              onChange={v => onUpdate({ finishVideos: v })}
+            />
+          )}
         </div>
         {mode === 'single' && items.length > 0 && (
-          <SettingsRow label={t('gallery.settings.image')} description={items[current]?.name} descriptionBelow>
+          <SettingsRow label={t('gallery.settings.item')} description={items[current]?.name} descriptionBelow>
             <div className={styles.picker}>
               <Button
                 size="sm"

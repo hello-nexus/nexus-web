@@ -256,6 +256,23 @@
   }
 }
 
+// Marks a clip in the grid; its thumbnail is a poster frame and reads as a
+// still otherwise.
+.tileVideoBadge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, #000 65%, transparent);
+  color: #fff;
+  pointer-events: none;
+}
+
 .tilePlaceholder {
   width: 100%;
   aspect-ratio: 16 / 10;

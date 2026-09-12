@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
@@ -6,7 +6,10 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewWallpaperUri } from '../common/previewAssets';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
+import { galleryItemVideoUrl } from '../../../api/gallery';
 import {
+  filterGalleryItems,
+  readGalleryMediaFilter,
   recallGalleryPosition,
   rememberGalleryPosition,
   useGalleryImageLoader,
@@ -17,6 +20,8 @@ import type { WidgetProps } from '../types';
 import styles from './GalleryWidget.module.scss';
 
 const ARROW_HIDE_DELAY_MS = 2500;
+// Slack on top of a paced clip's own length before it counts as stalled.
+const VIDEO_STALL_GRACE_MS = 15_000;
 
 // Catalog preview fixture - one abstract-wallpaper data-URI, zero network.
 // Keep in sync with the viewer render; previewMode.test.tsx is the
@@ -24,8 +29,9 @@ const ARROW_HIDE_DELAY_MS = 2500;
 const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
 
 /**
- * Letterboxed image viewer over the per-system shared gallery. Images render
- * whole (object-fit: contain, black bars as needed). Prev/next tap zones span
+ * Letterboxed viewer over the per-system shared gallery. Images render whole
+ * (object-fit: contain, black bars as needed); a video plays muted in place
+ * of the image. Prev/next tap zones span
  * the left/right thirds; the chevrons fade in on use and back out after an
  * idle moment so the image stays clean. The center third carries no
  * interactive element - center-tap still enters immersive on panels and
@@ -36,6 +42,10 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   const preview = usePanelPreview();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
   const intervalMs = (((widget.config?.interval as number | undefined) ?? 10) * 1000);
+  const mediaFilter = readGalleryMediaFilter(widget.config);
+  // Slideshow only: a video runs to its end (looping while shorter than the
+  // interval) before the next item, instead of being cut at the tick.
+  const finishVideos = ((widget.config?.finishVideos as boolean | undefined) ?? true);
   // Tiles fill the cell (cover, no bars) unless the per-instance "fit" switch
   // is on; fullscreen always letterboxes so the whole photo is visible.
   const fitWhole = immersive || ((widget.config?.fit as boolean | undefined) ?? false);
@@ -50,7 +60,8 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
 
-  const { items, loaded } = useGalleryItems();
+  const { items: allItems, loaded } = useGalleryItems();
+  const items = useMemo(() => filterGalleryItems(allItems, mediaFilter), [allItems, mediaFilter]);
   // Images are fetched at the size this viewer actually paints, not at the
   // photo's own resolution: a full-resolution phone JPEG is megabytes the
   // panel has to pull over its transport and decode in its WebView.
@@ -133,7 +144,9 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
       if (!failedRef.current.has(item.id)) {
         const url = await load(item.id);
         if (seq !== navSeqRef.current) return;
-        if (url) {
+        // A video needs no blob to render - the element streams the clip
+        // itself - so a missing poster (no ffmpeg) is not a dead item.
+        if (url || item.kind === 'video') {
           pointerRef.current = next;
           rememberGalleryPosition(widget.id, item.id);
           setIndex(next);
@@ -172,13 +185,71 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   // that lands back on the same index can't strand the slideshow; manual nav
   // resets the cadence via navEpoch.
   const [navEpoch, setNavEpoch] = useState(0);
+  // While a video is playing to its end, its own ended handler paces the
+  // slideshow and the tick stays off - it re-arms fresh when an image lands,
+  // so that image gets its full interval.
+  const videoPaced = mode === 'slideshow' && finishVideos && current?.kind === 'video' && count > 1;
   useEffect(() => {
-    if (preview || mode !== 'slideshow' || count < 2) return;
+    if (preview || mode !== 'slideshow' || count < 2 || videoPaced) return;
     const timer = setInterval(() => {
       goTo(pointerRef.current + 1, 1);
     }, intervalMs);
     return () => clearInterval(timer);
-  }, [preview, mode, count, intervalMs, navEpoch, goTo]);
+  }, [preview, mode, count, intervalMs, navEpoch, goTo, videoPaced]);
+
+  // Completed plays of the current video. Whole plays only: a 3s clip on a
+  // 10s interval runs four times (12s) before the switch, a 20s clip on a 5s
+  // interval runs once.
+  const playsRef = useRef(0);
+  // Length of the current clip once its metadata has arrived; 0 until then.
+  const durationMsRef = useRef(0);
+  useEffect(() => {
+    playsRef.current = 0;
+    durationMsRef.current = 0;
+  }, [current?.id]);
+
+  // Ceiling for a paced clip: a stalled clip fires neither ended nor error, and
+  // with the tick off nothing else would ever move the slideshow on. Re-armed
+  // per play, so a long clip is never cut while it is actually playing.
+  const ceilingRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const armCeiling = useCallback(() => {
+    if (ceilingRef.current) clearTimeout(ceilingRef.current);
+    ceilingRef.current = setTimeout(() => {
+      goTo(pointerRef.current + 1, 1);
+    }, durationMsRef.current * 2 + VIDEO_STALL_GRACE_MS);
+  }, [goTo]);
+  useEffect(() => {
+    if (!videoPaced) return;
+    armCeiling();
+    return () => {
+      if (ceilingRef.current) clearTimeout(ceilingRef.current);
+    };
+  }, [videoPaced, current?.id, armCeiling]);
+
+  const onVideoMetadata = useCallback((video: HTMLVideoElement) => {
+    durationMsRef.current = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : 0;
+    if (videoPaced) armCeiling();
+  }, [videoPaced, armCeiling]);
+
+  const onVideoEnded = useCallback((video: HTMLVideoElement) => {
+    playsRef.current += 1;
+    // An unknown or zero duration cannot be paced; treat it as done.
+    const durationMs = durationMsRef.current || Infinity;
+    if (playsRef.current * durationMs >= intervalMs) {
+      goTo(pointerRef.current + 1, 1);
+    }
+    // Replays either way: the swap waits on the next still, and a lap that
+    // finds every other item dead never swaps at all.
+    video.currentTime = 0;
+    video.play()?.catch(() => {});
+    armCeiling();
+  }, [goTo, intervalMs, armCeiling]);
+
+  // autoplay alone is not reliable on a remounted <video> in the panel
+  // WebViews; the background-media layer kicks play() the same way.
+  const kickPlay = useCallback((el: HTMLVideoElement | null) => {
+    el?.play()?.catch(() => {});
+  }, []);
 
   // Arrow visibility: revealed by any nav tap, hidden again after idle.
   const [arrowsVisible, setArrowsVisible] = useState(false);
@@ -207,12 +278,16 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   if (loaded && count === 0) {
     // Desktop replaces the "add images on the gallery page" text with a button
     // straight to that page; device (no onSectionNavigate) keeps the text since
-    // there is nowhere to navigate to.
+    // there is nowhere to navigate to. A library the Show setting has emptied
+    // says so instead of claiming there is nothing to add.
+    const filteredOut = allItems.length > 0;
     return (
       <PanelWidgetEmpty
         icon={<ImageIcon size={22} />}
-        title={t('gallery.empty.title')}
-        text={onSectionNavigate ? undefined : t('gallery.empty.text')}
+        title={filteredOut
+          ? t(mediaFilter === 'videos' ? 'gallery.empty.noVideos' : 'gallery.empty.noImages')
+          : t('gallery.empty.title')}
+        text={onSectionNavigate || filteredOut ? undefined : t('gallery.empty.text')}
         action={onSectionNavigate ? (
           <Button size="sm" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>
             {t('gallery.manage')}
@@ -231,7 +306,28 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
       data-arrows-visible={arrowsVisible ? 'true' : 'false'}
       data-editor-preview={editorPreview ? 'true' : undefined}
     >
-      {url && current && (
+      {current?.kind === 'video' ? (
+        // Muted is what lets autoplay through everywhere. Loops unless the
+        // slideshow is pacing it; then the ended handler decides.
+        <video
+          key={current.id}
+          ref={kickPlay}
+          src={galleryItemVideoUrl(current.id)}
+          poster={url ?? undefined}
+          className={styles.image}
+          data-fit={fitWhole ? 'contain' : 'cover'}
+          autoPlay
+          muted
+          playsInline
+          loop={!videoPaced}
+          onLoadedMetadata={e => onVideoMetadata(e.currentTarget)}
+          onEnded={e => onVideoEnded(e.currentTarget)}
+          onError={() => {
+            failedRef.current.add(current.id);
+            goTo(index + 1, 1);
+          }}
+        />
+      ) : url && current && (
         <img
           key={current.id}
           src={url}
