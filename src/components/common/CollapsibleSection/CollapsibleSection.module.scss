@@ -24,10 +24,11 @@
 
 // Hover bar over the whole row; no borders. Title (with chevron) on the left,
 // values/buttons on the right.
+// No flex gap: a gap is dead space nothing owns, so each piece carries its
+// own spacing as padding and every pixel of the bar toggles.
 .header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   padding: 0.35rem 0.5rem;
   border-radius: var(--radius-sm);
   transition: background var(--ease-fast);
@@ -76,7 +77,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0;
+  padding: 0 0.4rem 0 0;
   border: 0;
   background: none;
   color: var(--text-dim);
@@ -119,10 +120,18 @@
   // Pin to the far end whether it rides inside the toggle button (the default,
   // whole-bar-clickable case) or sits beside it (rightInteractive).
   margin-left: auto;
+  padding-left: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: var(--text-dim);
+}
+
+// The badge after an editable title: spaced by padding, so the bar stays whole.
+.titleAfterSlot {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 0.4rem;
 }
 
 // Body wrapper; consumers supply their own inner layout, this just lets it

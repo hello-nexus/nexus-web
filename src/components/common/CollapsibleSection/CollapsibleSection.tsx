@@ -155,7 +155,7 @@ export function CollapsibleSection({
                  rest of the bar, so it is not dead and shows the hand. */
               <span className={`${styles.title} ${styles.titleSlot}`} onClick={onToggle}>{title}</span>
             )}
-            {titleAfter}
+            {titleAfter !== undefined && <span className={styles.titleAfterSlot}>{titleAfter}</span>}
             {/* Keeps the bar's empty run a toggle target now that the title owns
                 its own clicks. Hidden from a11y: the chevron is the control. */}
             <button
