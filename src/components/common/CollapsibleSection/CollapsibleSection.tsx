@@ -22,6 +22,7 @@ import styles from './CollapsibleSection.module.scss';
  */
 export function CollapsibleSection({
   title,
+  titleBefore,
   titleAfter,
   open,
   onToggle,
@@ -39,6 +40,9 @@ export function CollapsibleSection({
   children,
 }: {
   title: ReactNode;
+  /** Node rendered between the chevron and the title (a device glyph). Must
+   *  not contain interactive elements - it nests in the toggle button. */
+  titleBefore?: ReactNode;
   /** Node rendered immediately after the title text, inside the toggle. Sits
    *  outside the title's ellipsis so a trailing badge/icon stays visible when
    *  the title truncates. Must not contain interactive elements - it nests in
@@ -137,6 +141,7 @@ export function CollapsibleSection({
               {...(drag?.listeners ?? {})}
             >
               <Chevron className={styles.chevron} aria-hidden />
+              {titleBefore}
             </button>
             {rename.editing ? (
               <input
@@ -176,6 +181,7 @@ export function CollapsibleSection({
               {...(drag?.listeners ?? {})}
             >
               <Chevron className={styles.chevron} aria-hidden />
+              {titleBefore}
               <span className={styles.title}>{title}</span>
               {titleAfter}
               {right !== undefined && !rightInteractive && <span className={styles.right}>{right}</span>}

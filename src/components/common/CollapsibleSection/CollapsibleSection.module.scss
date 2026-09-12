@@ -37,13 +37,13 @@
     background: color-mix(in srgb, var(--surface) 50%, transparent);
   }
 
-  // A collapsed section keeps a fainter version of that fill so it reads as
-  // closed at a glance; hover still lifts it to the full fill.
+  // A collapsed section wears the hover fill so it reads as closed at a
+  // glance; hover lifts it to the full surface.
   &[data-collapsed='true'] {
-    background: color-mix(in srgb, var(--surface) 25%, transparent);
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
 
     &:hover {
-      background: color-mix(in srgb, var(--surface) 50%, transparent);
+      background: var(--surface);
     }
   }
 }
@@ -75,6 +75,7 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
+  gap: 0.4rem;
   padding: 0;
   border: 0;
   background: none;

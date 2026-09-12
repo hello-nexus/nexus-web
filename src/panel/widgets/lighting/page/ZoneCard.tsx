@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, FolderInput, FolderPlus, FolderMinus, Folder, Unlink, Link, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -7,6 +7,7 @@ import {
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
+import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -59,6 +60,9 @@ export interface BulkSelection {
   setControlled: (controlled: boolean) => void;
   setPower: (on: boolean) => void;
   identify: () => void;
+  /** Wraps the selection in a new group where it sits. Absent when the cards
+   *  sit in different containers, or the nesting limit or group cap forbids. */
+  group?: () => void;
 }
 
 /** Where a card sits under a {@link ZoneCardStack} header: every member seams
@@ -297,18 +301,9 @@ export function ZoneCard({
    *  Nexus (the Lian Li hub's per-LED "custom" mode). Gives a firmware-owned
    *  card its only menu row; absent, such a card stays menu-less. */
   onTakeControl?: () => void;
-  /** Group placement for the rail block this card belongs to, driving the
-   *  "Move to group" flyout. A card inside a hardware group moves the whole
-   *  block, the way dragging one does. */
-  groupMove?: {
-    /** User groups it can move into; the one it already sits in is left out. */
-    targets: readonly { id: string; name: string }[];
-    onMove: (groupId: string) => void;
-    /** Present only while the block sits in a user group; the row names it. */
-    onRemove?: { name: string; run: () => void };
-    /** Absent once the group cap is reached. */
-    onMoveToNew?: () => void;
-  };
+  /** Group placement for this card's rail row: the card, or the stack it is a
+   *  zone of. */
+  groupMove?: GroupMove;
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
   /** Onboarding selection mode: the whole card is a controlled/ignored
@@ -497,36 +492,7 @@ export function ZoneCard({
         });
       }
     }
-    const groupRows: DeviceMenuItem[] = [];
-    if (!bulk && groupMove) {
-      for (const target of groupMove.targets) {
-        groupRows.push({
-          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
-          onSelect: () => groupMove.onMove(target.id),
-        });
-      }
-      if (groupMove.onMoveToNew) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:new', icon: <FolderPlus size={14} />,
-          label: t('lighting.devices.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
-        });
-      }
-      if (groupMove.onRemove) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:none', icon: <FolderMinus size={14} />,
-          label: t('lighting.devices.removeFromGroup', { name: groupMove.onRemove.name }),
-          onSelect: groupMove.onRemove.run,
-        });
-      }
-    }
-    if (groupRows.length > 0) {
-      organise.push({
-        key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('lighting.devices.moveToGroup'), submenu: groupRows,
-      });
-    }
+    organise.push(...groupMenuItems(t, language, 'lighting.devices', groupMove, bulk));
     if (organise.length > 0) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push(...organise);

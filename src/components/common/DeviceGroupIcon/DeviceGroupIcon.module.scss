@@ -1,0 +1,21 @@
+// Sized to the compact group header's chevron so the two read as one row.
+.icon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: inherit;
+}
+
+// Curated SVG art drawn in the header's text colour, the Devices page's mask.
+.art {
+  display: inline-block;
+  background-color: currentColor;
+  mask-image: var(--icon-url);
+  -webkit-mask-image: var(--icon-url);
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+}

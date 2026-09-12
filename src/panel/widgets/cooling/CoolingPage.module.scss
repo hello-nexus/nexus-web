@@ -262,11 +262,11 @@
   &:hover {
     background: color-mix(in srgb, var(--surface) 50%, transparent);
   }
-  // A collapsed group keeps a fainter version of that fill.
+  // A collapsed group wears the hover fill; hover lifts it to the full surface.
   &[aria-expanded='false'] {
-    background: color-mix(in srgb, var(--surface) 25%, transparent);
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
     &:hover {
-      background: color-mix(in srgb, var(--surface) 50%, transparent);
+      background: var(--surface);
     }
   }
 }

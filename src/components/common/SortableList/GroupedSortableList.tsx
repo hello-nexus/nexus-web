@@ -18,7 +18,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, containerOf, moveTo, resolveDrop, sameArrangement, TAIL, type Arrangement, type NestingRules } from './groupedDrag';
 import { type SortableRowArgs } from './SortableList';
 import styles from './SortableList.module.scss';
 
@@ -36,10 +36,11 @@ import styles from './SortableList.module.scss';
  * move instead resizes the container the row just left, which re-measures,
  * flips the target back and loops forever.
  *
- * Nesting is one level: a group row reorders among its siblings and never
- * enters another group.
+ * A group's members may name another group, which renders nested with its own
+ * body. By default a group row only reorders among its siblings; with
+ * `nestGroups` it can be dropped into a top-level group, and no deeper.
  */
-export interface GroupedSortableListProps {
+export interface GroupedSortableListProps extends NestingRules {
   arrangement: Arrangement;
   /** Receives the whole new arrangement after a drop. */
   onArrange: (next: Arrangement) => void;
@@ -104,26 +105,28 @@ function DropTail() {
 /**
  * A group's body. The droppable is what lets a group with no members take a
  * row; once one is dragged in, the row itself is the landing spot, so nothing
- * fake is ever drawn.
+ * fake is ever drawn. A member that is itself a group renders through the
+ * same row renderer, body and all.
  */
-function GroupBody({ groupId, members, renderBlock }: {
+function GroupBody({ groupId, members, renderRow }: {
   groupId: string;
   members: string[];
-  renderBlock: GroupedSortableListProps['renderBlock'];
+  renderRow: (id: string, args: SortableRowArgs) => ReactNode;
 }) {
   const { setNodeRef } = useDroppable({ id: bodyDroppableId(groupId) });
   return (
     <SortableContext items={members} strategy={verticalListSortingStrategy}>
       <div ref={setNodeRef} className={styles.list} role="list">
-        {members.map(id => <Row key={id} id={id} render={renderBlock} />)}
+        {members.map(id => <Row key={id} id={id} render={renderRow} />)}
       </div>
     </SortableContext>
   );
 }
 
 export function GroupedSortableList({
-  arrangement, onArrange, renderBlock, renderGroup, className, ariaLabel,
+  arrangement, onArrange, renderBlock, renderGroup, className, ariaLabel, nestGroups, groupBlock, holdsGroup,
 }: GroupedSortableListProps) {
+  const rules: NestingRules = { nestGroups, groupBlock, holdsGroup };
   const [activeId, setActiveId] = useState<string | null>(null);
   // The arrangement as it stands mid-drag. Only cross-container moves write to
   // it; within one container dnd-kit previews the reorder itself.
@@ -140,17 +143,18 @@ export function GroupedSortableList({
   const collisionDetection: CollisionDetection = args => {
     const within = pointerWithin(args);
     const hits = within.length > 0 ? within : closestCenter(args);
-    if (!(String(args.active.id) in live.groupMembers)) return hits;
-    // A group can only land among the top-level rows, so a hit on a card inside
-    // some group means that group's row. Left as the member id, it is absent
-    // from the top-level list: dnd-kit previews nothing, snapping the gap back
-    // to where the group started, and the drop lands at the end.
+    const activeRow = String(args.active.id);
+    // A hit inside a container the depth rule forbids means the row of the
+    // group that owns it, up at a level the dragged row may sit in. Left as the
+    // member id, it is absent from every list the row can join: dnd-kit
+    // previews nothing, snapping the gap back to where the row started, and
+    // the drop lands at the end.
     const seen = new Set<string>();
     const rows = [];
     for (const hit of hits) {
       const id = String(hit.id);
-      const rowId = id === TAIL || live.rowIds.includes(id) ? id : dropContainer(live, id);
-      if (rowId === null || rowId === ROOT || seen.has(rowId)) continue;
+      const rowId = id === TAIL ? id : resolveDrop(live, activeRow, id, rules)?.overId ?? null;
+      if (rowId === null || seen.has(rowId)) continue;
       seen.add(rowId);
       rows.push({ ...hit, id: rowId });
     }
@@ -162,26 +166,36 @@ export function GroupedSortableList({
     if (!over) return;
     const movingId = String(active.id);
     const overId = String(over.id);
-    if (movingId in live.groupMembers) return; // a group never enters a group
     const from = containerOf(live, movingId);
-    const to = dropContainer(live, overId);
+    const to = resolveDrop(live, movingId, overId, rules)?.target ?? null;
     if (to === null || from === to) return;    // same container: dnd-kit previews it
-    const next = moveTo(live, movingId, overId);
+    const next = moveTo(live, movingId, overId, rules);
     if (!sameArrangement(live, next)) setWorking(next);
   };
 
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
-    const next = over ? moveTo(live, String(active.id), String(over.id)) : live;
+    const next = over ? moveTo(live, String(active.id), String(over.id), rules) : live;
     setActiveId(null);
     setWorking(null);
     if (!sameArrangement(arrangement, next)) onArrange(next);
   };
 
   // The group the dragged row is sitting in right now, so its shell can say so.
-  const insideGroup = activeId !== null && !(activeId in live.groupMembers)
+  const insideGroup = activeId !== null
     ? (id: string) => containerOf(live, activeId) === id
     : () => false;
+
+  // One renderer for any row: a group gets its shell around a body that renders
+  // its own rows the same way, so a nested group is nothing special.
+  const renderRow = (id: string, args: SortableRowArgs): ReactNode => id in live.groupMembers
+    ? renderGroup(
+        id,
+        args,
+        <GroupBody groupId={id} members={live.groupMembers[id] ?? []} renderRow={renderRow} />,
+        insideGroup(id),
+      )
+    : renderBlock(id, args);
 
   return (
     <DndContext
@@ -202,16 +216,7 @@ export function GroupedSortableList({
           aria-label={ariaLabel}
           role="list"
         >
-          {live.rowIds.map(id => id in live.groupMembers
-            ? (
-              <Row key={id} id={id} render={(rowId, args) => renderGroup(
-                rowId,
-                args,
-                <GroupBody groupId={rowId} members={live.groupMembers[rowId] ?? []} renderBlock={renderBlock} />,
-                insideGroup(rowId),
-              )} />
-            )
-            : <Row key={id} id={id} render={renderBlock} />)}
+          {live.rowIds.map(id => <Row key={id} id={id} render={renderRow} />)}
           {activeId !== null && <DropTail />}
         </div>
       </SortableContext>

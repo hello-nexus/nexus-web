@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodyDroppableId, containerOf, dropContainer, moveTo, ROOT, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
+import { bodyDroppableId, containerOf, dropContainer, moveTo, resolveDrop, ROOT, sameArrangement, TAIL, type Arrangement } from './groupedDrag';
 
 const arr = (): Arrangement => ({
   rowIds: ['a', 'g1', 'b'],
@@ -84,7 +84,7 @@ describe('moveTo', () => {
     expect(next.rowIds).toEqual(['g1', 'a', 'b']);
   });
 
-  it('never nests a group inside another group', () => {
+  it('never nests a group inside another group with nesting off', () => {
     const next = moveTo(arr(), 'g2', 'd');
     expect(next.groupMembers.g1).toEqual(['c', 'd']);
     expect(next.rowIds).toContain('g2');
@@ -195,5 +195,92 @@ describe('moveTo direction', () => {
   it('reorders upward inside a group', () => {
     const arrangement: Arrangement = { rowIds: ['g1'], groupMembers: { g1: ['x', 'y', 'z'] } };
     expect(moveTo(arrangement, 'z', 'y').groupMembers.g1).toEqual(['x', 'z', 'y']);
+  });
+});
+
+// With nesting on, a group may enter a top-level group and no further: the
+// tree stays two deep whichever way it is built.
+describe('moveTo with nesting on', () => {
+  const nest = { nestGroups: true };
+  // g1 holds a card and the nested group n; g2 is a top-level sibling.
+  const tree = (): Arrangement => ({
+    rowIds: ['a', 'g1', 'g2'],
+    groupMembers: { g1: ['c', 'n'], n: ['d'], g2: ['e'] },
+  });
+
+  it('drops a group into a top-level group at the slot of the card under the pointer', () => {
+    const next = moveTo(tree(), 'g2', 'c', nest);
+    expect(next.rowIds).toEqual(['a', 'g1']);
+    expect(next.groupMembers.g1).toEqual(['g2', 'c', 'n']);
+    expect(next.groupMembers.g2).toEqual(['e']);
+  });
+
+  it('drops a group into a top-level group through its header', () => {
+    const next = moveTo(tree(), 'g2', 'g1', nest);
+    expect(next.groupMembers.g1).toEqual(['c', 'n', 'g2']);
+  });
+
+  it('keeps a group that already holds a group at the top level, beside the group under the pointer', () => {
+    const next = moveTo(tree(), 'g1', 'e', nest);
+    expect(next.rowIds).toEqual(['a', 'g2', 'g1']);
+    expect(next.groupMembers.g2).toEqual(['e']);
+  });
+
+  it('settles a group beside a nested group instead of entering it', () => {
+    const next = moveTo(tree(), 'g2', 'd', nest);
+    expect(next.groupMembers.g1).toEqual(['c', 'g2', 'n']);
+    expect(next.groupMembers.n).toEqual(['d']);
+  });
+
+  it('lifts a nested group out to the top level', () => {
+    const next = moveTo(tree(), 'n', 'a', nest);
+    expect(next.rowIds).toEqual(['n', 'a', 'g1', 'g2']);
+    expect(next.groupMembers.g1).toEqual(['c']);
+    expect(next.groupMembers.n).toEqual(['d']);
+  });
+
+  it('never drops a group into itself or its own child', () => {
+    expect(moveTo(tree(), 'g1', 'd', nest)).toEqual(tree());
+    expect(moveTo(tree(), 'g1', bodyDroppableId('n'), nest)).toEqual(tree());
+  });
+
+  it('lets a group block into a top-level group but not a nested one', () => {
+    const rules = { nestGroups: true, groupBlock: (id: string) => id === 'a' };
+    expect(moveTo(tree(), 'a', 'c', rules).groupMembers.g1).toEqual(['a', 'c', 'n']);
+    const next = moveTo(tree(), 'a', 'd', rules);
+    expect(next.groupMembers.g1).toEqual(['c', 'a', 'n']);
+    expect(next.groupMembers.n).toEqual(['d']);
+  });
+
+  it('keeps a group block that holds a group at the top level', () => {
+    const rules = { nestGroups: true, groupBlock: (id: string) => id === 'a', holdsGroup: (id: string) => id === 'a' };
+    const next = moveTo(tree(), 'a', 'c', rules);
+    expect(next.rowIds).toEqual(['g1', 'a', 'g2']);
+    expect(next.groupMembers.g1).toEqual(['c', 'n']);
+  });
+
+  it('keeps a group holding a group block at the top level', () => {
+    const holder: Arrangement = { rowIds: ['h', 'g1'], groupMembers: { h: ['mb'], g1: ['c'] } };
+    const rules = { nestGroups: true, groupBlock: (id: string) => id === 'mb' };
+    expect(moveTo(holder, 'h', 'c', rules).rowIds).toEqual(['g1', 'h']);
+  });
+
+  it('still lets a plain card into a nested group', () => {
+    const next = moveTo(tree(), 'a', 'd', nest);
+    expect(next.groupMembers.n).toEqual(['a', 'd']);
+  });
+});
+
+describe('resolveDrop', () => {
+  it('reports the container a card would enter', () => {
+    expect(resolveDrop(arr(), 'a', 'd')).toEqual({ overId: 'd', target: 'g1' });
+  });
+
+  it('climbs to the group\'s own slot when the depth rule forbids the container', () => {
+    expect(resolveDrop(arr(), 'g2', 'd')).toEqual({ overId: 'g1', target: ROOT });
+  });
+
+  it('is null for an unknown target', () => {
+    expect(resolveDrop(arr(), 'a', 'nope')).toBeNull();
   });
 });
