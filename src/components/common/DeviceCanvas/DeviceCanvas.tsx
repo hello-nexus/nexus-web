@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Eye, Group, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
+import { Eye, Layers, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -698,11 +698,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     return () => { alive = false; };
   }, []);
 
-  // The cards the frame stands for beyond its own, as "+N" beside the link
-  // glyph, with the full count for the label's accessible name.
+  // How many cards the frame stands for, beside the link glyph, with the
+  // full sentence for the label's accessible name.
   const linkLabel = (dev: LightingDevice): { text: string; aria: string } | null => {
     const n = linkedWith(dev.id).length;
-    return n > 1 ? { text: `+${n - 1}`, aria: t(pluralKey('lighting.devices.linkedCount', language, n), { count: n }) } : null;
+    return n > 1 ? { text: String(n), aria: t(pluralKey('lighting.devices.linkedCount', language, n), { count: n }) } : null;
   };
   // A link made from a header carries that header's name; one made from a
   // selection wears its first member's.
@@ -829,7 +829,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
                 const link = linkLabel(dev);
                 return link && (
                   <span className={styles.deviceLabelLinked} role="img" aria-label={link.aria}>
-                    <Group size={11} aria-hidden />{link.text}
+                    <Layers size={11} aria-hidden />{link.text}
                   </span>
                 );
               })()}

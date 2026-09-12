@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Group, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -593,7 +593,7 @@ export function ZoneCard({
         {linked && (
           <HoverTooltip body={t(pluralKey('lighting.devices.linkedCount', language, linked.count), { count: linked.count })} side="top">
             <span className={styles.deviceLinked} aria-label={t(pluralKey('lighting.devices.linkedCount', language, linked.count), { count: linked.count })}>
-              <Group size={12} aria-hidden />
+              <Layers size={12} aria-hidden />
             </span>
           </HoverTooltip>
         )}
