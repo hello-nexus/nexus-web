@@ -105,6 +105,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     setCollapsedGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
   const blocks = buildDeviceBlocks(devices);
+  const every = allDevices ?? devices;
 
   // Block-level ids for the top-level list: single device id for singles,
   // groupKey for stacks and hardware groups.
@@ -297,9 +298,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   };
 
   // The same gate a card's own click has, over a group's members.
-  const fwOf = (d: LightingDevice) => !!lianLiFirmwareActive && d.id.startsWith('lianli:');
-  const selectAllFor = (members: readonly LightingDevice[], fwControlled = false) => {
-    const ids = members.filter(z => !zoneCardUnavailable(z) && !fwControlled && !fwOf(z)).map(z => z.id);
+  const fwOf = (d: LightingDevice) => (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))
+    || (!!smartHubFirmwareControl && !!d.parentDeviceId?.startsWith('smarthub:'));
+  const selectAllFor = (members: readonly LightingDevice[]) => {
+    const ids = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
     return ids.length > 0 ? { count: ids.length, run: () => onSetSelection(new Set(ids), ids[0]) } : undefined;
   };
 
@@ -455,7 +457,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
         leftAction={leftAction} hideLights={fwOn}
         notice={noticeFor(members[0])}
-        onSelectAll={selectAllFor(members, isSmartHub && fwOn)}
+        onSelectAll={selectAllFor(members)}
         groupMove={blockGroupMove(groupKey)}
         drag={a ?? undefined}>
         <GroupedSortableList
@@ -468,6 +470,9 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
             const held = devicesOfRows(inner.groupMembers[groupId] ?? []);
             const heldOn = held.some(z => z.ledsOn);
             const heldControlled = held.some(z => z.controlled !== false);
+            // Off the unfiltered list, the same way the top-level group counts.
+            const heldAll = group.members.flatMap(m => every.filter(d => d.id === m || `mb:${d.deviceId || d.id}` === m));
+            if (hidingUncontrolled && heldAll.length > 0 && heldAll.every(d => d.controlled === false)) return null;
             return (
               <MotherboardGroup
                 parentName={group.name}
@@ -480,12 +485,12 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
                 onToggleCollapsed={() => toggleCollapsed(groupId)}
                 onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
-                onSelectAll={selectAllFor(held, isSmartHub && fwOn)}
+                onSelectAll={selectAllFor(held)}
                 hideLights={fwOn}
                 dropTarget={isDropTarget}
                 empty={held.length === 0}
                 count={held.length}
-                hasUncontrolled={held.some(d => d.controlled === false)}
+                hasUncontrolled={heldAll.some(d => d.controlled === false)}
                 drag={ga}
               >
                 {children}
@@ -508,7 +513,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     onDeviceReorder(next.rowIds.flatMap(expand));
   };
 
-  const every = allDevices ?? devices;
+
   // The same block keying over the unfiltered list, so a group header can
   // resolve members the rail is currently hiding.
   const allBlocks = every === devices ? blocks : buildDeviceBlocks(every);

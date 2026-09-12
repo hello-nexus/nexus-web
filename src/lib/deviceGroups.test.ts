@@ -434,6 +434,15 @@ describe('cyclic parents', () => {
   it('never recurse forever on hand-edited data', () => {
     expect(containerDepth(loop, 'a')).toBe(2);
     expect(hardwareContainerOf(loop, 'a')).toBeNull();
-    expect(groupedRows(['x', 'y', 'z'], idOf, loop).map(r => r.id)).toEqual(['z']);
+    expect(groupedRows(['x', 'y', 'z'], idOf, loop).map(r => r.id)).toEqual(['x', 'y', 'z']);
+  });
+});
+
+describe('a row whose group sits in another container', () => {
+  it('renders plain instead of vanishing', () => {
+    // A zone claimed by a group inside a hardware group, seen at the top level.
+    expect(groupedRows(['r1', 'x'], idOf, [{ id: 'n', name: 'N', parent: 'mb:P', members: ['r1'] }]).map(r => r.id)).toEqual(['r1', 'x']);
+    // A hardware group's zone claimed by a top-level group.
+    expect(groupedRows(['z1', 'z2'], idOf, [{ id: 'g', name: 'G', members: ['z1'] }], 'hw').map(r => r.id)).toEqual(['z1', 'z2']);
   });
 });

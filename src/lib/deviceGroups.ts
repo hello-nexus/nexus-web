@@ -119,12 +119,14 @@ export function groupedRows<B>(
     emitAnchored('');
     for (const id of pool) {
       const ownerId = owner.get(id);
-      if (ownerId !== undefined && ownerId !== at) {
+      // An owner whose chain never surfaces here (its container is gone, or
+      // the row moved levels) leaves the row rendered plain, never dropped.
+      const group = ownerId !== undefined && ownerId !== at ? surfaceIn(ownerId, at) : null;
+      if (group) {
         // An anchor is where the user dropped the group, so it outranks the
         // member fallback: emitting at the first member would drag the group
         // back up whenever a member sits earlier in the rail than the anchor.
-        const group = surfaceIn(ownerId, at);
-        if (group && group.after == null) emit(group.id);
+        if (group.after == null) emit(group.id);
         emitAnchored(id);
         continue;
       }

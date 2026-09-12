@@ -1,4 +1,4 @@
-import { CircuitBoard, Fan, Gpu, Lightbulb, MemoryStick, type LucideIcon } from 'lucide-react';
+import { CircuitBoard, Fan, Gpu, Lightbulb, type LucideIcon } from 'lucide-react';
 import styles from './DeviceGroupIcon.module.scss';
 
 type Look = { glyph: LucideIcon } | { art: string };
@@ -26,7 +26,7 @@ const PREFIX_LOOK: ReadonlyArray<readonly [prefix: string, look: Look]> = [
 const TYPE_LOOK: Record<string, Look> = {
   motherboard: { glyph: CircuitBoard },
   gpu: { glyph: Gpu },
-  dram: { glyph: MemoryStick },
+  dram: art('memory.svg'),
   cooler: { glyph: Fan },
   fan: { glyph: Fan },
   bulb: { glyph: Lightbulb },
@@ -45,7 +45,7 @@ function lookFor(id: string, iconType: string | undefined): Look {
 
 /**
  * The glyph a hardware group's header carries: curated art for a known device
- * id, a generic board / GPU / RAM mark for an OpenRGB type, else the generic
+ * id, a generic board / GPU mark or the RAM art for an OpenRGB type, else the generic
  * device. `id` is the group's device id (the cooling rail's `motherboard` block
  * included) and `iconType` the service's type name for its members.
  */

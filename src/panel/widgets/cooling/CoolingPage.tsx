@@ -1581,8 +1581,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 const bucket = allByBlock.get(key);
                 if (bucket) bucket.push(ch); else allByBlock.set(key, [ch]);
               }
-              const blockChannels = (blockIdList: readonly string[]) =>
-                blockIdList.flatMap(b => allByBlock.get(b) ?? []);
               const groupBlockIds = (groupId: string) =>
                 fanGroups.find(g => g.id === groupId)?.members ?? [];
               // Every fan lands in a block: its device, or the synthetic block
@@ -1729,8 +1727,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 // A group holding nothing the eye lets through goes with its
                 // members. One the user just made is empty, not hidden, so it
                 // stays put as a drop target. Nested groups count with their parent.
+                // A top-level group holds blocks, one inside a block holds fans.
                 const allIn = (id: string): FanChannel[] => [
-                  ...blockChannels(groupBlockIds(id)),
+                  ...groupBlockIds(id).flatMap(m => allByBlock.get(m) ?? orderedChannels.filter(c => c.id === m)),
                   ...groupsIn(fanGroups, id).flatMap(g => allIn(g.id)),
                 ];
                 const groupAll = allIn(groupId);
