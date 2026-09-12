@@ -1253,7 +1253,7 @@
 
 // The stack badge on a card stacked with others; sits in the name row's
 // corner, as wide as the menu button below it so the two glyphs share a column.
-.deviceLinked {
+.deviceStackBadge {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -1264,7 +1264,7 @@
   color: var(--text-dim);
   transition: color var(--ease-fast);
 
-  // Lit on a selected card, so the reason the whole link lit up is in view.
+  // Lit on a selected card, so the reason the whole stack lit up is in view.
   .deviceCardSelected & { color: var(--text); }
 }
 
@@ -1562,7 +1562,7 @@
   justify-content: center;
   gap: 0.75rem;
   // Matches DeviceCanvas dark frame dimensions; 21:9-capped width, plus the
-  // height and pad that seat the guide link below the centred group.
+  // height and pad that seat the guide stack below the centred group.
   height: 230px;
   padding-bottom: 1.9rem;
   width: min(100%, calc(380px * 21 / 9));

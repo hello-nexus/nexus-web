@@ -129,8 +129,8 @@
   pointer-events: none;
 }
 
-// Under a linked frame's name: the stack glyph and how many cards the frame stands for.
-.deviceLabelLinked {
+// Under a stacked frame's name: the stack glyph and how many cards the frame stands for.
+.deviceLabelStacked {
   display: flex;
   align-items: center;
   justify-content: center;

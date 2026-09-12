@@ -12,7 +12,7 @@ import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
 import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
-import { linkMenuItems, type LinkActions } from './groupMenuItems';
+import { stackMenuItems, type StackActions } from './groupMenuItems';
 import type { DeviceGroup } from '../../../lib/deviceGroups';
 import styles from './DeviceCanvas.module.scss';
 
@@ -66,11 +66,11 @@ interface DeviceCanvasProps {
   gpuState?: GpuState;
   /** Absent when the box has no second card to fall back to. */
   onPickRenderGpu?: () => void;
-  /** Cards linked to one frame: the first member drawn stands for the set, and
+  /** Cards stacked to one frame: the first member drawn stands for the set, and
    *  every layout edit on that frame lands on all of them. */
-  links?: DeviceGroup[];
-  /** The link rows the frame menu offers over its targets. */
-  linkActionsFor?: (ids: string[]) => LinkActions;
+  stacks?: DeviceGroup[];
+  /** The stack rows the frame menu offers over its targets. */
+  stackActionsFor?: (ids: string[]) => StackActions;
 }
 
 const CW = 1000;
@@ -249,10 +249,10 @@ const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW,
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, links, linkActionsFor }: {
-  /** Every device, hidden frames included: a hidden link member still moves with its frame. */
+const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, stacks, stackActionsFor }: {
+  /** Every device, hidden frames included: a hidden stack member still moves with its frame. */
   devices: LightingDevice[];
-  /** Frames the eye is hiding: never drawn, never hit, but linked ones follow their frame. */
+  /** Frames the eye is hiding: never drawn, never hit, but stacked ones follow their frame. */
   hiddenIds: Set<string>;
   selectedIds: Set<string>;
   primaryDeviceId: string | null;
@@ -265,23 +265,23 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   onBeforeLayoutSave?: () => void;
   onLayoutCommit?: () => void;
   onSetDevicesPower?: (ids: string[], on: boolean) => void;
-  links?: DeviceGroup[];
-  linkActionsFor?: (ids: string[]) => LinkActions;
+  stacks?: DeviceGroup[];
+  stackActionsFor?: (ids: string[]) => StackActions;
 }) {
   const { t, language } = useTranslation();
-  // Link members, self included; the first shown one owns the frame.
-  const linkedWith = useCallback((id: string): string[] => links?.find(l => l.members.includes(id))?.members ?? [id], [links]);
+  // Stack members, self included; the first shown one owns the frame.
+  const stackedWith = useCallback((id: string): string[] => stacks?.find(l => l.members.includes(id))?.members ?? [id], [stacks]);
   const frameOwner = useCallback((id: string): string => {
-    const members = linkedWith(id);
+    const members = stackedWith(id);
     return members.length > 1 ? devices.find(d => members.includes(d.id) && !hiddenIds.has(d.id))?.id ?? id : id;
-  }, [devices, hiddenIds, linkedWith]);
+  }, [devices, hiddenIds, stackedWith]);
   const drawn = devices.filter(d => !hiddenIds.has(d.id) && frameOwner(d.id) === d.id);
-  // `ids` with every link filled in, over the devices the canvas holds.
-  const withLinks = useCallback((ids: Iterable<string>): LightingDevice[] => {
+  // `ids` with every stack filled in, over the devices the canvas holds.
+  const withStacks = useCallback((ids: Iterable<string>): LightingDevice[] => {
     const all = new Set<string>();
-    for (const id of ids) for (const m of linkedWith(id)) all.add(m);
+    for (const id of ids) for (const m of stackedWith(id)) all.add(m);
     return devices.filter(d => all.has(d.id));
-  }, [devices, linkedWith]);
+  }, [devices, stackedWith]);
   const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
   onBeforeLayoutSaveRef.current = onBeforeLayoutSave;
   const onLayoutCommitRef = useRef(onLayoutCommit);
@@ -297,8 +297,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     /** Set iff this is a group drag. Maps id -> orig top-left rect. The dragged
      *  frame is included so the iteration is uniform. */
     groupOrigs?: Map<string, { x: number; y: number; w: number; h: number }>;
-    /** The group is one link, not a multi-selection: a tap still cycles the stack. */
-    linkOnly?: boolean;
+    /** The group is one stack, not a multi-selection: a tap still cycles the stack. */
+    stackOnly?: boolean;
   } | null>(null);
   // Marquee state. preIds + additive let a Cmd/Ctrl-drag merge with the previous
   // selection so the user can refine a multi-select instead of starting over.
@@ -381,7 +381,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     onDragActiveChange?.(true);
     const p = toCanvas(e.clientX, e.clientY);
     // Group drag triggers when the user grabs a frame that's already part of a
-    // multi-selection (size >= 2), and always carries the frame's link.
+    // multi-selection (size >= 2), and always carries the frame's stack.
     // Otherwise we collapse the selection to just the grabbed frame (matches
     // "click an unselected thing → select only it").
     const shownSelection = [...selectedIds].filter(id => !hiddenIds.has(id));
@@ -389,25 +389,25 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     if (!inSelection) {
       onSelectDevice(dev.id);
     }
-    const dragged = withLinks(inSelection ? shownSelection : [dev.id]);
+    const dragged = withStacks(inSelection ? shownSelection : [dev.id]);
     const isGroup = mode === 'move' && dragged.length >= 2;
     const groupOrigs = isGroup
       ? new Map<string, { x: number; y: number; w: number; h: number }>(
           dragged.map(d => [d.id, { x: d.canvasX, y: d.canvasY, w: d.canvasW, h: d.canvasH }])
         )
       : undefined;
-    setDrag({ id: dev.id, mode, startX: p.x, startY: p.y, origX: dev.canvasX, origY: dev.canvasY, origW: dev.canvasW, origH: dev.canvasH, groupOrigs, linkOnly: isGroup && !inSelection });
-  }, [toCanvas, onSelectDevice, onDragActiveChange, selectedIds, hiddenIds, withLinks]);
+    setDrag({ id: dev.id, mode, startX: p.x, startY: p.y, origX: dev.canvasX, origY: dev.canvasY, origW: dev.canvasW, origH: dev.canvasH, groupOrigs, stackOnly: isGroup && !inSelection });
+  }, [toCanvas, onSelectDevice, onDragActiveChange, selectedIds, hiddenIds, withStacks]);
 
   // Cmd/Ctrl+click on a frame: toggle membership without starting a drag. Plain
-  // click on a frame still falls through to startDrag. A link toggles whole.
+  // click on a frame still falls through to startDrag. A stack toggles whole.
   const handleFramePointerDown = useCallback((e: React.PointerEvent, dev: LightingDevice, viaLabel = false) => {
     if (e.button !== 0) return; // right-click is handled by onContextMenu, not selection
     if (isMultiSelectModifier(e)) {
       e.preventDefault(); e.stopPropagation();
       const next = new Set(selectedIds);
       if (next.has(dev.id)) {
-        for (const m of linkedWith(dev.id)) next.delete(m);
+        for (const m of stackedWith(dev.id)) next.delete(m);
         // Removed primary: pick any remaining id as the new primary, prefer
         // the topmost (last in devices array) so LED dots track to a visible
         // frame. Empty set → primary null.
@@ -420,7 +420,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
         }
         onSetSelection(next, nextPrimary);
       } else {
-        for (const m of linkedWith(dev.id)) next.add(m);
+        for (const m of stackedWith(dev.id)) next.add(m);
         // Newly-toggled-in id becomes primary so the side panel + LED dots
         // follow the user's latest interaction.
         onSetSelection(next, dev.id);
@@ -428,7 +428,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
       return;
     }
     startDrag(e, dev, 'move', viaLabel);
-  }, [selectedIds, primaryDeviceId, devices, onSetSelection, startDrag, linkedWith]);
+  }, [selectedIds, primaryDeviceId, devices, onSetSelection, startDrag, stackedWith]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (marquee) {
@@ -505,13 +505,13 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     } else {
       dev.canvasW = Math.max(60, Math.min(CW - PAD - dev.canvasX, drag.origW + dx));
       dev.canvasH = Math.max(60, Math.min(CH - PAD - dev.canvasY, drag.origH + dy));
-      for (const m of linkedWith(dev.id)) {
-        const linked = devices.find(d => d.id === m);
-        if (linked && linked !== dev) { linked.canvasW = dev.canvasW; linked.canvasH = dev.canvasH; }
+      for (const m of stackedWith(dev.id)) {
+        const stacked = devices.find(d => d.id === m);
+        if (stacked && stacked !== dev) { stacked.canvasW = dev.canvasW; stacked.canvasH = dev.canvasH; }
       }
     }
     forceRender(n => n + 1);
-  }, [drag, marquee, devices, drawn, toCanvas, onSetSelection, linkedWith]);
+  }, [drag, marquee, devices, drawn, toCanvas, onSetSelection, stackedWith]);
 
   const handlePointerUp = useCallback(async () => {
     if (marquee) {
@@ -548,7 +548,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     } else {
       const dev = devices.find(d => d.id === drag.id);
       if (dev) {
-        const members = linkedWith(dev.id);
+        const members = stackedWith(dev.id);
         await Promise.all(devices.filter(d => members.includes(d.id)).map(d =>
           saveDeviceLayout(d.id, d.canvasX, d.canvasY, d.canvasW, d.canvasH, d.canvasRotation ?? 0),
         ));
@@ -560,11 +560,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     // A group is what a DRAG acts on; a tap that never moved narrows the focus
     // to the one frame it landed on. Without this the default "every frame
     // focused" state swallows the click that is meant to single one out.
-    if (drag.groupOrigs && !drag.linkOnly && tap && !tap.moved) { onSelectDevice(drag.id); return; }
+    if (drag.groupOrigs && !drag.stackOnly && tap && !tap.moved) { onSelectDevice(drag.id); return; }
     // Tap-cycle (no drag, no group): step through the stack at the click point.
     // A tap on a name names its device outright, so it must not cycle - the
     // label is the escape hatch from having to guess the stacking order.
-    if (!tap || tap.moved || tap.viaLabel || (drag.groupOrigs && !drag.linkOnly)) return;
+    if (!tap || tap.moved || tap.viaLabel || (drag.groupOrigs && !drag.stackOnly)) return;
     const stack = [...drawn].reverse().filter(d =>
       drag.startX >= d.canvasX && drag.startX <= d.canvasX + d.canvasW &&
       drag.startY >= d.canvasY && drag.startY <= d.canvasY + d.canvasH
@@ -573,7 +573,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     if (idx === -1) return; // fresh selection: topmost already selected via startDrag
     if (idx === stack.length - 1) { onSelectDevice(null); return; } // bottom of stack: deselect
     onSelectDevice(stack[idx + 1].id); // step one level deeper
-  }, [drag, marquee, devices, drawn, linkedWith, onSelectDevice, onSetSelection, onDragActiveChange]);
+  }, [drag, marquee, devices, drawn, stackedWith, onSelectDevice, onSetSelection, onDragActiveChange]);
 
   // Mutates dev's rect in place by one 90° step; no save/render side effects so
   // group rotation can apply it to every target before a single batched save.
@@ -698,22 +698,22 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     return () => { alive = false; };
   }, []);
 
-  // How many cards the frame stands for, beside the link glyph, with the
+  // How many cards the frame stands for, beside the stack glyph, with the
   // full sentence for the label's accessible name.
-  const linkLabel = (dev: LightingDevice): { text: string; aria: string } | null => {
-    const n = linkedWith(dev.id).length;
+  const stackLabel = (dev: LightingDevice): { text: string; aria: string } | null => {
+    const n = stackedWith(dev.id).length;
     return n > 1 ? { text: String(n), aria: t(pluralKey('lighting.devices.stackedCount', language, n), { count: n }) } : null;
   };
   // A stacked frame names the member whose LEDs it is showing - the primary,
   // when that is one of the stack. At rest, a stack made from a header carries
   // that header's name and one made from a selection wears its owner's.
   const frameName = (dev: LightingDevice): string => {
-    const members = linkedWith(dev.id);
+    const members = stackedWith(dev.id);
     if (members.length > 1 && primaryDeviceId && members.includes(primaryDeviceId)) {
       const primary = devices.find(d => d.id === primaryDeviceId);
       if (primary) return canvasLabelName(primary);
     }
-    return links?.find(l => l.members.includes(dev.id))?.name || canvasLabelName(dev);
+    return stacks?.find(l => l.members.includes(dev.id))?.name || canvasLabelName(dev);
   };
 
   // A label's box only changes when its text, the font, or the container
@@ -721,7 +721,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   // signature keeps a drag (which re-renders at pointer rate) off the
   // layout-thrash path. JSON encodes the fields unambiguously without needing
   // a delimiter no device name can contain.
-  const labelSig = JSON.stringify(drawn.map(d => [d.id, frameName(d), linkLabel(d)?.text ?? null]));
+  const labelSig = JSON.stringify(drawn.map(d => [d.id, frameName(d), stackLabel(d)?.text ?? null]));
   const { w: contW, h: contH } = containerSizeRef.current;
   useLayoutEffect(() => {
     const el = labelLayerRef.current;
@@ -834,10 +834,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
               onPointerLeave={() => setHoveredLabelId(cur => (cur === dev.id ? null : cur))}>
               {frameName(dev)}
               {(() => {
-                const link = linkLabel(dev);
-                return link && (
-                  <span className={styles.deviceLabelLinked} role="img" aria-label={link.aria}>
-                    <Layers size={11} aria-hidden />{link.text}
+                const stack = stackLabel(dev);
+                return stack && (
+                  <span className={styles.deviceLabelStacked} role="img" aria-label={stack.aria}>
+                    <Layers size={11} aria-hidden />{stack.text}
                   </span>
                 );
               })()}
@@ -856,10 +856,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
         // frames and yield "(1 devices)" labels / partial application. A
         // right-click outside the selection (or a single visible target) stays
         // single-device and keeps LED settings.
-        // A linked frame's targets are its whole link, hidden members included,
-        // so every row keeps the link on one rect.
+        // A stacked frame's targets are its whole stack, hidden members included,
+        // so every row keeps the stack on one rect.
         const picked = selectedIds.has(dev.id) ? drawn.filter(d => selectedIds.has(d.id)) : [dev];
-        const targets = withLinks(picked.map(d => d.id));
+        const targets = withStacks(picked.map(d => d.id));
         const group = targets.length >= 2;
         const count = targets.length;
         const items: DeviceMenuItem[] = [];
@@ -914,10 +914,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
             : t(anyOn ? 'lighting.devices.menuLightsOff' : 'lighting.devices.menuLightsOn'),
           onSelect: () => onSetDevicesPower?.(targets.map(d => d.id), !anyOn),
         });
-        const linkRows = linkMenuItems(t, language, linkActionsFor?.(targets.map(d => d.id)), count);
-        if (linkRows.length > 0) {
+        const stackRows = stackMenuItems(t, language, stackActionsFor?.(targets.map(d => d.id)), count);
+        if (stackRows.length > 0) {
           items[items.length - 1].separatorAfter = true;
-          items.push(...linkRows);
+          items.push(...stackRows);
         }
         return (
           <DeviceContextMenu
@@ -932,7 +932,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu, links, linkActionsFor }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu, stacks, stackActionsFor }: DeviceCanvasProps) {
   const notice = gpuNotice(gpuState, gpuAvailable);
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -949,7 +949,7 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
     <div ref={containerRef} className={styles.canvas}>
       <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={devices} hiddenIds={hiddenIds} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} links={links} linkActionsFor={linkActionsFor} />
+      <DeviceOverlays devices={devices} hiddenIds={hiddenIds} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} stacks={stacks} stackActionsFor={stackActionsFor} />
       <CanvasNoticeBar
         visible={notice != null && shaderEffect != null}
         message={notice ? t(notice.key) : ''}

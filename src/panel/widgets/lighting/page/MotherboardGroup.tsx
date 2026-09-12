@@ -7,7 +7,7 @@ import { type EditableTextHandle } from '../../../../components/common/Editable/
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
-import { groupMenuItems, linkMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
+import { groupMenuItems, stackMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { DeviceNotice } from './DeviceNotice';
 import styles from '../LightingPage.module.scss';
 
@@ -45,8 +45,8 @@ export function MotherboardGroup({
   icon,
   onSelectAll,
   groupMove,
-  link,
-  unlink,
+  stack,
+  unstack,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -104,10 +104,10 @@ export function MotherboardGroup({
   onSelectAll?: { count: number; run: () => void };
   /** Group placement for a hardware group's own row on the rail. */
   groupMove?: GroupMove;
-  /** Links every member to one frame; the row counts them. Absent with fewer than two. */
-  link?: { count: number; run: () => void };
-  /** Takes the members apart; present when they are exactly one link. */
-  unlink?: () => void;
+  /** Stacks every member to one frame; the row counts them. Absent with fewer than two. */
+  stack?: { count: number; run: () => void };
+  /** Takes the members apart; present when they are exactly one stack. */
+  unstack?: () => void;
 }) {
   const { t, language } = useTranslation();
   const expanded = !collapsed;
@@ -143,7 +143,7 @@ export function MotherboardGroup({
       items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: onResetName });
     }
     items.push(...groupMenuItems(t, language, 'lighting.devices', groupMove));
-    items.push(...linkMenuItems(t, language, { link: link?.run, unlink }, link?.count ?? 0));
+    items.push(...stackMenuItems(t, language, { stack: stack?.run, unstack }, stack?.count ?? 0));
     if (onDelete) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push({ key: 'delete', icon: <Trash2 size={14} />, label: t('lighting.devices.groupDelete'), onSelect: onDelete });
