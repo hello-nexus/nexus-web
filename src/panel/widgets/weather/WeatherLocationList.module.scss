@@ -152,11 +152,3 @@
 .row:focus-within .remove {
   opacity: 1;
 }
-
-.immersive {
-  .row { padding: 1rem 1.25rem; }
-  .rowName { font-size: var(--type-heading); }
-  .rowMeta, .rowCondition, .rowHiLo { font-size: var(--type-small); }
-  .rowTemp { font-size: var(--type-hero); }
-  .remove { opacity: 1; width: 2.5rem; height: 2.5rem; }
-}

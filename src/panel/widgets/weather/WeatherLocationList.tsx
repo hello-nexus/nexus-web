@@ -37,7 +37,9 @@ export interface WeatherLocationListProps {
   unitPref: WeatherUnitPref;
   // False on a keyboard-less surface: the search is replaced by a badge.
   canSearch: boolean;
-  immersive?: boolean;
+  // False when the host renders the "Locations" title itself (the page's
+  // header row).
+  showTitle?: boolean;
   nowMs: number;
 }
 
@@ -45,7 +47,7 @@ export interface WeatherLocationListProps {
 // high/low) with a search box to add more. Each row fetches its own snapshot
 // through the shared cache.
 export function WeatherLocationList({
-  places, selectedKey, onSelect, onAdd, onRemove, unitPref, canSearch, immersive, nowMs,
+  places, selectedKey, onSelect, onAdd, onRemove, unitPref, canSearch, showTitle = true, nowMs,
 }: WeatherLocationListProps) {
   const { t } = useTranslation();
 
@@ -56,8 +58,8 @@ export function WeatherLocationList({
   }
 
   return (
-    <div className={`${styles.root} ${immersive ? styles.immersive : ''}`}>
-      <SectionHeader className={styles.title}>{t('panel.widget.weather.locations')}</SectionHeader>
+    <div className={styles.root}>
+      {showTitle && <SectionHeader className={styles.title}>{t('panel.widget.weather.locations')}</SectionHeader>}
       {canSearch ? (
         <div className={styles.search}>
           <WeatherLocationSearch hasKeyboard onSelect={handleResult} />

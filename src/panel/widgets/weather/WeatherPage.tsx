@@ -43,18 +43,18 @@ export function WeatherPage() {
 
   return (
     <div className={styles.app}>
-      <ViewHeader
-        title={t('panel.widget.weather')}
-        tabActions={(
+      <ViewHeader title={t('panel.widget.weather')} />
+      <div className={`pageBodyFill ${styles.body}`}>
+        <h2 className={styles.columnTitle}>{t('panel.widget.weather.locations')}</h2>
+        <div className={styles.detailHead}>
+          <h2 className={styles.columnTitle}>{t('panel.widget.weather')}</h2>
           <ChipGroup
             ariaLabel={t('panel.widget.weather.settings.temperature')}
             options={unitChips}
             activeKey={prefs.unit}
             onChange={key => setUnit(key as WeatherUnitPref)}
           />
-        )}
-      />
-      <div className={`pageBodyFill ${styles.body}`}>
+        </div>
         <aside className={styles.rail}>
           <WeatherLocationList
             places={places}
@@ -64,6 +64,7 @@ export function WeatherPage() {
             onRemove={removeLocation}
             unitPref={prefs.unit}
             canSearch
+            showTitle={false}
             nowMs={now}
           />
         </aside>
