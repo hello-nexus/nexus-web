@@ -543,7 +543,7 @@ describe('DeviceCanvas links', () => {
     expect(container.querySelectorAll(`.${styles.device}`)).toHaveLength(2);
     expect(screen.getByText('Left')).toBeTruthy();
     expect(screen.queryByText('Right')).toBeNull();
-    expect(screen.getByText('lighting.devices.linkedCount.other')).toBeTruthy();
+    expect(screen.getByText('+1')).toBeTruthy();
   });
 
   it('drags every member with the frame that stands for them', () => {

@@ -131,7 +131,10 @@
 
 // The count under a linked frame's name: how many cards the one frame stands for.
 .deviceLabelLinked {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
   font-size: var(--type-mini);
   opacity: 0.72;
 }

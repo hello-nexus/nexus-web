@@ -1257,7 +1257,12 @@
   display: inline-flex;
   align-items: center;
   margin-top: 0.15rem;
-  color: var(--accent);
+  margin-left: auto;
+  color: var(--text-dim);
+  transition: color var(--ease-fast);
+
+  // Lit on a selected card, so the reason the whole link lit up is in view.
+  .deviceCardSelected & { color: var(--text); }
 }
 
 // The (i) notice icon at the end of a device label or group title. Bare icon

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Eye, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
+import { Eye, Group, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -703,9 +703,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   // signature keeps a drag (which re-renders at pointer rate) off the
   // layout-thrash path. JSON encodes the fields unambiguously without needing
   // a delimiter no device name can contain.
+  // The cards the frame stands for beyond its own, as "+N" beside the link glyph.
   const linkLabel = (dev: LightingDevice): string | null => {
     const n = linkedWith(dev.id).length;
-    return n > 1 ? t(pluralKey('lighting.devices.linkedCount', language, n), { count: n }) : null;
+    return n > 1 ? `+${n - 1}` : null;
   };
   // A link made from a header carries that header's name; one made from a
   // selection wears its first member's.
@@ -822,7 +823,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
               onPointerEnter={() => setHoveredLabelId(dev.id)}
               onPointerLeave={() => setHoveredLabelId(cur => (cur === dev.id ? null : cur))}>
               {frameName(dev)}
-              {linkLabel(dev) && <span className={styles.deviceLabelLinked}>{linkLabel(dev)}</span>}
+              {linkLabel(dev) && (
+                <span className={styles.deviceLabelLinked} aria-label={t(pluralKey('lighting.devices.linkedCount', language, linkedWith(dev.id).length), { count: linkedWith(dev.id).length })}>
+                  <Group size={11} aria-hidden />{linkLabel(dev)}
+                </span>
+              )}
             </span>
           );
         })}

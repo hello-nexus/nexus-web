@@ -1,4 +1,4 @@
-import { Folder, FolderInput, FolderMinus, FolderPlus, Link2, Unlink2 } from 'lucide-react';
+import { Folder, FolderInput, FolderMinus, FolderPlus, Group, Ungroup } from 'lucide-react';
 import { pluralKey } from '../../../lib/pluralKey';
 import type { Language } from '../../../lib/settings';
 import { bulkMenuLabel } from './bulkMenuLabel';
@@ -77,13 +77,13 @@ export function linkMenuItems(
   const items: DeviceMenuItem[] = [];
   if (actions?.link) {
     items.push({
-      key: 'link', icon: <Link2 size={14} />,
+      key: 'link', icon: <Group size={14} />,
       label: t(pluralKey('lighting.devices.linkCount', language, count), { count }),
       onSelect: actions.link,
     });
   }
   if (actions?.unlink) {
-    items.push({ key: 'unlink', icon: <Unlink2 size={14} />, label: t('lighting.devices.unlink'), onSelect: actions.unlink });
+    items.push({ key: 'unlink', icon: <Ungroup size={14} />, label: t('lighting.devices.unlink'), onSelect: actions.unlink });
   }
   return items;
 }
