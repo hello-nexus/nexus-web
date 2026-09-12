@@ -22,6 +22,7 @@ const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLi
 const HomeAssistantPage = lazy(() => import('../panel/widgets/home-assistant/HomeAssistantPage').then(m => ({ default: m.HomeAssistantPage })));
 const StorePage = lazy(() => import('../components/views/StorePage/StorePage').then(m => ({ default: m.StorePage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
+const WeatherPage = lazy(() => import('../panel/widgets/weather/WeatherPage').then(m => ({ default: m.WeatherPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
 const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
 const ScreentimePage = lazy(() => import('../panel/widgets/screentime/ScreentimePage').then(m => ({ default: m.ScreentimePage })));
@@ -829,6 +830,7 @@ export function Dashboard() {
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return DEV_TOOLS ? <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
+      case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} />;

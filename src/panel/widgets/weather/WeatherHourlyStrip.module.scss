@@ -1,0 +1,88 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  @include vgap(0.5rem);
+}
+
+.title {
+  padding: 0 0.25rem;
+}
+
+.scroller {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  -webkit-overflow-scrolling: touch;
+}
+
+.strip {
+  position: relative;
+  display: flex;
+  padding: 0.75rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.curve {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.1;
+
+  polygon {
+    fill: var(--accent);
+    stroke: none;
+  }
+}
+
+.column {
+  position: relative;
+  flex: 1 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  color: var(--text);
+  @include vgap(0.3rem);
+}
+
+.hour {
+  @include text-caption;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.icon {
+  width: 1.4em;
+  height: 1.4em;
+  color: var(--accent-glow);
+}
+
+.precip {
+  @include text-caption;
+  color: #4aa3ff;
+  min-height: 1.3em;
+}
+
+.temp {
+  @include text-button;
+  font-variant-numeric: tabular-nums;
+}
+
+.immersive {
+  .scroller { overflow-x: hidden; }
+  .column { @include vgap(0.5rem); }
+  .hour { font-size: var(--type-small); }
+  .icon { width: 2em; height: 2em; }
+  .precip { font-size: var(--type-small); }
+  .temp { font-size: var(--type-body); }
+}

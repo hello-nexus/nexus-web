@@ -1,0 +1,144 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
+@use '../../../styles/scrollbar' as *;
+@use '../../styles/flexGap' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  @include vgap(0.5rem);
+}
+
+.title {
+  padding: 0 0.25rem;
+}
+
+.search {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  @include vgap(0.35rem);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  @include scrollbar-visible;
+  @include vgap(0.5rem);
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+  padding: 0.75rem 1rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color var(--ease-fast);
+  @include hgap(0.75rem);
+
+  &:hover { border-color: var(--border-strong); }
+  &:focus-visible { @include focus-glow-card; }
+}
+
+.rowSelected {
+  border-color: var(--accent);
+}
+
+.rowMain {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  @include vgap(0.15rem);
+}
+
+.rowName {
+  @include text-button;
+  font-size: var(--type-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowMeta {
+  @include text-caption;
+  color: var(--text-dim);
+  display: flex;
+  flex-wrap: wrap;
+  @include hgap(0.5rem);
+}
+
+.rowCondition {
+  @include text-caption;
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+  @include hgap(0.3rem);
+}
+
+.rowIcon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.rowSide {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  @include vgap(0.15rem);
+}
+
+.rowTemp {
+  @include text-display;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowHiLo {
+  @include text-caption;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.remove {
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--ease-fast), background var(--ease-fast);
+
+  &:hover { background: var(--bg-card-hover); color: var(--text); }
+  &:focus-visible { opacity: 1; @include focus-ring; }
+}
+
+.row:hover .remove,
+.row:focus-within .remove {
+  opacity: 1;
+}
+
+.immersive {
+  .row { padding: 1rem 1.25rem; }
+  .rowName { font-size: var(--type-heading); }
+  .rowMeta, .rowCondition, .rowHiLo { font-size: var(--type-small); }
+  .rowTemp { font-size: var(--type-hero); }
+  .remove { opacity: 1; width: 2.5rem; height: 2.5rem; }
+}

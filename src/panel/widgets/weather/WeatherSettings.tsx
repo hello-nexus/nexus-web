@@ -1,15 +1,31 @@
 import { useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
-import { canEditFreeText } from '../../types';
-import { type WeatherGeocodeResult, type WeatherLocation } from '../../../api/weather';
+import { canEditFreeText, type PanelConfigValue } from '../../types';
+import {
+  geocodeResultToLocation,
+  sameWeatherLocation,
+  type WeatherGeocodeResult,
+  type WeatherLocation,
+} from '../../../api/weather';
 import { WeatherLocationSearch } from './WeatherLocationSearch';
+import { useWeatherPrefs } from './useWeatherPrefs';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import type { WidgetSettingsProps } from '../types';
 import { SettingsSelect, SettingsSection, SettingsToggle } from '../common/SettingsRow/SettingsRow';
 import styles from './WeatherSettings.module.scss';
 
+function locationKey(location: WeatherLocation): string {
+  return `${location.lat},${location.lon}`;
+}
+
+// PanelConfigValue needs an index signature; the interface has none.
+function toConfig(location: WeatherLocation): PanelConfigValue {
+  return { lat: location.lat, lon: location.lon, label: location.label, cc: location.cc };
+}
+
 export function WeatherSettings({ widget, surface, desktopEditor, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
+  const { prefs, addLocation } = useWeatherPrefs();
   const rawUnit = widget.config?.unit as string | undefined;
   const unit = rawUnit === 'C' || rawUnit === 'F' ? rawUnit : 'auto';
   const showCondition = (widget.config?.showCondition as boolean | undefined) ?? true;
@@ -20,26 +36,27 @@ export function WeatherSettings({ widget, surface, desktopEditor, onUpdate }: Wi
   const hasKeyboard = canEditFreeText(surface, desktopEditor);
   const [auto, setAuto] = useState(location === null);
 
+  // The picker lists every saved place plus the widget's own pick when that
+  // predates the shared list, so a legacy config still shows its city.
+  const choices = location && !prefs.locations.some(l => sameWeatherLocation(l, location))
+    ? [location, ...prefs.locations]
+    : prefs.locations;
+
   function handleAutoChange(checked: boolean) {
     setAuto(checked);
     if (checked) onUpdate({ location: null });
   }
 
-  function selectResult(result: WeatherGeocodeResult) {
-    onUpdate({
-      location: {
-        lat: result.latitude,
-        lon: result.longitude,
-        label: `${result.name}, ${result.countryCode}`,
-        cc: result.countryCode,
-      },
-    });
-    setAuto(false);
+  function selectSaved(key: string) {
+    const picked = choices.find(l => locationKey(l) === key);
+    if (picked) onUpdate({ location: toConfig(picked) });
   }
 
-  function clearLocation() {
-    onUpdate({ location: null });
-    setAuto(true);
+  function selectResult(result: WeatherGeocodeResult) {
+    const picked = geocodeResultToLocation(result);
+    addLocation(picked);
+    onUpdate({ location: toConfig(picked) });
+    setAuto(false);
   }
 
   return (
@@ -66,20 +83,21 @@ export function WeatherSettings({ widget, surface, desktopEditor, onUpdate }: Wi
         />
         {!auto && (
           <div className={styles.locationPicker}>
-            {location && (
-              <div className={styles.currentLocation}>
-                <span className={styles.currentLocationLabel}>
-                  {t('panel.widget.weather.settings.currentLocation', { location: location.label })}
-                </span>
-                <button type="button" className={styles.clearButton} onClick={clearLocation}>
-                  {t('panel.widget.weather.settings.clearLocation')}
-                </button>
-              </div>
+            {choices.length > 0 && (
+              <SettingsSelect
+                label={t('panel.widget.weather.settings.savedLocation')}
+                value={location ? locationKey(location) : ''}
+                options={[
+                  ...(location ? [] : [{ value: '', label: t('panel.widget.weather.settings.pickLocation') }]),
+                  ...choices.map(l => ({ value: locationKey(l), label: l.label })),
+                ]}
+                onChange={selectSaved}
+              />
             )}
             {hasKeyboard ? (
               <WeatherLocationSearch hasKeyboard={hasKeyboard} onSelect={selectResult} />
             ) : (
-              !location && <DesktopOnlyBadge />
+              choices.length === 0 && <DesktopOnlyBadge />
             )}
           </div>
         )}

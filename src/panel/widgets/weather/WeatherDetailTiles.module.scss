@@ -1,0 +1,188 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+// Immersive: a fixed 2x2 that takes the whole cell, rows sharing the height.
+.cellGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  /* c83:allow - .cellGrid is display: grid */ gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.slot {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tile {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 9.5rem;
+  overflow: hidden;
+}
+
+.cellGrid .tile {
+  min-height: 0;
+}
+
+.tileTitle {
+  @include text-label;
+  color: var(--text-dim);
+}
+
+.tileBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  color: var(--text);
+  @include vgap(0.35rem);
+}
+
+.big {
+  @include text-display;
+  font-variant-numeric: tabular-nums;
+}
+
+.bigUnit {
+  @include text-body;
+  color: var(--text-dim);
+}
+
+.sub {
+  @include text-button;
+  color: var(--text-dim);
+}
+
+// UV / AQI scale: gradient track with a marker.
+.scale {
+  position: relative;
+  height: 6px;
+  margin-top: auto;
+  border-radius: var(--radius-pill);
+}
+
+.scaleUv {
+  background: linear-gradient(90deg, #3ddc84, #ffd166, #ff8c42, #ff4d6d, #b56bff);
+}
+
+.scaleAqi {
+  background: linear-gradient(90deg, #3ddc84, #ffd166, #ff8c42, #ff4d6d, #8f3f97, #7e0023);
+}
+
+.scaleMarker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  border: 2px solid var(--surface);
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.sunArc {
+  width: 100%;
+  height: auto;
+  max-height: 4.5rem;
+}
+
+.sunArcTrack {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
+.sunHorizon {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.sunDot {
+  fill: #ffd166;
+}
+
+.windRow {
+  display: flex;
+  align-items: center;
+  @include hgap(0.75rem);
+}
+
+.windMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  @include vgap(0.25rem);
+}
+
+.compass {
+  flex: 0 0 auto;
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+.compassRing {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.compassTick {
+  stroke: var(--text-dim);
+  stroke-width: 2;
+}
+
+.compassNeedle {
+  fill: var(--accent);
+}
+
+.compassShaft {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 0.5;
+}
+
+.compassValue {
+  @include text-heading;
+  fill: var(--text);
+}
+
+.compassUnit {
+  @include text-caption;
+  fill: var(--text-dim);
+}
+
+.dial {
+  width: 100%;
+  height: auto;
+  max-height: 4.5rem;
+}
+
+.dialTrack {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.dialNeedle {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.dialHub {
+  fill: var(--text);
+}

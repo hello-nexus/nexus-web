@@ -130,11 +130,11 @@ describe('buildEntries', () => {
     const entries = buildEntries(ctx(true));
     const find = (id: string) => entries.find((e) => e.id === id);
     // Page-bearing apps not already covered by a curated NAV row.
-    for (const type of ['clock', 'gallery', 'steam', 'smart-lights']) {
+    for (const type of ['clock', 'gallery', 'steam', 'smart-lights', 'weather']) {
       expect(find(`app:${type}`)?.kind).toBe('navigate');
     }
     // Page-less apps get an add-widget entry instead of a page open.
-    for (const type of ['calculator', 'emoji', 'timer', 'weather', 'stocks', 'calendar']) {
+    for (const type of ['calculator', 'emoji', 'timer', 'stocks', 'calendar']) {
       expect(find(`app:${type}`)).toBeUndefined();
       expect(find(`widget:${type}`)?.kind).toBe('navigate');
     }

@@ -1,135 +1,25 @@
-import { Fragment, useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, type CSSProperties } from 'react';
 import { widgetLayoutSize } from '../../types';
-import {
-  Sun, Cloud, CloudSun, CloudFog, CloudDrizzle, CloudRain,
-  CloudSnow, CloudRainWind, CloudLightning, HelpCircle, Droplet, Wind,
-} from 'lucide-react';
-import { fetchService } from '../../../api/service';
-import { weatherLocationQuery, type WeatherLocation } from '../../../api/weather';
+import { Droplet, Wind } from 'lucide-react';
+import { type WeatherLocation } from '../../../api/weather';
 import { useTranslation } from '../../../lib/i18n';
 import { resolveHour12 } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { WidgetProps } from '../types';
 import { formatWeatherHour, weatherConditionKey } from './weatherConditions';
+import { WeatherIcon } from './WeatherIcon';
+import { DAY_LABEL_KEYS, dailyMax, dailyMin, formatTemp, hourlyTemp, resolveUnit, upcomingHours } from './weatherFormat';
+import { useWeatherSnapshot } from './useWeatherSnapshot';
 import styles from './WeatherWidget.module.scss';
 
-interface WeatherSnapshot {
-  temperatureC: number | null;
-  temperatureF: number | null;
-  weatherCode: number;
-  condition: string;
-  humidityPct: number | null;
-  windKph: number | null;
-  locationLabel: string;
-  countryCode?: string;
-  asOf: string;
-  hourly?: WeatherHourlyForecast[];
-  daily?: WeatherDailyForecast[];
-}
-
-const FAHRENHEIT_COUNTRIES = new Set(['US', 'BS', 'BZ', 'KY', 'LR', 'PW', 'FM', 'MH']);
-
-export function resolveUnit(setting: string | undefined, countryCode: string | undefined): 'C' | 'F' {
-  if (setting === 'C' || setting === 'F') return setting;
-  return countryCode && FAHRENHEIT_COUNTRIES.has(countryCode.toUpperCase()) ? 'F' : 'C';
-}
-
-interface WeatherHourlyForecast {
-  time: string;
-  weatherCode: number;
-  temperatureC: number | null;
-  temperatureF: number | null;
-}
-
-interface WeatherDailyForecast {
-  date: string;
-  weatherCode: number;
-  temperatureMinC: number | null;
-  temperatureMaxC: number | null;
-  temperatureMinF: number | null;
-  temperatureMaxF: number | null;
-}
-
-const REFRESH_MS = 15 * 60 * 1000;
-const DAY_LABEL_KEYS = [
-  'panel.widget.weather.day.sun',
-  'panel.widget.weather.day.mon',
-  'panel.widget.weather.day.tue',
-  'panel.widget.weather.day.wed',
-  'panel.widget.weather.day.thu',
-  'panel.widget.weather.day.fri',
-  'panel.widget.weather.day.sat',
-];
-
-export function WeatherIcon({
-  code,
-  className,
-  strokeWidth,
-}: {
-  code: number | null | undefined;
-  className: string;
-  strokeWidth: number;
-}) {
-  if (code === null || code === undefined) return <HelpCircle className={className} strokeWidth={strokeWidth} />;
-  if (code === 0 || code === 1) return <Sun className={className} strokeWidth={strokeWidth} />;
-  if (code === 2) return <CloudSun className={className} strokeWidth={strokeWidth} />;
-  if (code === 3) return <Cloud className={className} strokeWidth={strokeWidth} />;
-  if (code === 45 || code === 48) return <CloudFog className={className} strokeWidth={strokeWidth} />;
-  if (code >= 51 && code <= 57) return <CloudDrizzle className={className} strokeWidth={strokeWidth} />;
-  if (code >= 61 && code <= 67) return <CloudRain className={className} strokeWidth={strokeWidth} />;
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return <CloudSnow className={className} strokeWidth={strokeWidth} />;
-  if (code >= 80 && code <= 82) return <CloudRainWind className={className} strokeWidth={strokeWidth} />;
-  if (code >= 95 && code <= 99) return <CloudLightning className={className} strokeWidth={strokeWidth} />;
-  return <HelpCircle className={className} strokeWidth={strokeWidth} />;
-}
-
-export function formatTemp(value: number | null | undefined, fallback = '--') {
-  return value === null || value === undefined ? fallback : `${Math.round(value)}°`;
-}
-
-function hourlyTemp(item: WeatherHourlyForecast, unit: 'C' | 'F') {
-  return unit === 'F' ? item.temperatureF : item.temperatureC;
-}
-
-function dailyMin(item: WeatherDailyForecast, unit: 'C' | 'F') {
-  return unit === 'F' ? item.temperatureMinF : item.temperatureMinC;
-}
-
-function dailyMax(item: WeatherDailyForecast, unit: 'C' | 'F') {
-  return unit === 'F' ? item.temperatureMaxF : item.temperatureMaxC;
-}
+// Deck cells import the tile's glyph + formatting through here.
+export { WeatherIcon, formatTemp, resolveUnit };
 
 export function WeatherWidget({ widget }: WidgetProps) {
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
-  const [snap, setSnap] = useState<WeatherSnapshot | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [referenceNow, setReferenceNow] = useState(0);
-
   const location = (widget.config?.location as WeatherLocation | null | undefined) ?? null;
-  const locationQuery = weatherLocationQuery(location);
-
-  useEffect(() => {
-    let cancelled = false;
-    // Reset the display when the query itself changes (a manual location
-    // pick or the auto/manual switch) so the tile doesn't show the previous
-    // location's weather while the new fetch is in flight. A same-location
-    // interval tick doesn't re-run this effect, so it keeps showing the last
-    // snapshot until the refresh resolves, matching the prior behavior.
-    setSnap(null);
-    setLoaded(false);
-    async function load() {
-      const data = await fetchService<WeatherSnapshot>(`/api/weather${locationQuery}`);
-      if (!cancelled) {
-        setReferenceNow(Date.now());
-        setSnap(data);
-        setLoaded(true);
-      }
-    }
-    load();
-    const timer = setInterval(load, REFRESH_MS);
-    return () => { cancelled = true; clearInterval(timer); };
-  }, [locationQuery]);
+  const { snap, loaded, fetchedAt: referenceNow } = useWeatherSnapshot(location);
 
   const hour12 = resolveHour12(timeFormat);
   function hourLabel(time: string) {
@@ -160,9 +50,13 @@ export function WeatherWidget({ widget }: WidgetProps) {
   const portrait = size === '2x4';
 
   const now = referenceNow || 0;
-  const hourlyItems = (snap?.hourly ?? [])
+  // With the provider's local reading time the strip starts at the
+  // location's current hour; without it (older service) the rows are read as
+  // browser-local and filtered against the fetch clock.
+  const hourlyItems = (snap?.localTime ? upcomingHours(snap, 48) : (snap?.hourly ?? []))
     .filter((item) => hourlyTemp(item, unit) !== null && hourlyTemp(item, unit) !== undefined)
     .filter((item) => {
+      if (snap?.localTime) return true;
       const t2 = new Date(item.time).getTime();
       return Number.isNaN(t2) || t2 >= now - 60 * 60 * 1000;
     })

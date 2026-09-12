@@ -334,7 +334,7 @@ const installedApps: SearchSource = (ctx) =>
     });
 
 // Widget-only apps (no page) open the dashboard's add-widget catalog, so
-// searching "weather" lands somewhere useful instead of nowhere. The catalog
+// searching "stocks" lands somewhere useful instead of nowhere. The catalog
 // itself is the picker; the signal survives the navigation.
 const widgetApps: SearchSource = (ctx) =>
   getCatalogEntries()
