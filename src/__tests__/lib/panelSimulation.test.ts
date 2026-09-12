@@ -84,7 +84,7 @@ describe('panelSimulation', () => {
 
     expect(q60).toMatchObject({
       id: 'q60',
-      name: 'Q60',
+      name: 'HYTE Q60',
       surface: 'q60',
       width: 720,
       height: 1280,

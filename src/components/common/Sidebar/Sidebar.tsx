@@ -318,21 +318,24 @@ export function Sidebar({
   // Short + strip closing the app list. Hidden until the pointer enters the
   // sidebar (or it takes keyboard focus) - see .addStrip in the stylesheet -
   // and deliberately shorter than a nav row so it reads as an affordance
-  // rather than another app.
+  // rather than another app. Expanded, the label sits after the glyph like a
+  // row's; collapsed it moves to the tooltip like every other row.
   const renderAddStrip = () => {
     if (!addItem) return null;
-    return (
-      <HoverTooltip body={addItem.label} side="right">
-        <button
-          type="button"
-          className={styles.addStrip}
-          onClick={addItem.onClick}
-          aria-label={addItem.label}
-        >
-          <Plus size={14} aria-hidden />
-        </button>
-      </HoverTooltip>
+    const button = (
+      <button
+        type="button"
+        className={classNames(styles.addStrip, { [styles.addStripLabeled]: !compact })}
+        onClick={addItem.onClick}
+        aria-label={compact ? addItem.label : undefined}
+      >
+        <span className={styles.addStripGlyph}><Plus size={14} aria-hidden /></span>
+        {!compact && <span className={styles.addStripLabel}>{addItem.label}</span>}
+      </button>
     );
+    return compact ? (
+      <HoverTooltip body={addItem.label} side="right">{button}</HoverTooltip>
+    ) : button;
   };
 
   const renderExtra = () => {

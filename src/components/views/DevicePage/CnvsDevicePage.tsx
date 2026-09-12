@@ -70,7 +70,8 @@ export function CnvsDevicePage() {
   return (
     <section className={styles.page}>
       <ViewHeader
-        title="CNVS"
+        // eslint-disable-next-line i18next/no-literal-string -- brand + model name
+        title="HYTE CNVS"
         />
       <div className={`${styles.pageBody} pageBody`}>
         {loading ? null : !settings ? (

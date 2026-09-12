@@ -87,9 +87,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   display: '/assets/devices/y70.svg',
   controller: '/assets/devices/cnvs.svg',
   cooler: '/assets/devices/np50.svg',
-  // No RAM-specific glyph yet; the generic device fallback reads fine at
-  // thumbnail size.
-  memory: '/assets/devices/device.svg',
+  memory: '/assets/devices/memory.svg',
 };
 
 const CURATED_ICONS: Record<string, string> = {
@@ -117,18 +115,18 @@ const CURATED_ICONS: Record<string, string> = {
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
-  // Real connected Y70 of any variant is just "Y70 Touch" (no resolution
-  // class on a hardware row). Simulator entries carry the 2.5K / 4K suffix;
-  // see SIMULATED_PANEL_PRESETS in panelSimulation.ts and the
+  // Real connected Y70 of any variant is just "HYTE Y70 Touch" (no
+  // resolution class on a hardware row). Simulator entries carry the 2.5K /
+  // 4K suffix; see SIMULATED_PANEL_PRESETS in panelSimulation.ts and the
   // simulated-vs-real branch in buildUnifiedList below.
-  y70: 'Y70 Touch',
-  'y70-4k': 'Y70 Touch',
-  // qseries omitted: the service reports the actual product name ("Q60" /
-  // "Q80") on the device record; overriding would collapse both to
-  // "Q-series".
-  cnvs: 'CNVS',
+  y70: 'HYTE Y70 Touch',
+  'y70-4k': 'HYTE Y70 Touch',
+  // qseries omitted: the service reports the actual product name ("HYTE Q60"
+  // / "HYTE Q80") on the device record; overriding would collapse both to
+  // one label.
+  cnvs: 'HYTE CNVS',
   corsair: 'Corsair iCUE LINK Hub',
-  keeb: 'Keeb',
+  keeb: 'HYTE Keeb TKL',
   lianli: 'Lian Li Uni Hub',
   'fan-hub': 'iBUYPOWER MiniHub',
   aw5: 'iBUYPOWER AW5',
@@ -277,9 +275,9 @@ function buildUnifiedList(
     if (p.sourceId) claimedCuratedIds.add(p.sourceId);
     const sourceId = p.sourceId;
     // Real connected panels use CURATED_SHORT_NAMES so the sidebar shows a
-    // normalized label ("Y70 Touch") regardless of variant. Simulator entries
-    // keep their preset name so the resolution suffix ("Y70 Touch 2.5K" /
-    // "Y70 Touch 4K") stays visible.
+    // normalized label ("HYTE Y70 Touch") regardless of variant. Simulator
+    // entries keep their preset name so the resolution suffix ("HYTE Y70
+    // Touch 2.5K" / "HYTE Y70 Touch 4K") stays visible.
     const isSimulated = p.connectionKind === 'simulated';
     const shortName = isSimulated
       ? p.name
