@@ -3561,7 +3561,7 @@
   "settings.conflictApps.category.other": "Inne",
   "settings.conflictApps.category.peripherals": "Urządzenia peryferyjne",
   "settings.conflictApps.dynamicLighting.description": "Windows sam steruje zgodnymi urządzeniami RGB i rywalizuje z Nexusem o te same diody. Wyłącz to, aby zostawić je Nexusowi.",
-  "settings.conflictApps.dynamicLighting.title": "Oświetlenie dynamiczne systemu Windows",
+  "settings.conflictApps.dynamicLighting.title": "Używaj oświetlenia dynamicznego Windows",
   "settings.conflictApps.listIntro": "Włączona aplikacja zostanie zamknięta. Wyłącz ją, aby pozostała uruchomiona.",
   "settings.conflictApps.loadFailed": "Nie można wczytać listy aplikacji. Sprawdź, czy Nexus działa, i otwórz to okno ponownie.",
   "settings.conflictApps.loading": "Wczytywanie aplikacji…",

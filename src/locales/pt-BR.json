@@ -3533,7 +3533,7 @@
   "settings.conflictApps.category.other": "Outros",
   "settings.conflictApps.category.peripherals": "Periféricos",
   "settings.conflictApps.dynamicLighting.description": "O Windows controla sozinho os dispositivos RGB compatíveis e disputa com o Nexus os mesmos LEDs. Desligue para deixá-los com o Nexus.",
-  "settings.conflictApps.dynamicLighting.title": "Iluminação dinâmica do Windows",
+  "settings.conflictApps.dynamicLighting.title": "Usar a iluminação dinâmica do Windows",
   "settings.conflictApps.listIntro": "Um aplicativo ativado será encerrado. Desative-o para deixá-lo em execução.",
   "settings.conflictApps.loadFailed": "Não foi possível carregar a lista de aplicativos. Verifique se o Nexus está em execução e reabra esta janela.",
   "settings.conflictApps.loading": "Carregando aplicativos…",

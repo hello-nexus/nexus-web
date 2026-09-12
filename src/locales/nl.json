@@ -3533,7 +3533,7 @@
   "settings.conflictApps.category.other": "Overig",
   "settings.conflictApps.category.peripherals": "Randapparatuur",
   "settings.conflictApps.dynamicLighting.description": "Windows stuurt compatibele RGB-apparaten zelf aan en vecht met Nexus om dezelfde leds. Zet het uit om ze aan Nexus over te laten.",
-  "settings.conflictApps.dynamicLighting.title": "Windows Dynamische verlichting",
+  "settings.conflictApps.dynamicLighting.title": "Dynamische verlichting van Windows gebruiken",
   "settings.conflictApps.listIntro": "Een ingeschakelde app wordt afgesloten. Schakel er een uit om die te laten draaien.",
   "settings.conflictApps.loadFailed": "Kan de app-lijst niet laden. Controleer of Nexus draait en open dit venster opnieuw.",
   "settings.conflictApps.loading": "Apps laden…",

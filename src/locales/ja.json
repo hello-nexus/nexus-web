@@ -3533,7 +3533,7 @@
   "settings.conflictApps.category.other": "その他",
   "settings.conflictApps.category.peripherals": "周辺機器",
   "settings.conflictApps.dynamicLighting.description": "Windows が対応 RGB デバイスを自分で制御し、同じ LED を Nexus と奪い合います。オフにすると Nexus に任せられます。",
-  "settings.conflictApps.dynamicLighting.title": "Windows ダイナミック ライティング",
+  "settings.conflictApps.dynamicLighting.title": "Windows のダイナミック ライティングを使う",
   "settings.conflictApps.listIntro": "オンのアプリは終了されます。実行したままにするにはオフにしてください。",
   "settings.conflictApps.loadFailed": "アプリ一覧を読み込めませんでした。Nexus が実行中か確認して、このウィンドウを開き直してください。",
   "settings.conflictApps.loading": "アプリを読み込み中…",

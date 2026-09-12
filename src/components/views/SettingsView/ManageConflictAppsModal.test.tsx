@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import {
@@ -162,21 +162,25 @@ describe('ManageConflictAppsModal', () => {
     let resolveFirst: (v: WindowsDynamicLightingState) => void = () => {};
     vi.mocked(setDynamicLighting)
       .mockReturnValueOnce(new Promise<WindowsDynamicLightingState>(r => { resolveFirst = r; }))
-      .mockResolvedValueOnce({ available: true, enabled: true, deviceCount: 1 });
+      .mockResolvedValueOnce({ available: true, enabled: false, deviceCount: 1 });
     renderModal();
 
     await waitFor(() => expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
     fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
     fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
 
+    // Off is not the pre-click state, so this only holds once the second
+    // write's answer has been rendered.
     await waitFor(() => expect(
       screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
-    ).toBe('true'));
+    ).toBe('false'));
 
-    // The first write lands last, carrying a snapshot taken before the second.
-    resolveFirst({ available: true, enabled: false, deviceCount: 1 });
-    await waitFor(() => expect(
+    // The first write lands last, answering with the state before either. The
+    // act() flushes that answer, so the assertion reads what the stale
+    // response did rather than passing on the value already on screen.
+    await act(async () => { resolveFirst({ available: true, enabled: true, deviceCount: 1 }); });
+    expect(
       screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
-    ).toBe('true'));
+    ).toBe('false');
   });
 });

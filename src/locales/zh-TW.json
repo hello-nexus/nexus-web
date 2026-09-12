@@ -3533,7 +3533,7 @@
   "settings.conflictApps.category.other": "其他",
   "settings.conflictApps.category.peripherals": "周邊設備",
   "settings.conflictApps.dynamicLighting.description": "Windows 會自行驅動相容的 RGB 裝置，與 Nexus 爭奪同一批燈珠。關閉後即可交給 Nexus。",
-  "settings.conflictApps.dynamicLighting.title": "Windows 動態照明",
+  "settings.conflictApps.dynamicLighting.title": "使用 Windows 動態照明",
   "settings.conflictApps.listIntro": "已開啟的應用程式會被關閉。關掉則保留其執行。",
   "settings.conflictApps.loadFailed": "無法載入應用程式清單。請確認 Nexus 正在執行，然後重新開啟此視窗。",
   "settings.conflictApps.loading": "正在載入應用程式…",

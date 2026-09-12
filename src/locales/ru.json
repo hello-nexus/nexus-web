@@ -3561,7 +3561,7 @@
   "settings.conflictApps.category.other": "Прочее",
   "settings.conflictApps.category.peripherals": "Периферия",
   "settings.conflictApps.dynamicLighting.description": "Windows сама управляет совместимыми RGB-устройствами и спорит с Nexus за те же светодиоды. Выключите, чтобы оставить их Nexus.",
-  "settings.conflictApps.dynamicLighting.title": "Динамическая подсветка Windows",
+  "settings.conflictApps.dynamicLighting.title": "Использовать динамическую подсветку Windows",
   "settings.conflictApps.listIntro": "Включённое приложение будет закрыто. Выключите его, чтобы оставить работать.",
   "settings.conflictApps.loadFailed": "Не удалось загрузить список приложений. Убедитесь, что Nexus запущен, и откройте это окно заново.",
   "settings.conflictApps.loading": "Загрузка приложений…",

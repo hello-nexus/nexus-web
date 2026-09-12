@@ -3533,7 +3533,7 @@
   "settings.conflictApps.category.other": "Other",
   "settings.conflictApps.category.peripherals": "Peripherals",
   "settings.conflictApps.dynamicLighting.description": "Windows drives compatible RGB devices itself, fighting Nexus for the same LEDs. Turn it off to leave them to Nexus.",
-  "settings.conflictApps.dynamicLighting.title": "Windows Dynamic Lighting",
+  "settings.conflictApps.dynamicLighting.title": "Use Windows Dynamic Lighting",
   "settings.conflictApps.listIntro": "An app that's on will be shut down. Turn one off to leave it running.",
   "settings.conflictApps.loadFailed": "Couldn't load the app list. Check that Nexus is running and reopen this window.",
   "settings.conflictApps.loading": "Loading apps…",

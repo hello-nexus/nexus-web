@@ -3533,7 +3533,7 @@
   "settings.conflictApps.category.other": "기타",
   "settings.conflictApps.category.peripherals": "주변기기",
   "settings.conflictApps.dynamicLighting.description": "Windows가 호환 RGB 장치를 직접 제어하며 같은 LED를 두고 Nexus와 경쟁합니다. 끄면 Nexus에 맡깁니다.",
-  "settings.conflictApps.dynamicLighting.title": "Windows 동적 조명",
+  "settings.conflictApps.dynamicLighting.title": "Windows 동적 조명 사용",
   "settings.conflictApps.listIntro": "켜진 앱은 종료됩니다. 계속 실행하려면 끄세요.",
   "settings.conflictApps.loadFailed": "앱 목록을 불러오지 못했습니다. Nexus가 실행 중인지 확인한 뒤 이 창을 다시 여세요.",
   "settings.conflictApps.loading": "앱을 불러오는 중…",
