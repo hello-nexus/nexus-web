@@ -704,9 +704,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     const n = linkedWith(dev.id).length;
     return n > 1 ? { text: String(n), aria: t(pluralKey('lighting.devices.stackedCount', language, n), { count: n }) } : null;
   };
-  // A link made from a header carries that header's name; one made from a
-  // selection wears its first member's.
-  const frameName = (dev: LightingDevice): string => links?.find(l => l.members.includes(dev.id))?.name || canvasLabelName(dev);
+  // A stacked frame names the member whose LEDs it is showing - the primary,
+  // when that is one of the stack. At rest, a stack made from a header carries
+  // that header's name and one made from a selection wears its owner's.
+  const frameName = (dev: LightingDevice): string => {
+    const members = linkedWith(dev.id);
+    if (members.length > 1 && primaryDeviceId && members.includes(primaryDeviceId)) {
+      const primary = devices.find(d => d.id === primaryDeviceId);
+      if (primary) return canvasLabelName(primary);
+    }
+    return links?.find(l => l.members.includes(dev.id))?.name || canvasLabelName(dev);
+  };
 
   // A label's box only changes when its text, the font, or the container
   // scale does - never when a frame moves or turns. Keying the measure on that
