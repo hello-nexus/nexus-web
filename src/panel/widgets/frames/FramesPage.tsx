@@ -46,7 +46,7 @@ interface FramesPageProps {
  * Frames: the local FPS history browser. A History tab (every game with
  * sessions) leading into a per-game detail (stats, sessions, the selected
  * session's own timeline), plus a Discover tab for community FPS estimates
- * on this rig. Page-only - see panel/widgets/frames/index.ts.
+ * on this rig. Page-only: registered in app/pageOnlyApps.ts, no panel tile.
  */
 export function FramesPage({ tab, onTabChange }: FramesPageProps) {
   const { t } = useTranslation();

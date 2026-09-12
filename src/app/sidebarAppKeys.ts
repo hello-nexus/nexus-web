@@ -11,7 +11,7 @@ import { getPreinstalledPageAppTypes, hasMarketplaceLoadedOnce, isMarketplaceTyp
 export const DASHBOARD_APP_KEY = 'dashboard' as const;
 export type SidebarAppKey = string; // any app type that has a Page, or 'dashboard'
 
-// True iff a key can be pinned to the sidebar. Page-only apps (Store) qualify
+// True iff a key can be pinned to the sidebar. Page-only apps (Store, Frames) qualify
 // outright; every other key must be a widget type shipping a desktop SPA Page,
 // read from the static registry for built-ins or from the synthetic manifest
 // for marketplace (SDK) apps, so a page-capable SDK app pins like a native one.

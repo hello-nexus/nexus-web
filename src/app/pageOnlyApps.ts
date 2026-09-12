@@ -6,7 +6,7 @@
 // Not pinned by default: an entry here is reachable from the Add-app drawer
 // and global search until the user pins it.
 
-import { ShoppingBag } from 'lucide-react';
+import { Film, ShoppingBag } from 'lucide-react';
 import type { AppIcon } from '../panel/widgets/types';
 import { DEV_TOOLS } from '../lib/devTools';
 
@@ -16,6 +16,9 @@ export interface PageOnlyApp {
 }
 
 export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
+  // Frames (FPS history) is browsed on its page; Dashboard mounts FramesPage
+  // directly, so nothing under panel/widgets/frames registers a tile.
+  frames: { i18nKey: 'panel.widget.frames', icon: Film },
   // Gating this entry is what removes the store everywhere: pinning, pin
   // sanitizing, the add-app drawer and search all resolve through this record.
   ...(DEV_TOOLS ? { store: { i18nKey: 'apps.tabs.store', icon: ShoppingBag } } : {}),

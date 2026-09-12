@@ -20,4 +20,10 @@ describe('page-only apps without dev tools', () => {
     expect(isPinnableAppKey('store')).toBe(false);
     expect(sanitizePinnedTail(['store'])).toEqual([]);
   });
+
+  it('keeps frames registered and pinnable: it ships on release builds', () => {
+    expect(isPageOnlyAppKey('frames')).toBe(true);
+    expect(isPinnableAppKey('frames')).toBe(true);
+    expect(sanitizePinnedTail(['frames'])).toEqual(['frames']);
+  });
 });

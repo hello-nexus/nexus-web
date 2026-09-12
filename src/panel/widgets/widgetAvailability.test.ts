@@ -15,6 +15,7 @@ import {
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
 import type { AppInstalledListing, AppManifestCapabilities } from '../../widgets/types';
+import { isPageOnlyAppKey } from '../../app/pageOnlyApps';
 import enLocale from '../../locales/en.json';
 
 describe('surfaceSupportsTouch', () => {
@@ -286,7 +287,7 @@ describe('isSingleWidgetSurface', () => {
 describe('catalog listing (delist)', () => {
   // Delisted from the Add-a-Widget picker but still resolvable: an existing
   // placed instance keeps rendering; only new insertion is removed.
-  const DELISTED = ['steam', 'frames'] as const;
+  const DELISTED = ['steam'] as const;
 
   it('hides the delisted built-ins from the picker yet keeps them resolvable', () => {
     const listedTypes = new Set(
@@ -300,6 +301,12 @@ describe('catalog listing (delist)', () => {
       expect(listedTypes.has(type), `${type} must not appear in the picker`).toBe(false);
       expect(lookupApp(type), `${type} must stay resolvable for placed instances`).toBeDefined();
     }
+  });
+
+  it('keeps frames out of the widget registry: it is a page-only app', () => {
+    expect(APP_REGISTRY.frames).toBeUndefined();
+    expect(lookupApp('frames')).toBeUndefined();
+    expect(isPageOnlyAppKey('frames')).toBe(true);
   });
 
   it('leaves every other built-in listed', () => {
