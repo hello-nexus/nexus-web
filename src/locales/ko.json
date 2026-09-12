@@ -394,6 +394,8 @@
   "cooling.fan.removeFromGroup": "{name}에서 제거",
   "cooling.fan.rename": "이름 변경",
   "cooling.fan.resetName": "이름 초기화",
+  "cooling.fan.rpmUnavailable": "RPM 없음",
+  "cooling.fan.rpmUnavailableHint": "이 컨트롤러는 팬 RPM을 보고할 수 없습니다. 속도 제어는 계속 작동합니다.",
   "cooling.fan.selectOnly": "{name}만 선택",
   "cooling.fanRole.generic": "일반 팬",
   "cooling.fanRole.picker": "팬 장치 지정",

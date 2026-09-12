@@ -394,6 +394,8 @@
   "cooling.fan.removeFromGroup": "Remover de {name}",
   "cooling.fan.rename": "Renomear",
   "cooling.fan.resetName": "Redefinir nome",
+  "cooling.fan.rpmUnavailable": "Sem RPM",
+  "cooling.fan.rpmUnavailableHint": "Este controlador não consegue informar as RPM do ventilador. O controle de velocidade continua funcionando.",
   "cooling.fan.selectOnly": "Selecionar apenas {name}",
   "cooling.fanRole.generic": "Ventilador genérico",
   "cooling.fanRole.picker": "Definir dispositivo do ventilador",

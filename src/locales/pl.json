@@ -396,6 +396,8 @@
   "cooling.fan.removeFromGroup": "Usuń z {name}",
   "cooling.fan.rename": "Zmień nazwę",
   "cooling.fan.resetName": "Przywróć nazwę",
+  "cooling.fan.rpmUnavailable": "Brak RPM",
+  "cooling.fan.rpmUnavailableHint": "Ten kontroler nie może odczytać obrotów wentylatora. Sterowanie prędkością nadal działa.",
   "cooling.fan.selectOnly": "Zaznacz tylko {name}",
   "cooling.fanRole.generic": "Zwykły wentylator",
   "cooling.fanRole.picker": "Ustaw urządzenie wentylatora",

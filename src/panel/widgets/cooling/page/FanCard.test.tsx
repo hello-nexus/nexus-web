@@ -454,3 +454,26 @@ describe('FanCard menu bands', () => {
     expect(rows.slice(-3)).toEqual(['|', 'cooling.fan.rename', 'cooling.fan.moveToGroup']);
   });
 });
+
+describe('FanCard RPM readout', () => {
+  it('shows the live RPM by default', () => {
+    render(
+      <FanCard channel={makeChannel({ rpm: 1234 })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} />,
+    );
+    expect(screen.getByText('RPM')).toBeInTheDocument();
+    expect(screen.queryByText('cooling.fan.rpmUnavailable')).not.toBeInTheDocument();
+  });
+
+  it('replaces the number with the no-RPM marker when the channel cannot report RPM', () => {
+    render(
+      <FanCard channel={makeChannel({ rpm: 18750, rpmUnavailable: true })} state={manualState} curves={[]}
+        onSetMode={() => {}} onCreateCurve={() => {}} onRename={() => {}} onSpeedChange={() => {}}
+        onToggleLock={() => {}} onSetRole={() => {}} />,
+    );
+    expect(screen.getByText('cooling.fan.rpmUnavailable')).toBeInTheDocument();
+    expect(screen.queryByText('RPM')).not.toBeInTheDocument();
+    expect(screen.queryByText(/18[,.]?750/)).not.toBeInTheDocument();
+  });
+});

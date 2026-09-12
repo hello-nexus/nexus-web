@@ -394,6 +394,8 @@
   "cooling.fan.removeFromGroup": "Gjave di {name}",
   "cooling.fan.rename": "Cambie non",
   "cooling.fan.resetName": "Reset dal non",
+  "cooling.fan.rpmUnavailable": "Nissune RPM",
+  "cooling.fan.rpmUnavailableHint": "Chest control nol pò informâ lis RPM de ventule. Il control de velocitât al funzione ancjemò.",
   "cooling.fan.selectOnly": "Selezione dome {name}",
   "cooling.fanRole.generic": "Ventiladôr gjeneric",
   "cooling.fanRole.picker": "Segne il dispositîf dal ventiladôr",
