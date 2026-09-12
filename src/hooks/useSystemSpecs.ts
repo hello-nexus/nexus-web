@@ -9,6 +9,8 @@ export interface SystemSpecs {
   memory: string;
   storage: string;
   graphicsCard: string;
+  // The card that renders games (first discrete adapter); absent on a service older than it.
+  primaryGpu?: string;
   monitor: string;
   soundCard: string;
   networkCard: string;

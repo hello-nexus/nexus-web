@@ -31,7 +31,15 @@ describe('buildFpsSignatureParams', () => {
     });
   });
 
-  it('takes the first GPU when the string joins a dGPU and an iGPU', () => {
+  it('prefers the service-picked primaryGpu over the joined graphicsCard string', () => {
+    const params = buildFpsSignatureParams(specs({
+      graphicsCard: 'AMD Radeon Graphics + AMD Radeon RX 7700 XT',
+      primaryGpu: 'AMD Radeon RX 7700 XT',
+    }));
+    expect(params?.gpu).toBe('AMD Radeon RX 7700 XT');
+  });
+
+  it('falls back to the first GPU segment when the service sends no primaryGpu', () => {
     const params = buildFpsSignatureParams(specs({ graphicsCard: 'NVIDIA GeForce RTX 4070 + AMD Radeon Graphics' }));
     expect(params?.gpu).toBe('NVIDIA GeForce RTX 4070');
   });

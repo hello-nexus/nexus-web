@@ -23,12 +23,16 @@ function parseMonitorResolution(monitor: string): { width: number; height: numbe
 }
 
 /**
- * SystemSpecsCollector.cs's GraphicsCard joins every GPU with " + ", dGPU
- * first (NVIDIA/AMD are enumerated before the Intel iGPU on every dual-GPU
- * rig this checks against) - the first segment is the card that renders.
+ * SystemSpecsCollector.cs picks primaryGpu with the provider's integrated
+ * flag (first discrete adapter, else the first). GraphicsCard joins every
+ * adapter with " + " in enumeration order, which puts the iGPU first on
+ * AMD-iGPU rigs, so its first segment is only a fallback for a service that
+ * predates primaryGpu.
  */
-function primaryGpuModel(graphicsCard: string): string | undefined {
-  const first = graphicsCard.split(' + ')[0]?.trim();
+function primaryGpuModel(specs: SystemSpecs): string | undefined {
+  const primary = specs.primaryGpu?.trim();
+  if (primary) return primary;
+  const first = specs.graphicsCard.split(' + ')[0]?.trim();
   return first || undefined;
 }
 
@@ -59,7 +63,7 @@ export function buildFpsSignatureParams(specs: SystemSpecs): FpsSignatureParams 
   const resolution = parseMonitorResolution(specs.monitor);
   if (!resolution) return null;
   return {
-    gpu: primaryGpuModel(specs.graphicsCard),
+    gpu: primaryGpuModel(specs),
     cpu: specs.processor || undefined,
     mobo: specs.motherboard || undefined,
     ramBytes: parseRamBytes(specs.memory),
