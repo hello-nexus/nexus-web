@@ -2189,7 +2189,7 @@
   "lighting.ledMap.assignLeds": "{count} LEDs",
   "lighting.ledMap.assignNoResults": "Nenhum dispositivo correspondente",
   "lighting.ledMap.assignSearch": "Buscar ventoinhas, fitas, AIO",
-  "lighting.ledMap.chainAdd": "Adicionar zona",
+  "lighting.ledMap.chainAdd": "Adicionar dispositivo",
   "lighting.ledMap.chainFull": "Porta cheia - {max} LEDs é tudo que ela consegue controlar",
   "lighting.ledMap.chainRemove": "Remover zona",
   "lighting.ledMap.chainReorder": "Reordenar {name}",

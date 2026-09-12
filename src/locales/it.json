@@ -2189,7 +2189,7 @@
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Nessun dispositivo corrispondente",
   "lighting.ledMap.assignSearch": "Cerca ventole, strisce, AIO",
-  "lighting.ledMap.chainAdd": "Aggiungi zona",
+  "lighting.ledMap.chainAdd": "Aggiungi dispositivo",
   "lighting.ledMap.chainFull": "Porta piena: {max} LED è tutto ciò che può pilotare",
   "lighting.ledMap.chainRemove": "Rimuovi zona",
   "lighting.ledMap.chainReorder": "Riordina {name}",

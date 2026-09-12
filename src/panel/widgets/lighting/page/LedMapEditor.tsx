@@ -81,7 +81,8 @@ const MAX_MAPPABLE_LEDS = 300;
 // coarse nudges when reshaping wide selections.
 const NUDGE_STEP_UV = 0.005;
 const NUDGE_STEP_UV_COARSE = 0.025;
-const MERGE_EPSILON = 0.018;
+// A group is LEDs the Group action put on one point; only float noise apart.
+const CO_LOCATED_EPSILON = 1e-6;
 
 // A Lian Li port device's ring segment holds one LED ring per fan, so dividing
 // the segment's LED count by the per-fan ring size recovers the fan count.
@@ -200,7 +201,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [dragging, setDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
   const [dragDelta, setDragDelta] = useState<{ du: number; dv: number } | null>(null);
-  const [dragMergeTarget, setDragMergeTarget] = useState<number | null>(null);
   const [ringVfx, setRingVfx] = useState<{ id: number; u: number; v: number; kind: 'merge' | 'split' }[]>([]);
   // Ring ids: a counter, so rings spawned in one tick never share an id.
   const ringSeqRef = useRef(0);
@@ -1080,7 +1080,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
 
     if (selectionResizing && selectionResizeRef.current) {
-      setDragMergeTarget(null);
       const { anchorU, anchorV, origU, origV, initialLeds } = selectionResizeRef.current;
       const { x: px, y: py } = getCanvasPercent(e);
       const { u: newU, v: newV } = canvasToUv(px, py);
@@ -1104,7 +1103,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     }
 
     if (marqueeActive && marquee) {
-      setDragMergeTarget(null);
       const { x: px, y: py } = getCanvasPercent(e);
       const updated = { ...marquee, x2: px, y2: py };
       setMarquee(updated);
@@ -1123,28 +1121,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const dv = innerH > 0 ? dPy / innerH : 0;
     setDragDelta({ du, dv });
 
-    // Compute which non-dragged LED/group the dragged set hovers within MERGE_EPSILON
-    const currentLeds = ledsRef.current;
-    const currentSelected = selected;
-    let mergeTarget: number | null = null;
-    let minMergeDist = MERGE_EPSILON;
-    for (const l of currentLeds) {
-      if (currentSelected.has(l.index) || l.disabled) continue;
-      for (const s of currentLeds) {
-        if (!currentSelected.has(s.index) || s.disabled) continue;
-        const newU = Math.max(0, Math.min(1, s.u + du));
-        const newV = Math.max(0, Math.min(1, s.v + dv));
-        const ddu = newU - l.u;
-        const ddv = newV - l.v;
-        const dist = Math.sqrt(ddu * ddu + ddv * ddv);
-        if (dist < minMergeDist) {
-          minMergeDist = dist;
-          const members = ledGroupsRef.current.get(l.index);
-          mergeTarget = members ? Math.min(...members) : l.index;
-        }
-      }
-    }
-    setDragMergeTarget(mergeTarget);
   };
 
   const handlePointerUp = (e?: React.PointerEvent) => {
@@ -1192,55 +1168,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       const pastBottom = cursor !== null && cursor.y > devRect.y + devRect.h;
       const currentSelected = selected;
       const currentDelta = dragDelta;
-      // Pre-compute snap targets on current leds so we can emit ring VFX
-      // outside the setState callback (setState callbacks must be pure).
-      const snapResults = new Map<number, { u: number; v: number }>();
-      if (!pastBottom) {
-        const targets: { u: number; v: number }[] = [];
-        for (const l of leds) {
-          if (!currentSelected.has(l.index) && !l.disabled) {
-            targets.push({ u: l.u, v: l.v });
-          }
-        }
-        for (const led of leds) {
-          if (!currentSelected.has(led.index)) continue;
-          const newU = Math.max(0, Math.min(1, led.u + currentDelta.du));
-          const newV = Math.max(0, Math.min(1, led.v + currentDelta.dv));
-          let snapU = newU, snapV = newV;
-          let minDist = MERGE_EPSILON;
-          let mergedToTarget = false;
-          for (const t of targets) {
-            const du = newU - t.u;
-            const dv = newV - t.v;
-            const dist = Math.sqrt(du * du + dv * dv);
-            if (dist < minDist) {
-              minDist = dist;
-              snapU = t.u;
-              snapV = t.v;
-              mergedToTarget = true;
-            }
-          }
-          if (!mergedToTarget && currentSelected.size <= 1) {
-            const settled = settleLed(snapU, snapV, snapGridRef.current);
-            snapU = settled.u;
-            snapV = settled.v;
-          }
-          // Only a snap onto another LED counts as a merge (ring + select-on-merge);
-          // a bare grid or centre snap is not a merge.
-          if (mergedToTarget) {
-            snapResults.set(led.index, { u: snapU, v: snapV });
-          }
-        }
-      }
       setLeds(prev => {
-        const targets: { u: number; v: number }[] = [];
-        if (!pastBottom) {
-          for (const l of prev) {
-            if (!currentSelected.has(l.index) && !l.disabled) {
-              targets.push({ u: l.u, v: l.v });
-            }
-          }
-        }
         // One offset for the whole selection, so the arrangement inside it
         // survives the snap; a lone LED snaps itself below.
         const groupAdjust = currentSelected.size > 1
@@ -1259,69 +1187,24 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           if (pastBottom) {
             return { ...led, disabled: true, isCustom: true };
           }
-          const newU = Math.max(0, Math.min(1, led.u + currentDelta.du));
-          const newV = Math.max(0, Math.min(1, led.v + currentDelta.dv));
-          let snapU = newU, snapV = newV;
-          let minDist = MERGE_EPSILON;
-          for (const t of targets) {
-            const du = newU - t.u;
-            const dv = newV - t.v;
-            const dist = Math.sqrt(du * du + dv * dv);
-            if (dist < minDist) {
-              minDist = dist;
-              snapU = t.u;
-              snapV = t.v;
-            }
-          }
-          if (minDist === MERGE_EPSILON) {
-            if (currentSelected.size > 1) {
-              snapU = Math.max(0, Math.min(1, snapU + groupAdjust.du));
-              snapV = Math.max(0, Math.min(1, snapV + groupAdjust.dv));
-            } else {
-              const settled = settleLed(snapU, snapV, snapGridRef.current);
-              snapU = settled.u;
-              snapV = settled.v;
-            }
+          let snapU = Math.max(0, Math.min(1, led.u + currentDelta.du));
+          let snapV = Math.max(0, Math.min(1, led.v + currentDelta.dv));
+          if (currentSelected.size > 1) {
+            snapU = Math.max(0, Math.min(1, snapU + groupAdjust.du));
+            snapV = Math.max(0, Math.min(1, snapV + groupAdjust.dv));
+          } else {
+            const settled = settleLed(snapU, snapV, snapGridRef.current);
+            snapU = settled.u;
+            snapV = settled.v;
           }
           return { ...led, u: snapU, v: snapV, isCustom: true };
         });
       });
       setDirty(true);
-      // Emit a ring VFX for each unique snap target position
-      if (snapResults.size > 0) {
-        const seen = new Set<string>();
-        const newRings: { id: number; u: number; v: number; kind: 'merge' | 'split' }[] = [];
-        for (const { u, v } of snapResults.values()) {
-          const key = `${u.toFixed(4)},${v.toFixed(4)}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            newRings.push({ id: ++ringSeqRef.current, u, v, kind: 'merge' });
-          }
-        }
-        if (newRings.length > 0) setRingVfx(prev => [...prev, ...newRings]);
-        // Expand selection to include all non-dragged LEDs at the snap target positions,
-        // so the whole merged group ends up selected after the drag-merge.
-        const snapUVs = new Set(Array.from(snapResults.values()).map(p => `${p.u.toFixed(6)},${p.v.toFixed(6)}`));
-        const merged = new Set(currentSelected);
-        for (const l of leds) {
-          if (currentSelected.has(l.index) || l.disabled) continue;
-          const key = `${l.u.toFixed(6)},${l.v.toFixed(6)}`;
-          if (snapUVs.has(key)) {
-            const members = ledGroupsRef.current.get(l.index);
-            if (members) {
-              for (const m of members) merged.add(m);
-            } else {
-              merged.add(l.index);
-            }
-          }
-        }
-        setSelected(merged);
-      }
     }
     setDragging(false);
     setDragStart(null);
     setDragDelta(null);
-    setDragMergeTarget(null);
   };
 
   const handleSelectionCornerDown = (e: React.PointerEvent, corner: 'nw' | 'ne' | 'sw' | 'se') => {
@@ -1816,8 +1699,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return s;
   }, [leds, savedLedsMap]);
 
-  // Maps each enabled LED index to its group members (co-located enabled LEDs
-  // within MERGE_EPSILON UV distance). Size-1 arrays = lone LED.
+  // Maps each enabled LED index to its group members (enabled LEDs on the
+  // same point, which only the Group action produces). Size-1 arrays = lone LED.
   const ledGroups = useMemo(() => {
     const enabledLeds = leds.filter(l => !l.disabled && isLedEnabled(l));
     const groupOf = new Map<number, number[]>();
@@ -1827,7 +1710,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       for (const g of groups) {
         const du = led.u - g.u;
         const dv = led.v - g.v;
-        if (Math.sqrt(du * du + dv * dv) < MERGE_EPSILON) {
+        if (Math.abs(du) < CO_LOCATED_EPSILON && Math.abs(dv) < CO_LOCATED_EPSILON) {
           g.members.push(led.index);
           assigned = true;
           break;
@@ -2038,20 +1921,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     if (dragOverride && selected.has(led.index)) {
       const newU = Math.max(0, Math.min(1, led.u + dragOverride.du));
       const newV = Math.max(0, Math.min(1, led.v + dragOverride.dv));
-      if (dragMergeTarget !== null) {
-        const targetLed = leds.find(l => l.index === dragMergeTarget);
-        if (targetLed) {
-          const du = newU - targetLed.u;
-          const dv = newV - targetLed.v;
-          if (Math.sqrt(du * du + dv * dv) < MERGE_EPSILON) {
-            snapTarget = { u: targetLed.u, v: targetLed.v };
-          }
-        }
-      }
-      if (!snapTarget && selected.size <= 1) {
+      if (selected.size <= 1) {
         const settled = settleLed(newU, newV, snapGrid);
         if (settled.u !== newU || settled.v !== newV) snapTarget = settled;
-      } else if (!snapTarget && snapGrid) {
+      } else if (snapGrid) {
         // Every member shifts by the same amount, the one that puts the
         // selection's centre on the grid.
         const adj = selectionSnapAdjust(draggedSelectionPoints, true);
@@ -2515,7 +2388,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                         isUnsaved ? styles.ledCustom : '',
                         isSelected ? styles.ledSelected : '',
                         isDraggingGroup ? styles.ledDragging : '',
-                        dragMergeTarget === repIdx ? styles.ledMergeTarget : '',
                       ].filter(Boolean).join(' ')}
                       style={{ left: `${cx}%`, top: `${cy}%` }}
                       onPointerDown={e => handleLedPointerDown(e, repIdx)}
@@ -2546,7 +2418,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                       (dragging && isSelected) || beingParkedDragged ? styles.ledDragging : '',
                       led.disabled ? styles.ledParked : '',
                       !enabled ? styles.ledDisabled : '',
-                      dragMergeTarget === led.index ? styles.ledMergeTarget : '',
                     ].filter(Boolean).join(' ')}
                     style={{ left: `${cx}%`, top: `${cy}%` }}
                     onPointerDown={e => handleLedPointerDown(e, led.index)}

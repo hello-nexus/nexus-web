@@ -2215,7 +2215,7 @@
   "lighting.ledMap.assignLeds": "{count} светодиодов",
   "lighting.ledMap.assignNoResults": "Подходящих устройств нет",
   "lighting.ledMap.assignSearch": "Поиск вентиляторов, лент, СЖО",
-  "lighting.ledMap.chainAdd": "Добавить зону",
+  "lighting.ledMap.chainAdd": "Добавить устройство",
   "lighting.ledMap.chainFull": "Порт заполнен - он может питать не более {max} светодиодов",
   "lighting.ledMap.chainRemove": "Удалить зону",
   "lighting.ledMap.chainReorder": "Переместить {name}",

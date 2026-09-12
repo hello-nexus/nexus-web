@@ -2189,7 +2189,7 @@
   "lighting.ledMap.assignLeds": "{count} 個の LED",
   "lighting.ledMap.assignNoResults": "一致するデバイスがありません",
   "lighting.ledMap.assignSearch": "ファン、ストリップ、AIO を検索",
-  "lighting.ledMap.chainAdd": "ゾーンを追加",
+  "lighting.ledMap.chainAdd": "デバイスを追加",
   "lighting.ledMap.chainFull": "ポートがいっぱいです。駆動できるのは{max} LEDまでです",
   "lighting.ledMap.chainRemove": "ゾーンを削除",
   "lighting.ledMap.chainReorder": "{name}を並べ替え",

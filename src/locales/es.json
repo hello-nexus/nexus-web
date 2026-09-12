@@ -2189,7 +2189,7 @@
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Ningún dispositivo coincide",
   "lighting.ledMap.assignSearch": "Buscar ventiladores, tiras, AIO",
-  "lighting.ledMap.chainAdd": "Añadir zona",
+  "lighting.ledMap.chainAdd": "Añadir dispositivo",
   "lighting.ledMap.chainFull": "El puerto está lleno: {max} LED es todo lo que puede controlar",
   "lighting.ledMap.chainRemove": "Quitar zona",
   "lighting.ledMap.chainReorder": "Reordenar {name}",

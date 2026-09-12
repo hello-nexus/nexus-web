@@ -562,11 +562,6 @@
   font-size: var(--type-small);
 }
 
-.ledMergeTarget {
-  box-shadow: 0 0 0 3px var(--accent), 0 0 8px 2px var(--accent-glow);
-  z-index: 4;
-}
-
 @keyframes ringContract {
   from { width: 120px; height: 120px; opacity: 0.9; }
   to { width: 34px; height: 34px; opacity: 0; }

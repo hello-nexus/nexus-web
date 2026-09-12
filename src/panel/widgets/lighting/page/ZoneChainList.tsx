@@ -235,6 +235,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
                 onClick={e => { setPickerAnchor(e.currentTarget); setPicker(picker === 'add' ? null : 'add'); }}
               >
                 <Plus size={13} aria-hidden />
+                <span>{t('lighting.ledMap.chainAdd')}</span>
               </button>
             </HoverTooltip>
             {picker === 'add' && (

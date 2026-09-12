@@ -2189,7 +2189,7 @@
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Nissun dispositîf corispondent",
   "lighting.ledMap.assignSearch": "Cîr ventuladôrs, stritis, AIO",
-  "lighting.ledMap.chainAdd": "Zonte une zone",
+  "lighting.ledMap.chainAdd": "Zonte dispositîf",
   "lighting.ledMap.chainFull": "Puarte plene - {max} LED e je dut ce che e pues guidâ",
   "lighting.ledMap.chainRemove": "Gjave la zone",
   "lighting.ledMap.chainReorder": "Torne a ordenâ {name}",

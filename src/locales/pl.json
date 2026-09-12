@@ -2215,7 +2215,7 @@
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Brak pasującego urządzenia",
   "lighting.ledMap.assignSearch": "Szukaj wentylatorów, taśm, AIO",
-  "lighting.ledMap.chainAdd": "Dodaj strefę",
+  "lighting.ledMap.chainAdd": "Dodaj urządzenie",
   "lighting.ledMap.chainFull": "Port jest pełny - może obsłużyć najwyżej {max} diod",
   "lighting.ledMap.chainRemove": "Usuń strefę",
   "lighting.ledMap.chainReorder": "Zmień kolejność {name}",
