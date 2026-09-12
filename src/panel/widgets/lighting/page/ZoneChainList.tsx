@@ -239,9 +239,10 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
                   <span>{t('lighting.ledMap.chainAdd')}</span>
                 </button>
               );
-              // The label says what the button does; only a full port needs a tooltip.
+              // The label says what the button does; only a full port needs a
+              // tooltip, on a wrapper since a disabled button takes no hover.
               return atCap
-                ? <HoverTooltip body={t('lighting.ledMap.chainFull', { max: maxLedCount })} side="top">{button}</HoverTooltip>
+                ? <HoverTooltip body={t('lighting.ledMap.chainFull', { max: maxLedCount })} side="top"><span className={styles.addHover}>{button}</span></HoverTooltip>
                 : button;
             })()}
             {picker === 'add' && (
@@ -259,7 +260,6 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
           </div>
         )}
         {actions}
-        {!chainable && <span className={styles.spacer} />}
         {/* One device is its own total. */}
         {rows.length > 1 && (
           <span className={styles.total}>

@@ -373,11 +373,17 @@ export interface LightingDevicesResponse {
   devices: LightingDevice[];
   /** User-made card groups, in display order. Absent on older services. */
   groups?: DeviceGroup[];
+  /** Cards linked to one canvas frame and one selection. Absent on older services. */
+  links?: DeviceGroup[];
 }
 
 /** Whole-list replace; the page owns group order and membership. */
 export const saveLightingGroups = (groups: DeviceGroup[]) =>
   putService<{ groups: DeviceGroup[] }>('/devices/lighting-devices/groups', { groups });
+
+/** Whole-list replace; the page owns link membership. */
+export const saveLightingLinks = (links: DeviceGroup[]) =>
+  putService<{ links: DeviceGroup[] }>('/devices/lighting-devices/links', { links });
 
 // Dev-tools builds stand in mock hardware when the host has none, so the
 // lighting page can be driven on a machine with no RGB devices.
