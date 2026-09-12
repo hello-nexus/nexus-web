@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
@@ -56,10 +56,15 @@ import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/Si
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
-import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
+import { type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../components/common/SortableList/groupedDrag';
-import { addGroup, anchorGroups, groupedRows, groupOf, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup } from '../../../lib/deviceGroups';
+import { DeviceGroupIcon } from '../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
+import { type GroupMove } from '../../../components/common/DeviceCanvas/groupMenuItems';
+import {
+  addGroup, applyArrangement, arrangementOf, canGroupIn, groupedRows, groupOf, groupRows, groupsIn, hardwareContainerOf,
+  MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup,
+} from '../../../lib/deviceGroups';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -1113,9 +1118,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // User-made fan groups. The service owns them (they ride the channel list),
   // so a write is optimistic and the cooling topic reconciles.
   const [fanGroupsState, setFanGroupsState] = useState<DeviceGroup[]>([]);
-  // A saved group can still hold a bare fan id from before that fan's rail block
-  // existed. Unmapped it resolves to no block, gets dropped from the rebuilt
-  // arrangement, and the next drag persists the pruned list.
+  // A saved top-level group can still hold a bare fan id from before that fan's
+  // rail block existed. Unmapped it resolves to no block, gets dropped from the
+  // rebuilt arrangement, and the next drag persists the pruned list. A group
+  // inside a block holds fan ids by design and is left alone.
   const legacyBlockIds = useMemo(() => {
     const byFanId = new Map<string, string>();
     for (const c of channels) {
@@ -1125,6 +1131,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return byFanId;
   }, [channels]);
   const fanGroups = useMemo(() => fanGroupsState.map(g => {
+    if (g.parent != null) return g;
     const members: string[] = [];
     for (const m of g.members) {
       const mapped = legacyBlockIds.get(m) ?? m;
@@ -1574,8 +1581,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 const bucket = allByBlock.get(key);
                 if (bucket) bucket.push(ch); else allByBlock.set(key, [ch]);
               }
-              const blockChannels = (blockIdList: readonly string[]) =>
-                blockIdList.flatMap(b => allByBlock.get(b) ?? []);
               const groupBlockIds = (groupId: string) =>
                 fanGroups.find(g => g.id === groupId)?.members ?? [];
               // Every fan lands in a block: its device, or the synthetic block
@@ -1591,24 +1596,87 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               // its ports never split.
               const blockIds = Array.from(groups.keys());
 
-              // A fan's group membership is its BLOCK's: a fan on a hub moves
-              // with the whole block, the way dragging one does.
-              const groupMoveFor = (ch: FanChannel) => {
-                const blockId = blockIdOf(ch);
-                const current = groupOf(fanGroups, blockId);
+              const expand = (blockId: string): string[] => {
+                const memberIds = (groups.get(blockId) ?? []).map(c => c.id);
+                const ordered = fanOrder.filter(id => memberIds.includes(id));
+                return ordered.length > 0 ? ordered : memberIds;
+              };
+              // Rail arrangement: hub and board blocks that no user group claims
+              // stay at the top level, each user group sits where the user
+              // dropped it, and a group row's members are the blocks and groups
+              // it holds. A block is ONE row, so dragging it moves the whole
+              // device; the groups a user makes INSIDE it live in its own list.
+              const rootRows = groupedRows(blockIds, id => id, fanGroups);
+              const arrangement = arrangementOf(rootRows);
+              const innerArrangements = new Map<string, Arrangement>(blockIds.map(blockId =>
+                [blockId, arrangementOf(groupedRows(expand(blockId), id => id, fanGroups, blockId))]));
+              const siblingsIn = (container: string | null): readonly string[] => {
+                if (container === null) return arrangement.rowIds;
+                if (container in arrangement.groupMembers) return arrangement.groupMembers[container];
+                const inner = innerArrangements.get(container);
+                if (inner) return inner.rowIds;
+                for (const arr of innerArrangements.values()) {
+                  if (container in arr.groupMembers) return arr.groupMembers[container];
+                }
+                return [];
+              };
+              const fansOfRows = (arr: Arrangement, ids: readonly string[]): FanChannel[] => ids.flatMap(id => {
+                if (id in arr.groupMembers) return fansOfRows(arr, arr.groupMembers[id]);
+                if (arr === arrangement) return expand(id).map(fid => channels.find(c => c.id === fid)).filter((c): c is FanChannel => c !== undefined);
+                const ch = channels.find(c => c.id === id);
+                return ch ? [ch] : [];
+              });
+              const fansIn = (arr: Arrangement, groupId: string) => fansOfRows(arr, arr.groupMembers[groupId] ?? []);
+
+              // A fan's row sits in its own hub or board block, or in a user
+              // group inside it; the fan only ever moves among those groups.
+              const containerOfFan = (ch: FanChannel) => groupOf(fanGroups, ch.id)?.id ?? blockIdOf(ch);
+              const groupFans = (fans: readonly FanChannel[]): (() => void) | undefined => {
+                const first = fans[0];
+                if (!first) return undefined;
+                const container = containerOfFan(first);
+                if (fans.some(c => containerOfFan(c) !== container) || !canGroupIn(fanGroups, container)) return undefined;
+                return () => setFanGroups(groupRows(fanGroups, t('cooling.fan.groupDefaultName'), container, fans.map(c => c.id), siblingsIn(container)));
+              };
+              const groupMoveFor = (ch: FanChannel): GroupMove => {
+                const current = groupOf(fanGroups, ch.id);
+                const hardware = blockIdOf(ch);
+                const reachable = fanGroups.filter(g => g.id !== current?.id && hardwareContainerOf(fanGroups, g.id) === hardware);
                 return {
-                  targets: fanGroups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
+                  targets: reachable.map(g => ({ id: g.id, name: g.name })),
+                  onMove: (groupId: string) => setFanGroups(moveBlock(fanGroups, ch.id, groupId, Number.MAX_SAFE_INTEGER)),
+                  onRemove: current
+                    ? { name: current.name, run: () => setFanGroups(moveBlock(fanGroups, ch.id, null, 0)) }
+                    : undefined,
+                  onGroup: groupFans([ch]),
+                };
+              };
+              // A hub or board block is a group in its own right: it only
+              // enters a top-level group, and none while it holds a group.
+              const blockGroupMove = (blockId: string): GroupMove => {
+                const current = groupOf(fanGroups, blockId);
+                const holds = groupsIn(fanGroups, blockId).length > 0;
+                const targets = holds ? [] : fanGroups.filter(g => g.id !== current?.id && g.parent == null);
+                return {
+                  targets: targets.map(g => ({ id: g.id, name: g.name })),
                   onMove: (groupId: string) => setFanGroups(moveBlock(fanGroups, blockId, groupId, Number.MAX_SAFE_INTEGER)),
                   onRemove: current
                     ? { name: current.name, run: () => setFanGroups(moveBlock(fanGroups, blockId, null, 0)) }
                     : undefined,
-                  onMoveToNew: fanGroups.length < MAX_DEVICE_GROUPS
-                    ? () => {
-                        const withNew = addGroup(fanGroups, t('cooling.fan.groupDefaultName'));
-                        setFanGroups(moveBlock(withNew, blockId, withNew[withNew.length - 1].id, 0));
-                      }
+                  onGroup: !holds && current === null && canGroupIn(fanGroups, null)
+                    ? () => setFanGroups(groupRows(fanGroups, t('cooling.fan.groupDefaultName'), null, [blockId], arrangement.rowIds))
                     : undefined,
                 };
+              };
+              // The same gate a card's own click has, over a group's members.
+              const selectAllFor = (fans: readonly FanChannel[]) => {
+                const ids = fans.filter(c => !isFanDisconnected(c) && c.classification !== 'Fixed' && !c.readOnly).map(c => c.id);
+                return ids.length > 0 ? { count: ids.length, run: () => setSelectedFanIds(new Set(ids)) } : undefined;
+              };
+              const bulkFor = (ch: FanChannel): FanBulkSelection | undefined => {
+                const bulk = bulkForFan(ch);
+                if (!bulk) return undefined;
+                return { ...bulk, group: groupFans(channels.filter(c => selectedFanIds.has(c.id))) };
               };
 
               const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => (
@@ -1629,7 +1697,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onToggleLock={handleToggleLock}
                   onToggleControlled={handleSetFanControlled}
                   onSelectOnly={() => setSelectedFanIds(new Set([ch.id]))}
-                  bulk={bulkForFan(ch)}
+                  bulk={bulkFor(ch)}
                   onSetRole={handleSetRole}
                   onClearOffset={handleClearOffset}
                   drag={drag}
@@ -1637,56 +1705,92 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 />
               );
 
-              const expand = (blockId: string): string[] => {
-                const memberIds = (groups.get(blockId) ?? []).map(c => c.id);
-                const ordered = fanOrder.filter(id => memberIds.includes(id));
-                return ordered.length > 0 ? ordered : memberIds;
-              };
-              const rows = groupedRows(blockIds, id => id, fanGroups);
-              const arrangement: Arrangement = {
-                rowIds: rows.map(r => r.id),
-                groupMembers: Object.fromEntries(fanGroups.map(g => [
-                  g.id,
-                  (rows.find(r => r.id === g.id && r.kind === 'group') as { blocks: string[] } | undefined)?.blocks ?? [],
-                ])),
-              };
-              const handleArrange = (next: Arrangement) => {
-                // anchorGroups records the row each group now follows, so a group
-                // emptied by this very drop keeps its slot instead of tailing.
-                setFanGroups(anchorGroups(
-                  next.rowIds
-                    .filter(id => id in next.groupMembers)
-                    .map(id => ({
-                      ...(fanGroups.find(g => g.id === id) ?? { id, name: '' }),
-                      members: next.groupMembers[id] ?? [],
-                    })),
-                  next.rowIds,
-                ));
-                const order: string[] = [];
-                for (const rowId of next.rowIds) {
-                  if (rowId in next.groupMembers) {
-                    for (const memberId of next.groupMembers[rowId] ?? []) order.push(...expand(memberId));
-                  } else {
-                    order.push(...expand(rowId));
-                  }
-                }
-                order.push(...disconnectedIds, ...hiddenFanIds);
+              const persistOrder = (order: string[]) => {
                 setFanOrder(order);
                 if (serviceOnline) updateUiSettings({ fanChannelOrder: order });
+              };
+              // One drop rewrites both halves: which group holds which row, and
+              // the flat fan order the page persists.
+              const handleArrange = (next: Arrangement) => {
+                setFanGroups(applyArrangement(fanGroups, next, null));
+                const expandRow = (id: string): string[] => id in next.groupMembers
+                  ? (next.groupMembers[id] ?? []).flatMap(expandRow)
+                  : expand(id);
+                persistOrder([...next.rowIds.flatMap(expandRow), ...disconnectedIds, ...hiddenFanIds]);
+              };
+
+              // The user group header, for a group at the top level or inside
+              // a block: `arr` is the list it sits in.
+              const renderUserGroup = (arr: Arrangement, groupId: string, a: SortableRowArgs, children: ReactNode, isDropTarget: boolean) => {
+                const group = fanGroups.find(g => g.id === groupId);
+                if (!group) return null;
+                // A group holding nothing the eye lets through goes with its
+                // members. One the user just made is empty, not hidden, so it
+                // stays put as a drop target. Nested groups count with their parent.
+                // A top-level group holds blocks, one inside a block holds fans.
+                const allIn = (id: string): FanChannel[] => [
+                  ...groupBlockIds(id).flatMap(m => allByBlock.get(m) ?? orderedChannels.filter(c => c.id === m)),
+                  ...groupsIn(fanGroups, id).flatMap(g => allIn(g.id)),
+                ];
+                const groupAll = allIn(groupId);
+                if (hideUncontrolled && groupAll.length > 0
+                  && groupAll.every(isHiddenFan)) return null;
+                const members = fansIn(arr, groupId);
+                return (
+                  <FanGroupHeader
+                    name={group.name}
+                    count={members.length}
+                    hasUncontrolled={groupAll.some(c => c.controlled === false)}
+                    collapsed={isFanGroupCollapsed(groupId)}
+                    onToggleCollapsed={() => toggleFanGroup(groupId)}
+                    groupControlled={members.some(c => c.controlled !== false)}
+                    onToggleControlled={() => {
+                      const target = !members.some(c => c.controlled !== false);
+                      for (const c of members) handleSetFanControlled(c.id, target);
+                    }}
+                    groupLocked={members.some(c => c.locked)}
+                    onToggleLock={() => {
+                      const target = !members.some(c => c.locked);
+                      for (const c of members) handleToggleLock(c.id, target);
+                    }}
+                    onRename={name => setFanGroups(renameGroup(fanGroups, groupId, name))}
+                    onDelete={() => setFanGroups(removeGroup(fanGroups, groupId))}
+                    onSelectAll={selectAllFor(members)}
+                    dropTarget={isDropTarget}
+                    drag={a}
+                  >
+                    <div className={styles.fanGroupChildren}>{children}</div>
+                  </FanGroupHeader>
+                );
               };
 
               const renderBlock = (blockId: string, a: SortableRowArgs) => {
                 const list = groups.get(blockId) ?? [];
-                const memberIds = list.map(c => c.id);
                 // On the board's block deviceName carries the rename and nothing
                 // else, so an un-renamed one has no name to reset to.
                 const custom = list[0]?.deviceName;
                 const isBoard = blockId === MOTHERBOARD_BLOCK_ID;
+                const inner = innerArrangements.get(blockId) ?? { rowIds: expand(blockId), groupMembers: {} };
+                // A drop inside this block rewrites its groups and the flat fan
+                // order: this block's fans in their new order, the rest as they were.
+                const handleInnerArrange = (next: Arrangement) => {
+                  setFanGroups(applyArrangement(fanGroups, next, blockId));
+                  const expandRow = (id: string): string[] => id in next.groupMembers
+                    ? (next.groupMembers[id] ?? []).flatMap(expandRow)
+                    : [id];
+                  const memberIds = list.map(c => c.id);
+                  const newIds = next.rowIds.flatMap(expandRow);
+                  const firstIdx = fanOrder.findIndex(id => memberIds.includes(id));
+                  const without = fanOrder.filter(id => !memberIds.includes(id));
+                  const at = firstIdx < 0 ? without.length : firstIdx;
+                  persistOrder([...without.slice(0, at), ...newIds, ...without.slice(at)]);
+                };
                 return (
                   <FanGroupHeader
                     name={isBoard
                       ? (custom || boardBlockName)
                       : fanDeviceGroupName(blockId, custom)}
+                    icon={<DeviceGroupIcon id={blockId} iconType={list[0]?.isGpu ? 'gpu' : undefined} />}
                     count={list.length}
                     hasUncontrolled={(allByBlock.get(blockId) ?? []).some(c => c.controlled === false)}
                     collapsed={isFanGroupCollapsed(blockId)}
@@ -1705,27 +1809,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                     onResetName={(isBoard ? custom != null : list[0]?.originalDeviceName != null)
                       ? () => handleRename(blockId, '')
                       : undefined}
+                    onSelectAll={selectAllFor(list)}
+                    groupMove={blockGroupMove(blockId)}
                     drag={a}
                   >
                     <div className={styles.fanGroupChildren}>
-                      <SortableList
-                        ids={memberIds}
-                        onReorder={(newIds) => {
-                          const firstIdx = fanOrder.findIndex(id => memberIds.includes(id));
-                          const without = fanOrder.filter(id => !memberIds.includes(id));
-                          const next = [
-                            ...without.slice(0, firstIdx < 0 ? without.length : firstIdx),
-                            ...newIds,
-                            ...without.slice(firstIdx < 0 ? without.length : firstIdx),
-                          ];
-                          setFanOrder(next);
-                          if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
-                        }}
-                        renderRow={(fanId, fa) => {
+                      <GroupedSortableList
+                        arrangement={inner}
+                        onArrange={handleInnerArrange}
+                        renderBlock={(fanId, fa) => {
                           const ch = channels.find(c => c.id === fanId);
                           if (!ch) return null;
                           return renderFanCard(ch, fa);
                         }}
+                        renderGroup={(groupId, ga, children, isDropTarget) => renderUserGroup(inner, groupId, ga, children, isDropTarget)}
                       />
                     </div>
                   </FanGroupHeader>
@@ -1739,45 +1836,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       arrangement={arrangement}
                       onArrange={handleArrange}
                       renderBlock={renderBlock}
-                      renderGroup={(groupId, a, children, isDropTarget) => {
-                        const group = fanGroups.find(g => g.id === groupId);
-                        if (!group) return null;
-                        // A group holding nothing the eye lets through goes
-                        // with its members. One the user just made is empty, not
-                        // hidden, so it stays put as a drop target.
-                        const groupAll = blockChannels(groupBlockIds(groupId));
-                        if (hideUncontrolled && groupAll.length > 0
-                          && groupAll.every(isHiddenFan)) return null;
-                        const members = (arrangement.groupMembers[groupId] ?? [])
-                          .flatMap(id => expand(id))
-                          .map(id => channels.find(c => c.id === id))
-                          .filter((c): c is FanChannel => c !== undefined);
-                        return (
-                          <FanGroupHeader
-                            name={group.name}
-                            count={members.length}
-                            hasUncontrolled={groupAll.some(c => c.controlled === false)}
-                            collapsed={isFanGroupCollapsed(groupId)}
-                            onToggleCollapsed={() => toggleFanGroup(groupId)}
-                            groupControlled={members.some(c => c.controlled !== false)}
-                            onToggleControlled={() => {
-                              const target = !members.some(c => c.controlled !== false);
-                              for (const c of members) handleSetFanControlled(c.id, target);
-                            }}
-                            groupLocked={members.some(c => c.locked)}
-                            onToggleLock={() => {
-                              const target = !members.some(c => c.locked);
-                              for (const c of members) handleToggleLock(c.id, target);
-                            }}
-                            onRename={name => setFanGroups(renameGroup(fanGroups, groupId, name))}
-                            onDelete={() => setFanGroups(removeGroup(fanGroups, groupId))}
-                            dropTarget={isDropTarget}
-                            drag={a}
-                          >
-                            <div className={styles.fanGroupChildren}>{children}</div>
-                          </FanGroupHeader>
-                        );
-                      }}
+                      nestGroups
+                      groupBlock={id => groups.has(id)}
+                      holdsGroup={id => groupsIn(fanGroups, id).length > 0}
+                      renderGroup={(groupId, a, children, isDropTarget) => renderUserGroup(arrangement, groupId, a, children, isDropTarget)}
                     />
                   )}
                   {fanGroups.length < MAX_DEVICE_GROUPS && (

@@ -25,6 +25,7 @@ import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../components/common/ChartHoverTooltip/ChartHoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { DeviceGroupIcon } from '../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
 import { FeatureDisabled } from '../components/common/FeatureDisabled/FeatureDisabled';
@@ -328,6 +329,30 @@ function PreviewDeviceWarningIcon() {
         <span>Unknown code</span>
         <DeviceWarningIcon code="some-future-code" />
       </div>
+    </div>
+  );
+}
+
+function PreviewDeviceGroupIcon() {
+  const rows: Array<[label: string, id: string, iconType?: string]> = [
+    ['Motherboard (OpenRGB)', 'openrgb-1', 'motherboard'],
+    ['GPU (OpenRGB)', 'openrgb-2', 'gpu'],
+    ['RAM (OpenRGB)', 'openrgb-3', 'dram'],
+    ['Motherboard headers (cooling)', 'motherboard'],
+    ['HYTE NP50', 'np50:ABCD'],
+    ['HYTE SmartHub', 'smarthub:1'],
+    ['Lian Li hub', 'lianli:hub'],
+    ['Philips Hue', 'hue:bridge', 'bulb'],
+    ['Unknown device', 'something-else'],
+  ];
+  return (
+    <div className={styles.previewStack}>
+      {rows.map(([label, id, iconType]) => (
+        <div key={id} className={styles.previewHoverCard}>
+          <DeviceGroupIcon id={id} iconType={iconType} />
+          <span>{label}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -2139,6 +2164,13 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Renders the raw code as a fallback tooltip if it has no mapped i18n key, so an unmapped code fails visibly instead of silently.',
   },
   {
+    name: 'DeviceGroupIcon', category: 'status',
+    filePath: 'src/components/common/DeviceGroupIcon/DeviceGroupIcon.tsx',
+    description: 'The glyph before a hardware group\'s name on the lighting and cooling rails: curated device art for a known device-id prefix (NP50, SmartHub, Lian Li, Corsair, keeb, Q-series, Kraken, CNVS), a generic board / GPU / RAM / fan / bulb mark for an OpenRGB or smart-light iconType, else the generic device. User-made groups carry no icon.',
+    Preview: PreviewDeviceGroupIcon,
+    notes: 'Curated art is the same /assets/devices/*.svg the Devices page shows, drawn as a currentColor mask so it matches the lucide glyphs beside it. Sized to the compact CollapsibleSection chevron.',
+  },
+  {
     name: 'NexusControlOffIcon', category: 'status',
     filePath: 'src/components/common/NexusControlOffIcon/NexusControlOffIcon.tsx',
     description: 'Right-aligned glyph on a sidebar device row when Nexus Control is off for that device (supportsNexusControl true, nexusControlEnabled false). A bare non-focusable icon, same pattern as DeviceWarningIcon.',
@@ -2668,7 +2700,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'CollapsibleSection', category: 'panel-kit',
     filePath: 'src/components/common/CollapsibleSection/CollapsibleSection.tsx',
-    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use. boxed wraps the whole section in the standard surface/border/radius card chrome for a standalone full-width section (monitoring Detailed).',
+    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use. boxed wraps the whole section in the standard surface/border/radius card chrome for a standalone full-width section (monitoring Detailed). titleBefore slots a glyph between the chevron and the title (the hardware group icon on the device rails).',
     Preview: PreviewCollapsibleSection,
   },
   {
@@ -2680,7 +2712,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'GroupedSortableList', category: 'panel-kit' as StorybookCategory,
     filePath: 'src/components/common/SortableList/GroupedSortableList.tsx',
-    description: 'Two-level drag list: top-level rows plus one nested list per group, all under ONE DndContext so a row can be dragged into, out of and between groups. Used by the lighting and cooling rails for user-made device groups. SortableList stays the choice for a flat list - it owns its own context, so two of them can never exchange rows. Nesting is one level: a group row never enters another group.',
+    description: 'Two-level drag list: top-level rows plus one nested list per group, all under ONE DndContext so a row can be dragged into, out of and between groups. Used by the lighting and cooling rails for user-made device groups. SortableList stays the choice for a flat list - it owns its own context, so two of them can never exchange rows. A group\'s members may name another group, which renders nested; by default a group row never enters another group, and with nestGroups it can enter a top-level group and no deeper (groupBlock / holdsGroup let a block that is itself a group, or holds one, obey the same depth rule).',
     Preview: PreviewGroupedSortableList,
   },
   {

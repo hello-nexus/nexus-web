@@ -132,7 +132,6 @@
   --add-strip-width: calc(var(--rail-width) - 28px);
   display: flex;
   align-items: center;
-  justify-content: center;
   flex-shrink: 0;
   width: var(--add-strip-width);
   height: 28px;
@@ -166,6 +165,29 @@
     background: color-mix(in srgb, var(--text) 12%, transparent);
     color: var(--text);
   }
+}
+
+// The glyph keeps the strip's collapsed box, so the + holds the icon column
+// whether or not a label follows it.
+.addStripGlyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--add-strip-width);
+  flex-shrink: 0;
+}
+
+// Expanded: the pill grows to fit the label. With no gap after the glyph box
+// the label's left edge lands on the row labels' (icon box + .item gap).
+.addStripLabeled {
+  width: auto;
+  padding-right: 12px;
+}
+
+.addStripLabel {
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  white-space: nowrap;
 }
 
 // Revealed by a pointer anywhere over the sidebar nav, and whenever it takes

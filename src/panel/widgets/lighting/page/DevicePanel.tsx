@@ -11,10 +11,15 @@ import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
-import { SortableList, type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
+import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../../components/common/SortableList/groupedDrag';
-import { addGroup, anchorGroups, groupedRows, groupOf, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup } from '../../../../lib/deviceGroups';
+import { DeviceGroupIcon } from '../../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
+import { type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
+import {
+  addGroup, applyArrangement, arrangementOf, canGroupIn, groupedRows, groupOf, groupRows, groupsIn, hardwareContainerOf,
+  MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup,
+} from '../../../../lib/deviceGroups';
 import { blockKey, buildDeviceBlocks, stripParentPrefix, type DeviceBlock, type ZoneBlock } from './deviceBlocks';
 import styles from '../LightingPage.module.scss';
 
@@ -100,36 +105,106 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     setCollapsedGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
   const blocks = buildDeviceBlocks(devices);
+  const every = allDevices ?? devices;
 
-  // Block-level ids for the top-level SortableList: single device id for singles,
-  // groupKey for groups.
-  const blockIds = blocks.map(b => b.kind === 'single' ? b.device.id : b.groupKey);
+  // Block-level ids for the top-level list: single device id for singles,
+  // groupKey for stacks and hardware groups.
+  const blockIds = blocks.map(blockKey);
   const blockMap = new Map<string, DeviceBlock>(blocks.map((b, i) => [blockIds[i], b]));
+  const devicesOfBlock = (b: DeviceBlock): LightingDevice[] => b.kind === 'single' ? [b.device] : b.devices;
+  const devicesOfBlockId = (id: string): LightingDevice[] => { const b = blockMap.get(id); return b ? devicesOfBlock(b) : []; };
 
-  // A card's group membership is its BLOCK's: a zone inside a hardware group
-  // moves with the whole block, the way dragging one does.
+  // A card's block: a zone inside a hardware group moves with the whole block,
+  // the way dragging one does.
   const blockIdOfDevice = new Map<string, string>();
   blocks.forEach((block, i) => {
-    if (block.kind === 'single') blockIdOfDevice.set(block.device.id, blockIds[i]);
-    else for (const member of block.devices) blockIdOfDevice.set(member.id, blockIds[i]);
+    for (const member of devicesOfBlock(block)) blockIdOfDevice.set(member.id, blockIds[i]);
   });
 
-  const groupMoveFor = (deviceId: string) => {
+  // Rail arrangement: hardware blocks that no user group claims stay at the top
+  // level, each user group sits where the user dropped it, and a group row's
+  // members are the blocks and groups it holds. A hardware group is ONE block
+  // here, so dragging it moves the whole thing and its zones can never be
+  // split; the groups a user makes INSIDE it live in its own inner list.
+  const rootRows = groupedRows(blocks, blockKey, groups);
+  const arrangement = arrangementOf(rootRows);
+  // Each hardware group's inner list: its zone rows plus the user groups whose
+  // parent is the group's key.
+  const innerArrangements = new Map<string, Arrangement>();
+  for (const block of blocks) {
+    if (block.kind !== 'group') continue;
+    innerArrangements.set(block.groupKey, arrangementOf(groupedRows(block.blocks, blockKey, groups, block.groupKey)));
+  }
+  const siblingsIn = (container: string | null): readonly string[] => {
+    if (container === null) return arrangement.rowIds;
+    if (container in arrangement.groupMembers) return arrangement.groupMembers[container];
+    const inner = innerArrangements.get(container);
+    if (inner) return inner.rowIds;
+    for (const arr of innerArrangements.values()) {
+      if (container in arr.groupMembers) return arr.groupMembers[container];
+    }
+    return [];
+  };
+
+  // The rail row a device is - its card, or the stack its zones share - the
+  // container that row sits in (the top level, a user group, or the hardware
+  // group whose rows it is one of), and that hardware group, if any.
+  const rowOfDevice = (deviceId: string): { rowId: string; container: string | null; hardware: string | null } | undefined => {
     const blockId = blockIdOfDevice.get(deviceId);
-    if (!onGroupsChange || blockId === undefined) return undefined;
+    const block = blockId === undefined ? undefined : blockMap.get(blockId);
+    if (blockId === undefined || !block) return undefined;
+    if (block.kind !== 'group') return { rowId: blockId, container: groupOf(groups, blockId)?.id ?? null, hardware: null };
+    const row = block.blocks.find(z => devicesOfBlock(z).some(d => d.id === deviceId));
+    if (!row) return undefined;
+    const rowId = blockKey(row);
+    return { rowId, container: groupOf(groups, rowId)?.id ?? block.groupKey, hardware: block.groupKey };
+  };
+
+  // Wraps the rows of `deviceIds` in a new group where they sit, when every
+  // one shares a container with room under the nesting limit.
+  const groupDevices = (deviceIds: readonly string[]): (() => void) | undefined => {
+    if (!onGroupsChange) return undefined;
+    const rows = deviceIds.map(rowOfDevice);
+    const first = rows[0];
+    if (!first || rows.some(r => r === undefined || r.container !== first.container)) return undefined;
+    if (!canGroupIn(groups, first.container)) return undefined;
+    const rowIds = [...new Set(rows.map(r => r!.rowId))];
+    return () => onGroupsChange(groupRows(groups, t('lighting.devices.groupDefaultName'), first.container, rowIds, siblingsIn(first.container)));
+  };
+
+  // A hardware group is a group in its own right: it only enters a top-level
+  // group, and none at all while it holds a group of its own.
+  const blockGroupMove = (blockId: string): GroupMove | undefined => {
+    if (!onGroupsChange) return undefined;
     const current = groupOf(groups, blockId);
+    const holds = groupsIn(groups, blockId).length > 0;
+    const targets = holds ? [] : groups.filter(g => g.id !== current?.id && g.parent == null);
     return {
-      targets: groups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
+      targets: targets.map(g => ({ id: g.id, name: g.name })),
       onMove: (groupId: string) => onGroupsChange(moveBlock(groups, blockId, groupId, Number.MAX_SAFE_INTEGER)),
       onRemove: current
         ? { name: current.name, run: () => onGroupsChange(moveBlock(groups, blockId, null, 0)) }
         : undefined,
-      onMoveToNew: groups.length < MAX_DEVICE_GROUPS
-        ? () => {
-            const withNew = addGroup(groups, t('lighting.devices.groupDefaultName'));
-            onGroupsChange(moveBlock(withNew, blockId, withNew[withNew.length - 1].id, 0));
-          }
+      onGroup: !holds && current === null && canGroupIn(groups, null)
+        ? () => onGroupsChange(groupRows(groups, t('lighting.devices.groupDefaultName'), null, [blockId], arrangement.rowIds))
         : undefined,
+    };
+  };
+
+  const groupMoveFor = (deviceId: string): GroupMove | undefined => {
+    const row = rowOfDevice(deviceId);
+    if (!onGroupsChange || !row) return undefined;
+    const current = groupOf(groups, row.rowId);
+    // A row moves among the groups of its own hardware group, or, outside one,
+    // among the groups that sit in none.
+    const reachable = groups.filter(g => g.id !== current?.id && hardwareContainerOf(groups, g.id) === row.hardware);
+    return {
+      targets: reachable.map(g => ({ id: g.id, name: g.name })),
+      onMove: (groupId: string) => onGroupsChange(moveBlock(groups, row.rowId, groupId, Number.MAX_SAFE_INTEGER)),
+      onRemove: current
+        ? { name: current.name, run: () => onGroupsChange(moveBlock(groups, row.rowId, null, 0)) }
+        : undefined,
+      onGroup: groupDevices([deviceId]),
     };
   };
 
@@ -218,7 +293,16 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
           startIdentify(x.id, IDENTIFY_MS);
           identifyLightingDevice(x.id, IDENTIFY_MS).catch(() => { /* silent */ });
         }),
+      group: groupDevices(selectedDevices.map(x => x.id)),
     };
+  };
+
+  // The same gate a card's own click has, over a group's members.
+  const fwOf = (d: LightingDevice) => (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))
+    || (!!smartHubFirmwareControl && !!d.parentDeviceId?.startsWith('smarthub:'));
+  const selectAllFor = (members: readonly LightingDevice[]) => {
+    const ids = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
+    return ids.length > 0 ? { count: ids.length, run: () => onSetSelection(new Set(ids), ids[0]) } : undefined;
   };
 
   const ledPickFor = (id: string): LedPick | undefined => {
@@ -264,9 +348,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   const renderStack = (block: Extract<ZoneBlock, { kind: 'split' }>, drag?: SortableRowArgs, indent = false, fwControlled?: boolean) => {
     const members = block.devices;
     const last = members.length - 1;
-    const fwOf = (d: LightingDevice) => !!fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'));
     // The same gate a card's own click has.
-    const selectable = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
+    const selectable = members.filter(z => !zoneCardUnavailable(z) && !fwControlled && !fwOf(z)).map(z => z.id);
     const stackOn = members.some(z => z.ledsOn);
     const stackControlled = members.some(z => z.controlled !== false);
     const flashable = members.filter(z => z.ledCount > 0);
@@ -332,9 +415,39 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         </button>
       </HoverTooltip>
     ) : undefined;
-    const rowIds = rows.map(blockKey);
+    const inner = innerArrangements.get(groupKey) ?? { rowIds: rows.map(blockKey), groupMembers: {} };
+    const rowById = new Map(rows.map(r => [blockKey(r), r]));
+    const devicesOfRowId = (id: string): LightingDevice[] => { const r = rowById.get(id); return r ? devicesOfBlock(r) : []; };
+    const devicesOfRows = (ids: readonly string[]): LightingDevice[] => ids.flatMap(id => id in inner.groupMembers
+      ? devicesOfRows(inner.groupMembers[id])
+      : devicesOfRowId(id));
+    const renderRow = (rowId: string, da: SortableRowArgs) => {
+      const row = rowById.get(rowId);
+      if (!row) return null;
+      if (row.kind === 'split') return renderStack(row, da, true, isSmartHub && fwOn);
+      return isBrand
+        ? renderCard(row.device, true, undefined, undefined, da)
+        : renderCard(row.device, true, stripParentPrefix(row.device.name, stripLabel), isSmartHub && fwOn, da);
+    };
+    // One drop rewrites the groups inside this hardware group and the flat
+    // device order the page persists: this group's zones in their new order,
+    // every other block as it was.
+    const handleInnerArrange = (next: Arrangement) => {
+      onGroupsChange?.(applyArrangement(groups, next, groupKey));
+      if (!onDeviceReorder) return;
+      const expandRow = (id: string): string[] => id in next.groupMembers
+        ? (next.groupMembers[id] ?? []).flatMap(expandRow)
+        : devicesOfRowId(id).map(d => d.id);
+      const newMemberIds = next.rowIds.flatMap(expandRow);
+      onDeviceReorder(blockIds.flatMap(bId => {
+        const b = blockMap.get(bId);
+        if (!b) return [];
+        return b.kind === 'group' && b.groupKey === groupKey ? newMemberIds : devicesOfBlock(b).map(d => d.id);
+      }));
+    };
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
+        icon={<DeviceGroupIcon id={parentDeviceId ?? groupKey} iconType={members[0]?.iconType} />}
         onRename={onRenameDevice && parentDeviceId ? name => onRenameDevice(parentDeviceId, name) : undefined}
         onResetName={onRenameDevice && parentDeviceId && members[0]?.parentName != null
           ? () => onRenameDevice(parentDeviceId, '')
@@ -344,98 +457,67 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
         leftAction={leftAction} hideLights={fwOn}
         notice={noticeFor(members[0])}
+        onSelectAll={selectAllFor(members)}
+        groupMove={blockGroupMove(groupKey)}
         drag={a ?? undefined}>
-        <SortableList
-          ids={rowIds}
-          onReorder={(newRowIds) => {
-            if (!onDeviceReorder) return;
-            // A row is one device: its zones move with it.
-            const newMemberIds = newRowIds.flatMap(id => {
-              const row = rows.find(r => blockKey(r) === id);
-              return !row ? [] : row.kind === 'single' ? [row.device.id] : row.devices.map(d => d.id);
-            });
-            const newOrder: string[] = [];
-            for (const bId of blockIds) {
-              const b = blockMap.get(bId);
-              if (!b) continue;
-              if (b.kind === 'single') {
-                newOrder.push(b.device.id);
-              } else if (b.groupKey === groupKey) {
-                newOrder.push(...newMemberIds);
-              } else {
-                newOrder.push(...b.devices.map(d => d.id));
-              }
-            }
-            onDeviceReorder(newOrder);
-          }}
-          renderRow={(rowId, da) => {
-            const row = rows.find(r => blockKey(r) === rowId);
-            if (!row) return null;
-            if (row.kind === 'split') return renderStack(row, da, true, isSmartHub && fwOn);
-            return isBrand
-              ? renderCard(row.device, true, undefined, undefined, da)
-              : renderCard(row.device, true, stripParentPrefix(row.device.name, stripLabel), isSmartHub && fwOn, da);
+        <GroupedSortableList
+          arrangement={inner}
+          onArrange={handleInnerArrange}
+          renderBlock={renderRow}
+          renderGroup={(groupId, ga, children, isDropTarget) => {
+            const group = groups.find(g => g.id === groupId);
+            if (!group) return null;
+            const held = devicesOfRows(inner.groupMembers[groupId] ?? []);
+            const heldOn = held.some(z => z.ledsOn);
+            const heldControlled = held.some(z => z.controlled !== false);
+            // Off the unfiltered list, the same way the top-level group counts.
+            const heldAll = group.members.flatMap(m => every.filter(d => d.id === m || `mb:${d.deviceId || d.id}` === m));
+            if (hidingUncontrolled && heldAll.length > 0 && heldAll.every(d => d.controlled === false)) return null;
+            return (
+              <MotherboardGroup
+                parentName={group.name}
+                ariaLabel={group.name}
+                groupOn={heldOn}
+                onTogglePower={() => { const target = !heldOn; for (const z of held) onSetPower(z.id, target); }}
+                groupControlled={heldControlled}
+                onToggleControlled={() => { const target = !heldControlled; for (const z of held) onSetControlled(z.id, target); }}
+                collapsed={isCollapsed(groupId)}
+                onToggleCollapsed={() => toggleCollapsed(groupId)}
+                onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
+                onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
+                onSelectAll={selectAllFor(held)}
+                hideLights={fwOn}
+                dropTarget={isDropTarget}
+                empty={held.length === 0}
+                count={held.length}
+                hasUncontrolled={heldAll.some(d => d.controlled === false)}
+                drag={ga}
+              >
+                {children}
+              </MotherboardGroup>
+            );
           }}
         />
       </MotherboardGroup>
     );
   };
 
-  // Rail arrangement: hardware blocks that no user group claims stay at the top
-  // level, each user group sits where its first present member sat, and a group
-  // row's members are the blocks it owns. A hardware group is ONE block here, so
-  // dragging it moves the whole thing and its zones can never be split.
-  const grouped = groupedRows(blocks, b => (b.kind === 'single' ? b.device.id : b.groupKey), groups);
-  const arrangement: Arrangement = {
-    rowIds: grouped.map(r => r.id),
-    groupMembers: Object.fromEntries(groups.map(g => [
-      g.id,
-      grouped.find(r => r.kind === 'group' && r.id === g.id)?.kind === 'group'
-        ? (grouped.find(r => r.id === g.id) as { blocks: DeviceBlock[] }).blocks
-            .map(b => b.kind === 'single' ? b.device.id : b.groupKey)
-        : [],
-    ])),
-  };
-
-  // One drop rewrites both halves: which group holds which block, and the flat
+  // One drop rewrites both halves: which group holds which row, and the flat
   // device order the page persists.
   const handleArrange = (next: Arrangement) => {
-    if (onGroupsChange) {
-      // anchorGroups records the row each group now follows, so a group emptied
-      // by this very drop keeps its slot instead of sliding to the tail.
-      onGroupsChange(anchorGroups(
-        next.rowIds
-          .filter(id => id in next.groupMembers)
-          .map(id => ({
-            ...(groups.find(g => g.id === id) ?? { id, name: '' }),
-            members: next.groupMembers[id] ?? [],
-          })),
-        next.rowIds,
-      ));
-    }
+    onGroupsChange?.(applyArrangement(groups, next, null));
     if (!onDeviceReorder) return;
-    const expand = (blockId: string): string[] => {
-      const b = blockMap.get(blockId);
-      if (!b) return [];
-      return b.kind === 'single' ? [b.device.id] : b.devices.map(d => d.id);
-    };
-    const order: string[] = [];
-    for (const rowId of next.rowIds) {
-      if (rowId in next.groupMembers) {
-        for (const memberId of next.groupMembers[rowId] ?? []) order.push(...expand(memberId));
-      } else {
-        order.push(...expand(rowId));
-      }
-    }
-    onDeviceReorder(order);
+    const expand = (id: string): string[] => id in next.groupMembers
+      ? (next.groupMembers[id] ?? []).flatMap(expand)
+      : devicesOfBlockId(id).map(d => d.id);
+    onDeviceReorder(next.rowIds.flatMap(expand));
   };
 
-  const every = allDevices ?? devices;
+
   // The same block keying over the unfiltered list, so a group header can
   // resolve members the rail is currently hiding.
   const allBlocks = every === devices ? blocks : buildDeviceBlocks(every);
-  const allByBlockId = new Map<string, LightingDevice[]>(allBlocks.map(b =>
-    b.kind === 'single' ? [b.device.id, [b.device]] : [b.groupKey, b.devices]));
+  const allByBlockId = new Map<string, LightingDevice[]>(allBlocks.map(b => [blockKey(b), devicesOfBlock(b)]));
 
   const canAddGroup = onGroupsChange !== undefined && groups.length < MAX_DEVICE_GROUPS;
 
@@ -454,20 +536,26 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
             if (!block) return null;
             return renderBlock(block, a);
           }}
+          nestGroups
+          groupBlock={id => blockMap.get(id)?.kind === 'group'}
+          holdsGroup={id => groupsIn(groups, id).length > 0}
           renderGroup={(groupId, a, children, isDropTarget) => {
             const group = groups.find(g => g.id === groupId);
             if (!group) return null;
-            const members = (arrangement.groupMembers[groupId] ?? [])
-              .flatMap(id => blockMap.get(id)?.kind === 'single'
-                ? [(blockMap.get(id) as { device: LightingDevice }).device]
-                : (blockMap.get(id) as { devices: LightingDevice[] } | undefined)?.devices ?? []);
+            const held = (ids: readonly string[]): LightingDevice[] => ids.flatMap(id => id in arrangement.groupMembers
+              ? held(arrangement.groupMembers[id])
+              : devicesOfBlockId(id));
+            const members = held(arrangement.groupMembers[groupId] ?? []);
             const groupOn = members.some(z => z.ledsOn);
             const groupControlled = members.some(z => z.controlled !== false);
             // Counted off the unfiltered list, so a group that is nothing but
             // Nexus-Control-off devices goes with them while one the user just
-            // made stays as a drop target.
-            const groupAll = (groups.find(g => g.id === groupId)?.members ?? [])
-              .flatMap(b => allByBlockId.get(b) ?? []);
+            // made stays as a drop target. Nested groups count with their parent.
+            const allIn = (id: string): LightingDevice[] => [
+              ...(groups.find(g => g.id === id)?.members ?? []).flatMap(b => allByBlockId.get(b) ?? []),
+              ...groupsIn(groups, id).flatMap(g => allIn(g.id)),
+            ];
+            const groupAll = allIn(groupId);
             if (hidingUncontrolled && groupAll.length > 0
               && groupAll.every(d => d.controlled === false)) return null;
             return (
@@ -482,6 +570,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
                 onToggleCollapsed={() => toggleCollapsed(groupId)}
                 onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
+                onSelectAll={selectAllFor(members)}
                 dropTarget={isDropTarget}
                 empty={members.length === 0}
                 count={members.length}

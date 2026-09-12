@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
-import { Power, PowerOff, Unlink, Link, MoreVertical, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { Power, PowerOff, Unlink, Link, MoreVertical, MousePointerClick, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
+import { pluralKey } from '../../../../lib/pluralKey';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { DeviceNotice } from './DeviceNotice';
 import styles from '../LightingPage.module.scss';
 
@@ -40,6 +42,9 @@ export function MotherboardGroup({
   empty,
   count,
   hasUncontrolled = false,
+  icon,
+  onSelectAll,
+  groupMove,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -91,8 +96,14 @@ export function MotherboardGroup({
   /** True iff at least one member has Nexus Control off, whether or not the eye
    *  is hiding it - the badge is how a hidden device stays accounted for. */
   hasUncontrolled?: boolean;
+  /** Glyph before the name; a hardware group's device, absent on a user group. */
+  icon?: React.ReactNode;
+  /** Selects every selectable member; the row counts them. Absent when none can be. */
+  onSelectAll?: { count: number; run: () => void };
+  /** Group placement for a hardware group's own row on the rail. */
+  groupMove?: GroupMove;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const expanded = !collapsed;
   const toggleLabel = ariaLabel ?? t('lighting.devices.motherboardHeader');
   // seq remounts the menu on every open; see ZoneCard for the same pattern.
@@ -102,6 +113,13 @@ export function MotherboardGroup({
 
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
+    if (onSelectAll) {
+      items.push({
+        key: 'selectAll', icon: <MousePointerClick size={14} />,
+        label: t(pluralKey('lighting.devices.selectGroupCount', language, onSelectAll.count), { count: onSelectAll.count }),
+        onSelect: onSelectAll.run, separatorAfter: true,
+      });
+    }
     if (!hideLights && !empty) {
       items.push(groupOn
         ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
@@ -118,6 +136,7 @@ export function MotherboardGroup({
     if (onResetName) {
       items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: onResetName });
     }
+    items.push(...groupMenuItems(t, language, 'lighting.devices', groupMove));
     if (onDelete) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push({ key: 'delete', icon: <Trash2 size={14} />, label: t('lighting.devices.groupDelete'), onSelect: onDelete });
@@ -131,6 +150,7 @@ export function MotherboardGroup({
         compact
         className={`${styles.motherboardGroup}${dropTarget ? ` ${styles.groupDropTarget}` : ''}`}
         title={parentName}
+        titleBefore={icon}
         open={expanded}
         onToggle={onToggleCollapsed}
         ariaLabel={toggleLabel}

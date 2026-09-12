@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Folder, FolderInput, FolderMinus, FolderPlus, GaugeCircle, Gpu, Link, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, GaugeCircle, Gpu, Link, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -13,6 +13,7 @@ import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
+import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
 
@@ -49,6 +50,9 @@ export interface FanBulkSelection {
   controlled: boolean;
   setLocked: (locked: boolean) => void;
   setControlled: (controlled: boolean) => void;
+  /** Wraps the selection in a new group where it sits. Absent when the fans
+   *  sit in different containers, or the nesting limit or group cap forbids. */
+  group?: () => void;
 }
 
 export const FanCard = memo(function FanCard({
@@ -110,18 +114,8 @@ export const FanCard = memo(function FanCard({
   /** Narrow the selection to this card alone. Offered on every menu except a
    *  card that cannot be selected at all. */
   onSelectOnly?: () => void;
-  /** Group placement for the rail block this card belongs to, driving the
-   *  "Move to group" flyout. A fan on a hub moves with its whole block, the
-   *  way dragging one does. */
-  groupMove?: {
-    /** User groups it can move into; the one it already sits in is left out. */
-    targets: readonly { id: string; name: string }[];
-    onMove: (groupId: string) => void;
-    /** Present only while the block sits in a user group; the row names it. */
-    onRemove?: { name: string; run: () => void };
-    /** Absent once the group cap is reached. */
-    onMoveToNew?: () => void;
-  };
+  /** Group placement for this fan, among the groups inside its hub or board block. */
+  groupMove?: GroupMove;
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the lighting device card. */
   bulk?: FanBulkSelection;
@@ -395,36 +389,7 @@ export const FanCard = memo(function FanCard({
         });
       }
     }
-    const groupRows: DeviceMenuItem[] = [];
-    if (!bulk && groupMove) {
-      for (const target of groupMove.targets) {
-        groupRows.push({
-          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
-          onSelect: () => groupMove.onMove(target.id),
-        });
-      }
-      if (groupMove.onMoveToNew) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:new', icon: <FolderPlus size={14} />,
-          label: t('cooling.fan.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
-        });
-      }
-      if (groupMove.onRemove) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:none', icon: <FolderMinus size={14} />,
-          label: t('cooling.fan.removeFromGroup', { name: groupMove.onRemove.name }),
-          onSelect: groupMove.onRemove.run,
-        });
-      }
-    }
-    if (groupRows.length > 0) {
-      organise.push({
-        key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('cooling.fan.moveToGroup'), submenu: groupRows,
-      });
-    }
+    organise.push(...groupMenuItems(t, language, 'cooling.fan', groupMove, bulk));
     if (organise.length > 0) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push(...organise);

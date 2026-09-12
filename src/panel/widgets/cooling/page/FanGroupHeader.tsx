@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react';
-import { Link, Lock, MoreVertical, Pencil, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
+import { Link, Lock, MoreVertical, MousePointerClick, Pencil, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
+import { pluralKey } from '../../../../lib/pluralKey';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
@@ -21,6 +23,9 @@ export function FanGroupHeader({
   groupLocked, onToggleLock,
   onRename, onDelete, onResetName, drag, dropTarget, children,
   hasUncontrolled = false,
+  icon,
+  onSelectAll,
+  groupMove,
 }: {
   name: string;
   count: number;
@@ -45,9 +50,15 @@ export function FanGroupHeader({
   /** True while a dragged card would land in this group; washes the section so
    *  the destination is unambiguous before the drop. */
   dropTarget?: boolean;
+  /** Glyph before the name; a hardware group's device, absent on a user group. */
+  icon?: React.ReactNode;
+  /** Selects every selectable member; the row counts them. Absent when none can be. */
+  onSelectAll?: { count: number; run: () => void };
+  /** Group placement for a hardware group's own row on the rail. */
+  groupMove?: GroupMove;
   children: React.ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   // seq remounts the menu on every open; see ZoneCard for the same pattern.
   const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
   const menuSeq = useRef(0);
@@ -64,12 +75,20 @@ export function FanGroupHeader({
         ? { key: 'lock', icon: <Unlock size={14} />, label: t('cooling.lock.unlock'), onSelect: onToggleLock }
         : { key: 'lock', icon: <Lock size={14} />, label: t('cooling.lock.lock'), onSelect: onToggleLock },
     ];
+    if (onSelectAll) {
+      items.unshift({
+        key: 'selectAll', icon: <MousePointerClick size={14} />,
+        label: t(pluralKey('cooling.fan.selectGroupCount', language, onSelectAll.count), { count: onSelectAll.count }),
+        onSelect: onSelectAll.run, separatorAfter: true,
+      });
+    }
     if (onRename) {
       items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('cooling.fan.rename'), onSelect: () => nameRef.current?.startEditing() });
     }
     if (onResetName) {
       items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('cooling.fan.resetName'), onSelect: onResetName });
     }
+    items.push(...groupMenuItems(t, language, 'cooling.fan', groupMove));
     if (onDelete) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push({ key: 'delete', icon: <Trash2 size={14} />, label: t('cooling.fan.groupDelete'), onSelect: onDelete });
@@ -83,6 +102,7 @@ export function FanGroupHeader({
         compact
         className={dropTarget ? styles.fanGroupDropTarget : undefined}
         title={name}
+        titleBefore={icon}
         ariaLabel={name}
         open={!collapsed}
         onToggle={onToggleCollapsed}

@@ -473,3 +473,139 @@ describe('DevicePanel split card header', () => {
     expect(screen.queryByText('lighting.devices.rename')).toBeNull();
   });
 });
+
+// Groups nest two deep: a group in a group, or a group inside a hardware
+// group. The card menus make one from a selection; the headers select one.
+describe('DevicePanel nested groups', () => {
+  const port = (suffix: string, name: string) =>
+    device(`openrgb-C000-${suffix}`, `B850I AORUS PRO - ${name}`, { parentDeviceId: 'openrgb-C000', zoneIndex: 0, deviceId: `openrgb-C000-${suffix}`, iconType: 'motherboard' });
+  const board = [port('0', 'ARGB_V2_1'), port('1', 'ARGB_V2_2'), port('2', 'LED_C')];
+
+  function renderRail(list: LightingDevice[], groups: DeviceGroup[], selectedIds = new Set<string>()) {
+    const onGroupsChange = vi.fn();
+    const onSetSelection = vi.fn();
+    render(
+      <DevicePanel
+        devices={list}
+        selectedIds={selectedIds}
+        onSetSelection={onSetSelection}
+        onTogglePower={() => {}}
+        onSetPower={() => {}}
+        onToggleControlled={() => {}}
+        onSetControlled={() => {}}
+        lightingOff={false}
+        onOpenSettings={() => {}}
+        groups={groups}
+        onGroupsChange={onGroupsChange}
+      />,
+    );
+    return { onGroupsChange, onSetSelection };
+  }
+  const openMenu = (name: RegExp | string) => fireEvent.click(screen.getByRole('button', { name }));
+
+  it('renders a group inside a group, each card once', () => {
+    renderRail(devices, [
+      { id: 'p', name: 'Desk', members: ['d1'], after: '' },
+      { id: 'n', name: 'Lamp', members: ['d2'], parent: 'p', after: 'd1' },
+    ]);
+    expect(screen.getByText('Desk')).toBeTruthy();
+    expect(screen.getByText('Lamp')).toBeTruthy();
+    expect(screen.getAllByText('Strip two')).toHaveLength(1);
+    const nested = screen.getByText('Lamp').closest(`.${styles.motherboardGroup}`)!;
+    expect(screen.getByText('Desk').closest(`.${styles.motherboardGroup}`)!.contains(nested)).toBe(true);
+  });
+
+  it('renders a group inside a hardware group with the zone it holds', () => {
+    renderRail(board, [{ id: 'inner', name: 'Fans', members: ['openrgb-C000-1'], parent: 'mb:openrgb-C000', after: 'openrgb-C000-0' }]);
+    const boardSection = screen.getByRole('button', { name: /motherboardHeader/ }).closest(`.${styles.motherboardGroup}`)!;
+    const inner = screen.getByText('Fans').closest(`.${styles.motherboardGroup}`)!;
+    expect(boardSection.contains(inner)).toBe(true);
+    expect(inner.textContent).toContain('ARGB_V2_2');
+    expect(screen.getAllByText('ARGB_V2_2')).toHaveLength(1);
+  });
+
+  it('gives a hardware group an icon and a user group none', () => {
+    renderRail(board, [{ id: 'g1', name: 'Desk', members: [] }]);
+    const boardHeader = screen.getByRole('button', { name: /motherboardHeader/ });
+    expect(boardHeader.querySelector('svg')).not.toBeNull();
+    const userHeader = screen.getByRole('button', { name: 'Desk' });
+    expect(userHeader.querySelector('svg.lucide-chevron-right, svg.lucide-chevron-down')).not.toBeNull();
+    expect(userHeader.querySelectorAll('svg')).toHaveLength(1);
+  });
+
+  it('makes a group from a card, in place, from its menu', () => {
+    const { onGroupsChange } = renderRail(devices, []);
+    fireEvent.click(screen.getAllByRole('button', { name: 'lighting.devices.moreActions' })[0]);
+    fireEvent.click(screen.getByText('lighting.devices.moveToNewGroup'));
+    expect(onGroupsChange).toHaveBeenCalledTimes(1);
+    const groups: DeviceGroup[] = onGroupsChange.mock.calls[0][0];
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({ members: ['d1'], parent: null, after: '' });
+  });
+
+  it('makes a group from a whole selection when it sits in one container', () => {
+    const { onGroupsChange } = renderRail(devices, [], new Set(['d1', 'd3']));
+    fireEvent.click(screen.getAllByRole('button', { name: 'lighting.devices.moreActions' })[0]);
+    fireEvent.click(screen.getByText('lighting.devices.moveToNewGroupCount.other:{"count":2}'));
+    const groups: DeviceGroup[] = onGroupsChange.mock.calls[0][0];
+    expect(groups[0]).toMatchObject({ members: ['d1', 'd3'], parent: null });
+  });
+
+  it('offers no group for a selection spanning two containers', () => {
+    renderRail(devices, [{ id: 'g1', name: 'Desk', members: ['d2'] }], new Set(['d1', 'd2']));
+    fireEvent.click(screen.getAllByRole('button', { name: 'lighting.devices.moreActions' })[0]);
+    expect(screen.queryByText(/moveToNewGroupCount/)).toBeNull();
+  });
+
+  it('makes a group inside a hardware group from its zones', () => {
+    const { onGroupsChange } = renderRail(board, [], new Set(['openrgb-C000-1', 'openrgb-C000-2']));
+    fireEvent.click(screen.getAllByRole('button', { name: 'lighting.devices.moreActions' })[1]);
+    fireEvent.click(screen.getByText('lighting.devices.moveToNewGroupCount.other:{"count":2}'));
+    const groups: DeviceGroup[] = onGroupsChange.mock.calls[0][0];
+    expect(groups[0]).toMatchObject({ members: ['openrgb-C000-1', 'openrgb-C000-2'], parent: 'mb:openrgb-C000', after: 'openrgb-C000-0' });
+  });
+
+  it('refuses a third level: no group row inside a nested group', () => {
+    renderRail(devices, [
+      { id: 'p', name: 'Desk', members: [], after: '' },
+      { id: 'n', name: 'Lamp', members: ['d2'], parent: 'p', after: '' },
+    ]);
+    // The nested card renders first: its group is pinned to the top.
+    const menus = screen.getAllByRole('button', { name: 'lighting.devices.moreActions' });
+    expect(menus[0].closest(`.${styles.deviceCard}`)?.textContent).toContain('Strip two');
+    fireEvent.click(menus[0]);
+    expect(screen.queryByText('lighting.devices.moveToNewGroup')).toBeNull();
+  });
+
+  it('selects every card of a group from its header menu', () => {
+    const { onSetSelection } = renderRail(devices, [{ id: 'g1', name: 'Desk', members: ['d1', 'd3'] }]);
+    openMenu(/groupActions.*Desk/);
+    fireEvent.click(screen.getByText('lighting.devices.selectGroupCount.other:{"count":2}'));
+    expect(onSetSelection).toHaveBeenCalledWith(new Set(['d1', 'd3']), 'd1');
+  });
+
+  it('selects every zone of a hardware group from its header menu', () => {
+    const { onSetSelection } = renderRail(board, []);
+    openMenu(/groupActions/);
+    fireEvent.click(screen.getByText('lighting.devices.selectGroupCount.other:{"count":3}'));
+    expect(onSetSelection).toHaveBeenCalledWith(new Set(['openrgb-C000-0', 'openrgb-C000-1', 'openrgb-C000-2']), 'openrgb-C000-0');
+  });
+
+  it('lets a hardware group make a group of itself from its header menu', () => {
+    const { onGroupsChange } = renderRail(board, []);
+    openMenu(/groupActions/);
+    fireEvent.click(screen.getByText('lighting.devices.moveToNewGroup'));
+    const groups: DeviceGroup[] = onGroupsChange.mock.calls[0][0];
+    expect(groups[0]).toMatchObject({ members: ['mb:openrgb-C000'], parent: null, after: '' });
+  });
+
+  it('keeps a hardware group that holds a group out of any other group', () => {
+    renderRail(board, [
+      { id: 'inner', name: 'Fans', members: ['openrgb-C000-1'], parent: 'mb:openrgb-C000' },
+      { id: 'root', name: 'Desk', members: [] },
+    ]);
+    openMenu(/groupActions.*motherboardHeader|groupActions.*B850I/);
+    expect(screen.queryByText('lighting.devices.moveToNewGroup')).toBeNull();
+    expect(screen.queryByText('lighting.devices.moveToGroup')).toBeNull();
+  });
+});
