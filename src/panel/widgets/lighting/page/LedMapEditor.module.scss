@@ -78,12 +78,13 @@
   // lighting canvas reads. An edge LED would otherwise sit on a line.
   border: none;
   background-color: transparent;
-  // Very faint lines on the snap grid: GRID_COLS x GRID_ROWS in
-  // LedMapEditor.tsx, whose ratio matches the frame's so cells stay square.
+  // Very faint lines on the snap grid. --grid-cols / --grid-rows come inline
+  // from GRID_COLS x GRID_ROWS in zoneUtils.ts, whose ratio matches the
+  // frame's so cells stay square.
   background-image:
     linear-gradient(to right, rgb(255 255 255 / calc(var(--alpha-faint) / 2)) 1px, transparent 1px),
     linear-gradient(to bottom, rgb(255 255 255 / calc(var(--alpha-faint) / 2)) 1px, transparent 1px);
-  background-size: calc(100% / 32) calc(100% / 18);
+  background-size: calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows));
   pointer-events: none;
   z-index: 0;
 }

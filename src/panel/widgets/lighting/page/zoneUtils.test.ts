@@ -385,6 +385,9 @@ describe('editor history', () => {
     leds: [],
     rectRatio: 16 / 9,
     partition: null,
+    chain: null,
+    structure: null,
+    received: new Map(),
     ...over,
   });
 

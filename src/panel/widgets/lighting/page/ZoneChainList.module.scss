@@ -1,3 +1,5 @@
+@use '../../../../styles/text' as *;
+
 // The editor's Devices section: a header, then a vertical list of one row per
 // zone in wire order, a footer with the add button, the zone tools and the
 // LED total.
@@ -10,7 +12,7 @@
 // Same weight as the lighting page's own pane titles, which this sits beside.
 .header {
   font-size: var(--type-body);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   color: var(--text);
 }
 
@@ -252,12 +254,10 @@ $count-column: 4.4rem;
 // The recent picks lead the list under their own label, then a rule, then the
 // catalog head; the rows themselves are the ordinary result rows.
 .resultsHeading {
+  @include text-caption;
   padding: 0.35rem 0.45rem 0.15rem;
-  font-size: var(--type-tiny);
-  font-weight: var(--weight-strong);
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 
 .resultsDivider {

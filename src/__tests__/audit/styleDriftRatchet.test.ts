@@ -16,10 +16,7 @@ const RATCHETS = [
     // The Frames history card's enlarged avg-fps number needs a tighter
     // line-height than text-heading's own 1.3 (the hero digits otherwise
     // carry visible line-box padding); it added a second raw type line.
-    // Three earlier commits on the device-chain LED map work each added one
-    // more (a canvas dot-grid rgba(), a LightingPage line-height, and the
-    // recent-picks heading's letter-spacing) before this ratchet caught up.
-    baseline: 730,
+    baseline: 727,
     hint: 'use the --radius/--shadow/--alpha/--blur/--ease tokens and text mixins instead of raw values (run "npm run audit:styles" for the list)',
   },
   {

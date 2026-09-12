@@ -419,7 +419,7 @@ export function partitionSaveBody(zones: DeviceZone[], offsets: Map<number, numb
 }
 
 // Tolerance below which two normalized coordinates count as the same spot.
-const SAME_POSITION_EPSILON = 0.0001;
+export const SAME_POSITION_EPSILON = 0.0001;
 // Tolerance below which two aspect ratios count as unchanged.
 const SAME_RATIO_EPSILON = 0.0001;
 
@@ -547,7 +547,15 @@ export interface EditorSnapshot {
    * away unsaved LED work and the history along with it.
    */
   structure: DeviceStructureResponse | null;
+  /**
+   * The map as it last arrived from the service when the snapshot was taken.
+   * A chain edit prompts when the LEDs diverge from it, so undoing a chain
+   * edit has to bring the earlier arrival back too or the prompt misfires.
+   */
+  received: Map<number, ReceivedLed>;
 }
+
+export interface ReceivedLed { u: number; v: number; disabled: boolean }
 
 export interface EditorHistory {
   undo: EditorSnapshot[];

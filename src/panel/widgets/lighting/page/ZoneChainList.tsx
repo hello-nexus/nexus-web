@@ -388,11 +388,14 @@ function ProductPicker({ anchor, current, onPick, onClose }: {
     return () => { cancelled = true; clearTimeout(timer); };
   }, [query]);
 
-  // Close on an outside click or Escape. Escape is captured so the editor
-  // modal does not also close on the same key.
+  // Close on an outside click or Escape. The anchor is not outside: its own
+  // click toggles the picker, and closing on the mousedown first would reopen
+  // it. Escape is captured so the editor modal does not also close on the
+  // same key.
   useEffect(() => {
     const onPointerDown = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) onCloseRef.current();
+      const target = e.target as Node;
+      if (!rootRef.current?.contains(target) && !anchor?.contains(target)) onCloseRef.current();
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
@@ -403,7 +406,7 @@ function ProductPicker({ anchor, current, onPick, onClose }: {
       document.removeEventListener('mousedown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown, true);
     };
-  }, []);
+  }, [anchor]);
 
   const row = (item: BuiltInMappingSummary, keyPrefix: string) => (
     <button

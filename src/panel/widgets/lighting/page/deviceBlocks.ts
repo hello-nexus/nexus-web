@@ -214,9 +214,6 @@ export function stripParentPrefix(name: string, parentName: string): string {
  */
 export function sortZonesWithinDevice(devices: LightingDevice[]): LightingDevice[] {
   const owner = (d: LightingDevice) => d.deviceId || d.id;
-  // Where each device first appears decides where its whole run goes.
-  const firstAt = new Map<string, number>();
-  devices.forEach((d, i) => { if (!firstAt.has(owner(d))) firstAt.set(owner(d), i); });
   const members = new Map<string, LightingDevice[]>();
   for (const d of devices) {
     const key = owner(d);
@@ -238,7 +235,6 @@ export function sortZonesWithinDevice(devices: LightingDevice[]): LightingDevice
     const key = owner(d);
     if (emitted.has(key)) continue;
     emitted.add(key);
-    if (firstAt.get(key) === undefined) continue;
     out.push(...(members.get(key) ?? []));
   }
   return out;

@@ -93,6 +93,17 @@ const structureFor = (zs: typeof zones, chain: { key: string; name: string; ledC
   chain: chain.map(c => ({ ...c, editableCount: false })),
 });
 const emptyMap = { id: portId, aspectRatio: 0, segments: [] };
+// A populated map, so the divergence check that guards a chain edit has LEDs
+// to compare.
+const mapFor = (zs: typeof zones, v: number) => ({
+  id: portId, aspectRatio: 0,
+  segments: [{
+    index: 0, name: 'ARGB_V2_1', resizable: true, ledCount: 41,
+    leds: zs.flatMap(z => z.slices.flatMap(sl => Array.from({ length: sl.count }, (_, i) => ({
+      index: sl.start + i, u: (sl.start + i) / 41, v, disabled: false, zoneId: z.id, isCustom: false,
+    })))),
+  }],
+});
 
 const card = (z: { id: string; name: string }, i: number): LightingDevice => ({
   id: z.id, name: z.name, type: 'ledstrip', iconType: 'strip', ledsOn: true, controlled: true,
@@ -178,6 +189,88 @@ describe('LedMapEditor chain reorder', () => {
       const after = screen.getByTestId('ids').textContent!.split('|');
       expect(after).toEqual([before[1], before[0]]);
     });
+  });
+
+  it('undoes a reorder to the rows and zones it started from', async () => {
+    render(
+      <LedMapEditor
+        deviceId={portId}
+        initialZoneId={zones[0].id}
+        devices={zones.map(card)}
+        zoneCustomizable
+        onClose={vi.fn()}
+      />,
+    );
+    await screen.findByText('FR12');
+    const names = () => Array.from(document.querySelectorAll('[class*="rowName"]')).map(e => e.textContent);
+    fireEvent.click(screen.getByTestId('swap-first-two'));
+    await waitFor(() => expect(names()).toEqual(['Y50 Solo Fan', 'FR12']));
+
+    // The rows move before the preview lands; the snapshot has to predate
+    // that, or undo restores the moved rows over the original zones.
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.ledMap.undo' }));
+    await waitFor(() => expect(names()).toEqual(['FR12', 'Y50 Solo Fan']));
+    // The next edit posts the disk order, not the undone permutation.
+    api.previewDeviceChain.mockClear();
+    fireEvent.click(screen.getByTestId('swap-first-two'));
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [
+      { key: 'product:hyte-y50-solo', fromOrdinal: 1 },
+      { key: 'product:hyte-fr12', fromOrdinal: 0 },
+    ]));
+  });
+
+  it('does not read an undone chain edit as unsaved LED work', async () => {
+    api.fetchDeviceMap.mockResolvedValue(mapFor(zones, 0.5));
+    api.previewDeviceChain.mockResolvedValue({
+      error: false,
+      structure: structureFor(swapped, [
+        { key: 'product:hyte-y50-solo', name: 'Y50 Solo Fan', ledCount: 8 },
+        { key: 'product:hyte-fr12', name: 'FR12', ledCount: 33 },
+      ]),
+      // Laid out differently from the load, as a real product swap would be.
+      map: mapFor(swapped, 0.25),
+    });
+    render(
+      <LedMapEditor
+        deviceId={portId}
+        initialZoneId={zones[0].id}
+        devices={zones.map(card)}
+        zoneCustomizable
+        onClose={vi.fn()}
+      />,
+    );
+    await screen.findByText('FR12');
+    const names = () => Array.from(document.querySelectorAll('[class*="rowName"]')).map(e => e.textContent);
+    fireEvent.click(screen.getByTestId('swap-first-two'));
+    await waitFor(() => expect(names()).toEqual(['Y50 Solo Fan', 'FR12']));
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.ledMap.undo' }));
+    await waitFor(() => expect(names()).toEqual(['FR12', 'Y50 Solo Fan']));
+
+    // The LEDs are back to what was loaded, so a second drag previews
+    // straight away rather than asking to discard edits that do not exist.
+    api.previewDeviceChain.mockClear();
+    fireEvent.click(screen.getByTestId('swap-first-two'));
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText('lighting.ledMap.unsavedTitle')).toBeNull();
+  });
+
+  it('puts the rows back when the preview fails', async () => {
+    api.previewDeviceChain.mockResolvedValue({ error: true });
+    render(
+      <LedMapEditor
+        deviceId={portId}
+        initialZoneId={zones[0].id}
+        devices={zones.map(card)}
+        zoneCustomizable
+        onClose={vi.fn()}
+      />,
+    );
+    await screen.findByText('FR12');
+    const names = () => Array.from(document.querySelectorAll('[class*="rowName"]')).map(e => e.textContent);
+    fireEvent.click(screen.getByTestId('swap-first-two'));
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalled());
+    await waitFor(() => expect(names()).toEqual(['FR12', 'Y50 Solo Fan']));
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.undo' })).toBeDisabled();
   });
 
   it('moves the selection to the slot the selected device landed in', async () => {

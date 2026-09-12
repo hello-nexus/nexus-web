@@ -32,17 +32,17 @@ import {
   splitStagedZones,
   splitZone, stagedZoneId, toZoneLocalIndices, undoHistory, zoneDeviceIndices,
   zoneEnabledCounts, zoneLedCount,
-  type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type StagedPartition,
+  SAME_POSITION_EPSILON, type BaselineEntry, type EditorHistory, type EditorLed, type EditorSnapshot, type ReceivedLed, type StagedPartition,
 } from './zoneUtils';
 import { shouldConsumeEditorEscape } from './ledMapEscape';
 import styles from './LedMapEditor.module.scss';
 
 const isMac = isApplePlatform();
-// Long-form guide for this editor. Absolute: the app is served from the local
-// service, so a site-relative path would resolve against it.
 // The selection toolbar is ~150x30px; past these the canvas would clip it.
 const TOOLBAR_FLIP_X_PCT = 22;
 const TOOLBAR_FLIP_Y_PCT = 10;
+// Long-form guide for this editor. Absolute: the app is served from the local
+// service, so a site-relative path would resolve against it.
 const LED_MAP_DOCS_URL = 'https://hellonexus.com/docs/guides/lighting/led-maps';
 const DEFAULT_RATIO = 16 / 9;
 
@@ -73,14 +73,10 @@ const MAX_HISTORY = 50;
 // Fraction of the selected LEDs' bbox edge to pad on each side for a
 // group op (align strip / grid / rotate), so LEDs don't sit on the edges.
 const SELECTION_BBOX_PAD_UV = 0.04;
-// Height (canvas %) of the parking row below the device frame where deleted
-// LEDs sit. Enough to show the LED circle + 1-indexed label comfortably.
 // Above this the per-LED canvas stops being usable (and stops being drawable
 // at a readable dot size), so the mapper declines rather than rendering a
 // meaningless swarm. The count stays editable; only the visual map opts out.
 const MAX_MAPPABLE_LEDS = 300;
-// Input ceiling only; the service clamps to the device's real per-channel max
-// (a Nollie 1 takes 630, a Nollie 16 takes 256).
 // Pixel nudge step for arrow-key movement. Shift multiplies this by 5 for
 // coarse nudges when reshaping wide selections.
 const NUDGE_STEP_UV = 0.005;
@@ -146,13 +142,14 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // that diverges from this snapshot counts as "unsaved" and earns the
   // dashed outline in the editor; it is also what Revert restores.
   const [savedLedsMap, setSavedLedsMap] = useState<Map<number, SavedLedState>>(new Map());
+  // The map as it last arrived from the service (load, preview, or the save
+  // that made the current one stored). What diverges from it is LED work a
+  // chain preview would replace.
+  const receivedLedsRef = useRef<Map<number, ReceivedLed>>(new Map());
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hoveredLed, setHoveredLed] = useState<number | null>(null);
-  // On by default: hand-placed LEDs end up on a grid rather than a pixel off
-  // one another. The pointer handlers read it through a ref because they run
-  // from listeners bound once.
   // A chain the user composed but has not saved. Null means the port still
   // holds whatever was loaded. The preview that produced it is already on
   // screen, so this is only what Save has to post.
@@ -168,6 +165,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   const [chainKeys, setChainKeys] = useState<string[]>([]);
   const chainKeySeq = useRef(0);
 
+  // Off by default: on, hand-placed LEDs land on the grid rather than a pixel
+  // off one another. The pointer handlers read it through a ref because they
+  // run from listeners bound once.
   const [snapGrid, setSnapGrid] = useState(false);
   const snapGridRef = useRef(snapGrid);
   snapGridRef.current = snapGrid;
@@ -242,6 +242,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // replace or reload the resolved map, which would silently discard any
   // unsaved edits.
   const [pendingDiscardAction, setPendingDiscardAction] = useState<(() => void) | null>(null);
+  // Whether that prompt may save first and then run the action.
+  const [pendingDiscardSaveable, setPendingDiscardSaveable] = useState(true);
   // While the publish dialog (community tab), a zone prompt, or any confirm
   // is open, the editor modal must ignore the Esc that closes them.
   const [communityDialogOpen, setCommunityDialogOpen] = useState(false);
@@ -381,6 +383,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setStructure(st);
     const flat = flattenDeviceMap(dm);
     setLeds(flat);
+    const received = new Map<number, ReceivedLed>();
+    for (const l of flat) received.set(l.index, { u: l.u, v: l.v, disabled: l.disabled });
+    receivedLedsRef.current = received;
     if (dm.aspectRatio > 0) setRectRatio(dm.aspectRatio);
     const offs = segmentOffsets(st.segments);
     const current = selectedZoneIdRef.current;
@@ -399,10 +404,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     partition: stagedPartitionRef.current,
     chain: stagedChainRef.current,
     structure: structureRef.current,
+    received: receivedLedsRef.current,
   }), []);
 
-  const pushUndo = useCallback(() => {
-    historyRef.current = pushHistory(historyRef.current, snapshotCurrent(), MAX_HISTORY);
+  const pushUndo = useCallback((snapshot: EditorSnapshot = snapshotCurrent()) => {
+    historyRef.current = pushHistory(historyRef.current, snapshot, MAX_HISTORY);
     setUndoLen(historyRef.current.undo.length);
     setRedoLen(0);
   }, [snapshotCurrent]);
@@ -428,11 +434,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setLeds(restored.leds);
     setRectRatio(restored.rectRatio);
     setStagedPartition(restored.partition);
+    receivedLedsRef.current = restored.received;
     if (chainChanged) {
       // The zone list differs, and the snapshot carries the one this chain
-      // resolved to - restored directly rather than re-derived. Reloading from
-      // disk for the step back to "no staged chain" used to take the unsaved
-      // LED work and the whole history with it.
+      // resolved to - restored directly rather than reloaded from disk, so the
+      // step back to "no staged chain" keeps the unsaved LED work and the
+      // history.
       setStagedChain(restored.chain);
       if (restored.structure) {
         // chainKeys re-mint themselves during render when the link count moves.
@@ -451,7 +458,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     setDirty(true);
   };
 
+  // Both hold while a preview is in flight: the optimistic row order on
+  // screen is not a state the history should capture, and the landing
+  // preview would clobber whatever the step restored.
   const handleUndo = () => {
+    if (chainBusy) return;
     const res = undoHistory(historyRef.current, snapshotCurrent());
     if (!res) return;
     historyRef.current = res.history;
@@ -461,6 +472,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   };
 
   const handleRedo = () => {
+    if (chainBusy) return;
     const res = redoHistory(historyRef.current, snapshotCurrent());
     if (!res) return;
     historyRef.current = res.history;
@@ -559,6 +571,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const snap = new Map<number, SavedLedState>();
     for (const l of flat) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled, isCustom: l.isCustom });
     setSavedLedsMap(snap);
+    receivedLedsRef.current = snap;
     setRectRatio(dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO);
     loadedRatioRef.current = dm.aspectRatio > 0 ? dm.aspectRatio : DEFAULT_RATIO;
 
@@ -765,11 +778,12 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // import / remove, zone switch, partition edits) go through here so a
   // confirm can interpose while the editor holds unsaved edits; with a
   // clean editor the action runs immediately.
-  const confirmDiscardEdits = useCallback((proceed: () => void) => {
+  const confirmDiscardEdits = useCallback((proceed: () => void, saveable = true) => {
     if (!dirtyRef.current) {
       proceed();
       return;
     }
+    setPendingDiscardSaveable(saveable);
     setPendingDiscardAction(() => proceed);
   }, []);
 
@@ -1448,6 +1462,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const snap = new Map<number, SavedLedState>();
     for (const l of leds) snap.set(l.index, { u: l.u, v: l.v, disabled: l.disabled, isCustom: l.isCustom });
     setSavedLedsMap(snap);
+    receivedLedsRef.current = snap;
     setSaving(false);
     setDirty(false);
     clearTimeout(previewTimerRef.current);
@@ -1502,23 +1517,39 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
    * Show what a chain would do without committing it. The product geometry is
    * built in the service, so this still round-trips - but it writes nothing,
    * which is what lets a chain edit ride the undo stack and be abandoned by
-   * closing the editor. Save is what posts it.
+   * closing the editor. Save is what posts it. The undo snapshot is taken
+   * before the round trip: a caller that has already moved rows on screen
+   * passes the one it took first, or undo would restore that mix.
    */
-  const applyChain = useCallback((entries: ChainEntryBody[]) => {
-    void (async () => {
-      setChainBusy(true);
-      const resp = await previewDeviceChain(deviceId, entries);
-      setChainBusy(false);
-      if (!resp || resp.error || !resp.structure || !resp.map) {
-        push({ title: t('lighting.ledMap.assignFailed') });
-        return;
-      }
-      pushUndo();
-      applyPreview(resp.structure, resp.map);
-      setStagedChain(entries);
-      setDirty(true);
-    })();
-  }, [deviceId, push, t, pushUndo, applyPreview]);
+  const applyChain = useCallback(async (entries: ChainEntryBody[], snapshot: EditorSnapshot = snapshotCurrent()): Promise<boolean> => {
+    setChainBusy(true);
+    const resp = await previewDeviceChain(deviceId, entries);
+    setChainBusy(false);
+    if (!resp || resp.error || !resp.structure || !resp.map) {
+      push({ title: t('lighting.ledMap.assignFailed') });
+      return false;
+    }
+    pushUndo(snapshot);
+    applyPreview(resp.structure, resp.map);
+    setStagedChain(entries);
+    setDirty(true);
+    return true;
+  }, [deviceId, push, t, pushUndo, applyPreview, snapshotCurrent]);
+
+  // A preview re-seeds the whole map from the service, so LED work done since
+  // the last map arrived goes with it (undo brings it back). Only that work
+  // earns the prompt: a staged chain on its own does not.
+  const confirmChainEdit = (proceed: () => void) => {
+    const received = receivedLedsRef.current;
+    const edited = leds.some(l => {
+      const r = received.get(l.index);
+      return !r || Math.abs(l.u - r.u) > SAME_POSITION_EPSILON || Math.abs(l.v - r.v) > SAME_POSITION_EPSILON || l.disabled !== r.disabled;
+    });
+    // No Save in this prompt: the entries were derived from the chain on
+    // disk, and a save would move that chain under their ordinals.
+    if (edited) confirmDiscardEdits(proceed, false);
+    else proceed();
+  };
 
   // Factory reset: the service drops the device's stored LED overrides and
   // aspect ratio, then the editor refetches structure + map. load() keeps
@@ -2109,24 +2140,37 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const order = chainRows.map(r => r.rowKey);
     const reordered = reorderChainEntries(chainEntries(), order, rowKeys);
     if (!reordered) return;
-    // Move the rows now: the preview is a round trip, and leaving them in the
-    // old order until it lands reads as the drag having been rejected.
-    const rowOrder = reorderChainEntries(structure?.chain ?? [], order, rowKeys);
-    if (rowOrder) setStructure(prev => (prev ? { ...prev, chain: rowOrder } : prev));
-    const keyOrder = reorderChainEntries(order, order, rowKeys);
-    if (keyOrder) setChainKeys(keyOrder);
-    // Zone ids stay put while their products move between them, so the
-    // selection has to be re-pointed at the slot the selected device landed
-    // in; without this the highlight stays behind on whatever moved into its
-    // old slot.
-    const from = chainRows.findIndex(r => r.zoneId === selectedZoneId);
-    const to = from === -1 ? -1 : rowKeys.indexOf(order[from]);
-    const landed = to === -1 ? undefined : chainRows[to];
-    if (landed) {
-      setSelectedZoneId(landed.zoneId);
-      setZoneMultiSel(new Set([landed.zoneId]));
-    }
-    applyChain(reordered);
+    confirmChainEdit(() => {
+      // Taken before the rows move, so undo lands on the pre-drag editor.
+      const snapshot = snapshotCurrent();
+      const priorChain = structure?.chain;
+      const priorSelected = selectedZoneId;
+      // Move the rows now: the preview is a round trip, and leaving them in
+      // the old order until it lands reads as the drag having been rejected.
+      const rowOrder = reorderChainEntries(structure?.chain ?? [], order, rowKeys);
+      if (rowOrder) setStructure(prev => (prev ? { ...prev, chain: rowOrder } : prev));
+      const keyOrder = reorderChainEntries(order, order, rowKeys);
+      if (keyOrder) setChainKeys(keyOrder);
+      // Zone ids stay put while their products move between them, so the
+      // selection has to be re-pointed at the slot the selected device landed
+      // in; without this the highlight stays behind on whatever moved into
+      // its old slot.
+      const from = chainRows.findIndex(r => r.zoneId === selectedZoneId);
+      const to = from === -1 ? -1 : rowKeys.indexOf(order[from]);
+      const landed = to === -1 ? undefined : chainRows[to];
+      if (landed) {
+        setSelectedZoneId(landed.zoneId);
+        setZoneMultiSel(new Set([landed.zoneId]));
+      }
+      void applyChain(reordered, snapshot).then(ok => {
+        if (ok) return;
+        // The rows moved but the zones did not: put them back together.
+        if (priorChain) setStructure(prev => (prev ? { ...prev, chain: priorChain } : prev));
+        setChainKeys(order);
+        setSelectedZoneId(priorSelected);
+        setZoneMultiSel(new Set([priorSelected]));
+      });
+    });
   };
 
   const showZoneTools = zoneCustomizable && zonesOrdered.length > 0;
@@ -2183,10 +2227,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               const entries = chainEntries();
               const prev = entries[i];
               entries[i] = prev?.key === entry.key ? { ...entry, fromOrdinal: prev.fromOrdinal } : entry;
-              applyChain(entries);
+              confirmChainEdit(() => { void applyChain(entries); });
             }}
-            onAdd={entry => applyChain([...chainEntries(), entry])}
-            onRemove={i => applyChain(chainEntries().filter((_, j) => j !== i))}
+            onAdd={entry => confirmChainEdit(() => { void applyChain([...chainEntries(), entry]); })}
+            onRemove={i => confirmChainEdit(() => { void applyChain(chainEntries().filter((_, j) => j !== i)); })}
             onResize={handleZoneResize}
             maxLedCount={structure?.segments?.[0]?.maxLedCount ?? 0}
             onReorder={handleChainReorder}
@@ -2381,13 +2425,13 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               <div className={styles.separator} />
               {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
               <HoverTooltip body={`${t('lighting.ledMap.undo')} (${isMac ? 'Cmd' : 'Ctrl'}+Z)`} side="bottom">
-                <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0} aria-label={t('lighting.ledMap.undo')}>
+                <button type="button" className={styles.iconBtn} onClick={handleUndo} disabled={undoLen === 0 || chainBusy} aria-label={t('lighting.ledMap.undo')}>
                   <Undo2 size={15} />
                 </button>
               </HoverTooltip>
               {/* eslint-disable-next-line i18next/no-literal-string -- keyboard modifier key label */}
               <HoverTooltip body={`${t('lighting.ledMap.redo')} (${isMac ? 'Cmd' : 'Ctrl'}+Shift+Z)`} side="bottom">
-                <button type="button" className={styles.iconBtn} onClick={handleRedo} disabled={redoLen === 0} aria-label={t('lighting.ledMap.redo')}>
+                <button type="button" className={styles.iconBtn} onClick={handleRedo} disabled={redoLen === 0 || chainBusy} aria-label={t('lighting.ledMap.redo')}>
                   <Redo2 size={15} />
                 </button>
               </HoverTooltip>
@@ -2397,9 +2441,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
           <div
             ref={canvasRef}
             className={styles.canvas}
-            style={{ aspectRatio: String(CANVAS_RATIO) }}
-            data-grid-cols={GRID_COLS}
-            data-grid-rows={GRID_ROWS}
+            style={{ aspectRatio: String(CANVAS_RATIO), ['--grid-cols' as string]: GRID_COLS, ['--grid-rows' as string]: GRID_ROWS }}
             onPointerDown={mappingUnavailable ? undefined : handleCanvasPointerDown}
             onPointerMove={mappingUnavailable ? undefined : handlePointerMove}
             onPointerUp={mappingUnavailable ? undefined : (e => handlePointerUp(e))}
@@ -2444,10 +2486,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               }}
             >
             </div>
-
-            {/* Parking-row separator so the boundary between "live" LEDs and
-                deleted ones is obvious. A subtle line across the canvas just
-                below the device frame. */}
 
             {(() => {
               const rendered = new Set<number>();
@@ -2809,7 +2847,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               type="button"
               className={`${styles.btn} ${styles.btnPrimary}`}
               onClick={handleSave}
-              disabled={!dirty || saving}
+              disabled={!dirty || saving || chainBusy}
             >
               {t('lighting.ledMap.save')}
             </button>
@@ -2869,7 +2907,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         primaryAction={{
           label: t('lighting.ledMap.save'),
           onSelect: handleSaveAndClose,
-          disabled: saving,
+          disabled: saving || chainBusy,
         }}
         onConfirm={handleDiscardAndClose}
         onCancel={() => setShowUnsavedConfirm(false)}
@@ -2882,11 +2920,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
         cancelLabel={t('lighting.ledMap.keepEditing')}
         // Same way out as the close prompt: keep the work and carry on,
         // rather than making the user cancel and find Save first.
-        primaryAction={{
+        primaryAction={pendingDiscardSaveable ? {
           label: t('lighting.ledMap.save'),
           onSelect: handleSaveThenPending,
-          disabled: saving,
-        }}
+          disabled: saving || chainBusy,
+        } : undefined}
         destructive
         onConfirm={handlePendingDiscardConfirm}
         onCancel={() => setPendingDiscardAction(null)}

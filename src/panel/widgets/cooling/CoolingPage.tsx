@@ -1203,13 +1203,11 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return orderedChannels.filter(c => !shown.has(c.id)).map(c => c.id);
   }, [orderedChannels, visibleChannels, hideUncontrolled]);
 
-  // Fans a click can select, which is what select-all has to match. Nexus
-  // Control off is NOT excluded: the card takes its click, and turning control
-  // back on over a whole selection is the reason to gather them.
-  // Select-all takes only fans it can actually drive. A fan with Nexus Control
-  // off is deliberately left to its firmware - and is hidden outright when the
-  // page is hiding uncontrolled devices, so selecting it would build a
-  // selection the user cannot see.
+  // Fans a click can select, which is what select-all has to match. It takes
+  // only fans it can actually drive. A fan with Nexus Control off is
+  // deliberately left to its firmware - and is hidden outright when the page
+  // is hiding uncontrolled devices, so selecting it would build a selection
+  // the user cannot see.
   const selectableFanIds = useMemo(
     () => orderedChannels
       .filter(c => !isFanDisconnected(c)
