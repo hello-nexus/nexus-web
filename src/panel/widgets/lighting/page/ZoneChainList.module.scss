@@ -176,16 +176,17 @@ $count-column: 4.4rem;
   flex-wrap: wrap;
 }
 
-// Anchors the add picker under its button.
-.addWrap { position: relative; }
+// Anchors the add picker under its button; the button fills the run before the total.
+.addWrap { position: relative; flex: 1; }
 
 .add {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  min-width: 10rem;
+  width: 100%;
   height: 28px;
+  white-space: nowrap;
   padding: 0 0.75rem;
   font: inherit;
   font-size: var(--type-small);
