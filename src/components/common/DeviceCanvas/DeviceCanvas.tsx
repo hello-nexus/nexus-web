@@ -698,20 +698,22 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     return () => { alive = false; };
   }, []);
 
+  // The cards the frame stands for beyond its own, as "+N" beside the link
+  // glyph, with the full count for the label's accessible name.
+  const linkLabel = (dev: LightingDevice): { text: string; aria: string } | null => {
+    const n = linkedWith(dev.id).length;
+    return n > 1 ? { text: `+${n - 1}`, aria: t(pluralKey('lighting.devices.linkedCount', language, n), { count: n }) } : null;
+  };
+  // A link made from a header carries that header's name; one made from a
+  // selection wears its first member's.
+  const frameName = (dev: LightingDevice): string => links?.find(l => l.members.includes(dev.id))?.name || canvasLabelName(dev);
+
   // A label's box only changes when its text, the font, or the container
   // scale does - never when a frame moves or turns. Keying the measure on that
   // signature keeps a drag (which re-renders at pointer rate) off the
   // layout-thrash path. JSON encodes the fields unambiguously without needing
   // a delimiter no device name can contain.
-  // The cards the frame stands for beyond its own, as "+N" beside the link glyph.
-  const linkLabel = (dev: LightingDevice): string | null => {
-    const n = linkedWith(dev.id).length;
-    return n > 1 ? `+${n - 1}` : null;
-  };
-  // A link made from a header carries that header's name; one made from a
-  // selection wears its first member's.
-  const frameName = (dev: LightingDevice): string => links?.find(l => l.members.includes(dev.id))?.name || canvasLabelName(dev);
-  const labelSig = JSON.stringify(drawn.map(d => [d.id, frameName(d), linkLabel(d)]));
+  const labelSig = JSON.stringify(drawn.map(d => [d.id, frameName(d), linkLabel(d)?.text ?? null]));
   const { w: contW, h: contH } = containerSizeRef.current;
   useLayoutEffect(() => {
     const el = labelLayerRef.current;
@@ -823,11 +825,14 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
               onPointerEnter={() => setHoveredLabelId(dev.id)}
               onPointerLeave={() => setHoveredLabelId(cur => (cur === dev.id ? null : cur))}>
               {frameName(dev)}
-              {linkLabel(dev) && (
-                <span className={styles.deviceLabelLinked} aria-label={t(pluralKey('lighting.devices.linkedCount', language, linkedWith(dev.id).length), { count: linkedWith(dev.id).length })}>
-                  <Group size={11} aria-hidden />{linkLabel(dev)}
-                </span>
-              )}
+              {(() => {
+                const link = linkLabel(dev);
+                return link && (
+                  <span className={styles.deviceLabelLinked} role="img" aria-label={link.aria}>
+                    <Group size={11} aria-hidden />{link.text}
+                  </span>
+                );
+              })()}
             </span>
           );
         })}

@@ -544,6 +544,7 @@ describe('DeviceCanvas links', () => {
     expect(screen.getByText('Left')).toBeTruthy();
     expect(screen.queryByText('Right')).toBeNull();
     expect(screen.getByText('+1')).toBeTruthy();
+    expect(screen.getByLabelText('lighting.devices.linkedCount.other')).toBeTruthy();
   });
 
   it('drags every member with the frame that stands for them', () => {
