@@ -24,7 +24,7 @@ export type DashboardSectionNavigate =
 
 export function isDashboardClickthroughType(type: string): type is DashboardWidgetSection {
   // Click-through needs a TILE to click through from, so this is narrower than
-  // sidebar-pinnable: isPinnableAppKey also admits page-only apps (Store), which
+  // sidebar-pinnable: isPinnableAppKey also admits page-only apps (Store, Frames), which
   // have no widget. A stale layout naming one must not be treated as clickable.
   return !isPageOnlyAppKey(type) && isPinnableAppKey(type);
 }
