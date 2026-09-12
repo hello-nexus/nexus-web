@@ -644,7 +644,7 @@ describe('DevicePanel links', () => {
 
   it('badges a linked card and not a loose one', () => {
     renderRail(devices, links);
-    expect(screen.getAllByLabelText('lighting.devices.linkedCount.other:{"count":2}')).toHaveLength(2);
+    expect(screen.getAllByLabelText('lighting.devices.stackedCount.other:{"count":2}')).toHaveLength(2);
   });
 
   it('selects the whole link from one card, and clears it from one card', () => {
@@ -670,34 +670,34 @@ describe('DevicePanel links', () => {
   it('links an eligible selection from the bulk menu', () => {
     const { onLinksChange } = renderRail(devices, [], new Set(['d2', 'd3']));
     fireEvent.click(menus()[1]);
-    fireEvent.click(screen.getByText('lighting.devices.linkCount.other:{"count":2}'));
+    fireEvent.click(screen.getByText('lighting.devices.stackCount.other:{"count":2}'));
     expect(onLinksChange.mock.calls[0][0][0]).toMatchObject({ members: ['d2', 'd3'] });
   });
 
   it('offers no link for a selection spanning containers', () => {
     renderRail([...devices, ...board], [], new Set(['d1', 'openrgb-C000-0']));
     fireEvent.click(menus()[0]);
-    expect(screen.queryByText(/linkCount/)).toBeNull();
+    expect(screen.queryByText(/stackCount/)).toBeNull();
   });
 
   it('unlinks from a linked card and from the bulk menu of the whole link', () => {
     const { onLinksChange } = renderRail(devices, links);
     fireEvent.click(menus()[0]);
-    fireEvent.click(screen.getByText('lighting.devices.unlink'));
+    fireEvent.click(screen.getByText('lighting.devices.unstack'));
     expect(onLinksChange).toHaveBeenCalledWith([]);
   });
 
   it('links a hardware group from its header, whatever its rows', () => {
     const { onLinksChange } = renderRail(board, []);
     fireEvent.click(screen.getByRole('button', { name: /groupActions/ }));
-    fireEvent.click(screen.getByText('lighting.devices.linkCount.other:{"count":3}'));
+    fireEvent.click(screen.getByText('lighting.devices.stackCount.other:{"count":3}'));
     expect(onLinksChange.mock.calls[0][0][0]).toMatchObject({ name: 'B850I AORUS PRO', members: ['openrgb-C000-0', 'openrgb-C000-1', 'openrgb-C000-2'] });
   });
 
   it('offers unlink on a header whose members are one link', () => {
     const { onLinksChange } = renderRail(board, [{ id: 'l', name: 'B850I', members: ['openrgb-C000-0', 'openrgb-C000-1', 'openrgb-C000-2'] }]);
     fireEvent.click(screen.getByRole('button', { name: /groupActions/ }));
-    fireEvent.click(screen.getByText('lighting.devices.unlink'));
+    fireEvent.click(screen.getByText('lighting.devices.unstack'));
     expect(onLinksChange).toHaveBeenCalledWith([]);
   });
 });

@@ -702,7 +702,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   // full sentence for the label's accessible name.
   const linkLabel = (dev: LightingDevice): { text: string; aria: string } | null => {
     const n = linkedWith(dev.id).length;
-    return n > 1 ? { text: String(n), aria: t(pluralKey('lighting.devices.linkedCount', language, n), { count: n }) } : null;
+    return n > 1 ? { text: String(n), aria: t(pluralKey('lighting.devices.stackedCount', language, n), { count: n }) } : null;
   };
   // A link made from a header carries that header's name; one made from a
   // selection wears its first member's.

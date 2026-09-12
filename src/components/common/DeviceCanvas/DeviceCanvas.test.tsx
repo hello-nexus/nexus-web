@@ -544,7 +544,7 @@ describe('DeviceCanvas links', () => {
     expect(screen.getByText('Left')).toBeTruthy();
     expect(screen.queryByText('Right')).toBeNull();
     expect(screen.getByText('2')).toBeTruthy();
-    expect(screen.getByLabelText('lighting.devices.linkedCount.other')).toBeTruthy();
+    expect(screen.getByLabelText('lighting.devices.stackedCount.other')).toBeTruthy();
   });
 
   it('drags every member with the frame that stands for them', () => {
@@ -598,10 +598,10 @@ describe('DeviceCanvas links', () => {
       />
     );
     fireEvent.contextMenu(screen.getByText('Left'));
-    fireEvent.click(screen.getByText('lighting.devices.unlink'));
+    fireEvent.click(screen.getByText('lighting.devices.unstack'));
     expect(unlink).toHaveBeenCalledTimes(1);
     fireEvent.contextMenu(screen.getByText('Loose'));
-    fireEvent.click(screen.getByText('lighting.devices.linkCount.one'));
+    fireEvent.click(screen.getByText('lighting.devices.stackCount.one'));
     expect(link).toHaveBeenCalledTimes(1);
   });
 });

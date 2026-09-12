@@ -591,8 +591,8 @@ export function ZoneCard({
         )}
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
         {linked && (
-          <HoverTooltip body={t(pluralKey('lighting.devices.linkedCount', language, linked.count), { count: linked.count })} side="top">
-            <span className={styles.deviceLinked} aria-label={t(pluralKey('lighting.devices.linkedCount', language, linked.count), { count: linked.count })}>
+          <HoverTooltip body={t(pluralKey('lighting.devices.stackedCount', language, linked.count), { count: linked.count })} side="top">
+            <span className={styles.deviceLinked} aria-label={t(pluralKey('lighting.devices.stackedCount', language, linked.count), { count: linked.count })}>
               <Layers size={12} aria-hidden />
             </span>
           </HoverTooltip>

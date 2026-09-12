@@ -79,12 +79,12 @@ export function linkMenuItems(
   if (actions?.link) {
     items.push({
       key: 'link', icon: <LayersPlus size={14} />,
-      label: t(pluralKey('lighting.devices.linkCount', language, count), { count }),
+      label: t(pluralKey('lighting.devices.stackCount', language, count), { count }),
       onSelect: actions.link,
     });
   }
   if (actions?.unlink) {
-    items.push({ key: 'unlink', icon: <LayersMinus size={14} />, label: t('lighting.devices.unlink'), onSelect: actions.unlink });
+    items.push({ key: 'unlink', icon: <LayersMinus size={14} />, label: t('lighting.devices.unstack'), onSelect: actions.unlink });
   }
   return items;
 }
