@@ -82,7 +82,12 @@ const MAX_MAPPABLE_LEDS = 300;
 const NUDGE_STEP_UV = 0.005;
 const NUDGE_STEP_UV_COARSE = 0.025;
 // A group is LEDs the Group action put on one point; only float noise apart.
+// A snap never lands a drop on another LED's point, or it would form one.
 const CO_LOCATED_EPSILON = 1e-6;
+
+function onSamePoint(a: { u: number; v: number }, b: { u: number; v: number }): boolean {
+  return Math.abs(a.u - b.u) < CO_LOCATED_EPSILON && Math.abs(a.v - b.v) < CO_LOCATED_EPSILON;
+}
 
 // A Lian Li port device's ring segment holds one LED ring per fan, so dividing
 // the segment's LED count by the per-fan ring size recovers the fan count.
@@ -1120,7 +1125,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     const du = innerW > 0 ? dPx / innerW : 0;
     const dv = innerH > 0 ? dPy / innerH : 0;
     setDragDelta({ du, dv });
-
   };
 
   const handlePointerUp = (e?: React.PointerEvent) => {
@@ -1169,19 +1173,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       const currentSelected = selected;
       const currentDelta = dragDelta;
       setLeds(prev => {
+        const others = prev.filter(l => !currentSelected.has(l.index) && !l.disabled);
+        const moved = prev
+          .filter(l => currentSelected.has(l.index) && !l.disabled)
+          .map(l => ({
+            u: Math.max(0, Math.min(1, l.u + currentDelta.du)),
+            v: Math.max(0, Math.min(1, l.v + currentDelta.dv)),
+          }));
         // One offset for the whole selection, so the arrangement inside it
-        // survives the snap; a lone LED snaps itself below.
-        const groupAdjust = currentSelected.size > 1
-          ? selectionSnapAdjust(
-            prev
-              .filter(l => currentSelected.has(l.index) && !l.disabled)
-              .map(l => ({
-                u: Math.max(0, Math.min(1, l.u + currentDelta.du)),
-                v: Math.max(0, Math.min(1, l.v + currentDelta.dv)),
-              })),
-            snapGridRef.current,
-          )
+        // survives the snap; a lone LED snaps itself below. A snap that would
+        // put a member on another LED's point is dropped: only the Group
+        // action makes a group.
+        let groupAdjust = currentSelected.size > 1
+          ? selectionSnapAdjust(moved, snapGridRef.current)
           : { du: 0, dv: 0 };
+        if (moved.some(m => others.some(o => onSamePoint({ u: m.u + groupAdjust.du, v: m.v + groupAdjust.dv }, o)))) {
+          groupAdjust = { du: 0, dv: 0 };
+        }
         return prev.map(led => {
           if (!currentSelected.has(led.index)) return led;
           if (pastBottom) {
@@ -1194,8 +1202,10 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             snapV = Math.max(0, Math.min(1, snapV + groupAdjust.dv));
           } else {
             const settled = settleLed(snapU, snapV, snapGridRef.current);
-            snapU = settled.u;
-            snapV = settled.v;
+            if (!others.some(o => onSamePoint(settled, o))) {
+              snapU = settled.u;
+              snapV = settled.v;
+            }
           }
           return { ...led, u: snapU, v: snapV, isCustom: true };
         });
@@ -1915,20 +1925,23 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return { u: center.u + adj.du, v: center.v + adj.dv };
   }, [draggedSelectionPoints, snapGrid]);
 
+  // The preview shows the same snap the drop will make, guard included.
   const getLedPosition = (led: EditorLed) => {
     const dragOverride = dragging && dragDelta ? dragDelta : undefined;
     let snapTarget: { u: number; v: number } | null = null;
     if (dragOverride && selected.has(led.index)) {
       const newU = Math.max(0, Math.min(1, led.u + dragOverride.du));
       const newV = Math.max(0, Math.min(1, led.v + dragOverride.dv));
+      const others = leds.filter(l => !selected.has(l.index) && !l.disabled);
       if (selected.size <= 1) {
         const settled = settleLed(newU, newV, snapGrid);
-        if (settled.u !== newU || settled.v !== newV) snapTarget = settled;
+        if ((settled.u !== newU || settled.v !== newV) && !others.some(o => onSamePoint(settled, o))) snapTarget = settled;
       } else if (snapGrid) {
         // Every member shifts by the same amount, the one that puts the
         // selection's centre on the grid.
         const adj = selectionSnapAdjust(draggedSelectionPoints, true);
-        if (adj.du !== 0 || adj.dv !== 0) {
+        const clear = !draggedSelectionPoints.some(m => others.some(o => onSamePoint({ u: m.u + adj.du, v: m.v + adj.dv }, o)));
+        if ((adj.du !== 0 || adj.dv !== 0) && clear) {
           snapTarget = {
             u: Math.max(0, Math.min(1, newU + adj.du)),
             v: Math.max(0, Math.min(1, newV + adj.dv)),

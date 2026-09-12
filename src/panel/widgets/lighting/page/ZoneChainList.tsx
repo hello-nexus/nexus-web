@@ -224,20 +224,26 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
       <div className={styles.footer}>
         {chainable && (
           <div className={styles.addWrap}>
-            <HoverTooltip body={atCap ? t('lighting.ledMap.chainFull', { max: maxLedCount }) : t('lighting.ledMap.chainAdd')} side="top">
-              <button
-                type="button"
-                className={styles.add}
-                disabled={disabled || pending !== null || atCap}
-                aria-haspopup="listbox"
-                aria-expanded={picker === 'add'}
-                aria-label={t('lighting.ledMap.chainAdd')}
-                onClick={e => { setPickerAnchor(e.currentTarget); setPicker(picker === 'add' ? null : 'add'); }}
-              >
-                <Plus size={13} aria-hidden />
-                <span>{t('lighting.ledMap.chainAdd')}</span>
-              </button>
-            </HoverTooltip>
+            {(() => {
+              const button = (
+                <button
+                  type="button"
+                  className={styles.add}
+                  disabled={disabled || pending !== null || atCap}
+                  aria-haspopup="listbox"
+                  aria-expanded={picker === 'add'}
+                  aria-label={t('lighting.ledMap.chainAdd')}
+                  onClick={e => { setPickerAnchor(e.currentTarget); setPicker(picker === 'add' ? null : 'add'); }}
+                >
+                  <Plus size={13} aria-hidden />
+                  <span>{t('lighting.ledMap.chainAdd')}</span>
+                </button>
+              );
+              // The label says what the button does; only a full port needs a tooltip.
+              return atCap
+                ? <HoverTooltip body={t('lighting.ledMap.chainFull', { max: maxLedCount })} side="top">{button}</HoverTooltip>
+                : button;
+            })()}
             {picker === 'add' && (
               <ProductPicker
                 anchor={pickerAnchor}
@@ -253,7 +259,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
           </div>
         )}
         {actions}
-        <span className={styles.spacer} />
+        {!chainable && <span className={styles.spacer} />}
         {/* One device is its own total. */}
         {rows.length > 1 && (
           <span className={styles.total}>
