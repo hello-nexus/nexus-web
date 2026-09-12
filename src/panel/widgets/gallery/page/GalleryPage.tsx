@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileImage, Folder, FolderPlus, ImageIcon, ImagePlus, Trash2, Undo2, X } from 'lucide-react';
+import { FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Play, Trash2, Undo2, X } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
@@ -31,13 +31,19 @@ const KIND_ICONS = {
   folder: Folder,
 } as const;
 
+// A single-file source is one item; its icon follows that item's kind.
+function sourceIcon(source: GallerySource, items: GalleryItem[]) {
+  if (source.kind === 'file' && items.some(i => i.sourceId === source.id && i.kind === 'video')) return FileVideo;
+  return KIND_ICONS[source.kind] ?? FileImage;
+}
+
 /**
  * Gallery management page. The source set is per-system shared (every panel
  * surface of this PC draws from it) and is pure REFERENCES - Nexus never
- * copies or deletes image bytes. Sources come from the OS-native picker or
+ * copies or deletes media bytes. Sources come from the OS-native picker or
  * from drag-n-drop (desktop app only: the shell bridge resolves dropped
  * files' real paths; browser tabs can't see them). Removing a folder's
- * image puts it on that source's exclusion list, restorable in one click.
+ * item puts it on that source's exclusion list, restorable in one click.
  */
 export function GalleryPage() {
   const { t } = useTranslation();
@@ -70,8 +76,9 @@ export function GalleryPage() {
   // Preview blob cache (panel auth is token-based, <img> can't hit the route
   // directly). Grid-sized derivatives, not originals: a folder source can hold
   // hundreds of photos and this cache never evicts, so full-resolution bytes
-  // here cost gigabytes. null marks an unreadable file so the grid shows a
-  // placeholder, never retried.
+  // here cost gigabytes. For a video the derivative is its poster frame (the
+  // service 404s rather than send the clip when it cannot make one). null
+  // marks an unreadable file so the grid shows a placeholder, never retried.
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
   useEffect(() => {
@@ -165,7 +172,7 @@ export function GalleryPage() {
     await refresh();
   };
 
-  // Removing an image never touches the disk: a folder's image goes on the
+  // Removing an item never touches the disk: a folder's item goes on the
   // source's exclusion list (restorable), a single-file source is dropped.
   const removeItem = async (item: GalleryItem) => {
     const source = sources.find(s => s.id === item.sourceId);
@@ -248,7 +255,7 @@ export function GalleryPage() {
           ) : (
             <ul className={styles.sourceList}>
               {sources.map(source => {
-                const Icon = KIND_ICONS[source.kind] ?? FileImage;
+                const Icon = sourceIcon(source, items);
                 return (
                   <li
                     key={source.id}
@@ -316,7 +323,14 @@ export function GalleryPage() {
                       <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
                     ) : (
                       <span className={styles.tilePlaceholder}>
-                        <ImageIcon size={20} aria-hidden="true" />
+                        {item.kind === 'video'
+                          ? <FileVideo size={20} aria-hidden="true" />
+                          : <ImageIcon size={20} aria-hidden="true" />}
+                      </span>
+                    )}
+                    {item.kind === 'video' && (
+                      <span className={styles.tileVideoBadge} title={t('gallery.page.video')} aria-label={t('gallery.page.video')} role="img">
+                        <Play size={10} aria-hidden="true" />
                       </span>
                     )}
                     <button
