@@ -104,7 +104,7 @@ const CURATED_ICONS: Record<string, string> = {
   'fan-hub': '/assets/devices/ibuypower.svg',
   // No AW5 art yet; the brand mark reads better here than the generic glyph.
   aw5: '/assets/devices/ibuypower.svg',
-  smarthub: '/assets/devices/smarthub-filled.svg',
+  smarthub: '/assets/devices/smarthub.svg',
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
   'lianli-wireless': '/assets/devices/lianli.svg',
