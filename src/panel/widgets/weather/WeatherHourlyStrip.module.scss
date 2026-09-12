@@ -14,10 +14,14 @@
 }
 
 .scroller {
+  padding: 0;
+  overflow: hidden;
+}
+
+// Card's body wrapper; the strip inside scrolls sideways.
+.scroller > * {
   overflow-x: auto;
   overflow-y: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -80,7 +84,7 @@
 }
 
 .immersive {
-  .scroller { overflow-x: hidden; }
+  .scroller > * { overflow-x: hidden; }
   .column { @include vgap(0.5rem); }
   .hour { font-size: var(--type-small); }
   .icon { width: 2em; height: 2em; }

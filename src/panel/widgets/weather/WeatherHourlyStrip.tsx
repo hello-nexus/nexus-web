@@ -5,6 +5,7 @@ import type { WeatherSnapshot } from '../../../api/weather';
 import { formatWeatherHour } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
 import { MIN_PRECIP_PCT, formatTemp, hourlyTemp, upcomingHours, type WeatherUnit } from './weatherFormat';
+import { Card } from '../../../components/common/Card/Card';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import styles from './WeatherHourlyStrip.module.scss';
 
@@ -44,8 +45,8 @@ export function WeatherHourlyStrip({ snap, unit, immersive }: WeatherHourlyStrip
   return (
     <div className={`${styles.root} ${immersive ? styles.immersive : ''}`}>
       <SectionHeader className={styles.title}>{t('panel.widget.weather.hourly')}</SectionHeader>
-      <div className={styles.scroller} data-panel-scrollable="true">
-        <div className={styles.strip} style={immersive ? undefined : { minWidth: `${hours.length * 3.5}rem` }}>
+      <Card compact className={styles.scroller}>
+        <div className={styles.strip} style={immersive ? undefined : { minWidth: `${hours.length * 3.5}rem` }} data-panel-scrollable="true">
           <svg className={styles.curve} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             <polygon points={area} />
           </svg>
@@ -63,7 +64,7 @@ export function WeatherHourlyStrip({ snap, unit, immersive }: WeatherHourlyStrip
             );
           })}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

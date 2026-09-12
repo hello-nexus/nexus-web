@@ -1,7 +1,8 @@
-import { X } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { resolveHour12 } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { Card } from '../../../components/common/Card/Card';
+import { CardDeleteButton } from '../../../components/common/CardDeleteButton/CardDeleteButton';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { geocodeResultToLocation, weatherLocationKey, type WeatherGeocodeResult, type WeatherLocation, type WeatherUnitPref } from '../../../api/weather';
@@ -108,7 +109,7 @@ function WeatherPlaceRow({
   const subline = place.location ? (snap?.locationLabel && snap.locationLabel !== place.location.label ? snap.locationLabel : '') : (snap?.locationLabel ?? '');
 
   return (
-    <div className={`${styles.row} ${selected ? styles.rowSelected : ''}`}>
+    <Card compact interactive selected={selected} className={styles.row}>
       <button
         type="button"
         className={styles.rowSelect}
@@ -116,34 +117,31 @@ function WeatherPlaceRow({
         aria-selected={selected}
         onClick={onSelect}
       >
-      <div className={styles.rowMain}>
-        <div className={styles.rowName}>{label}</div>
-        <div className={styles.rowMeta}>
-          {clock && <span>{formatClock(clock.hour, clock.minute, resolveHour12(timeFormat), t('panel.widget.weather.am'), t('panel.widget.weather.pm'))}</span>}
-          {subline && <span>{subline}</span>}
+        <div className={styles.rowMain}>
+          <div className={styles.rowName}>{label}</div>
+          <div className={styles.rowMeta}>
+            {clock && <span>{formatClock(clock.hour, clock.minute, resolveHour12(timeFormat), t('panel.widget.weather.am'), t('panel.widget.weather.pm'))}</span>}
+            {subline && <span>{subline}</span>}
+          </div>
+          <div className={styles.rowCondition}>
+            <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.rowIcon} strokeWidth={1.6} />
+            <span>{loaded && !snap ? t('panel.widget.weather.noData') : conditionText}</span>
+          </div>
         </div>
-        <div className={styles.rowCondition}>
-          <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.rowIcon} strokeWidth={1.6} />
-          <span>{loaded && !snap ? t('panel.widget.weather.noData') : conditionText}</span>
+        <div className={styles.rowSide}>
+          <div className={styles.rowTemp}>{formatTemp(currentTemp(snap, unit), loaded ? '--' : '…')}</div>
+          {hi !== null && hi !== undefined && lo !== null && lo !== undefined && (
+            <div className={styles.rowHiLo}>{t('panel.widget.weather.hiLo', { hi: Math.round(hi), lo: Math.round(lo) })}</div>
+          )}
         </div>
-      </div>
-      <div className={styles.rowSide}>
-        <div className={styles.rowTemp}>{formatTemp(currentTemp(snap, unit), loaded ? '--' : '…')}</div>
-        {hi !== null && hi !== undefined && lo !== null && lo !== undefined && (
-          <div className={styles.rowHiLo}>{t('panel.widget.weather.hiLo', { hi: Math.round(hi), lo: Math.round(lo) })}</div>
-        )}
-      </div>
       </button>
       {onRemove && (
-        <button
-          type="button"
+        <CardDeleteButton
           className={styles.remove}
-          aria-label={t('panel.widget.weather.removeLocation', { location: label })}
-          onClick={onRemove}
-        >
-          <X size={14} />
-        </button>
+          onDelete={onRemove}
+          ariaLabel={t('panel.widget.weather.removeLocation', { location: label })}
+        />
       )}
-    </div>
+    </Card>
   );
 }

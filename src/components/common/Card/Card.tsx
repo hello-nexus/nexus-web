@@ -36,6 +36,10 @@ export interface CardProps {
   // recipe (monitoring overview cards) instead of the default card hover.
   // Only meaningful together with `interactive` or `onClick`.
   dashHover?: boolean;
+  // The selected-item treatment the lighting / cooling device rails use
+  // (accent border + accent-soft fill). Sets aria-selected when `role` is
+  // 'option'.
+  selected?: boolean;
   // Fills the parent's own height (instead of the default content-sized
   // height) and lets the body scroll on its own while the header stays
   // pinned - for a card occupying a fixed-height region (e.g. an inline
@@ -52,7 +56,7 @@ export interface CardProps {
 
 export function Card({
   title, subtitle, actions, icon, children, interactive, compact, className, onClick, truncateSubtitle, disableInteractiveRole, dashHover,
-  fillHeight, role, ariaLabel,
+  selected, fillHeight, role, ariaLabel,
 }: CardProps) {
   const hasHeader = title !== undefined || subtitle !== undefined || actions !== undefined || icon !== undefined;
   const interactiveRole = onClick && !disableInteractiveRole;
@@ -60,9 +64,10 @@ export function Card({
   const interactiveClass = isInteractive ? (dashHover ? styles.dashHover : styles.interactive) : '';
   return (
     <div
-      className={`${styles.root} ${interactiveClass} ${compact ? styles.compact : ''} ${fillHeight ? styles.fillHeight : ''} ${className ?? ''}`}
+      className={`${styles.root} ${interactiveClass} ${compact ? styles.compact : ''} ${selected ? styles.selected : ''} ${fillHeight ? styles.fillHeight : ''} ${className ?? ''}`}
       onClick={onClick}
       role={interactiveRole ? 'button' : role}
+      aria-selected={role === 'option' ? Boolean(selected) : undefined}
       aria-label={ariaLabel}
       tabIndex={interactiveRole ? 0 : undefined}
       onKeyDown={interactiveRole ? (e) => {

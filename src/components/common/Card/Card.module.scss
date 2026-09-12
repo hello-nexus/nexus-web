@@ -32,6 +32,13 @@
   @include dash-tile-hover;
 }
 
+// Selected item in a rail, same recipe as the lighting / cooling device cards.
+.selected,
+.selected:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .compact {
   padding: 0.75rem;
 }

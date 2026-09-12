@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { Card } from '../../../components/common/Card/Card';
 import { RangeBar } from '../../../components/common/RangeBar/RangeBar';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import type { WeatherSnapshot } from '../../../api/weather';
@@ -34,7 +35,8 @@ export function WeatherDailyList({ snap, unit, immersive }: WeatherDailyListProp
   return (
     <div className={`${styles.root} ${immersive ? styles.immersive : ''}`}>
       <SectionHeader className={styles.title}>{t('panel.widget.weather.daily', { days: days.length })}</SectionHeader>
-      <div className={styles.list}>
+      <Card compact className={styles.card}>
+        <div className={styles.list}>
         {days.map((d, i) => {
           const precip = d.precipitationProbabilityMaxPct ?? null;
           return (
@@ -50,7 +52,8 @@ export function WeatherDailyList({ snap, unit, immersive }: WeatherDailyListProp
             </Fragment>
           );
         })}
-      </div>
+        </div>
+      </Card>
     </div>
   );
 }

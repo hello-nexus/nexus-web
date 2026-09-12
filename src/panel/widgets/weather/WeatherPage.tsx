@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
+import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
 import type { WeatherUnitPref } from '../../../api/weather';
@@ -43,18 +44,19 @@ export function WeatherPage() {
 
   return (
     <div className={styles.app}>
-      <ViewHeader title={t('panel.widget.weather')} />
-      <div className={`pageBodyFill ${styles.body}`}>
-        <h2 className={styles.columnTitle}>{t('panel.widget.weather.locations')}</h2>
-        <div className={styles.detailHead}>
-          <h2 className={styles.columnTitle}>{t('panel.widget.weather')}</h2>
+      <ViewHeader
+        title={t('panel.widget.weather')}
+        tabsAdjacent={<SectionHeader className={styles.railTitle}>{t('panel.widget.weather.locations')}</SectionHeader>}
+        tabActions={(
           <ChipGroup
             ariaLabel={t('panel.widget.weather.settings.temperature')}
             options={unitChips}
             activeKey={prefs.unit}
             onChange={key => setUnit(key as WeatherUnitPref)}
           />
-        </div>
+        )}
+      />
+      <div className={`pageBodyFill ${styles.body}`}>
         <aside className={styles.rail}>
           <WeatherLocationList
             places={places}

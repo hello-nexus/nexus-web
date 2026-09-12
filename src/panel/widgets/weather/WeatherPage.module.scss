@@ -1,9 +1,9 @@
-@use '../../../styles/text' as *;
 @use '../../../styles/scrollbar' as *;
 
 // Desktop app view for the Weather widget: saved-place rail on the left,
-// the selected place's conditions scrolling on the right. One header row
-// spans both columns so the two titles and the unit chips share a baseline.
+// the selected place's conditions scrolling on the right. The rail title and
+// the unit chips ride the ViewHeader's tab row, where Cooling keeps its
+// presets, so every page's first row sits at the same height.
 
 .app {
   display: flex;
@@ -18,25 +18,12 @@
 .body {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
-  column-gap: 1.25rem;
-  row-gap: 0.75rem;
+  gap: 1.25rem;
   align-items: stretch;
 }
 
-.columnTitle {
-  @include text-heading;
-  margin: 0;
-  color: var(--text);
-  align-self: center;
-}
-
-.detailHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-width: 0;
+.railTitle {
+  padding: 0 0.25rem;
 }
 
 .rail {
@@ -64,7 +51,7 @@
 @media (max-width: 900px) {
   .body {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .rail {

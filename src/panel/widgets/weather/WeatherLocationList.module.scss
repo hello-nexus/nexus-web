@@ -32,30 +32,18 @@
   @include vgap(0.5rem);
 }
 
+// Card chrome (surface, hover, selected) comes from Card; the option button
+// inside carries the padding so the whole card is the hit target, and the
+// delete X floats in the corner without taking a column.
 .row {
-  display: flex;
-  align-items: stretch;
-  flex: 0 0 auto;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  color: var(--text);
-  transition: border-color var(--ease-fast);
-
-  &:hover { border-color: var(--border-strong); }
-  &:focus-within { @include focus-glow-card; }
+  position: relative;
+  padding: 0;
 }
 
-.rowSelected {
-  border-color: var(--accent);
-}
-
-// The option itself: a reset button carrying the row's padding, so the remove
-// control can sit beside it instead of inside it.
 .rowSelect {
-  flex: 1 1 auto;
   display: flex;
   align-items: stretch;
+  width: 100%;
   min-width: 0;
   padding: 0.75rem 1rem;
   border: none;
@@ -67,7 +55,7 @@
   cursor: pointer;
   @include hgap(0.75rem);
 
-  &:focus-visible { outline: none; }
+  &:focus-visible { @include focus-ring-inset; }
 }
 
 .rowMain {
@@ -112,7 +100,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  justify-content: center;
+  // Bottom-aligned so the corner above the temperature stays clear for the
+  // delete X.
+  justify-content: flex-end;
   @include vgap(0.15rem);
 }
 
@@ -128,27 +118,13 @@
 }
 
 .remove {
-  flex: 0 0 auto;
-  align-self: center;
-  margin-right: 0.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--ease-fast), background var(--ease-fast);
-
-  &:hover { background: var(--bg-card-hover); color: var(--text); }
-  &:focus-visible { opacity: 1; @include focus-ring; }
+  position: absolute;
+  top: 0.2rem;
+  right: 0.3rem;
 }
 
-.row:hover .remove,
-.row:focus-within .remove {
+.row:hover [data-card-delete='hover'],
+.row:focus-within [data-card-delete='hover'] {
   opacity: 1;
+  pointer-events: auto;
 }
