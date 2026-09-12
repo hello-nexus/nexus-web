@@ -526,3 +526,81 @@ describe('DeviceCanvas', () => {
     rectSpy.mockRestore();
   });
 });
+
+// Linked frames: one drawn for the set, edits landing on every member.
+describe('DeviceCanvas links', () => {
+  const links = [{ id: 'l1', name: '', members: ['dev-a', 'dev-b'] }];
+  const pair = () => [dragDevice('dev-a', 'Left'), dragDevice('dev-b', 'Right'), dragDevice('dev-c', 'Loose')];
+
+  it('draws one frame and one label for a link, with the count under the name', () => {
+    const { container } = render(
+      <DeviceCanvas
+        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links}
+      />
+    );
+    expect(container.querySelectorAll(`.${styles.device}`)).toHaveLength(2);
+    expect(screen.getByText('Left')).toBeTruthy();
+    expect(screen.queryByText('Right')).toBeNull();
+    expect(screen.getByText('lighting.devices.linkedCount.other')).toBeTruthy();
+  });
+
+  it('drags every member with the frame that stands for them', () => {
+    const devices = pair();
+    const rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(
+      { left: 0, top: 0, width: 1000, height: 500, right: 1000, bottom: 500, x: 0, y: 0, toJSON() {} } as DOMRect,
+    );
+    const { container } = render(
+      <DeviceCanvas
+        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set()} primaryDeviceId={null}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links}
+      />
+    );
+    const frame = container.querySelector(`.${styles.device}`)!;
+    fireEvent.pointerDown(frame, { button: 0, clientX: 150, clientY: 150 });
+    fireEvent.pointerMove(frame, { clientX: 250, clientY: 200 });
+    fireEvent.pointerMove(frame, { clientX: 260, clientY: 200 });
+    expect(devices[0].canvasX).toBe(devices[1].canvasX);
+    expect(devices[0].canvasY).toBe(devices[1].canvasY);
+    expect(devices[0].canvasX).not.toBe(100);
+    expect(devices[2].canvasX).toBe(100);
+    rectSpy.mockRestore();
+  });
+
+  it('rotates the whole link from the frame menu', () => {
+    const devices = pair();
+    render(
+      <DeviceCanvas
+        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links}
+      />
+    );
+    fireEvent.contextMenu(screen.getByText('Left'));
+    fireEvent.click(screen.getByText('lighting.devices.rotateCwCount.other'));
+    expect(devices[0].canvasRotation).toBe(90);
+    expect(devices[1].canvasRotation).toBe(90);
+    expect(devices[2].canvasRotation).toBe(0);
+  });
+
+  it('offers unlink over a linked frame and link over an eligible selection', () => {
+    const link = vi.fn();
+    const unlink = vi.fn();
+    const linkActionsFor = (ids: string[]) => ids.includes('dev-c') ? { link } : { unlink };
+    render(
+      <DeviceCanvas
+        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links} linkActionsFor={linkActionsFor}
+      />
+    );
+    fireEvent.contextMenu(screen.getByText('Left'));
+    fireEvent.click(screen.getByText('lighting.devices.unlink'));
+    expect(unlink).toHaveBeenCalledTimes(1);
+    fireEvent.contextMenu(screen.getByText('Loose'));
+    fireEvent.click(screen.getByText('lighting.devices.linkCount.one'));
+    expect(link).toHaveBeenCalledTimes(1);
+  });
+});

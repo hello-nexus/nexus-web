@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -7,7 +7,7 @@ import {
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
-import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
+import { groupMenuItems, linkMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -63,6 +63,10 @@ export interface BulkSelection {
   /** Wraps the selection in a new group where it sits. Absent when the cards
    *  sit in different containers, or the nesting limit or group cap forbids. */
   group?: () => void;
+  /** Links the selection to one frame; present when its rows share a container. */
+  link?: () => void;
+  /** Takes the selection apart; present when it is exactly one link. */
+  unlink?: () => void;
 }
 
 /** Where a card sits under a {@link ZoneCardStack} header: every member seams
@@ -88,6 +92,10 @@ export interface StackMenu {
   onRename?: (name: string) => void;
   /** Present only on a renamed device; puts the header back on the hardware name. */
   onResetName?: () => void;
+  /** Links every zone of the device to one frame. */
+  link?: () => void;
+  /** Takes the device's zones apart again. */
+  unlink?: () => void;
 }
 
 /**
@@ -98,7 +106,7 @@ export interface StackMenu {
  * The header row is the device: clicking it selects every zone, and its kebab
  * acts on them all.
  */
-export function ZoneCardStack({ name, selected, drag, onSelect, menu, children }: {
+export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount = 0, children }: {
   /** The device name, shown once above the zones. */
   name: string;
   /** True while any zone under the header is selected: the header takes the
@@ -112,9 +120,11 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, children }
   onSelect?: (additive: boolean) => void;
   /** Absent on pick-only surfaces, which get no kebab. */
   menu?: StackMenu;
+  /** Zones under the header, which the link row counts. */
+  zoneCount?: number;
   children: ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   // seq remounts the menu on every open; see ZoneCard for the same pattern.
   const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
   const menuSeq = useRef(0);
@@ -146,6 +156,7 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, children }
     if (menu.onResetName) {
       items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: menu.onResetName });
     }
+    items.push(...linkMenuItems(t, language, menu, zoneCount));
     return items;
   };
 
@@ -253,6 +264,8 @@ export function ZoneCard({
   firmwareControlled,
   onTakeControl,
   groupMove,
+  linked,
+  onUnlink,
   notice,
   toggleMode,
   selectOnly,
@@ -304,6 +317,10 @@ export function ZoneCard({
   /** Group placement for this card's rail row: the card, or the stack it is a
    *  zone of. */
   groupMove?: GroupMove;
+  /** Set on a card linked to others: the badge in the name row counts the link. */
+  linked?: { count: number };
+  /** Takes this card out of its link. */
+  onUnlink?: () => void;
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
   /** Onboarding selection mode: the whole card is a controlled/ignored
@@ -493,6 +510,7 @@ export function ZoneCard({
       }
     }
     organise.push(...groupMenuItems(t, language, 'lighting.devices', groupMove, bulk));
+    organise.push(...linkMenuItems(t, language, bulk ? bulk : { unlink: onUnlink }, bulk?.count ?? 1));
     if (organise.length > 0) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push(...organise);
@@ -572,6 +590,13 @@ export function ZoneCard({
           <span className={styles.deviceName}>{displayName ?? device.name}</span>
         )}
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
+        {linked && (
+          <HoverTooltip body={t(pluralKey('lighting.devices.linkedCount', language, linked.count), { count: linked.count })} side="top">
+            <span className={styles.deviceLinked} aria-label={t(pluralKey('lighting.devices.linkedCount', language, linked.count), { count: linked.count })}>
+              <Link2 size={12} aria-hidden />
+            </span>
+          </HoverTooltip>
+        )}
       </div>
       <div className={styles.deviceMetaRow}>
         {firmwareControlled ? (

@@ -6,7 +6,7 @@ import {
   fetchLightingDevices, fetchAnimateSettings, saveAnimateTemplates,
   fetchAnimateDefaults, cachedAnimateDefaults,
   fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
-  renameLightingDevice, saveLightingGroups,
+  renameLightingDevice, saveLightingGroups, saveLightingLinks, saveDeviceLayout,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   fetchStaticDeviceLooks,
@@ -27,7 +27,8 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
-import { sortZonesWithinDevice } from './page/deviceBlocks';
+import { buildDeviceBlocks, sortZonesWithinDevice } from './page/deviceBlocks';
+import { canLink, isLinkedSet, linkDevices, unlinkDevices, withLinked, type DeviceLink } from './page/deviceLinks';
 import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
@@ -193,6 +194,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // User-made rail groups. The service owns them (they ride the device list),
   // so a write is optimistic and the lighting topic reconciles.
   const [deviceGroups, setDeviceGroups] = useState<DeviceGroup[]>([]);
+  // Linked cards share one frame and one selection; the selection setters
+  // below read the ref so they stay stable across link edits.
+  const [deviceLinks, setDeviceLinks] = useState<DeviceLink[]>([]);
+  const deviceLinksRef = useRef(deviceLinks);
+  deviceLinksRef.current = deviceLinks;
   const deviceDraggingRef = useRef(false);
   const pushLayoutRef = useRef<((snap: LayoutHistorySnapshot) => void) | null>(null);
   const layoutActiveIdRef = useRef<string | null>(null);
@@ -214,18 +220,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [canvasFocus, setCanvasFocus] = useState<Set<string> | null>(null);
   const canvasFocusIds = canvasFocus ?? selectedDeviceIds;
   const handleSetSelection = useCallback((ids: Set<string>, primary: string | null) => {
-    setSelectedDeviceIds(ids);
+    setSelectedDeviceIds(withLinked(deviceLinksRef.current, ids));
     setPrimaryDeviceId(primary);
     setCanvasFocus(null);
   }, [setPrimaryDeviceId, setSelectedDeviceIds]);
   // Canvas taps and marquees move the focus only - the device list keeps its
-  // selection, so every frame it picked stays drawn.
+  // selection, so every frame it picked stays drawn. A linked card brings its
+  // link along either way.
   const handleFocusDevice = useCallback((id: string | null) => {
-    setCanvasFocus(id ? new Set([id]) : new Set());
+    setCanvasFocus(id ? withLinked(deviceLinksRef.current, [id]) : new Set());
     setPrimaryDeviceId(id);
   }, [setPrimaryDeviceId]);
   const handleSetFocus = useCallback((ids: Set<string>, primary: string | null) => {
-    setCanvasFocus(ids);
+    setCanvasFocus(withLinked(deviceLinksRef.current, ids));
     setPrimaryDeviceId(primary);
   }, [setPrimaryDeviceId]);
   // The list selection also shrinks without passing through those handlers -
@@ -378,6 +385,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const data = await fetchLightingDevices();
     if (!data) return;
     setDeviceGroups(data.groups ?? []);
+    setDeviceLinks(data.links ?? []);
     const next = (data.devices ?? []).map(d => ({
       ...d,
       canvasW: Math.max(60, d.canvasW),
@@ -1212,6 +1220,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     saveLightingGroups(next).catch(() => { /* 3s poll reconciles */ });
   }, []);
 
+
   const handleRenameDevice = useCallback((id: string, name: string) => {
     renameLightingDevice(id, name).catch(() => { /* 3s poll reconciles */ });
     setDevices(prev => prev.map(d => {
@@ -1395,6 +1404,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }));
     setDevices(devices);
     setDeviceGroups(data.groups ?? []);
+    setDeviceLinks(data.links ?? []);
   }, []);
 
   useEffect(() => {
@@ -1582,6 +1592,47 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     await updateLayoutPreset(id, { saveCurrent: true });
     await loadPresets();
   }, [loadPresets]);
+
+  // A new link lands every member on the first member's frame, so the set
+  // shares one rect from then on; the selection grows to hold whole links.
+  const handleLinksChange = useCallback((next: DeviceLink[]) => {
+    const before = deviceLinksRef.current;
+    const fresh = next.filter(l => !before.some(b => b.id === l.id && b.members.join() === l.members.join()));
+    if (fresh.length > 0) {
+      handleBeforeLayoutSave();
+      const rect = new Map<string, { x: number; y: number; w: number; h: number; r: number }>();
+      for (const link of fresh) {
+        const lead = devicesRef.current.find(d => link.members.includes(d.id));
+        if (!lead) continue;
+        for (const m of link.members) {
+          if (m !== lead.id) rect.set(m, { x: lead.canvasX, y: lead.canvasY, w: lead.canvasW, h: lead.canvasH, r: lead.canvasRotation ?? 0 });
+        }
+      }
+      setDevices(prev => prev.map(d => {
+        const to = rect.get(d.id);
+        return to ? { ...d, canvasX: to.x, canvasY: to.y, canvasW: to.w, canvasH: to.h, canvasRotation: to.r } : d;
+      }));
+      void Promise.all([...rect].map(([id, to]) => saveDeviceLayout(id, to.x, to.y, to.w, to.h, to.r)))
+        .then(() => handleLayoutCommit())
+        .catch(() => { /* 3s poll reconciles */ });
+    }
+    setDeviceLinks(next);
+    deviceLinksRef.current = next;
+    setSelectedDeviceIds(prev => withLinked(next, prev));
+    saveLightingLinks(next).catch(() => { /* 3s poll reconciles */ });
+  }, [handleBeforeLayoutSave, handleLayoutCommit, setSelectedDeviceIds]);
+
+  // The canvas menu's link rows over a frame selection: the same rule the
+  // rail applies, over the rail's own blocks.
+  const linkActionsFor = useCallback((ids: string[]) => {
+    if (isLinkedSet(deviceLinksRef.current, ids)) {
+      return { unlink: () => handleLinksChange(unlinkDevices(deviceLinksRef.current, ids)) };
+    }
+    if (canLink(buildDeviceBlocks(devicesRef.current), deviceGroups, ids)) {
+      return { link: () => handleLinksChange(linkDevices(deviceLinksRef.current, ids)) };
+    }
+    return {};
+  }, [deviceGroups, handleLinksChange]);
 
   const handleSetDevicesPower = useCallback(async (ids: string[], on: boolean) => {
     if (ids.length === 0) return;
@@ -2087,6 +2138,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onRenameDevice={handleRenameDevice}
             groups={deviceGroups}
             onGroupsChange={handleGroupsChange}
+            links={deviceLinks}
+            onLinksChange={handleLinksChange}
             onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
             communityCounts={mappingCounts}
             onOpenCommunity={handleOpenCommunity}
@@ -2133,7 +2186,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               )}
               {showCanvas && (
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
+                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} links={deviceLinks} linkActionsFor={linkActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
                   <>

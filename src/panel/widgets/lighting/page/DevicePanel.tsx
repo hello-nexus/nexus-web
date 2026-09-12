@@ -21,6 +21,7 @@ import {
   MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup,
 } from '../../../../lib/deviceGroups';
 import { blockKey, buildDeviceBlocks, stripParentPrefix, type DeviceBlock, type ZoneBlock } from './deviceBlocks';
+import { canLink, isLinkedSet, linkDevices, linkedWith, linkOf, rowOfDevice as rowOfDeviceIn, unlinkDevices, withLinked, type DeviceLink } from './deviceLinks';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -31,7 +32,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, links = [], onLinksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -94,6 +95,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   groups?: DeviceGroup[];
   /** Absent leaves the rail ungroupable (no drag between groups, no add button). */
   onGroupsChange?: (groups: DeviceGroup[]) => void;
+  /** Cards linked to one frame and one selection. */
+  links?: DeviceLink[];
+  /** Absent leaves the rail unlinkable. */
+  onLinksChange?: (links: DeviceLink[]) => void;
 }) {
   const { t } = useTranslation();
 
@@ -146,18 +151,38 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     return [];
   };
 
-  // The rail row a device is - its card, or the stack its zones share - the
-  // container that row sits in (the top level, a user group, or the hardware
-  // group whose rows it is one of), and that hardware group, if any.
-  const rowOfDevice = (deviceId: string): { rowId: string; container: string | null; hardware: string | null } | undefined => {
-    const blockId = blockIdOfDevice.get(deviceId);
-    const block = blockId === undefined ? undefined : blockMap.get(blockId);
-    if (blockId === undefined || !block) return undefined;
-    if (block.kind !== 'group') return { rowId: blockId, container: groupOf(groups, blockId)?.id ?? null, hardware: null };
-    const row = block.blocks.find(z => devicesOfBlock(z).some(d => d.id === deviceId));
-    if (!row) return undefined;
-    const rowId = blockKey(row);
-    return { rowId, container: groupOf(groups, rowId)?.id ?? block.groupKey, hardware: block.groupKey };
+  const rowOfDevice = (deviceId: string) => rowOfDeviceIn(blocks, groups, deviceId);
+
+  // Link placement for a set of cards: unlink when they already are one link,
+  // link when their rows share a container. A header links its whole group
+  // whatever its rows' containers, since the group is the container.
+  const linkFor = (deviceIds: readonly string[], name = '', whole = false): { link?: () => void; unlink?: () => void } => {
+    if (!onLinksChange || deviceIds.length < 2) return {};
+    if (isLinkedSet(links, deviceIds)) return { unlink: () => onLinksChange(unlinkDevices(links, deviceIds)) };
+    if (!whole && !canLink(blocks, groups, deviceIds)) return {};
+    return { link: () => onLinksChange(linkDevices(links, deviceIds, name)) };
+  };
+  // The header shape: the link row counts the members it would take.
+  const headerLink = (ids: readonly string[], name: string) => {
+    const actions = linkFor(ids, name, true);
+    return { link: actions.link ? { count: ids.length, run: actions.link } : undefined, unlink: actions.unlink };
+  };
+  const linkedBadge = (d: LightingDevice) => {
+    const link = linkOf(links, d.id);
+    return link ? { count: link.members.length } : undefined;
+  };
+  // Linked cards are controlled together: a toggle on one lands on them all.
+  const togglePowerFor = (d: LightingDevice) => {
+    const members = linkedWith(links, d.id);
+    if (members.length < 2) return onTogglePower(d.id);
+    const target = !d.ledsOn;
+    for (const m of members) onSetPower(m, target);
+  };
+  const toggleControlledFor = (d: LightingDevice) => {
+    const members = linkedWith(links, d.id);
+    if (members.length < 2) return onToggleControlled(d.id);
+    const target = d.controlled === false;
+    for (const m of members) onSetControlled(m, target);
   };
 
   // Wraps the rows of `deviceIds` in a new group where they sit, when every
@@ -223,28 +248,30 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   // selected clears the selection, matching the cooling page's fan cards -
   // otherwise a lone selection can only be dropped from the canvas.
   const handleZoneSelect = (id: string, additive: boolean) => {
+    const linked = linkedWith(links, id);
     if (additive) {
       const next = new Set(selectedIds);
       if (next.has(id)) {
-        next.delete(id);
+        for (const m of linked) next.delete(m);
         onSetSelection(next, lastSelected(next));
       } else {
-        next.add(id);
+        for (const m of linked) next.add(m);
         onSetSelection(next, id);
       }
       return;
     }
-    if (selectedIds.size === 1 && selectedIds.has(id)) {
+    if (selectedIds.size === linked.length && linked.every(m => selectedIds.has(m))) {
       onSetSelection(new Set(), null);
       return;
     }
-    onSetSelection(new Set([id]), id);
+    onSetSelection(new Set(linked), id);
   };
 
   // A split card's header stands for every zone under it: the same two
   // gestures as a card, over the whole set. Additive toggles the set as one,
   // so a device already fully selected comes out.
-  const handleStackSelect = (ids: string[], additive: boolean) => {
+  const handleStackSelect = (zoneIds: string[], additive: boolean) => {
+    const ids = [...withLinked(links, zoneIds)];
     if (!additive) {
       if (selectedIds.size === ids.length && ids.every(id => selectedIds.has(id))) {
         onSetSelection(new Set(), null);
@@ -294,6 +321,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
           identifyLightingDevice(x.id, IDENTIFY_MS).catch(() => { /* silent */ });
         }),
       group: groupDevices(selectedDevices.map(x => x.id)),
+      ...linkFor(selectedDevices.map(x => x.id)),
     };
   };
 
@@ -323,8 +351,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       indent={indent}
       onSelect={additive => handleZoneSelect(d.id, additive)}
       onSelectOnly={selectOnlyFor(d)}
-      onTogglePower={() => onTogglePower(d.id)}
-      onToggleControlled={() => onToggleControlled(d.id)}
+      onTogglePower={() => togglePowerFor(d)}
+      onToggleControlled={() => toggleControlledFor(d)}
       onOpenSettings={() => onOpenSettings(d.id)}
       onOpenColorTuning={onOpenColorTuning ? () => onOpenColorTuning(d.id) : undefined}
       onRename={onRenameDevice ? name => onRenameDevice(d.id, name) : undefined}
@@ -339,6 +367,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       notice={indent ? undefined : noticeFor(d)}
       bulk={bulkFor(d)}
       groupMove={groupMoveFor(d.id)}
+      linked={linkedBadge(d)}
+      onUnlink={linkOf(links, d.id) ? () => onLinksChange?.(unlinkDevices(links, [d.id])) : undefined}
     />
   );
 
@@ -363,6 +393,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         key={block.groupKey}
         name={block.label}
         selected={members.some(z => selectedIds.has(z.id))}
+        zoneCount={members.length}
         drag={drag}
         onSelect={selectable.length > 0 ? additive => handleStackSelect(selectable, additive) : undefined}
         menu={{
@@ -381,6 +412,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
           hideLights: fwControlled,
           onRename: onRenameDevice ? name => onRenameDevice(block.deviceId, name) : undefined,
           onResetName: onRenameDevice && renamed ? () => onRenameDevice(block.deviceId, '') : undefined,
+          ...linkFor(members.map(z => z.id), block.label, true),
         }}
       >
         {members.map((z, i) => renderCard(z, indent, stripParentPrefix(z.name, block.stripLabel), fwControlled, undefined, i === last ? 'last' : 'inner'))}
@@ -459,6 +491,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         notice={noticeFor(members[0])}
         onSelectAll={selectAllFor(members)}
         groupMove={blockGroupMove(groupKey)}
+        {...headerLink(members.map(z => z.id), label)}
         drag={a ?? undefined}>
         <GroupedSortableList
           arrangement={inner}
@@ -486,6 +519,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
                 onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
                 onSelectAll={selectAllFor(held)}
+                {...headerLink(held.map(z => z.id), group.name)}
                 hideLights={fwOn}
                 dropTarget={isDropTarget}
                 empty={held.length === 0}
@@ -571,6 +605,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
                 onRename={name => onGroupsChange?.(renameGroup(groups, groupId, name))}
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
                 onSelectAll={selectAllFor(members)}
+                {...headerLink(members.map(z => z.id), group.name)}
                 dropTarget={isDropTarget}
                 empty={members.length === 0}
                 count={members.length}

@@ -1,4 +1,5 @@
-import { Folder, FolderInput, FolderMinus, FolderPlus } from 'lucide-react';
+import { Folder, FolderInput, FolderMinus, FolderPlus, Link2, Unlink2 } from 'lucide-react';
+import { pluralKey } from '../../../lib/pluralKey';
 import type { Language } from '../../../lib/settings';
 import { bulkMenuLabel } from './bulkMenuLabel';
 import type { DeviceMenuItem } from './DeviceContextMenu';
@@ -52,6 +53,37 @@ export function groupMenuItems(
   }
   if (rows.length > 0) {
     items.push({ key: 'moveToGroup', icon: <FolderInput size={14} />, label: t(`${ns}.moveToGroup`), submenu: rows });
+  }
+  return items;
+}
+
+/** Link placement for a row or a selection: link them as one, or take them apart. */
+export interface LinkActions {
+  link?: () => void;
+  unlink?: () => void;
+}
+
+/**
+ * The menu rows that link cards to one frame, shared by the lighting cards and
+ * headers. `count` is how many cards the link row would take; the unlink row
+ * never counts, it acts on the link the row sits in.
+ */
+export function linkMenuItems(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  language: Language,
+  actions: LinkActions | undefined,
+  count: number,
+): DeviceMenuItem[] {
+  const items: DeviceMenuItem[] = [];
+  if (actions?.link) {
+    items.push({
+      key: 'link', icon: <Link2 size={14} />,
+      label: t(pluralKey('lighting.devices.linkCount', language, count), { count }),
+      onSelect: actions.link,
+    });
+  }
+  if (actions?.unlink) {
+    items.push({ key: 'unlink', icon: <Unlink2 size={14} />, label: t('lighting.devices.unlink'), onSelect: actions.unlink });
   }
   return items;
 }
