@@ -4,10 +4,8 @@ import { RangeBar } from '../../../components/common/RangeBar/RangeBar';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import type { WeatherSnapshot } from '../../../api/weather';
 import { WeatherIcon } from './WeatherIcon';
-import { DAY_LABEL_KEYS, dailyMax, dailyMin, formatTemp, type WeatherUnit } from './weatherFormat';
+import { DAY_LABEL_KEYS, MIN_PRECIP_PCT, dailyMax, dailyMin, formatTemp, type WeatherUnit } from './weatherFormat';
 import styles from './WeatherDailyList.module.scss';
-
-const MIN_PRECIP_PCT = 10;
 
 export interface WeatherDailyListProps {
   snap: WeatherSnapshot | null;
@@ -56,5 +54,3 @@ export function WeatherDailyList({ snap, unit, immersive }: WeatherDailyListProp
     </div>
   );
 }
-
-export default WeatherDailyList;

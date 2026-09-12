@@ -163,6 +163,25 @@ describe('WeatherPage', () => {
     vi.useRealTimers();
   });
 
+  it('never overwrites the saved list when the initial load failed', async () => {
+    api.fetchWeatherPrefs.mockResolvedValueOnce(null);
+    render(<WeatherPage />);
+    await flush();
+    // First GET failed; a mutation re-fetches first and is dropped when that fails too.
+    api.fetchWeatherPrefs.mockResolvedValueOnce(null);
+    fireEvent.click(screen.getByRole('radio', { name: '°F' }));
+    await flush();
+    await flush();
+    expect(api.saveWeatherPrefs).not.toHaveBeenCalled();
+    // A later successful GET lets the next mutation through, built on the real list.
+    api.fetchWeatherPrefs.mockResolvedValueOnce({ unit: 'auto', locations: [BERLIN, TOKYO] });
+    fireEvent.click(screen.getByRole('radio', { name: '°C' }));
+    await flush();
+    await flush();
+    expect(api.saveWeatherPrefs).toHaveBeenCalledWith({ unit: 'C' });
+    expect(within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option')).toHaveLength(3);
+  });
+
   it('writes the unit choice through the prefs', async () => {
     render(<WeatherPage />);
     await flush();

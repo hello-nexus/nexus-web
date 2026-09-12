@@ -1,5 +1,6 @@
 @use '../../../styles/text' as *;
 @use '../../styles/flexGap' as *;
+@use './weatherColors' as *;
 
 .root {
   display: flex;
@@ -69,7 +70,7 @@
 
 .precip {
   @include text-caption;
-  color: #4aa3ff;
+  color: $precip;
   min-height: 1.3em;
 }
 

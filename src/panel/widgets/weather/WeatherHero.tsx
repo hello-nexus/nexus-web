@@ -46,5 +46,3 @@ export function WeatherHero({ snap, loaded, unit, label, immersive }: WeatherHer
     </div>
   );
 }
-
-export default WeatherHero;

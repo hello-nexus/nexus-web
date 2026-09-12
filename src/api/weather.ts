@@ -156,10 +156,13 @@ export function geocodeResultToLocation(result: WeatherGeocodeResult): WeatherLo
   };
 }
 
-// Two locations are the same place when they round to the same 3-decimal
-// coordinate (~100 m), matching the service's dedupe key.
+// Identity of a place: its coordinate rounded to 3 decimals (~100 m), the
+// service's dedupe key. Used for list membership, React keys and select values.
+export function weatherLocationKey(location: WeatherLocation): string {
+  return `${Math.round(location.lat * 1000) / 1000},${Math.round(location.lon * 1000) / 1000}`;
+}
+
 export function sameWeatherLocation(a: WeatherLocation | null | undefined, b: WeatherLocation | null | undefined): boolean {
   if (!a || !b) return a === b;
-  return Math.round(a.lat * 1000) === Math.round(b.lat * 1000)
-    && Math.round(a.lon * 1000) === Math.round(b.lon * 1000);
+  return weatherLocationKey(a) === weatherLocationKey(b);
 }

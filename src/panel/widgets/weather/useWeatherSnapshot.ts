@@ -43,8 +43,8 @@ export interface WeatherSnapshotState {
 }
 
 // Loads and periodically refreshes the snapshot for one location (null =
-// auto / IP geolocation). `enabled=false` skips every fetch (catalog preview).
-export function useWeatherSnapshot(location: WeatherLocation | null | undefined, enabled = true): WeatherSnapshotState {
+// auto / IP geolocation).
+export function useWeatherSnapshot(location: WeatherLocation | null | undefined): WeatherSnapshotState {
   const key = weatherLocationQuery(location);
   const [state, setState] = useState<WeatherSnapshotState>(() => {
     const hit = cache.get(key);
@@ -52,7 +52,6 @@ export function useWeatherSnapshot(location: WeatherLocation | null | undefined,
   });
 
   useEffect(() => {
-    if (!enabled) return;
     let cancelled = false;
     const hit = cache.get(key);
     // Reset so a switch never shows the previous place's weather; a fresh
@@ -71,7 +70,7 @@ export function useWeatherSnapshot(location: WeatherLocation | null | undefined,
     return () => { cancelled = true; clearInterval(timer); };
     // `location` is fully described by `key`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, enabled]);
+  }, [key]);
 
   return state;
 }

@@ -4,20 +4,18 @@ import type {
   WeatherDailyForecast,
   WeatherHourlyForecast,
   WeatherSnapshot,
-  WeatherUnitPref,
 } from '../../../api/weather';
 
 export type WeatherUnit = 'C' | 'F';
+
+// A precipitation chance under this is left off the hourly/daily columns.
+export const MIN_PRECIP_PCT = 10;
 
 const FAHRENHEIT_COUNTRIES = new Set(['US', 'BS', 'BZ', 'KY', 'LR', 'PW', 'FM', 'MH']);
 
 export function resolveUnit(setting: string | undefined, countryCode: string | undefined): WeatherUnit {
   if (setting === 'C' || setting === 'F') return setting;
   return countryCode && FAHRENHEIT_COUNTRIES.has(countryCode.toUpperCase()) ? 'F' : 'C';
-}
-
-export function resolveUnitPref(pref: WeatherUnitPref | undefined, countryCode: string | undefined): WeatherUnit {
-  return resolveUnit(pref, countryCode);
 }
 
 export function formatTemp(value: number | null | undefined, fallback = '--') {
@@ -125,8 +123,7 @@ export function uvLevelKey(uv: number | null | undefined): string | null {
   return 'panel.widget.weather.uv.extreme';
 }
 
-// US AQI bands (0-500). The service also carries the European index; the US
-// scale is the one Apple Weather shows outside the EU and reads on one bar.
+// US AQI bands (0-500).
 export function aqiLevelKey(aqi: number | null | undefined): string | null {
   if (aqi === null || aqi === undefined) return null;
   if (aqi <= 50) return 'panel.widget.weather.aqi.good';

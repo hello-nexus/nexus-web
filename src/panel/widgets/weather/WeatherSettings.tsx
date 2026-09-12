@@ -4,6 +4,7 @@ import { canEditFreeText, type PanelConfigValue } from '../../types';
 import {
   geocodeResultToLocation,
   sameWeatherLocation,
+  weatherLocationKey,
   type WeatherGeocodeResult,
   type WeatherLocation,
 } from '../../../api/weather';
@@ -13,10 +14,6 @@ import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/De
 import type { WidgetSettingsProps } from '../types';
 import { SettingsSelect, SettingsSection, SettingsToggle } from '../common/SettingsRow/SettingsRow';
 import styles from './WeatherSettings.module.scss';
-
-function locationKey(location: WeatherLocation): string {
-  return `${location.lat},${location.lon}`;
-}
 
 // PanelConfigValue needs an index signature; the interface has none.
 function toConfig(location: WeatherLocation): PanelConfigValue {
@@ -48,7 +45,7 @@ export function WeatherSettings({ widget, surface, desktopEditor, onUpdate }: Wi
   }
 
   function selectSaved(key: string) {
-    const picked = choices.find(l => locationKey(l) === key);
+    const picked = choices.find(l => weatherLocationKey(l) === key);
     if (picked) onUpdate({ location: toConfig(picked) });
   }
 
@@ -86,10 +83,10 @@ export function WeatherSettings({ widget, surface, desktopEditor, onUpdate }: Wi
             {choices.length > 0 && (
               <SettingsSelect
                 label={t('panel.widget.weather.settings.savedLocation')}
-                value={location ? locationKey(location) : ''}
+                value={location ? weatherLocationKey(location) : ''}
                 options={[
                   ...(location ? [] : [{ value: '', label: t('panel.widget.weather.settings.pickLocation') }]),
-                  ...choices.map(l => ({ value: locationKey(l), label: l.label })),
+                  ...choices.map(l => ({ value: weatherLocationKey(l), label: l.label })),
                 ]}
                 onChange={selectSaved}
               />

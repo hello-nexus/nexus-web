@@ -11,7 +11,7 @@ import { AUTO_PLACE_KEY, buildPlaces, WeatherLocationList } from './WeatherLocat
 import { useWallClock } from './useWallClock';
 import { useWeatherPrefs } from './useWeatherPrefs';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
-import { resolveUnitPref } from './weatherFormat';
+import { resolveUnit } from './weatherFormat';
 import styles from './WeatherPage.module.scss';
 
 const UNIT_KEYS: WeatherUnitPref[] = ['auto', 'C', 'F'];
@@ -28,7 +28,7 @@ export function WeatherPage() {
   const [selectedKey, setSelectedKey] = useState(AUTO_PLACE_KEY);
   const selected = places.find(p => p.key === selectedKey) ?? places[0];
   const { snap, loaded } = useWeatherSnapshot(selected.location);
-  const unit = resolveUnitPref(prefs.unit, selected.location?.cc ?? snap?.countryCode);
+  const unit = resolveUnit(prefs.unit, selected.location?.cc ?? snap?.countryCode);
   const now = useWallClock();
 
   // A removed place falls back to the auto entry.

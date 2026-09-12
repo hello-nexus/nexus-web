@@ -25,14 +25,9 @@ function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
-/**
- * Immersive view, one 4x4 cell each: current conditions + hourly strip, the
- * saved-place switcher, the daily list, then the detail tiles four at a time.
- * Nothing scrolls inside a cell; more content means more pages. Portrait
- * stacks the cells (conditions above the switcher); landscape puts them side
- * by side. Switching place here is view-local; the tile keeps its own
- * configured place.
- */
+// One 4x4 cell each: conditions + hourly, place switcher, daily list, then the
+// detail tiles four at a time. Nothing scrolls inside a cell (more content =
+// more pages), and the place switch is view-local: the tile keeps its own.
 export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
   const { prefs, addLocation, removeLocation } = useWeatherPrefs();

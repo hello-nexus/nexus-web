@@ -33,5 +33,3 @@ export function WeatherIcon({
   if (code >= 95 && code <= 99) return <CloudLightning className={className} strokeWidth={strokeWidth} />;
   return <HelpCircle className={className} strokeWidth={strokeWidth} />;
 }
-
-export default WeatherIcon;

@@ -4,15 +4,13 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { WeatherSnapshot } from '../../../api/weather';
 import { formatWeatherHour } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
-import { formatTemp, hourlyTemp, upcomingHours, type WeatherUnit } from './weatherFormat';
+import { MIN_PRECIP_PCT, formatTemp, hourlyTemp, upcomingHours, type WeatherUnit } from './weatherFormat';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import styles from './WeatherHourlyStrip.module.scss';
 
 const HOURS = 24;
 // Immersive cells never scroll, so the strip shows only what a 4x4 fits.
 const IMMERSIVE_HOURS = 8;
-// Precipitation chance under this reads as noise and is left off the column.
-const MIN_PRECIP_PCT = 10;
 
 export interface WeatherHourlyStripProps {
   snap: WeatherSnapshot | null;
@@ -69,5 +67,3 @@ export function WeatherHourlyStrip({ snap, unit, immersive }: WeatherHourlyStrip
     </div>
   );
 }
-
-export default WeatherHourlyStrip;

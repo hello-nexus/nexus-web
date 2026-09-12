@@ -14,13 +14,17 @@ import {
 
 interface StoreState {
   prefs: WeatherPrefs;
+  // True once a GET has succeeded; a mutation before that would PUT the empty
+  // default over the workstation's real list.
   loaded: boolean;
 }
 
 const EMPTY: StoreState = { prefs: { unit: 'auto', locations: [] }, loaded: false };
 
 let state: StoreState = EMPTY;
-let loading: Promise<void> | null = null;
+let loading: Promise<boolean> | null = null;
+// Echoes can land out of order; only the latest commit's echo is adopted.
+let commitSeq = 0;
 const listeners = new Set<() => void>();
 
 function setState(next: StoreState) {
@@ -42,27 +46,38 @@ function normalize(prefs: WeatherPrefs): WeatherPrefs {
   return { unit, locations: Array.isArray(prefs.locations) ? prefs.locations : [] };
 }
 
-function load(): Promise<void> {
+function load(): Promise<boolean> {
   if (loading) return loading;
   loading = fetchWeatherPrefs()
-    .then(prefs => { setState({ prefs: prefs ? normalize(prefs) : state.prefs, loaded: true }); })
-    .catch(() => { setState({ ...state, loaded: true }); })
+    .then(prefs => {
+      if (!prefs) return false;
+      setState({ prefs: normalize(prefs), loaded: true });
+      return true;
+    })
+    .catch(() => false)
     .finally(() => { loading = null; });
   return loading;
 }
 
-async function commit(patch: Partial<WeatherPrefs>) {
-  // Optimistic: the list updates before the round trip; the echo replaces it
-  // (the service trims, dedupes and caps).
+// Builds the patch against the loaded prefs (re-fetching first when the
+// initial GET failed), then writes optimistically and adopts the echo (the
+// service trims, dedupes and caps). A commit that cannot see the real list
+// is dropped rather than risk replacing it.
+async function commit(build: (prefs: WeatherPrefs) => Partial<WeatherPrefs> | null) {
+  if (!state.loaded && !(await load())) return;
+  const patch = build(state.prefs);
+  if (!patch) return;
+  const seq = ++commitSeq;
   setState({ ...state, prefs: { ...state.prefs, ...patch } });
   const echoed = await saveWeatherPrefs(patch).catch(() => null);
-  if (echoed) setState({ ...state, prefs: normalize(echoed) });
+  if (echoed && seq === commitSeq) setState({ ...state, prefs: normalize(echoed) });
 }
 
 // Test seam: drop the cached prefs so the next subscriber reloads.
 export function resetWeatherPrefsStore() {
   state = EMPTY;
   loading = null;
+  commitSeq = 0;
 }
 
 export interface WeatherPrefsController {
@@ -81,16 +96,17 @@ export function useWeatherPrefs(): WeatherPrefsController {
   }, []);
 
   const addLocation = useCallback((location: WeatherLocation) => {
-    if (state.prefs.locations.some(l => sameWeatherLocation(l, location))) return;
-    void commit({ locations: [...state.prefs.locations, location] });
+    void commit(prefs => prefs.locations.some(l => sameWeatherLocation(l, location))
+      ? null
+      : { locations: [...prefs.locations, location] });
   }, []);
 
   const removeLocation = useCallback((location: WeatherLocation) => {
-    void commit({ locations: state.prefs.locations.filter(l => !sameWeatherLocation(l, location)) });
+    void commit(prefs => ({ locations: prefs.locations.filter(l => !sameWeatherLocation(l, location)) }));
   }, []);
 
   const setUnit = useCallback((unit: WeatherUnitPref) => {
-    void commit({ unit });
+    void commit(() => ({ unit }));
   }, []);
 
   return { prefs, loaded, addLocation, removeLocation, setUnit };

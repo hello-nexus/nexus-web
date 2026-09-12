@@ -4,12 +4,12 @@ import { resolveHour12 } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
-import { geocodeResultToLocation, type WeatherGeocodeResult, type WeatherLocation, type WeatherUnitPref } from '../../../api/weather';
+import { geocodeResultToLocation, weatherLocationKey, type WeatherGeocodeResult, type WeatherLocation, type WeatherUnitPref } from '../../../api/weather';
 import { weatherConditionKey } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
 import { WeatherLocationSearch } from './WeatherLocationSearch';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
-import { currentTemp, dailyMax, dailyMin, formatClock, formatTemp, locationClock, resolveUnitPref } from './weatherFormat';
+import { currentTemp, dailyMax, dailyMin, formatClock, formatTemp, locationClock, resolveUnit } from './weatherFormat';
 import styles from './WeatherLocationList.module.scss';
 
 // One selectable entry: null location = the auto (IP-geolocated) place.
@@ -21,7 +21,7 @@ export interface WeatherPlace {
 export const AUTO_PLACE_KEY = 'auto';
 
 export function placeKey(location: WeatherLocation | null): string {
-  return location ? `${location.lat},${location.lon}` : AUTO_PLACE_KEY;
+  return location ? weatherLocationKey(location) : AUTO_PLACE_KEY;
 }
 
 export function buildPlaces(locations: WeatherLocation[]): WeatherPlace[] {
@@ -95,7 +95,7 @@ function WeatherPlaceRow({
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
   const { snap, loaded } = useWeatherSnapshot(place.location);
-  const unit = resolveUnitPref(unitPref, place.location?.cc ?? snap?.countryCode);
+  const unit = resolveUnit(unitPref, place.location?.cc ?? snap?.countryCode);
   const conditionKey = weatherConditionKey(snap?.weatherCode);
   const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
   const today = snap?.daily?.[0];
@@ -106,14 +106,14 @@ function WeatherPlaceRow({
   const subline = place.location ? (snap?.locationLabel && snap.locationLabel !== place.location.label ? snap.locationLabel : '') : (snap?.locationLabel ?? '');
 
   return (
-    <div
-      className={`${styles.row} ${selected ? styles.rowSelected : ''}`}
-      role="option"
-      aria-selected={selected}
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
-    >
+    <div className={`${styles.row} ${selected ? styles.rowSelected : ''}`}>
+      <button
+        type="button"
+        className={styles.rowSelect}
+        role="option"
+        aria-selected={selected}
+        onClick={onSelect}
+      >
       <div className={styles.rowMain}>
         <div className={styles.rowName}>{label}</div>
         <div className={styles.rowMeta}>
@@ -131,12 +131,13 @@ function WeatherPlaceRow({
           <div className={styles.rowHiLo}>{t('panel.widget.weather.hiLo', { hi: Math.round(hi), lo: Math.round(lo) })}</div>
         )}
       </div>
+      </button>
       {onRemove && (
         <button
           type="button"
           className={styles.remove}
           aria-label={t('panel.widget.weather.removeLocation', { location: label })}
-          onClick={e => { e.stopPropagation(); onRemove(); }}
+          onClick={onRemove}
         >
           <X size={14} />
         </button>
@@ -144,5 +145,3 @@ function WeatherPlaceRow({
     </div>
   );
 }
-
-export default WeatherLocationList;

@@ -277,5 +277,3 @@ export function WeatherDetailTiles({ snap, unit, nowMs }: WeatherDetailTilesProp
 export function WeatherDetailTileCell({ tiles }: { tiles: WeatherTile[] }) {
   return <div className={styles.cellGrid}>{tiles.map(tile => <div key={tile.key} className={styles.slot}>{tile.node}</div>)}</div>;
 }
-
-export default WeatherDetailTiles;
