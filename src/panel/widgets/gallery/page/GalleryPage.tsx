@@ -5,6 +5,7 @@ import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import { useTranslation } from '../../../../lib/i18n';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
@@ -314,35 +315,37 @@ export function GalleryPage() {
             ) : (
               <div className={styles.grid}>
                 {items.map(item => (
-                  <figure
+                  <HoverTooltip
                     key={item.id}
-                    className={`${styles.tile} ${hoverSourceId === item.sourceId ? styles.tileHighlight : ''}`}
-                    title={item.name}
+                    title={item.kind === 'video' ? t('gallery.page.video') : undefined}
+                    body={item.name}
                   >
-                    {thumbs[item.id] ? (
-                      <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
-                    ) : (
-                      <span className={styles.tilePlaceholder}>
-                        {item.kind === 'video'
-                          ? <FileVideo size={20} aria-hidden="true" />
-                          : <ImageIcon size={20} aria-hidden="true" />}
-                      </span>
-                    )}
-                    {item.kind === 'video' && (
-                      <span className={styles.tileVideoBadge} title={t('gallery.page.video')} aria-label={t('gallery.page.video')} role="img">
-                        <Play size={10} aria-hidden="true" />
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.tileRemove}
-                      aria-label={t('gallery.page.removeImage')}
-                      onClick={() => removeItem(item)}
-                    >
-                      <X size={12} aria-hidden="true" />
-                    </button>
-                    <figcaption className={styles.tileName}>{item.name}</figcaption>
-                  </figure>
+                    <figure className={`${styles.tile} ${hoverSourceId === item.sourceId ? styles.tileHighlight : ''}`}>
+                      {thumbs[item.id] ? (
+                        <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
+                      ) : (
+                        <span className={styles.tilePlaceholder}>
+                          {item.kind === 'video'
+                            ? <FileVideo size={20} aria-hidden="true" />
+                            : <ImageIcon size={20} aria-hidden="true" />}
+                        </span>
+                      )}
+                      {item.kind === 'video' && (
+                        <span className={styles.tileVideoBadge} aria-label={t('gallery.page.video')} role="img">
+                          <Play size={10} aria-hidden="true" />
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className={styles.tileRemove}
+                        aria-label={t('gallery.page.removeImage')}
+                        onClick={() => removeItem(item)}
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                      <figcaption className={styles.tileName}>{item.name}</figcaption>
+                    </figure>
+                  </HoverTooltip>
                 ))}
               </div>
             )}

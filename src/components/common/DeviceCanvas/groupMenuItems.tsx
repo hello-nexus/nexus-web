@@ -1,4 +1,5 @@
-import { Folder, FolderInput, FolderMinus, FolderPlus, Link2, Unlink2 } from 'lucide-react';
+import { Folder, FolderInput, FolderMinus, FolderPlus, LayersPlus } from 'lucide-react';
+import { LayersMinus } from './layersMinusIcon';
 import { pluralKey } from '../../../lib/pluralKey';
 import type { Language } from '../../../lib/settings';
 import { bulkMenuLabel } from './bulkMenuLabel';
@@ -57,33 +58,33 @@ export function groupMenuItems(
   return items;
 }
 
-/** Link placement for a row or a selection: link them as one, or take them apart. */
-export interface LinkActions {
-  link?: () => void;
-  unlink?: () => void;
+/** Stack placement for a row or a selection: stack them as one, or take them apart. */
+export interface StackActions {
+  stack?: () => void;
+  unstack?: () => void;
 }
 
 /**
- * The menu rows that link cards to one frame, shared by the lighting cards and
- * headers. `count` is how many cards the link row would take; the unlink row
- * never counts, it acts on the link the row sits in.
+ * The menu rows that stack cards to one frame, shared by the lighting cards and
+ * headers. `count` is how many cards the stack row would take; the unstack row
+ * never counts, it acts on the stack the row sits in.
  */
-export function linkMenuItems(
+export function stackMenuItems(
   t: (key: string, params?: Record<string, string | number>) => string,
   language: Language,
-  actions: LinkActions | undefined,
+  actions: StackActions | undefined,
   count: number,
 ): DeviceMenuItem[] {
   const items: DeviceMenuItem[] = [];
-  if (actions?.link) {
+  if (actions?.stack) {
     items.push({
-      key: 'link', icon: <Link2 size={14} />,
-      label: t(pluralKey('lighting.devices.linkCount', language, count), { count }),
-      onSelect: actions.link,
+      key: 'stack', icon: <LayersPlus size={14} />,
+      label: t(pluralKey('lighting.devices.stackCount', language, count), { count }),
+      onSelect: actions.stack,
     });
   }
-  if (actions?.unlink) {
-    items.push({ key: 'unlink', icon: <Unlink2 size={14} />, label: t('lighting.devices.unlink'), onSelect: actions.unlink });
+  if (actions?.unstack) {
+    items.push({ key: 'unstack', icon: <LayersMinus size={14} />, label: t('lighting.devices.unstack'), onSelect: actions.unstack });
   }
   return items;
 }

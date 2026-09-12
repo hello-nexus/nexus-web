@@ -527,23 +527,49 @@ describe('DeviceCanvas', () => {
   });
 });
 
-// Linked frames: one drawn for the set, edits landing on every member.
-describe('DeviceCanvas links', () => {
-  const links = [{ id: 'l1', name: '', members: ['dev-a', 'dev-b'] }];
+// Stacked frames: one drawn for the set, edits landing on every member.
+describe('DeviceCanvas stacks', () => {
+  const stacks = [{ id: 'l1', name: '', members: ['dev-a', 'dev-b'] }];
   const pair = () => [dragDevice('dev-a', 'Left'), dragDevice('dev-b', 'Right'), dragDevice('dev-c', 'Loose')];
 
-  it('draws one frame and one label for a link, with the count under the name', () => {
+  it('draws one frame and one label for a stack, with the count under the name', () => {
     const { container } = render(
       <DeviceCanvas
         devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
         selectedIds={new Set()} primaryDeviceId={null}
-        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
       />
     );
     expect(container.querySelectorAll(`.${styles.device}`)).toHaveLength(2);
     expect(screen.getByText('Left')).toBeTruthy();
     expect(screen.queryByText('Right')).toBeNull();
-    expect(screen.getByText('lighting.devices.linkedCount.other')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
+    expect(screen.getByLabelText('lighting.devices.stackedCount.other')).toBeTruthy();
+  });
+
+  it('names the frame after the member whose LEDs it shows', () => {
+    render(
+      <DeviceCanvas
+        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-b"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
+      />
+    );
+    expect(screen.getByText('Right')).toBeTruthy();
+    expect(screen.queryByText('Left')).toBeNull();
+  });
+
+  it('keeps a named stack\'s header name while the primary is outside it', () => {
+    render(
+      <DeviceCanvas
+        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        selectedIds={new Set(['dev-c'])} primaryDeviceId="dev-c"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={[{ id: 's1', name: 'Keeb', members: ['dev-a', 'dev-b'] }]}
+      />
+    );
+    expect(screen.getByText('Keeb')).toBeTruthy();
+    expect(screen.queryByText('Left')).toBeNull();
+    expect(screen.queryByText('Right')).toBeNull();
   });
 
   it('drags every member with the frame that stands for them', () => {
@@ -555,7 +581,7 @@ describe('DeviceCanvas links', () => {
       <DeviceCanvas
         devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
         selectedIds={new Set()} primaryDeviceId={null}
-        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
       />
     );
     const frame = container.querySelector(`.${styles.device}`)!;
@@ -569,13 +595,13 @@ describe('DeviceCanvas links', () => {
     rectSpy.mockRestore();
   });
 
-  it('rotates the whole link from the frame menu', () => {
+  it('rotates the whole stack from the frame menu', () => {
     const devices = pair();
     render(
       <DeviceCanvas
         devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
         selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a"
-        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
       />
     );
     fireEvent.contextMenu(screen.getByText('Left'));
@@ -585,22 +611,22 @@ describe('DeviceCanvas links', () => {
     expect(devices[2].canvasRotation).toBe(0);
   });
 
-  it('offers unlink over a linked frame and link over an eligible selection', () => {
-    const link = vi.fn();
-    const unlink = vi.fn();
-    const linkActionsFor = (ids: string[]) => ids.includes('dev-c') ? { link } : { unlink };
+  it('offers unstack over a stacked frame and stack over an eligible selection', () => {
+    const stack = vi.fn();
+    const unstack = vi.fn();
+    const stackActionsFor = (ids: string[]) => ids.includes('dev-c') ? { stack } : { unstack };
     render(
       <DeviceCanvas
         devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
         selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a"
-        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} links={links} linkActionsFor={linkActionsFor}
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks} stackActionsFor={stackActionsFor}
       />
     );
     fireEvent.contextMenu(screen.getByText('Left'));
-    fireEvent.click(screen.getByText('lighting.devices.unlink'));
-    expect(unlink).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('lighting.devices.unstack'));
+    expect(unstack).toHaveBeenCalledTimes(1);
     fireEvent.contextMenu(screen.getByText('Loose'));
-    fireEvent.click(screen.getByText('lighting.devices.linkCount.one'));
-    expect(link).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('lighting.devices.stackCount.one'));
+    expect(stack).toHaveBeenCalledTimes(1);
   });
 });

@@ -140,9 +140,11 @@
   min-width: 0;
 }
 
-// Smaller uppercase header for lighting / cooling device groups.
+// Smaller uppercase header for lighting / cooling device groups. Its right
+// inset is the device card's (padding plus border), so the header's menu
+// button and count stand in the same column as the cards' below it.
 .header[data-compact='true'] {
-  padding: 0.3rem 0.4rem;
+  padding: 0.3rem calc(0.75rem + var(--border-width)) 0.3rem 0.4rem;
 
   .title {
     font-size: 0.7rem;

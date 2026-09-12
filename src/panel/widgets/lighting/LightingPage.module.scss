@@ -1251,13 +1251,21 @@
   word-break: break-word;
 }
 
-// The link badge on a card linked to others; sits in the name row's corner.
-.deviceLinked {
+// The stack badge on a card stacked with others; sits in the name row's
+// corner, as wide as the menu button below it so the two glyphs share a column.
+.deviceStackBadge {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 20px;
   margin-top: 0.15rem;
-  color: var(--accent);
+  margin-left: auto;
+  color: var(--text-dim);
+  transition: color var(--ease-fast);
+
+  // Lit on a selected card, so the reason the whole stack lit up is in view.
+  .deviceCardSelected & { color: var(--text); }
 }
 
 // The (i) notice icon at the end of a device label or group title. Bare icon

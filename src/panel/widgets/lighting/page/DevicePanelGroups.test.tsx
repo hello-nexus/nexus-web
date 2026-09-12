@@ -610,15 +610,15 @@ describe('DevicePanel nested groups', () => {
   });
 });
 
-// Linked cards: one selection, a badge in the corner, link rows on the menus.
-describe('DevicePanel links', () => {
+// Stacked cards: one selection, a badge in the corner, stack rows on the menus.
+describe('DevicePanel stacks', () => {
   const port = (suffix: string, name: string) =>
     device(`openrgb-C000-${suffix}`, `B850I AORUS PRO - ${name}`, { parentDeviceId: 'openrgb-C000', zoneIndex: 0, deviceId: `openrgb-C000-${suffix}` });
   const board = [port('0', 'ARGB_V2_1'), port('1', 'ARGB_V2_2'), port('2', 'LED_C')];
-  const links = [{ id: 'l1', name: '', members: ['d1', 'd2'] }];
+  const stacks = [{ id: 'l1', name: '', members: ['d1', 'd2'] }];
 
-  function renderRail(list: LightingDevice[], linkList: typeof links, selectedIds = new Set<string>()) {
-    const onLinksChange = vi.fn();
+  function renderRail(list: LightingDevice[], stackList: typeof stacks, selectedIds = new Set<string>()) {
+    const onStacksChange = vi.fn();
     const onSetSelection = vi.fn();
     const onSetPower = vi.fn();
     render(
@@ -634,70 +634,70 @@ describe('DevicePanel links', () => {
         onOpenSettings={() => {}}
         groups={[]}
         onGroupsChange={() => {}}
-        links={linkList}
-        onLinksChange={onLinksChange}
+        stacks={stackList}
+        onStacksChange={onStacksChange}
       />,
     );
-    return { onLinksChange, onSetSelection, onSetPower };
+    return { onStacksChange, onSetSelection, onSetPower };
   }
   const menus = () => screen.getAllByRole('button', { name: 'lighting.devices.moreActions' });
 
-  it('badges a linked card and not a loose one', () => {
-    renderRail(devices, links);
-    expect(screen.getAllByLabelText('lighting.devices.linkedCount.other:{"count":2}')).toHaveLength(2);
+  it('badges a stacked card and not a loose one', () => {
+    renderRail(devices, stacks);
+    expect(screen.getAllByLabelText('lighting.devices.stackedCount.other:{"count":2}')).toHaveLength(2);
   });
 
-  it('selects the whole link from one card, and clears it from one card', () => {
-    const { onSetSelection } = renderRail(devices, links);
+  it('selects the whole stack from one card, and clears it from one card', () => {
+    const { onSetSelection } = renderRail(devices, stacks);
     fireEvent.click(screen.getByText('Strip one'));
     expect(onSetSelection).toHaveBeenCalledWith(new Set(['d1', 'd2']), 'd1');
   });
 
-  it('clears the whole link when its one selected card is clicked again', () => {
-    const { onSetSelection } = renderRail(devices, links, new Set(['d1', 'd2']));
+  it('clears the whole stack when its one selected card is clicked again', () => {
+    const { onSetSelection } = renderRail(devices, stacks, new Set(['d1', 'd2']));
     fireEvent.click(screen.getByText('Strip two'));
     expect(onSetSelection).toHaveBeenCalledWith(new Set(), null);
   });
 
-  it('powers the whole link from one card', () => {
-    const { onSetPower } = renderRail(devices, links);
+  it('powers the whole stack from one card', () => {
+    const { onSetPower } = renderRail(devices, stacks);
     fireEvent.click(menus()[0]);
     fireEvent.click(screen.getByText('lighting.devices.menuLightsOff'));
     expect(onSetPower).toHaveBeenCalledWith('d1', false);
     expect(onSetPower).toHaveBeenCalledWith('d2', false);
   });
 
-  it('links an eligible selection from the bulk menu', () => {
-    const { onLinksChange } = renderRail(devices, [], new Set(['d2', 'd3']));
+  it('stacks an eligible selection from the bulk menu', () => {
+    const { onStacksChange } = renderRail(devices, [], new Set(['d2', 'd3']));
     fireEvent.click(menus()[1]);
-    fireEvent.click(screen.getByText('lighting.devices.linkCount.other:{"count":2}'));
-    expect(onLinksChange.mock.calls[0][0][0]).toMatchObject({ members: ['d2', 'd3'] });
+    fireEvent.click(screen.getByText('lighting.devices.stackCount.other:{"count":2}'));
+    expect(onStacksChange.mock.calls[0][0][0]).toMatchObject({ members: ['d2', 'd3'] });
   });
 
-  it('offers no link for a selection spanning containers', () => {
+  it('offers no stack for a selection spanning containers', () => {
     renderRail([...devices, ...board], [], new Set(['d1', 'openrgb-C000-0']));
     fireEvent.click(menus()[0]);
-    expect(screen.queryByText(/linkCount/)).toBeNull();
+    expect(screen.queryByText(/stackCount/)).toBeNull();
   });
 
-  it('unlinks from a linked card and from the bulk menu of the whole link', () => {
-    const { onLinksChange } = renderRail(devices, links);
+  it('unstacks from a stacked card and from the bulk menu of the whole stack', () => {
+    const { onStacksChange } = renderRail(devices, stacks);
     fireEvent.click(menus()[0]);
-    fireEvent.click(screen.getByText('lighting.devices.unlink'));
-    expect(onLinksChange).toHaveBeenCalledWith([]);
+    fireEvent.click(screen.getByText('lighting.devices.unstack'));
+    expect(onStacksChange).toHaveBeenCalledWith([]);
   });
 
-  it('links a hardware group from its header, whatever its rows', () => {
-    const { onLinksChange } = renderRail(board, []);
+  it('stacks a hardware group from its header, whatever its rows', () => {
+    const { onStacksChange } = renderRail(board, []);
     fireEvent.click(screen.getByRole('button', { name: /groupActions/ }));
-    fireEvent.click(screen.getByText('lighting.devices.linkCount.other:{"count":3}'));
-    expect(onLinksChange.mock.calls[0][0][0]).toMatchObject({ name: 'B850I AORUS PRO', members: ['openrgb-C000-0', 'openrgb-C000-1', 'openrgb-C000-2'] });
+    fireEvent.click(screen.getByText('lighting.devices.stackCount.other:{"count":3}'));
+    expect(onStacksChange.mock.calls[0][0][0]).toMatchObject({ name: 'B850I AORUS PRO', members: ['openrgb-C000-0', 'openrgb-C000-1', 'openrgb-C000-2'] });
   });
 
-  it('offers unlink on a header whose members are one link', () => {
-    const { onLinksChange } = renderRail(board, [{ id: 'l', name: 'B850I', members: ['openrgb-C000-0', 'openrgb-C000-1', 'openrgb-C000-2'] }]);
+  it('offers unstack on a header whose members are one stack', () => {
+    const { onStacksChange } = renderRail(board, [{ id: 'l', name: 'B850I', members: ['openrgb-C000-0', 'openrgb-C000-1', 'openrgb-C000-2'] }]);
     fireEvent.click(screen.getByRole('button', { name: /groupActions/ }));
-    fireEvent.click(screen.getByText('lighting.devices.unlink'));
-    expect(onLinksChange).toHaveBeenCalledWith([]);
+    fireEvent.click(screen.getByText('lighting.devices.unstack'));
+    expect(onStacksChange).toHaveBeenCalledWith([]);
   });
 });

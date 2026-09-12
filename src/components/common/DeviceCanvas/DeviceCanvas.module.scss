@@ -129,9 +129,12 @@
   pointer-events: none;
 }
 
-// The count under a linked frame's name: how many cards the one frame stands for.
-.deviceLabelLinked {
-  display: block;
+// Under a stacked frame's name: the stack glyph and how many cards the frame stands for.
+.deviceLabelStacked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
   font-size: var(--type-mini);
   opacity: 0.72;
 }
@@ -149,10 +152,11 @@
   max-width: 40%;
   pointer-events: auto;
   cursor: grab;
-  // Same pill Static's dots wear: a name over a busy shader needs its own
-  // ground, not a shadow.
+  // A name over a busy shader needs its own ground, not a shadow. The radius
+  // is fixed so a two-line label (name plus stack count) keeps the same
+  // corners as a one-line name instead of ballooning into a blob.
   padding: 1px 7px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--frame-scrim);
   font-weight: var(--weight-body);
   transition: opacity var(--ease-fast);
