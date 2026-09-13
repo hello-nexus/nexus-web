@@ -49,7 +49,7 @@ import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersis
 import { useTranslation } from '../../../lib/i18n';
 import { isPaletteKey } from '../../../types/lightingPalette';
 import {
-  pickCustomForDevices, pickLookForDevices,
+  pickCustomForDevices, pickLookForDevices, unlockedIds,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick, type DevicePicks,
 } from './staticPicks';
@@ -446,20 +446,23 @@ function useImmersiveAnimateState(): { mode: LightingMode; animate: ImmersiveAni
   const onSelectCustom = useCallback((hex: string) => {
     setCustomStaticColor(hex);
     if (selectedIds.size === 0) return;
-    const ids = [...selectedIds];
+    // A locked device in the selection keeps its look; the write skips it.
+    const ids = unlockedIds(devicePicks, [...selectedIds]);
+    if (ids.length === 0) return;
     // Record without pushing and queue the write, so a commit cannot race a
     // preview still in flight and leave the hardware on the older colour.
     setPreviewPicks(null);
     setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
     queueCustomWrite(hex, ids);
-  }, [queueCustomWrite, selectedIds, setCustomStaticColor, setDevicePicks]);
+  }, [devicePicks, queueCustomWrite, selectedIds, setCustomStaticColor, setDevicePicks]);
 
   const onPreviewCustom = useCallback((hex: string) => {
     if (selectedIds.size === 0) return;
-    const ids = [...selectedIds];
+    const ids = unlockedIds(devicePicks, [...selectedIds]);
+    if (ids.length === 0) return;
     setPreviewPicks(pickCustomForDevices({}, hex, ids, false));
     queueCustomWrite(hex, ids);
-  }, [queueCustomWrite, selectedIds]);
+  }, [devicePicks, queueCustomWrite, selectedIds]);
   // Ref-backed staged state bypasses the render cycle on slider drag; `force`
   // a render after mutation.
   const liveState = stagedRef.current ?? baseState;

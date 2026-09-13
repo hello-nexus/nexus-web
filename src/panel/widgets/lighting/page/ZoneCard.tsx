@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, Lock, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -46,6 +46,19 @@ export function zoneCardSelectable(device: LightingDevice): boolean {
 
 /** The selection a card's menu acts on when the card is part of one. Aggregate
  *  flags follow the canvas convention: true when ANY member still is. */
+/**
+ * The card's colour lock. `lockable` is the Static tab, where a lock can be
+ * set; elsewhere the button only shows on a device that is already locked, as
+ * the way to unlock it. A device with no pick of its own has nothing to hold,
+ * so there the button is offered but disabled.
+ */
+export interface DeviceLock {
+  locked: boolean;
+  lockable: boolean;
+  hasPick: boolean;
+  onToggle: () => void;
+}
+
 export interface BulkSelection {
   count: number;
   /** Members that can actually flash, so the identify row never promises to
@@ -274,6 +287,7 @@ export function ZoneCard({
   bulk,
   stacked,
   stackSlot,
+  lock,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -345,6 +359,8 @@ export function ZoneCard({
   stacked?: StackPosition;
   /** The part of the shared frame this card's device samples when its stack is laid out; the readout reads the same slot. */
   stackSlot?: StackSlot | null;
+  /** Colour lock beside the LED strip. Absent on surfaces without one. */
+  lock?: DeviceLock;
 }) {
   const { t, language } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -640,6 +656,29 @@ export function ZoneCard({
             come from our canvas, so the bar is absent rather than blank. */}
         {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
           <DeviceLedStrip device={device} slot={stackSlot} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
+        )}
+        {/* Sits between the strip and the menu, so the strip gives up its
+            width to it. A locked device shows it in every mode: that is the
+            one route to unlocking from outside Static. */}
+        {lock && !toggleMode && !unavailable && !firmwareControlled && (lock.locked || lock.lockable) && (
+          <HoverTooltip
+            body={lock.locked
+              ? t('lighting.devices.unlockLook')
+              : lock.hasPick ? t('lighting.devices.lockLook') : t('lighting.devices.lockNeedsPick')}
+            side="top"
+          >
+            <button
+              type="button"
+              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn} ${lock.locked ? styles.deviceLockBtnOn : ''}`}
+              aria-label={lock.locked ? t('lighting.devices.unlockLook') : t('lighting.devices.lockLook')}
+              aria-pressed={lock.locked}
+              disabled={!lock.locked && !lock.hasPick}
+              data-no-dnd
+              onClick={e => { e.stopPropagation(); lock.onToggle(); }}
+            >
+              {lock.locked ? <Lock /> : <Unlock />}
+            </button>
+          </HoverTooltip>
         )}
         {toggleable && (
           <span

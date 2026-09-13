@@ -3,7 +3,7 @@ import { Cpu, FolderPlus, Plus } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
-import { ZoneCard, ZoneCardStack, zoneCardSelectable, zoneCardUnavailable, type BulkSelection, type StackPosition } from './ZoneCard';
+import { ZoneCard, ZoneCardStack, zoneCardSelectable, zoneCardUnavailable, type BulkSelection, type DeviceLock, type StackPosition } from './ZoneCard';
 import { type LedPick } from './DeviceLedStrip';
 import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard';
 import { startIdentify } from '../../../../lib/identifyFlash';
@@ -33,7 +33,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onToggleLock, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -47,11 +47,16 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   /** Per-device static pick keyed by device id; it overrides what the card's
    *  LED strip samples from the effect canvas. Each pick names its own preset
    *  slot, so two devices on one effect can wear different presets. */
-  devicePicks?: Readonly<Record<string, { key: string; slot: number; hex: string }>>;
+  devicePicks?: Readonly<Record<string, { key: string; slot: number; hex: string; locked?: boolean }>>;
   /** Content hash of one effect's slot, for thumbnail cache-busting. */
   versionForSlot?: (key: string, slot: number) => string;
   /** Static mode: strips sample the whole canvas rather than each device's rect. */
   ledFullscreen?: boolean;
+  /** Static mode: a card with its own pick can be locked onto it. Outside
+   *  Static only already-locked cards show the button, to unlock. */
+  lockable?: boolean;
+  /** Flips the card's colour lock. Absent leaves every card lock-less. */
+  onToggleLock?: (id: string) => void;
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
   /** Bulk set: Cmd/Ctrl+click on a row toggles membership without clobbering the rest. */
@@ -340,6 +345,12 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     return { ...pick, version: versionForSlot?.(pick.key, pick.slot) ?? '0' };
   };
 
+  const lockFor = (id: string): DeviceLock | undefined => {
+    if (!onToggleLock) return undefined;
+    const pick = devicePicks?.[id];
+    return { locked: !!pick?.locked, lockable, hasPick: !!pick, onToggle: () => onToggleLock(id) };
+  };
+
   const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs, stacked?: StackPosition) => (
     <ZoneCard
       key={d.id}
@@ -370,6 +381,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       groupMove={groupMoveFor(d.id)}
       inStack={stackBadge(d)}
       stackSlot={stackSlotOf(stacks, d.id)}
+      lock={lockFor(d.id)}
       onUnstack={stackOf(stacks, d.id) ? () => onStacksChange?.(unstackDevices(stacks, [d.id])) : undefined}
     />
   );

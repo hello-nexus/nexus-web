@@ -765,3 +765,64 @@ describe('ZoneCard stacked', () => {
     expect(cardClass()).toContain(styles.deviceCardStackLast);
   });
 });
+
+describe('ZoneCard color lock', () => {
+  const lockBtn = () => screen.queryByRole('button', { name: /lighting\.devices\.(un)?lockLook/ }) as HTMLButtonElement | null;
+  const renderLocked = (lock: { locked: boolean; lockable: boolean; hasPick: boolean; onToggle?: () => void }) => render(
+    <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={() => {}} lock={{ onToggle: () => {}, ...lock }} />,
+  );
+
+  it('renders nothing without a lock prop', () => {
+    renderCard(baseDevice);
+    expect(lockBtn()).toBeNull();
+  });
+
+  it('sits between the LED strip and the menu on the Static tab and fires the toggle', () => {
+    const onToggle = vi.fn();
+    renderLocked({ locked: false, lockable: true, hasPick: true, onToggle });
+    const btn = lockBtn()!;
+    expect(btn.getAttribute('aria-label')).toBe('lighting.devices.lockLook');
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+    expect(btn.disabled).toBe(false);
+    const row = document.querySelector(`.${styles.deviceMetaRow}`)!;
+    const order = [...row.children].map(el =>
+      el.classList.contains(styles.ledStrip) ? 'strip'
+        : el.querySelector(`.${styles.deviceLockBtn}`) || el.classList.contains(styles.deviceLockBtn) ? 'lock'
+          : el.classList.contains(styles.deviceCardActions) ? 'menu' : null,
+    ).filter(Boolean);
+    expect(order).toEqual(['strip', 'lock', 'menu']);
+    fireEvent.click(btn);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('is offered but disabled on a card with no pick of its own', () => {
+    renderLocked({ locked: false, lockable: true, hasPick: false });
+    const btn = lockBtn()!;
+    expect(btn.disabled).toBe(true);
+  });
+
+  it('reads as locked and unlocks from any tab', () => {
+    const onToggle = vi.fn();
+    renderLocked({ locked: true, lockable: false, hasPick: true, onToggle });
+    const btn = lockBtn()!;
+    expect(btn.getAttribute('aria-label')).toBe('lighting.devices.unlockLook');
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+    expect(btn.className).toContain(styles.deviceLockBtnOn);
+    fireEvent.click(btn);
+    expect(onToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('is absent outside the Static tab on an unlocked card', () => {
+    renderLocked({ locked: false, lockable: false, hasPick: true });
+    expect(lockBtn()).toBeNull();
+  });
+
+  it('does not select the card when clicked', () => {
+    const onSelect = vi.fn();
+    render(
+      <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={onSelect} lock={{ locked: false, lockable: true, hasPick: true, onToggle: () => {} }} />,
+    );
+    fireEvent.click(lockBtn()!);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});

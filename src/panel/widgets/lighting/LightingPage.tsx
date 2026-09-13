@@ -9,7 +9,7 @@ import {
   renameLightingDevice, saveLightingGroups, saveLightingStacks, saveDeviceLayout,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
-  fetchStaticDeviceLooks,
+  fetchStaticDeviceLooks, setStaticDeviceLock,
   steamArtworkUrl, resolveActiveGame, setLightingPaused,
   resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
@@ -52,6 +52,7 @@ import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanv
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
   pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, devicePicksFromLooks,
+  lockedPicks, setPickLocked, unlockedIds,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick,
 } from './staticPicks';
@@ -299,6 +300,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     () => (previewPicks ? { ...devicePicks, ...previewPicks } : devicePicks),
     [devicePicks, previewPicks],
   );
+  // What the rail shows outside Static: the picks the service still paints.
+  const railLockedPicks = useMemo(() => lockedPicks(devicePicks), [devicePicks]);
   // Collapsing the effect dock hands its space to the canvas and the browser.
   // The preset toolbar keeps its width either way - it lives in row 1, which
   // sizes itself.
@@ -889,6 +892,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setDevicePicks(devicePicksFromLooks(res.looks));
   }, [setDevicePicks]);
 
+  // Optimistic: the card flips at once, and the record is put back only if
+  // the service refused (no look to hold, or a service without the route).
+  const handleToggleLock = useCallback((id: string) => {
+    const pick = devicePicks[id];
+    if (!pick) return;
+    const locked = !pick.locked;
+    setDevicePicks(prev => setPickLocked(prev, id, locked));
+    setStaticDeviceLock(id, locked).catch(() => {
+      setDevicePicks(prev => setPickLocked(prev, id, !locked));
+    });
+  }, [devicePicks, setDevicePicks]);
+
   // A pick predating the palette names a flat EFFECT key. Repoint it at the
   // swatch nearest the colour it stored, and push so the LEDs match the card.
   const palettesMigratedRef = useRef(false);
@@ -947,22 +962,25 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handleCustomSelect = useCallback((hex: string) => {
     setCustomStaticColor(hex);
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
-    const ids = [...selectedDeviceIds];
+    // A locked device in the selection keeps its look; the write skips it.
+    const ids = unlockedIds(devicePicks, [...selectedDeviceIds]);
+    if (ids.length === 0) return;
     // Record without pushing and queue the write, so the commit cannot race a
     // preview still in flight and leave the hardware on the older colour.
     setPreviewPicks(null);
     setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
     queueCustomWrite(hex, ids);
-  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
+  }, [devicePicks, perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
 
   // Records as well as writes: the marks and the device cards read the pick, so
   // a drag has to move them with the pointer, not on release.
   const handleCustomPreview = useCallback((hex: string) => {
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
-    const ids = [...selectedDeviceIds];
+    const ids = unlockedIds(devicePicks, [...selectedDeviceIds]);
+    if (ids.length === 0) return;
     setPreviewPicks(pickCustomForDevices({}, hex, ids, false));
     queueCustomWrite(hex, ids);
-  }, [perDeviceMode, queueCustomWrite, selectedDeviceIds]);
+  }, [devicePicks, perDeviceMode, queueCustomWrite, selectedDeviceIds]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
@@ -2177,10 +2195,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             // A mode that reaches every device overrides what any one of them
             // was assigned, so the picks stop applying - the strips go back to
             // sampling the shared canvas. They are kept, not cleared, so
-            // returning to Static restores each device's own look.
-            devicePicks={perDeviceMode ? livePicks : undefined}
+            // returning to Static restores each device's own look. A locked
+            // device is the exception: the service keeps painting it, so its
+            // strip keeps showing the pick.
+            devicePicks={perDeviceMode ? livePicks : railLockedPicks}
             versionForSlot={versionForSlot}
             ledFullscreen={effectiveMode === 'static'}
+            lockable={effectiveMode === 'static'}
+            onToggleLock={handleToggleLock}
             selectedIds={selectedDeviceIds}
             onSetSelection={handleSetSelection}
             onTogglePower={handleTogglePower}

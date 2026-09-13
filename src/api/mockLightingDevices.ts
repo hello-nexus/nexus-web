@@ -74,7 +74,22 @@ export function mockLightingLooks(): Record<string, StaticDeviceLookDto> {
 /** Records what a pick would have written, so a reload shows the same colours. */
 export function setMockLightingLook(id: string, look: StaticDeviceLookDto): void {
   const all = readLooks();
+  // Same rule as the service: a locked look keeps everything, lock included.
+  if (all[id]?.locked) return;
   all[id] = look;
+  writeLooks(all);
+}
+
+/** The mock half of the lock route; a device without a look has nothing to hold. */
+export function setMockLightingLock(id: string, locked: boolean): void {
+  const all = readLooks();
+  const look = all[id];
+  if (!look?.effect) return;
+  all[id] = { ...look, locked };
+  writeLooks(all);
+}
+
+function writeLooks(all: Record<string, StaticDeviceLookDto>): void {
   try {
     localStorage.setItem(LOOKS_KEY, JSON.stringify(all));
   } catch { /* quota or private mode - the picks stay in memory only */ }

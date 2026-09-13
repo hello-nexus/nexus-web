@@ -1188,6 +1188,27 @@
   opacity: 1;
 }
 
+// Colour lock between the LED strip and the menu. Always visible: a lock the
+// user has to hover to find is a lock they will not know is set.
+.deviceLockBtn {
+  opacity: 1;
+  flex-shrink: 0;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.35;
+
+    &:hover {
+      color: var(--text-dim);
+      background: transparent;
+    }
+  }
+}
+
+.deviceLockBtnOn {
+  color: var(--accent);
+}
+
 // Stays visible (overrides .deviceSettingsBtn's opacity:0) when the
 // device is off, so the power-on control is always reachable. When on,
 // the button keeps the default fade-in-on-hover behaviour.

@@ -581,7 +581,26 @@ export interface StaticDeviceLookDto {
   saturation: number;
   contrast: number;
   slot: number;
+  /** Held in every mode and refused a new pick until unlocked. Absent from a
+   *  service predating the lock, so readers treat it as false. */
+  locked?: boolean;
 }
+
+/**
+ * Lock a device onto its Static look: the service paints it in every mode
+ * and answers 409 to any pick for it until it is unlocked. 404 when the
+ * device has no look of its own to hold.
+ */
+export const setStaticDeviceLock = async (id: string, locked: boolean) => {
+  if (loadLightingMock && id.startsWith('mock-')) {
+    const mock = await loadLightingMock();
+    if (mock.mockLightingActive()) {
+      mock.setMockLightingLock(id, locked);
+      return null;
+    }
+  }
+  return postService('/devices/lighting-devices/static-lock', { id, locked });
+};
 
 /** Every per-device Static assignment. The service owns these, so this is how a
  *  client rebuilds them after a preset activate or on a machine that has never
