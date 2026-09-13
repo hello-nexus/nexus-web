@@ -30,8 +30,8 @@ const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
 
 /**
  * Letterboxed viewer over the per-system shared gallery. Images render whole
- * (object-fit: contain, black bars as needed); a video plays muted in place
- * of the image. Prev/next tap zones span
+ * (object-fit: contain, the tile's backdrop showing in the bars and through
+ * any alpha); a video plays muted in place of the image. Prev/next tap zones span
  * the left/right thirds; the chevrons fade in on use and back out after an
  * idle moment so the image stays clean. The center third carries no
  * interactive element - center-tap still enters immersive on panels and
@@ -133,7 +133,7 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   /**
    * Advance to `target`, walking `dir` past dead items (at most one lap).
    * The destination blob is awaited before the index swaps so the viewer
-   * never flashes black mid-transition.
+   * never flashes empty mid-transition.
    */
   const goTo = useCallback(async (target: number, dir: 1 | -1, persist = false) => {
     if (count === 0) return;
