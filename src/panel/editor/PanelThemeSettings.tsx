@@ -9,6 +9,7 @@ import type { EffectState } from '../../types/lighting';
 import {
   PANEL_BACKGROUND_EFFECTS,
   PANEL_BACKGROUND_FROST_STEP,
+  PANEL_WIDGET_PADDING_STEP,
   normalizePanelBackgroundEffect,
   normalizePanelBackgroundTemplate,
   panelBackgroundDefault,
@@ -305,7 +306,7 @@ export function PanelThemeSettings({
               value={theme.widgetPadding}
               min={0}
               max={100}
-              step={1}
+              step={PANEL_WIDGET_PADDING_STEP}
               formatValue={v => `${v}%`}
               onChange={(v, commit) => {
                 if (commit) onWidgetPaddingCommit(v);
