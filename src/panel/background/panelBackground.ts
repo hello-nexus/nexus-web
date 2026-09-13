@@ -11,6 +11,7 @@ import {
 import { defaultTemplatesFor } from '../../types/lightingTemplates';
 import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
+import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT } from '../engine/grid';
 
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
 
@@ -40,17 +41,16 @@ export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): numb
 // fallback before the cache fills, and must match the JSON.
 const WIDGET_OPACITY_FALLBACK = 0.7;
 const WIDGET_LABELS_FALLBACK = false;
-// Not read from install-defaults: install-defaults.json has no widgetPadding
-// entry (the service DTO stores it as a nullable percent, defaulting to this
-// constant client-side, same as a null WidgetOpacity would if it had no
-// install-defaults entry either).
-const WIDGET_PADDING_DEFAULT_PERCENT = 100;
 
 export const defaultPanelWidgetOpacity = (): number =>
   getInstallDefaults()?.panel.widgetOpacity ?? WIDGET_OPACITY_FALLBACK;
 export const defaultPanelWidgetLabels = (): boolean =>
   getInstallDefaults()?.panel.widgetLabels ?? WIDGET_LABELS_FALLBACK;
-export const defaultPanelWidgetPadding = (): number => WIDGET_PADDING_DEFAULT_PERCENT;
+// Not read from install-defaults: install-defaults.json has no widgetPadding
+// entry (the service DTO stores it as a nullable percent, defaulting to this
+// constant client-side, same as a null WidgetOpacity would if it had no
+// install-defaults entry either).
+export const defaultPanelWidgetPadding = (): number => PANEL_WIDGET_PADDING_DEFAULT_PERCENT;
 
 // Categories the background picker leaves out. Flat fills, 2-tone patterns and
 // spectrum ramps are LED looks - behind widgets they read as a solid or a
