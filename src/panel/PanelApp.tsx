@@ -607,12 +607,18 @@ export function PanelContent({
   // The immersive overlay paints its own opaque background from
   // --panel-background-solid; an inline `background` beats that rule, and in
   // the see-through backdrop it is transparent, so the live desktop showed
-  // through the overlay.
+  // through the overlay. Gap and counts are the stock-padding ones, not the
+  // live grid's: see PanelGridCapacity.contentGap.
   const immersiveThemeStyle = useMemo<CSSProperties>(() => {
-    const style = { ...panelRootStyle };
+    const style = {
+      ...panelRootStyle,
+      '--panel-columns': runtimeGrid.contentColumns,
+      '--panel-rows': runtimeGrid.contentRows,
+      '--panel-widget-padding': `${runtimeGrid.contentGap}px`,
+    } as CSSProperties;
     delete style.background;
     return style;
-  }, [panelRootStyle]);
+  }, [panelRootStyle, runtimeGrid.contentColumns, runtimeGrid.contentGap, runtimeGrid.contentRows]);
 
   // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's scrim, else
@@ -1786,7 +1792,7 @@ export function PanelContent({
               widget={w}
               surface={surface}
               deviceTouch={deviceTouch}
-              immersiveGrid={{ columns: runtimeGrid.columns, rows: runtimeGrid.rows }}
+              immersiveGrid={{ columns: runtimeGrid.contentColumns, rows: runtimeGrid.contentRows }}
               // Immersive views own state the user sets from inside them (the
               // media visualizer's on/off + effect), so the persist path has to
               // reach the layout from run mode, not only from the edit sheet.

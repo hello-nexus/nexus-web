@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
-import { panelGridCapacityForCanvas, type PanelGridCapacity } from './grid';
+import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT, panelGridCapacityForCanvas, panelWidgetPaddingRatio, type PanelGridCapacity } from './grid';
 import type { PanelSurface } from '../types';
 import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../../lib/panelSimulation';
 
@@ -165,6 +165,9 @@ export function readRuntimePanelGrid(
       contentScale: DESKTOP_GRID_REFERENCE_CELL,
       gap: widgetPaddingRatio * DESKTOP_GRID_REFERENCE_CELL,
       padding: 0,
+      contentGap: panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT) * DESKTOP_GRID_REFERENCE_CELL,
+      contentColumns: DESKTOP_GRID_COLUMNS,
+      contentRows: DESKTOP_GRID_ROWS,
     };
   }
 
@@ -201,6 +204,7 @@ export function readRuntimePanelGrid(
     contentScale: capacity.contentScale / dpr,
     gap: capacity.gap / dpr,
     padding: capacity.padding / dpr,
+    contentGap: capacity.contentGap / dpr,
   };
 }
 

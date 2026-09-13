@@ -31,6 +31,7 @@ describe('readRuntimePanelGrid phone at a real device pixel ratio', () => {
       // the cell is the row): the factor re-bases a measured cell onto the stock one.
       expect(flush.contentScale).toBeCloseTo(stock.contentScale, 10);
       expect(flush.contentScale / flush.cellSize).toBeLessThan(1);
+      expect(flush.contentGap).toBeCloseTo(stock.gap, 10);
       expect(flush.cellSize).toBeCloseTo((window.innerHeight - 2 * flush.padding - (flush.rows - 1) * flush.gap) / flush.rows, 6);
     } finally {
       Object.defineProperty(window, 'devicePixelRatio', { value: saved, configurable: true });

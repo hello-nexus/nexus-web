@@ -235,7 +235,32 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
         expect(cap.contentScale).toBeCloseTo(reference.contentScale, 6);
         // The live cell still moves with the slider: less padding, bigger cell.
         expect(cap.cellSize).toBeGreaterThan(reference.cellSize);
+        // The stock gap rides along for the immersive overlay, which ignores
+        // the slider entirely.
+        expect(cap.contentGap).toBeCloseTo(reference.gap, 6);
+        expect(cap.gap).toBeLessThan(cap.contentGap);
+        expect(cap.contentColumns).toBe(reference.columns);
+        expect(cap.contentRows).toBe(reference.rows);
       }
+      expect(reference.contentGap).toBeCloseTo(reference.gap, 6);
+    }
+  });
+
+  it('keeps the stock column/row counts where the live gap crosses an even boundary on a free axis', () => {
+    // Viewports where the live and stock solves land on different even
+    // row/column counts, one per orientation.
+    const bands: { width: number; height: number; live: [number, number]; stock: [number, number] }[] = [
+      { width: 1206, height: 1800, live: [4, 4], stock: [4, 6] },
+      { width: 2400, height: 1206, live: [6, 4], stock: [8, 4] },
+    ];
+    for (const { width, height, live, stock } of bands) {
+      const flush = panelGridCapacityForCanvas(width, height, { surface: 'phone', dpi: 460, paddingRatio: 0 });
+      expect([flush.columns, flush.rows]).toEqual(live);
+      expect([flush.contentColumns, flush.contentRows]).toEqual(stock);
+      const reference = panelGridCapacityForCanvas(width, height, {
+        surface: 'phone', dpi: 460, paddingRatio: panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT),
+      });
+      expect([reference.columns, reference.rows]).toEqual(stock);
     }
   });
 
@@ -249,5 +274,7 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
     expect(cap.cellSize).toBe(360);
     // No slider on this surface, so the render scale follows its own cell.
     expect(cap.contentScale).toBe(360);
+    expect(cap.contentGap).toBe(0);
+    expect([cap.contentColumns, cap.contentRows]).toEqual([cap.columns, cap.rows]);
   });
 });

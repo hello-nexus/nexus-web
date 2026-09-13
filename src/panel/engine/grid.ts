@@ -48,6 +48,14 @@ export interface PanelGridCapacity {
   contentScale: number;
   gap: number;
   padding: number;
+  // The gap and the column/row counts at the STOCK padding, the spacing
+  // contentScale was solved at. The immersive overlay renders from these so
+  // immersive views read identically at every slider value: the live counts
+  // can cross an even boundary on a free axis (the long axis of a phone or
+  // monitor) when the gap changes.
+  contentGap: number;
+  contentColumns: number;
+  contentRows: number;
 }
 
 export interface GridSpan { cols: number; rows: number; }
@@ -200,11 +208,12 @@ export function panelGridCapacityForCanvas(
   const safeColumns = toEvenRound(columns ?? defaultColumns);
   const cellSizeAt = (s: PanelInset) =>
     Math.max(1, canvasW - s.padding * 2 - s.gap * (safeColumns - 1)) / safeColumns;
+  const rowsAt = (s: PanelInset) => fixedRows == null
+    ? toEvenFloor((Math.max(1, canvasH - s.padding * 2) + s.gap) / (cellSizeAt(s) + s.gap))
+    : toEvenRound(fixedRows);
   const cellSize = cellSizeAt(spacing);
   const contentH = Math.max(1, canvasH - spacing.padding * 2);
-  const safeRows = fixedRows == null
-    ? toEvenFloor((contentH + spacing.gap) / (cellSize + spacing.gap))
-    : toEvenRound(fixedRows);
+  const safeRows = rowsAt(spacing);
   const rowSize = fixedRows == null
     ? cellSize
     : Math.max(1, (contentH - spacing.gap * (safeRows - 1)) / safeRows);
@@ -221,6 +230,9 @@ export function panelGridCapacityForCanvas(
     contentScale: cellSizeAt(contentSpacing),
     gap: spacing.gap,
     padding: spacing.padding,
+    contentGap: contentSpacing.gap,
+    contentColumns: safeColumns,
+    contentRows: rowsAt(contentSpacing),
   };
 }
 
@@ -234,9 +246,10 @@ function phoneLandscapeGridCapacityForCanvas(
   const safeRows = toEvenRound(shortAxisSlots);
   const rowSizeAt = (s: PanelInset) =>
     Math.max(1, (Math.max(1, canvasH - s.padding * 2) - s.gap * (safeRows - 1)) / safeRows);
+  const columnsAt = (s: PanelInset) =>
+    toEvenFloor((Math.max(1, canvasW - s.padding * 2) + s.gap) / (rowSizeAt(s) + s.gap));
   const rowSize = rowSizeAt(spacing);
-  const contentW = Math.max(1, canvasW - spacing.padding * 2);
-  const safeColumns = toEvenFloor((contentW + spacing.gap) / (rowSize + spacing.gap));
+  const safeColumns = columnsAt(spacing);
 
   return {
     columns: safeColumns,
@@ -246,6 +259,9 @@ function phoneLandscapeGridCapacityForCanvas(
     contentScale: rowSizeAt(contentSpacing),
     gap: spacing.gap,
     padding: spacing.padding,
+    contentGap: contentSpacing.gap,
+    contentColumns: columnsAt(contentSpacing),
+    contentRows: safeRows,
   };
 }
 
