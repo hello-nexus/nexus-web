@@ -8,6 +8,7 @@ import {
   sizeToSpan,
   snapStride,
   PANEL_GRID_COLS,
+  PANEL_WIDGET_PADDING_DEFAULT_PERCENT,
   PANEL_WIDGET_PADDING_MAX_RATIO,
 } from './grid';
 
@@ -217,6 +218,27 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
     }
   });
 
+  it('solves the render scale at the stock padding whatever the slider says, on every surface', () => {
+    const stock = panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT);
+    const devices: { width: number; height: number; surface: 'y70' | 'monitor' | 'phone'; dpi: number }[] = [
+      { width: 734, height: 2560, surface: 'y70', dpi: 337 },
+      { width: 2560, height: 734, surface: 'y70', dpi: 337 },
+      { width: 2560, height: 720, surface: 'monitor', dpi: 183 },
+      { width: 1206, height: 2622, surface: 'phone', dpi: 460 },
+      { width: 2622, height: 1206, surface: 'phone', dpi: 460 },
+    ];
+    for (const { width, height, surface, dpi } of devices) {
+      const reference = panelGridCapacityForCanvas(width, height, { surface, dpi, paddingRatio: stock });
+      expect(reference.contentScale).toBeCloseTo(reference.cellSize, 6);
+      for (const percent of [0, 50]) {
+        const cap = panelGridCapacityForCanvas(width, height, { surface, dpi, paddingRatio: panelWidgetPaddingRatio(percent) });
+        expect(cap.contentScale).toBeCloseTo(reference.contentScale, 6);
+        // The live cell still moves with the slider: less padding, bigger cell.
+        expect(cap.cellSize).toBeGreaterThan(reference.cellSize);
+      }
+    }
+  });
+
   it('forces q60 (a single-widget surface) to zero gap/padding regardless of the ratio', () => {
     const large = panelWidgetPaddingRatio(100);
     const cap = panelGridCapacityForCanvas(720, 1280, { surface: 'q60', dpi: 220, paddingRatio: large });
@@ -225,5 +247,7 @@ describe('panelGridCapacityForCanvas paddingRatio', () => {
     // Fully edge-to-edge: with zero gap/padding the 2-column cell is exactly
     // half the canvas width, unaffected by the nonzero widget-padding setting.
     expect(cap.cellSize).toBe(360);
+    // No slider on this surface, so the render scale follows its own cell.
+    expect(cap.contentScale).toBe(360);
   });
 });

@@ -54,21 +54,16 @@
 
 .immersive {
   justify-content: center;
-  padding: 1rem;
-
-  .location { font-size: var(--type-heading); }
-  .condition { font-size: var(--type-body); }
-  .metaRow { font-size: var(--type-small); }
-}
-
-// Landscape cells are short: tighten the immersive hero so the hourly strip
-// below it stays on the page.
-:global([data-orientation='landscape']) .immersive {
   padding: 0.75rem 1rem;
-  @include vgap(0.1rem);
 
-  .location { font-size: var(--type-heading); }
-  .temp { font-size: var(--type-display); }
+  // Card's body gap alone spaces the rows: the vgap above would stack on it.
+  > * { @include vgap(0); }
+
+  // Fixed, not --type-hero: that token is viewport-relative, but the
+  // immersive body renders in a scaled design box, so it would size with the
+  // panel resolution instead of the grid.
+  .temp { font-size: 2.75rem; line-height: 1; }
+  .location { font-size: var(--type-heading); line-height: 1.2; }
   .condition { font-size: var(--type-body); }
   .metaRow { font-size: var(--type-small); }
 }
