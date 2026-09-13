@@ -33,7 +33,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -57,6 +57,9 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   lockable?: boolean;
   /** Sets the colour lock on these cards. Absent leaves every card lock-less. */
   onSetLock?: (ids: string[], locked: boolean) => void;
+  /** A pick just aimed at these locked cards: each flashes its badge. `seq`
+   *  changes per burst so the same card can flash again. */
+  lockFlash?: { ids: ReadonlySet<string>; seq: number };
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
   /** Bulk set: Cmd/Ctrl+click on a row toggles membership without clobbering the rest. */
@@ -356,7 +359,11 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   const lockFor = (id: string): DeviceLock | undefined => {
     if (!onSetLock) return undefined;
     const pick = devicePicks?.[id];
-    return { locked: !!pick?.locked, lockable, hasPick: !!pick, setLocked: locked => onSetLock([id], locked) };
+    return {
+      locked: !!pick?.locked, lockable, hasPick: !!pick,
+      setLocked: locked => onSetLock([id], locked),
+      flashSeq: lockFlash?.ids.has(id) ? lockFlash.seq : 0,
+    };
   };
 
   const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs, stacked?: StackPosition) => (

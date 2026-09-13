@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, Lock, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
@@ -18,6 +18,9 @@ import { DeviceNotice } from './DeviceNotice';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
+
+// Matches the .deviceLockBtnFlash animation: two pulses.
+const LOCK_FLASH_MS = 800;
 import styles from '../LightingPage.module.scss';
 import type { StackSlot } from '../../../../lib/stackSlots';
 
@@ -57,6 +60,9 @@ export interface DeviceLock {
   lockable: boolean;
   hasPick: boolean;
   setLocked: (locked: boolean) => void;
+  /** Bumped when a pick was aimed at this locked card; the badge flashes so
+   *  the user sees why nothing changed. 0 (or unchanged) flashes nothing. */
+  flashSeq?: number;
 }
 
 export interface BulkSelection {
@@ -429,6 +435,17 @@ export function ZoneCard({
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
 
+  // The badge flashes for one animation run per seq bump; the class comes off
+  // afterwards so the next bump can start it again.
+  const flashSeq = lock?.flashSeq ?? 0;
+  const [flashing, setFlashing] = useState(false);
+  useEffect(() => {
+    if (flashSeq === 0) return undefined;
+    setFlashing(true);
+    const timer = setTimeout(() => setFlashing(false), LOCK_FLASH_MS);
+    return () => clearTimeout(timer);
+  }, [flashSeq]);
+
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
     // Nothing else on the menu can act while firmware owns the LEDs, so the
@@ -690,7 +707,7 @@ export function ZoneCard({
           <HoverTooltip body={t('lighting.devices.unlockLook')} side="top">
             <button
               type="button"
-              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn}`}
+              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn} ${flashing ? styles.deviceLockBtnFlash : ''}`}
               aria-label={t('lighting.devices.unlockLook')}
               data-no-dnd
               onClick={e => { e.stopPropagation(); lock.setLocked(false); }}

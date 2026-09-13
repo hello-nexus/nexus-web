@@ -138,6 +138,9 @@ const layoutHistoryStore = {
 
 // How long the rail keeps saying a scan is running when none was ever reported.
 const DISCOVERY_GRACE_MS = 4000;
+// A pick on a locked card flashes its badge; a colour drag repeats the pick
+// per pointer move, so flashes are spaced at least this far apart.
+const LOCK_FLASH_GAP_MS = 1500;
 
 const DEVICE_ORDER_KEY = 'lighting.deviceOrder';
 function loadDeviceOrder(): string[] {
@@ -862,13 +865,27 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return Promise.resolve();
   }, [applyAnimate]);
 
+  // A pick aimed at a locked device lands nowhere; the card's lock badge
+  // flashes to say why. Once per burst: a colour drag fires per pointer move.
+  const [lockFlash, setLockFlash] = useState<{ ids: ReadonlySet<string>; seq: number }>({ ids: new Set(), seq: 0 });
+  const lockFlashAtRef = useRef(0);
+  const flashLockedAmong = useCallback((ids: readonly string[]) => {
+    const locked = ids.filter(id => devicePicks[id]?.locked);
+    if (locked.length === 0) return;
+    const now = Date.now();
+    if (now - lockFlashAtRef.current < LOCK_FLASH_GAP_MS) return;
+    lockFlashAtRef.current = now;
+    setLockFlash(prev => ({ ids: new Set(locked), seq: prev.seq + 1 }));
+  }, [devicePicks]);
+
   // A static effect picked while devices are selected paints only those
   // devices. The pick records the slot it was made against, so a later
   // repoint of some other device leaves this one alone.
   const writeDevicePicks = useCallback((key: string, slot: number, ids: string[], push: boolean) => {
     const st = stateOf(key, slot);
+    flashLockedAmong(ids);
     setDevicePicks(prev => pickLookForDevices(prev, key, slot, st, ids, push));
-  }, [setDevicePicks, stateOf]);
+  }, [flashLockedAmong, setDevicePicks, stateOf]);
 
   const applyDeviceColor = useCallback(
     (key: string, ids: string[]) => writeDevicePicks(key, slotOf(key), ids, true),
@@ -878,8 +895,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // A palette pick is a colour and nothing else, so it travels as one and the
   // service paints it with no shader, no preset and no params.
   const writePalettePick = useCallback((color: PaletteColor, ids: string[]) => {
+    flashLockedAmong(ids);
     setDevicePicks(prev => pickPaletteForDevices(prev, color, ids));
-  }, [setDevicePicks]);
+  }, [flashLockedAmong, setDevicePicks]);
 
   // The service owns the assignments, so its copy wins over the local record:
   // a preset activate, a profile switch and a browser that has never seen this
@@ -973,6 +991,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setCustomStaticColor(hex);
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
     // A locked device in the selection keeps its look; the write skips it.
+    flashLockedAmong([...selectedDeviceIds]);
     const ids = unlockedIds(devicePicks, [...selectedDeviceIds]);
     if (ids.length === 0) return;
     // Record without pushing and queue the write, so the commit cannot race a
@@ -980,17 +999,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setPreviewPicks(null);
     setDevicePicks(prev => pickCustomForDevices(prev, hex, ids, false));
     queueCustomWrite(hex, ids);
-  }, [devicePicks, perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
+  }, [devicePicks, flashLockedAmong, perDeviceMode, queueCustomWrite, selectedDeviceIds, setCustomStaticColor, setDevicePicks]);
 
   // Records as well as writes: the marks and the device cards read the pick, so
   // a drag has to move them with the pointer, not on release.
   const handleCustomPreview = useCallback((hex: string) => {
     if (!perDeviceMode || selectedDeviceIds.size === 0) return;
+    flashLockedAmong([...selectedDeviceIds]);
     const ids = unlockedIds(devicePicks, [...selectedDeviceIds]);
     if (ids.length === 0) return;
     setPreviewPicks(pickCustomForDevices({}, hex, ids, false));
     queueCustomWrite(hex, ids);
-  }, [devicePicks, perDeviceMode, queueCustomWrite, selectedDeviceIds]);
+  }, [devicePicks, flashLockedAmong, perDeviceMode, queueCustomWrite, selectedDeviceIds]);
 
   const effectPool = mode === 'static' ? STATIC_EFFECTS : ANIMATE_EFFECTS;
 
@@ -2213,6 +2233,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             ledFullscreen={effectiveMode === 'static'}
             lockable={effectiveMode === 'static'}
             onSetLock={handleSetLock}
+            lockFlash={lockFlash}
             selectedIds={selectedDeviceIds}
             onSetSelection={handleSetSelection}
             onTogglePower={handleTogglePower}

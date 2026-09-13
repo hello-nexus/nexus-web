@@ -40,20 +40,31 @@ vi.mock('../../../lib/controlSync', () => ({
 // The selection the page hands the grid is the thing that regressed, so the
 // stub renders it instead of the real cells.
 vi.mock('./page/AnimateGrid', () => ({
-  AnimateGrid: ({ effect }: { effect: string }) => <div data-testid="grid-effect">{effect}</div>,
+  AnimateGrid: ({ effect, onSelect }: { effect: string; onSelect?: (key: string) => void }) => (
+    <div data-testid="grid-effect" onClick={() => onSelect?.('stripes')}>{effect}</div>
+  ),
 }));
 vi.mock('./page/FullscreenShader', () => ({ FullscreenShader: () => null }));
 vi.mock('./page/ModeControls', () => ({ ModeControls: () => null }));
 // The stub exposes exactly what the lock rides on: the pick the rail is handed
 // (locked or not) and the toggle callback.
 vi.mock('./page/DevicePanel', () => ({
-  DevicePanel: ({ devicePicks, lockable, onSetLock }: {
+  DevicePanel: ({ devicePicks, lockable, onSetLock, lockFlash, onSetSelection }: {
     devicePicks?: Record<string, { locked?: boolean }>;
     lockable?: boolean;
     onSetLock?: (ids: string[], locked: boolean) => void;
+    lockFlash?: { ids: ReadonlySet<string>; seq: number };
+    onSetSelection: (ids: Set<string>, primary: string | null) => void;
   }) => (
-    <div data-testid="rail" data-lockable={String(!!lockable)} data-locked={String(!!devicePicks?.a?.locked)} data-haspick={String(!!devicePicks?.a)}>
+    <div
+      data-testid="rail"
+      data-lockable={String(!!lockable)}
+      data-locked={String(!!devicePicks?.a?.locked)}
+      data-haspick={String(!!devicePicks?.a)}
+      data-flash={`${lockFlash?.seq ?? 0}:${[...(lockFlash?.ids ?? [])].join(',')}`}
+    >
       <button type="button" onClick={() => onSetLock?.(['a'], !devicePicks?.a?.locked)}>toggle</button>
+      <button type="button" onClick={() => onSetSelection(new Set(['a']), 'a')}>select-a</button>
     </div>
   ),
 }));
@@ -140,6 +151,21 @@ describe('LightingPage color lock', () => {
     // The flag came over; the pick record itself was not replaced.
     const picks = JSON.parse(localStorage.getItem('nexus.lighting.devicePicks') ?? '{}') as Record<string, { hex: string }>;
     expect(picks.a.hex).toBe('#ff0000');
+  });
+
+  it('flashes the badge of a locked, selected card when a pick is aimed at it', async () => {
+    localStorage.setItem('nexus.lighting.devicePicks', JSON.stringify({ a: { key: 'flat:red-3', slot: 0, hex: '#ff0000', locked: true } }));
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('rail').dataset.locked).toBe('true'));
+    expect(screen.getByTestId('rail').dataset.flash).toBe('0:');
+
+    fireEvent.click(screen.getByText('select-a'));
+    fireEvent.click(screen.getByTestId('grid-effect'));
+    await waitFor(() => expect(screen.getByTestId('rail').dataset.flash).toBe('1:a'));
+    // Still locked, still the old pick: the flash was the whole outcome.
+    expect(screen.getByTestId('rail').dataset.locked).toBe('true');
+    const picks = JSON.parse(localStorage.getItem('nexus.lighting.devicePicks') ?? '{}') as Record<string, { key: string }>;
+    expect(picks.a.key).toBe('flat:red-3');
   });
 
   it('puts the record back when the service refuses', async () => {

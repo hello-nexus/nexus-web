@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -843,6 +843,33 @@ describe('ZoneCard color lock', () => {
     expect(menuRow(/^lighting\.devices\.lockLook$/)).toBeNull();
     fireEvent.click(row);
     expect(setLocked).toHaveBeenCalledWith(false);
+  });
+
+  it('flashes the badge for one run per seq bump, then rests', () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = renderLock({ locked: true, lockable: true, hasPick: true });
+      expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
+      const withSeq = (seq: number) => (
+        <ZoneCard
+          device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+          onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+          lock={{ locked: true, lockable: true, hasPick: true, setLocked: () => {}, flashSeq: seq }}
+        />
+      );
+      act(() => { rerender(withSeq(1)); });
+      expect(badge()!.className).toContain(styles.deviceLockBtnFlash);
+      act(() => { vi.advanceTimersByTime(900); });
+      expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
+      // A second pick flashes again; a re-render with the same seq does not.
+      act(() => { rerender(withSeq(2)); });
+      expect(badge()!.className).toContain(styles.deviceLockBtnFlash);
+      act(() => { vi.advanceTimersByTime(900); });
+      act(() => { rerender(withSeq(2)); });
+      expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('counts the members each row reaches in a selection', () => {
