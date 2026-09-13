@@ -1,7 +1,9 @@
-import { Folder, FolderInput, FolderMinus, FolderPlus, LayersPlus } from 'lucide-react';
+import { Columns3, Folder, FolderInput, FolderMinus, FolderPlus, Layers, LayersPlus, LayoutPanelTop, Rows3 } from 'lucide-react';
 import { LayersMinus } from './layersMinusIcon';
 import { pluralKey } from '../../../lib/pluralKey';
 import type { Language } from '../../../lib/settings';
+import type { ReactNode } from 'react';
+import { STACK_LAYOUTS, type StackLayout } from '../../../lib/stackSlots';
 import { bulkMenuLabel } from './bulkMenuLabel';
 import type { DeviceMenuItem } from './DeviceContextMenu';
 
@@ -62,6 +64,8 @@ export function groupMenuItems(
 export interface StackActions {
   stack?: () => void;
   unstack?: () => void;
+  /** How the stacked set shares its frame; offered on the canvas frame only. */
+  layout?: { current: StackLayout; set: (layout: StackLayout) => void };
 }
 
 /**
@@ -81,6 +85,17 @@ export function stackMenuItems(
       key: 'stack', icon: <LayersPlus size={14} />,
       label: t(pluralKey('lighting.devices.stackCount', language, count), { count }),
       onSelect: actions.stack,
+    });
+  }
+  if (actions?.layout) {
+    const { current, set } = actions.layout;
+    const icons: Record<StackLayout, ReactNode> = { overlap: <Layers size={14} />, parallel: <Rows3 size={14} />, series: <Columns3 size={14} /> };
+    items.push({
+      key: 'stack-layout', icon: <LayoutPanelTop size={14} />, label: t('lighting.devices.stackLayout'),
+      submenu: STACK_LAYOUTS.map(layout => ({
+        key: `stack-layout:${layout}`, icon: icons[layout], label: t(`lighting.devices.stackLayout.${layout}`),
+        checked: layout === current, onSelect: () => set(layout),
+      })),
     });
   }
   if (actions?.unstack) {

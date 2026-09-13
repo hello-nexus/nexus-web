@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronRight } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 // Reuse the panel widget menu's stylesheet.
 import styles from '../../../panel/widgets/common/WidgetContextMenu.module.scss';
 
@@ -18,6 +18,8 @@ export interface DeviceMenuItem {
   /** Rows that fly out to the side. The row itself then only opens them, so
    *  `onSelect` is never called for it. */
   submenu?: DeviceMenuItem[];
+  /** The row is the choice in force among its siblings; it wears a trailing check. */
+  checked?: boolean;
 }
 
 interface DeviceContextMenuProps {
@@ -123,6 +125,7 @@ export function DeviceContextMenu({ x, y, items, onClose }: DeviceContextMenuPro
       >
         {item.icon}
         <span>{item.label}</span>
+        {item.checked && <Check size={13} className={styles.itemCheck} aria-hidden />}
         {item.submenu && <ChevronRight size={13} className={styles.itemChevron} aria-hidden />}
       </button>
       {item.separatorAfter && <span className={styles.divider} aria-hidden />}

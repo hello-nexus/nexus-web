@@ -28,7 +28,8 @@ import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
 import { buildDeviceBlocks, sortZonesWithinDevice } from './page/deviceBlocks';
-import { canStack, isStackedSet, stackDevices, unstackDevices, withStacked, type DeviceStack } from './page/deviceStacks';
+import { canStack, isStackedSet, setStackLayout, stackDevices, stackOf, unstackDevices, withStacked, type DeviceStack } from './page/deviceStacks';
+import { stackLayoutOf, type StackLayout } from '../../../lib/stackSlots';
 import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
 import { emitRadialBloomFromElement } from '../../../lib/backgroundEffects';
@@ -206,10 +207,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     deviceDraggingRef.current = active;
   }, []);
   // Device-list selection: which devices the canvas draws, and what a Static
-  // pick lands on. `primaryDeviceId` is the single device used for LED-dot
-  // rendering on the canvas and for the LED-map fetch effect below (only one
-  // device's positions are visualised at a time, even when several are
-  // selected for group drag).
+  // pick lands on. `primaryDeviceId` is the one device a Static pick lands on
+  // and the member a stacked frame's label names; every focused frame shows
+  // its LED dots.
   const [selectedDeviceIds, setSelectedDeviceIds] = usePersistentIdSet(SELECTED_DEVICES_STORAGE_KEY);
   const [primaryDeviceId, setPrimaryDeviceId] = usePersistentState<string | null>(PRIMARY_DEVICE_STORAGE_KEY, null);
   // Canvas focus: which of the drawn frames take the frame-level edits (drag,
@@ -420,18 +420,43 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     return () => { cancelled = true; };
   }, [serviceOnline]);
 
-  // LED positions for the selected device - fetched when a device is selected
-  // so the canvas can show small dots indicating where each active LED is.
-  const [selectedDeviceLeds, setSelectedDeviceLeds] = useState<LedMapEntry[] | null>(null);
+  // LED positions for every focused device and every card stacked with one,
+  // by device id, so the canvas can show small dots indicating where each
+  // active LED is. Maps are cached per device: a marquee re-focuses at pointer
+  // rate, so only ids not seen or in flight yet are fetched. The cache is
+  // keyed on the open editor target and the profile, since leaving the editor
+  // or switching profile can have moved LEDs; a fetch that started under an
+  // older key is dropped rather than written into the new one.
+  const [selectedDeviceLeds, setSelectedDeviceLeds] = useState<Record<string, LedMapEntry[]> | null>(null);
+  const ledMapCacheRef = useRef<{ key: string; maps: Map<string, LedMapEntry[]>; pending: Set<string> }>({ key: '', maps: new Map(), pending: new Set() });
+  // The ids the dots are for right now; a fetch that lands late publishes
+  // against these, not the focus it was started under.
+  const ledFocusRef = useRef<string[]>([]);
   useEffect(() => {
-    if (!primaryDeviceId) { setSelectedDeviceLeds(null); return; }
-    setSelectedDeviceLeds(null);
-    let cancelled = false;
-    fetchLedMap(primaryDeviceId).then(data => {
-      if (!cancelled && data) setSelectedDeviceLeds(data.leds);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [primaryDeviceId, editorTarget, activeProfileId]);
+    const ids = [...withStacked(deviceStacks, canvasFocusIds)];
+    ledFocusRef.current = ids;
+    const cache = ledMapCacheRef.current;
+    const key = `${editorTarget?.deviceId ?? ''}|${editorTarget?.zoneId ?? ''}|${activeProfileId ?? ''}`;
+    if (cache.key !== key) { cache.key = key; cache.maps.clear(); cache.pending.clear(); }
+    const publish = () => {
+      const current = ledFocusRef.current;
+      if (current.length === 0) { setSelectedDeviceLeds(null); return; }
+      const leds: Record<string, LedMapEntry[]> = {};
+      for (const id of current) { const map = cache.maps.get(id); if (map) leds[id] = map; }
+      setSelectedDeviceLeds(leds);
+    };
+    publish();
+    for (const id of ids) {
+      if (cache.maps.has(id) || cache.pending.has(id)) continue;
+      cache.pending.add(id);
+      fetchLedMap(id).then(data => {
+        if (cache.key !== key) return;
+        cache.pending.delete(id);
+        if (data?.leds) cache.maps.set(id, data.leds);
+        publish();
+      }).catch(() => { if (cache.key === key) cache.pending.delete(id); });
+    }
+  }, [canvasFocusIds, deviceStacks, editorTarget, activeProfileId]);
 
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
@@ -1652,7 +1677,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // rail applies, over the rail's own blocks.
   const stackActionsFor = useCallback((ids: string[]) => {
     if (isStackedSet(deviceStacksRef.current, ids)) {
-      return { unstack: () => handleStacksChange(unstackDevices(deviceStacksRef.current, ids)) };
+      const stack = stackOf(deviceStacksRef.current, ids[0])!;
+      return {
+        unstack: () => handleStacksChange(unstackDevices(deviceStacksRef.current, ids)),
+        layout: { current: stackLayoutOf(stack), set: (layout: StackLayout) => handleStacksChange(setStackLayout(deviceStacksRef.current, ids[0], layout)) },
+      };
     }
     if (canStack(buildDeviceBlocks(devicesRef.current), deviceGroups, ids)) {
       return { stack: () => handleStacksChange(stackDevices(deviceStacksRef.current, ids)) };

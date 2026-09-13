@@ -2,6 +2,7 @@
 
 import { fetchService, postService, deleteService, putService, authFetchWithStatus, resolveAuthWs } from './service';
 import { type DeviceGroup } from '../lib/deviceGroups';
+import { type DeviceStack } from '../lib/stackSlots';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
@@ -373,8 +374,8 @@ export interface LightingDevicesResponse {
   devices: LightingDevice[];
   /** User-made card groups, in display order. Absent on older services. */
   groups?: DeviceGroup[];
-  /** Cards stacked to one canvas frame and one selection. Absent on older services. */
-  stacks?: DeviceGroup[];
+  /** Cards stacked to one canvas frame and one selection, each with how the frame is shared. Absent on older services. */
+  stacks?: DeviceStack[];
 }
 
 /** Whole-list replace; the page owns group order and membership. */
@@ -382,8 +383,8 @@ export const saveLightingGroups = (groups: DeviceGroup[]) =>
   putService<{ groups: DeviceGroup[] }>('/devices/lighting-devices/groups', { groups });
 
 /** Whole-list replace; the page owns stack membership. */
-export const saveLightingStacks = (stacks: DeviceGroup[]) =>
-  putService<{ stacks: DeviceGroup[] }>('/devices/lighting-devices/stacks', { stacks });
+export const saveLightingStacks = (stacks: DeviceStack[]) =>
+  putService<{ stacks: DeviceStack[] }>('/devices/lighting-devices/stacks', { stacks });
 
 // Dev-tools builds stand in mock hardware when the host has none, so the
 // lighting page can be driven on a machine with no RGB devices.

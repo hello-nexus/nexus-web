@@ -4,6 +4,7 @@ import {
   DEFAULT_PANEL_BACKGROUND_FROST,
   normalizePanelBackdrop,
   normalizePanelBackgroundFrost,
+  normalizePanelWidgetPadding,
   panelBackgroundFrostScale,
   resolvePanelBackdrop,
 } from './panelBackground';
@@ -56,6 +57,23 @@ describe('normalizePanelBackgroundFrost', () => {
     expect(normalizePanelBackgroundFrost(37.4)).toBe(40);
     // A record written on a finer step still reads as a value the slider can show.
     expect(normalizePanelBackgroundFrost(45)).toBe(50);
+  });
+});
+
+describe('normalizePanelWidgetPadding', () => {
+  it('defaults an unset value to the stock padding', () => {
+    expect(normalizePanelWidgetPadding(undefined)).toBe(100);
+    expect(normalizePanelWidgetPadding(Number.NaN)).toBe(100);
+  });
+
+  it('clamps to 0-100 and snaps to the slider step', () => {
+    expect(normalizePanelWidgetPadding(0)).toBe(0);
+    expect(normalizePanelWidgetPadding(-5)).toBe(0);
+    expect(normalizePanelWidgetPadding(140)).toBe(100);
+    // Records from the 1%-step slider read as a value the slider can show.
+    expect(normalizePanelWidgetPadding(45)).toBe(50);
+    expect(normalizePanelWidgetPadding(37)).toBe(25);
+    expect(normalizePanelWidgetPadding(12)).toBe(0);
   });
 });
 

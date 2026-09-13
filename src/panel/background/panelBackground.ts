@@ -20,6 +20,7 @@ export const DEFAULT_PANEL_BACKGROUND_FROST = 0;
 // Granularity of the whole control, not just the drag: EditableNumber snaps a
 // typed value to it too.
 export const PANEL_BACKGROUND_FROST_STEP = 10;
+export const PANEL_WIDGET_PADDING_STEP = 25;
 export type PanelResolvedTheme = 'dark' | 'light';
 
 export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'plasma';
@@ -224,9 +225,11 @@ export function normalizePanelBackgroundFrost(value: number | null | undefined):
   return Math.min(Math.max(snapped, 0), 100);
 }
 
+// Snapped for the same reason as the frost above.
 export function normalizePanelWidgetPadding(value: number | null | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return defaultPanelWidgetPadding();
-  return Math.min(Math.max(value, 0), 100);
+  const snapped = Math.round(value / PANEL_WIDGET_PADDING_STEP) * PANEL_WIDGET_PADDING_STEP;
+  return Math.min(Math.max(snapped, 0), 100);
 }
 
 // The background's render state for a (effect, slot) selection. Presets are
