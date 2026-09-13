@@ -71,7 +71,9 @@
 // every day fits without scrolling.
 .immersive {
   height: 100%;
+  @include vgap(0.35rem);
 
+  .title { @include text-button; }
   .card {
     flex: 1 1 auto;
     min-height: 0;

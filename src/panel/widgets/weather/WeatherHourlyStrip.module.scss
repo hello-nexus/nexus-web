@@ -83,9 +83,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+// Immersive: shares a fixed cell with the hero and must never push it past
+// the cell, so every vertical allowance is trimmed.
 .immersive {
+  @include vgap(0.35rem);
+
+  .title { @include text-button; }
   .scroller > * { overflow-x: hidden; }
-  .column { @include vgap(0.35rem); }
+  .strip { padding: 0.5rem; }
+  .column { @include vgap(0.25rem); }
   .icon { width: 1.6em; height: 1.6em; }
   .temp { font-size: var(--type-body); }
 }
