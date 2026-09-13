@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Cloud } from 'lucide-react';
+import { CloudSun } from 'lucide-react';
 import type { AppManifest } from '../types';
 import { WeatherWidget } from './WeatherWidget';
 import { WeatherPreview } from './WeatherPreview';
@@ -14,7 +14,7 @@ export const weatherApp: AppManifest = {
   meta: {
     type: 'weather',
     i18nKey: 'panel.widget.weather',
-    icon: Cloud,
+    icon: CloudSun,
     sizes: ['2x2', '2x4', '4x2', '4x4', '2x2round'],
     defaultSize: '4x2',
     supportsImmersive: { portrait: true, landscape: true },
