@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
+import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PackageOpen, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
@@ -7,6 +7,8 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { postService } from '../../../api/service';
+import { downloadSupportBundle } from '../../../api/diagnostics';
+import { useToastSafe } from '../../common/Toast/Toast';
 import { resetOnboarding } from '../../../api/onboarding';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
@@ -112,6 +114,15 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
   // endpoint - acts on the local machine.
   const openLogs = async () => {
     await postService('/diagnostics/open-logs', {});
+  };
+
+  const { push } = useToastSafe();
+  const [exportingSupport, setExportingSupport] = useState(false);
+  const exportSupportBundle = async () => {
+    setExportingSupport(true);
+    const ok = await downloadSupportBundle();
+    setExportingSupport(false);
+    if (!ok) push({ title: t('settings.diagnostics.supportBundleFailed') });
   };
 
   return (
@@ -286,6 +297,25 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             disabled={!serviceOnline}
           >
             {t('settings.diagnostics.openLogsButton')}
+          </Button>
+        </SettingRow>
+
+        <SettingRow
+          label={t('settings.diagnostics.supportBundleLabel')}
+          icon={<PackageOpen />}
+          iconLeading="subtle"
+          description={t('settings.diagnostics.supportBundleDescription')}
+        >
+          <Button
+            type="button"
+            tone="neutral"
+            size="sm"
+            icon={<PackageOpen size={14} aria-hidden />}
+            onClick={exportSupportBundle}
+            loading={exportingSupport}
+            disabled={!serviceOnline}
+          >
+            {t('settings.diagnostics.supportBundleButton')}
           </Button>
         </SettingRow>
 

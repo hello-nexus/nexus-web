@@ -434,26 +434,36 @@ function filenameFromContentDisposition(header: string | null): string | null {
 }
 
 /**
- * Downloads the support bundle ZIP. Uses fetchServiceBlobWithHeaders (not a
+ * Downloads a ZIP the service builds. Uses fetchServiceBlobWithHeaders (not a
  * plain anchor href) because the route requires the session bearer token,
  * which a browser navigation can't attach; it also tunnels over the relay
  * when the panel is off-LAN. Returns false on any failure so the caller can
  * surface a toast.
  */
-export async function downloadDiagnosticsBundle(): Promise<boolean> {
-  const result = await fetchServiceBlobWithHeaders('/diagnostics/bundle/download');
+async function downloadZip(route: string, fallbackPrefix: string): Promise<boolean> {
+  const result = await fetchServiceBlobWithHeaders(route);
   if (!result) return false;
   const url = URL.createObjectURL(result.blob);
   const a = document.createElement('a');
   a.href = url;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   a.download = filenameFromContentDisposition(result.headers.get('Content-Disposition'))
-    ?? `nexus-diagnostics-${stamp}.zip`;
+    ?? `${fallbackPrefix}-${stamp}.zip`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   return true;
+}
+
+/** The Diagnostics page's hardware-health bundle. */
+export function downloadDiagnosticsBundle(): Promise<boolean> {
+  return downloadZip('/diagnostics/bundle/download', 'nexus-diagnostics');
+}
+
+/** The Settings page's support bundle: every log, daemon logs, redacted settings, live state. */
+export function downloadSupportBundle(): Promise<boolean> {
+  return downloadZip('/diagnostics/support-bundle/download', 'nexus-support');
 }
 
 /**
