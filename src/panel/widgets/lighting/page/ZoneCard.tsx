@@ -19,7 +19,7 @@ import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 
-// Matches the .deviceLockBtnFlash animation: two pulses.
+// Matches the .deviceLockBtnFlash animation: off, on, off, on.
 const LOCK_FLASH_MS = 800;
 import styles from '../LightingPage.module.scss';
 import type { StackSlot } from '../../../../lib/stackSlots';

@@ -1190,23 +1190,24 @@
 
 // Colour lock between the LED strip and the menu, only on a locked card.
 // Always visible: a lock the user has to hover to find is a lock they will
-// not know is set.
+// not know is set. Same dim ink as the stack badge and the menu button, so
+// it reads as card chrome rather than a state light.
 .deviceLockBtn {
   opacity: 1;
   flex-shrink: 0;
-  color: var(--accent);
 }
 
-// A pick aimed at the locked card: two pulses, then back to rest. Keep the
-// total in step with LOCK_FLASH_MS in ZoneCard.
+// A pick aimed at the locked card: off, on, off, on - hard steps, no fade.
+// Keep the total in step with LOCK_FLASH_MS in ZoneCard.
 .deviceLockBtnFlash {
-  animation: lockBadgeFlash 0.4s ease-in-out 2;
-  background: var(--accent-soft);
+  animation: lockBadgeFlash 0.8s step-end;
 }
 
 @keyframes lockBadgeFlash {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.45); }
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  50% { opacity: 0; }
+  75%, 100% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
