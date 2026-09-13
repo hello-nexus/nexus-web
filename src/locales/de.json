@@ -899,6 +899,7 @@
   "devices.streamdeck.sleepAfter": "Schlaf nach",
   "devices.streamdeck.sleepAfterMinutes": "{n} Min",
   "devices.streamdeck.sleepAfterNever": "Nie",
+  "devices.streamdeck.sleepWhenLocked": "Ruhezustand, wenn der PC gesperrt ist",
   "devices.streamdeck.tab.customize": "Anpassen",
   "devices.streamdeck.tab.settings": "Einstellungen",
   "devices.supported.browse": "Unterstützte Geräte",

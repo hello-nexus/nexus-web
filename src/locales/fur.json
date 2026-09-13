@@ -899,6 +899,7 @@
   "devices.streamdeck.sleepAfter": "Sospension dopo",
   "devices.streamdeck.sleepAfterMinutes": "{n}m",
   "devices.streamdeck.sleepAfterNever": "Mai",
+  "devices.streamdeck.sleepWhenLocked": "Met in polse cuant che il PC al è blocât",
   "devices.streamdeck.tab.customize": "Personalize",
   "devices.streamdeck.tab.settings": "Impostazions",
   "devices.supported.browse": "Dispositîfs supuartâts",

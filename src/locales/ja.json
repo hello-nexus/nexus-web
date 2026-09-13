@@ -899,6 +899,7 @@
   "devices.streamdeck.sleepAfter": "スリープ",
   "devices.streamdeck.sleepAfterMinutes": "{n}分",
   "devices.streamdeck.sleepAfterNever": "しない",
+  "devices.streamdeck.sleepWhenLocked": "PC のロック中はスリープする",
   "devices.streamdeck.tab.customize": "カスタマイズ",
   "devices.streamdeck.tab.settings": "設定",
   "devices.supported.browse": "対応デバイス",

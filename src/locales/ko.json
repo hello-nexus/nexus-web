@@ -899,6 +899,7 @@
   "devices.streamdeck.sleepAfter": "대기 시간",
   "devices.streamdeck.sleepAfterMinutes": "{n}분",
   "devices.streamdeck.sleepAfterNever": "안 함",
+  "devices.streamdeck.sleepWhenLocked": "PC가 잠겨 있을 때 절전",
   "devices.streamdeck.tab.customize": "사용자 지정",
   "devices.streamdeck.tab.settings": "설정",
   "devices.supported.browse": "지원 장치",
