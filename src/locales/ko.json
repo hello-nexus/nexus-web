@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "기본값",
   "tools.installDefaults.title": "기본값 설치",
   "tools.no": "아니오",
+  "tools.nollieSim.label": "하드웨어 연결 없이 Nollie 컨트롤러를 시뮬레이션하여 포트, Strimer 커넥터, 장치 페이지를 확인합니다.",
+  "tools.nollieSim.title": "Nollie 시뮬레이터",
   "tools.openReference": "참조 열기",
   "tools.panelSim.inShortSide": "짧은 변 기준",
   "tools.panelSim.label": "로컬 스크린샷, 동영상, 터치/편집기 테스트를 위해 패널 대상에 가짜로 연결합니다.",

@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Standardwerte",
   "tools.installDefaults.title": "Standardwerte festlegen",
   "tools.no": "Nein",
+  "tools.nollieSim.label": "Einen Nollie-Controller simulieren, um Anschlüsse, Strimer-Stecker und Geräteseite ohne angeschlossene Hardware zu prüfen.",
+  "tools.nollieSim.title": "Nollie-Simulator",
   "tools.openReference": "Referenz öffnen",
   "tools.panelSim.inShortSide": "an kurzer Seite",
   "tools.panelSim.label": "Panel-Ziele zum Schein verbinden für lokale Screenshots, Videos und Touch-/Editor-Tests.",

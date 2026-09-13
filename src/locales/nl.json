@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Standaardwaarden",
   "tools.installDefaults.title": "Standaardwaarden installeren",
   "tools.no": "Nee",
+  "tools.nollieSim.label": "Simuleer een Nollie-controller om de poorten, Strimer-connectors en apparaatpagina te bekijken zonder aangesloten hardware.",
+  "tools.nollieSim.title": "Nollie-simulator",
   "tools.openReference": "Referentie openen",
   "tools.panelSim.inShortSide": "in korte zijde",
   "tools.panelSim.label": "Nep-verbind paneeldoelen voor lokale schermafbeeldingen, video's en touch-/editortests.",

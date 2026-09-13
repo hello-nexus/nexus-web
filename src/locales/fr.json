@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Valeurs par défaut",
   "tools.installDefaults.title": "Installer les valeurs par défaut",
   "tools.no": "Non",
+  "tools.nollieSim.label": "Simuler un contrôleur Nollie pour parcourir ses ports, ses connecteurs Strimer et sa page d’appareil sans matériel branché.",
+  "tools.nollieSim.title": "Simulateur Nollie",
   "tools.openReference": "Ouvrir la référence",
   "tools.panelSim.inShortSide": "sur le côté court",
   "tools.panelSim.label": "Connexion factice de cibles de panneau pour les captures d'écran, vidéos et tests tactiles/d'éditeur en local.",

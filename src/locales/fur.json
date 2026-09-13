@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Predefinîts",
   "tools.installDefaults.title": "Instale valôrs predefinîts",
   "tools.no": "No",
+  "tools.nollieSim.label": "Simule un controlôr Nollie par provâ lis sôs puartis, i conetôrs Strimer e la pagjine dal dispositîf cence hardware tacât.",
+  "tools.nollieSim.title": "Simuladôr Nollie",
   "tools.openReference": "Vierç riferiment",
   "tools.panelSim.inShortSide": "tal lât curt",
   "tools.panelSim.label": "Conet par finte panei di destinazion par screenshot locâi, video e provis di toc/editôr.",

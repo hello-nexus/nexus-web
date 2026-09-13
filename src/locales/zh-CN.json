@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "默认值",
   "tools.installDefaults.title": "安装默认值",
   "tools.no": "否",
+  "tools.nollieSim.label": "无需连接硬件即可模拟 Nollie 控制器，查看其端口、Strimer 接口和设备页面。",
+  "tools.nollieSim.title": "Nollie 模拟器",
   "tools.openReference": "打开参考",
   "tools.panelSim.inShortSide": "短边英寸",
   "tools.panelSim.label": "为本地截图、录像及触控/编辑器测试模拟连接面板目标。",

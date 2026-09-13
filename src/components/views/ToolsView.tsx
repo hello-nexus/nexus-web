@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useCallback, useState, useEffect, lazy, Suspense } from 'react';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { fetchService } from '../../api/service';
 import { useTranslation } from '../../lib/i18n';
@@ -42,6 +42,7 @@ import {
   clearSimulatedStreamDeck,
   type StreamDeckDevModel,
 } from '../../api/streamdeck';
+import { clearSimulatedNollie, getNollieBoards, getNollieDevModels, simulateNollie, NOLLIE_SIMULATED_SERIAL_PREFIX, type NollieDevModel } from '../../api/nollie';
 import { DEV_TOOLS } from '../../lib/devTools';
 import styles from './ToolsView.module.scss';
 
@@ -237,6 +238,70 @@ export function StreamDeckSimRow() {
           ariaLabel={t('devices.streamdeck.model')}
         />
         <Button type="button" tone={connected ? 'danger' : 'accent'} size="sm" disabled={busy || (!connected && !productId)} onClick={() => void onToggle()}>
+          {/* eslint-disable-next-line i18next/no-literal-string -- dev-tools sim toggle, matches panel rows */}
+          {connected ? 'Disconnect' : 'Connect'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Dev-tools-only: a simulated Nollie controller via the service's
+ * /devices/nollie/dev/* routes, so the board's cards, its Strimer ports and
+ * the device page can be walked without hardware. Same Connect/Disconnect
+ * shape as the Stream Deck row; a simulated board is listed under Devices
+ * only while attached and never touches a real one.
+ */
+export function NollieSimRow() {
+  const { t } = useTranslation();
+  const [models, setModels] = useState<NollieDevModel[]>([]);
+  const [modelId, setModelId] = useState('');
+  const [connected, setConnected] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(() => {
+    void getNollieBoards().then(boards => {
+      setConnected(!!boards?.some(b => b.serial.startsWith(NOLLIE_SIMULATED_SERIAL_PREFIX)));
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getNollieDevModels().then(list => {
+      if (cancelled) return;
+      setModels(list);
+      setModelId(prev => prev || list[0]?.id || '');
+    });
+    refresh();
+    return () => { cancelled = true; };
+  }, [refresh]);
+
+  const onToggle = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (connected) await clearSimulatedNollie();
+      else if (modelId) await simulateNollie(modelId);
+    } finally { setBusy(false); }
+    refresh();
+  };
+
+  return (
+    <div className={styles.simRow}>
+      <div className={styles.simMeta}>
+        <strong>{t('tools.nollieSim.title')}</strong>
+        <span>{t('tools.nollieSim.label')}</span>
+      </div>
+      <div className={styles.streamdeckSimControls}>
+        <Select
+          value={modelId}
+          options={models.map(m => ({ value: m.id, label: m.name }))}
+          onChange={setModelId}
+          disabled={connected || busy}
+          ariaLabel={t('tools.nollieSim.title')}
+        />
+        <Button type="button" tone={connected ? 'danger' : 'accent'} size="sm" disabled={busy || (!connected && !modelId)} onClick={() => void onToggle()}>
           {/* eslint-disable-next-line i18next/no-literal-string -- dev-tools sim toggle, matches panel rows */}
           {connected ? 'Disconnect' : 'Connect'}
         </Button>
@@ -548,6 +613,7 @@ function PanelSimulatorCard() {
           </Button>
         </div>
         {DEV_TOOLS && <StreamDeckSimRow />}
+        {DEV_TOOLS && <NollieSimRow />}
       </div>
     </Card>
   );

@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Defaults",
   "tools.installDefaults.title": "Install defaults",
   "tools.no": "No",
+  "tools.nollieSim.label": "Simulate a Nollie controller to walk its ports, Strimer connectors and device page without hardware attached.",
+  "tools.nollieSim.title": "Nollie Simulator",
   "tools.openReference": "Open reference",
   "tools.panelSim.inShortSide": "in short side",
   "tools.panelSim.label": "Fake-connect panel targets for local screenshots, videos, and touch/editor testing.",

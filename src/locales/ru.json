@@ -4143,6 +4143,8 @@
   "tools.installDefaults.tabDefaults": "По умолчанию",
   "tools.installDefaults.title": "Установить значения по умолчанию",
   "tools.no": "Нет",
+  "tools.nollieSim.label": "Симулировать контроллер Nollie, чтобы пройтись по его портам, разъёмам Strimer и странице устройства без подключённого оборудования.",
+  "tools.nollieSim.title": "Симулятор Nollie",
   "tools.openReference": "Открыть справочник",
   "tools.panelSim.inShortSide": "по короткой стороне",
   "tools.panelSim.label": "Фиктивное подключение целевых панелей для локальных скриншотов, видео и тестирования касаний/редактора.",

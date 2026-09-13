@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Varsayılanlar",
   "tools.installDefaults.title": "Varsayılanları yükle",
   "tools.no": "Hayir",
+  "tools.nollieSim.label": "Donanım bağlı olmadan bağlantı noktalarını, Strimer konnektörlerini ve cihaz sayfasını incelemek için bir Nollie denetleyicisini simüle edin.",
+  "tools.nollieSim.title": "Nollie Simülatörü",
   "tools.openReference": "Referansı aç",
   "tools.panelSim.inShortSide": "kısa kenarda",
   "tools.panelSim.label": "Yerel ekran görüntüleri, videolar ve dokunma/düzenleyici testi için sahte bağlantılı panel hedefleri.",

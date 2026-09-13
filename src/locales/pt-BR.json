@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Padrões",
   "tools.installDefaults.title": "Instalar padrões",
   "tools.no": "Nao",
+  "tools.nollieSim.label": "Simule um controlador Nollie para percorrer suas portas, conectores Strimer e página do dispositivo sem hardware conectado.",
+  "tools.nollieSim.title": "Simulador Nollie",
   "tools.openReference": "Abrir referência",
   "tools.panelSim.inShortSide": "no lado curto",
   "tools.panelSim.label": "Conecte alvos de painel de forma simulada para capturas de tela locais, vídeos e testes de toque/editor.",

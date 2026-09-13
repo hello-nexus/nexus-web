@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "デフォルト",
   "tools.installDefaults.title": "デフォルトをインストール",
   "tools.no": "いいえ",
+  "tools.nollieSim.label": "ハードウェアを接続せずに、Nollie コントローラーをシミュレートしてポート、Strimer コネクター、デバイス ページを確認します。",
+  "tools.nollieSim.title": "Nollie シミュレーター",
   "tools.openReference": "リファレンスを開く",
   "tools.panelSim.inShortSide": "短辺方向",
   "tools.panelSim.label": "ローカルでのスクリーンショット、動画、タッチ/エディターのテスト用に、パネルターゲットを擬似接続します。",

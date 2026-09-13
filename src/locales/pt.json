@@ -4108,6 +4108,8 @@
   "tools.installDefaults.tabDefaults": "Predefinições",
   "tools.installDefaults.title": "Instalar predefinições",
   "tools.no": "Nao",
+  "tools.nollieSim.label": "Simule um controlador Nollie para percorrer as portas, os conectores Strimer e a página do dispositivo sem hardware ligado.",
+  "tools.nollieSim.title": "Simulador Nollie",
   "tools.openReference": "Abrir referência",
   "tools.panelSim.inShortSide": "no lado curto",
   "tools.panelSim.label": "Liga falsamente alvos de painel para capturas de ecrã, vídeos e testes de toque/editor locais.",
