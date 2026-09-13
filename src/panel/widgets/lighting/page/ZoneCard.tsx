@@ -47,16 +47,16 @@ export function zoneCardSelectable(device: LightingDevice): boolean {
 /** The selection a card's menu acts on when the card is part of one. Aggregate
  *  flags follow the canvas convention: true when ANY member still is. */
 /**
- * The card's colour lock. `lockable` is the Static tab, where a lock can be
- * set; elsewhere the button only shows on a device that is already locked, as
- * the way to unlock it. A device with no pick of its own has nothing to hold,
- * so there the button is offered but disabled.
+ * The card's colour lock. A locked card shows the lock beside its LED strip
+ * in every mode, and that badge is also the quick unlock. The menu carries
+ * both rows: Unlock wherever the card is locked, Lock only on the Static tab
+ * (`lockable`) and only when the card has a pick of its own to hold.
  */
 export interface DeviceLock {
   locked: boolean;
   lockable: boolean;
   hasPick: boolean;
-  onToggle: () => void;
+  setLocked: (locked: boolean) => void;
 }
 
 export interface BulkSelection {
@@ -81,6 +81,12 @@ export interface BulkSelection {
   stack?: () => void;
   /** Takes the selection apart; present when it is exactly one stack. */
   unstack?: () => void;
+  /** Members a Lock row can hold: unlocked, with a pick of their own. Zero
+   *  outside the Static tab, where nothing can be locked. */
+  lockCount?: number;
+  /** Members currently locked, which an Unlock row releases. */
+  unlockCount?: number;
+  setLocked?: (locked: boolean) => void;
 }
 
 /** Where a card sits under a {@link ZoneCardStack} header: every member seams
@@ -509,6 +515,26 @@ export function ZoneCard({
         ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
         : { key: 'controlled', icon: <Link size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
     }
+    // The colour lock. Unlock is offered wherever something is locked; Lock
+    // only where a lock can be set (the Static tab) and there is a pick to
+    // hold. In a selection each row counts the members it will reach.
+    if (lock && !unavailable) {
+      const lockCount = bulk ? (bulk.lockCount ?? 0) : (lock.lockable && lock.hasPick && !lock.locked ? 1 : 0);
+      const unlockCount = bulk ? (bulk.unlockCount ?? 0) : (lock.locked ? 1 : 0);
+      const setLocked = (locked: boolean) => bulk ? bulk.setLocked?.(locked) : lock.setLocked(locked);
+      if (lockCount > 0) {
+        items.push({
+          key: 'lock', icon: <Lock size={14} />, onSelect: () => setLocked(true),
+          label: bulkMenuLabel(t, language, bulk && { count: lockCount }, 'lighting.devices.lockLook', 'lighting.devices.lockLookCount'),
+        });
+      }
+      if (unlockCount > 0) {
+        items.push({
+          key: 'unlock', icon: <Unlock size={14} />, onSelect: () => setLocked(false),
+          label: bulkMenuLabel(t, language, bulk && { count: unlockCount }, 'lighting.devices.unlockLook', 'lighting.devices.unlockLookCount'),
+        });
+      }
+    }
     // Naming and grouping close the menu, under a rule: they change what the
     // card IS, where everything above acts on what it does.
     const organise: DeviceMenuItem[] = [];
@@ -657,26 +683,19 @@ export function ZoneCard({
         {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
           <DeviceLedStrip device={device} slot={stackSlot} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
         )}
-        {/* Sits between the strip and the menu, so the strip gives up its
-            width to it. A locked device shows it in every mode: that is the
-            one route to unlocking from outside Static. */}
-        {lock && !toggleMode && !unavailable && !firmwareControlled && (lock.locked || lock.lockable) && (
-          <HoverTooltip
-            body={lock.locked
-              ? t('lighting.devices.unlockLook')
-              : lock.hasPick ? t('lighting.devices.lockLook') : t('lighting.devices.lockNeedsPick')}
-            side="top"
-          >
+        {/* Only a locked card carries the badge: it sits between the strip
+            and the menu, so the strip gives up its width to it, and a press
+            unlocks in any mode. Locking lives in the menu. */}
+        {lock?.locked && !toggleMode && !unavailable && !firmwareControlled && (
+          <HoverTooltip body={t('lighting.devices.unlockLook')} side="top">
             <button
               type="button"
-              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn} ${lock.locked ? styles.deviceLockBtnOn : ''}`}
-              aria-label={t('lighting.devices.lockLook')}
-              aria-pressed={lock.locked}
-              disabled={!lock.locked && !lock.hasPick}
+              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn}`}
+              aria-label={t('lighting.devices.unlockLook')}
               data-no-dnd
-              onClick={e => { e.stopPropagation(); lock.onToggle(); }}
+              onClick={e => { e.stopPropagation(); lock.setLocked(false); }}
             >
-              {lock.locked ? <Lock /> : <Unlock />}
+              <Lock />
             </button>
           </HoverTooltip>
         )}

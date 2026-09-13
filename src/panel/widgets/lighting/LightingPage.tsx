@@ -902,16 +902,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setDevicePicks(prev => mergeLocksFromLooks(prev, res.looks));
   }, [setDevicePicks]);
 
-  // Optimistic: the card flips at once, and the record is put back only if
-  // the service refused (no look to hold, or a service without the route).
-  const handleToggleLock = useCallback((id: string) => {
-    const pick = devicePicks[id];
-    if (!pick) return;
-    const locked = !pick.locked;
-    setDevicePicks(prev => setPickLocked(prev, id, locked));
-    setStaticDeviceLock(id, locked).then(ok => {
-      if (!ok) setDevicePicks(prev => setPickLocked(prev, id, !locked));
-    });
+  // Optimistic: the cards flip at once, and a record is put back only if the
+  // service refused it (no look to hold, or a service without the route).
+  const handleSetLock = useCallback((ids: string[], locked: boolean) => {
+    for (const id of ids) {
+      if (!devicePicks[id]) continue;
+      setDevicePicks(prev => setPickLocked(prev, id, locked));
+      setStaticDeviceLock(id, locked).then(ok => {
+        if (!ok) setDevicePicks(prev => setPickLocked(prev, id, !locked));
+      });
+    }
   }, [devicePicks, setDevicePicks]);
 
   // A pick predating the palette names a flat EFFECT key. Repoint it at the
@@ -2212,7 +2212,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             versionForSlot={versionForSlot}
             ledFullscreen={effectiveMode === 'static'}
             lockable={effectiveMode === 'static'}
-            onToggleLock={handleToggleLock}
+            onSetLock={handleSetLock}
             selectedIds={selectedDeviceIds}
             onSetSelection={handleSetSelection}
             onTogglePower={handleTogglePower}

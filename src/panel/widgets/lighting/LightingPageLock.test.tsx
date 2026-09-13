@@ -47,13 +47,13 @@ vi.mock('./page/ModeControls', () => ({ ModeControls: () => null }));
 // The stub exposes exactly what the lock rides on: the pick the rail is handed
 // (locked or not) and the toggle callback.
 vi.mock('./page/DevicePanel', () => ({
-  DevicePanel: ({ devicePicks, lockable, onToggleLock }: {
+  DevicePanel: ({ devicePicks, lockable, onSetLock }: {
     devicePicks?: Record<string, { locked?: boolean }>;
     lockable?: boolean;
-    onToggleLock?: (id: string) => void;
+    onSetLock?: (ids: string[], locked: boolean) => void;
   }) => (
     <div data-testid="rail" data-lockable={String(!!lockable)} data-locked={String(!!devicePicks?.a?.locked)} data-haspick={String(!!devicePicks?.a)}>
-      <button type="button" onClick={() => onToggleLock?.('a')}>toggle</button>
+      <button type="button" onClick={() => onSetLock?.(['a'], !devicePicks?.a?.locked)}>toggle</button>
     </div>
   ),
 }));

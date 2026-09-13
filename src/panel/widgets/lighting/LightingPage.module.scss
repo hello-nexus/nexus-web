@@ -1188,24 +1188,12 @@
   opacity: 1;
 }
 
-// Colour lock between the LED strip and the menu. Always visible: a lock the
-// user has to hover to find is a lock they will not know is set.
+// Colour lock between the LED strip and the menu, only on a locked card.
+// Always visible: a lock the user has to hover to find is a lock they will
+// not know is set.
 .deviceLockBtn {
   opacity: 1;
   flex-shrink: 0;
-
-  &:disabled {
-    cursor: default;
-    opacity: var(--alpha-medium);
-
-    &:hover {
-      color: var(--text-dim);
-      background: transparent;
-    }
-  }
-}
-
-.deviceLockBtnOn {
   color: var(--accent);
 }
 

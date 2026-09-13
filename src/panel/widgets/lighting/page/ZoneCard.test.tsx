@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -767,23 +767,34 @@ describe('ZoneCard stacked', () => {
 });
 
 describe('ZoneCard color lock', () => {
-  // One stable name; aria-pressed carries the state.
-  const lockBtn = () => screen.queryByRole('button', { name: 'lighting.devices.lockLook' }) as HTMLButtonElement | null;
-  const renderLocked = (lock: { locked: boolean; lockable: boolean; hasPick: boolean; onToggle?: () => void }) => render(
-    <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={() => {}} lock={{ onToggle: () => {}, ...lock }} />,
+  const badge = () => screen.queryByRole('button', { name: 'lighting.devices.unlockLook' }) as HTMLButtonElement | null;
+  const menuRow = (re: RegExp) => screen.queryAllByRole('button').find(b => re.test(b.textContent ?? '')) ?? null;
+  const openMenu = () => fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+  const renderLock = (lock: { locked: boolean; lockable: boolean; hasPick: boolean; setLocked?: (locked: boolean) => void }, extra: Partial<Parameters<typeof ZoneCard>[0]> = {}) => render(
+    <ZoneCard
+      device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+      onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+      lock={{ setLocked: () => {}, ...lock }}
+      {...extra}
+    />,
   );
 
-  it('renders nothing without a lock prop', () => {
+  it('renders no badge and no rows without a lock prop', () => {
     renderCard(baseDevice);
-    expect(lockBtn()).toBeNull();
+    expect(badge()).toBeNull();
+    openMenu();
+    expect(menuRow(/lighting\.devices\.(un)?lockLook/)).toBeNull();
   });
 
-  it('sits between the LED strip and the menu on the Static tab and fires the toggle', () => {
-    const onToggle = vi.fn();
-    renderLocked({ locked: false, lockable: true, hasPick: true, onToggle });
-    const btn = lockBtn()!;
-    expect(btn.getAttribute('aria-pressed')).toBe('false');
-    expect(btn.disabled).toBe(false);
+  it('shows no badge on an unlocked card, even on the Static tab', () => {
+    renderLock({ locked: false, lockable: true, hasPick: true });
+    expect(badge()).toBeNull();
+  });
+
+  it('badges a locked card between the strip and the menu, in any mode, and the badge unlocks', () => {
+    const setLocked = vi.fn();
+    renderLock({ locked: true, lockable: false, hasPick: true, setLocked });
+    const btn = badge()!;
     const row = document.querySelector(`.${styles.deviceMetaRow}`)!;
     const order = [...row.children].map(el =>
       el.classList.contains(styles.ledStrip) ? 'strip'
@@ -792,36 +803,70 @@ describe('ZoneCard color lock', () => {
     ).filter(Boolean);
     expect(order).toEqual(['strip', 'lock', 'menu']);
     fireEvent.click(btn);
-    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(setLocked).toHaveBeenCalledWith(false);
   });
 
-  it('is offered but disabled on a card with no pick of its own', () => {
-    renderLocked({ locked: false, lockable: true, hasPick: false });
-    const btn = lockBtn()!;
-    expect(btn.disabled).toBe(true);
-  });
-
-  it('reads as locked and unlocks from any tab', () => {
-    const onToggle = vi.fn();
-    renderLocked({ locked: true, lockable: false, hasPick: true, onToggle });
-    const btn = lockBtn()!;
-    expect(btn.getAttribute('aria-pressed')).toBe('true');
-    expect(btn.className).toContain(styles.deviceLockBtnOn);
-    fireEvent.click(btn);
-    expect(onToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it('is absent outside the Static tab on an unlocked card', () => {
-    renderLocked({ locked: false, lockable: false, hasPick: true });
-    expect(lockBtn()).toBeNull();
-  });
-
-  it('does not select the card when clicked', () => {
+  it('does not select the card when the badge is pressed', () => {
     const onSelect = vi.fn();
-    render(
-      <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={onSelect} lock={{ locked: false, lockable: true, hasPick: true, onToggle: () => {} }} />,
-    );
-    fireEvent.click(lockBtn()!);
+    renderLock({ locked: true, lockable: false, hasPick: true }, { onSelect });
+    fireEvent.click(badge()!);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('offers Lock in the menu on the Static tab when the card has a pick', () => {
+    const setLocked = vi.fn();
+    renderLock({ locked: false, lockable: true, hasPick: true, setLocked });
+    openMenu();
+    const row = menuRow(/^lighting\.devices\.lockLook$/)!;
+    expect(row).not.toBeNull();
+    expect(menuRow(/unlockLook/)).toBeNull();
+    fireEvent.click(row);
+    expect(setLocked).toHaveBeenCalledWith(true);
+  });
+
+  it('offers no Lock row without a pick, or outside the Static tab', () => {
+    renderLock({ locked: false, lockable: true, hasPick: false });
+    openMenu();
+    expect(menuRow(/lockLook/)).toBeNull();
+    cleanup();
+    renderLock({ locked: false, lockable: false, hasPick: true });
+    openMenu();
+    expect(menuRow(/lockLook/)).toBeNull();
+  });
+
+  it('offers Unlock in the menu on a locked card in any mode', () => {
+    const setLocked = vi.fn();
+    renderLock({ locked: true, lockable: false, hasPick: true, setLocked });
+    openMenu();
+    const row = menuRow(/^lighting\.devices\.unlockLook$/)!;
+    expect(row).not.toBeNull();
+    expect(menuRow(/^lighting\.devices\.lockLook$/)).toBeNull();
+    fireEvent.click(row);
+    expect(setLocked).toHaveBeenCalledWith(false);
+  });
+
+  it('counts the members each row reaches in a selection', () => {
+    const setLocked = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice} selected indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        lock={{ locked: false, lockable: true, hasPick: true, setLocked: () => {} }}
+        bulk={{
+          count: 3, identifyCount: 3, tunableCount: 3, controlled: true, ledsOn: true, oneDevice: false,
+          setControlled: () => {}, setPower: () => {}, identify: () => {},
+          lockCount: 2, unlockCount: 1, setLocked,
+        }}
+      />,
+    );
+    openMenu();
+    const lockRow = menuRow(/lockLookCount\.other:\{"count":2\}/)!;
+    const unlockRow = menuRow(/unlockLookCount\.one:\{"count":1\}/)!;
+    expect(lockRow).not.toBeNull();
+    expect(unlockRow).not.toBeNull();
+    fireEvent.click(lockRow);
+    expect(setLocked).toHaveBeenCalledWith(true);
+    fireEvent.click(unlockRow);
+    expect(setLocked).toHaveBeenCalledWith(false);
   });
 });

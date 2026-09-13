@@ -33,7 +33,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onToggleLock, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -53,10 +53,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   /** Static mode: strips sample the whole canvas rather than each device's rect. */
   ledFullscreen?: boolean;
   /** Static mode: a card with its own pick can be locked onto it. Outside
-   *  Static only already-locked cards show the button, to unlock. */
+   *  Static the menu offers only Unlock, on cards that are locked. */
   lockable?: boolean;
-  /** Flips the card's colour lock. Absent leaves every card lock-less. */
-  onToggleLock?: (id: string) => void;
+  /** Sets the colour lock on these cards. Absent leaves every card lock-less. */
+  onSetLock?: (ids: string[], locked: boolean) => void;
   /** Device ids currently selected (single-tap → 1-element set, canvas marquee → N-element set). */
   selectedIds: Set<string>;
   /** Bulk set: Cmd/Ctrl+click on a row toggles membership without clobbering the rest. */
@@ -328,6 +328,14 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         }),
       group: groupDevices(selectedDevices.map(x => x.id)),
       ...stackFor(selectedDevices.map(x => x.id)),
+      ...(onSetLock ? {
+        lockCount: lockable ? selectedDevices.filter(x => devicePicks?.[x.id] && !devicePicks[x.id].locked).length : 0,
+        unlockCount: selectedDevices.filter(x => devicePicks?.[x.id]?.locked).length,
+        setLocked: (locked: boolean) => onSetLock(
+          selectedDevices.filter(x => locked ? devicePicks?.[x.id] && !devicePicks[x.id].locked : devicePicks?.[x.id]?.locked).map(x => x.id),
+          locked,
+        ),
+      } : {}),
     };
   };
 
@@ -346,9 +354,9 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   };
 
   const lockFor = (id: string): DeviceLock | undefined => {
-    if (!onToggleLock) return undefined;
+    if (!onSetLock) return undefined;
     const pick = devicePicks?.[id];
-    return { locked: !!pick?.locked, lockable, hasPick: !!pick, onToggle: () => onToggleLock(id) };
+    return { locked: !!pick?.locked, lockable, hasPick: !!pick, setLocked: locked => onSetLock([id], locked) };
   };
 
   const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs, stacked?: StackPosition) => (
