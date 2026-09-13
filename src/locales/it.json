@@ -909,6 +909,7 @@
   "devices.streamdeck.sleepAfter": "Standby dopo",
   "devices.streamdeck.sleepAfterMinutes": "{n}m",
   "devices.streamdeck.sleepAfterNever": "Mai",
+  "devices.streamdeck.sleepWhenLocked": "Sospendi quando il PC è bloccato",
   "devices.streamdeck.tab.customize": "Personalizza",
   "devices.streamdeck.tab.settings": "Impostazioni",
   "devices.supported.browse": "Dispositivi supportati",

@@ -916,6 +916,7 @@
   "devices.streamdeck.sleepAfter": "Uspienie po",
   "devices.streamdeck.sleepAfterMinutes": "{n} min",
   "devices.streamdeck.sleepAfterNever": "Nigdy",
+  "devices.streamdeck.sleepWhenLocked": "Uśpij, gdy komputer jest zablokowany",
   "devices.streamdeck.tab.customize": "Dostosuj",
   "devices.streamdeck.tab.settings": "Ustawienia",
   "devices.supported.browse": "Obslugiwane urzadzenia",

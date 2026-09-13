@@ -478,9 +478,11 @@ export function PanelContent({
   // Selection guard runs in simulator too: text-select fights drag gestures
   // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
-  usePhoneContentScale(surface === 'phone' && loaded, rootRef);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio);
+  // The phone measures its rendered cell; the ratio re-bases that onto the
+  // stock-padding cell the grid solved its render scale at.
+  usePhoneContentScale(surface === 'phone' && loaded, rootRef, runtimeGrid.contentScale / runtimeGrid.cellSize);
   // WebKit (Safari / macOS WKWebView) miscomputes the tokens.scss
   // tan(atan2(cell, 90px)) length-ratio used for --panel-scale, returning a
   // negative number that flips every --panel-scale-driven element 180deg

@@ -909,6 +909,7 @@
   "devices.streamdeck.sleepAfter": "Uyku süresi",
   "devices.streamdeck.sleepAfterMinutes": "{n}dk",
   "devices.streamdeck.sleepAfterNever": "Asla",
+  "devices.streamdeck.sleepWhenLocked": "PC kilitliyken uyku moduna geç",
   "devices.streamdeck.tab.customize": "Özelleştir",
   "devices.streamdeck.tab.settings": "Ayarlar",
   "devices.supported.browse": "Desteklenen Cihazlar",

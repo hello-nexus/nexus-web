@@ -63,5 +63,12 @@ export function useStreamDecks(enabled: boolean) {
     return ok;
   }, [refresh]);
 
-  return { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, refresh };
+  const setSleepWhenLocked = useCallback(async (serial: string, sleepWhenLocked: boolean) => {
+    setDecks(prev => prev.map(d => (d.serial === serial ? { ...d, sleepWhenLocked } : d)));
+    const ok = await updateStreamDeck(serial, { sleepWhenLocked });
+    if (!ok) await refresh();
+    return ok;
+  }, [refresh]);
+
+  return { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked, refresh };
 }

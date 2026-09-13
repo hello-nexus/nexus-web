@@ -909,6 +909,7 @@
   "devices.streamdeck.sleepAfter": "睡眠延遲",
   "devices.streamdeck.sleepAfterMinutes": "{n}分鐘",
   "devices.streamdeck.sleepAfterNever": "永不",
+  "devices.streamdeck.sleepWhenLocked": "鎖定電腦時休眠",
   "devices.streamdeck.tab.customize": "自訂",
   "devices.streamdeck.tab.settings": "設定",
   "devices.supported.browse": "支援的裝置",

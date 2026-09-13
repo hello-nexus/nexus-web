@@ -909,6 +909,7 @@
   "devices.streamdeck.sleepAfter": "休眠延迟",
   "devices.streamdeck.sleepAfterMinutes": "{n}分钟",
   "devices.streamdeck.sleepAfterNever": "从不",
+  "devices.streamdeck.sleepWhenLocked": "锁定电脑时休眠",
   "devices.streamdeck.tab.customize": "自定义",
   "devices.streamdeck.tab.settings": "设置",
   "devices.supported.browse": "支持的设备",

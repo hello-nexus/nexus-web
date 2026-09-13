@@ -916,6 +916,7 @@
   "devices.streamdeck.sleepAfter": "Сон через",
   "devices.streamdeck.sleepAfterMinutes": "{n} мин",
   "devices.streamdeck.sleepAfterNever": "Никогда",
+  "devices.streamdeck.sleepWhenLocked": "Переходить в спящий режим, когда ПК заблокирован",
   "devices.streamdeck.tab.customize": "Персонализация",
   "devices.streamdeck.tab.settings": "Настройки",
   "devices.supported.browse": "Поддерживаемые устройства",

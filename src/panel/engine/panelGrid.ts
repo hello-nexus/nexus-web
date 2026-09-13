@@ -188,14 +188,16 @@ export function readRuntimePanelGrid(
     sizing: getPanelGridSizingSettings(),
     paddingRatio: widgetPaddingRatio,
   });
-  // Column/row counts are decided in physical px (density), but contentScale
-  // (and gap/padding, injected as CSS custom properties) drive CSS lengths,
-  // so they must be CSS px. At >100% Windows scaling the CSS viewport shrinks
-  // while physical px stays, so a physical-based value renders ~dpr times too
-  // large. No-op at 100% (dpr 1) and for the simulator (dpr forced to 1
-  // above).
+  // Column/row counts are decided in physical px (density), but every length
+  // returned drives CSS (contentScale, gap and padding as injected custom
+  // properties; cellSize as contentScale's base), so they must be CSS px. At
+  // >100% Windows scaling the CSS viewport shrinks while physical px stays, so
+  // a physical-based value renders ~dpr times too large. No-op at 100% (dpr 1)
+  // and for the simulator (dpr forced to 1 above).
   return {
     ...capacity,
+    cellSize: capacity.cellSize / dpr,
+    rowSize: capacity.rowSize / dpr,
     contentScale: capacity.contentScale / dpr,
     gap: capacity.gap / dpr,
     padding: capacity.padding / dpr,

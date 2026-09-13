@@ -133,6 +133,7 @@ const mockRename = vi.fn();
 const mockSetBrightness = vi.fn();
 const mockSetOrientation = vi.fn();
 const mockSetSleepAfterSeconds = vi.fn();
+const mockSetSleepWhenLocked = vi.fn();
 const mockRefresh = vi.fn();
 const mockControlDevice = vi.fn();
 const mockDeckPresetHandleLoad = vi.fn();
@@ -157,6 +158,7 @@ function decksReturn(decks: StreamDeckSummary[], loaded = true) {
   return {
     decks, loaded, rename: mockRename, setBrightness: mockSetBrightness,
     setOrientation: mockSetOrientation, setSleepAfterSeconds: mockSetSleepAfterSeconds,
+    setSleepWhenLocked: mockSetSleepWhenLocked,
     refresh: mockRefresh,
   };
 }
@@ -169,6 +171,7 @@ beforeEach(() => {
   mockSetBrightness.mockResolvedValue(true);
   mockSetOrientation.mockResolvedValue(true);
   mockSetSleepAfterSeconds.mockResolvedValue(true);
+  mockSetSleepWhenLocked.mockResolvedValue(true);
   mockControlDevice.mockResolvedValue(undefined);
   mockSetStreamDeckNav.mockResolvedValue(true);
   mockUsePhysicalDeckTarget.mockReturnValue({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn(), applyConfig: mockApplyConfig });
@@ -340,6 +343,26 @@ describe('StreamDeckDevicePage', () => {
       fireEvent.click(screen.getByRole('option', { name: 'devices.streamdeck.sleepAfterMinutes:{"n":5}' }));
 
       expect(mockSetSleepAfterSeconds).toHaveBeenCalledWith('SN1', 300);
+    });
+
+    it('renders sleep-when-locked on and commits the flip through the setSleepWhenLocked hook', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ sleepWhenLocked: true })]));
+      await renderPage();
+      switchToSettingsTab();
+
+      const toggle = screen.getByRole('switch', { name: 'devices.streamdeck.sleepWhenLocked' });
+      expect(toggle).toBeChecked();
+      fireEvent.click(toggle);
+
+      expect(mockSetSleepWhenLocked).toHaveBeenCalledWith('SN1', false);
+    });
+
+    it('treats a summary without sleepWhenLocked (older service) as on', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      await renderPage();
+      switchToSettingsTab();
+
+      expect(screen.getByRole('switch', { name: 'devices.streamdeck.sleepWhenLocked' })).toBeChecked();
     });
 
     it('shows Never for a disabled sleep-after timer', async () => {
