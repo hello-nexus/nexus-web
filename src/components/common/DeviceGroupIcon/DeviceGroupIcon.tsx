@@ -18,6 +18,7 @@ const PREFIX_LOOK: ReadonlyArray<readonly [prefix: string, look: Look]> = [
   ['nzxt-kraken', art('nzxt.svg')],
   ['cnvs:', art('cnvs.svg')],
   ['tryx', art('tryx.svg')],
+  ['nollie', art('nollie.svg')],
   ['nvidia', { glyph: Gpu }],
   ['/gpu', { glyph: Gpu }],
 ];

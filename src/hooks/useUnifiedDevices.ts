@@ -109,6 +109,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-aio': '/assets/devices/lianli.svg',
   'lianli-wireless': '/assets/devices/lianli.svg',
   strimer: '/assets/devices/device.svg',
+  nollie: '/assets/devices/nollie.svg',
   tryx: '/assets/devices/tryx.svg',
   'nzxt-kraken': '/assets/devices/nzxt.svg',
   streamdeck: '/assets/devices/elgato.svg',
@@ -134,6 +135,7 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   'lianli-aio': 'Lian Li Galahad II',
   'lianli-wireless': 'Lian Li Uni Fan Wireless',
   strimer: 'Lian Li Strimer',
+  nollie: 'Nollie',
   tryx: 'Tryx Panorama',
   // The Kraken's row is its LCD panel entry, whose record is named for the
   // display; the row is the whole cooler.
