@@ -1,10 +1,12 @@
 import { groupOf, newGroupId, type DeviceGroup } from '../../../../lib/deviceGroups';
+import type { DeviceStack, StackLayout } from '../../../../lib/stackSlots';
 import { blockKey, type DeviceBlock } from './deviceBlocks';
 
 // Stacked cards share one canvas frame and one selection: they move, resize
 // and rotate as one and are always selected together. A stack is stored with
-// the group shape (id, name, members); a card is in at most one stack.
-export type DeviceStack = DeviceGroup;
+// the group shape (id, name, members) plus how the members share the frame
+// (lib/stackSlots.ts); a card is in at most one stack.
+export type { DeviceStack };
 
 /** The stack holding `id`, or null. */
 export function stackOf(stacks: readonly DeviceStack[], id: string): DeviceStack | null {
@@ -67,6 +69,11 @@ export function unstackDevices(stacks: readonly DeviceStack[], ids: readonly str
   return stacks
     .map(s => ({ ...s, members: s.members.filter(m => !gone.has(m)) }))
     .filter(s => s.members.length >= 2);
+}
+
+/** The stack holding `id` with its frame shared `layout`-wise; nothing changes when `id` is unstacked. */
+export function setStackLayout(stacks: readonly DeviceStack[], id: string, layout: StackLayout): DeviceStack[] {
+  return stacks.map(s => s.members.includes(id) ? { ...s, layout } : s);
 }
 
 /** Whether every one of `ids` sits in one stack that holds nothing else. */

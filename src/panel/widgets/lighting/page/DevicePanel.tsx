@@ -22,6 +22,7 @@ import {
 } from '../../../../lib/deviceGroups';
 import { blockKey, buildDeviceBlocks, stripParentPrefix, type DeviceBlock, type ZoneBlock } from './deviceBlocks';
 import { canStack, isStackedSet, stackDevices, stackedWith, stackOf, rowOfDevice as rowOfDeviceIn, unstackDevices, withStacked, type DeviceStack } from './deviceStacks';
+import { stackSlotOf } from '../../../../lib/stackSlots';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -368,6 +369,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       bulk={bulkFor(d)}
       groupMove={groupMoveFor(d.id)}
       inStack={stackBadge(d)}
+      stackSlot={stackSlotOf(stacks, d.id)}
       onUnstack={stackOf(stacks, d.id) ? () => onStacksChange?.(unstackDevices(stacks, [d.id])) : undefined}
     />
   );

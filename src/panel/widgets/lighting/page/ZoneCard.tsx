@@ -19,6 +19,7 @@ import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
+import type { StackSlot } from '../../../../lib/stackSlots';
 
 /**
  * True when ZoneCard renders this card non-interactive. A zone with 0 LEDs is
@@ -272,6 +273,7 @@ export function ZoneCard({
   onSelectOnly,
   bulk,
   stacked,
+  stackSlot,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -341,6 +343,8 @@ export function ZoneCard({
   /** Set on a member of a {@link ZoneCardStack}: squares the corners, draws
    *  the seam above it, and rounds the bottom on the last member. */
   stacked?: StackPosition;
+  /** The part of the shared frame this card's device samples when its stack is laid out; the readout reads the same slot. */
+  stackSlot?: StackSlot | null;
 }) {
   const { t, language } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -635,7 +639,7 @@ export function ZoneCard({
         {/* A dark device has nothing to read out, and firmware lighting does not
             come from our canvas, so the bar is absent rather than blank. */}
         {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
-          <DeviceLedStrip device={device} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
+          <DeviceLedStrip device={device} slot={stackSlot} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
         )}
         {toggleable && (
           <span
