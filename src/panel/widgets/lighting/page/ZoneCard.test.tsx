@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -845,31 +845,29 @@ describe('ZoneCard color lock', () => {
     expect(setLocked).toHaveBeenCalledWith(false);
   });
 
-  it('flashes the badge for one run per seq bump, then rests', () => {
-    vi.useFakeTimers();
-    try {
-      const { rerender } = renderLock({ locked: true, lockable: true, hasPick: true });
-      expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
-      const withSeq = (seq: number) => (
-        <ZoneCard
-          device={baseDevice} selected={false} indent={false} onSelect={() => {}}
-          onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
-          lock={{ locked: true, lockable: true, hasPick: true, setLocked: () => {}, flashSeq: seq }}
-        />
-      );
-      act(() => { rerender(withSeq(1)); });
-      expect(badge()!.className).toContain(styles.deviceLockBtnFlash);
-      act(() => { vi.advanceTimersByTime(900); });
-      expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
-      // A second pick flashes again; a re-render with the same seq does not.
-      act(() => { rerender(withSeq(2)); });
-      expect(badge()!.className).toContain(styles.deviceLockBtnFlash);
-      act(() => { vi.advanceTimersByTime(900); });
-      act(() => { rerender(withSeq(2)); });
-      expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
-    } finally {
-      vi.useRealTimers();
-    }
+  it('flashes on a seq bump, restarts on the next, and never on the seq it mounted with', () => {
+    const withSeq = (seq: number) => (
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        lock={{ locked: true, lockable: true, hasPick: true, setLocked: () => {}, flashSeq: seq }}
+      />
+    );
+    // A card mounted while the page still holds an old burst does not flash:
+    // a collapsed group re-expanding is not a pick.
+    const { rerender } = render(withSeq(3));
+    expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
+    // A bump flashes, and remounts the badge so the animation starts over.
+    rerender(withSeq(4));
+    const first = badge()!;
+    expect(first.className).toContain(styles.deviceLockBtnFlash);
+    rerender(withSeq(5));
+    const second = badge()!;
+    expect(second).not.toBe(first);
+    expect(second.className).toContain(styles.deviceLockBtnFlash);
+    // The same seq again keeps the same element: no re-run on a plain re-render.
+    rerender(withSeq(5));
+    expect(badge()).toBe(second);
   });
 
   it('counts the members each row reaches in a selection', () => {

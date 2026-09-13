@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, Lock, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
@@ -18,9 +18,6 @@ import { DeviceNotice } from './DeviceNotice';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
-
-// Matches the .deviceLockBtnFlash animation: off, on, off, on.
-const LOCK_FLASH_MS = 800;
 import styles from '../LightingPage.module.scss';
 import type { StackSlot } from '../../../../lib/stackSlots';
 
@@ -49,22 +46,6 @@ export function zoneCardSelectable(device: LightingDevice): boolean {
 
 /** The selection a card's menu acts on when the card is part of one. Aggregate
  *  flags follow the canvas convention: true when ANY member still is. */
-/**
- * The card's colour lock. A locked card shows the lock beside its LED strip
- * in every mode, and that badge is also the quick unlock. The menu carries
- * both rows: Unlock wherever the card is locked, Lock only on the Static tab
- * (`lockable`) and only when the card has a pick of its own to hold.
- */
-export interface DeviceLock {
-  locked: boolean;
-  lockable: boolean;
-  hasPick: boolean;
-  setLocked: (locked: boolean) => void;
-  /** Bumped when a pick was aimed at this locked card; the badge flashes so
-   *  the user sees why nothing changed. 0 (or unchanged) flashes nothing. */
-  flashSeq?: number;
-}
-
 export interface BulkSelection {
   count: number;
   /** Members that can actually flash, so the identify row never promises to
@@ -93,6 +74,22 @@ export interface BulkSelection {
   /** Members currently locked, which an Unlock row releases. */
   unlockCount?: number;
   setLocked?: (locked: boolean) => void;
+}
+
+/**
+ * The card's colour lock. A locked card shows the lock beside its LED strip
+ * in every mode, and that badge is also the quick unlock. The menu carries
+ * both rows: Unlock wherever the card is locked, Lock only on the Static tab
+ * (`lockable`) and only when the card has a pick of its own to hold.
+ */
+export interface DeviceLock {
+  locked: boolean;
+  lockable: boolean;
+  hasPick: boolean;
+  setLocked: (locked: boolean) => void;
+  /** Bumped when a pick was aimed at this locked card; the badge flashes so
+   *  the user sees why nothing changed. 0 (or unchanged) flashes nothing. */
+  flashSeq?: number;
 }
 
 /** Where a card sits under a {@link ZoneCardStack} header: every member seams
@@ -435,16 +432,13 @@ export function ZoneCard({
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
 
-  // The badge flashes for one animation run per seq bump; the class comes off
-  // afterwards so the next bump can start it again.
+  // The badge is keyed on the flash seq, so a bump remounts it and the CSS
+  // animation runs once from the start; no timer to keep in step with it.
+  // The seq the card mounted with is not a pick against THIS mount (the page
+  // keeps the last burst), so it flashes nothing - only a later bump does.
   const flashSeq = lock?.flashSeq ?? 0;
-  const [flashing, setFlashing] = useState(false);
-  useEffect(() => {
-    if (flashSeq === 0) return undefined;
-    setFlashing(true);
-    const timer = setTimeout(() => setFlashing(false), LOCK_FLASH_MS);
-    return () => clearTimeout(timer);
-  }, [flashSeq]);
+  const mountFlashSeq = useRef(flashSeq);
+  const flashing = flashSeq > 0 && flashSeq !== mountFlashSeq.current;
 
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
@@ -706,6 +700,7 @@ export function ZoneCard({
         {lock?.locked && !toggleMode && !unavailable && !firmwareControlled && (
           <HoverTooltip body={t('lighting.devices.unlockLook')} side="top">
             <button
+              key={flashSeq}
               type="button"
               className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn} ${flashing ? styles.deviceLockBtnFlash : ''}`}
               aria-label={t('lighting.devices.unlockLook')}

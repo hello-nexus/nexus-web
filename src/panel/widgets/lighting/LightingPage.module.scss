@@ -1198,16 +1198,15 @@
 }
 
 // A pick aimed at the locked card: off, on, off, on - hard steps, no fade.
-// Keep the total in step with LOCK_FLASH_MS in ZoneCard.
+// Runs once per mount; ZoneCard remounts the badge per flash.
 .deviceLockBtnFlash {
-  animation: lockBadgeFlash 0.8s step-end;
+  // Two off/on cycles of 1.5x the slow ease each: ~225 ms per phase.
+  animation: lockBadgeFlash calc(var(--ease-slow) * 1.5) step-end 2;
 }
 
 @keyframes lockBadgeFlash {
   0% { opacity: 0; }
-  25% { opacity: 1; }
-  50% { opacity: 0; }
-  75%, 100% { opacity: 1; }
+  50%, 100% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

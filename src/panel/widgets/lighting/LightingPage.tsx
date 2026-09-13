@@ -866,17 +866,22 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [applyAnimate]);
 
   // A pick aimed at a locked device lands nowhere; the card's lock badge
-  // flashes to say why. Once per burst: a colour drag fires per pointer move.
+  // flashes to say why. Once per card per burst: a colour drag fires per
+  // pointer move, and a different locked card picked right after still gets
+  // its own flash. Picks are read through a ref so the pick callbacks that
+  // call this keep their identity across picks.
   const [lockFlash, setLockFlash] = useState<{ ids: ReadonlySet<string>; seq: number }>({ ids: new Set(), seq: 0 });
-  const lockFlashAtRef = useRef(0);
+  const devicePicksRef = useRef(devicePicks);
+  devicePicksRef.current = devicePicks;
+  const lockFlashAtRef = useRef(new Map<string, number>());
   const flashLockedAmong = useCallback((ids: readonly string[]) => {
-    const locked = ids.filter(id => devicePicks[id]?.locked);
-    if (locked.length === 0) return;
     const now = Date.now();
-    if (now - lockFlashAtRef.current < LOCK_FLASH_GAP_MS) return;
-    lockFlashAtRef.current = now;
-    setLockFlash(prev => ({ ids: new Set(locked), seq: prev.seq + 1 }));
-  }, [devicePicks]);
+    const due = ids.filter(id => devicePicksRef.current[id]?.locked
+      && now - (lockFlashAtRef.current.get(id) ?? 0) >= LOCK_FLASH_GAP_MS);
+    if (due.length === 0) return;
+    for (const id of due) lockFlashAtRef.current.set(id, now);
+    setLockFlash(prev => ({ ids: new Set(due), seq: prev.seq + 1 }));
+  }, []);
 
   // A static effect picked while devices are selected paints only those
   // devices. The pick records the slot it was made against, so a later
@@ -2289,6 +2294,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
                   onPreview={handleCustomPreview}
                   onCommit={handleCustomSelect}
+                  notice={lockFlash.seq > 0 ? { title: t('lighting.static.lockedNoticeTitle'), body: t('lighting.static.lockedNoticeBody'), seq: lockFlash.seq } : null}
                 />
               </div>
               )}

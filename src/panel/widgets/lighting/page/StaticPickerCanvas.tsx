@@ -16,7 +16,7 @@ export interface PickerDevice {
 }
 
 // The staticNoticeFade keyframes own the fade; this drives their duration.
-const NOTICE_MS = 2200;
+const NOTICE_MS = 3800;
 /** How long the copy button holds its check. */
 const COPIED_MS = 1500;
 /** Keeps a dot whole when its colour sits on the field's own edge. */
@@ -50,7 +50,7 @@ interface Marker extends PickerDevice {
  */
 export function StaticPickerCanvas({
   devices, hasSelection, hex, segmented, fill, patternEffect, patternSlot, patternVersion, gpuAvailable,
-  onPreview, onCommit,
+  onPreview, onCommit, notice: externalNotice,
 }: {
   /** Selected devices, in rail order. */
   devices: PickerDevice[];
@@ -69,6 +69,9 @@ export function StaticPickerCanvas({
   /** Fires per pointer-move; the caller paces its own writes. */
   onPreview: (hex: string) => void;
   onCommit: (hex: string) => void;
+  /** A notice the page wants shown over the field, the same box the field's
+   *  own refusals use. Each new `seq` shows it again. */
+  notice?: { title: string; body: string; seq: number } | null;
 }) {
   const { t } = useTranslation();
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -110,6 +113,15 @@ export function StaticPickerCanvas({
     if (noticeTimer.current) clearTimeout(noticeTimer.current);
     noticeTimer.current = setTimeout(() => setNotice(null), NOTICE_MS);
   }, []);
+
+  // Keyed on the seq alone: the page re-renders the object per render, and
+  // only a new burst should show the box again.
+  const externalSeq = externalNotice?.seq ?? 0;
+  useEffect(() => {
+    if (!externalNotice || externalSeq === 0) return;
+    showNotice(externalNotice.title, externalNotice.body);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalSeq, showNotice]);
 
   // One mark per spot: devices sharing a colour (or a cell) collapse into it and
   // the label's count is what says how many.

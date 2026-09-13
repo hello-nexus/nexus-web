@@ -47,8 +47,12 @@ export function setPickLocked(prev: DevicePicks, id: string, locked: boolean): D
 }
 
 function withPick(prev: DevicePicks, ids: string[], pick: DevicePick): DevicePicks {
+  const targets = unlockedIds(prev, ids);
+  // Nothing to record (every target locked): the same object, so no store
+  // write and no re-render behind a pick that changed nothing.
+  if (targets.length === 0) return prev;
   const next = { ...prev };
-  for (const id of unlockedIds(prev, ids)) next[id] = pick;
+  for (const id of targets) next[id] = pick;
   return next;
 }
 

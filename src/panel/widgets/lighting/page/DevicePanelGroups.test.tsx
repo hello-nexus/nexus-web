@@ -701,3 +701,80 @@ describe('DevicePanel stacks', () => {
     expect(onStacksChange).toHaveBeenCalledWith([]);
   });
 });
+
+describe('DevicePanel color lock', () => {
+  const picks = {
+    d1: { key: 'flat:red-3', slot: 0, hex: '#ff0000', locked: true },
+    d2: { key: 'flat:red-3', slot: 0, hex: '#ff0000' },
+    // d3 has no pick: nothing to lock.
+  };
+  function renderLockPanel(over: { lockable?: boolean; selectedIds?: Set<string>; lockFlash?: { ids: ReadonlySet<string>; seq: number } } = {}) {
+    const onSetLock = vi.fn();
+    render(
+      <DevicePanel
+        devices={devices}
+        devicePicks={picks}
+        selectedIds={over.selectedIds ?? new Set()}
+        onSetSelection={() => {}}
+        onTogglePower={() => {}}
+        onSetPower={() => {}}
+        onToggleControlled={() => {}}
+        onSetControlled={() => {}}
+        lightingOff={false}
+        onOpenSettings={() => {}}
+        lockable={over.lockable ?? true}
+        onSetLock={onSetLock}
+        lockFlash={over.lockFlash}
+      />,
+    );
+    return onSetLock;
+  }
+  const menuOf = (name: string) => {
+    const card = screen.getByText(name).closest(`.${styles.deviceCard}`)!;
+    fireEvent.click(card.querySelector(`.${styles.deviceMenuBtn}`)!);
+  };
+  const row = (re: RegExp) => screen.queryAllByRole('button').find(b => re.test(b.textContent ?? '')) ?? null;
+
+  it('badges only the locked card, and its badge unlocks that card', () => {
+    const onSetLock = renderLockPanel();
+    const badges = screen.getAllByRole('button', { name: 'lighting.devices.unlockLook' });
+    expect(badges).toHaveLength(1);
+    fireEvent.click(badges[0]);
+    expect(onSetLock).toHaveBeenCalledWith(['d1'], false);
+  });
+
+  it('offers Lock on a card with a pick of its own', () => {
+    const onSetLock = renderLockPanel();
+    menuOf('Strip two');
+    fireEvent.click(row(/^lighting\.devices\.lockLook$/)!);
+    expect(onSetLock).toHaveBeenLastCalledWith(['d2'], true);
+  });
+
+  it('offers neither row on a card with no pick', () => {
+    renderLockPanel();
+    menuOf('Strip three');
+    expect(row(/lockLook/)).toBeNull();
+  });
+
+  it('counts, and reaches, exactly the members each row can act on in a selection', () => {
+    const onSetLock = renderLockPanel({ selectedIds: new Set(['d1', 'd2', 'd3']) });
+    menuOf('Strip one');
+    fireEvent.click(row(/lockLookCount\.one:\{"count":1\}/)!);
+    expect(onSetLock).toHaveBeenLastCalledWith(['d2'], true);
+    fireEvent.click(row(/unlockLookCount\.one:\{"count":1\}/)!);
+    expect(onSetLock).toHaveBeenLastCalledWith(['d1'], false);
+  });
+
+  it('offers no Lock outside the Static tab, in a selection or alone', () => {
+    renderLockPanel({ lockable: false, selectedIds: new Set(['d1', 'd2', 'd3']) });
+    menuOf('Strip one');
+    expect(row(/^lighting\.devices\.lockLook/)).toBeNull();
+    expect(row(/unlockLookCount\.one/)).not.toBeNull();
+  });
+
+  it('hands the flash seq only to the cards the burst names', () => {
+    renderLockPanel({ lockFlash: { ids: new Set(['d1']), seq: 0 } });
+    // seq 0 is "no burst yet": nothing flashes.
+    expect(document.querySelector(`.${styles.deviceLockBtnFlash}`)).toBeNull();
+  });
+});

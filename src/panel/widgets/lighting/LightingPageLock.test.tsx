@@ -162,10 +162,15 @@ describe('LightingPage color lock', () => {
     fireEvent.click(screen.getByText('select-a'));
     fireEvent.click(screen.getByTestId('grid-effect'));
     await waitFor(() => expect(screen.getByTestId('rail').dataset.flash).toBe('1:a'));
+    // The picker canvas says why, in the same box as its own refusals.
+    await waitFor(() => expect(screen.getByText('lighting.static.lockedNoticeTitle')).toBeTruthy());
     // Still locked, still the old pick: the flash was the whole outcome.
     expect(screen.getByTestId('rail').dataset.locked).toBe('true');
     const picks = JSON.parse(localStorage.getItem('nexus.lighting.devicePicks') ?? '{}') as Record<string, { key: string }>;
     expect(picks.a.key).toBe('flat:red-3');
+    // A second pick straight after (a drag's next move) does not flash again.
+    fireEvent.click(screen.getByTestId('grid-effect'));
+    expect(screen.getByTestId('rail').dataset.flash).toBe('1:a');
   });
 
   it('puts the record back when the service refuses', async () => {

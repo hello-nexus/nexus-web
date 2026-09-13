@@ -331,14 +331,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         }),
       group: groupDevices(selectedDevices.map(x => x.id)),
       ...stackFor(selectedDevices.map(x => x.id)),
-      ...(onSetLock ? {
-        lockCount: lockable ? selectedDevices.filter(x => devicePicks?.[x.id] && !devicePicks[x.id].locked).length : 0,
-        unlockCount: selectedDevices.filter(x => devicePicks?.[x.id]?.locked).length,
-        setLocked: (locked: boolean) => onSetLock(
-          selectedDevices.filter(x => locked ? devicePicks?.[x.id] && !devicePicks[x.id].locked : devicePicks?.[x.id]?.locked).map(x => x.id),
-          locked,
-        ),
-      } : {}),
+      ...lockBulkFor(selectedDevices),
     };
   };
 
@@ -354,6 +347,19 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     const pick = devicePicks?.[id];
     if (!pick) return undefined;
     return { ...pick, version: versionForSlot?.(pick.key, pick.slot) ?? '0' };
+  };
+
+  // The members each lock row reaches: Lock the unlocked cards with a pick
+  // (only where a lock can be set), Unlock the locked ones.
+  const lockBulkFor = (members: readonly LightingDevice[]): Pick<BulkSelection, 'lockCount' | 'unlockCount' | 'setLocked'> => {
+    if (!onSetLock) return {};
+    const lockableIds = lockable ? members.filter(x => devicePicks?.[x.id] && !devicePicks[x.id].locked).map(x => x.id) : [];
+    const lockedIds = members.filter(x => devicePicks?.[x.id]?.locked).map(x => x.id);
+    return {
+      lockCount: lockableIds.length,
+      unlockCount: lockedIds.length,
+      setLocked: (locked: boolean) => onSetLock(locked ? lockableIds : lockedIds, locked),
+    };
   };
 
   const lockFor = (id: string): DeviceLock | undefined => {
