@@ -89,6 +89,7 @@ describe('NollieDevicePage', () => {
 
     expect(mockSetStandalone).toHaveBeenCalledWith('nollie-s-AAA', { mode: 'builtin' });
     expect(screen.queryByText('devices.nollie.standaloneColor')).not.toBeInTheDocument();
+    expect(screen.getByText('devices.nollie.modeBuiltInHint')).toBeInTheDocument();
   });
 
   it('commits a picked colour for the board it belongs to', async () => {

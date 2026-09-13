@@ -106,6 +106,9 @@ export function NollieDevicePage({ onSectionNavigate }: NollieDevicePageProps) {
                       : []),
                   ]}
                 />
+                {board.standaloneMode === 'builtin' && (
+                  <p className={styles.customNote} data-settings-aside="true">{t('devices.nollie.modeBuiltInHint')}</p>
+                )}
                 {board.standaloneMode === 'static' && (
                   <SettingRow label={t('devices.nollie.standaloneColor')} align="start">
                     <HsvPicker
