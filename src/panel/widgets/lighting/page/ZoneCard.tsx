@@ -670,7 +670,7 @@ export function ZoneCard({
             <button
               type="button"
               className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn} ${lock.locked ? styles.deviceLockBtnOn : ''}`}
-              aria-label={lock.locked ? t('lighting.devices.unlockLook') : t('lighting.devices.lockLook')}
+              aria-label={t('lighting.devices.lockLook')}
               aria-pressed={lock.locked}
               disabled={!lock.locked && !lock.hasPick}
               data-no-dnd

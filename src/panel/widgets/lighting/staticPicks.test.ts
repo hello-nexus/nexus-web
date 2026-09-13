@@ -4,8 +4,8 @@ import { setLightingDeviceColor } from '../../../api/lighting';
 import { paletteColor } from '../../../types/lightingPalette';
 import { defaultStateFor } from '../../../types/lighting';
 import {
-  devicePicksFromLooks, lockedPicks, pickCustomForDevices, pickLookForDevices, pickPaletteForDevices,
-  setPickLocked, unlockedIds,
+  devicePicksFromLooks, lockedPicks, mergeLocksFromLooks, pickCustomForDevices, pickLookForDevices,
+  pickPaletteForDevices, setPickLocked, unlockedIds,
 } from './staticPicks';
 
 vi.mock('../../../api/lighting', () => ({
@@ -110,6 +110,24 @@ describe('staticPicks', () => {
     it('cannot lock a device with no pick', () => {
       const prev = pickCustomForDevices({}, '#112233', ['a'], false);
       expect(setPickLocked(prev, 'zzz', true)).toBe(prev);
+    });
+
+    it('merges lock flags from the service without replacing the picks it has', () => {
+      const prev = pickCustomForDevices({}, '#112233', ['a', 'b'], false);
+      const looks = {
+        // a: locked on the service with a colour this client has not written yet.
+        a: { effect: 'flat', color: '#00ff00', hue: 0, saturation: 0, slot: 0, locked: true },
+        // c: locked, never seen here - comes in whole so the card can show it.
+        c: { effect: 'stripes', color: '', hue: 0.5, saturation: 1, slot: 2, locked: true },
+      } as Parameters<typeof mergeLocksFromLooks>[1];
+      const next = mergeLocksFromLooks(prev, looks);
+      expect(next.a).toEqual({ ...prev.a, locked: true });   // hex kept: #112233
+      expect(next.b).toBe(prev.b);
+      expect(next.c).toMatchObject({ key: 'stripes', slot: 2, locked: true });
+      // Nothing changed: the same object comes back, so no re-render.
+      expect(mergeLocksFromLooks(next, looks)).toBe(next);
+      // An unlock on the service clears the flag here too.
+      expect(mergeLocksFromLooks(next, {}).a.locked).toBe(false);
     });
 
     it('round-trips the lock from the service and keeps only locked picks for other modes', () => {

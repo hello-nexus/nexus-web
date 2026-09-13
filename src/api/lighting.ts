@@ -588,18 +588,23 @@ export interface StaticDeviceLookDto {
 
 /**
  * Lock a device onto its Static look: the service paints it in every mode
- * and answers 409 to any pick for it until it is unlocked. 404 when the
- * device has no look of its own to hold.
+ * and answers 409 to any pick for it until it is unlocked. Resolves false
+ * when the service refused (404: no look of its own to hold) or is a build
+ * without the route, so the caller can put its optimistic record back;
+ * authFetch would fold both into null.
  */
-export const setStaticDeviceLock = async (id: string, locked: boolean) => {
+export const setStaticDeviceLock = async (id: string, locked: boolean): Promise<boolean> => {
   if (loadLightingMock && id.startsWith('mock-')) {
     const mock = await loadLightingMock();
     if (mock.mockLightingActive()) {
       mock.setMockLightingLock(id, locked);
-      return null;
+      return true;
     }
   }
-  return postService('/devices/lighting-devices/static-lock', { id, locked });
+  const { status } = await authFetchWithStatus('/devices/lighting-devices/static-lock', {
+    method: 'POST', body: { id, locked },
+  });
+  return status === 200;
 };
 
 /** Every per-device Static assignment. The service owns these, so this is how a

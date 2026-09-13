@@ -767,7 +767,8 @@ describe('ZoneCard stacked', () => {
 });
 
 describe('ZoneCard color lock', () => {
-  const lockBtn = () => screen.queryByRole('button', { name: /lighting\.devices\.(un)?lockLook/ }) as HTMLButtonElement | null;
+  // One stable name; aria-pressed carries the state.
+  const lockBtn = () => screen.queryByRole('button', { name: 'lighting.devices.lockLook' }) as HTMLButtonElement | null;
   const renderLocked = (lock: { locked: boolean; lockable: boolean; hasPick: boolean; onToggle?: () => void }) => render(
     <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={() => {}} lock={{ onToggle: () => {}, ...lock }} />,
   );
@@ -781,7 +782,6 @@ describe('ZoneCard color lock', () => {
     const onToggle = vi.fn();
     renderLocked({ locked: false, lockable: true, hasPick: true, onToggle });
     const btn = lockBtn()!;
-    expect(btn.getAttribute('aria-label')).toBe('lighting.devices.lockLook');
     expect(btn.getAttribute('aria-pressed')).toBe('false');
     expect(btn.disabled).toBe(false);
     const row = document.querySelector(`.${styles.deviceMetaRow}`)!;
@@ -805,7 +805,6 @@ describe('ZoneCard color lock', () => {
     const onToggle = vi.fn();
     renderLocked({ locked: true, lockable: false, hasPick: true, onToggle });
     const btn = lockBtn()!;
-    expect(btn.getAttribute('aria-label')).toBe('lighting.devices.unlockLook');
     expect(btn.getAttribute('aria-pressed')).toBe('true');
     expect(btn.className).toContain(styles.deviceLockBtnOn);
     fireEvent.click(btn);

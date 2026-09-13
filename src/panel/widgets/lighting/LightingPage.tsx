@@ -52,7 +52,7 @@ import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanv
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
   pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, devicePicksFromLooks,
-  lockedPicks, setPickLocked, unlockedIds,
+  lockedPicks, mergeLocksFromLooks, setPickLocked, unlockedIds,
   DEVICE_PICKS_STORAGE_KEY, SELECTED_DEVICES_STORAGE_KEY, PRIMARY_DEVICE_STORAGE_KEY,
   type DevicePick,
 } from './staticPicks';
@@ -726,6 +726,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     // static check is safe to disable.
      
     void refreshDevices();
+    // A lock set from another client arrives on this frame. Only the lock
+    // flags are taken: replacing the picks wholesale here would put a
+    // still-queued colour write's record back to the older look.
+    void syncDeviceLocks();
     // Static edits the same template slots, so both modes follow a remote edit.
     if (mode === 'animate' || mode === 'static') {
       if (Date.now() < localAnimateEditUntilRef.current) return;
@@ -892,6 +896,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setDevicePicks(devicePicksFromLooks(res.looks));
   }, [setDevicePicks]);
 
+  const syncDeviceLocks = useCallback(async () => {
+    const res = await fetchStaticDeviceLooks().catch(() => null);
+    if (!res?.looks) return;
+    setDevicePicks(prev => mergeLocksFromLooks(prev, res.looks));
+  }, [setDevicePicks]);
+
   // Optimistic: the card flips at once, and the record is put back only if
   // the service refused (no look to hold, or a service without the route).
   const handleToggleLock = useCallback((id: string) => {
@@ -899,8 +909,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     if (!pick) return;
     const locked = !pick.locked;
     setDevicePicks(prev => setPickLocked(prev, id, locked));
-    setStaticDeviceLock(id, locked).catch(() => {
-      setDevicePicks(prev => setPickLocked(prev, id, !locked));
+    setStaticDeviceLock(id, locked).then(ok => {
+      if (!ok) setDevicePicks(prev => setPickLocked(prev, id, !locked));
     });
   }, [devicePicks, setDevicePicks]);
 

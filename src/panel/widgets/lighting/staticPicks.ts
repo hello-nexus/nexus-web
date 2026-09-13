@@ -151,6 +151,30 @@ export function devicePicksFromLooks(looks: Record<string, StaticDeviceLookDto>)
   return out;
 }
 
+/**
+ * Takes only the lock flags from the service's looks: a lock set from another
+ * client lands, while every pick record (a colour write still queued here)
+ * stays as it is. A locked look this client has never seen is added whole, so
+ * the card can show what the hardware holds.
+ */
+export function mergeLocksFromLooks(prev: DevicePicks, looks: Record<string, StaticDeviceLookDto>): DevicePicks {
+  let next: DevicePicks | null = null;
+  const fromLooks = devicePicksFromLooks(looks);
+  for (const id of new Set([...Object.keys(prev), ...Object.keys(fromLooks)])) {
+    const locked = !!looks[id]?.locked;
+    const pick = prev[id];
+    if (pick) {
+      if (!!pick.locked === locked) continue;
+      next ??= { ...prev };
+      next[id] = { ...pick, locked };
+    } else if (locked) {
+      next ??= { ...prev };
+      next[id] = fromLooks[id];
+    }
+  }
+  return next ?? prev;
+}
+
 /** The picks a mode other than Static still shows: only the locked ones, since
  *  the service paints exactly those while an animation drives the rest. */
 export function lockedPicks(picks: DevicePicks): DevicePicks {

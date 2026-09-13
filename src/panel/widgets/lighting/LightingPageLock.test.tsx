@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { setStaticDeviceLock } from '../../../api/lighting';
+import { fetchStaticDeviceLooks, setStaticDeviceLock } from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { LightingPage } from './LightingPage';
 
@@ -87,7 +87,10 @@ vi.mock('../../../api/lighting', async importOriginal => {
     startStatic: vi.fn(() => Promise.resolve(null)),
     stopLighting: vi.fn(() => Promise.resolve(null)),
     setMusicReactive: vi.fn(() => Promise.resolve(null)),
-    setStaticDeviceLock: vi.fn(() => Promise.resolve(null)),
+    setStaticDeviceLock: vi.fn(() => Promise.resolve(true)),
+    // Rejects like a service that is not there, so the mount sync leaves the
+    // stored picks alone; the broadcast test swaps in real looks.
+    fetchStaticDeviceLooks: vi.fn(() => Promise.reject(new Error('offline'))),
   };
 });
 
@@ -105,7 +108,9 @@ describe('LightingPage color lock', () => {
     localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
     localStorage.setItem('nexus.lighting.devicePicks', JSON.stringify({ a: { key: 'flat:red-3', slot: 0, hex: '#ff0000' } }));
     vi.mocked(setStaticDeviceLock).mockClear();
-    vi.mocked(setStaticDeviceLock).mockImplementation(() => Promise.resolve(null));
+    vi.mocked(setStaticDeviceLock).mockImplementation(() => Promise.resolve(true));
+    vi.mocked(fetchStaticDeviceLooks).mockImplementation(() => Promise.reject(new Error('offline')));
+    topicHandlers.lighting.length = 0;
   });
 
   it('flips the card at once and tells the service', async () => {
@@ -122,8 +127,24 @@ describe('LightingPage color lock', () => {
     expect(setStaticDeviceLock).toHaveBeenLastCalledWith('a', false);
   });
 
+  it('takes a lock set by another client off the lighting broadcast, keeping its own pick', async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('rail').dataset.haspick).toBe('true'));
+    expect(screen.getByTestId('rail').dataset.locked).toBe('false');
+
+    vi.mocked(fetchStaticDeviceLooks).mockImplementation(() => Promise.resolve({
+      looks: { a: { effect: 'flat', color: '#00ff00', intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, slot: 0, locked: true } },
+    }));
+    topicHandlers.lighting.forEach(cb => cb());
+    await waitFor(() => expect(screen.getByTestId('rail').dataset.locked).toBe('true'));
+    // The flag came over; the pick record itself was not replaced.
+    const picks = JSON.parse(localStorage.getItem('nexus.lighting.devicePicks') ?? '{}') as Record<string, { hex: string }>;
+    expect(picks.a.hex).toBe('#ff0000');
+  });
+
   it('puts the record back when the service refuses', async () => {
-    vi.mocked(setStaticDeviceLock).mockImplementation(() => Promise.reject(new Error('404')));
+    // The API layer never rejects: a 404 / 409 / missing route all resolve false.
+    vi.mocked(setStaticDeviceLock).mockImplementation(() => Promise.resolve(false));
     renderPage();
     await waitFor(() => expect(screen.getByTestId('rail').dataset.haspick).toBe('true'));
 
