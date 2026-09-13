@@ -5,6 +5,7 @@ import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
 import { isStaticFill } from '../../../../types/lighting';
 import { isPaletteKey } from '../../../../types/lightingPalette';
 import { cardEnabledLedCount } from './zoneUtils';
+import { sliceStackSlot, type StackSlot } from '../../../../lib/stackSlots';
 import type { LightingDevice } from '../../../../api/lighting';
 import styles from '../LightingPage.module.scss';
 
@@ -32,6 +33,7 @@ const EMPTY_FRAME: LedFrame = { pixels: null, w: 0, h: 0, seq: 0 };
 function paint(
   canvas: HTMLCanvasElement,
   device: LightingDevice,
+  slot: StackSlot | null | undefined,
   frame: LedFrame,
   pick: LedPick | undefined,
   pattern: HTMLImageElement | null,
@@ -94,15 +96,22 @@ function paint(
   const d = img.data;
   // Static evaluates every device as if its frame filled the canvas, so a
   // pattern reads end to end on each device instead of the slice its rect
-  // happens to cover. Other modes sample the rect's midline, left to right,
-  // the axis a strip is wired along.
-  const x0 = fullscreen ? 0 : device.canvasX;
-  const span = fullscreen ? CW : device.canvasW;
-  const midY = fullscreen ? CH / 2 : device.canvasY + device.canvasH / 2;
-  const vy = Math.min(h - 1, Math.max(0, Math.round((midY / CH) * h)));
+  // happens to cover. Other modes sample the centreline of the device's part
+  // of its frame (its stack slot, else the whole frame), first LED at its own
+  // left, turned about the frame centre by the frame's rotation - the line
+  // the engine's strip sampler walks.
+  const rad = fullscreen ? 0 : (((device.canvasRotation ?? 0) % 360) + 360) % 360 * Math.PI / 180;
+  const cos = Math.cos(rad), sin = Math.sin(rad);
+  const fcx = fullscreen ? CW / 2 : device.canvasX + device.canvasW / 2;
+  const fcy = fullscreen ? CH / 2 : device.canvasY + device.canvasH / 2;
+  const whole = fullscreen ? { x: 0, y: 0, w: CW, h: CH } : { x: device.canvasX, y: device.canvasY, w: device.canvasW, h: device.canvasH };
+  const part = slot && !fullscreen ? sliceStackSlot(whole, slot) : whole;
+  const midY = part.y + part.h / 2 - fcy;
   for (let i = 0; i < cells; i++) {
-    const t = cells === 1 ? 0.5 : i / (cells - 1);
-    const ux = Math.min(w - 1, Math.max(0, Math.round(((x0 + t * span) / CW) * w)));
+    const t = cells === 1 ? 0 : i / (cells - 1) - 0.5;
+    const lx = part.x + part.w / 2 + t * part.w - fcx;
+    const ux = Math.min(w - 1, Math.max(0, Math.round(((fcx + lx * cos - midY * sin) / CW) * w)));
+    const vy = Math.min(h - 1, Math.max(0, Math.round(((fcy + lx * sin + midY * cos) / CH) * h)));
     const s = (vy * w + ux) * 3;
     const o = i * 4;
     d[o] = pixels[s] * scale;
@@ -120,12 +129,14 @@ function paint(
  * the device list. The card decides whether a readout exists at all; a dark or
  * un-driven device does not mount this.
  */
-export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fullscreen, pickOnly }: { device: LightingDevice; pick?: LedPick; fullscreen?: boolean; pickOnly?: boolean }) {
+export const DeviceLedStrip = memo(function DeviceLedStrip({ device, slot, pick, fullscreen, pickOnly }: { device: LightingDevice; slot?: StackSlot | null; pick?: LedPick; fullscreen?: boolean; pickOnly?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   // Read through refs so a device refetch (new object identity, same values)
   // does not tear down and rebuild the subscription.
   const deviceRef = useRef(device);
   deviceRef.current = device;
+  const slotRef = useRef(slot);
+  slotRef.current = slot;
   const pickRef = useRef(pick);
   pickRef.current = pick;
   const fullscreenRef = useRef(fullscreen);
@@ -160,13 +171,13 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fulls
 
   useEffect(() => subscribeIdentify(() => {
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, frameRef.current, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
+    if (el) paint(el, deviceRef.current, slotRef.current, frameRef.current, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
   }), []);
 
   useEffect(() => subscribeLedFrame(frame => {
     frameRef.current = frame;
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, frame, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
+    if (el) paint(el, deviceRef.current, slotRef.current, frame, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
   }), []);
 
   // A pick or a decoded pattern lands between frames, so repaint immediately
@@ -175,8 +186,8 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, pick, fulls
   // arriving (a per-device surface) nothing else would ever repaint it.
   useEffect(() => {
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, frameRef.current, pick, pattern, !!fullscreen, !!pickOnly);
-  }, [pick, pattern, fullscreen, pickOnly, device.brightness]);
+    if (el) paint(el, deviceRef.current, slot, frameRef.current, pick, pattern, !!fullscreen, !!pickOnly);
+  }, [pick, pattern, fullscreen, pickOnly, device.brightness, slot]);
 
   return <canvas ref={ref} className={styles.ledStrip} aria-hidden />;
 });

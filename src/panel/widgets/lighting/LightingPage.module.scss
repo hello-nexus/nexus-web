@@ -1561,11 +1561,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  // Matches DeviceCanvas dark frame dimensions; 21:9-capped width, plus the
+  // Matches DeviceCanvas dark frame dimensions; same capped width, plus the
   // height and pad that seat the guide link below the centred group.
   height: 230px;
   padding-bottom: 1.9rem;
-  width: min(100%, calc(380px * 21 / 9));
+  width: min(100%, calc(440px * 5 / 3));
   background: #080808;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -1713,8 +1713,8 @@
 .staticField {
   position: relative;
   // Matches DeviceCanvas .canvas, so Static's frame is Animation's frame.
-  height: 380px;
-  width: min(100%, calc(380px * 21 / 9));
+  width: min(100%, calc(440px * 5 / 3));
+  aspect-ratio: 5 / 3;
   flex-shrink: 0;
   border-radius: var(--radius);
   overflow: hidden;
