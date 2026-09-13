@@ -28,7 +28,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { EditableText } from '../../common/Editable/EditableText';
-import { SettingRow, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { Button } from '../../common/Button/Button';
@@ -77,7 +77,7 @@ interface StreamDeckDevicePageProps {
 export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
-  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds } = useStreamDecks(true);
+  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked } = useStreamDecks(true);
   const serial = device.streamdeckSerial ?? null;
   const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
@@ -587,6 +587,11 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     : t('devices.streamdeck.sleepAfterMinutes', { n: seconds / 60 }),
                 }))}
                 onChange={v => void setSleepAfterSeconds(deck.serial, Number(v))}
+              />
+              <SettingToggle
+                label={t('devices.streamdeck.sleepWhenLocked')}
+                checked={deck.sleepWhenLocked ?? true}
+                onChange={v => void setSleepWhenLocked(deck.serial, v)}
               />
               <SettingSlider
                 editable

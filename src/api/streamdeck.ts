@@ -24,6 +24,8 @@ export interface StreamDeckSummary {
   orientation?: number;
   /** Seconds of no key input before the deck blanks; 0 disables sleep-after. Always sent by the DTO; optional here for the same reason. */
   sleepAfterSeconds?: number;
+  /** Blank while the desktop session is locked (service default on). Always sent by the DTO; optional here for the same reason. */
+  sleepWhenLocked?: boolean;
   firmwareVersion?: string;
   warning?: string;
   /** ConflictAppCatalog id to pass to POST /conflicts/kill when warning is set. */
@@ -73,7 +75,7 @@ export async function getStreamDecks(): Promise<StreamDeckSummary[]> {
 
 export async function updateStreamDeck(
   serial: string,
-  patch: { name?: string; brightness?: number; orientation?: number; sleepAfterSeconds?: number },
+  patch: { name?: string; brightness?: number; orientation?: number; sleepAfterSeconds?: number; sleepWhenLocked?: boolean },
 ): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}`, patch));
 }

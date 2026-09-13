@@ -899,6 +899,7 @@
   "devices.streamdeck.sleepAfter": "Slaapstand na",
   "devices.streamdeck.sleepAfterMinutes": "{n} min",
   "devices.streamdeck.sleepAfterNever": "Nooit",
+  "devices.streamdeck.sleepWhenLocked": "Slaapstand wanneer de pc vergrendeld is",
   "devices.streamdeck.tab.customize": "Aanpassen",
   "devices.streamdeck.tab.settings": "Instellingen",
   "devices.supported.browse": "Ondersteunde apparaten",

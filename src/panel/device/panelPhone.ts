@@ -57,7 +57,9 @@ export function useIsLandscape(surface: PanelSurface): boolean {
   return isLandscape;
 }
 
-export function usePhoneContentScale(enabled: boolean, rootRef: RefObject<HTMLDivElement | null>) {
+// contentFactor: stock-padding cell over the live cell, so the widget padding
+// slider leaves the widget render scale alone here as on every other surface.
+export function usePhoneContentScale(enabled: boolean, rootRef: RefObject<HTMLDivElement | null>, contentFactor = 1) {
   useEffect(() => {
     if (!enabled) return;
     const root = rootRef.current;
@@ -67,7 +69,7 @@ export function usePhoneContentScale(enabled: boolean, rootRef: RefObject<HTMLDi
       const grid = root.querySelector<HTMLElement>(`.${styles.grid}`);
       if (!grid) return;
 
-      const scale = readPhoneWidgetScale(root, grid);
+      const scale = readPhoneWidgetScale(root, grid) * contentFactor;
       if (Number.isFinite(scale) && scale > 0) {
         root.style.setProperty('--panel-widget-scale', scale.toFixed(4));
       }
@@ -86,7 +88,7 @@ export function usePhoneContentScale(enabled: boolean, rootRef: RefObject<HTMLDi
       window.visualViewport?.removeEventListener('resize', update);
       window.removeEventListener('orientationchange', update);
     };
-  }, [enabled, rootRef]);
+  }, [enabled, rootRef, contentFactor]);
 }
 
 export function readPhoneWidgetScale(root: HTMLElement, grid: HTMLElement) {

@@ -899,6 +899,7 @@
   "devices.streamdeck.sleepAfter": "Veille après",
   "devices.streamdeck.sleepAfterMinutes": "{n} min",
   "devices.streamdeck.sleepAfterNever": "Jamais",
+  "devices.streamdeck.sleepWhenLocked": "Mettre en veille lorsque le PC est verrouillé",
   "devices.streamdeck.tab.customize": "Personnaliser",
   "devices.streamdeck.tab.settings": "Réglages",
   "devices.supported.browse": "Appareils pris en charge",
