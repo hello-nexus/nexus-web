@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getFpsSignature, getFpsTable } from '../api/nexusApi';
 import { buildFpsSignatureParams } from '../panel/widgets/frames/fpsSignatureParams';
 import type { FpsSignatureParams, FpsTableGameItem } from '../types/fps-estimates';
@@ -10,7 +10,7 @@ export interface UseFpsEstimatesResult {
   status: FpsEstimatesStatus;
   games: FpsTableGameItem[];
   gamesByKey: ReadonlyMap<string, FpsTableGameItem>;
-  /** The rig's own resClass (e.g. "2560x1440"), for comparing against a game's resBasis. */
+  /** The resClass the table was fetched for (e.g. "2560x1440"), for comparing against a game's resBasis. */
   resClass: string | null;
 }
 
@@ -19,13 +19,14 @@ interface SessionTable {
   games: FpsTableGameItem[];
 }
 
-// Module-scoped like useSystemSpecs' own cache: the rig and its community
-// table are both static for the life of the tab, so one fetch per session.
-let sessionTable: SessionTable | null = null;
+// Module-scoped like useSystemSpecs' own cache: the rig is static for the
+// life of the tab and a table only changes on the cloud's daily aggregation,
+// so one fetch per resolution per session.
+const sessionTables = new Map<string, SessionTable>();
 // Shared across concurrently mounted consumers (Steam + Frames can both be
 // open at once) so a second mount awaits the first's request instead of
 // firing its own against the throttled signature/table routes.
-let pendingRequest: Promise<SessionTable | null> | null = null;
+const pendingRequests = new Map<string, Promise<SessionTable | null>>();
 
 async function loadTable(params: FpsSignatureParams): Promise<SessionTable | null> {
   const sig = await getFpsSignature(params);
@@ -36,40 +37,43 @@ async function loadTable(params: FpsSignatureParams): Promise<SessionTable | nul
 }
 
 function requestTable(params: FpsSignatureParams): Promise<SessionTable | null> {
-  pendingRequest ??= loadTable(params).finally(() => { pendingRequest = null; });
-  return pendingRequest;
+  let pending = pendingRequests.get(params.res);
+  if (!pending) {
+    pending = loadTable(params).finally(() => { pendingRequests.delete(params.res); });
+    pendingRequests.set(params.res, pending);
+  }
+  return pending;
 }
 
 /**
  * Derives the local rig's cloud FPS signature and fetches its community
- * estimate table once per session. Silent throughout: a rig that can't be
- * signed (no parseable display resolution) or a signature/table request that
- * fails never surfaces an error - status reports `unresolved`, never a
+ * estimate table once per session. `res` asks for a resolution other than the
+ * rig's own display (the Frames Discover chips); omitted, the display's
+ * resolution is used. Silent throughout: a rig that can't be signed (no
+ * parseable display resolution and no override) or a signature/table request
+ * that fails never surfaces an error - status reports `unresolved`, never a
  * failed table mistaken for a genuine `empty` (zero games) result.
  */
-export function useFpsEstimates(): UseFpsEstimatesResult {
+export function useFpsEstimates(res?: string): UseFpsEstimatesResult {
   const { specs } = useSystemSpecs(true);
-  const [table, setTable] = useState<SessionTable | null>(sessionTable);
+  const params = useMemo(() => (specs ? buildFpsSignatureParams(specs, res) : null), [specs, res]);
+  const [table, setTable] = useState<SessionTable | null>(() => (params ? sessionTables.get(params.res) ?? null : null));
   const [failed, setFailed] = useState(false);
-  const mountedRef = useRef(true);
-  const startedRef = useRef(false);
-
-  const params = useMemo(() => (specs ? buildFpsSignatureParams(specs) : null), [specs]);
 
   useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  useEffect(() => {
-    if (sessionTable || startedRef.current || !params) return;
-    startedRef.current = true;
+    if (!params) return;
+    const cached = sessionTables.get(params.res);
+    setFailed(false);
+    if (cached) { setTable(cached); return; }
+    let cancelled = false;
+    setTable(null);
     void requestTable(params).then(result => {
-      if (!mountedRef.current) return;
+      if (cancelled) return;
       if (!result) { setFailed(true); return; }
-      sessionTable = result;
+      sessionTables.set(params.res, result);
       setTable(result);
     });
+    return () => { cancelled = true; };
   }, [params]);
 
   const gamesByKey = useMemo(

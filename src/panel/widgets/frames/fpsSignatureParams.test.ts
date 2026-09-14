@@ -80,4 +80,16 @@ describe('buildFpsSignatureParams', () => {
     expect(buildFpsSignatureParams(specs({ monitor: '' }))).toBeNull();
     expect(buildFpsSignatureParams(specs({ monitor: 'Dell U2723QE' }))).toBeNull();
   });
+
+  it('takes a requested resolution over the display, and keeps the display refresh rate', () => {
+    const params = buildFpsSignatureParams(specs({ monitor: '3840×1100 @ 60 Hz' }), '1920x1080');
+    expect(params?.res).toBe('1920x1080');
+    expect(params?.hz).toBe(60);
+  });
+
+  it('signs a rig with no parseable display when a resolution is requested', () => {
+    const params = buildFpsSignatureParams(specs({ monitor: 'Dell U2723QE' }), '2560x1440');
+    expect(params?.res).toBe('2560x1440');
+    expect(params?.hz).toBeUndefined();
+  });
 });
