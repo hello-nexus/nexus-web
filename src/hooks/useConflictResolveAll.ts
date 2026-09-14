@@ -7,6 +7,8 @@ export interface ConflictResolveAllState {
   /** Something is still running or still starts at boot. */
   pending: boolean;
   resolving: boolean;
+  /** Apps whose boot entries a resolve-all verified off; the card latches its confirmation from this. */
+  autostartDisabledIds: ReadonlySet<string>;
   /** Ends every listed app still running and turns off every listed boot entry. Resolves true only when nothing survived. */
   resolveAll: () => Promise<boolean>;
 }
@@ -24,6 +26,7 @@ export function useConflictResolveAll(
   disableAutostart: (id: string) => Promise<boolean>,
 ): ConflictResolveAllState {
   const [resolving, setResolving] = useState(false);
+  const [autostartDisabledIds, setAutostartDisabledIds] = useState<ReadonlySet<string>>(() => new Set());
   // Guards re-entry across the await; the state flag alone lags a render.
   const resolvingRef = useRef(false);
 
@@ -45,7 +48,11 @@ export function useConflictResolveAll(
         markTerminated(e.conflict.id);
         return true;
       });
-      const disables = autostarting.map(e => disableAutostart(e.conflict.id).catch(() => false));
+      const disables = autostarting.map(async e => {
+        const ok = await disableAutostart(e.conflict.id).catch(() => false);
+        if (ok) setAutostartDisabledIds(prev => new Set(prev).add(e.conflict.id));
+        return ok;
+      });
       const outcomes = await Promise.all([...kills, ...disables]);
       return outcomes.every(Boolean);
     } finally {
@@ -54,5 +61,5 @@ export function useConflictResolveAll(
     }
   }, [running, autostarting, markTerminated, disableAutostart]);
 
-  return { pending, resolving, resolveAll };
+  return { pending, resolving, autostartDisabledIds, resolveAll };
 }

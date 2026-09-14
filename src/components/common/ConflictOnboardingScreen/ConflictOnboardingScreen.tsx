@@ -49,7 +49,7 @@ export function ConflictOnboardingScreen({
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
   const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
-  const { pending, resolving, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
+  const { pending, resolving, autostartDisabledIds, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
   const [continuing, setContinuing] = useState(false);
   const heading = t('conflicts.onboarding.title');
   const busy = resolving || continuing;
@@ -88,7 +88,7 @@ export function ConflictOnboardingScreen({
             {t('nav.back')}
           </Button>
         ) : <span />}
-        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} /> : <span />}
+        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} disabled={busy} /> : <span />}
       </div>
 
       <div className={styles.hero}>
@@ -100,7 +100,9 @@ export function ConflictOnboardingScreen({
       </div>
 
       <div className={styles.section}>
-        {entries.length === 0 ? (
+        {/* Nothing until the snapshot resolves: an empty pre-load list is not
+            an all-clear, and Back from the lighting gate re-seeds it. */}
+        {!ready ? null : entries.length === 0 ? (
           <ConflictAllClear />
         ) : (
           <div className={styles.list}>
@@ -114,6 +116,7 @@ export function ConflictOnboardingScreen({
                   onTerminated={() => markTerminated(entry.conflict.id)}
                   autostart={autostartByApp.get(entry.conflict.id)}
                   onDisableAutostart={() => disableAutostart(entry.conflict.id)}
+                  autostartDisabled={autostartDisabledIds.has(entry.conflict.id)}
                 />
               </div>
             ))}

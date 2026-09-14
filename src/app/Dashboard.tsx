@@ -280,10 +280,12 @@ function ConflictOnboardingGate({
 
   useEffect(() => {
     if (armed || done || !enabled || !ready) return;
-    // Nothing to show: spend the step rather than leaving it armed.
-    if (conflicts.length === 0) onSpend();
+    // An installed Nexus 2 is offered here even when it is not running: its
+    // uninstall is this step's action. Otherwise nothing to show spends the
+    // step rather than leaving it armed.
+    if (conflicts.length === 0 && !nexus2Installed) onSpend();
     else onArm();
-  }, [armed, done, enabled, ready, conflicts.length, onArm, onSpend]);
+  }, [armed, done, enabled, ready, conflicts.length, nexus2Installed, onArm, onSpend]);
 
   // The gates behind this one wait on its decision, so a snapshot that never
   // resolves (conflicts read failed) must spend it rather than hold them.
@@ -373,6 +375,10 @@ export function Dashboard() {
   // The screen opens on the latch, not on the live list, so ending the last
   // app from inside it shows the all-clear state instead of vanishing.
   const [conflictStepArmed, setConflictStepArmed] = useState(false);
+  // Stable: both sit in the gate's effect deps, and a fresh identity per
+  // Dashboard render would restart its snapshot timeout on every push frame.
+  const armConflictStep = useCallback(() => setConflictStepArmed(true), []);
+  const spendConflictStep = useCallback(() => setConflictStepDone(true), []);
   const ranEarlierGate = onboardingDismissed || featuresOnboardingDismissed || importDismissed;
   // Live from the moment the gates before it close until the step is spent
   // or completed; the gates behind it (and the dashboard) wait on it, so the
@@ -1055,9 +1061,9 @@ export function Dashboard() {
           done={conflictStepDone}
           nexus2Installed={nexus2.payload?.detected === true}
           finalStep={lightingFeatureOff || lightingStatus !== 'pending' || lightingOnboardingDismissed}
-          onArm={() => setConflictStepArmed(true)}
-          onSpend={() => setConflictStepDone(true)}
-          onComplete={() => setConflictStepDone(true)}
+          onArm={armConflictStep}
+          onSpend={spendConflictStep}
+          onComplete={spendConflictStep}
           onSkipOnboarding={skipOnboarding}
           // Disarm as well as reopening the previous gate: `open` here is the
           // only gate condition that does not exclude an earlier one, so

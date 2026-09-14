@@ -278,6 +278,26 @@ describe('ConflictAppCard auto start', () => {
     expect(screen.queryByRole('button', { name: 'conflicts.modal.disableAutostart' })).not.toBeInTheDocument();
   });
 
+  it('keeps the confirmation once the ended app drops out of the read entirely', async () => {
+    const onDisable = vi.fn().mockResolvedValue(true);
+    const { rerender } = render(
+      <ConflictAppCard conflict={conflict} autostart={[entry]} onDisableAutostart={onDisable} />,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.disableAutostart' }));
+    });
+
+    // The service lists only detected apps; a terminated one vanishes from
+    // the next read rather than coming back empty.
+    rerender(<ConflictAppCard conflict={conflict} onDisableAutostart={onDisable} terminated />);
+    expect(screen.getByText('conflicts.modal.autostartDisabled')).toBeInTheDocument();
+  });
+
+  it('confirms from the surface when a resolve-all verified the entries off', () => {
+    render(<ConflictAppCard conflict={conflict} autostart={[]} onDisableAutostart={vi.fn()} autostartDisabled />);
+    expect(screen.getByText('conflicts.modal.autostartDisabled')).toBeInTheDocument();
+  });
+
   it('reports a partial or failed disable and leaves the button up', async () => {
     const onDisable = vi.fn().mockResolvedValue(false);
     render(<ConflictAppCard conflict={conflict} autostart={[entry]} onDisableAutostart={onDisable} />);

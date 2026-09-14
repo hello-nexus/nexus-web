@@ -89,7 +89,7 @@ export function ConflictWarningModal({
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
   const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
-  const { pending, resolving, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
+  const { pending, resolving, autostartDisabledIds, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
 
   if (!open) return null;
 
@@ -119,6 +119,7 @@ export function ConflictWarningModal({
                   onTerminated={() => markTerminated(entry.conflict.id)}
                   autostart={autostartByApp.get(entry.conflict.id)}
                   onDisableAutostart={() => disableAutostart(entry.conflict.id)}
+                  autostartDisabled={autostartDisabledIds.has(entry.conflict.id)}
                 />
               </li>
             ))}
