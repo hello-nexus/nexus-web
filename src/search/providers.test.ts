@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildEntries } from './providers';
+import { scoreEntry } from './match';
+import enLocale from '../locales/en.json';
 import type { CommandContext } from './types';
 import { EMPTY_LIVE_STATE, type SearchLiveState } from './useSearchLiveState';
 import type { LightingDevice } from '../api/lighting';
@@ -267,6 +269,22 @@ describe('buildEntries', () => {
     // Plain navigation:
     expect(kind('nav:lighting')).toBe('navigate');
     expect(kind('settings:general')).toBe('navigate');
+  });
+
+  it('ranks the support bundle first for "logs" and keeps the data folder off that query', () => {
+    // The support ask is "type /logs, press Enter": with real English titles
+    // and keywords, nothing may outrank the bundle for that query.
+    const en = enLocale as Record<string, string>;
+    const entries = buildEntries(ctx(true, { t: (k) => en[k] ?? k }));
+    const ranked = entries
+      .map((e) => ({ e, s: scoreEntry('logs', e) }))
+      .filter((x): x is { e: (typeof entries)[number]; s: number } => x.s != null)
+      .sort((a, b) => b.s - a.s);
+    expect(ranked[0]?.e.id).toBe('diag:support-bundle');
+    const bundle = entries.find((e) => e.id === 'diag:support-bundle')!;
+    expect(scoreEntry('/logs', bundle)).toBe(scoreEntry('logs', bundle));
+    expect(ranked.some((x) => x.e.id === 'diag:open-data-folder')).toBe(false);
+    expect(scoreEntry('folder', entries.find((e) => e.id === 'diag:open-data-folder')!)).not.toBeNull();
   });
 
   it('indexes background modes as appearance actions', () => {

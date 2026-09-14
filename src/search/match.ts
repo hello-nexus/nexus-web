@@ -1,6 +1,7 @@
 import type { SearchEntry } from './types';
 
 const BOUNDARY = /[\s\-_/.·›]/;
+const EXACT = 10_000;
 
 /**
  * Fuzzy match `query` against `text`. Returns a score (higher = better) or
@@ -19,7 +20,7 @@ export function fuzzyScore(query: string, text: string): number | null {
   const q = query.toLowerCase();
   const s = text.toLowerCase();
 
-  if (s === q) return 10_000;
+  if (s === q) return EXACT;
 
   const sub = s.indexOf(q);
   if (sub === 0) return 6000 - s.length;
@@ -64,6 +65,10 @@ const TITLE_BAND = 2_000_000;
 const KEYWORD_BAND = 1_000_000;
 
 export function scoreEntry(query: string, entry: SearchEntry): number | null {
+  if (entry.aliases) {
+    const q = query.toLowerCase().replace(/^\/+/, '');
+    if (entry.aliases.some((a) => a.toLowerCase() === q)) return TITLE_BAND + EXACT;
+  }
   const title = fuzzyScore(query, entry.title);
   if (title != null) return TITLE_BAND + title;
 

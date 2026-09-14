@@ -43,6 +43,15 @@ describe('scoreEntry', () => {
     expect(scoreEntry('cool', titled)!).toBeGreaterThan(scoreEntry('cool', keyworded)!);
   });
 
+  it('an exact alias outranks a fuzzy title hit and ignores a leading slash', () => {
+    const aliased = entry({ id: 'a', title: 'Export support bundle', aliases: ['logs'] });
+    const subsequence = entry({ id: 'b', title: 'Language · Português' });
+    expect(scoreEntry('logs', aliased)!).toBeGreaterThan(scoreEntry('logs', subsequence)!);
+    expect(scoreEntry('/logs', aliased)).toBe(scoreEntry('logs', aliased));
+    expect(scoreEntry('LOGS', aliased)).toBe(scoreEntry('logs', aliased));
+    expect(scoreEntry('log', aliased)).toBeNull(); // partial alias is not a title hit
+  });
+
   it('a title hit always outranks a keyword-only hit (banding)', () => {
     // "tray" must put the entry titled "Show icon in tray" above one that only
     // has tray as a keyword (e.g. the Settings tab), even on an exact keyword.
