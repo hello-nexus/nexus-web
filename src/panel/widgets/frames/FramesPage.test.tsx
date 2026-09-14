@@ -425,11 +425,12 @@ describe('FramesPage - Discover tab', () => {
     expect(screen.queryByText('frames.discover.empty.title')).not.toBeInTheDocument();
   });
 
-  it('is silent (no estimates, no empty state) while the rig cannot be resolved', async () => {
+  it('says the community data is unavailable, not empty, when the rig cannot be resolved', async () => {
     fpsEstimatesResult = { status: 'unresolved', games: [], gamesByKey: new Map(), resClass: null };
     renderPage('discover');
     await flush();
 
+    expect(screen.getByText('frames.discover.unavailable')).toBeInTheDocument();
     expect(screen.queryByText('frames.discover.empty.title')).not.toBeInTheDocument();
     expect(screen.queryByText('steam.library.count(count=0)')).not.toBeInTheDocument();
   });
@@ -480,7 +481,7 @@ describe('FramesPage - Discover tab', () => {
     renderPage('discover');
     await flush();
 
-    fireEvent.change(screen.getByPlaceholderText('steam.library.searchPlaceholder'), { target: { value: 'dota' } });
+    fireEvent.change(screen.getByPlaceholderText('frames.discover.searchPlaceholder'), { target: { value: 'dota' } });
     expect(screen.getByText('Dota 2')).toBeInTheDocument();
     expect(screen.queryByText('Counter-Strike 2')).not.toBeInTheDocument();
     expect(screen.getByText('steam.library.countFiltered(count=1,total=2)')).toBeInTheDocument();

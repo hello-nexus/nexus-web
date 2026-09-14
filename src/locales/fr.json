@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "Estimation à partir d'un GPU similaire",
   "frames.discover.resBasis": "Aucune donnée à {res}",
   "frames.discover.resolution": "Résolution",
+  "frames.discover.searchPlaceholder": "Rechercher des jeux",
+  "frames.discover.unavailable": "Les estimations de la communauté sont indisponibles pour le moment",
   "frames.drill.deleteAll": "Supprimer tous les enregistrements",
   "frames.drill.deleteAllConfirmMessage": "Cette action supprime définitivement chaque session enregistrée pour ce jeu. Cette action est irréversible.",
   "frames.drill.deleteAllConfirmTitle": "Supprimer tous les enregistrements de {name} ?",

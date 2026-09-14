@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "Benzer bir GPU'dan tahmin edildi",
   "frames.discover.resBasis": "{res} için veri yok",
   "frames.discover.resolution": "Çözünürlük",
+  "frames.discover.searchPlaceholder": "Oyun ara",
+  "frames.discover.unavailable": "Topluluk tahminleri şu anda kullanılamıyor",
   "frames.drill.deleteAll": "Tüm kayıtları sil",
   "frames.drill.deleteAllConfirmMessage": "Bu işlem, bu oyun için kaydedilen her oturumu kalıcı olarak siler. Bu işlem geri alınamaz.",
   "frames.drill.deleteAllConfirmTitle": "{name} için tüm kayıtlar silinsin mi?",

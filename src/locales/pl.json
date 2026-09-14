@@ -1416,6 +1416,8 @@
   "frames.discover.level.7": "Szacunek na podstawie podobnego GPU",
   "frames.discover.resBasis": "Brak danych przy {res}",
   "frames.discover.resolution": "Rozdzielczość",
+  "frames.discover.searchPlaceholder": "Szukaj gier",
+  "frames.discover.unavailable": "Szacunki społeczności są teraz niedostępne",
   "frames.drill.deleteAll": "Usuń wszystkie nagrania",
   "frames.drill.deleteAllConfirmMessage": "Spowoduje to trwałe usunięcie każdej zarejestrowanej sesji dla tej gry. Tej operacji nie można cofnąć.",
   "frames.drill.deleteAllConfirmTitle": "Usunąć wszystkie nagrania dla {name}?",

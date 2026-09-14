@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "Geschat op basis van een vergelijkbare GPU",
   "frames.discover.resBasis": "Geen gegevens bij {res}",
   "frames.discover.resolution": "Resolutie",
+  "frames.discover.searchPlaceholder": "Games zoeken",
+  "frames.discover.unavailable": "Community-schattingen zijn op dit moment niet beschikbaar",
   "frames.drill.deleteAll": "Alle opnamen verwijderen",
   "frames.drill.deleteAllConfirmMessage": "Hiermee worden alle vastgelegde sessies voor dit spel permanent verwijderd. Dit kan niet ongedaan worden gemaakt.",
   "frames.drill.deleteAllConfirmTitle": "Alle opnamen voor {name} verwijderen?",

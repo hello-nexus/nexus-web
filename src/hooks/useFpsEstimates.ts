@@ -68,9 +68,12 @@ export function useFpsEstimates(res?: string): UseFpsEstimatesResult {
     let cancelled = false;
     setTable(null);
     void requestTable(params).then(result => {
+      // Cached even when this effect is already gone (chip switched, tab
+      // left): the pair of requests was paid for, so the next visit to this
+      // resolution must not fire it again.
+      if (result) sessionTables.set(params.res, result);
       if (cancelled) return;
       if (!result) { setFailed(true); return; }
-      sessionTables.set(params.res, result);
       setTable(result);
     });
     return () => { cancelled = true; };

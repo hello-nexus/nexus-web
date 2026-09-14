@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "Geschätzt anhand einer ähnlichen GPU",
   "frames.discover.resBasis": "Keine Daten bei {res}",
   "frames.discover.resolution": "Auflösung",
+  "frames.discover.searchPlaceholder": "Spiele suchen",
+  "frames.discover.unavailable": "Community-Schätzungen sind derzeit nicht verfügbar",
   "frames.drill.deleteAll": "Alle Aufzeichnungen löschen",
   "frames.drill.deleteAllConfirmMessage": "Dies löscht dauerhaft jede aufgezeichnete Sitzung für dieses Spiel. Dies kann nicht rückgängig gemacht werden.",
   "frames.drill.deleteAllConfirmTitle": "Alle Aufzeichnungen für {name} löschen?",

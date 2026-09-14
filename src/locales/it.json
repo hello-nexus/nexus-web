@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "Stima da una GPU simile",
   "frames.discover.resBasis": "Nessun dato a {res}",
   "frames.discover.resolution": "Risoluzione",
+  "frames.discover.searchPlaceholder": "Cerca giochi",
+  "frames.discover.unavailable": "Le stime della community non sono disponibili al momento",
   "frames.drill.deleteAll": "Elimina tutte le registrazioni",
   "frames.drill.deleteAllConfirmMessage": "Questa azione elimina definitivamente ogni sessione registrata per questo gioco. L'operazione non può essere annullata.",
   "frames.drill.deleteAllConfirmTitle": "Eliminare tutte le registrazioni di {name}?",

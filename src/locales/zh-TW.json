@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "根據相似 GPU 估算",
   "frames.discover.resBasis": "{res} 下無資料",
   "frames.discover.resolution": "解析度",
+  "frames.discover.searchPlaceholder": "搜尋遊戲",
+  "frames.discover.unavailable": "社群估算目前無法使用",
   "frames.drill.deleteAll": "刪除所有記錄",
   "frames.drill.deleteAllConfirmMessage": "此操作將永久刪除此遊戲的所有已記錄工作階段，且無法復原。",
   "frames.drill.deleteAllConfirmTitle": "刪除 {name} 的所有記錄？",

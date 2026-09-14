@@ -198,6 +198,30 @@ describe('useFpsEstimates', () => {
     expect(getFpsSignatureMock).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps a table that lands after the consumer switched away, so coming back is free', async () => {
+    specsResult = specs();
+    let release!: () => void;
+    getFpsSignatureMock.mockImplementation(params => new Promise(resolve => {
+      release = () => resolve(signature({ resClass: params.res }));
+    }));
+    getFpsTableMock.mockResolvedValue({ normVersion: 1, sigKey: 'sig-1', generatedAt: '2026-01-01', games: [game()] });
+    const { result, rerender } = renderHook(({ res }: { res: string }) => mod.useFpsEstimates(res), { initialProps: { res: '2560x1440' } });
+    await flush();
+    const releaseFirst = release;
+
+    rerender({ res: '1920x1080' });
+    await flush();
+    release();
+    releaseFirst();
+    await flush();
+    expect(result.current.resClass).toBe('1920x1080');
+
+    rerender({ res: '2560x1440' });
+    await flush();
+    expect(result.current.resClass).toBe('2560x1440');
+    expect(getFpsSignatureMock).toHaveBeenCalledTimes(2);
+  });
+
   it('a failed resolution does not poison another one', async () => {
     specsResult = specs();
     getFpsSignatureMock.mockImplementation(async params => (params.res === '3840x2160' ? null : signature({ resClass: params.res })));

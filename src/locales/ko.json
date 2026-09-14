@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "비슷한 GPU로 추정",
   "frames.discover.resBasis": "{res} 데이터 없음",
   "frames.discover.resolution": "해상도",
+  "frames.discover.searchPlaceholder": "게임 검색",
+  "frames.discover.unavailable": "지금은 커뮤니티 추정치를 이용할 수 없습니다",
   "frames.drill.deleteAll": "모든 기록 삭제",
   "frames.drill.deleteAllConfirmMessage": "이 게임에 대해 기록된 모든 세션이 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.",
   "frames.drill.deleteAllConfirmTitle": "{name}의 모든 기록을 삭제할까요?",

@@ -53,9 +53,8 @@
 }
 
 // Not a scroll box of its own: .body is the page's one scroller. A
-// height-constrained grid shares its height out across the rows, and since
-// the cards clip their overflow, that showed art alone once the window was
-// narrow enough for a third row.
+// height-constrained grid shares its height out across the rows, and the
+// cards clip their overflow.
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -316,7 +315,7 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  min-height: calc(2 * 1.3em);
+  min-height: calc(2 * #{$caption-line-height} * 1em);
 }
 
 // Three signal bars, sized to sit inside one caption line.
@@ -324,7 +323,7 @@
   display: inline-flex;
   align-items: flex-end;
   gap: 2px;
-  height: 1.3em;
+  height: #{$caption-line-height}em;
   flex-shrink: 0;
   padding-top: 1px;
   font-size: var(--type-tiny);

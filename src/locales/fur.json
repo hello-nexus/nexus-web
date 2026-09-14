@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "Stimade partint di une GPU similâr",
   "frames.discover.resBasis": "Nissun dât a {res}",
   "frames.discover.resolution": "Risoluzion",
+  "frames.discover.searchPlaceholder": "Cîr zûcs",
+  "frames.discover.unavailable": "Lis stimis de comunitât no son disponibilis in chest moment",
   "frames.drill.deleteAll": "Elimine dutis lis regjistrazions",
   "frames.drill.deleteAllConfirmMessage": "Chest al eliminarà par simpri ogni session regjistrade par chest zûc. No si pues tornâ indaûr.",
   "frames.drill.deleteAllConfirmTitle": "Eliminâ dutis lis regjistrazions par {name}?",

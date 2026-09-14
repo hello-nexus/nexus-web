@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "Estimado a partir de una GPU similar",
   "frames.discover.resBasis": "Sin datos a {res}",
   "frames.discover.resolution": "Resolución",
+  "frames.discover.searchPlaceholder": "Buscar juegos",
+  "frames.discover.unavailable": "Las estimaciones de la comunidad no están disponibles ahora mismo",
   "frames.drill.deleteAll": "Eliminar todas las grabaciones",
   "frames.drill.deleteAllConfirmMessage": "Esto elimina permanentemente todas las sesiones registradas de este juego. Esta acción no se puede deshacer.",
   "frames.drill.deleteAllConfirmTitle": "¿Eliminar todas las grabaciones de {name}?",

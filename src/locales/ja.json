@@ -1404,6 +1404,8 @@
   "frames.discover.level.7": "似たGPUからの推定値",
   "frames.discover.resBasis": "{res}のデータなし",
   "frames.discover.resolution": "解像度",
+  "frames.discover.searchPlaceholder": "ゲームを検索",
+  "frames.discover.unavailable": "コミュニティの推定値は現在利用できません",
   "frames.drill.deleteAll": "すべての記録を削除",
   "frames.drill.deleteAllConfirmMessage": "このゲームの記録されたすべてのセッションが完全に削除されます。この操作は元に戻せません。",
   "frames.drill.deleteAllConfirmTitle": "{name}のすべての記録を削除しますか？",

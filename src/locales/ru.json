@@ -1416,6 +1416,8 @@
   "frames.discover.level.7": "Оценка на основе похожего GPU",
   "frames.discover.resBasis": "Нет данных при {res}",
   "frames.discover.resolution": "Разрешение",
+  "frames.discover.searchPlaceholder": "Поиск игр",
+  "frames.discover.unavailable": "Оценки сообщества сейчас недоступны",
   "frames.drill.deleteAll": "Удалить все записи",
   "frames.drill.deleteAllConfirmMessage": "Это навсегда удалит каждую записанную сессию для этой игры. Это действие нельзя отменить.",
   "frames.drill.deleteAllConfirmTitle": "Удалить все записи для {name}?",

@@ -463,7 +463,7 @@ function DiscoverTab() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder={t('steam.library.searchPlaceholder')}
+          placeholder={t('frames.discover.searchPlaceholder')}
           className={styles.searchInput}
         />
         <ChipGroup
@@ -483,6 +483,11 @@ function DiscoverTab() {
       {status === 'loading' && (
         <div className={styles.emptyWrap}>
           <Spinner size={28} />
+        </div>
+      )}
+      {status === 'unresolved' && (
+        <div className={styles.emptyWrap}>
+          <EmptyState icon={<Users size={28} />} title={t('frames.discover.unavailable')} />
         </div>
       )}
       {status === 'empty' && (
