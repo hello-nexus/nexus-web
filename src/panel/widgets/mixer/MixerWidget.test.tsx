@@ -13,6 +13,7 @@ const applyMixerPreset = vi.fn();
 const fetchAudioDevices = vi.fn<() => Promise<AudioDeviceList | null>>();
 const setDefaultOutput = vi.fn(() => Promise.resolve(null));
 const setDefaultInput = vi.fn(() => Promise.resolve(null));
+const setSpatialSound = vi.fn(() => Promise.resolve(null));
 
 vi.mock('../../../api/mixer', () => ({
   fetchAudioMixer: () => fetchAudioMixer(),
@@ -26,6 +27,7 @@ vi.mock('../../../api/mixer', () => ({
   fetchAudioDevices: () => fetchAudioDevices(),
   setDefaultOutput: (id: string) => setDefaultOutput(id),
   setDefaultInput: (id: string) => setDefaultInput(id),
+  setSpatialSound: (deviceId: string, formatId: string) => setSpatialSound(deviceId, formatId),
 }));
 
 vi.mock('../../../hooks/useSystemVolume', () => ({
@@ -48,6 +50,10 @@ const PREV_PAGE = 'panel.widget.mixer.aria.prevPage';
 const NEXT_FADERS = 'panel.widget.mixer.aria.nextFaders';
 const NEXT_PRESETS = 'panel.widget.mixer.aria.nextPresets';
 const BACK = 'panel.widget.mixer.aria.closePicker';
+const TAB_OUTPUT = 'panel.widget.mixer.output';
+const TAB_INPUT = 'panel.widget.mixer.input';
+const TAB_SPATIAL = 'panel.widget.mixer.spatial';
+const SPATIAL_OFF = 'panel.widget.mixer.spatialOff';
 const UNSUPPORTED = 'panel.widget.mixer.unsupported';
 const EMPTY = 'panel.widget.mixer.empty';
 
@@ -167,15 +173,75 @@ describe('MixerWidget', () => {
     await waitFor(() => expect(screen.getByText('Helldivers 2')).toBeTruthy());
     fireEvent.click(screen.getByLabelText(PICK_OUTPUT));
 
-    // 8 outputs over two pages of five; the back row is docked, not paged.
+    // 8 outputs over two pages of five; the tab row is docked, not paged.
     expect(screen.getByText('Output 4')).toBeTruthy();
     expect(screen.queryByText('Output 6')).toBeNull();
-    expect(screen.getByText(BACK)).toBeTruthy();
+    expect(screen.getByLabelText(BACK)).toBeTruthy();
 
     fireEvent.click(screen.getByLabelText(NEXT_PAGE));
     expect(screen.getByText('Output 6')).toBeTruthy();
     // Docked: still there on page two.
-    expect(screen.getByText(BACK)).toBeTruthy();
+    expect(screen.getByLabelText(BACK)).toBeTruthy();
+    // No inputs, no spatial: only the output tab exists.
+    expect(screen.getByText(TAB_OUTPUT)).toBeTruthy();
+    expect(screen.queryByText(TAB_INPUT)).toBeNull();
+    expect(screen.queryByText(TAB_SPATIAL)).toBeNull();
+  });
+
+  it('starts every tab on its first page', async () => {
+    fetchAudioDevices.mockResolvedValue({
+      error: false,
+      msg: '',
+      outputs: Array.from({ length: 8 }, (_, i) => ({
+        id: `out-${i}`, name: `Output ${i}`, isDefault: i === 0, direction: 'output',
+      })),
+      inputs: [{ id: 'in-mic', name: 'Shure MV7', isDefault: true, direction: 'input' }],
+    });
+    renderWidget();
+    await waitFor(() => expect(screen.getByText('Helldivers 2')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText(PICK_OUTPUT));
+    fireEvent.click(screen.getByLabelText(NEXT_PAGE));
+    expect(screen.getByText('Output 6')).toBeTruthy();
+
+    fireEvent.click(screen.getByText(TAB_INPUT));
+    expect(screen.getByText('Shure MV7')).toBeTruthy();
+    fireEvent.click(screen.getByText(TAB_OUTPUT));
+    // Back on page one, not the page the output tab was left on.
+    expect(screen.getByText('Output 0')).toBeTruthy();
+    expect(screen.queryByText('Output 6')).toBeNull();
+  });
+
+  it('falls back to the outputs when the spatial tab goes away, and stays there', async () => {
+    const withSpatial = {
+      ...devices(),
+      spatial: {
+        supported: true,
+        deviceId: 'out-headset',
+        activeId: '',
+        formats: [{ id: 'sonic', name: 'Windows Sonic for Headphones' }],
+      },
+    };
+    fetchAudioDevices.mockResolvedValue(withSpatial);
+    renderWidget();
+    await waitFor(() => expect(screen.getByText('Helldivers 2')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText(PICK_OUTPUT));
+    fireEvent.click(screen.getByText(TAB_SPATIAL));
+    expect(screen.getByText(SPATIAL_OFF)).toBeTruthy();
+
+    // The default moves to an output without spatial sound: the tab vanishes
+    // and the list falls back to the outputs.
+    fetchAudioDevices.mockResolvedValue({ ...devices(), spatial: { supported: false, deviceId: '', activeId: '', formats: [] } });
+    fireEvent.click(screen.getByText('Windows Sonic for Headphones'));
+    await waitFor(() => expect(screen.queryByText(TAB_SPATIAL)).toBeNull());
+    expect(screen.getByText('Speakers')).toBeTruthy();
+
+    // Spatial coming back does not yank the view off the outputs.
+    fetchAudioDevices.mockResolvedValue(withSpatial);
+    fireEvent.click(screen.getByText('Speakers'));
+    await waitFor(() => expect(screen.getByText(TAB_SPATIAL)).toBeTruthy());
+    expect(screen.getByRole('tab', { name: TAB_OUTPUT }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByText('Speakers')).toBeTruthy();
+    expect(screen.queryByText(SPATIAL_OFF)).toBeNull();
   });
 
   it('pages the fader row only past four faders', async () => {
@@ -225,16 +291,22 @@ describe('MixerWidget', () => {
 
     fireEvent.click(screen.getByLabelText(PICK_OUTPUT));
 
-    // The back entry leads, then every device - this set fits one page, so no
-    // arrows appear at all.
-    expect(screen.getByText(BACK)).toBeTruthy();
+    // The tab row leads with the back arrow, then the outputs open first -
+    // this set fits one page, so no arrows appear at all.
+    expect(screen.getByLabelText(BACK)).toBeTruthy();
+    expect(screen.getByRole('tab', { name: TAB_OUTPUT }).getAttribute('aria-selected')).toBe('true');
     expect(screen.getByText('Speakers')).toBeTruthy();
-    expect(screen.getByText('Shure MV7')).toBeTruthy();
     expect(screen.queryByLabelText(NEXT_PAGE)).toBeNull();
     expect(screen.queryByLabelText(PREV_PAGE)).toBeNull();
     // The list takes over the tile, so the faders are gone while it is up.
     expect(screen.queryByText('Helldivers 2')).toBeNull();
     expect(screen.queryAllByRole('slider')).toHaveLength(0);
+
+    // Inputs live on their own tab.
+    expect(screen.queryByText('Shure MV7')).toBeNull();
+    fireEvent.click(screen.getByText(TAB_INPUT));
+    expect(screen.getByText('Shure MV7')).toBeTruthy();
+    expect(screen.queryByText('Speakers')).toBeNull();
   });
 
   it('the back entry returns to the faders', async () => {
@@ -243,7 +315,7 @@ describe('MixerWidget', () => {
     fireEvent.click(screen.getByLabelText(PICK_OUTPUT));
     expect(screen.queryByText('Helldivers 2')).toBeNull();
 
-    fireEvent.click(screen.getByText(BACK));
+    fireEvent.click(screen.getByLabelText(BACK));
     expect(screen.getByText('Helldivers 2')).toBeTruthy();
   });
 
@@ -256,8 +328,54 @@ describe('MixerWidget', () => {
 
     expect(setDefaultOutput).toHaveBeenCalledWith('out-speakers');
     // Still on the list: switching output is often followed by switching input.
-    expect(screen.getByText('Shure MV7')).toBeTruthy();
+    expect(screen.getByText(TAB_INPUT)).toBeTruthy();
     expect(screen.queryByText('Helldivers 2')).toBeNull();
+  });
+
+  it('lists spatial sound on its own tab and switches it', async () => {
+    fetchAudioDevices.mockResolvedValue({
+      ...devices(),
+      spatial: {
+        supported: true,
+        deviceId: 'out-headset',
+        activeId: '',
+        formats: [{ id: 'sonic', name: 'Windows Sonic for Headphones' }],
+      },
+    });
+    renderWidget();
+    await waitFor(() => expect(screen.getByText('Helldivers 2')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText(PICK_OUTPUT));
+    fireEvent.click(screen.getByText(TAB_SPATIAL));
+
+    // Off leads the list and is what is active now.
+    const off = screen.getByText(SPATIAL_OFF).closest('button');
+    expect(off?.getAttribute('aria-pressed')).toBe('true');
+    const sonic = screen.getByText('Windows Sonic for Headphones').closest('button');
+    expect(sonic?.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(screen.getByText('Windows Sonic for Headphones'));
+
+    expect(setSpatialSound).toHaveBeenCalledWith('out-headset', 'sonic');
+    // Marked before the re-read lands, like an endpoint pick.
+    expect(sonic?.getAttribute('aria-pressed')).toBe('true');
+    expect(off?.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(screen.getByText(SPATIAL_OFF));
+    expect(setSpatialSound).toHaveBeenLastCalledWith('out-headset', '');
+  });
+
+  it('offers no spatial tab where the service reports none', async () => {
+    fetchAudioDevices.mockResolvedValue({
+      ...devices(),
+      spatial: { supported: false, deviceId: '', activeId: '', formats: [] },
+    });
+    renderWidget();
+    await waitFor(() => expect(screen.getByText('Helldivers 2')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText(PICK_OUTPUT));
+
+    expect(screen.getByText('Speakers')).toBeTruthy();
+    expect(screen.queryByText(TAB_SPATIAL)).toBeNull();
+    expect(screen.queryByText(SPATIAL_OFF)).toBeNull();
   });
 
   it('numbers endpoints that report the same name', async () => {

@@ -3,7 +3,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useAudioDevices } from '../../../hooks/useAudioDevices';
 import { useAudioMixer } from '../../../hooks/useAudioMixer';
 import { useSystemVolume } from '../../../hooks/useSystemVolume';
-import type { AudioDevice, AudioMixerPreset, AudioSession } from '../../../api/mixer';
+import type { AudioDevice, AudioMixerPreset, AudioSession, AudioSpatialState } from '../../../api/mixer';
 import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { useFaderPager } from '../common/useFaderPager';
@@ -54,8 +54,11 @@ interface OutputHeader {
   name: string;
   outputs: AudioDevice[];
   inputs: AudioDevice[];
+  /** Null where the platform has no spatial sound switch. */
+  spatial: AudioSpatialState | null;
   selectOutput: (deviceId: string) => void;
   selectInput: (deviceId: string) => void;
+  selectSpatial: (formatId: string) => void;
 }
 
 /**
@@ -104,15 +107,19 @@ export function useMixerView(
         name: MIXER_PREVIEW.outputs[0].name,
         outputs: MIXER_PREVIEW.outputs,
         inputs: MIXER_PREVIEW.inputs,
+        spatial: MIXER_PREVIEW.spatial,
         selectOutput: () => {},
         selectInput: () => {},
+        selectSpatial: () => {},
       }
     : {
         name: devices.activeOutput?.name ?? '',
         outputs: devices.outputs,
         inputs: devices.inputs,
+        spatial: devices.spatial,
         selectOutput: devices.selectOutput,
         selectInput: devices.selectInput,
+        selectSpatial: devices.selectSpatial,
       };
 
   return {
@@ -158,8 +165,10 @@ export function MixerBody({
         <MixerOutputPicker
           outputs={output.outputs}
           inputs={output.inputs}
+          spatial={output.spatial}
           onSelectOutput={output.selectOutput}
           onSelectInput={output.selectInput}
+          onSelectSpatial={output.selectSpatial}
           onClose={() => setPickerOpen(false)}
         />
       </div>

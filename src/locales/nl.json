@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "Zet een app bij de volgende weergave terug op het niveau dat je hebt ingesteld. Windows verliest zijn eigen niveaus als een app wordt bijgewerkt of je van uitvoer wisselt.",
   "panel.widget.mixer.settings.updatePreset": "Opslaan",
   "panel.widget.mixer.settings.updatePresetAria": "De huidige niveaus en apparaten opslaan in {name}",
+  "panel.widget.mixer.spatial": "Ruimtelijk",
+  "panel.widget.mixer.spatialOff": "Uit",
   "panel.widget.mixer.systemSounds": "Systeemgeluiden",
   "panel.widget.mixer.unsupported": "Volume per app is niet beschikbaar op dit systeem",
   "panel.widget.monitoring": "Monitoring",

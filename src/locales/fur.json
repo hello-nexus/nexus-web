@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "Al torne a meti une aplicazion al nivel che tu âs sielt la prossime volte che e sune. Windows al piert i siei nivei cuant che une aplicazion si inzorne o che tu cambiis jessude.",
   "panel.widget.mixer.settings.updatePreset": "Salve",
   "panel.widget.mixer.settings.updatePresetAria": "Salve i nivei e i dispositîfs atuâi in {name}",
+  "panel.widget.mixer.spatial": "Spaziâl",
+  "panel.widget.mixer.spatialOff": "Distudât",
   "panel.widget.mixer.systemSounds": "Sunôrs di sisteme",
   "panel.widget.mixer.unsupported": "Il volum par aplicazion nol è disponibil su chest sisteme",
   "panel.widget.monitoring": "Monitoraç",

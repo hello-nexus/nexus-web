@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "Setzt eine App beim nächsten Abspielen auf den von dir gewählten Pegel zurück. Windows verliert seine eigenen Pegel, wenn eine App aktualisiert wird oder du den Ausgang wechselst.",
   "panel.widget.mixer.settings.updatePreset": "Speichern",
   "panel.widget.mixer.settings.updatePresetAria": "Aktuelle Pegel und Geräte in {name} speichern",
+  "panel.widget.mixer.spatial": "Raumklang",
+  "panel.widget.mixer.spatialOff": "Aus",
   "panel.widget.mixer.systemSounds": "Systemklänge",
   "panel.widget.mixer.unsupported": "App-Lautstärke ist auf diesem System nicht verfügbar",
   "panel.widget.monitoring": "Monitoring",
