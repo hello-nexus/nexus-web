@@ -36,8 +36,8 @@ export interface SimulatedPanelGridSizing {
 
 export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
   // Two Y70 touch variants. Simulator names carry the resolution class to
-  // disambiguate them in the sidebar / picker; a real connected Y70 is just
-  // "HYTE Y70 Touch" (see CURATED_SHORT_NAMES in useUnifiedDevices).
+  // disambiguate them in the sidebar / picker; a real connected Y70 shows the
+  // variant name the service reports (Y70Handler.Name).
   { id: 'y70',    name: 'HYTE Y70 Touch 2.5K', surface: 'y70', width: 682,  height: 2560, dpi: 337 },
   { id: 'y70-4k', name: 'HYTE Y70 Touch 4K',   surface: 'y70', width: 1100, height: 3840, dpi: 283 },
   { id: 'q60', name: 'HYTE Q60', surface: 'q60', width: 720, height: 1280, dpi: 220 },

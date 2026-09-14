@@ -116,15 +116,12 @@ const CURATED_ICONS: Record<string, string> = {
 };
 
 const CURATED_SHORT_NAMES: Record<string, string> = {
-  // Real connected Y70 of any variant is just "HYTE Y70 Touch" (no
-  // resolution class on a hardware row). Simulator entries carry the 2.5K /
-  // 4K suffix; see SIMULATED_PANEL_PRESETS in panelSimulation.ts and the
-  // simulated-vs-real branch in buildUnifiedList below.
-  y70: 'HYTE Y70 Touch',
-  'y70-4k': 'HYTE Y70 Touch',
-  // qseries omitted: the service reports the actual product name ("HYTE Q60"
-  // / "HYTE Q80") on the device record; overriding would collapse both to
-  // one label.
+  // y70 and qseries omitted: the service reports the connected variant's
+  // product name ("HYTE Y70 Ina Touch", "HYTE Q80") on the device record;
+  // overriding would collapse every variant to one label. Simulator entries
+  // carry their preset name (2.5K / 4K suffix); see SIMULATED_PANEL_PRESETS
+  // in panelSimulation.ts and the simulated-vs-real branch in
+  // buildUnifiedList below.
   cnvs: 'HYTE CNVS',
   corsair: 'Corsair iCUE LINK Hub',
   keeb: 'HYTE Keeb TKL',
@@ -276,10 +273,10 @@ function buildUnifiedList(
   for (const p of panelDevices) {
     if (p.sourceId) claimedCuratedIds.add(p.sourceId);
     const sourceId = p.sourceId;
-    // Real connected panels use CURATED_SHORT_NAMES so the sidebar shows a
-    // normalized label ("HYTE Y70 Touch") regardless of variant. Simulator
-    // entries keep their preset name so the resolution suffix ("HYTE Y70
-    // Touch 2.5K" / "HYTE Y70 Touch 4K") stays visible.
+    // Real connected panels use CURATED_SHORT_NAMES where one exists so the
+    // sidebar shows a normalized label. Simulator entries keep their preset
+    // name so the resolution suffix ("HYTE Y70 Touch 2.5K" / "HYTE Y70 Touch
+    // 4K") stays visible.
     const isSimulated = p.connectionKind === 'simulated';
     const shortName = isSimulated
       ? p.name
