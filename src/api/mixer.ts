@@ -138,15 +138,42 @@ export interface AudioDevice {
   direction: string;
 }
 
+/** One spatial sound format Windows offers for the default output. */
+export interface AudioSpatialFormat {
+  /** Encoder GUID; what setSpatialSound takes. */
+  id: string;
+  /** Windows' own label, already in the OS language. */
+  name: string;
+}
+
+/**
+ * Spatial sound (Windows Sonic, Dolby Atmos, DTS:X) on the default output.
+ * Only licensed formats are listed; `supported` is false off Windows and on
+ * builds without the switch.
+ */
+export interface AudioSpatialState {
+  supported: boolean;
+  deviceId: string;
+  /** Encoder id of the active format; empty means off. */
+  activeId: string;
+  formats: AudioSpatialFormat[];
+}
+
 export interface AudioDeviceList {
   error: boolean;
   msg: string;
   outputs: AudioDevice[];
   inputs: AudioDevice[];
+  /** Absent from a service that predates spatial sound. */
+  spatial?: AudioSpatialState;
 }
 
 export const fetchAudioDevices = () =>
   fetchService<AudioDeviceList>('/system/audio/devices');
+
+/** An empty formatId turns spatial sound off. */
+export const setSpatialSound = (deviceId: string, formatId: string) =>
+  postService('/system/audio/spatial', { deviceId, formatId });
 
 export const setDefaultOutput = (deviceId: string) =>
   postService('/system/audio/default-output', { deviceId });

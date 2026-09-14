@@ -3186,6 +3186,8 @@
   "panel.widget.mixer.settings.stickyHint": "Przy następnym odtwarzaniu przywraca aplikacji ustawiony przez ciebie poziom. Windows gubi własne poziomy, gdy aplikacja się zaktualizuje lub zmienisz wyjście.",
   "panel.widget.mixer.settings.updatePreset": "Zapisz",
   "panel.widget.mixer.settings.updatePresetAria": "Zapisz bieżące poziomy i urządzenia w {name}",
+  "panel.widget.mixer.spatial": "Dźwięk 3D",
+  "panel.widget.mixer.spatialOff": "Wyłączone",
   "panel.widget.mixer.systemSounds": "Dźwięki systemowe",
   "panel.widget.mixer.unsupported": "Głośność poszczególnych aplikacji nie jest dostępna w tym systemie",
   "panel.widget.monitoring": "Monitorowanie",

@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "Puts an app back to the level you set the next time it plays. Windows loses its own levels when an app updates or you switch output.",
   "panel.widget.mixer.settings.updatePreset": "Save",
   "panel.widget.mixer.settings.updatePresetAria": "Save the current levels and devices to {name}",
+  "panel.widget.mixer.spatial": "Spatial",
+  "panel.widget.mixer.spatialOff": "Off",
   "panel.widget.mixer.systemSounds": "System Sounds",
   "panel.widget.mixer.unsupported": "Per-app volume is not available on this system",
   "panel.widget.monitoring": "Monitoring",

@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "下次播放時把應用程式調回你設定的音量。應用程式更新或切換輸出後，Windows 會遺失它自己記錄的音量。",
   "panel.widget.mixer.settings.updatePreset": "儲存",
   "panel.widget.mixer.settings.updatePresetAria": "將目前音量與裝置儲存到 {name}",
+  "panel.widget.mixer.spatial": "空間音效",
+  "panel.widget.mixer.spatialOff": "關閉",
   "panel.widget.mixer.systemSounds": "系統音效",
   "panel.widget.mixer.unsupported": "此系統不支援個別調整應用程式音量",
   "panel.widget.monitoring": "監控",

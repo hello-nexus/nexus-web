@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "Devolve um app ao nível que você definiu na próxima vez que ele tocar. O Windows perde os próprios níveis quando um app é atualizado ou você troca de saída.",
   "panel.widget.mixer.settings.updatePreset": "Salvar",
   "panel.widget.mixer.settings.updatePresetAria": "Salvar os níveis e dispositivos atuais em {name}",
+  "panel.widget.mixer.spatial": "Espacial",
+  "panel.widget.mixer.spatialOff": "Desativado",
   "panel.widget.mixer.systemSounds": "Sons do sistema",
   "panel.widget.mixer.unsupported": "O volume por aplicativo não está disponível neste sistema",
   "panel.widget.monitoring": "Monitoramento",

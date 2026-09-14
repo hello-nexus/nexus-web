@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "Riporta un'app al livello che hai impostato la prossima volta che suona. Windows perde i propri livelli quando un'app si aggiorna o cambi uscita.",
   "panel.widget.mixer.settings.updatePreset": "Salva",
   "panel.widget.mixer.settings.updatePresetAria": "Salva i livelli e i dispositivi attuali in {name}",
+  "panel.widget.mixer.spatial": "Spaziale",
+  "panel.widget.mixer.spatialOff": "Disattivato",
   "panel.widget.mixer.systemSounds": "Suoni di sistema",
   "panel.widget.mixer.unsupported": "Il volume per app non è disponibile su questo sistema",
   "panel.widget.monitoring": "Monitoraggio",

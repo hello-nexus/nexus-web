@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "次に再生したとき、アプリを設定した音量に戻します。Windows 自身の音量は、アプリの更新や出力の切り替えで失われます。",
   "panel.widget.mixer.settings.updatePreset": "保存",
   "panel.widget.mixer.settings.updatePresetAria": "現在のレベルとデバイスを {name} に保存",
+  "panel.widget.mixer.spatial": "立体音響",
+  "panel.widget.mixer.spatialOff": "オフ",
   "panel.widget.mixer.systemSounds": "システム音",
   "panel.widget.mixer.unsupported": "このシステムではアプリごとの音量を利用できません",
   "panel.widget.monitoring": "モニタリング",

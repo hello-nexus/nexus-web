@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "Bir uygulama bir sonraki çalışında belirlediğin seviyeye döner. Windows kendi seviyelerini uygulama güncellendiğinde veya çıkışı değiştirdiğinde kaybeder.",
   "panel.widget.mixer.settings.updatePreset": "Kaydet",
   "panel.widget.mixer.settings.updatePresetAria": "Geçerli seviyeleri ve cihazları {name} ön ayarına kaydet",
+  "panel.widget.mixer.spatial": "Uzamsal",
+  "panel.widget.mixer.spatialOff": "Kapalı",
   "panel.widget.mixer.systemSounds": "Sistem sesleri",
   "panel.widget.mixer.unsupported": "Uygulama başına ses düzeyi bu sistemde kullanılamıyor",
   "panel.widget.monitoring": "İzleme",

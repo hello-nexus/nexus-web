@@ -3150,6 +3150,8 @@
   "panel.widget.mixer.settings.stickyHint": "다음에 재생할 때 앱을 설정한 볼륨으로 되돌립니다. Windows 자체 볼륨은 앱이 업데이트되거나 출력을 바꾸면 사라집니다.",
   "panel.widget.mixer.settings.updatePreset": "저장",
   "panel.widget.mixer.settings.updatePresetAria": "현재 레벨과 장치를 {name}에 저장",
+  "panel.widget.mixer.spatial": "공간 음향",
+  "panel.widget.mixer.spatialOff": "끄기",
   "panel.widget.mixer.systemSounds": "시스템 소리",
   "panel.widget.mixer.unsupported": "이 시스템에서는 앱별 볼륨을 사용할 수 없습니다",
   "panel.widget.monitoring": "모니터링",

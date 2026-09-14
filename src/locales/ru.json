@@ -3186,6 +3186,8 @@
   "panel.widget.mixer.settings.stickyHint": "При следующем воспроизведении возвращает приложению заданный вами уровень. Windows теряет собственные уровни при обновлении приложения или смене выхода.",
   "panel.widget.mixer.settings.updatePreset": "Сохранить",
   "panel.widget.mixer.settings.updatePresetAria": "Сохранить текущие уровни и устройства в «{name}»",
+  "panel.widget.mixer.spatial": "Объёмный",
+  "panel.widget.mixer.spatialOff": "Выключено",
   "panel.widget.mixer.systemSounds": "Системные звуки",
   "panel.widget.mixer.unsupported": "Громкость отдельных приложений недоступна в этой системе",
   "panel.widget.monitoring": "Мониторинг",
