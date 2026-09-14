@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "Overslaan",
   "conflicts.onboarding.title": "Apps die om je hardware concurreren",
   "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 wordt verwijderd",
-  "conflicts.onboarding.uninstallNexus2.body": "Doorgaan verwijdert het van deze pc zodat het de hardware niet terugpakt. Overslaan laat het geïnstalleerd.",
   "connection.directFailed.disconnect": "Verbinding verbreken",
   "connection.directFailed.message": "Er kon geen directe verbinding met deze pc tot stand worden gebracht. Doorgaan via de versleutelde cloud-relay?",
   "connection.directFailed.title": "Directe verbinding niet beschikbaar",

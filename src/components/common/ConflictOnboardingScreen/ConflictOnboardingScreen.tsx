@@ -129,7 +129,6 @@ export function ConflictOnboardingScreen({
               <PackageMinus size={UNINSTALL_ICON_SIZE} />
             </span>
             <span className={styles.uninstallTitle}>{t('conflicts.onboarding.uninstallNexus2')}</span>
-            <span className={styles.uninstallBody}>{t('conflicts.onboarding.uninstallNexus2.body')}</span>
           </div>
         )}
         {entries.length > 0 && (

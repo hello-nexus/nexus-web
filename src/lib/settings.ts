@@ -216,7 +216,7 @@ export function getDefaultSettings(): NexusSettings {
       accentSource: 'system',
       startOnLogin: false,
       showConflictAlerts: true,
-      autoKillConflictsAtStartup: false,
+      autoKillConflictsAtStartup: true,
       conflictAutoKillExclusions: [],
       monitoringDetailedCollapsed: [],
       monitoringEventsEnabled: true,

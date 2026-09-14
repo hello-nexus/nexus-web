@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "Überspringen",
   "conflicts.onboarding.title": "Apps, die um deine Hardware konkurrieren",
   "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 wird deinstalliert",
-  "conflicts.onboarding.uninstallNexus2.body": "Weiter entfernt es von diesem PC, damit es die Hardware nicht zurückholt. Überspringen lässt es installiert.",
   "connection.directFailed.disconnect": "Trennen",
   "connection.directFailed.message": "Eine direkte Verbindung zu diesem PC konnte nicht hergestellt werden. Über das verschlüsselte Cloud-Relay fortfahren?",
   "connection.directFailed.title": "Direkte Verbindung nicht verfügbar",

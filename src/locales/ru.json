@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "Пропустить",
   "conflicts.onboarding.title": "Приложения, борющиеся за ваше оборудование",
   "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 будет удалён",
-  "conflicts.onboarding.uninstallNexus2.body": "«Продолжить» удалит его с этого ПК, чтобы он не перехватывал оборудование. «Пропустить» оставит его установленным.",
   "connection.directFailed.disconnect": "Отключиться",
   "connection.directFailed.message": "Не удалось установить прямое подключение к этому ПК. Продолжить через зашифрованный облачный ретранслятор?",
   "connection.directFailed.title": "Прямое подключение недоступно",

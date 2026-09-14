@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "スキップ",
   "conflicts.onboarding.title": "ハードウェアを奪い合っているアプリ",
   "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 をアンインストールします",
-  "conflicts.onboarding.uninstallNexus2.body": "「続ける」でこの PC から削除し、ハードウェアを再び取得できないようにします。「スキップ」ではインストールされたままになります。",
   "connection.directFailed.disconnect": "切断",
   "connection.directFailed.message": "このPCへの直接接続を確立できませんでした。暗号化されたクラウドリレー経由で続行しますか？",
   "connection.directFailed.title": "直接接続を利用できません",

@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "略過",
   "conflicts.onboarding.title": "正在爭奪硬體控制權的應用程式",
   "conflicts.onboarding.uninstallNexus2": "將移除 HYTE Nexus 2",
-  "conflicts.onboarding.uninstallNexus2.body": "按下「繼續」會將它從這台電腦移除，以免它重新接管硬體。按下「略過」則保留安裝。",
   "connection.directFailed.disconnect": "中斷連線",
   "connection.directFailed.message": "無法與此電腦建立直接連線。是否透過加密雲端中繼繼續？",
   "connection.directFailed.title": "無法建立直接連線",

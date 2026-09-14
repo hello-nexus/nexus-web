@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "Passer",
   "conflicts.onboarding.title": "Applications en concurrence pour votre matériel",
   "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 sera désinstallé",
-  "conflicts.onboarding.uninstallNexus2.body": "Continuer le supprime de ce PC pour qu'il ne reprenne pas le matériel. Passer le laisse installé.",
   "connection.directFailed.disconnect": "Déconnecter",
   "connection.directFailed.message": "Impossible d'établir une connexion directe avec ce PC. Continuer via le relais cloud chiffré ?",
   "connection.directFailed.title": "Connexion directe indisponible",

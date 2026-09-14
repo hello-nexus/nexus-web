@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "Atla",
   "conflicts.onboarding.title": "Donanımın için yarışan uygulamalar",
   "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 kaldırılacak",
-  "conflicts.onboarding.uninstallNexus2.body": "Devam, donanımı geri almaması için onu bu PC'den kaldırır. Atla, yüklü bırakır.",
   "connection.directFailed.disconnect": "Bağlantıyı kes",
   "connection.directFailed.message": "Bu PC ile doğrudan bağlantı kurulamadı. Şifreli bulut aktarıcı üzerinden devam edilsin mi?",
   "connection.directFailed.title": "Doğrudan bağlantı kullanılamıyor",

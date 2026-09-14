@@ -264,7 +264,6 @@
   "conflicts.onboarding.skip": "Ignorar",
   "conflicts.onboarding.title": "Apps a disputar o teu hardware",
   "conflicts.onboarding.uninstallNexus2": "O HYTE Nexus 2 será desinstalado",
-  "conflicts.onboarding.uninstallNexus2.body": "Continuar remove-o deste PC para que não volte a assumir o hardware. Ignorar mantém-no instalado.",
   "connection.directFailed.disconnect": "Desligar",
   "connection.directFailed.message": "Não foi possível estabelecer uma ligação direta a este PC. Continuar através do relé na nuvem encriptado?",
   "connection.directFailed.title": "Ligação direta indisponível",
