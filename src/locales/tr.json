@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "Tüm çakışmaları çöz",
   "conflicts.modal.terminated": "Sonlandırıldı",
   "conflicts.modal.title": "Çakışan uygulamalar algılandı",
-  "conflicts.onboarding.continue": "Devam et",
   "conflicts.onboarding.intro": "Şu anda çalışıyorlar ve Nexus ile aynı aydınlatmayı, fanları veya çevre birimlerini sürüyorlar. İhtiyacın olmayanları kapat.",
   "conflicts.onboarding.skip": "Atla",
   "conflicts.onboarding.title": "Donanımın için yarışan uygulamalar",

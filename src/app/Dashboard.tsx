@@ -263,13 +263,12 @@ function ResizeStrip({ className, edge }: { className: string; edge: NexusResize
  * the one-shot REST seed returned.
  */
 function ConflictOnboardingGate({
-  enabled, armed, done, nexus2Installed, finalStep, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
+  enabled, armed, done, nexus2Installed, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
 }: {
   enabled: boolean;
   armed: boolean;
   done: boolean;
   nexus2Installed: boolean;
-  finalStep: boolean;
   onArm: () => void;
   onSpend: () => void;
   onComplete: () => void;
@@ -301,7 +300,6 @@ function ConflictOnboardingGate({
       conflicts={conflicts}
       ready={ready}
       nexus2Installed={nexus2Installed}
-      finalStep={finalStep}
       onComplete={onComplete}
       onSkipOnboarding={onSkipOnboarding}
       onBack={onBack}
@@ -1060,7 +1058,6 @@ export function Dashboard() {
           armed={conflictStepArmed}
           done={conflictStepDone}
           nexus2Installed={nexus2.payload?.detected === true}
-          finalStep={lightingFeatureOff || lightingStatus !== 'pending' || lightingOnboardingDismissed}
           onArm={armConflictStep}
           onSpend={spendConflictStep}
           onComplete={spendConflictStep}

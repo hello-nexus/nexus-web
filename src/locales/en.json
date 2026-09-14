@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "Resolve all conflicts",
   "conflicts.modal.terminated": "Terminated",
   "conflicts.modal.title": "Conflicting apps detected",
-  "conflicts.onboarding.continue": "Continue",
   "conflicts.onboarding.intro": "These are running now and drive the same lighting, fans, or peripherals as Nexus. End the ones you don't need.",
   "conflicts.onboarding.skip": "Skip",
   "conflicts.onboarding.title": "Apps competing for your hardware",

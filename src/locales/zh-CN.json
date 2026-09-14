@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "解决所有冲突",
   "conflicts.modal.terminated": "已结束",
   "conflicts.modal.title": "检测到冲突的应用",
-  "conflicts.onboarding.continue": "继续",
   "conflicts.onboarding.intro": "这些应用正在运行，并与 Nexus 控制同一套灯效、风扇或外设。结束你不需要的那些。",
   "conflicts.onboarding.skip": "跳过",
   "conflicts.onboarding.title": "正在争夺硬件控制权的应用",

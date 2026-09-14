@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "Alle Konflikte beheben",
   "conflicts.modal.terminated": "Beendet",
   "conflicts.modal.title": "Konfliktverursachende Apps erkannt",
-  "conflicts.onboarding.continue": "Weiter",
   "conflicts.onboarding.intro": "Diese laufen gerade und steuern dieselbe Beleuchtung, Lüfter oder Peripherie wie Nexus. Beende die, die du nicht brauchst.",
   "conflicts.onboarding.skip": "Überspringen",
   "conflicts.onboarding.title": "Apps, die um deine Hardware konkurrieren",

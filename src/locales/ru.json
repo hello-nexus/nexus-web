@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "Устранить все конфликты",
   "conflicts.modal.terminated": "Завершено",
   "conflicts.modal.title": "Обнаружены конфликтующие приложения",
-  "conflicts.onboarding.continue": "Продолжить",
   "conflicts.onboarding.intro": "Они запущены сейчас и управляют той же подсветкой, вентиляторами или периферией, что и Nexus. Завершите те, которые вам не нужны.",
   "conflicts.onboarding.skip": "Пропустить",
   "conflicts.onboarding.title": "Приложения, борющиеся за ваше оборудование",

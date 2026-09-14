@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "모든 충돌 해결",
   "conflicts.modal.terminated": "종료됨",
   "conflicts.modal.title": "충돌하는 앱 감지됨",
-  "conflicts.onboarding.continue": "계속",
   "conflicts.onboarding.intro": "지금 실행 중이며 Nexus와 동일한 조명, 팬, 주변 기기를 제어합니다. 필요하지 않은 것은 종료하세요.",
   "conflicts.onboarding.skip": "건너뛰기",
   "conflicts.onboarding.title": "하드웨어를 두고 경쟁하는 앱",

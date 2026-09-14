@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "Risolvi tutti i conflitti",
   "conflicts.modal.terminated": "Terminato",
   "conflicts.modal.title": "Rilevate app in conflitto",
-  "conflicts.onboarding.continue": "Continua",
   "conflicts.onboarding.intro": "Sono in esecuzione ora e controllano la stessa illuminazione, ventole o periferiche di Nexus. Chiudi quelle che non ti servono.",
   "conflicts.onboarding.skip": "Salta",
   "conflicts.onboarding.title": "App che competono per il tuo hardware",

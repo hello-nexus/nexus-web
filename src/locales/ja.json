@@ -259,7 +259,6 @@
   "conflicts.modal.resolveAll": "すべての競合を解決",
   "conflicts.modal.terminated": "終了しました",
   "conflicts.modal.title": "競合するアプリを検出しました",
-  "conflicts.onboarding.continue": "続ける",
   "conflicts.onboarding.intro": "現在実行中で、Nexus と同じライティング、ファン、周辺機器を制御しています。不要なものを終了してください。",
   "conflicts.onboarding.skip": "スキップ",
   "conflicts.onboarding.title": "ハードウェアを奪い合っているアプリ",
