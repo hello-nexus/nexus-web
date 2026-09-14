@@ -6,7 +6,6 @@ import {
   fetchLightingStatus,
   setLightingDeviceControlled,
   startStatic,
-  stopLighting,
   cachedAnimateDefaults,
   type LightingDevice,
 } from '../../../api/lighting';
@@ -17,7 +16,6 @@ vi.mock('../../../api/lighting', () => ({
   fetchLightingDevices: vi.fn(),
   fetchLightingStatus: vi.fn(),
   setLightingDeviceControlled: vi.fn(),
-  stopLighting: vi.fn(),
   // ZoneCard's identify affordance; unused in toggleMode but imported.
   identifyLightingDevice: vi.fn(),
   startStatic: vi.fn(),
@@ -78,7 +76,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
   vi.mocked(setLightingDeviceControlled).mockResolvedValue(null);
-  vi.mocked(stopLighting).mockResolvedValue(null);
 });
 
 describe('LightingOnboardingScreen - device grid', () => {
@@ -239,7 +236,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
 
     chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(completeLightingOnboarding).toHaveBeenCalled();
@@ -252,7 +249,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
 
     chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
     expect(await screen.findByText('welcome.error')).toBeInTheDocument();
     expect(onComplete).not.toHaveBeenCalled();
@@ -440,26 +437,19 @@ describe('LightingOnboardingScreen mode choice', () => {
     const onComplete = renderScreen();
     await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
 
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
     expect(setLightingDeviceControlled).toHaveBeenCalledWith('openrgb-0', true);
-    expect(stopLighting).not.toHaveBeenCalled();
   });
 
-  it('No lighting stops the engine and leaves the picker out of it', async () => {
+  it('offers only Simple and Advanced', async () => {
     seed([strip]);
-    const onComplete = renderScreen();
+    renderScreen();
     await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
 
-    fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
-    // The devices still list, they just cannot be chosen between.
-    expect(screen.getByRole('switch', { name: 'Test Strip' })).toBeInTheDocument();
-    expect(document.querySelector('[class*=deviceGridLocked]')).not.toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
-    await waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(stopLighting).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.queryByRole('radio', { name: /lightingOnboarding\.mode\.off/ })).not.toBeInTheDocument();
   });
 
   it('keeps the bulk actions visible in every mode, live only in Advanced', async () => {
@@ -470,9 +460,6 @@ describe('LightingOnboardingScreen mode choice', () => {
     // Simple: present, but there is nothing for them to choose between.
     expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
-    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
 
     chooseAdvanced();
     // One device is ignored, so both actions have work to do.

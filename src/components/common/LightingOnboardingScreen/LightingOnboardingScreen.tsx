@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, Ban, CheckCheck, Lightbulb, PanelsTopLeft, PowerOff, RotateCw, SquareDashed } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCheck, Lightbulb, PanelsTopLeft, RotateCw, SquareDashed } from 'lucide-react';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
@@ -11,7 +11,6 @@ import {
   fetchLightingStatus,
   setLightingDeviceControlled,
   startStatic,
-  stopLighting,
   fetchAnimateDefaults,
   cachedAnimateDefaults,
   type LightingDevice,
@@ -42,9 +41,8 @@ const noop = () => {};
 
 const MODE_ICON_SIZE = 22;
 
-/** In the order they are offered: leave RGB alone, drive it all, or choose. */
+/** In the order they are offered: drive it all, or choose. */
 const MODE_CHOICES = [
-  { key: 'off' as const, Icon: PowerOff },
   { key: 'simple' as const, Icon: SquareDashed },
   { key: 'advanced' as const, Icon: PanelsTopLeft },
 ];
@@ -66,13 +64,12 @@ const TEST_FILLS: { key: string; swatch: string }[] = [
 const isToggleable = (d: LightingDevice): boolean => !zoneCardUnavailable(d);
 
 /**
- * Last onboarding gate, after the welcome screen (and the Nexus 2 gate on
- * eligible installs) completes: every
- * detected RGB device as a whole-card controlled/ignored toggle, all
- * controlled by default. Non-dismissable like WelcomeScreen; Continue is the
- * only way through, and it only dismisses once the completion flag write
- * succeeds. Device toggles write through immediately (same call the lighting
- * page uses), so Continue has nothing to batch.
+ * Last onboarding gate, after the conflict step: every detected RGB device
+ * as a whole-card controlled/ignored toggle, all controlled by default.
+ * Non-dismissable like WelcomeScreen; Finish is the only way through, and it
+ * only dismisses once the completion flag write succeeds. Device toggles
+ * write through immediately (same call the lighting page uses), so Finish has
+ * nothing to batch.
  */
 export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboarding }: LightingOnboardingScreenProps) {
   const { t } = useTranslation();
@@ -83,7 +80,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   const [testFill, setTestFill] = useState<string | null>(null);
   // Which way the app opens after this, and whether this screen picks devices
   // at all. Simple drives everything, so there is nothing here to choose.
-  const [mode, setMode] = useState<'simple' | 'advanced' | 'off'>('simple');
+  const [mode, setMode] = useState<'simple' | 'advanced'>('simple');
   const updateUiSettings = useUiSettingsUpdateSafe();
   const devicesRef = useRef<LightingDevice[] | null>(null);
   devicesRef.current = devices;
@@ -91,12 +88,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   // A poll that started before the write lands still answers with the old
   // value, and applying it puts the card back the way it was.
   const intentRef = useRef(new Map<string, boolean>());
-  // Simple drives everything and No lighting drives nothing; only advanced
-  // shows each device as the user left it.
+  // Simple drives everything; only advanced shows each device as the user
+  // left it.
   const displayDevice = (d: LightingDevice): LightingDevice => (
-    mode === 'simple' ? { ...d, controlled: true }
-      : mode === 'off' ? { ...d, controlled: false }
-        : d
+    mode === 'simple' ? { ...d, controlled: true } : d
   );
 
   // Renders in each card's own LED strip, the way a Static pick does.
@@ -236,11 +231,6 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     try {
       // Simple drives every device, so anything switched off here goes back on
       // rather than sitting dark on a page with no control to explain it.
-      if (mode === 'off') {
-        // Nothing to drive: stop the engine rather than leave it running over
-        // devices the user just said they do not want lit.
-        await stopLighting().catch(() => null);
-      }
       if (mode === 'simple') {
         const off = (devicesRef.current ?? []).filter(d => d.controlled === false);
         if (off.length > 0) {
@@ -248,8 +238,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
           await Promise.allSettled(off.map(d => setLightingDeviceControlled(d.id, true)));
         }
       }
-      // 'off' has no page of its own; it opens simple, with lighting stopped.
-      updateUiSettings({ lightingDashboardMode: mode === 'advanced' ? 'advanced' : 'simple' });
+      updateUiSettings({ lightingDashboardMode: mode });
       const result = await completeLightingOnboarding();
       if (result?.lightingCompleted) {
         onComplete();
@@ -337,7 +326,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
         {cards !== null && cards.length > 0 && (
           <>
             <div
-              className={`${styles.deviceGrid} ${mode === 'advanced' ? '' : styles.deviceGridLocked} ${mode === 'off' ? styles.deviceGridOff : ''}`}
+              className={`${styles.deviceGrid} ${mode === 'advanced' ? '' : styles.deviceGridLocked}`}
               role="group"
               aria-label={t('lightingOnboarding.title')}
             >
@@ -382,7 +371,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       )}
 
       {cards !== null && cards.length > 0 && (
-        <div className={`${styles.testStrip} ${mode === 'off' ? styles.testStripOff : ''}`} role="group" aria-label={t('lightingOnboarding.testColors')}>
+        <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
           <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
           {TEST_FILLS.map(f => (
             <button
@@ -412,7 +401,7 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
           loadingHidesLabel
           className={styles.continueButton}
         >
-          {t('lightingOnboarding.continue')}
+          {t('onboarding.finish')}
         </Button>
       </div>
     </Overlay>

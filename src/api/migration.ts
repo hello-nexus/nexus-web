@@ -117,6 +117,11 @@ export async function closeNexus2App() {
   return postService<Nexus2ActionResponse>('/migration/nexus2/close-app', {});
 }
 
+/** Silent uninstall through Nexus 2's own uninstaller; closes the app first. Slow (tens of seconds): the service waits for the uninstaller to exit. */
+export async function uninstallNexus2() {
+  return postService<Nexus2ActionResponse>('/migration/nexus2/uninstall', {});
+}
+
 export async function previewNexus2Import() {
   return postService<Nexus2PreviewResponse>('/migration/nexus2/preview', {});
 }

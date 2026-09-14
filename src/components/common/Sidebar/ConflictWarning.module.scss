@@ -27,6 +27,11 @@
   gap: 0.5rem;
 }
 
+.resolveRow {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .dismissRow {
   display: flex;
   align-items: center;

@@ -105,6 +105,8 @@ const OPEN_UPDATE_PARAM = 'openUpdate';
 // The conflict-shutdown toast's "Open Settings" button opens the dashboard
 // here; a query param is the only way a click reaches an already-open window.
 const MANAGE_CONFLICTS_PARAM = 'manageConflicts';
+// Longer than useConflictApps' REST seed on a healthy service by a wide margin.
+const CONFLICT_SNAPSHOT_TIMEOUT_MS = 5000;
 
 // True only the first time it sees a given version. The service holds
 // justUpdatedTo for a fixed window after an update, so a window close+reopen
@@ -261,11 +263,13 @@ function ResizeStrip({ className, edge }: { className: string; edge: NexusResize
  * the one-shot REST seed returned.
  */
 function ConflictOnboardingGate({
-  enabled, armed, done, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
+  enabled, armed, done, nexus2Installed, finalStep, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
 }: {
   enabled: boolean;
   armed: boolean;
   done: boolean;
+  nexus2Installed: boolean;
+  finalStep: boolean;
   onArm: () => void;
   onSpend: () => void;
   onComplete: () => void;
@@ -281,11 +285,21 @@ function ConflictOnboardingGate({
     else onArm();
   }, [armed, done, enabled, ready, conflicts.length, onArm, onSpend]);
 
+  // The gates behind this one wait on its decision, so a snapshot that never
+  // resolves (conflicts read failed) must spend it rather than hold them.
+  useEffect(() => {
+    if (armed || done || !enabled || ready) return;
+    const timer = setTimeout(onSpend, CONFLICT_SNAPSHOT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [armed, done, enabled, ready, onSpend]);
+
   return (
     <ConflictOnboardingScreen
       open={armed && !done}
       conflicts={conflicts}
       ready={ready}
+      nexus2Installed={nexus2Installed}
+      finalStep={finalStep}
       onComplete={onComplete}
       onSkipOnboarding={onSkipOnboarding}
       onBack={onBack}
@@ -347,29 +361,33 @@ export function Dashboard() {
     && fanControl.status !== 'unknown'
     && (onboardingStatus === 'completed' || onboardingDismissed)
     && !welcomeOpen && !featuresOpen && importOffered && !importDismissed;
-  // Third gate: device selection runs last, against the fullest device list.
-  // Waits on nexus2.status resolving so it cannot flash open before the
-  // heavier Nexus 2 detection read decides whether that gate comes first.
+  // Third gate: conflicting apps, before device selection - they hold the
+  // hardware that gate enumerates, and this is where they get ended. Opens
+  // only when the sequence actually ran (a returning user with nothing
+  // pending never sees it) and only when something was detected.
+  const [conflictStepDone, setConflictStepDone] = useState(false);
+  // Armed once, at the moment the import gate closes, and never re-armed.
+  // Keying the modal on "conflicts exist right now" instead would leave the
+  // gate live all session: an app launched an hour later would pop it open
+  // and, because showDashboard excludes it, unmount the whole dashboard.
+  // The screen opens on the latch, not on the live list, so ending the last
+  // app from inside it shows the all-clear state instead of vanishing.
+  const [conflictStepArmed, setConflictStepArmed] = useState(false);
+  const ranEarlierGate = onboardingDismissed || featuresOnboardingDismissed || importDismissed;
+  // Live from the moment the gates before it close until the step is spent
+  // or completed; the gates behind it (and the dashboard) wait on it, so the
+  // snapshot read cannot flash them open before the decision.
+  const conflictStepPending = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
+    && fanControl.status !== 'unknown'
+    && ranEarlierGate && !welcomeOpen && !featuresOpen && !importOpen && !conflictStepDone;
+  // Last gate: device selection, against the fullest device list. Waits on
+  // nexus2.status resolving so it cannot flash open before the heavier
+  // Nexus 2 detection read decides whether the import gate comes first.
   // Skipped entirely when the features gate already turned Lighting off.
   const lightingOnboardingOpen = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
-    && !welcomeOpen && !importOpen && !featuresOpen && !lightingFeatureOff
+    && !welcomeOpen && !importOpen && !featuresOpen && !conflictStepPending && !lightingFeatureOff
     && lightingStatus === 'pending' && !lightingOnboardingDismissed;
-  // Final gate: conflicting apps, after every other step, because ending one
-  // is about the running system rather than about setup. Opens only when the
-  // sequence actually ran (a returning user with nothing pending never sees
-  // it) and only when something was detected; its actions are per-app clicks.
-  const [conflictStepDone, setConflictStepDone] = useState(false);
-  // Armed once, at the moment the last gate closes, and never re-armed. Keying
-  // the modal on "conflicts exist right now" instead would leave the gate live
-  // all session: an app launched an hour later would pop it open and, because
-  // showDashboard excludes it, unmount the whole dashboard underneath.
-  const [conflictStepArmed, setConflictStepArmed] = useState(false);
-  const ranOnboarding = onboardingDismissed || featuresOnboardingDismissed || lightingOnboardingDismissed || importDismissed;
-  const gatesSettled = ranOnboarding && !welcomeOpen && !featuresOpen && !importOpen && !lightingOnboardingOpen;
-  // Open depends on the latch, not on the live list, so ending the last app
-  // from inside the modal shows the all-clear state instead of vanishing.
-  const conflictStepOpen = conflictStepArmed && !conflictStepDone;
 
   // Skips every remaining step at once. Marks the same server flags the
   // screens themselves would, so a reload does not reopen them. Leaves all
@@ -408,7 +426,7 @@ export function Dashboard() {
   // Nexus2WelcomeScreen pops in on top of it.
   const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
-    && !welcomeOpen && !featuresOpen && !lightingOnboardingOpen && !importOpen && !conflictStepOpen;
+    && !welcomeOpen && !featuresOpen && !lightingOnboardingOpen && !importOpen && !conflictStepPending;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -1026,41 +1044,43 @@ export function Dashboard() {
               ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
               : undefined}
         />
-        {/* Lighting device-selection gate, gated by its own server-side flag so
-            a factory reset reopens everything. Back targets whichever earlier
-            gate actually ran this session: import, else features, else
-            welcome. */}
-        <LightingOnboardingScreen
-          open={lightingOnboardingOpen}
-          onComplete={() => setLightingOnboardingDismissed(true)}
-          onSkipOnboarding={skipOnboarding}
-          onBack={() => {
-            if (importOffered) { setImportDismissed(false); return; }
-            if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); return; }
-            setWelcomeRevisit(true); setOnboardingDismissed(false);
-          }}
-        />
-        {/* Final onboarding gate: conflicting apps. A full screen like the
-            gates before it, not the top-bar modal - that one belongs to the
-            badge and carries its "don't show again" row. Its hook call lives in
-            the child, not in Dashboard's body: useTopic reads MultiplexContext
-            from above its component, and Dashboard is what renders it. */}
+        {/* Conflicting-apps gate. A full screen like the gates before it, not
+            the top-bar modal - that one belongs to the badge and carries its
+            "don't show again" row. Its hook call lives in the child, not in
+            Dashboard's body: useTopic reads MultiplexContext from above its
+            component, and Dashboard is what renders it. */}
         <ConflictOnboardingGate
-          enabled={gatesSettled && !conflictStepDone}
+          enabled={conflictStepPending}
           armed={conflictStepArmed}
           done={conflictStepDone}
+          nexus2Installed={nexus2.payload?.detected === true}
+          finalStep={lightingFeatureOff || lightingStatus !== 'pending' || lightingOnboardingDismissed}
           onArm={() => setConflictStepArmed(true)}
           onSpend={() => setConflictStepDone(true)}
           onComplete={() => setConflictStepDone(true)}
           onSkipOnboarding={skipOnboarding}
           // Disarm as well as reopening the previous gate: `open` here is the
           // only gate condition that does not exclude an earlier one, so
-          // leaving it armed stacks two full-screen overlays. The lighting
-          // gate never ran this session when it was skipped by the features
-          // gate, so back up past it to whichever gate ran instead.
+          // leaving it armed stacks two full-screen overlays. Back targets
+          // whichever earlier gate ran this session: import, else features,
+          // else welcome.
           onBack={() => {
             setConflictStepArmed(false);
-            if (!lightingFeatureOff) { setLightingOnboardingDismissed(false); return; }
+            if (importOffered) { setImportDismissed(false); return; }
+            if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); return; }
+            setWelcomeRevisit(true); setOnboardingDismissed(false);
+          }}
+        />
+        {/* Lighting device-selection gate, gated by its own server-side flag so
+            a factory reset reopens everything. Back reopens the conflict step
+            when it showed this session, else whichever earlier gate ran:
+            import, else features, else welcome. */}
+        <LightingOnboardingScreen
+          open={lightingOnboardingOpen}
+          onComplete={() => setLightingOnboardingDismissed(true)}
+          onSkipOnboarding={skipOnboarding}
+          onBack={() => {
+            if (conflictStepArmed) { setConflictStepDone(false); return; }
             if (importOffered) { setImportDismissed(false); return; }
             if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); return; }
             setWelcomeRevisit(true); setOnboardingDismissed(false);

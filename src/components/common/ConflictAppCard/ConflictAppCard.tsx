@@ -67,7 +67,9 @@ export function ConflictAppCard({
   const [disablingAutostart, setDisablingAutostart] = useState(false);
   // Sticky for the life of the card: the entry list goes empty on success, so
   // without this the confirmation would vanish in the same frame it appeared.
-  const [autostartDisabled, setAutostartDisabled] = useState(false);
+  // Keyed on the list rather than on this card's own click so a resolve-all
+  // from the surface reports here too.
+  const [sawAutostart, setSawAutostart] = useState(false);
   const [autostartFailed, setAutostartFailed] = useState(false);
   // The kill clears this row through the watcher, so the card can unmount
   // mid-await; only a still-mounted card resets its busy state.
@@ -116,8 +118,7 @@ export function ConflictAppCard({
     try {
       const ok = await onDisableAutostart();
       if (!mountedRef.current) return;
-      if (ok) setAutostartDisabled(true);
-      else setAutostartFailed(true);
+      if (!ok) setAutostartFailed(true);
     } finally {
       if (mountedRef.current) setDisablingAutostart(false);
     }
@@ -127,6 +128,10 @@ export function ConflictAppCard({
   // while something is still starting it. Ending the task does not stop the
   // next boot, so a terminated row keeps the action.
   const showAutostart = autostart !== undefined && onDisableAutostart !== undefined && autostart.length > 0;
+  useEffect(() => {
+    if (showAutostart) setSawAutostart(true);
+  }, [showAutostart]);
+  const autostartDisabled = sawAutostart && autostart !== undefined && autostart.length === 0;
 
   // What each entry is, in the user's terms. The button acts on a Windows
   // startup entry, not on the vendor app's own switch, and saying so is the

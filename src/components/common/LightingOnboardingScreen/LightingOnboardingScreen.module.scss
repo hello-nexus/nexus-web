@@ -270,19 +270,8 @@
   color: var(--text-dim);
 }
 
-// Simple drives everything and No lighting drives nothing, so neither offers
-// the cards as a choice.
+// Simple drives everything, so it does not offer the cards as a choice.
 .deviceGridLocked {
-  pointer-events: none;
-}
-
-.deviceGridOff {
-  opacity: 0.45;
-}
-
-// Nothing to test while lighting is off.
-.testStripOff {
-  opacity: 0.45;
   pointer-events: none;
 }
 

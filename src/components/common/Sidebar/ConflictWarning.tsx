@@ -1,5 +1,6 @@
-import { AlertTriangle, ShieldOff } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, ShieldOff } from 'lucide-react';
 import type { DetectedConflict } from '../../../api/conflicts';
+import { Button } from '../Button/Button';
 import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
@@ -7,6 +8,7 @@ import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
 import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictDevices } from '../../../hooks/useConflictDevices';
+import { useConflictResolveAll } from '../../../hooks/useConflictResolveAll';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import styles from './ConflictWarning.module.scss';
 
@@ -87,6 +89,7 @@ export function ConflictWarningModal({
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
   const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
+  const { pending, resolving, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
 
   if (!open) return null;
 
@@ -122,6 +125,22 @@ export function ConflictWarningModal({
           </ul>
         ) : (
           <ConflictAllClear />
+        )}
+
+        {hasConflicts && (
+          <div className={styles.resolveRow}>
+            <Button
+              tone="neutral"
+              size="sm"
+              icon={<ShieldCheck />}
+              loading={resolving}
+              loadingHidesLabel
+              disabled={!pending}
+              onClick={() => { void resolveAll(); }}
+            >
+              {t('conflicts.modal.resolveAll')}
+            </Button>
+          </div>
         )}
 
         <label className={styles.dismissRow}>

@@ -87,6 +87,20 @@
   }
 }
 
+.resolveRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+.note {
+  @include text-caption;
+  margin: 0;
+  max-width: min($onboarding-content-width, 100%);
+  text-align: center;
+  color: var(--text-dim);
+}
+
 .footerRow {
   display: flex;
   align-items: center;
