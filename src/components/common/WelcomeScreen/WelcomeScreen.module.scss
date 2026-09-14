@@ -36,7 +36,8 @@
   justify-content: center;
   gap: 2rem;
   padding: 2rem;
-  overflow-y: auto;
+  // The settings section is the only scroller, so Enter stays in view.
+  overflow: hidden;
 
   :global(html.nexus-shell-native-glass[data-bg='glass']) & {
     background: transparent;
@@ -52,6 +53,7 @@ $group-gap: 0.75rem;
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
   gap: $group-gap;
   color: var(--text);
   animation: heroIn 0.5s ease-out both;
@@ -127,6 +129,9 @@ $group-gap: 0.75rem;
 .section {
   width: min($onboarding-content-width, 100%);
   margin-top: -1.25rem;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .hint {
@@ -141,6 +146,7 @@ $group-gap: 0.75rem;
 
 .enterButton {
   width: min(280px, 100%);
+  flex-shrink: 0;
 }
 
 .error {

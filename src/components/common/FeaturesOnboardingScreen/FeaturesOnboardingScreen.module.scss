@@ -22,7 +22,8 @@
   justify-content: flex-start;
   gap: 1.5rem;
   padding: 2rem;
-  overflow-y: auto;
+  // The grid is the only scroller, so Back, Skip and Continue stay in view.
+  overflow: hidden;
 
   :global(html.nexus-shell-native-glass[data-bg='glass']) & {
     background: transparent;
@@ -41,6 +42,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  flex-shrink: 0;
   gap: 0.5rem;
   color: var(--text);
   text-align: center;
@@ -62,6 +64,9 @@
   grid-template-columns: repeat(2, minmax(240px, 320px));
   gap: 1rem;
   width: min(680px, 100%);
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .pillarCard {
@@ -120,6 +125,7 @@
 }
 
 .hint {
+  flex-shrink: 0;
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   color: var(--text-dim);
@@ -135,6 +141,7 @@
 }
 
 .footerRow {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
