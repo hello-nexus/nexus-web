@@ -102,7 +102,8 @@ describe('ImportOnboardingScreen', () => {
       onComplete,
     });
 
-    fireEvent.click(await screen.findByRole('button', { name: SKIP }));
+    // Nothing is ticked (FanControl is opt-in), so the one button is Continue.
+    fireEvent.click(await screen.findByRole('button', { name: 'importOnboarding.continue' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     // Not listed (nothing to bring over), but its gate is still spent.
@@ -172,6 +173,26 @@ describe('ImportOnboardingScreen', () => {
     const cards = document.querySelectorAll('[class*=sourceRow]');
     expect(cards).toHaveLength(2);
     cards.forEach(card => expect(card.querySelectorAll('[role=switch]')).toHaveLength(1));
+  });
+
+  it('reads Continue with nothing ticked, live, and offers no Skip import', async () => {
+    const onComplete = vi.fn();
+    renderScreen({
+      nexus2: { ...NEXUS2, importAvailable: false },
+      offeredFor: { fancontrol: true },
+      onComplete,
+    });
+
+    // FanControl is opt-in, so nothing is ticked: one button, nothing to skip.
+    const go = await screen.findByRole('button', { name: 'importOnboarding.continue' });
+    expect(go).toBeEnabled();
+    expect(screen.queryByRole('button', { name: SKIP })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: IMPORT_AND_CONTINUE })).not.toBeInTheDocument();
+
+    fireEvent.click(go);
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(applyFanControlImport).not.toHaveBeenCalled();
+    expect(dismissFanControlImport).toHaveBeenCalledTimes(1);
   });
 
   it('starts with Nexus 2 included and every other app opt-in', async () => {

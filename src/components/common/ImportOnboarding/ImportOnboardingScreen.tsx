@@ -159,13 +159,16 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
         />
       </div>
 
+      {/* One always-live button. It imports only when something is ticked,
+          and Skip import is offered only then, as the way past a ticked
+          import without running it. */}
       <div className={styles.footerRow}>
-        {applyPhase !== 'failed' && sources.length > 0 && (
+        {applyPhase !== 'failed' && importHasSelection && (
           <Button
             tone="neutral"
             size="lg"
             onClick={() => handleContinue(false)}
-            disabled={busy || importBusy}
+            disabled={busy}
             className={styles.continueButton}
           >
             {t('importOnboarding.skip')}
@@ -177,12 +180,11 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
           onClick={() => handleContinue(true)}
           loading={busy}
           loadingHidesLabel
-          disabled={importBusy || (applyPhase !== 'failed' && sources.length > 0 && !importHasSelection)}
           className={styles.continueButton}
         >
           {applyPhase === 'failed'
             ? t('importOnboarding.continueAnyway')
-            : sources.length > 0
+            : importHasSelection
               ? t('importOnboarding.importAndContinue')
               : t('importOnboarding.continue')}
         </Button>
