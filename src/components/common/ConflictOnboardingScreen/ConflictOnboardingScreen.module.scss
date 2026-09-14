@@ -103,8 +103,7 @@
   justify-content: center;
 }
 
-// The step's one irreversible action gets its own card, sized like a list
-// row rather than a footnote.
+// The step's one irreversible action gets its own card, sized like a list row.
 .uninstall {
   display: flex;
   flex-direction: column;

@@ -73,7 +73,7 @@ const BOTH = ['fancontrol', 'nexus2'] as const;
 /** Resolves once the center reports it has something to import. */
 function readyToImport() {
   const onSelectionChange = vi.fn();
-  const wait = async () => waitFor(() => expect(onSelectionChange).toHaveBeenCalledWith(true));
+  const wait = async () => waitFor(() => expect(onSelectionChange).toHaveBeenCalledWith(true, true));
   return { onSelectionChange, wait };
 }
 

@@ -15,9 +15,10 @@ export interface ConflictResolveAllState {
 
 /**
  * One-click version of working down the conflict list: the same per-app kill
- * and autostart calls the row buttons make, over every row at once. Rows
- * report through the roster (terminated) and the autostart map (entries gone),
- * so the cards need no extra state to show the outcome.
+ * and autostart calls the row buttons make, over every row at once. Kills
+ * report through the roster (terminated); disables through
+ * `autostartDisabledIds`, because a terminated app drops out of the next
+ * autostart read and its row would otherwise lose the confirmation.
  */
 export function useConflictResolveAll(
   entries: readonly ConflictRosterEntry[],

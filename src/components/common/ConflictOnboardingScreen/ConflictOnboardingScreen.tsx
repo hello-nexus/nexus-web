@@ -35,8 +35,8 @@ export interface ConflictOnboardingScreenProps {
  * Conflict gate, after the import step and before device selection: apps
  * already driving the hardware the next screen enumerates. Resolve all ends
  * every app, turns off every boot entry, uninstalls Nexus 2 when it is
- * installed, then moves on; Skip moves on and changes nothing, so a user who
- * wants past this screen keeps their setup exactly as it was.
+ * installed, then moves on; Skip moves on without ending anything now (the
+ * startup shutdown, on by default, still runs at the next service start).
  */
 export function ConflictOnboardingScreen({
   open, conflicts, ready, onComplete, onBack, onSkipOnboarding, nexus2Installed,
