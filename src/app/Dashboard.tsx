@@ -280,12 +280,12 @@ function ConflictOnboardingGate({
 
   useEffect(() => {
     if (armed || done || !enabled || !ready) return;
-    // Nothing running: spend the step rather than leaving it armed. An
-    // installed-but-idle Nexus 2 is not enough to show it; its uninstall
-    // rides along only when the screen opens for something running.
-    if (conflicts.length === 0) onSpend();
+    // An installed Nexus 2 is offered here even when it is not running: its
+    // uninstall is this step's action. Otherwise nothing to show spends the
+    // step rather than leaving it armed.
+    if (conflicts.length === 0 && !nexus2Installed) onSpend();
     else onArm();
-  }, [armed, done, enabled, ready, conflicts.length, onArm, onSpend]);
+  }, [armed, done, enabled, ready, conflicts.length, nexus2Installed, onArm, onSpend]);
 
   // The gates behind this one wait on its decision, so a snapshot that never
   // resolves (conflicts read failed) must spend it rather than hold them.

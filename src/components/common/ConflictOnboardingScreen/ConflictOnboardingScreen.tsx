@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ArrowLeft, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, PackageMinus, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
 import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
@@ -15,6 +15,7 @@ import { uninstallNexus2 } from '../../../api/migration';
 import styles from './ConflictOnboardingScreen.module.scss';
 
 const HERO_ICON_SIZE = 40;
+const UNINSTALL_ICON_SIZE = 28;
 
 export interface ConflictOnboardingScreenProps {
   open: boolean;
@@ -122,6 +123,15 @@ export function ConflictOnboardingScreen({
             ))}
           </div>
         )}
+        {ready && nexus2Installed && (
+          <div className={styles.uninstall} role="note">
+            <span className={styles.uninstallIcon} aria-hidden>
+              <PackageMinus size={UNINSTALL_ICON_SIZE} />
+            </span>
+            <span className={styles.uninstallTitle}>{t('conflicts.onboarding.uninstallNexus2')}</span>
+            <span className={styles.uninstallBody}>{t('conflicts.onboarding.uninstallNexus2.body')}</span>
+          </div>
+        )}
         {entries.length > 0 && (
           <div className={styles.resolveRow}>
             <Button
@@ -138,10 +148,6 @@ export function ConflictOnboardingScreen({
           </div>
         )}
       </div>
-
-      {nexus2Installed && (
-        <p className={styles.note}>{t('conflicts.onboarding.uninstallNexus2')}</p>
-      )}
 
       <div className={styles.footerRow}>
         {(entries.length > 0 || nexus2Installed) && (

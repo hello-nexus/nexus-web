@@ -99,14 +99,36 @@
   margin-top: 0.75rem;
 }
 
-// Same hint style as the other gates' "you can change this later" line.
-.note {
+// The step's one irreversible action gets its own card, sized like a list
+// row rather than a footnote.
+.uninstall {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+  padding: 1.25rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: center;
+}
+
+.uninstallIcon {
+  display: flex;
+  color: var(--warn);
+  margin-bottom: 0.25rem;
+}
+
+.uninstallTitle {
+  @include text-heading;
+  color: var(--text);
+}
+
+.uninstallBody {
   font-size: var(--type-small);
   font-weight: var(--weight-body);
   line-height: 1.4;
-  margin: 0;
-  max-width: min($onboarding-content-width, 100%);
-  text-align: center;
   color: var(--text-dim);
 }
 
