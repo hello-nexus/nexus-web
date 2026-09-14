@@ -71,6 +71,7 @@ export interface PanelSpacing {
 }
 
 type PanelInset = Pick<PanelSpacing, 'gap' | 'padding'>;
+type PanelGridGeometry = Pick<PanelGridCapacity, 'columns' | 'rows' | 'cellSize' | 'rowSize' | 'gap' | 'padding'>;
 
 // Solves gap = padding = ratio * cellSize directly from the extent and cell
 // count, avoiding the circular CSS dependency a var()-chain formula would hit
@@ -206,34 +207,18 @@ export function panelGridCapacityForCanvas(
   }
 
   const safeColumns = toEvenRound(columns ?? defaultColumns);
-  const cellSizeAt = (s: PanelInset) =>
-    Math.max(1, canvasW - s.padding * 2 - s.gap * (safeColumns - 1)) / safeColumns;
-  const rowsAt = (s: PanelInset) => fixedRows == null
-    ? toEvenFloor((Math.max(1, canvasH - s.padding * 2) + s.gap) / (cellSizeAt(s) + s.gap))
-    : toEvenRound(fixedRows);
-  const cellSize = cellSizeAt(spacing);
-  const contentH = Math.max(1, canvasH - spacing.padding * 2);
-  const safeRows = rowsAt(spacing);
-  const rowSize = fixedRows == null
-    ? cellSize
-    : Math.max(1, (contentH - spacing.gap * (safeRows - 1)) / safeRows);
-
-  return {
-    columns: safeColumns,
-    rows: safeRows,
-    cellSize,
-    rowSize,
-    // contentScale drives --panel-scale (the widget render scale ratio). Use
-    // the cell width rather than min(cell, row) so fixed-row surfaces (y70,
-    // q60) with short rows don't shrink widget content; the cellScaler CSS
-    // override handles the non-square card height per-surface.
-    contentScale: cellSizeAt(contentSpacing),
-    gap: spacing.gap,
-    padding: spacing.padding,
-    contentGap: contentSpacing.gap,
-    contentColumns: safeColumns,
-    contentRows: rowsAt(contentSpacing),
+  const solve = (s: PanelInset): PanelGridGeometry => {
+    const cellSize = Math.max(1, canvasW - s.padding * 2 - s.gap * (safeColumns - 1)) / safeColumns;
+    const contentH = Math.max(1, canvasH - s.padding * 2);
+    const rows = fixedRows == null
+      ? toEvenFloor((contentH + s.gap) / (cellSize + s.gap))
+      : toEvenRound(fixedRows);
+    const rowSize = fixedRows == null
+      ? cellSize
+      : Math.max(1, (contentH - s.gap * (rows - 1)) / rows);
+    return { columns: safeColumns, rows, cellSize, rowSize, gap: s.gap, padding: s.padding };
   };
+  return withContentGeometry(solve(spacing), solve(contentSpacing));
 }
 
 function phoneLandscapeGridCapacityForCanvas(
@@ -244,24 +229,26 @@ function phoneLandscapeGridCapacityForCanvas(
   contentSpacing: PanelInset,
 ): PanelGridCapacity {
   const safeRows = toEvenRound(shortAxisSlots);
-  const rowSizeAt = (s: PanelInset) =>
-    Math.max(1, (Math.max(1, canvasH - s.padding * 2) - s.gap * (safeRows - 1)) / safeRows);
-  const columnsAt = (s: PanelInset) =>
-    toEvenFloor((Math.max(1, canvasW - s.padding * 2) + s.gap) / (rowSizeAt(s) + s.gap));
-  const rowSize = rowSizeAt(spacing);
-  const safeColumns = columnsAt(spacing);
+  const solve = (s: PanelInset): PanelGridGeometry => {
+    const rowSize = Math.max(1, (Math.max(1, canvasH - s.padding * 2) - s.gap * (safeRows - 1)) / safeRows);
+    const columns = toEvenFloor((Math.max(1, canvasW - s.padding * 2) + s.gap) / (rowSize + s.gap));
+    return { columns, rows: safeRows, cellSize: rowSize, rowSize, gap: s.gap, padding: s.padding };
+  };
+  return withContentGeometry(solve(spacing), solve(contentSpacing));
+}
 
+// The live solve renders the grid; the stock solve sizes widget content and the immersive overlay.
+function withContentGeometry(live: PanelGridGeometry, stock: PanelGridGeometry): PanelGridCapacity {
   return {
-    columns: safeColumns,
-    rows: safeRows,
-    cellSize: rowSize,
-    rowSize,
-    contentScale: rowSizeAt(contentSpacing),
-    gap: spacing.gap,
-    padding: spacing.padding,
-    contentGap: contentSpacing.gap,
-    contentColumns: columnsAt(contentSpacing),
-    contentRows: safeRows,
+    ...live,
+    // contentScale drives --panel-scale (the widget render scale ratio). Use
+    // the cell width rather than min(cell, row) so fixed-row surfaces (y70,
+    // q60) with short rows don't shrink widget content; the cellScaler CSS
+    // override handles the non-square card height per-surface.
+    contentScale: stock.cellSize,
+    contentGap: stock.gap,
+    contentColumns: stock.columns,
+    contentRows: stock.rows,
   };
 }
 
