@@ -87,14 +87,23 @@
   }
 }
 
+// Centred like the hero above it; the shared row is left-aligned for the
+// top-bar modal's list.
+.allClear {
+  justify-content: center;
+}
+
 .resolveRow {
   display: flex;
   justify-content: flex-end;
   margin-top: 0.75rem;
 }
 
+// Same hint style as the other gates' "you can change this later" line.
 .note {
-  @include text-caption;
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+  line-height: 1.4;
   margin: 0;
   max-width: min($onboarding-content-width, 100%);
   text-align: center;

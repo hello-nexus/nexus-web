@@ -103,7 +103,7 @@ export function ConflictOnboardingScreen({
         {/* Nothing until the snapshot resolves: an empty pre-load list is not
             an all-clear, and Back from the lighting gate re-seeds it. */}
         {!ready ? null : entries.length === 0 ? (
-          <ConflictAllClear />
+          <ConflictAllClear className={styles.allClear} />
         ) : (
           <div className={styles.list}>
             {entries.map(entry => (
