@@ -723,21 +723,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     if (fans?.channels) setChannels(fans.channels);
   }, [channels]);
 
-  // A locked fan is skipped by the preset buttons, and simple mode has no fan
-  // rail to unlock it from - it would sit on its old speed, unexplained.
-  // Latched per id: every lock write refetches the channels, so an unlatched
-  // effect re-fires on its own result and a fan the service refuses to unlock
-  // would loop forever.
-  const unlockAttemptedRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!simpleDashboard) { unlockAttemptedRef.current.clear(); return; }
-    for (const ch of channels) {
-      if (!ch.locked || unlockAttemptedRef.current.has(ch.id)) continue;
-      unlockAttemptedRef.current.add(ch.id);
-      void handleToggleLock(ch.id, false);
-    }
-  }, [simpleDashboard, channels, handleToggleLock]);
-
   // Counts Nexus Control, not "currently driven": the Off preset legitimately
   // drives nothing, and a summary that read 0/6 there would put a claim button
   // in front of a user who chose Off on purpose. Nexus Control off is the only
