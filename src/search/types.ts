@@ -61,6 +61,10 @@ export interface SearchEntry {
   icon?: ReactNode;
   /** Extra match targets that don't show in the label (synonyms, related terms). */
   keywords?: string[];
+  /** Command names the entry answers to as if they were its title: a query
+   *  equal to one (leading slash ignored, so "/logs" works) ranks above every
+   *  fuzzy title hit. For the shortcuts support tells people to type. */
+  aliases?: string[];
   /** Right-aligned secondary text: a value, shortcut, or live status. */
   hint?: string;
   /** When set, the entry is an on/off control: the row shows a switch in this

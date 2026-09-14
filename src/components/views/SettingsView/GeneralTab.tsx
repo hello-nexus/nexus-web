@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PackageOpen, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
+import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PackageOpen, PanelBottom, Power, PowerOff, RefreshCw, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
@@ -109,10 +109,9 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     window.close();
   };
 
-  // Reveal the logs folder (nexus-service.log, plus desktop-host.log on Windows) in
-  // the OS file manager so testers can grab them for a bug report. Loopback-only
+  // Reveal the Nexus data folder in the OS file manager. Loopback-only
   // endpoint - acts on the local machine.
-  const openLogs = async () => {
+  const openDataFolder = async () => {
     await postService('/diagnostics/open-logs', {});
   };
 
@@ -283,24 +282,6 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
       <SettingsSection title={t('settings.diagnostics.title')}>
         <SettingRow
-          label={t('settings.diagnostics.logsLabel')}
-          icon={<ScrollText />}
-          iconLeading="subtle"
-          description={t('settings.diagnostics.logsDescription')}
-        >
-          <Button
-            type="button"
-            tone="neutral"
-            size="sm"
-            icon={<FolderOpen size={14} aria-hidden />}
-            onClick={openLogs}
-            disabled={!serviceOnline}
-          >
-            {t('settings.diagnostics.openLogsButton')}
-          </Button>
-        </SettingRow>
-
-        <SettingRow
           label={t('settings.diagnostics.supportBundleLabel')}
           icon={<PackageOpen />}
           iconLeading="subtle"
@@ -316,6 +297,24 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             disabled={!serviceOnline}
           >
             {t('settings.diagnostics.supportBundleButton')}
+          </Button>
+        </SettingRow>
+
+        <SettingRow
+          label={t('settings.diagnostics.dataFolderLabel')}
+          icon={<FolderOpen />}
+          iconLeading="subtle"
+          description={t('settings.diagnostics.dataFolderDescription')}
+        >
+          <Button
+            type="button"
+            tone="neutral"
+            size="sm"
+            icon={<FolderOpen size={14} aria-hidden />}
+            onClick={openDataFolder}
+            disabled={!serviceOnline}
+          >
+            {t('settings.diagnostics.openDataFolderButton')}
           </Button>
         </SettingRow>
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Film, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, Compass, Film, Gamepad2, Trash2, Users } from 'lucide-react';
 import { EpicIcon, SteamIcon } from '../../../components/icons/PlatformIcons';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
@@ -9,8 +9,9 @@ import { SearchInput } from '../../../components/common/SearchInput/SearchInput'
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
+import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
+import { Spinner } from '../../../components/common/Spinner/Spinner';
 import { StatTile } from '../../../components/common/StatTile/StatTile';
-import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { TimeSeriesChart } from '../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { fpsGameArtUrl,
   deleteFpsGame,
@@ -23,17 +24,19 @@ import { fpsGameArtUrl,
 import { fetchMonitoringHistory } from '../../../api/monitoringHistory';
 import { useFpsEstimates } from '../../../hooks/useFpsEstimates';
 import { useFpsGames } from '../../../hooks/useFpsGames';
-import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { hour12OptionFor, localizeNumbers, type NumberFormat, type TimeFormat } from '../../../lib/units';
-import type { FpsTableGameItem } from '../../../types/fps-estimates';
+import type { FpsEstimateConfidence, FpsTableGameItem } from '../../../types/fps-estimates';
 import styles from './FramesPage.module.scss';
 
 const SESSIONS_LIMIT = 50;
 // The service's own fps scalar series retention (see the FPS benchmarks
 // plan) - a session ending before this has no timeline left to fetch.
 const HISTORY_RETENTION_DAYS = 7;
+// Discover's resolution chips, in the cloud's resClass form; the first is
+// the default, being the fleet's most common class.
+const DISCOVER_RESOLUTIONS = ['1920x1080', '2560x1440', '3440x1440', '3840x2160'] as const;
 
 type FramesTab = 'history' | 'discover';
 
@@ -66,8 +69,8 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
   }, []);
 
   const tabs = [
-    { key: 'history', label: t('frames.tab.history') },
-    { key: 'discover', label: t('frames.tab.discover') },
+    { key: 'history', label: t('frames.tab.history'), icon: <Film size={14} /> },
+    { key: 'discover', label: t('frames.tab.discover'), icon: <Compass size={14} /> },
   ];
 
   return (
@@ -202,11 +205,7 @@ function GameCard({
           gameKey={game.gameKey}
           imgClass={styles.gameCardImg}
           iconClass={styles.gameCardIcon}
-          placeholder={(
-            <div className={styles.gameCardPlaceholder}>
-              <Badge label={game.store} />
-            </div>
-          )}
+          placeholder={<ArtPlaceholder />}
         />
       </div>
       <div className={styles.gameCardBody}>
@@ -447,23 +446,50 @@ function SessionTimeline({
 
 function DiscoverTab() {
   const { t } = useTranslation();
-  const { specs } = useSystemSpecs(true);
-  const { status, games, resClass } = useFpsEstimates();
+  const [res, setRes] = useState<string>(DISCOVER_RESOLUTIONS[0]);
+  const [search, setSearch] = useState('');
+  const { status, games } = useFpsEstimates(res);
 
-  const rows = specs
-    ? [
-        { label: t('devices.specs.row.processor'), value: specs.processor },
-        { label: t('devices.specs.row.graphicsCard'), value: specs.graphicsCard },
-        { label: t('devices.specs.row.memory'), value: specs.memory },
-        { label: t('devices.specs.row.monitor'), value: specs.monitor },
-      ]
-    : [];
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? games.filter(g => g.title.toLowerCase().includes(q)) : games;
+  }, [games, search]);
+
+  const resolutionChips = DISCOVER_RESOLUTIONS.map(r => ({ key: r, label: formatResClass(r) }));
 
   return (
-    <div className={styles.rig}>
-      <Card title={t('frames.rig.title')}>
-        <SystemSpecsPanel rows={rows} loading={!specs} />
-      </Card>
+    <div className={styles.discover}>
+      <div className={styles.toolbar}>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={t('frames.discover.searchPlaceholder')}
+          className={styles.searchInput}
+        />
+        <ChipGroup
+          options={resolutionChips}
+          activeKey={res}
+          onChange={setRes}
+          ariaLabel={t('frames.discover.resolution')}
+        />
+        {status === 'ready' && (
+          <div className={styles.count}>
+            {filtered.length === games.length
+              ? t('steam.library.count', { count: filtered.length })
+              : t('steam.library.countFiltered', { count: filtered.length, total: games.length })}
+          </div>
+        )}
+      </div>
+      {status === 'loading' && (
+        <div className={styles.emptyWrap}>
+          <Spinner size={28} />
+        </div>
+      )}
+      {status === 'unresolved' && (
+        <div className={styles.emptyWrap}>
+          <EmptyState icon={<Users size={28} />} title={t('frames.discover.unavailable')} />
+        </div>
+      )}
       {status === 'empty' && (
         <div className={styles.emptyWrap}>
           <EmptyState
@@ -473,16 +499,17 @@ function DiscoverTab() {
           />
         </div>
       )}
-      {status === 'ready' && (
-        <div className={styles.discover}>
-          <SectionHeader>{t('frames.discover.title')}</SectionHeader>
-          <div className={styles.cardGrid}>
-            {games.map(game => (
-              <DiscoverGameCard key={game.gameKey} game={game} ownResClass={resClass} />
-            ))}
-          </div>
+      {status === 'ready' && (filtered.length === 0 ? (
+        <div className={styles.emptyWrap}>
+          <EmptyState compact title={t('steam.library.noMatch', { query: search })} />
         </div>
-      )}
+      ) : (
+        <div className={styles.cardGrid}>
+          {filtered.map(game => (
+            <DiscoverGameCard key={game.gameKey} game={game} requestedRes={res} />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -543,9 +570,41 @@ function formatResClass(resClass: string): string {
   return resClass.replace(/^(\d+)x(\d+)$/, '$1×$2');
 }
 
-function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownResClass: string | null }) {
+/** A game with no art at all: the controller glyph on the same ground the icon fallback uses. */
+function ArtPlaceholder() {
+  return (
+    <div className={styles.gameCardPlaceholder} aria-hidden="true">
+      <Gamepad2 size={48} strokeWidth={1.5} />
+    </div>
+  );
+}
+
+const CONFIDENCE_BARS: Record<FpsEstimateConfidence, number> = { low: 1, medium: 2, high: 3 };
+
+/** Three signal bars, filled to the confidence tier and coloured with it; the tier name is the accessible label. */
+function ConfidenceMark({ confidence }: { confidence: FpsEstimateConfidence }) {
   const { t } = useTranslation();
-  const showResBasis = !!game.resBasis && game.resBasis !== ownResClass;
+  const filled = CONFIDENCE_BARS[confidence] ?? 1;
+  return (
+    <span
+      className={`${styles.confidence} ${styles[`confidence_${confidence}`] ?? ''}`}
+      role="img"
+      aria-label={t(`frames.discover.confidence.${confidence}`)}
+      title={t(`frames.discover.confidence.${confidence}`)}
+    >
+      {[1, 2, 3].map(bar => (
+        <span key={bar} className={bar <= filled ? styles.confidenceBarOn : styles.confidenceBar} />
+      ))}
+    </span>
+  );
+}
+
+function DiscoverGameCard({ game, requestedRes }: { game: FpsTableGameItem; requestedRes: string }) {
+  const { t } = useTranslation();
+  // The resolution the figure was measured at: the chip's own unless the
+  // cloud fell back to the nearest class with data.
+  const measuredRes = game.resBasis ?? requestedRes;
+  const fellBack = measuredRes !== requestedRes;
 
   return (
     <Card compact className={styles.gameCard}>
@@ -554,18 +613,15 @@ function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownRe
           gameKey={game.gameKey}
           imgClass={styles.gameCardImg}
           iconClass={styles.gameCardIcon}
-          placeholder={(
-            <div className={styles.gameCardPlaceholder} aria-hidden="true">
-              <Film size={20} />
-            </div>
-          )}
+          placeholder={<ArtPlaceholder />}
         />
       </div>
       <div className={styles.gameCardBody}>
-        <div className={styles.gameCardName}>{game.title}</div>
+        <div className={styles.gameCardName} title={game.title}>{game.title}</div>
         <div className={styles.gameCardAvg}>
           <span className={styles.gameCardAvgValue}>{Math.round(game.avg)}</span>
           <span className={styles.gameCardAvgUnit}>{t('frames.card.fpsUnit')}</span>
+          <span className={styles.gameCardAvgRes}>{`@ ${formatResClass(measuredRes)}`}</span>
         </div>
         <div className={styles.gameCardSecondary}>
           <span className={styles.gameCardSecondaryValue}>{Math.round(game.p1)}</span>
@@ -573,13 +629,12 @@ function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownRe
           <span className={styles.gameCardSecondaryValue}>{Math.round(game.p99)}</span>
           <span className={styles.gameCardSecondaryLabel}>{t('steam.stat.fps99th')}</span>
         </div>
-        <div className={styles.discoverMeta}>
-          <Badge label={t(`frames.discover.confidence.${game.confidence}`)} />
-          <span className={styles.discoverLevel}>{t(`frames.discover.level.${game.level}`)}</span>
-        </div>
-        <div className={styles.discoverBasedOn}>
-          {t('frames.discover.basedOn', { count: game.installs })}
-          {showResBasis && ` · ${t('frames.discover.resBasis', { res: formatResClass(game.resBasis as string) })}`}
+        <div className={styles.discoverBasis}>
+          <ConfidenceMark confidence={game.confidence} />
+          <span className={styles.discoverBasisText}>
+            {t(`frames.discover.level.${game.level}`)}
+            {fellBack && ` · ${t('frames.discover.resBasis', { res: formatResClass(requestedRes) })}`}
+          </span>
         </div>
       </div>
     </Card>

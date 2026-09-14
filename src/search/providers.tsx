@@ -3,7 +3,7 @@ import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
   SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
-  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones,
+  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen,
 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import {
@@ -28,7 +28,7 @@ import { syncCloudNow } from '../api/cloud';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { exportProfile } from '../api/profiles';
 import {
-  openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport,
+  openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport, downloadSupportBundle,
 } from '../api/diagnostics';
 import { postService } from '../api/service';
 import type { UpdateMode, UpdateChannel } from '../api/update';
@@ -54,9 +54,9 @@ function go(id: string, e: {
 }
 function act(id: string, e: {
   title: string; run: () => void;
-  icon?: ReactNode; subtitle?: string; keywords?: string[]; hint?: string;
+  icon?: ReactNode; subtitle?: string; keywords?: string[]; aliases?: string[]; hint?: string;
 }): SearchEntry {
-  return { id, kind: 'action', title: e.title, run: e.run, icon: e.icon, subtitle: e.subtitle, keywords: e.keywords, hint: e.hint };
+  return { id, kind: 'action', title: e.title, run: e.run, icon: e.icon, subtitle: e.subtitle, keywords: e.keywords, aliases: e.aliases, hint: e.hint };
 }
 
 // A boolean on/off control as ONE entry: the row renders a switch in the
@@ -807,11 +807,23 @@ const accountExtra: SearchSource = (ctx) => {
 };
 
 const diagnostics: SearchSource = (ctx) => [
-  act('diag:open-logs', {
-    title: ctx.t('settings.diagnostics.openLogsButton'),
+  // "/logs" is the shortcut support hands out, so the bundle owns "logs"
+  // outright and the folder entry answers to folder/data/files only.
+  ...(ctx.online ? [
+    act('diag:support-bundle', {
+      title: ctx.t('settings.diagnostics.supportBundleButton'),
+      subtitle: ctx.t('settings.diagnostics.title'),
+      icon: <PackageOpen size={18} />,
+      keywords: ['log', 'support', 'bundle', 'zip', 'export', 'debug', 'troubleshoot', 'issue'],
+      aliases: ['logs'],
+      run: () => { void downloadSupportBundle().catch(() => {}); },
+    }),
+  ] : []),
+  act('diag:open-data-folder', {
+    title: ctx.t('settings.diagnostics.openDataFolderButton'),
     subtitle: ctx.t('settings.diagnostics.title'),
     icon: <FolderOpen size={18} />,
-    keywords: ['logs', 'log', 'folder', 'diagnostics', 'debug', 'troubleshoot'],
+    keywords: ['folder', 'data', 'files', 'programdata', 'app data', 'settings.json', 'diagnostics'],
     run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
   }),
   act('diag:report-bug', {

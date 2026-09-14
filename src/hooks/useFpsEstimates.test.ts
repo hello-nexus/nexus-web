@@ -154,4 +154,84 @@ describe('useFpsEstimates', () => {
     expect(a.result.current.status).toBe('ready');
     expect(b.result.current.status).toBe('ready');
   });
+
+  it('signs the rig at the requested resolution instead of the display, keeping the refresh rate', async () => {
+    specsResult = specs();
+    getFpsSignatureMock.mockResolvedValue(signature({ resClass: '1920x1080' }));
+    getFpsTableMock.mockResolvedValue({ normVersion: 1, sigKey: 'sig-1', generatedAt: '2026-01-01', games: [game()] });
+    const { result } = renderHook(() => mod.useFpsEstimates('1920x1080'));
+    await flush();
+
+    expect(getFpsSignatureMock).toHaveBeenCalledWith(expect.objectContaining({ res: '1920x1080', hz: 165 }));
+    expect(result.current.status).toBe('ready');
+    expect(result.current.resClass).toBe('1920x1080');
+  });
+
+  it('resolves a rig with no parseable display once a resolution is requested', async () => {
+    specsResult = specs({ monitor: '' });
+    getFpsSignatureMock.mockResolvedValue(signature({ resClass: '1920x1080', hz: null }));
+    getFpsTableMock.mockResolvedValue({ normVersion: 1, sigKey: 'sig-1', generatedAt: '2026-01-01', games: [game()] });
+    const { result } = renderHook(() => mod.useFpsEstimates('1920x1080'));
+    await flush();
+
+    expect(getFpsSignatureMock).toHaveBeenCalledWith(expect.objectContaining({ res: '1920x1080' }));
+    expect(result.current.status).toBe('ready');
+  });
+
+  it('caches per resolution: switching fetches the new one, switching back is free', async () => {
+    specsResult = specs();
+    getFpsSignatureMock.mockImplementation(async params => signature({ resClass: params.res }));
+    getFpsTableMock.mockResolvedValue({ normVersion: 1, sigKey: 'sig-1', generatedAt: '2026-01-01', games: [game()] });
+    const { result, rerender } = renderHook(({ res }: { res: string }) => mod.useFpsEstimates(res), { initialProps: { res: '1920x1080' } });
+    await flush();
+    expect(result.current.resClass).toBe('1920x1080');
+
+    rerender({ res: '2560x1440' });
+    expect(result.current.status).toBe('loading');
+    await flush();
+    expect(result.current.resClass).toBe('2560x1440');
+    expect(getFpsSignatureMock).toHaveBeenCalledTimes(2);
+
+    rerender({ res: '1920x1080' });
+    await flush();
+    expect(result.current.resClass).toBe('1920x1080');
+    expect(getFpsSignatureMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a table that lands after the consumer switched away, so coming back is free', async () => {
+    specsResult = specs();
+    let release!: () => void;
+    getFpsSignatureMock.mockImplementation(params => new Promise(resolve => {
+      release = () => resolve(signature({ resClass: params.res }));
+    }));
+    getFpsTableMock.mockResolvedValue({ normVersion: 1, sigKey: 'sig-1', generatedAt: '2026-01-01', games: [game()] });
+    const { result, rerender } = renderHook(({ res }: { res: string }) => mod.useFpsEstimates(res), { initialProps: { res: '2560x1440' } });
+    await flush();
+    const releaseFirst = release;
+
+    rerender({ res: '1920x1080' });
+    await flush();
+    release();
+    releaseFirst();
+    await flush();
+    expect(result.current.resClass).toBe('1920x1080');
+
+    rerender({ res: '2560x1440' });
+    await flush();
+    expect(result.current.resClass).toBe('2560x1440');
+    expect(getFpsSignatureMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('a failed resolution does not poison another one', async () => {
+    specsResult = specs();
+    getFpsSignatureMock.mockImplementation(async params => (params.res === '3840x2160' ? null : signature({ resClass: params.res })));
+    getFpsTableMock.mockResolvedValue({ normVersion: 1, sigKey: 'sig-1', generatedAt: '2026-01-01', games: [game()] });
+    const { result, rerender } = renderHook(({ res }: { res: string }) => mod.useFpsEstimates(res), { initialProps: { res: '3840x2160' } });
+    await flush();
+    expect(result.current.status).toBe('unresolved');
+
+    rerender({ res: '1920x1080' });
+    await flush();
+    expect(result.current.status).toBe('ready');
+  });
 });
