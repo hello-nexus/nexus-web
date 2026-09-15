@@ -196,8 +196,7 @@ export function BackgroundMediaPicker({
       await refresh();
       if (!aliveRef.current) return;
       onSelect(first.id, first.type, !!first.alpha);
-      // A folder is imported to be cycled: a single background can show only
-      // one of it, which is the complaint that led here (NEX-116).
+      // A folder is imported to be cycled; a single background shows one file of it.
       if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
     }
   };

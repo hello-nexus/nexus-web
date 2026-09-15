@@ -11,7 +11,9 @@ export function PanelBackgroundMedia({
   ready = true,
   loop = true,
   onLoaded,
+  onFadedIn,
   onFailed,
+  onVideoMetadata,
   onVideoEnded,
 }: {
   id: string;
@@ -26,7 +28,10 @@ export function PanelBackgroundMedia({
   /** A slideshow paces a video itself and turns the element's own loop off. */
   loop?: boolean;
   onLoaded?: () => void;
+  /** The layer's opacity transition has finished after `ready` went true. */
+  onFadedIn?: () => void;
   onFailed?: () => void;
+  onVideoMetadata?: (video: HTMLVideoElement) => void;
   onVideoEnded?: (video: HTMLVideoElement) => void;
 }) {
   const url = backgroundMediaFileUrl(deviceId, id);
@@ -44,6 +49,7 @@ export function PanelBackgroundMedia({
       data-panel-bg-layer
       style={style}
       aria-hidden="true"
+      onTransitionEnd={onFadedIn && ready ? e => { if (e.target === e.currentTarget && e.propertyName === 'opacity') onFadedIn(); } : undefined}
     >
       {type === 'static' || alpha ? (
         <img
@@ -64,6 +70,7 @@ export function PanelBackgroundMedia({
           playsInline
           onCanPlay={onLoaded}
           onError={onFailed}
+          onLoadedMetadata={onVideoMetadata ? e => onVideoMetadata(e.currentTarget) : undefined}
           onEnded={onVideoEnded ? e => onVideoEnded(e.currentTarget) : undefined}
         />
       )}

@@ -4,8 +4,8 @@ import type { BackgroundMediaItem } from '../../api/panelBackgroundMedia';
  * One lap of the slideshow over `items`. In order = import order (oldest
  * first), which is folder order for a folder import: the library itself lists
  * newest first for the grid. `startId` leads the lap when present so the
- * slide the user picked is the one the cycle opens on; a shuffled lap never
- * opens on `avoidId` (the slide just shown) when it has an alternative.
+ * slide the user picked is the one the cycle opens on; a lap never opens on
+ * `avoidId` (the slide just shown) when it has an alternative.
  */
 export function slideshowLap(
   items: readonly BackgroundMediaItem[],
@@ -27,6 +27,9 @@ export function slideshowLap(
     else if (at === 0 && !startId) [ordered[0], ordered[1]] = [ordered[1], ordered[0]];
     return ordered;
   }
-  const at = startId ? ordered.findIndex(item => item.id === startId) : -1;
+  const lead = startId ?? avoidId;
+  let at = lead ? ordered.findIndex(item => item.id === lead) : -1;
+  // Without a start, a lap follows the slide just shown instead of repeating it.
+  if (!startId && at >= 0) at = (at + 1) % ordered.length;
   return at > 0 ? [...ordered.slice(at), ...ordered.slice(0, at)] : ordered;
 }

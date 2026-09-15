@@ -3,24 +3,22 @@ import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import { fetchBackgroundMediaLibrary, type BackgroundMediaItem } from '../../api/panelBackgroundMedia';
 import { PanelBackgroundMedia } from './PanelBackgroundMedia';
 import { slideshowLap } from './slideshowOrder';
+import styles from '../PanelApp.module.scss';
 
-// The .backgroundMedia fade is 260ms; the outgoing slide stays underneath
-// until the incoming one is fully in, so the swap never shows the backdrop.
-const CROSSFADE_MS = 320;
-// An incoming slide that neither loads nor errors (a dropped connection on the
-// kiosk) is skipped so the cycle cannot strand on it.
+// Ceiling on the incoming layer's transitionend, which never fires when the
+// fade is a no-op (background opacity at 0) or the kiosk tab is hidden.
+const FADE_CEILING_MS = 1000;
+// An incoming slide that neither loads nor errors is skipped so the cycle cannot strand on it.
 const LOAD_CEILING_MS = 30_000;
-// A paced video that fires neither ended nor error gets this on top of its
-// expected run before the slideshow moves on regardless.
+// Grace on top of a paced video's expected run before the slideshow moves on regardless.
 const VIDEO_STALL_GRACE_MS = 15_000;
 
 /**
- * Cycles this panel's background-media library. The record's selected asset
- * (`startId`) leads the cycle, so the card highlighted in the editor is the
- * slide it opens on. Slides crossfade: the next asset is mounted underneath at
- * opacity 0, fades in once decoded, and only then is the previous one dropped.
- * A video slide either plays whole (repeating to cover the interval, as the
- * gallery widget does) or is cut at the interval like a still.
+ * Cycles this panel's background-media library. `startId` (the record's
+ * selected asset) leads the cycle. Slides crossfade: the next asset mounts
+ * above the current one at opacity 0, fades in once decoded, and only then is
+ * the previous one dropped. A video slide plays whole (repeating to cover the
+ * interval, as the gallery widget does) or is cut at the interval like a still.
  */
 export function PanelBackgroundSlideshow({
   deviceId,
@@ -40,9 +38,10 @@ export function PanelBackgroundSlideshow({
   const intervalMs = intervalSec * 1000;
   const [items, setItems] = useState<BackgroundMediaItem[]>([]);
   const itemsRef = useRef(items);
+  const itemIdsRef = useRef('');
   const shuffleRef = useRef(shuffle);
-  // The refs mirror the two slide states synchronously (not via an effect):
-  // advance() can run from a timer before a pending commit's effects flush.
+  // The refs mirror the slide states synchronously: advance() can run from a
+  // timer before a pending commit's effects flush.
   const [current, setCurrentState] = useState<BackgroundMediaItem | null>(null);
   const currentRef = useRef(current);
   const setCurrent = useCallback((item: BackgroundMediaItem | null) => {
@@ -56,22 +55,21 @@ export function PanelBackgroundSlideshow({
     setIncomingState(item);
   }, []);
   const [incomingReady, setIncomingReady] = useState(false);
-  // Assets the panel could not decode (deleted meanwhile, unsupported codec);
-  // cleared when the library changes so a re-import gets another try.
+  // Assets the panel could not decode; cleared when the library changes.
   const failedRef = useRef<Set<string>>(new Set());
   const lapRef = useRef<BackgroundMediaItem[]>([]);
   const posRef = useRef(0);
-  // Set whenever the lap's inputs move (library, order); the next advance
-  // rebuilds from the slide on screen instead of finishing a stale lap.
+  // The next advance rebuilds the lap from the slide on screen.
   const lapDirtyRef = useRef(true);
+  // Clip lengths by asset id, from loadedmetadata on either layer.
+  const durationsRef = useRef<Map<string, number>>(new Map());
 
   const refresh = useCallback(async () => {
     const lib = await fetchBackgroundMediaLibrary(deviceId);
     if (lib?.items) setItems(lib.items);
   }, [deviceId]);
   useEffect(() => { refresh(); }, [refresh]);
-  // The service broadcasts on every record write, which covers an import
-  // (it selects the new asset) and a delete of the selected one.
+  // Every record write broadcasts; an import selects the new asset, so it is one.
   useTopicCallback('panel/device', true, (raw) => {
     const frame = raw as { deviceId?: string } | null;
     if (frame?.deviceId === deviceId) refresh();
@@ -87,14 +85,13 @@ export function PanelBackgroundSlideshow({
       setCurrent(item);
       return;
     }
-    if (item.id === currentRef.current.id) return;
+    if (item.id === currentRef.current.id || item.id === incomingRef.current?.id) return;
     setIncoming(item);
     setIncomingReady(false);
   }, [setCurrent, setIncoming]);
 
   const advance = useCallback(() => {
-    // A slide already on its way in keeps the cadence; the timer re-arms when
-    // it lands.
+    // A slide already on its way in keeps the cadence; the timer re-arms when it lands.
     if (incomingRef.current) return;
     const live = liveItems();
     const cur = currentRef.current;
@@ -113,6 +110,8 @@ export function PanelBackgroundSlideshow({
       lap = slideshowLap(live, shuffleRef.current, null, cur?.id ?? null);
       pos = 0;
     }
+    // A lap of two or more never holds the slide on screen at its head.
+    if (cur && lap[pos]?.id === cur.id && lap.length > 1) pos = (pos + 1) % lap.length;
     lapRef.current = lap;
     posRef.current = pos;
     const next = lap[pos];
@@ -124,6 +123,9 @@ export function PanelBackgroundSlideshow({
   useEffect(() => {
     itemsRef.current = items;
     const ids = new Set(items.map(item => item.id));
+    const idKey = [...ids].sort().join('\n');
+    if (idKey === itemIdsRef.current) return;
+    itemIdsRef.current = idKey;
     for (const id of failedRef.current) if (!ids.has(id)) failedRef.current.delete(id);
     lapDirtyRef.current = true;
     const cur = currentRef.current;
@@ -139,8 +141,7 @@ export function PanelBackgroundSlideshow({
       setIncoming(null);
       advance();
     }
-  // startId is handled by its own effect below; only a library change
-  // (re)starts here.
+  // startId has its own effect below; only a library change (re)starts here.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, liveItems, advance, setCurrent, setIncoming]);
 
@@ -158,20 +159,22 @@ export function PanelBackgroundSlideshow({
     lapRef.current = slideshowLap(live, shuffleRef.current, startId);
     posRef.current = 0;
     lapDirtyRef.current = false;
-    setIncoming(null);
+    if (incomingRef.current?.id !== startId) setIncoming(null);
     stage(picked);
   }, [startId, liveItems, stage, setIncoming]);
 
-  // Promote the incoming slide once its fade-in has run.
+  const promote = useCallback(() => {
+    const item = incomingRef.current;
+    if (!item) return;
+    setCurrent(item);
+    setIncoming(null);
+    setIncomingReady(false);
+  }, [setCurrent, setIncoming]);
   useEffect(() => {
     if (!incoming || !incomingReady) return;
-    const timer = setTimeout(() => {
-      setCurrent(incoming);
-      setIncoming(null);
-      setIncomingReady(false);
-    }, CROSSFADE_MS);
+    const timer = setTimeout(promote, FADE_CEILING_MS);
     return () => clearTimeout(timer);
-  }, [incoming, incomingReady, setCurrent, setIncoming]);
+  }, [incoming, incomingReady, promote]);
 
   const failIncoming = useCallback(() => {
     const item = incomingRef.current;
@@ -208,9 +211,7 @@ export function PanelBackgroundSlideshow({
     return () => clearTimeout(timer);
   }, [current, videoPaced, liveCount, intervalMs, advance]);
 
-  // Whole plays only: a 3s clip on a 10s interval runs four times before the
-  // switch, a 20s clip on a 5s interval runs once. Plays count from the
-  // promotion: while fading in the clip loops on its own with no handler.
+  // Whole plays only, counted from the promotion (the clip loops unhandled while fading in).
   const playsRef = useRef(0);
   useEffect(() => {
     playsRef.current = 0;
@@ -221,12 +222,18 @@ export function PanelBackgroundSlideshow({
     ceilingRef.current = setTimeout(advance, Math.max(durationMs * 2, intervalMs) + VIDEO_STALL_GRACE_MS);
   }, [advance, intervalMs]);
   useEffect(() => {
-    if (!videoPaced) return;
-    armCeiling(0);
+    if (!videoPaced || !current) return;
+    armCeiling(durationsRef.current.get(current.id) ?? 0);
     return () => {
       if (ceilingRef.current) clearTimeout(ceilingRef.current);
     };
   }, [videoPaced, current, armCeiling]);
+
+  const onVideoMetadata = useCallback((id: string, video: HTMLVideoElement) => {
+    const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : 0;
+    durationsRef.current.set(id, durationMs);
+    if (videoPaced && currentRef.current?.id === id) armCeiling(durationMs);
+  }, [videoPaced, armCeiling]);
 
   const onVideoEnded = useCallback((video: HTMLVideoElement) => {
     playsRef.current += 1;
@@ -240,17 +247,20 @@ export function PanelBackgroundSlideshow({
   }, [videoPaced, intervalMs, advance, armCeiling]);
 
   if (!current) return null;
+  // The stack carries the background opacity so two overlapping layers never
+  // composite denser than one.
   return (
-    <>
+    <div className={styles.backgroundMediaStack} style={{ opacity }} aria-hidden="true">
       <PanelBackgroundMedia
         key={current.id}
         id={current.id}
         deviceId={deviceId}
         type={current.type}
         alpha={current.alpha}
-        opacity={opacity}
+        opacity={1}
         loop={!videoPaced}
         onFailed={failCurrent}
+        onVideoMetadata={video => onVideoMetadata(current.id, video)}
         onVideoEnded={onVideoEnded}
       />
       {incoming && (
@@ -260,12 +270,14 @@ export function PanelBackgroundSlideshow({
           deviceId={deviceId}
           type={incoming.type}
           alpha={incoming.alpha}
-          opacity={opacity}
+          opacity={1}
           ready={incomingReady}
           onLoaded={() => setIncomingReady(true)}
+          onFadedIn={promote}
           onFailed={failIncoming}
+          onVideoMetadata={video => onVideoMetadata(incoming.id, video)}
         />
       )}
-    </>
+    </div>
   );
 }

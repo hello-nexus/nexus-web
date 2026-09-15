@@ -73,6 +73,7 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { GaugeValue } from '../panel/widgets/monitoring/gauges/GaugeValue';
 import { pairingPreviewQr } from '../components/common/PairingQr/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
+import { DEFAULT_PANEL_SLIDESHOW_INTERVAL } from '../panel/background/panelBackground';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
@@ -1472,7 +1473,7 @@ function PreviewPanelThemeSettings() {
     backdrop: 'theme' as const,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
     backgroundMediaId: null, backgroundMediaType: null, backgroundMediaAlpha: false,
-    backgroundSlideshow: false, backgroundSlideshowInterval: 30, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
+    backgroundSlideshow: false, backgroundSlideshowInterval: DEFAULT_PANEL_SLIDESHOW_INTERVAL, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
     backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
   });

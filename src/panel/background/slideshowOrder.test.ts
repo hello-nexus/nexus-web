@@ -34,6 +34,11 @@ describe('slideshowLap', () => {
     expect(ids(lap).sort()).toEqual(['a', 'b', 'c']);
   });
 
+  it('continues an in-order lap after the slide just shown', () => {
+    expect(ids(slideshowLap(library, false, null, 'a'))).toEqual(['b', 'c', 'a']);
+    expect(ids(slideshowLap(library, false, null, 'c'))).toEqual(['a', 'b', 'c']);
+  });
+
   it('never opens a fresh shuffled lap on the slide just shown', () => {
     // random() = 0 leaves the order untouched, so the lap would open on 'a'.
     const lap = slideshowLap(library, true, null, 'a', () => 0);
