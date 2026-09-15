@@ -20,6 +20,7 @@ import {
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
+  normalizePanelSlideshowInterval,
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
   normalizePanelWidgetPadding,
@@ -30,7 +31,7 @@ import {
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
-import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
+import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 import { isSingleWidgetSurface, type PanelSurface } from '../types';
 import { supportsDesktopWallpaper } from '../device/wiredPanel';
 
@@ -211,6 +212,10 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundMediaId: r?.backgroundMediaId ?? null,
     backgroundMediaType: r?.backgroundMediaType ?? null,
     backgroundMediaAlpha: r?.backgroundMediaAlpha ?? false,
+    backgroundSlideshow: r?.backgroundMediaSlideshow === true,
+    backgroundSlideshowInterval: normalizePanelSlideshowInterval(r?.backgroundMediaInterval),
+    backgroundSlideshowShuffle: r?.backgroundMediaShuffle === true,
+    backgroundSlideshowFinishVideos: r?.backgroundMediaFinishVideos !== false,
     backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
     widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
     widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
@@ -426,6 +431,26 @@ export function usePanelTheme(
     persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
   }, [persistPatch]);
 
+  // One patch for the slideshow group so a toggle + interval edit is a single
+  // record write and a single panel refetch.
+  const commitBackgroundSlideshow = useCallback((patch: Partial<PanelSlideshowSettings>) => {
+    const next: Partial<PanelSlideshowSettings> = { ...patch };
+    if (next.interval !== undefined) next.interval = normalizePanelSlideshowInterval(next.interval);
+    setTheme(prev => ({
+      ...prev,
+      ...(next.enabled !== undefined ? { backgroundSlideshow: next.enabled } : {}),
+      ...(next.interval !== undefined ? { backgroundSlideshowInterval: next.interval } : {}),
+      ...(next.shuffle !== undefined ? { backgroundSlideshowShuffle: next.shuffle } : {}),
+      ...(next.finishVideos !== undefined ? { backgroundSlideshowFinishVideos: next.finishVideos } : {}),
+    }));
+    persistPatch({
+      ...(next.enabled !== undefined ? { backgroundMediaSlideshow: next.enabled } : {}),
+      ...(next.interval !== undefined ? { backgroundMediaInterval: next.interval } : {}),
+      ...(next.shuffle !== undefined ? { backgroundMediaShuffle: next.shuffle } : {}),
+      ...(next.finishVideos !== undefined ? { backgroundMediaFinishVideos: next.finishVideos } : {}),
+    });
+  }, [persistPatch]);
+
   const commitBackgroundFrost = useCallback((percent: number) => {
     const next = normalizePanelBackgroundFrost(percent);
     setTheme(prev => ({ ...prev, backgroundFrost: next }));
@@ -479,6 +504,7 @@ export function usePanelTheme(
     )),
     commitBackgroundOpacity,
     commitBackgroundMedia,
+    commitBackgroundSlideshow,
     previewBackgroundFrost: (percent: number) => setTheme(prev => (
       { ...prev, backgroundFrost: normalizePanelBackgroundFrost(percent) }
     )),

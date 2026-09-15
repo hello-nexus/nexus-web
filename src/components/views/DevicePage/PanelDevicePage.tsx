@@ -161,7 +161,7 @@ function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
     : 'failed';
 }
 
-type Tab = 'widgets' | 'theme' | 'settings';
+type Tab = 'widgets' | 'theme' | 'background' | 'settings';
 
 type XeneonEdgeControlKey = 'brightness' | 'backlight' | 'contrast' | 'red' | 'green' | 'blue';
 
@@ -285,9 +285,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const allocatingRef = useRef(false);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
-  // Bumped by the header's "Change background" action: switches to the Theme
-  // tab and asks PanelThemeSettings to scroll its Background section into view.
-  const [backgroundScrollSignal, setBackgroundScrollSignal] = useState(0);
   const [resetPersonalizationConfirmOpen, setResetPersonalizationConfirmOpen] = useState(false);
   const [resettingPersonalization, setResettingPersonalization] = useState(false);
   const [resetHardwareConfirmOpen, setResetHardwareConfirmOpen] = useState(false);
@@ -848,10 +845,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout(next);
   }, [editorCapacity, layout, updateLayout]);
 
-  // Cleared as soon as the theme tab has scrolled: the tab unmounts on every
-  // tab switch, and a standing signal would re-scroll on each remount.
-  const clearBackgroundScrollSignal = useCallback(() => setBackgroundScrollSignal(0), []);
-
   // Page navigation. The active page rides in layout.activePageId; writing it
   // moves the preview iframe (via set-layout) and the on-device panel (via the
   // panel/device refetch), keeping both in step. PanelContent maps the id back
@@ -997,6 +990,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
     { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
+    { key: 'background', label: t('devices.y70.theme.background'), icon: <Wallpaper size={14} /> },
     ...(settingsAvailable
       ? [{ key: 'settings' as const, label: t('devices.y70.tab.settings'), icon: <Settings size={14} /> }]
       : []),
@@ -1114,19 +1108,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               size="sm"
               tone="ghost"
               className={styles.headerAction}
-              icon={<Wallpaper size={14} />}
-              onClick={() => {
-                setConfiguringWidgetId(null);
-                setTab('theme');
-                setBackgroundScrollSignal(n => n + 1);
-              }}
-            >
-              {t('devices.panels.changeBackground')}
-            </Button>
-            <Button
-              size="sm"
-              tone="ghost"
-              className={styles.headerAction}
               icon={<Camera size={14} />}
               title={t('devices.panels.screenshot')}
               aria-label={t('devices.panels.screenshot')}
@@ -1211,7 +1192,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       themeStyle={panelPreviewThemeStyle}
                     />
                   )}
-                  {activeTab === 'theme' && (() => {
+                  {(activeTab === 'theme' || activeTab === 'background') && (() => {
                     // Aspect from live CSS viewport (DPR cancels); bake target =
                     // the device's physical resolution. Shared with the
                     // screenshot export above.
@@ -1247,6 +1228,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
                         onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
                         onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+                        onBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
                         onBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
                         onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
                         onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
@@ -1260,8 +1242,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         deviceH={nativeH}
                         hideWidgetLabelsToggle={singleWidget}
                         hideWidgetChromeControls={singleWidget}
-                        scrollToBackgroundSignal={backgroundScrollSignal}
-                        onBackgroundScrollHandled={clearBackgroundScrollSignal}
+                        sections={activeTab}
                       />
                     );
                   })()}

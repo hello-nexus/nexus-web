@@ -76,6 +76,7 @@ import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
+import { PanelBackgroundSlideshow } from './background/PanelBackgroundSlideshow';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
 import { panelBackgroundFrostScale, resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
@@ -1520,14 +1521,25 @@ export function PanelContent({
             fullRes={simulator}
           />
         )}
-        {showBackgroundLayers && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
-          <PanelBackgroundMedia
-            id={effectiveTheme.backgroundMediaId}
-            deviceId={deviceId}
-            type={effectiveTheme.backgroundMediaType}
-            alpha={effectiveTheme.backgroundMediaAlpha}
-            opacity={effectiveTheme.backgroundOpacity}
-          />
+        {showBackgroundLayers && effectiveTheme.backgroundMode === 'media' && deviceId && (
+          effectiveTheme.backgroundSlideshow ? (
+            <PanelBackgroundSlideshow
+              deviceId={deviceId}
+              startId={effectiveTheme.backgroundMediaId}
+              intervalSec={effectiveTheme.backgroundSlideshowInterval}
+              shuffle={effectiveTheme.backgroundSlideshowShuffle}
+              finishVideos={effectiveTheme.backgroundSlideshowFinishVideos}
+              opacity={effectiveTheme.backgroundOpacity}
+            />
+          ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
+            <PanelBackgroundMedia
+              id={effectiveTheme.backgroundMediaId}
+              deviceId={deviceId}
+              type={effectiveTheme.backgroundMediaType}
+              alpha={effectiveTheme.backgroundMediaAlpha}
+              opacity={effectiveTheme.backgroundOpacity}
+            />
+          ) : null
         )}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'solid' && (
           <div
@@ -1837,6 +1849,7 @@ export function PanelContent({
           onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
           onThemeBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+          onThemeBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
           showMediaTab={surface !== 'desktop' && !isTunnelActive()}
           deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
           deviceW={surface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}

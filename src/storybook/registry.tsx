@@ -1471,7 +1471,9 @@ function PreviewPanelThemeSettings() {
     backgroundOpacity: 0.4,
     backdrop: 'theme' as const,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
-    backgroundMediaId: null, backgroundMediaType: null, backgroundMediaAlpha: false, backgroundFrost: 0,
+    backgroundMediaId: null, backgroundMediaType: null, backgroundMediaAlpha: false,
+    backgroundSlideshow: false, backgroundSlideshowInterval: 30, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
+    backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -1497,6 +1499,12 @@ function PreviewPanelThemeSettings() {
         onBackgroundOpacityPreview={o => set({ backgroundOpacity: o })}
         onBackgroundOpacityCommit={o => set({ backgroundOpacity: o })}
         onBackgroundMediaCommit={() => { /* no media service in Storybook */ }}
+        onBackgroundSlideshowCommit={patch => set({
+          ...(patch.enabled !== undefined ? { backgroundSlideshow: patch.enabled } : {}),
+          ...(patch.interval !== undefined ? { backgroundSlideshowInterval: patch.interval } : {}),
+          ...(patch.shuffle !== undefined ? { backgroundSlideshowShuffle: patch.shuffle } : {}),
+          ...(patch.finishVideos !== undefined ? { backgroundSlideshowFinishVideos: patch.finishVideos } : {}),
+        })}
         onWidgetOpacityPreview={o => set({ widgetOpacity: o })}
         onWidgetOpacityCommit={o => set({ widgetOpacity: o })}
         onWidgetLabelsCommit={v => set({ widgetLabels: v })}
@@ -2724,14 +2732,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelThemeSettings', category: 'panel-kit',
     filePath: 'src/panel/editor/PanelThemeSettings.tsx',
-    description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown in the Y70 touch editor sheet and the dashboard device Settings tab. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
+    description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown stacked in the Y70 touch editor sheet and split by `sections` across the device page\'s Theme and Background tabs. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
     Preview: PreviewPanelThemeSettings,
     notes: 'Preview is in solid background mode; switching to Animations hits the live thumbnail service, so the grid is empty in Storybook.',
   },
   {
     name: 'PanelBackgroundMedia', category: 'panel-kit',
     filePath: 'src/panel/background/PanelBackgroundMedia.tsx',
-    description: 'Full-bleed background layer rendered in the panel kiosk when backgroundMode is "media". Renders <img> (static) or <video autoPlay loop muted playsInline> (animated) based on the type prop; URL carries the session token for auth.',
+    description: 'Full-bleed background layer rendered in the panel kiosk when backgroundMode is "media". Renders <img> (static) or <video autoPlay loop muted playsInline> (animated) based on the type prop; URL carries the session token for auth. PanelBackgroundSlideshow stacks two of these to crossfade through the library.',
     notes: 'No live preview - requires a running service with background-media items and a device deviceId.',
   },
   {

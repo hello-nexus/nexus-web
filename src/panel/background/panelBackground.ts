@@ -225,6 +225,21 @@ export function normalizePanelBackgroundFrost(value: number | null | undefined):
   return Math.min(Math.max(snapped, 0), 100);
 }
 
+// Seconds a background slide holds before the slideshow moves on. Nexus 2's
+// playlist set minus its 2 s entry: a full-res swap every 2 s is heavy on the
+// panel WebViews and no backdrop needs it.
+export const PANEL_SLIDESHOW_INTERVALS: readonly number[] = [5, 10, 30, 60, 300, 900, 1800, 3600, 86400];
+export const DEFAULT_PANEL_SLIDESHOW_INTERVAL = 30;
+
+// Off-list values (a hand-edited record, an older client) snap to the nearest
+// option so the select always shows the interval the panel actually runs.
+export function normalizePanelSlideshowInterval(value: number | null | undefined): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return DEFAULT_PANEL_SLIDESHOW_INTERVAL;
+  return PANEL_SLIDESHOW_INTERVALS.reduce((best, option) => (
+    Math.abs(option - value) < Math.abs(best - value) ? option : best
+  ));
+}
+
 // Snapped for the same reason as the frost above.
 export function normalizePanelWidgetPadding(value: number | null | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return defaultPanelWidgetPadding();

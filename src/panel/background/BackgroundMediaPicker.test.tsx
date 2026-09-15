@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackgroundMediaPicker } from './BackgroundMediaPicker';
+import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
 
 const api = vi.hoisted(() => ({
   // stageId -> preview pixel size; a missing entry is an unreadable preview.
@@ -46,7 +47,7 @@ vi.mock('../../lib/i18n', () => {
     for (const [k, v] of Object.entries(params ?? {})) text += `:${k}=${v}`;
     return text;
   };
-  return { useTranslation: () => ({ t }) };
+  return { useTranslation: () => ({ t, language: 'en' }) };
 });
 
 import {
@@ -59,8 +60,11 @@ import {
 // aspect, so the expected crop strings below follow from these dimensions.
 const ASPECT = 720 / 1280;
 
-function renderPicker() {
+const SLIDESHOW_OFF: PanelSlideshowSettings = { enabled: false, interval: 30, shuffle: false, finishVideos: true };
+
+function renderPicker(slideshow?: PanelSlideshowSettings) {
   const onSelect = vi.fn();
+  const onSlideshowChange = vi.fn();
   // StrictMode's dev mount/unmount/mount cycle is what the app runs under;
   // an unmount guard that never re-arms only fails there.
   const view = render(
@@ -72,10 +76,12 @@ function renderPicker() {
         deviceW={720}
         deviceH={1280}
         onSelect={onSelect}
+        slideshow={slideshow}
+        onSlideshowChange={onSlideshowChange}
       />
     </StrictMode>,
   );
-  return { onSelect, unmount: view.unmount };
+  return { onSelect, onSlideshowChange, unmount: view.unmount };
 }
 
 function folderInput(): HTMLInputElement {
@@ -203,5 +209,60 @@ describe('BackgroundMediaPicker folder import', () => {
     pickFolder([new File(['x'], 'readme.md', { type: 'text/markdown' })]);
     expect(await screen.findByText('lighting.controls.importFolderEmpty')).toBeInTheDocument();
     expect(stageBackgroundMedia).not.toHaveBeenCalled();
+  });
+});
+
+describe('BackgroundMediaPicker slideshow', () => {
+  it('renders no slideshow controls without the settings group', () => {
+    renderPicker();
+    expect(screen.queryByText('panel.settings.slideshow')).toBeNull();
+  });
+
+  it('shows the interval, order and video rows only while the slideshow is on', () => {
+    renderPicker(SLIDESHOW_OFF);
+    expect(screen.getByText('panel.settings.slideshow')).toBeInTheDocument();
+    expect(screen.queryByText('panel.settings.slideshow.interval')).toBeNull();
+    expect(screen.queryByText('panel.settings.slideshow.order')).toBeNull();
+  });
+
+  it('labels the interval options in the largest whole unit', () => {
+    renderPicker({ ...SLIDESHOW_OFF, enabled: true });
+    expect(screen.getByText('panel.settings.slideshow.interval')).toBeInTheDocument();
+    expect(screen.getByText('panel.settings.slideshow.order')).toBeInTheDocument();
+    // The default (30 s) shows on the trigger; the rest are in the menu.
+    const trigger = screen.getByRole('button', { name: 'panel.settings.slideshow.interval' });
+    expect(trigger).toHaveTextContent('panel.settings.slideshow.seconds.other:count=30');
+    fireEvent.click(trigger);
+    const labels = screen.getAllByRole('option').map(o => o.textContent);
+    expect(labels).toContain('panel.settings.slideshow.seconds.other:count=5');
+    expect(labels).toContain('panel.settings.slideshow.minutes.one:count=1');
+    expect(labels).toContain('panel.settings.slideshow.hours.one:count=1');
+    expect(labels).toContain('panel.settings.slideshow.days.one:count=1');
+    // No video in the (mocked, empty) library: nothing to play to the end.
+    expect(screen.queryByText('panel.settings.slideshow.finishVideos')).toBeNull();
+  });
+
+  it('turns the slideshow on after a folder import of two or more files', async () => {
+    api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
+    api.sizes['stage-b.jpg'] = { w: 720, h: 1280 };
+    const { onSelect, onSlideshowChange } = renderPicker(SLIDESHOW_OFF);
+
+    pickFolder([
+      new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
+      new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
+    ]);
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+    expect(onSlideshowChange).toHaveBeenCalledWith({ enabled: true });
+  });
+
+  it('leaves a single-file folder as a plain background', async () => {
+    api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
+    const { onSelect, onSlideshowChange } = renderPicker(SLIDESHOW_OFF);
+
+    pickFolder([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
+
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+    expect(onSlideshowChange).not.toHaveBeenCalled();
   });
 });

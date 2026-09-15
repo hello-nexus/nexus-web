@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { ColorPickerWithPresets } from '../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
@@ -28,6 +28,20 @@ import styles from './PanelThemeSettings.module.scss';
 
 export type ResolvedPanelThemeMode = 'dark' | 'light';
 
+/** The media background's slideshow group, edited as one patch. */
+export interface PanelSlideshowSettings {
+  enabled: boolean;
+  /** Seconds per slide (one of PANEL_SLIDESHOW_INTERVALS). */
+  interval: number;
+  shuffle: boolean;
+  /** A video slide plays whole before the next, repeating to cover the interval. */
+  finishVideos: boolean;
+}
+
+/** Which of the editor's sections to render: the desktop device page splits
+ * them across its Theme and Background tabs, the on-device sheet stacks all. */
+export type PanelThemeSettingsSection = 'all' | 'theme' | 'background';
+
 export interface PanelThemeSettingsState {
   appThemeMode: ThemeMode;
   // Desktop app's resolved theme from prefs.theme.resolvedThemeMode. '' when the
@@ -55,6 +69,12 @@ export interface PanelThemeSettingsState {
   backgroundMediaId: string | null;
   backgroundMediaType: 'static' | 'animated' | null;
   backgroundMediaAlpha: boolean;
+  // Media mode cycles the whole library instead of holding backgroundMediaId,
+  // which is then the slide it starts from.
+  backgroundSlideshow: boolean;
+  backgroundSlideshowInterval: number;
+  backgroundSlideshowShuffle: boolean;
+  backgroundSlideshowFinishVideos: boolean;
   // Frosted-glass blur over the background layer (shader / media / wallpaper),
   // percent 0-100 (see DEFAULT_PANEL_BACKGROUND_FROST).
   backgroundFrost: number;
@@ -83,6 +103,7 @@ export interface PanelThemeSettingsProps {
   onBackgroundOpacityPreview: (opacity: number) => void;
   onBackgroundOpacityCommit: (opacity: number) => void;
   onBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
+  onBackgroundSlideshowCommit: (patch: Partial<PanelSlideshowSettings>) => void;
   onBackgroundFrostPreview: (percent: number) => void;
   onBackgroundFrostCommit: (percent: number) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
@@ -113,14 +134,7 @@ export interface PanelThemeSettingsProps {
   /** Show the backdrop selector. Kiosk-hosted surfaces (y70 / monitor) only:
    * the wallpaper and see-through modes need a desktop behind the panel. */
   showBackdropSelector?: boolean;
-  /** Bumped by the caller to scroll the Background section into view (the
-   * header's "Change background" action, which switches to this tab first).
-   * 0 = nothing pending, so a plain tab switch keeps the scroll at the top. */
-  scrollToBackgroundSignal?: number;
-  /** Called once the scroll above has been performed. The caller MUST clear
-   * the signal here: the Theme tab unmounts on every tab switch, so a signal
-   * left standing would re-scroll on each remount. */
-  onBackgroundScrollHandled?: () => void;
+  sections?: PanelThemeSettingsSection;
 }
 
 export function PanelThemeSettings({
@@ -143,6 +157,7 @@ export function PanelThemeSettings({
   onBackgroundOpacityPreview,
   onBackgroundOpacityCommit,
   onBackgroundMediaCommit,
+  onBackgroundSlideshowCommit,
   onBackgroundFrostPreview,
   onBackgroundFrostCommit,
   onWidgetOpacityPreview,
@@ -157,9 +172,10 @@ export function PanelThemeSettings({
   hideWidgetLabelsToggle = false,
   hideWidgetChromeControls = false,
   showBackdropSelector = false,
-  scrollToBackgroundSignal = 0,
-  onBackgroundScrollHandled,
+  sections = 'all',
 }: PanelThemeSettingsProps) {
+  const showTheme = sections !== 'background';
+  const showBackground = sections !== 'theme';
   const { t } = useTranslation();
   const label = (key: string, fallback: string) => {
     const value = t(key);
@@ -193,18 +209,6 @@ export function PanelThemeSettings({
   // EffectEditor shell) so the preview + tab bars + chips can sit in one
   // sticky dock while the grid / controls scroll with the page.
   const [editorTab, setEditorTab] = useState<'options' | 'effect'>('options');
-
-  // Background is the last section, so the request has to scroll the settings
-  // scrollport. The effect also covers the mount case: the caller bumps the
-  // signal while switching to the Theme tab, so this component is mounting
-  // with the new value rather than seeing it change. Clearing it through the
-  // callback is what keeps a later remount of this tab from re-scrolling.
-  const backgroundSectionRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!scrollToBackgroundSignal) return;
-    backgroundSectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    onBackgroundScrollHandled?.();
-  }, [scrollToBackgroundSignal, onBackgroundScrollHandled]);
 
   // The same Options | Effect editing surface as the immersive lighting view,
   // here targeting this panel's per-device background effect (animate-only).
@@ -271,7 +275,7 @@ export function PanelThemeSettings({
 
   return (
     <div className={styles.themePanel}>
-      {(!hideWidgetLabelsToggle || !hideWidgetChromeControls) && (
+      {showTheme && (!hideWidgetLabelsToggle || !hideWidgetChromeControls) && (
         <SettingsSection title={label('panel.settings.widgets', 'Widgets')} boxClassName={styles.themeBox}>
           {!hideWidgetLabelsToggle && (
             <SettingToggle
@@ -318,6 +322,7 @@ export function PanelThemeSettings({
         </SettingsSection>
       )}
 
+      {showTheme && (
       <SettingsSection title={label('settings.theme', 'Theme')} boxClassName={styles.themeBox}>
         <div className={styles.toggleReveal}>
           <SettingToggle
@@ -339,7 +344,9 @@ export function PanelThemeSettings({
           )}
         </div>
       </SettingsSection>
+      )}
 
+      {showTheme && (
       <SettingsSection title={label('devices.y70.theme.accent', 'Accent Color')} boxClassName={styles.themeBox}>
         <div className={styles.toggleReveal}>
           <SettingToggle
@@ -359,8 +366,9 @@ export function PanelThemeSettings({
           )}
         </div>
       </SettingsSection>
+      )}
 
-      <div ref={backgroundSectionRef}>
+      {showBackground && (
         <SettingsSection title={label('devices.y70.theme.background', 'Background')} boxClassName={styles.backgroundBox}>
           {/* Single aside child so the box adds no row dividers between the
               opacity slider, mode tabs, and the mode content. */}
@@ -427,6 +435,13 @@ export function PanelThemeSettings({
                   deviceW={deviceW ?? Math.round(deviceAspect * 1280)}
                   deviceH={deviceH ?? 1280}
                   onSelect={(mediaId, type, alpha) => onBackgroundMediaCommit(mediaId, type, alpha)}
+                  slideshow={{
+                    enabled: theme.backgroundSlideshow,
+                    interval: theme.backgroundSlideshowInterval,
+                    shuffle: theme.backgroundSlideshowShuffle,
+                    finishVideos: theme.backgroundSlideshowFinishVideos,
+                  }}
+                  onSlideshowChange={onBackgroundSlideshowCommit}
                 />
               </>
             ) : (
@@ -481,7 +496,7 @@ export function PanelThemeSettings({
             )}
           </div>
         </SettingsSection>
-      </div>
+      )}
     </div>
   );
 }
