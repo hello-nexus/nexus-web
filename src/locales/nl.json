@@ -1056,7 +1056,7 @@
   "diagnostics.gpu.throttle.swPower": "Vermogenslimiet",
   "diagnostics.gpu.throttle.swThermal": "Thermische limiet",
   "diagnostics.gpu.throttle.title": "Throttling",
-  "diagnostics.header.downloadReport": "Nexus Diagnostics downloaden",
+  "diagnostics.header.downloadReport": "Rapport exporteren",
   "diagnostics.header.downloadReportFailed": "Kan het diagnoserapport niet downloaden.",
   "diagnostics.header.generatedAt": "Bijgewerkt {time}",
   "diagnostics.incidents.clearLogs": "Windows-gebeurtenislogboeken wissen",

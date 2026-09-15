@@ -1063,7 +1063,7 @@
   "diagnostics.gpu.throttle.swPower": "Ограничение мощности",
   "diagnostics.gpu.throttle.swThermal": "Тепловое ограничение",
   "diagnostics.gpu.throttle.title": "Троттлинг",
-  "diagnostics.header.downloadReport": "Скачать диагностику Nexus",
+  "diagnostics.header.downloadReport": "Экспортировать отчёт",
   "diagnostics.header.downloadReportFailed": "Не удалось скачать отчёт о диагностике.",
   "diagnostics.header.generatedAt": "Обновлено {time}",
   "diagnostics.incidents.clearLogs": "Очистить журналы событий Windows",

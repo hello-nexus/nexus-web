@@ -1056,7 +1056,7 @@
   "diagnostics.gpu.throttle.swPower": "Límite de potencia",
   "diagnostics.gpu.throttle.swThermal": "Límite térmico",
   "diagnostics.gpu.throttle.title": "Limitación",
-  "diagnostics.header.downloadReport": "Descargar diagnóstico de Nexus",
+  "diagnostics.header.downloadReport": "Exportar informe",
   "diagnostics.header.downloadReportFailed": "No se pudo descargar el informe de diagnóstico.",
   "diagnostics.header.generatedAt": "Actualizado {time}",
   "diagnostics.incidents.clearLogs": "Borrar registros de eventos de Windows",

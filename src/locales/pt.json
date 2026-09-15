@@ -1056,7 +1056,7 @@
   "diagnostics.gpu.throttle.swPower": "Limite de potência",
   "diagnostics.gpu.throttle.swThermal": "Limite térmico",
   "diagnostics.gpu.throttle.title": "Limitação",
-  "diagnostics.header.downloadReport": "Transferir diagnóstico do Nexus",
+  "diagnostics.header.downloadReport": "Exportar relatório",
   "diagnostics.header.downloadReportFailed": "Não foi possível transferir o relatório de diagnóstico.",
   "diagnostics.header.generatedAt": "Atualizado {time}",
   "diagnostics.incidents.clearLogs": "Limpar registos de eventos do Windows",

@@ -1056,7 +1056,7 @@
   "diagnostics.gpu.throttle.swPower": "Power limit",
   "diagnostics.gpu.throttle.swThermal": "Thermal limit",
   "diagnostics.gpu.throttle.title": "Throttling",
-  "diagnostics.header.downloadReport": "Download Nexus Diagnostics",
+  "diagnostics.header.downloadReport": "Export report",
   "diagnostics.header.downloadReportFailed": "Could not download the diagnostics report.",
   "diagnostics.header.generatedAt": "Updated {time}",
   "diagnostics.incidents.clearLogs": "Clear Windows event logs",

@@ -1,4 +1,4 @@
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, PackageOpen, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type {
   DiagnosticsFetchOptions,
@@ -58,7 +58,7 @@ export function SummaryTab({
             <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloadingReport} onClick={onDownloadReport}>
               {t('diagnostics.header.downloadReport')}
             </Button>
-            <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloading} onClick={onDownload}>
+            <Button tone="neutral" size="sm" icon={<PackageOpen size={14} aria-hidden />} loading={downloading} onClick={onDownload}>
               {t('settings.diagnostics.supportBundleButton')}
             </Button>
           </div>

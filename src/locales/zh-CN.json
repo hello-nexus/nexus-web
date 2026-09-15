@@ -1056,7 +1056,7 @@
   "diagnostics.gpu.throttle.swPower": "功耗限制",
   "diagnostics.gpu.throttle.swThermal": "温度限制",
   "diagnostics.gpu.throttle.title": "降频",
-  "diagnostics.header.downloadReport": "下载 Nexus 诊断",
+  "diagnostics.header.downloadReport": "导出报告",
   "diagnostics.header.downloadReportFailed": "无法下载诊断报告。",
   "diagnostics.header.generatedAt": "更新于 {time}",
   "diagnostics.incidents.clearLogs": "清除 Windows 事件日志",

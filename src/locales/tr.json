@@ -1056,7 +1056,7 @@
   "diagnostics.gpu.throttle.swPower": "Güç sınırı",
   "diagnostics.gpu.throttle.swThermal": "Termal sınır",
   "diagnostics.gpu.throttle.title": "Kısıtlama",
-  "diagnostics.header.downloadReport": "Nexus tanılamasını indir",
+  "diagnostics.header.downloadReport": "Raporu dışa aktar",
   "diagnostics.header.downloadReportFailed": "Tanılama raporu indirilemedi.",
   "diagnostics.header.generatedAt": "Güncellendi: {time}",
   "diagnostics.incidents.clearLogs": "Windows olay günlüklerini temizle",
