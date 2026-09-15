@@ -2191,6 +2191,7 @@
   "lighting.gameSync.signal.idle": "Oyun bekleniyor...",
   "lighting.gameSync.signal.receiving": "{activeApp} kaynağından alınıyor",
   "lighting.gameSync.signal.receivingUnknown": "Bir oyun aydınlatmanızı yönetiyor.",
+  "lighting.gameSync.signal.vendorConflict": "Başka bir üreticinin aydınlatma uygulaması (örneğin Razer Synapse) bu bilgisayardaki oyun arayüzlerinden birini kullanıyor. Onu kullanan oyunlar Nexus yerine o uygulamayı yönetir.",
   "lighting.gpuInitializingNotice": "Aydınlatma için ekran kartı hazırlanıyor - işlem bitene kadar cihazlarınız kapalı kalır.",
   "lighting.gpuPickGpu": "GPU seç",
   "lighting.gpuUnavailableNotice": "Bu PC'de kullanılabilir GPU yok - efekt burada önizleniyor, ancak cihazlarınızı aydınlatmayacak.",

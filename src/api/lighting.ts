@@ -1105,6 +1105,14 @@ export interface GameSyncDevice {
 
 export interface GameSyncStateResponse {
   active: boolean;
+  /** Every Nexus shim DLL is in place in System32/SysWOW64. */
+  providerInstalled: boolean;
+  /**
+   * A real vendor DLL (Razer Synapse's Chroma SDK, most often) already holds
+   * one of the shim slots. Nexus never overwrites it, so games on that
+   * interface light the vendor's software instead of Nexus.
+   */
+  synapseConflict: boolean;
   devices: GameSyncDevice[];
   lastFrameAt?: number | null;
   activeApp?: string | null;

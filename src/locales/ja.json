@@ -2191,6 +2191,7 @@
   "lighting.gameSync.signal.idle": "ゲームを待機中...",
   "lighting.gameSync.signal.receiving": "{activeApp} から受信中",
   "lighting.gameSync.signal.receivingUnknown": "ゲームが照明を制御しています。",
+  "lighting.gameSync.signal.vendorConflict": "他社の照明アプリ（Razer Synapse など）がこの PC のゲーム用インターフェースの一つを占有しています。それを使うゲームは Nexus ではなくそのアプリを制御します。",
   "lighting.gpuInitializingNotice": "ライティング用にグラフィックカードを準備しています。完了するまでデバイスは消灯したままです。",
   "lighting.gpuPickGpu": "GPUを選択",
   "lighting.gpuUnavailableNotice": "このPCに使用可能なGPUがないため、エフェクトはここでプレビューされますが、デバイスは点灯しません。",

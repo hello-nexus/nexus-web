@@ -1631,6 +1631,17 @@
   z-index: 2;
 }
 
+// Pinned for the same reason as the label: the dark-theme --warn amber, not
+// the token, so light mode does not swap in a colour tuned for a pale fill.
+.gameSyncActivityNote {
+  font-size: var(--type-small);
+  color: #f59e0b;
+  text-align: center;
+  max-width: 34rem;
+  padding: 0 1rem;
+  z-index: 2;
+}
+
 // With artwork the label anchors to the frame bottom over the gradient scrim;
 // without it (icon state) the label flows directly beneath the icon.
 .gameSyncActivityLabelOverArt {

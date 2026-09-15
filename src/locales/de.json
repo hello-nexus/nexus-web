@@ -2191,6 +2191,7 @@
   "lighting.gameSync.signal.idle": "Warten auf ein Spiel...",
   "lighting.gameSync.signal.receiving": "Empfange von {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Ein Spiel steuert Ihre Beleuchtung.",
+  "lighting.gameSync.signal.vendorConflict": "Die Beleuchtungssoftware eines anderen Herstellers (z. B. Razer Synapse) belegt eine der Spielschnittstellen auf diesem PC. Spiele, die sie nutzen, steuern diese Software statt Nexus.",
   "lighting.gpuInitializingNotice": "Die Grafikkarte wird für die Beleuchtung vorbereitet - Ihre Geräte bleiben bis zum Abschluss dunkel.",
   "lighting.gpuPickGpu": "GPU wählen",
   "lighting.gpuUnavailableNotice": "Kein nutzbarer GPU auf diesem PC - der Effekt wird hier als Vorschau angezeigt, leuchtet Ihre Geräte aber nicht.",

@@ -2191,6 +2191,7 @@
   "lighting.gameSync.signal.idle": "等待遊戲...",
   "lighting.gameSync.signal.receiving": "正在從 {activeApp} 接收",
   "lighting.gameSync.signal.receivingUnknown": "遊戲正在控制您的燈光。",
+  "lighting.gameSync.signal.vendorConflict": "另一家廠商的燈光軟體（如 Razer Synapse）佔用了這台電腦上的一個遊戲介面。使用該介面的遊戲會控制那個軟體，而不是 Nexus。",
   "lighting.gpuInitializingNotice": "正在為燈效準備顯示卡，完成前裝置將保持熄滅。",
   "lighting.gpuPickGpu": "選擇 GPU",
   "lighting.gpuUnavailableNotice": "此PC沒有可用的GPU，效果在此處預覽，但不會點亮您的裝置。",

@@ -2191,6 +2191,7 @@
   "lighting.gameSync.signal.idle": "In attesa di un gioco...",
   "lighting.gameSync.signal.receiving": "Ricezione da {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un gioco sta controllando la tua illuminazione.",
+  "lighting.gameSync.signal.vendorConflict": "L'app di illuminazione di un altro produttore (ad esempio Razer Synapse) occupa una delle interfacce di gioco su questo PC. I giochi che la usano controllano quell'app invece di Nexus.",
   "lighting.gpuInitializingNotice": "Preparazione della scheda grafica per l'illuminazione: i tuoi dispositivi restano spenti fino al termine.",
   "lighting.gpuPickGpu": "Scegli GPU",
   "lighting.gpuUnavailableNotice": "Nessun GPU utilizzabile su questo PC - l'effetto è in anteprima qui, ma non illuminerà i tuoi dispositivi.",

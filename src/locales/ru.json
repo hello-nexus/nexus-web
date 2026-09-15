@@ -2221,6 +2221,7 @@
   "lighting.gameSync.signal.idle": "Ожидание игры...",
   "lighting.gameSync.signal.receiving": "Получение от {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Игра управляет вашим освещением.",
+  "lighting.gameSync.signal.vendorConflict": "Приложение подсветки другого производителя (например, Razer Synapse) занимает один из игровых интерфейсов на этом ПК. Игры, которые его используют, управляют этим приложением, а не Nexus.",
   "lighting.gpuInitializingNotice": "Идёт подготовка видеокарты к подсветке - устройства не светятся, пока она не завершится.",
   "lighting.gpuPickGpu": "Выбрать GPU",
   "lighting.gpuUnavailableNotice": "На этом ПК нет подходящего GPU - эффект отображается в режиме предпросмотра, но устройства не загорятся.",

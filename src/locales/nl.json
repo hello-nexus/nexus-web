@@ -2191,6 +2191,7 @@
   "lighting.gameSync.signal.idle": "Wachten op een game...",
   "lighting.gameSync.signal.receiving": "Ontvangen van {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Een game stuurt je verlichting aan.",
+  "lighting.gameSync.signal.vendorConflict": "De verlichtingsapp van een andere fabrikant (zoals Razer Synapse) bezet een van de game-interfaces op deze pc. Games die deze gebruiken sturen die app aan in plaats van Nexus.",
   "lighting.gpuInitializingNotice": "De grafische kaart wordt voorbereid voor verlichting - je apparaten blijven donker tot dat klaar is.",
   "lighting.gpuPickGpu": "GPU kiezen",
   "lighting.gpuUnavailableNotice": "Geen bruikbare GPU op deze pc, dus dit effect wordt hier als voorbeeld getoond maar verlicht je apparaten niet.",
