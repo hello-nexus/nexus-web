@@ -121,6 +121,14 @@
   object-fit: cover;
 }
 
+// Kept out of layout on purpose: display:none removes the LayoutObject so
+// this <video> doesn't read as an on-screen playing video to the browser's
+// display-sleep power blocker, while decoding still advances behind the
+// canvas mirror (.backgroundMediaContent) that's actually shown.
+.backgroundMediaSource {
+  display: none;
+}
+
 // Frosted glass over the background layer (backgroundFrost, sibling rendered
 // after the shader / media / wallpaper layers so its backdrop is exactly
 // those). Hard radius, never animated - tweening backdrop-filter re-runs an

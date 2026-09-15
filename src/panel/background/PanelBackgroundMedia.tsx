@@ -13,9 +13,38 @@ export function PanelBackgroundMedia({ id, deviceId, type, alpha, opacity }: {
   const url = backgroundMediaFileUrl(deviceId, id);
   const style = { '--panel-background-opacity': opacity } as CSSProperties;
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // The kiosk (and the live theme preview) is a real, visible WebView2
+  // surface, so a <video> element left in the rendered layout is exactly
+  // what Chromium's display-sleep power blocker looks for: it arms for any
+  // playing video that's actually part of the visible page, and never lets
+  // go while the loop keeps playing - so the host PC stops sleeping for as
+  // long as a Media backdrop is on screen. display:none pulls the <video>
+  // out of layout (no LayoutObject), which disqualifies it from that check
+  // while playback/decoding carries on unaffected; a canvas mirror painted
+  // from its frames every rAF reproduces the same loop for the visible
+  // layer, since a canvas isn't a media element Chromium tracks that way.
   useEffect(() => {
-    videoRef.current?.play().catch(() => {});
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    video.play().catch(() => {});
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    let raf = requestAnimationFrame(function draw() {
+      raf = requestAnimationFrame(draw);
+      const { videoWidth: w, videoHeight: h } = video;
+      if (!w || !h || video.readyState < video.HAVE_CURRENT_DATA) return;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      ctx?.drawImage(video, 0, 0, w, h);
+    });
+
+    return () => cancelAnimationFrame(raf);
   }, [url]);
 
   return (
@@ -33,15 +62,18 @@ export function PanelBackgroundMedia({ id, deviceId, type, alpha, opacity }: {
           className={styles.backgroundMediaContent}
         />
       ) : (
-        <video
-          ref={videoRef}
-          src={url}
-          className={styles.backgroundMediaContent}
-          autoPlay
-          loop
-          muted
-          playsInline
-        />
+        <>
+          <video
+            ref={videoRef}
+            src={url}
+            className={styles.backgroundMediaSource}
+            autoPlay
+            loop
+            muted
+            playsInline
+          />
+          <canvas ref={canvasRef} className={styles.backgroundMediaContent} />
+        </>
       )}
     </div>
   );
