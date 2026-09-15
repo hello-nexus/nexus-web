@@ -3,7 +3,7 @@ import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
   SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
-  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen,
+  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import {
@@ -837,7 +837,7 @@ const diagnostics: SearchSource = (ctx) => [
     act('diag:download-report', {
       title: ctx.t('diagnostics.header.downloadReport'),
       subtitle: ctx.t('diagnostics.title'),
-      icon: <Download size={18} />,
+      icon: <FileText size={18} />,
       keywords: ['diagnostics', 'report', 'bundle', 'export', 'download', 'support'],
       run: () => { void downloadDiagnosticsReport().catch(() => {}); },
     }),
