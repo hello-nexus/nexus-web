@@ -2192,6 +2192,7 @@
   "lighting.gameSync.signal.idle": "Waiting for a game...",
   "lighting.gameSync.signal.receiving": "Receiving from {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "A game is driving your lighting.",
+  "lighting.gameSync.signal.vendorConflict": "Another vendor's lighting app (such as Razer Synapse) owns one of the game interfaces on this PC. Games that use it light that app instead of Nexus.",
   "lighting.gpuInitializingNotice": "Setting up the graphics card for lighting - your devices stay dark until it finishes.",
   "lighting.gpuPickGpu": "Choose GPU",
   "lighting.gpuUnavailableNotice": "No usable GPU on this PC, so this effect previews here but won't light your devices.",

@@ -758,7 +758,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     lastFrameAt: number | null;
     activeApp: string | null;
     isReceiving: boolean;
-  }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false });
+    vendorConflict: boolean;
+  }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false, vendorConflict: false });
 
   useEffect(() => {
     if (effectiveMode !== 'gamesync' || !serviceOnline) return;
@@ -772,6 +773,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         lastFrameAt,
         activeApp: data.activeApp ?? null,
         isReceiving: lastFrameAt != null && (Date.now() - lastFrameAt) < 2000,
+        vendorConflict: data.synapseConflict === true,
       });
     };
     void poll();
@@ -2272,6 +2274,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 <GameSyncActivityBlock
                   isReceiving={gameSyncState.isReceiving}
                   activeApp={gameSyncState.activeApp}
+                  vendorConflict={gameSyncState.vendorConflict}
                   games={gameSyncGames}
                 />
               </div>
@@ -2501,10 +2504,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 interface GameSyncActivityBlockProps {
   isReceiving: boolean;
   activeApp: string | null;
+  vendorConflict: boolean;
   games: GameSyncGame[];
 }
 
-function GameSyncActivityBlock({ isReceiving, activeApp, games }: GameSyncActivityBlockProps) {
+function GameSyncActivityBlock({ isReceiving, activeApp, vendorConflict, games }: GameSyncActivityBlockProps) {
   const { t } = useTranslation();
   const [imgFailed, setImgFailed] = useState(false);
 
@@ -2547,6 +2551,14 @@ function GameSyncActivityBlock({ isReceiving, activeApp, games }: GameSyncActivi
               : t('lighting.gameSync.signal.receivingUnknown'))
           : t('lighting.gameSync.signal.idle')}
       </span>
+      {/* The service leaves a real vendor SDK (Razer Synapse's, typically) in
+          place rather than replacing it, so games on that interface never reach
+          Nexus. Without this line that reads as an endless "Waiting for a game". */}
+      {!isReceiving && vendorConflict && (
+        <span className={styles.gameSyncActivityNote}>
+          {t('lighting.gameSync.signal.vendorConflict')}
+        </span>
+      )}
       {/* Anchored to the frame rather than the page: the guide explains what
           this frame is showing, so it belongs on it. */}
       <a
