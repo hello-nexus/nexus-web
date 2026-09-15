@@ -192,7 +192,10 @@
 
 // Revealed by a pointer anywhere over the sidebar nav, and whenever it takes
 // keyboard focus (which a hover-only reveal would strand off-screen).
-.nav:hover .addStrip,
+// `:where(:hover)`, not `:hover`: the hover guard (scripts/hover-guard-postcss.ts)
+// stands a bare :hover down on every mouse press, and the strip must stay
+// revealed while the pointer is over the nav.
+.nav:where(:hover) .addStrip,
 .addStrip:focus-visible {
   opacity: 1;
 }

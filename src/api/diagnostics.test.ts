@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelMemoryTest,
   clearDiagnosticsEventLogs,
-  downloadDiagnosticsBundle,
+  downloadSupportBundle,
   downloadDiagnosticsReport,
   fetchDiagnosticsGpu,
   fetchDiagnosticsHealth,
@@ -246,10 +246,10 @@ describe('clearDiagnosticsEventLogs', () => {
   });
 });
 
-describe('downloadDiagnosticsBundle', () => {
+describe('downloadSupportBundle', () => {
   it('returns false when the bundle route fails', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(404, {})));
-    expect(await downloadDiagnosticsBundle()).toBe(false);
+    expect(await downloadSupportBundle()).toBe(false);
   });
 
   it('uses the server Content-Disposition filename when present', async () => {
@@ -271,10 +271,10 @@ describe('downloadDiagnosticsBundle', () => {
       return el;
     });
 
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, {}, { 'Content-Disposition': 'attachment; filename="nexus-diagnostics-y70-20260708-0900.zip"' })));
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, {}, { 'Content-Disposition': 'attachment; filename="nexus-support-y70-20260708-0900.zip"' })));
 
-    expect(await downloadDiagnosticsBundle()).toBe(true);
-    expect(downloadedName).toBe('nexus-diagnostics-y70-20260708-0900.zip');
+    expect(await downloadSupportBundle()).toBe(true);
+    expect(downloadedName).toBe('nexus-support-y70-20260708-0900.zip');
 
     vi.restoreAllMocks();
     URL.createObjectURL = realCreateObjectUrl;

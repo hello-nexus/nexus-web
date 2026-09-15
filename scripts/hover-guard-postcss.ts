@@ -11,6 +11,10 @@ import type { Plugin } from 'postcss'
 // attribute, not a class: CSS modules scopes every class it sees, including
 // one inside :not(), and a hashed name is unreachable from the runtime.
 //
+// A rule that must keep matching through a click writes `:where(:hover)`:
+// hasTopLevelHover skips a :hover inside brackets, at the cost of one
+// pseudo-class of specificity against the resting rule.
+//
 // The guard rides in :where() so it contributes zero specificity: rules keep
 // the exact weight and order they were authored with. :where() is Chrome 88 and
 // the panel's floor is Chromium 83, which drops a rule it cannot parse, so
