@@ -124,6 +124,46 @@ describe('ProcessesWidget', () => {
     expect(screen.getByRole('columnheader', { name: KEY.cpu })).toHaveAttribute('aria-sort', 'descending');
   });
 
+  it('starts on the sort saved in the widget config', async () => {
+    await renderWidget(widget({ sortColumn: 'ram', sortDirection: 'asc' }));
+    expect(renderedNames()).toEqual(['zebra', 'chrome', 'alpha']);
+    expect(screen.getByRole('columnheader', { name: KEY.ram })).toHaveAttribute('aria-sort', 'ascending');
+  });
+
+  it('falls back to CPU descending for an unknown saved column', async () => {
+    await renderWidget(widget({ sortColumn: 'io', sortDirection: 'sideways' }));
+    expect(renderedNames()).toEqual(['chrome', 'alpha', 'zebra']);
+  });
+
+  it('reads a saved GPU sort as the default wherever the GPU column is hidden', async () => {
+    await renderWidget(widget({ sortColumn: 'gpu' }));
+    expect(renderedNames()).toEqual(['chrome', 'alpha', 'zebra']);
+    expect(screen.getByRole('columnheader', { name: KEY.cpu })).toHaveAttribute('aria-sort', 'descending');
+  });
+
+  it('persists a header press through onUpdate', async () => {
+    const onUpdate = vi.fn();
+    render(<ProcessesWidget widget={widget()} onUpdate={onUpdate} />);
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole('button', { name: KEY.ram }));
+    expect(onUpdate).toHaveBeenLastCalledWith({ sortColumn: 'ram', sortDirection: 'desc' });
+
+    fireEvent.click(screen.getByRole('button', { name: KEY.ram }));
+    expect(onUpdate).toHaveBeenLastCalledWith({ sortColumn: 'ram', sortDirection: 'asc' });
+  });
+
+  it('follows a sort change that arrives through the config while mounted', async () => {
+    // The tile stays mounted under the immersive overlay, so a press in the
+    // immersive list reaches it only through the persisted config.
+    const { rerender } = render(<ProcessesWidget widget={widget()} />);
+    await act(async () => {});
+    expect(renderedNames()).toEqual(['chrome', 'alpha', 'zebra']);
+
+    await act(async () => { rerender(<ProcessesWidget widget={widget({ sortColumn: 'name' })} />); });
+    expect(renderedNames()).toEqual(['alpha', 'chrome', 'zebra']);
+  });
+
   it('passes the configured refresh interval through as a frame count', async () => {
     await renderWidget(widget({ refreshSeconds: 4 }));
     expect(refreshSeen).toHaveBeenCalledWith(4);

@@ -30,7 +30,7 @@ import styles from './ProcessesTouch.module.scss';
  * pages are unaffected wherever the cards divide the long axis exactly, which
  * is every surface that fits a whole number of them.
  */
-export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid }: WidgetProps) {
+export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid, onUpdate }: WidgetProps) {
   const { numberFormat } = useUnitPrefs();
   const preferredGpu = usePreferredGpuId();
 
@@ -85,7 +85,7 @@ export function ProcessesTouch({ widget, surface, deviceTouch, immersiveGrid }: 
 
   const list = (
     <div className={styles.cell} key="list">
-      <ProcessesWidget widget={widget} surface={surface} deviceTouch={deviceTouch} immersive />
+      <ProcessesWidget widget={widget} surface={surface} deviceTouch={deviceTouch} onUpdate={onUpdate} immersive />
     </div>
   );
 

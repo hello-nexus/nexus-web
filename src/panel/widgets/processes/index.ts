@@ -21,6 +21,9 @@ export const processesApp: AppManifest = {
     // (The Q60 is excluded anyway - it locks to 2x4, which this doesn't offer.)
     touch: false,
     defaultConfig: () => ({ refreshSeconds: DEFAULT_REFRESH_SECONDS }),
+    // A header press writes the sort straight from the tile, on the device as
+    // well as in the editor.
+    persistsFromTile: true,
   },
   // No Preview facet: Widget itself renders PROCESSES_PREVIEW under
   // PanelPreviewProvider, so the catalog tile never touches the live store.
