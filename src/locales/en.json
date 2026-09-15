@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "Power limit",
   "diagnostics.gpu.throttle.swThermal": "Thermal limit",
   "diagnostics.gpu.throttle.title": "Throttling",
-  "diagnostics.header.downloadBundle": "Download support bundle",
-  "diagnostics.header.downloadFailed": "Could not download the support bundle.",
   "diagnostics.header.downloadReport": "Download Nexus Diagnostics",
   "diagnostics.header.downloadReportFailed": "Could not download the diagnostics report.",
   "diagnostics.header.generatedAt": "Updated {time}",

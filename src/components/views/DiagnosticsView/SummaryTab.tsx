@@ -59,7 +59,7 @@ export function SummaryTab({
               {t('diagnostics.header.downloadReport')}
             </Button>
             <Button tone="neutral" size="sm" icon={<Download size={14} />} loading={downloading} onClick={onDownload}>
-              {t('diagnostics.header.downloadBundle')}
+              {t('settings.diagnostics.supportBundleButton')}
             </Button>
           </div>
         </div>

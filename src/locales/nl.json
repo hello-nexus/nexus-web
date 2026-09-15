@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "Vermogenslimiet",
   "diagnostics.gpu.throttle.swThermal": "Thermische limiet",
   "diagnostics.gpu.throttle.title": "Throttling",
-  "diagnostics.header.downloadBundle": "Supportbundel downloaden",
-  "diagnostics.header.downloadFailed": "Kan de supportbundel niet downloaden.",
   "diagnostics.header.downloadReport": "Nexus Diagnostics downloaden",
   "diagnostics.header.downloadReportFailed": "Kan het diagnoserapport niet downloaden.",
   "diagnostics.header.generatedAt": "Bijgewerkt {time}",

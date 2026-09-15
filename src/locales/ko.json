@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "전력 제한",
   "diagnostics.gpu.throttle.swThermal": "온도 제한",
   "diagnostics.gpu.throttle.title": "스로틀링",
-  "diagnostics.header.downloadBundle": "지원 번들 다운로드",
-  "diagnostics.header.downloadFailed": "지원 번들을 다운로드할 수 없습니다.",
   "diagnostics.header.downloadReport": "Nexus 진단 다운로드",
   "diagnostics.header.downloadReportFailed": "진단 보고서를 다운로드할 수 없습니다.",
   "diagnostics.header.generatedAt": "업데이트: {time}",

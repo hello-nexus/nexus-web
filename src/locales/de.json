@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "Leistungslimit",
   "diagnostics.gpu.throttle.swThermal": "Temperaturlimit",
   "diagnostics.gpu.throttle.title": "Drosselung",
-  "diagnostics.header.downloadBundle": "Support-Paket herunterladen",
-  "diagnostics.header.downloadFailed": "Das Support-Paket konnte nicht heruntergeladen werden.",
   "diagnostics.header.downloadReport": "Nexus-Diagnose herunterladen",
   "diagnostics.header.downloadReportFailed": "Der Diagnosebericht konnte nicht heruntergeladen werden.",
   "diagnostics.header.generatedAt": "Aktualisiert {time}",

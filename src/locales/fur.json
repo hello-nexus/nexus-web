@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "Limit di potence",
   "diagnostics.gpu.throttle.swThermal": "Limit termic",
   "diagnostics.gpu.throttle.title": "Limitament",
-  "diagnostics.header.downloadBundle": "Discjame il pachet di supuart",
-  "diagnostics.header.downloadFailed": "Impussibil discjariâ il pachet di supuart.",
   "diagnostics.header.downloadReport": "Discjame la diagnostiche di Nexus",
   "diagnostics.header.downloadReportFailed": "Impussibil discjariâ il rapuart di diagnostiche.",
   "diagnostics.header.generatedAt": "Inzornât {time}",

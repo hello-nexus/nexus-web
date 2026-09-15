@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "電力制限",
   "diagnostics.gpu.throttle.swThermal": "温度制限",
   "diagnostics.gpu.throttle.title": "スロットリング",
-  "diagnostics.header.downloadBundle": "サポートバンドルをダウンロード",
-  "diagnostics.header.downloadFailed": "サポートバンドルをダウンロードできませんでした。",
   "diagnostics.header.downloadReport": "Nexus診断をダウンロード",
   "diagnostics.header.downloadReportFailed": "診断レポートをダウンロードできませんでした。",
   "diagnostics.header.generatedAt": "更新: {time}",

@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "Güç sınırı",
   "diagnostics.gpu.throttle.swThermal": "Termal sınır",
   "diagnostics.gpu.throttle.title": "Kısıtlama",
-  "diagnostics.header.downloadBundle": "Destek paketini indir",
-  "diagnostics.header.downloadFailed": "Destek paketi indirilemedi.",
   "diagnostics.header.downloadReport": "Nexus tanılamasını indir",
   "diagnostics.header.downloadReportFailed": "Tanılama raporu indirilemedi.",
   "diagnostics.header.generatedAt": "Güncellendi: {time}",

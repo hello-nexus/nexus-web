@@ -1056,8 +1056,6 @@
   "diagnostics.gpu.throttle.swPower": "Limite de potência",
   "diagnostics.gpu.throttle.swThermal": "Limite térmico",
   "diagnostics.gpu.throttle.title": "Limitação",
-  "diagnostics.header.downloadBundle": "Transferir pacote de suporte",
-  "diagnostics.header.downloadFailed": "Não foi possível transferir o pacote de suporte.",
   "diagnostics.header.downloadReport": "Transferir diagnóstico do Nexus",
   "diagnostics.header.downloadReportFailed": "Não foi possível transferir o relatório de diagnóstico.",
   "diagnostics.header.generatedAt": "Atualizado {time}",

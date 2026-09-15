@@ -7,8 +7,8 @@ import { useDiagnosticsResource } from '../../../hooks/useDiagnosticsResource';
 import { useDiagnosticsTemperatures } from '../../../hooks/useDiagnosticsTemperatures';
 import { useMetricHistory } from '../../../hooks/useMetricHistory';
 import {
-  downloadDiagnosticsBundle,
   downloadDiagnosticsReport,
+  downloadSupportBundle,
   fetchDiagnosticsCooling,
   fetchDiagnosticsGpu,
   fetchDiagnosticsIncidents,
@@ -158,9 +158,9 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
   const [downloading, setDownloading] = useState(false);
   const handleDownload = useCallback(async () => {
     setDownloading(true);
-    const ok = await downloadDiagnosticsBundle();
+    const ok = await downloadSupportBundle();
     setDownloading(false);
-    if (!ok) push({ title: t('diagnostics.header.downloadFailed') });
+    if (!ok) push({ title: t('settings.diagnostics.supportBundleFailed') });
   }, [push, t]);
 
   const [downloadingReport, setDownloadingReport] = useState(false);
