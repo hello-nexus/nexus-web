@@ -1229,6 +1229,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
                         onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
                         onBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
+                        onBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
                         onBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
                         onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
                         onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}

@@ -1,35 +1,45 @@
 import type { BackgroundMediaItem } from '../../api/panelBackgroundMedia';
+import { shuffledLap } from '../slideshow/slideshow';
 
 /**
- * One lap of the slideshow over `items`. In order = import order (oldest
- * first), which is folder order for a folder import: the library itself lists
- * newest first for the grid. `startId` leads the lap when present so the
- * slide the user picked is the one the cycle opens on; a lap never opens on
- * `avoidId` (the slide just shown) when it has an alternative.
+ * The library in display order: the panel's saved order first, then anything
+ * it does not name (new imports) oldest first, so a folder import reads and
+ * plays in folder order. The service itself lists newest first.
+ */
+export function orderBackgroundMedia(items: readonly BackgroundMediaItem[], order: readonly string[]): BackgroundMediaItem[] {
+  const rank = new Map(order.map((id, i) => [id, i]));
+  return items.slice().sort((a, b) => {
+    const ra = rank.get(a.id);
+    const rb = rank.get(b.id);
+    if (ra !== undefined && rb !== undefined) return ra - rb;
+    if (ra !== undefined) return -1;
+    if (rb !== undefined) return 1;
+    return a.importedAtUnixMs - b.importedAtUnixMs;
+  });
+}
+
+/**
+ * One lap over `ordered` (already in display order). `startId` leads the lap
+ * when present; without one a lap never opens on `avoidId` (the slide just
+ * shown) when it has an alternative.
  */
 export function slideshowLap(
-  items: readonly BackgroundMediaItem[],
+  ordered: readonly BackgroundMediaItem[],
   shuffle: boolean,
   startId: string | null,
   avoidId: string | null = null,
   random: () => number = Math.random,
 ): BackgroundMediaItem[] {
-  const ordered = items.slice().sort((a, b) => a.importedAtUnixMs - b.importedAtUnixMs);
-  if (ordered.length < 2) return ordered;
+  if (ordered.length < 2) return ordered.slice();
   if (shuffle) {
-    for (let i = ordered.length - 1; i > 0; i--) {
-      const j = Math.floor(random() * (i + 1));
-      [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
-    }
-    const lead = startId ?? avoidId;
-    const at = lead ? ordered.findIndex(item => item.id === lead) : -1;
-    if (at > 0 && startId) [ordered[0], ordered[at]] = [ordered[at], ordered[0]];
-    else if (at === 0 && !startId) [ordered[0], ordered[1]] = [ordered[1], ordered[0]];
-    return ordered;
+    const lap = shuffledLap(ordered, ordered.find(item => item.id === avoidId) ?? null, random);
+    const at = startId ? lap.findIndex(item => item.id === startId) : -1;
+    if (at > 0) [lap[0], lap[at]] = [lap[at], lap[0]];
+    return lap;
   }
   const lead = startId ?? avoidId;
   let at = lead ? ordered.findIndex(item => item.id === lead) : -1;
   // Without a start, a lap follows the slide just shown instead of repeating it.
   if (!startId && at >= 0) at = (at + 1) % ordered.length;
-  return at > 0 ? [...ordered.slice(at), ...ordered.slice(0, at)] : ordered;
+  return at > 0 ? [...ordered.slice(at), ...ordered.slice(0, at)] : ordered.slice();
 }

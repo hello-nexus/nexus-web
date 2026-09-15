@@ -297,6 +297,37 @@ describe('GalleryWidget', () => {
     expect(shownImage()).toBe('blob:a');
   });
 
+  it('shuffle shows every image once per lap and never repeats across the boundary', async () => {
+    mockItems.current = items('a', 'b', 'c', 'd');
+    vi.useFakeTimers();
+    render(<GalleryWidget widget={galleryWidget({ mode: 'slideshow', interval: 5, shuffle: true })} />);
+    await flushAsync();
+    const seen = [shownImage()];
+    for (let i = 0; i < 8; i++) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5100);
+      });
+      seen.push(shownImage());
+    }
+    // Ticks 1-4 are one lap over all four images, ticks 5-8 the next; no
+    // image appears twice in a row, the lap boundary included.
+    expect(new Set(seen.slice(1, 5)).size).toBe(4);
+    expect(new Set(seen.slice(5, 9)).size).toBe(4);
+    for (let i = 1; i < seen.length; i++) expect(seen[i]).not.toBe(seen[i - 1]);
+  });
+
+  it('snaps a stored interval to the shared option set', async () => {
+    mockItems.current = items('a', 'b');
+    vi.useFakeTimers();
+    // 12 s is not an option; the nearest is 10 s.
+    render(<GalleryWidget widget={galleryWidget({ mode: 'slideshow', interval: 12 })} />);
+    await flushAsync();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_100);
+    });
+    expect(shownImage()).toBe('blob:b');
+  });
+
   it('skips an image that fails to decode', async () => {
     mockItems.current = items('a', 'b');
     const { container } = render(<GalleryWidget widget={galleryWidget()} />);

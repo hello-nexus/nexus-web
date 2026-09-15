@@ -63,6 +63,8 @@ export interface PanelDeviceRecord {
   backgroundMediaShuffle?: boolean | null;
   // Absent/null defaults to on (a video slide plays whole before the next).
   backgroundMediaFinishVideos?: boolean | null;
+  // Grid + in-order slideshow order by asset id; unlisted ids follow, oldest first.
+  backgroundMediaOrder?: string[] | null;
   // Frost strength, percent 0-100. Absent/null defaults to
   // DEFAULT_PANEL_BACKGROUND_FROST (normalizePanelBackgroundFrost).
   backgroundFrostLevel?: number | null;
@@ -124,6 +126,8 @@ export interface PanelDevicePatch {
   backgroundMediaInterval?: number;
   backgroundMediaShuffle?: boolean;
   backgroundMediaFinishVideos?: boolean;
+  // Full list (the client sends the whole order).
+  backgroundMediaOrder?: string[];
   backgroundFrostLevel?: number;
   widgetOpacity?: number;
   widgetLabels?: boolean;

@@ -63,6 +63,7 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityCommit,
   onThemeBackgroundMediaCommit,
   onThemeBackgroundSlideshowCommit,
+  onThemeBackgroundMediaOrderCommit,
   onThemeBackgroundFrostPreview,
   onThemeBackgroundFrostCommit,
   showBackdropSelector = false,
@@ -130,6 +131,7 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
   onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
   onThemeBackgroundSlideshowCommit: (patch: Partial<PanelSlideshowSettings>) => void;
+  onThemeBackgroundMediaOrderCommit: (ids: string[]) => void;
   onThemeBackgroundFrostPreview: (percent: number) => void;
   onThemeBackgroundFrostCommit: (percent: number) => void;
   // Backdrop selector; kiosk-hosted surfaces only.
@@ -411,6 +413,7 @@ export function PanelEditorSheet({
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
               onBackgroundMediaCommit={onThemeBackgroundMediaCommit}
               onBackgroundSlideshowCommit={onThemeBackgroundSlideshowCommit}
+              onBackgroundMediaOrderCommit={onThemeBackgroundMediaOrderCommit}
               onBackgroundFrostPreview={onThemeBackgroundFrostPreview}
               onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
               showMediaTab={showMediaTab}

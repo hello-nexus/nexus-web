@@ -13,6 +13,9 @@ import type { PanelWidget } from '../../types';
 
 // Per-instance choice of what the widget draws from the shared library. The
 // library itself is one set for every surface; this only narrows the view.
+/** Seconds per slide when a widget instance has not chosen one. */
+export const DEFAULT_GALLERY_INTERVAL = 10;
+
 export type GalleryMediaFilter = 'both' | 'images' | 'videos';
 
 export function readGalleryMediaFilter(config: PanelWidget['config']): GalleryMediaFilter {

@@ -1474,6 +1474,7 @@ function PreviewPanelThemeSettings() {
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
     backgroundMediaId: null, backgroundMediaType: null, backgroundMediaAlpha: false,
     backgroundSlideshow: false, backgroundSlideshowInterval: DEFAULT_PANEL_SLIDESHOW_INTERVAL, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
+    backgroundMediaOrder: [],
     backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
   });
@@ -1506,6 +1507,7 @@ function PreviewPanelThemeSettings() {
           ...(patch.shuffle !== undefined ? { backgroundSlideshowShuffle: patch.shuffle } : {}),
           ...(patch.finishVideos !== undefined ? { backgroundSlideshowFinishVideos: patch.finishVideos } : {}),
         })}
+        onBackgroundMediaOrderCommit={ids => set({ backgroundMediaOrder: ids })}
         onWidgetOpacityPreview={o => set({ widgetOpacity: o })}
         onWidgetOpacityCommit={o => set({ widgetOpacity: o })}
         onWidgetLabelsCommit={v => set({ widgetLabels: v })}

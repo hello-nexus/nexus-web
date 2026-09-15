@@ -20,6 +20,7 @@ import {
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
+  normalizePanelBackgroundMediaOrder,
   normalizePanelSlideshowInterval,
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
@@ -216,6 +217,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundSlideshowInterval: normalizePanelSlideshowInterval(r?.backgroundMediaInterval),
     backgroundSlideshowShuffle: r?.backgroundMediaShuffle === true,
     backgroundSlideshowFinishVideos: r?.backgroundMediaFinishVideos !== false,
+    backgroundMediaOrder: normalizePanelBackgroundMediaOrder(r?.backgroundMediaOrder),
     backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
     widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
     widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
@@ -451,6 +453,11 @@ export function usePanelTheme(
     });
   }, [persistPatch]);
 
+  const commitBackgroundMediaOrder = useCallback((ids: string[]) => {
+    setTheme(prev => ({ ...prev, backgroundMediaOrder: ids }));
+    persistPatch({ backgroundMediaOrder: ids });
+  }, [persistPatch]);
+
   const commitBackgroundFrost = useCallback((percent: number) => {
     const next = normalizePanelBackgroundFrost(percent);
     setTheme(prev => ({ ...prev, backgroundFrost: next }));
@@ -505,6 +512,7 @@ export function usePanelTheme(
     commitBackgroundOpacity,
     commitBackgroundMedia,
     commitBackgroundSlideshow,
+    commitBackgroundMediaOrder,
     previewBackgroundFrost: (percent: number) => setTheme(prev => (
       { ...prev, backgroundFrost: normalizePanelBackgroundFrost(percent) }
     )),

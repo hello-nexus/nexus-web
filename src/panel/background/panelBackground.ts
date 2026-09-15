@@ -1,3 +1,4 @@
+import { normalizeSlideshowInterval } from '../slideshow/slideshow';
 import {
   EFFECTS,
   TEMPLATE_COUNT,
@@ -225,18 +226,14 @@ export function normalizePanelBackgroundFrost(value: number | null | undefined):
   return Math.min(Math.max(snapped, 0), 100);
 }
 
-// Seconds a background slide holds; nothing under 5 s, a full-res swap that
-// often is heavy on the panel WebViews.
-export const PANEL_SLIDESHOW_INTERVALS: readonly number[] = [5, 10, 30, 60, 300, 900, 1800, 3600, 86400];
 export const DEFAULT_PANEL_SLIDESHOW_INTERVAL = 30;
 
-// Off-list values (a hand-edited record, an older client) snap to the nearest
-// option so the select always shows the interval the panel actually runs.
 export function normalizePanelSlideshowInterval(value: number | null | undefined): number {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return DEFAULT_PANEL_SLIDESHOW_INTERVAL;
-  return PANEL_SLIDESHOW_INTERVALS.reduce((best, option) => (
-    Math.abs(option - value) < Math.abs(best - value) ? option : best
-  ));
+  return normalizeSlideshowInterval(value, DEFAULT_PANEL_SLIDESHOW_INTERVAL);
+}
+
+export function normalizePanelBackgroundMediaOrder(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
 }
 
 // Snapped for the same reason as the frost above.

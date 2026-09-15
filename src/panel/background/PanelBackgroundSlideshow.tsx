@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 import { fetchBackgroundMediaLibrary, type BackgroundMediaItem } from '../../api/panelBackgroundMedia';
 import { PanelBackgroundMedia } from './PanelBackgroundMedia';
-import { slideshowLap } from './slideshowOrder';
+import { orderBackgroundMedia, slideshowLap } from './slideshowOrder';
 import styles from '../PanelApp.module.scss';
 
 // Ceiling on the incoming layer's transitionend, which never fires when the
@@ -26,6 +26,7 @@ export function PanelBackgroundSlideshow({
   intervalSec,
   shuffle,
   finishVideos,
+  order,
   opacity,
 }: {
   deviceId: string;
@@ -33,6 +34,8 @@ export function PanelBackgroundSlideshow({
   intervalSec: number;
   shuffle: boolean;
   finishVideos: boolean;
+  /** Asset ids in play order for an in-order slideshow (see orderBackgroundMedia). */
+  order: readonly string[];
   opacity: number;
 }) {
   const intervalMs = intervalSec * 1000;
@@ -40,6 +43,7 @@ export function PanelBackgroundSlideshow({
   const itemsRef = useRef(items);
   const itemIdsRef = useRef('');
   const shuffleRef = useRef(shuffle);
+  const orderRef = useRef(order);
   // The refs mirror the slide states synchronously: advance() can run from a
   // timer before a pending commit's effects flush.
   const [current, setCurrentState] = useState<BackgroundMediaItem | null>(null);
@@ -76,7 +80,7 @@ export function PanelBackgroundSlideshow({
   });
 
   const liveItems = useCallback(
-    () => itemsRef.current.filter(item => !failedRef.current.has(item.id)),
+    () => orderBackgroundMedia(itemsRef.current.filter(item => !failedRef.current.has(item.id)), orderRef.current),
     [],
   );
 
@@ -149,6 +153,13 @@ export function PanelBackgroundSlideshow({
     shuffleRef.current = shuffle;
     lapDirtyRef.current = true;
   }, [shuffle]);
+  // Keyed on content: the theme rebuilds the array on every record refresh.
+  const orderKey = order.join('\n');
+  useEffect(() => {
+    orderRef.current = order;
+    lapDirtyRef.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderKey]);
 
   // A pick in the editor jumps the cycle to that slide.
   useEffect(() => {

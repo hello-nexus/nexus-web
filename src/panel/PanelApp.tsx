@@ -1529,6 +1529,7 @@ export function PanelContent({
               intervalSec={effectiveTheme.backgroundSlideshowInterval}
               shuffle={effectiveTheme.backgroundSlideshowShuffle}
               finishVideos={effectiveTheme.backgroundSlideshowFinishVideos}
+              order={effectiveTheme.backgroundMediaOrder}
               opacity={effectiveTheme.backgroundOpacity}
             />
           ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
@@ -1850,6 +1851,7 @@ export function PanelContent({
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
           onThemeBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
           onThemeBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
+          onThemeBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
           showMediaTab={surface !== 'desktop' && !isTunnelActive()}
           deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
           deviceW={surface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FolderInput, FolderOpen, Image as ImageIcon, Upload } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
-import { pluralKey } from '../../lib/pluralKey';
-import type { Language } from '../../lib/settings';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
@@ -25,7 +23,8 @@ import {
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
 import type { MediaItem } from '../../api/mediaLibrary';
-import { PANEL_SLIDESHOW_INTERVALS } from './panelBackground';
+import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../slideshow/slideshow';
+import { orderBackgroundMedia } from './slideshowOrder';
 import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
 import styles from '../widgets/lighting/LightingPage.module.scss';
 
@@ -50,20 +49,6 @@ function folderImportCandidates(files: FileList | null): File[] {
 
 type FolderFileOutcome = BackgroundMediaItem | 'failed' | 'unreachable';
 
-// "5 seconds" / "1 minute" / "1 hour" / "1 day" for the interval select, in
-// the largest unit that divides the value.
-function slideshowIntervalLabel(t: (key: string, vars?: Record<string, string | number>) => string, language: Language, seconds: number): string {
-  const unit = seconds % 86400 === 0 ? 'days'
-    : seconds % 3600 === 0 ? 'hours'
-    : seconds % 60 === 0 ? 'minutes'
-    : 'seconds';
-  const count = unit === 'days' ? seconds / 86400
-    : unit === 'hours' ? seconds / 3600
-    : unit === 'minutes' ? seconds / 60
-    : seconds;
-  return t(pluralKey(`panel.settings.slideshow.${unit}`, language, count), { count });
-}
-
 export function BackgroundMediaPicker({
   deviceId,
   activeId,
@@ -73,6 +58,8 @@ export function BackgroundMediaPicker({
   onSelect,
   slideshow,
   onSlideshowChange,
+  order = [],
+  onOrderChange,
 }: {
   deviceId: string;
   activeId: string | null;
@@ -84,6 +71,9 @@ export function BackgroundMediaPicker({
    * slideshow mode the highlighted card is the slide the cycle starts from. */
   slideshow?: PanelSlideshowSettings;
   onSlideshowChange?: (patch: Partial<PanelSlideshowSettings>) => void;
+  /** Saved grid / play order (see orderBackgroundMedia). Cards drag to reorder when `onOrderChange` is given. */
+  order?: readonly string[];
+  onOrderChange?: (ids: string[]) => void;
 }) {
   const { t, language } = useTranslation();
   const { items, thumbs, refresh, removeLocal } = useBackgroundMedia(deviceId);
@@ -105,7 +95,7 @@ export function BackgroundMediaPicker({
     return () => { aliveRef.current = false; };
   }, []);
 
-  const adaptedItems: MediaItem[] = items.map(item => ({
+  const adaptedItems: MediaItem[] = orderBackgroundMedia(items, order).map(item => ({
     ...item,
     fps: item.type === 'animated' ? 30 : 1,
     frames: item.type === 'animated' ? Math.max(1, Math.round(item.durationSec * 30)) : 0,
@@ -265,9 +255,6 @@ export function BackgroundMediaPicker({
     ? t('lighting.controls.importingCount', importProgress)
     : t('lighting.controls.importing');
 
-  // A gif that kept its alpha renders in an <img>, so only real video slides
-  // have an end to play to.
-  const hasVideo = items.some(item => item.type === 'animated' && !item.alpha);
   const orderKey = slideshow?.shuffle ? 'shuffle' : 'sequential';
   const slideshowControls = slideshow && (
     <>
@@ -279,9 +266,9 @@ export function BackgroundMediaPicker({
       />
       {slideshow.enabled && (
         <SettingSelect
-          label={t('panel.settings.slideshow.interval')}
+          label={t('slideshow.interval')}
           value={String(slideshow.interval)}
-          options={PANEL_SLIDESHOW_INTERVALS.map(seconds => ({
+          options={SLIDESHOW_INTERVALS.map(seconds => ({
             value: String(seconds),
             label: slideshowIntervalLabel(t, language, seconds),
           }))}
@@ -289,24 +276,24 @@ export function BackgroundMediaPicker({
         />
       )}
       {slideshow.enabled && (
-        <SettingRow label={t('panel.settings.slideshow.order')}>
+        <SettingRow label={t('slideshow.order')}>
           <ChipGroup
             options={[
               // eslint-disable-next-line i18next/no-literal-string -- order enum id
-              { key: 'sequential', label: t('panel.settings.slideshow.order.sequential') },
+              { key: 'sequential', label: t('slideshow.order.sequential') },
               // eslint-disable-next-line i18next/no-literal-string -- order enum id
-              { key: 'shuffle', label: t('panel.settings.slideshow.order.shuffle') },
+              { key: 'shuffle', label: t('slideshow.order.shuffle') },
             ]}
             activeKey={orderKey}
             onChange={key => onSlideshowChange?.({ shuffle: key === 'shuffle' })}
-            ariaLabel={t('panel.settings.slideshow.order')}
+            ariaLabel={t('slideshow.order')}
           />
         </SettingRow>
       )}
-      {slideshow.enabled && hasVideo && (
+      {slideshow.enabled && (
         <SettingToggle
-          label={t('panel.settings.slideshow.finishVideos')}
-          description={t('panel.settings.slideshow.finishVideosHint')}
+          label={t('slideshow.finishVideos')}
+          description={t('slideshow.finishVideosHint')}
           checked={slideshow.finishVideos}
           onChange={finishVideos => onSlideshowChange?.({ finishVideos })}
         />
@@ -398,6 +385,7 @@ export function BackgroundMediaPicker({
           onDelete={requestDelete}
           deleteAriaLabel={t('lighting.controls.mediaDelete')}
           thumbAspect={BG_THUMB_ASPECT}
+          onReorder={onOrderChange}
           prepend={importingName ? (
             <EffectCard
               asDiv

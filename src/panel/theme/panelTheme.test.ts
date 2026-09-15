@@ -26,6 +26,7 @@ const baseTheme: PanelThemeState = {
   backgroundSlideshowInterval: 30,
   backgroundSlideshowShuffle: false,
   backgroundSlideshowFinishVideos: true,
+  backgroundMediaOrder: [],
   backgroundFrost: 100,
   widgetOpacity: 1,
   widgetLabels: true,

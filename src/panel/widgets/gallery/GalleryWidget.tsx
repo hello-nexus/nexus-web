@@ -8,6 +8,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { galleryItemVideoUrl } from '../../../api/gallery';
 import {
+  DEFAULT_GALLERY_INTERVAL,
   filterGalleryItems,
   readGalleryMediaFilter,
   recallGalleryPosition,
@@ -17,6 +18,7 @@ import {
   useGalleryRenderWidth,
 } from './useGallery';
 import type { WidgetProps } from '../types';
+import { normalizeSlideshowInterval, shuffledLap } from '../../slideshow/slideshow';
 import styles from './GalleryWidget.module.scss';
 
 const ARROW_HIDE_DELAY_MS = 2500;
@@ -41,7 +43,8 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
-  const intervalMs = (((widget.config?.interval as number | undefined) ?? 10) * 1000);
+  const intervalMs = normalizeSlideshowInterval(widget.config?.interval as number | undefined, DEFAULT_GALLERY_INTERVAL) * 1000;
+  const shuffle = ((widget.config?.shuffle as boolean | undefined) ?? false);
   const mediaFilter = readGalleryMediaFilter(widget.config);
   // Slideshow only: a video runs to its end (looping while shorter than the
   // interval) before the next item, instead of being cut at the tick.
@@ -181,6 +184,20 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
     for (const id of keep) load(id);
   }, [preview, current, items, index, count, retain, load]);
 
+  // Shuffle walks a lap of every index once, rebuilt when the set changes or
+  // runs out; a fresh lap never re-opens on the item on screen.
+  const lapRef = useRef<number[]>([]);
+  const lapPosRef = useRef(-1);
+  const nextIndex = useCallback((): number => {
+    if (!shuffle) return pointerRef.current + 1;
+    if (lapRef.current.length !== count || lapPosRef.current + 1 >= lapRef.current.length) {
+      lapRef.current = shuffledLap(Array.from({ length: count }, (_, i) => i), pointerRef.current);
+      lapPosRef.current = -1;
+    }
+    lapPosRef.current += 1;
+    return lapRef.current[lapPosRef.current] ?? pointerRef.current + 1;
+  }, [shuffle, count]);
+
   // Slideshow auto-advance. An interval (not a re-armed timeout) so a lap
   // that lands back on the same index can't strand the slideshow; manual nav
   // resets the cadence via navEpoch.
@@ -192,10 +209,10 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   useEffect(() => {
     if (preview || mode !== 'slideshow' || count < 2 || videoPaced) return;
     const timer = setInterval(() => {
-      goTo(pointerRef.current + 1, 1);
+      goTo(nextIndex(), 1);
     }, intervalMs);
     return () => clearInterval(timer);
-  }, [preview, mode, count, intervalMs, navEpoch, goTo, videoPaced]);
+  }, [preview, mode, count, intervalMs, navEpoch, goTo, nextIndex, videoPaced]);
 
   // Completed plays of the current video. Whole plays only: a 3s clip on a
   // 10s interval runs four times (12s) before the switch, a 20s clip on a 5s
@@ -215,9 +232,9 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   const armCeiling = useCallback(() => {
     if (ceilingRef.current) clearTimeout(ceilingRef.current);
     ceilingRef.current = setTimeout(() => {
-      goTo(pointerRef.current + 1, 1);
+      goTo(nextIndex(), 1);
     }, durationMsRef.current * 2 + VIDEO_STALL_GRACE_MS);
-  }, [goTo]);
+  }, [goTo, nextIndex]);
   useEffect(() => {
     if (!videoPaced) return;
     armCeiling();
@@ -236,14 +253,14 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
     // An unknown or zero duration cannot be paced; treat it as done.
     const durationMs = durationMsRef.current || Infinity;
     if (playsRef.current * durationMs >= intervalMs) {
-      goTo(pointerRef.current + 1, 1);
+      goTo(nextIndex(), 1);
     }
     // Replays either way: the swap waits on the next still, and a lap that
     // finds every other item dead never swaps at all.
     video.currentTime = 0;
     video.play()?.catch(() => {});
     armCeiling();
-  }, [goTo, intervalMs, armCeiling]);
+  }, [goTo, nextIndex, intervalMs, armCeiling]);
 
   // autoplay alone is not reliable on a remounted <video> in the panel
   // WebViews; the background-media layer kicks play() the same way.

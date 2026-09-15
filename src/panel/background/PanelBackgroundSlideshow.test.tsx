@@ -40,7 +40,7 @@ const item = (id: string, importedAtUnixMs: number): BackgroundMediaItem => ({
 
 const shown = () => screen.getAllByTestId('slide').map(el => el.getAttribute('data-id'));
 
-async function renderShow(startId: string | null, over: Partial<{ shuffle: boolean }> = {}) {
+async function renderShow(startId: string | null, over: Partial<{ shuffle: boolean; order: string[] }> = {}) {
   const view = render(
     <PanelBackgroundSlideshow
       deviceId="dev1"
@@ -48,6 +48,7 @@ async function renderShow(startId: string | null, over: Partial<{ shuffle: boole
       intervalSec={10}
       shuffle={over.shuffle ?? false}
       finishVideos
+      order={over.order ?? []}
       opacity={1}
     />,
   );
@@ -109,11 +110,22 @@ describe('PanelBackgroundSlideshow', () => {
     expect(shown()).toEqual(['a']);
   });
 
+  it('follows the saved order instead of import order', async () => {
+    api.items = [item('c', 3), item('b', 2), item('a', 1)];
+    await renderShow('c', { order: ['c', 'a', 'b'] });
+    const seen = [shown()[0]];
+    for (let i = 0; i < 3; i++) {
+      await tick(10_000);
+      seen.push(shown()[0]);
+    }
+    expect(seen).toEqual(['c', 'a', 'b', 'c']);
+  });
+
   it('jumps to a slide picked in the editor', async () => {
     api.items = [item('c', 3), item('b', 2), item('a', 1)];
     const view = await renderShow('a');
     view.rerender(
-      <PanelBackgroundSlideshow deviceId="dev1" startId="c" intervalSec={10} shuffle={false} finishVideos opacity={1} />,
+      <PanelBackgroundSlideshow deviceId="dev1" startId="c" intervalSec={10} shuffle={false} finishVideos order={[]} opacity={1} />,
     );
     await act(async () => {});
     expect(shown()).toEqual(['c']);

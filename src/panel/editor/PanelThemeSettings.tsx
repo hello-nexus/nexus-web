@@ -75,6 +75,8 @@ export interface PanelThemeSettingsState {
   backgroundSlideshowInterval: number;
   backgroundSlideshowShuffle: boolean;
   backgroundSlideshowFinishVideos: boolean;
+  // Asset ids in grid / in-order play order; unlisted assets follow, oldest first.
+  backgroundMediaOrder: string[];
   // Frosted-glass blur over the background layer (shader / media / wallpaper),
   // percent 0-100 (see DEFAULT_PANEL_BACKGROUND_FROST).
   backgroundFrost: number;
@@ -104,6 +106,7 @@ export interface PanelThemeSettingsProps {
   onBackgroundOpacityCommit: (opacity: number) => void;
   onBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
   onBackgroundSlideshowCommit: (patch: Partial<PanelSlideshowSettings>) => void;
+  onBackgroundMediaOrderCommit: (ids: string[]) => void;
   onBackgroundFrostPreview: (percent: number) => void;
   onBackgroundFrostCommit: (percent: number) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
@@ -158,6 +161,7 @@ export function PanelThemeSettings({
   onBackgroundOpacityCommit,
   onBackgroundMediaCommit,
   onBackgroundSlideshowCommit,
+  onBackgroundMediaOrderCommit,
   onBackgroundFrostPreview,
   onBackgroundFrostCommit,
   onWidgetOpacityPreview,
@@ -442,6 +446,8 @@ export function PanelThemeSettings({
                     finishVideos: theme.backgroundSlideshowFinishVideos,
                   }}
                   onSlideshowChange={onBackgroundSlideshowCommit}
+                  order={theme.backgroundMediaOrder}
+                  onOrderChange={onBackgroundMediaOrderCommit}
                 />
               </>
             ) : (

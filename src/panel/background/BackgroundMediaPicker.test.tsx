@@ -3,6 +3,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackgroundMediaPicker } from './BackgroundMediaPicker';
 import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
+import type { BackgroundMediaItem } from '../../api/panelBackgroundMedia';
+import { reorderMediaIds } from '../widgets/lighting/effecteditor/MediaGrid';
 
 const api = vi.hoisted(() => ({
   // stageId -> preview pixel size; a missing entry is an unreadable preview.
@@ -14,6 +16,7 @@ const api = vi.hoisted(() => ({
   // When set, every stage waits on it: lets a test unmount mid-batch.
   gate: null as Promise<void> | null,
   refresh: vi.fn(() => Promise.resolve()),
+  library: [] as BackgroundMediaItem[],
 }));
 
 vi.mock('../../api/panelBackgroundMedia', () => ({
@@ -38,7 +41,7 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
 }));
 
 vi.mock('./useBackgroundMedia', () => ({
-  useBackgroundMedia: () => ({ items: [], thumbs: {}, refresh: api.refresh, removeLocal: vi.fn() }),
+  useBackgroundMedia: () => ({ items: api.library, thumbs: {}, refresh: api.refresh, removeLocal: vi.fn() }),
 }));
 
 vi.mock('../../lib/i18n', () => {
@@ -62,9 +65,10 @@ const ASPECT = 720 / 1280;
 
 const SLIDESHOW_OFF: PanelSlideshowSettings = { enabled: false, interval: 30, shuffle: false, finishVideos: true };
 
-function renderPicker(slideshow?: PanelSlideshowSettings) {
+function renderPicker(slideshow?: PanelSlideshowSettings, order?: string[]) {
   const onSelect = vi.fn();
   const onSlideshowChange = vi.fn();
+  const onOrderChange = vi.fn();
   // StrictMode's dev mount/unmount/mount cycle is what the app runs under;
   // an unmount guard that never re-arms only fails there.
   const view = render(
@@ -78,11 +82,19 @@ function renderPicker(slideshow?: PanelSlideshowSettings) {
         onSelect={onSelect}
         slideshow={slideshow}
         onSlideshowChange={onSlideshowChange}
+        order={order}
+        onOrderChange={order ? onOrderChange : undefined}
       />
     </StrictMode>,
   );
-  return { onSelect, onSlideshowChange, unmount: view.unmount };
+  return { onSelect, onSlideshowChange, onOrderChange, unmount: view.unmount };
 }
+
+const libraryItem = (id: string, importedAtUnixMs: number): BackgroundMediaItem => ({
+  id, name: `${id}.jpg`, sourceExt: '.jpg', type: 'static', width: 720, height: 1280, importedAtUnixMs, durationSec: 0, alpha: false,
+});
+
+const cardLabels = () => screen.getAllByRole('button').map(el => el.getAttribute('aria-label')).filter(l => l && /^[a-z]$/.test(l));
 
 function folderInput(): HTMLInputElement {
   const inputs = document.querySelectorAll<HTMLInputElement>('input[type="file"]');
@@ -97,6 +109,7 @@ function pickFolder(files: File[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  api.library = [];
   api.sizes = {};
   api.rejected = new Set();
   api.unreachable = new Set();
@@ -221,25 +234,25 @@ describe('BackgroundMediaPicker slideshow', () => {
   it('shows the interval, order and video rows only while the slideshow is on', () => {
     renderPicker(SLIDESHOW_OFF);
     expect(screen.getByText('panel.settings.slideshow')).toBeInTheDocument();
-    expect(screen.queryByText('panel.settings.slideshow.interval')).toBeNull();
-    expect(screen.queryByText('panel.settings.slideshow.order')).toBeNull();
+    expect(screen.queryByText('slideshow.interval')).toBeNull();
+    expect(screen.queryByText('slideshow.order')).toBeNull();
   });
 
   it('labels the interval options in the largest whole unit', () => {
     renderPicker({ ...SLIDESHOW_OFF, enabled: true });
-    expect(screen.getByText('panel.settings.slideshow.interval')).toBeInTheDocument();
-    expect(screen.getByText('panel.settings.slideshow.order')).toBeInTheDocument();
+    expect(screen.getByText('slideshow.interval')).toBeInTheDocument();
+    expect(screen.getByText('slideshow.order')).toBeInTheDocument();
     // The default (30 s) shows on the trigger; the rest are in the menu.
-    const trigger = screen.getByRole('button', { name: 'panel.settings.slideshow.interval' });
-    expect(trigger).toHaveTextContent('panel.settings.slideshow.seconds.other:count=30');
+    const trigger = screen.getByRole('button', { name: 'slideshow.interval' });
+    expect(trigger).toHaveTextContent('slideshow.seconds.other:count=30');
     fireEvent.click(trigger);
     const labels = screen.getAllByRole('option').map(o => o.textContent);
-    expect(labels).toContain('panel.settings.slideshow.seconds.other:count=5');
-    expect(labels).toContain('panel.settings.slideshow.minutes.one:count=1');
-    expect(labels).toContain('panel.settings.slideshow.hours.one:count=1');
-    expect(labels).toContain('panel.settings.slideshow.days.one:count=1');
-    // No video in the (mocked, empty) library: nothing to play to the end.
-    expect(screen.queryByText('panel.settings.slideshow.finishVideos')).toBeNull();
+    expect(labels).toContain('slideshow.seconds.other:count=5');
+    expect(labels).toContain('slideshow.minutes.one:count=1');
+    expect(labels).toContain('slideshow.hours.one:count=1');
+    expect(labels).toContain('slideshow.minutes.other:count=3');
+    expect(labels).not.toContain('slideshow.hours.other:count=24');
+    expect(screen.getByText('slideshow.finishVideos')).toBeInTheDocument();
   });
 
   it('turns the slideshow on after a folder import of two or more files', async () => {
@@ -264,5 +277,26 @@ describe('BackgroundMediaPicker slideshow', () => {
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     expect(onSlideshowChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('BackgroundMediaPicker order', () => {
+  it('lists the library oldest first, then in the saved order, with drag handles when reorderable', () => {
+    // The service lists newest first.
+    api.library = [libraryItem('c', 3), libraryItem('b', 2), libraryItem('a', 1)];
+    const { unmount } = renderPicker(SLIDESHOW_OFF);
+    expect(cardLabels()).toEqual(['a', 'b', 'c']);
+    expect(document.querySelector('[aria-roledescription="sortable"]')).toBeNull();
+    unmount();
+
+    renderPicker(SLIDESHOW_OFF, ['b', 'c']);
+    expect(cardLabels()).toEqual(['b', 'c', 'a']);
+    expect(document.querySelectorAll('[aria-roledescription="sortable"]')).toHaveLength(3);
+  });
+
+  it('maps a drop onto the new id order', () => {
+    expect(reorderMediaIds(['a', 'b', 'c'], 'a', 'c')).toEqual(['b', 'c', 'a']);
+    expect(reorderMediaIds(['a', 'b', 'c'], 'c', 'a')).toEqual(['c', 'a', 'b']);
+    expect(reorderMediaIds(['a', 'b', 'c'], 'a', 'zz')).toEqual(['a', 'b', 'c']);
   });
 });
