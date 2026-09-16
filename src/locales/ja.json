@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "コードが一致しません。残りの試行回数: {count}",
   "auth.recover.invalid.body": "この復旧リンクは無効か、有効期限が切れています。Nexus アプリから新しいリンクをリクエストしてください。",
   "auth.recover.invalid.title": "無効または期限切れのリンク",
-  "auth.recover.loading": "復旧リンクを確認しています...",
   "auth.recover.success.body": "Nexus アプリに {username} としてサインインしました。アプリに戻って新しいパスワードを設定してください。",
   "auth.recover.success.title": "サインインしました",
   "auth.verify.alreadyVerified.body": "このメールアドレスはすでに確認されています。Nexus アプリに戻ってログインしてください。",

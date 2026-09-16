@@ -346,11 +346,9 @@ export const directApiBackend: AuthBackend = {
       const res = await fetch(`${BASE}/auth/recovery/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, grantId, deviceSecret, wantsCode: true }),
+        body: JSON.stringify({ email, grantId, deviceSecret }),
       });
       if (!res.ok) return null;
-      // An api that predates the code omits it; the flow then runs without
-      // one rather than blocking on a field that will never arrive.
       code = (await tryParseJson<{ code?: string }>(res))?.code;
     } catch {
       return null;

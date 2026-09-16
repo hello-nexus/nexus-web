@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "Dieser Code stimmt nicht. Verbleibende Versuche: {count}",
   "auth.recover.invalid.body": "Dieser Wiederherstellungslink ist ungültig oder abgelaufen. Fordern Sie über die Nexus-App einen neuen an.",
   "auth.recover.invalid.title": "Ungültiger oder abgelaufener Link",
-  "auth.recover.loading": "Ihr Wiederherstellungslink wird bestätigt...",
   "auth.recover.success.body": "Sie sind jetzt in Ihrer Nexus-App angemeldet, {username} - kehren Sie zur App zurück, um ein neues Passwort festzulegen.",
   "auth.recover.success.title": "Sie sind angemeldet",
   "auth.verify.alreadyVerified.body": "Diese E-Mail-Adresse wurde bereits bestätigt - kehren Sie zur Nexus-App zurück und melden Sie sich an.",

@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "코드가 일치하지 않습니다. 남은 시도 횟수: {count}",
   "auth.recover.invalid.body": "이 복구 링크가 유효하지 않거나 만료되었습니다. Nexus 앱에서 새 링크를 요청하세요.",
   "auth.recover.invalid.title": "유효하지 않거나 만료된 링크",
-  "auth.recover.loading": "복구 링크를 확인하는 중...",
   "auth.recover.success.body": "이제 Nexus 앱에 로그인되었습니다, {username}님 - 앱으로 돌아가 새 비밀번호를 설정하세요.",
   "auth.recover.success.title": "로그인되었습니다",
   "auth.verify.alreadyVerified.body": "이 이메일은 이미 인증되었습니다 - Nexus 앱으로 돌아가 로그인하세요.",

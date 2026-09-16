@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "Die code klopt niet. Resterende pogingen: {count}",
   "auth.recover.invalid.body": "Deze herstellink is ongeldig of verlopen. Vraag een nieuwe aan via de Nexus-app.",
   "auth.recover.invalid.title": "Ongeldige of verlopen link",
-  "auth.recover.loading": "Je herstellink wordt bevestigd...",
   "auth.recover.success.body": "Je bent nu aangemeld in je Nexus-app, {username} - ga terug naar de app om een nieuw wachtwoord in te stellen.",
   "auth.recover.success.title": "Je bent aangemeld",
   "auth.verify.alreadyVerified.body": "Dit e-mailadres is al geverifieerd - ga terug naar de Nexus-app en meld je aan.",

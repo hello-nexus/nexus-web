@@ -132,7 +132,7 @@ export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
 }
 
 export type RecoveryCompleteFailure =
-  /** The grant was started with a code; the page has to ask for it. */
+  /** No code reached /complete; the form guards against it, other callers may not. */
   | 'code-required'
   /** Wrong code, grant still alive - attemptsLeft says how many remain. */
   | 'code-mismatch'

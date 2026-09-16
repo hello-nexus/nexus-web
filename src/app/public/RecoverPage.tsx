@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { completeRecovery } from '../../api/account';
 import { Button } from '../../components/common/Button/Button';
 import { TextInput } from '../../components/common/TextInput/TextInput';
 import { PublicPageFrame } from './PublicPageFrame';
-import { AuthLoadingCard, AuthResultCard } from './AuthResultCard';
+import { AuthResultCard } from './AuthResultCard';
 import styles from './RecoverPage.module.scss';
 
 type RecoverState =
-  | { phase: 'loading' }
   | { phase: 'code'; attemptsLeft?: number }
   | { phase: 'exhausted' }
   | { phase: 'success'; username: string }
@@ -21,22 +20,24 @@ type RecoverState =
  *
  * The code step is what makes a click safe to perform: the code lives only on
  * the device that asked for the reset, so a link arriving unrequested cannot
- * be approved by opening it. A grant started without a code (an older app)
- * completes on mount exactly as before.
+ * be approved by opening it. Every grant carries one, so the page opens on the
+ * form and never completes on its own.
  */
 export function RecoverPage({ token }: { token: string }) {
   const { t } = useTranslation();
-  const [state, setState] = useState<RecoverState>(token ? { phase: 'loading' } : { phase: 'invalid' });
+  const [state, setState] = useState<RecoverState>(token ? { phase: 'code' } : { phase: 'invalid' });
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const apply = useCallback((result: Awaited<ReturnType<typeof completeRecovery>>) => {
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!code.trim() || submitting) return;
+    setSubmitting(true);
+    const result = await completeRecovery(token, code.trim());
+    setSubmitting(false);
+    setCode('');
     if (result.ok && result.username) {
       setState({ phase: 'success', username: result.username });
-      return;
-    }
-    if (result.reason === 'code-required') {
-      setState({ phase: 'code' });
       return;
     }
     if (result.reason === 'code-mismatch') {
@@ -48,32 +49,10 @@ export function RecoverPage({ token }: { token: string }) {
       return;
     }
     setState({ phase: 'invalid' });
-  }, []);
-
-  const posted = useRef(false);
-  useEffect(() => {
-    if (!token || posted.current) return;
-    posted.current = true;
-    let cancelled = false;
-    void completeRecovery(token).then((result) => {
-      if (!cancelled) apply(result);
-    });
-    return () => { cancelled = true; };
-  }, [token, apply]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!code.trim() || submitting) return;
-    setSubmitting(true);
-    const result = await completeRecovery(token, code.trim());
-    setSubmitting(false);
-    setCode('');
-    apply(result);
   };
 
   return (
     <PublicPageFrame>
-      {state.phase === 'loading' && <AuthLoadingCard label={t('auth.recover.loading')} />}
       {state.phase === 'code' && (
         <form className={styles.codeForm} onSubmit={handleSubmit}>
           <h1 className={styles.title}>{t('auth.recover.code.title')}</h1>

@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "驗證碼不符。剩餘嘗試次數：{count}",
   "auth.recover.invalid.body": "此復原連結無效或已過期。請在 Nexus 應用程式中重新申請一個。",
   "auth.recover.invalid.title": "連結無效或已過期",
-  "auth.recover.loading": "正在確認您的復原連結...",
   "auth.recover.success.body": "您現在已在 Nexus 應用程式中登入，{username} - 請返回應用程式設定新密碼。",
   "auth.recover.success.title": "已登入",
   "auth.verify.alreadyVerified.body": "此電子郵件已完成驗證 - 請返回 Nexus 應用程式並登入。",

@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "Ten kod się nie zgadza. Pozostałe próby: {count}",
   "auth.recover.invalid.body": "Ten link odzyskiwania jest nieprawidłowy lub wygasł. Poproś o nowy w aplikacji Nexus.",
   "auth.recover.invalid.title": "Nieprawidłowy lub wygasły link",
-  "auth.recover.loading": "Potwierdzanie linku odzyskiwania...",
   "auth.recover.success.body": "Jesteś teraz zalogowany w aplikacji Nexus, {username} - wróć do aplikacji, aby ustawić nowe hasło.",
   "auth.recover.success.title": "Jesteś zalogowany",
   "auth.verify.alreadyVerified.body": "Ten adres e-mail został już zweryfikowany - wróć do aplikacji Nexus i zaloguj się.",

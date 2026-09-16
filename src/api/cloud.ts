@@ -40,7 +40,7 @@ export interface CloudUsernameResponse extends CloudEnvelope {
 
 export interface RecoveryStartResponse {
   grantId: string;
-  /** Verification code the service got from the cloud; absent on an older service. */
+  /** Verification code, shown here and typed into the page the emailed link opens. */
   code?: string;
 }
 
@@ -147,11 +147,8 @@ export const cloudLogin = (identifier: string, password: string) =>
 export const cloudLogout = (accountId: string) =>
   postService('/cloud/logout', { accountId });
 
-// wantsCode travels from the bundle, not the service: an older bundle that
-// cannot display a code or send one back omits it and keeps the old flow,
-// which is what a service updated ahead of its wwwroot would otherwise break.
 export const startCloudRecovery = (email: string) =>
-  postService<RecoveryStartResponse>('/cloud/recovery/start', { email, wantsCode: true });
+  postService<RecoveryStartResponse>('/cloud/recovery/start', { email });
 
 export const fetchCloudRecoveryStatus = () =>
   fetchService<RecoveryStatusResponse>('/cloud/recovery/status');

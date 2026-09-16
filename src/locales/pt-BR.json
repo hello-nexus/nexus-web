@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "Esse código não confere. Tentativas restantes: {count}",
   "auth.recover.invalid.body": "Este link de recuperação é inválido ou expirou. Solicite um novo no aplicativo Nexus.",
   "auth.recover.invalid.title": "Link inválido ou expirado",
-  "auth.recover.loading": "Confirmando seu link de recuperação...",
   "auth.recover.success.body": "Você já está conectado no seu aplicativo Nexus, {username} - volte para o aplicativo para definir uma nova senha.",
   "auth.recover.success.title": "Você está conectado",
   "auth.verify.alreadyVerified.body": "Este e-mail já foi verificado - volte para o aplicativo Nexus e faça login.",

@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "That code doesn't match. Attempts left: {count}",
   "auth.recover.invalid.body": "This recovery link is invalid or has expired. Request a new one from the Nexus app.",
   "auth.recover.invalid.title": "Invalid or expired link",
-  "auth.recover.loading": "Confirming your recovery link...",
   "auth.recover.success.body": "You're signed in on your Nexus app now, {username} - go back to the app to set a new password.",
   "auth.recover.success.title": "You're signed in",
   "auth.verify.alreadyVerified.body": "This email address has already been verified - return to the Nexus app and log in.",

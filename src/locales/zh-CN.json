@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "验证码不匹配。剩余尝试次数：{count}",
   "auth.recover.invalid.body": "此恢复链接无效或已过期。请在 Nexus 应用中重新申请一个。",
   "auth.recover.invalid.title": "链接无效或已过期",
-  "auth.recover.loading": "正在确认您的恢复链接...",
   "auth.recover.success.body": "您现在已在 Nexus 应用中登录，{username} - 请返回应用设置新密码。",
   "auth.recover.success.title": "已登录",
   "auth.verify.alreadyVerified.body": "此邮箱已完成验证 - 请返回 Nexus 应用并登录。",

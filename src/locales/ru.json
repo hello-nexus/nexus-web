@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "Код не совпадает. Осталось попыток: {count}",
   "auth.recover.invalid.body": "Эта ссылка для восстановления недействительна или истекла. Запросите новую в приложении Nexus.",
   "auth.recover.invalid.title": "Недействительная или истёкшая ссылка",
-  "auth.recover.loading": "Подтверждение ссылки для восстановления...",
   "auth.recover.success.body": "Вы уже вошли в приложение Nexus, {username} - вернитесь в приложение, чтобы задать новый пароль.",
   "auth.recover.success.title": "Вы вошли в систему",
   "auth.verify.alreadyVerified.body": "Эта почта уже подтверждена - вернитесь в приложение Nexus и войдите.",

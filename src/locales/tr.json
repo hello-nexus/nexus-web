@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "Bu kod eşleşmiyor. Kalan deneme: {count}",
   "auth.recover.invalid.body": "Bu kurtarma bağlantısı geçersiz veya süresi dolmuş. Nexus uygulamasından yeni bir tane isteyin.",
   "auth.recover.invalid.title": "Geçersiz veya süresi dolmuş bağlantı",
-  "auth.recover.loading": "Kurtarma bağlantınız onaylanıyor...",
   "auth.recover.success.body": "Artık Nexus uygulamanızda oturum açtınız, {username} - yeni bir şifre belirlemek için uygulamaya dönün.",
   "auth.recover.success.title": "Oturum açıldı",
   "auth.verify.alreadyVerified.body": "Bu e-posta zaten doğrulandı - Nexus uygulamasına dönüp giriş yapın.",

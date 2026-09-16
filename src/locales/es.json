@@ -146,7 +146,6 @@
   "auth.recover.code.wrong": "Ese código no coincide. Intentos restantes: {count}",
   "auth.recover.invalid.body": "Este enlace de recuperación no es válido o ha caducado. Solicita uno nuevo desde la aplicación Nexus.",
   "auth.recover.invalid.title": "Enlace inválido o caducado",
-  "auth.recover.loading": "Confirmando tu enlace de recuperación...",
   "auth.recover.success.body": "Ya has iniciado sesión en tu aplicación Nexus, {username} - vuelve a la aplicación para establecer una nueva contraseña.",
   "auth.recover.success.title": "Has iniciado sesión",
   "auth.verify.alreadyVerified.body": "Este correo ya ha sido verificado - vuelve a la aplicación Nexus e inicia sesión.",
