@@ -1,5 +1,5 @@
 import { Monitor } from 'lucide-react';
-import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useIgnoredComponents, useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
@@ -10,6 +10,7 @@ import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import type { DiagnosticsFetchOptions, DiagnosticsGpu, DiagnosticsGpuResponse, GpuThrottle } from '../../../api/diagnostics';
 import { SectionLoadError } from './DiagnosticsSectionStates';
 import { durationLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
+import { IgnoreToggle } from './IgnoreToggle';
 import styles from './DiagnosticsView.module.scss';
 
 interface GpuSectionProps {
@@ -44,7 +45,7 @@ export function GpuSection({ data, loading, error, onRefresh, heading }: GpuSect
       {state === 'empty' && <EmptyState compact icon={<Monitor size={22} />} title={t('diagnostics.gpu.empty')} />}
       {state === 'content' && data && (
         <div className={styles.gpuGrid}>
-          {data.gpus.map((gpu, i) => <GpuCard key={i} gpu={gpu} />)}
+          {data.gpus.map((gpu, i) => <GpuCard key={i} gpu={gpu} index={i} />)}
         </div>
       )}
     </section>
@@ -58,11 +59,25 @@ const THROTTLE_COUNTERS: Array<{ key: Exclude<keyof GpuThrottle, 'active'>; reas
   { key: 'hwPowerBrakeUs', reason: 'hwPowerBrake' },
 ];
 
-function GpuCard({ gpu }: { gpu: DiagnosticsGpu }) {
+// `index` is the NVML ordinal: the health component id is "gpu:<index>" and
+// /diagnostics/gpu lists GPUs in that same order.
+function GpuCard({ gpu, index }: { gpu: DiagnosticsGpu; index: number }) {
   const { t } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  const { isIgnored, toggle } = useIgnoredComponents();
+  const id = `gpu:${index}`;
+  const ignored = isIgnored(id);
   return (
-    <Card title={gpu.name} subtitle={`${t('diagnostics.gpu.driver')}: ${gpu.driverVersion ?? UNAVAILABLE}`}>
+    <Card
+      title={gpu.name}
+      subtitle={`${t('diagnostics.gpu.driver')}: ${gpu.driverVersion ?? UNAVAILABLE}`}
+      actions={(
+        <>
+          {ignored && <Badge label={t('diagnostics.ignore.badge')} color="var(--text-dim)" />}
+          <IgnoreToggle ignored={ignored} onToggle={() => toggle(id)} />
+        </>
+      )}
+    >
       <InfoList>
         <InfoRow
           label={t('diagnostics.gpu.temperature')}

@@ -152,6 +152,7 @@ export interface UiSettingsValue {
   diagnosticsComponentRam: boolean;
   diagnosticsComponentCooling: boolean;
   diagnosticsComponentSystem: boolean;
+  diagnosticsIgnoredComponents: string[];
 }
 
 /** preferences.diagnostics contract defaults - kept in sync with the service's
@@ -180,6 +181,7 @@ export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
   componentRam: true,
   componentCooling: true,
   componentSystem: true,
+  ignoredComponents: [] as string[],
 } as const;
 
 type Patch = Partial<UiSettingsValue>;
@@ -263,6 +265,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
     diagnosticsComponentCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCooling,
     diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
+    diagnosticsIgnoredComponents: DIAGNOSTICS_SETTINGS_DEFAULTS.ignoredComponents,
   };
 }
 
@@ -398,6 +401,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.diagnosticsWarningLingerMinutes !== undefined) diagnostics.warningLingerMinutes = patch.diagnosticsWarningLingerMinutes;
   if (Object.keys(notifications).length > 0) diagnostics.notifications = notifications;
   if (Object.keys(components).length > 0) diagnostics.components = components;
+  if (patch.diagnosticsIgnoredComponents !== undefined) diagnostics.ignoredComponents = patch.diagnosticsIgnoredComponents;
   if (Object.keys(diagnostics).length > 0) out.diagnostics = diagnostics;
   return out;
 }
@@ -502,6 +506,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     diagnosticsComponentRam: server.diagnostics?.components?.ram ?? base.diagnosticsComponentRam,
     diagnosticsComponentCooling: server.diagnostics?.components?.cooling ?? base.diagnosticsComponentCooling,
     diagnosticsComponentSystem: server.diagnostics?.components?.system ?? base.diagnosticsComponentSystem,
+    diagnosticsIgnoredComponents: server.diagnostics?.ignoredComponents ?? base.diagnosticsIgnoredComponents,
   };
 }
 
@@ -775,6 +780,29 @@ export function useUnitPrefs(): {
 export function useDiagnosticsWarningLingerMinutes(): number {
   const ctx = useContext(UiSettingsContext);
   return ctx ? ctx.settings.diagnosticsWarningLingerMinutes : DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes;
+}
+
+const NO_IGNORED_COMPONENTS: string[] = [];
+
+/**
+ * Per-device diagnostics ignore list (preferences.diagnostics.ignoredComponents),
+ * keyed by the health component ids the service emits ("storage:<serial>",
+ * "cooling:<deviceId>", "gpu:<n>"). Providerless: nothing ignored, toggle is
+ * a no-op - same pattern as {@link useUnitPrefs}.
+ */
+export function useIgnoredComponents(): { isIgnored: (id: string) => boolean; toggle: (id: string) => void } {
+  const ctx = useContext(UiSettingsContext);
+  const ignored = ctx ? ctx.settings.diagnosticsIgnoredComponents : NO_IGNORED_COMPONENTS;
+  const update = ctx?.update;
+  const isIgnored = useCallback((id: string) => ignored.includes(id), [ignored]);
+  const toggle = useCallback((id: string) => {
+    update?.({
+      diagnosticsIgnoredComponents: ignored.includes(id)
+        ? ignored.filter(x => x !== id)
+        : [...ignored, id],
+    });
+  }, [ignored, update]);
+  return { isIgnored, toggle };
 }
 
 /** One of the four global feature switches (Lighting, Cooling, Monitoring, Diagnostics). */
