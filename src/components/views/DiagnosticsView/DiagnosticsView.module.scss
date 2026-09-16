@@ -7,12 +7,32 @@
   display: flex;
   flex-direction: column;
   gap: 0;
+  // The page owns the column height and the body scrolls inside it, so the
+  // tab bar stays docked (dockedPageTabs.test.ts).
+  height: 100%;
+  min-height: 0;
 }
 
 .tabContent {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-xl);
+  @include scrollbar-visible;
+}
+
+.monitorToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.monitorLabel {
+  @include text-label;
+  color: var(--text-dim);
 }
 
 // ── Action bar ──

@@ -135,7 +135,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         tabsDisabled={!serviceOnline}
       />
 
-      <div className="pageBody">
+      <div className={`${styles.body} pageBody`}>
         {availableActive ? (
           !serviceOnline ? (
             <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />

@@ -10,7 +10,7 @@ import { SectionHeader } from '../../common/SectionHeader/SectionHeader';
 import type { DiagnosticsCoolingResponse } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { coolingStatusColor, coolingStatusLabelKey, relativeTimeLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
-import { IgnoreToggle } from './IgnoreToggle';
+import { MonitorToggle } from './MonitorToggle';
 import styles from './DiagnosticsView.module.scss';
 
 interface CoolingSectionProps {
@@ -62,12 +62,12 @@ export function CoolingSection({ data, loading, error, onRefresh, heading }: Coo
                   <span>{device.rpm !== null ? `${formatNumber(device.rpm, numberFormat)} RPM` : UNAVAILABLE}</span>
                   <span>{device.targetDutyPercent !== null ? localizeNumbers(`${device.targetDutyPercent}%`, numberFormat) : UNAVAILABLE}</span>
                   {ignored
-                    ? <Badge label={t('diagnostics.ignore.badge')} color="var(--text-dim)" />
+                    ? <Badge label={t('diagnostics.monitor.off')} color="var(--text-dim)" />
                     : <Badge label={t(coolingStatusLabelKey(device.status))} color={coolingStatusColor(device.status)} />}
                   {!ignored && device.sinceUtc && device.status !== 'ok' && (
                     <span>{t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })}</span>
                   )}
-                  <IgnoreToggle compact ignored={ignored} onToggle={() => toggle(id)} />
+                  <MonitorToggle compact monitored={!ignored} onChange={() => toggle(id)} />
                 </span>
               </div>
             );

@@ -53,25 +53,27 @@ beforeEach(() => {
 });
 
 describe('per-device ignore wiring', () => {
-  it('a drive card toggles its own health id and swaps its status badge for Ignored', () => {
+  it("a drive card's Monitor switch toggles its own health id and swaps its status badge for Not monitored", () => {
     const { rerender } = render(<StorageSection data={smart} loading={false} error={false} onRefresh={() => {}} />);
     expect(screen.getByText('diagnostics.driveStatus.caution')).toBeInTheDocument();
+    const monitor = screen.getByRole('switch', { name: 'diagnostics.monitor.label' });
+    expect(monitor).toHaveAttribute('aria-checked', 'true');
 
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.ignore.ignore' }));
+    fireEvent.click(monitor);
     expect(h.toggle).toHaveBeenCalledWith('storage:Z52AFCNF');
 
     h.ignored.add('storage:Z52AFCNF');
     rerender(<StorageSection data={smart} loading={false} error={false} onRefresh={() => {}} />);
     expect(screen.queryByText('diagnostics.driveStatus.caution')).not.toBeInTheDocument();
-    expect(screen.getByText('diagnostics.ignore.badge')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'diagnostics.ignore.include' })).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.monitor.off')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'diagnostics.monitor.label' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('a cooling row prefixes the channel id the way DiagnosticsHealthModel does', () => {
     render(<CoolingSection data={cooling} loading={false} error={false} onRefresh={() => {}} />);
     expect(screen.getByText('diagnostics.cooling.status.stalled')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.ignore.ignore' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.monitor.label' }));
     expect(h.toggle).toHaveBeenCalledWith('cooling:pump-1');
   });
 
@@ -80,12 +82,12 @@ describe('per-device ignore wiring', () => {
     render(<CoolingSection data={cooling} loading={false} error={false} onRefresh={() => {}} />);
     expect(screen.queryByText('diagnostics.cooling.status.stalled')).not.toBeInTheDocument();
     expect(screen.queryByText(/diagnostics.cooling.since/)).not.toBeInTheDocument();
-    expect(screen.getByText('diagnostics.ignore.badge')).toBeInTheDocument();
+    expect(screen.getByText('diagnostics.monitor.off')).toBeInTheDocument();
   });
 
   it('a GPU card uses its NVML ordinal as the id', () => {
     render(<GpuSection data={gpu} loading={false} error={false} onRefresh={() => {}} />);
-    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.ignore.ignore' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'diagnostics.monitor.label' }));
     expect(h.toggle).toHaveBeenCalledWith('gpu:0');
   });
 });

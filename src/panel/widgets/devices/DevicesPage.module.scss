@@ -1,9 +1,24 @@
+@use '../../../styles/scrollbar' as *;
 @use '../../../styles/text' as *;
 
 .devices {
   // No max-width cap - matches the other views (Monitoring, Cooling,
   // System, Lighting, Settings), which stretch to the content column's
   // full width.
+  display: flex;
+  flex-direction: column;
+  // The page owns the column height and the body scrolls inside it, so the
+  // tab bar stays docked (dockedPageTabs.test.ts).
+  height: 100%;
+  min-height: 0;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: var(--space-xl);
+  @include scrollbar-visible;
 }
 
 // --- Device List ---

@@ -10,7 +10,7 @@ import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import type { DiagnosticsFetchOptions, DiagnosticsGpu, DiagnosticsGpuResponse, GpuThrottle } from '../../../api/diagnostics';
 import { SectionLoadError } from './DiagnosticsSectionStates';
 import { durationLabel, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
-import { IgnoreToggle } from './IgnoreToggle';
+import { MonitorToggle } from './MonitorToggle';
 import styles from './DiagnosticsView.module.scss';
 
 interface GpuSectionProps {
@@ -73,8 +73,8 @@ function GpuCard({ gpu, index }: { gpu: DiagnosticsGpu; index: number }) {
       subtitle={`${t('diagnostics.gpu.driver')}: ${gpu.driverVersion ?? UNAVAILABLE}`}
       actions={(
         <>
-          {ignored && <Badge label={t('diagnostics.ignore.badge')} color="var(--text-dim)" />}
-          <IgnoreToggle ignored={ignored} onToggle={() => toggle(id)} />
+          {ignored && <Badge label={t('diagnostics.monitor.off')} color="var(--text-dim)" />}
+          <MonitorToggle monitored={!ignored} onChange={() => toggle(id)} />
         </>
       )}
     >

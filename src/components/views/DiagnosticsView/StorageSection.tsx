@@ -14,7 +14,7 @@ import { UsageBar } from '../../common/UsageBar/UsageBar';
 import type { DiagnosticsDrive, DiagnosticsFetchOptions, DiagnosticsSmartResponse, SmartAttribute } from '../../../api/diagnostics';
 import { NotAvailableNote, SectionLoadError } from './DiagnosticsSectionStates';
 import { driveStatusColor, driveStatusLabelKey, formatBytes, resolveSectionState, UNAVAILABLE } from './diagnosticsHelpers';
-import { IgnoreToggle } from './IgnoreToggle';
+import { MonitorToggle } from './MonitorToggle';
 import styles from './DiagnosticsView.module.scss';
 
 interface StorageSectionProps {
@@ -62,9 +62,9 @@ function DriveCard({ drive }: { drive: DiagnosticsDrive }) {
       actions={(
         <>
           {ignored
-            ? <Badge label={t('diagnostics.ignore.badge')} color="var(--text-dim)" />
+            ? <Badge label={t('diagnostics.monitor.off')} color="var(--text-dim)" />
             : <Badge label={t(driveStatusLabelKey(drive.status))} color={driveStatusColor(drive.status)} />}
-          <IgnoreToggle ignored={ignored} onToggle={() => toggle(drive.id)} />
+          <MonitorToggle monitored={!ignored} onChange={() => toggle(drive.id)} />
         </>
       )}
     >
