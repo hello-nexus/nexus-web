@@ -1956,6 +1956,13 @@
   cursor: pointer;
 }
 
+// A preview cell that is not the one being edited is one click target: its
+// widget's own controls (gallery arrows, deck keys, scroll lists) take no
+// pointer input until the widget is opened for editing.
+.cellWrap[data-edit-hint='true'] .cellScaler {
+  pointer-events: none;
+}
+
 // Post-add confirmation over a catalog card's preview (desktop catalog only).
 // Two beats - checkmark "Added", then the edit prompt - held while the pointer
 // stays on the card. See PanelWidgetCatalog.
