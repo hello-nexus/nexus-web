@@ -120,6 +120,7 @@ describe('SettingsTab', () => {
       diagnosticsCpuTempC: 95,
       diagnosticsNotificationsEnabled: true,
       diagnosticsComponentGpu: false,
+      diagnosticsIgnoredComponents: ['storage:Z52AFCNF'],
     });
     update.mockClear();
     render(<SettingsTab />);
@@ -144,5 +145,7 @@ describe('SettingsTab', () => {
       diagnosticsComponentCooling: true,
       diagnosticsComponentSystem: true,
     }));
+    // Per-device ignores survive a reset; they are undone on the device card.
+    expect(update.mock.calls[0][0]).not.toHaveProperty('diagnosticsIgnoredComponents');
   });
 });

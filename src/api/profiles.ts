@@ -121,6 +121,10 @@ export interface DiagnosticsPrefs {
   warningLingerMinutes: number;
   notifications: DiagnosticsNotificationPrefs;
   components: DiagnosticsComponentPrefs;
+  // Health component ids ("storage:<serial>", "cooling:<deviceId>", "gpu:<n>")
+  // the user ignores. The service drops them from /diagnostics/health; an
+  // older service omits the field.
+  ignoredComponents?: string[];
 }
 
 export interface DiagnosticsPrefsPatch {
@@ -128,6 +132,8 @@ export interface DiagnosticsPrefsPatch {
   warningLingerMinutes?: number;
   notifications?: Partial<DiagnosticsNotificationPrefs>;
   components?: Partial<DiagnosticsComponentPrefs>;
+  // Replaces the whole list when present.
+  ignoredComponents?: string[];
 }
 
 export interface CoolingPrefs {

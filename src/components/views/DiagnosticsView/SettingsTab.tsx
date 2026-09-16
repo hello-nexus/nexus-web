@@ -47,6 +47,9 @@ const DEFAULT_PATCH: Partial<UiSettingsValue> = {
   diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
   diagnosticsComponentCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCooling,
   diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
+  // Per-device ignores are deliberately not reset: the confirm copy promises
+  // limits, notifications and monitoring, and each ignore is undone on its
+  // own device card.
 };
 
 /**
