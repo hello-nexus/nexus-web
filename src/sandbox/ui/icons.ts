@@ -28,6 +28,6 @@ export const ICON_TABLE: Record<string, LucideIcon> = {
   'rotate-ccw': RotateCcw, 'chevron-up': ChevronUp, 'chevron-down': ChevronDown,
   plus: Plus, minus: Minus, 'app-window': AppWindow,
   'skip-back': SkipBack, 'skip-forward': SkipForward, film: Film,
-  x: X, radio: Radio, sticker: Sticker, 'zoom-in': ZoomIn, 'external-link': ExternalLink,
+  x: X, radio: Radio, sticker: Sticker, 'zoom-in': ZoomIn,
   trash: Trash2, image: ImageIcon,
 };
