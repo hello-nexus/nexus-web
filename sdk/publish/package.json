@@ -1,6 +1,6 @@
 {
   "name": "@hello-nexus/sdk",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "Author-facing SDK for building sandboxed Nexus apps - @hello-nexus/sdk (mount + hooks) and @hello-nexus/sdk/ui (the blessed component set). The host runtime is provided at load; an app bundle externalizes these to it.",
   "license": "UNLICENSED",
   "private": false,
