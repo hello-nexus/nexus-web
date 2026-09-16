@@ -52,6 +52,12 @@ export interface CameraControllerOptions {
   restZoomFraction?: number;
   /** Yaw (degrees) blended in with zoom depth, so full zoom frames a 3/4 view. */
   zoomYawOffsetDeg?: number;
+  /** How far full zoom pulls the focus onto zoomFocusTarget: 1 locks on it, lower keeps the body in frame. */
+  zoomFocusLock?: number;
+  /** Degrees of travel past a yaw/pitch limit a drag can accumulate; 0 is a hard stop. */
+  overshootDeg?: number;
+  /** Fraction of the remaining overshoot eased away per second once nothing holds it. */
+  overshootReturn?: number;
   /** World-Y added to zoomFocusTarget's position (head bones anchor at the chin). */
   zoomFocusHeightOffset?: number;
   /** Chain the demo tour after the intro push-in completes. */
@@ -106,8 +112,8 @@ export function cameraOptionsFromFields(fields: Record<string, ScriptFieldValue>
 export class CameraController {
   /**
    * Closeup pivot (set post-construction, e.g. the head bone): as zoom
-   * deepens the focus blends from the exported rest offset onto this node's
-   * world position, so full zoom frames and orbits the node itself. Without
+   * deepens the focus blends from the exported rest offset toward this node's
+   * world position (by zoomFocusLock), so full zoom frames the node. Without
    * it, zoom raises the focus by verticalZoomOffset (the Unity behavior,
    * whose exported offset sits in front of the character - any yaw at depth
    * then swings the character out of frame).
@@ -136,6 +142,9 @@ export class CameraController {
   private readonly aspectFraming: number;
   private readonly restZoomLevel: number;
   private readonly zoomYawOffsetDeg: number;
+  private readonly zoomFocusLock: number;
+  private readonly overshootDeg: number;
+  private readonly overshootReturn: number;
   private readonly zoomFocusHeightOffset: number;
   private readonly runDemoOnStart: boolean;
   private readonly demoInitialDelay: number;
@@ -157,6 +166,8 @@ export class CameraController {
   /** Pointer movement (Unity screen convention: y up) since the last update. */
   private pendingDx = 0;
   private pendingDy = 0;
+  private yawSlack = 0;
+  private pitchSlack = 0;
   private isPinching = false;
   private lastTouchMag = 0;
 
@@ -213,6 +224,10 @@ export class CameraController {
     this.restZoomLevel = this.maxZoomLevel * clamp01(options.restZoomFraction ?? 0);
     this.zoomLevel = this.restZoomLevel;
     this.zoomYawOffsetDeg = options.zoomYawOffsetDeg ?? 0;
+    this.zoomFocusLock = clamp01(options.zoomFocusLock ?? 1);
+    this.overshootDeg = Math.max(0, options.overshootDeg ?? 0);
+    // 0 would leave the slack in place forever; keep a floor under the ease.
+    this.overshootReturn = clamp(options.overshootReturn ?? 0.85, 0.01, 0.999999);
     this.zoomFocusHeightOffset = options.zoomFocusHeightOffset ?? 0;
     this.runDemoOnStart = options.runDemoOnStart ?? true;
     this.demoInitialDelay = options.demoInitialDelay ?? 5;
@@ -306,8 +321,19 @@ export class CameraController {
       this.dragDeltaY *= this.inertiaDamping;
     }
 
-    this.yawDeg = clamp(this.yawDeg + this.dragDeltaX * this.dragSensitivity, this.minAngles[0], this.maxAngles[0]);
-    this.pitchDeg = clamp(this.pitchDeg - this.dragDeltaY * this.dragSensitivity, this.minAngles[1], this.maxAngles[1]);
+    const dragging = this.p0Id !== -1;
+    const yaw = this.applyLimit(
+      this.yawDeg + this.dragDeltaX * this.dragSensitivity,
+      this.minAngles[0], this.maxAngles[0], this.yawSlack, dragging, dt);
+    this.yawDeg = yaw.value;
+    this.yawSlack = yaw.slack;
+    if (yaw.atEdge) this.dragDeltaX = 0;
+    const pitch = this.applyLimit(
+      this.pitchDeg - this.dragDeltaY * this.dragSensitivity,
+      this.minAngles[1], this.maxAngles[1], this.pitchSlack, dragging, dt);
+    this.pitchDeg = pitch.value;
+    this.pitchSlack = pitch.slack;
+    if (pitch.atEdge) this.dragDeltaY = 0;
 
     this.applyTransform();
   }
@@ -409,7 +435,7 @@ export class CameraController {
     if (this.zoomFocusTarget) {
       this.zoomFocusTarget.getWorldPosition(this.zoomFocus);
       this.zoomFocus.y += this.zoomFocusHeightOffset;
-      this.focus.lerp(this.zoomFocus, zoomFraction);
+      this.focus.lerp(this.zoomFocus, zoomFraction * this.zoomFocusLock);
     } else {
       this.focus.y += this.zoomLevel * this.verticalZoomOffset;
     }
@@ -423,6 +449,28 @@ export class CameraController {
 
     this.camera.position.copy(this.focus).addScaledVector(this.dir, effectiveDistance);
     this.camera.lookAt(this.focus);
+  }
+
+  // Past a limit, travel is banked as slack that resists further travel the
+  // deeper it goes, and eases back to the edge once nothing holds it there.
+  // `atEdge` tells the caller to drop the drag delta, so inertia does not keep
+  // feeding the wall after release.
+  private applyLimit(
+    value: number, min: number, max: number, slack: number, dragging: boolean, dt: number,
+  ): { value: number; slack: number; atEdge: boolean } {
+    const over = value > max ? value - max : value < min ? value - min : 0;
+    if (over === 0 && slack === 0) return { value, slack: 0, atEdge: false };
+    const edge = over > 0 || (over === 0 && slack > 0) ? max : min;
+    if (dragging && this.overshootDeg > 0 && over !== 0) {
+      // Each degree of travel past the edge buys less the closer slack is to
+      // overshootDeg, so the band tightens with distance, not with drag speed.
+      const next = slack + over * (1 - Math.abs(slack) / this.overshootDeg);
+      const banked = clamp(next, -this.overshootDeg, this.overshootDeg);
+      return { value: edge + banked, slack: banked, atEdge: true };
+    }
+    const eased = slack * Math.pow(1 - this.overshootReturn, dt);
+    if (Math.abs(eased) < 0.01) return { value: edge, slack: 0, atEdge: true };
+    return { value: edge + eased, slack: eased, atEdge: true };
   }
 
   private zoom(increment: number): void {

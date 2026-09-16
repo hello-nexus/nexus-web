@@ -426,6 +426,34 @@ test.describe('avatar immersive: live stream, stickers, drawer', () => {
     expect(await zoomSlider.inputValue()).toBe(zoomBefore);
   });
 
+  test('the zoom bar tracks a pinch while it runs, not only when it ends', async ({ page }) => {
+    test.setTimeout(180_000);
+    const opened: string[] = [];
+    await gotoPanel(page, opened);
+    const cell = page.locator('[data-panel-widget-id]').first();
+    await cell.locator('canvas').waitFor({ timeout: 90_000 });
+    const dialog = await enterImmersive(page);
+    const slider = dialog.locator('input[type="range"]').first();
+    await slider.waitFor({ timeout: 30_000 });
+    const start = await slider.inputValue();
+    const box = (await dialog.locator('canvas').first().boundingBox())!;
+    const c = { x: box.x + box.width / 2, y: box.y + box.height * 0.3 };
+    const cdp = await page.context().newCDPSession(page);
+    const pts = (spread: number) => [
+      { x: c.x - spread, y: c.y, id: 1 },
+      { x: c.x + spread, y: c.y, id: 2 },
+    ];
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(150) });
+    let movedDuring = false;
+    for (let i = 1; i <= 10; i++) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(150 - i * 12) });
+      await page.waitForTimeout(40);
+      if (await slider.inputValue() !== start) movedDuring = true;
+    }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    expect(movedDuring, 'the bar moved before the fingers lifted').toBe(true);
+  });
+
   test('Close still exits on a second immersive entry (the worker is reused)', async ({ page }) => {
     test.setTimeout(180_000);
     const opened: string[] = [];

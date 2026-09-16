@@ -24,6 +24,62 @@ function mount() {
   return { el, controller, steal: (id: number) => held.delete(id) };
 }
 
+describe('CameraController angle limits', () => {
+  const opts = { minAngles: [-30, -20] as [number, number], maxAngles: [30, 20] as [number, number], overshootDeg: 8, overshootReturn: 0.9, dragSensitivity: 1, inertiaDamping: 0.9, maxDragDelta: 1000 };
+
+  function yawOf(c: CameraController): number {
+    return (c as unknown as { yawDeg: number }).yawDeg;
+  }
+
+  it('a drag past the limit resists instead of stopping dead, and eases back when released', () => {
+    const el = document.createElement('div');
+    Object.assign(el, { setPointerCapture: () => {}, hasPointerCapture: () => true });
+    const c = new CameraController(new THREE.PerspectiveCamera(), new THREE.Object3D(), el, opts);
+    el.dispatchEvent(pointer('pointerdown', 1, 0, 0));
+    for (let i = 1; i <= 40; i++) el.dispatchEvent(pointer('pointermove', 1, -i * 20, 0));
+    for (let i = 0; i < 30; i++) c.update(1 / 60);
+    const held = yawOf(c);
+    expect(held).toBeGreaterThan(30);
+    expect(held).toBeLessThanOrEqual(30 + opts.overshootDeg);
+
+    el.dispatchEvent(pointer('pointerup', 1, -800, 0));
+    for (let i = 0; i < 30; i++) c.update(1 / 60);
+    const halfway = yawOf(c);
+    expect(halfway).toBeLessThan(held);
+    for (let i = 0; i < 150; i++) c.update(1 / 60);
+    expect(yawOf(c)).toBeCloseTo(30, 1);
+    c.dispose();
+  });
+
+  it('a flick into the limit does not keep climbing after release', () => {
+    const el = document.createElement('div');
+    Object.assign(el, { setPointerCapture: () => {}, hasPointerCapture: () => true });
+    const c = new CameraController(new THREE.PerspectiveCamera(), new THREE.Object3D(), el, { ...opts, inertiaDamping: 0.98 });
+    el.dispatchEvent(pointer('pointerdown', 1, 0, 0));
+    for (let i = 1; i <= 40; i++) el.dispatchEvent(pointer('pointermove', 1, -i * 25, 0));
+    for (let i = 0; i < 20; i++) c.update(1 / 60);
+    el.dispatchEvent(pointer('pointerup', 1, -1000, 0));
+    const atRelease = yawOf(c);
+    let peak = atRelease;
+    for (let i = 0; i < 400; i++) { c.update(1 / 60); peak = Math.max(peak, yawOf(c)); }
+    expect(peak).toBeLessThanOrEqual(atRelease + 0.01);
+    expect(yawOf(c)).toBeCloseTo(30, 1);
+  });
+
+  it('inside the limits nothing is resisted', () => {
+    const el = document.createElement('div');
+    Object.assign(el, { setPointerCapture: () => {}, hasPointerCapture: () => true });
+    const c = new CameraController(new THREE.PerspectiveCamera(), new THREE.Object3D(), el, opts);
+    el.dispatchEvent(pointer('pointerdown', 1, 0, 0));
+    el.dispatchEvent(pointer('pointermove', 1, -10, 0));
+    for (let i = 0; i < 20; i++) c.update(1 / 60);
+    const y = yawOf(c);
+    expect(y).toBeGreaterThan(0);
+    expect(y).toBeLessThan(30);
+    c.dispose();
+  });
+});
+
 describe('CameraController pointer slots', () => {
   it('purges a stolen pointer, so the next single finger drags instead of pinching', () => {
     const { el, controller, steal } = mount();

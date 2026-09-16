@@ -211,6 +211,14 @@ export function Sparkline(p: HostProps) {
 
 export function Slider(p: HostProps) {
   const emit = (key: 'input' | 'change', value: number) => p.__events?.[key]?.(value);
+  // The worker's `value` round-trips through the MessagePort, so a controlled
+  // thumb lags the finger; the drag's own value drives it until the worker
+  // echoes that value back, or the control goes away under it.
+  const [live, setLive] = useState<number | null>(null);
+  const incoming = num(p.value) ?? 0;
+  useEffect(() => {
+    if (live !== null && (live === incoming || p.disabled)) setLive(null);
+  }, [live, incoming, p.disabled]);
   const rawFill = p.trackFill;
   const trackFill: boolean | number | undefined =
     typeof rawFill === 'number' ? rawFill : (rawFill != null ? !!rawFill : undefined);
@@ -221,7 +229,7 @@ export function Slider(p: HostProps) {
   return (
     <NativeSlider
       label={str(p.label) ?? ''}
-      value={num(p.value) ?? 0}
+      value={live ?? incoming}
       min={num(p.min) ?? 0}
       max={num(p.max) ?? 100}
       step={num(p.step)}
@@ -229,10 +237,10 @@ export function Slider(p: HostProps) {
       trackFill={trackFill}
       orientation={orientation}
       onChange={(v, commit) => {
-        if (commit) emit('change', v);
-        else emit('input', v);
+        setLive(v);
+        emit(commit ? 'change' : 'input', v);
       }}
-      onCommit={(v) => emit('change', v)}
+      onCommit={(v) => { setLive(v); emit('change', v); }}
     />
   );
 }

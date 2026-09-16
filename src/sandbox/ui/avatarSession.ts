@@ -121,19 +121,23 @@ export async function createAvatarSession(
   });
   // One camera mode: rest = whole character, framed tight (little headroom /
   // footroom); the mouse wheel rides the zoom curve down to a 3/4 face
-  // closeup pivoting on the head bone (zoomFocusTarget below), so the face
-  // stays centered at any yaw.
+  // closeup, its focus pulled most of the way onto the head bone
+  // (zoomFocusTarget below, by zoomFocusLock).
   const camera = new CameraController(runtime.camera, pack.gltf.scene, canvas, {
     ...cameraOptionsFromFields(componentFields(pack, 'CameraController')),
     runDemoOnStart: false,
     aspectFraming: 0,
     baseDistance: 2.05,
-    minDistance: 0.6,
+    minDistance: 0.85,
     // Rest AT the closeup: the wheel's deepest framing (3/4 face, pivoting
     // on the head bone) is the neutral pose rather than the far end of a zoom.
     restZoomFraction: 1,
     zoomYawOffsetDeg: 15,
     zoomFocusHeightOffset: 0.06,
+    // A partial lock keeps the head framed without pinning the camera to it.
+    zoomFocusLock: 0.72,
+    overshootDeg: 7,
+    overshootReturn: 0.995,
   });
   // GLTFLoader strips dots from node names (PropertyBinding.sanitizeNodeName).
   camera.zoomFocusTarget =

@@ -348,8 +348,11 @@ export function AvatarComposite(p: HostProps) {
   // zoom is reported back after each gesture so a worker control can track
   // it. Any pointer or wheel activity on the stage is reported, throttled,
   // for idle timers. Both only matter where gestures live (immersive).
+  // Pointers currently on the canvas; the worker's zoom echoes back a frame
+  // late, so writing it during a gesture would fight the fingers.
+  const downRef = useRef(0);
   useEffect(() => {
-    if (session && zoom !== null && holdsCanvas()) session.setZoom(zoom);
+    if (session && zoom !== null && downRef.current === 0 && holdsCanvas()) session.setZoom(zoom);
   }, [session, zoom, holdsCanvas]);
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -361,18 +364,53 @@ export function AvatarComposite(p: HostProps) {
       lastInteraction = now;
       eventsRef.current?.interaction?.();
     };
-    const reportZoom = () => { eventsRef.current?.zoom?.(session.getZoom()); };
+    let lastSent = -1;
+    const reportZoom = () => {
+      const z = session.getZoom();
+      if (Math.abs(z - lastSent) < 0.002) return;
+      lastSent = z;
+      eventsRef.current?.zoom?.(z);
+    };
+    // A pinch reports while it runs, so a host control tracks the camera
+    // instead of jumping when the fingers lift. Ids, not a counter: a pointer
+    // whose up never reaches this element (capture stolen, target removed)
+    // would otherwise pump forever.
+    const live = new Set<number>();
+    let frame = 0;
+    const pump = () => {
+      frame = 0;
+      reportZoom();
+      if (live.size > 0) frame = requestAnimationFrame(pump);
+    };
+    const onDown = (e: PointerEvent) => {
+      live.add(e.pointerId);
+      downRef.current = live.size;
+      interaction();
+      if (!frame) frame = requestAnimationFrame(pump);
+    };
+    const onUp = (e: PointerEvent) => {
+      live.delete(e.pointerId);
+      downRef.current = live.size;
+      reportZoom();
+    };
     const onWheel = () => { interaction(); reportZoom(); };
     // The starting depth, so a control reads the camera before any gesture.
     reportZoom();
-    wrap.addEventListener('pointerdown', interaction, true);
-    wrap.addEventListener('pointerup', reportZoom, true);
+    wrap.addEventListener('pointerdown', onDown, true);
+    wrap.addEventListener('pointerup', onUp, true);
+    wrap.addEventListener('pointercancel', onUp, true);
+    wrap.addEventListener('lostpointercapture', onUp, true);
     // Bubble phase: the camera applies the notch in the canvas's own wheel
     // handler, so a capture listener would report the value before it.
     wrap.addEventListener('wheel', onWheel);
     return () => {
-      wrap.removeEventListener('pointerdown', interaction, true);
-      wrap.removeEventListener('pointerup', reportZoom, true);
+      if (frame) cancelAnimationFrame(frame);
+      live.clear();
+      downRef.current = 0;
+      wrap.removeEventListener('pointerdown', onDown, true);
+      wrap.removeEventListener('pointerup', onUp, true);
+      wrap.removeEventListener('pointercancel', onUp, true);
+      wrap.removeEventListener('lostpointercapture', onUp, true);
       wrap.removeEventListener('wheel', onWheel);
     };
   }, [session, gesturesEnabled]);
