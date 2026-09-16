@@ -372,4 +372,54 @@ test.describe('avatar immersive: live stream, stickers, drawer', () => {
     await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), localKey), { timeout: 5_000 })
       .toMatch(/"stickers":\[\]/);
   });
+
+  test('Close still exits on a second immersive entry (the worker is reused)', async ({ page }) => {
+    test.setTimeout(180_000);
+    const opened: string[] = [];
+    await gotoPanel(page, opened);
+    const cell = page.locator('[data-panel-widget-id]').first();
+    await cell.locator('canvas').waitFor({ timeout: 90_000 });
+    for (let i = 0; i < 2; i++) {
+      const dialog = await enterImmersive(page);
+      await dialog.getByRole('button', { name: 'Close', exact: true }).waitFor({ timeout: 30_000 });
+      await dialog.getByRole('button', { name: 'Close', exact: true }).tap();
+      await expect(dialog, `entry ${i + 1}`).toHaveCount(0, { timeout: 5_000 });
+      await cell.locator('canvas').waitFor({ timeout: 30_000 });
+    }
+  });
+
+  for (const withSticker of [false, true]) {
+    const title = withSticker ? 'after a sticker is added and Done' : 'with no sticker';
+    test(`${title}, the avatar pinch-zooms and Close exits`, async ({ page }) => {
+    test.setTimeout(180_000);
+    const opened: string[] = [];
+    await gotoPanel(page, opened);
+    const cell = page.locator('[data-panel-widget-id]').first();
+    await cell.locator('canvas').waitFor({ timeout: 90_000 });
+    const dialog = await enterImmersive(page);
+    await dialog.getByRole('button', { name: 'Stickers' }).waitFor({ timeout: 30_000 });
+    if (withSticker) {
+      await dialog.getByRole('button', { name: 'Stickers' }).tap();
+      const layer = dialog.locator('[data-layer-gestures]');
+      await layer.waitFor({ timeout: 5_000 });
+      const thumbs = dialog.locator('button:has(img)');
+      await expect.poll(() => thumbs.count(), { timeout: 5_000 }).toBeGreaterThan(0);
+      await thumbs.first().tap();
+      await expect(layer.locator('[data-manipulable-id]')).toHaveCount(1);
+      await dialog.getByRole('button', { name: 'Done' }).tap();
+      await expect(dialog.locator('[data-layer-gestures]')).toHaveCount(0);
+    }
+
+    const zoomSlider = dialog.locator('input[type="range"]').first();
+    await zoomSlider.waitFor({ timeout: 5_000 });
+    const zoomBefore = await zoomSlider.inputValue();
+    const stageBox = (await dialog.locator('canvas').first().boundingBox())!;
+    const c = { x: stageBox.x + stageBox.width / 2, y: stageBox.y + stageBox.height * 0.3 };
+    await touchGesture(page, [{ x: c.x - 120, y: c.y }, { x: c.x + 120, y: c.y }], [{ x: c.x - 30, y: c.y }, { x: c.x + 30, y: c.y }]);
+    await expect.poll(() => zoomSlider.inputValue(), { timeout: 5_000 }).not.toBe(zoomBefore);
+
+    await dialog.getByRole('button', { name: 'Close', exact: true }).tap();
+    await expect(dialog).toHaveCount(0, { timeout: 5_000 });
+    });
+  }
 });

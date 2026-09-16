@@ -63,15 +63,15 @@ interface LiveWidget {
   // drive this one worker, which holds one size. Newest mount last: it owns the
   // size, and when it leaves the one below re-asserts its own, else the cell
   // stays drawn at fullscreen scale. Disposal waits for the last mount.
-  mounts: Array<{ pushSize: () => void }>;
+  mounts: Array<{ pushSize: () => void; exitImmersive: () => void }>;
 }
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
 export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport }: SandboxedWidgetProps) {
   // The overlay's animated close, for the immersive worker's useImmersive().
-  // Read through a ref so the api object created once per worker sees the
-  // provider's latest value.
+  // The worker's api object is created once, so a reused worker resolves it
+  // through the cache entry's newest mount, not the mount that spawned it.
   const exitImmersive = useImmersiveExit();
   const exitImmersiveRef = useRef(exitImmersive);
   exitImmersiveRef.current = exitImmersive;
@@ -98,8 +98,8 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     if (width > 0 && height > 0) h.update({ size: { width, height } });
   }, []);
   // This mount's identity inside the cache entry's stack; stable for its life.
-  const mountRef = useRef<{ pushSize: () => void } | null>(null);
-  if (mountRef.current === null) mountRef.current = { pushSize: () => pushOwnSize() };
+  const mountRef = useRef<LiveWidget["mounts"][number] | null>(null);
+  if (mountRef.current === null) mountRef.current = { pushSize: () => pushOwnSize(), exitImmersive: () => exitImmersiveRef.current?.() };
 
   useEffect(() => {
     const key = cacheKey;
@@ -142,7 +142,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           dispatch: preview
             ? () => Promise.resolve({ ok: false })
             : (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
-          exitImmersive: surface === 'immersive' ? () => exitImmersiveRef.current?.() : undefined,
+          exitImmersive: surface === 'immersive'
+            ? () => { const e = liveWidgets.get(key); e?.mounts[e.mounts.length - 1]?.exitImmersive(); }
+            : undefined,
         },
       };
       entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [] };
