@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "Cjariament dal personaç falît.",
   "sdk.copybutton.copied": "Copiât tai aponts",
   "sdk.copybutton.copy": "Copie tai aponts",
+  "sdk.manipulable.remove": "Gjave",
   "sdk.mediaimport.choose": "Sielç video",
   "sdk.mediaimport.cropping": "Daûr a ritaiâ…",
   "sdk.mediaimport.errorNetwork": "Cjarie falide. Controle la tô conession.",

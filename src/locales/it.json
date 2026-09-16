@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "Impossibile caricare questo personaggio.",
   "sdk.copybutton.copied": "Copiato negli appunti",
   "sdk.copybutton.copy": "Copia negli appunti",
+  "sdk.manipulable.remove": "Rimuovi",
   "sdk.mediaimport.choose": "Scegli video",
   "sdk.mediaimport.cropping": "Ritaglio in corso…",
   "sdk.mediaimport.errorNetwork": "Caricamento fallito. Controlla la connessione.",

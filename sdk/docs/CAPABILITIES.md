@@ -792,13 +792,14 @@ shorter side, `scale` multiplier, `rotation` in degrees.
 | `selected` | `boolean` | draws the selection outline |
 | `onPress` | `() => void` | a tap on it |
 | `onChange` | `(t: { x, y, scale, rotation }) => void` | after a drag, pinch or twist |
+| `onRemove` | `() => void` | set it and a remove handle sits at the top-right corner while `selected`; fires on tap |
 
 ```tsx
 <Layer grow gestures={editing} onPress={() => setSelected(null)}>
   {items.map((it) => (
     <Manipulable key={it.id} id={it.id} {...it.transform} editable={editing}
       selected={selected === it.id} onPress={() => setSelected(it.id)}
-      onChange={(t) => update(it.id, t)}>
+      onChange={(t) => update(it.id, t)} onRemove={() => remove(it.id)}>
       <Image src={it.src} fit="contain" />
     </Manipulable>
   ))}

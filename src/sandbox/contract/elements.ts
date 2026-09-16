@@ -92,11 +92,13 @@ export const UI_ELEMENTS = {
   // 0..1 of the layer box, `size` as a fraction of the layer's shorter side,
   // `scale` multiplier and `rotation` in degrees. With the layer's `gestures`
   // on and `editable` set, the host drags / pinches / twists it and fires
-  // `change` with the settled transform; a tap fires `press`. Wraps any
-  // blessed content (an image, a sprite, text).
+  // `change` with the settled transform; a tap fires `press`. While `selected`
+  // and a `remove` listener is set, the host draws a remove handle at the
+  // top-right corner that fires it. Wraps any blessed content (an image, a
+  // sprite, text).
   'ui-manipulable': {
     properties: ['id', 'x', 'y', 'scale', 'rotation', 'size', 'z', 'minScale', 'maxScale', 'editable', 'selected', 'alt'],
-    events: ['press', 'change'],
+    events: ['press', 'change', 'remove'],
   },
   // One cell of a sprite atlas, absolutely placed inside a `ui-layer`. The
   // worker ships the atlas ONCE as a data URL and then animates by sending a

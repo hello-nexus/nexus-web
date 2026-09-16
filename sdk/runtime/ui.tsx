@@ -153,6 +153,8 @@ export interface ManipulableProps extends WithChildren, ManipulableTransform {
   onPress?: () => void;
   /** The settled transform after a drag, pinch or twist. */
   onChange?: (t: ManipulableTransform) => void;
+  /** Set it and the host draws a remove handle at the top-right corner while `selected`; fires on tap. */
+  onRemove?: () => void;
 }
 /** A YouTube embed player by video id; 16:9, full width of its parent. */
 export interface YouTubeProps {
@@ -377,7 +379,7 @@ export const Stepper = eventComponent<StepperProps>('ui-stepper', ELEMENT_CTORS[
 export const Image = createRemoteComponent('ui-image' as any, ELEMENT_CTORS['ui-image']) as unknown as React.FC<ImageProps>;
 export const Video = createRemoteComponent('ui-video' as any, ELEMENT_CTORS['ui-video']) as unknown as React.FC<VideoProps>;
 export const Layer = eventComponent<LayerProps>('ui-layer', ELEMENT_CTORS['ui-layer'], [['onPress', 'press']]);
-export const Manipulable = eventComponent<ManipulableProps>('ui-manipulable', ELEMENT_CTORS['ui-manipulable'], [['onPress', 'press'], ['onChange', 'change']]);
+export const Manipulable = eventComponent<ManipulableProps>('ui-manipulable', ELEMENT_CTORS['ui-manipulable'], [['onPress', 'press'], ['onChange', 'change'], ['onRemove', 'remove']]);
 export const YouTube = createRemoteComponent('ui-youtube' as any, ELEMENT_CTORS['ui-youtube']) as unknown as React.FC<YouTubeProps>;
 export const Sprite = createRemoteComponent('ui-sprite' as any, ELEMENT_CTORS['ui-sprite']) as unknown as React.FC<SpriteProps>;
 export const Scroll = createRemoteComponent('ui-scroll' as any, ELEMENT_CTORS['ui-scroll']) as unknown as React.FC<ScrollProps>;

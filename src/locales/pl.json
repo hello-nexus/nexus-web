@@ -3563,6 +3563,7 @@
   "sdk.avatar.loadError": "Nie udało się wczytać tej postaci.",
   "sdk.copybutton.copied": "Skopiowano do schowka",
   "sdk.copybutton.copy": "Kopiuj do schowka",
+  "sdk.manipulable.remove": "Usuń",
   "sdk.mediaimport.choose": "Wybierz wideo",
   "sdk.mediaimport.cropping": "Przycinanie…",
   "sdk.mediaimport.errorNetwork": "Przesyłanie nie powiodło się. Sprawdź połączenie.",

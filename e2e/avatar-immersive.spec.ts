@@ -365,12 +365,65 @@ test.describe('avatar immersive: live stream, stickers, drawer', () => {
     await layer.waitFor({ timeout: 5_000 });
     const sb = (await sticker.boundingBox())!;
     await page.touchscreen.tap(sb.x + sb.width / 2, sb.y + sb.height / 2);
-    const remove = dialog.getByRole('button', { name: 'Remove' });
+    // Selecting it puts the host's remove handle on its top-right corner.
+    const remove = sticker.locator('[data-manipulable-remove]');
     await remove.waitFor({ timeout: 5_000 });
+    // The handle rides the sticker's OWN top-right corner, so with the twist
+    // applied above it is that corner in screen space, not the screen's.
+    const box = (await sticker.boundingBox())!;
+    const style = (await sticker.getAttribute('style'))!;
+    const shown = parseTransform(style);
+    const base = Number(/width: ([\d.]+)px/.exec(style)![1]);
+    const rad = (shown.rotate * Math.PI) / 180;
+    const half = (base / 2) * shown.scale;
+    const corner = {
+      x: box.x + box.width / 2 + half * Math.cos(rad) + half * Math.sin(rad),
+      y: box.y + box.height / 2 + half * Math.sin(rad) - half * Math.cos(rad),
+    };
+    const rb = (await remove.boundingBox())!;
+    expect(Math.hypot(rb.x + rb.width / 2 - corner.x, rb.y + rb.height / 2 - corner.y)).toBeLessThan(6);
+    // Upright and one size whatever the sticker's transform.
+    expect(rb.width).toBeCloseTo(28, 0);
     await remove.tap();
     await expect(layer.locator('[data-manipulable-id]')).toHaveCount(0);
     await expect.poll(() => page.evaluate((k) => localStorage.getItem(k), localKey), { timeout: 5_000 })
       .toMatch(/"stickers":\[\]/);
+  });
+
+  test('a pinch with one finger on a sticker and one on the avatar leaves the camera clean', async ({ page }) => {
+    test.setTimeout(180_000);
+    const opened: string[] = [];
+    await gotoPanel(page, opened);
+    const cell = page.locator('[data-panel-widget-id]').first();
+    await cell.locator('canvas').waitFor({ timeout: 90_000 });
+    const dialog = await enterImmersive(page);
+    await dialog.getByRole('button', { name: 'Stickers' }).waitFor({ timeout: 30_000 });
+    await dialog.getByRole('button', { name: 'Stickers' }).tap();
+    const layer = dialog.locator('[data-layer-gestures]');
+    await layer.waitFor({ timeout: 5_000 });
+    const thumbs = dialog.locator('button:has(img)');
+    await expect.poll(() => thumbs.count(), { timeout: 5_000 }).toBeGreaterThan(0);
+    await thumbs.first().tap();
+    const sticker = layer.locator('[data-manipulable-id]');
+    await expect(sticker).toHaveCount(1);
+    const sb = (await sticker.boundingBox())!;
+    const on = { x: sb.x + sb.width / 2, y: sb.y + sb.height / 2 };
+    // Second finger well outside the sticker, on the avatar canvas.
+    const off = { x: on.x, y: on.y + sb.height * 1.5 };
+    await touchGesture(page, [on, off], [on, { x: off.x, y: off.y + 60 }]);
+    await dialog.getByRole('button', { name: 'Done' }).tap();
+    await expect(dialog.locator('[data-layer-gestures]')).toHaveCount(0);
+
+    // One finger on the avatar must orbit, never zoom: the slider stays put.
+    const zoomSlider = dialog.locator('input[type="range"]').first();
+    await zoomSlider.waitFor({ timeout: 5_000 });
+    const zoomBefore = await zoomSlider.inputValue();
+    const stageBox = (await dialog.locator('canvas').first().boundingBox())!;
+    const c = { x: stageBox.x + stageBox.width / 2, y: stageBox.y + stageBox.height * 0.6 };
+    await touchGesture(page, [c], [{ x: c.x - 200, y: c.y }]);
+    await touchGesture(page, [{ x: c.x - 200, y: c.y }], [{ x: c.x + 200, y: c.y }]);
+    await page.waitForTimeout(500);
+    expect(await zoomSlider.inputValue()).toBe(zoomBefore);
   });
 
   test('Close still exits on a second immersive entry (the worker is reused)', async ({ page }) => {

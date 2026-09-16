@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "Impossible de charger ce personnage.",
   "sdk.copybutton.copied": "Copié dans le presse-papiers",
   "sdk.copybutton.copy": "Copier dans le presse-papiers",
+  "sdk.manipulable.remove": "Retirer",
   "sdk.mediaimport.choose": "Choisir une vidéo",
   "sdk.mediaimport.cropping": "Recadrage…",
   "sdk.mediaimport.errorNetwork": "Échec du téléversement. Vérifiez votre connexion.",

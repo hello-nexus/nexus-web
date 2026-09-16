@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "無法載入此角色。",
   "sdk.copybutton.copied": "已複製到剪貼簿",
   "sdk.copybutton.copy": "複製到剪貼簿",
+  "sdk.manipulable.remove": "移除",
   "sdk.mediaimport.choose": "選擇影片",
   "sdk.mediaimport.cropping": "裁剪中…",
   "sdk.mediaimport.errorNetwork": "上傳失敗。請檢查連線。",

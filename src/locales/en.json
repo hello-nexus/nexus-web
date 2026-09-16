@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "Couldn't load this character.",
   "sdk.copybutton.copied": "Copied to clipboard",
   "sdk.copybutton.copy": "Copy to clipboard",
+  "sdk.manipulable.remove": "Remove",
   "sdk.mediaimport.choose": "Choose video",
   "sdk.mediaimport.cropping": "Cropping…",
   "sdk.mediaimport.errorNetwork": "Upload failed. Check your connection.",

@@ -3563,6 +3563,7 @@
   "sdk.avatar.loadError": "Не удалось загрузить этого персонажа.",
   "sdk.copybutton.copied": "Скопировано в буфер обмена",
   "sdk.copybutton.copy": "Копировать в буфер обмена",
+  "sdk.manipulable.remove": "Удалить",
   "sdk.mediaimport.choose": "Выбрать видео",
   "sdk.mediaimport.cropping": "Обрезка…",
   "sdk.mediaimport.errorNetwork": "Ошибка загрузки. Проверьте подключение.",

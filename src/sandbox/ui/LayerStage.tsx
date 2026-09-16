@@ -10,7 +10,9 @@ import {
   type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent,
   createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
+import { X } from 'lucide-react';
 import type { HostProps } from './components';
+import { useTranslation } from '../../lib/i18n';
 import { toneVar } from './tokens';
 import {
   DEFAULT_MAX_SCALE, DEFAULT_MIN_SCALE, DEFAULT_SIZE_FRACTION, applyGesture, basePx, readTransform,
@@ -206,6 +208,7 @@ export function Layer(p: HostProps) {
 }
 
 export function Manipulable(p: HostProps) {
+  const { t: tr } = useTranslation();
   const stage = useContext(StageContext);
   const id = str(p.id) ?? '';
   const editable = !!p.editable;
@@ -256,9 +259,30 @@ export function Manipulable(p: HostProps) {
     userSelect: 'none',
     WebkitUserSelect: 'none',
   };
+  // Counter-transformed to stay upright at one size; its pointerdown stops short of the layer's drag start.
+  const remove = p.selected && p.__events?.remove ? (
+    <button
+      type="button"
+      data-manipulable-remove=""
+      aria-label={tr('sdk.manipulable.remove')}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); p.__events?.remove?.(); }}
+      style={{
+        position: 'absolute', top: 0, right: 0, width: 28, height: 28, padding: 0, border: 0, borderRadius: '50%',
+        transform: `translate(50%, -50%) scale(${1 / t.scale}) rotate(${-t.rotation}deg)`,
+        transformOrigin: '50% 50%',
+        background: 'var(--accent, rgba(255,255,255,0.9))', color: 'var(--accent-text, #000)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.4)', touchAction: 'none', pointerEvents: 'auto',
+      }}
+    >
+      <X size={16} />
+    </button>
+  ) : null;
   return (
     <div data-manipulable-id={id} style={style} role={p.alt ? 'img' : undefined} aria-label={str(p.alt)}>
       {p.children}
+      {remove}
     </div>
   );
 }

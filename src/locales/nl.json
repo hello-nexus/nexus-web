@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "Kan dit personage niet laden.",
   "sdk.copybutton.copied": "Gekopieerd naar klembord",
   "sdk.copybutton.copy": "Kopiëren naar klembord",
+  "sdk.manipulable.remove": "Verwijderen",
   "sdk.mediaimport.choose": "Video kiezen",
   "sdk.mediaimport.cropping": "Bijsnijden…",
   "sdk.mediaimport.errorNetwork": "Uploaden mislukt. Controleer je verbinding.",

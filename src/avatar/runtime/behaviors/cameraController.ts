@@ -231,6 +231,7 @@ export class CameraController {
     element.addEventListener('pointermove', this.onPointerMove);
     element.addEventListener('pointerup', this.onPointerUp);
     element.addEventListener('pointercancel', this.onPointerUp);
+    element.addEventListener('lostpointercapture', this.onPointerUp);
     element.addEventListener('wheel', this.onWheel, { passive: false });
 
     this.applyTransform();
@@ -317,6 +318,7 @@ export class CameraController {
     el.removeEventListener('pointermove', this.onPointerMove);
     el.removeEventListener('pointerup', this.onPointerUp);
     el.removeEventListener('pointercancel', this.onPointerUp);
+    el.removeEventListener('lostpointercapture', this.onPointerUp);
     el.removeEventListener('wheel', this.onWheel);
     el.style.touchAction = this.previousTouchAction;
   }
@@ -445,7 +447,25 @@ export class CameraController {
     this.dragDeltaY = 0;
   }
 
+  // An ancestor re-capturing a pointer in the same dispatch (the sticker layer
+  // joining a second finger to its pinch) takes it from this element, which
+  // then never receives that pointer's up; its slot is dropped here instead.
+  // Claiming on `gotpointercapture` cannot replace this: it is deferred to the
+  // pointer's next event, so a motionless finger would hold no slot.
+  private releaseStolenSlots(): void {
+    const held = (id: number) => id === -1 || this.element.hasPointerCapture(id);
+    if (!held(this.p1Id)) this.p1Id = -1;
+    if (!held(this.p0Id)) {
+      this.p0Id = this.p1Id;
+      this.p0X = this.p1X;
+      this.p0Y = this.p1Y;
+      this.p1Id = -1;
+    }
+    if (this.p0Id === -1 || this.p1Id === -1) this.isPinching = false;
+  }
+
   private handlePointerDown(e: PointerEvent): void {
+    this.releaseStolenSlots();
     if (this.p0Id === -1) {
       this.p0Id = e.pointerId;
       this.p0X = e.clientX;

@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "Charakter konnte nicht geladen werden.",
   "sdk.copybutton.copied": "In die Zwischenablage kopiert",
   "sdk.copybutton.copy": "In die Zwischenablage kopieren",
+  "sdk.manipulable.remove": "Entfernen",
   "sdk.mediaimport.choose": "Video auswählen",
   "sdk.mediaimport.cropping": "Zuschneiden…",
   "sdk.mediaimport.errorNetwork": "Upload fehlgeschlagen. Verbindung prüfen.",

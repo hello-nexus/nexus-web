@@ -28,7 +28,7 @@ afterEach(() => {
   proto.getBoundingClientRect = saved.rect;
 });
 
-function renderStage(opts: { editable?: boolean; gestures?: boolean; events?: Record<string, (...a: unknown[]) => void>; layerEvents?: Record<string, (...a: unknown[]) => void> } = {}) {
+function renderStage(opts: { editable?: boolean; gestures?: boolean; selected?: boolean; events?: Record<string, (...a: unknown[]) => void>; layerEvents?: Record<string, (...a: unknown[]) => void> } = {}) {
   const change = vi.fn();
   const press = vi.fn();
   const layerPress = vi.fn();
@@ -36,7 +36,7 @@ function renderStage(opts: { editable?: boolean; gestures?: boolean; events?: Re
   const view = render(
     <div ref={ref} style={{ width: 400, height: 800 }}>
       <Layer grow gestures={opts.gestures ?? true} __events={{ press: layerPress, ...(opts.layerEvents ?? {}) }}>
-        <Manipulable id="a" x={0.5} y={0.5} scale={1} rotation={0} editable={opts.editable ?? true} __events={{ change, press, ...(opts.events ?? {}) }}>
+        <Manipulable id="a" x={0.5} y={0.5} scale={1} rotation={0} editable={opts.editable ?? true} selected={opts.selected} __events={{ change, press, ...(opts.events ?? {}) }}>
           <span>art</span>
         </Manipulable>
       </Layer>
@@ -106,6 +106,29 @@ describe('Layer + Manipulable', () => {
 
     const b = renderStage({ gestures: false });
     expect(b.view.container.querySelector('[data-layer-gestures]')).toBeNull();
+  });
+});
+
+describe('Manipulable remove handle', () => {
+  it('appears only while selected with a remove listener, fires it, and never starts a drag', () => {
+    const remove = vi.fn();
+    const { view, layer, change, press, item } = renderStage({ selected: true, events: { remove } });
+    const handle = view.container.querySelector('[data-manipulable-remove]') as HTMLElement;
+    expect(handle).not.toBeNull();
+    expect(item().contains(handle)).toBe(true);
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 260, clientY: 340 });
+    fireEvent.pointerMove(layer, { pointerId: 1, clientX: 300, clientY: 420 });
+    fireEvent.pointerUp(layer, { pointerId: 1, clientX: 300, clientY: 420 });
+    expect(change).not.toHaveBeenCalled();
+    expect(press).not.toHaveBeenCalled();
+    fireEvent.click(handle);
+    expect(remove).toHaveBeenCalledTimes(1);
+
+    cleanup();
+    expect(renderStage({ selected: false, events: { remove } }).view.container.querySelector('[data-manipulable-remove]')).toBeNull();
+    cleanup();
+    expect(renderStage({ selected: true }).view.container.querySelector('[data-manipulable-remove]')).toBeNull();
   });
 });
 

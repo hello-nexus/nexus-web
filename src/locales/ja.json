@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "このキャラクターを読み込めませんでした。",
   "sdk.copybutton.copied": "クリップボードにコピーしました",
   "sdk.copybutton.copy": "クリップボードにコピー",
+  "sdk.manipulable.remove": "削除",
   "sdk.mediaimport.choose": "動画を選択",
   "sdk.mediaimport.cropping": "トリミング中…",
   "sdk.mediaimport.errorNetwork": "アップロードに失敗しました。接続を確認してください。",

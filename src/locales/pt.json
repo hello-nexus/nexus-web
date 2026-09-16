@@ -3527,6 +3527,7 @@
   "sdk.avatar.loadError": "Não foi possível carregar esta personagem.",
   "sdk.copybutton.copied": "Copiado para a área de transferência",
   "sdk.copybutton.copy": "Copiar para a área de transferência",
+  "sdk.manipulable.remove": "Remover",
   "sdk.mediaimport.choose": "Escolher vídeo",
   "sdk.mediaimport.cropping": "A cortar…",
   "sdk.mediaimport.errorNetwork": "Falha no envio. Verifique a sua ligação.",
