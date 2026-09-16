@@ -1,11 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { completeRecovery } from '../../api/account';
+import { Button } from '../../components/common/Button/Button';
+import { TextInput } from '../../components/common/TextInput/TextInput';
 import { PublicPageFrame } from './PublicPageFrame';
 import { AuthLoadingCard, AuthResultCard } from './AuthResultCard';
+import styles from './RecoverPage.module.scss';
 
 type RecoverState =
   | { phase: 'loading' }
+  | { phase: 'code'; attemptsLeft?: number }
+  | { phase: 'exhausted' }
   | { phase: 'success'; username: string }
   | { phase: 'invalid' };
 
@@ -13,25 +18,90 @@ type RecoverState =
  * /auth/recover?token=... - lost-password magic-link landing. No password
  * form here: completing recovery signs the device-grant-polling Nexus app
  * in, and the app owns setting the new password from there.
+ *
+ * The code step is what makes a click safe to perform: the code lives only on
+ * the device that asked for the reset, so a link arriving unrequested cannot
+ * be approved by opening it. A grant started without a code (an older app)
+ * completes on mount exactly as before.
  */
 export function RecoverPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const [state, setState] = useState<RecoverState>(token ? { phase: 'loading' } : { phase: 'invalid' });
+  const [code, setCode] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
+  const apply = useCallback((result: Awaited<ReturnType<typeof completeRecovery>>) => {
+    if (result.ok && result.username) {
+      setState({ phase: 'success', username: result.username });
+      return;
+    }
+    if (result.reason === 'code-required') {
+      setState({ phase: 'code' });
+      return;
+    }
+    if (result.reason === 'code-mismatch') {
+      setState({ phase: 'code', attemptsLeft: result.attemptsLeft });
+      return;
+    }
+    if (result.reason === 'code-exhausted') {
+      setState({ phase: 'exhausted' });
+      return;
+    }
+    setState({ phase: 'invalid' });
+  }, []);
+
+  const posted = useRef(false);
   useEffect(() => {
-    if (!token) return;
+    if (!token || posted.current) return;
+    posted.current = true;
     let cancelled = false;
     void completeRecovery(token).then((result) => {
-      if (cancelled) return;
-      if (result.ok && result.username) setState({ phase: 'success', username: result.username });
-      else setState({ phase: 'invalid' });
+      if (!cancelled) apply(result);
     });
     return () => { cancelled = true; };
-  }, [token]);
+  }, [token, apply]);
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!code.trim() || submitting) return;
+    setSubmitting(true);
+    const result = await completeRecovery(token, code.trim());
+    setSubmitting(false);
+    setCode('');
+    apply(result);
+  };
 
   return (
     <PublicPageFrame>
       {state.phase === 'loading' && <AuthLoadingCard label={t('auth.recover.loading')} />}
+      {state.phase === 'code' && (
+        <form className={styles.codeForm} onSubmit={handleSubmit}>
+          <h1 className={styles.title}>{t('auth.recover.code.title')}</h1>
+          <p className={styles.body}>{t('auth.recover.code.body')}</p>
+          <TextInput
+            value={code}
+            onInput={setCode}
+            name="code"
+            autoComplete="one-time-code"
+            ariaLabel={t('auth.recover.code.label')}
+          />
+          {state.attemptsLeft !== undefined && (
+            <p className={styles.error}>
+              {t('auth.recover.code.wrong', { count: String(state.attemptsLeft) })}
+            </p>
+          )}
+          <Button type="submit" tone="accent" disabled={!code.trim() || submitting}>
+            {t('auth.recover.code.submit')}
+          </Button>
+        </form>
+      )}
+      {state.phase === 'exhausted' && (
+        <AuthResultCard
+          title={t('auth.recover.code.exhaustedTitle')}
+          body={t('auth.recover.code.exhausted')}
+          showBackLink
+        />
+      )}
       {state.phase === 'success' && (
         <AuthResultCard
           title={t('auth.recover.success.title')}

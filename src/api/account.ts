@@ -86,13 +86,13 @@ const TOKEN_POST_RETRY_DELAY_MS = 400;
  * transit (misreporting a real success as "already used"). Returns null once
  * every attempt has thrown.
  */
-async function postTokenWithNetworkRetry(url: string, token: string): Promise<Response | null> {
+async function postTokenWithNetworkRetry(url: string, token: string, code?: string): Promise<Response | null> {
   for (let attempt = 0; attempt < TOKEN_POST_RETRY_ATTEMPTS; attempt++) {
     try {
       return await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify(code ? { token, code } : { token }),
       });
     } catch {
       // network error: fall through to retry
@@ -131,24 +131,52 @@ export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
   }
 }
 
+export type RecoveryCompleteFailure =
+  /** The grant was started with a code; the page has to ask for it. */
+  | 'code-required'
+  /** Wrong code, grant still alive - attemptsLeft says how many remain. */
+  | 'code-mismatch'
+  /** Guesses spent: the grant is destroyed and a new link is needed. */
+  | 'code-exhausted'
+  /** Bad or expired link, or any failure the page cannot act on. */
+  | 'invalid';
+
 export interface RecoveryCompleteResult {
   ok: boolean;
   username?: string;
+  reason?: RecoveryCompleteFailure;
+  attemptsLeft?: number;
 }
 
-/**
- * POST /auth/recovery/complete. Enumeration-resistant per account-system.md
- * (recovery is always 200-shaped), so failure is read from the `ok` field
- * rather than the HTTP status; a non-2xx transport failure, or exhausting
- * the network retries in postTokenWithNetworkRetry, still degrades to
- * ok: false.
- */
-export async function completeRecovery(token: string): Promise<RecoveryCompleteResult> {
+/** Maps the api's error body onto what the page can actually do about it. */
+function recoveryFailure(body: unknown): { reason: RecoveryCompleteFailure; attemptsLeft?: number } {
+  const err = body as { code?: string; attemptsLeft?: number } | null;
+  switch (err?.code) {
+    case 'code_required':
+      return { reason: 'code-required' };
+    case 'code_mismatch':
+      return { reason: 'code-mismatch', attemptsLeft: err.attemptsLeft };
+    case 'code_attempts_exhausted':
+      return { reason: 'code-exhausted' };
+    default:
+      return { reason: 'invalid' };
+  }
+}
+
+export async function completeRecovery(token: string, code?: string): Promise<RecoveryCompleteResult> {
   try {
-    const res = await postTokenWithNetworkRetry(`${BASE}/auth/recovery/complete`, token);
-    if (!res || !res.ok) return { ok: false };
+    const res = await postTokenWithNetworkRetry(`${BASE}/auth/recovery/complete`, token, code);
+    if (!res) return { ok: false, reason: 'invalid' };
+    if (!res.ok) {
+      // A 400 here is usually the code step, not a dead link, and the page
+      // renders a very different thing for each.
+      const body = await res.json().catch(() => null);
+      // Nest serializes a BadRequestException built from an object as that
+      // object, so the discriminator is at the top level.
+      return { ok: false, ...recoveryFailure(body) };
+    }
     return (await res.json()) as RecoveryCompleteResult;
   } catch {
-    return { ok: false };
+    return { ok: false, reason: 'invalid' };
   }
 }

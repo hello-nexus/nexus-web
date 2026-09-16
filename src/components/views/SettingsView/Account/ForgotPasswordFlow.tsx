@@ -26,6 +26,9 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   const [phase, setPhase] = useState<ForgotPhase>('email');
   const [email, setEmail] = useState('');
   const [failed, setFailed] = useState(false);
+  // Shown only here, never mailed: the user types it into the page the link
+  // opens, which is what proves the sign-in waiting for approval is this one.
+  const [code, setCode] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (phase !== 'pending') return;
@@ -60,6 +63,7 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
       setFailed(true);
       return;
     }
+    setCode(started.code);
     setPhase('pending');
   };
 
@@ -99,6 +103,13 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
         <h1 className={styles.title}>{t('account.recovery.pendingTitle')}</h1>
         <div className={styles.pendingBlock}>
           <p className={styles.pendingMessage}>{t('account.recovery.pendingMessage', { email })}</p>
+          {code && (
+            <div className={styles.recoveryCodeBlock}>
+              <span className={styles.fieldLabel}>{t('account.recovery.codeTitle')}</span>
+              <span className={styles.recoveryCode}>{code}</span>
+              <span className={styles.hint}>{t('account.recovery.codeHint')}</span>
+            </div>
+          )}
           <div className={styles.pendingRow}>
             <Spinner size={16} />
             <span className={styles.hint}>{t('account.recovery.pendingWaiting')}</span>

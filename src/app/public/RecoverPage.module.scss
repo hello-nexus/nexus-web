@@ -1,0 +1,29 @@
+@use '../../styles/text' as *;
+
+.codeForm {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+
+.title {
+  @include text-heading;
+  color: var(--text);
+  margin: 0;
+}
+
+.body {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.error {
+  margin: 0;
+  color: var(--bad);
+  font-size: var(--type-small);
+  font-weight: var(--weight-body);
+}

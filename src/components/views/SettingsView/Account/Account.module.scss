@@ -215,3 +215,21 @@
   gap: var(--space-xs);
   margin-top: var(--space-md);
 }
+
+.recoveryCodeBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.recoveryCode {
+  font-family: var(--font-mono);
+  font-size: var(--type-display);
+  letter-spacing: 0.18em;
+  color: var(--text);
+}
