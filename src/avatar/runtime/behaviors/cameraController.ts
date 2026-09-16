@@ -286,6 +286,7 @@ export class CameraController {
   }
 
   update(dt: number): void {
+    if (this.scriptedActive) { this.yawSlack = 0; this.pitchSlack = 0; }
     if (this.introActive) {
       this.introElapsed += dt;
       this.updateIntro();
@@ -325,15 +326,15 @@ export class CameraController {
     const yaw = this.applyLimit(
       this.yawDeg + this.dragDeltaX * this.dragSensitivity,
       this.minAngles[0], this.maxAngles[0], this.yawSlack, dragging, dt);
-    this.yawDeg = yaw.value;
+    this.yawDeg = yaw.angle;
     this.yawSlack = yaw.slack;
-    if (yaw.atEdge) this.dragDeltaX = 0;
+    if (yaw.blocked) this.dragDeltaX = 0;
     const pitch = this.applyLimit(
       this.pitchDeg - this.dragDeltaY * this.dragSensitivity,
       this.minAngles[1], this.maxAngles[1], this.pitchSlack, dragging, dt);
-    this.pitchDeg = pitch.value;
+    this.pitchDeg = pitch.angle;
     this.pitchSlack = pitch.slack;
-    if (pitch.atEdge) this.dragDeltaY = 0;
+    if (pitch.blocked) this.dragDeltaY = 0;
 
     this.applyTransform();
   }
@@ -427,7 +428,10 @@ export class CameraController {
     // Unity: Quaternion.Euler(pitch, yaw, 0) * Vector3.forward, X negated for
     // three.js handedness. With rest angles the camera sits at +Z of the focus.
     const zoomFraction = this.maxZoomLevel > 0 ? clamp01(this.zoomLevel / this.maxZoomLevel) : 0;
-    this.euler.set(this.pitchDeg * DEG2RAD, (this.yawDeg + zoomFraction * this.zoomYawOffsetDeg) * DEG2RAD, 0);
+    this.euler.set(
+      (this.pitchDeg + this.pitchSlack) * DEG2RAD,
+      (this.yawDeg + this.yawSlack + zoomFraction * this.zoomYawOffsetDeg) * DEG2RAD,
+      0);
     this.dir.set(0, 0, 1).applyEuler(this.euler);
     this.dir.x = -this.dir.x;
 
@@ -451,26 +455,24 @@ export class CameraController {
     this.camera.lookAt(this.focus);
   }
 
-  // Past a limit, travel is banked as slack that resists further travel the
-  // deeper it goes, and eases back to the edge once nothing holds it there.
-  // `atEdge` tells the caller to drop the drag delta, so inertia does not keep
-  // feeding the wall after release.
+  // The angle itself never leaves its limits; travel past one is banked as
+  // slack, added only when the camera is placed. Slack resists further travel
+  // the deeper it goes and eases away once nothing holds it, so the drag can
+  // always come straight back the other way.
   private applyLimit(
-    value: number, min: number, max: number, slack: number, dragging: boolean, dt: number,
-  ): { value: number; slack: number; atEdge: boolean } {
-    const over = value > max ? value - max : value < min ? value - min : 0;
-    if (over === 0 && slack === 0) return { value, slack: 0, atEdge: false };
-    const edge = over > 0 || (over === 0 && slack > 0) ? max : min;
-    if (dragging && this.overshootDeg > 0 && over !== 0) {
-      // Each degree of travel past the edge buys less the closer slack is to
-      // overshootDeg, so the band tightens with distance, not with drag speed.
+    angle: number, min: number, max: number, slack: number, dragging: boolean, dt: number,
+  ): { angle: number; slack: number; blocked: boolean } {
+    const clamped = clamp(angle, min, max);
+    const over = angle - clamped;
+    if (dragging && over !== 0 && this.overshootDeg > 0) {
+      // A degree of travel past the edge buys less the closer slack already is
+      // to overshootDeg, so the band tightens with distance, not drag speed.
       const next = slack + over * (1 - Math.abs(slack) / this.overshootDeg);
-      const banked = clamp(next, -this.overshootDeg, this.overshootDeg);
-      return { value: edge + banked, slack: banked, atEdge: true };
+      return { angle: clamped, slack: clamp(next, -this.overshootDeg, this.overshootDeg), blocked: true };
     }
+    if (slack === 0) return { angle: clamped, slack: 0, blocked: over !== 0 };
     const eased = slack * Math.pow(1 - this.overshootReturn, dt);
-    if (Math.abs(eased) < 0.01) return { value: edge, slack: 0, atEdge: true };
-    return { value: edge + eased, slack: eased, atEdge: true };
+    return { angle: clamped, slack: Math.abs(eased) < 0.01 ? 0 : eased, blocked: over !== 0 };
   }
 
   private zoom(increment: number): void {
