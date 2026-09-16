@@ -1,6 +1,6 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchGameSyncState } from '../../../api/lighting';
+import { fetchGameSyncState, setGameSyncVendorOverride } from '../../../api/lighting';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { LightingPage } from './LightingPage';
 
@@ -8,6 +8,7 @@ const gameSyncState = vi.hoisted(() => ({
   active: true,
   providerInstalled: false,
   synapseConflict: false,
+  vendorOverride: false,
   devices: [] as never[],
   lastFrameAt: null as number | null,
   activeApp: null as string | null,
@@ -76,6 +77,9 @@ vi.mock('../../../api/lighting', async importOriginal => {
     fetchGameSyncState: vi.fn(() => Promise.resolve({ ...gameSyncState })),
     fetchGameSyncGames: vi.fn(() => Promise.resolve({ scanning: false, scannedAt: null, games: [] })),
     startGameSync: vi.fn(() => Promise.resolve(null)),
+    setGameSyncVendorOverride: vi.fn((enabled: boolean) => Promise.resolve({
+      ...gameSyncState, synapseConflict: !enabled, vendorOverride: enabled,
+    })),
     stopLighting: vi.fn(() => Promise.resolve(null)),
   };
 });
@@ -84,7 +88,9 @@ const serviceState = { cooling: null, lighting: null, panel: null } as never;
 
 // No locale bundle is loaded under test, so t() renders the key itself.
 const IDLE = 'lighting.gameSync.signal.idle';
-const VENDOR_CONFLICT = 'lighting.gameSync.signal.vendorConflict';
+const VENDOR_OFF = 'lighting.gameSync.vendor.off';
+const VENDOR_ON = 'lighting.gameSync.vendor.on';
+const GUIDE = 'lighting.gameSync.guideLink';
 
 function renderPage() {
   localStorage.setItem('nexus_settings', JSON.stringify({ general: { lightingDashboardMode: 'advanced', coolingDashboardMode: 'advanced' } }));
@@ -98,10 +104,12 @@ function renderPage() {
 describe('LightingPage in Game Sync mode', () => {
   beforeEach(() => {
     gameSyncState.synapseConflict = false;
+    gameSyncState.vendorOverride = false;
     vi.mocked(fetchGameSyncState).mockClear();
+    vi.mocked(setGameSyncVendorOverride).mockClear();
   });
 
-  it('explains the idle frame when a vendor SDK holds a shim slot', async () => {
+  it('offers the vendor switch, off, when a vendor SDK holds a shim slot', async () => {
     gameSyncState.synapseConflict = true;
     renderPage();
 
@@ -111,8 +119,35 @@ describe('LightingPage in Game Sync mode', () => {
     // Razer Synapse's own Chroma DLL is left in place, so a Chroma game lights
     // Synapse, not Nexus; the frame used to sit on "Waiting" with no hint why.
     await waitFor(() => {
-      expect(screen.getByText(VENDOR_CONFLICT)).toBeInTheDocument();
+      expect(screen.getByText(VENDOR_OFF)).toBeInTheDocument();
     });
+    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+    // The switch takes the guide link's room.
+    expect(screen.queryByText(GUIDE)).toBeNull();
+  });
+
+  it('flips to on from the service reply when the switch is used', async () => {
+    gameSyncState.synapseConflict = true;
+    renderPage();
+
+    const toggle = await screen.findByRole('switch');
+    fireEvent.click(toggle);
+
+    expect(vi.mocked(setGameSyncVendorOverride)).toHaveBeenCalledWith(true);
+    await waitFor(() => {
+      expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+    });
+    expect(screen.getByText(VENDOR_ON)).toBeInTheDocument();
+  });
+
+  it('reads as off again when a vendor repair put its DLL back over the override', async () => {
+    gameSyncState.synapseConflict = true;
+    gameSyncState.vendorOverride = true;
+    renderPage();
+
+    const toggle = await screen.findByRole('switch');
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByText(VENDOR_OFF)).toBeInTheDocument();
   });
 
   it('keeps the idle frame plain when every shim slot is ours', async () => {
@@ -120,13 +155,14 @@ describe('LightingPage in Game Sync mode', () => {
 
     // The idle label is up before the first poll answers, so wait for the
     // state fetch, await its own promise, then flush the continuation that
-    // applies it before asserting the note stayed away.
+    // applies it before asserting the switch stayed away.
     await waitFor(() => {
       expect(vi.mocked(fetchGameSyncState)).toHaveBeenCalled();
     });
     await vi.mocked(fetchGameSyncState).mock.results[0].value;
     await act(async () => {});
     expect(screen.getByText(IDLE)).toBeInTheDocument();
-    expect(screen.queryByText(VENDOR_CONFLICT)).toBeNull();
+    expect(screen.queryByRole('switch')).toBeNull();
+    expect(screen.getByText(GUIDE)).toBeInTheDocument();
   });
 });

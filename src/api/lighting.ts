@@ -1113,6 +1113,11 @@ export interface GameSyncStateResponse {
    * interface light the vendor's software instead of Nexus.
    */
   synapseConflict: boolean;
+  /**
+   * The user set the vendor SDK aside (renamed beside its slot) so the Nexus
+   * shim holds it. Off puts the vendor DLL back.
+   */
+  vendorOverride: boolean;
   devices: GameSyncDevice[];
   lastFrameAt?: number | null;
   activeApp?: string | null;
@@ -1120,6 +1125,9 @@ export interface GameSyncStateResponse {
 
 export const startGameSync = () =>
   postService('/lighting/game-sync/start', {});
+
+export const setGameSyncVendorOverride = (enabled: boolean) =>
+  postService<GameSyncStateResponse>('/lighting/game-sync/vendor-override', { enabled });
 
 export const fetchGameSyncState = () =>
   fetchService<GameSyncStateResponse>('/lighting/game-sync/state');
