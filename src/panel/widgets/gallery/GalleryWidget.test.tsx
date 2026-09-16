@@ -316,6 +316,22 @@ describe('GalleryWidget', () => {
     for (let i = 1; i < seen.length; i++) expect(seen[i]).not.toBe(seen[i - 1]);
   });
 
+  it('shuffle never re-shows the image an arrow tap moved to', async () => {
+    mockItems.current = items('a', 'b', 'c');
+    vi.useFakeTimers();
+    render(<GalleryWidget widget={galleryWidget({ mode: 'slideshow', interval: 5, shuffle: true })} />);
+    await flushAsync();
+    for (let round = 0; round < 6; round++) {
+      fireEvent.click(screen.getByLabelText('Next'));
+      await flushAsync();
+      const tapped = shownImage();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5100);
+      });
+      expect(shownImage()).not.toBe(tapped);
+    }
+  });
+
   it('snaps a stored interval to the shared option set', async () => {
     mockItems.current = items('a', 'b');
     vi.useFakeTimers();

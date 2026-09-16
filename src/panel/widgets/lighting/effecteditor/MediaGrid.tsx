@@ -4,7 +4,8 @@ import {
   DragOverlay,
   KeyboardSensor,
   MeasuringStrategy,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -19,28 +20,30 @@ import { EffectCard } from '../../../../components/common/EffectCard/EffectCard'
 import type { MediaItem } from '../../../../api/mediaLibrary';
 import styles from '../LightingPage.module.scss';
 
-// A press on the card's delete button never starts a drag; a plain click on
-// the card passes through the distance / delay constraint untouched.
-class CardPointerSensor extends PointerSensor {
-  static activators = [
-    {
-      eventName: 'onPointerDown' as const,
-      handler: ({ nativeEvent: event }: { nativeEvent: PointerEvent }) => {
-        if (!event.isPrimary || event.button !== 0) return false;
-        return !(event.target as HTMLElement | null)?.closest('button');
-      },
-    },
-  ];
+// A press on the card's delete button never starts a drag.
+const offButton = (target: EventTarget | null) => !(target as HTMLElement | null)?.closest('button');
+
+class CardMouseSensor extends MouseSensor {
+  static activators = [{
+    eventName: 'onMouseDown' as const,
+    handler: ({ nativeEvent: event }: { nativeEvent: MouseEvent }) => event.button === 0 && offButton(event.target),
+  }];
 }
 
-// Touch panels scroll this grid with the same finger that drags, so a drag
-// there needs a hold first; a mouse drags on movement alone.
+// TouchSensor, not PointerSensor: the touch panels scroll this grid with the
+// same finger, and only a touchmove listener can preventDefault the pan once
+// the hold has activated (a pointer drag gets pointercancel and dies).
+class CardTouchSensor extends TouchSensor {
+  static activators = [{
+    eventName: 'onTouchStart' as const,
+    handler: ({ nativeEvent: event }: { nativeEvent: TouchEvent }) => offButton(event.target),
+  }];
+}
+
 function useCardSensors() {
-  const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
   return useSensors(
-    useSensor(CardPointerSensor, {
-      activationConstraint: coarse ? { delay: 250, tolerance: 8 } : { distance: 6 },
-    }),
+    useSensor(CardMouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(CardTouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 }
@@ -58,15 +61,21 @@ function mediaCardMeta(item: MediaItem, t: (key: string) => string, numberFormat
     : t('lighting.controls.mediaStatic');
 }
 
+// The wrapper is the activator, so a keyboard drag starts only from the
+// wrapper itself: Enter on the card's delete button stays a delete. The card
+// inside is already role=button, so the wrapper keeps only the sortable a11y.
 function SortableMediaCard({ id, children }: { id: string; children: ReactNode }) {
-  const { setNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({ id });
+  const { setNodeRef, setActivatorNodeRef, transform, transition, attributes, listeners, isDragging } = useSortable({ id });
+  const sortableAttributes: Record<string, unknown> = { ...attributes };
+  delete sortableAttributes.role;
+  delete sortableAttributes['aria-pressed'];
   const style: CSSProperties = { transform: CSS.Transform.toString(transform), transition };
   return (
     <div
-      ref={setNodeRef}
+      ref={el => { setNodeRef(el); setActivatorNodeRef(el); }}
       style={style}
-      className={isDragging ? styles.mediaCardDragging : undefined}
-      {...attributes}
+      className={`${styles.mediaSortable} ${isDragging ? styles.mediaCardDragging : ''}`}
+      {...sortableAttributes}
       {...listeners}
     >
       {children}

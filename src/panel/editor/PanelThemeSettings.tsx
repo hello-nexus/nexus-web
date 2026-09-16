@@ -31,7 +31,7 @@ export type ResolvedPanelThemeMode = 'dark' | 'light';
 /** The media background's slideshow group, edited as one patch. */
 export interface PanelSlideshowSettings {
   enabled: boolean;
-  /** Seconds per slide (one of PANEL_SLIDESHOW_INTERVALS). */
+  /** Seconds per slide (one of SLIDESHOW_INTERVALS). */
   interval: number;
   shuffle: boolean;
   /** A video slide plays whole before the next, repeating to cover the interval. */

@@ -281,7 +281,7 @@ describe('BackgroundMediaPicker slideshow', () => {
 });
 
 describe('BackgroundMediaPicker order', () => {
-  it('lists the library oldest first, then in the saved order, with drag handles when reorderable', () => {
+  it('lists the saved order first, then the rest oldest first, with drag handles when reorderable', () => {
     // The service lists newest first.
     api.library = [libraryItem('c', 3), libraryItem('b', 2), libraryItem('a', 1)];
     const { unmount } = renderPicker(SLIDESHOW_OFF);

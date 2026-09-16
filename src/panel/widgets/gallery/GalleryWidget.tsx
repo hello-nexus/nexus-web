@@ -185,18 +185,25 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   }, [preview, current, items, index, count, retain, load]);
 
   // Shuffle walks a lap of every index once, rebuilt when the set changes or
-  // runs out; a fresh lap never re-opens on the item on screen.
+  // runs out. Entries for the item on screen (an arrow tap moved there) and
+  // for dead items are skipped rather than shown twice or walked past.
   const lapRef = useRef<number[]>([]);
   const lapPosRef = useRef(-1);
   const nextIndex = useCallback((): number => {
     if (!shuffle) return pointerRef.current + 1;
-    if (lapRef.current.length !== count || lapPosRef.current + 1 >= lapRef.current.length) {
-      lapRef.current = shuffledLap(Array.from({ length: count }, (_, i) => i), pointerRef.current);
-      lapPosRef.current = -1;
+    for (let hops = 0; hops <= count; hops++) {
+      if (lapRef.current.length !== count || lapPosRef.current + 1 >= lapRef.current.length) {
+        lapRef.current = shuffledLap(Array.from({ length: count }, (_, i) => i), pointerRef.current);
+        lapPosRef.current = -1;
+      }
+      lapPosRef.current += 1;
+      const next = lapRef.current[lapPosRef.current];
+      if (next === undefined) break;
+      const item = items[next];
+      if (next !== pointerRef.current && item && !failedRef.current.has(item.id)) return next;
     }
-    lapPosRef.current += 1;
-    return lapRef.current[lapPosRef.current] ?? pointerRef.current + 1;
-  }, [shuffle, count]);
+    return pointerRef.current + 1;
+  }, [shuffle, count, items]);
 
   // Slideshow auto-advance. An interval (not a re-armed timeout) so a lap
   // that lands back on the same index can't strand the slideshow; manual nav
