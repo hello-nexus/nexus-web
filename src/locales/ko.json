@@ -2188,6 +2188,7 @@
   "lighting.gameSync.signal.idle": "게임을 기다리는 중...",
   "lighting.gameSync.signal.receiving": "{activeApp}에서 수신 중",
   "lighting.gameSync.signal.receivingUnknown": "게임이 조명을 제어하고 있습니다.",
+  "lighting.gameSync.vendor.failed": "전환에 실패했습니다. 서비스 로그를 확인하세요.",
   "lighting.gameSync.vendor.off": "다른 조명 앱(예: Razer Synapse)이 게임 인터페이스를 점유하고 있어 게임이 Nexus 대신 그 앱을 제어합니다.",
   "lighting.gameSync.vendor.on": "Nexus가 게임 인터페이스를 점유하고 있습니다. 끄면 다시 돌려줍니다. 전환 후 실행 중인 게임을 다시 시작하세요.",
   "lighting.gameSync.vendor.toggle": "게임 조명을 Nexus로 강제",

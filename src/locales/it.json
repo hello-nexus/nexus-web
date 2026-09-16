@@ -2188,6 +2188,7 @@
   "lighting.gameSync.signal.idle": "In attesa di un gioco...",
   "lighting.gameSync.signal.receiving": "Ricezione da {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un gioco sta controllando la tua illuminazione.",
+  "lighting.gameSync.vendor.failed": "Il cambio non è andato a buon fine. Controlla il registro del servizio.",
   "lighting.gameSync.vendor.off": "Un'altra app di illuminazione (ad esempio Razer Synapse) occupa l'interfaccia di gioco, quindi i giochi controllano quella invece di Nexus.",
   "lighting.gameSync.vendor.on": "Nexus occupa l'interfaccia di gioco. Disattiva per restituirla. Riavvia un gioco in corso dopo il cambio.",
   "lighting.gameSync.vendor.toggle": "Forza l'illuminazione dei giochi su Nexus",

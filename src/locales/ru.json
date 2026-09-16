@@ -2218,6 +2218,7 @@
   "lighting.gameSync.signal.idle": "Ожидание игры...",
   "lighting.gameSync.signal.receiving": "Получение от {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Игра управляет вашим освещением.",
+  "lighting.gameSync.vendor.failed": "Переключение не сработало. Проверьте журнал службы.",
   "lighting.gameSync.vendor.off": "Другое приложение подсветки (например, Razer Synapse) занимает игровой интерфейс, поэтому игры управляют им, а не Nexus.",
   "lighting.gameSync.vendor.on": "Nexus занимает игровой интерфейс. Выключите, чтобы вернуть его. После переключения перезапустите запущенную игру.",
   "lighting.gameSync.vendor.toggle": "Принудительно направлять игровую подсветку в Nexus",

@@ -2188,6 +2188,7 @@
   "lighting.gameSync.signal.idle": "Oyun bekleniyor...",
   "lighting.gameSync.signal.receiving": "{activeApp} kaynağından alınıyor",
   "lighting.gameSync.signal.receivingUnknown": "Bir oyun aydınlatmanızı yönetiyor.",
+  "lighting.gameSync.vendor.failed": "Geçiş uygulanamadı. Hizmet günlüğünü kontrol edin.",
   "lighting.gameSync.vendor.off": "Başka bir aydınlatma uygulaması (örneğin Razer Synapse) oyun arayüzünü kullanıyor, bu yüzden oyunlar Nexus yerine onu yönetir.",
   "lighting.gameSync.vendor.on": "Oyun arayüzü Nexus'ta. Geri vermek için kapatın. Geçişten sonra çalışan oyunu yeniden başlatın.",
   "lighting.gameSync.vendor.toggle": "Oyun aydınlatmasını Nexus'a zorla",

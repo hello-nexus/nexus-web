@@ -1649,7 +1649,7 @@
 }
 
 .gameSyncActivityNoteOk {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgb(255 255 255 / var(--alpha-strong));
 }
 
 // Stacked variant: the stage keeps the frame's normal proportions and the
@@ -1686,7 +1686,7 @@
 .gameSyncDivider {
   width: 100%;
   height: 1px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgb(255 255 255 / var(--alpha-faint));
   flex-shrink: 0;
 }
 

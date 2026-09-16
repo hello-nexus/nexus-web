@@ -2188,6 +2188,7 @@
   "lighting.gameSync.signal.idle": "等待遊戲...",
   "lighting.gameSync.signal.receiving": "正在從 {activeApp} 接收",
   "lighting.gameSync.signal.receivingUnknown": "遊戲正在控制您的燈光。",
+  "lighting.gameSync.vendor.failed": "切換未生效。請查看服務日誌。",
   "lighting.gameSync.vendor.off": "另一款燈光軟體（如 Razer Synapse）佔用了遊戲介面，因此遊戲會控制那個軟體，而不是 Nexus。",
   "lighting.gameSync.vendor.on": "Nexus 已佔用遊戲介面。關閉即可交還。切換後請重新啟動正在執行的遊戲。",
   "lighting.gameSync.vendor.toggle": "強制將遊戲燈光交給 Nexus",

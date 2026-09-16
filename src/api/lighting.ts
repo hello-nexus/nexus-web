@@ -1126,6 +1126,7 @@ export interface GameSyncStateResponse {
 export const startGameSync = () =>
   postService('/lighting/game-sync/start', {});
 
+/** Null when the service could not make the switch (not elevated, no bundled shims, a locked file). */
 export const setGameSyncVendorOverride = (enabled: boolean) =>
   postService<GameSyncStateResponse>('/lighting/game-sync/vendor-override', { enabled });
 

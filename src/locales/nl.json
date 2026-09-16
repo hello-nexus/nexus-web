@@ -2188,6 +2188,7 @@
   "lighting.gameSync.signal.idle": "Wachten op een game...",
   "lighting.gameSync.signal.receiving": "Ontvangen van {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Een game stuurt je verlichting aan.",
+  "lighting.gameSync.vendor.failed": "De omschakeling is niet gelukt. Controleer het servicelogboek.",
   "lighting.gameSync.vendor.off": "Een andere verlichtingsapp (zoals Razer Synapse) bezet de game-interface, dus games sturen die aan in plaats van Nexus.",
   "lighting.gameSync.vendor.on": "Nexus bezet de game-interface. Zet uit om die terug te geven. Herstart een lopende game na het omschakelen.",
   "lighting.gameSync.vendor.toggle": "Gameverlichting naar Nexus forceren",

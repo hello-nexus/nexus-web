@@ -2188,6 +2188,7 @@
   "lighting.gameSync.signal.idle": "Waiting for a game...",
   "lighting.gameSync.signal.receiving": "Receiving from {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "A game is driving your lighting.",
+  "lighting.gameSync.vendor.failed": "The switch didn't take. Check the service log.",
   "lighting.gameSync.vendor.off": "Another lighting app (such as Razer Synapse) owns the game interface, so games light it instead of Nexus.",
   "lighting.gameSync.vendor.on": "Nexus owns the game interface. Turn off to hand it back. Restart a running game after switching.",
   "lighting.gameSync.vendor.toggle": "Force game lighting to Nexus",

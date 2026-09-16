@@ -2218,6 +2218,7 @@
   "lighting.gameSync.signal.idle": "Oczekiwanie na grę...",
   "lighting.gameSync.signal.receiving": "Odbieranie od {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Gra steruje Twoim oświetleniem.",
+  "lighting.gameSync.vendor.failed": "Przełączenie nie powiodło się. Sprawdź dziennik usługi.",
   "lighting.gameSync.vendor.off": "Inna aplikacja oświetleniowa (np. Razer Synapse) zajmuje interfejs gier, więc gry sterują nią zamiast Nexus.",
   "lighting.gameSync.vendor.on": "Nexus zajmuje interfejs gier. Wyłącz, aby go oddać. Po przełączeniu uruchom ponownie działającą grę.",
   "lighting.gameSync.vendor.toggle": "Wymuś oświetlenie gier w Nexus",

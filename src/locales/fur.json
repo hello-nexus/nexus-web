@@ -2188,6 +2188,7 @@
   "lighting.gameSync.signal.idle": "In spiete di un zûc...",
   "lighting.gameSync.signal.receiving": "Daûr a ricevi di {activeApp}",
   "lighting.gameSync.signal.receivingUnknown": "Un zûc al controle la tô iluminazion.",
+  "lighting.gameSync.vendor.failed": "Il cambiament nol è lât a bon fin. Controle il regjistri dal servizi.",
   "lighting.gameSync.vendor.off": "Une altre aplicazion di iluminazion (come Razer Synapse) e ocupe la interface di zûc, duncje i zûcs a controlin chê invezit di Nexus.",
   "lighting.gameSync.vendor.on": "Nexus al ocupe la interface di zûc. Disative par tornâle indaûr. Torne a inviâ un zûc in vore dopo vê cambiât.",
   "lighting.gameSync.vendor.toggle": "Sfuarce la iluminazion dai zûcs viers Nexus",

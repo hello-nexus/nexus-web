@@ -763,12 +763,15 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     vendorOverride: boolean;
   }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false, vendorConflict: false, vendorOverride: false });
 
+  // A poll answered while the switch request is in flight would carry the
+  // pre-switch disk state and flip the toggle back for one interval.
+  const vendorOverrideBusyRef = useRef(false);
   useEffect(() => {
     if (effectiveMode !== 'gamesync' || !serviceOnline) return;
     let cancelled = false;
     const poll = async () => {
       const data = await fetchGameSyncState().catch(() => null);
-      if (cancelled || !data) return;
+      if (cancelled || !data || vendorOverrideBusyRef.current) return;
       const lastFrameAt = data.lastFrameAt ?? null;
       setGameSyncState({
         devices: data.devices ?? [],
@@ -785,19 +788,24 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   }, [effectiveMode, serviceOnline]);
 
   const [vendorOverrideBusy, setVendorOverrideBusy] = useState(false);
+  const [vendorOverrideFailed, setVendorOverrideFailed] = useState(false);
   const handleVendorOverride = useCallback(async (next: boolean) => {
+    vendorOverrideBusyRef.current = true;
     setVendorOverrideBusy(true);
+    setVendorOverrideFailed(false);
     try {
-      const data = await setGameSyncVendorOverride(next);
-      if (!data) return;
+      const data = await setGameSyncVendorOverride(next).catch(() => null);
+      if (!data) {
+        setVendorOverrideFailed(true);
+        return;
+      }
       setGameSyncState(prev => ({
         ...prev,
         vendorConflict: data.synapseConflict === true,
         vendorOverride: data.vendorOverride === true,
       }));
-    } catch {
-      // The 1.5 s poll re-reads the real on-disk state.
     } finally {
+      vendorOverrideBusyRef.current = false;
       setVendorOverrideBusy(false);
     }
   }, []);
@@ -2298,6 +2306,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   vendorConflict={gameSyncState.vendorConflict}
                   vendorOverride={gameSyncState.vendorOverride}
                   vendorOverrideBusy={vendorOverrideBusy}
+                  vendorOverrideFailed={vendorOverrideFailed}
                   onVendorOverride={handleVendorOverride}
                   games={gameSyncGames}
                 />
@@ -2531,12 +2540,13 @@ interface GameSyncActivityBlockProps {
   vendorConflict: boolean;
   vendorOverride: boolean;
   vendorOverrideBusy: boolean;
+  vendorOverrideFailed: boolean;
   onVendorOverride: (next: boolean) => void;
   games: GameSyncGame[];
 }
 
 function GameSyncActivityBlock({
-  isReceiving, activeApp, vendorConflict, vendorOverride, vendorOverrideBusy, onVendorOverride, games,
+  isReceiving, activeApp, vendorConflict, vendorOverride, vendorOverrideBusy, vendorOverrideFailed, onVendorOverride, games,
 }: GameSyncActivityBlockProps) {
   const { t } = useTranslation();
   const [imgFailed, setImgFailed] = useState(false);
@@ -2618,8 +2628,10 @@ function GameSyncActivityBlock({
             <span id={vendorLabelId} className={styles.gameSyncVendorTitle}>
               {t('lighting.gameSync.vendor.toggle')}
             </span>
-            <span className={`${styles.gameSyncActivityNote} ${vendorForced ? styles.gameSyncActivityNoteOk : ''}`}>
-              {t(vendorForced ? 'lighting.gameSync.vendor.on' : 'lighting.gameSync.vendor.off')}
+            <span className={`${styles.gameSyncActivityNote} ${vendorForced && !vendorOverrideFailed ? styles.gameSyncActivityNoteOk : ''}`}>
+              {t(vendorOverrideFailed
+                ? 'lighting.gameSync.vendor.failed'
+                : vendorForced ? 'lighting.gameSync.vendor.on' : 'lighting.gameSync.vendor.off')}
             </span>
           </div>
           <Toggle
