@@ -67,7 +67,7 @@ export function CoolingSection({ data, loading, error, onRefresh, heading }: Coo
                   {!ignored && device.sinceUtc && device.status !== 'ok' && (
                     <span>{t('diagnostics.cooling.since', { time: relativeTimeLabel(device.sinceUtc, now, t) })}</span>
                   )}
-                  <MonitorToggle compact monitored={!ignored} onChange={() => toggle(id)} />
+                  <MonitorToggle monitored={!ignored} onChange={() => toggle(id)} />
                 </span>
               </div>
             );

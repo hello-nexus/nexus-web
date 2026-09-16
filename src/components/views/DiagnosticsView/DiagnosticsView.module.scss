@@ -24,17 +24,6 @@
   @include scrollbar-visible;
 }
 
-.monitorToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.monitorLabel {
-  @include text-label;
-  color: var(--text-dim);
-}
-
 // ── Action bar ──
 
 .actionBarRow {
