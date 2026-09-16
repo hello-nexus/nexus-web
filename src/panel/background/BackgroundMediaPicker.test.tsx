@@ -235,13 +235,13 @@ describe('BackgroundMediaPicker slideshow', () => {
     renderPicker(SLIDESHOW_OFF);
     expect(screen.getByText('panel.settings.slideshow')).toBeInTheDocument();
     expect(screen.queryByText('slideshow.interval')).toBeNull();
-    expect(screen.queryByText('slideshow.order')).toBeNull();
+    expect(screen.queryByText('slideshow.shuffle')).toBeNull();
   });
 
   it('labels the interval options in the largest whole unit', () => {
     renderPicker({ ...SLIDESHOW_OFF, enabled: true });
     expect(screen.getByText('slideshow.interval')).toBeInTheDocument();
-    expect(screen.getByText('slideshow.order')).toBeInTheDocument();
+    expect(screen.getByText('slideshow.shuffle')).toBeInTheDocument();
     // The default (30 s) shows on the trigger; the rest are in the menu.
     const trigger = screen.getByRole('button', { name: 'slideshow.interval' });
     expect(trigger).toHaveTextContent('slideshow.seconds.other:count=30');

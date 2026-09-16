@@ -3,8 +3,7 @@ import { FolderInput, FolderOpen, Image as ImageIcon, Upload } from 'lucide-reac
 import { useTranslation } from '../../lib/i18n';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
-import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
-import { SettingRow, SettingSelect, SettingToggle } from '../../components/common/SettingRow/SettingRow';
+import { SettingSelect, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { EffectCard } from '../../components/common/EffectCard/EffectCard';
 import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
@@ -255,7 +254,6 @@ export function BackgroundMediaPicker({
     ? t('lighting.controls.importingCount', importProgress)
     : t('lighting.controls.importing');
 
-  const orderKey = slideshow?.shuffle ? 'shuffle' : 'sequential';
   const slideshowControls = slideshow && (
     <>
       <SettingToggle
@@ -276,19 +274,11 @@ export function BackgroundMediaPicker({
         />
       )}
       {slideshow.enabled && (
-        <SettingRow label={t('slideshow.order')}>
-          <ChipGroup
-            options={[
-              // eslint-disable-next-line i18next/no-literal-string -- order enum id
-              { key: 'sequential', label: t('slideshow.order.sequential') },
-              // eslint-disable-next-line i18next/no-literal-string -- order enum id
-              { key: 'shuffle', label: t('slideshow.order.shuffle') },
-            ]}
-            activeKey={orderKey}
-            onChange={key => onSlideshowChange?.({ shuffle: key === 'shuffle' })}
-            ariaLabel={t('slideshow.order')}
-          />
-        </SettingRow>
+        <SettingToggle
+          label={t('slideshow.shuffle')}
+          checked={slideshow.shuffle}
+          onChange={shuffle => onSlideshowChange?.({ shuffle })}
+        />
       )}
       {slideshow.enabled && (
         <SettingToggle

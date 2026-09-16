@@ -71,16 +71,10 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
             />
           )}
           {mode === 'slideshow' && (
-            <SettingsSelect
-              label={t('slideshow.order')}
-              value={shuffle ? 'shuffle' : 'sequential'}
-              options={[
-                // eslint-disable-next-line i18next/no-literal-string -- config enum value
-                { value: 'sequential', label: t('slideshow.order.sequential') },
-                // eslint-disable-next-line i18next/no-literal-string -- config enum value
-                { value: 'shuffle', label: t('slideshow.order.shuffle') },
-              ]}
-              onChange={v => onUpdate({ shuffle: v === 'shuffle' })}
+            <SettingsToggle
+              label={t('slideshow.shuffle')}
+              checked={shuffle}
+              onChange={v => onUpdate({ shuffle: v })}
             />
           )}
           {mode === 'slideshow' && mediaFilter !== 'images' && (
