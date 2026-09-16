@@ -43,6 +43,7 @@ import {
   type StreamDeckDevModel,
 } from '../../api/streamdeck';
 import { clearSimulatedNollie, getNollieBoards, getNollieDevModels, simulateNollie, NOLLIE_SIMULATED_SERIAL_PREFIX, type NollieDevModel } from '../../api/nollie';
+import { getDevPanelVariant, setDevPanelVariant } from '../../api/displays';
 import { DEV_TOOLS } from '../../lib/devTools';
 import styles from './ToolsView.module.scss';
 
@@ -305,6 +306,48 @@ export function NollieSimRow() {
           {/* eslint-disable-next-line i18next/no-literal-string -- dev-tools sim toggle, matches panel rows */}
           {connected ? 'Disconnect' : 'Connect'}
         </Button>
+      </div>
+    </div>
+  );
+}
+
+/** Overrides what `displays.panelVariant` reports to SDK apps; surface availability is unaffected. */
+export function PanelVariantRow() {
+  const { t } = useTranslation();
+  const [options, setOptions] = useState<string[]>([]);
+  const [variant, setVariant] = useState('');
+
+  const refresh = useCallback(() => {
+    void getDevPanelVariant().then(r => {
+      if (!r) return;
+      setOptions(r.options);
+      setVariant(r.variant);
+    });
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const onChange = (next: string) => {
+    setVariant(next);
+    void setDevPanelVariant(next).then(refresh);
+  };
+
+  return (
+    <div className={styles.simRow}>
+      <div className={styles.simMeta}>
+        <strong>{t('tools.panelVariant.title')}</strong>
+        <span>{t('tools.panelVariant.label')}</span>
+      </div>
+      <div className={styles.streamdeckSimControls}>
+        <Select
+          value={variant}
+          options={[
+            { value: '', label: t('tools.panelVariant.none') },
+            ...options.map(o => ({ value: o, label: o })),
+          ]}
+          onChange={onChange}
+          ariaLabel={t('tools.panelVariant.title')}
+        />
       </div>
     </div>
   );
@@ -614,6 +657,7 @@ function PanelSimulatorCard() {
         </div>
         {DEV_TOOLS && <StreamDeckSimRow />}
         {DEV_TOOLS && <NollieSimRow />}
+        {DEV_TOOLS && <PanelVariantRow />}
       </div>
     </Card>
   );

@@ -122,8 +122,7 @@ describe('appAvailableForSurface', () => {
 
   it('exposes every widget on the desktop dashboard (pointer + every multi-widget size)', () => {
     // Desktop has a mouse (pointer-capable) and accepts every multi-widget
-    // size. Per the canonical rule, availability is determined by touch +
-    // sizes only - no per-widget surface allowlist - so every widget in the
+    // size. Built-ins declare no `surfaces` allowlist, so every widget in the
     // registry should be reachable from the desktop add-widget picker.
     // The reach flags are the exceptions: remote-only widgets are hidden
     // because desktop is the host's own surface, panel-only widgets because
@@ -345,6 +344,28 @@ describe('marketplace listing derives from the preinstalled + page signal', () =
     ]);
     const byType = new Map(getCatalogEntries());
     expect(byType.get(typeForMarketplace('a.preinstalled.nopage'))?.meta.listed).toBe(false);
+  });
+
+  it('limits an app whose manifest names panel surfaces to those surfaces', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.ina', name: 'Ina', source: 'user', sizes: ['4x4'], surfaces: ['y70'] }),
+    ]);
+    const meta = lookupApp(typeForMarketplace('com.hellonexus.ina'))!.meta;
+    expect(meta.surfaces).toEqual(['y70']);
+    expect(appAvailableForSurface(meta, 'y70')).toBe(true);
+    expect(appAvailableForSurface(meta, 'desktop')).toBe(false);
+    expect(appAvailableForSurface(meta, 'phone')).toBe(false);
+    expect(appAvailableForSurface(meta, 'monitor', { deviceTouch: true })).toBe(false);
+  });
+
+  it('leaves an app on the legacy surfaces vocabulary open to every surface', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'a.legacy.app', name: 'Legacy', source: 'user', sizes: ['2x2'], surfaces: ['dashboard'] }),
+    ]);
+    const meta = lookupApp(typeForMarketplace('a.legacy.app'))!.meta;
+    expect(meta.surfaces).toBeUndefined();
+    expect(appAvailableForSurface(meta, 'desktop')).toBe(true);
+    expect(appAvailableForSurface(meta, 'y70')).toBe(true);
   });
 
   it('lists the OEM bake-in app on the machine it was bundled for', () => {
