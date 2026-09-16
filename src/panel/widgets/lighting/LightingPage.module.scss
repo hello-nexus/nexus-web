@@ -775,6 +775,12 @@
 // Takes the space the media grid would occupy so the notice centres in it.
 .mediaEmpty { flex: 1; min-height: 0; }
 .mediaError { color: var(--bad); font-size: var(--type-small); margin: 0; }
+// Drag-to-reorder. touch-action: none so a held touch drag is not handed to
+// the grid's own scroll (pan-y fires pointercancel and kills the drag).
+.mediaSortable { touch-action: none; }
+// The source card fades to mark the drop slot; the clone under the pointer lifts.
+.mediaCardDragging { opacity: 0.35; }
+.mediaDragOverlay { cursor: grabbing; border-radius: var(--radius); box-shadow: var(--shadow-md); }
 
 .mediaGrid {
   display: grid;

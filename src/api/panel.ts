@@ -55,6 +55,16 @@ export interface PanelDeviceRecord {
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
   backgroundMediaAlpha?: boolean | null;
+  // Cycle the whole background-media library; backgroundMediaId is then the
+  // slide the cycle starts from. Absent/null = single background.
+  backgroundMediaSlideshow?: boolean | null;
+  // Seconds per slide. Absent/null defaults to DEFAULT_PANEL_SLIDESHOW_INTERVAL.
+  backgroundMediaInterval?: number | null;
+  backgroundMediaShuffle?: boolean | null;
+  // Absent/null defaults to on (a video slide plays whole before the next).
+  backgroundMediaFinishVideos?: boolean | null;
+  // Grid + in-order slideshow order by asset id; unlisted ids follow, oldest first.
+  backgroundMediaOrder?: string[] | null;
   // Frost strength, percent 0-100. Absent/null defaults to
   // DEFAULT_PANEL_BACKGROUND_FROST (normalizePanelBackgroundFrost).
   backgroundFrostLevel?: number | null;
@@ -112,6 +122,12 @@ export interface PanelDevicePatch {
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
   backgroundMediaType?: 'static' | 'animated' | '' | null;
   backgroundMediaAlpha?: boolean | null;
+  backgroundMediaSlideshow?: boolean;
+  backgroundMediaInterval?: number;
+  backgroundMediaShuffle?: boolean;
+  backgroundMediaFinishVideos?: boolean;
+  // Full list (the client sends the whole order).
+  backgroundMediaOrder?: string[];
   backgroundFrostLevel?: number;
   widgetOpacity?: number;
   widgetLabels?: boolean;

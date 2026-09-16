@@ -36,6 +36,27 @@ describe('buildPanelTheme', () => {
     expect(buildPanelTheme(null, y70({ backdrop: 'desktop' })).backgroundOpacity).toBe(1);
   });
 
+  it('defaults the media slideshow off, 30 s, in order, videos played whole', () => {
+    const theme = buildPanelTheme(null, y70());
+    expect(theme.backgroundSlideshow).toBe(false);
+    expect(theme.backgroundSlideshowInterval).toBe(30);
+    expect(theme.backgroundSlideshowShuffle).toBe(false);
+    expect(theme.backgroundSlideshowFinishVideos).toBe(true);
+  });
+
+  it('reads the stored slideshow group and snaps an off-list interval to the nearest option', () => {
+    const theme = buildPanelTheme(null, y70({
+      backgroundMediaSlideshow: true,
+      backgroundMediaInterval: 700,
+      backgroundMediaShuffle: true,
+      backgroundMediaFinishVideos: false,
+    }));
+    expect(theme.backgroundSlideshow).toBe(true);
+    expect(theme.backgroundSlideshowInterval).toBe(900);
+    expect(theme.backgroundSlideshowShuffle).toBe(true);
+    expect(theme.backgroundSlideshowFinishVideos).toBe(false);
+  });
+
   it('takes the sync sources from preferences', () => {
     const prefs = { theme: { themeMode: 'dark', resolvedThemeMode: 'dark', accentColor: '#ff0000' } } as Preferences;
     const theme = buildPanelTheme(prefs, y70());

@@ -11,7 +11,7 @@ import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout,
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
-import { PanelThemeSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
+import { PanelThemeSettings, type PanelSlideshowSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
@@ -62,6 +62,8 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
   onThemeBackgroundMediaCommit,
+  onThemeBackgroundSlideshowCommit,
+  onThemeBackgroundMediaOrderCommit,
   onThemeBackgroundFrostPreview,
   onThemeBackgroundFrostCommit,
   showBackdropSelector = false,
@@ -128,6 +130,8 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
   onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
+  onThemeBackgroundSlideshowCommit: (patch: Partial<PanelSlideshowSettings>) => void;
+  onThemeBackgroundMediaOrderCommit: (ids: string[]) => void;
   onThemeBackgroundFrostPreview: (percent: number) => void;
   onThemeBackgroundFrostCommit: (percent: number) => void;
   // Backdrop selector; kiosk-hosted surfaces only.
@@ -408,6 +412,8 @@ export function PanelEditorSheet({
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
               onBackgroundMediaCommit={onThemeBackgroundMediaCommit}
+              onBackgroundSlideshowCommit={onThemeBackgroundSlideshowCommit}
+              onBackgroundMediaOrderCommit={onThemeBackgroundMediaOrderCommit}
               onBackgroundFrostPreview={onThemeBackgroundFrostPreview}
               onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
               showMediaTab={showMediaTab}

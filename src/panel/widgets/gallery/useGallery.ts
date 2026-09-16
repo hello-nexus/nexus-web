@@ -11,6 +11,9 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import type { PanelWidget } from '../../types';
 
+/** Seconds per slide when a widget instance has not chosen one. */
+export const DEFAULT_GALLERY_INTERVAL = 10;
+
 // Per-instance choice of what the widget draws from the shared library. The
 // library itself is one set for every surface; this only narrows the view.
 export type GalleryMediaFilter = 'both' | 'images' | 'videos';

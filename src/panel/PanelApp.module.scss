@@ -114,6 +114,18 @@
   opacity: var(--panel-background-opacity, 1);
 }
 
+// Slideshow: the current and incoming layers share one opacity here (each
+// layer at 1), so the crossfade never composites denser than a lone layer.
+.backgroundMediaStack {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .backgroundMediaContent {
   width: 100%;
   height: 100%;
@@ -1942,6 +1954,13 @@
 
 .panelRoot[data-simulator='true'] .cellWrap {
   cursor: pointer;
+}
+
+// A preview cell that is not the one being edited is one click target: its
+// widget's own controls (gallery arrows, deck keys, scroll lists) take no
+// pointer input until the widget is opened for editing.
+.cellWrap[data-edit-hint='true'] .cellScaler {
+  pointer-events: none;
 }
 
 // Post-add confirmation over a catalog card's preview (desktop catalog only).

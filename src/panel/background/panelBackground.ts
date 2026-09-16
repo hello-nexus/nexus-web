@@ -1,3 +1,4 @@
+import { normalizeSlideshowInterval } from '../slideshow/slideshow';
 import {
   EFFECTS,
   TEMPLATE_COUNT,
@@ -223,6 +224,16 @@ export function normalizePanelBackgroundFrost(value: number | null | undefined):
   if (typeof value !== 'number' || !Number.isFinite(value)) return DEFAULT_PANEL_BACKGROUND_FROST;
   const snapped = Math.round(value / PANEL_BACKGROUND_FROST_STEP) * PANEL_BACKGROUND_FROST_STEP;
   return Math.min(Math.max(snapped, 0), 100);
+}
+
+export const DEFAULT_PANEL_SLIDESHOW_INTERVAL = 30;
+
+export function normalizePanelSlideshowInterval(value: number | null | undefined): number {
+  return normalizeSlideshowInterval(value, DEFAULT_PANEL_SLIDESHOW_INTERVAL);
+}
+
+export function normalizePanelBackgroundMediaOrder(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
 }
 
 // Snapped for the same reason as the frost above.

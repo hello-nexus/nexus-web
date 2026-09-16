@@ -3,6 +3,7 @@ import { FolderInput, FolderOpen, Image as ImageIcon, Upload } from 'lucide-reac
 import { useTranslation } from '../../lib/i18n';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
+import { SettingSelect, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { EffectCard } from '../../components/common/EffectCard/EffectCard';
 import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
@@ -21,6 +22,9 @@ import {
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
 import type { MediaItem } from '../../api/mediaLibrary';
+import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../slideshow/slideshow';
+import { orderBackgroundMedia } from './slideshowOrder';
+import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
 import styles from '../widgets/lighting/LightingPage.module.scss';
 
 const BG_THUMB_ASPECT = 720 / 1280;
@@ -51,6 +55,10 @@ export function BackgroundMediaPicker({
   deviceW,
   deviceH,
   onSelect,
+  slideshow,
+  onSlideshowChange,
+  order = [],
+  onOrderChange,
 }: {
   deviceId: string;
   activeId: string | null;
@@ -58,8 +66,15 @@ export function BackgroundMediaPicker({
   deviceW: number;
   deviceH: number;
   onSelect: (mediaId: string | null, type: 'static' | 'animated' | null, alpha: boolean) => void;
+  /** Slideshow controls render above the import row when this is given. In
+   * slideshow mode the highlighted card is the slide the cycle starts from. */
+  slideshow?: PanelSlideshowSettings;
+  onSlideshowChange?: (patch: Partial<PanelSlideshowSettings>) => void;
+  /** Saved grid / play order (see orderBackgroundMedia). Cards drag to reorder when `onOrderChange` is given. */
+  order?: readonly string[];
+  onOrderChange?: (ids: string[]) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { items, thumbs, refresh, removeLocal } = useBackgroundMedia(deviceId);
   const [importing, setImporting] = useState(false);
   const [importingName, setImportingName] = useState<string | null>(null);
@@ -79,7 +94,7 @@ export function BackgroundMediaPicker({
     return () => { aliveRef.current = false; };
   }, []);
 
-  const adaptedItems: MediaItem[] = items.map(item => ({
+  const adaptedItems: MediaItem[] = orderBackgroundMedia(items, order).map(item => ({
     ...item,
     fps: item.type === 'animated' ? 30 : 1,
     frames: item.type === 'animated' ? Math.max(1, Math.round(item.durationSec * 30)) : 0,
@@ -140,6 +155,7 @@ export function BackgroundMediaPicker({
     }
     setImporting(true);
     let first: BackgroundMediaItem | null = null;
+    let imported = 0;
     let failed = 0;
     let error: string | null = null;
     for (let i = 0; i < files.length; i++) {
@@ -155,6 +171,7 @@ export function BackgroundMediaPicker({
         failed++;
         continue;
       }
+      imported++;
       if (!first) first = outcome;
     }
     if (!error && failed > 0) {
@@ -168,6 +185,8 @@ export function BackgroundMediaPicker({
       await refresh();
       if (!aliveRef.current) return;
       onSelect(first.id, first.type, !!first.alpha);
+      // A folder is imported to be cycled; a single background shows one file of it.
+      if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
     }
   };
 
@@ -235,6 +254,43 @@ export function BackgroundMediaPicker({
     ? t('lighting.controls.importingCount', importProgress)
     : t('lighting.controls.importing');
 
+  const slideshowControls = slideshow && (
+    <>
+      <SettingToggle
+        label={t('panel.settings.slideshow')}
+        description={t('panel.settings.slideshow.desc')}
+        checked={slideshow.enabled}
+        onChange={enabled => onSlideshowChange?.({ enabled })}
+      />
+      {slideshow.enabled && (
+        <SettingSelect
+          label={t('slideshow.interval')}
+          value={String(slideshow.interval)}
+          options={SLIDESHOW_INTERVALS.map(seconds => ({
+            value: String(seconds),
+            label: slideshowIntervalLabel(t, language, seconds),
+          }))}
+          onChange={value => onSlideshowChange?.({ interval: Number(value) })}
+        />
+      )}
+      {slideshow.enabled && (
+        <SettingToggle
+          label={t('slideshow.shuffle')}
+          checked={slideshow.shuffle}
+          onChange={shuffle => onSlideshowChange?.({ shuffle })}
+        />
+      )}
+      {slideshow.enabled && (
+        <SettingToggle
+          label={t('slideshow.finishVideos')}
+          description={t('slideshow.finishVideosHint')}
+          checked={slideshow.finishVideos}
+          onChange={finishVideos => onSlideshowChange?.({ finishVideos })}
+        />
+      )}
+    </>
+  );
+
   return (
     <>
       {cropState && (
@@ -248,6 +304,7 @@ export function BackgroundMediaPicker({
         />
       )}
       <div className={styles.mediaSection}>
+        {slideshowControls}
         <div className={styles.mediaHeader}>
           <Button
             type="button"
@@ -318,6 +375,7 @@ export function BackgroundMediaPicker({
           onDelete={requestDelete}
           deleteAriaLabel={t('lighting.controls.mediaDelete')}
           thumbAspect={BG_THUMB_ASPECT}
+          onReorder={onOrderChange}
           prepend={importingName ? (
             <EffectCard
               asDiv
