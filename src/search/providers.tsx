@@ -395,11 +395,11 @@ const lightingEffects: SearchSource = (ctx) => {
   const animation = ctx.t('lighting.mode.animate');
   const { speed, intensity, hue, colorize, saturation, contrast } = BASE_DEFAULTS;
   return EFFECTS.map((e) => {
-    const params = Object.fromEntries(e.params.map((p) => [p.name, p.defaultValue]));
     return act(`effect:${e.key}`, {
       title: ctx.t(e.labelKey), subtitle: animation, icon: <Sparkles size={18} />,
       keywords: ['animation', 'animate', 'animated', 'effect', e.key, categoryOf(e.key)],
-      run: () => { void startAnimate(e.key, speed, intensity, hue, colorize, saturation, contrast, params).catch(() => {}); },
+      // Empty params: the service fills every declared param's default from the shader.
+      run: () => { void startAnimate(e.key, speed, intensity, hue, colorize, saturation, contrast, {}).catch(() => {}); },
     });
   });
 };

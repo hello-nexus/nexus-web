@@ -5,23 +5,25 @@ import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRi
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import type { EffectColorSlot, EffectState } from '../../../../types/lighting';
+import type { ShaderParamSpec } from '../../../../lib/shaderParams';
 import styles from '../LightingPage.module.scss';
 
 // Layout enum, not display text; hoisted so the JSX carries no literal.
 const STACKED = 'stacked' as const;
 
 /** A slot is three float params, so colours ride the same dictionary the
- *  numeric params already use. */
-function read(slot: EffectColorSlot, params: Record<string, number>) {
+ *  numeric params already use; defaults come from the shader spec, falling
+ *  back to a saturated red before the spec has loaded. */
+function read(slot: EffectColorSlot, params: Record<string, number>, specs: Record<string, ShaderParamSpec>) {
   return {
-    h: params[`u_${slot.id}Hue`] ?? slot.defaultHue,
-    s: params[`u_${slot.id}Sat`] ?? slot.defaultSat,
-    v: params[`u_${slot.id}Val`] ?? slot.defaultVal,
+    h: params[`u_${slot.id}Hue`] ?? specs[`u_${slot.id}Hue`]?.defaultValue ?? 0,
+    s: params[`u_${slot.id}Sat`] ?? specs[`u_${slot.id}Sat`]?.defaultValue ?? 1,
+    v: params[`u_${slot.id}Val`] ?? specs[`u_${slot.id}Val`]?.defaultValue ?? 1,
   };
 }
 
-export function slotHex(slot: EffectColorSlot, params: Record<string, number>): string {
-  const { h, s, v } = read(slot, params);
+export function slotHex(slot: EffectColorSlot, params: Record<string, number>, specs: Record<string, ShaderParamSpec>): string {
+  const { h, s, v } = read(slot, params, specs);
   return hsvToHex(h * 360, s * 100, v * 100);
 }
 
@@ -30,9 +32,10 @@ export function slotHex(slot: EffectColorSlot, params: Record<string, number>): 
  * uses, plus saturation and brightness. With more than one colour a swatch row
  * selects which the wheel edits, so a four-colour effect still fits the pane.
  */
-export function StaticColorSlots({ slots, state, onChange, onCommit }: {
+export function StaticColorSlots({ slots, state, specs, onChange, onCommit }: {
   slots: EffectColorSlot[];
   state: EffectState;
+  specs: Record<string, ShaderParamSpec>;
   onChange: (patch: Partial<EffectState>, commit?: boolean) => void;
   onCommit: () => void;
 }) {
@@ -41,7 +44,7 @@ export function StaticColorSlots({ slots, state, onChange, onCommit }: {
   const active = slots.find(s => s.id === activeId) ?? slots[0];
   if (!active) return null;
 
-  const { h, s, v } = read(active, state.params);
+  const { h, s, v } = read(active, state.params, specs);
   const patch = (next: { h?: number; s?: number; v?: number }, commit: boolean) => {
     onChange({
       params: {
@@ -66,7 +69,7 @@ export function StaticColorSlots({ slots, state, onChange, onCommit }: {
                   <button
                     type="button"
                     className={`${styles.staticSwatch} ${selected ? styles.staticSwatchActive : ''}`}
-                    style={{ backgroundColor: slotHex(slot, state.params) }}
+                    style={{ backgroundColor: slotHex(slot, state.params, specs) }}
                     onClick={() => setActiveId(slot.id)}
                     aria-label={t(slot.labelKey)}
                     aria-pressed={selected}

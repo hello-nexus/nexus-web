@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ANIMATE_EFFECTS, DEFAULT_STATIC_EFFECT, EFFECTS, MODES, SIMPLE_EFFECT_KEYS, STATIC_EFFECTS,
-  STATIC_PATTERN_KEYS, categoryOf, defaultParamsFor, isStaticEffect, isStaticFill,
+  STATIC_PATTERN_KEYS, categoryOf, isStaticEffect, isStaticFill,
 } from './lighting';
 import { normalizeSync } from '../hooks/useLightingSync';
 import {
@@ -75,19 +75,6 @@ describe('normalizeSync', () => {
 });
 
 describe('static colour params', () => {
-  it('puts every colour slot in the effect default params', () => {
-    // Slots live outside `params`, so a colour missing here means the saved
-    // template slot ships without it and the shader renders an unset uniform.
-    for (const def of STATIC_EFFECTS) {
-      const params = defaultParamsFor(def.key);
-      for (const slot of def.colors ?? []) {
-        expect(params[`u_${slot.id}Hue`], `${def.key} ${slot.id} hue`).toBe(slot.defaultHue);
-        expect(params[`u_${slot.id}Sat`], `${def.key} ${slot.id} sat`).toBe(slot.defaultSat);
-        expect(params[`u_${slot.id}Val`], `${def.key} ${slot.id} val`).toBe(slot.defaultVal);
-      }
-    }
-  });
-
   it('gives every non-flat static effect at least one colour slot', () => {
     for (const def of STATIC_EFFECTS) {
       if (isStaticFill(def.key)) continue;

@@ -3,6 +3,7 @@
 import { fetchService, postService, deleteService, putService, authFetchWithStatus, resolveAuthWs } from './service';
 import { type DeviceGroup } from '../lib/deviceGroups';
 import { type DeviceStack } from '../lib/stackSlots';
+import { parseShaderParams, type ShaderParamSpec } from '../lib/shaderParams';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
@@ -28,7 +29,11 @@ export const effectThumbnailPath = (key: string, slot: number, version: string, 
 
 // --- Shader source (for client-side WebGL rendering) ---
 
-export interface ShaderSource { frag: string; }
+export type { ShaderParamSpec };
+
+/** `params` is parsed client-side from the frag's `hint_range` annotations
+ *  (see parseShaderParams) - the service never sends a separate params field. */
+export interface ShaderSource { frag: string; params: ShaderParamSpec[]; }
 
 const shaderCache = new Map<string, ShaderSource>();
 
@@ -39,14 +44,21 @@ const shaderCache = new Map<string, ShaderSource>();
  * network for that effect.
  */
 export function primeShaderSource(name: string, frag: string): void {
-  shaderCache.set(name, { frag });
+  shaderCache.set(name, { frag, params: parseShaderParams(frag) });
+}
+
+/** Synchronous cache read so a consumer can seed state without a load tick. */
+export function peekShaderSource(name: string): ShaderSource | undefined {
+  return shaderCache.get(name);
 }
 
 export async function fetchShaderSource(name: string): Promise<ShaderSource | null> {
   const cached = shaderCache.get(name);
   if (cached) return cached;
-  const src = await fetchService<ShaderSource>(`/lighting/shaders/${encodeURIComponent(name)}`);
-  if (src) shaderCache.set(name, src);
+  const res = await fetchService<{ frag: string }>(`/lighting/shaders/${encodeURIComponent(name)}`);
+  if (!res) return null;
+  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag) };
+  shaderCache.set(name, src);
   return src;
 }
 
