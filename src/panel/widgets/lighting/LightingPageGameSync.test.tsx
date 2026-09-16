@@ -122,8 +122,7 @@ describe('LightingPage in Game Sync mode', () => {
       expect(screen.getByText(VENDOR_OFF)).toBeInTheDocument();
     });
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
-    // The switch takes the guide link's room.
-    expect(screen.queryByText(GUIDE)).toBeNull();
+    expect(screen.getByText(GUIDE)).toBeInTheDocument();
   });
 
   it('flips to on from the service reply when the switch is used', async () => {

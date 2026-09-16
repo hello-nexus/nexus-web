@@ -2562,8 +2562,8 @@ function GameSyncActivityBlock({
 
   const showImage = headerSrc !== null && !imgFailed;
 
-  return (
-    <div className={styles.gameSyncActivity}>
+  const stage = (
+    <>
       {showImage ? (
         <img
           src={headerSrc}
@@ -2586,12 +2586,33 @@ function GameSyncActivityBlock({
               : t('lighting.gameSync.signal.receivingUnknown'))
           : t('lighting.gameSync.signal.idle')}
       </span>
-      {/* The service never overwrites a real vendor SDK (Razer Synapse's,
-          typically) on its own, so games on that interface never reach Nexus
-          and the frame sits on "Waiting for a game". The switch sets the
-          vendor DLL aside (on) or puts it back (off). It takes the guide
-          link's room, so the link yields while the switch is up. */}
-      {showVendorSwitch ? (
+    </>
+  );
+
+  // Anchored to the frame rather than the page: the guide explains what
+  // this frame is showing, so it belongs on it.
+  const guideLink = (
+    <a
+      className={styles.gameSyncGuideLink}
+      href={GAME_SYNC_GUIDE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <ExternalLink size={12} aria-hidden />
+      {t('lighting.gameSync.guideLink')}
+    </a>
+  );
+
+  // The service never overwrites a real vendor SDK (Razer Synapse's,
+  // typically) on its own, so games on that interface never reach Nexus and
+  // the frame sits on "Waiting for a game". The switch sets the vendor DLL
+  // aside (on) or puts it back (off). It stacks under the stage as its own
+  // row, so the frame grows instead of overlapping the label.
+  if (showVendorSwitch) {
+    return (
+      <div className={`${styles.gameSyncActivity} ${styles.gameSyncActivityStacked}`}>
+        <div className={styles.gameSyncActivityStage}>{stage}</div>
+        <div className={styles.gameSyncDivider} />
         <div className={styles.gameSyncVendorRow}>
           <div className={styles.gameSyncVendorText}>
             <span id={vendorLabelId} className={styles.gameSyncVendorTitle}>
@@ -2608,19 +2629,16 @@ function GameSyncActivityBlock({
             onChange={onVendorOverride}
           />
         </div>
-      ) : (
-        // Anchored to the frame rather than the page: the guide explains what
-        // this frame is showing, so it belongs on it.
-        <a
-          className={styles.gameSyncGuideLink}
-          href={GAME_SYNC_GUIDE_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <ExternalLink size={12} aria-hidden />
-          {t('lighting.gameSync.guideLink')}
-        </a>
-      )}
+        <div className={styles.gameSyncDivider} />
+        {guideLink}
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.gameSyncActivity}>
+      {stage}
+      {guideLink}
     </div>
   );
 }
