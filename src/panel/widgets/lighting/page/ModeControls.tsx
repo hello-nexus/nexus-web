@@ -160,7 +160,7 @@ function MediaControls() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importingName, setImportingName] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
-  const [cropState, setCropState] = useState<{ stageId: string; src: string; kind: 'video' | 'image'; name: string } | null>(null);
+  const [cropState, setCropState] = useState<{ stageId: string; src: string; kind: 'video' | 'image'; fallbackSrc: string; name: string } | null>(null);
   const [converting, setConverting] = useState(false);
   const [klipyOpen, setKlipyOpen] = useState(false);
   const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
@@ -287,6 +287,7 @@ function MediaControls() {
         <MediaCropper
           src={cropState.src}
           kind={cropState.kind}
+          fallbackSrc={cropState.fallbackSrc}
           aspect={LIGHTING_CROP_ASPECT}
           busy={converting}
           onConfirm={handleCropConfirm}

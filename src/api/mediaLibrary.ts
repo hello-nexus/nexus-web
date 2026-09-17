@@ -56,23 +56,26 @@ export async function openMediaFolder(): Promise<boolean> {
 /** How the cropper renders a staged source: the animated original, or the still preview. */
 export type StageMediaKind = 'video' | 'gif' | 'image';
 
-export interface StagePreview { src: string; kind: 'video' | 'image' }
+export interface StagePreview { src: string; kind: 'video' | 'image'; fallbackSrc: string }
 
 /**
  * A video plays in the cropper's <video>; a gif animates in its <img>; a still
  * (or an unknown kind, from a service that predates the field) uses the jpeg
- * preview the stage step extracted.
+ * preview the stage step extracted. The preview is always the fallback, for a
+ * codec the browser turns out not to decode.
  */
 export function stagePreviewFor(kind: string | null | undefined, rawUrl: string, previewUrl: string): StagePreview {
-  if (kind === 'video') return { src: rawUrl, kind: 'video' };
-  if (kind === 'gif') return { src: rawUrl, kind: 'image' };
-  return { src: previewUrl, kind: 'image' };
+  if (kind === 'video') return { src: rawUrl, kind: 'video', fallbackSrc: previewUrl };
+  if (kind === 'gif') return { src: rawUrl, kind: 'image', fallbackSrc: previewUrl };
+  return { src: previewUrl, kind: 'image', fallbackSrc: previewUrl };
 }
 
-export async function stageMedia(file: File): Promise<{ stageId: string; mediaKind?: StageMediaKind; error: boolean; msg: string } | null> {
+export interface MediaStageResult { stageId: string; mediaKind?: StageMediaKind; error: boolean; msg: string }
+
+export async function stageMedia(file: File): Promise<MediaStageResult | null> {
   const form = new FormData();
   form.append('file', file);
-  return postServiceForm<{ stageId: string; error: boolean; msg: string }>('/media/stage', form);
+  return postServiceForm<MediaStageResult>('/media/stage', form);
 }
 
 export function mediaStageRawUrl(stageId: string): string {

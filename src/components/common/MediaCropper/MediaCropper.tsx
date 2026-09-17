@@ -45,10 +45,12 @@ function orientedDims(w: number, h: number, rotate: number): { w: number; h: num
   return rotate === 90 || rotate === 270 ? { w: h, h: w } : { w, h };
 }
 
-export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, allowTransparency, allowFit, onConfirm, onCancel }: {
+export function MediaCropper({ src, kind = 'image', fallbackSrc, aspect, initialCrop, busy, allowTransparency, allowFit, onConfirm, onCancel }: {
   src: string;
   /** 'video' renders a <video> frame to crop against; 'image' (default) an <img>. */
   kind?: 'image' | 'video';
+  /** Still to crop against when `src` fails to decode (a codec the browser lacks). */
+  fallbackSrc?: string;
   aspect: number;
   initialCrop?: NormalizedCrop;
   busy?: boolean;
@@ -63,6 +65,13 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
   const mediaRef = useRef<MediaEl | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [intrinsic, setIntrinsic] = useState<{ w: number; h: number } | null>(null);
+  // A source the browser cannot decode never reports a size; without a
+  // fallback the cropper would sit with no rect and a confirm that crops blind.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const useFallback = failedSrc === src && !!fallbackSrc;
+  const shownSrc = useFallback ? fallbackSrc! : src;
+  const shownKind = useFallback ? 'image' : kind;
+  const onMediaError = useCallback(() => { setFailedSrc(src); }, [src]);
   const [wrapSize, setWrapSize] = useState<{ w: number; h: number } | null>(null);
   const [orient, setOrient] = useState<Orientation>({
     rotate: normalizeRotate(initialCrop?.rotate),
@@ -245,6 +254,18 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
 
   const setRef = (el: MediaEl | null) => { mediaRef.current = el; };
 
+  // The commit deletes the stage; a <video> still streaming it keeps the file
+  // open on Windows and the delete silently fails until the next sweep.
+  useEffect(() => {
+    if (!busy) return;
+    const el = mediaRef.current;
+    if (el instanceof HTMLVideoElement) {
+      el.pause();
+      el.removeAttribute('src');
+      el.load();
+    }
+  }, [busy]);
+
   const showChecker = !!allowTransparency && keepTransparency;
 
   const mediaStyle = layout
@@ -269,10 +290,10 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       >
-        {kind === 'video' ? (
+        {shownKind === 'video' ? (
           <video
             ref={setRef}
-            src={src}
+            src={shownSrc}
             className={styles.img}
             style={mediaStyle}
             muted
@@ -281,15 +302,17 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
             playsInline
             onLoadedMetadata={onMediaLoad}
             onLoadedData={onMediaLoad}
+            onError={onMediaError}
           />
         ) : (
           <img
             ref={setRef}
-            src={src}
+            src={shownSrc}
             alt=""
             className={`${styles.img} ${showChecker ? styles.checker : ''}`}
             style={mediaStyle}
             onLoad={onMediaLoad}
+            onError={useFallback ? undefined : onMediaError}
             draggable={false}
           />
         )}

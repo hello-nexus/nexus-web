@@ -69,3 +69,41 @@ describe('MediaCropper fit', () => {
     expect(onConfirm).toHaveBeenCalledWith(expect.anything(), true, false);
   });
 });
+
+describe('MediaCropper animated sources', () => {
+  it('falls back to the still when the video cannot be decoded', () => {
+    renderCropper({ kind: 'video', src: '/raw/clip.mp4', fallbackSrc: '/preview.jpg' });
+    const video = document.querySelector('video');
+    expect(video).not.toBeNull();
+
+    fireEvent.error(video!);
+
+    expect(document.querySelector('video')).toBeNull();
+    expect(document.querySelector('img')?.getAttribute('src')).toBe('/preview.jpg');
+  });
+
+  it('falls back to the still when a gif cannot be decoded, without looping on the fallback', () => {
+    renderCropper({ kind: 'image', src: '/raw/loop.gif', fallbackSrc: '/preview.jpg' });
+
+    fireEvent.error(document.querySelector('img')!);
+    expect(document.querySelector('img')?.getAttribute('src')).toBe('/preview.jpg');
+
+    // A failing fallback stays put rather than re-triggering itself.
+    fireEvent.error(document.querySelector('img')!);
+    expect(document.querySelector('img')?.getAttribute('src')).toBe('/preview.jpg');
+  });
+
+  it('unloads the video once the consumer starts committing', () => {
+    const { rerender } = render(
+      <MediaCropper src="/raw/clip.mp4" kind="video" aspect={16 / 9} onConfirm={() => {}} onCancel={() => {}} />,
+    );
+    const video = document.querySelector('video')!;
+    expect(video.getAttribute('src')).toBe('/raw/clip.mp4');
+
+    rerender(
+      <MediaCropper src="/raw/clip.mp4" kind="video" aspect={16 / 9} busy onConfirm={() => {}} onCancel={() => {}} />,
+    );
+
+    expect(video.hasAttribute('src')).toBe(false);
+  });
+});

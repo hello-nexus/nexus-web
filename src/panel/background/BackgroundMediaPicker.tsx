@@ -82,7 +82,7 @@ export function BackgroundMediaPicker({
   const [importProgress, setImportProgress] = useState<{ n: number; total: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
-  const [cropState, setCropState] = useState<{ stageId: string; src: string; kind: 'video' | 'image'; alpha: boolean } | null>(null);
+  const [cropState, setCropState] = useState<{ stageId: string; src: string; kind: 'video' | 'image'; fallbackSrc: string; alpha: boolean } | null>(null);
   const [klipyOpen, setKlipyOpen] = useState(false);
   const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
@@ -326,6 +326,7 @@ export function BackgroundMediaPicker({
         <MediaCropper
           src={cropState.src}
           kind={cropState.kind}
+          fallbackSrc={cropState.fallbackSrc}
           aspect={deviceAspect}
           busy={converting}
           allowTransparency={cropState.alpha}
