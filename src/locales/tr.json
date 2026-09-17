@@ -977,6 +977,8 @@
   "devices.tryx.screenSection": "Ekran",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "Boyut",
+  "devices.tryx.slideshow": "Slayt gösterisi",
+  "devices.tryx.slideshowHint": "Yüklediğiniz videolar arasında geçiş yapar",
   "devices.tryx.storageFree": "{percent} boş",
   "devices.tryx.tabDisplay": "Ekran",
   "devices.tryx.tabMedia": "Medya",

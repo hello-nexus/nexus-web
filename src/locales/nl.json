@@ -977,6 +977,8 @@
   "devices.tryx.screenSection": "Scherm",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "Grootte",
+  "devices.tryx.slideshow": "Diavoorstelling",
+  "devices.tryx.slideshowHint": "Doorloopt je geüploade video's",
   "devices.tryx.storageFree": "{percent} vrij",
   "devices.tryx.tabDisplay": "Weergave",
   "devices.tryx.tabMedia": "Media",

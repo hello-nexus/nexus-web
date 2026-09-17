@@ -977,6 +977,8 @@
   "devices.tryx.screenSection": "螢幕",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "大小",
+  "devices.tryx.slideshow": "幻燈片",
+  "devices.tryx.slideshowHint": "輪播您上傳的影片",
   "devices.tryx.storageFree": "剩餘 {percent}",
   "devices.tryx.tabDisplay": "顯示",
   "devices.tryx.tabMedia": "媒體",
