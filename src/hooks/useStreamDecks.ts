@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getStreamDecks, updateStreamDeck, type StreamDeckSummary } from '../api/streamdeck';
-import { isRemoteOrigin } from '../api/service';
+import { isLocalhostUnreachable } from '../api/service';
 import { useTopicCallback } from './useMultiplexSocket';
 
 /**
  * Detected + persisted physical Stream Decks. Desktop-only: the caller's
  * `enabled` flag must already be gated to the locally-served desktop
  * dashboard (see the surface check in DeckSettings/StreamDeckDevicePage) -
- * this hook additionally refuses to fetch on a remote/panel origin so a
+ * this hook additionally refuses to fetch on a phone/relay origin so a
  * misused call site still can't leak /streamdeck/* traffic off a paired
  * phone or kiosk session.
  */
 export function useStreamDecks(enabled: boolean) {
-  const active = enabled && !isRemoteOrigin;
+  const active = enabled && !isLocalhostUnreachable();
   const [decks, setDecks] = useState<StreamDeckSummary[]>([]);
   const [loaded, setLoaded] = useState(false);
   const mountedRef = useRef(true);

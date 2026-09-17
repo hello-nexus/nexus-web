@@ -5,9 +5,9 @@ import { getStreamDecks } from '../api/streamdeck';
 
 // Defense in depth: even if a caller mis-gates and passes enabled=true, a
 // remote-origin session (paired phone / panel kiosk) must never fetch
-// /streamdeck/* - see the isRemoteOrigin AND check in useStreamDecks.
+// /streamdeck/* - see the isLocalhostUnreachable check in useStreamDecks.
 vi.mock('../api/streamdeck', () => ({ getStreamDecks: vi.fn() }));
-vi.mock('../api/service', () => ({ isRemoteOrigin: true }));
+vi.mock('../api/service', () => ({ isLocalhostUnreachable: () => true }));
 vi.mock('./useMultiplexSocket', () => ({ useTopicCallback: () => {} }));
 
 const mockGetDecks = vi.mocked(getStreamDecks);
