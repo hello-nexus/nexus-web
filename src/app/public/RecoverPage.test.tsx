@@ -20,16 +20,17 @@ import { RecoverPage } from './RecoverPage';
 
 beforeEach(() => {
   completeRecoveryMock.mockReset();
+  // The field submits itself, so every test that fills it makes a call -
+  // including the ones only asserting what the field holds.
+  completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'invalid' });
 });
 
 afterEach(() => {
   vi.clearAllMocks();
 });
 
-const submitCode = (value: string) => {
-  fireEvent.input(screen.getByLabelText('auth.recover.code.label'), { target: { value } });
-  fireEvent.click(screen.getByText('auth.recover.code.submit'));
-};
+const field = () => screen.getByLabelText('auth.recover.code.label') as HTMLInputElement;
+const type = (value: string) => fireEvent.input(field(), { target: { value } });
 
 describe('RecoverPage', () => {
   it('shows the invalid state immediately when no token is present, without calling the API', () => {
@@ -39,68 +40,64 @@ describe('RecoverPage', () => {
     expect(completeRecoveryMock).not.toHaveBeenCalled();
   });
 
-  it('opens on the code form and completes nothing on its own', () => {
+  it('opens on the code field and posts nothing on its own', () => {
     render(<RecoverPage token="tok" />);
 
     expect(screen.getByText('auth.recover.code.title')).toBeInTheDocument();
     expect(completeRecoveryMock).not.toHaveBeenCalled();
   });
 
-  it('signs in with the code and shows the returned username', async () => {
+  it('keeps only the characters a code is made of, and submits on the last one', async () => {
     completeRecoveryMock.mockResolvedValue({ ok: true, username: 'Nova' });
     render(<RecoverPage token="tok" />);
 
-    submitCode('ABC-DEF');
+    type('abc');
+    expect(field().value).toBe('ABC');
+    expect(completeRecoveryMock).not.toHaveBeenCalled();
 
+    // The dash the other device shows, and anything else pasted with it, is
+    // dropped rather than refused.
+    type('abc-de f!x');
+    await waitFor(() => expect(completeRecoveryMock).toHaveBeenCalledWith('tok', 'ABCDEF'));
     await waitFor(() => expect(screen.getByText('auth.recover.success.title')).toBeInTheDocument());
-    expect(screen.getByText('auth.recover.success.body username=Nova')).toBeInTheDocument();
-    // The dash is presentation; the api gets the code as minted.
-    expect(completeRecoveryMock).toHaveBeenLastCalledWith('tok', 'ABCDEF');
   });
 
-  it('groups the code as it is shown on the other device, and holds submit until it is whole', () => {
+  it('never holds more than a whole code', () => {
     render(<RecoverPage token="tok" />);
-    const field = screen.getByLabelText('auth.recover.code.label') as HTMLInputElement;
-
-    fireEvent.input(field, { target: { value: 'abc' } });
-    expect(field.value).toBe('ABC');
-    expect(screen.getByText('auth.recover.code.submit').closest('button')).toBeDisabled();
-
-    fireEvent.input(field, { target: { value: 'abcd' } });
-    expect(field.value).toBe('ABC-D');
-
-    fireEvent.input(field, { target: { value: 'abc-def!!extra' } });
-    expect(field.value).toBe('ABC-DEF');
-    expect(screen.getByText('auth.recover.code.submit').closest('button')).not.toBeDisabled();
+    type('abcdefghij');
+    expect(field().value).toBe('ABCDEF');
   });
 
-  it('keeps the form up and reports the remaining attempts on a wrong code', async () => {
+  it('clears the field and reports the remaining attempts on a wrong code', async () => {
     completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'code-mismatch', attemptsLeft: 3 });
     render(<RecoverPage token="tok" />);
 
-    submitCode('WRONGX');
+    type('zzzzzz');
 
     await waitFor(() => expect(screen.getByText('auth.recover.code.wrong count=3')).toBeInTheDocument());
+    expect(field().value).toBe('');
     expect(screen.getByText('auth.recover.code.title')).toBeInTheDocument();
+  });
+
+  it('offers a way back to the field when the link is refused', async () => {
+    completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'invalid' });
+    render(<RecoverPage token="tok" />);
+
+    type('abcdef');
+    await waitFor(() => expect(screen.getByText('auth.recover.invalid.title')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('account.recovery.tryAgain'));
+    expect(screen.getByText('auth.recover.code.title')).toBeInTheDocument();
+    expect(field().value).toBe('');
   });
 
   it('shows the exhausted card once the guesses are spent', async () => {
     completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'code-exhausted' });
     render(<RecoverPage token="tok" />);
 
-    submitCode('WRONGX');
-
+    type('abcdef');
     await waitFor(() =>
       expect(screen.getByText('auth.recover.code.exhaustedTitle')).toBeInTheDocument(),
     );
-  });
-
-  it('shows the invalid card for a dead link', async () => {
-    completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'invalid' });
-    render(<RecoverPage token="tok" />);
-
-    submitCode('ABCDEF');
-
-    await waitFor(() => expect(screen.getByText('auth.recover.invalid.title')).toBeInTheDocument());
   });
 });
