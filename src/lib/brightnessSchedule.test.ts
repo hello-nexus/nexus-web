@@ -4,13 +4,13 @@ import { minuteOfDay, scheduledBrightness } from './brightnessSchedule';
 // Vectors shared with nexus-service's MasterBrightnessTests: both sides
 // evaluate the same rule, so the slider's readout and the LEDs never
 // disagree on the level.
-const DEFAULTS = [5, 8, 17, 20, 22].map((hour, i) => ({ hour, brightness: [10, 100, 100, 30, 10][i] }));
+const DEFAULTS = [5, 7, 10, 17, 20, 22].map((hour, i) => ({ hour, brightness: [10, 30, 100, 100, 30, 10][i] }));
 
 describe('scheduledBrightness', () => {
   const at = (h: number, m = 0) => h * 60 + m;
 
   it.each([
-    [3, 0, 10], [6, 0, 40], [7, 0, 70], [12, 0, 100], [18, 0, 76.6667],
+    [3, 0, 10], [6, 0, 20], [8, 0, 53.3333], [9, 0, 76.6667], [12, 0, 100], [18, 0, 76.6667],
     [19, 0, 53.3333], [21, 0, 20], [21, 30, 15], [23, 0, 10], [23, 30, 10],
   ])('follows the default points like the service does (%i:%i)', (h, m, percent) => {
     expect(scheduledBrightness(DEFAULTS, at(h, m))).toBeCloseTo(percent, 4);
