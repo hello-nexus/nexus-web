@@ -977,6 +977,8 @@
   "devices.tryx.screenSection": "画面",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "サイズ",
+  "devices.tryx.slideshow": "スライドショー",
+  "devices.tryx.slideshowHint": "アップロードした動画を順に切り替えます",
   "devices.tryx.storageFree": "空き {percent}",
   "devices.tryx.tabDisplay": "ディスプレイ",
   "devices.tryx.tabMedia": "メディア",

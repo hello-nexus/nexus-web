@@ -49,6 +49,7 @@ const mockGetTryxCloudCatalog = vi.fn();
 const mockSetTryxEnabled = vi.fn();
 const mockSetTryxBrightness = vi.fn();
 const mockSetTryxOverlay = vi.fn();
+const mockSetTryxSlideshow = vi.fn();
 
 vi.mock('../../../api/tryx', () => ({
   getTryxStatus: (...args: any[]) => mockGetTryxStatus(...args),
@@ -62,7 +63,9 @@ vi.mock('../../../api/tryx', () => ({
   selectTryxMedia: vi.fn(),
   deleteTryxMedia: vi.fn(),
   setTryxOverlay: (...args: any[]) => mockSetTryxOverlay(...args),
+  setTryxSlideshow: (...args: any[]) => mockSetTryxSlideshow(...args),
   uploadTryxMedia: vi.fn(),
+  DEFAULT_TRYX_SLIDESHOW: { enabled: false, intervalSec: 10, shuffle: false, finishVideos: true },
   TRYX_MEDIA_WIDTH: 858,
   TRYX_MEDIA_HEIGHT: 428,
 }));
@@ -102,6 +105,7 @@ beforeEach(() => {
   mockSetTryxEnabled.mockResolvedValue(true);
   mockSetTryxBrightness.mockResolvedValue(true);
   mockSetTryxOverlay.mockResolvedValue(true);
+  mockSetTryxSlideshow.mockResolvedValue(true);
 });
 
 afterEach(() => {
@@ -373,5 +377,62 @@ describe('TryxDevicePage - media tab storage indicator', () => {
     });
     await openMediaTab();
     expect(screen.getByText('devices.tryx.storageFree:{"percent":"97.7%"}')).toBeInTheDocument();
+  });
+});
+
+describe('TryxDevicePage - custom media slideshow', () => {
+  async function openMediaTab() {
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
+  }
+
+  it('shows only the enable toggle, off, on a status that predates the slideshow', async () => {
+    await openMediaTab();
+    const toggle = screen.getByRole('switch', { name: 'devices.tryx.slideshow' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(screen.queryByText('slideshow.interval')).not.toBeInTheDocument();
+    expect(screen.queryByText('slideshow.shuffle')).not.toBeInTheDocument();
+  });
+
+  it('reveals interval, shuffle and finish-videos from the reported settings once enabled', async () => {
+    mockGetTryxStatus.mockResolvedValue({
+      ...defaultStatus,
+      slideshow: { enabled: true, intervalSec: 60, shuffle: true, finishVideos: false },
+    });
+    await openMediaTab();
+    expect(screen.getByRole('switch', { name: 'devices.tryx.slideshow' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('button', { name: 'slideshow.interval' })).toHaveTextContent('slideshow.minutes.one:{"count":1}');
+    expect(screen.getByRole('switch', { name: 'slideshow.shuffle' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: 'slideshow.finishVideos' })).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('enabling posts the full settings block with the defaults and reveals the controls optimistically', async () => {
+    await openMediaTab();
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.tryx.slideshow' }));
+
+    expect(mockSetTryxSlideshow).toHaveBeenCalledWith({ enabled: true, intervalSec: 10, shuffle: false, finishVideos: true });
+    expect(screen.getByRole('button', { name: 'slideshow.interval' })).toHaveTextContent('slideshow.seconds.other:{"count":10}');
+  });
+
+  it('an interval pick posts the merged block, keeping the other fields', async () => {
+    mockGetTryxStatus.mockResolvedValue({
+      ...defaultStatus,
+      slideshow: { enabled: true, intervalSec: 10, shuffle: true, finishVideos: true },
+    });
+    await openMediaTab();
+    fireEvent.click(screen.getByRole('button', { name: 'slideshow.interval' }));
+    fireEvent.click(screen.getByRole('option', { name: 'slideshow.minutes.other:{"count":5}' }));
+
+    expect(mockSetTryxSlideshow).toHaveBeenCalledWith({ enabled: true, intervalSec: 300, shuffle: true, finishVideos: true });
+  });
+
+  it('rolls the optimistic edit back when the service rejects it', async () => {
+    mockSetTryxSlideshow.mockResolvedValue(false);
+    await openMediaTab();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.tryx.slideshow' }));
+    });
+
+    expect(screen.getByRole('switch', { name: 'devices.tryx.slideshow' })).toHaveAttribute('aria-checked', 'false');
   });
 });

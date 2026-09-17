@@ -984,6 +984,8 @@
   "devices.tryx.screenSection": "Ekran",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "Rozmiar",
+  "devices.tryx.slideshow": "Pokaz slajdów",
+  "devices.tryx.slideshowHint": "Przełącza kolejno przesłane przez Ciebie wideo",
   "devices.tryx.storageFree": "{percent} wolne",
   "devices.tryx.tabDisplay": "Ekran",
   "devices.tryx.tabMedia": "Multimedia",

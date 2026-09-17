@@ -977,6 +977,8 @@
   "devices.tryx.screenSection": "Tela",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "Tamanho",
+  "devices.tryx.slideshow": "Apresentação de slides",
+  "devices.tryx.slideshowHint": "Alterna entre os vídeos que você enviou",
   "devices.tryx.storageFree": "{percent} livre",
   "devices.tryx.tabDisplay": "Tela",
   "devices.tryx.tabMedia": "Mídia",

@@ -977,6 +977,8 @@
   "devices.tryx.screenSection": "화면",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "크기",
+  "devices.tryx.slideshow": "슬라이드쇼",
+  "devices.tryx.slideshowHint": "업로드한 동영상을 차례로 전환합니다",
   "devices.tryx.storageFree": "여유 {percent}",
   "devices.tryx.tabDisplay": "디스플레이",
   "devices.tryx.tabMedia": "미디어",

@@ -977,6 +977,8 @@
   "devices.tryx.screenSection": "Ecrã",
   "devices.tryx.simulatedName": "Tryx Panorama",
   "devices.tryx.size": "Tamanho",
+  "devices.tryx.slideshow": "Apresentação",
+  "devices.tryx.slideshowHint": "Percorre os vídeos que carregou",
   "devices.tryx.storageFree": "{percent} livre",
   "devices.tryx.tabDisplay": "Ecrã",
   "devices.tryx.tabMedia": "Multimédia",
