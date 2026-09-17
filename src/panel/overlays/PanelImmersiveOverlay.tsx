@@ -152,9 +152,8 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
 
   // [data-entered] pattern: once the entry plays (or a swipe starts), suppress
   // the keyframe so removing [data-drag] on snap-back doesn't replay the enter
-  // animation. Hooks must run before the conditional return below.
-  // [data-entered] both suppresses the keyframe replay on snap-back and, seeded
-  // true, suppresses the enter itself.
+  // animation. Seeded true, the same attribute suppresses the enter itself.
+  // Hooks must run before the conditional return below.
   const [didEnter, setDidEnter] = useState(instant);
   useEffect(() => {
     // Latch didEnter when a swipe starts so [data-entered] suppresses the
