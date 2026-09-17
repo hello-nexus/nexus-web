@@ -151,7 +151,7 @@ export function BackgroundMediaPicker({
     setCropState({
       stageId: staged.stageId,
       src: backgroundMediaStagePreviewUrl(deviceId, staged.stageId),
-      alpha: staged.alpha,
+      alpha: !!staged.alpha,
     });
   };
 
@@ -189,7 +189,7 @@ export function BackgroundMediaPicker({
     setCropState({
       stageId: staged.stageId,
       src: backgroundMediaStagePreviewUrl(deviceId, staged.stageId),
-      alpha: staged.alpha,
+      alpha: !!staged.alpha,
     });
   };
 

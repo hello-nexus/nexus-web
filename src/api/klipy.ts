@@ -1,4 +1,4 @@
-import { fetchService, postService, resolveHttp, tokenParam } from './service';
+import { authFetchWithStatus, fetchService, resolveHttp, tokenParam } from './service';
 
 export interface KlipyGif {
   slug: string;
@@ -28,14 +28,24 @@ export function klipyThumbUrl(slug: string): string {
   return tok ? `${base}?${tok}` : base;
 }
 
-/** Stages the pick for the lighting cropper; commitMedia finishes it like an upload. */
-export async function stageKlipy(slug: string) {
-  return postService<{ stageId: string | null; error?: boolean; msg?: string }>(
-    '/media/klipy/stage', { slug });
+interface StageReply { stageId: string | null; alpha?: boolean; error?: boolean; msg?: string }
+
+// A refused pick answers 4xx with the reason in the body; null is only a
+// transport failure, so the picker can tell "the service is down" from
+// "Klipy refused this one".
+async function postStage(path: string, slug: string): Promise<StageReply | null> {
+  const { response, status } = await authFetchWithStatus(path, { method: 'POST', body: { slug } });
+  if (!response || status === 0) return null;
+  try {
+    return await response.json() as StageReply;
+  } catch {
+    return { stageId: null, error: true, msg: `HTTP ${status}` };
+  }
 }
 
+/** Stages the pick for the lighting cropper; commitMedia finishes it like an upload. */
+export const stageKlipy = (slug: string) => postStage('/media/klipy/stage', slug);
+
 /** Stages the pick for one device's cropper; commitBackgroundMedia finishes it like an upload. */
-export async function stageKlipyBackground(deviceId: string, slug: string) {
-  return postService<{ stageId: string | null; alpha: boolean; error?: boolean; msg?: string }>(
-    `/panel/devices/${encodeURIComponent(deviceId)}/background-media/klipy/stage`, { slug });
-}
+export const stageKlipyBackground = (deviceId: string, slug: string) =>
+  postStage(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/klipy/stage`, slug);
