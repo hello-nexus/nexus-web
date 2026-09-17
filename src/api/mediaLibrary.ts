@@ -53,10 +53,32 @@ export async function openMediaFolder(): Promise<boolean> {
   return !!resp && resp.error !== true;
 }
 
-export async function stageMedia(file: File): Promise<{ stageId: string; error: boolean; msg: string } | null> {
+/** How the cropper renders a staged source: the animated original, or the still preview. */
+export type StageMediaKind = 'video' | 'gif' | 'image';
+
+export interface StagePreview { src: string; kind: 'video' | 'image' }
+
+/**
+ * A video plays in the cropper's <video>; a gif animates in its <img>; a still
+ * (or an unknown kind, from a service that predates the field) uses the jpeg
+ * preview the stage step extracted.
+ */
+export function stagePreviewFor(kind: string | null | undefined, rawUrl: string, previewUrl: string): StagePreview {
+  if (kind === 'video') return { src: rawUrl, kind: 'video' };
+  if (kind === 'gif') return { src: rawUrl, kind: 'image' };
+  return { src: previewUrl, kind: 'image' };
+}
+
+export async function stageMedia(file: File): Promise<{ stageId: string; mediaKind?: StageMediaKind; error: boolean; msg: string } | null> {
   const form = new FormData();
   form.append('file', file);
   return postServiceForm<{ stageId: string; error: boolean; msg: string }>('/media/stage', form);
+}
+
+export function mediaStageRawUrl(stageId: string): string {
+  const base = resolveHttp(`/media/stage/${encodeURIComponent(stageId)}/raw`);
+  const tok = tokenParam();
+  return tok ? `${base}?${tok}` : base;
 }
 
 export function mediaStagePreviewUrl(stageId: string): string {

@@ -1,3 +1,4 @@
+import type { StageMediaKind } from './mediaLibrary';
 import { deleteService, fetchService, postService, postServiceFormResult, resolveHttp, type ServiceRefusal, tokenParam } from './service';
 
 export interface BackgroundMediaItem {
@@ -16,7 +17,7 @@ export interface BackgroundMediaItem {
 export const fetchBackgroundMediaLibrary = (deviceId: string) =>
   fetchService<{ items: BackgroundMediaItem[] }>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/library`);
 
-export interface BackgroundMediaStageResult { stageId: string; alpha: boolean; error: boolean; msg: string }
+export interface BackgroundMediaStageResult { stageId: string; alpha: boolean; mediaKind?: StageMediaKind; error: boolean; msg: string }
 
 // Stage and commit answer a refusal (oversize, unsupported, unreadable) with
 // its message and null only when the service is unreachable, so a folder
@@ -27,6 +28,12 @@ export async function stageBackgroundMedia(deviceId: string, file: File): Promis
   // ("photos/sub/a.jpg"); the bare name keeps the wire identical to a single pick.
   form.append('file', file, file.name);
   return postServiceFormResult<BackgroundMediaStageResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage`, form);
+}
+
+export function backgroundMediaStageRawUrl(deviceId: string, stageId: string): string {
+  const base = resolveHttp(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage/${encodeURIComponent(stageId)}/raw`);
+  const tok = tokenParam();
+  return tok ? `${base}?${tok}` : base;
 }
 
 export function backgroundMediaStagePreviewUrl(deviceId: string, stageId: string): string {

@@ -15,6 +15,7 @@ import { useBackgroundMedia } from './useBackgroundMedia';
 import {
   type BackgroundMediaItem,
   backgroundMediaStagePreviewUrl,
+  backgroundMediaStageRawUrl,
   cancelBackgroundMediaStage,
   commitBackgroundMedia,
   deleteBackgroundMedia,
@@ -22,7 +23,7 @@ import {
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
 import { stageKlipyBackground, type KlipyGif } from '../../api/klipy';
-import type { MediaItem } from '../../api/mediaLibrary';
+import { stagePreviewFor, type MediaItem } from '../../api/mediaLibrary';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../slideshow/slideshow';
 import { orderBackgroundMedia } from './slideshowOrder';
 import type { PanelSlideshowSettings } from '../editor/PanelThemeSettings';
@@ -81,7 +82,7 @@ export function BackgroundMediaPicker({
   const [importProgress, setImportProgress] = useState<{ n: number; total: number } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
-  const [cropState, setCropState] = useState<{ stageId: string; src: string; alpha: boolean } | null>(null);
+  const [cropState, setCropState] = useState<{ stageId: string; src: string; kind: 'video' | 'image'; alpha: boolean } | null>(null);
   const [klipyOpen, setKlipyOpen] = useState(false);
   const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
@@ -155,7 +156,10 @@ export function BackgroundMediaPicker({
     setImportingName(null);
     setCropState({
       stageId: staged.stageId,
-      src: backgroundMediaStagePreviewUrl(deviceId, staged.stageId),
+      ...stagePreviewFor(
+        staged.mediaKind,
+        backgroundMediaStageRawUrl(deviceId, staged.stageId),
+        backgroundMediaStagePreviewUrl(deviceId, staged.stageId)),
       alpha: !!staged.alpha,
     });
   };
@@ -195,7 +199,10 @@ export function BackgroundMediaPicker({
     batchRef.current = { total: 1, imported: 0, failed: 0, first: null };
     setCropState({
       stageId: staged.stageId,
-      src: backgroundMediaStagePreviewUrl(deviceId, staged.stageId),
+      ...stagePreviewFor(
+        staged.mediaKind,
+        backgroundMediaStageRawUrl(deviceId, staged.stageId),
+        backgroundMediaStagePreviewUrl(deviceId, staged.stageId)),
       alpha: !!staged.alpha,
     });
   };
@@ -318,6 +325,7 @@ export function BackgroundMediaPicker({
       {cropState && (
         <MediaCropper
           src={cropState.src}
+          kind={cropState.kind}
           aspect={deviceAspect}
           busy={converting}
           allowTransparency={cropState.alpha}

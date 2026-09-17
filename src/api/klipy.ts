@@ -1,4 +1,5 @@
 import { authFetchWithStatus, fetchService, resolveHttp, tokenParam } from './service';
+import type { StageMediaKind } from './mediaLibrary';
 
 export interface KlipyGif {
   slug: string;
@@ -28,7 +29,7 @@ export function klipyThumbUrl(slug: string): string {
   return tok ? `${base}?${tok}` : base;
 }
 
-interface StageReply { stageId: string | null; alpha?: boolean; error?: boolean; msg?: string }
+interface StageReply { stageId: string | null; alpha?: boolean; mediaKind?: StageMediaKind; error?: boolean; msg?: string }
 
 // A refused pick answers 4xx with the reason in the body; null is only a
 // transport failure, so the picker can tell "the service is down" from

@@ -10,6 +10,8 @@ import {
   deleteMedia,
   mediaIdle,
   mediaStagePreviewUrl,
+  mediaStageRawUrl,
+  stagePreviewFor,
   openMediaFolder,
   stageMedia,
 } from '../../../../api/mediaLibrary';
@@ -158,7 +160,7 @@ function MediaControls() {
   const [importError, setImportError] = useState<string | null>(null);
   const [importingName, setImportingName] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
-  const [cropState, setCropState] = useState<{ stageId: string; src: string; name: string } | null>(null);
+  const [cropState, setCropState] = useState<{ stageId: string; src: string; kind: 'video' | 'image'; name: string } | null>(null);
   const [converting, setConverting] = useState(false);
   const [klipyOpen, setKlipyOpen] = useState(false);
   const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
@@ -180,7 +182,11 @@ function MediaControls() {
     }
     setImporting(false);
     setImportingName(null);
-    setCropState({ stageId: result.stageId, src: mediaStagePreviewUrl(result.stageId), name: file.name });
+    setCropState({
+      stageId: result.stageId,
+      ...stagePreviewFor(result.mediaKind, mediaStageRawUrl(result.stageId), mediaStagePreviewUrl(result.stageId)),
+      name: file.name,
+    });
   };
 
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
@@ -233,7 +239,11 @@ function MediaControls() {
       return;
     }
     setKlipyOpen(false);
-    setCropState({ stageId: staged.stageId, src: mediaStagePreviewUrl(staged.stageId), name: `${gif.slug}.gif` });
+    setCropState({
+      stageId: staged.stageId,
+      ...stagePreviewFor(staged.mediaKind, mediaStageRawUrl(staged.stageId), mediaStagePreviewUrl(staged.stageId)),
+      name: `${gif.slug}.gif`,
+    });
   }, [t]);
 
   const handleOpenFolder = async () => {
@@ -276,6 +286,7 @@ function MediaControls() {
       {cropState && (
         <MediaCropper
           src={cropState.src}
+          kind={cropState.kind}
           aspect={LIGHTING_CROP_ASPECT}
           busy={converting}
           onConfirm={handleCropConfirm}

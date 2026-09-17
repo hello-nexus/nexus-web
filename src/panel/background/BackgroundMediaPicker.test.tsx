@@ -21,9 +21,10 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
   stageBackgroundMedia: vi.fn(async (_deviceId: string, file: File) => {
     if (api.gate) await api.gate;
     if (api.unreachable.has(file.name)) return null;
-    return api.rejected.has(file.name)
-      ? { error: true, msg: 'Unsupported file format' }
-      : { stageId: `stage-${file.name}`, error: false, msg: '' };
+    if (api.rejected.has(file.name)) return { error: true, msg: 'Unsupported file format' };
+    const ext = file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase();
+    const mediaKind = ext === 'mp4' || ext === 'webm' ? 'video' : ext === 'gif' ? 'gif' : 'image';
+    return { stageId: `stage-${file.name}`, mediaKind, error: false, msg: '' };
   }),
   commitBackgroundMedia: vi.fn((_deviceId: string, stageId: string) => Promise.resolve({
     item: { id: `item-${stageId}`, name: stageId, sourceExt: '.jpg', type: 'static', width: 720, height: 1280, importedAtUnixMs: 1, durationSec: 0, alpha: false },
@@ -34,6 +35,7 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
   deleteBackgroundMedia: vi.fn(() => Promise.resolve(true)),
   openBackgroundMediaFolder: vi.fn(() => Promise.resolve(true)),
   backgroundMediaStagePreviewUrl: vi.fn((_deviceId: string, stageId: string) => `/preview/${stageId}`),
+  backgroundMediaStageRawUrl: vi.fn((_deviceId: string, stageId: string) => `/raw/${stageId}`),
   backgroundMediaThumbnailPath: vi.fn((_deviceId: string, id: string) => `/thumb/${id}`),
 }));
 
@@ -290,6 +292,38 @@ describe('BackgroundMediaPicker multi-file import', () => {
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     expect(onSlideshowChange).not.toHaveBeenCalled();
+  });
+
+  it('an animated stage plays in the cropper instead of showing the still', async () => {
+    renderPicker();
+
+    pickFiles([new File(['x'], 'clip.mp4', { type: 'video/mp4' })]);
+    await screen.findByRole('button', { name: 'cropper.confirm' });
+
+    const video = document.querySelector('video');
+    expect(video).not.toBeNull();
+    expect(video?.getAttribute('src')).toBe('/raw/stage-clip.mp4');
+    expect(video?.autoplay).toBe(true);
+    expect(video?.loop).toBe(true);
+  });
+
+  it('a gif stage animates as the cropper image, from the raw source', async () => {
+    renderPicker();
+
+    pickFiles([new File(['x'], 'loop.gif', { type: 'image/gif' })]);
+    await screen.findByRole('button', { name: 'cropper.confirm' });
+
+    expect(document.querySelector('video')).toBeNull();
+    expect(document.querySelector('img[src="/raw/stage-loop.gif"]')).not.toBeNull();
+  });
+
+  it('a still keeps the extracted preview', async () => {
+    renderPicker();
+
+    pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
+    await screen.findByRole('button', { name: 'cropper.confirm' });
+
+    expect(document.querySelector('img[src="/preview/stage-a.jpg"]')).not.toBeNull();
   });
 
   it('reports a selection with nothing importable without uploading', async () => {
