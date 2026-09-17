@@ -172,4 +172,9 @@ export interface PanelLayout {
   // Keyed by widget type. Unused (undefined) on multi-widget surfaces, where
   // every widget's config already lives on its own PanelWidget in `pages`.
   singleWidgetConfigs?: Record<string, Record<string, PanelConfigValue>>;
+  // Widget the panel opens straight into immersive view on load, skipping the
+  // dashboard. At most one, and it must be on the first page - the toggle that
+  // sets it is only reachable there, so normalizePanelLayout drops an id that
+  // names no first-page widget rather than stranding it.
+  immersiveOnLoadWidgetId?: string;
 }

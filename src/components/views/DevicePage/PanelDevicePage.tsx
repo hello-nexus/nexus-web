@@ -26,6 +26,11 @@ import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
+import {
+  canMarkImmersiveOnLoad,
+  isImmersiveOnLoadWidget,
+  setImmersiveOnLoadWidgetId,
+} from '../../../panel/engine/immersiveOnLoad';
 import { isSingleWidgetSurface, singleWidgetSurfaceSize, surfaceSupportsMountOrientation } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
@@ -421,6 +426,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     && Math.max(previewCanvas.width, previewCanvas.height)
        / Math.min(previewCanvas.width, previewCanvas.height) >= STRIP_ASPECT_MIN;
   const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height;
+  // The panel's live orientation, read from the same canvas the preview frame
+  // renders, so the immersive-on-load toggle offers exactly the immersive views
+  // the device can actually open.
+  const previewLandscape = !!previewCanvas && previewCanvas.width > previewCanvas.height;
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported
     || monitorRotation || monitorReserve
     // The Xeneon Edge's native settings replace DDC brightness for this
@@ -828,6 +837,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
   }, [editorCapacity, layout, updateLayout]);
 
+  const handleImmersiveOnLoad = useCallback((widgetId: string, on: boolean) => {
+    updateLayout(setImmersiveOnLoadWidgetId(layout, on ? widgetId : null));
+  }, [layout, updateLayout]);
+
   const handleResizeWidget = useCallback((widgetId: string, size: PanelWidgetSize) => {
     // Cascade siblings across pages (creating pages up to MAX_PANEL_PAGES), the
     // same engine op the on-device runtime uses. An in-place grow on a full
@@ -1172,6 +1185,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
                 onRemove={handleRemoveWidget}
+                immersiveOnLoadAvailable={
+                  canMarkImmersiveOnLoad(layout, configuringWidget, surface, previewLandscape, deviceTouch)
+                }
+                immersiveOnLoad={isImmersiveOnLoadWidget(layout, configuringWidget.id)}
+                onImmersiveOnLoadChange={handleImmersiveOnLoad}
                 onSectionNavigate={onSectionNavigate}
               />
             ) : (
@@ -1654,10 +1672,15 @@ interface InlineWidgetSettingsProps {
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
   onRemove: (widgetId: string) => void;
+  // Whether this widget can be marked immersive-on-load: a first-page widget
+  // with an immersive view in the panel's current orientation.
+  immersiveOnLoadAvailable?: boolean;
+  immersiveOnLoad?: boolean;
+  onImmersiveOnLoadChange?: (widgetId: string, on: boolean) => void;
   onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, onSectionNavigate }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -1810,10 +1833,21 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
             onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
             onSectionNavigate={onSectionNavigate}
           />
-        ) : (
+        ) : immersiveOnLoadAvailable ? null : (
           <div className={styles.inlineSettingsEmpty}>
             {t('peripheral.noCapabilities') || t('devices.panels.widgetSettings.noConfigurableSettings')}
           </div>
+        )}
+
+        {immersiveOnLoadAvailable && onImmersiveOnLoadChange && (
+          <SettingsSection title={t('devices.panels.widgetSettings.immersiveOnLoad.title')}>
+            <SettingToggle
+              label={t('devices.panels.widgetSettings.immersiveOnLoad')}
+              description={t('devices.panels.widgetSettings.immersiveOnLoad.hint')}
+              checked={immersiveOnLoad}
+              onChange={on => onImmersiveOnLoadChange(widget.id, on)}
+            />
+          </SettingsSection>
         )}
       </div>
     </div>

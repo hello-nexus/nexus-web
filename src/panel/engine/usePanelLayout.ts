@@ -166,10 +166,23 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
     }];
   }
 
+  // Drop a mark whose widget is gone from the layout entirely; anything else is
+  // left alone. resolveImmersiveOnLoadWidget already ignores a mark that is not
+  // on the first page, so a widget dragged to page 2 keeps it (inert) and gets
+  // it back on the way home - clearing on placement instead would destroy the
+  // setting on a resize cascade, and clearing on surface capability would
+  // destroy it in the window before a monitor's `deviceTouch` has loaded.
+  const immersiveOnLoadWidgetId =
+    layout.immersiveOnLoadWidgetId !== undefined
+    && finalPages.some(page => page.widgets.some(w => w.id === layout.immersiveOnLoadWidgetId))
+      ? layout.immersiveOnLoadWidgetId
+      : undefined;
+
   return {
     ...layout,
     surface,
     pages: finalPages,
+    immersiveOnLoadWidgetId,
   };
 }
 

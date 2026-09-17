@@ -6,6 +6,7 @@ import { lookupApp, sizesForSurface } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
+import { SettingsSection, SettingsToggle } from '../widgets/common/SettingsRow/SettingsRow';
 import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
 import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
@@ -36,6 +37,9 @@ export function PanelEditorSheet({
   deviceTouch,
   touchPanelChrome = false,
   editingWidget,
+  immersiveOnLoadAvailable = false,
+  immersiveOnLoad = false,
+  onImmersiveOnLoadChange,
   saveForbidden = false,
   panelTheme,
   gridColumns,
@@ -98,6 +102,11 @@ export function PanelEditorSheet({
   // the panel content like the Y70 instead of desktop-size chrome.
   touchPanelChrome?: boolean;
   editingWidget: PanelWidget | null;
+  // Whether this widget can be marked immersive-on-load: a first-page widget
+  // with an immersive view in the panel's current orientation.
+  immersiveOnLoadAvailable?: boolean;
+  immersiveOnLoad?: boolean;
+  onImmersiveOnLoadChange?: (on: boolean) => void;
   // True right after the server refused the last layout save with 403
   // deck_action_requires_desktop (a phone session tried to introduce a
   // privileged deck action) - see usePanelLayout.saveForbidden.
@@ -374,11 +383,21 @@ export function PanelEditorSheet({
                 editView={usesSlotSelection ? editView : undefined}
                 onEditViewChange={usesSlotSelection ? onEditViewChange : undefined}
               />
-            ) : (
+            ) : immersiveOnLoadAvailable ? null : (
               <div className={styles.settingsEmpty}>
                 <Settings2 size={18} />
                 <span>{t('panel.editor.noSettings')}</span>
               </div>
+            )}
+            {immersiveOnLoadAvailable && onImmersiveOnLoadChange && (
+              <SettingsSection title={t('panel.editor.immersiveOnLoad.title')}>
+                <SettingsToggle
+                  label={t('panel.editor.immersiveOnLoad')}
+                  description={t('panel.editor.immersiveOnLoad.hint')}
+                  checked={immersiveOnLoad}
+                  onChange={onImmersiveOnLoadChange}
+                />
+              </SettingsSection>
             )}
           </div>
         )}

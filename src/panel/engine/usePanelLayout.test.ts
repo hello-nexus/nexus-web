@@ -131,3 +131,50 @@ describe('normalizePanelLayout registry reconciliation', () => {
     }
   });
 });
+
+describe('normalizePanelLayout immersive-on-load mark', () => {
+  it('keeps a mark on a first-page widget', () => {
+    const result = normalizePanelLayout(
+      { ...layout([widget({ id: 'a', type: 'media', size: '2x2' })]), immersiveOnLoadWidgetId: 'a' },
+      'y70',
+    );
+    expect(result.immersiveOnLoadWidgetId).toBe('a');
+  });
+
+  it('drops a mark whose widget the reconcile removed', () => {
+    const result = normalizePanelLayout(
+      { ...layout([widget({ id: 'a', type: 'does-not-exist', size: '2x2' })]), immersiveOnLoadWidgetId: 'a' },
+      'y70',
+    );
+    expect(result.immersiveOnLoadWidgetId).toBeUndefined();
+  });
+
+  it('keeps a mark on a widget that sits on a later page, so moving it home restores it', () => {
+    // A resize cascade or a drag can push the marked widget off page 1. The mark
+    // is inert there (resolveImmersiveOnLoadWidget ignores it), so dropping it
+    // here would destroy the setting for a move the user can undo.
+    const result = normalizePanelLayout(
+      {
+        layoutSchemaVersion: 2,
+        surface: 'y70',
+        pages: [
+          { id: 'p1', widgets: [widget({ id: 'a', type: 'media', size: '2x2' })] },
+          { id: 'p2', widgets: [widget({ id: 'b', type: 'media', size: '2x2' })] },
+        ],
+        immersiveOnLoadWidgetId: 'b',
+      },
+      'y70',
+    );
+    expect(result.immersiveOnLoadWidgetId).toBe('b');
+  });
+
+  it('keeps a mark on a surface with no immersive mode rather than clear it', () => {
+    // deviceTouch arrives after the first normalize on a promoted monitor, so a
+    // capability-gated clear would persist the loss in that window.
+    const result = normalizePanelLayout(
+      { ...layout([widget({ id: 'a', type: 'media', size: '2x2' })]), immersiveOnLoadWidgetId: 'a' },
+      'monitor',
+    );
+    expect(result.immersiveOnLoadWidgetId).toBe('a');
+  });
+});
