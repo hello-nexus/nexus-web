@@ -242,6 +242,22 @@
   background: var(--surface);
 }
 
+.recoveryCodeHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.recoveryCodeCopy {
+  @include text-label;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+}
+
 .recoveryCode {
   font-family: var(--font-mono);
   font-size: var(--type-display);
