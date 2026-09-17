@@ -105,7 +105,6 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
         <h1 className={`${styles.title} ${styles.pendingTitle}`}>{t('account.recovery.pendingTitle')}</h1>
         <div className={styles.pendingBlock}>
           <p className={styles.pendingMessage}>{t('account.recovery.pendingMessage', { email })}</p>
-          <p className={styles.pendingFollow}>{t('account.recovery.pendingFollow')}</p>
           <div className={styles.recoveryCodeBlock}>
             <span className={styles.fieldLabel}>{t('account.recovery.codeTitle')}</span>
             <span className={styles.recoveryCode}>{code}</span>

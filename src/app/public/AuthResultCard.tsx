@@ -14,12 +14,20 @@ export function AuthLoadingCard({ label }: { label: string }) {
   );
 }
 
-/** Terminal state card for /auth/verify and /auth/recover: title + body + an optional link back to hellonexus.com. */
-export function AuthResultCard({ title, body, showBackLink }: { title: string; body: string; showBackLink?: boolean }) {
+/** Terminal state card for /auth/verify and /auth/recover: title + body, an optional retry action, and an optional link back to hellonexus.com. */
+export function AuthResultCard({ title, body, showBackLink, action }: {
+  title: string;
+  body: string;
+  showBackLink?: boolean;
+  action?: { label: string; onClick: () => void };
+}) {
   const { t } = useTranslation();
   return (
     <Card title={title} className={styles.card}>
       <p className={styles.body}>{body}</p>
+      {action && (
+        <Button tone="accent" onClick={action.onClick} className={styles.backLink}>{action.label}</Button>
+      )}
       {showBackLink && (
         <Button href="/" className={styles.backLink}>{t('common.backToNexus')}</Button>
       )}
