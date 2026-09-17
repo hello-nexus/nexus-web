@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot, Server } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Badge } from '../../common/Badge/Badge';
@@ -302,6 +302,14 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
     return () => clearInterval(id);
   }, [assistantEnabled, transientNow]);
 
+  // The chip's colour follows the same precedence as its text: a system
+  // Ollama reads as ready unless it has since errored.
+  const runtimeStatusTone = (): SettingState['tone'] => {
+    if (runtimeState === 'error') return 'warn';
+    if (assistant?.systemOllamaDetected || runtimeState === 'running' || runtimeState === 'installed') return 'good';
+    if (runtimeState === 'downloading') return 'accent';
+    return 'neutral';
+  };
   const runtimeStatusText = (): string => {
     // A system Ollama that has since errored out must still surface as an
     // error, not linger on "using the system installation".
@@ -425,9 +433,9 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                     icon={<Box />}
                     iconLeading="subtle"
                     description={t('settings.ai.assistant.runtime.description')}
+                    state={{ label: runtimeStatusText(), tone: runtimeStatusTone() }}
                   >
                     <div className={styles.runtimeControl}>
-                      <span className={styles.runtimeStatus}>{runtimeStatusText()}</span>
                       {runtimeState === 'downloading' && downloadProgress && downloadProgress.total > 0 && (
                         <div className={styles.progressTrack}>
                           <UsageBar value={downloadProgress.received / downloadProgress.total} />

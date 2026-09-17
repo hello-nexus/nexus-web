@@ -6,7 +6,6 @@ import { Select } from '../../common/Select/Select';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { BrightnessScheduleModal } from './BrightnessScheduleModal';
-import styles from './SettingsView.module.scss';
 import {
   fetchLockBlackout, fetchRenderGpu, fetchSleepBlackout, restartService, setLockBlackout,
   setRenderGpu, setSleepBlackout,
@@ -147,26 +146,14 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
   ) : undefined;
 
   const scheduleState = brightnessSchedule.schedule === null
-    ? ''
+    ? undefined
     : brightnessSchedule.schedule.enabled
-      ? t('lighting.schedule.row.on')
-      : t('lighting.schedule.row.off');
+      ? { label: t('lighting.schedule.row.on'), tone: 'accent' as const }
+      : { label: t('lighting.schedule.row.off'), tone: 'neutral' as const };
 
   return (
     <>
       <SettingsSection title={t('lighting.title')}>
-        <SettingRow
-          label={t('lighting.schedule.row.label')}
-          icon={<Clock />}
-          iconLeading="subtle"
-          anchorId="set-brightness-schedule"
-          description={t('lighting.schedule.row.description')}
-        >
-          <span className={styles.runtimeStatus}>{scheduleState}</span>
-          <Button type="button" size="sm" onClick={() => setScheduleOpen(true)} disabled={!serviceOnline}>
-            {t('lighting.schedule.row.action')}
-          </Button>
-        </SettingRow>
         {showGpuPicker && (
           <SettingSelect
             label={t('lighting.renderGpu.label')}
@@ -203,6 +190,18 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
             disabled={!serviceOnline}
           />
         )}
+        <SettingRow
+          label={t('lighting.schedule.row.label')}
+          icon={<Clock />}
+          iconLeading="subtle"
+          anchorId="set-brightness-schedule"
+          description={t('lighting.schedule.row.description')}
+          state={scheduleState}
+        >
+          <Button type="button" size="sm" onClick={() => setScheduleOpen(true)} disabled={!serviceOnline}>
+            {t('lighting.schedule.row.action')}
+          </Button>
+        </SettingRow>
       </SettingsSection>
       {scheduleOpen && (
         <BrightnessScheduleModal open onClose={() => setScheduleOpen(false)} state={brightnessSchedule} />

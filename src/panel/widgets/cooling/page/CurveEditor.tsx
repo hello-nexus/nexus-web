@@ -15,6 +15,7 @@ import { Slider } from '../../../../components/common/Slider/Slider';
 import { RangeSlider } from '../../../../components/common/Slider/RangeSlider';
 import { Select } from '../../../../components/common/Select/Select';
 import { isModeCurveDirty } from './coolingModes';
+import { interpolateCurve, type CurveEasing, type CurveWrap } from '../../../../lib/curveEasing';
 import styles from '../CoolingPage.module.scss';
 
 const CURVE_TYPES: { key: CurveType; labelKey: string; hintKey: string; icon: ReactNode }[] = [
@@ -172,18 +173,13 @@ export interface CurveGraphAxis {
   xName?: string;
   yName?: string;
   /** The axis is circular (hours of a day): past the outermost points the line
-   *  follows the segment joining the last point back to the first. */
+   *  continues from the last point back to the first across the edge. */
   wrap?: boolean;
 }
 
-// A wrapping axis (hours of a day) continues past the outermost points into
-// the segment that joins the last point to the first across the edge, so both
-// chart edges land on the same value.
-function wrapEdgeSpeed(sorted: CurvePoint[], tempMin: number, tempMax: number): number {
-  const first = sorted[0], last = sorted[sorted.length - 1];
-  const gap = (first.temp - tempMin) + (tempMax - last.temp);
-  return gap > 0 ? last.speed + (first.speed - last.speed) * ((tempMax - last.temp) / gap) : first.speed;
-}
+// Samples across the chart width for a drawn curve (or a wrapping line);
+// one every few pixels at the widest chart, invisible as a polyline.
+const SHAPE_SAMPLES = 192;
 
 // Content key for a point set; the hover-clear effect and the drag-commit
 // hold compare these, so both sides must derive it identically.
@@ -215,9 +211,11 @@ function sampleCurveShape(
 // dragging a marker shows its exact temp/duty on the axes. `axis` re-labels the
 // chart for a non-temperature x (the brightness schedule plots hours): the
 // point shape stays `temp`/`speed` so the drag, add and remove logic is shared.
+// `easing` picks how the line travels between points (default the engine's
+// piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear',
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -232,6 +230,7 @@ export function CurveGraph({
   /** Draws a dashed horizontal ceiling line at this duty %, e.g. a turbo-off cap. */
   limitPercent?: number;
   axis?: CurveGraphAxis;
+  easing?: CurveEasing;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -240,7 +239,8 @@ export function CurveGraph({
     ?? ((v: number) => t('cooling.curve.tempBadge', { temp: localizeNumbers(v.toFixed(1), numberFormat) }));
   const xName = axis?.xName ?? t('cooling.curve.tooltipTemp');
   const yName = axis?.yName ?? t('cooling.curve.tooltipDuty');
-  const wrap = axis?.wrap ?? false;
+  const wrap = useMemo<CurveWrap | undefined>(
+    () => (axis?.wrap ? { min: tempMin, max: tempMax } : undefined), [axis?.wrap, tempMin, tempMax]);
   const svgRef = useRef<SVGSVGElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(400);
@@ -313,41 +313,31 @@ export function CurveGraph({
     for (let v = Math.ceil(tempMin / step) * step; v <= tempMax; v += step) out.push(v);
     return out;
   }, [tempMin, tempMax, xStep]);
-  // Extend the line/area to the chart edges so the curve fills the full width:
-  // flat, matching how the engine clamps outside the point range, or along the
-  // wrap segment. The point markers below still sit only on the real points.
-  const edged = useMemo(() => {
+  // The drawn line. Linear on a plain axis is the points themselves, extended
+  // flat to the chart edges the way the engine clamps outside the point
+  // range. A curve or a wrapping axis is sampled across the width instead,
+  // through the same rule the live dot uses. The point markers below still
+  // sit only on the real points.
+  const shape = useMemo(() => {
     if (sorted.length === 0) return sorted;
-    const out = [...sorted];
-    const edge = wrap ? wrapEdgeSpeed(sorted, tempMin, tempMax) : undefined;
-    if (out[0].temp > tempMin) out.unshift({ temp: tempMin, speed: edge ?? out[0].speed });
-    if (out[out.length - 1].temp < tempMax) out.push({ temp: tempMax, speed: edge ?? out[out.length - 1].speed });
+    if (easing === 'linear' && !wrap) {
+      const out = [...sorted];
+      if (out[0].temp > tempMin) out.unshift({ temp: tempMin, speed: out[0].speed });
+      if (out[out.length - 1].temp < tempMax) out.push({ temp: tempMax, speed: out[out.length - 1].speed });
+      return out;
+    }
+    const out: CurvePoint[] = [];
+    for (let k = 0; k <= SHAPE_SAMPLES; k++) {
+      const temp = tempMin + ((tempMax - tempMin) * k) / SHAPE_SAMPLES;
+      out.push({ temp, speed: interpolateCurve(sorted, temp, easing, wrap) });
+    }
     return out;
-  }, [sorted, tempMin, tempMax, wrap]);
-  const linePath = edged.map((p, i) => `${i === 0 ? 'M' : 'L'} ${tempToX(p.temp)} ${speedToY(p.speed)}`).join(' ');
-  const areaPath = edged.length > 0 ? linePath + ` L ${tempToX(edged[edged.length - 1].temp)} ${speedToY(0)} L ${tempToX(edged[0].temp)} ${speedToY(0)} Z` : '';
+  }, [sorted, tempMin, tempMax, wrap, easing]);
+  const linePath = shape.map((p, i) => `${i === 0 ? 'M' : 'L'} ${tempToX(p.temp)} ${speedToY(p.speed)}`).join(' ');
+  const areaPath = shape.length > 0 ? linePath + ` L ${tempToX(shape[shape.length - 1].temp)} ${speedToY(0)} L ${tempToX(shape[0].temp)} ${speedToY(0)} Z` : '';
 
-  // Piecewise-linear interpolation of the rendered line at an arbitrary temp,
-  // for the current-temperature dot.
-  const speedAtTemp = (tt: number): number => {
-    if (sorted.length === 0) return 0;
-    const first = sorted[0], last = sorted[sorted.length - 1];
-    if (wrap && (tt < first.temp || tt > last.temp)) {
-      const gap = (first.temp - tempMin) + (tempMax - last.temp);
-      if (gap <= 0) return first.speed;
-      const along = tt > last.temp ? tt - last.temp : (tempMax - last.temp) + (tt - tempMin);
-      return last.speed + (first.speed - last.speed) * (along / gap);
-    }
-    if (tt <= first.temp) return first.speed;
-    if (tt >= last.temp) return last.speed;
-    for (let i = 0; i < sorted.length - 1; i++) {
-      if (tt >= sorted[i].temp && tt <= sorted[i + 1].temp) {
-        const f = (tt - sorted[i].temp) / (sorted[i + 1].temp - sorted[i].temp);
-        return sorted[i].speed + f * (sorted[i + 1].speed - sorted[i].speed);
-      }
-    }
-    return sorted[sorted.length - 1].speed;
-  };
+  // The rendered line's value at an arbitrary temp, for the current-temperature dot.
+  const speedAtTemp = (tt: number): number => interpolateCurve(sorted, tt, easing, wrap);
 
   // Invert a pixel position back to (temp, duty) in chart space; used by the
   // drag handler and double-click-to-add.

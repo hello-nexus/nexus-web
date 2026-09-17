@@ -167,12 +167,6 @@
   flex-shrink: 0;
 }
 
-.runtimeStatus {
-  @include text-button;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
 .modelList {
   display: flex;
   flex-direction: column;

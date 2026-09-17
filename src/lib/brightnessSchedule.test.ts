@@ -1,32 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { minuteOfDay, scheduledBrightness } from './brightnessSchedule';
 
-// Mirror of the service's MasterBrightness.Scheduled: the vectors here match
-// nexus-service's MasterBrightnessTests so the slider's readout and the LEDs
-// can never disagree on the level.
+// Vectors shared with nexus-service's MasterBrightnessTests: both sides
+// evaluate the same spline, so the slider's readout and the LEDs never
+// disagree on the level.
+const DEFAULTS = [0, 4, 8, 12, 16, 20].map((hour, i) => ({ hour, brightness: [20, 15, 60, 100, 90, 50][i] }));
+
 describe('scheduledBrightness', () => {
   const at = (h: number, m = 0) => h * 60 + m;
 
-  it('interpolates between points by the minute', () => {
-    const pts = [{ hour: 6, brightness: 40 }, { hour: 8, brightness: 70 }];
-    expect(scheduledBrightness(pts, at(6))).toBe(40);
-    expect(scheduledBrightness(pts, at(7))).toBeCloseTo(55);
-    expect(scheduledBrightness(pts, at(6, 1))).toBeCloseTo(40.25);
+  it.each([
+    [1, 0, 17.1094], [2, 0, 15.625], [3, 0, 15.0781], [6, 0, 32.1875], [10, 0, 85.3125],
+    [14, 0, 98.125], [18, 0, 71.25], [22, 0, 32.5], [23, 0, 25.1563], [23, 30, 22.2461],
+  ])('curves through the default points like the service does (%i:%i)', (h, m, percent) => {
+    expect(scheduledBrightness(DEFAULTS, at(h, m))).toBeCloseTo(percent, 3);
   });
 
-  it('wraps midnight in both directions', () => {
+  it('passes through every point', () => {
+    for (const p of DEFAULTS) expect(scheduledBrightness(DEFAULTS, at(p.hour))).toBeCloseTo(p.brightness, 6);
+  });
+
+  it('wraps midnight continuously', () => {
     const pts = [{ hour: 2, brightness: 20 }, { hour: 22, brightness: 60 }];
-    expect(scheduledBrightness(pts, at(23))).toBeCloseTo(50);
-    expect(scheduledBrightness(pts, at(0))).toBeCloseTo(40);
-    expect(scheduledBrightness(pts, at(1))).toBeCloseTo(30);
-  });
-
-  it('is independent of point order', () => {
-    const sorted = [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }, { hour: 18, brightness: 50 }];
-    const shuffled = [sorted[2], sorted[0], sorted[1]];
-    for (let h = 0; h < 24; h++) {
-      expect(scheduledBrightness(shuffled, at(h))).toBe(scheduledBrightness(sorted, at(h)));
-    }
+    expect(scheduledBrightness(pts, at(23, 59))).toBeCloseTo(scheduledBrightness(pts, -1), 9);
+    const midnight = scheduledBrightness(pts, at(0));
+    expect(midnight).toBeGreaterThan(20);
+    expect(midnight).toBeLessThan(60);
+    expect(scheduledBrightness(pts, at(23))).toBeGreaterThan(midnight);
+    expect(midnight).toBeGreaterThan(scheduledBrightness(pts, at(1)));
   });
 
   it('treats an empty schedule as no cap and a single point as flat', () => {

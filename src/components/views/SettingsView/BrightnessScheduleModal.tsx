@@ -9,6 +9,7 @@ import type { BrightnessSchedulePoint } from '../../../api/lighting';
 import type { BrightnessScheduleState } from '../../../hooks/useBrightnessSchedule';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
+import { SCHEDULE_EASING } from '../../../lib/brightnessSchedule';
 import { hour12OptionFor, localizeNumbers } from '../../../lib/units';
 import styles from './BrightnessScheduleModal.module.scss';
 
@@ -24,9 +25,9 @@ interface BrightnessScheduleModalProps {
 
 /**
  * Editor for the master-brightness schedule: the cooling curve graph on a
- * 0..24 hour axis, one draggable point per hour the user placed one, plus the
- * on/off switch and a reset to the service's out-of-box curve. Every edit
- * saves straight through, so the LEDs follow the drag on the next push.
+ * 0..24 hour axis drawn as a smooth curve through the points, plus the on/off
+ * switch and a reset to the service's out-of-box curve. Every edit saves
+ * straight through, so the LEDs follow the drag on the next push.
  */
 export function BrightnessScheduleModal({ open, onClose, state }: BrightnessScheduleModalProps) {
   const { t } = useTranslation();
@@ -96,6 +97,7 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
             tempMin={0}
             tempMax={24}
             axis={axis}
+            easing={SCHEDULE_EASING}
             currentTemp={minute / 60}
             editable={!!schedule}
             onChange={commit}

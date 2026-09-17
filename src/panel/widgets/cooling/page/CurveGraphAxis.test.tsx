@@ -46,4 +46,19 @@ describe('CurveGraph axis', () => {
     const { first, last } = endpointsY(pathD(container));
     expect(first).toBeCloseTo(last, 5);
   });
+
+  it('draws a sampled curve for smooth easing and keeps the markers on the points', () => {
+    const points = [{ temp: 20, speed: 20 }, { temp: 60, speed: 80 }, { temp: 100, speed: 40 }];
+    const { container } = render(<CurveGraph points={points} easing="smooth" />);
+    const vertices = pathD(container).split(/[ML]/).filter(s => s.trim()).length;
+    expect(vertices).toBeGreaterThan(100);
+    expect(container.querySelectorAll('svg circle')).toHaveLength(3);
+    // The line still passes through the middle point: its y equals the marker's.
+    const mid = container.querySelectorAll('svg circle')[1];
+    const nums = pathD(container).match(/[-\d.]+/g)!.map(Number);
+    const midX = Number(mid.getAttribute('cx'));
+    let best = Infinity, bestY = NaN;
+    for (let i = 0; i < nums.length; i += 2) { if (Math.abs(nums[i] - midX) < best) { best = Math.abs(nums[i] - midX); bestY = nums[i + 1]; } }
+    expect(bestY).toBeCloseTo(Number(mid.getAttribute('cy')), 0);
+  });
 });
