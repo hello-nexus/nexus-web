@@ -43,3 +43,68 @@
     text-indent: 0.18em;
   }
 }
+
+// The rejected code stays on screen for a beat before the field clears, so
+// the shake and the red border are what mark it wrong rather than the value
+// vanishing under the cursor.
+.codeFieldWrong {
+  animation: code-wrong var(--ease-slow) ease-in-out;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes code-wrong {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.approved {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  text-align: center;
+}
+
+.check {
+  width: 72px;
+  height: 72px;
+  stroke: var(--good);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
+.checkCircle {
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: check-circle var(--ease-slow) ease-out forwards;
+}
+
+.checkMark {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: check-mark var(--ease) var(--ease-slow) ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkCircle,
+  .checkMark {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes check-circle {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes check-mark {
+  to { stroke-dashoffset: 0; }
+}
