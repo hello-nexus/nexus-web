@@ -177,8 +177,8 @@ export interface CurveGraphAxis {
   wrap?: boolean;
 }
 
-// Samples across the chart width for a drawn curve (or a wrapping line);
-// one every few pixels at the widest chart, invisible as a polyline.
+// Samples across the chart width for a drawn curve; one every few pixels at
+// the widest chart, invisible as a polyline.
 const SHAPE_SAMPLES = 192;
 
 // Content key for a point set; the hover-clear effect and the drag-commit
@@ -313,17 +313,18 @@ export function CurveGraph({
     for (let v = Math.ceil(tempMin / step) * step; v <= tempMax; v += step) out.push(v);
     return out;
   }, [tempMin, tempMax, xStep]);
-  // The drawn line. Linear on a plain axis is the points themselves, extended
-  // flat to the chart edges the way the engine clamps outside the point
-  // range. A curve or a wrapping axis is sampled across the width instead,
-  // through the same rule the live dot uses. The point markers below still
-  // sit only on the real points.
+  // The drawn line. Linear is the points themselves, extended to the chart
+  // edges: flat, the way the engine clamps outside the point range, or on a
+  // wrapping axis along the segment that joins the last point back to the
+  // first. A curve is sampled across the width instead, through the same rule
+  // the live dot uses. The point markers below still sit only on the real
+  // points.
   const shape = useMemo(() => {
     if (sorted.length === 0) return sorted;
-    if (easing === 'linear' && !wrap) {
+    if (easing === 'linear') {
       const out = [...sorted];
-      if (out[0].temp > tempMin) out.unshift({ temp: tempMin, speed: out[0].speed });
-      if (out[out.length - 1].temp < tempMax) out.push({ temp: tempMax, speed: out[out.length - 1].speed });
+      if (out[0].temp > tempMin) out.unshift({ temp: tempMin, speed: interpolateCurve(sorted, tempMin, easing, wrap) });
+      if (out[out.length - 1].temp < tempMax) out.push({ temp: tempMax, speed: interpolateCurve(sorted, tempMax, easing, wrap) });
       return out;
     }
     const out: CurvePoint[] = [];

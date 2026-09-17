@@ -1,9 +1,9 @@
 import type { BrightnessSchedulePoint } from '../api/lighting';
 import { interpolateCurve, type CurveEasing, type CurveWrap } from './curveEasing';
 
-/** The schedule curve's shape and axis: smooth through the hour points, and
- *  circular so the last evening point eases into the first morning one. */
-export const SCHEDULE_EASING: CurveEasing = 'smooth';
+/** The schedule curve's shape and axis: straight between the hour points,
+ *  and circular so the last evening point runs into the first morning one. */
+export const SCHEDULE_EASING: CurveEasing = 'linear';
 export const SCHEDULE_WRAP: CurveWrap = { min: 0, max: 24 };
 
 /** Minute of the local day, seconds dropped: the service steps the level once

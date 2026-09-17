@@ -25,9 +25,9 @@ interface BrightnessScheduleModalProps {
 
 /**
  * Editor for the master-brightness schedule: the cooling curve graph on a
- * 0..24 hour axis drawn as a smooth curve through the points, plus the on/off
- * switch and a reset to the service's out-of-box curve. Every edit saves
- * straight through, so the LEDs follow the drag on the next push.
+ * 0..24 hour axis, plus the on/off switch and a reset to the service's
+ * out-of-box curve. Every edit saves straight through, so the LEDs follow the
+ * drag on the next push.
  */
 export function BrightnessScheduleModal({ open, onClose, state }: BrightnessScheduleModalProps) {
   const { t } = useTranslation();

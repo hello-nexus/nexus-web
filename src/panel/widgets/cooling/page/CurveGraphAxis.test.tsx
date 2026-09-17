@@ -44,7 +44,9 @@ describe('CurveGraph axis', () => {
     expect(labels).toEqual(expect.arrayContaining(['0h', '6h', '12h', '18h', '0h']));
     expect(labels).not.toContain('4h');
     expect(labels).not.toContain('20°');
-    // Wrapped: both chart edges sit on the same value (40%, midway 22h -> 2h).
+    // Wrapped: the line is the points plus one edge value each side, and
+    // both edges sit on the same value (40%, midway 22h -> 2h).
+    expect(pathD(container).split(/[ML]/).filter(s => s.trim())).toHaveLength(4);
     const { first, last } = endpointsY(pathD(container));
     expect(first).toBeCloseTo(last, 5);
   });
