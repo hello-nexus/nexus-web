@@ -26,13 +26,14 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsRange, staticMaxForDevice, type ScaleMode } from '../monitoring/perfDomain';
+import { sensorSupportsValueColor } from '../monitoring/valueColor';
 import { RotateCcw } from 'lucide-react';
 import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
 import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
 import {
   CATEGORY_LABEL_KEYS, DEVICE_OPTION_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys,
 } from '../monitoring/sensorPicker';
-import { SettingsSection, SettingsRow } from '../common/SettingsRow/SettingsRow';
+import { SettingsSection, SettingsRow, SettingsToggle } from '../common/SettingsRow/SettingsRow';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import styles from './MonitoringSettings.module.scss';
@@ -362,6 +363,12 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       const parsed = parseFixedRangeInput(raw, microFixedDefaultMax);
       if (parsed !== microFixedMax) onUpdate({ micro_max: parsed });
     };
+    // One toggle for every bar, so it shows when any of them is a percent or
+    // temperature sensor; the rest keep the plain accent.
+    const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
+    const microSupportsValueColor = microSensorNames.some(name => sensorSupportsValueColor(
+      resolveSensor(sensors, [], networkSensors, microDevice, name, undefined, extras)?.type,
+    ));
 
     return (
       <div className={styles.settingsRoot}>
@@ -486,6 +493,14 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               </div>
             </div>
           )}
+          {microSupportsValueColor && (
+            <SettingsToggle
+              label={t('monitoring.settings.valueColor')}
+              description={t('monitoring.settings.valueColorHint')}
+              checked={microValueColor}
+              onChange={next => onUpdate({ micro_valueColor: next })}
+            />
+          )}
         </SettingsSection>
       </div>
     );
@@ -595,6 +610,14 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                     />
                   </div>
                 </div>
+              )}
+              {sensorSupportsValueColor(activeSensor?.type) && (
+                <SettingsToggle
+                  label={t('monitoring.settings.valueColor')}
+                  description={t('monitoring.settings.valueColorHint')}
+                  checked={(widget.config?.[`slot${activeSlot}_valueColor`] as boolean | undefined) ?? false}
+                  onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
+                />
               )}
             </SettingsSection>
           )}

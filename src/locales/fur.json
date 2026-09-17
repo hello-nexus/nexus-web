@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "Sensôr",
   "monitoring.settings.sensors": "Sensôrs",
   "monitoring.settings.title": "Impostazions di monitoraç",
+  "monitoring.settings.valueColor": "Colôr daûr dal valôr",
+  "monitoring.settings.valueColorHint": "Colôr di acent cuant che la misure e je sot control, ros cuant che si scjalde.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Detaiât",
   "monitoring.tab.gpu": "GPU",

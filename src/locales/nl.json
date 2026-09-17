@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensoren",
   "monitoring.settings.title": "Monitoring-instellingen",
+  "monitoring.settings.valueColor": "Kleur op waarde",
+  "monitoring.settings.valueColorHint": "Accentkleur zolang de meting in orde is, rood wanneer het te heet wordt.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Gedetailleerd",
   "monitoring.tab.gpu": "GPU",

@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "传感器",
   "monitoring.settings.sensors": "传感器",
   "monitoring.settings.title": "监控设置",
+  "monitoring.settings.valueColor": "按数值着色",
+  "monitoring.settings.valueColorHint": "读数正常时显示强调色，过热时转为红色。",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "详情",
   "monitoring.tab.gpu": "GPU",

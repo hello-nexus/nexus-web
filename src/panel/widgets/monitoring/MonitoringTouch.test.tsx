@@ -42,6 +42,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
   }),
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
+  useDiagnosticsTempThresholds: () => ({ cpuC: 90, gpuC: 85, storageC: 70, ramC: 60 }),
 }));
 
 function touchWidget(): PanelWidget {

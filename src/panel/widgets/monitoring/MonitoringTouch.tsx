@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { PerfSlot } from './MonitoringWidget';
 import { DEFAULT_DESIGN, DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
@@ -7,9 +8,12 @@ import { useSensors } from '../../../hooks/useSensors';
 import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
+import { useDiagnosticsTempThresholds } from '../../../hooks/useUiSettings';
 import type { WidgetProps } from '../types';
 import { buildNetworkSensors } from './networkSensors';
+import { DEFAULT_SCALE_MODE, type ScaleMode } from './perfDomain';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
+import { useGaugeRamp } from './useGaugeRamp';
 import styles from './MonitoringTouch.module.scss';
 
 /**
@@ -36,6 +40,12 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
       i,
       ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
     ),
+    // Carried so a cell grades against the same window the tile does; without
+    // the range a Fixed slot would colour off the absolute limits instead.
+    scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
+    fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
+    fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
+    valueColor: (widget.config?.[`slot${i}_valueColor`] as boolean | undefined) ?? false,
   }));
 
   const microDevice = widget.config?.micro_device as DeviceKey | undefined;
@@ -54,6 +64,9 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
   const extras = useSensorExtras(usesExtras);
+  const tempThresholds = useDiagnosticsTempThresholds();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const ramp = useGaugeRamp(rootRef, slotConfigs.some(s => s.valueColor));
 
   if (isMicro) {
     return (
@@ -65,8 +78,8 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
     );
   }
 
-  const cells = slotConfigs.map(({ device, sensorName, design }, i) => (
-    <div className={styles.slotCell} key={`${i}-${device}-${sensorName}`}>
+  const cells = slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor }, i) => (
+    <div ref={i === 0 ? rootRef : undefined} className={styles.slotCell} key={`${i}-${device}-${sensorName}`}>
       <PerfSlot
         sensors={sensors}
         fpsSensors={fpsSensors}
@@ -75,6 +88,12 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
         device={device}
         sensorName={sensorName}
         design={design}
+        scale={scale}
+        fixedMin={fixedMin}
+        fixedMax={fixedMax}
+        valueColor={valueColor}
+        ramp={ramp}
+        tempThresholds={tempThresholds}
       />
     </div>
   ));

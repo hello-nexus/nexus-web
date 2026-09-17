@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "센서",
   "monitoring.settings.sensors": "센서",
   "monitoring.settings.title": "모니터링 설정",
+  "monitoring.settings.valueColor": "값에 따른 색상",
+  "monitoring.settings.valueColorHint": "수치가 정상이면 강조 색, 과열되면 빨간색으로 표시합니다.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "상세",
   "monitoring.tab.gpu": "GPU",

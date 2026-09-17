@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "Capteur",
   "monitoring.settings.sensors": "Capteurs",
   "monitoring.settings.title": "Paramètres de surveillance",
+  "monitoring.settings.valueColor": "Couleur selon la valeur",
+  "monitoring.settings.valueColorHint": "Couleur d'accent tant que la mesure reste correcte, rouge quand elle grimpe.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Détails",
   "monitoring.tab.gpu": "GPU",

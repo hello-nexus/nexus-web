@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensores",
   "monitoring.settings.title": "Ajustes de monitorización",
+  "monitoring.settings.valueColor": "Color según el valor",
+  "monitoring.settings.valueColorHint": "Color de acento mientras la lectura está bajo control y rojo cuando sube demasiado.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Detalles",
   "monitoring.tab.gpu": "GPU",

@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "Sensör",
   "monitoring.settings.sensors": "Sensörler",
   "monitoring.settings.title": "İzleme ayarları",
+  "monitoring.settings.valueColor": "Değere göre renk",
+  "monitoring.settings.valueColorHint": "Değer normalken vurgu rengi, ısındığında kırmızı.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Detayli",
   "monitoring.tab.gpu": "GPU",

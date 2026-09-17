@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../common/panelHistoryConfig';
 import { GaugeValue } from './gauges/GaugeValue';
@@ -16,9 +17,11 @@ interface MicroBarProps {
   // Only read by the 'backdrop' design (the dim filled history trace).
   history?: number[];
   historyDomain?: [number, number];
+  /** --panel-accent* overrides when the row is value-coloured (see valueColor.ts). */
+  style?: CSSProperties;
 }
 
-export function MicroBar({ label, formatted, fillPercent, design = 'bar', history, historyDomain }: MicroBarProps) {
+export function MicroBar({ label, formatted, fillPercent, design = 'bar', history, historyDomain, style }: MicroBarProps) {
   const head = (
     <div className={styles.head}>
       {label && <span className={styles.label}>{label}</span>}
@@ -29,7 +32,7 @@ export function MicroBar({ label, formatted, fillPercent, design = 'bar', histor
   if (design === 'fill') {
     const clamped = Math.max(0, Math.min(100, fillPercent));
     return (
-      <div className={styles.rowFill}>
+      <div className={styles.rowFill} style={style}>
         <div className={styles.fillBar} style={{ width: `${clamped}%` }} />
         {head}
       </div>
@@ -38,7 +41,7 @@ export function MicroBar({ label, formatted, fillPercent, design = 'bar', histor
 
   if (design === 'backdrop') {
     return (
-      <div className={styles.rowGraph}>
+      <div className={styles.rowGraph} style={style}>
         <div className={styles.graphChart}>
           <Sparkline
             values={history ?? []}
@@ -58,7 +61,7 @@ export function MicroBar({ label, formatted, fillPercent, design = 'bar', histor
   }
 
   return (
-    <div className={styles.row}>
+    <div className={styles.row} style={style}>
       {head}
       <GaugeTrack fillPercent={fillPercent} />
     </div>

@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "感測器",
   "monitoring.settings.sensors": "感測器",
   "monitoring.settings.title": "監控設定",
+  "monitoring.settings.valueColor": "依數值上色",
+  "monitoring.settings.valueColorHint": "讀數正常時顯示強調色，過熱時轉為紅色。",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "詳細",
   "monitoring.tab.gpu": "GPU",

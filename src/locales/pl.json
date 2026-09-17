@@ -2663,6 +2663,8 @@
   "monitoring.settings.sensor": "Czujnik",
   "monitoring.settings.sensors": "Czujniki",
   "monitoring.settings.title": "Ustawienia monitorowania",
+  "monitoring.settings.valueColor": "Kolor według wartości",
+  "monitoring.settings.valueColorHint": "Kolor akcentu, gdy odczyt jest w normie, czerwony przy przegrzaniu.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Szczegoly",
   "monitoring.tab.gpu": "GPU",

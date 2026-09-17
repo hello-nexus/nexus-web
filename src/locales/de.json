@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensoren",
   "monitoring.settings.title": "Überwachungseinstellungen",
+  "monitoring.settings.valueColor": "Farbe nach Wert",
+  "monitoring.settings.valueColorHint": "Akzentfarbe, solange der Wert im Rahmen bleibt, Rot wenn es heiß wird.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Details",
   "monitoring.tab.gpu": "GPU",

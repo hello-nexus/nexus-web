@@ -2663,6 +2663,8 @@
   "monitoring.settings.sensor": "Датчик",
   "monitoring.settings.sensors": "Датчики",
   "monitoring.settings.title": "Настройки мониторинга",
+  "monitoring.settings.valueColor": "Цвет по значению",
+  "monitoring.settings.valueColorHint": "Акцентный цвет, пока показание в норме, и красный при перегреве.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Подробно",
   "monitoring.tab.gpu": "GPU",

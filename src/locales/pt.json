@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "Sensor",
   "monitoring.settings.sensors": "Sensores",
   "monitoring.settings.title": "Definições de monitorização",
+  "monitoring.settings.valueColor": "Cor pelo valor",
+  "monitoring.settings.valueColorHint": "Cor de destaque enquanto a leitura está sob controlo e vermelho quando aquece demasiado.",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Detalhes",
   "monitoring.tab.gpu": "GPU",

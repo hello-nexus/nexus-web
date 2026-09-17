@@ -2629,6 +2629,8 @@
   "monitoring.settings.sensor": "センサー",
   "monitoring.settings.sensors": "センサー",
   "monitoring.settings.title": "モニタリング設定",
+  "monitoring.settings.valueColor": "値に応じた色",
+  "monitoring.settings.valueColorHint": "値が正常なときはアクセントカラー、高温になると赤になります。",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "詳細",
   "monitoring.tab.gpu": "GPU",

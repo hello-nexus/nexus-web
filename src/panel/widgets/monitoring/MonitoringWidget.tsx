@@ -3,14 +3,15 @@
 // staticMaxForDevice lives in perfDomain.ts; re-exported here for its
 // existing importers (MicroMonitoringWidget, MonitoringWidget.test).
 
-import { useMemo } from 'react';
+import { useMemo, useRef, type CSSProperties } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { EMPTY_SENSOR_EXTRAS, useSensorExtras } from '../../../hooks/useSensorExtras';
 import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
-import { useTempSensorPrefs, useUnitPrefs } from '../../../hooks/useUiSettings';
+import { useDiagnosticsTempThresholds, useTempSensorPrefs, useUnitPrefs } from '../../../hooks/useUiSettings';
+import type { DiagnosticsTempThresholds } from '../../../hooks/useUiSettings';
 import { resolveCpuTempSensor, resolveGpuTempSensor } from '../../../lib/tempSensorResolver';
 import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
@@ -24,6 +25,8 @@ import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { useGaugeRamp } from './useGaugeRamp';
+import { gradeFraction, gradedAccentVars, valueColorStops, type GaugeRamp } from './valueColor';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -207,6 +210,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
+    valueColor: (widget.config?.[`slot${i}_valueColor`] as boolean | undefined) ?? false,
     labelOverride: widget.config?.[`slot${i}_label`] as string | undefined,
     labelMode: widget.config?.[`slot${i}_labelMode`] as string | undefined,
   }));
@@ -228,6 +232,11 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const networkSensors = buildNetworkSensors(network);
   const extras = useSensorExtras(usesExtras);
   const tempPrefs: TempSensorPrefs = useTempSensorPrefs();
+  const tempThresholds = useDiagnosticsTempThresholds();
+  // Read from the widget root, not a slot: a graded slot overrides the very
+  // variables the ramp is read from.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const ramp = useGaugeRamp(rootRef, slotConfigs.some(slot => slot.valueColor));
 
   if (isMicro) {
     return <MicroMonitoringWidget widget={widget} count={count} selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} />;
@@ -247,8 +256,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const fullBleed = isFullBleedRound(widget.size, widget.config);
 
   return (
-    <div className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
-      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, labelOverride, labelMode }, i) => {
+    <div ref={rootRef} className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
+      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor, labelOverride, labelMode }, i) => {
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
@@ -263,6 +272,9 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             scale={scale}
             fixedMin={fixedMin}
             fixedMax={fixedMax}
+            valueColor={valueColor}
+            ramp={ramp}
+            tempThresholds={tempThresholds}
             labelOverride={labelOverride}
             labelMode={labelMode}
             tempPrefs={tempPrefs}
@@ -287,6 +299,10 @@ interface PerfSlotProps {
   scale?: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
+  /** Grade the slot's accent by the reading (percent / temperature sensors). */
+  valueColor?: boolean;
+  ramp?: GaugeRamp;
+  tempThresholds?: DiagnosticsTempThresholds;
   labelOverride?: string;
   labelMode?: string;
   tempPrefs?: TempSensorPrefs;
@@ -294,7 +310,7 @@ interface PerfSlotProps {
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, valueColor = false, ramp, tempThresholds, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
@@ -324,6 +340,13 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);
 
+  const stops = valueColor && ramp && tempThresholds
+    ? valueColorStops(device, sensor?.type, sensor?.name, scale, domainMin, domainMax, tempThresholds)
+    : null;
+  const gradeStyle = stops && ramp
+    ? gradedAccentVars(ramp, gradeFraction(rawValue, stops)) as CSSProperties
+    : undefined;
+
   const GaugeComponent = GAUGE_DESIGNS[design] ?? GAUGE_DESIGNS.sparkline;
 
   const props: GaugeProps = {
@@ -339,13 +362,14 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const content = <GaugeComponent {...props} />;
 
   if (!onSelect) {
-    return <div className={styles.slot} data-monitoring-slot-index={slotIndex}>{content}</div>;
+    return <div className={styles.slot} style={gradeStyle} data-monitoring-slot-index={slotIndex}>{content}</div>;
   }
 
   return (
     <button
       type="button"
       data-monitoring-slot-index={slotIndex}
+      style={gradeStyle}
       className={`${styles.slot} ${styles.slotSelectable} ${selected ? styles.slotSelected : ''}`}
       aria-pressed={selected}
       aria-label={`Select ${resolvedLabel}`}
