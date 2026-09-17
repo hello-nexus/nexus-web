@@ -69,6 +69,26 @@ describe('ForgotPasswordFlow cancel', () => {
 });
 
 describe('ForgotPasswordFlow code display', () => {
+  it('copies the code without its grouping dash', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(
+      <ForgotPasswordFlow
+        backend={makeBackend()}
+        onBackToSignIn={vi.fn()}
+        onRecoveryApproved={vi.fn()}
+      />,
+    );
+
+    fireEvent.input(screen.getByLabelText('account.recovery.email'), { target: { value: 'user@example.com' } });
+    fireEvent.click(screen.getByRole('button', { name: 'account.recovery.submit' }));
+    await waitFor(() => expect(screen.getByText('ABC-DEF')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.specs.copy' }));
+    expect(writeText).toHaveBeenCalledWith('ABCDEF');
+    await waitFor(() => expect(screen.getByText('devices.specs.copied')).toBeInTheDocument());
+  });
+
   it('shows the code the start returned, which is what the link page will ask for', async () => {
     render(
       <ForgotPasswordFlow

@@ -76,6 +76,10 @@ export async function getPublicAccount(username: string, signal?: AbortSignal): 
 // Retry budget shared by verifyEmail/completeRecovery below.
 const TOKEN_POST_RETRY_ATTEMPTS = 3;
 const TOKEN_POST_RETRY_DELAY_MS = 400;
+// A ceiling on the whole attempt, retries included. The recovery page has no
+// button to press once the code is in, so a request that never settles would
+// leave it spinning with no way out.
+const TOKEN_POST_DEADLINE_MS = 12_000;
 
 /**
  * POST helper for the single-use verify/recovery tokens. Retries ONLY when
@@ -87,21 +91,30 @@ const TOKEN_POST_RETRY_DELAY_MS = 400;
  * every attempt has thrown.
  */
 async function postTokenWithNetworkRetry(url: string, token: string, code?: string): Promise<Response | null> {
-  for (let attempt = 0; attempt < TOKEN_POST_RETRY_ATTEMPTS; attempt++) {
-    try {
-      return await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(code ? { token, code } : { token }),
-      });
-    } catch {
-      // network error: fall through to retry
+  const abort = new AbortController();
+  const deadline = setTimeout(() => abort.abort(), TOKEN_POST_DEADLINE_MS);
+  try {
+    for (let attempt = 0; attempt < TOKEN_POST_RETRY_ATTEMPTS; attempt++) {
+      try {
+        return await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(code ? { token, code } : { token }),
+          signal: abort.signal,
+        });
+      } catch {
+        // A request still open at the deadline was aborted here, and retrying
+        // it would hand back the same hang; anything else is a network error.
+        if (abort.signal.aborted) return null;
+      }
+      if (attempt < TOKEN_POST_RETRY_ATTEMPTS - 1) {
+        await new Promise(resolve => setTimeout(resolve, TOKEN_POST_RETRY_DELAY_MS * (attempt + 1)));
+      }
     }
-    if (attempt < TOKEN_POST_RETRY_ATTEMPTS - 1) {
-      await new Promise(resolve => setTimeout(resolve, TOKEN_POST_RETRY_DELAY_MS * (attempt + 1)));
-    }
+    return null;
+  } finally {
+    clearTimeout(deadline);
   }
-  return null;
 }
 
 export interface VerifyEmailResult {
