@@ -4,16 +4,17 @@ import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import { PALETTE } from '../../../types/lightingPalette';
 import * as lightingApi from '../../../api/lighting';
 import { LightingPage } from './LightingPage';
+import { SIMPLE_ANIMATION_KEYS } from './simpleAnimations';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
-const syncState = vi.hoisted(() => ({ mode: 'none' }));
+const syncState = vi.hoisted(() => ({ mode: 'none', rawSync: '' }));
 vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../hooks/useLightingSync')>()),
   useLightingSync: () => ({
     mode: syncState.mode,
     setMode: vi.fn(),
-    rawSync: syncState.mode,
+    rawSync: syncState.rawSync || syncState.mode,
     setRawSync: vi.fn(),
     synced: true,
     paused: false,
@@ -93,6 +94,7 @@ describe('LightingPage simple mode', () => {
     // Fresh install: no stored settings, both page modes default to 'simple'.
     localStorage.clear();
     syncState.mode = 'none';
+    syncState.rawSync = '';
   });
 
   it('renders the whole colour palette and no advanced chrome', () => {
@@ -203,6 +205,48 @@ describe('LightingPage simple mode', () => {
     await waitFor(() => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
     });
+    expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
+  });
+
+  it('offers the animation row under the palette, one tile per sweep', () => {
+    const { container } = renderPage();
+    expect(container.querySelectorAll('[data-effect-key^="sweep"]').length)
+      .toBe(SIMPLE_ANIMATION_KEYS.length);
+  });
+
+  it('starts a picked animation on every device, claiming the un-driven one', async () => {
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    fireEvent.click(container.querySelector('[data-effect-key="sweepbars"]') as HTMLButtonElement);
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sweepbars', 50, 1, 0, 0, 1, 1, {});
+    });
+    expect(vi.mocked(lightingApi.setLightingDeviceControlled)).toHaveBeenCalledWith('dev-2', true);
+    // A sweep is one shared canvas: no per-device colour is written for it.
+    expect(vi.mocked(lightingApi.setLightingDeviceColor)).not.toHaveBeenCalled();
+  });
+
+  it('turns the running sweep around from the direction switch', async () => {
+    syncState.mode = 'animate';
+    syncState.rawSync = 'sweeprainbow';
+    renderPage();
+    fireEvent.click(screen.getByRole('switch', { name: 'lighting.simple.reverse' }));
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.startAnimate)).toHaveBeenCalledWith('sweeprainbow', -50, 1, 0, 0, 1, 1, {});
+    });
+  });
+
+  it('marks the running sweep and does not call it a custom setup', async () => {
+    syncState.mode = 'animate';
+    syncState.rawSync = 'sweepink';
+    const { container } = renderPage();
+    await waitFor(() => {
+      expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
+    });
+    const tile = container.querySelector('[data-effect-key="sweepink"]') as HTMLButtonElement;
+    expect(tile.className).toContain('cardActive');
     expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
   });
 

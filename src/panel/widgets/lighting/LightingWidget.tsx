@@ -26,6 +26,7 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob, pingService } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
+import { isSimpleAnimation, simpleAnimationIndex, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
@@ -85,6 +86,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // Animate would drop the user's animation for the catalog default.
   const animateEffectRef = useRef('rainbow');
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
+  // Direction of a running simple-mode sweep, read from its stored speed sign.
+  const [sweepReversed, setSweepReversed] = useState(false);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
@@ -181,9 +184,13 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     const animatePick = [rawSync, animate?.effect]
       .find(k => ANIMATE_EFFECTS.some(e => e.key === k));
     if (animatePick) animateEffectRef.current = animatePick;
+    // A sweep drives the hardware without a catalogue entry, so it has to be
+    // named here or the tile pictures whatever the last catalogue pick was.
+    const sweep = isSimpleAnimation(rawSync);
+    if (sweep) setSweepReversed((animate?.states?.[rawSync]?.speed ?? 50) < 0);
     const nextEffect = nextMode === 'static'
       ? staticEffectRef.current
-      : EFFECTS.some(e => e.key === rawSync)
+      : EFFECTS.some(e => e.key === rawSync) || sweep
         ? rawSync
         : animateEffectRef.current;
     setActiveEffect(nextEffect);
@@ -427,6 +434,15 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       };
     }
     if (mode === 'animate') {
+      if (isSimpleAnimation(activeEffect)) {
+        return {
+          kind: 'thumb',
+          thumbUrl: thumbs[activeEffect] ?? null,
+          label: t('lighting.simple.animation', { index: simpleAnimationIndex(activeEffect) }),
+          onPrev: prev,
+          onNext: next,
+        };
+      }
       const effect = ANIMATE_EFFECTS.find(e => e.key === activeEffect) ?? ANIMATE_EFFECTS[0];
       return {
         kind: 'thumb',
@@ -480,8 +496,10 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // is rendered locally at full resolution, replacing the low-res streamed LED
   // canvas (LightingLivePreview) for shader effects only.
   const animateState = useMemo(
-    () => resolveEffectState(activeEffect, templates),
-    [activeEffect, templates],
+    () => (isSimpleAnimation(activeEffect)
+      ? simpleAnimationState(sweepReversed)
+      : resolveEffectState(activeEffect, templates)),
+    [activeEffect, sweepReversed, templates],
   );
 
   if (!preview && !flags.lighting) {

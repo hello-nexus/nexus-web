@@ -243,6 +243,19 @@ describe('LightingWidget', () => {
     expect(paths.some(p => p.includes('simplewhite'))).toBe(false);
   });
 
+  // A simple-mode sweep drives the LEDs without a catalogue entry: the tile
+  // has to picture that, not fall back to the last catalogue effect.
+  it('names and pictures a running simple-mode sweep', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'sweepink' });
+    vi.mocked(fetchServiceBlob).mockClear();
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+    await waitFor(() => expect(screen.getByText('lighting.simple.animation')).toBeInTheDocument());
+    const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
+    expect(paths.some(p => p.includes('sweepink'))).toBe(true);
+    expect(screen.queryByText('lighting.controls.rainbow')).not.toBeInTheDocument();
+  });
+
   // Static assigns per device, so no single preview can state what it is doing:
   // it used to render one static effect's shader full-bleed, picturing a
   // selection that does not exist. The device cards' own strips carry it now.

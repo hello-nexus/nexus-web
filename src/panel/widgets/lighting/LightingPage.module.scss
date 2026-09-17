@@ -354,22 +354,65 @@
   overflow-y: auto;
 }
 
+// Each simple-mode block is its own labelled section, tighter than the gap
+// simpleBody puts between them.
+.simpleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+// Aligned with the grids below it, which inset themselves off the page edge.
+.simpleSectionHeader {
+  padding: 0 0.2rem;
+}
+
+// The animation row under the palette. Half the palette's column count, so
+// every tile spans exactly two swatches and the gap between them.
+.simpleAnimations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.2rem;
+}
+
+.simpleAnimationGrid {
+  // Same ring width the swatches use, and narrow enough that the row's inset
+  // does not clip the first and last tile's ring.
+  --effect-card-ring: 3px;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.simpleAnimationDirection {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
 .simpleFooter {
   flex: 0 0 auto;
   padding: 0.75rem 0 1rem;
 }
 
 .paletteSwatch {
+  // The grid gap absorbs the ring, so a ring never moves or shrinks a swatch.
+  --palette-swatch-ring: 3px;
   aspect-ratio: 1;
   min-width: 0;
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   padding: 0;
-  transition: transform var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
+  transition: box-shadow var(--ease-fast);
 
+  // Muted neutral hover ring, the same quiet hint the effect cards give; the
+  // text-colour ring is reserved for the selection below.
   &:hover {
-    transform: scale(1.08);
+    box-shadow: 0 0 0 var(--palette-swatch-ring) var(--border-strong);
   }
 }
 
@@ -377,10 +420,10 @@
 // the ring is the text colour, because a coloured one misreads against
 // colourful content - and here the content IS a colour.
 .paletteSwatchActive {
-  border-color: var(--text);
-  box-shadow: 0 0 0 1px var(--text);
+  border-color: transparent;
+  box-shadow: 0 0 0 var(--palette-swatch-ring) var(--text);
 
-  &:hover { border-color: var(--text); }
+  &:hover { box-shadow: 0 0 0 var(--palette-swatch-ring) var(--text); }
 }
 
 

@@ -46,6 +46,7 @@ import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu
 import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
+import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
@@ -70,6 +71,8 @@ import {
 import { defaultTemplatesFor, mergeTemplates, slotMatchesDefault, slotThumbSignature } from '../../../types/lightingTemplates';
 import { AnimateGrid } from './page/AnimateGrid';
 import { StaticPalette } from './page/StaticPalette';
+import { SimpleAnimationRow } from './page/SimpleAnimationRow';
+import { isSimpleAnimation, simpleAnimationState } from './simpleAnimations';
 import { StaticPickerCanvas } from './page/StaticPickerCanvas';
 import { PICKER_FIELD_SVG, PICKER_SEGMENTED_SVG, snapToSegment, pickerHexAt, pickerPointFor } from './page/staticPickerField';
 import { useColorWriteQueue } from './page/useColorWriteQueue';
@@ -313,6 +316,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [paletteOpen, setPaletteOpen] = useState(true);
   const [pickerSegmented, setPickerSegmented] = usePersistentState('nexus.lighting.pickerSegmented', true);
   const [customStaticColor, setCustomStaticColor] = usePersistentState('nexus.lighting.customColor', '');
+  // Which way simple mode's sweeps travel. Browser-local, like the picks:
+  // the service stores only the resulting speed sign.
+  const [simpleReversed, setSimpleReversed] = usePersistentState('nexus.lighting.simpleReversed', false);
 
   const [activeEffect, setActiveEffect] = useState<string>('');
   // Read inside applyAnimate, which several handlers share: static and animate
@@ -687,6 +693,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           setActiveEffect(data.effect);
         }
       });
+    } else if (isSimpleAnimation(rawSync)) {
+      // Started from simple mode, the widget or another client: a sweep has no
+      // cell in the advanced grid, so leaving the last catalogue key selected
+      // would mark that cell and draw its shader over a canvas running this.
+      setActiveEffect('');
     } else if (EFFECTS.some(e => e.key === rawSync)) {
       setActiveEffect(rawSync);
       fetchAnimateSettings().then(data => {
@@ -1876,6 +1887,66 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [claimableDevices],
   );
 
+  // The switch holds a browser-local preference, but the direction the hardware
+  // is running is the stored speed sign - conform to it once per sweep so a
+  // second browser does not show the switch the wrong way round.
+  const reverseReadFor = useRef<string | null>(null);
+
+  // A sweep is one shared shader for every device, so starting Animate is the
+  // whole assignment - there is no per-device write to make. activeEffect is
+  // cleared because a sweep has no cell in the advanced grid: leaving the last
+  // catalogue key there marks that cell selected and draws its shader on the
+  // canvas while the hardware runs this one.
+  const handleSimpleAnimationSelect = useCallback(async (key: string) => {
+    claimAllDevices();
+    setActiveEffect('');
+    // This IS the direction now, so the conform read below must not run for
+    // this key: rawSync goes optimistic, and the stored sign is still the old
+    // one until the start persists.
+    reverseReadFor.current = key;
+    setMode('animate');
+    setRawSync(key);
+    const state = simpleAnimationState(simpleReversed);
+    try {
+      // Re-picking the running sweep reuses the live shader, and that path
+      // never clears the engine's hold, so a paused engine has to be released
+      // explicitly or the tile lights up over frozen LEDs.
+      if (paused) { setPausedState(false); await setLightingPaused(false); }
+      await startAnimate(key, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+      publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: key, effect: key });
+    } catch { /* the sync poll reconciles */ }
+  }, [claimAllDevices, paused, setMode, setPausedState, setRawSync, simpleReversed]);
+
+  // The running sweep, which is also what marks a tile.
+  const simpleAnimation = synced && effectiveMode === 'animate' && isSimpleAnimation(rawSync)
+    ? rawSync
+    : null;
+
+  // Turning the row around restarts the running sweep with the other sign.
+  const handleSimpleReverse = useCallback(async (next: boolean) => {
+    setSimpleReversed(next);
+    if (!simpleAnimation) return;
+    const state = simpleAnimationState(next);
+    try {
+      // Same in-place uniform path a re-pick takes, which never clears the
+      // engine's hold, so a paused engine has to be released explicitly.
+      if (paused) { setPausedState(false); await setLightingPaused(false); }
+      await startAnimate(simpleAnimation, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params);
+      publishControlSync({ domain: 'lighting', mode: 'animate', rawSync: simpleAnimation, effect: simpleAnimation });
+    } catch { /* the sync poll reconciles */ }
+  }, [paused, setPausedState, simpleAnimation, setSimpleReversed]);
+
+  useEffect(() => {
+    if (!simpleAnimation || reverseReadFor.current === simpleAnimation) return;
+    reverseReadFor.current = simpleAnimation;
+    let cancelled = false;
+    fetchAnimateSettings().then(data => {
+      const speed = data?.states?.[simpleAnimation]?.speed;
+      if (!cancelled && typeof speed === 'number') setSimpleReversed(speed < 0);
+    }).catch(() => { /* keep the local value */ });
+    return () => { cancelled = true; };
+  }, [simpleAnimation, setSimpleReversed]);
+
   // The swatch simple mode marks active: the colour every device is wearing.
   // A mixed set (or a device with no pick, which wears the shared effect) has
   // no single answer, so nothing reads as active.
@@ -1894,7 +1965,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   // The simple page can only show Off or one palette swatch; anything else
   // leaves nothing marked active. `synced` gates it: an unsynced mode is a guess.
-  const simpleCustomActive = synced && effectiveMode !== 'none'
+  const simpleCustomActive = synced && effectiveMode !== 'none' && !simpleAnimation
     && selectableIds.length > 0 && simplePaletteId === null;
 
   // Pause/freeze applies to the three modes that drive a continuous output
@@ -2111,10 +2182,23 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             />
             {modeMenuNode}
           </div>
-          <StaticPalette
-            selectedId={simplePaletteId}
-            onSelect={color => { void handleSimplePaletteSelect(color, claimAllDevices()); }}
-          />
+          <div className={styles.simpleSection}>
+            <SectionHeader className={styles.simpleSectionHeader}>{t('lighting.mode.static')}</SectionHeader>
+            <StaticPalette
+              selectedId={simplePaletteId}
+              onSelect={color => { void handleSimplePaletteSelect(color, claimAllDevices()); }}
+            />
+          </div>
+          <div className={styles.simpleSection}>
+            <SectionHeader className={styles.simpleSectionHeader}>{t('lighting.mode.animate')}</SectionHeader>
+            <SimpleAnimationRow
+              activeKey={simpleAnimation}
+              reversed={simpleReversed}
+              gpuAvailable={serviceState.lighting?.gpuAvailable ?? true}
+              onSelect={key => { void handleSimpleAnimationSelect(key); }}
+              onReverse={next => { void handleSimpleReverse(next); }}
+            />
+          </div>
           {simpleCustomActive && (
             <SimpleModeNotice message={t('lighting.simple.customActive')} />
           )}

@@ -16,7 +16,7 @@ export async function lightingOutputUrl(): Promise<string> {
 // content hash of the slot's saved look (`version`), so a stale URL is never
 // pinned. EFFECT_THUMB_VERSION is the global kill-switch (bump on a shader or
 // render-path change to invalidate every thumbnail at once).
-export const EFFECT_THUMB_VERSION = 4;
+export const EFFECT_THUMB_VERSION = 6;
 
 /**
  * Path to a preset slot's universal thumbnail. `version` is a content hash of
