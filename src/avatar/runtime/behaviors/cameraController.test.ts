@@ -27,8 +27,24 @@ function mount() {
 describe('CameraController angle limits', () => {
   const opts = { minAngles: [-30, -20] as [number, number], maxAngles: [30, 20] as [number, number], overshootDeg: 8, overshootReturn: 0.9, dragSensitivity: 1, inertiaDamping: 0.9, maxDragDelta: 1000 };
 
+  /** Where the camera is actually placed: the clamped angle plus any slack. */
   function yawOf(c: CameraController): number {
-    return (c as unknown as { yawDeg: number }).yawDeg;
+    const priv = c as unknown as { yawDeg: number; yawSlack: number };
+    return priv.yawDeg + priv.yawSlack;
+  }
+
+  function drag(el: HTMLElement, c: CameraController, dx: number, steps = 25): void {
+    el.dispatchEvent(pointer('pointerdown', 1, 0, 0));
+    for (let i = 1; i <= steps; i++) el.dispatchEvent(pointer('pointermove', 1, (dx / steps) * i, 0));
+    for (let i = 0; i < 20; i++) c.update(1 / 60);
+    el.dispatchEvent(pointer('pointerup', 1, dx, 0));
+    for (let i = 0; i < 400; i++) c.update(1 / 60);
+  }
+
+  function mounted(o: Partial<typeof opts> = {}): { el: HTMLElement; c: CameraController } {
+    const el = document.createElement('div');
+    Object.assign(el, { setPointerCapture: () => {}, hasPointerCapture: () => true });
+    return { el, c: new CameraController(new THREE.PerspectiveCamera(), new THREE.Object3D(), el, { ...opts, ...o }) };
   }
 
   it('a drag past the limit resists instead of stopping dead, and eases back when released', () => {
@@ -64,6 +80,22 @@ describe('CameraController angle limits', () => {
     for (let i = 0; i < 400; i++) { c.update(1 / 60); peak = Math.max(peak, yawOf(c)); }
     expect(peak).toBeLessThanOrEqual(atRelease + 0.01);
     expect(yawOf(c)).toBeCloseTo(30, 1);
+  });
+
+  it('after hitting a limit the camera still pans back the other way', () => {
+    const { el, c } = mounted();
+    drag(el, c, -900);
+    expect(yawOf(c)).toBe(30);
+    // A modest drag the other way must move it off the limit it just hit.
+    drag(el, c, 20);
+    const back = yawOf(c);
+    expect(back).toBeLessThan(29);
+    expect(back).toBeGreaterThan(0);
+    drag(el, c, 900);
+    expect(yawOf(c)).toBe(-30);
+    drag(el, c, -20);
+    expect(yawOf(c)).toBeGreaterThan(-29);
+    c.dispose();
   });
 
   it('inside the limits nothing is resisted', () => {
