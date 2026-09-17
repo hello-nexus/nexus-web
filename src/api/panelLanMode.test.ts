@@ -15,6 +15,7 @@ vi.mock('./service', () => ({
   isTunnelActive: () => serviceState.tunnelActive,
   isRemoteOrigin: true,
   isForceLanMode: () => serviceState.forceLan,
+  loopbackFetchInit: { targetAddressSpace: 'loopback' },
   relayRequestWithStatus: (...args: unknown[]) => relayWithStatusMock(...args),
   RELAY_BOOT_TIMEOUT_MS: 6000,
   resolveHttp: (path: string) => `http://localhost:9400${path}`,
@@ -65,6 +66,13 @@ describe('panel.ts device helpers on a remote origin', () => {
     expect(result).toEqual({ found: true, record: { id: 'dev-1' } });
     expect(directFetch).toHaveBeenCalledTimes(1);
     expect(String(directFetch.mock.calls[0][0])).toBe('http://localhost:9400/panel/devices/dev-1');
+    // Cross-origin to the service: no cookies (the CORS reply carries no
+    // Allow-Credentials, so an 'include' fetch is rejected) and the loopback
+    // address space declared for Chromium's Local Network Access check.
+    const init = directFetch.mock.calls[0][1] as RequestInit & { targetAddressSpace?: string };
+    expect(init.credentials).toBe('same-origin');
+    expect(init.targetAddressSpace).toBe('loopback');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer session-token');
   });
 
   it('keeps a live tunnel ahead of localhost even in forceLanMode', async () => {

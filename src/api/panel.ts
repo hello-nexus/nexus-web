@@ -1,5 +1,5 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, isForceLanMode, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
+import { deleteService, fetchService, isForceLanMode, isTunnelActive, isRemoteOrigin, loopbackFetchInit, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
 
@@ -9,6 +9,17 @@ import type { PanelLayout, PanelSurface } from '../panel/types';
 // tunnel is live; every caller checks isTunnelActive() first.
 function localhostUnreachable(): boolean {
   return isRemoteOrigin && !isForceLanMode();
+}
+
+// Init for the direct localhost fetches below. The phone-session cookie only
+// ever rides a same-origin request; cross-origin from the website the service
+// answers without Access-Control-Allow-Credentials, so an 'include' fetch is
+// rejected by the browser, and Chromium needs the loopback address space
+// declared or it never leaves the page (see loopbackFetchInit).
+function directFetchInit(): RequestInit {
+  return isRemoteOrigin && isForceLanMode()
+    ? { ...loopbackFetchInit, credentials: 'same-origin' }
+    : { credentials: 'include' };
 }
 
 export interface PanelStatus {
@@ -184,9 +195,9 @@ export async function allocatePanelDeviceWithStatus(
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(resolveHttp('/panel/devices'), {
+      ...directFetchInit(),
       method: 'POST',
       headers,
-      credentials: 'include',
       body: JSON.stringify({ displayName, capabilities }),
     });
     if (!res.ok) return { ok: false, status: res.status };
@@ -251,7 +262,7 @@ export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDevic
     const buildInit = (): RequestInit => {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      return { headers, credentials: 'include', cache: 'no-store' };
+      return { ...directFetchInit(), headers, cache: 'no-store' };
     };
     let res = await fetch(url, buildInit());
     if (res.status === 401) {
@@ -299,7 +310,7 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
     const buildInit = (): RequestInit => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      return { method: 'POST', headers, credentials: 'include', body: JSON.stringify(patch) };
+      return { ...directFetchInit(), method: 'POST', headers, body: JSON.stringify(patch) };
     };
     let res = await fetch(url, buildInit());
     if (res.status === 401) {
