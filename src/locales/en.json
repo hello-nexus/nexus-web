@@ -485,6 +485,7 @@
   "datepicker.popup": "Date picker",
   "datepicker.prevMonth": "Previous month",
   "datepicker.today": "Today",
+  "devices.available.missingNotice": "If your device isn't listed here, first make sure it's plugged in correctly, then update its firmware using the manufacturer's official software.",
   "devices.available.none": "No supported devices currently available.",
   "devices.busControlOff": "Nexus Control is off. Monitoring for this device is also disabled.",
   "devices.cnvs.disableConnectionAnimation": "Disable connection animation",

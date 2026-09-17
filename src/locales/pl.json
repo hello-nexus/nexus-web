@@ -492,6 +492,7 @@
   "datepicker.popup": "Wybór daty",
   "datepicker.prevMonth": "Poprzedni miesiąc",
   "datepicker.today": "Dziś",
+  "devices.available.missingNotice": "Jeśli Twoje urządzenie nie jest tu wymienione, najpierw upewnij się, że jest poprawnie podłączone, a następnie zaktualizuj jego firmware za pomocą oficjalnego oprogramowania producenta.",
   "devices.available.none": "Aktualnie brak dostępnych obsługiwanych urządzeń.",
   "devices.busControlOff": "Sterowanie Nexus jest wyłączone. Monitorowanie tego urządzenia jest również wyłączone.",
   "devices.cnvs.disableConnectionAnimation": "Wyłącz animację połączenia",

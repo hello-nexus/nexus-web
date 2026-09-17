@@ -485,6 +485,7 @@
   "datepicker.popup": "Sélecteur de date",
   "datepicker.prevMonth": "Mois précédent",
   "datepicker.today": "Aujourd'hui",
+  "devices.available.missingNotice": "Si votre appareil n'apparaît pas ici, vérifiez d'abord qu'il est correctement branché, puis mettez à jour son firmware avec le logiciel officiel du fabricant.",
   "devices.available.none": "Aucun appareil pris en charge actuellement disponible.",
   "devices.busControlOff": "Le contrôle Nexus est désactivé. La surveillance de cet appareil est également désactivée.",
   "devices.cnvs.disableConnectionAnimation": "Désactiver l'animation de connexion",

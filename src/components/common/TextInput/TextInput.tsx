@@ -17,6 +17,8 @@ export interface TextInputProps {
   ariaLabel?: string;
   /** Applies an error-state border. Purely visual; pair with a role="alert" message elsewhere. */
   invalid?: boolean;
+  /** Reduces what was typed or pasted to what the field accepts, before it is shown or reported. */
+  sanitize?: (value: string) => string;
   onInput?: (value: string) => void;
   onSubmit?: (value: string) => void;
   onFocus?: () => void;
@@ -38,6 +40,7 @@ export function TextInput({
   autoComplete,
   ariaLabel,
   invalid = false,
+  sanitize,
   onInput,
   onSubmit,
   onFocus,
@@ -74,7 +77,18 @@ export function TextInput({
       autoComplete={autoComplete}
       aria-label={ariaLabel}
       aria-invalid={invalid || undefined}
-      onInput={(e) => onInput?.(e.currentTarget.value)}
+      onInput={(e) => {
+        const el = e.currentTarget;
+        const next = sanitize ? sanitize(el.value) : el.value;
+        // Written back from here rather than on the next render: a rejected
+        // character leaves the caller's value unchanged, and React renders
+        // nothing for an unchanged value, so the character would linger.
+        if (next !== el.value) {
+          el.value = next;
+          lastSet.current = next;
+        }
+        onInput?.(next);
+      }}
       onKeyDown={(e) => { if (e.key === 'Enter') onSubmit?.((e.currentTarget as HTMLInputElement).value); }}
       onFocus={() => onFocus?.()}
       onBlur={(e) => onBlur?.(e.currentTarget.value)}

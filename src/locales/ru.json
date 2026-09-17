@@ -492,6 +492,7 @@
   "datepicker.popup": "Выбор даты",
   "datepicker.prevMonth": "Предыдущий месяц",
   "datepicker.today": "Сегодня",
+  "devices.available.missingNotice": "Если ваше устройство здесь не указано, сначала убедитесь, что оно правильно подключено, а затем обновите его прошивку с помощью официального ПО производителя.",
   "devices.available.none": "В данный момент нет доступных поддерживаемых устройств.",
   "devices.busControlOff": "Управление Nexus отключено. Мониторинг этого устройства тоже отключён.",
   "devices.cnvs.disableConnectionAnimation": "Отключить анимацию подключения",

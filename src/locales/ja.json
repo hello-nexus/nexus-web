@@ -485,6 +485,7 @@
   "datepicker.popup": "日付選択",
   "datepicker.prevMonth": "前月",
   "datepicker.today": "今日",
+  "devices.available.missingNotice": "お使いのデバイスがここに表示されない場合は、まず正しく接続されていることを確認し、次にメーカーの公式ソフトウェアでファームウェアを更新してください。",
   "devices.available.none": "現在利用可能な対応デバイスはありません。",
   "devices.busControlOff": "Nexus コントロールはオフです。このデバイスのモニタリングもオフになっています。",
   "devices.cnvs.disableConnectionAnimation": "接続アニメーションを無効化",
