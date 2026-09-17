@@ -40,6 +40,14 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
   backgroundMediaThumbnailPath: vi.fn((_deviceId: string, id: string) => `/thumb/${id}`),
 }));
 
+vi.mock('../../api/klipy', () => ({
+  searchKlipy: vi.fn(async () => ({ items: [{ slug: 'happy-cat', title: 'Happy cat', width: 220, height: 164 }], hasNext: false })),
+  klipyThumbUrl: (slug: string) => `/api/klipy/thumb/${slug}`,
+  importKlipyBackground: vi.fn(async () => ({
+    item: { id: 'klipy-item', type: 'animated', alpha: false }, error: false, msg: '',
+  })),
+}));
+
 vi.mock('./useBackgroundMedia', () => ({
   useBackgroundMedia: () => ({ items: api.library, thumbs: {}, refresh: api.refresh, removeLocal: vi.fn() }),
 }));
@@ -58,6 +66,7 @@ import {
   commitBackgroundMedia,
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
+import { importKlipyBackground } from '../../api/klipy';
 
 // Every folder file gets the cropper's default centred crop at the panel's
 // aspect, so the expected crop strings below follow from these dimensions.
@@ -298,5 +307,21 @@ describe('BackgroundMediaPicker order', () => {
     expect(reorderMediaIds(['a', 'b', 'c'], 'a', 'c')).toEqual(['b', 'c', 'a']);
     expect(reorderMediaIds(['a', 'b', 'c'], 'c', 'a')).toEqual(['c', 'a', 'b']);
     expect(reorderMediaIds(['a', 'b', 'c'], 'a', 'zz')).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('Klipy picks', () => {
+  it('imports at the panel aspect and selects the result', async () => {
+    const { onSelect } = renderPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
+    fireEvent.click(await screen.findByLabelText('Happy cat'));
+
+    await waitFor(() => expect(importKlipyBackground).toHaveBeenCalled());
+    // A 220x164 landscape GIF on a 720x1280 portrait panel keeps the full
+    // height and trims to the middle 0.5625*164/220 of the width.
+    expect(importKlipyBackground).toHaveBeenCalledWith(
+      'dev1', 'happy-cat', '0.290341,0.000000,0.419318,1.000000', 720, 1280);
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('klipy-item', 'animated', false));
   });
 });

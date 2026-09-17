@@ -1,22 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImageOff } from 'lucide-react';
-import { useTranslation } from '../../../../lib/i18n';
-import { Overlay } from '../../../../components/common/Overlay/Overlay';
-import { SearchInput } from '../../../../components/common/SearchInput/SearchInput';
-import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
-import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
-import { Spinner } from '../../../../components/common/Spinner/Spinner';
-import { klipyThumbUrl, searchKlipy, type KlipyGif } from '../../../../api/klipy';
+import { useTranslation } from '../../../lib/i18n';
+import { Overlay } from '../Overlay/Overlay';
+import { SearchInput } from '../SearchInput/SearchInput';
+import { EffectCard } from '../EffectCard/EffectCard';
+import { EmptyState } from '../EmptyState/EmptyState';
+import { Spinner } from '../Spinner/Spinner';
+import { klipyThumbUrl, searchKlipy, type KlipyGif } from '../../../api/klipy';
 import styles from './KlipyPicker.module.scss';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
-export function KlipyPicker({ open, busySlug, importError, onPick, onClose }: {
+export function KlipyPicker({ open, busySlug, importError, thumbAspect, onPick, onClose }: {
   open: boolean;
   /** Slug currently importing; its card shows the spinner and the grid locks. */
   busySlug: string | null;
   /** A failed import renders here; the picker stays open over the page. */
   importError?: string | null;
+  /** Card aspect (width / height). Match the surface's own crop so the grid
+   *  previews what the import will produce; omit for the 16:9 default. */
+  thumbAspect?: number;
   onPick: (gif: KlipyGif) => void;
   onClose: () => void;
 }) {
@@ -132,6 +135,7 @@ export function KlipyPicker({ open, busySlug, importError, onPick, onClose }: {
                 label={gif.title || gif.slug}
                 ariaLabel={gif.title || gif.slug}
                 thumbUrl={klipyThumbUrl(gif.slug)}
+                thumbAspect={thumbAspect}
                 active={false}
                 onClick={() => { if (!busySlug) onPick(gif); }}
                 thumbOverlay={busySlug === gif.slug ? <Spinner size={22} /> : undefined}

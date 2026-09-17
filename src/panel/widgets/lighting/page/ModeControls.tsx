@@ -13,7 +13,7 @@ import {
   openMediaFolder,
   stageMedia,
 } from '../../../../api/mediaLibrary';
-import { centreCrop, importKlipy, type KlipyGif } from '../../../../api/klipy';
+import { importKlipy, type KlipyGif } from '../../../../api/klipy';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingMode } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
@@ -22,10 +22,10 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { Button } from '../../../../components/common/Button/Button';
 import { MediaCropper, type NormalizedCrop } from '../../../../components/common/MediaCropper/MediaCropper';
-import { serializeCrop } from '../../../../components/common/MediaCropper/mediaCrop';
+import { centerCropForAspect, serializeCrop } from '../../../../components/common/MediaCropper/mediaCrop';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
-import { KlipyPicker } from './KlipyPicker';
+import { KlipyPicker } from '../../../../components/common/KlipyPicker/KlipyPicker';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -221,7 +221,8 @@ function MediaControls() {
   const handleKlipyPick = useCallback(async (gif: KlipyGif) => {
     setKlipyBusy(gif.slug);
     setImportError(null);
-    const result = await importKlipy(gif.slug, centreCrop(gif.width, gif.height, LIGHTING_CROP_ASPECT));
+    const crop = serializeCrop(centerCropForAspect(LIGHTING_CROP_ASPECT, gif.width, gif.height));
+    const result = await importKlipy(gif.slug, crop);
     setKlipyBusy(null);
     if (!result || result.error || !result.item) {
       setImportError(result?.msg || t('lighting.controls.importFailed'));

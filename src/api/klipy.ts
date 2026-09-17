@@ -33,18 +33,17 @@ export async function importKlipy(slug: string, crop: string) {
     '/media/klipy/import', { slug, crop });
 }
 
-/**
- * Centre crop of a source at `aspect`, normalized 0..1, in the "x,y,w,h" form
- * /media/klipy/import passes to ffmpeg. Without it the canvas pads a square GIF
- * with black bars, which on an LED strip is dead pixels rather than letterbox.
- */
-export function centreCrop(width: number, height: number, aspect: number): string {
-  if (!(width > 0) || !(height > 0) || !(aspect > 0)) return '0,0,1,1';
-  const sourceAspect = width / height;
-  if (sourceAspect > aspect) {
-    const w = aspect / sourceAspect;
-    return `${((1 - w) / 2).toFixed(6)},0,${w.toFixed(6)},1`;
-  }
-  const h = sourceAspect / aspect;
-  return `0,${((1 - h) / 2).toFixed(6)},1,${h.toFixed(6)}`;
+/** The same pick, baked as one device's panel background at its panel size. */
+export async function importKlipyBackground(
+  deviceId: string, slug: string, crop: string, w: number, h: number, keepTransparency = true,
+) {
+  return postService<{ item: BackgroundImportItem | null; error?: boolean; msg?: string }>(
+    `/panel/devices/${encodeURIComponent(deviceId)}/background-media/klipy/import`,
+    { slug, crop, w, h, keepTransparency });
+}
+
+interface BackgroundImportItem {
+  id: string;
+  type: 'static' | 'animated';
+  alpha?: boolean;
 }

@@ -1,12 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { centreCrop } from '../../../../api/klipy';
 import { KlipyPicker } from './KlipyPicker';
 
 const searchKlipy = vi.hoisted(() => vi.fn());
 
-vi.mock('../../../../api/klipy', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../../../api/klipy')>()),
+vi.mock('../../../api/klipy', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../api/klipy')>()),
   searchKlipy,
   klipyThumbUrl: (slug: string) => `/api/klipy/thumb/${slug}`,
 }));
@@ -26,26 +25,6 @@ class StubIntersectionObserver {
   thresholds = [];
 }
 vi.stubGlobal('IntersectionObserver', StubIntersectionObserver);
-
-describe('centreCrop', () => {
-  it('takes the middle of a wide source horizontally', () => {
-    // 2:1 into 16:9 keeps the full height and 88.9% of the width.
-    expect(centreCrop(400, 200, 16 / 9)).toBe('0.055556,0,0.888889,1');
-  });
-
-  it('takes the middle of a tall source vertically', () => {
-    expect(centreCrop(100, 200, 16 / 9)).toBe('0,0.359375,1,0.281250');
-  });
-
-  it('is the identity for a source already at the target aspect', () => {
-    expect(centreCrop(1600, 900, 16 / 9)).toBe('0,0.000000,1,1.000000');
-  });
-
-  it('falls back to the whole frame for unusable dimensions', () => {
-    expect(centreCrop(0, 0, 16 / 9)).toBe('0,0,1,1');
-    expect(centreCrop(220, 164, 0)).toBe('0,0,1,1');
-  });
-});
 
 describe('KlipyPicker', () => {
   beforeEach(() => {

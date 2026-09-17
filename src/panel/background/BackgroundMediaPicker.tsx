@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FolderInput, FolderOpen, Image as ImageIcon, Upload } from 'lucide-react';
+import { FolderInput, FolderOpen, Image as ImageIcon, Sparkles, Upload } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
@@ -9,6 +9,7 @@ import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal';
 import { MediaGrid } from '../widgets/lighting/effecteditor/MediaGrid';
 import { MediaCropper, type NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
+import { KlipyPicker } from '../../components/common/KlipyPicker/KlipyPicker';
 import { centerCropForAspect, serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
 import { useBackgroundMedia } from './useBackgroundMedia';
 import {
@@ -21,6 +22,7 @@ import {
   probeBackgroundMediaStageSize,
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
+import { importKlipyBackground, type KlipyGif } from '../../api/klipy';
 import type { MediaItem } from '../../api/mediaLibrary';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../slideshow/slideshow';
 import { orderBackgroundMedia } from './slideshowOrder';
@@ -82,6 +84,8 @@ export function BackgroundMediaPicker({
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [cropState, setCropState] = useState<{ stageId: string; src: string; alpha: boolean } | null>(null);
+  const [klipyOpen, setKlipyOpen] = useState(false);
+  const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const folderRef = useRef<HTMLInputElement | null>(null);
@@ -215,6 +219,24 @@ export function BackgroundMediaPicker({
     setCropState(null);
   };
 
+  // A pick skips staging and the cropper: the crop is the same centred one the
+  // folder import uses, at the panel's aspect.
+  const handleKlipyPick = async (gif: KlipyGif) => {
+    setKlipyBusy(gif.slug);
+    setImportError(null);
+    const crop = serializeCrop(centerCropForAspect(deviceAspect, gif.width, gif.height));
+    const result = await importKlipyBackground(deviceId, gif.slug, crop, deviceW, deviceH);
+    setKlipyBusy(null);
+    if (!result || result.error || !result.item) {
+      setImportError(result?.msg || t('lighting.controls.importFailed'));
+      return;
+    }
+    setKlipyOpen(false);
+    await refresh();
+    if (!aliveRef.current) return;
+    onSelect(result.item.id, result.item.type, !!result.item.alpha);
+  };
+
   const handleCropCancel = () => {
     if (cropState) {
       cancelBackgroundMediaStage(deviceId, cropState.stageId).catch(() => {});
@@ -324,6 +346,14 @@ export function BackgroundMediaPicker({
               {t('lighting.controls.importFolder')}
             </Button>
           </HoverTooltip>
+          <Button
+            type="button"
+            icon={<Sparkles size={16} aria-hidden />}
+            onClick={() => setKlipyOpen(true)}
+            disabled={importing}
+          >
+            {t('lighting.controls.klipyBrowse')}
+          </Button>
           <HoverTooltip body={t('lighting.controls.mediaManageFolder')} side="bottom">
             <Button
               className={styles.manageFolderBtn}
@@ -349,6 +379,14 @@ export function BackgroundMediaPicker({
             onChange={handleFolderImport}
           />
         </div>
+        <KlipyPicker
+          open={klipyOpen}
+          busySlug={klipyBusy}
+          importError={klipyOpen ? importError : null}
+          thumbAspect={deviceAspect}
+          onPick={handleKlipyPick}
+          onClose={() => { setKlipyOpen(false); setImportError(null); }}
+        />
         {importError && <p className={styles.mediaError}>{importError}</p>}
         {items.length === 0 && !importing && !importError && (
           <EmptyState
