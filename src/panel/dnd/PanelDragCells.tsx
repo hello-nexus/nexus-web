@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Check, Settings } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import type { CSSProperties } from 'react';
@@ -367,12 +367,10 @@ export function PanelTouchCell({
             onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
           />
         </div>
-        {/* The immersive-on-load frame IS this cell's hover affordance, so the
-            generic click-to-edit scrim would only bury what the frame marks. */}
-        {editHint && !immersiveOnLoad && (
+        {editHint && (
           <div className={styles.cellEditHint} aria-hidden="true">
             <div className={styles.cellEditHintContent}>
-              <Settings className={styles.cellEditHintIcon} />
+              <Pencil className={styles.cellEditHintIcon} />
               <span className={styles.cellEditHintLabel}>{t('panel.widget.editWidget')}</span>
             </div>
           </div>
@@ -518,7 +516,7 @@ export function PanelCatalogCell({
                 </>
               ) : (
                 <>
-                  <Settings className={styles.cellAddedIcon} />
+                  <Pencil className={styles.cellAddedIcon} />
                   <span className={styles.cellAddedLabel}>{t('panel.widget.editWidget')}</span>
                 </>
               )}

@@ -29,6 +29,7 @@ export function PanelSimulatorContent() {
           deviceId={sim.deviceId ?? undefined}
           deviceTouch={sim.deviceTouch}
           deviceDpi={sim.dpi}
+          simulatorPreviewScale={sim.previewScale}
           displayBound={sim.displayBound}
           layoutState={sim.layoutState}
           simulator

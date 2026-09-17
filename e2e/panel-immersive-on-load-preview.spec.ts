@@ -45,9 +45,15 @@ const THEME = {
   widgetPadding: 50,
 };
 
-function initMessage(immersiveOnLoadWidgetId?: string) {
+// The device page always transform-scales the preview down to fit its column,
+// so the shipping configuration is an upscale well above 1. Testing at 1 would
+// exercise the one value that never reaches a user.
+const SHIPPING_PREVIEW_SCALE = 0.4;
+
+function initMessage(immersiveOnLoadWidgetId?: string, previewScale = SHIPPING_PREVIEW_SCALE) {
   return {
     type: 'simulator/init',
+    previewScale,
     surface: 'y70',
     deviceTouch: true,
     layout: {
@@ -94,15 +100,22 @@ function cell(page: Page, id: string) {
   return page.locator(`[data-panel-widget-id="${id}"]`);
 }
 
-// The frame is the cell's only 2px-bordered box. Matched on the shape the
+// The frame is the cell's only boldly-bordered box. Matched on the shape the
 // stylesheet gives it rather than a CSS-module hash.
 function ringStyle(page: Page, id: string) {
   return page.evaluate(widgetId => {
     const host = document.querySelector(`[data-panel-widget-id="${widgetId}"]`);
     for (const el of Array.from(host?.querySelectorAll('div') ?? [])) {
       const cs = getComputedStyle(el);
-      if (cs.borderTopWidth !== '2px') continue;
-      return { borderColor: cs.borderTopColor, boxShadow: cs.boxShadow, opacity: cs.opacity };
+      if (parseFloat(cs.borderTopWidth) < 3) continue;
+      const rect = el.getBoundingClientRect();
+      return {
+        borderWidth: parseFloat(cs.borderTopWidth),
+        borderColor: cs.borderTopColor,
+        boxShadow: cs.boxShadow,
+        opacity: cs.opacity,
+        bottom: rect.bottom,
+      };
     }
     return null;
   }, id);
@@ -125,26 +138,70 @@ test.describe('immersive-on-load frame in the canvas preview', () => {
     // The same white rule with a dark halo on both sides that the lighting
     // canvas's device frames wear.
     const ring = await ringStyle(page, WIDGET_ID);
-    expect(ring, 'the hovered mark must draw a 2px ring').not.toBeNull();
-    expect(ring!.borderColor).toBe('rgba(255, 255, 255, 0.85)');
+    expect(ring, 'the hovered mark must draw a bold ring').not.toBeNull();
+    // Authored at 3px and divided by the preview's downscale, so it lands at
+    // 3px on the operator's screen rather than sub-pixel. The computed value is
+    // rounded to whole device pixels, hence the 1px tolerance.
+    expect(Math.abs(ring!.borderWidth - 3 / SHIPPING_PREVIEW_SCALE)).toBeLessThanOrEqual(1);
+    expect(ring!.borderColor).toBe('rgba(255, 255, 255, 0.95)');
     expect(ring!.boxShadow).toContain('inset');
     expect(ring!.opacity).toBe('1');
+
+    // The name hangs BELOW the frame, never over it.
+    const labelTop = await page.getByText(MARK_LABEL, { exact: true })
+      .evaluate(el => el.getBoundingClientRect().top);
+    expect(labelTop).toBeGreaterThanOrEqual(ring!.bottom - 1);
   });
 
-  test('the marked cell shows the frame in place of the generic edit hint', async ({ page }) => {
+  test('the marked cell keeps the click-to-edit hint alongside the frame', async ({ page }) => {
     await gotoPreview(page, initMessage(WIDGET_ID));
 
     await cell(page, WIDGET_ID).hover();
     await expect.poll(() => opacityOfText(page, MARK_LABEL)).toBe('1');
-    // The click-to-edit scrim would bury what the frame marks, so it is withheld
-    // on this one cell.
-    await expect(cell(page, WIDGET_ID).getByText(EDIT_HINT, { exact: true })).toHaveCount(0);
+    // The mark is extra information about the cell, not a replacement for the
+    // affordance that says it is click-to-edit.
+    await expect(cell(page, WIDGET_ID).getByText(EDIT_HINT, { exact: true })).toHaveCount(1);
 
-    // Every other cell keeps it.
+    // An unmarked cell keeps the hint and draws no frame.
     await cell(page, OTHER_ID).hover();
-    const otherHint = cell(page, OTHER_ID).getByText(EDIT_HINT, { exact: true });
-    await expect(otherHint).toHaveCount(1);
-    await expect(await ringStyle(page, OTHER_ID)).toBeNull();
+    await expect(cell(page, OTHER_ID).getByText(EDIT_HINT, { exact: true })).toHaveCount(1);
+    expect(await ringStyle(page, OTHER_ID)).toBeNull();
+  });
+
+  test('the chip stays inside the pager, including on the last grid row', async ({ page }) => {
+    // The chip escapes the cell box and the pager clips its overflow, so the
+    // worst case is a marked widget with nothing but page padding beneath it.
+    const init = initMessage(WIDGET_ID) as unknown as { layout: { pages: { widgets: unknown[] }[] } };
+    init.layout.pages[0].widgets = [
+      { id: OTHER_ID, type: 'clock', size: '4x2', col: 0, row: 0 },
+      { id: WIDGET_ID, type: 'media', size: '4x2', col: 0, row: 12 },
+    ];
+    await gotoPreview(page, init);
+    await cell(page, WIDGET_ID).hover();
+    await expect.poll(() => opacityOfText(page, MARK_LABEL)).toBe('1');
+
+    const box = await page.evaluate(label => {
+      const chip = Array.from(document.querySelectorAll('div'))
+        .find(d => d.textContent === label);
+      const pager = document.querySelector('[class*="pager"]');
+      if (!chip || !pager) return null;
+      const c = chip.getBoundingClientRect();
+      const p = pager.getBoundingClientRect();
+      return { c: { top: c.top, bottom: c.bottom, left: c.left, right: c.right }, p: { top: p.top, bottom: p.bottom, left: p.left, right: p.right } };
+    }, MARK_LABEL);
+    expect(box).not.toBeNull();
+    expect(box!.c.bottom, 'chip clipped by the pager bottom').toBeLessThanOrEqual(box!.p.bottom);
+    expect(box!.c.left, 'chip clipped by the pager left edge').toBeGreaterThanOrEqual(box!.p.left);
+    expect(box!.c.right, 'chip clipped by the pager right edge').toBeLessThanOrEqual(box!.p.right);
+
+    // English never reaches the cap, so assert the cap itself is wired: a long
+    // locale (ru/pl run ~1.5x) would otherwise run off both pager edges.
+    const cap = await page.evaluate(label => {
+      const chip = Array.from(document.querySelectorAll('div')).find(d => d.textContent === label);
+      return chip ? getComputedStyle(chip).maxWidth : null;
+    }, MARK_LABEL);
+    expect(cap).not.toBe('none');
+    expect(parseFloat(cap!)).toBeCloseTo(700 * SHIPPING_PREVIEW_SCALE, 0);
   });
 
   test('an unmarked layout draws no frame at all', async ({ page }) => {
