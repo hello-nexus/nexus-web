@@ -1,5 +1,4 @@
 import { fetchService, postService, resolveHttp, tokenParam } from './service';
-import type { BackgroundMediaItem } from './panelBackgroundMedia';
 
 export interface KlipyGif {
   slug: string;
@@ -34,12 +33,8 @@ export async function importKlipy(slug: string, crop: string) {
     '/media/klipy/import', { slug, crop });
 }
 
-/** The same pick, baked as one device's panel background at its panel size. */
-export async function importKlipyBackground(
-  deviceId: string, slug: string, crop: string, w: number, h: number,
-  keepTransparency = false, fit = false,
-) {
-  return postService<{ item: BackgroundMediaItem | null; error?: boolean; msg?: string }>(
-    `/panel/devices/${encodeURIComponent(deviceId)}/background-media/klipy/import`,
-    { slug, crop, w, h, keepTransparency, fit });
+/** Stages the pick for one device's cropper; commitBackgroundMedia finishes it like an upload. */
+export async function stageKlipyBackground(deviceId: string, slug: string) {
+  return postService<{ stageId: string | null; alpha: boolean; error?: boolean; msg?: string }>(
+    `/panel/devices/${encodeURIComponent(deviceId)}/background-media/klipy/stage`, { slug });
 }

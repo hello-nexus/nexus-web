@@ -45,7 +45,7 @@ function orientedDims(w: number, h: number, rotate: number): { w: number; h: num
   return rotate === 90 || rotate === 270 ? { w: h, h: w } : { w, h };
 }
 
-export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, allowTransparency, onConfirm, onCancel }: {
+export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, allowTransparency, allowFit, onConfirm, onCancel }: {
   src: string;
   /** 'video' renders a <video> frame to crop against; 'image' (default) an <img>. */
   kind?: 'image' | 'video';
@@ -54,7 +54,9 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
   busy?: boolean;
   /** Offer the "keep transparency" choice. Only pass it for a source that has alpha to keep. */
   allowTransparency?: boolean;
-  onConfirm: (crop: NormalizedCrop, keepTransparency: boolean) => void;
+  /** Offer "fit entire image": the whole frame, letterboxed by the consumer, instead of a crop. */
+  allowFit?: boolean;
+  onConfirm: (crop: NormalizedCrop, keepTransparency: boolean, fit: boolean) => void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation();
@@ -70,6 +72,9 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
   const [keepTransparency, setKeepTransparency] = useState(true);
   const keepTransparencyRef = useRef(keepTransparency);
   useEffect(() => { keepTransparencyRef.current = keepTransparency; }, [keepTransparency]);
+  const [fitWhole, setFitWhole] = useState(false);
+  const fitWholeRef = useRef(fitWhole);
+  useEffect(() => { fitWholeRef.current = fitWhole; }, [fitWhole]);
   const cropRef = useRef(crop);
   useEffect(() => { cropRef.current = crop; }, [crop]);
   const orientRef = useRef(orient);
@@ -141,7 +146,7 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
     // Re-center the crop only when the oriented frame's dimensions change (a
     // quarter turn); a pure mirror keeps the user's existing framing.
     if (before.w !== after.w || before.h !== after.h) {
-      setCrop(centerCropForAspect(after.w, after.h));
+      setCrop(fitWholeRef.current ? { x: 0, y: 0, w: 1, h: 1 } : centerCropForAspect(after.w, after.h));
     }
   }, [intrinsic, centerCropForAspect]);
 
@@ -201,7 +206,8 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
   const handlePointerUp = useCallback(() => { dragRef.current = null; }, []);
 
   const handleReset = useCallback(() => {
-    if (oriented) setCrop(centerCropForAspect(oriented.w, oriented.h));
+    if (!oriented) return;
+    setCrop(fitWholeRef.current ? { x: 0, y: 0, w: 1, h: 1 } : centerCropForAspect(oriented.w, oriented.h));
   }, [oriented, centerCropForAspect]);
 
   const buildResult = useCallback((): NormalizedCrop => ({
@@ -211,8 +217,23 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
   }), []);
 
   const confirm = useCallback(() => {
-    onConfirm(buildResult(), keepTransparencyRef.current);
+    const fit = fitWholeRef.current;
+    const result = fit
+      ? { x: 0, y: 0, w: 1, h: 1, rotate: orientRef.current.rotate, mirror: orientRef.current.mirror }
+      : buildResult();
+    onConfirm(result, keepTransparencyRef.current, fit);
   }, [onConfirm, buildResult]);
+
+  // Fitting takes the whole frame, so the rect snaps to it; turning it off
+  // returns to the largest centred crop.
+  const toggleFit = useCallback(() => {
+    setFitWhole(prev => {
+      const next = !prev;
+      if (next) setCrop({ x: 0, y: 0, w: 1, h: 1 });
+      else if (oriented) setCrop(centerCropForAspect(oriented.w, oriented.h));
+      return next;
+    });
+  }, [oriented, centerCropForAspect]);
 
   // DeviceModal/Overlay handles Escape→cancel; Enter confirms. Both no-op when busy.
   useEffect(() => {
@@ -284,12 +305,16 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
               height: `${crop.h * layout.dispH}px`,
             }}
             role="presentation"
-            onPointerDown={e => handlePointerDown(e, 'pan')}
+            onPointerDown={fitWhole ? undefined : e => handlePointerDown(e, 'pan')}
           >
-            <div className={`${styles.handle} ${styles.handleTL}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'tl')} />
-            <div className={`${styles.handle} ${styles.handleTR}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'tr')} />
-            <div className={`${styles.handle} ${styles.handleBL}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'bl')} />
-            <div className={`${styles.handle} ${styles.handleBR}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'br')} />
+            {!fitWhole && (
+              <>
+                <div className={`${styles.handle} ${styles.handleTL}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'tl')} />
+                <div className={`${styles.handle} ${styles.handleTR}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'tr')} />
+                <div className={`${styles.handle} ${styles.handleBL}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'bl')} />
+                <div className={`${styles.handle} ${styles.handleBR}`} role="presentation" onPointerDown={e => handlePointerDown(e, 'br')} />
+              </>
+            )}
           </div>
         )}
         {busy && (
@@ -311,6 +336,17 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
         <button type="button" className={styles.toolBtn} onClick={() => applyOrientation(flipVertical(orient))} disabled={controlsDisabled} aria-label={t('cropper.flipV')} title={t('cropper.flipV')}>
           <FlipVertical2 size={16} />
         </button>
+        {allowFit && (
+          <label className={styles.keepAlpha}>
+            <input
+              type="checkbox"
+              checked={fitWhole}
+              disabled={controlsDisabled}
+              onChange={toggleFit}
+            />
+            <span>{t('cropper.fitWhole')}</span>
+          </label>
+        )}
         {allowTransparency && (
           <label className={styles.keepAlpha}>
             <input

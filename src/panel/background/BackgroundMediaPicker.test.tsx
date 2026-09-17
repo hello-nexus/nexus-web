@@ -43,9 +43,7 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
 vi.mock('../../api/klipy', () => ({
   searchKlipy: vi.fn(async () => ({ items: [{ slug: 'happy-cat', title: 'Happy cat', width: 220, height: 164 }], hasNext: false })),
   klipyThumbUrl: (slug: string) => `/api/klipy/thumb/${slug}`,
-  importKlipyBackground: vi.fn(async () => ({
-    item: { id: 'klipy-item', type: 'animated', alpha: false }, error: false, msg: '',
-  })),
+  stageKlipyBackground: vi.fn(async () => ({ stageId: 'stage-happy-cat', alpha: false, error: false, msg: '' })),
 }));
 
 vi.mock('./useBackgroundMedia', () => ({
@@ -66,7 +64,7 @@ import {
   commitBackgroundMedia,
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
-import { importKlipyBackground } from '../../api/klipy';
+import { stageKlipyBackground } from '../../api/klipy';
 
 // Every folder file gets the cropper's default centred crop at the panel's
 // aspect, so the expected crop strings below follow from these dimensions.
@@ -132,9 +130,18 @@ describe('BackgroundMediaPicker multi-file import', () => {
     expect(screen.queryByText('lighting.controls.importFolder')).toBeNull();
   });
 
-  it('imports every supported file in name order with a centred crop and selects the first', async () => {
-    api.sizes['stage-a.mp4'] = { w: 1000, h: 2000 };
-    api.sizes['stage-b.jpg'] = { w: 2000, h: 1000 };
+  // The cropper opens on the staged file; confirming it commits with the
+  // whole frame, because jsdom never lays the image out. That is enough to
+  // drive the queue.
+  const confirmCropper = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
+  };
+  const cancelCropper = async () => {
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.cancel' }));
+  };
+  const WHOLE = '0.000000,0.000000,1.000000,1.000000';
+
+  it('crops each supported file in turn, in name order, and selects the first', async () => {
     const { onSelect } = renderPicker();
 
     pickFiles([
@@ -143,51 +150,63 @@ describe('BackgroundMediaPicker multi-file import', () => {
       new File(['x'], 'a.mp4', { type: 'video/mp4' }),
     ]);
 
+    await waitFor(() => expect(stageBackgroundMedia).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(stageBackgroundMedia).mock.calls[0][1].name).toBe('a.mp4');
+    await confirmCropper();
+    await waitFor(() => expect(commitBackgroundMedia).toHaveBeenNthCalledWith(1, 'dev1', 'stage-a.mp4', WHOLE, 720, 1280, true, false));
+    // The second file is staged only once the first is committed.
+    await waitFor(() => expect(stageBackgroundMedia).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(stageBackgroundMedia).mock.calls[1][1].name).toBe('b.jpg');
+    await confirmCropper();
+
     await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
-    expect(vi.mocked(stageBackgroundMedia).mock.calls.map(c => c[1].name)).toEqual(['a.mp4', 'b.jpg']);
-    // A source taller than the panel keeps its full width and loses height
-    // evenly top and bottom.
-    expect(commitBackgroundMedia).toHaveBeenNthCalledWith(1, 'dev1', 'stage-a.mp4', '0.000000,0.055556,1.000000,0.888889', 720, 1280, true, false);
-    // A source wider than the panel keeps its full height and loses width
-    // evenly left and right.
-    expect(commitBackgroundMedia).toHaveBeenNthCalledWith(2, 'dev1', 'stage-b.jpg', '0.359375,0.000000,0.281250,1.000000', 720, 1280, true, false);
+    expect(commitBackgroundMedia).toHaveBeenCalledTimes(2);
     expect(api.refresh).toHaveBeenCalled();
     expect(onSelect).toHaveBeenCalledWith('item-stage-a.mp4', 'static', false);
     expect(screen.queryByText(/importFolderPartial|importFolderEmpty/)).toBeNull();
   });
 
-  it('counts rejected files, keeps going, and still selects the first success', async () => {
-    api.rejected.add('a.png');
-    api.sizes['stage-b.png'] = { w: 720, h: 1280 };
+  it('fit entire image in the cropper asks the service to letterbox', async () => {
+    renderPicker();
+
+    pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
+    fireEvent.click(await screen.findByLabelText('cropper.fitWhole'));
+    await confirmCropper();
+
+    await waitFor(() => expect(commitBackgroundMedia).toHaveBeenCalledWith('dev1', 'stage-a.jpg', WHOLE, 720, 1280, true, true));
+  });
+
+  it('cancelling a cropper skips that file and moves to the next', async () => {
     const { onSelect } = renderPicker();
 
     pickFiles([
-      new File(['x'], 'a.png', { type: 'image/png' }),
-      new File(['x'], 'b.png', { type: 'image/png' }),
+      new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
+      new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
     ]);
+    await cancelCropper();
+    await waitFor(() => expect(stageBackgroundMedia).toHaveBeenCalledTimes(2));
+    await confirmCropper();
 
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-b.png', 'static', false));
-    expect(screen.getByText('lighting.controls.importFolderPartial:failed=1:total=2')).toBeInTheDocument();
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-b.jpg', 'static', false));
+    expect(cancelBackgroundMediaStage).toHaveBeenCalledWith('dev1', 'stage-a.jpg');
     expect(commitBackgroundMedia).toHaveBeenCalledTimes(1);
   });
 
-  it('cancels a stage whose preview cannot be measured', async () => {
-    api.sizes['stage-ok.jpg'] = { w: 720, h: 1280 };
+  it('counts a file the service refuses, keeps going, and still selects the first success', async () => {
+    api.rejected.add('a.jpg');
     const { onSelect } = renderPicker();
 
     pickFiles([
-      new File(['x'], 'broken.jpg', { type: 'image/jpeg' }),
-      new File(['x'], 'ok.jpg', { type: 'image/jpeg' }),
+      new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
+      new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
     ]);
+    await confirmCropper();
 
-    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
-    expect(cancelBackgroundMediaStage).toHaveBeenCalledWith('dev1', 'stage-broken.jpg');
-    expect(commitBackgroundMedia).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-b.jpg', 'static', false));
     expect(screen.getByText('lighting.controls.importFolderPartial:failed=1:total=2')).toBeInTheDocument();
   });
 
-  it('stops at an unreachable service, keeps what landed, and says so', async () => {
-    api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
+  it('stops at an unreachable service and says so', async () => {
     api.unreachable.add('b.jpg');
     const { onSelect } = renderPicker();
 
@@ -196,16 +215,15 @@ describe('BackgroundMediaPicker multi-file import', () => {
       new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'c.jpg', { type: 'image/jpeg' }),
     ]);
+    await confirmCropper();
 
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-a.jpg', 'static', false));
-    expect(screen.getByText('lighting.controls.importNetworkError')).toBeInTheDocument();
-    expect(vi.mocked(stageBackgroundMedia).mock.calls.map(c => c[1].name)).toEqual(['a.jpg', 'b.jpg']);
-    expect(commitBackgroundMedia).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByText('lighting.controls.importNetworkError')).toBeInTheDocument());
+    expect(stageBackgroundMedia).toHaveBeenCalledTimes(2);
+    // What landed before the outage is still selected.
+    expect(onSelect).toHaveBeenCalledWith('item-stage-a.jpg', 'static', false);
   });
 
-  it('abandons the batch when the picker unmounts mid-import', async () => {
-    api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
-    api.sizes['stage-b.jpg'] = { w: 720, h: 1280 };
+  it('abandons the queue when the picker unmounts mid-import', async () => {
     let openGate = () => {};
     api.gate = new Promise<void>(resolve => { openGate = resolve; });
     const { onSelect, unmount } = renderPicker();
@@ -217,12 +235,10 @@ describe('BackgroundMediaPicker multi-file import', () => {
     await waitFor(() => expect(stageBackgroundMedia).toHaveBeenCalledTimes(1));
     unmount();
     openGate();
-    // The in-flight file still finishes; the loop then reaches its alive check.
-    await waitFor(() => expect(commitBackgroundMedia).toHaveBeenCalledTimes(1));
     await act(async () => {});
 
     expect(stageBackgroundMedia).toHaveBeenCalledTimes(1);
-    expect(api.refresh).not.toHaveBeenCalled();
+    expect(commitBackgroundMedia).not.toHaveBeenCalled();
     expect(onSelect).not.toHaveBeenCalled();
   });
 
@@ -255,52 +271,29 @@ describe('BackgroundMediaPicker multi-file import', () => {
     expect(screen.getByText('slideshow.finishVideos')).toBeInTheDocument();
   });
 
-  it('turns the slideshow on after a folder import of two or more files', async () => {
-    api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
-    api.sizes['stage-b.jpg'] = { w: 720, h: 1280 };
+  it('turns the slideshow on after importing two or more files', async () => {
     const { onSelect, onSlideshowChange } = renderPicker(SLIDESHOW_OFF);
 
     pickFiles([
       new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
     ]);
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
+    await waitFor(() => expect(stageBackgroundMedia).toHaveBeenCalledTimes(2));
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     expect(onSlideshowChange).toHaveBeenCalledWith({ enabled: true });
   });
 
-  it('leaves a single fitted file as a plain background', async () => {
-    api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
+  it('leaves a single file as a plain background', async () => {
     const { onSelect, onSlideshowChange } = renderPicker(SLIDESHOW_OFF);
-    // Fitting skips the cropper, so one file still goes through the batch path.
-    fireEvent.click(screen.getByLabelText('panel.background.fitWhole'));
 
     pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     expect(onSlideshowChange).not.toHaveBeenCalled();
-  });
-
-  it('a single unfitted file opens the cropper instead of importing straight away', async () => {
-    const { onSelect } = renderPicker();
-
-    pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
-
-    await waitFor(() => expect(stageBackgroundMedia).toHaveBeenCalledTimes(1));
-    expect(commitBackgroundMedia).not.toHaveBeenCalled();
-    expect(onSelect).not.toHaveBeenCalled();
-  });
-
-  it('fitting commits the whole frame and asks the service to letterbox', async () => {
-    api.sizes['stage-a.jpg'] = { w: 2000, h: 1000 };
-    renderPicker();
-    fireEvent.click(screen.getByLabelText('panel.background.fitWhole'));
-
-    pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
-
-    await waitFor(() => expect(commitBackgroundMedia).toHaveBeenCalled());
-    expect(commitBackgroundMedia).toHaveBeenCalledWith(
-      'dev1', 'stage-a.jpg', '0.000000,0.000000,1.000000,1.000000', 720, 1280, true, true);
   });
 
   it('reports a selection with nothing importable without uploading', async () => {
@@ -335,22 +328,34 @@ describe('BackgroundMediaPicker order', () => {
 });
 
 describe('Klipy picks', () => {
-  it('imports at the panel aspect and selects the result', async () => {
+  it('stages the pick, crops it, and selects the result', async () => {
     const { onSelect } = renderPicker();
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
     fireEvent.click(await screen.findByLabelText('Happy cat'));
 
-    await waitFor(() => expect(importKlipyBackground).toHaveBeenCalled());
-    // A 220x164 landscape GIF on a 720x1280 portrait panel keeps the full
-    // height and trims to the middle 0.5625*164/220 of the width.
-    expect(importKlipyBackground).toHaveBeenCalledWith(
-      'dev1', 'happy-cat', '0.290341,0.000000,0.419318,1.000000', 720, 1280, false, false);
-    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('klipy-item', 'animated', false));
+    await waitFor(() => expect(stageKlipyBackground).toHaveBeenCalledWith('dev1', 'happy-cat'));
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
+
+    await waitFor(() => expect(commitBackgroundMedia).toHaveBeenCalledWith(
+      'dev1', 'stage-happy-cat', '0.000000,0.000000,1.000000,1.000000', 720, 1280, true, false));
+    await waitFor(() => expect(onSelect).toHaveBeenCalledWith('item-stage-happy-cat', 'static', false));
+  });
+
+  it('fit entire image applies to a pick too', async () => {
+    renderPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
+    fireEvent.click(await screen.findByLabelText('Happy cat'));
+    fireEvent.click(await screen.findByLabelText('cropper.fitWhole'));
+    fireEvent.click(await screen.findByRole('button', { name: 'cropper.confirm' }));
+
+    await waitFor(() => expect(commitBackgroundMedia).toHaveBeenCalledWith(
+      'dev1', 'stage-happy-cat', '0.000000,0.000000,1.000000,1.000000', 720, 1280, true, true));
   });
 
   it('keeps the picker open and says so when the service is unreachable', async () => {
-    vi.mocked(importKlipyBackground).mockResolvedValueOnce(null);
+    vi.mocked(stageKlipyBackground).mockResolvedValueOnce(null);
     const { onSelect } = renderPicker();
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
@@ -358,12 +363,11 @@ describe('Klipy picks', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('lighting.controls.importNetworkError');
     expect(onSelect).not.toHaveBeenCalled();
-    // Still open: the grid is there to pick again from.
     expect(screen.getByLabelText('Happy cat')).toBeInTheDocument();
   });
 
   it('reports the service own message when it refuses the pick', async () => {
-    vi.mocked(importKlipyBackground).mockResolvedValueOnce({ item: null, error: true, msg: 'Download failed' });
+    vi.mocked(stageKlipyBackground).mockResolvedValueOnce({ stageId: null, alpha: false, error: true, msg: 'Download failed' });
     renderPicker();
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));

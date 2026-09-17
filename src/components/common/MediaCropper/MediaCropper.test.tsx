@@ -29,7 +29,7 @@ describe('MediaCropper transparency', () => {
 
     expect(checkbox()).toBeChecked();
     fireEvent.click(screen.getByText('cropper.confirm'));
-    expect(onConfirm).toHaveBeenCalledWith(expect.anything(), true);
+    expect(onConfirm).toHaveBeenCalledWith(expect.anything(), true, false);
   });
 
   it('passes the unticked box through to the commit', () => {
@@ -37,7 +37,7 @@ describe('MediaCropper transparency', () => {
 
     fireEvent.click(checkbox()!);
     fireEvent.click(screen.getByText('cropper.confirm'));
-    expect(onConfirm).toHaveBeenCalledWith(expect.anything(), false);
+    expect(onConfirm).toHaveBeenCalledWith(expect.anything(), false, false);
   });
 
   it('carries the choice through the Enter shortcut too', () => {
@@ -45,6 +45,27 @@ describe('MediaCropper transparency', () => {
 
     fireEvent.click(checkbox()!);
     fireEvent.keyDown(document, { key: 'Enter' });
-    expect(onConfirm).toHaveBeenCalledWith(expect.anything(), false);
+    expect(onConfirm).toHaveBeenCalledWith(expect.anything(), false, false);
+  });
+});
+
+describe('MediaCropper fit', () => {
+  it('is not offered unless the consumer can letterbox', () => {
+    renderCropper({ allowTransparency: true });
+    expect(screen.queryByLabelText('cropper.fitWhole')).toBeNull();
+  });
+
+  it('confirms the whole frame with the fit flag when ticked', () => {
+    const { onConfirm } = renderCropper({ allowFit: true });
+    fireEvent.click(screen.getByLabelText('cropper.fitWhole'));
+    fireEvent.click(screen.getByRole('button', { name: 'cropper.confirm' }));
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ x: 0, y: 0, w: 1, h: 1 }), true, true);
+  });
+
+  it('stays off by default', () => {
+    const { onConfirm } = renderCropper({ allowFit: true });
+    fireEvent.click(screen.getByRole('button', { name: 'cropper.confirm' }));
+    expect(onConfirm).toHaveBeenCalledWith(expect.anything(), true, false);
   });
 });

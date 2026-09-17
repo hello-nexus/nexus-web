@@ -10,7 +10,7 @@ import { ConfirmModal } from '../../components/common/ConfirmModal/ConfirmModal'
 import { MediaGrid } from '../widgets/lighting/effecteditor/MediaGrid';
 import { MediaCropper, type NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
 import { KlipyPicker } from '../../components/common/KlipyPicker/KlipyPicker';
-import { centerCropForAspect, serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
+import { serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
 import { useBackgroundMedia } from './useBackgroundMedia';
 import {
   type BackgroundMediaItem,
@@ -19,10 +19,9 @@ import {
   commitBackgroundMedia,
   deleteBackgroundMedia,
   openBackgroundMediaFolder,
-  probeBackgroundMediaStageSize,
   stageBackgroundMedia,
 } from '../../api/panelBackgroundMedia';
-import { importKlipyBackground, type KlipyGif } from '../../api/klipy';
+import { stageKlipyBackground, type KlipyGif } from '../../api/klipy';
 import type { MediaItem } from '../../api/mediaLibrary';
 import { SLIDESHOW_INTERVALS, slideshowIntervalLabel } from '../slideshow/slideshow';
 import { orderBackgroundMedia } from './slideshowOrder';
@@ -48,8 +47,6 @@ function importCandidates(files: FileList | null): File[] {
     })
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 }
-
-type BatchFileOutcome = BackgroundMediaItem | 'failed' | 'unreachable';
 
 export function BackgroundMediaPicker({
   deviceId,
@@ -85,7 +82,6 @@ export function BackgroundMediaPicker({
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [cropState, setCropState] = useState<{ stageId: string; src: string; alpha: boolean } | null>(null);
-  const [fitWhole, setFitWhole] = useState(false);
   const [klipyOpen, setKlipyOpen] = useState(false);
   const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
@@ -105,8 +101,60 @@ export function BackgroundMediaPicker({
     frames: item.type === 'animated' ? Math.max(1, Math.round(item.durationSec * 30)) : 0,
   }));
 
-  // One file opens the cropper; several go through the batch path. Fitting the
-  // whole frame leaves nothing to crop, so it skips the cropper either way.
+  // Every import goes through the cropper, one file at a time: a selection is
+  // a queue, and each confirm or cancel stages the next. The tally decides
+  // what to select and whether to start a slideshow once the queue is empty.
+  const queueRef = useRef<File[]>([]);
+  const batchRef = useRef({ total: 0, imported: 0, failed: 0, first: null as BackgroundMediaItem | null });
+
+  const finishBatch = async () => {
+    const { total, imported, failed, first } = batchRef.current;
+    setImporting(false);
+    setImportingName(null);
+    setImportProgress(null);
+    setImportError(failed > 0 ? t('lighting.controls.importFolderPartial', { failed, total }) : null);
+    if (!first) return;
+    await refresh();
+    if (!aliveRef.current) return;
+    onSelect(first.id, first.type, !!first.alpha);
+    // Several files are imported to be cycled; one background shows one of them.
+    if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
+  };
+
+  // Stages the next queued file and opens the cropper on it. A file the
+  // service refuses is counted and the queue moves on; an unreachable service
+  // ends the batch.
+  const stageNext = async (): Promise<void> => {
+    const file = queueRef.current.shift();
+    if (!file) { await finishBatch(); return; }
+    const { total } = batchRef.current;
+    const n = total - queueRef.current.length;
+    setImporting(true);
+    setImportingName(file.name);
+    setImportProgress(total > 1 ? { n, total } : null);
+    const staged = await stageBackgroundMedia(deviceId, file);
+    if (!aliveRef.current) return;
+    if (!staged) {
+      queueRef.current = [];
+      batchRef.current.failed += 1;
+      await finishBatch();
+      setImportError(t('lighting.controls.importNetworkError'));
+      return;
+    }
+    if (staged.error) {
+      batchRef.current.failed += 1;
+      await stageNext();
+      return;
+    }
+    setImporting(false);
+    setImportingName(null);
+    setCropState({
+      stageId: staged.stageId,
+      src: backgroundMediaStagePreviewUrl(deviceId, staged.stageId),
+      alpha: staged.alpha,
+    });
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = e.target.files;
     const files = importCandidates(picked);
@@ -115,153 +163,78 @@ export function BackgroundMediaPicker({
       setImportError((picked?.length ?? 0) > 0 ? t('lighting.controls.importFolderEmpty') : null);
       return;
     }
-    if (files.length > 1 || fitWhole) {
-      await runImportBatch(files);
-      return;
-    }
-
-    const [file] = files;
     setImportError(null);
-    setImporting(true);
-    setImportingName(file.name);
-    const result = await stageBackgroundMedia(deviceId, file);
-    if (!result || result.error) {
-      setImporting(false);
-      setImportingName(null);
-      setImportError(result?.msg || t('lighting.controls.importFailed'));
-      return;
-    }
-    setImporting(false);
-    setImportingName(null);
-    setCropState({
-      stageId: result.stageId,
-      src: backgroundMediaStagePreviewUrl(deviceId, result.stageId),
-      alpha: result.alpha,
-    });
+    queueRef.current = files;
+    batchRef.current = { total: files.length, imported: 0, failed: 0, first: null };
+    await stageNext();
   };
 
-  // One batched file, start to finish: the cropper's default (largest centred
-  // crop at the panel aspect) stands in for the user's crop, or the whole frame
-  // when fitting. The service being unreachable ends the batch; a file it
-  // refuses is counted and the rest continue.
-  const importBatchFile = async (file: File): Promise<BatchFileOutcome> => {
-    const staged = await stageBackgroundMedia(deviceId, file);
-    if (!staged) return 'unreachable';
-    if (staged.error) return 'failed';
-    const size = await probeBackgroundMediaStageSize(deviceId, staged.stageId);
-    if (!size) {
-      cancelBackgroundMediaStage(deviceId, staged.stageId).catch(() => {});
-      return 'failed';
-    }
-    const crop = fitWhole
-      ? serializeCrop({ x: 0, y: 0, w: 1, h: 1 })
-      : serializeCrop(centerCropForAspect(deviceAspect, size.w, size.h));
-    const result = await commitBackgroundMedia(
-      deviceId, staged.stageId, crop, deviceW, deviceH, true, fitWhole);
-    if (!result || result.error || !result.item) {
-      cancelBackgroundMediaStage(deviceId, staged.stageId).catch(() => {});
-      return result ? 'failed' : 'unreachable';
-    }
-    return result.item;
-  };
-
-  const runImportBatch = async (files: File[]) => {
-    setImportError(null);
-    setImporting(true);
-    let first: BackgroundMediaItem | null = null;
-    let imported = 0;
-    let failed = 0;
-    let error: string | null = null;
-    for (let i = 0; i < files.length; i++) {
-      setImportingName(files[i].name);
-      setImportProgress({ n: i + 1, total: files.length });
-      const outcome = await importBatchFile(files[i]);
-      if (!aliveRef.current) return;
-      if (outcome === 'unreachable') {
-        error = t('lighting.controls.importNetworkError');
-        break;
-      }
-      if (outcome === 'failed') {
-        failed++;
-        continue;
-      }
-      imported++;
-      if (!first) first = outcome;
-    }
-    if (!error && failed > 0) {
-      error = t('lighting.controls.importFolderPartial', { failed, total: files.length });
-    }
-    setImporting(false);
-    setImportingName(null);
-    setImportProgress(null);
-    setImportError(error);
-    if (first) {
-      await refresh();
-      if (!aliveRef.current) return;
-      onSelect(first.id, first.type, !!first.alpha);
-      // Several files are imported to be cycled; one background shows one of them.
-      if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
-    }
-  };
-
-  const handleCropConfirm = async (crop: NormalizedCrop, keepTransparency: boolean) => {
-    if (!cropState) return;
-    const { stageId } = cropState;
-    const cropStr = serializeCrop(crop);
-    setConverting(true);
-    setImportError(null);
-    const result = await commitBackgroundMedia(
-      deviceId, stageId, cropStr, deviceW, deviceH, keepTransparency, false);
-    setConverting(false);
-    if (!result) {
-      setImportError(t('lighting.controls.importNetworkError'));
-      cancelBackgroundMediaStage(deviceId, stageId).catch(() => {});
-      setCropState(null);
-      return;
-    }
-    if (result.error || !result.item) {
-      setImportError(result.msg || t('lighting.controls.importFailed'));
-      cancelBackgroundMediaStage(deviceId, stageId).catch(() => {});
-      setCropState(null);
-      return;
-    }
-    await refresh();
-    onSelect(result.item.id, result.item.type, !!result.item.alpha);
-    setCropState(null);
-  };
-
-  // A pick skips staging and the cropper: the crop is the same centred one the
-  // folder import uses, at the panel's aspect.
+  // A pick is staged like an upload, then cropped the same way.
   const handleKlipyPick = async (gif: KlipyGif) => {
     setKlipyBusy(gif.slug);
     setImportError(null);
-    const crop = fitWhole
-      ? serializeCrop({ x: 0, y: 0, w: 1, h: 1 })
-      : serializeCrop(centerCropForAspect(deviceAspect, gif.width, gif.height));
-    // Transparency off: a Klipy pick fills the panel, and the alpha branch
-    // bakes a palette gif at panel size instead of h264.
-    const result = await importKlipyBackground(deviceId, gif.slug, crop, deviceW, deviceH, false, fitWhole);
+    const staged = await stageKlipyBackground(deviceId, gif.slug);
     setKlipyBusy(null);
+    if (!staged) {
+      setImportError(t('lighting.controls.importNetworkError'));
+      return;
+    }
+    if (staged.error || !staged.stageId) {
+      setImportError(staged.msg || t('lighting.controls.importFailed'));
+      return;
+    }
+    setKlipyOpen(false);
+    queueRef.current = [];
+    batchRef.current = { total: 1, imported: 0, failed: 0, first: null };
+    setCropState({
+      stageId: staged.stageId,
+      src: backgroundMediaStagePreviewUrl(deviceId, staged.stageId),
+      alpha: staged.alpha,
+    });
+  };
+
+  const handleCropConfirm = async (crop: NormalizedCrop, keepTransparency: boolean, fit: boolean) => {
+    if (!cropState) return;
+    const { stageId } = cropState;
+    setConverting(true);
+    setImportError(null);
+    const result = await commitBackgroundMedia(
+      deviceId, stageId, serializeCrop(crop), deviceW, deviceH, keepTransparency, fit);
+    setConverting(false);
+    if (!aliveRef.current) return;
+    setCropState(null);
     if (!result) {
+      cancelBackgroundMediaStage(deviceId, stageId).catch(() => {});
+      queueRef.current = [];
+      batchRef.current.failed += 1;
+      await finishBatch();
       setImportError(t('lighting.controls.importNetworkError'));
       return;
     }
     if (result.error || !result.item) {
-      setImportError(result.msg || t('lighting.controls.importFailed'));
+      cancelBackgroundMediaStage(deviceId, stageId).catch(() => {});
+      batchRef.current.failed += 1;
+      if (batchRef.current.total === 1) {
+        await finishBatch();
+        setImportError(result.msg || t('lighting.controls.importFailed'));
+        return;
+      }
+      await stageNext();
       return;
     }
-    setKlipyOpen(false);
-    await refresh();
-    if (!aliveRef.current) return;
-    onSelect(result.item.id, result.item.type, !!result.item.alpha);
+    batchRef.current.imported += 1;
+    batchRef.current.first ??= result.item;
+    await stageNext();
   };
 
-  const handleCropCancel = () => {
+  // Cancelling skips this file; the rest of the selection still gets its turn.
+  const handleCropCancel = async () => {
     if (cropState) {
       cancelBackgroundMediaStage(deviceId, cropState.stageId).catch(() => {});
     }
     setCropState(null);
     setImportError(null);
+    await stageNext();
   };
 
   const handleGridPlay = (id: string) => {
@@ -332,15 +305,6 @@ export function BackgroundMediaPicker({
     </>
   );
 
-  const fitControl = (
-    <SettingToggle
-      label={t('panel.background.fitWhole')}
-      description={t('panel.background.fitWhole.desc')}
-      checked={fitWhole}
-      onChange={setFitWhole}
-    />
-  );
-
   return (
     <>
       {cropState && (
@@ -349,13 +313,13 @@ export function BackgroundMediaPicker({
           aspect={deviceAspect}
           busy={converting}
           allowTransparency={cropState.alpha}
+          allowFit
           onConfirm={handleCropConfirm}
           onCancel={handleCropCancel}
         />
       )}
       <div className={styles.mediaSection}>
         {slideshowControls}
-        {fitControl}
         <div className={styles.mediaHeader}>
           <Button
             type="button"
