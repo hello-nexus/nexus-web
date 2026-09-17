@@ -144,8 +144,12 @@ export default function App() {
     consumeUrlToken(params);
     // Simulator iframe entrypoint: PanelDeviceModal loads /panel?simulator=1
     // and feeds layout + theme over postMessage. Skip the device-allocation
-    // pairing flow entirely - the simulator has no deviceId.
+    // pairing flow entirely - the simulator has no deviceId. forceLanMode is
+    // per-document, so the iframe must repeat the public-website decision made
+    // below for the embedding dashboard, or the parent's loopback token in the
+    // shared localStorage sends the simulator's widget data over the relay.
     if (params.get(SIMULATOR_QUERY_FLAG) === '1') {
+      if (isPublicWebsite()) setForceLanMode(true);
       return (
         <I18nProvider>
           <PanelSimulatorWrapper />
@@ -260,7 +264,8 @@ export default function App() {
   // INVARIANT: the /panel|/touch|/r/pair returns above MUST stay ordered before
   // this branch. forceLanMode is a process-global; a phone that reached here
   // would flip to localhost and never use the relay, breaking phone pairing.
-  // The phone panel returns earlier, so it never sets it.
+  // The phone panel returns earlier, so it never sets it; only the simulator
+  // iframe branch above repeats this same decision.
   if (isPublicWebsite()) {
     setForceLanMode(true);
   }
