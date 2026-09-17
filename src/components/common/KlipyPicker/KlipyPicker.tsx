@@ -18,7 +18,7 @@ export function KlipyPicker({ open, busySlug, importError, thumbAspect, onPick, 
   /** A failed import renders here; the picker stays open over the page. */
   importError?: string | null;
   /** Card aspect (width / height). Match the surface's own crop so the grid
-   *  previews what the import will produce; omit for the 16:9 default. */
+   *  previews what the import will produce; omit to inherit EffectCard's. */
   thumbAspect?: number;
   onPick: (gif: KlipyGif) => void;
   onClose: () => void;

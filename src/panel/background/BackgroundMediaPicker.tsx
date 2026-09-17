@@ -225,10 +225,16 @@ export function BackgroundMediaPicker({
     setKlipyBusy(gif.slug);
     setImportError(null);
     const crop = serializeCrop(centerCropForAspect(deviceAspect, gif.width, gif.height));
-    const result = await importKlipyBackground(deviceId, gif.slug, crop, deviceW, deviceH);
+    // Transparency off: a Klipy pick fills the panel, and the alpha branch
+    // bakes a palette gif at panel size instead of h264.
+    const result = await importKlipyBackground(deviceId, gif.slug, crop, deviceW, deviceH, false);
     setKlipyBusy(null);
-    if (!result || result.error || !result.item) {
-      setImportError(result?.msg || t('lighting.controls.importFailed'));
+    if (!result) {
+      setImportError(t('lighting.controls.importNetworkError'));
+      return;
+    }
+    if (result.error || !result.item) {
+      setImportError(result.msg || t('lighting.controls.importFailed'));
       return;
     }
     setKlipyOpen(false);
@@ -387,7 +393,7 @@ export function BackgroundMediaPicker({
           onPick={handleKlipyPick}
           onClose={() => { setKlipyOpen(false); setImportError(null); }}
         />
-        {importError && <p className={styles.mediaError}>{importError}</p>}
+        {importError && !klipyOpen && <p className={styles.mediaError}>{importError}</p>}
         {items.length === 0 && !importing && !importError && (
           <EmptyState
             className={styles.mediaEmpty}

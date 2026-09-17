@@ -112,6 +112,13 @@ describe('centerCropForAspect', () => {
     expect(centerCropForAspect(16 / 9, 1600, 900)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
   });
 
+  it('keeps the whole frame when the source dimensions are unusable', () => {
+    // A Klipy item can carry 0x0 when the upstream payload omits the size.
+    expect(centerCropForAspect(720 / 1280, 0, 0)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+    expect(centerCropForAspect(160 / 90, 0, 0)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+    expect(centerCropForAspect(0, 220, 164)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+  });
+
   it('keeps the whole frame for a portrait panel aspect on a portrait source', () => {
     expect(centerCropForAspect(720 / 1280, 720, 1280)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
   });

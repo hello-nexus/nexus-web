@@ -1,4 +1,5 @@
 import { fetchService, postService, resolveHttp, tokenParam } from './service';
+import type { BackgroundMediaItem } from './panelBackgroundMedia';
 
 export interface KlipyGif {
   slug: string;
@@ -35,15 +36,9 @@ export async function importKlipy(slug: string, crop: string) {
 
 /** The same pick, baked as one device's panel background at its panel size. */
 export async function importKlipyBackground(
-  deviceId: string, slug: string, crop: string, w: number, h: number, keepTransparency = true,
+  deviceId: string, slug: string, crop: string, w: number, h: number, keepTransparency = false,
 ) {
-  return postService<{ item: BackgroundImportItem | null; error?: boolean; msg?: string }>(
+  return postService<{ item: BackgroundMediaItem | null; error?: boolean; msg?: string }>(
     `/panel/devices/${encodeURIComponent(deviceId)}/background-media/klipy/import`,
     { slug, crop, w, h, keepTransparency });
-}
-
-interface BackgroundImportItem {
-  id: string;
-  type: 'static' | 'animated';
-  alpha?: boolean;
 }

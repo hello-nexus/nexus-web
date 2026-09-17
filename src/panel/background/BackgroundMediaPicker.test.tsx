@@ -321,7 +321,30 @@ describe('Klipy picks', () => {
     // A 220x164 landscape GIF on a 720x1280 portrait panel keeps the full
     // height and trims to the middle 0.5625*164/220 of the width.
     expect(importKlipyBackground).toHaveBeenCalledWith(
-      'dev1', 'happy-cat', '0.290341,0.000000,0.419318,1.000000', 720, 1280);
+      'dev1', 'happy-cat', '0.290341,0.000000,0.419318,1.000000', 720, 1280, false);
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith('klipy-item', 'animated', false));
+  });
+
+  it('keeps the picker open and says so when the service is unreachable', async () => {
+    vi.mocked(importKlipyBackground).mockResolvedValueOnce(null);
+    const { onSelect } = renderPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
+    fireEvent.click(await screen.findByLabelText('Happy cat'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('lighting.controls.importNetworkError');
+    expect(onSelect).not.toHaveBeenCalled();
+    // Still open: the grid is there to pick again from.
+    expect(screen.getByLabelText('Happy cat')).toBeInTheDocument();
+  });
+
+  it('reports the service own message when it refuses the pick', async () => {
+    vi.mocked(importKlipyBackground).mockResolvedValueOnce({ item: null, error: true, msg: 'Download failed' });
+    renderPicker();
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
+    fireEvent.click(await screen.findByLabelText('Happy cat'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Download failed');
   });
 });
