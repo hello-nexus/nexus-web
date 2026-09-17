@@ -5,6 +5,7 @@ import { Button } from '../../components/common/Button/Button';
 import { TextInput } from '../../components/common/TextInput/TextInput';
 import { PublicPageFrame } from './PublicPageFrame';
 import { AuthResultCard } from './AuthResultCard';
+import { formatRecoveryCode, normalizeRecoveryCode, RECOVERY_CODE_LENGTH } from './recoveryCode';
 import styles from './RecoverPage.module.scss';
 
 type RecoverState =
@@ -26,14 +27,15 @@ type RecoverState =
 export function RecoverPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const [state, setState] = useState<RecoverState>(token ? { phase: 'code' } : { phase: 'invalid' });
+  // Held unformatted; the dash is presentation, and the api normalizes either way.
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!code.trim() || submitting) return;
+    if (code.length < RECOVERY_CODE_LENGTH || submitting) return;
     setSubmitting(true);
-    const result = await completeRecovery(token, code.trim());
+    const result = await completeRecovery(token, code);
     setSubmitting(false);
     setCode('');
     if (result.ok && result.username) {
@@ -57,19 +59,23 @@ export function RecoverPage({ token }: { token: string }) {
         <form className={styles.codeForm} onSubmit={handleSubmit}>
           <h1 className={styles.title}>{t('auth.recover.code.title')}</h1>
           <p className={styles.body}>{t('auth.recover.code.body')}</p>
-          <TextInput
-            value={code}
-            onInput={setCode}
-            name="code"
-            autoComplete="one-time-code"
-            ariaLabel={t('auth.recover.code.label')}
-          />
+          <div className={styles.codeField}>
+            <TextInput
+              value={formatRecoveryCode(code)}
+              onInput={v => setCode(normalizeRecoveryCode(v))}
+              name="code"
+              autoComplete="one-time-code"
+              align="center"
+              mono
+              ariaLabel={t('auth.recover.code.label')}
+            />
+          </div>
           {state.attemptsLeft !== undefined && (
             <p className={styles.error}>
               {t('auth.recover.code.wrong', { count: String(state.attemptsLeft) })}
             </p>
           )}
-          <Button type="submit" tone="accent" disabled={!code.trim() || submitting}>
+          <Button type="submit" tone="accent" disabled={code.length < RECOVERY_CODE_LENGTH || submitting}>
             {t('auth.recover.code.submit')}
           </Button>
         </form>

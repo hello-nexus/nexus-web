@@ -102,9 +102,10 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   if (phase === 'pending') {
     return (
       <div className={styles.wrap}>
-        <h1 className={styles.title}>{t('account.recovery.pendingTitle')}</h1>
+        <h1 className={`${styles.title} ${styles.pendingTitle}`}>{t('account.recovery.pendingTitle')}</h1>
         <div className={styles.pendingBlock}>
           <p className={styles.pendingMessage}>{t('account.recovery.pendingMessage', { email })}</p>
+          <p className={styles.pendingFollow}>{t('account.recovery.pendingFollow')}</p>
           <div className={styles.recoveryCodeBlock}>
             <span className={styles.fieldLabel}>{t('account.recovery.codeTitle')}</span>
             <span className={styles.recoveryCode}>{code}</span>
@@ -114,7 +115,11 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
             <Spinner size={16} />
             <span className={styles.hint}>{t('account.recovery.pendingWaiting')}</span>
           </div>
-          <button type="button" className={styles.linkBtn} onClick={() => { backend.recoveryCancel?.(); setPhase('email'); }}>
+          <button
+            type="button"
+            className={`${styles.linkBtn} ${styles.pendingCancel}`}
+            onClick={() => { backend.recoveryCancel?.(); setPhase('email'); }}
+          >
             {t('account.recovery.cancel')}
           </button>
         </div>

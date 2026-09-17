@@ -27,3 +27,19 @@
   font-size: var(--type-small);
   font-weight: var(--weight-body);
 }
+
+// The code reads back as it is shown on the other device: one large grouped
+// field, so a six-character secret is checked at a glance before submitting.
+.codeField {
+  width: 100%;
+  max-width: 320px;
+
+  input {
+    padding: var(--space-md);
+    font-family: var(--font-mono);
+    font-size: var(--type-display);
+    letter-spacing: 0.18em;
+    // Letter-spacing trails the last glyph, which pulls centred text left.
+    text-indent: 0.18em;
+  }
+}

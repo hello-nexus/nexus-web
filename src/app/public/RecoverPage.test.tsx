@@ -54,7 +54,24 @@ describe('RecoverPage', () => {
 
     await waitFor(() => expect(screen.getByText('auth.recover.success.title')).toBeInTheDocument());
     expect(screen.getByText('auth.recover.success.body username=Nova')).toBeInTheDocument();
-    expect(completeRecoveryMock).toHaveBeenLastCalledWith('tok', 'ABC-DEF');
+    // The dash is presentation; the api gets the code as minted.
+    expect(completeRecoveryMock).toHaveBeenLastCalledWith('tok', 'ABCDEF');
+  });
+
+  it('groups the code as it is shown on the other device, and holds submit until it is whole', () => {
+    render(<RecoverPage token="tok" />);
+    const field = screen.getByLabelText('auth.recover.code.label') as HTMLInputElement;
+
+    fireEvent.input(field, { target: { value: 'abc' } });
+    expect(field.value).toBe('ABC');
+    expect(screen.getByText('auth.recover.code.submit').closest('button')).toBeDisabled();
+
+    fireEvent.input(field, { target: { value: 'abcd' } });
+    expect(field.value).toBe('ABC-D');
+
+    fireEvent.input(field, { target: { value: 'abc-def!!extra' } });
+    expect(field.value).toBe('ABC-DEF');
+    expect(screen.getByText('auth.recover.code.submit').closest('button')).not.toBeDisabled();
   });
 
   it('keeps the form up and reports the remaining attempts on a wrong code', async () => {

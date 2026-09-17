@@ -216,6 +216,22 @@
   margin-top: var(--space-md);
 }
 
+// Modal-title spacing: the pending screen leads with a heading, so it needs
+// more air under it than the inline section titles this class also serves.
+.pendingTitle {
+  margin-bottom: var(--space-md);
+}
+
+.pendingFollow {
+  @include text-body;
+  color: var(--text-dim);
+  margin: 0;
+}
+
+.pendingCancel {
+  margin-top: var(--space-sm);
+}
+
 .recoveryCodeBlock {
   display: flex;
   flex-direction: column;
