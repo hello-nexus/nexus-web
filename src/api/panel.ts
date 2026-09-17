@@ -1,7 +1,15 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
+import { deleteService, fetchService, isForceLanMode, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
+
+// A remote origin has no localhost PC to reach - except the detected-desktop
+// case (forceLanMode), where http://localhost really is this machine's own
+// service. Same rule the fetch layer's blockedLocalhostFetch applies once no
+// tunnel is live; every caller checks isTunnelActive() first.
+function localhostUnreachable(): boolean {
+  return isRemoteOrigin && !isForceLanMode();
+}
 
 export interface PanelStatus {
   msg: string;
@@ -170,7 +178,7 @@ export async function allocatePanelDeviceWithStatus(
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
   // Remote origin without a usable relay yet ⇒ never hit http://localhost.
-  if (isRemoteOrigin) return { ok: false, status: 0 };
+  if (localhostUnreachable()) return { ok: false, status: 0 };
   try {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -236,7 +244,7 @@ export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDevic
     if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
     return { found: false, status };
   }
-  if (isRemoteOrigin) return { found: false, status: 0 };
+  if (localhostUnreachable()) return { found: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
@@ -284,7 +292,7 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
     if (!response || !response.ok) return { ok: false, status, msg: await readErrorMsg(response) };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
-  if (isRemoteOrigin) return { ok: false, status: 0 };
+  if (localhostUnreachable()) return { ok: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
