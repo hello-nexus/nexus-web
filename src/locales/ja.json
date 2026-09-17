@@ -1890,6 +1890,7 @@
   "lighting.controls.kaleidoscope": "万華鏡",
   "lighting.controls.klipyBrowse": "GIF",
   "lighting.controls.klipyNoResults": "GIF が見つかりません",
+  "lighting.controls.klipyPickFailed": "KLIPY がこの GIF を提供できませんでした。別のものを試してください。",
   "lighting.controls.klipyPoweredBy": "KLIPY 提供",
   "lighting.controls.klipySearchPlaceholder": "GIF を検索",
   "lighting.controls.klipyTitle": "GIF を探す",

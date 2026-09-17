@@ -366,13 +366,13 @@ describe('Klipy picks', () => {
     expect(screen.getByLabelText('Happy cat')).toBeInTheDocument();
   });
 
-  it('reports the service own message when it refuses the pick', async () => {
+  it('blames Klipy, not the service, when the pick is refused', async () => {
     vi.mocked(stageKlipyBackground).mockResolvedValueOnce({ stageId: null, alpha: false, error: true, msg: 'Download failed' });
     renderPicker();
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
     fireEvent.click(await screen.findByLabelText('Happy cat'));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Download failed');
+    expect(await screen.findByRole('alert')).toHaveTextContent('lighting.controls.klipyPickFailed');
   });
 });

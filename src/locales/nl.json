@@ -1890,6 +1890,7 @@
   "lighting.controls.kaleidoscope": "Caleidoscoop",
   "lighting.controls.klipyBrowse": "Gifs",
   "lighting.controls.klipyNoResults": "Geen gifs gevonden",
+  "lighting.controls.klipyPickFailed": "KLIPY kon deze gif niet leveren. Probeer een andere.",
   "lighting.controls.klipyPoweredBy": "Mogelijk gemaakt door KLIPY",
   "lighting.controls.klipySearchPlaceholder": "Gifs zoeken",
   "lighting.controls.klipyTitle": "Gifs bekijken",

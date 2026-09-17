@@ -1904,6 +1904,7 @@
   "lighting.controls.kaleidoscope": "Калейдоскоп",
   "lighting.controls.klipyBrowse": "GIF",
   "lighting.controls.klipyNoResults": "GIF не найдены",
+  "lighting.controls.klipyPickFailed": "KLIPY не смог предоставить этот GIF. Попробуйте другой.",
   "lighting.controls.klipyPoweredBy": "Работает на KLIPY",
   "lighting.controls.klipySearchPlaceholder": "Поиск GIF",
   "lighting.controls.klipyTitle": "Обзор GIF",

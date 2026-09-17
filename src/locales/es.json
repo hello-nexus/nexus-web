@@ -1890,6 +1890,7 @@
   "lighting.controls.kaleidoscope": "Caleidoscopio",
   "lighting.controls.klipyBrowse": "GIFs",
   "lighting.controls.klipyNoResults": "No se encontraron GIFs",
+  "lighting.controls.klipyPickFailed": "KLIPY no pudo entregar este GIF. Prueba con otro.",
   "lighting.controls.klipyPoweredBy": "Con tecnología de KLIPY",
   "lighting.controls.klipySearchPlaceholder": "Buscar GIFs",
   "lighting.controls.klipyTitle": "Explorar GIFs",

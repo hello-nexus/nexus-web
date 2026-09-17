@@ -1890,6 +1890,7 @@
   "lighting.controls.kaleidoscope": "万花筒",
   "lighting.controls.klipyBrowse": "GIF",
   "lighting.controls.klipyNoResults": "未找到 GIF",
+  "lighting.controls.klipyPickFailed": "KLIPY 无法提供此 GIF，请换一个试试。",
   "lighting.controls.klipyPoweredBy": "由 KLIPY 提供支持",
   "lighting.controls.klipySearchPlaceholder": "搜索 GIF",
   "lighting.controls.klipyTitle": "浏览 GIF",

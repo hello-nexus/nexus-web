@@ -226,8 +226,10 @@ function MediaControls() {
       setImportError(t('lighting.controls.importNetworkError'));
       return;
     }
+    // A refusal here is Klipy's (no file, no such clip, over the cap), not
+    // the service's - say so, or it reads as a Nexus fault.
     if (staged.error || !staged.stageId) {
-      setImportError(staged.msg || t('lighting.controls.importFailed'));
+      setImportError(t('lighting.controls.klipyPickFailed'));
       return;
     }
     setKlipyOpen(false);

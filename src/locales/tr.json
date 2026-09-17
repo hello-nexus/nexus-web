@@ -1890,6 +1890,7 @@
   "lighting.controls.kaleidoscope": "Kaleydoskop",
   "lighting.controls.klipyBrowse": "GIF'ler",
   "lighting.controls.klipyNoResults": "GIF bulunamadı",
+  "lighting.controls.klipyPickFailed": "KLIPY bu GIF'i sağlayamadı. Başka bir tane deneyin.",
   "lighting.controls.klipyPoweredBy": "KLIPY tarafından desteklenmektedir",
   "lighting.controls.klipySearchPlaceholder": "GIF ara",
   "lighting.controls.klipyTitle": "GIF'lere göz at",
