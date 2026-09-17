@@ -81,6 +81,10 @@ export function GlobalBrightnessSlider({ serviceOnline, onOpenSchedule }: {
   }
 
   const capping = scheduled !== null && scheduled < percent;
+  // A span with the button role, not a <button>: the stacked Slider is a
+  // <label>, whose control is its first labelable descendant. A real button
+  // here would sit before the range input and take both the label's clicks
+  // and its accessible name.
   const scheduleMarker = scheduled !== null ? (
     <HoverTooltip
       title={t('lighting.schedule.marker.title')}
@@ -89,15 +93,17 @@ export function GlobalBrightnessSlider({ serviceOnline, onOpenSchedule }: {
         : t('lighting.schedule.marker.allowing', { level: scheduled })}
       side="top"
     >
-      <button
-        type="button"
+      <span
+        role="button"
+        tabIndex={onOpenSchedule ? 0 : -1}
         className={styles.scheduleMarker}
         aria-label={t('lighting.schedule.marker.title')}
-        onClick={onOpenSchedule}
-        disabled={!onOpenSchedule}
+        aria-disabled={onOpenSchedule ? undefined : true}
+        onClick={e => { e.preventDefault(); onOpenSchedule?.(); }}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenSchedule?.(); } }}
       >
         <Info size={12} />
-      </button>
+      </span>
     </HoverTooltip>
   ) : undefined;
 
@@ -109,6 +115,7 @@ export function GlobalBrightnessSlider({ serviceOnline, onOpenSchedule }: {
         editable
         trackFill
         label={t('lighting.settings.brightnessLabel')}
+        ariaLabel={t('lighting.settings.brightnessLabel')}
         value={percent}
         min={0}
         max={100}

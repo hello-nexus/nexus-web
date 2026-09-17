@@ -12,8 +12,8 @@ import { useTranslation } from '../../../lib/i18n';
 import { hour12OptionFor, localizeNumbers } from '../../../lib/units';
 import styles from './BrightnessScheduleModal.module.scss';
 
-// One grid line every six hours: five "12 AM"-style labels are what fits a
-// phone-width chart without colliding; the points themselves mark the hours.
+// As many "12 AM"-style labels as a phone-width chart fits without them
+// colliding; the points themselves mark the hours between.
 const HOUR_STEP = 6;
 
 interface BrightnessScheduleModalProps {
@@ -52,13 +52,16 @@ export function BrightnessScheduleModal({ open, onClose, state }: BrightnessSche
 
   const commit = (next: CurvePoint[]) => {
     if (!schedule) return;
-    // The axis runs to 24 so the last hour has room, but a point dragged onto
-    // the edge is midnight, which hour 0 already owns.
-    const mapped: BrightnessSchedulePoint[] = next.map(p => ({
-      hour: Math.min(23, Math.max(0, Math.round(p.temp))),
-      brightness: Math.max(0, Math.min(100, Math.round(p.speed))),
-    }));
-    void save({ enabled: schedule.enabled, points: mapped });
+    // The axis runs past the last hour so it has room, but a point dragged
+    // onto the edge is midnight, which the first hour already owns. One point
+    // per hour, the later on the axis winning: the graph clamps a drag to its
+    // neighbours inclusively, so two points can share an hour.
+    const byHour = new Map<number, BrightnessSchedulePoint>();
+    for (const p of next) {
+      const hour = Math.min(23, Math.max(0, Math.round(p.temp)));
+      byHour.set(hour, { hour, brightness: Math.max(0, Math.min(100, Math.round(p.speed))) });
+    }
+    void save({ enabled: schedule.enabled, points: [...byHour.values()] });
   };
 
   const isDefault = useMemo(() => {

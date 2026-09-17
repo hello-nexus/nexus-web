@@ -52,6 +52,19 @@ describe('GlobalBrightnessSlider schedule marker', () => {
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the label click and the accessible name on the range, not the (i)', async () => {
+    api.fetchBrightnessSchedule.mockResolvedValue(schedule(true, 40));
+    const onOpen = vi.fn();
+    render(<GlobalBrightnessSlider serviceOnline onOpenSchedule={onOpen} />);
+    await screen.findByRole('button', { name: 'lighting.schedule.marker.title' });
+
+    // The stacked slider is a <label>: a real <button> in it would become the
+    // labelled control and swallow clicks on the label text.
+    fireEvent.click(screen.getByText('lighting.settings.brightnessLabel'));
+    expect(onOpen).not.toHaveBeenCalled();
+    expect(screen.getByRole('slider', { name: 'lighting.settings.brightnessLabel' })).toBeInTheDocument();
+  });
+
   it('says what the schedule allows when it sits above the slider', async () => {
     api.fetchBrightnessSchedule.mockResolvedValue(schedule(true, 100));
     render(<GlobalBrightnessSlider serviceOnline onOpenSchedule={() => {}} />);

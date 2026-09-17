@@ -35,7 +35,8 @@ export function useBrightnessSchedule(enabled: boolean): BrightnessScheduleState
   const refresh = useCallback(() => {
     fetchBrightnessSchedule().then(data => {
       if (!data) return;
-      setSchedule({ enabled: data.enabled, points: data.points });
+      // A hand-edited settings.json can hold an explicit null here.
+      setSchedule({ enabled: data.enabled, points: data.points ?? [] });
       setDefaults(data.defaults ?? []);
     }).catch(() => { /* best-effort */ });
   }, []);

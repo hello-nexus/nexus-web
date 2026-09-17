@@ -132,6 +132,42 @@ describe('LightingCoolingSection brightness schedule', () => {
     expect(screen.getByText('lighting.schedule.now.on')).toBeInTheDocument();
   });
 
+  it('saves one point per hour, mapping the right edge onto the last hour', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await screen.findByText('lighting.schedule.row.off');
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
+
+    // jsdom has no layout, so drive the graph's commit through a real drag on
+    // a stubbed 400x140 chart: pull the 12h point to the far right (hour 24)
+    // and the top (100%).
+    Element.prototype.setPointerCapture ??= () => {};
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 400, bottom: 140, width: 400, height: 140, toJSON: () => ({}),
+    } as DOMRect);
+    const handles = document.querySelectorAll('svg circle[class*="curvePoint"]');
+    const noon = handles[handles.length - 1];
+    fireEvent.pointerDown(noon, { pointerId: 1, clientX: 200, clientY: 8 });
+    fireEvent.pointerMove(noon, { pointerId: 1, clientX: 600, clientY: -50 });
+    fireEvent.pointerUp(noon, { pointerId: 1 });
+
+    expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
+      enabled: false,
+      points: [{ hour: 0, brightness: 20 }, { hour: 23, brightness: 100 }],
+    });
+
+    // A point dragged onto another's hour collapses into it; the later point
+    // on the axis wins.
+    lightingApi.setBrightnessSchedule.mockClear();
+    const first = document.querySelectorAll('svg circle[class*="curvePoint"]')[0];
+    fireEvent.pointerDown(first, { pointerId: 2, clientX: 8, clientY: 120 });
+    fireEvent.pointerMove(first, { pointerId: 2, clientX: 600, clientY: 70 });
+    fireEvent.pointerUp(first, { pointerId: 2 });
+    expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
+      enabled: false,
+      points: [{ hour: 23, brightness: 100 }],
+    });
+  });
+
   it('resets to the service defaults and disables the reset once there', async () => {
     lightingApi.fetchBrightnessSchedule.mockResolvedValue({
       enabled: true,

@@ -16,9 +16,9 @@
   min-height: 2.6rem;
 }
 
-// The schedule (i) beside the master slider's label: the same 16px round
-// info affordance the per-device slider stacks over its master marker, but a
-// real button, since it also opens the schedule.
+// The schedule (i) beside the master slider's label: the same round info
+// affordance the per-device slider stacks over its master marker, but one
+// that also opens the schedule.
 .scheduleMarker {
   display: inline-flex;
   margin-left: 0.15rem;
@@ -26,17 +26,14 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  padding: 0;
-  border: none;
   border-radius: 50%;
-  background: transparent;
   color: var(--text-dim);
   cursor: pointer;
   transition: color var(--ease-fast) ease;
 
-  &:hover:not(:disabled) { color: var(--text); }
+  &:hover:not([aria-disabled]) { color: var(--text); }
   &:focus-visible { @include focus-ring; }
-  &:disabled { cursor: default; }
+  &[aria-disabled] { cursor: default; }
 }
 
 .body {
