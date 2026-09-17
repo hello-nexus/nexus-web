@@ -58,6 +58,7 @@ export async function commitBackgroundMedia(
   w: number,
   h: number,
   keepTransparency = true,
+  fit = false,
 ): Promise<BackgroundMediaCommitResult | ServiceRefusal | null> {
   const form = new FormData();
   form.append('stageId', stageId);
@@ -65,6 +66,7 @@ export async function commitBackgroundMedia(
   form.append('w', String(w));
   form.append('h', String(h));
   form.append('keepTransparency', keepTransparency ? '1' : '0');
+  form.append('fit', fit ? '1' : '0');
   return postServiceFormResult<BackgroundMediaCommitResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/commit`, form);
 }
 

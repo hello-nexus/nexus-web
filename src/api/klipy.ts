@@ -36,9 +36,10 @@ export async function importKlipy(slug: string, crop: string) {
 
 /** The same pick, baked as one device's panel background at its panel size. */
 export async function importKlipyBackground(
-  deviceId: string, slug: string, crop: string, w: number, h: number, keepTransparency = false,
+  deviceId: string, slug: string, crop: string, w: number, h: number,
+  keepTransparency = false, fit = false,
 ) {
   return postService<{ item: BackgroundMediaItem | null; error?: boolean; msg?: string }>(
     `/panel/devices/${encodeURIComponent(deviceId)}/background-media/klipy/import`,
-    { slug, crop, w, h, keepTransparency });
+    { slug, crop, w, h, keepTransparency, fit });
 }

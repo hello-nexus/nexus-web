@@ -105,15 +105,14 @@ const libraryItem = (id: string, importedAtUnixMs: number): BackgroundMediaItem 
 
 const cardLabels = () => screen.getAllByRole('button').map(el => el.getAttribute('aria-label')).filter(l => l && /^[a-z]$/.test(l));
 
-function folderInput(): HTMLInputElement {
-  const inputs = document.querySelectorAll<HTMLInputElement>('input[type="file"]');
-  const input = Array.from(inputs).find(el => el.hasAttribute('webkitdirectory'));
-  if (!input) throw new Error('folder input not rendered');
+function fileInput(): HTMLInputElement {
+  const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+  if (!input) throw new Error('file input not rendered');
   return input;
 }
 
-function pickFolder(files: File[]) {
-  fireEvent.change(folderInput(), { target: { files } });
+function pickFiles(files: File[]) {
+  fireEvent.change(fileInput(), { target: { files } });
 }
 
 beforeEach(() => {
@@ -125,11 +124,12 @@ beforeEach(() => {
   api.gate = null;
 });
 
-describe('BackgroundMediaPicker folder import', () => {
-  it('renders a directory picker next to the single-file import', () => {
+describe('BackgroundMediaPicker multi-file import', () => {
+  it('takes several files at once, with no separate folder picker', () => {
     renderPicker();
-    expect(folderInput()).toHaveAttribute('multiple');
-    expect(screen.getByText('lighting.controls.importFolder')).toBeInTheDocument();
+    expect(fileInput()).toHaveAttribute('multiple');
+    expect(document.querySelectorAll('input[type="file"]')).toHaveLength(1);
+    expect(screen.queryByText('lighting.controls.importFolder')).toBeNull();
   });
 
   it('imports every supported file in name order with a centred crop and selects the first', async () => {
@@ -137,7 +137,7 @@ describe('BackgroundMediaPicker folder import', () => {
     api.sizes['stage-b.jpg'] = { w: 2000, h: 1000 };
     const { onSelect } = renderPicker();
 
-    pickFolder([
+    pickFiles([
       new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'notes.txt', { type: 'text/plain' }),
       new File(['x'], 'a.mp4', { type: 'video/mp4' }),
@@ -147,10 +147,10 @@ describe('BackgroundMediaPicker folder import', () => {
     expect(vi.mocked(stageBackgroundMedia).mock.calls.map(c => c[1].name)).toEqual(['a.mp4', 'b.jpg']);
     // A source taller than the panel keeps its full width and loses height
     // evenly top and bottom.
-    expect(commitBackgroundMedia).toHaveBeenNthCalledWith(1, 'dev1', 'stage-a.mp4', '0.000000,0.055556,1.000000,0.888889', 720, 1280);
+    expect(commitBackgroundMedia).toHaveBeenNthCalledWith(1, 'dev1', 'stage-a.mp4', '0.000000,0.055556,1.000000,0.888889', 720, 1280, true, false);
     // A source wider than the panel keeps its full height and loses width
     // evenly left and right.
-    expect(commitBackgroundMedia).toHaveBeenNthCalledWith(2, 'dev1', 'stage-b.jpg', '0.359375,0.000000,0.281250,1.000000', 720, 1280);
+    expect(commitBackgroundMedia).toHaveBeenNthCalledWith(2, 'dev1', 'stage-b.jpg', '0.359375,0.000000,0.281250,1.000000', 720, 1280, true, false);
     expect(api.refresh).toHaveBeenCalled();
     expect(onSelect).toHaveBeenCalledWith('item-stage-a.mp4', 'static', false);
     expect(screen.queryByText(/importFolderPartial|importFolderEmpty/)).toBeNull();
@@ -161,7 +161,7 @@ describe('BackgroundMediaPicker folder import', () => {
     api.sizes['stage-b.png'] = { w: 720, h: 1280 };
     const { onSelect } = renderPicker();
 
-    pickFolder([
+    pickFiles([
       new File(['x'], 'a.png', { type: 'image/png' }),
       new File(['x'], 'b.png', { type: 'image/png' }),
     ]);
@@ -175,7 +175,7 @@ describe('BackgroundMediaPicker folder import', () => {
     api.sizes['stage-ok.jpg'] = { w: 720, h: 1280 };
     const { onSelect } = renderPicker();
 
-    pickFolder([
+    pickFiles([
       new File(['x'], 'broken.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'ok.jpg', { type: 'image/jpeg' }),
     ]);
@@ -191,7 +191,7 @@ describe('BackgroundMediaPicker folder import', () => {
     api.unreachable.add('b.jpg');
     const { onSelect } = renderPicker();
 
-    pickFolder([
+    pickFiles([
       new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'c.jpg', { type: 'image/jpeg' }),
@@ -203,14 +203,14 @@ describe('BackgroundMediaPicker folder import', () => {
     expect(commitBackgroundMedia).toHaveBeenCalledTimes(1);
   });
 
-  it('abandons the batch when the picker unmounts mid-folder', async () => {
+  it('abandons the batch when the picker unmounts mid-import', async () => {
     api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
     api.sizes['stage-b.jpg'] = { w: 720, h: 1280 };
     let openGate = () => {};
     api.gate = new Promise<void>(resolve => { openGate = resolve; });
     const { onSelect, unmount } = renderPicker();
 
-    pickFolder([
+    pickFiles([
       new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
     ]);
@@ -226,15 +226,6 @@ describe('BackgroundMediaPicker folder import', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('reports a folder with nothing importable without uploading', async () => {
-    renderPicker();
-    pickFolder([new File(['x'], 'readme.md', { type: 'text/markdown' })]);
-    expect(await screen.findByText('lighting.controls.importFolderEmpty')).toBeInTheDocument();
-    expect(stageBackgroundMedia).not.toHaveBeenCalled();
-  });
-});
-
-describe('BackgroundMediaPicker slideshow', () => {
   it('renders no slideshow controls without the settings group', () => {
     renderPicker();
     expect(screen.queryByText('panel.settings.slideshow')).toBeNull();
@@ -269,7 +260,7 @@ describe('BackgroundMediaPicker slideshow', () => {
     api.sizes['stage-b.jpg'] = { w: 720, h: 1280 };
     const { onSelect, onSlideshowChange } = renderPicker(SLIDESHOW_OFF);
 
-    pickFolder([
+    pickFiles([
       new File(['x'], 'a.jpg', { type: 'image/jpeg' }),
       new File(['x'], 'b.jpg', { type: 'image/jpeg' }),
     ]);
@@ -278,14 +269,47 @@ describe('BackgroundMediaPicker slideshow', () => {
     expect(onSlideshowChange).toHaveBeenCalledWith({ enabled: true });
   });
 
-  it('leaves a single-file folder as a plain background', async () => {
+  it('leaves a single fitted file as a plain background', async () => {
     api.sizes['stage-a.jpg'] = { w: 720, h: 1280 };
     const { onSelect, onSlideshowChange } = renderPicker(SLIDESHOW_OFF);
+    // Fitting skips the cropper, so one file still goes through the batch path.
+    fireEvent.click(screen.getByLabelText('panel.background.fitWhole'));
 
-    pickFolder([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
+    pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
 
     await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     expect(onSlideshowChange).not.toHaveBeenCalled();
+  });
+
+  it('a single unfitted file opens the cropper instead of importing straight away', async () => {
+    const { onSelect } = renderPicker();
+
+    pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
+
+    await waitFor(() => expect(stageBackgroundMedia).toHaveBeenCalledTimes(1));
+    expect(commitBackgroundMedia).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('fitting commits the whole frame and asks the service to letterbox', async () => {
+    api.sizes['stage-a.jpg'] = { w: 2000, h: 1000 };
+    renderPicker();
+    fireEvent.click(screen.getByLabelText('panel.background.fitWhole'));
+
+    pickFiles([new File(['x'], 'a.jpg', { type: 'image/jpeg' })]);
+
+    await waitFor(() => expect(commitBackgroundMedia).toHaveBeenCalled());
+    expect(commitBackgroundMedia).toHaveBeenCalledWith(
+      'dev1', 'stage-a.jpg', '0.000000,0.000000,1.000000,1.000000', 720, 1280, true, true);
+  });
+
+  it('reports a selection with nothing importable without uploading', async () => {
+    renderPicker();
+
+    pickFiles([new File(['x'], 'notes.txt', { type: 'text/plain' })]);
+
+    expect(await screen.findByText('lighting.controls.importFolderEmpty')).toBeInTheDocument();
+    expect(stageBackgroundMedia).not.toHaveBeenCalled();
   });
 });
 
@@ -321,7 +345,7 @@ describe('Klipy picks', () => {
     // A 220x164 landscape GIF on a 720x1280 portrait panel keeps the full
     // height and trims to the middle 0.5625*164/220 of the width.
     expect(importKlipyBackground).toHaveBeenCalledWith(
-      'dev1', 'happy-cat', '0.290341,0.000000,0.419318,1.000000', 720, 1280, false);
+      'dev1', 'happy-cat', '0.290341,0.000000,0.419318,1.000000', 720, 1280, false, false);
     await waitFor(() => expect(onSelect).toHaveBeenCalledWith('klipy-item', 'animated', false));
   });
 

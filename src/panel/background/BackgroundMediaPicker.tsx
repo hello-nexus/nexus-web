@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { FolderInput, FolderOpen, Image as ImageIcon, Sparkles, Upload } from 'lucide-react';
+import { FolderOpen, Image as ImageIcon, Sparkles, Upload } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
@@ -31,24 +31,25 @@ import styles from '../widgets/lighting/LightingPage.module.scss';
 
 const BG_THUMB_ASPECT = 720 / 1280;
 
-// Mirrors PanelBgImporter's accepted extensions so a folder's stray files
-// (sidecars, thumbnails, documents) are skipped here instead of each costing
-// an upload the service rejects.
-const FOLDER_IMPORT_EXTENSIONS = new Set([
+// Mirrors PanelBgImporter's accepted extensions: the accept attribute is a
+// hint the file dialog lets the user override, and each stray file otherwise
+// costs an upload the service refuses.
+const IMPORT_EXTENSIONS = new Set([
   '.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff', '.tif',
   '.gif', '.mp4', '.webm', '.mov', '.avi', '.mkv', '.wmv', '.m4v', '.mpg', '.mpeg',
 ]);
 
-function folderImportCandidates(files: FileList | null): File[] {
+/** Importable picks, in name order so a batch cycles the way the files read. */
+function importCandidates(files: FileList | null): File[] {
   return Array.from(files ?? [])
     .filter(file => {
       const dot = file.name.lastIndexOf('.');
-      return dot >= 0 && FOLDER_IMPORT_EXTENSIONS.has(file.name.slice(dot).toLowerCase());
+      return dot >= 0 && IMPORT_EXTENSIONS.has(file.name.slice(dot).toLowerCase());
     })
-    .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, undefined, { numeric: true }));
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 }
 
-type FolderFileOutcome = BackgroundMediaItem | 'failed' | 'unreachable';
+type BatchFileOutcome = BackgroundMediaItem | 'failed' | 'unreachable';
 
 export function BackgroundMediaPicker({
   deviceId,
@@ -84,14 +85,14 @@ export function BackgroundMediaPicker({
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [cropState, setCropState] = useState<{ stageId: string; src: string; alpha: boolean } | null>(null);
+  const [fitWhole, setFitWhole] = useState(false);
   const [klipyOpen, setKlipyOpen] = useState(false);
   const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const [converting, setConverting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const folderRef = useRef<HTMLInputElement | null>(null);
-  // Closing the theme sheet mid-folder unmounts this picker; the loop stops
-  // at its next file rather than uploading on and selecting from a dead
-  // instance over whatever the user picked meanwhile.
+  // Closing the theme sheet mid-batch unmounts this picker; the loop stops at
+  // its next file rather than uploading on and selecting from a dead instance
+  // over whatever the user picked meanwhile.
   const aliveRef = useRef(true);
   useEffect(() => {
     aliveRef.current = true;
@@ -104,10 +105,22 @@ export function BackgroundMediaPicker({
     frames: item.type === 'animated' ? Math.max(1, Math.round(item.durationSec * 30)) : 0,
   }));
 
+  // One file opens the cropper; several go through the batch path. Fitting the
+  // whole frame leaves nothing to crop, so it skips the cropper either way.
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const picked = e.target.files;
+    const files = importCandidates(picked);
     e.target.value = '';
+    if (files.length === 0) {
+      setImportError((picked?.length ?? 0) > 0 ? t('lighting.controls.importFolderEmpty') : null);
+      return;
+    }
+    if (files.length > 1 || fitWhole) {
+      await runImportBatch(files);
+      return;
+    }
+
+    const [file] = files;
     setImportError(null);
     setImporting(true);
     setImportingName(file.name);
@@ -127,11 +140,11 @@ export function BackgroundMediaPicker({
     });
   };
 
-  // One folder file, start to finish: the cropper's default (largest centred
-  // crop at the panel aspect) stands in for the user's crop. The service
-  // being unreachable ends the whole folder; a file it refuses is counted
-  // and the rest continue.
-  const importFolderFile = async (file: File): Promise<FolderFileOutcome> => {
+  // One batched file, start to finish: the cropper's default (largest centred
+  // crop at the panel aspect) stands in for the user's crop, or the whole frame
+  // when fitting. The service being unreachable ends the batch; a file it
+  // refuses is counted and the rest continue.
+  const importBatchFile = async (file: File): Promise<BatchFileOutcome> => {
     const staged = await stageBackgroundMedia(deviceId, file);
     if (!staged) return 'unreachable';
     if (staged.error) return 'failed';
@@ -140,8 +153,11 @@ export function BackgroundMediaPicker({
       cancelBackgroundMediaStage(deviceId, staged.stageId).catch(() => {});
       return 'failed';
     }
-    const crop = serializeCrop(centerCropForAspect(deviceAspect, size.w, size.h));
-    const result = await commitBackgroundMedia(deviceId, staged.stageId, crop, deviceW, deviceH);
+    const crop = fitWhole
+      ? serializeCrop({ x: 0, y: 0, w: 1, h: 1 })
+      : serializeCrop(centerCropForAspect(deviceAspect, size.w, size.h));
+    const result = await commitBackgroundMedia(
+      deviceId, staged.stageId, crop, deviceW, deviceH, true, fitWhole);
     if (!result || result.error || !result.item) {
       cancelBackgroundMediaStage(deviceId, staged.stageId).catch(() => {});
       return result ? 'failed' : 'unreachable';
@@ -149,14 +165,8 @@ export function BackgroundMediaPicker({
     return result.item;
   };
 
-  const handleFolderImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = folderImportCandidates(e.target.files);
-    e.target.value = '';
+  const runImportBatch = async (files: File[]) => {
     setImportError(null);
-    if (files.length === 0) {
-      setImportError(t('lighting.controls.importFolderEmpty'));
-      return;
-    }
     setImporting(true);
     let first: BackgroundMediaItem | null = null;
     let imported = 0;
@@ -165,7 +175,7 @@ export function BackgroundMediaPicker({
     for (let i = 0; i < files.length; i++) {
       setImportingName(files[i].name);
       setImportProgress({ n: i + 1, total: files.length });
-      const outcome = await importFolderFile(files[i]);
+      const outcome = await importBatchFile(files[i]);
       if (!aliveRef.current) return;
       if (outcome === 'unreachable') {
         error = t('lighting.controls.importNetworkError');
@@ -189,7 +199,7 @@ export function BackgroundMediaPicker({
       await refresh();
       if (!aliveRef.current) return;
       onSelect(first.id, first.type, !!first.alpha);
-      // A folder is imported to be cycled; a single background shows one file of it.
+      // Several files are imported to be cycled; one background shows one of them.
       if (imported >= 2 && slideshow && !slideshow.enabled) onSlideshowChange?.({ enabled: true });
     }
   };
@@ -200,7 +210,8 @@ export function BackgroundMediaPicker({
     const cropStr = serializeCrop(crop);
     setConverting(true);
     setImportError(null);
-    const result = await commitBackgroundMedia(deviceId, stageId, cropStr, deviceW, deviceH, keepTransparency);
+    const result = await commitBackgroundMedia(
+      deviceId, stageId, cropStr, deviceW, deviceH, keepTransparency, false);
     setConverting(false);
     if (!result) {
       setImportError(t('lighting.controls.importNetworkError'));
@@ -224,10 +235,12 @@ export function BackgroundMediaPicker({
   const handleKlipyPick = async (gif: KlipyGif) => {
     setKlipyBusy(gif.slug);
     setImportError(null);
-    const crop = serializeCrop(centerCropForAspect(deviceAspect, gif.width, gif.height));
+    const crop = fitWhole
+      ? serializeCrop({ x: 0, y: 0, w: 1, h: 1 })
+      : serializeCrop(centerCropForAspect(deviceAspect, gif.width, gif.height));
     // Transparency off: a Klipy pick fills the panel, and the alpha branch
     // bakes a palette gif at panel size instead of h264.
-    const result = await importKlipyBackground(deviceId, gif.slug, crop, deviceW, deviceH, false);
+    const result = await importKlipyBackground(deviceId, gif.slug, crop, deviceW, deviceH, false, fitWhole);
     setKlipyBusy(null);
     if (!result) {
       setImportError(t('lighting.controls.importNetworkError'));
@@ -319,6 +332,15 @@ export function BackgroundMediaPicker({
     </>
   );
 
+  const fitControl = (
+    <SettingToggle
+      label={t('panel.background.fitWhole')}
+      description={t('panel.background.fitWhole.desc')}
+      checked={fitWhole}
+      onChange={setFitWhole}
+    />
+  );
+
   return (
     <>
       {cropState && (
@@ -333,6 +355,7 @@ export function BackgroundMediaPicker({
       )}
       <div className={styles.mediaSection}>
         {slideshowControls}
+        {fitControl}
         <div className={styles.mediaHeader}>
           <Button
             type="button"
@@ -342,16 +365,6 @@ export function BackgroundMediaPicker({
           >
             {importing ? t('lighting.controls.importing') : t('lighting.controls.import')}
           </Button>
-          <HoverTooltip body={t('lighting.controls.importFolderHint')} side="bottom">
-            <Button
-              type="button"
-              icon={<FolderInput size={16} aria-hidden />}
-              onClick={() => folderRef.current?.click()}
-              disabled={importing}
-            >
-              {t('lighting.controls.importFolder')}
-            </Button>
-          </HoverTooltip>
           <Button
             type="button"
             icon={<Sparkles size={16} aria-hidden />}
@@ -374,15 +387,8 @@ export function BackgroundMediaPicker({
             type="file"
             className={styles.hiddenInput}
             accept="image/*,video/*,.gif"
-            onChange={handleImport}
-          />
-          <input
-            ref={folderRef}
-            type="file"
-            className={styles.hiddenInput}
-            webkitdirectory=""
             multiple
-            onChange={handleFolderImport}
+            onChange={handleImport}
           />
         </div>
         <KlipyPicker
