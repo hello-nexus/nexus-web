@@ -1,14 +1,17 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { CircuitBoard, Cpu, Lock, Moon, RotateCcw, Zap } from 'lucide-react';
+import { CircuitBoard, Clock, Cpu, Lock, Moon, RotateCcw, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Select } from '../../common/Select/Select';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { BrightnessScheduleModal } from './BrightnessScheduleModal';
+import styles from './SettingsView.module.scss';
 import {
   fetchLockBlackout, fetchRenderGpu, fetchSleepBlackout, restartService, setLockBlackout,
   setRenderGpu, setSleepBlackout,
 } from '../../../api/lighting';
+import { useBrightnessSchedule } from '../../../hooks/useBrightnessSchedule';
 import { useSensors, type HardwareSensor } from '../../../hooks/useSensors';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -29,7 +32,8 @@ interface LightingCoolingSectionProps {
  * Settings home for the lighting + cooling preferences that used to live in the
  * per-page gear modals: the CPU/GPU temperature-sensor overrides (all
  * platforms) and, on Windows/Linux multi-GPU rigs, which GPU renders lighting
- * shaders (restart-to-apply).
+ * shaders (restart-to-apply). Also the master-brightness schedule, a whole-day
+ * preference with no home on the lighting page's per-mode controls.
  */
 export function LightingCoolingSection({ serviceOnline, platform }: LightingCoolingSectionProps) {
   const { t } = useTranslation();
@@ -52,6 +56,10 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
   // (on) so the row never renders off for a moment and reads as a user choice.
   const showLockBlackout = platform === 'windows' || platform === 'macos' || platform === 'linux';
   const [lockBlackout, setLockBlackoutValue] = useState(true);
+  // Master-brightness schedule: every platform, since it lives in the frame
+  // writers rather than in any OS hook.
+  const brightnessSchedule = useBrightnessSchedule(serviceOnline);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   useEffect(() => {
     if (!showGpuPicker || !serviceOnline) return;
@@ -138,49 +146,66 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
     </Button>
   ) : undefined;
 
-  const showLightingSection = showGpuPicker || showSleepBlackout || showLockBlackout;
+  const scheduleState = brightnessSchedule.schedule === null
+    ? ''
+    : brightnessSchedule.schedule.enabled
+      ? t('lighting.schedule.row.on')
+      : t('lighting.schedule.row.off');
 
   return (
     <>
-      {showLightingSection && (
-        <SettingsSection title={t('lighting.title')}>
-          {showGpuPicker && (
-            <SettingSelect
-              label={t('lighting.renderGpu.label')}
-              icon={<Zap />}
-              iconLeading="subtle"
-              anchorId="set-render-gpu"
-              description={t('lighting.renderGpu.hint')}
-              value={renderGpu}
-              options={gpuSelectOptions}
-              onChange={handleGpuChange}
-            />
-          )}
-          {showSleepBlackout && (
-            <SettingToggle
-              label={t('lighting.sleepBlackout.label')}
-              icon={<Moon />}
-              iconLeading="subtle"
-              anchorId="set-sleep-blackout"
-              description={t('lighting.sleepBlackout.description')}
-              checked={sleepBlackout}
-              onChange={handleSleepBlackoutChange}
-              disabled={!serviceOnline}
-            />
-          )}
-          {showLockBlackout && (
-            <SettingToggle
-              label={t('lighting.lockBlackout.label')}
-              icon={<Lock />}
-              iconLeading="subtle"
-              anchorId="set-lock-blackout"
-              description={t('lighting.lockBlackout.description')}
-              checked={lockBlackout}
-              onChange={handleLockBlackoutChange}
-              disabled={!serviceOnline}
-            />
-          )}
-        </SettingsSection>
+      <SettingsSection title={t('lighting.title')}>
+        <SettingRow
+          label={t('lighting.schedule.row.label')}
+          icon={<Clock />}
+          iconLeading="subtle"
+          anchorId="set-brightness-schedule"
+          description={t('lighting.schedule.row.description')}
+        >
+          <span className={styles.runtimeStatus}>{scheduleState}</span>
+          <Button type="button" size="sm" onClick={() => setScheduleOpen(true)} disabled={!serviceOnline}>
+            {t('lighting.schedule.row.action')}
+          </Button>
+        </SettingRow>
+        {showGpuPicker && (
+          <SettingSelect
+            label={t('lighting.renderGpu.label')}
+            icon={<Zap />}
+            iconLeading="subtle"
+            anchorId="set-render-gpu"
+            description={t('lighting.renderGpu.hint')}
+            value={renderGpu}
+            options={gpuSelectOptions}
+            onChange={handleGpuChange}
+          />
+        )}
+        {showSleepBlackout && (
+          <SettingToggle
+            label={t('lighting.sleepBlackout.label')}
+            icon={<Moon />}
+            iconLeading="subtle"
+            anchorId="set-sleep-blackout"
+            description={t('lighting.sleepBlackout.description')}
+            checked={sleepBlackout}
+            onChange={handleSleepBlackoutChange}
+            disabled={!serviceOnline}
+          />
+        )}
+        {showLockBlackout && (
+          <SettingToggle
+            label={t('lighting.lockBlackout.label')}
+            icon={<Lock />}
+            iconLeading="subtle"
+            anchorId="set-lock-blackout"
+            description={t('lighting.lockBlackout.description')}
+            checked={lockBlackout}
+            onChange={handleLockBlackoutChange}
+            disabled={!serviceOnline}
+          />
+        )}
+      </SettingsSection>
+      {scheduleOpen && (
+        <BrightnessScheduleModal open onClose={() => setScheduleOpen(false)} state={brightnessSchedule} />
       )}
       <SettingsSection title={t('cooling.title')} action={resetAction}>
         <SensorRow

@@ -16,6 +16,28 @@
   min-height: 2.6rem;
 }
 
+// The schedule (i) above the master slider's marker caret: the same 16px
+// round info affordance the per-device slider stacks over its master marker,
+// but a real button, since it also opens the schedule.
+.scheduleMarker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast) ease;
+
+  &:hover:not(:disabled) { color: var(--text); }
+  &:focus-visible { @include focus-ring; }
+  &:disabled { cursor: default; }
+}
+
 .body {
   display: grid;
   // Device rail | tabs + content | effect dock. Both side columns match

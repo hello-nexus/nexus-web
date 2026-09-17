@@ -20,6 +20,7 @@ vi.mock('../../../hooks/useUiSettings', () => ({
     update: vi.fn(),
     reload: vi.fn(),
   }),
+  useUnitPrefs: () => ({ monitoringTempUnit: prefs.monitoringTempUnit, timeFormat: '24h', numberFormat: 'dot' }),
 }));
 
 const tempSensor = (id: string, name: string, value: number) => ({
@@ -43,6 +44,12 @@ const lightingApi = vi.hoisted(() => ({
   setSleepBlackout: vi.fn().mockResolvedValue(null),
   fetchLockBlackout: vi.fn().mockResolvedValue({ enabled: true }),
   setLockBlackout: vi.fn().mockResolvedValue(null),
+  fetchBrightnessSchedule: vi.fn().mockResolvedValue({
+    enabled: false,
+    points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+    defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+  }),
+  setBrightnessSchedule: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('../../../api/lighting', () => ({
@@ -53,6 +60,13 @@ vi.mock('../../../api/lighting', () => ({
   setSleepBlackout: lightingApi.setSleepBlackout,
   fetchLockBlackout: lightingApi.fetchLockBlackout,
   setLockBlackout: lightingApi.setLockBlackout,
+  fetchBrightnessSchedule: lightingApi.fetchBrightnessSchedule,
+  setBrightnessSchedule: lightingApi.setBrightnessSchedule,
+}));
+
+// The schedule hook subscribes to the lighting topic; no socket in tests.
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: () => {},
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -69,13 +83,74 @@ describe('LightingCoolingSection section split', () => {
     expect(screen.getByRole('button', { name: 'cooling.settings.cpuLabel' })).toBeInTheDocument();
   });
 
-  it('omits the Lighting section entirely when it would have no rows', () => {
-    // Lock blackout shows on every desktop platform, so the only real
-    // no-rows case is before the platform ping resolves (empty string).
+  it('keeps the Lighting section for the schedule row before the platform resolves', () => {
+    // The blackout rows are platform-gated; the schedule row is not, so the
+    // section is never empty, even before the platform ping resolves.
     render(<LightingCoolingSection serviceOnline platform="" />);
 
-    expect(screen.queryByText('lighting.title')).not.toBeInTheDocument();
+    expect(screen.getByText('lighting.title')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'lighting.schedule.row.action' })).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'lighting.lockBlackout.label' })).not.toBeInTheDocument();
     expect(screen.getByText('cooling.title')).toBeInTheDocument();
+  });
+});
+
+describe('LightingCoolingSection brightness schedule', () => {
+  beforeEach(() => {
+    lightingApi.fetchBrightnessSchedule.mockReset().mockResolvedValue({
+      enabled: false,
+      points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+      defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+    });
+    lightingApi.setBrightnessSchedule.mockReset().mockResolvedValue(null);
+  });
+
+  it('names the schedule state on the row and opens the editor', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await screen.findByText('lighting.schedule.row.off');
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
+
+    expect(screen.getByRole('switch', { name: 'lighting.schedule.enable.label' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByText('lighting.schedule.now.off')).toBeInTheDocument();
+  });
+
+  it('turns the schedule on from the editor and reports the live level', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await screen.findByText('lighting.schedule.row.off');
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
+
+    fireEvent.click(screen.getByRole('switch', { name: 'lighting.schedule.enable.label' }));
+
+    expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
+      enabled: true,
+      points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+    });
+    // Optimistic: the row and the readout flip before the POST answers.
+    expect(screen.getByText('lighting.schedule.row.on')).toBeInTheDocument();
+    expect(screen.getByText('lighting.schedule.now.on')).toBeInTheDocument();
+  });
+
+  it('resets to the service defaults and disables the reset once there', async () => {
+    lightingApi.fetchBrightnessSchedule.mockResolvedValue({
+      enabled: true,
+      points: [{ hour: 0, brightness: 5 }, { hour: 12, brightness: 100 }],
+      defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+    });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await screen.findByText('lighting.schedule.row.on');
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.schedule.row.action' }));
+
+    const reset = screen.getByRole('button', { name: 'lighting.schedule.reset' });
+    expect(reset).toBeEnabled();
+    fireEvent.click(reset);
+
+    expect(lightingApi.setBrightnessSchedule).toHaveBeenCalledWith({
+      enabled: true,
+      points: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
+    });
+    expect(screen.getByRole('button', { name: 'lighting.schedule.reset' })).toBeDisabled();
   });
 });
 

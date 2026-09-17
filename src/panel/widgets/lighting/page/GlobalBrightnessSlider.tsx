@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Info } from 'lucide-react';
 import { fetchGlobalBrightness, setGlobalBrightness } from '../../../../api/lighting';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
+import { useBrightnessSchedule } from '../../../../hooks/useBrightnessSchedule';
 import { useThrottle } from '../../../../hooks/cadence';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../../lib/i18n';
@@ -13,11 +16,21 @@ import styles from '../LightingPage.module.scss';
  * brighter than master. Stored 0..1 on the service side, surfaced
  * 0..100% in the UI.
  *
+ * While the time-of-day schedule is on, its current level is a second cap on
+ * top of the slider, shown the way the per-device slider shows this one: a
+ * marker at the scheduled level with an (i) that names it, and the fill past
+ * it dimmed when it is the lower of the two. The (i) opens the schedule.
+ *
  * Renders as a labelled stacked slider so it reads as the first control in the
  * effect dock's stack rather than a separate widget.
  */
-export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boolean }) {
+export function GlobalBrightnessSlider({ serviceOnline, onOpenSchedule }: {
+  serviceOnline: boolean;
+  /** Deep-links to the schedule row in Settings; omit to hide the affordance. */
+  onOpenSchedule?: () => void;
+}) {
   const { t } = useTranslation();
+  const { current: scheduled } = useBrightnessSchedule(serviceOnline);
   // Null until the first fetch resolves, to avoid flashing 100% on
   // mount when the persisted value is anything else.
   const [percent, setPercent] = useState<number | null>(null);
@@ -65,6 +78,26 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
     return <div className={styles.globalBrightnessSlider} aria-hidden />;
   }
 
+  const capping = scheduled !== null && scheduled < percent;
+  const scheduleMarker = scheduled !== null ? (
+    <HoverTooltip
+      title={t('lighting.schedule.marker.title')}
+      body={capping
+        ? t('lighting.schedule.marker.capping', { level: scheduled })
+        : t('lighting.schedule.marker.allowing', { level: scheduled })}
+    >
+      <button
+        type="button"
+        className={styles.scheduleMarker}
+        aria-label={t('lighting.schedule.marker.title')}
+        onClick={onOpenSchedule}
+        disabled={!onOpenSchedule}
+      >
+        <Info size={12} />
+      </button>
+    </HoverTooltip>
+  ) : undefined;
+
   return (
     <div className={styles.globalBrightnessSlider}>
       <Slider
@@ -77,6 +110,9 @@ export function GlobalBrightnessSlider({ serviceOnline }: { serviceOnline: boole
         min={0}
         max={100}
         step={1}
+        fillCap={capping ? scheduled : undefined}
+        marker={scheduled ?? undefined}
+        markerLabel={scheduleMarker}
         onChange={handleChange}
         onCommit={handleCommit}
       />
