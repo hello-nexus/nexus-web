@@ -17,6 +17,7 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
+import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
@@ -174,6 +175,10 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
                   {orderedDevices.map(renderDeviceCard)}
                 </div>
               )}
+
+              <div className={styles.missingNotice}>
+                <SimpleModeNotice message={t('devices.available.missingNotice')} />
+              </div>
             </>
           )
         ) : tab === 'displays' ? (

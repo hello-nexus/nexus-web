@@ -484,6 +484,7 @@
   "datepicker.popup": "Tarih seçici",
   "datepicker.prevMonth": "Önceki ay",
   "datepicker.today": "Bugün",
+  "devices.available.missingNotice": "Cihazınız burada listelenmiyorsa önce doğru şekilde takılı olduğundan emin olun, ardından üreticinin resmi yazılımıyla ürün yazılımını güncelleyin.",
   "devices.available.none": "Şu anda kullanılabilir desteklenen cihaz yok.",
   "devices.busControlOff": "Nexus Kontrolü kapalı. Bu cihaz için izleme de kapalı.",
   "devices.cnvs.disableConnectionAnimation": "Bağlantı animasyonunu devre dışı bırak",

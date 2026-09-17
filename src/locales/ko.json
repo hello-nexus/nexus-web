@@ -484,6 +484,7 @@
   "datepicker.popup": "날짜 선택",
   "datepicker.prevMonth": "이전 달",
   "datepicker.today": "오늘",
+  "devices.available.missingNotice": "장치가 여기에 표시되지 않으면 먼저 올바르게 연결되어 있는지 확인한 다음 제조사의 공식 소프트웨어로 펌웨어를 업데이트하세요.",
   "devices.available.none": "현재 사용 가능한 지원 장치가 없습니다.",
   "devices.busControlOff": "Nexus 제어가 꺼져 있습니다. 이 장치의 모니터링도 꺼져 있습니다.",
   "devices.cnvs.disableConnectionAnimation": "연결 애니메이션 비활성화",

@@ -484,6 +484,7 @@
   "datepicker.popup": "Datumkiezer",
   "datepicker.prevMonth": "Vorige maand",
   "datepicker.today": "Vandaag",
+  "devices.available.missingNotice": "Staat je apparaat hier niet? Controleer eerst of het goed is aangesloten en werk daarna de firmware bij met de officiële software van de fabrikant.",
   "devices.available.none": "Momenteel geen ondersteunde apparaten beschikbaar.",
   "devices.busControlOff": "Nexus Control staat uit. Monitoring voor dit apparaat staat ook uit.",
   "devices.cnvs.disableConnectionAnimation": "Verbindingsanimatie uitschakelen",

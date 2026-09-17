@@ -484,6 +484,7 @@
   "datepicker.popup": "日期選擇器",
   "datepicker.prevMonth": "上一月",
   "datepicker.today": "今天",
+  "devices.available.missingNotice": "如果您的裝置未在此列出，請先確認已正確連接，然後使用製造商的官方軟體更新韌體。",
   "devices.available.none": "目前沒有可用的受支援裝置。",
   "devices.busControlOff": "Nexus 控制已關閉。此裝置的監控也已關閉。",
   "devices.cnvs.disableConnectionAnimation": "停用連線動畫",
