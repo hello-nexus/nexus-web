@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 .modal {
   background: var(--backdrop-base);
   border: 1px solid transparent;
@@ -21,10 +23,10 @@
 }
 
 .title {
+  @include text-heading;
+
   margin: 0;
-  font-size: var(--type-heading);
   color: var(--text);
-  line-height: 1.25;
 }
 
 .search {
@@ -63,15 +65,17 @@
 }
 
 .importError {
+  @include text-caption;
+
   margin: 0;
   color: var(--bad);
-  font-size: var(--type-small);
 }
 
 .attribution {
+  @include text-caption;
+
   margin: 0;
   margin-left: auto;
   text-align: right;
   color: var(--text-dim);
-  font-size: var(--type-caption);
 }
