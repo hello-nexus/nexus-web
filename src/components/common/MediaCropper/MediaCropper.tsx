@@ -227,13 +227,11 @@ export function MediaCropper({ src, kind = 'image', aspect, initialCrop, busy, a
   // Fitting takes the whole frame, so the rect snaps to it; turning it off
   // returns to the largest centred crop.
   const toggleFit = useCallback(() => {
-    setFitWhole(prev => {
-      const next = !prev;
-      if (next) setCrop({ x: 0, y: 0, w: 1, h: 1 });
-      else if (oriented) setCrop(centerCropForAspect(oriented.w, oriented.h));
-      return next;
-    });
-  }, [oriented, centerCropForAspect]);
+    const next = !fitWhole;
+    setFitWhole(next);
+    if (next) setCrop({ x: 0, y: 0, w: 1, h: 1 });
+    else if (oriented) setCrop(centerCropForAspect(oriented.w, oriented.h));
+  }, [fitWhole, oriented, centerCropForAspect]);
 
   // DeviceModal/Overlay handles Escape→cancel; Enter confirms. Both no-op when busy.
   useEffect(() => {

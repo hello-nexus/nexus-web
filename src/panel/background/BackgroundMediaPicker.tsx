@@ -133,7 +133,12 @@ export function BackgroundMediaPicker({
     setImportingName(file.name);
     setImportProgress(total > 1 ? { n, total } : null);
     const staged = await stageBackgroundMedia(deviceId, file);
-    if (!aliveRef.current) return;
+    if (!aliveRef.current) {
+      // Unmounted mid-upload: nothing will commit this stage, so drop it now
+      // rather than leave the raw waiting for the next sweep.
+      if (staged && !staged.error) cancelBackgroundMediaStage(deviceId, staged.stageId).catch(() => {});
+      return;
+    }
     if (!staged) {
       queueRef.current = [];
       batchRef.current.failed += 1;
@@ -202,11 +207,13 @@ export function BackgroundMediaPicker({
     setImportError(null);
     const result = await commitBackgroundMedia(
       deviceId, stageId, serializeCrop(crop), deviceW, deviceH, keepTransparency, fit);
+    // A refused or unanswered commit leaves the stage behind whether or not
+    // this picker is still mounted.
+    if (!result || result.error || !result.item) cancelBackgroundMediaStage(deviceId, stageId).catch(() => {});
     setConverting(false);
     if (!aliveRef.current) return;
     setCropState(null);
     if (!result) {
-      cancelBackgroundMediaStage(deviceId, stageId).catch(() => {});
       queueRef.current = [];
       batchRef.current.failed += 1;
       await finishBatch();
@@ -214,7 +221,6 @@ export function BackgroundMediaPicker({
       return;
     }
     if (result.error || !result.item) {
-      cancelBackgroundMediaStage(deviceId, stageId).catch(() => {});
       batchRef.current.failed += 1;
       if (batchRef.current.total === 1) {
         await finishBatch();

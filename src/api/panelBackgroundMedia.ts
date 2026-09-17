@@ -35,20 +35,6 @@ export function backgroundMediaStagePreviewUrl(deviceId: string, stageId: string
   return tok ? `${base}?${tok}` : base;
 }
 
-/**
- * Pixel size of a staged upload's preview frame. The preview is the same
- * oriented frame the cropper measures, so a crop computed from it lands
- * exactly where the cropper's default would.
- */
-export function probeBackgroundMediaStageSize(deviceId: string, stageId: string): Promise<{ w: number; h: number } | null> {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => resolve(img.naturalWidth && img.naturalHeight ? { w: img.naturalWidth, h: img.naturalHeight } : null);
-    img.onerror = () => resolve(null);
-    img.src = backgroundMediaStagePreviewUrl(deviceId, stageId);
-  });
-}
-
 export interface BackgroundMediaCommitResult { item: BackgroundMediaItem | null; error: boolean; msg: string }
 
 export async function commitBackgroundMedia(

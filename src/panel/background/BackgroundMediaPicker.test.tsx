@@ -7,8 +7,6 @@ import type { BackgroundMediaItem } from '../../api/panelBackgroundMedia';
 import { reorderMediaIds } from '../widgets/lighting/effecteditor/MediaGrid';
 
 const api = vi.hoisted(() => ({
-  // stageId -> preview pixel size; a missing entry is an unreadable preview.
-  sizes: {} as Record<string, { w: number; h: number }>,
   // File names the service refuses at stage time (its 4xx {error, msg} body).
   rejected: new Set<string>(),
   // File names whose stage never gets an answer (the transport's null).
@@ -27,7 +25,6 @@ vi.mock('../../api/panelBackgroundMedia', () => ({
       ? { error: true, msg: 'Unsupported file format' }
       : { stageId: `stage-${file.name}`, error: false, msg: '' };
   }),
-  probeBackgroundMediaStageSize: vi.fn((_deviceId: string, stageId: string) => Promise.resolve(api.sizes[stageId] ?? null)),
   commitBackgroundMedia: vi.fn((_deviceId: string, stageId: string) => Promise.resolve({
     item: { id: `item-${stageId}`, name: stageId, sourceExt: '.jpg', type: 'static', width: 720, height: 1280, importedAtUnixMs: 1, durationSec: 0, alpha: false },
     error: false,
@@ -66,8 +63,6 @@ import {
 } from '../../api/panelBackgroundMedia';
 import { stageKlipyBackground } from '../../api/klipy';
 
-// Every folder file gets the cropper's default centred crop at the panel's
-// aspect, so the expected crop strings below follow from these dimensions.
 const ASPECT = 720 / 1280;
 
 const SLIDESHOW_OFF: PanelSlideshowSettings = { enabled: false, interval: 30, shuffle: false, finishVideos: true };
@@ -116,7 +111,6 @@ function pickFiles(files: File[]) {
 beforeEach(() => {
   vi.clearAllMocks();
   api.library = [];
-  api.sizes = {};
   api.rejected = new Set();
   api.unreachable = new Set();
   api.gate = null;
@@ -240,6 +234,8 @@ describe('BackgroundMediaPicker multi-file import', () => {
     expect(stageBackgroundMedia).toHaveBeenCalledTimes(1);
     expect(commitBackgroundMedia).not.toHaveBeenCalled();
     expect(onSelect).not.toHaveBeenCalled();
+    // The upload that finished after the unmount is dropped, not left staged.
+    await waitFor(() => expect(cancelBackgroundMediaStage).toHaveBeenCalledWith('dev1', 'stage-a.jpg'));
   });
 
   it('renders no slideshow controls without the settings group', () => {
