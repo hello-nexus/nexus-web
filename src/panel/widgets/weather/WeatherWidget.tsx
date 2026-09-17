@@ -5,6 +5,9 @@ import { type WeatherLocation } from '../../../api/weather';
 import { useTranslation } from '../../../lib/i18n';
 import { resolveHour12 } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { Spinner } from '../../../components/common/Spinner/Spinner';
+import { WidgetOfflineState } from '../common/WidgetOfflineState';
+import { widgetSpinnerSize } from '../common/widgetSpinnerSize';
 import type { WidgetProps } from '../types';
 import { formatWeatherHour, weatherConditionKey } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
@@ -41,13 +44,28 @@ export function WeatherWidget({ widget }: WidgetProps) {
   const tempValue = snap ? (unit === 'F' ? snap.temperatureF : snap.temperatureC) : null;
   const conditionKey = weatherConditionKey(snap?.weatherCode);
   const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
-  const tempText = formatTemp(tempValue, loaded ? '--' : '…');
+  const tempText = formatTemp(tempValue);
 
   const size = widgetLayoutSize(widget.size);
   const wide = size === '4x2';
   const large = size === '4x4';
   const compact = size === '2x2';
   const portrait = size === '2x4';
+
+  if (!loaded) {
+    return (
+      <div className={styles.loading}>
+        <Spinner size={widgetSpinnerSize(size)} color="var(--panel-accent-glow)" />
+      </div>
+    );
+  }
+
+  // An empty asOf is the service's "no data at all" marker (upstream
+  // unreachable and no cached reading worth serving), so the tile says so
+  // instead of drawing an unknown-condition glyph over placeholder readings.
+  if (!snap || !snap.asOf) {
+    return <WidgetOfflineState compact={size === '1x1'} />;
+  }
 
   const now = referenceNow || 0;
   // With the provider's local reading time the strip starts at the
@@ -155,7 +173,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
           </Fragment>
         );
       }) : (
-        <div className={styles.forecastEmpty}>{loaded ? t('panel.widget.weather.noForecast') : t('common.loading')}</div>
+        <div className={styles.forecastEmpty}>{t('panel.widget.weather.noForecast')}</div>
       )}
     </div>
   );

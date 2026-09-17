@@ -61,7 +61,6 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
               </Button>
             )}
           </div>
-          <div className={styles.reasonSummary}>{t('diagnostics.system.pnpDescription')}</div>
           {data.pnpProblems.length === 0 ? (
             <EmptyState compact icon={<ShieldCheck size={22} />} title={t('diagnostics.system.pnpEmpty')} />
           ) : (

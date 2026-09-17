@@ -97,6 +97,7 @@ import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { StableDigits } from '../panel/widgets/common/StableDigits';
 import { FitLine } from '../panel/widgets/common/FitLine';
+import { WidgetOfflineState } from '../panel/widgets/common/WidgetOfflineState';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
@@ -1335,6 +1336,19 @@ function PreviewFitLine() {
       <FitLine text="Sep 2026" />
       <FitLine text="September 2026" />
       <FitLine text="septiembre de 2026" align="start" />
+    </div>
+  );
+}
+
+function PreviewWidgetOfflineState() {
+  return (
+    <div className="panel-root" style={{ display: 'flex', gap: 12 }}>
+      <div style={{ width: 90, height: 90, background: 'var(--bg-card)', borderRadius: 12 }}>
+        <WidgetOfflineState compact />
+      </div>
+      <div style={{ width: 186, height: 186, background: 'var(--bg-card)', borderRadius: 12 }}>
+        <WidgetOfflineState />
+      </div>
     </div>
   );
 }
@@ -2795,6 +2809,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/FitLine.tsx',
     description: 'One line of text that scales down to its container width instead of wrapping or ellipsizing (clock date, calendar month). className goes on the box so font rules inherit; align="start" keeps a shrunk line on the left edge.',
     Preview: PreviewFitLine,
+  },
+  {
+    name: 'WidgetOfflineState', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/WidgetOfflineState.tsx',
+    description: 'Shared no-connection face for widgets that need the internet (weather, stocks). Rendered once a fetch settles with no data at all - a stale reading stays on screen instead. compact drops the label for a 1x1 cell.',
+    Preview: PreviewWidgetOfflineState,
   },
   {
     name: 'SizeIcons', category: 'panel-kit',

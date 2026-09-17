@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react';
 import type { StockQuote } from '../../../api/stocks';
-import { useTranslation } from '../../../lib/i18n';
 import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
+import { Spinner } from '../../../components/common/Spinner/Spinner';
+import { WidgetOfflineState } from '../common/WidgetOfflineState';
+import { widgetSpinnerSize } from '../common/widgetSpinnerSize';
 import type { NumberFormat } from '../../../lib/units';
 import type { PanelWidgetSize } from '../../types';
 import {
@@ -101,10 +103,17 @@ function GraphRow({ quote, numberFormat, stacked }: { quote: StockQuote; numberF
 }
 
 export function StocksView({ size, mode, symbols, quotes, loaded, numberFormat, useAccentColor }: StocksViewProps) {
-  const { t } = useTranslation();
-
   if (quotes === null) {
-    return <div className={styles.empty}>{loaded ? t('panel.widget.stocks.noData') : t('common.loading')}</div>;
+    if (!loaded) {
+      return (
+        <div className={styles.loading}>
+          <Spinner size={widgetSpinnerSize(size)} color="var(--panel-accent-glow)" />
+        </div>
+      );
+    }
+    // Quotes only stay null when every fetch since mount failed; a later
+    // failure keeps the last-known quotes on screen instead.
+    return <WidgetOfflineState compact={size === '1x1'} />;
   }
 
   const bySymbol = new Map(quotes.map(q => [q.symbol, q]));
