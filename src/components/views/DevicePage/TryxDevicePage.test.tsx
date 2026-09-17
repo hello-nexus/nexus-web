@@ -426,6 +426,19 @@ describe('TryxDevicePage - custom media slideshow', () => {
     expect(mockSetTryxSlideshow).toHaveBeenCalledWith({ enabled: true, intervalSec: 300, shuffle: true, finishVideos: true });
   });
 
+  it('shuffle and finish-videos toggles each post the merged block', async () => {
+    mockGetTryxStatus.mockResolvedValue({
+      ...defaultStatus,
+      slideshow: { enabled: true, intervalSec: 30, shuffle: false, finishVideos: true },
+    });
+    await openMediaTab();
+    fireEvent.click(screen.getByRole('switch', { name: 'slideshow.shuffle' }));
+    expect(mockSetTryxSlideshow).toHaveBeenLastCalledWith({ enabled: true, intervalSec: 30, shuffle: true, finishVideos: true });
+
+    fireEvent.click(screen.getByRole('switch', { name: 'slideshow.finishVideos' }));
+    expect(mockSetTryxSlideshow).toHaveBeenLastCalledWith({ enabled: true, intervalSec: 30, shuffle: true, finishVideos: false });
+  });
+
   it('rolls the optimistic edit back when the service rejects it', async () => {
     mockSetTryxSlideshow.mockResolvedValue(false);
     await openMediaTab();
