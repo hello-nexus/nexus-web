@@ -5,7 +5,12 @@ import { Spinner } from '../../components/common/Spinner/Spinner';
 import { TextInput } from '../../components/common/TextInput/TextInput';
 import { PublicPageFrame } from './PublicPageFrame';
 import { AuthResultCard } from './AuthResultCard';
-import { normalizeRecoveryCode, RECOVERY_CODE_LENGTH } from './recoveryCode';
+import {
+  formatRecoveryCode,
+  normalizeRecoveryCode,
+  RECOVERY_CODE_DISPLAY_LENGTH,
+  RECOVERY_CODE_LENGTH,
+} from './recoveryCode';
 import styles from './RecoverPage.module.scss';
 
 type RecoverState =
@@ -27,6 +32,7 @@ type RecoverState =
 export function RecoverPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const [state, setState] = useState<RecoverState>(token ? { phase: 'code' } : { phase: 'invalid' });
+  // Held as the api mints it; the dash is put back for display only.
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const inFlight = useRef(false);
@@ -67,13 +73,14 @@ export function RecoverPage({ token }: { token: string }) {
           <p className={styles.body}>{t('auth.recover.code.body')}</p>
           <div className={styles.codeField}>
             <TextInput
-              value={code}
+              value={formatRecoveryCode(code)}
+              sanitize={v => formatRecoveryCode(normalizeRecoveryCode(v))}
               onInput={v => setCode(normalizeRecoveryCode(v))}
               name="code"
               autoComplete="one-time-code"
               align="center"
               mono
-              maxLength={RECOVERY_CODE_LENGTH}
+              maxLength={RECOVERY_CODE_DISPLAY_LENGTH}
               disabled={submitting}
               ariaLabel={t('auth.recover.code.label')}
             />

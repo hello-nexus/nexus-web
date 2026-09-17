@@ -47,25 +47,45 @@ describe('RecoverPage', () => {
     expect(completeRecoveryMock).not.toHaveBeenCalled();
   });
 
-  it('keeps only the characters a code is made of, and submits on the last one', async () => {
+  it('groups the code as it is typed, and submits on the last character', async () => {
     completeRecoveryMock.mockResolvedValue({ ok: true, username: 'Nova' });
     render(<RecoverPage token="tok" />);
 
     type('abc');
     expect(field().value).toBe('ABC');
+    type('abcd');
+    expect(field().value).toBe('ABC-D');
     expect(completeRecoveryMock).not.toHaveBeenCalled();
 
-    // The dash the other device shows, and anything else pasted with it, is
-    // dropped rather than refused.
-    type('abc-de f!x');
+    type('abcdef');
+    expect(field().value).toBe('ABC-DEF');
+    // The api is handed the code as minted; the dash is display only.
     await waitFor(() => expect(completeRecoveryMock).toHaveBeenCalledWith('tok', 'ABCDEF'));
     await waitFor(() => expect(screen.getByText('auth.recover.success.title')).toBeInTheDocument());
+  });
+
+  it('drops anything a code is not made of, wherever it is typed or pasted', async () => {
+    render(<RecoverPage token="tok" />);
+
+    type('a b!c');
+    expect(field().value).toBe('ABC');
+
+    // A rejected character leaves the state as it was, so nothing re-renders;
+    // the field still must not be left showing it.
+    type('ABC!');
+    expect(field().value).toBe('ABC');
+    type('ABC  ');
+    expect(field().value).toBe('ABC');
+    // A code pasted with the dash the other device shows lands whole.
+    type('pdf-rz4');
+    expect(field().value).toBe('PDF-RZ4');
+    await waitFor(() => expect(completeRecoveryMock).toHaveBeenCalledWith('tok', 'PDFRZ4'));
   });
 
   it('never holds more than a whole code', () => {
     render(<RecoverPage token="tok" />);
     type('abcdefghij');
-    expect(field().value).toBe('ABCDEF');
+    expect(field().value).toBe('ABC-DEF');
   });
 
   it('clears the field and reports the remaining attempts on a wrong code', async () => {
