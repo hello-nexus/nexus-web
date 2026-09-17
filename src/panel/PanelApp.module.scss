@@ -828,7 +828,6 @@
   -webkit-touch-callout: none;
 }
 
-
 // Two-class specificity so the global `.panel-card` rule in tokens.scss
 // (`transition: background-color 300ms`, loaded later) doesn't shorthand-reset
 // the transform transition. background-color rides --ease-fast here so the
@@ -1179,7 +1178,6 @@
   overscroll-behavior: none;
   animation: scrimIn 140ms ease-out both;
 }
-
 
 .editorBackdrop[data-surface='q60'] {
   --panel-columns: 2;
@@ -1953,39 +1951,56 @@
 .cellImmersiveFrame {
   // Fixed, not theme tokens: the frame sits over whatever the panel background
   // paints, where a token that flips with the theme would vanish on half of them.
-  --_frame-line: rgb(255 255 255 / 0.85);
+  --_frame-line: rgb(255 255 255 / 0.95);
   --_frame-halo: rgb(0 0 0 / var(--alpha-strong));
+  // Authored at the size it should read on the OPERATOR's screen. The parent
+  // transform-scales this whole document down to fit its column, so every
+  // length here divides that back out or it paints sub-pixel.
+  --_rule: calc(3px * var(--panel-preview-upscale, 1));
+  --_halo: calc(1.5px * var(--panel-preview-upscale, 1));
   position: absolute;
   // Longhands, not the `inset` shorthand - Chromium 83 floor (see
   // chromium83Floor.test.ts).
-  top: 1px;
-  right: 1px;
-  bottom: 1px;
-  left: 1px;
-  z-index: 2;
-  border: 2px solid var(--_frame-line);
+  top: var(--_halo);
+  right: var(--_halo);
+  bottom: var(--_halo);
+  left: var(--_halo);
+  z-index: 3;
+  border: var(--_rule) solid var(--_frame-line);
   border-radius: inherit;
-  box-shadow: 0 0 0 1px var(--_frame-halo), inset 0 0 0 1px var(--_frame-halo);
+  box-shadow:
+    0 0 0 var(--_halo) var(--_frame-halo),
+    inset 0 0 0 var(--_halo) var(--_frame-halo);
   pointer-events: none;
   opacity: 0;
   transition: opacity var(--ease-fast) ease-out;
 }
 
-// Straddles the CARD's bottom edge, which is where the frame ends: clearing
-// the whole cell would drop the name onto the widget's own title strip, and a
-// widget on the last grid row has nothing below it to hang either in.
+// Sits fully BELOW the frame, in the slot the widget's own title vacates on
+// hover.
 .cellImmersiveFrameLabel {
+  --_label-ring: rgb(255 255 255 / var(--alpha-medium));
   position: absolute;
   left: 50%;
-  bottom: calc(var(--panel-widget-label-strip, 0px) + var(--panel-widget-card-bottom-gap, 0px));
-  transform: translate(-50%, 50%);
+  // The card's bottom edge, which is where the frame ends.
+  top: calc(100% - var(--panel-widget-label-strip, 0px) - var(--panel-widget-card-bottom-gap, 0px));
+  // One transform carries the whole chip into operator px, so every length
+  // below stays a plain token. translateX MUST stay leftmost: it cancels
+  // against the top-center origin at any scale, which is what keeps the chip
+  // centred on the frame.
+  transform: translateX(-50%) scale(var(--panel-preview-upscale, 1)) translateY(5px);
+  transform-origin: top center;
   z-index: 12;
-  max-width: 100%;
-  padding: 1px 7px;
-  border-radius: var(--radius);
+  // Layout width is in document px and renders multiplied by the upscale, so
+  // the cap is the panel's own width taken back down by the same factor. A long
+  // locale then ellipsizes instead of running off both edges of the pager.
+  max-width: calc(100vw * var(--panel-preview-scale, 1));
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
   background: rgb(0 0 0 / var(--alpha-strong));
+  box-shadow: 0 0 0 1.5px var(--_label-ring);
   color: #fff;
-  font-size: var(--type-small);
+  @include text-button;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1994,6 +2009,7 @@
   transition: opacity var(--ease-fast) ease-out;
 }
 
+
 // Preview cells read as buttons, and only a real pointer can hover.
 @media (hover: hover) {
   .panelRoot[data-simulator='true'] .cellWrap:hover .cellEditHint {
@@ -2001,7 +2017,7 @@
   }
 
   // Lifts the hovered cell above its neighbours so the row below cannot paint
-  // over the straddling name.
+  // over the name hanging under it.
   .panelRoot[data-simulator='true'] .cellWrap:hover {
     z-index: 12;
   }

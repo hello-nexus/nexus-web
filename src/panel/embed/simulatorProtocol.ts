@@ -37,6 +37,8 @@ export interface SimulatorInitMessage {
   screenOn: boolean;
   showPanel: boolean;
   deviceId?: string;
+  // See SimulatorSetPreviewScaleMessage.
+  previewScale?: number;
 }
 
 export interface SimulatorSetDisplayMessage {
@@ -56,6 +58,16 @@ export interface SimulatorSetLayoutMessage {
 export interface SimulatorSetGridMessage {
   type: 'simulator/set-grid';
   dpi?: number;
+}
+
+// The parent transform-scales the whole iframe to fit its preview column, so
+// anything the preview draws for the DESKTOP operator (the immersive-on-load
+// frame) shrinks with it. Forwarding the fit scale lets those overlays divide
+// it back out and land at their intended desktop size. Changes on every
+// container resize.
+export interface SimulatorSetPreviewScaleMessage {
+  type: 'simulator/set-preview-scale';
+  previewScale: number;
 }
 
 // Per-device touch can also resolve after init (the record fetch races the
@@ -108,6 +120,7 @@ export type SimulatorParentToChild =
   | SimulatorInitMessage
   | SimulatorSetLayoutMessage
   | SimulatorSetGridMessage
+  | SimulatorSetPreviewScaleMessage
   | SimulatorSetTouchMessage
   | SimulatorSetDisplayBoundMessage
   | SimulatorSetThemeMessage

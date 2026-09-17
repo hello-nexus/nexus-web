@@ -310,6 +310,7 @@ export function PanelContent({
   simulatorThemeMode,
   simulatorSelectedWidgetId,
   simulatorFlashSignal,
+  simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
   openCatalogSignal,
@@ -338,6 +339,9 @@ export function PanelContent({
   // Parent-driven one-shot flash (e.g. a resize the editor rejected). The
   // nonce re-fires the flash for repeat rejections of the same widget.
   simulatorFlashSignal?: { widgetId: string; nonce: number } | null;
+  // The parent's iframe fit scale. Preview overlays meant for the desktop
+  // operator divide it out so they do not shrink with the canvas.
+  simulatorPreviewScale?: number;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
   openCatalogSignal?: number;
@@ -582,6 +586,12 @@ export function PanelContent({
   const themeBackdrop = showPanelBackground && !seeThrough
     ? 'var(--backdrop-base)'
     : 'transparent';
+  // Clamped once here: a zero-width preview container makes the parent's fit
+  // scale non-finite, and its reciprocal would collapse every overlay sized by
+  // it to nothing.
+  const previewScale = simulator && Number.isFinite(simulatorPreviewScale) && simulatorPreviewScale > 0
+    ? Math.min(1, Math.max(0.05, simulatorPreviewScale))
+    : 1;
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
@@ -594,6 +604,12 @@ export function PanelContent({
       // the CSS-rendered gap/padding always agree - it is a plain px length,
       // never itself derived from --panel-gap, so no cyclic var() chain.
       '--panel-widget-padding': `${runtimeGrid.gap}px`,
+      // The parent's iframe fit scale, and its reciprocal. Preview overlays
+      // multiply by the upscale so a length authored in desktop px survives the
+      // downscale, and by the scale to cap a width against the panel. Both are
+      // 1 everywhere but the device page's canvas preview.
+      '--panel-preview-scale': previewScale,
+      '--panel-preview-upscale': 1 / previewScale,
       ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
       ...(surface === 'desktop' ? {
         '--panel-cell-size': `${runtimeGrid.cellSize}px`,
@@ -609,6 +625,7 @@ export function PanelContent({
       runtimeGrid.cellSize,
       runtimeGrid.columns,
       runtimeGrid.contentScale,
+      previewScale,
       runtimeGrid.gap,
       runtimeGrid.rowSize,
       runtimeGrid.rows,

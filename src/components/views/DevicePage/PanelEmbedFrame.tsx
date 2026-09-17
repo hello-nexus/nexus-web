@@ -275,6 +275,11 @@ export function PanelEmbedFrame({
     win.postMessage(message, window.location.origin);
   }, []);
 
+  // Rounded before posting: each post re-renders the whole iframe document, and
+  // without the round a drawer animation or a window drag would do that every
+  // frame for sub-pixel deltas the overlays cannot show.
+  const postedPreviewScale = Math.round(measured.scale * 1000) / 1000;
+
   // 'simulator/ready' is the handshake signal from the child. Until it
   // arrives we cannot post 'simulator/init' (the child's listener may
   // not be wired yet on a brand-new iframe).
@@ -328,6 +333,7 @@ export function PanelEmbedFrame({
       screenOn,
       showPanel,
       deviceId,
+      previewScale: postedPreviewScale,
     });
     lastSyncedLayoutSerializedRef.current = JSON.stringify(layout);
     // Initial init only; subsequent changes flow through the per-prop
@@ -353,6 +359,13 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-theme', theme, themeMode, deviceId });
   }, [childReady, theme, themeMode, deviceId, post]);
+
+  // The fit scale changes on every container resize, and overlays the preview
+  // draws at desktop size divide it back out.
+  useEffect(() => {
+    if (!childReady) return;
+    post({ type: 'simulator/set-preview-scale', previewScale: postedPreviewScale });
+  }, [childReady, postedPreviewScale, post]);
 
   // Grid density can resolve after the init handshake (the device record
   // fetch races the iframe boot), so mirror it like the other props.

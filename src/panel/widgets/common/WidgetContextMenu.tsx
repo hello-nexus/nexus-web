@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Lock, Maximize2, Monitor, MonitorOff, Pin, PinOff, Settings, Trash2, Unlock } from 'lucide-react';
+import { Check, ExternalLink, Lock, Maximize2, Monitor, MonitorOff, Pencil, Pin, PinOff, Trash2, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { SIZE_ICONS } from './SizeIcons';
@@ -237,7 +237,7 @@ export function WidgetContextMenu({
 
       {hasConfig && !locked && (
         <button type="button" className={styles.item} onClick={() => runAndClose(onEdit)}>
-          <Settings size={14} />
+          <Pencil size={14} />
           <span>{t('panel.widget.menu.edit')}</span>
         </button>
       )}
