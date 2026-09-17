@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "ID del dispositivo",
   "diagnostics.system.openDeviceManager": "Abrir el Administrador de dispositivos",
   "diagnostics.system.openDeviceManagerFailed": "No se pudo abrir el Administrador de dispositivos.",
-  "diagnostics.system.pnpDescription": "Problemas notificados por el Administrador de dispositivos de Windows.",
   "diagnostics.system.pnpEmpty": "No se detectaron problemas de dispositivo.",
   "diagnostics.system.pnpProblems": "Problemas de dispositivo",
   "diagnostics.system.problemCode.1": "El dispositivo no está configurado correctamente.",

@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "Aygıt ID",
   "diagnostics.system.openDeviceManager": "Aygıt Yöneticisini aç",
   "diagnostics.system.openDeviceManagerFailed": "Aygıt Yöneticisi açılamadı.",
-  "diagnostics.system.pnpDescription": "Windows Aygıt Yöneticisi tarafından bildirilen sorunlar.",
   "diagnostics.system.pnpEmpty": "Aygıt sorunu algılanmadı.",
   "diagnostics.system.pnpProblems": "Aygıt sorunları",
   "diagnostics.system.problemCode.1": "Aygıt doğru şekilde yapılandırılmamış.",

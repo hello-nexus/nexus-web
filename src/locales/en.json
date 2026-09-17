@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "Device ID",
   "diagnostics.system.openDeviceManager": "Open Device Manager",
   "diagnostics.system.openDeviceManagerFailed": "Could not open Device Manager.",
-  "diagnostics.system.pnpDescription": "Problems reported by Windows Device Manager.",
   "diagnostics.system.pnpEmpty": "No device problems detected.",
   "diagnostics.system.pnpProblems": "Device problems",
   "diagnostics.system.problemCode.1": "The device is not configured correctly.",

@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "Geräte-ID",
   "diagnostics.system.openDeviceManager": "Geräte-Manager öffnen",
   "diagnostics.system.openDeviceManagerFailed": "Der Geräte-Manager konnte nicht geöffnet werden.",
-  "diagnostics.system.pnpDescription": "Probleme, die vom Windows-Geräte-Manager gemeldet wurden.",
   "diagnostics.system.pnpEmpty": "Keine Geräteprobleme erkannt.",
   "diagnostics.system.pnpProblems": "Geräteprobleme",
   "diagnostics.system.problemCode.1": "Das Gerät ist nicht richtig konfiguriert.",

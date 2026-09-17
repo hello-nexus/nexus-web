@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "裝置 ID",
   "diagnostics.system.openDeviceManager": "開啟裝置管理員",
   "diagnostics.system.openDeviceManagerFailed": "無法開啟裝置管理員。",
-  "diagnostics.system.pnpDescription": "由 Windows 裝置管理員回報的問題。",
   "diagnostics.system.pnpEmpty": "未偵測到裝置問題。",
   "diagnostics.system.pnpProblems": "裝置問題",
   "diagnostics.system.problemCode.1": "裝置未正確設定。",

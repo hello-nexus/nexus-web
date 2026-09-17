@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "ID de l'appareil",
   "diagnostics.system.openDeviceManager": "Ouvrir le Gestionnaire de périphériques",
   "diagnostics.system.openDeviceManagerFailed": "Impossible d'ouvrir le Gestionnaire de périphériques.",
-  "diagnostics.system.pnpDescription": "Problèmes signalés par le Gestionnaire de périphériques Windows.",
   "diagnostics.system.pnpEmpty": "Aucun problème de périphérique détecté.",
   "diagnostics.system.pnpProblems": "Problèmes de périphérique",
   "diagnostics.system.problemCode.1": "Le périphérique n'est pas configuré correctement.",

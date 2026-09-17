@@ -1235,7 +1235,6 @@
   "diagnostics.system.deviceIdLabel": "ID устройства",
   "diagnostics.system.openDeviceManager": "Открыть диспетчер устройств",
   "diagnostics.system.openDeviceManagerFailed": "Не удалось открыть диспетчер устройств.",
-  "diagnostics.system.pnpDescription": "Проблемы, о которых сообщил диспетчер устройств Windows.",
   "diagnostics.system.pnpEmpty": "Проблем с устройствами не обнаружено.",
   "diagnostics.system.pnpProblems": "Проблемы с устройствами",
   "diagnostics.system.problemCode.1": "Устройство настроено неправильно.",

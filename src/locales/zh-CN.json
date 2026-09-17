@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "设备 ID",
   "diagnostics.system.openDeviceManager": "打开设备管理器",
   "diagnostics.system.openDeviceManagerFailed": "无法打开设备管理器。",
-  "diagnostics.system.pnpDescription": "由 Windows 设备管理器报告的问题。",
   "diagnostics.system.pnpEmpty": "未检测到设备问题。",
   "diagnostics.system.pnpProblems": "设备问题",
   "diagnostics.system.problemCode.1": "设备配置不正确。",

@@ -1235,7 +1235,6 @@
   "diagnostics.system.deviceIdLabel": "ID urządzenia",
   "diagnostics.system.openDeviceManager": "Otwórz Menedżera urządzeń",
   "diagnostics.system.openDeviceManagerFailed": "Nie udało się otworzyć Menedżera urządzeń.",
-  "diagnostics.system.pnpDescription": "Problemy zgłoszone przez Menedżera urządzeń Windows.",
   "diagnostics.system.pnpEmpty": "Nie wykryto problemów z urządzeniami.",
   "diagnostics.system.pnpProblems": "Problemy z urządzeniem",
   "diagnostics.system.problemCode.1": "Urządzenie nie jest poprawnie skonfigurowane.",

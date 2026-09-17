@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "ID dal dispositîf",
   "diagnostics.system.openDeviceManager": "Vierç il Gjestôr dispositîfs",
   "diagnostics.system.openDeviceManagerFailed": "Impussibil vierzi il Gjestôr dispositîfs.",
-  "diagnostics.system.pnpDescription": "Problemis segnalâts dal Gjestôr dispositîfs di Windows.",
   "diagnostics.system.pnpEmpty": "Nissun problem dal dispositîf rilevât.",
   "diagnostics.system.pnpProblems": "Problemis dal dispositîf",
   "diagnostics.system.problemCode.1": "Il dispositîf nol è configurât in maniere juste.",

@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "장치 ID",
   "diagnostics.system.openDeviceManager": "장치 관리자 열기",
   "diagnostics.system.openDeviceManagerFailed": "장치 관리자를 열 수 없습니다.",
-  "diagnostics.system.pnpDescription": "Windows 장치 관리자가 보고한 문제입니다.",
   "diagnostics.system.pnpEmpty": "장치 문제가 감지되지 않았습니다.",
   "diagnostics.system.pnpProblems": "장치 문제",
   "diagnostics.system.problemCode.1": "장치가 올바르게 구성되지 않았습니다.",

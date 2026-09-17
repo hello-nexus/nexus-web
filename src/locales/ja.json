@@ -1228,7 +1228,6 @@
   "diagnostics.system.deviceIdLabel": "デバイス ID",
   "diagnostics.system.openDeviceManager": "デバイスマネージャーを開く",
   "diagnostics.system.openDeviceManagerFailed": "デバイスマネージャーを開けませんでした。",
-  "diagnostics.system.pnpDescription": "Windowsのデバイスマネージャーによって報告された問題です。",
   "diagnostics.system.pnpEmpty": "デバイスの問題は検出されませんでした。",
   "diagnostics.system.pnpProblems": "デバイスの問題",
   "diagnostics.system.problemCode.1": "デバイスが正しく構成されていません。",
