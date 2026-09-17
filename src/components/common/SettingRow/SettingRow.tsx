@@ -14,11 +14,10 @@ import styles from './SettingRow.module.scss';
 export type LeadingIconTone = boolean | 'subtle';
 
 /**
- * The state chip a row can carry beside its control: the one-word answer to
- * "what is this doing right now" (On, Off, Ready, Downloading) for a row
- * whose control is an action button rather than the value itself. `tone`
- * colours the chip: 'neutral' (dim) for off/idle, 'accent' for on/active,
- * 'good' for ready, 'warn' for a problem.
+ * The state chip a row can carry beside its control, for a row whose control
+ * is an action button rather than the value itself. One or two words: it does
+ * not wrap. `tone` colours it: 'neutral' (dim) for off/idle, 'accent' for
+ * on/active, 'good' for ready, 'warn' for a problem.
  */
 export interface SettingState {
   label: string;

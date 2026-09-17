@@ -24,7 +24,9 @@ describe('CurveGraph axis', () => {
     const labels = Array.from(container.querySelectorAll('span')).map(s => s.textContent);
     expect(labels).toContain('20°');
     expect(labels).toContain('100°');
-    // Flat edges: the line enters at the first point's duty and leaves at the last's.
+    // Flat edges: the line is the points plus one flat extension each side,
+    // entering at the first point's duty and leaving at the last's.
+    expect(pathD(container).split(/[ML]/).filter(s => s.trim())).toHaveLength(4);
     const { first, last } = endpointsY(pathD(container));
     expect(first).not.toBeCloseTo(last, 0);
   });

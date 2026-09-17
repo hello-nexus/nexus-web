@@ -37,6 +37,13 @@ describe('interpolateCurve', () => {
     expect(interpolateCurve(schedule, -0.5, 'smooth', DAY)).toBeCloseTo(interpolateCurve(schedule, 23.5, 'smooth', DAY), 9);
   });
 
+  it('reads the earlier of two points on one x, like the cooling engine', () => {
+    const pts = [{ temp: 30, speed: 20 }, { temp: 40, speed: 50 }, { temp: 40, speed: 70 }, { temp: 90, speed: 80 }];
+    expect(interpolateCurve(pts, 40)).toBe(50);
+    expect(interpolateCurve(pts, 40, 'smooth')).toBeCloseTo(50, 9);
+    expect(interpolateCurve(pts, 65)).toBe(75);
+  });
+
   it('is independent of point order', () => {
     const shuffled = [schedule[3], schedule[0], schedule[5], schedule[1], schedule[4], schedule[2]];
     for (let x = 0; x < 24; x += 0.5) {

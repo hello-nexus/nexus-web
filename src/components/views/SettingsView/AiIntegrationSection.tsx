@@ -302,30 +302,31 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
     return () => clearInterval(id);
   }, [assistantEnabled, transientNow]);
 
-  // The chip's colour follows the same precedence as its text: a system
-  // Ollama reads as ready unless it has since errored.
-  const runtimeStatusTone = (): SettingState['tone'] => {
-    if (runtimeState === 'error') return 'warn';
-    if (assistant?.systemOllamaDetected || runtimeState === 'running' || runtimeState === 'installed') return 'good';
-    if (runtimeState === 'downloading') return 'accent';
-    return 'neutral';
+  // The row's state chip is the one-word state; the sentence cases (a system
+  // Ollama in use, download progress) stay as text beside it. A system Ollama
+  // that has since errored out must still surface as an error, not linger on
+  // "using the system installation".
+  const usingSystemOllama = !!assistant?.systemOllamaDetected && runtimeState !== 'error';
+  const runtimeChip = (): SettingState => {
+    if (runtimeState === 'error') return { label: t('settings.ai.assistant.runtime.status.error'), tone: 'warn' };
+    if (usingSystemOllama) return { label: t('settings.ai.assistant.runtime.status.running'), tone: 'good' };
+    if (runtimeState === 'downloading') return { label: t('settings.ai.assistant.runtime.status.downloading'), tone: 'accent' };
+    if (runtimeState === 'running' || runtimeState === 'installed') {
+      return { label: t(`settings.ai.assistant.runtime.status.${runtimeState}`), tone: 'good' };
+    }
+    return { label: t('settings.ai.assistant.runtime.status.notInstalled'), tone: 'neutral' };
   };
-  const runtimeStatusText = (): string => {
-    // A system Ollama that has since errored out must still surface as an
-    // error, not linger on "using the system installation".
-    if (assistant?.systemOllamaDetected && runtimeState !== 'error') {
+  const runtimeStatusText = (): string | null => {
+    if (usingSystemOllama) {
       return t('settings.ai.assistant.runtime.status.systemDetected');
     }
-    if (runtimeState === 'downloading') {
-      if (downloadProgress && downloadProgress.total > 0) {
-        return t('settings.ai.assistant.progress.downloading', {
-          percent: String(progressPercent(downloadProgress.received, downloadProgress.total)),
-          size: formatBytes(downloadProgress.total, numberFormat),
-        });
-      }
-      return t('settings.ai.assistant.runtime.status.downloading');
+    if (runtimeState === 'downloading' && downloadProgress && downloadProgress.total > 0) {
+      return t('settings.ai.assistant.progress.downloading', {
+        percent: String(progressPercent(downloadProgress.received, downloadProgress.total)),
+        size: formatBytes(downloadProgress.total, numberFormat),
+      });
     }
-    return t(`settings.ai.assistant.runtime.status.${runtimeState}`);
+    return null;
   };
 
   const modelPullText = (modelId: string): string | null => {
@@ -433,9 +434,12 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                     icon={<Box />}
                     iconLeading="subtle"
                     description={t('settings.ai.assistant.runtime.description')}
-                    state={{ label: runtimeStatusText(), tone: runtimeStatusTone() }}
+                    state={runtimeChip()}
                   >
                     <div className={styles.runtimeControl}>
+                      {runtimeStatusText() !== null && (
+                        <span className={styles.runtimeStatus}>{runtimeStatusText()}</span>
+                      )}
                       {runtimeState === 'downloading' && downloadProgress && downloadProgress.total > 0 && (
                         <div className={styles.progressTrack}>
                           <UsageBar value={downloadProgress.received / downloadProgress.total} />

@@ -25,19 +25,21 @@ export function interpolateCurve(
   const xs = sorted.map(p => p.temp);
   const ys = sorted.map(p => p.speed);
   const span = wrap ? wrap.max - wrap.min : 0;
+  const wrapping = span > 0;
   let xx = x;
-  if (wrap) {
-    xx = wrap.min + (((x - wrap.min) % span) + span) % span;
+  if (wrapping) {
+    xx = wrap!.min + (((x - wrap!.min) % span) + span) % span;
   } else {
     if (xx <= xs[0]) return ys[0];
     if (xx >= xs[n - 1]) return ys[n - 1];
   }
   // Segment i runs from point i to point i+1; on a wrapping axis the last
   // segment runs from the last point back to the first, one span later, and
-  // owns both ends of the axis.
+  // owns both ends of the axis. Right-inclusive, first match, like the cooling
+  // engine: two points on one x read as the earlier one.
   let i = n - 1;
   for (let k = 0; k < n - 1; k++) {
-    if (xx >= xs[k] && xx < xs[k + 1]) { i = k; break; }
+    if (xx >= xs[k] && xx <= xs[k + 1]) { i = k; break; }
   }
   if (i === n - 1 && xx < xs[0]) xx += span;
   const next = (i + 1) % n;
@@ -46,7 +48,7 @@ export function interpolateCurve(
   if (h <= 0) return ys[i];
   const t = (xx - x0) / h;
   if (easing === 'linear') return ys[i] + (ys[next] - ys[i]) * t;
-  const m = tangents(xs, ys, span);
+  const m = tangents(xs, ys, wrapping ? span : 0);
   const t2 = t * t, t3 = t2 * t;
   return (2 * t3 - 3 * t2 + 1) * ys[i]
     + (t3 - 2 * t2 + t) * h * m[i]
