@@ -28,9 +28,10 @@ export function klipyThumbUrl(slug: string): string {
   return tok ? `${base}?${tok}` : base;
 }
 
-export async function importKlipy(slug: string, crop: string) {
-  return postService<{ item: { id: string } | null; error?: boolean; msg?: string }>(
-    '/media/klipy/import', { slug, crop });
+/** Stages the pick for the lighting cropper; commitMedia finishes it like an upload. */
+export async function stageKlipy(slug: string) {
+  return postService<{ stageId: string | null; error?: boolean; msg?: string }>(
+    '/media/klipy/stage', { slug });
 }
 
 /** Stages the pick for one device's cropper; commitBackgroundMedia finishes it like an upload. */

@@ -13,7 +13,7 @@ import {
   openMediaFolder,
   stageMedia,
 } from '../../../../api/mediaLibrary';
-import { importKlipy, type KlipyGif } from '../../../../api/klipy';
+import { stageKlipy, type KlipyGif } from '../../../../api/klipy';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingMode } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
@@ -22,7 +22,7 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { IconLabelButton } from '../../../../components/common/IconLabelButton/IconLabelButton';
 import { Button } from '../../../../components/common/Button/Button';
 import { MediaCropper, type NormalizedCrop } from '../../../../components/common/MediaCropper/MediaCropper';
-import { centerCropForAspect, serializeCrop } from '../../../../components/common/MediaCropper/mediaCrop';
+import { serializeCrop } from '../../../../components/common/MediaCropper/mediaCrop';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
 import { KlipyPicker } from '../../../../components/common/KlipyPicker/KlipyPicker';
@@ -216,22 +216,23 @@ function MediaControls() {
     setImportError(null);
   }, [cropState]);
 
-  // A pick imports straight to the library: the centre crop is computed from the
-  // dimensions the search returned, so there is no staging or cropper step.
+  // A pick is staged like an upload and lands in the same cropper.
   const handleKlipyPick = useCallback(async (gif: KlipyGif) => {
     setKlipyBusy(gif.slug);
     setImportError(null);
-    const crop = serializeCrop(centerCropForAspect(LIGHTING_CROP_ASPECT, gif.width, gif.height));
-    const result = await importKlipy(gif.slug, crop);
+    const staged = await stageKlipy(gif.slug);
     setKlipyBusy(null);
-    if (!result || result.error || !result.item) {
-      setImportError(result?.msg || t('lighting.controls.importFailed'));
+    if (!staged) {
+      setImportError(t('lighting.controls.importNetworkError'));
+      return;
+    }
+    if (staged.error || !staged.stageId) {
+      setImportError(staged.msg || t('lighting.controls.importFailed'));
       return;
     }
     setKlipyOpen(false);
-    await refresh();
-    await play(result.item.id);
-  }, [t, refresh, play]);
+    setCropState({ stageId: staged.stageId, src: mediaStagePreviewUrl(staged.stageId), name: `${gif.slug}.gif` });
+  }, [t]);
 
   const handleOpenFolder = async () => {
     await openMediaFolder();
