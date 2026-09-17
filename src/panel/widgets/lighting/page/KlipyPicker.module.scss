@@ -1,0 +1,77 @@
+.modal {
+  background: var(--backdrop-base);
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: min(900px, 100%);
+  max-height: min(78vh, 720px);
+  padding: 1.25rem 1.25rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  // The tab/header row stays put and only the grid scrolls.
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-heading);
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.search {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.6rem;
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 0.9rem 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.importError {
+  margin: 0;
+  color: var(--bad);
+  font-size: var(--type-small);
+}
+
+.attribution {
+  margin: 0;
+  margin-left: auto;
+  text-align: right;
+  color: var(--text-dim);
+  font-size: var(--type-caption);
+}

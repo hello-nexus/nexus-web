@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { FolderOpen, Monitor, MonitorPlay, Upload, Zap } from 'lucide-react';
+import { FolderOpen, Monitor, MonitorPlay, Sparkles, Upload, Zap } from 'lucide-react';
 import {
   fetchScreenMonitors, startScreenMirror, fetchScreenEffect, setScreenEffect, reselectScreen,
   type ScreenMonitor, type PostProcessSettings,
@@ -13,6 +13,7 @@ import {
   openMediaFolder,
   stageMedia,
 } from '../../../../api/mediaLibrary';
+import { centreCrop, importKlipy, type KlipyGif } from '../../../../api/klipy';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingMode } from '../../../../types/lighting';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
@@ -24,6 +25,7 @@ import { MediaCropper, type NormalizedCrop } from '../../../../components/common
 import { serializeCrop } from '../../../../components/common/MediaCropper/mediaCrop';
 import { useMediaLibrary } from '../effecteditor/useMediaLibrary';
 import { MediaGrid } from '../effecteditor/MediaGrid';
+import { KlipyPicker } from './KlipyPicker';
 import styles from '../LightingPage.module.scss';
 
 /**
@@ -158,6 +160,8 @@ function MediaControls() {
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [cropState, setCropState] = useState<{ stageId: string; src: string; name: string } | null>(null);
   const [converting, setConverting] = useState(false);
+  const [klipyOpen, setKlipyOpen] = useState(false);
+  const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +215,22 @@ function MediaControls() {
     setCropState(null);
     setImportError(null);
   }, [cropState]);
+
+  // A pick imports straight to the library: the centre crop is computed from the
+  // dimensions the search returned, so there is no staging or cropper step.
+  const handleKlipyPick = useCallback(async (gif: KlipyGif) => {
+    setKlipyBusy(gif.slug);
+    setImportError(null);
+    const result = await importKlipy(gif.slug, centreCrop(gif.width, gif.height, LIGHTING_CROP_ASPECT));
+    setKlipyBusy(null);
+    if (!result || result.error || !result.item) {
+      setImportError(result?.msg || t('lighting.controls.importFailed'));
+      return;
+    }
+    setKlipyOpen(false);
+    await refresh();
+    await play(result.item.id);
+  }, [t, refresh, play]);
 
   const handleOpenFolder = async () => {
     await openMediaFolder();
@@ -277,9 +297,23 @@ function MediaControls() {
             {t('lighting.controls.mediaManageFolder')}
           </Button>
         </HoverTooltip>
+        <Button
+          type="button"
+          icon={<Sparkles size={16} aria-hidden />}
+          onClick={() => setKlipyOpen(true)}
+        >
+          {t('lighting.controls.klipyBrowse')}
+        </Button>
         <input ref={fileRef} type="file" className={styles.hiddenInput}
           accept="image/*,video/*,.gif" onChange={handleImport} />
       </div>
+      <KlipyPicker
+        open={klipyOpen}
+        busySlug={klipyBusy}
+        importError={klipyOpen ? importError : null}
+        onPick={handleKlipyPick}
+        onClose={() => { setKlipyOpen(false); setImportError(null); }}
+      />
       {importError && (
         <p className={styles.mediaError}>{importError}</p>
       )}
