@@ -18,8 +18,10 @@ import styles from '../LightingPage.module.scss';
  *
  * While the time-of-day schedule is on, its current level is a second cap on
  * top of the slider, shown the way the per-device slider shows this one: a
- * marker at the scheduled level with an (i) that names it, and the fill past
- * it dimmed when it is the lower of the two. The (i) opens the schedule.
+ * marker at the scheduled level, the fill past it dimmed when it is the lower
+ * of the two, and an (i) that names it. The (i) sits by the label rather than
+ * over the caret (a mid-track caret would put it on top of the label text)
+ * and opens the schedule.
  *
  * Renders as a labelled stacked slider so it reads as the first control in the
  * effect dock's stack rather than a separate widget.
@@ -85,6 +87,7 @@ export function GlobalBrightnessSlider({ serviceOnline, onOpenSchedule }: {
       body={capping
         ? t('lighting.schedule.marker.capping', { level: scheduled })
         : t('lighting.schedule.marker.allowing', { level: scheduled })}
+      side="top"
     >
       <button
         type="button"
@@ -112,7 +115,7 @@ export function GlobalBrightnessSlider({ serviceOnline, onOpenSchedule }: {
         step={1}
         fillCap={capping ? scheduled : undefined}
         marker={scheduled ?? undefined}
-        markerLabel={scheduleMarker}
+        labelAction={scheduleMarker}
         onChange={handleChange}
         onCommit={handleCommit}
       />

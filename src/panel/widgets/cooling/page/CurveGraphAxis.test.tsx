@@ -35,11 +35,12 @@ describe('CurveGraph axis', () => {
         points={[{ temp: 2, speed: 20 }, { temp: 22, speed: 60 }]}
         tempMin={0}
         tempMax={24}
-        axis={{ xStep: 4, formatX: h => `${h % 24}h`, wrap: true }}
+        axis={{ xStep: 6, formatX: h => `${h % 24}h`, wrap: true }}
       />,
     );
     const labels = Array.from(container.querySelectorAll('span')).map(s => s.textContent);
-    expect(labels).toEqual(expect.arrayContaining(['0h', '4h', '8h', '12h', '16h', '20h', '0h']));
+    expect(labels).toEqual(expect.arrayContaining(['0h', '6h', '12h', '18h', '0h']));
+    expect(labels).not.toContain('4h');
     expect(labels).not.toContain('20°');
     // Wrapped: both chart edges sit on the same value (40%, midway 22h -> 2h).
     const { first, last } = endpointsY(pathD(container));

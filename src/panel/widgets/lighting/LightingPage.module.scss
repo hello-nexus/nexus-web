@@ -16,11 +16,12 @@
   min-height: 2.6rem;
 }
 
-// The schedule (i) above the master slider's marker caret: the same 16px
-// round info affordance the per-device slider stacks over its master marker,
-// but a real button, since it also opens the schedule.
+// The schedule (i) beside the master slider's label: the same 16px round
+// info affordance the per-device slider stacks over its master marker, but a
+// real button, since it also opens the schedule.
 .scheduleMarker {
   display: inline-flex;
+  margin-left: 0.15rem;
   align-items: center;
   justify-content: center;
   width: 16px;

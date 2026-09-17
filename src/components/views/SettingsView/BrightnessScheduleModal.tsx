@@ -12,9 +12,9 @@ import { useTranslation } from '../../../lib/i18n';
 import { hour12OptionFor, localizeNumbers } from '../../../lib/units';
 import styles from './BrightnessScheduleModal.module.scss';
 
-// One grid line every four hours: seven labels fit a phone-width chart, and
-// the default two-hour points land on or midway between them.
-const HOUR_STEP = 4;
+// One grid line every six hours: five "12 AM"-style labels are what fits a
+// phone-width chart without colliding; the points themselves mark the hours.
+const HOUR_STEP = 6;
 
 interface BrightnessScheduleModalProps {
   open: boolean;
