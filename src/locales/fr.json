@@ -2897,6 +2897,8 @@
   "panel.settings.deck.category.nexus": "Nexus",
   "panel.settings.deck.category.streamdeck": "Stream Deck",
   "panel.settings.deck.category.system": "Système",
+  "panel.settings.deck.changeAction": "Modifier",
+  "panel.settings.deck.closeActionList": "Fermer la liste des actions",
   "panel.settings.deck.color": "Couleur de l'icône",
   "panel.settings.deck.colorAuto": "Auto",
   "panel.settings.deck.colorTransparent": "Transparent",

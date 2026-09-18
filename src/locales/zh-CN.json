@@ -2897,6 +2897,8 @@
   "panel.settings.deck.category.nexus": "Nexus",
   "panel.settings.deck.category.streamdeck": "Stream Deck",
   "panel.settings.deck.category.system": "系统",
+  "panel.settings.deck.changeAction": "更改",
+  "panel.settings.deck.closeActionList": "关闭操作列表",
   "panel.settings.deck.color": "图标颜色",
   "panel.settings.deck.colorAuto": "自动",
   "panel.settings.deck.colorTransparent": "透明",

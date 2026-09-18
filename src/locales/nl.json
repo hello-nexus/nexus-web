@@ -2897,6 +2897,8 @@
   "panel.settings.deck.category.nexus": "Nexus",
   "panel.settings.deck.category.streamdeck": "Stream Deck",
   "panel.settings.deck.category.system": "Systeem",
+  "panel.settings.deck.changeAction": "Wijzigen",
+  "panel.settings.deck.closeActionList": "Actielijst sluiten",
   "panel.settings.deck.color": "Pictogramkleur",
   "panel.settings.deck.colorAuto": "Automatisch",
   "panel.settings.deck.colorTransparent": "Transparant",

@@ -157,6 +157,15 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   gap: 4px;
 }
 
+// Search bar + the close button that folds a reopened list. Without a search
+// bar (no keyboard on the surface) the button alone sits at the right edge.
+.searchRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .kindList {
   display: flex;
   flex-direction: column;

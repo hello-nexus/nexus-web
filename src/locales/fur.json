@@ -2897,6 +2897,8 @@
   "panel.settings.deck.category.nexus": "Nexus",
   "panel.settings.deck.category.streamdeck": "Stream Deck",
   "panel.settings.deck.category.system": "Sisteme",
+  "panel.settings.deck.changeAction": "Cambie",
+  "panel.settings.deck.closeActionList": "Siere la liste des azions",
   "panel.settings.deck.color": "Colôr de icone",
   "panel.settings.deck.colorAuto": "Automatic",
   "panel.settings.deck.colorTransparent": "Trasparent",

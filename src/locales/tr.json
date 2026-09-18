@@ -2897,6 +2897,8 @@
   "panel.settings.deck.category.nexus": "Nexus",
   "panel.settings.deck.category.streamdeck": "Stream Deck",
   "panel.settings.deck.category.system": "Sistem",
+  "panel.settings.deck.changeAction": "Değiştir",
+  "panel.settings.deck.closeActionList": "Eylem listesini kapat",
   "panel.settings.deck.color": "Simge rengi",
   "panel.settings.deck.colorAuto": "Otomatik",
   "panel.settings.deck.colorTransparent": "Şeffaf",

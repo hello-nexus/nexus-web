@@ -2897,6 +2897,8 @@
   "panel.settings.deck.category.nexus": "Nexus",
   "panel.settings.deck.category.streamdeck": "Stream Deck",
   "panel.settings.deck.category.system": "시스템",
+  "panel.settings.deck.changeAction": "변경",
+  "panel.settings.deck.closeActionList": "동작 목록 닫기",
   "panel.settings.deck.color": "아이콘 색상",
   "panel.settings.deck.colorAuto": "자동",
   "panel.settings.deck.colorTransparent": "투명",
