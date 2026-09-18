@@ -1806,6 +1806,7 @@ export function PanelContent({
         const unpinAvailable = sidebarPinnable && alreadyPinned;
         return (
           <WidgetContextMenu
+            key={touch.ctxMenu.seq}
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
