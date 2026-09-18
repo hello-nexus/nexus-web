@@ -673,6 +673,20 @@ export const fetchGlobalBrightness = () =>
 export const setGlobalBrightness = (value: number) =>
   postService('/lighting/global-brightness', { value });
 
+// Time-of-day cap on master brightness: `min(global, schedule(now))` while
+// enabled. Points sit on whole hours 0..23 with 0..100%; the service
+// interpolates by the minute and wraps midnight (mirrored in
+// lib/brightnessSchedule.ts for the live readout). The GET carries the
+// out-of-box curve so a reset needs no second copy of it.
+export interface BrightnessSchedulePoint { hour: number; brightness: number }
+export interface BrightnessSchedule { enabled: boolean; points: BrightnessSchedulePoint[] }
+
+export const fetchBrightnessSchedule = () =>
+  fetchService<BrightnessSchedule & { defaults: BrightnessSchedulePoint[] }>('/lighting/brightness-schedule');
+
+export const setBrightnessSchedule = (schedule: BrightnessSchedule) =>
+  postService('/lighting/brightness-schedule', schedule);
+
 // Resize a motherboard ARGB zone's LED count. Persisted + applied live via
 // OpenRGB's RESIZEZONE opcode. Only valid for split zone ids ("openrgb-N-Z").
 export const setZoneLedCount = (id: string, count: number) =>
