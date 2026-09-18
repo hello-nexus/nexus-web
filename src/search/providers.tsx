@@ -421,7 +421,9 @@ const appearance: SearchSource = (ctx) => {
       icon: <span className={styles.accentDot} style={{ background: hex }} aria-hidden />,
       keywords: ['accent', 'color', 'colour', 'theme', name],
       hint: ctx.settings.accentColor.toLowerCase() === hex.toLowerCase() ? active : undefined,
-      run: () => ctx.updateSettings({ accentColor: hex }),
+      // Picking a colour switches off the system-accent tracking, else
+      // SystemAccentSync writes the OS accent straight back over it.
+      run: () => ctx.updateSettings({ accentColor: hex, accentSource: 'custom' }),
     }));
   }
   for (const lang of LANGUAGES) {
