@@ -1,0 +1,36 @@
+// Master-brightness schedule editor: the on/off switch over the hour graph,
+// with the live level and the reset under it.
+
+@use '../../../styles/text' as *;
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.hint {
+  @include text-button;
+  margin: 0;
+  color: var(--text-dim);
+  font-weight: var(--weight-body);
+}
+
+// The graph owns its axis gutters; the frame just keeps it off the modal edge.
+.graph {
+  padding: var(--space-xs) 0;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.now {
+  @include text-button;
+  color: var(--text-dim);
+  font-weight: var(--weight-body);
+  font-variant-numeric: tabular-nums;
+}

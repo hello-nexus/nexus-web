@@ -1,8 +1,6 @@
-// External destinations shared by the top-bar menu, the command palette, and
-// the Smart Lights page, so the invite/repo/docs targets live in one place.
+// External destinations shared across the app, so the targets live in one place.
 
 export const DISCORD_INVITE_URL = 'https://discord.gg/MXAuxKKfVM';
-export const GITHUB_ISSUES_URL = 'https://github.com/hello-nexus/nexus-service/issues';
 export const AI_INTEGRATION_GUIDE_URL = 'https://hellonexus.com/docs/guides/ai/mcp-server';
 export const GAME_SYNC_GUIDE_URL = 'https://hellonexus.com/docs/guides/lighting/game-sync';
 // The guide's own "Which games are supported" section - the heading id the

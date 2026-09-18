@@ -2,7 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Activity, Bot, Box, Brain, Eye, EyeOff, Fan, History, IdCard, KeyRound, Lightbulb, RefreshCcwDot, Server } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingToggle, type SettingState } from '../../common/SettingRow/SettingRow';
 import { InfoList, InfoRow } from '../../common/InfoList/InfoList';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Badge } from '../../common/Badge/Badge';
@@ -302,22 +302,31 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
     return () => clearInterval(id);
   }, [assistantEnabled, transientNow]);
 
-  const runtimeStatusText = (): string => {
-    // A system Ollama that has since errored out must still surface as an
-    // error, not linger on "using the system installation".
-    if (assistant?.systemOllamaDetected && runtimeState !== 'error') {
+  // The row's state chip is the one-word state; the sentence cases (a system
+  // Ollama in use, download progress) stay as text beside it. A system Ollama
+  // that has since errored out must still surface as an error, not linger on
+  // "using the system installation".
+  const usingSystemOllama = !!assistant?.systemOllamaDetected && runtimeState !== 'error';
+  const runtimeChip = (): SettingState => {
+    if (runtimeState === 'error') return { label: t('settings.ai.assistant.runtime.status.error'), tone: 'warn' };
+    if (usingSystemOllama) return { label: t('settings.ai.assistant.runtime.status.running'), tone: 'good' };
+    if (runtimeState === 'downloading') return { label: t('settings.ai.assistant.runtime.status.downloading'), tone: 'accent' };
+    if (runtimeState === 'running' || runtimeState === 'installed') {
+      return { label: t(`settings.ai.assistant.runtime.status.${runtimeState}`), tone: 'good' };
+    }
+    return { label: t('settings.ai.assistant.runtime.status.notInstalled'), tone: 'neutral' };
+  };
+  const runtimeStatusText = (): string | null => {
+    if (usingSystemOllama) {
       return t('settings.ai.assistant.runtime.status.systemDetected');
     }
-    if (runtimeState === 'downloading') {
-      if (downloadProgress && downloadProgress.total > 0) {
-        return t('settings.ai.assistant.progress.downloading', {
-          percent: String(progressPercent(downloadProgress.received, downloadProgress.total)),
-          size: formatBytes(downloadProgress.total, numberFormat),
-        });
-      }
-      return t('settings.ai.assistant.runtime.status.downloading');
+    if (runtimeState === 'downloading' && downloadProgress && downloadProgress.total > 0) {
+      return t('settings.ai.assistant.progress.downloading', {
+        percent: String(progressPercent(downloadProgress.received, downloadProgress.total)),
+        size: formatBytes(downloadProgress.total, numberFormat),
+      });
     }
-    return t(`settings.ai.assistant.runtime.status.${runtimeState}`);
+    return null;
   };
 
   const modelPullText = (modelId: string): string | null => {
@@ -425,9 +434,12 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
                     icon={<Box />}
                     iconLeading="subtle"
                     description={t('settings.ai.assistant.runtime.description')}
+                    state={runtimeChip()}
                   >
                     <div className={styles.runtimeControl}>
-                      <span className={styles.runtimeStatus}>{runtimeStatusText()}</span>
+                      {runtimeStatusText() !== null && (
+                        <span className={styles.runtimeStatus}>{runtimeStatusText()}</span>
+                      )}
                       {runtimeState === 'downloading' && downloadProgress && downloadProgress.total > 0 && (
                         <div className={styles.progressTrack}>
                           <UsageBar value={downloadProgress.received / downloadProgress.total} />

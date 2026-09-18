@@ -15,6 +15,7 @@ import { Slider } from '../../../../components/common/Slider/Slider';
 import { RangeSlider } from '../../../../components/common/Slider/RangeSlider';
 import { Select } from '../../../../components/common/Select/Select';
 import { isModeCurveDirty } from './coolingModes';
+import { interpolateCurve, type CurveEasing, type CurveWrap } from '../../../../lib/curveEasing';
 import styles from '../CoolingPage.module.scss';
 
 const CURVE_TYPES: { key: CurveType; labelKey: string; hintKey: string; icon: ReactNode }[] = [
@@ -159,6 +160,27 @@ const SAMPLE_STEP = 2;
 const H_LINES = [0, 25, 50, 75, 100];
 const V_LINES: number[] = []; for (let v = 20; v <= 100; v += 10) V_LINES.push(v);
 
+/** Re-labels CurveGraph for a non-temperature x axis. Every field is optional
+ *  and falls back to the cooling defaults (°C ticks, temp/duty tooltip rows). */
+export interface CurveGraphAxis {
+  /** Grid + label step along x (default 10 over a wide span, 5 over a narrow one). */
+  xStep?: number;
+  /** Label under an x grid line, also the handle tooltip's x value. */
+  formatX?: (v: number) => string;
+  /** Live x readout under the current-value dot. */
+  formatLiveX?: (v: number) => string;
+  /** Handle tooltip row names. */
+  xName?: string;
+  yName?: string;
+  /** The axis is circular (hours of a day): past the outermost points the line
+   *  continues from the last point back to the first across the edge. */
+  wrap?: boolean;
+}
+
+// Samples across the chart width for a drawn curve; one every few pixels at
+// the widest chart, invisible as a polyline.
+const SHAPE_SAMPLES = 192;
+
 // Content key for a point set; the hover-clear effect and the drag-commit
 // hold compare these, so both sides must derive it identically.
 const pointsKeyOf = (pts: CurvePoint[]) => pts.map(pt => `${pt.temp},${pt.speed}`).join(' ');
@@ -186,10 +208,14 @@ function sampleCurveShape(
 // point markers can be dragged (clamped between their neighbours and 0-100% duty,
 // snapped to whole units), double-click adds a point at the cursor and right-click
 // removes one (down to 2); `onChange` fires with the new point set. Hovering or
-// dragging a marker shows its exact temp/duty on the axes.
+// dragging a marker shows its exact temp/duty on the axes. `axis` re-labels the
+// chart for a non-temperature x (the brightness schedule plots hours): the
+// point shape stays `temp`/`speed` so the drag, add and remove logic is shared.
+// `easing` picks how the line travels between points (default the engine's
+// piecewise-linear rule); the live dot follows the same rule.
 export function CurveGraph({
   points, currentTemp, showPoints = true, height = GRAPH_H,
-  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent,
+  tempMin = TEMP_MIN, tempMax = TEMP_MAX, editable = false, onChange, onPreview, limitPercent, axis, easing = 'linear',
 }: {
   points: CurvePoint[];
   currentTemp?: number;
@@ -203,9 +229,18 @@ export function CurveGraph({
   onPreview?: (points: CurvePoint[]) => void;
   /** Draws a dashed horizontal ceiling line at this duty %, e.g. a turbo-off cap. */
   limitPercent?: number;
+  axis?: CurveGraphAxis;
+  easing?: CurveEasing;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
+  const formatX = axis?.formatX ?? ((v: number) => `${v}°`);
+  const formatLiveX = axis?.formatLiveX
+    ?? ((v: number) => t('cooling.curve.tempBadge', { temp: localizeNumbers(v.toFixed(1), numberFormat) }));
+  const xName = axis?.xName ?? t('cooling.curve.tooltipTemp');
+  const yName = axis?.yName ?? t('cooling.curve.tooltipDuty');
+  const wrap = useMemo<CurveWrap | undefined>(
+    () => (axis?.wrap ? { min: tempMin, max: tempMax } : undefined), [axis?.wrap, tempMin, tempMax]);
   const svgRef = useRef<SVGSVGElement>(null);
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(400);
@@ -271,39 +306,39 @@ export function CurveGraph({
   });
   // X-axis grid + labels at ~10° steps (5° for a narrow span). For the default
   // 20-100 range this reproduces the original 20,30,…,100 ticks.
+  const xStep = axis?.xStep;
   const vLines = useMemo(() => {
-    const step = (tempMax - tempMin) > 40 ? 10 : 5;
+    const step = xStep ?? ((tempMax - tempMin) > 40 ? 10 : 5);
     const out: number[] = [];
     for (let v = Math.ceil(tempMin / step) * step; v <= tempMax; v += step) out.push(v);
     return out;
-  }, [tempMin, tempMax]);
-  // Extend the line/area flat to the chart edges so the curve fills the full
-  // width, matching how the engine clamps outside the point range. The point
-  // markers below still sit only on the real points.
-  const edged = useMemo(() => {
+  }, [tempMin, tempMax, xStep]);
+  // The drawn line. Linear is the points themselves, extended to the chart
+  // edges: flat, the way the engine clamps outside the point range, or on a
+  // wrapping axis along the segment that joins the last point back to the
+  // first. A curve is sampled across the width instead, through the same rule
+  // the live dot uses. The point markers below still sit only on the real
+  // points.
+  const shape = useMemo(() => {
     if (sorted.length === 0) return sorted;
-    const out = [...sorted];
-    if (out[0].temp > tempMin) out.unshift({ temp: tempMin, speed: out[0].speed });
-    if (out[out.length - 1].temp < tempMax) out.push({ temp: tempMax, speed: out[out.length - 1].speed });
-    return out;
-  }, [sorted, tempMin, tempMax]);
-  const linePath = edged.map((p, i) => `${i === 0 ? 'M' : 'L'} ${tempToX(p.temp)} ${speedToY(p.speed)}`).join(' ');
-  const areaPath = edged.length > 0 ? linePath + ` L ${tempToX(edged[edged.length - 1].temp)} ${speedToY(0)} L ${tempToX(edged[0].temp)} ${speedToY(0)} Z` : '';
-
-  // Piecewise-linear interpolation of the rendered line at an arbitrary temp,
-  // for the current-temperature dot.
-  const speedAtTemp = (tt: number): number => {
-    if (sorted.length === 0) return 0;
-    if (tt <= sorted[0].temp) return sorted[0].speed;
-    if (tt >= sorted[sorted.length - 1].temp) return sorted[sorted.length - 1].speed;
-    for (let i = 0; i < sorted.length - 1; i++) {
-      if (tt >= sorted[i].temp && tt <= sorted[i + 1].temp) {
-        const f = (tt - sorted[i].temp) / (sorted[i + 1].temp - sorted[i].temp);
-        return sorted[i].speed + f * (sorted[i + 1].speed - sorted[i].speed);
-      }
+    if (easing === 'linear') {
+      const out = [...sorted];
+      if (out[0].temp > tempMin) out.unshift({ temp: tempMin, speed: interpolateCurve(sorted, tempMin, easing, wrap) });
+      if (out[out.length - 1].temp < tempMax) out.push({ temp: tempMax, speed: interpolateCurve(sorted, tempMax, easing, wrap) });
+      return out;
     }
-    return sorted[sorted.length - 1].speed;
-  };
+    const out: CurvePoint[] = [];
+    for (let k = 0; k <= SHAPE_SAMPLES; k++) {
+      const temp = tempMin + ((tempMax - tempMin) * k) / SHAPE_SAMPLES;
+      out.push({ temp, speed: interpolateCurve(sorted, temp, easing, wrap) });
+    }
+    return out;
+  }, [sorted, tempMin, tempMax, wrap, easing]);
+  const linePath = shape.map((p, i) => `${i === 0 ? 'M' : 'L'} ${tempToX(p.temp)} ${speedToY(p.speed)}`).join(' ');
+  const areaPath = shape.length > 0 ? linePath + ` L ${tempToX(shape[shape.length - 1].temp)} ${speedToY(0)} L ${tempToX(shape[0].temp)} ${speedToY(0)} Z` : '';
+
+  // The rendered line's value at an arbitrary temp, for the current-temperature dot.
+  const speedAtTemp = (tt: number): number => interpolateCurve(sorted, tt, easing, wrap);
 
   // Invert a pixel position back to (temp, duty) in chart space; used by the
   // drag handler and double-click-to-add.
@@ -420,10 +455,10 @@ export function CurveGraph({
           </svg>
           {readoutPt && (
             <ChartHoverTooltip ref={tooltipRef}>
-              <ChartTooltipRow color="var(--accent)" name={t('cooling.curve.tooltipTemp')}>
-                <ChartTooltipVal>{t('cooling.curve.tempBadge', { temp: localizeNumbers(readoutPt.temp.toFixed(0), numberFormat) })}</ChartTooltipVal>
+              <ChartTooltipRow color="var(--accent)" name={xName}>
+                <ChartTooltipVal>{axis?.formatX ? formatX(readoutPt.temp) : t('cooling.curve.tempBadge', { temp: localizeNumbers(readoutPt.temp.toFixed(0), numberFormat) })}</ChartTooltipVal>
               </ChartTooltipRow>
-              <ChartTooltipRow color="var(--accent-glow)" name={t('cooling.curve.tooltipDuty')}>
+              <ChartTooltipRow color="var(--accent-glow)" name={yName}>
                 <ChartTooltipVal>{localizeNumbers(`${readoutPt.speed.toFixed(0)}%`, numberFormat)}</ChartTooltipVal>
               </ChartTooltipRow>
             </ChartHoverTooltip>
@@ -436,12 +471,12 @@ export function CurveGraph({
               {vLines.map(v => (
                 <span key={v} className={styles.curveAxisLabel}
                   style={{ left: `${((v - tempMin) / (tempMax - tempMin)) * 100}%` }}>
-                  {v}°
+                  {formatX(v)}
                 </span>
               ))}
               {hasDot && (
                 <span className={styles.curveAxisLiveX} style={{ left: `${dotLeftPct}%` }}>
-                  {t('cooling.curve.tempBadge', { temp: localizeNumbers(currentTemp!.toFixed(1), numberFormat) })}
+                  {formatLiveX(currentTemp!)}
                 </span>
               )}
             </div>

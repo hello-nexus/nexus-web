@@ -673,6 +673,20 @@ export const fetchGlobalBrightness = () =>
 export const setGlobalBrightness = (value: number) =>
   postService('/lighting/global-brightness', { value });
 
+// Time-of-day cap on master brightness: `min(global, schedule(now))` while
+// enabled. Points sit on whole hours 0..23 with 0..100%; the service
+// interpolates by the minute and wraps midnight (mirrored in
+// lib/brightnessSchedule.ts for the live readout). The GET carries the
+// out-of-box curve so a reset needs no second copy of it.
+export interface BrightnessSchedulePoint { hour: number; brightness: number }
+export interface BrightnessSchedule { enabled: boolean; points: BrightnessSchedulePoint[] }
+
+export const fetchBrightnessSchedule = () =>
+  fetchService<BrightnessSchedule & { defaults: BrightnessSchedulePoint[] }>('/lighting/brightness-schedule');
+
+export const setBrightnessSchedule = (schedule: BrightnessSchedule) =>
+  postService('/lighting/brightness-schedule', schedule);
+
 // Resize a motherboard ARGB zone's LED count. Persisted + applied live via
 // OpenRGB's RESIZEZONE opcode. Only valid for split zone ids ("openrgb-N-Z").
 export const setZoneLedCount = (id: string, count: number) =>
@@ -1125,11 +1139,6 @@ export interface GameSyncStateResponse {
    * interface light the vendor's software instead of Nexus.
    */
   synapseConflict: boolean;
-  /**
-   * The user set the vendor SDK aside (renamed beside its slot) so the Nexus
-   * shim holds it. Off puts the vendor DLL back.
-   */
-  vendorOverride: boolean;
   devices: GameSyncDevice[];
   lastFrameAt?: number | null;
   activeApp?: string | null;
@@ -1137,10 +1146,6 @@ export interface GameSyncStateResponse {
 
 export const startGameSync = () =>
   postService('/lighting/game-sync/start', {});
-
-/** Null when the service could not make the switch (not elevated, no bundled shims, a locked file). */
-export const setGameSyncVendorOverride = (enabled: boolean) =>
-  postService<GameSyncStateResponse>('/lighting/game-sync/vendor-override', { enabled });
 
 export const fetchGameSyncState = () =>
   fetchService<GameSyncStateResponse>('/lighting/game-sync/state');
