@@ -7,21 +7,31 @@ import type { DeviceKey } from './perfSlots';
 const DEVICE_PREFIXES: Partial<Record<DeviceKey, string>> = {
   cpu: 'CPU',
   gpu: 'GPU',
+  igpu: 'iGPU',
   memory: 'Memory',
   network: 'Network',
 };
+
+// The iGPU's sensors arrive named like any GPU's ("GPU Core"), so its bare
+// form strips that word as well as its own caption.
+function strippedPrefixes(device: DeviceKey): string[] {
+  const prefix = DEVICE_PREFIXES[device];
+  if (!prefix) return [];
+  return device === 'igpu' ? [prefix, 'GPU'] : [prefix];
+}
 
 // The sensor name with any leading device-category prefix stripped. Used in
 // Micro rows (where the bottom label already names the device) and in the
 // settings sensor picker (where the device select sits right above). Names
 // that already lack the prefix are returned as-is.
 export function bareSensorLabel(device: DeviceKey, name: string): string {
-  const prefix = DEVICE_PREFIXES[device];
-  if (!prefix || !name) return name;
+  if (!name) return name;
   const lowerName = name.toLowerCase();
-  const lowerPrefix = prefix.toLowerCase();
-  if (lowerName === lowerPrefix) return '';
-  if (lowerName.startsWith(lowerPrefix + ' ')) return name.slice(prefix.length + 1);
+  for (const prefix of strippedPrefixes(device)) {
+    const lowerPrefix = prefix.toLowerCase();
+    if (lowerName === lowerPrefix) return '';
+    if (lowerName.startsWith(lowerPrefix + ' ')) return name.slice(prefix.length + 1);
+  }
   return name;
 }
 

@@ -2640,6 +2640,7 @@
   "monitoring.settings.category.embeddedController": "EC",
   "monitoring.settings.category.fps": "FPS",
   "monitoring.settings.category.gpu": "GPU",
+  "monitoring.settings.category.igpu": "iGPU",
   "monitoring.settings.category.memory": "メモリ",
   "monitoring.settings.category.memoryModule": "メモリモジュール",
   "monitoring.settings.category.motherboard": "マザーボード",

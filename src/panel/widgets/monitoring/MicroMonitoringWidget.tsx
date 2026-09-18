@@ -21,6 +21,7 @@ import {
   staticMaxForDevice,
 } from './MonitoringWidget';
 import { bareSensorLabel } from './sensorNames';
+import { igpuComponents } from './sensorCategories';
 import { chartDomainForScale, defaultFixedMax, DEFAULT_SCALE_MODE, fixedFillPercent, type ScaleMode } from './perfDomain';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
@@ -65,6 +66,7 @@ export function bottomLabelForDevice(
     case 'quick': return 'Quick';
     case 'cpu': return sensors.cpuModel || 'CPU';
     case 'gpu': return sensors.gpuModel || 'GPU';
+    case 'igpu': return igpuComponents(sensors)[0]?.name || 'iGPU';
     case 'memory': return sensors.memoryTotal ? `RAM | ${sensors.memoryTotal}` : 'RAM';
     case 'motherboard': return sensors.motherboardModel || 'Motherboard';
     case 'fan': return sensors.motherboardModel || 'Fan';

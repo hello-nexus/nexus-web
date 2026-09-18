@@ -66,8 +66,9 @@ export interface DeckPageAction {
 
 // ── Live monitoring tile ──
 // Every category the monitoring widget's own picker offers, in that picker's
-// order (sensorPicker.ts' DEVICE_OPTION_KEYS). The one DeviceKey left out is
-// the legacy 'fan', which neither picker offers. 'network' resolves to the
+// order (sensorPicker.ts' DEVICE_OPTION_KEYS). Left out: the legacy 'fan',
+// which neither picker offers, and 'igpu', which the service-side key render
+// cannot resolve (see deckMonitoring.ts). 'network' resolves to the
 // NIC-summed aggregate (networkSensors.ts' buildNicNetworkSensors), not the
 // widget's per-process sums - that is the only network source nexus-service
 // can reproduce for the physical-deck render.

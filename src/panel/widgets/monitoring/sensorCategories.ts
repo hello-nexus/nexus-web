@@ -1,5 +1,6 @@
 import { isSmartStorageComponentId, type HardwareSensor, type SensorState } from '../../../hooks/useSensors';
 import type { SensorExtras } from '../../../hooks/useSensorExtras';
+import type { GpuComponent } from '../../../lib/gpuResolver';
 import type { DeviceKey } from './perfSlots';
 
 // Shared category set for both sensor pickers (monitoring widget + Tryx
@@ -41,8 +42,28 @@ export function sensorsForCategory(
 // ── Widget-only categories ──────────────────────────────────────────────────
 // Not part of SENSOR_CATEGORIES/SensorCategory above: the Tryx overlay picker
 // (TRYX_SENSOR_GROUPS in tryxOverlayUtils.ts) mirrors that exact set, and
-// must never offer SSD SMART or the extras-topic device groups (see
+// must never offer the iGPU, SSD SMART or the extras-topic device groups (see
 // useSensors.storageSensors and useSensorExtras for why).
+
+/**
+ * The integrated GPU(s), offered only beside a discrete card: on an iGPU-only
+ * box the 'gpu' category already is the iGPU, so this is empty and the picker
+ * hides the category rather than listing one card twice. Not "the GPUs other
+ * than the primary": with the iGPU picked as preferred GPU on a dual box both
+ * categories show it, and an 'igpu' slot keeps resolving instead of blanking.
+ * Widget-only: the Tryx overlay and the deck resolve sensors service-side,
+ * where only "gpu" (every card flattened) exists as a category.
+ */
+export function igpuComponents(sensors: SensorState): GpuComponent[] {
+  const gpus = sensors.gpuComponents;
+  if (!gpus.some(g => !g.integrated)) return [];
+  return gpus.filter(g => g.integrated);
+}
+
+/** Flattened sensors of `igpuComponents`. */
+export function igpuSensors(sensors: SensorState): HardwareSensor[] {
+  return igpuComponents(sensors).flatMap(g => g.sensors);
+}
 
 /** Flattened sensors from every smart/*-keyed storage component. */
 export function smartStorageSensors(sensors: SensorState): HardwareSensor[] {

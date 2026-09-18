@@ -44,7 +44,9 @@ const mockSensors = {
   motherboard: [{ id: 'fan-1', name: 'Fan 1', type: 'Fan', value: 1200, units: 'RPM', formatted: '1200 RPM', parent: { id: 'mobo', name: 'Motherboard' } }],
   motherboardModel: '',
   cpuModel: '',
+  gpuModel: '',
   gpuModels: [],
+  gpuComponents: [],
   memoryTotal: '',
 };
 

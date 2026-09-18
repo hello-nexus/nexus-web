@@ -46,7 +46,9 @@ const mockSensors = vi.hoisted(() => ({
   motherboard: [],
   motherboardModel: '',
   cpuModel: 'AMD Ryzen 7 9800X3D',
+  gpuModel: 'NVIDIA RTX 5080',
   gpuModels: ['NVIDIA RTX 5080'],
+  gpuComponents: [],
   memoryTotal: '32 GB',
 }));
 

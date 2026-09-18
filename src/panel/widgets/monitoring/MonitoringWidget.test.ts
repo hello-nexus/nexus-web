@@ -160,3 +160,26 @@ describe('percentForSensor / staticMaxForDevice - other heterogeneous devices', 
     expect(staticMaxForDevice('embeddedController', undefined, 'Clock')).toBe(6000);
   });
 });
+
+describe('resolveSensor + labelForDevice - igpu', () => {
+  const dCore = sensor({ id: '/gpu-nvidia/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const iCore = sensor({ id: '/gpu-amd/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const iLoad = sensor({ id: '/gpu-amd/0/load/0', name: 'GPU Core', type: 'Load' });
+  const igpu = { id: '/gpu-amd/0', name: 'AMD Radeon(TM) Graphics', integrated: true, sensors: [iCore, iLoad] };
+  const dgpu = { id: '/gpu-nvidia/0', name: 'NVIDIA GeForce RTX 5080', integrated: false, sensors: [dCore] };
+  const sensors: SensorState = { ...EMPTY_SENSORS, gpu: dgpu.sensors, gpuComponents: [igpu, dgpu] };
+
+  it('resolves only within the integrated card: by id, by name, then GPU Core load', () => {
+    expect(resolveSensor(sensors, [], [], 'igpu', iCore.id)).toBe(iCore);
+    expect(resolveSensor(sensors, [], [], 'igpu', 'GPU Core')).toBe(iCore);
+    expect(resolveSensor(sensors, [], [], 'igpu', '')).toBe(iLoad);
+    expect(resolveSensor(sensors, [], [], 'igpu', dCore.id)).toBe(iCore);
+    // The gpu category never reaches across to the iGPU's sensors.
+    expect(resolveSensor(sensors, [], [], 'gpu', iCore.id)?.id).not.toBe(iCore.id);
+  });
+
+  it('captions an iGPU slot "iGPU <sensor>" with the GPU word stripped from the name', () => {
+    expect(labelForDevice('igpu', 'GPU Core')).toBe('iGPU Core');
+    expect(labelForDevice('igpu', '')).toBe('iGPU');
+  });
+});

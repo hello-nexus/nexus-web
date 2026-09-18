@@ -7,7 +7,7 @@ import type { useSensorExtras } from '../../../hooks/useSensorExtras';
 import type { buildNetworkSensors } from './networkSensors';
 import { networkSensorOptions } from './networkSensors';
 import { bareSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, sensorsForCategory, smartStorageSensors } from './sensorCategories';
+import { extrasSensorsForDevice, igpuSensors, sensorsForCategory, smartStorageSensors } from './sensorCategories';
 import type { DeviceKey } from './perfSlots';
 
 export interface SensorOption {
@@ -17,11 +17,13 @@ export interface SensorOption {
 }
 
 // Picker order: the Tryx-shared categories (SENSOR_CATEGORIES, quick through
-// fps) interleaved with their related widget-only categories (SSD SMART next
-// to Storage, DIMMs next to Memory), then the remaining extras-topic groups.
-// 'fan' is never offered here (see perfSlots' DeviceKey doc).
+// fps) interleaved with their related widget-only categories (iGPU next to
+// GPU, SSD SMART next to Storage, DIMMs next to Memory), then the remaining
+// extras-topic groups. 'fan' is never offered here (see perfSlots' DeviceKey
+// doc). 'igpu' is hidden by visibleDeviceKeys whenever the box has no
+// integrated card beside the primary GPU.
 export const DEVICE_OPTION_KEYS: readonly DeviceKey[] = [
-  'quick', 'cpu', 'gpu', 'memory', 'memoryModule', 'motherboard',
+  'quick', 'cpu', 'gpu', 'igpu', 'memory', 'memoryModule', 'motherboard',
   'storage', 'smart', 'network', 'fps',
   'battery', 'cooler', 'psu', 'embeddedController',
 ];
@@ -30,6 +32,7 @@ export const CATEGORY_LABEL_KEYS: Record<DeviceKey, string> = {
   quick: 'monitoring.settings.category.quick',
   cpu: 'monitoring.settings.category.cpu',
   gpu: 'monitoring.settings.category.gpu',
+  igpu: 'monitoring.settings.category.igpu',
   memory: 'monitoring.settings.category.memory',
   memoryModule: 'monitoring.settings.category.memoryModule',
   motherboard: 'monitoring.settings.category.motherboard',
@@ -82,6 +85,13 @@ export function sensorsForDevice(
       break;
     case 'storage':
       options = sensorsForCategory('storage', sensors, networkSensors, []).map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
+      break;
+    case 'igpu':
+      options = igpuSensors(sensors).map(s => ({
+        value: s.id,
+        label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
+        sensorName: s.name,
+      }));
       break;
     case 'smart':
       options = smartStorageSensors(sensors).map(s => ({
