@@ -6,15 +6,16 @@ import type { GaugeDesignKey } from './gauges';
 // existed keeps resolving its Fan-typed sensor; it is no longer offered in
 // either picker (see MonitoringSettings' DEVICE_OPTIONS).
 //
-// 'igpu' (the integrated GPU beside a discrete primary), 'smart' (LHM SSD
-// SMART, storage topic) and the extras-topic categories ('memoryModule',
-// 'battery', 'cooler', 'psu', 'embeddedController') are widget-only: they
-// are deliberately NOT part of sensorCategories.ts' SENSOR_CATEGORIES, so
-// the Tryx overlay picker (which mirrors that shared set) never offers them
-// - see useSensors.storageSensors and useSensorExtras for why each is gated
-// off that surface, and sensorCategories.igpuComponents for 'igpu'.
+// 'gpu2' (discrete cards beyond the primary), 'igpu' (the integrated GPU
+// beside a discrete primary), 'smart' (LHM SSD SMART, storage topic) and the
+// extras-topic categories ('memoryModule', 'battery', 'cooler', 'psu',
+// 'embeddedController') are widget-only: they are deliberately NOT part of
+// sensorCategories.ts' SENSOR_CATEGORIES, so the Tryx overlay picker (which
+// mirrors that shared set) never offers them - see useSensors.storageSensors
+// and useSensorExtras for why each is gated off that surface, and
+// sensorCategories.gpu2Components / igpuComponents for the two GPU ones.
 export type DeviceKey =
-  | 'quick' | 'cpu' | 'gpu' | 'igpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps'
+  | 'quick' | 'cpu' | 'gpu' | 'gpu2' | 'igpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps'
   | 'smart' | 'memoryModule' | 'battery' | 'cooler' | 'psu' | 'embeddedController';
 
 // DeviceKeys resolved from the "extras" topic (useSensorExtras), as opposed

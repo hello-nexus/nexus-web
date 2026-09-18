@@ -64,3 +64,12 @@ describe('igpu labels', () => {
     expect(bareSensorLabel('igpu', 'iGPU')).toBe('');
   });
 });
+
+describe('gpu2 labels', () => {
+  it('strips the GPU word the sensor arrives with and captions under GPU 2, idempotently', () => {
+    expect(bareSensorLabel('gpu2', 'GPU Core')).toBe('Core');
+    expect(prefixedSensorLabel('gpu2', 'GPU Core')).toBe('GPU 2 Core');
+    expect(prefixedSensorLabel('gpu2', 'GPU 2 Core')).toBe('GPU 2 Core');
+    expect(bareSensorLabel('gpu2', 'GPU 2')).toBe('');
+  });
+});

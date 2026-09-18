@@ -2674,6 +2674,7 @@
   "monitoring.settings.category.embeddedController": "EC",
   "monitoring.settings.category.fps": "FPS",
   "monitoring.settings.category.gpu": "GPU",
+  "monitoring.settings.category.gpu2": "GPU 2",
   "monitoring.settings.category.igpu": "iGPU",
   "monitoring.settings.category.memory": "Память",
   "monitoring.settings.category.memoryModule": "Модули памяти",

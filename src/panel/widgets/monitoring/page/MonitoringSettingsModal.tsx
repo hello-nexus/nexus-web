@@ -17,7 +17,9 @@ interface MonitoringSettingsModalProps {
  * Settings dialog for the monitoring page: the primary-GPU picker (which
  * GPU's stats stand in across the Monitoring widget, sensors view, and GPU
  * temp display, stored globally as `preferredGpuId`; "Auto" clears it back to
- * the discrete-first default) and which timeline event kinds the graph shows.
+ * the discrete-first default; the widget's "GPU 2" category is the other
+ * discrete card, so the two swap together) and which timeline event kinds the
+ * graph shows.
  * The GPU row is hidden when there is only one GPU, so the dialog is always
  * worth opening for the event toggles.
  */
