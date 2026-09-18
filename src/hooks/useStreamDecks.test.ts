@@ -8,7 +8,7 @@ vi.mock('../api/streamdeck', () => ({
   updateStreamDeck: vi.fn(),
 }));
 
-vi.mock('../api/service', () => ({ isRemoteOrigin: false }));
+vi.mock('../api/service', () => ({ isLocalhostUnreachable: () => false }));
 
 let capturedTopicCallback: ((data: unknown) => void) | null = null;
 vi.mock('./useMultiplexSocket', () => ({

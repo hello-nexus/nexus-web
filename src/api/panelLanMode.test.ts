@@ -15,6 +15,7 @@ vi.mock('./service', () => ({
   isTunnelActive: () => serviceState.tunnelActive,
   isRemoteOrigin: true,
   isForceLanMode: () => serviceState.forceLan,
+  isLocalhostUnreachable: () => !serviceState.forceLan,
   loopbackFetchInit: { targetAddressSpace: 'loopback' },
   relayRequestWithStatus: (...args: unknown[]) => relayWithStatusMock(...args),
   RELAY_BOOT_TIMEOUT_MS: 6000,

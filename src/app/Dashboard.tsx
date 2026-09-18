@@ -52,7 +52,7 @@ import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
-import { isRemoteOrigin } from '../api/service';
+import { isLocalhostUnreachable, isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
@@ -184,7 +184,7 @@ function DeckEditAutoOpener({ online, onOpen }: {
     if (markDeckEditShown(edit.token)) onOpen(edit);
   }, [onOpen]);
 
-  useTopicCallback('streamdeck', online && !isRemoteOrigin, useCallback((data: unknown) => {
+  useTopicCallback('streamdeck', online && !isLocalhostUnreachable(), useCallback((data: unknown) => {
     const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[]; keyIndex?: number; token?: number };
     if (f.kind !== 'editRequest' || !f.serial || typeof f.token !== 'number') return;
     fire({
@@ -203,7 +203,7 @@ function DeckEditAutoOpener({ online, onOpen }: {
   // re-fetches instead of dropping the cold-start edit.
   const firedRef = useRef(false);
   useEffect(() => {
-    if (!online || isRemoteOrigin || firedRef.current) return;
+    if (!online || isLocalhostUnreachable() || firedRef.current) return;
     let cancelled = false;
     getPendingDeckEdit().then(edit => {
       if (cancelled || firedRef.current || !edit) return;

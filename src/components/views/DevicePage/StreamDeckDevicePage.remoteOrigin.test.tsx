@@ -5,7 +5,7 @@ import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 // /streamdeck/* is .LocalhostOnly(); a remote-paired session reaching the
 // dashboard must see a desktop-only notice, never sit forever on a blank
 // page waiting for useStreamDecks (which itself refuses to fetch there).
-vi.mock('../../../api/service', () => ({ isRemoteOrigin: true }));
+vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => true }));
 vi.mock('../../../hooks/useStreamDecks', () => ({
   useStreamDecks: () => ({
     decks: [], loaded: false, rename: vi.fn(), setBrightness: vi.fn(), setOrientation: vi.fn(), setSleepAfterSeconds: vi.fn(),

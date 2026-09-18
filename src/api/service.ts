@@ -216,6 +216,17 @@ export function isForceLanMode(): boolean {
 }
 
 /**
+ * A remote origin has no localhost PC to reach - except the detected-desktop
+ * case (forceLanMode), where http://localhost really is this machine's own
+ * service. Read by desktop-only surfaces (Stream Deck, the panel-device
+ * helpers) so the website behaves like the bundled app on that machine
+ * while a phone/relay origin still fails closed.
+ */
+export function isLocalhostUnreachable(): boolean {
+  return isRemoteOrigin && !forceLanMode;
+}
+
+/**
  * Publish the live multiplex transport so the REST fetch layer can route
  * accordingly. Called only by useMultiplexSocket as the connection opens /
  * closes. Off-LAN (transport === 'relay') REST calls tunnel over the relay;
