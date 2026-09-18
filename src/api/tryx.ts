@@ -48,6 +48,22 @@ export interface TryxOverlay {
   docked: boolean;
 }
 
+/** Custom-upload slideshow: the gallery widget's four knobs, paced by the service. */
+export interface TryxSlideshow {
+  enabled: boolean;
+  /** Seconds each clip holds; one of SLIDESHOW_INTERVALS. */
+  intervalSec: number;
+  shuffle: boolean;
+  finishVideos: boolean;
+}
+
+export const DEFAULT_TRYX_SLIDESHOW: TryxSlideshow = {
+  enabled: false,
+  intervalSec: 10,
+  shuffle: false,
+  finishVideos: true,
+};
+
 export interface TryxStatus {
   connected: boolean;
   state: TryxState | null;
@@ -55,6 +71,8 @@ export interface TryxStatus {
   mediaUsedBytes: number;
   mediaFileCount: number;
   overlay: TryxOverlay;
+  /** Absent from a service that predates the slideshow. */
+  slideshow?: TryxSlideshow;
 }
 
 export interface TryxPreset {
@@ -117,6 +135,7 @@ const SIM_STATUS: TryxStatus = {
     align: 'left',
     docked: true,
   },
+  slideshow: DEFAULT_TRYX_SLIDESHOW,
 };
 
 export function getTryxStatus(): Promise<TryxStatus | null> {
@@ -158,6 +177,11 @@ export async function selectTryxMedia(name: string): Promise<boolean> {
 export async function deleteTryxMedia(name: string): Promise<boolean> {
   if (isTryxSimulated()) return true;
   return isOk(await postService<OkResponse>('/tryx/media/delete', { name }));
+}
+
+export async function setTryxSlideshow(slideshow: TryxSlideshow): Promise<boolean> {
+  if (isTryxSimulated()) return true;
+  return isOk(await postService<OkResponse>('/tryx/slideshow', slideshow));
 }
 
 export async function setTryxOverlay(overlay: {

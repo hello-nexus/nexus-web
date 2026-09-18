@@ -924,7 +924,9 @@ export function PanelContent({
   // serves the panel through its loopback proxy (origin 127.0.0.1, which
   // isRemotePaired reads as a hardwired-kiosk localhost). Show the "connected
   // to <PC>" identity for it the same as the LAN-IP / relay phone origins.
-  const connectionIdentityVisible = isRemotePaired || surface === 'phone';
+  // The simulator iframe on the public website reads as a remote host too,
+  // yet it previews a hardwired panel, so it never shows the identity.
+  const connectionIdentityVisible = (isRemotePaired && !simulator) || surface === 'phone';
   // The live connection is running over the cloud relay (not the direct LAN
   // /ws socket). Surface a satellite badge so the user knows traffic is going
   // through the relay; LAN connections show nothing extra.

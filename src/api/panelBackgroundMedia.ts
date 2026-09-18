@@ -1,3 +1,4 @@
+import type { StageMediaKind } from './mediaLibrary';
 import { deleteService, fetchService, postService, postServiceFormResult, resolveHttp, type ServiceRefusal, tokenParam } from './service';
 
 export interface BackgroundMediaItem {
@@ -16,7 +17,7 @@ export interface BackgroundMediaItem {
 export const fetchBackgroundMediaLibrary = (deviceId: string) =>
   fetchService<{ items: BackgroundMediaItem[] }>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/library`);
 
-export interface BackgroundMediaStageResult { stageId: string; alpha: boolean; error: boolean; msg: string }
+export interface BackgroundMediaStageResult { stageId: string; alpha: boolean; mediaKind?: StageMediaKind; error: boolean; msg: string }
 
 // Stage and commit answer a refusal (oversize, unsupported, unreadable) with
 // its message and null only when the service is unreachable, so a folder
@@ -29,24 +30,16 @@ export async function stageBackgroundMedia(deviceId: string, file: File): Promis
   return postServiceFormResult<BackgroundMediaStageResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage`, form);
 }
 
-export function backgroundMediaStagePreviewUrl(deviceId: string, stageId: string): string {
-  const base = resolveHttp(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage/${encodeURIComponent(stageId)}/preview`);
+export function backgroundMediaStageRawUrl(deviceId: string, stageId: string): string {
+  const base = resolveHttp(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage/${encodeURIComponent(stageId)}/raw`);
   const tok = tokenParam();
   return tok ? `${base}?${tok}` : base;
 }
 
-/**
- * Pixel size of a staged upload's preview frame. The preview is the same
- * oriented frame the cropper measures, so a crop computed from it lands
- * exactly where the cropper's default would.
- */
-export function probeBackgroundMediaStageSize(deviceId: string, stageId: string): Promise<{ w: number; h: number } | null> {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => resolve(img.naturalWidth && img.naturalHeight ? { w: img.naturalWidth, h: img.naturalHeight } : null);
-    img.onerror = () => resolve(null);
-    img.src = backgroundMediaStagePreviewUrl(deviceId, stageId);
-  });
+export function backgroundMediaStagePreviewUrl(deviceId: string, stageId: string): string {
+  const base = resolveHttp(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/stage/${encodeURIComponent(stageId)}/preview`);
+  const tok = tokenParam();
+  return tok ? `${base}?${tok}` : base;
 }
 
 export interface BackgroundMediaCommitResult { item: BackgroundMediaItem | null; error: boolean; msg: string }
@@ -58,6 +51,7 @@ export async function commitBackgroundMedia(
   w: number,
   h: number,
   keepTransparency = true,
+  fit = false,
 ): Promise<BackgroundMediaCommitResult | ServiceRefusal | null> {
   const form = new FormData();
   form.append('stageId', stageId);
@@ -65,6 +59,7 @@ export async function commitBackgroundMedia(
   form.append('w', String(w));
   form.append('h', String(h));
   form.append('keepTransparency', keepTransparency ? '1' : '0');
+  form.append('fit', fit ? '1' : '0');
   return postServiceFormResult<BackgroundMediaCommitResult>(`/panel/devices/${encodeURIComponent(deviceId)}/background-media/commit`, form);
 }
 

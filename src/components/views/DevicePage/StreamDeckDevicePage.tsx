@@ -20,7 +20,7 @@ import { padSlots, pageHasContent, emptyDeck, countBoundSlots, MAX_DECK_PAGES } 
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
 import type { DeckConfig } from '../../../panel/widgets/deck/types';
-import { isRemoteOrigin } from '../../../api/service';
+import { isLocalhostUnreachable } from '../../../api/service';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
 import { ElgatoImportModal } from './ElgatoImportModal';
@@ -182,7 +182,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // grid it feeds isn't mounted on Settings.
   const [liveTiles, setLiveTiles] = useState<Map<string, string>>(new Map());
   const clearLiveTiles = useCallback(() => setLiveTiles(new Map()), []);
-  useTopicCallback('streamdeckTiles', !isRemoteOrigin && !!serial && tab === 'customize', useCallback((data: unknown) => {
+  useTopicCallback('streamdeckTiles', !isLocalhostUnreachable() && !!serial && tab === 'customize', useCallback((data: unknown) => {
     const f = data as { serial?: string; page?: number; slotPath?: string; mime?: string; data?: string };
     if (f.serial !== serial || typeof f.page !== 'number' || typeof f.slotPath !== 'string' || typeof f.data !== 'string') return;
     const key = `${f.page}:${f.slotPath}`;
@@ -307,7 +307,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // Follow the physical deck's navigation: pressing prev/next page, go-to-page,
   // or entering/leaving a folder on the hardware broadcasts a `nav` frame, so
   // the editor moves to the same page/folder the deck is showing.
-  useTopicCallback('streamdeck', !isRemoteOrigin && !!serial, useCallback((data: unknown) => {
+  useTopicCallback('streamdeck', !isLocalhostUnreachable() && !!serial, useCallback((data: unknown) => {
     const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[] };
     if (f.kind !== 'nav' || f.serial !== serial) return;
     if (typeof f.page === 'number') setPage(f.page);
@@ -327,7 +327,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // /streamdeck/* is .LocalhostOnly(); a remote-paired session (or a browser
   // reaching the dashboard over the relay) would otherwise sit on this page
   // forever with useStreamDecks refusing to fetch and `loaded` never true.
-  if (isRemoteOrigin) {
+  if (isLocalhostUnreachable()) {
     return (
       <PageShell>
         <EmptyState icon={<Monitor size={40} />} title={t('devices.streamdeck.desktopOnly')} />

@@ -38,6 +38,7 @@ import { Tabs } from '../components/common/Tabs/Tabs';
 import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal/PromptModal';
+import { KlipyPicker } from '../components/common/KlipyPicker/KlipyPicker';
 import { UsageBar } from '../components/common/UsageBar/UsageBar';
 import { CapacityBar } from '../components/common/CapacityBar/CapacityBar';
 import { SupportedDevicesModal } from '../components/common/SupportedDevicesModal/SupportedDevicesModal';
@@ -578,6 +579,32 @@ function PreviewConfirmModal() {
           children renders extra content here, e.g. a password field for a destructive confirm.
         </p>
       </ConfirmModal>
+    </>
+  );
+}
+
+// Searches the live service: the catalog runs inside the app, and without a
+// Klipy key the picker shows its own unavailable state, which is a state worth
+// previewing too.
+function PreviewKlipyPicker() {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [last, setLast] = useState<string | null>(null);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Browse GIFs
+      </button>
+      {last && <p className={styles.previewNote}>Last pick: <strong>{last}</strong></p>}
+      <KlipyPicker
+        open={open}
+        busySlug={busy}
+        onPick={gif => {
+          setBusy(gif.slug);
+          window.setTimeout(() => { setBusy(null); setLast(gif.title || gif.slug); setOpen(false); }, 600);
+        }}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
@@ -2375,6 +2402,13 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/ConfirmModal/ConfirmModal.tsx',
     description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmModal,
     notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?". Optional children render after the note, before the actions row - e.g. a current-password field for delete-account. confirmDisabled disables the confirm button and suppresses Enter-to-confirm while an async action is in flight.',
+  },
+  {
+    name: 'KlipyPicker', category: 'modals',
+    filePath: 'src/components/common/KlipyPicker/KlipyPicker.tsx',
+    description: 'Search-and-pick modal over the Klipy GIF catalog: trending on open, debounced search, infinite scroll, one tap hands the pick to the caller. Thumbnails and search go through the service (a panel has no route to Klipy), and the required KLIPY attribution sits in the footer.',
+    notes: 'busySlug marks the card that is importing and locks the grid. Pass thumbAspect so the cards preview the crop the consuming surface will make (16:9 for the lighting canvas, the panel aspect for backgrounds). A refused import is shown through importError while the picker stays open.',
+    Preview: PreviewKlipyPicker,
   },
   {
     name: 'PromptModal', category: 'modals',

@@ -7,7 +7,7 @@ import type { DeckConfig } from '../../../panel/widgets/deck/types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-vi.mock('../../../api/service', () => ({ isRemoteOrigin: false }));
+vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => false }));
 vi.mock('../../../panel/widgets/common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 
 // Real useTranslation returns the bare key (no interpolation) when there is no

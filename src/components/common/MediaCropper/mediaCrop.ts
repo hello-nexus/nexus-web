@@ -69,8 +69,11 @@ export function normAspectFor(aspect: number, ow: number, oh: number): number {
   return ow && oh ? aspect * oh / ow : aspect;
 }
 
-/** The largest centred crop of an ow x oh oriented source at `aspect`. */
+/** The largest centred crop of an ow x oh oriented source at `aspect`. A source
+ *  whose dimensions are unknown crops to the whole frame rather than to a
+ *  rectangle derived from the target aspect alone. */
 export function centerCropForAspect(aspect: number, ow: number, oh: number): NormalizedCrop {
+  if (!(ow > 0) || !(oh > 0) || !(aspect > 0)) return { x: 0, y: 0, w: 1, h: 1 };
   const r = normAspectFor(aspect, ow, oh);
   const w = r <= 1 ? r : 1;
   const h = r <= 1 ? 1 : 1 / r;

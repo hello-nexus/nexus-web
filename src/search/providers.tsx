@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
-  SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen, Info, MessageCircle, RefreshCw,
+  SlidersHorizontal, UserRound, FlaskConical, Gamepad2, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
   ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
 } from 'lucide-react';
@@ -37,7 +37,7 @@ import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '..
 import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
 import { PAGE_ONLY_APPS } from '../app/pageOnlyApps';
 import { DEV_TOOLS } from '../lib/devTools';
-import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '../lib/externalLinks';
+import { DISCORD_INVITE_URL } from '../lib/externalLinks';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
 import { requestSearchScroll } from './scroll';
 import { fireSearchSignal } from './signals';
@@ -176,6 +176,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.lighting.label', anchor: 'set-feature-lighting', keywords: ['lighting', 'rgb', 'led', 'on', 'off', 'switch', 'feature'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.cooling.label',  anchor: 'set-feature-cooling',  keywords: ['cooling', 'fans', 'on', 'off', 'switch', 'feature'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.schedule.row.label', anchor: 'set-brightness-schedule', keywords: ['schedule', 'brightness', 'dim', 'night', 'evening', 'time', 'timer', 'clock', 'curve', 'leds', 'lights'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.sleepBlackout.label', anchor: 'set-sleep-blackout', keywords: ['sleep', 'suspend', 'standby', 'shutdown', 'power off', 'fade', 'leds', 'lights', 'off', 'ram', 'memory'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.lockBlackout.label', anchor: 'set-lock-blackout', keywords: ['lock', 'locked', 'lock screen', 'away', 'afk', 'fade', 'dim', 'leds', 'lights', 'off'], platforms: ['windows', 'macos', 'linux'] },
@@ -547,7 +548,7 @@ const quickOpens: SearchSource = (ctx) => [
   }),
   go('open:discord-invite', {
     title: ctx.t('nav.discord'), icon: <MessageCircle size={18} />,
-    keywords: ['discord', 'community', 'chat', 'help', 'support', 'invite'],
+    keywords: ['discord', 'community', 'chat', 'help', 'support', 'invite', 'bug', 'report', 'feedback', 'issue', 'problem', 'hardware', 'request'],
     to: () => { window.open(DISCORD_INVITE_URL, '_blank', 'noopener,noreferrer'); },
   }),
   go('open:add-widget', {
@@ -825,13 +826,6 @@ const diagnostics: SearchSource = (ctx) => [
     icon: <FolderOpen size={18} />,
     keywords: ['folder', 'data', 'files', 'programdata', 'app data', 'settings.json', 'diagnostics'],
     run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
-  }),
-  act('diag:report-bug', {
-    title: ctx.t('settings.feedback.report'),
-    subtitle: ctx.t('settings.feedback'),
-    icon: <Bug size={18} />,
-    keywords: ['bug', 'report', 'feedback', 'issue', 'github', 'problem'],
-    run: () => { window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer'); },
   }),
   ...(ctx.online ? [
     act('diag:download-report', {

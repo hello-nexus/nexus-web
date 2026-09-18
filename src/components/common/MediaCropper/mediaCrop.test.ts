@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
+  centerCropForAspect,
   flipHorizontal,
   flipVertical,
   normalizeRotate,
@@ -84,5 +85,41 @@ describe('orientation group identities', () => {
       expect(flipHorizontal(flipHorizontal(o))).toEqual(o);
       expect(flipVertical(flipVertical(o))).toEqual(o);
     }
+  });
+});
+
+// The Klipy pickers commit this crop with no cropper step, so its centring is
+// what the imported GIF ends up framed by.
+describe('centerCropForAspect', () => {
+  it('trims the sides of a source wider than the target', () => {
+    const crop = centerCropForAspect(16 / 9, 400, 200);
+
+    expect(crop.w).toBeCloseTo(0.888889, 6);
+    expect(crop.h).toBe(1);
+    expect(crop.x).toBeCloseTo((1 - crop.w) / 2, 6);
+    expect(crop.y).toBe(0);
+  });
+
+  it('trims the top and bottom of a source taller than the target', () => {
+    const crop = centerCropForAspect(16 / 9, 220, 229);
+
+    expect(crop.w).toBe(1);
+    expect(crop.h).toBeCloseTo(0.540393, 6);
+    expect(crop.y).toBeCloseTo((1 - crop.h) / 2, 6);
+  });
+
+  it('keeps the whole frame when the source already matches', () => {
+    expect(centerCropForAspect(16 / 9, 1600, 900)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+  });
+
+  it('keeps the whole frame when the source dimensions are unusable', () => {
+    // A Klipy item can carry 0x0 when the upstream payload omits the size.
+    expect(centerCropForAspect(720 / 1280, 0, 0)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+    expect(centerCropForAspect(160 / 90, 0, 0)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+    expect(centerCropForAspect(0, 220, 164)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
+  });
+
+  it('keeps the whole frame for a portrait panel aspect on a portrait source', () => {
+    expect(centerCropForAspect(720 / 1280, 720, 1280)).toEqual({ x: 0, y: 0, w: 1, h: 1 });
   });
 });
