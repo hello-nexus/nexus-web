@@ -387,11 +387,12 @@ function MediaPlayerCell({
   );
 }
 
-// /api/media polls on a 2s cadence and the seek endpoint is fire-and-forget,
-// so there is no completion signal to await. After a release the bar therefore
-// HOLDS the requested position until a poll reports a position near it -
-// dropping straight back to the last polled value is what made a seek snap
-// back to where it started for up to a poll interval.
+// The seek endpoint is fire-and-forget and the session state arrives as
+// pushed frames (or polls while the socket is down), so there is no
+// completion signal to await. After a release the bar therefore HOLDS the
+// requested position until a frame reports a position near it - dropping
+// straight back to the last known value is what made a seek snap back to
+// where it started until the next frame.
 const SEEK_CONFIRM_WINDOW_MS = 3_000;
 // A player that silently refuses the seek would otherwise pin the bar to a
 // position it never reaches; release to server truth after this.
