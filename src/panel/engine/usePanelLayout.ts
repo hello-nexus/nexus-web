@@ -127,10 +127,9 @@ interface UsePanelLayoutResult {
   saveForbidden: boolean;
   /**
    * `layout` is derived from the record's STORED layout, not from the local
-   * seed. Auto-persisting callers (PanelApp's repagination effect) must wait
-   * for this: `loaded` only says the record fetch settled, and the effect
-   * that swaps the seed out for the stored layout lands one render later.
-   * Persisting in that gap writes the seed over the user's saved layout.
+   * seed. Anything acting on the user's placement (PanelApp's
+   * immersive-on-load latch) waits for this: `loaded` only says the record
+   * fetch settled, and the swap lands one render later.
    */
   hydrated: boolean;
   setLayout: (next: PanelLayout) => void;
@@ -201,9 +200,7 @@ export function usePanelLayout(
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
   // Starts false even when the record is already in hand: the effect below is
   // what puts the stored layout into `layout`, and both must flip in the same
-  // commit. Seeding this from the record instead would let the auto-persist
-  // effect run in the MOUNT commit, where the runtime grid is still the
-  // window-derived estimate rather than the measured one.
+  // commit.
   const [hydrated, setHydrated] = useState(false);
   const [saveForbidden, setSaveForbidden] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -219,8 +216,6 @@ export function usePanelLayout(
 
   useEffect(() => {
     setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
-    // State, not a ref: the auto-persist effect reads this in the SAME commit
-    // that queues the swap above, and must still see the pre-swap value.
     setHydrated(storedLayout !== null);
   }, [storedLayout, surface, deviceTouch]);
 

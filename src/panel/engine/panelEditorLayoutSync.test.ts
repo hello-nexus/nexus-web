@@ -17,9 +17,9 @@ import { MAX_PANEL_PAGES } from './panelGrid';
 // overlap at fixed per-surface columns with unbounded rows, which shared no
 // fixed point with repaginate's bounded clamp; echoing repagination through
 // the simulator postMessage sync then ping-ponged the two forever (pegged CPU
-// until the WebView renderer died). The simulator still never echoes
-// repagination (PanelApp gates the auto-persist effect on !simulator) - the
-// parent owns the persisted bytes; only user edits post layout-changed.
+// until the WebView renderer died). No render path writes repagination back
+// (PanelApp keeps it render-only) - the parent owns the persisted bytes; only
+// user edits post layout-changed.
 
 const Y70_CAP: PaginateCapacity = { gridCols: PANEL_GRID_COLS, pageRows: PANEL_Y70_LONG_AXIS_CELLS };
 const MAX_PAGES = MAX_PANEL_PAGES;

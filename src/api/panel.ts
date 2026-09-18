@@ -244,14 +244,15 @@ export type PanelDeviceFetchResult =
 
 // Status-aware variants so usePanelLayout can distinguish a 404 ("device
 // record was wiped, e.g. after a profile switch") from a network failure.
-// The non-status variants conflate both as `null` and trigger an infinite
-// auto-persist loop when the kiosk holds an id the server no longer knows.
+// The non-status variants conflate both as `null`, which a kiosk holding an
+// id the server no longer knows cannot tell from a transient outage.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
   if (isTunnelActive()) {
     // Bounded: the panel's loading gate is up until this settles, and an
     // unreachable PC leaves the tunnel request pending indefinitely. On
-    // timeout the caller gets status 0 and stops auto-persisting, so the
-    // default layout it is still holding cannot overwrite the stored one.
+    // timeout the caller gets status 0 and retries with no record in hand;
+    // writes are gated on a fetched record, so the default layout it is
+    // still holding cannot overwrite the stored one.
     const { response, status } = await relayRequestWithStatus(
       'GET', `/panel/devices/${encodeURIComponent(id)}`, undefined, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };

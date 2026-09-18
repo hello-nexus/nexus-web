@@ -247,9 +247,9 @@ describe('usePanelLayout hydration gate', () => {
     id, displayName: 'CRX ED00', firstSeenAt: 0, lastSeenAt: 0, layout,
   });
 
-  // The kiosk's repagination effect keys off `hydrated`. If it can ever read
-  // `hydrated === true` while `layout` is still the local seed, it persists
-  // the seed over the user's stored layout - the promoted-monitor reset.
+  // The kiosk's immersive-on-load latch keys off `hydrated`. If it can ever
+  // read `hydrated === true` while `layout` is still the local seed, it
+  // resolves against the seed instead of the user's stored layout.
   it('never reports hydrated while layout is still the local seed', async () => {
     fetchMock.mockResolvedValue({ found: true, record: recordWith('edge-1', storedLayout) });
 
@@ -273,7 +273,7 @@ describe('usePanelLayout hydration gate', () => {
   // Production shape: PanelApp renders this subtree only once the record has
   // settled, so the hook mounts with one already in hand. Even then the first
   // render must not report hydrated - `layout` is still the seed until the
-  // effect swaps it, and the auto-persist effect reads both in one snapshot.
+  // effect swaps it, and consumers read both in one snapshot.
   it('is not hydrated on the mount render even when the record is already in hand', async () => {
     const recordState = {
       record: recordWith('edge-mounted', storedLayout),

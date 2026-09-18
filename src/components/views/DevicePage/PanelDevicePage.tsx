@@ -702,8 +702,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // conform the geometry to the editor grid before persisting - the stored
     // bytes must be a fixed point of the capacity repair or the preview and
     // the persisted placement diverge. Skipped while the capacity is a
-    // fallback guess; the un-conformed persist self-heals when the device
-    // next renders and auto-persists its repagination.
+    // fallback guess: the bytes stay un-conformed and every render path
+    // re-fits them at its own capacity.
     const normalized = editorCapacityDerived
       ? repaginatePanelLayout(normalizePanelLayout(next, surface, deviceTouch), editorCapacity)
       : normalizePanelLayout(next, surface, deviceTouch);

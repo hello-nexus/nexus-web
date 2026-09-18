@@ -72,7 +72,7 @@ describe('normalizePanelLayout registry reconciliation', () => {
       'y70',
     );
     expect(result.pages[0].widgets[0].size).toBe('2x2');
-    // Stable ref means the auto-persist effect won't churn unnecessarily
+    // Stable identity keeps repaginate's same-reference fixed point intact
     expect(result.pages[0].widgets[0].id).toBe('a');
   });
 

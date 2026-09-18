@@ -152,10 +152,10 @@ interface PanelLayoutState {
   // layout sources that can never hit it (the embedded dashboard, the
   // device-page simulator).
   saveForbidden?: boolean;
-  // `layout` reflects the record's STORED layout rather than the local seed.
-  // Undefined on sources that own their own persistence and can never write
-  // a seed over stored bytes (the embedded dashboard, the device-page
-  // simulator); only the kiosk's usePanelLayout reports it.
+  // `layout` reflects the record's STORED layout rather than the local seed;
+  // gates the immersive-on-load latch. Undefined on sources with no seed
+  // phase (the embedded dashboard, the device-page simulator); only the
+  // kiosk's usePanelLayout reports it.
   hydrated?: boolean;
   setLayout: (next: PanelLayout) => void;
 }
@@ -681,31 +681,14 @@ export function PanelContent({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragExtraPageId, setDragExtraPageId] = useState<string | null>(null);
 
-  // Re-paginate the persisted layout to current capacity, persisting via
-  // setLayout. repaginatePanelLayout returns the SAME reference when pages
-  // already match (byte-equal). That reference equality is load-bearing:
-  // without it the persistence effect below calls setLayout every render,
-  // the next render computes a fresh reference, the effect re-fires, and the
-  // panel render-loops (presents as the WebSocket "loses connection after
-  // one frame" symptom - the React tree never settles).
+  // Render-only: nothing capacity-derived reaches setLayout. The capacity
+  // is transient (a kiosk recreated at landscape bounds, a phone rotation)
+  // and repackToFit does not round-trip a transpose - written back, a 4x2
+  // between 4x4s re-fits to the bottom (PanelApp.layoutWriteback.test.tsx).
   const paginatedLayout = useMemo(
     () => repaginatePanelLayout(layout, capacity),
     [layout, capacity],
   );
-  useEffect(() => {
-    // CRITICAL: only auto-persist once `layout` holds the STORED layout.
-    // `loaded` is the record's fetch flag and `layout` is the local seed for a
-    // render past it, so `hydrated` is the one that gates a write; persisting
-    // a re-paginated seed overwrites the user's saved layout.
-    //
-    // Never auto-persist from the simulator: the parent (PanelDevicePage)
-    // owns the persisted bytes per PanelEmbedFrame's set-layout /
-    // layout-changed contract and conforms them to the editor capacity
-    // itself; the simulator renders the repaginated shape locally and echoes
-    // only user edits (see panelEditorLayoutSync.test.ts).
-    if (!loaded || simulator || hydrated === false) return;
-    if (paginatedLayout !== layout) setLayout(paginatedLayout);
-  }, [paginatedLayout, layout, setLayout, loaded, simulator, hydrated]);
 
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
   // predates the service reporting it - the embedded desktop dashboard is
