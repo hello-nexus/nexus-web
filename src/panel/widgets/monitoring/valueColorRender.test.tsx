@@ -2,11 +2,11 @@ import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { MonitoringWidget } from './MonitoringWidget';
+import { PanelGaugeGradientProvider } from '../common/PanelGaugeGradientContext';
 
-// jsdom resolves no custom properties, so useGaugeRamp falls back to the
-// variables.scss dark trio - which is what makes the expected hues fixed here.
-// These tests prove the wiring (stops -> fraction -> --panel-accent* on the
-// slot), not the live token read; that only exists in a real browser.
+// Without a provider the widgets paint the default gradient, so these prove
+// the wiring (toggle -> gradient on the figure, accent tint on the slot), not
+// any particular palette.
 const mockSensors = vi.hoisted(() => ({
   summary: [],
   cpu: [
@@ -41,7 +41,6 @@ vi.mock('../../../hooks/useNetworkMonitor', () => ({
 vi.mock('../../../hooks/useUiSettings', () => ({
   useTempSensorPrefs: () => ({ cpuId: '', gpuId: '' }),
   useUnitPrefs: () => ({ monitoringTempUnit: 'c', timeFormat: 'system', numberFormat: 'system' }),
-  useDiagnosticsTempThresholds: () => ({ cpuC: 90, gpuC: 85, storageC: 70, ramC: 60 }),
 }));
 
 function widgetWith(config: Record<string, unknown>): PanelWidget {
@@ -55,45 +54,52 @@ function widgetWith(config: Record<string, unknown>): PanelWidget {
   };
 }
 
-function slotAccent(container: HTMLElement): string {
-  const slot = container.querySelector<HTMLElement>('[data-monitoring-slot-index]');
-  if (!slot) throw new Error('no slot rendered');
-  return slot.style.getPropertyValue('--panel-accent');
+function slot(container: HTMLElement): HTMLElement {
+  const el = container.querySelector<HTMLElement>('[data-monitoring-slot-index]');
+  if (!el) throw new Error('no slot rendered');
+  return el;
+}
+
+function fillBackground(container: HTMLElement): string {
+  // GaugeTrack's fill is the only element with an inline background here.
+  const fills = Array.from(container.querySelectorAll<HTMLElement>('div[style*="background"]'));
+  return fills.map(f => f.style.background).find(b => b.includes('linear-gradient')) ?? '';
 }
 
 describe('MonitoringWidget value colouring', () => {
-  it('leaves the accent alone when the toggle is off', () => {
+  it('leaves the accent and the fill alone when the toggle is off', () => {
     const { container } = render(<MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Package' })} />);
-    expect(slotAccent(container)).toBe('');
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toBe('');
+    expect(fillBackground(container)).toBe('');
   });
 
-  it('paints a CPU past its 90C limit at the red end', () => {
+  it('paints the panel gradient into the bar and tints a hot CPU red', () => {
     const { container } = render(
       <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Package', slot0_valueColor: true })} />,
     );
-    // #ef4444 -> hue 0. Every gauge design reads --panel-accent, so this one
-    // override is what colours the whole figure.
-    expect(slotAccent(container)).toMatch(/^hsl\(0\.0,/);
+    // The default gradient ends at #ef4444 (hue 0) from 90% up; a 95 °C
+    // reading on the 0-100 scale sits past it.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(0\.0,/);
+    expect(fillBackground(container)).toContain('linear-gradient(90deg, rgb(37, 99, 235) 0.00%');
   });
 
-  it('keeps a light CPU load on the untouched accent hue', () => {
+  it('keeps a light CPU load on the cool end', () => {
     const { container } = render(
       <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Total', slot0_valueColor: true })} />,
     );
-    // 12% sits under the 50% plateau, so the ramp returns the accent verbatim -
     // #2563eb is hue 221.2.
-    expect(slotAccent(container)).toMatch(/^hsl\(221\.2,/);
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(221\.2,/);
   });
 
-  it('grades the same 95C reading differently under a Fixed range', () => {
+  it('takes the stops the panel provides', () => {
+    const stops = [{ at: 0, color: '#00ff00' }, { at: 1, color: '#00ff00' }];
     const { container } = render(
-      <MonitoringWidget widget={widgetWith({
-        slot0_sensor: 'CPU Package', slot0_valueColor: true,
-        slot0_scale: 'fixed', slot0_min: 0, slot0_max: 200,
-      })} />,
+      <PanelGaugeGradientProvider value={{ stops, mode: 'dark', preview: () => {}, commit: () => {} }}>
+        <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Package', slot0_valueColor: true })} />
+      </PanelGaugeGradientProvider>,
     );
-    // 95 of [0, 200] sits just under the 100 midpoint: still on the accent leg.
-    expect(slotAccent(container)).not.toMatch(/^hsl\(0\.0,/);
+    // #00ff00 is hue 120.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(120\.0,/);
   });
 
   it('ignores the toggle on a sensor outside the percent/temperature families', () => {
@@ -102,6 +108,7 @@ describe('MonitoringWidget value colouring', () => {
         slot0_device: 'motherboard', slot0_sensor: 'Fan 1', slot0_valueColor: true,
       })} />,
     );
-    expect(slotAccent(container)).toBe('');
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toBe('');
+    expect(fillBackground(container)).toBe('');
   });
 });

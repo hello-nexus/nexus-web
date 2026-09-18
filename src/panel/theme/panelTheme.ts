@@ -30,6 +30,7 @@ import {
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
+import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
@@ -222,6 +223,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
     widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
     widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
+    gaugeGradient: normalizeGaugeGradient(r?.gaugeGradient),
   };
 }
 
@@ -482,6 +484,12 @@ export function usePanelTheme(
     persistPatch({ widgetPadding: next });
   }, [persistPatch]);
 
+  const commitGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
+    const next = normalizeGaugeGradient(stops);
+    setTheme(prev => (gaugeGradientEquals(prev.gaugeGradient, next) ? prev : { ...prev, gaugeGradient: next }));
+    persistPatch({ gaugeGradient: next });
+  }, [persistPatch]);
+
   // The background's live render state: a draft while editing, else the global
   // preset slot for the per-panel selection.
   const backgroundEffectState = draftBackgroundState
@@ -526,6 +534,10 @@ export function usePanelTheme(
       { ...prev, widgetPadding: normalizePanelWidgetPadding(percent) }
     )),
     commitWidgetPadding,
+    previewGaugeGradient: (stops: readonly GaugeGradientStop[]) => setTheme(prev => (
+      { ...prev, gaugeGradient: normalizeGaugeGradient(stops) }
+    )),
+    commitGaugeGradient,
     prefs,
   };
 }

@@ -2,17 +2,22 @@ import { Sparkline } from '../../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../../common/panelHistoryConfig';
 import { GAUGE_LINE_THICKNESS } from './types';
 import { GaugeValue } from './GaugeValue';
+import { HistoryGradientDefs } from './HistoryGradientDefs';
 import type { GaugeProps } from './types';
 import styles from './SparklineGauge.module.scss';
 
-export function LineGauge({ formatted, label, history, historyDomain }: GaugeProps) {
+const CHART_HEIGHT = 36;
+
+export function LineGauge({ formatted, label, history, historyDomain, gradient }: GaugeProps) {
+  const paint = gradient ? `url(#${gradient.id})` : undefined;
   return (
     <div className={styles.sparkline}>
       <div className={styles.chart}>
         <Sparkline
           values={history}
           domain={historyDomain}
-          color="var(--panel-accent)"
+          defs={gradient && <HistoryGradientDefs gradient={gradient} height={CHART_HEIGHT} padding={GAUGE_LINE_THICKNESS} />}
+          color={paint ?? 'var(--panel-accent)'}
           sampleCount={PERF_HISTORY_SAMPLES}
           showFill={false}
           strokeWidth={GAUGE_LINE_THICKNESS}
@@ -22,7 +27,7 @@ export function LineGauge({ formatted, label, history, historyDomain }: GaugePro
           // nominal 36px render height and more on taller tiles.
           padding={GAUGE_LINE_THICKNESS}
           width={160}
-          height={36}
+          height={CHART_HEIGHT}
         />
       </div>
       <div className={styles.info}>

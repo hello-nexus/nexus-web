@@ -51,6 +51,7 @@ import {
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
+import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -379,6 +380,12 @@ export function PanelContent({
   const resolvedThemeMode = simulator && simulatorThemeMode
     ? simulatorThemeMode
     : embedded ? desktopResolvedThemeMode : panelResolvedThemeMode;
+  const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
+    stops: effectiveTheme.gaugeGradient,
+    mode: resolvedThemeMode,
+    preview: panelTheme.previewGaugeGradient,
+    commit: panelTheme.commitGaugeGradient,
+  }), [effectiveTheme.gaugeGradient, resolvedThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
   // Standalone phone/kiosk owns the tab - mirror its resolved theme to <html>
   // so iOS Safari paints chrome (URL bar, overscroll, scrollbars) via the
   // matching color-scheme + <meta theme-color>. Skipped when embedded (the
@@ -1443,6 +1450,7 @@ export function PanelContent({
   }, [paginatedLayout, touch, widgetById, embedded, surface, setDraggingPinnableType, pinnedTail]);
 
   return (
+    <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DndContext
       sensors={sensors}
       collisionDetection={panelCollisionDetection}
@@ -2009,5 +2017,6 @@ export function PanelContent({
         })()}
       </DragOverlay>
     </DndContext>
+    </PanelGaugeGradientProvider>
   );
 }

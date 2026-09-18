@@ -73,6 +73,7 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { GaugeValue } from '../panel/widgets/monitoring/gauges/GaugeValue';
 import { pairingPreviewQr } from '../components/common/PairingQr/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
+import { DEFAULT_GAUGE_GRADIENT } from '../panel/theme/gaugeGradient';
 import { DEFAULT_PANEL_SLIDESHOW_INTERVAL } from '../panel/background/panelBackground';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
@@ -110,6 +111,8 @@ import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncCo
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
+import { GradientStopsEditor } from '../components/common/GradientStopsEditor/GradientStopsEditor';
+import { MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS, type GaugeGradientStop } from '../panel/theme/gaugeGradient';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { LiveFollowControl } from '../components/common/LiveFollowControl/LiveFollowControl';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
@@ -1491,6 +1494,7 @@ function PreviewPanelThemeSettings() {
     backgroundMediaOrder: [],
     backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
+    gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
   return (
@@ -1906,6 +1910,21 @@ function PreviewCanvasNoticeBar() {
 function PreviewStepper() {
   const [v, setV] = useState(12);
   return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
+}
+
+function PreviewGradientStopsEditor() {
+  const [stops, setStops] = useState<GaugeGradientStop[]>([...DEFAULT_GAUGE_GRADIENT]);
+  return (
+    <div style={{ width: 360 }}>
+      <GradientStopsEditor
+        stops={stops}
+        onPreview={setStops}
+        onCommit={setStops}
+        minStops={MIN_GAUGE_GRADIENT_STOPS}
+        maxStops={MAX_GAUGE_GRADIENT_STOPS}
+      />
+    </div>
+  );
 }
 
 function PreviewRangeBar() {
@@ -2541,6 +2560,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/SeriesChart/SeriesChart.tsx',
     description: 'Multi-series SVG line/area chart. Accepts pre-resolved color strings per series; preserveAspectRatio="none" so it fills any container. Optional gridlines at 25/50/75%. Host-renderer bridge for the SDK Chart element.',
     Preview: PreviewSeriesChart,
+  },
+  {
+    name: 'GradientStopsEditor', category: 'editable',
+    filePath: 'src/components/common/GradientStopsEditor/GradientStopsEditor.tsx',
+    description: 'Touch-first gradient editor: drag a handle to move a stop, drag it off the bar to remove it, tap it to recolour through the shared preset picker, tap empty bar to add one. Backs the per-panel monitoring gauge gradient.',
+    Preview: PreviewGradientStopsEditor,
   },
   {
     name: 'RangeBar', category: 'charts',

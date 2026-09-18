@@ -32,6 +32,11 @@ export interface PanelDeviceCapabilitiesDto {
   supportsBrightness?: boolean;
 }
 
+export interface PanelGaugeGradientStopDto {
+  at: number;
+  color: string;
+}
+
 export interface PanelDeviceRecord {
   id: string;
   displayName: string;
@@ -68,6 +73,9 @@ export interface PanelDeviceRecord {
   // Frost strength, percent 0-100. Absent/null defaults to
   // DEFAULT_PANEL_BACKGROUND_FROST (normalizePanelBackgroundFrost).
   backgroundFrostLevel?: number | null;
+  // Colour stops for the value-coloured monitoring gauges, 0-1 along a gauge's
+  // scale. Absent/null defaults to DEFAULT_GAUGE_GRADIENT (normalizeGaugeGradient).
+  gaugeGradient?: PanelGaugeGradientStopDto[] | null;
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetPadding?: number;
@@ -129,6 +137,8 @@ export interface PanelDevicePatch {
   // Full list (the client sends the whole order).
   backgroundMediaOrder?: string[];
   backgroundFrostLevel?: number;
+  // Full list (the client sends the whole gradient).
+  gaugeGradient?: PanelGaugeGradientStopDto[];
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetPadding?: number;

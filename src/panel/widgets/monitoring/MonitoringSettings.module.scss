@@ -1,3 +1,4 @@
+@use '../../styles/flexGap' as *;
 @use '../../../styles/text' as *;
 
 .settingsRoot {
@@ -154,4 +155,25 @@
   --select-bg: var(--surface);
 
   &:hover { --select-bg: var(--bg-card-hover); }
+}
+
+.gradientBlock {
+  display: flex;
+  flex-direction: column;
+  margin-top: 8px;
+
+  @include vgap(8px);
+}
+
+.gradientFooter {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  @include hgap(12px);
+
+  > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
 }

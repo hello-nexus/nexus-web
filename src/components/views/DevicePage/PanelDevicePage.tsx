@@ -4,6 +4,7 @@ import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
+import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from '../../../panel/widgets/common/PanelGaugeGradientContext';
 import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../../../panel/widgets/monitoring/perfSlots';
 import { SlotLayoutIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
 import {
@@ -457,6 +458,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     ? (theme.appResolvedThemeMode || theme.appThemeMode)
     : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
+  // The monitoring settings pane edits the panel's gauge gradient in place; the
+  // simulator iframe repaints from the same theme via the postMessage sync.
+  const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
+    stops: theme.gaugeGradient,
+    mode: resolvedPanelThemeMode,
+    preview: panelTheme.previewGaugeGradient,
+    commit: panelTheme.commitGaugeGradient,
+  }), [theme.gaugeGradient, resolvedPanelThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
   // Desktop resolved mode from the app theme (concrete dark/light, not 'system').
   // Used for the widget preview in InlineWidgetSettings so it inherits the
   // desktop chrome's active theme instead of the panel theme.
@@ -1173,6 +1182,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               strip panels stack instead: options above, canvas docked below. */}
           <div className={styles.leftPane}>
             {configuringWidget ? (
+              <PanelGaugeGradientProvider value={gaugeGradientValue}>
               <InlineWidgetSettings
                 key={configuringWidget.id}
                 widget={configuringWidget}
@@ -1192,6 +1202,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 onImmersiveOnLoadChange={handleImmersiveOnLoad}
                 onSectionNavigate={onSectionNavigate}
               />
+              </PanelGaugeGradientProvider>
             ) : (
               <>
                 <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>

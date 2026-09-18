@@ -6,6 +6,7 @@ import { SettingRow, SettingSlider, SettingToggle } from '../../components/commo
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
 import type { EffectState } from '../../types/lighting';
+import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
   PANEL_BACKGROUND_EFFECTS,
   PANEL_BACKGROUND_FROST_STEP,
@@ -84,6 +85,8 @@ export interface PanelThemeSettingsState {
   widgetLabels: boolean;
   // Percent 0-100 (see defaultPanelWidgetPadding, PANEL_WIDGET_PADDING_MAX_RATIO).
   widgetPadding: number;
+  // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
+  gaugeGradient: GaugeGradientStop[];
 }
 
 export interface PanelThemeSettingsProps {

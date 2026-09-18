@@ -771,31 +771,6 @@ export function useUnitPrefs(): {
   };
 }
 
-/** The four diagnostics temperature limits (°C), as the gauges consume them. */
-export interface DiagnosticsTempThresholds {
-  cpuC: number;
-  gpuC: number;
-  storageC: number;
-  ramC: number;
-}
-
-/**
- * Read-only accessor for the four diagnostics temperature limits (°C). Outside
- * a UiSettingsProvider the contract defaults stand in - same pattern as
- * {@link useUnitPrefs}. The monitoring gauges' value-colour ramp anchors its
- * red end on these, so a user-raised limit widens the ramp with it.
- */
-export function useDiagnosticsTempThresholds(): DiagnosticsTempThresholds {
-  const ctx = useContext(UiSettingsContext);
-  const s = ctx?.settings;
-  return {
-    cpuC: s?.diagnosticsCpuTempC ?? DIAGNOSTICS_SETTINGS_DEFAULTS.cpuTempC,
-    gpuC: s?.diagnosticsGpuTempC ?? DIAGNOSTICS_SETTINGS_DEFAULTS.gpuTempC,
-    storageC: s?.diagnosticsStorageTempC ?? DIAGNOSTICS_SETTINGS_DEFAULTS.storageTempC,
-    ramC: s?.diagnosticsRamTempC ?? DIAGNOSTICS_SETTINGS_DEFAULTS.ramTempC,
-  };
-}
-
 /**
  * Read-only accessor for how long a temperature warning lingers after the
  * episode ends (minutes; 0 = clears immediately). Returns the contract default

@@ -10,7 +10,7 @@ const EDGE_PAD = 3;
 
 // Symmetric level-meter trace: each sample's normalized amplitude is drawn both
 // above and below the center line, filled as one mirrored shape.
-export function MirrorWaveGauge({ formatted, label, history, historyDomain }: GaugeProps) {
+export function MirrorWaveGauge({ formatted, label, history, historyDomain, gradient }: GaugeProps) {
   const tail = history.slice(-PERF_HISTORY_SAMPLES);
   const samples =
     tail.length >= PERF_HISTORY_SAMPLES
@@ -37,7 +37,25 @@ export function MirrorWaveGauge({ formatted, label, history, historyDomain }: Ga
     <div className={styles.wave}>
       <div className={styles.chart}>
         <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} preserveAspectRatio="none" aria-hidden="true">
-          <path className={styles.fill} d={path} />
+          {gradient && (
+            // Amplitude is the level, so the ramp runs from the centre line
+            // out to either edge: the same stops mirrored about the middle.
+            <defs>
+              <linearGradient id={gradient.id} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={CENTER + maxAmp} y2={CENTER - maxAmp}>
+                {[...gradient.stops].reverse().map((stop, i) => (
+                  <stop key={`b${i}`} offset={(1 - stop.at) / 2} stopColor={stop.color} />
+                ))}
+                {gradient.stops.map((stop, i) => (
+                  <stop key={`t${i}`} offset={0.5 + stop.at / 2} stopColor={stop.color} />
+                ))}
+              </linearGradient>
+            </defs>
+          )}
+          <path
+            className={styles.fill}
+            d={path}
+            style={gradient ? { fill: `url(#${gradient.id})`, fillOpacity: 0.4, stroke: `url(#${gradient.id})` } : undefined}
+          />
         </svg>
       </div>
       <div className={styles.info}>

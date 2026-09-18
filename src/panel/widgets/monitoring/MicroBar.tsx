@@ -3,6 +3,7 @@ import { Sparkline } from '../../../components/common/Sparkline/Sparkline';
 import { PERF_HISTORY_SAMPLES } from '../common/panelHistoryConfig';
 import { GaugeValue } from './gauges/GaugeValue';
 import { GaugeTrack } from './gauges/GaugeTrack';
+import type { GaugeGradient } from './valueColor';
 import { GAUGE_LINE_THICKNESS } from './gauges/types';
 import type { GaugeDesignKey } from './gauges/types';
 import styles from './MicroBar.module.scss';
@@ -17,11 +18,13 @@ interface MicroBarProps {
   // Only read by the 'backdrop' design (the dim filled history trace).
   history?: number[];
   historyDomain?: [number, number];
+  /** The panel gradient painted into the row's figure; null keeps the accent. */
+  gradient?: GaugeGradient | null;
   /** --panel-accent* overrides when the row is value-coloured (see valueColor.ts). */
   style?: CSSProperties;
 }
 
-export function MicroBar({ label, formatted, fillPercent, design = 'bar', history, historyDomain, style }: MicroBarProps) {
+export function MicroBar({ label, formatted, fillPercent, design = 'bar', history, historyDomain, gradient, style }: MicroBarProps) {
   const head = (
     <div className={styles.head}>
       {label && <span className={styles.label}>{label}</span>}
@@ -63,7 +66,7 @@ export function MicroBar({ label, formatted, fillPercent, design = 'bar', histor
   return (
     <div className={styles.row} style={style}>
       {head}
-      <GaugeTrack fillPercent={fillPercent} />
+      <GaugeTrack fillPercent={fillPercent} gradient={gradient} />
     </div>
   );
 }

@@ -27,16 +27,47 @@ import { buildNetworkSensors, NETWORK_SENSOR_TOTAL } from '../monitoring/network
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsRange, staticMaxForDevice, type ScaleMode } from '../monitoring/perfDomain';
 import { sensorSupportsValueColor } from '../monitoring/valueColor';
+import { usePanelGaugeGradient } from '../common/PanelGaugeGradientContext';
+import { GradientStopsEditor } from '../../../components/common/GradientStopsEditor/GradientStopsEditor';
+import {
+  DEFAULT_GAUGE_GRADIENT, gaugeGradientEquals, MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS,
+} from '../../theme/gaugeGradient';
 import { RotateCcw } from 'lucide-react';
 import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
 import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
 import {
   CATEGORY_LABEL_KEYS, DEVICE_OPTION_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys,
 } from '../monitoring/sensorPicker';
-import { SettingsSection, SettingsRow, SettingsToggle } from '../common/SettingsRow/SettingsRow';
+import { SettingsSection, SettingsRow, SettingsToggle, SettingsButton, SettingsHint } from '../common/SettingsRow/SettingsRow';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import styles from './MonitoringSettings.module.scss';
+
+// The panel-wide gauge gradient, edited from whichever monitoring widget has
+// value colouring on. One list per panel, so this edits the same stops every
+// other monitoring widget on the panel paints with.
+function GaugeGradientSection() {
+  const { t } = useTranslation();
+  const { stops, preview, commit } = usePanelGaugeGradient();
+  const isDefault = gaugeGradientEquals(stops, DEFAULT_GAUGE_GRADIENT);
+  return (
+    <div className={styles.gradientBlock}>
+      <GradientStopsEditor
+        stops={stops}
+        onPreview={preview}
+        onCommit={commit}
+        minStops={MIN_GAUGE_GRADIENT_STOPS}
+        maxStops={MAX_GAUGE_GRADIENT_STOPS}
+      />
+      <div className={styles.gradientFooter}>
+        <SettingsHint>{t('monitoring.settings.gradientHint')}</SettingsHint>
+        <SettingsButton variant="muted" disabled={isDefault} onClick={() => commit([...DEFAULT_GAUGE_GRADIENT])}>
+          {t('monitoring.settings.gradientReset')}
+        </SettingsButton>
+      </div>
+    </div>
+  );
+}
 
 // A blank field commits the fallback (0 for min, the sensor's default ceiling
 // for max) rather than parsing "" to 0 via Number().
@@ -501,11 +532,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               onChange={next => onUpdate({ micro_valueColor: next })}
             />
           )}
+          {microSupportsValueColor && microValueColor && <GaugeGradientSection />}
         </SettingsSection>
       </div>
     );
   }
 
+  const slotValueColor = (widget.config?.[`slot${activeSlot}_valueColor`] as boolean | undefined) ?? false;
   const slotLabelMode = (widget.config?.[`slot${activeSlot}_labelMode`] as string | undefined) ?? 'auto';
   const slotLabelOverride = (widget.config?.[`slot${activeSlot}_label`] as string | undefined) ?? '';
   const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : '';
@@ -615,10 +648,11 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 <SettingsToggle
                   label={t('monitoring.settings.valueColor')}
                   description={t('monitoring.settings.valueColorHint')}
-                  checked={(widget.config?.[`slot${activeSlot}_valueColor`] as boolean | undefined) ?? false}
+                  checked={slotValueColor}
                   onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
                 />
               )}
+              {sensorSupportsValueColor(activeSensor?.type) && slotValueColor && <GaugeGradientSection />}
             </SettingsSection>
           )}
         </>

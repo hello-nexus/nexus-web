@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { PerfSlot } from './MonitoringWidget';
 import { DEFAULT_DESIGN, DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
@@ -8,12 +7,11 @@ import { useSensors } from '../../../hooks/useSensors';
 import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
-import { useDiagnosticsTempThresholds } from '../../../hooks/useUiSettings';
 import type { WidgetProps } from '../types';
 import { buildNetworkSensors } from './networkSensors';
 import { DEFAULT_SCALE_MODE, type ScaleMode } from './perfDomain';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
-import { useGaugeRamp } from './useGaugeRamp';
+import { usePanelGaugeGradient } from '../common/PanelGaugeGradientContext';
 import styles from './MonitoringTouch.module.scss';
 
 /**
@@ -64,9 +62,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
   const network = useNetworkMonitor(usesNetwork);
   const networkSensors = buildNetworkSensors(network);
   const extras = useSensorExtras(usesExtras);
-  const tempThresholds = useDiagnosticsTempThresholds();
-  const rootRef = useRef<HTMLDivElement>(null);
-  const ramp = useGaugeRamp(rootRef, slotConfigs.some(s => s.valueColor));
+  const gaugeGradient = usePanelGaugeGradient();
 
   if (isMicro) {
     return (
@@ -79,7 +75,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
   }
 
   const cells = slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor }, i) => (
-    <div ref={i === 0 ? rootRef : undefined} className={styles.slotCell} key={`${i}-${device}-${sensorName}`}>
+    <div className={styles.slotCell} key={`${i}-${device}-${sensorName}`}>
       <PerfSlot
         sensors={sensors}
         fpsSensors={fpsSensors}
@@ -92,8 +88,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
         fixedMin={fixedMin}
         fixedMax={fixedMax}
         valueColor={valueColor}
-        ramp={ramp}
-        tempThresholds={tempThresholds}
+        gaugeGradient={gaugeGradient}
       />
     </div>
   ));
