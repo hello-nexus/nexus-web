@@ -380,9 +380,10 @@ describe('SystemSection PnP problems', () => {
     expect(screen.getByText('diagnostics.system.unknownDevice')).toBeInTheDocument();
   });
 
-  it('offers Open Device Manager only when there is at least one problem', () => {
-    renderSystem(baseData);
-    expect(screen.queryByRole('button', { name: 'diagnostics.system.openDeviceManager' })).not.toBeInTheDocument();
+  it('offers Open Device Manager whether or not there are problems', () => {
+    const { unmount } = renderSystem(baseData);
+    expect(screen.getByRole('button', { name: 'diagnostics.system.openDeviceManager' })).toBeInTheDocument();
+    unmount();
 
     renderSystem({ ...baseData, pnpProblems: [{ name: 'Dev', deviceId: 'X', problemCode: 28, problemText: 'T' }] });
     expect(screen.getByRole('button', { name: 'diagnostics.system.openDeviceManager' })).toBeInTheDocument();

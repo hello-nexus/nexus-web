@@ -3,7 +3,7 @@
 // staticMaxForDevice lives in perfDomain.ts; re-exported here for its
 // existing importers (MicroMonitoringWidget, MonitoringWidget.test).
 
-import { useMemo } from 'react';
+import { useId, useMemo, type CSSProperties } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import type { HardwareSensor } from '../../../hooks/useSensors';
 import { EMPTY_SENSOR_EXTRAS, useSensorExtras } from '../../../hooks/useSensorExtras';
@@ -24,6 +24,10 @@ import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
+import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
+import { designSupportsValueColor, gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { accentShadowAlpha } from '../../../lib/settings';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -207,6 +211,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
+    valueColor: (widget.config?.[`slot${i}_valueColor`] as boolean | undefined) ?? false,
     labelOverride: widget.config?.[`slot${i}_label`] as string | undefined,
     labelMode: widget.config?.[`slot${i}_labelMode`] as string | undefined,
   }));
@@ -228,6 +233,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const networkSensors = buildNetworkSensors(network);
   const extras = useSensorExtras(usesExtras);
   const tempPrefs: TempSensorPrefs = useTempSensorPrefs();
+  const gaugeGradient = usePanelGaugeGradient();
 
   if (isMicro) {
     return <MicroMonitoringWidget widget={widget} count={count} selectedSlot={selectedSlot} onSelectSlot={onSelectSlot} />;
@@ -248,7 +254,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
 
   return (
     <div className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
-      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, labelOverride, labelMode }, i) => {
+      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor, labelOverride, labelMode }, i) => {
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
@@ -263,6 +269,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             scale={scale}
             fixedMin={fixedMin}
             fixedMax={fixedMax}
+            valueColor={valueColor}
+            gaugeGradient={gaugeGradient}
             labelOverride={labelOverride}
             labelMode={labelMode}
             tempPrefs={tempPrefs}
@@ -287,6 +295,9 @@ interface PerfSlotProps {
   scale?: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
+  /** Paint the panel's gauge gradient into this slot (percent / temperature sensors). */
+  valueColor?: boolean;
+  gaugeGradient?: PanelGaugeGradientValue;
   labelOverride?: string;
   labelMode?: string;
   tempPrefs?: TempSensorPrefs;
@@ -294,7 +305,7 @@ interface PerfSlotProps {
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, valueColor = false, gaugeGradient, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
@@ -324,6 +335,38 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);
 
+  // The gradient describes the sensor's own scale: the Fixed window when set,
+  // else the natural percent (0-100 for a load or a temperature, the sensor's
+  // capacity for a Data sensor). Every design colours by that scale, so a
+  // chart stretched to the recent history still colours 36 degrees as cool.
+  const naturalMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 100;
+  const scaleFraction = scale === 'fixed'
+    ? fixedFillPercent(rawValue, domainMin, domainMax) / 100
+    : percentForSensor(device, sensor, maxValue) / 100;
+  const gradientId = useId();
+  const coloured = valueColor && !!gaugeGradient && designSupportsValueColor(design) && sensorSupportsValueColor(sensor?.type);
+  // Stable identity: the arc gauges memoise their coloured geometry on it, and
+  // a fresh object per tick would rebuild forty paths a second. A history
+  // chart plots [domainMin, domainMax], so its copy of the stops is re-expressed
+  // over that window and only changes when the window does.
+  const stops = coloured ? gaugeGradient.stops : null;
+  const mode = gaugeGradient?.mode ?? 'dark';
+  const chart = !designIsFill(design);
+  const gradient = useMemo(() => {
+    if (!stops) return null;
+    const bodyAlpha = accentShadowAlpha(mode);
+    if (!chart) return { id: gradientId, stops, bodyAlpha };
+    const valueAt = scale === 'fixed'
+      ? (at: number) => domainMin + at * (domainMax - domainMin)
+      : (at: number) => at * naturalMax;
+    return { id: gradientId, stops: remapGaugeGradientToDomain(stops, valueAt, domainMin, domainMax), bodyAlpha };
+  }, [gradientId, stops, mode, chart, scale, domainMin, domainMax, naturalMax]);
+  // Tints the number and glow to the reading; the figure carries the whole
+  // gradient, so the two together read like a tachometer.
+  const gradeStyle = coloured
+    ? gaugeAccentVars(gaugeGradient.stops, scaleFraction, gaugeGradient.mode) as CSSProperties
+    : undefined;
+
   const GaugeComponent = GAUGE_DESIGNS[design] ?? GAUGE_DESIGNS.sparkline;
 
   const props: GaugeProps = {
@@ -334,9 +377,14 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
     history,
     maxValue,
     historyDomain,
+    gradient,
   };
 
-  const content = <GaugeComponent {...props} />;
+  // The tint rides on an inner layout-less wrapper so the slot's own chrome
+  // (the editor's selection ring) keeps the panel accent.
+  const content = gradeStyle
+    ? <div className={styles.slotPaint} style={gradeStyle}><GaugeComponent {...props} /></div>
+    : <GaugeComponent {...props} />;
 
   if (!onSelect) {
     return <div className={styles.slot} data-monitoring-slot-index={slotIndex}>{content}</div>;

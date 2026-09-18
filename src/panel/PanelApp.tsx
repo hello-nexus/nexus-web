@@ -41,9 +41,17 @@ import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
 import { PanelActionsTray } from './chrome/PanelActionsTray';
 import { PanelImmersiveOverlay } from './overlays/PanelImmersiveOverlay';
+import {
+  canMarkImmersiveOnLoad,
+  immersiveOnLoadResolvable,
+  immersiveOnLoadTarget,
+  isImmersiveOnLoadWidget,
+  setImmersiveOnLoadWidgetId,
+} from './engine/immersiveOnLoad';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
+import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -303,6 +311,7 @@ export function PanelContent({
   simulatorThemeMode,
   simulatorSelectedWidgetId,
   simulatorFlashSignal,
+  simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
   openCatalogSignal,
@@ -331,6 +340,9 @@ export function PanelContent({
   // Parent-driven one-shot flash (e.g. a resize the editor rejected). The
   // nonce re-fires the flash for repeat rejections of the same widget.
   simulatorFlashSignal?: { widgetId: string; nonce: number } | null;
+  // The parent's iframe fit scale. Preview overlays meant for the desktop
+  // operator divide it out so they do not shrink with the canvas.
+  simulatorPreviewScale?: number;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
   openCatalogSignal?: number;
@@ -368,6 +380,12 @@ export function PanelContent({
   const resolvedThemeMode = simulator && simulatorThemeMode
     ? simulatorThemeMode
     : embedded ? desktopResolvedThemeMode : panelResolvedThemeMode;
+  const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
+    stops: effectiveTheme.gaugeGradient,
+    mode: resolvedThemeMode,
+    preview: panelTheme.previewGaugeGradient,
+    commit: panelTheme.commitGaugeGradient,
+  }), [effectiveTheme.gaugeGradient, resolvedThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
   // Standalone phone/kiosk owns the tab - mirror its resolved theme to <html>
   // so iOS Safari paints chrome (URL bar, overscroll, scrollbars) via the
   // matching color-scheme + <meta theme-color>. Skipped when embedded (the
@@ -464,8 +482,12 @@ export function PanelContent({
   // Bumped on each immersive open so the overlay's React key changes between
   // sessions for the same widget, clearing stale state that blocks re-entry.
   const [immersiveOpenCounter, setImmersiveOpenCounter] = useState(0);
+  // The open came from the immersive-on-load mark, not a tap: the overlay skips
+  // its slide-up, which would otherwise play over a visible dashboard.
+  const [immersiveOpenedOnLoad, setImmersiveOpenedOnLoad] = useState(false);
   const enterImmersive = useCallback((widgetId: string) => {
     setImmersiveOpenCounter(n => n + 1);
+    setImmersiveOpenedOnLoad(false);
     setImmersiveWidgetId(widgetId);
   }, []);
   const handleImmersiveExit = useCallback(() => {
@@ -571,6 +593,12 @@ export function PanelContent({
   const themeBackdrop = showPanelBackground && !seeThrough
     ? 'var(--backdrop-base)'
     : 'transparent';
+  // Clamped once here: a zero-width preview container makes the parent's fit
+  // scale non-finite, and its reciprocal would collapse every overlay sized by
+  // it to nothing.
+  const previewScale = simulator && Number.isFinite(simulatorPreviewScale) && simulatorPreviewScale > 0
+    ? Math.min(1, Math.max(0.05, simulatorPreviewScale))
+    : 1;
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
@@ -583,6 +611,12 @@ export function PanelContent({
       // the CSS-rendered gap/padding always agree - it is a plain px length,
       // never itself derived from --panel-gap, so no cyclic var() chain.
       '--panel-widget-padding': `${runtimeGrid.gap}px`,
+      // The parent's iframe fit scale, and its reciprocal. Preview overlays
+      // multiply by the upscale so a length authored in desktop px survives the
+      // downscale, and by the scale to cap a width against the panel. Both are
+      // 1 everywhere but the device page's canvas preview.
+      '--panel-preview-scale': previewScale,
+      '--panel-preview-upscale': 1 / previewScale,
       ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
       ...(surface === 'desktop' ? {
         '--panel-cell-size': `${runtimeGrid.cellSize}px`,
@@ -598,6 +632,7 @@ export function PanelContent({
       runtimeGrid.cellSize,
       runtimeGrid.columns,
       runtimeGrid.contentScale,
+      previewScale,
       runtimeGrid.gap,
       runtimeGrid.rowSize,
       runtimeGrid.rows,
@@ -789,8 +824,39 @@ export function PanelContent({
     return undefined;
   }, [paginatedLayout]);
 
+  // Immersive-on-load, resolved in the commit the stored layout first lands so
+  // the overlay is up before anything paints. A marked SDK app resolves only
+  // once the marketplace registry lands, so the latch waits rather than burning
+  // on a lookupApp that is merely not ready yet.
+  const immersiveOnLoadLatched = useRef(false);
+  if (!immersiveOnLoadLatched.current
+    && kioskBehavior
+    && loaded
+    && hydrated !== false
+    && immersiveOnLoadResolvable(paginatedLayout)) {
+    immersiveOnLoadLatched.current = true;
+    const target = immersiveOnLoadTarget({
+      layout: paginatedLayout,
+      surface,
+      landscape: isLandscape,
+      deviceTouch,
+    });
+    if (target) {
+      setImmersiveOpenCounter(n => n + 1);
+      setImmersiveOpenedOnLoad(true);
+      setImmersiveWidgetId(target.id);
+    }
+  }
+  const setImmersiveOnLoad = useCallback((widgetId: string, on: boolean) => {
+    setLayout(setImmersiveOnLoadWidgetId(paginatedLayout, on ? widgetId : null));
+  }, [paginatedLayout, setLayout]);
+
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
   const editingWidgetSize = editingWidget?.size;
+  const editingImmersiveOnLoadAvailable =
+    canMarkImmersiveOnLoad(paginatedLayout, editingWidget, surface, isLandscape, deviceTouch);
+  const editingImmersiveOnLoad = editingWidget !== null
+    && isImmersiveOnLoadWidget(paginatedLayout, editingWidget.id);
   // QR pairing adds another device to a paired desktop, valid only from the
   // native app or bundled-localhost dashboard. The browser-fallback panel
   // (plain HTTP, non-loopback host) is the "no app installed" path and can't
@@ -858,7 +924,9 @@ export function PanelContent({
   // serves the panel through its loopback proxy (origin 127.0.0.1, which
   // isRemotePaired reads as a hardwired-kiosk localhost). Show the "connected
   // to <PC>" identity for it the same as the LAN-IP / relay phone origins.
-  const connectionIdentityVisible = isRemotePaired || surface === 'phone';
+  // The simulator iframe on the public website reads as a remote host too,
+  // yet it previews a hardwired panel, so it never shows the identity.
+  const connectionIdentityVisible = (isRemotePaired && !simulator) || surface === 'phone';
   // The live connection is running over the cloud relay (not the direct LAN
   // /ws socket). Surface a satellite badge so the user knows traffic is going
   // through the relay; LAN connections show nothing extra.
@@ -1384,6 +1452,7 @@ export function PanelContent({
   }, [paginatedLayout, touch, widgetById, embedded, surface, setDraggingPinnableType, pinnedTail]);
 
   return (
+    <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DndContext
       sensors={sensors}
       collisionDetection={panelCollisionDetection}
@@ -1611,6 +1680,10 @@ export function PanelContent({
                               // widget in the canvas is click-to-edit (NEX-6),
                               // so hovering one fades in a full-cell notice.
                               editHint={simulator && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
+                              // Device-page preview only: hovering the widget
+                              // marked immersive-on-load frames it and names
+                              // the mark, so the canvas says which one opens.
+                              immersiveOnLoad={simulator && isImmersiveOnLoadWidget(paginatedLayout, w.id)}
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
@@ -1795,6 +1868,7 @@ export function PanelContent({
         return (
           <PanelImmersiveOverlay
             key={`${immersiveWidgetId}-${immersiveOpenCounter}`}
+            instant={immersiveOpenedOnLoad}
             open
             onExit={handleImmersiveExit}
             themeStyle={immersiveThemeStyle}
@@ -1823,6 +1897,9 @@ export function PanelContent({
           deviceTouch={deviceTouch}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
+          immersiveOnLoadAvailable={editingImmersiveOnLoadAvailable}
+          immersiveOnLoad={editingImmersiveOnLoad}
+          onImmersiveOnLoadChange={on => { if (editingWidget) setImmersiveOnLoad(editingWidget.id, on); }}
           saveForbidden={saveForbidden}
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}
@@ -1942,5 +2019,6 @@ export function PanelContent({
         })()}
       </DragOverlay>
     </DndContext>
+    </PanelGaugeGradientProvider>
   );
 }

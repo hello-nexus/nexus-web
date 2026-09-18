@@ -9,6 +9,11 @@ import styles from './PanelImmersiveOverlay.module.scss';
 interface PanelImmersiveOverlayProps {
   open: boolean;
   onExit: () => void;
+  // Skip the slide-up enter. The panel's immersive-on-load open has no
+  // dashboard moment to transition FROM - the enter keyframe starts at
+  // translateY(100%)/opacity 0, which would show the dashboard underneath for
+  // its whole duration.
+  instant?: boolean;
   children: ReactNode;
   // Same theme + accent CSS vars as the panel root, so descendants (button
   // data-active, accent borders) resolve. The overlay is portaled outside the
@@ -22,7 +27,7 @@ const EXIT_MS = 200;
 // Idle delay before the drawer's close notch fades away.
 export const NOTCH_FADE_DELAY_MS = 1500;
 
-export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface }: PanelImmersiveOverlayProps) {
+export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -147,8 +152,9 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
 
   // [data-entered] pattern: once the entry plays (or a swipe starts), suppress
   // the keyframe so removing [data-drag] on snap-back doesn't replay the enter
-  // animation. Hooks must run before the conditional return below.
-  const [didEnter, setDidEnter] = useState(false);
+  // animation. Seeded true, the same attribute suppresses the enter itself.
+  // Hooks must run before the conditional return below.
+  const [didEnter, setDidEnter] = useState(instant);
   useEffect(() => {
     // Latch didEnter when a swipe starts so [data-entered] suppresses the
     // keyframe replay on snap-back.

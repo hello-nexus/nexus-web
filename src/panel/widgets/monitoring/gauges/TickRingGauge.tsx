@@ -1,6 +1,7 @@
 import { GaugeValue } from './GaugeValue';
 import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
+import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
 import styles from './TickRingGauge.module.scss';
 
 const TICKS = 60;
@@ -13,7 +14,7 @@ function polar(r: number, deg: number): [number, number] {
   return [50 + r * Math.cos(rad), 50 + r * Math.sin(rad)];
 }
 
-export function TickRingGauge({ value, formatted, label }: GaugeProps) {
+export function TickRingGauge({ value, formatted, label, gradient }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
   const onCount = (clamped / 100) * TICKS;
 
@@ -32,6 +33,7 @@ export function TickRingGauge({ value, formatted, label }: GaugeProps) {
               x2={x2.toFixed(2)}
               y2={y2.toFixed(2)}
               className={i < onCount ? styles.tickOn : styles.tickOff}
+              style={i < onCount && gradient ? { stroke: gaugeGradientColorAt(gradient.stops, (i + 0.5) / TICKS) } : undefined}
             />
           );
         })}

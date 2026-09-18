@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Badge } from '../Badge/Badge';
 import { Toggle } from '../Toggle/Toggle';
 import { Select, type SelectOption } from '../Select/Select';
 import { Slider } from '../Slider/Slider';
@@ -11,6 +12,24 @@ import styles from './SettingRow.module.scss';
  * bare `<Icon />` and cannot drift the treatment.
  */
 export type LeadingIconTone = boolean | 'subtle';
+
+/**
+ * The state chip a row can carry beside its control, for a row whose control
+ * is an action button rather than the value itself. One or two words: it does
+ * not wrap. `tone` colours it: 'neutral' (dim) for off/idle, 'accent' for
+ * on/active, 'good' for ready, 'warn' for a problem.
+ */
+export interface SettingState {
+  label: string;
+  tone?: 'neutral' | 'accent' | 'good' | 'warn';
+}
+
+const STATE_COLORS: Record<NonNullable<SettingState['tone']>, string> = {
+  neutral: 'var(--text-dim)',
+  accent: 'var(--accent)',
+  good: 'var(--good)',
+  warn: 'var(--warn)',
+};
 
 /**
  * Canonical settings row: a label (+ optional description) on the left and a
@@ -29,6 +48,7 @@ export function SettingRow({
   icon,
   iconLeading,
   children,
+  state,
   disabled,
   anchorId,
   align,
@@ -46,6 +66,9 @@ export function SettingRow({
   iconLeading?: LeadingIconTone;
   // Omit for a pure status row (label/description only, no control).
   children?: ReactNode;
+  // State chip rendered in the control slot ahead of `children`, so every
+  // "state + action button" row places and styles it the same way.
+  state?: SettingState;
   disabled?: boolean;
   // Search deep-link target: stamps the row so the command palette can scroll
   // to + shine it. Optional; nothing else reads it.
@@ -104,7 +127,10 @@ export function SettingRow({
           {description && !descriptionBelow && <span className={styles.desc}>{description}</span>}
         </div>
       )}
-      <div className={styles.control}>{children}</div>
+      <div className={styles.control}>
+        {state && <Badge label={state.label} color={STATE_COLORS[state.tone ?? 'neutral']} uppercase />}
+        {children}
+      </div>
       {description && descriptionBelow && <span className={styles.desc}>{description}</span>}
     </div>
   );

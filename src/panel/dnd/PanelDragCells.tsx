@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { Check, Settings } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import type { CSSProperties } from 'react';
@@ -135,6 +135,7 @@ export function PanelTouchCell({
   cellPointers,
   onSimulatorClick,
   editHint = false,
+  immersiveOnLoad = false,
   previewLayout = null,
   onSectionNavigate,
   onConfigureWidget,
@@ -168,6 +169,9 @@ export function PanelTouchCell({
   };
   onSimulatorClick?: () => void;
   editHint?: boolean;
+  // Device-page preview: this is the widget the panel opens immersive on load.
+  // Hovering the cell frames it and names the mark.
+  immersiveOnLoad?: boolean;
   previewLayout?: PanelLayout | null;
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
@@ -320,6 +324,7 @@ export function PanelTouchCell({
       data-cell-state={editorDockMotion ? 'docked' : undefined}
       data-clickthrough={clickthrough && !editorDockMotion ? 'true' : undefined}
       data-edit-hint={editHint ? 'true' : undefined}
+      data-immersive-on-load={immersiveOnLoad ? 'true' : undefined}
       className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
       style={{
         ...wrapStyle,
@@ -365,12 +370,16 @@ export function PanelTouchCell({
         {editHint && (
           <div className={styles.cellEditHint} aria-hidden="true">
             <div className={styles.cellEditHintContent}>
-              <Settings className={styles.cellEditHintIcon} />
+              <Pencil className={styles.cellEditHintIcon} />
               <span className={styles.cellEditHintLabel}>{t('panel.widget.editWidget')}</span>
             </div>
           </div>
         )}
+        {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
       </div>
+      {immersiveOnLoad && (
+        <div className={styles.cellImmersiveFrameLabel}>{t('panel.editor.immersiveOnLoad')}</div>
+      )}
       <div className={styles.cellLabelStrip}>
         <WidgetCellLabel label={labelText} />
       </div>
@@ -507,7 +516,7 @@ export function PanelCatalogCell({
                 </>
               ) : (
                 <>
-                  <Settings className={styles.cellAddedIcon} />
+                  <Pencil className={styles.cellAddedIcon} />
                   <span className={styles.cellAddedLabel}>{t('panel.widget.editWidget')}</span>
                 </>
               )}

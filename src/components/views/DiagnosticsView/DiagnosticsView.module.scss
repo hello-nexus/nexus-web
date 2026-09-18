@@ -304,6 +304,12 @@
   }
 }
 
+// System's two halves are unrelated blocks, so they get more air than
+// Cooling's paired GPU/Fans columns.
+.diagSplitWide {
+  gap: 1.75rem;
+}
+
 .coolingList {
   display: flex;
   flex-direction: column;

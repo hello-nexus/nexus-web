@@ -442,3 +442,12 @@ $row-seam: calc(
   flex-shrink: 0;
   padding: 0;
 }
+
+// Pre-first-snapshot state for every tile size.
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}

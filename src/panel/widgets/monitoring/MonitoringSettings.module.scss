@@ -1,3 +1,4 @@
+@use '../../styles/flexGap' as *;
 @use '../../../styles/text' as *;
 
 .settingsRoot {
@@ -154,4 +155,17 @@
   --select-bg: var(--surface);
 
   &:hover { --select-bg: var(--bg-card-hover); }
+}
+
+.gradientBlock {
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+
+  @include vgap(10px);
+}
+
+.gradientFooter {
+  display: flex;
+  justify-content: flex-end;
 }

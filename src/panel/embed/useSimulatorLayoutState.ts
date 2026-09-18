@@ -24,6 +24,9 @@ export interface SimulatorRuntimeState {
   deviceTouch: boolean | undefined;
   // CSS-px density from 'simulator/init' (see SimulatorInitMessage.dpi).
   dpi: number | undefined;
+  // Parent's iframe fit scale; overlays drawn for the desktop operator divide
+  // it out so they do not shrink with the preview.
+  previewScale: number;
   // Display-bound record (see SimulatorInitMessage.displayBound).
   displayBound: boolean | undefined;
   layoutState: PanelLayoutState;
@@ -55,11 +58,19 @@ function postToParent(message: SimulatorChildToParent) {
   window.parent.postMessage(message, window.location.origin);
 }
 
+// A zero-width container makes the parent's fit scale Infinity, and its
+// reciprocal would collapse the overlays it sizes to nothing. Reject anything
+// non-finite so the last good value stands.
+function sanitizePreviewScale(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
 export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [ready, setReady] = useState(false);
   const [surface, setSurface] = useState<PanelSurface>('y70');
   const [deviceTouch, setDeviceTouch] = useState<boolean | undefined>(undefined);
   const [dpi, setDpi] = useState<number | undefined>(undefined);
+  const [previewScale, setPreviewScale] = useState(1);
   const [displayBound, setDisplayBound] = useState<boolean | undefined>(undefined);
   const [layout, setLayoutLocal] = useState<PanelLayout>(SIMULATOR_FALLBACK_LAYOUT);
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
@@ -81,6 +92,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setSurface(data.surface);
           setDeviceTouch(data.deviceTouch);
           setDpi(data.dpi);
+          setPreviewScale(prev => sanitizePreviewScale(data.previewScale) ?? prev);
           setDisplayBound(data.displayBound);
           setLayoutLocal(data.layout);
           setTheme(data.theme);
@@ -99,6 +111,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
         }
         case 'simulator/set-grid': {
           setDpi(data.dpi);
+          break;
+        }
+        case 'simulator/set-preview-scale': {
+          setPreviewScale(prev => sanitizePreviewScale(data.previewScale) ?? prev);
           break;
         }
         case 'simulator/set-touch': {
@@ -163,6 +179,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     surface,
     deviceTouch,
     dpi,
+    previewScale,
     displayBound,
     layoutState,
     theme,

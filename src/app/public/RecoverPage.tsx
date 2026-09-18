@@ -1,17 +1,30 @@
-import { useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../lib/i18n';
-import { completeRecovery } from '../../api/account';
-import { Button } from '../../components/common/Button/Button';
+import { completeRecovery, type RecoveryCompleteFailure } from '../../api/account';
+import { Spinner } from '../../components/common/Spinner/Spinner';
 import { TextInput } from '../../components/common/TextInput/TextInput';
 import { PublicPageFrame } from './PublicPageFrame';
 import { AuthResultCard } from './AuthResultCard';
+import {
+  formatRecoveryCode,
+  normalizeRecoveryCode,
+  RECOVERY_CODE_DISPLAY_LENGTH,
+  RECOVERY_CODE_LENGTH,
+} from './recoveryCode';
 import styles from './RecoverPage.module.scss';
 
 type RecoverState =
   | { phase: 'code'; attemptsLeft?: number }
+  /** The rejected code is still on screen, marked wrong, before the field clears. */
+  | { phase: 'rejected'; reason: RecoveryCompleteFailure; attemptsLeft?: number }
+  /** The check draws before the signed-in card replaces it. */
+  | { phase: 'approved'; username: string }
   | { phase: 'exhausted' }
   | { phase: 'success'; username: string }
   | { phase: 'invalid' };
+
+/** Long enough to read the mark or the message, short enough not to be a wait. */
+const HOLD_MS = 1100;
 
 /**
  * /auth/recover?token=... - lost-password magic-link landing. No password
@@ -20,59 +33,106 @@ type RecoverState =
  *
  * The code step is what makes a click safe to perform: the code lives only on
  * the device that asked for the reset, so a link arriving unrequested cannot
- * be approved by opening it. Every grant carries one, so the page opens on the
- * form and never completes on its own.
+ * be approved by opening it. There is nothing to press - the last character
+ * submits, since a code of a known length has no other move after it.
  */
 export function RecoverPage({ token }: { token: string }) {
   const { t } = useTranslation();
   const [state, setState] = useState<RecoverState>(token ? { phase: 'code' } : { phase: 'invalid' });
+  // Held as the api mints it; the dash is put back for display only.
   const [code, setCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const inFlight = useRef(false);
+  // The code stays on screen through the rejected beat, so the effect below
+  // would post it again on every render without this.
+  const posted = useRef<string | null>(null);
+  const hold = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!code.trim() || submitting) return;
+  useEffect(() => () => { if (hold.current) clearTimeout(hold.current); }, []);
+
+  const submit = useCallback(async (value: string) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setSubmitting(true);
-    const result = await completeRecovery(token, code.trim());
+    const result = await completeRecovery(token, value);
+    inFlight.current = false;
     setSubmitting(false);
-    setCode('');
     if (result.ok && result.username) {
-      setState({ phase: 'success', username: result.username });
+      const username = result.username;
+      setState({ phase: 'approved', username });
+      hold.current = setTimeout(() => setState({ phase: 'success', username }), HOLD_MS);
       return;
     }
-    if (result.reason === 'code-mismatch') {
-      setState({ phase: 'code', attemptsLeft: result.attemptsLeft });
-      return;
+    const reason = result.reason ?? 'invalid';
+    setState({ phase: 'rejected', reason, attemptsLeft: result.attemptsLeft });
+    hold.current = setTimeout(() => {
+      if (reason === 'code-exhausted') {
+        setState({ phase: 'exhausted' });
+      } else if (reason === 'invalid') {
+        setState({ phase: 'invalid' });
+      } else {
+        setCode('');
+        posted.current = null;
+        setState({ phase: 'code', attemptsLeft: result.attemptsLeft });
+      }
+    }, HOLD_MS);
+  }, [token]);
+
+  useEffect(() => {
+    if (code.length === RECOVERY_CODE_LENGTH && code !== posted.current) {
+      posted.current = code;
+      void submit(code);
     }
-    if (result.reason === 'code-exhausted') {
-      setState({ phase: 'exhausted' });
-      return;
-    }
-    setState({ phase: 'invalid' });
+  }, [code, submit]);
+
+  const retry = () => {
+    setCode('');
+    posted.current = null;
+    setState({ phase: 'code' });
   };
+
+  const entering = state.phase === 'code' || state.phase === 'rejected';
+  const rejected = state.phase === 'rejected';
 
   return (
     <PublicPageFrame>
-      {state.phase === 'code' && (
-        <form className={styles.codeForm} onSubmit={handleSubmit}>
+      {entering && (
+        <div className={styles.codeForm}>
           <h1 className={styles.title}>{t('auth.recover.code.title')}</h1>
           <p className={styles.body}>{t('auth.recover.code.body')}</p>
-          <TextInput
-            value={code}
-            onInput={setCode}
-            name="code"
-            autoComplete="one-time-code"
-            ariaLabel={t('auth.recover.code.label')}
-          />
-          {state.attemptsLeft !== undefined && (
-            <p className={styles.error}>
-              {t('auth.recover.code.wrong', { count: String(state.attemptsLeft) })}
+          <div className={`${styles.codeField} ${rejected ? styles.codeFieldWrong : ''}`}>
+            <TextInput
+              value={formatRecoveryCode(code)}
+              sanitize={v => formatRecoveryCode(normalizeRecoveryCode(v))}
+              onInput={v => setCode(normalizeRecoveryCode(v))}
+              name="code"
+              autoComplete="one-time-code"
+              align="center"
+              mono
+              maxLength={RECOVERY_CODE_DISPLAY_LENGTH}
+              disabled={submitting || rejected}
+              invalid={rejected}
+              ariaLabel={t('auth.recover.code.label')}
+            />
+          </div>
+          {submitting && <Spinner size={18} />}
+          {rejected && (
+            <p className={styles.error} role="alert">
+              {state.reason === 'code-mismatch' && state.attemptsLeft !== undefined
+                ? t('auth.recover.code.wrong', { count: String(state.attemptsLeft) })
+                : t('auth.recover.invalid.title')}
             </p>
           )}
-          <Button type="submit" tone="accent" disabled={!code.trim() || submitting}>
-            {t('auth.recover.code.submit')}
-          </Button>
-        </form>
+        </div>
+      )}
+      {state.phase === 'approved' && (
+        <div className={styles.approved}>
+          <svg className={styles.check} viewBox="0 0 52 52" aria-hidden>
+            <circle className={styles.checkCircle} cx="26" cy="26" r="24" />
+            <path className={styles.checkMark} d="M15 27l7.5 7.5L37 19" />
+          </svg>
+          <p className={styles.body}>{t('auth.recover.success.title')}</p>
+        </div>
       )}
       {state.phase === 'exhausted' && (
         <AuthResultCard
@@ -89,7 +149,11 @@ export function RecoverPage({ token }: { token: string }) {
         />
       )}
       {state.phase === 'invalid' && (
-        <AuthResultCard title={t('auth.recover.invalid.title')} body={t('auth.recover.invalid.body')} showBackLink />
+        <AuthResultCard
+          title={t('auth.recover.invalid.title')}
+          body={t('auth.recover.invalid.body')}
+          action={{ label: t('account.recovery.tryAgain'), onClick: retry }}
+        />
       )}
     </PublicPageFrame>
   );

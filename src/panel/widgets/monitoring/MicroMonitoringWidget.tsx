@@ -1,3 +1,4 @@
+import { useId, useMemo, type CSSProperties } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
@@ -23,6 +24,9 @@ import { bareSensorLabel } from './sensorNames';
 import { chartDomainForScale, defaultFixedMax, DEFAULT_SCALE_MODE, fixedFillPercent, type ScaleMode } from './perfDomain';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
+import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
+import { gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { accentShadowAlpha } from '../../../lib/settings';
 import { formatSensorValue } from './sensorValueFormat';
 import type { NumberFormat, TempUnit } from '../../../lib/units';
 import styles from './MicroMonitoringWidget.module.scss';
@@ -91,6 +95,9 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
   const extras = useSensorExtras(usesExtras);
   const tempPrefs = useTempSensorPrefs();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  // One toggle for every bar, like the shared Micro range.
+  const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
+  const gaugeGradient = usePanelGaugeGradient();
 
   // The bottom device caption ("GPU") is the widget's category label with the
   // same auto/hide/custom model as a sensor caption: 'hide' drops the whole row
@@ -132,6 +139,8 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
         scale={microScale}
         fixedMin={microMin}
         fixedMax={microMax}
+        valueColor={microValueColor}
+        gaugeGradient={gaugeGradient}
         tempPrefs={tempPrefs}
         monitoringTempUnit={monitoringTempUnit}
         numberFormat={numberFormat}
@@ -196,12 +205,14 @@ interface MicroRowProps {
   scale: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
+  valueColor: boolean;
+  gaugeGradient: PanelGaugeGradientValue;
   tempPrefs?: { cpuId: string; gpuId: string };
   monitoringTempUnit: TempUnit;
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, valueColor, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
@@ -221,6 +232,11 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
     ? fixedFillPercent(rawValue, domainMin, domainMax)
     : percentForSensor(device, sensor, maxValue);
 
+  const gradientId = useId();
+  const coloured = valueColor && sensorSupportsValueColor(sensor?.type);
+  const stops = coloured ? gaugeGradient.stops : null;
+  const mode = gaugeGradient.mode;
+  const gradient = useMemo(() => (stops ? { id: gradientId, stops, bodyAlpha: accentShadowAlpha(mode) } : null), [gradientId, stops, mode]);
   return (
     <MicroBar
       label={label}
@@ -229,6 +245,8 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
       design={design}
       history={history}
       historyDomain={[domainMin, domainMax]}
+      gradient={gradient}
+      style={coloured ? gaugeAccentVars(gaugeGradient.stops, fillPercent / 100, gaugeGradient.mode) as CSSProperties : undefined}
     />
   );
 }

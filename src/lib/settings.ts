@@ -517,6 +517,11 @@ export function contrastTextOn(hex: string): string {
   return needsDarkTextOnHsl(h, s, l) ? '#000000' : '#ffffff';
 }
 
+/** The --accent-glow-shadow tier's alpha; surfaces painting a body the same weight bake it in. */
+export function accentShadowAlpha(mode: 'dark' | 'light'): number {
+  return mode === 'dark' ? 0.45 : 0.35;
+}
+
 /**
  * Derive all accent variants for a base hex and apply them as CSS custom
  * properties on <html>. Safe to call on every color-picker input event.
@@ -538,7 +543,7 @@ export function deriveAccentVars(hex: string, mode: 'dark' | 'light' = 'dark'): 
   const deepL = mode === 'dark' ? clamp(baseL - 16, 22, 50) : clamp(baseL - 20, 14, 40);
   const deepS = clamp(baseS + 5);
   const softAlpha       = mode === 'dark' ? 0.14 : 0.12;
-  const glowShadowAlpha = mode === 'dark' ? 0.45 : 0.35;
+  const glowShadowAlpha = accentShadowAlpha(mode);
   return {
     '--accent':             hslCss(h, s, l),
     '--accent-glow':        hslCss(h, baseS, glowL),
@@ -568,7 +573,7 @@ export function applyAccentColor(hex: string): void {
   const deepS = clamp(baseS + 5);
 
   const softAlpha       = effective === 'dark' ? 0.14 : 0.12;
-  const glowShadowAlpha = effective === 'dark' ? 0.45 : 0.35;
+  const glowShadowAlpha = accentShadowAlpha(effective);
 
   // Pick black-or-white text for the accent surface based on its luminance.
   // Keeps text legible across the full hue range - dark picks keep white text;

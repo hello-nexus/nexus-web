@@ -38,6 +38,7 @@ import { Tabs } from '../components/common/Tabs/Tabs';
 import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal/PromptModal';
+import { KlipyPicker } from '../components/common/KlipyPicker/KlipyPicker';
 import { UsageBar } from '../components/common/UsageBar/UsageBar';
 import { CapacityBar } from '../components/common/CapacityBar/CapacityBar';
 import { SupportedDevicesModal } from '../components/common/SupportedDevicesModal/SupportedDevicesModal';
@@ -97,6 +98,7 @@ import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { StableDigits } from '../panel/widgets/common/StableDigits';
 import { FitLine } from '../panel/widgets/common/FitLine';
+import { WidgetOfflineState } from '../panel/widgets/common/WidgetOfflineState';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
@@ -109,6 +111,8 @@ import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncCo
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
+import { GradientStopsEditor } from '../components/common/GradientStopsEditor/GradientStopsEditor';
+import { DEFAULT_GAUGE_GRADIENT, MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS, type GaugeGradientStop } from '../panel/theme/gaugeGradient';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { LiveFollowControl } from '../components/common/LiveFollowControl/LiveFollowControl';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
@@ -574,6 +578,32 @@ function PreviewConfirmModal() {
           children renders extra content here, e.g. a password field for a destructive confirm.
         </p>
       </ConfirmModal>
+    </>
+  );
+}
+
+// Searches the live service: the catalog runs inside the app, and without a
+// Klipy key the picker shows its own unavailable state, which is a state worth
+// previewing too.
+function PreviewKlipyPicker() {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [last, setLast] = useState<string | null>(null);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Browse GIFs
+      </button>
+      {last && <p className={styles.previewNote}>Last pick: <strong>{last}</strong></p>}
+      <KlipyPicker
+        open={open}
+        busySlug={busy}
+        onPick={gif => {
+          setBusy(gif.slug);
+          window.setTimeout(() => { setBusy(null); setLast(gif.title || gif.slug); setOpen(false); }, 600);
+        }}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
@@ -1339,6 +1369,19 @@ function PreviewFitLine() {
   );
 }
 
+function PreviewWidgetOfflineState() {
+  return (
+    <div className="panel-root" style={{ display: 'flex', gap: 12 }}>
+      <div style={{ width: 90, height: 90, background: 'var(--bg-card)', borderRadius: 12 }}>
+        <WidgetOfflineState compact />
+      </div>
+      <div style={{ width: 186, height: 186, background: 'var(--bg-card)', borderRadius: 12 }}>
+        <WidgetOfflineState />
+      </div>
+    </div>
+  );
+}
+
 function PreviewSectionHeader() {
   return (
     <div className="panel-root" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1477,6 +1520,7 @@ function PreviewPanelThemeSettings() {
     backgroundMediaOrder: [],
     backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
+    gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
   return (
@@ -1892,6 +1936,21 @@ function PreviewCanvasNoticeBar() {
 function PreviewStepper() {
   const [v, setV] = useState(12);
   return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
+}
+
+function PreviewGradientStopsEditor() {
+  const [stops, setStops] = useState<GaugeGradientStop[]>([...DEFAULT_GAUGE_GRADIENT]);
+  return (
+    <div style={{ width: 360 }}>
+      <GradientStopsEditor
+        stops={stops}
+        onPreview={setStops}
+        onCommit={setStops}
+        minStops={MIN_GAUGE_GRADIENT_STOPS}
+        maxStops={MAX_GAUGE_GRADIENT_STOPS}
+      />
+    </div>
+  );
 }
 
 function PreviewRangeBar() {
@@ -2344,6 +2403,13 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?". Optional children render after the note, before the actions row - e.g. a current-password field for delete-account. confirmDisabled disables the confirm button and suppresses Enter-to-confirm while an async action is in flight.',
   },
   {
+    name: 'KlipyPicker', category: 'modals',
+    filePath: 'src/components/common/KlipyPicker/KlipyPicker.tsx',
+    description: 'Search-and-pick modal over the Klipy GIF catalog: trending on open, debounced search, infinite scroll, one tap hands the pick to the caller. Thumbnails and search go through the service (a panel has no route to Klipy), and the required KLIPY attribution sits in the footer.',
+    notes: 'busySlug marks the card that is importing and locks the grid. Pass thumbAspect so the cards preview the crop the consuming surface will make (16:9 for the lighting canvas, the panel aspect for backgrounds). A refused import is shown through importError while the picker stays open.',
+    Preview: PreviewKlipyPicker,
+  },
+  {
     name: 'PromptModal', category: 'modals',
     filePath: 'src/components/common/PromptModal/PromptModal.tsx',
     description: 'Native-in-app text-input modal. Replaces window.prompt with a themed dialog so the input experience is consistent across macOS / Linux / Windows (WKWebView, Edge kiosk, browsers all suppress or restyle native prompts). Autofocuses the input, Enter submits, Esc cancels, click-outside cancels. Supports a sync validator that displays its error inline and disables the submit button.', Preview: PreviewPromptModal,
@@ -2527,6 +2593,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/SeriesChart/SeriesChart.tsx',
     description: 'Multi-series SVG line/area chart. Accepts pre-resolved color strings per series; preserveAspectRatio="none" so it fills any container. Optional gridlines at 25/50/75%. Host-renderer bridge for the SDK Chart element.',
     Preview: PreviewSeriesChart,
+  },
+  {
+    name: 'GradientStopsEditor', category: 'editable',
+    filePath: 'src/components/common/GradientStopsEditor/GradientStopsEditor.tsx',
+    description: 'Touch-first gradient editor: drag a handle to move a stop, drag it out past either end to remove it, tap it to recolour through the shared preset picker, tap empty bar to add one. Backs the per-panel monitoring gauge gradient.',
+    Preview: PreviewGradientStopsEditor,
   },
   {
     name: 'RangeBar', category: 'charts',
@@ -2795,6 +2867,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/FitLine.tsx',
     description: 'One line of text that scales down to its container width instead of wrapping or ellipsizing (clock date, calendar month). className goes on the box so font rules inherit; align="start" keeps a shrunk line on the left edge.',
     Preview: PreviewFitLine,
+  },
+  {
+    name: 'WidgetOfflineState', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/WidgetOfflineState.tsx',
+    description: 'Shared no-connection face for widgets that need the internet (weather, stocks). Rendered once a fetch settles with no data at all - a stale reading stays on screen instead. compact drops the label for a 1x1 cell.',
+    Preview: PreviewWidgetOfflineState,
   },
   {
     name: 'SizeIcons', category: 'panel-kit',

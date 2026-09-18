@@ -156,6 +156,27 @@ describe('completeRecovery', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('gives up on a request that never settles, rather than hanging the page', async () => {
+    vi.useFakeTimers();
+    try {
+      // A fetch that never resolves and only rejects when the signal aborts,
+      // which is the shape of the hang this deadline exists for.
+      const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }));
+      vi.stubGlobal('fetch', fetchMock);
+
+      const pending = completeRecovery('tok', 'ABCDEF');
+      await vi.advanceTimersByTimeAsync(20_000);
+
+      expect(await pending).toEqual({ ok: false, reason: 'invalid' });
+      // One attempt, not three: retrying an aborted request re-hangs it.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('reports a code-required 400 as its own reason, not a dead link', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(400, { code: 'code_required' })));
     expect(await completeRecovery('tok')).toEqual({ ok: false, reason: 'code-required' });

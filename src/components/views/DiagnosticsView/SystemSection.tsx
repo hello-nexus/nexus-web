@@ -52,16 +52,13 @@ export function SystemSection({ data, loading, error, onRefresh }: SystemSection
         <>
           <div className={styles.sectionHeaderRow}>
             <SectionHeader>{t('diagnostics.system.pnpProblems')}</SectionHeader>
-            {data.pnpProblems.length > 0 && (
-              <Button
-                tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={opening}
-                onClick={() => void handleOpenDeviceManager()}
-              >
-                {t('diagnostics.system.openDeviceManager')}
-              </Button>
-            )}
+            <Button
+              tone="ghost" size="sm" icon={<ExternalLink size={13} />} loading={opening}
+              onClick={() => void handleOpenDeviceManager()}
+            >
+              {t('diagnostics.system.openDeviceManager')}
+            </Button>
           </div>
-          <div className={styles.reasonSummary}>{t('diagnostics.system.pnpDescription')}</div>
           {data.pnpProblems.length === 0 ? (
             <EmptyState compact icon={<ShieldCheck size={22} />} title={t('diagnostics.system.pnpEmpty')} />
           ) : (

@@ -52,7 +52,7 @@ import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
-import { isRemoteOrigin } from '../api/service';
+import { isLocalhostUnreachable, isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
@@ -88,6 +88,7 @@ import { IncomingPairModal } from './IncomingPairModal';
 import { ToastProvider } from '../components/common/Toast/Toast';
 import { TransferToasts } from './TransferToasts';
 import { MappingAppliedToasts } from './MappingAppliedToasts';
+import { AppAutoInstalledToasts } from './AppAutoInstalledToasts';
 import { SyncConflictGate } from './SyncConflictGate';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
@@ -184,7 +185,7 @@ function DeckEditAutoOpener({ online, onOpen }: {
     if (markDeckEditShown(edit.token)) onOpen(edit);
   }, [onOpen]);
 
-  useTopicCallback('streamdeck', online && !isRemoteOrigin, useCallback((data: unknown) => {
+  useTopicCallback('streamdeck', online && !isLocalhostUnreachable(), useCallback((data: unknown) => {
     const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[]; keyIndex?: number; token?: number };
     if (f.kind !== 'editRequest' || !f.serial || typeof f.token !== 'number') return;
     fire({
@@ -203,7 +204,7 @@ function DeckEditAutoOpener({ online, onOpen }: {
   // re-fetches instead of dropping the cold-start edit.
   const firedRef = useRef(false);
   useEffect(() => {
-    if (!online || isRemoteOrigin || firedRef.current) return;
+    if (!online || isLocalhostUnreachable() || firedRef.current) return;
     let cancelled = false;
     getPendingDeckEdit().then(edit => {
       if (cancelled || firedRef.current || !edit) return;
@@ -321,7 +322,18 @@ export function Dashboard() {
     navigate,
     online,
   );
-  const { status: onboardingStatus, lightingStatus, featuresStatus } = useOnboardingStatus();
+  // Re-read on every reconnect: a factory reset restarts the service and puts
+  // all three flags back to pending under this same page. Counted, not keyed on
+  // `online` itself: a read issued while the service is down exhausts its
+  // retries and fails open to "completed" over a user who is mid-onboarding.
+  const [reconnects, setReconnects] = useState(0);
+  const wasOnline = useRef(online);
+  useEffect(() => {
+    if (online && !wasOnline.current) setReconnects(n => n + 1);
+    wasOnline.current = online;
+  }, [online]);
+  const { status: onboardingStatus, lightingStatus, featuresStatus, generation: onboardingGeneration, readAt }
+    = useOnboardingStatus(reconnects);
   // Flips true once WelcomeScreen posts /onboarding/complete, so a later
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
@@ -332,6 +344,23 @@ export function Dashboard() {
   // (it renders the provider), so this is the only way the skip decision
   // reaches the lighting gate below.
   const [lightingFeatureOff, setLightingFeatureOff] = useState(false);
+  // A dismissal latch is per-session, so a reset that puts the server flag back
+  // to pending has to clear it. Keyed on a NEW read, never on the value: the
+  // latch is set the moment a screen completes, while the status this render
+  // still holds is the stale pending one that set it.
+  const seenOnboardingGeneration = useRef(0);
+  // When the newest latch was set. A read that STARTED before that cannot speak
+  // to it: the answer was already in flight when the screen completed.
+  const latchedAt = useRef(0);
+  useEffect(() => {
+    if (onboardingGeneration === seenOnboardingGeneration.current) return;
+    seenOnboardingGeneration.current = onboardingGeneration;
+    if (readAt < latchedAt.current) return;
+    if (onboardingStatus === 'pending') setOnboardingDismissed(false);
+    if (featuresStatus === 'pending') setFeaturesOnboardingDismissed(false);
+    if (lightingStatus === 'pending') setLightingOnboardingDismissed(false);
+  }, [onboardingGeneration, readAt, onboardingStatus, featuresStatus, lightingStatus]);
+
   // Set by any later gate's Back path that targets the welcome screen.
   // Reopens it even when its server flag already completed (e.g. a reload
   // mid-sequence resolved onboardingStatus to 'completed').
@@ -402,13 +431,15 @@ export function Dashboard() {
     // onboarding ones - without these it reopens on the next launch. Only the
     // apps this run actually offered: these are persistent server flags, so
     // latching one for an app not yet installed consumes its offer for good.
+    // Latched only once the server has the flags: the latches are per-session,
+    // and a later read that still says pending now reopens the sequence.
     void Promise.allSettled([
       completeOnboarding(),
       completeFeaturesOnboarding(),
       completeLightingOnboarding(),
       ...(nexus2.status === 'pending' ? [dismissNexus2Welcome()] : []),
       ...(fanControl.status === 'pending' ? [dismissFanControlImport()] : []),
-    ]);
+    ]).then(() => { latchedAt.current = Date.now(); });
     setOnboardingDismissed(true);
     setFeaturesOnboardingDismissed(true);
     setImportDismissed(true);
@@ -1009,7 +1040,7 @@ export function Dashboard() {
         <WelcomeScreen
           open={welcomeOpen}
           platform={status.ping?.platform ?? ''}
-          onComplete={() => setOnboardingDismissed(true)}
+          onComplete={() => { latchedAt.current = Date.now(); setOnboardingDismissed(true); }}
         />
         {/* Feature-pillars gate: lets the user turn off whole functional
             areas up front. Back only steps into first-run onboarding while
@@ -1017,6 +1048,7 @@ export function Dashboard() {
         <FeaturesOnboardingScreen
           open={featuresOpen}
           onComplete={(flags) => {
+            latchedAt.current = Date.now();
             setFeaturesOnboardingDismissed(true);
             if (!flags.lighting) setLightingFeatureOff(true);
           }}
@@ -1080,7 +1112,7 @@ export function Dashboard() {
             import, else features, else welcome. */}
         <LightingOnboardingScreen
           open={lightingOnboardingOpen}
-          onComplete={() => setLightingOnboardingDismissed(true)}
+          onComplete={() => { latchedAt.current = Date.now(); setLightingOnboardingDismissed(true); }}
           onSkipOnboarding={skipOnboarding}
           onBack={() => {
             if (conflictStepArmed) { setConflictStepDone(false); return; }
@@ -1096,6 +1128,8 @@ export function Dashboard() {
         <TransferToasts />
         {/* Community-layout auto-apply announcements with Undo, active regardless of view. */}
         <MappingAppliedToasts />
+        {/* Announces an app the service installed for attached hardware, active regardless of view. */}
+        <AppAutoInstalledToasts />
         {/* Steam-cloud-style profile sync conflict prompt, active regardless of view. */}
         <SyncConflictGate sync={syncStatus} />
         <PairPhoneModal

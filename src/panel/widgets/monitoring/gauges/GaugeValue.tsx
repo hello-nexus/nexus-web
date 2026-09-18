@@ -11,6 +11,8 @@ interface GaugeValueProps {
   // rides the same element as the fit transform, so the fill line tracks the
   // glyphs when an over-wide reading is scaled down.
   clipTopPercent?: number;
+  /** A CSS image painted through the glyphs (background-clip: text). */
+  textFill?: string;
 }
 
 // Sensor value+unit line shared by every gauge design. This component IS the
@@ -18,7 +20,7 @@ interface GaugeValueProps {
 // design positions, and each container it sits in clamps to the gauge width
 // for the same reason. role/aria-label keep the per-digit spans from being
 // announced one digit at a time.
-export function GaugeValue({ formatted, className, clipTopPercent }: GaugeValueProps) {
+export function GaugeValue({ formatted, className, clipTopPercent, textFill }: GaugeValueProps) {
   const parts = splitFormatted(formatted);
   const { boxRef, contentRef, scale } = useFitWidth();
   return (
@@ -34,6 +36,7 @@ export function GaugeValue({ formatted, className, clipTopPercent }: GaugeValueP
         style={{
           transform: `scale(${scale})`,
           clipPath: clipTopPercent === undefined ? undefined : `inset(${clipTopPercent}% 0 0 0)`,
+          ...(textFill ? { backgroundImage: textFill, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : undefined),
         }}
       >
         <StableDigits text={parts.value} />

@@ -231,3 +231,13 @@
 .chipDown {
   color: var(--stock-down);
 }
+
+// Same centred box as .empty, without its dimming - the spinner carries its
+// own opacity so it reads identically to every other widget's loading state.
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
