@@ -98,7 +98,7 @@ describe('MonitoringWidget value colouring', () => {
   it('takes the stops the panel provides', () => {
     const stops = [{ at: 0, color: '#00ff00' }, { at: 1, color: '#00ff00' }];
     const { container } = render(
-      <PanelGaugeGradientProvider value={{ stops, mode: 'dark', preview: () => {}, commit: () => {} }}>
+      <PanelGaugeGradientProvider value={{ stops, source: stops, accent: '#2563eb', mode: 'dark', preview: () => {}, commit: () => {} }}>
         <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Package', slot0_valueColor: true })} />
       </PanelGaugeGradientProvider>,
     );

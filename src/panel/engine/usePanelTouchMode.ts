@@ -31,6 +31,11 @@ export interface ContextMenuState {
   widget: PanelWidget;
   x: number;
   y: number;
+  // Bumped on every open. PanelApp keys the menu on it so a right-click
+  // on another widget while a menu is up remounts a fresh menu instead of
+  // re-rendering the one whose outside-pointerdown close timer is already
+  // running (which would dismiss the new menu).
+  seq: number;
 }
 
 interface PanelTouchModeOpts {
@@ -60,6 +65,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
   const pressOriginRef = useRef({ x: 0, y: 0 });
   const pressFeedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const movedDuringDragRef = useRef(false);
+  const ctxSeqRef = useRef(0);
 
   const clearPressFeedback = useCallback(() => {
     if (pressFeedbackTimerRef.current) {
@@ -90,7 +96,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
         setPressedWidgetId(w.id);
       }
       triggerHaptic('medium');
-      setCtxMenu({ widget: w, x, y });
+      setCtxMenu({ widget: w, x, y, seq: ++ctxSeqRef.current });
     } else {
       clearPressFeedback();
     }
@@ -102,7 +108,7 @@ export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTo
     e.preventDefault();
     e.stopPropagation();
     clearPressFeedback();
-    setCtxMenu({ widget, x: e.clientX, y: e.clientY });
+    setCtxMenu({ widget, x: e.clientX, y: e.clientY, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const closeCtxMenu = useCallback(() => {

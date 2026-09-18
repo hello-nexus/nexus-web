@@ -13,9 +13,9 @@ import { GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
-  DEFAULT_DESIGN,
   DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
+  defaultSlotDesign,
   designKeysForSlot,
   isMicroLayout,
   MICRO_DESIGN_KEYS,
@@ -48,12 +48,13 @@ import styles from './MonitoringSettings.module.scss';
 // other monitoring widget on the panel paints with.
 function GaugeGradientSection() {
   const { t } = useTranslation();
-  const { stops, preview, commit } = usePanelGaugeGradient();
-  const isDefault = gaugeGradientEquals(stops, DEFAULT_GAUGE_GRADIENT);
+  const { source, accent, preview, commit } = usePanelGaugeGradient();
+  const isDefault = gaugeGradientEquals(source, DEFAULT_GAUGE_GRADIENT);
   return (
     <div className={styles.gradientBlock}>
       <GradientStopsEditor
-        stops={stops}
+        stops={source}
+        accent={accent}
         onPreview={preview}
         onCommit={commit}
         minStops={MIN_GAUGE_GRADIENT_STOPS}
@@ -295,7 +296,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i)),
     );
     const scale = ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE);
     const fixedMin = widget.config?.[`slot${i}_min`] as number | undefined;

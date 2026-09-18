@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ACCENT_STOP_COLOR,
   DEFAULT_GAUGE_GRADIENT,
   gaugeGradientColorAt,
   gaugeGradientCssStops,
@@ -8,6 +9,7 @@ import {
   mixHex,
   normalizeGaugeGradient,
   remapGaugeGradientToDomain,
+  resolveGaugeGradient,
 } from './gaugeGradient';
 
 describe('normalizeGaugeGradient', () => {
@@ -34,6 +36,29 @@ describe('normalizeGaugeGradient', () => {
 
   it('never returns the shared default instance', () => {
     expect(normalizeGaugeGradient(null)).not.toBe(DEFAULT_GAUGE_GRADIENT);
+  });
+
+  it('keeps a stop docked to the accent', () => {
+    expect(normalizeGaugeGradient([{ at: 0, color: ' Accent ' }, { at: 1, color: '#ef4444' }]))
+      .toEqual([{ at: 0, color: ACCENT_STOP_COLOR }, { at: 1, color: '#ef4444' }]);
+  });
+});
+
+describe('resolveGaugeGradient', () => {
+  const stops = [{ at: 0, color: ACCENT_STOP_COLOR }, { at: 0.5, color: '#f59e0b' }, { at: 1, color: ACCENT_STOP_COLOR }];
+
+  it('paints every docked stop as the accent, lower-cased', () => {
+    expect(resolveGaugeGradient(stops, '#2563EB')).toEqual([
+      { at: 0, color: '#2563eb' }, { at: 0.5, color: '#f59e0b' }, { at: 1, color: '#2563eb' },
+    ]);
+  });
+
+  it('paints the default accent for an accent that is not #rrggbb', () => {
+    expect(resolveGaugeGradient(stops, 'red')[0].color).toBe('#2563eb');
+  });
+
+  it('hands back the same list when nothing is docked', () => {
+    expect(resolveGaugeGradient(DEFAULT_GAUGE_GRADIENT, '#2563eb')).toBe(DEFAULT_GAUGE_GRADIENT);
   });
 });
 

@@ -243,11 +243,16 @@ export function patchWidgetById(
  *   - Active widget's rect would go off-grid.
  *   - Active is 1x1 and the target rect overlaps a non-1x1 widget
  *     (per iOS rule: a single icon cannot displace a larger widget).
- *   - One of the displaced widgets has no row-major free spot.
+ *   - The page cannot hold the result even after a shift (below).
  *
  * Otherwise: non-overlapping widgets stay where they are; overlapping
  * widgets cascade row-major into the first empty rect that fits each
- * (skipping the active rect and earlier-displaced widgets).
+ * (skipping the active rect and earlier-displaced widgets). A Springboard
+ * shift of the run between the source's old slot and the drop
+ * (shiftPreview) replaces the cascade when the cascade fails, or when the
+ * shift also lands the source on (col, row) and moves the siblings no
+ * further - on a full column the cascade either fails or teleports a
+ * neighbour into the vacated cell at the far end.
  */
 export function previewDrag(
   layout: PanelLayout,
@@ -342,25 +347,156 @@ export function previewDrag(
       }
       if (found) break;
     }
-    if (!found) return null;
+    if (!found) { displaced.length = 0; break; }
     mark({ col: found.col, row: found.row, colSpan, rowSpan });
     displaced.push({ ...w, col: found.col, row: found.row });
   }
+  const cascaded = displaced.length === sorted.length
+    ? withTargetPage(layout, sourceId, sourcePageIdx, targetPageIdx, [...stationary, placed, ...displaced])
+    : null;
+  if (overlapping.length === 0) return cascaded;
 
-  const newTargetWidgets = [...stationary, placed, ...displaced];
+  const shifted = shiftPreview(layout, sourceId, sourcePageIdx, targetPageIdx, placed, cols, rows);
+  if (!cascaded) return shifted;
+  if (!shifted) return cascaded;
+  const landed = shifted.pages[targetPageIdx].widgets.find(w => w.id === sourceId);
+  if (!landed || landed.col !== col || landed.row !== row) return cascaded;
+  // Ties go to the shift: it keeps the siblings' reading order, where the
+  // cascade may leapfrog one past another into the vacated cell.
+  return siblingTravel(layout, shifted, sourceId) <= siblingTravel(layout, cascaded, sourceId) ? shifted : cascaded;
+}
+
+function withTargetPage(
+  layout: PanelLayout,
+  sourceId: string,
+  sourcePageIdx: number,
+  targetPageIdx: number,
+  targetWidgets: PanelWidget[],
+): PanelLayout {
   const pages = layout.pages.map((page, idx) => {
-    if (idx === sourcePageIdx && idx === targetPageIdx) {
-      return { ...page, widgets: newTargetWidgets };
-    }
-    if (idx === sourcePageIdx) {
-      return { ...page, widgets: page.widgets.filter(w => w.id !== sourceId) };
-    }
-    if (idx === targetPageIdx) {
-      return { ...page, widgets: newTargetWidgets };
-    }
+    if (idx === targetPageIdx) return { ...page, widgets: targetWidgets };
+    if (idx === sourcePageIdx) return { ...page, widgets: page.widgets.filter(w => w.id !== sourceId) };
     return page;
   });
   return { ...layout, pages };
+}
+
+// Manhattan distance every sibling moved between two layouts, the source excluded.
+function siblingTravel(before: PanelLayout, after: PanelLayout, sourceId: string): number {
+  const was = new Map(before.pages.flatMap(p => p.widgets).map(w => [w.id, w]));
+  let total = 0;
+  for (const w of after.pages.flatMap(p => p.widgets)) {
+    if (w.id === sourceId) continue;
+    const prev = was.get(w.id);
+    if (prev) total += Math.abs(w.col - prev.col) + Math.abs(w.row - prev.row);
+  }
+  return total;
+}
+
+// Reading-order key: row first, then column.
+function readingOrder(a: { col: number; row: number }, b: { col: number; row: number }): number {
+  return a.row !== b.row ? a.row - b.row : a.col - b.col;
+}
+
+function rectCentre(w: PanelWidget, cols: number): { col: number; row: number } {
+  const rect = widgetRect(w, cols);
+  return { col: rect.col + rect.colSpan / 2, row: rect.row + rect.rowSpan / 2 };
+}
+
+/**
+ * The Springboard shift. The target page is read row-major with the
+ * source inserted before the first sibling whose centre the drop has
+ * reached; the run from its old slot to that insertion re-flows first-fit
+ * inside its own row band, everything outside the band keeps its cells.
+ * Null when no sibling is crossed or the band cannot hold the run.
+ */
+function shiftPreview(
+  layout: PanelLayout,
+  sourceId: string,
+  sourcePageIdx: number,
+  targetPageIdx: number,
+  placed: PanelWidget,
+  cols: number,
+  rows: number,
+): PanelLayout | null {
+  const page = layout.pages[targetPageIdx];
+  const others = page.widgets.filter(w => w.id !== sourceId).slice().sort(readingOrder);
+  // Probe = drop top-left + half the SMALLER span, so a 4x4 dropped over a
+  // 4x2 takes its place once their tops meet, and a 4x2 dropped on the last
+  // row of a 4x4 lands below it.
+  const placedSpan = sizeToSpan(placed.size);
+  const insertAt = (() => {
+    const idx = others.findIndex(w => {
+      const span = sizeToSpan(w.size);
+      const probe = {
+        col: placed.col + Math.min(span.cols, placedSpan.cols) / 2,
+        row: placed.row + Math.min(span.rows, placedSpan.rows) / 2,
+      };
+      return readingOrder(rectCentre(w, cols), probe) >= 0;
+    });
+    return idx < 0 ? others.length : idx;
+  })();
+  const source = sourcePageIdx === targetPageIdx ? page.widgets.find(w => w.id === sourceId) : undefined;
+  // Same page: the run spans the old slot and the insertion. Cross-page:
+  // everything from the insertion down shifts, into the free rows below.
+  const oldAt = source
+    ? (() => { const idx = others.findIndex(w => readingOrder(w, source) > 0); return idx < 0 ? others.length : idx; })()
+    : others.length;
+  const runStart = Math.min(oldAt, insertAt);
+  const runEnd = Math.max(oldAt, insertAt);
+  const runOthers = others.slice(runStart, runEnd);
+  if (runOthers.length === 0) return null;
+  // iOS rule, as for the cascade: a 1x1 shifts only other 1x1s.
+  if (placed.size === '1x1' && runOthers.some(w => w.size !== '1x1')) return null;
+  const run = [...others.slice(runStart, insertAt), placed, ...others.slice(insertAt, runEnd)];
+  const stationary = [...others.slice(0, runStart), ...others.slice(runEnd)];
+
+  const bandRects = [...runOthers, ...(source ? [source] : [placed])].map(w => widgetRect(w, cols));
+  const bandTop = Math.min(...bandRects.map(r => r.row));
+  const bandBottom = source ? Math.max(...bandRects.map(r => r.row + r.rowSpan)) : rows;
+
+  const occupied: boolean[][] = Array.from({ length: rows }, (_, r) =>
+    Array<boolean>(cols).fill(r < bandTop || r >= bandBottom));
+  const mark = (rect: WidgetRect) => {
+    for (let r = rect.row; r < rect.row + rect.rowSpan; r++) {
+      for (let c = rect.col; c < rect.col + rect.colSpan; c++) {
+        if (r >= 0 && r < rows && c >= 0 && c < cols) occupied[r][c] = true;
+      }
+    }
+  };
+  for (const w of stationary) mark(widgetRect(w, cols));
+
+  const reflowed: PanelWidget[] = [];
+  for (const w of run) {
+    const span = sizeToSpan(w.size);
+    const colSpan = Math.max(1, Math.min(span.cols, cols));
+    const rowSpan = Math.max(1, span.rows);
+    let found: { col: number; row: number } | null = null;
+    for (const step of strideScanSteps(colSpan, rowSpan)) {
+      for (let r = 0; r + rowSpan <= rows && !found; r += step.row) {
+        for (let c = 0; c + colSpan <= cols && !found; c += step.col) {
+          let fits = true;
+          for (let rr = r; rr < r + rowSpan && fits; rr++) {
+            for (let cc = c; cc < c + colSpan && fits; cc++) {
+              if (occupied[rr][cc]) fits = false;
+            }
+          }
+          if (fits) found = { col: c, row: r };
+        }
+      }
+      if (found) break;
+    }
+    if (!found) return null;
+    mark({ col: found.col, row: found.row, colSpan, rowSpan });
+    reflowed.push({ ...w, col: found.col, row: found.row });
+  }
+  const unchanged = reflowed.every(w => {
+    const stored = page.widgets.find(x => x.id === w.id);
+    return stored !== undefined && stored.col === w.col && stored.row === w.row;
+  });
+  if (unchanged) return null;
+
+  return withTargetPage(layout, sourceId, sourcePageIdx, targetPageIdx, [...stationary, ...reflowed]);
 }
 
 /**

@@ -69,4 +69,26 @@ describe('usePanelTouchMode', () => {
 
     expect(result.current.ctxMenu).toBeNull();
   });
+
+  it('gives a right-click on another widget a fresh menu seq while a menu is open', () => {
+    const other: PanelWidget = { ...widget, id: 'widget-2', col: 2 };
+    const { result } = renderHook(() => usePanelTouchMode({}));
+
+    act(() => {
+      result.current.handleContextMenu(contextMenuEvent(), widget);
+    });
+    const firstSeq = result.current.ctxMenu?.seq;
+    act(() => {
+      result.current.bindCellPointers(other).onPointerDown(pointerEvent({ button: 2 }));
+    });
+    act(() => {
+      result.current.handleContextMenu(contextMenuEvent({ clientX: 400 }), other);
+    });
+    act(() => {
+      result.current.bindCellPointers(other).onPointerUp(pointerEvent({ button: 2 }));
+    });
+
+    expect(result.current.ctxMenu?.widget.id).toBe(other.id);
+    expect(result.current.ctxMenu?.seq).not.toBe(firstSeq);
+  });
 });

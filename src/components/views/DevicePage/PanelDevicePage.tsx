@@ -89,7 +89,8 @@ import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelRecord } from '../../../panel/engine/usePanelRecord';
-import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
+import { buildPanelThemeVars, panelAccentColor, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
+import { resolveGaugeGradient } from '../../../panel/theme/gaugeGradient';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import type { DeckEditView } from '../../../panel/widgets/types';
@@ -460,12 +461,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
   // The monitoring settings pane edits the panel's gauge gradient in place; the
   // simulator iframe repaints from the same theme via the postMessage sync.
+  const gaugeAccent = panelAccentColor(theme);
   const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
-    stops: theme.gaugeGradient,
+    stops: resolveGaugeGradient(theme.gaugeGradient, gaugeAccent),
+    source: theme.gaugeGradient,
+    accent: gaugeAccent,
     mode: resolvedPanelThemeMode,
     preview: panelTheme.previewGaugeGradient,
     commit: panelTheme.commitGaugeGradient,
-  }), [theme.gaugeGradient, resolvedPanelThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
+  }), [theme.gaugeGradient, gaugeAccent, resolvedPanelThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
   // Desktop resolved mode from the app theme (concrete dark/light, not 'system').
   // Used for the widget preview in InlineWidgetSettings so it inherits the
   // desktop chrome's active theme instead of the panel theme.

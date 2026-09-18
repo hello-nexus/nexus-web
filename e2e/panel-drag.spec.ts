@@ -760,6 +760,80 @@ test.describe('panel widget drag (iOS-style)', () => {
     }
   });
 
+  // A full 4x16 column (the Y70 shape, on a phone viewport tall enough for
+  // 16 rows): a 4x2 between three 4x4s can only move by shifting the stack,
+  // since no displaced 4x4 ever finds a contiguous 4-row hole.
+  test.describe('full column shift', () => {
+    test.use({ viewport: { width: 412, height: 1700 } });
+
+    const fullColumn = (order: Array<[string, string, '4x2' | '4x4', number]>) => ({
+      id: DEVICE_ID,
+      displayName: 'Test',
+      firstSeenAt: 0,
+      lastSeenAt: 0,
+      capabilities: { surface: 'phone' },
+      layout: {
+        layoutSchemaVersion: 2,
+        surface: 'phone',
+        pages: [{
+          id: 'page-full',
+          widgets: order.map(([id, type, size, row]) => ({ id, type, size, col: 0, row })),
+        }],
+      },
+    });
+
+    async function cellRows(page: Page): Promise<Record<string, number>> {
+      return page.evaluate(() => Object.fromEntries(
+        Array.from(document.querySelectorAll<HTMLElement>('[data-panel-widget-id]'))
+          .map(el => [el.dataset.panelWidgetId ?? '', Number(el.dataset.panelCellRow)]),
+      ));
+    }
+
+    async function gridRows(page: Page): Promise<number> {
+      return page.evaluate(() => Number(
+        document.querySelector<HTMLElement>('.panel-root')?.style.getPropertyValue('--panel-rows')));
+    }
+
+    // Finger travel per grid row, from two rendered cells of known spans.
+    async function rowStride(page: Page): Promise<number> {
+      const tall = await widgetRectById(page, 'w-wea');
+      const short = await widgetRectById(page, 'w-cal');
+      return (tall.height - short.height) / 2;
+    }
+
+    test('a 4x2 dragged to the bottom shifts the 4x4s below it up', async ({ page }) => {
+      await gotoPanel(page, fullColumn([
+        ['w-clock', 'monitoring', '4x2', 0], ['w-cal', 'lighting', '4x2', 2], ['w-wea', 'emoji', '4x4', 4],
+        ['w-mon', 'emoji', '4x4', 8], ['w-coo', 'emoji', '4x4', 12],
+      ]));
+      expect(await gridRows(page)).toBe(16);
+      expect(await cellRows(page)).toEqual({ 'w-clock': 0, 'w-cal': 2, 'w-wea': 4, 'w-mon': 8, 'w-coo': 12 });
+      const from = await widgetCenterById(page, 'w-cal');
+      const stride = await rowStride(page);
+
+      // Twelve rows down puts the dragged rect's top on row 14: the last slot.
+      await longPressDrag(page, from.x, from.y, from.x, from.y + 12 * stride);
+
+      await expect.poll(() => cellRows(page))
+        .toEqual({ 'w-clock': 0, 'w-wea': 2, 'w-mon': 6, 'w-coo': 10, 'w-cal': 14 });
+    });
+
+    test('a 4x2 dragged from the bottom to row 2 shifts the 4x4s down', async ({ page }) => {
+      await gotoPanel(page, fullColumn([
+        ['w-clock', 'monitoring', '4x2', 0], ['w-wea', 'emoji', '4x4', 2], ['w-mon', 'emoji', '4x4', 6],
+        ['w-coo', 'emoji', '4x4', 10], ['w-cal', 'lighting', '4x2', 14],
+      ]));
+      expect(await gridRows(page)).toBe(16);
+      const from = await widgetCenterById(page, 'w-cal');
+      const stride = await rowStride(page);
+
+      await longPressDrag(page, from.x, from.y, from.x, from.y - 12 * stride);
+
+      await expect.poll(() => cellRows(page))
+        .toEqual({ 'w-clock': 0, 'w-cal': 2, 'w-wea': 4, 'w-mon': 8, 'w-coo': 12 });
+    });
+  });
+
   test('post-drop layout has no overlapping widgets', async ({ page }) => {
     await gotoPanel(page);
     const before = await activeWidgetIds(page);

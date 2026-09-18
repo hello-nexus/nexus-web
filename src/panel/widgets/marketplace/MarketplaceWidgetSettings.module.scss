@@ -57,6 +57,8 @@
 }
 
 .iconSelectGrid {
+  --icon-label-button-active-bg: var(--panel-accent, var(--accent));
+  --icon-label-button-active-text: var(--panel-accent-text, var(--accent-text));
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;

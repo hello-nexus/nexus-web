@@ -1,4 +1,6 @@
 .picker {
+  --icon-label-button-active-bg: var(--panel-accent, var(--accent));
+  --icon-label-button-active-text: var(--panel-accent-text, var(--accent-text));
   --icon-label-button-height: 48px;
   --icon-label-icon-size: 18px;
   --icon-label-label-size: 10px;

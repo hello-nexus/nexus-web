@@ -5,8 +5,7 @@
   --clock-settings-text: var(--text);
   --clock-settings-faint: var(--text-dim);
   --clock-settings-accent: var(--panel-accent, var(--accent));
-  --clock-settings-accent-glow: var(--panel-accent-glow, var(--accent-glow));
-  --clock-settings-accent-soft: var(--panel-accent-soft, var(--accent-soft));
+  --clock-settings-accent-text: var(--panel-accent-text, var(--accent-text));
   --icon-label-button-height: 52px;
   --icon-label-button-min-width: 58px;
   --icon-label-button-padding-x: 5px;
@@ -19,8 +18,8 @@
   --icon-label-button-text: var(--clock-settings-faint);
   --icon-label-button-text-hover: var(--clock-settings-text);
   --icon-label-button-active-border: var(--clock-settings-accent);
-  --icon-label-button-active-bg: var(--clock-settings-accent-soft);
-  --icon-label-button-active-text: var(--clock-settings-accent-glow);
+  --icon-label-button-active-bg: var(--clock-settings-accent);
+  --icon-label-button-active-text: var(--clock-settings-accent-text);
   --icon-label-icon-size: 18px;
   --icon-label-label-size: 9.5px;
 
