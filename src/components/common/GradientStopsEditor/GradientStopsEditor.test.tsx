@@ -51,6 +51,18 @@ describe('GradientStopsEditor', () => {
     expect(onCommit).toHaveBeenCalledWith([STOPS[0], { at: 0.7, color: '#f59e0b' }, STOPS[2]]);
   });
 
+  it('a drag selects the handle too, so the palette is live for it afterwards', () => {
+    const { onCommit, bar } = mount();
+    const swatch = screen.getByRole('button', { name: '#ef4444' });
+    fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: 130, clientY: 16, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 130, clientY: 16, pointerId: 1 });
+    expect(swatch).toBeEnabled();
+    fireEvent.click(swatch);
+    // The harness never feeds the committed list back, so only the colour moves here.
+    expect(onCommit.mock.calls.at(-1)?.[0][1]).toMatchObject({ color: '#ef4444' });
+  });
+
   it('keeps a dragged handle between its neighbours', () => {
     const { onPreview, bar } = mount();
     fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1 });

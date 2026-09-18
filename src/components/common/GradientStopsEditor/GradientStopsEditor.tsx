@@ -45,9 +45,9 @@ interface Drag {
 /**
  * Touch-first gradient editor: a bar painted with the stops, one handle per
  * stop. Drag a handle along the bar to move it, drag it out past either end
- * (or right-click it) to remove it, tap it to recolour it through the preset
- * picker underneath (greyed out until a stop is picked), tap empty bar to add
- * a stop with the colour already there.
+ * (or right-click it) to remove it. Touching a handle selects it, and the
+ * preset picker underneath (greyed out until then) recolours the selected
+ * stop. Tap empty bar to add a stop with the colour already there.
  */
 export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxStops, className }: GradientStopsEditorProps) {
   const { t } = useTranslation();
@@ -95,6 +95,9 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
       onCommit(next);
       return;
     }
+    // Touching a handle selects it, so the palette is live for whichever stop
+    // was last dragged or tapped.
+    setSelected(nearest);
     dragRef.current = { index: nearest, startX: event.clientX, startY: event.clientY, moved: false, removing: false };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
@@ -124,10 +127,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     const current = draft ?? [...shown];
     setDraft(null);
-    if (!drag.moved) {
-      setSelected(prev => (prev === drag.index ? null : drag.index));
-      return;
-    }
+    if (!drag.moved) return;
     if (drag.removing) {
       setSelected(null);
       onCommit(current.filter((_, i) => i !== drag.index));
