@@ -484,6 +484,10 @@ export function usePanelTheme(
     persistPatch({ widgetPadding: next });
   }, [persistPatch]);
 
+  const previewGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
+    setTheme(prev => ({ ...prev, gaugeGradient: normalizeGaugeGradient(stops) }));
+  }, []);
+
   const commitGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
     const next = normalizeGaugeGradient(stops);
     setTheme(prev => (gaugeGradientEquals(prev.gaugeGradient, next) ? prev : { ...prev, gaugeGradient: next }));
@@ -534,9 +538,7 @@ export function usePanelTheme(
       { ...prev, widgetPadding: normalizePanelWidgetPadding(percent) }
     )),
     commitWidgetPadding,
-    previewGaugeGradient: (stops: readonly GaugeGradientStop[]) => setTheme(prev => (
-      { ...prev, gaugeGradient: normalizeGaugeGradient(stops) }
-    )),
+    previewGaugeGradient,
     commitGaugeGradient,
     prefs,
   };

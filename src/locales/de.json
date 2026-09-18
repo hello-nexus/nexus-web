@@ -2634,6 +2634,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "Speicher",
   "monitoring.settings.close": "Fertig",
+  "monitoring.settings.colors": "Farben",
   "monitoring.settings.customLabel": "Eigene Beschriftung",
   "monitoring.settings.description": "Wähle, welche GPU-Werte im gesamten Dashboard angezeigt werden.",
   "monitoring.settings.design": "Design",

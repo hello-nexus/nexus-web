@@ -2634,6 +2634,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "Opslag",
   "monitoring.settings.close": "Klaar",
+  "monitoring.settings.colors": "Kleuren",
   "monitoring.settings.customLabel": "Aangepast label",
   "monitoring.settings.description": "Kies welke GPU-statistieken overal op het dashboard verschijnen.",
   "monitoring.settings.design": "Ontwerp",

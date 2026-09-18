@@ -10,7 +10,7 @@ export function FillGauge({ value, formatted, label, gradient }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
   // The sweep keeps the accent-shadow translucency, baked into the stops.
   const barStyle = gradient
-    ? { width: '100%', background: gaugeGradientCss(gradient.stops, 90, 0.45), clipPath: `inset(0 ${(100 - clamped).toFixed(2)}% 0 0)` }
+    ? { width: '100%', background: gaugeGradientCss(gradient.stops, 90, 0.4), clipPath: `inset(0 ${(100 - clamped).toFixed(2)}% 0 0)` }
     : { width: `${clamped}%` };
   return (
     <div className={styles.fill}>

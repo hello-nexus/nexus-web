@@ -2668,6 +2668,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "Magazyn danych",
   "monitoring.settings.close": "Gotowe",
+  "monitoring.settings.colors": "Kolory",
   "monitoring.settings.customLabel": "Własna etykieta",
   "monitoring.settings.description": "Wybierz, którego GPU statystyki są wyświetlane na całym pulpicie.",
   "monitoring.settings.design": "Wygląd",

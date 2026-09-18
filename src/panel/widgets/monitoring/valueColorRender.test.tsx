@@ -57,7 +57,10 @@ function widgetWith(config: Record<string, unknown>): PanelWidget {
 function slot(container: HTMLElement): HTMLElement {
   const el = container.querySelector<HTMLElement>('[data-monitoring-slot-index]');
   if (!el) throw new Error('no slot rendered');
-  return el;
+  // The tint rides on an inner wrapper so the slot's own chrome keeps the
+  // panel accent; ungraded slots have no such wrapper.
+  const paint = el.querySelector<HTMLElement>(':scope > [style*="--panel-accent"]');
+  return paint ?? el;
 }
 
 function fillBackground(container: HTMLElement): string {

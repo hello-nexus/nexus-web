@@ -2634,6 +2634,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "Depolama",
   "monitoring.settings.close": "Bitti",
+  "monitoring.settings.colors": "Renkler",
   "monitoring.settings.customLabel": "Özel etiket",
   "monitoring.settings.description": "Pano genelinde hangi GPU'nun istatistiklerinin gösterileceğini seçin.",
   "monitoring.settings.design": "Tasarım",

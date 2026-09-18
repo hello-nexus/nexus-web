@@ -74,7 +74,6 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { GaugeValue } from '../panel/widgets/monitoring/gauges/GaugeValue';
 import { pairingPreviewQr } from '../components/common/PairingQr/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
-import { DEFAULT_GAUGE_GRADIENT } from '../panel/theme/gaugeGradient';
 import { DEFAULT_PANEL_SLIDESHOW_INTERVAL } from '../panel/background/panelBackground';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
@@ -113,7 +112,7 @@ import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinne
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
 import { GradientStopsEditor } from '../components/common/GradientStopsEditor/GradientStopsEditor';
-import { MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS, type GaugeGradientStop } from '../panel/theme/gaugeGradient';
+import { DEFAULT_GAUGE_GRADIENT, MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS, type GaugeGradientStop } from '../panel/theme/gaugeGradient';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { LiveFollowControl } from '../components/common/LiveFollowControl/LiveFollowControl';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';

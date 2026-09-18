@@ -2668,6 +2668,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "Накопитель",
   "monitoring.settings.close": "Готово",
+  "monitoring.settings.colors": "Цвета",
   "monitoring.settings.customLabel": "Своя подпись",
   "monitoring.settings.description": "Выберите, статистика какого GPU отображается на всей панели.",
   "monitoring.settings.design": "Дизайн",

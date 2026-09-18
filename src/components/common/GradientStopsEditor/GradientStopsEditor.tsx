@@ -36,6 +36,7 @@ const WHEEL_PLACEMENT: PopoverPlacement = 'top-end';
 
 interface Drag {
   index: number;
+  pointerType: string;
   startX: number;
   startY: number;
   moved: boolean;
@@ -69,6 +70,9 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
   const clampBetweenNeighbours = (list: readonly GaugeGradientStop[], index: number, at: number) => {
     const lo = index > 0 ? list[index - 1].at + MIN_GAP : 0;
     const hi = index < list.length - 1 ? list[index + 1].at - MIN_GAP : 1;
+    // Neighbours closer than the gap (stored data, a very wide bar) leave no
+    // room: hold the stop where it is rather than push it past one of them.
+    if (lo > hi) return list[index].at;
     return Math.max(lo, Math.min(hi, at));
   };
 
@@ -90,6 +94,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
     if (nearest < 0) {
       if (!canAdd) return;
       const at = fractionAt(event.clientX);
+      if (shown.some(stop => Math.abs(stop.at - at) < MIN_GAP)) return;
       const next = [...shown, { at, color: gaugeGradientColorAt(shown, at) }].sort((a, b) => a.at - b.at);
       setSelected(next.findIndex(s => s.at === at));
       onCommit(next);
@@ -98,7 +103,9 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
     // Touching a handle selects it, so the palette is live for whichever stop
     // was last dragged or tapped.
     setSelected(nearest);
-    dragRef.current = { index: nearest, startX: event.clientX, startY: event.clientY, moved: false, removing: false };
+    dragRef.current = {
+      index: nearest, pointerType: event.pointerType, startX: event.clientX, startY: event.clientY, moved: false, removing: false,
+    };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
 
@@ -159,6 +166,9 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
   const handleContextMenu = (event: ReactMouseEvent<HTMLButtonElement>, index: number) => {
     event.preventDefault();
     event.stopPropagation();
+    // Chromium raises contextmenu on a touch press-and-hold too, which is how
+    // a drag starts on a panel; only a real right-click removes.
+    if (dragRef.current && dragRef.current.pointerType !== 'mouse') return;
     removeAt(index);
   };
 

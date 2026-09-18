@@ -25,7 +25,7 @@ import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './ne
 import { formatSensorValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
-import { gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { designSupportsValueColor, gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -339,7 +339,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
     ? value / 100
     : domainMax > domainMin ? Math.max(0, Math.min(1, (rawValue - domainMin) / (domainMax - domainMin))) : 0;
   const gradientId = useId();
-  const coloured = valueColor && !!gaugeGradient && sensorSupportsValueColor(sensor?.type);
+  const coloured = valueColor && !!gaugeGradient && designSupportsValueColor(design) && sensorSupportsValueColor(sensor?.type);
   // Stable identity: the arc gauges memoise their coloured geometry on it, and
   // a fresh object per tick would rebuild forty paths a second.
   const stops = coloured ? gaugeGradient.stops : null;
@@ -363,17 +363,20 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
     gradient,
   };
 
-  const content = <GaugeComponent {...props} />;
+  // The tint rides on an inner layout-less wrapper so the slot's own chrome
+  // (the editor's selection ring) keeps the panel accent.
+  const content = gradeStyle
+    ? <div className={styles.slotPaint} style={gradeStyle}><GaugeComponent {...props} /></div>
+    : <GaugeComponent {...props} />;
 
   if (!onSelect) {
-    return <div className={styles.slot} style={gradeStyle} data-monitoring-slot-index={slotIndex}>{content}</div>;
+    return <div className={styles.slot} data-monitoring-slot-index={slotIndex}>{content}</div>;
   }
 
   return (
     <button
       type="button"
       data-monitoring-slot-index={slotIndex}
-      style={gradeStyle}
       className={`${styles.slot} ${styles.slotSelectable} ${selected ? styles.slotSelected : ''}`}
       aria-pressed={selected}
       aria-label={`Select ${resolvedLabel}`}

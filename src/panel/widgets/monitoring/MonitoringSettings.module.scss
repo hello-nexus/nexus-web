@@ -157,13 +157,6 @@
   &:hover { --select-bg: var(--bg-card-hover); }
 }
 
-// Air around the value-colour controls: the toggle sits under the range
-// buttons and the editor under the toggle, each with room to breathe.
-.valueColor {
-  margin-top: 16px;
-  padding-bottom: 6px;
-}
-
 .gradientBlock {
   display: flex;
   flex-direction: column;

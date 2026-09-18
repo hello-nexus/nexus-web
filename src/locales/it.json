@@ -2634,6 +2634,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "Archiviazione",
   "monitoring.settings.close": "Fine",
+  "monitoring.settings.colors": "Colori",
   "monitoring.settings.customLabel": "Etichetta personalizzata",
   "monitoring.settings.description": "Scegli di quale GPU vengono mostrate le statistiche in tutta la dashboard.",
   "monitoring.settings.design": "Design",

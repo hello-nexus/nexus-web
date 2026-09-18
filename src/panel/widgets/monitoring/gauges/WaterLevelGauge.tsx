@@ -35,8 +35,8 @@ export function WaterLevelGauge({ value, formatted, label, gradient }: GaugeProp
         <div className={styles.container} style={{ width: size, height: size }}>
           <div
             className={styles.fill}
-            // The water keeps its 40% translucency (the scss color-mix) with
-            // the alpha baked into the gradient's stops instead.
+            // The water keeps the scss's translucency with the alpha baked
+            // into the gradient's stops instead of color-mix.
             style={gradient
               ? { height: '100%', background: gaugeGradientCss(gradient.stops, 0, 0.4), clipPath: `inset(${(100 - fillPercent).toFixed(2)}% 0 0 0)` }
               : { height: `${fillPercent}%` }}

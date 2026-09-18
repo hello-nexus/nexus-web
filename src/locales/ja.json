@@ -2634,6 +2634,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "ストレージ",
   "monitoring.settings.close": "完了",
+  "monitoring.settings.colors": "色",
   "monitoring.settings.customLabel": "カスタムラベル",
   "monitoring.settings.description": "ダッシュボード全体で統計を表示する GPU を選択します。",
   "monitoring.settings.design": "デザイン",

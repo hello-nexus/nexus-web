@@ -2634,6 +2634,7 @@
   "monitoring.settings.category.smart": "SSD SMART",
   "monitoring.settings.category.storage": "存储",
   "monitoring.settings.close": "完成",
+  "monitoring.settings.colors": "颜色",
   "monitoring.settings.customLabel": "自定义标签",
   "monitoring.settings.description": "选择在整个仪表盘中显示统计数据的 GPU。",
   "monitoring.settings.design": "外观",

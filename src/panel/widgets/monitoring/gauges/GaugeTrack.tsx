@@ -18,7 +18,8 @@ interface GaugeTrackProps {
 //
 // Graded, the fill spans the whole track and is clipped to the reading instead
 // of being sized to it, so the ramp stays pinned to the scale: the hot end sits
-// at the same place on the track whatever the reading is.
+// at the same place on the track whatever the reading is. The clip also cuts
+// the fill's glow at the leading edge.
 export function GaugeTrack({ fillPercent, className, gradient }: GaugeTrackProps) {
   const clamped = Math.max(0, Math.min(100, fillPercent));
   const style: CSSProperties = gradient

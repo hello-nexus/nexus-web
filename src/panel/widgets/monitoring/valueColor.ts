@@ -6,12 +6,18 @@
 
 import { deriveAccentVars } from '../../../lib/settings';
 import { gaugeGradientColorAt, type GaugeGradientStop } from '../../theme/gaugeGradient';
+import type { GaugeDesignKey } from './gauges/types';
 
 /** Sensor types the colouring is offered for: the percent family plus temperature. */
 const COLORABLE_TYPES = new Set(['Load', 'Control', 'Level', 'Temperature']);
 
 export function sensorSupportsValueColor(sensorType: string | undefined): boolean {
   return sensorType !== undefined && COLORABLE_TYPES.has(sensorType);
+}
+
+/** Every design paints from the accent except the plain number. */
+export function designSupportsValueColor(design: GaugeDesignKey): boolean {
+  return design !== 'text';
 }
 
 /** The panel gradient bound to one rendered gauge. */

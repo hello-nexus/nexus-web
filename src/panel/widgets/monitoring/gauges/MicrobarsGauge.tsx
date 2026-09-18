@@ -12,8 +12,8 @@ export function MicrobarsGauge({ formatted, label, history, gradient }: GaugePro
       <div className={styles.barGroup}>
         {bars.map((val, i) => {
           const height = Math.max(4, Math.min(100, val));
-          // A bar takes the gradient's colour at its own sample: the body
-          // keeps the scss's 40% translucency with the alpha baked in.
+          // A bar takes the gradient's colour at its own sample; the body
+          // keeps the scss's translucency with the alpha baked in.
           const color = gradient ? gaugeGradientColorAt(gradient.stops, height / 100) : null;
           return (
             <div

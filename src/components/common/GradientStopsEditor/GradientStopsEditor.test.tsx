@@ -92,6 +92,25 @@ describe('GradientStopsEditor', () => {
     expect(onCommit).toHaveBeenCalledWith([STOPS[0], STOPS[2]]);
   });
 
+  it('a touch press-and-hold does not remove: only a mouse right-click does', () => {
+    const { onCommit, bar } = mount();
+    fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1, pointerType: 'touch' });
+    fireEvent.contextMenu(screen.getAllByRole('button', { name: 'gradientEditor.stop' })[1]);
+    fireEvent.pointerUp(bar, { clientX: 100, clientY: 16, pointerId: 1, pointerType: 'touch' });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it('will not add a stop within the minimum gap of an existing one', () => {
+    // A 2000px bar: the handle hit box (18px) is narrower than the gap (2% = 40px),
+    // so a press 30px from a handle misses it and would otherwise add.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 2000, bottom: 32, width: 2000, height: 32, toJSON: () => ({}),
+    } as DOMRect);
+    const { onCommit, bar } = mount();
+    fireEvent.pointerDown(bar, { clientX: 1000 - 30, clientY: 16, button: 0, pointerId: 1 });
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('right-click does nothing at the minimum', () => {
     const { onCommit } = mount({ stops: [STOPS[0], STOPS[2]] });
     fireEvent.contextMenu(screen.getAllByRole('button', { name: 'gradientEditor.stop' })[1]);

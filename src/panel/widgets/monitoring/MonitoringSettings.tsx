@@ -26,7 +26,7 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsRange, staticMaxForDevice, type ScaleMode } from '../monitoring/perfDomain';
-import { sensorSupportsValueColor } from '../monitoring/valueColor';
+import { designSupportsValueColor, sensorSupportsValueColor } from '../monitoring/valueColor';
 import { usePanelGaugeGradient } from '../common/PanelGaugeGradientContext';
 import { GradientStopsEditor } from '../../../components/common/GradientStopsEditor/GradientStopsEditor';
 import {
@@ -523,18 +523,19 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               </div>
             </div>
           )}
-          {microSupportsValueColor && (
-            <div className={styles.valueColor}>
-              <SettingsToggle
-                label={t('monitoring.settings.valueColor')}
-                description={t('monitoring.settings.valueColorHint')}
-                checked={microValueColor}
-                onChange={next => onUpdate({ micro_valueColor: next })}
-              />
-              {microValueColor && <GaugeGradientSection />}
-            </div>
-          )}
         </SettingsSection>
+
+        {microSupportsValueColor && (
+          <SettingsSection title={t('monitoring.settings.colors')}>
+            <SettingsToggle
+              label={t('monitoring.settings.valueColor')}
+              description={t('monitoring.settings.valueColorHint')}
+              checked={microValueColor}
+              onChange={next => onUpdate({ micro_valueColor: next })}
+            />
+            {microValueColor && <GaugeGradientSection />}
+          </SettingsSection>
+        )}
       </div>
     );
   }
@@ -645,17 +646,18 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                   </div>
                 </div>
               )}
-              {sensorSupportsValueColor(activeSensor?.type) && (
-                <div className={styles.valueColor}>
-                  <SettingsToggle
-                    label={t('monitoring.settings.valueColor')}
-                    description={t('monitoring.settings.valueColorHint')}
-                    checked={slotValueColor}
-                    onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
-                  />
-                  {slotValueColor && <GaugeGradientSection />}
-                </div>
-              )}
+            </SettingsSection>
+          )}
+
+          {sensorSupportsValueColor(activeSensor?.type) && designSupportsValueColor(activeConfig.design) && (
+            <SettingsSection title={t('monitoring.settings.colors')}>
+              <SettingsToggle
+                label={t('monitoring.settings.valueColor')}
+                description={t('monitoring.settings.valueColorHint')}
+                checked={slotValueColor}
+                onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
+              />
+              {slotValueColor && <GaugeGradientSection />}
             </SettingsSection>
           )}
         </>
