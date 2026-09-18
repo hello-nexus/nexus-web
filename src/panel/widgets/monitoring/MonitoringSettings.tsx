@@ -486,17 +486,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
         </SettingsSection>
 
         <SettingsSection title={t('monitoring.settings.range')}>
-          <div className={styles.scaleRow}>
-            {SCALE_OPTIONS.map(opt => (
-              <IconLabelButton
-                key={opt.value}
-                className={styles.scaleBtn}
-                active={opt.value === microScale}
-                label={t(opt.labelKey)}
-                onPress={() => onUpdate({ micro_scale: opt.value })}
-              />
-            ))}
-          </div>
+          <ChipGroup
+            fullWidth
+            ariaLabel={t('monitoring.settings.range')}
+            activeKey={microScale}
+            onChange={v => onUpdate({ micro_scale: v })}
+            options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+          />
           {microScale === 'fixed' && microCanType && (
             <div className={styles.rangeRow}>
               <div className={styles.rangeField}>
@@ -609,17 +605,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
 
           {designSupportsRange(activeConfig.design) && (
             <SettingsSection title={t('monitoring.settings.range')}>
-              <div className={styles.scaleRow}>
-                {SCALE_OPTIONS.map(opt => (
-                  <IconLabelButton
-                    key={opt.value}
-                    className={styles.scaleBtn}
-                    active={opt.value === activeConfig.scale}
-                    label={t(opt.labelKey)}
-                    onPress={() => onUpdate({ [`slot${activeSlot}_scale`]: opt.value })}
-                  />
-                ))}
-              </div>
+              <ChipGroup
+                fullWidth
+                ariaLabel={t('monitoring.settings.range')}
+                activeKey={activeConfig.scale}
+                onChange={v => onUpdate({ [`slot${activeSlot}_scale`]: v })}
+                options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+              />
               {activeConfig.scale === 'fixed' && canEditFreeText(surface, desktopEditor) && (
                 <div className={styles.rangeRow}>
                   <div className={styles.rangeField}>

@@ -14,8 +14,9 @@
   --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
   --icon-label-button-active-border: var(--panel-accent);
-  --icon-label-button-active-bg: var(--panel-accent-soft);
-  --icon-label-button-active-text: var(--panel-accent-glow);
+  // Solid accent ON state, matching the Range/Label chips on the same page.
+  --icon-label-button-active-bg: var(--accent);
+  --icon-label-button-active-text: var(--accent-text);
   --icon-label-icon-size: 18px;
   --icon-label-label-size: 9.5px;
 
@@ -51,18 +52,6 @@
 .microDesignBtn {
   --icon-label-icon-size: 24px;
   --icon-label-button-height: 46px;
-}
-
-.scaleRow {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-}
-
-.scaleBtn {
-  width: 100%;
-  min-width: 0;
-  --icon-label-button-height: 36px;
 }
 
 .rangeRow {
