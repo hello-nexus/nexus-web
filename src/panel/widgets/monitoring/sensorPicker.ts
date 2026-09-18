@@ -7,7 +7,7 @@ import type { useSensorExtras } from '../../../hooks/useSensorExtras';
 import type { buildNetworkSensors } from './networkSensors';
 import { networkSensorOptions } from './networkSensors';
 import { bareSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, igpuSensors, sensorsForCategory, smartStorageSensors } from './sensorCategories';
+import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, sensorsForCategory, smartStorageSensors } from './sensorCategories';
 import type { DeviceKey } from './perfSlots';
 
 export interface SensorOption {
@@ -17,13 +17,13 @@ export interface SensorOption {
 }
 
 // Picker order: the Tryx-shared categories (SENSOR_CATEGORIES, quick through
-// fps) interleaved with their related widget-only categories (iGPU next to
-// GPU, SSD SMART next to Storage, DIMMs next to Memory), then the remaining
-// extras-topic groups. 'fan' is never offered here (see perfSlots' DeviceKey
-// doc). 'igpu' is hidden by visibleDeviceKeys whenever the box has no
-// integrated card beside the primary GPU.
+// fps) interleaved with their related widget-only categories (GPU 2 and iGPU
+// next to GPU, SSD SMART next to Storage, DIMMs next to Memory), then the
+// remaining extras-topic groups. 'fan' is never offered here (see perfSlots'
+// DeviceKey doc). visibleDeviceKeys hides 'gpu2' and 'igpu' whenever the box
+// has no second discrete card / no integrated card beside the primary GPU.
 export const DEVICE_OPTION_KEYS: readonly DeviceKey[] = [
-  'quick', 'cpu', 'gpu', 'igpu', 'memory', 'memoryModule', 'motherboard',
+  'quick', 'cpu', 'gpu', 'gpu2', 'igpu', 'memory', 'memoryModule', 'motherboard',
   'storage', 'smart', 'network', 'fps',
   'battery', 'cooler', 'psu', 'embeddedController',
 ];
@@ -32,6 +32,7 @@ export const CATEGORY_LABEL_KEYS: Record<DeviceKey, string> = {
   quick: 'monitoring.settings.category.quick',
   cpu: 'monitoring.settings.category.cpu',
   gpu: 'monitoring.settings.category.gpu',
+  gpu2: 'monitoring.settings.category.gpu2',
   igpu: 'monitoring.settings.category.igpu',
   memory: 'monitoring.settings.category.memory',
   memoryModule: 'monitoring.settings.category.memoryModule',
@@ -86,8 +87,9 @@ export function sensorsForDevice(
     case 'storage':
       options = sensorsForCategory('storage', sensors, networkSensors, []).map(s => ({ value: s.id, label: s.name, sensorName: s.name }));
       break;
+    case 'gpu2':
     case 'igpu':
-      options = igpuSensors(sensors).map(s => ({
+      options = (device === 'gpu2' ? gpu2Sensors(sensors) : igpuSensors(sensors)).map(s => ({
         value: s.id,
         label: `${bareSensorLabel(device, s.name) || s.name} (${s.type})`,
         sensorName: s.name,

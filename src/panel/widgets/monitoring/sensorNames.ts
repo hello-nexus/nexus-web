@@ -7,17 +7,18 @@ import type { DeviceKey } from './perfSlots';
 const DEVICE_PREFIXES: Partial<Record<DeviceKey, string>> = {
   cpu: 'CPU',
   gpu: 'GPU',
+  gpu2: 'GPU 2',
   igpu: 'iGPU',
   memory: 'Memory',
   network: 'Network',
 };
 
-// The iGPU's sensors arrive named like any GPU's ("GPU Core"), so its bare
-// form strips that word as well as its own caption.
+// A second card's sensors arrive named like any GPU's ("GPU Core"), so the
+// gpu2/igpu bare forms strip that word as well as their own caption.
 function strippedPrefixes(device: DeviceKey): string[] {
   const prefix = DEVICE_PREFIXES[device];
   if (!prefix) return [];
-  return device === 'igpu' ? [prefix, 'GPU'] : [prefix];
+  return device === 'igpu' || device === 'gpu2' ? [prefix, 'GPU'] : [prefix];
 }
 
 // The sensor name with any leading device-category prefix stripped. Used in

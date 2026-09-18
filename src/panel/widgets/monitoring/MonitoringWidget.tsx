@@ -19,7 +19,7 @@ import type { GaugeDesignKey, GaugeProps } from './gauges';
 import { DEFAULT_DESIGN, DEFAULT_SLOTS, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
-import { extrasSensorsForDevice, igpuSensors, smartStorageSensors } from './sensorCategories';
+import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, smartStorageSensors } from './sensorCategories';
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
@@ -100,8 +100,9 @@ export function resolveSensor(
       return sensors.storageSensors.find(s => s.id === sensorKey)
         ?? sensors.storageSensors.find(s => s.name === sensorKey)
         ?? sensors.storageSensors[0];
+    case 'gpu2':
     case 'igpu': {
-      const list = igpuSensors(sensors);
+      const list = device === 'gpu2' ? gpu2Sensors(sensors) : igpuSensors(sensors);
       return sensorKey
         ? list.find(s => s.id === sensorKey) ?? list.find(s => s.name === sensorKey) ?? list[0]
         : list.find(s => s.name === 'GPU Core' && s.type === 'Load') ?? list[0];
@@ -141,6 +142,7 @@ export function labelForDevice(device: DeviceKey, sensorName: string): string {
     case 'quick': return 'Quick';
     case 'cpu': return 'CPU';
     case 'gpu': return 'GPU';
+    case 'gpu2': return 'GPU 2';
     case 'igpu': return 'iGPU';
     case 'memory': return 'RAM';
     case 'motherboard': return 'MB';
