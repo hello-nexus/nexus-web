@@ -131,6 +131,15 @@ async function cmdDev(appDir, opts) {
 const ARRAY_CAPS = new Set(['net.fetch', 'sensors.read', 'dispatch']);
 const BOOL_CAPS = new Set(['rgb.read', 'rgb.write', 'config']);
 
+// Mirrors PANEL_SURFACES / PANEL_WIDGET_SIZES in nexus-web/src/panel/types.ts.
+// A surface outside this set only warns, so a manifest naming one this CLI has
+// not learned yet still publishes.
+const KNOWN_SURFACES = new Set([
+  'y70', 'q60', 'phone', 'desktop', 'monitor', 'kraken',
+  'lcd-round', 'lcd-square', 'lcd-wide',
+]);
+const KNOWN_SIZES = new Set(['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round']);
+
 function cmdValidate(appDir) {
   const dir = abs(appDir);
   const errors = [], warns = [];
@@ -149,6 +158,35 @@ function cmdValidate(appDir) {
       if (typeof m.version !== 'string' || !/^\d+\.\d+\.\d+/.test(m.version)) errors.push('manifest.version must be semver (e.g. 0.1.0)');
       if (m.runtime != null && m.runtime !== 'sdk') warns.push('manifest.runtime should be "sdk"');
       if (m.page != null && typeof m.page !== 'boolean') errors.push('manifest.page must be a boolean');
+      if (m.surfaces != null) {
+        if (!Array.isArray(m.surfaces)) errors.push('manifest.surfaces must be an array');
+        else for (const x of m.surfaces) {
+          // 'dashboard' predates the panel-surface vocabulary and still means
+          // "the desktop dashboard"; the service keeps honouring it.
+          if (typeof x !== 'string') errors.push('manifest.surfaces entries must be strings');
+          else if (x !== 'dashboard' && !KNOWN_SURFACES.has(x)) warns.push(`unknown surface "${x}" (known: ${[...KNOWN_SURFACES].join(', ')})`);
+        }
+      }
+      if (m.sizes != null) {
+        if (!Array.isArray(m.sizes)) errors.push('manifest.sizes must be an array');
+        else for (const x of m.sizes) {
+          if (typeof x !== 'string') errors.push('manifest.sizes entries must be strings');
+          else if (!KNOWN_SIZES.has(x)) errors.push(`unknown size "${x}" (known: ${[...KNOWN_SIZES].join(', ')})`);
+        }
+      }
+      if (m.default_size != null && Array.isArray(m.sizes) && !m.sizes.includes(m.default_size)) {
+        errors.push(`manifest.default_size "${m.default_size}" is not one of manifest.sizes`);
+      }
+      if (m.settings != null) {
+        if (!Array.isArray(m.settings)) errors.push('manifest.settings must be an array');
+        else m.settings.forEach((entry, i) => {
+          if (entry == null || typeof entry !== 'object' || Array.isArray(entry)) { errors.push(`settings[${i}] must be an object`); return; }
+          if (typeof entry.key !== 'string' || !entry.key) errors.push(`settings[${i}].key is required`);
+          if (typeof entry.type !== 'string' || !entry.type) errors.push(`settings[${i}].type is required`);
+          if (typeof entry.label !== 'string' || !entry.label) warns.push(`settings[${i}].label is missing`);
+        });
+      }
+      if (m.listed != null && typeof m.listed !== 'boolean') errors.push('manifest.listed must be a boolean');
       if (m.capabilities != null) {
         if (typeof m.capabilities !== 'object' || Array.isArray(m.capabilities)) errors.push('manifest.capabilities must be an object');
         else for (const [k, v] of Object.entries(m.capabilities)) {
