@@ -58,19 +58,27 @@ describe('GradientStopsEditor', () => {
     expect(onPreview.mock.calls.at(-1)?.[0][1].at).toBeCloseTo(0.98);
   });
 
-  it('removes a handle dragged off the bar', () => {
+  it('removes a handle dragged out past either end of the bar', () => {
     const { onCommit, bar } = mount();
     fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1 });
-    fireEvent.pointerMove(bar, { clientX: 100, clientY: 90, pointerId: 1 });
-    fireEvent.pointerUp(bar, { clientX: 100, clientY: 90, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: 260, clientY: 16, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 260, clientY: 16, pointerId: 1 });
     expect(onCommit).toHaveBeenCalledWith([STOPS[0], STOPS[2]]);
+  });
+
+  it('a drag to the very end of the bar is a move, not a removal', () => {
+    const { onCommit, bar } = mount();
+    fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: 215, clientY: 16, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 215, clientY: 16, pointerId: 1 });
+    expect(onCommit.mock.calls.at(-1)?.[0]).toHaveLength(3);
   });
 
   it('never removes below the minimum: the drag is just a move', () => {
     const { onCommit, bar } = mount({ stops: [STOPS[0], STOPS[2]] });
     fireEvent.pointerDown(bar, { clientX: 0, clientY: 16, button: 0, pointerId: 1 });
-    fireEvent.pointerMove(bar, { clientX: 0, clientY: 90, pointerId: 1 });
-    fireEvent.pointerUp(bar, { clientX: 0, clientY: 90, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: -120, clientY: 16, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: -120, clientY: 16, pointerId: 1 });
     expect(onCommit.mock.calls.at(-1)?.[0]).toHaveLength(2);
   });
 

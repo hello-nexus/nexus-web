@@ -2564,7 +2564,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'GradientStopsEditor', category: 'editable',
     filePath: 'src/components/common/GradientStopsEditor/GradientStopsEditor.tsx',
-    description: 'Touch-first gradient editor: drag a handle to move a stop, drag it off the bar to remove it, tap it to recolour through the shared preset picker, tap empty bar to add one. Backs the per-panel monitoring gauge gradient.',
+    description: 'Touch-first gradient editor: drag a handle to move a stop, drag it out past either end to remove it, tap it to recolour through the shared preset picker, tap empty bar to add one. Backs the per-panel monitoring gauge gradient.',
     Preview: PreviewGradientStopsEditor,
   },
   {

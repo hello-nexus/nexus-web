@@ -33,7 +33,7 @@
   border-radius: var(--radius-pill);
   background: var(--stop-color);
   box-shadow: var(--shadow-sm);
-  transform: translate(-50%, calc(-50% + var(--lift, 0px)));
+  transform: translate(-50%, -50%);
   cursor: grab;
   touch-action: none;
 
@@ -51,8 +51,9 @@
 }
 
 .handleRemoving {
-  opacity: 0.45;
+  opacity: 0.35;
   border-style: dashed;
+  transform: translate(-50%, -50%) scale(0.85);
 }
 
 .labels {

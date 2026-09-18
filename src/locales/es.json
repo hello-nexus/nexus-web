@@ -2615,7 +2615,7 @@
   "monitoring.settings.description": "Elige de qué GPU se muestran las estadísticas en todo el panel.",
   "monitoring.settings.design": "Diseño",
   "monitoring.settings.device": "Dispositivo",
-  "monitoring.settings.gradientHint": "Compartido por todos los widgets de monitorización de este panel. Toca la barra para añadir un color y arrastra un color fuera de la barra para quitarlo.",
+  "monitoring.settings.gradientHint": "Compartido en todo el panel. Toca para añadir un color, arrastra uno más allá del extremo para quitarlo.",
   "monitoring.settings.gradientReset": "Restablecer colores",
   "monitoring.settings.label": "Etiqueta",
   "monitoring.settings.labelAuto": "Auto",

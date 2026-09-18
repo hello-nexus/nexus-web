@@ -21,8 +21,9 @@ export interface GradientStopsEditorProps {
 
 // Pointer travel (px) before a press counts as a drag rather than a tap.
 const TAP_SLOP = 6;
-// Vertical travel (px) off the bar that removes the dragged stop on release.
-const REMOVE_DISTANCE = 44;
+// Pointer travel (px) past either end of the bar that removes the dragged
+// stop on release. Far enough that a drag to the very end does not remove.
+const REMOVE_OVERSHOOT = 48;
 // Half the handle's hit width (px); a press this close to a handle grabs it.
 const HANDLE_HIT = 18;
 // Neighbouring stops keep at least this much of the scale between them, so a
@@ -35,14 +36,13 @@ interface Drag {
   startY: number;
   moved: boolean;
   removing: boolean;
-  dy: number;
 }
 
 /**
  * Touch-first gradient editor: a bar painted with the stops, one handle per
- * stop. Drag a handle along the bar to move it, drag it off the bar to remove
- * it, tap it to recolour it (the shared preset picker opens underneath), tap
- * empty bar to add a stop with the colour already there.
+ * stop. Drag a handle along the bar to move it, drag it out past either end to
+ * remove it, tap it to recolour it (the shared preset picker opens underneath),
+ * tap empty bar to add a stop with the colour already there.
  */
 export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxStops, className }: GradientStopsEditorProps) {
   const { t } = useTranslation();
@@ -90,7 +90,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
       onCommit(next);
       return;
     }
-    dragRef.current = { index: nearest, startX: event.clientX, startY: event.clientY, moved: false, removing: false, dy: 0 };
+    dragRef.current = { index: nearest, startX: event.clientX, startY: event.clientY, moved: false, removing: false };
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
 
@@ -101,13 +101,14 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
     const dy = event.clientY - drag.startY;
     if (!drag.moved && Math.abs(dx) < TAP_SLOP && Math.abs(dy) < TAP_SLOP) return;
     drag.moved = true;
-    drag.dy = dy;
-    drag.removing = canRemove && Math.abs(dy) >= REMOVE_DISTANCE;
+    const rect = trackRef.current?.getBoundingClientRect();
+    const overshoot = rect
+      ? Math.max(rect.left - event.clientX, event.clientX - rect.right)
+      : 0;
+    drag.removing = canRemove && overshoot >= REMOVE_OVERSHOOT;
     const at = clampBetweenNeighbours(shown, drag.index, fractionAt(event.clientX));
     const next = shown.map((stop, i) => (i === drag.index ? { ...stop, at } : stop));
     setDraft(next);
-    // Force a re-render for the lift-off transform even when `at` is pinned.
-    setSelected(prev => prev);
     onPreview(next);
   };
 
@@ -168,18 +169,13 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
         aria-label={t('gradientEditor.bar')}
       >
         {shown.map((stop, i) => {
-          const lifting = drag?.index === i && drag.moved ? drag.dy : 0;
           const removing = drag?.index === i && drag.removing;
           return (
             <button
               key={i}
               type="button"
               className={`${styles.handle} ${selected === i ? styles.handleSelected : ''} ${removing ? styles.handleRemoving : ''}`}
-              style={{
-                left: `${stop.at * 100}%`,
-                '--stop-color': stop.color,
-                '--lift': `${lifting}px`,
-              } as CSSProperties}
+              style={{ left: `${stop.at * 100}%`, '--stop-color': stop.color } as CSSProperties}
               aria-label={t('gradientEditor.stop', { percent: Math.round(stop.at * 100) })}
               aria-pressed={selected === i}
               onKeyDown={event => handleKeyDown(event, i)}

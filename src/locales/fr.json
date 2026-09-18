@@ -2615,7 +2615,7 @@
   "monitoring.settings.description": "Choisissez le GPU dont les statistiques apparaissent dans tout le tableau de bord.",
   "monitoring.settings.design": "Apparence",
   "monitoring.settings.device": "Appareil",
-  "monitoring.settings.gradientHint": "Partagé par tous les widgets de surveillance de ce panneau. Touchez la barre pour ajouter une couleur, faites glisser une couleur hors de la barre pour la retirer.",
+  "monitoring.settings.gradientHint": "Partagé sur tout le panneau. Touchez pour ajouter une couleur, faites-en glisser une au-delà du bout pour la retirer.",
   "monitoring.settings.gradientReset": "Réinitialiser les couleurs",
   "monitoring.settings.label": "Étiquette",
   "monitoring.settings.labelAuto": "Auto",

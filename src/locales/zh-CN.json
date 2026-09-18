@@ -2615,7 +2615,7 @@
   "monitoring.settings.description": "选择在整个仪表盘中显示统计数据的 GPU。",
   "monitoring.settings.design": "外观",
   "monitoring.settings.device": "设备",
-  "monitoring.settings.gradientHint": "此面板上的所有监控小组件共用。点按色条可添加颜色，将颜色拖离色条可将其移除。",
+  "monitoring.settings.gradientHint": "此面板通用。点按可添加颜色，拖出末端可将其移除。",
   "monitoring.settings.gradientReset": "重置颜色",
   "monitoring.settings.label": "标签",
   "monitoring.settings.labelAuto": "自动",

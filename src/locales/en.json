@@ -2615,7 +2615,7 @@
   "monitoring.settings.description": "Choose which GPU's stats appear across the dashboard.",
   "monitoring.settings.design": "Design",
   "monitoring.settings.device": "Device",
-  "monitoring.settings.gradientHint": "Shared by every monitoring widget on this panel. Tap the bar to add a color, drag a color off the bar to remove it.",
+  "monitoring.settings.gradientHint": "Shared across this panel. Tap to add a color, drag one past the end to remove it.",
   "monitoring.settings.gradientReset": "Reset colors",
   "monitoring.settings.label": "Label",
   "monitoring.settings.labelAuto": "Auto",

@@ -2649,7 +2649,7 @@
   "monitoring.settings.description": "Выберите, статистика какого GPU отображается на всей панели.",
   "monitoring.settings.design": "Дизайн",
   "monitoring.settings.device": "Устройство",
-  "monitoring.settings.gradientHint": "Общее для всех виджетов мониторинга на этой панели. Нажмите на полосу, чтобы добавить цвет, и перетащите цвет за пределы полосы, чтобы удалить его.",
+  "monitoring.settings.gradientHint": "Общее для всей панели. Нажмите, чтобы добавить цвет, перетащите за край, чтобы удалить.",
   "monitoring.settings.gradientReset": "Сбросить цвета",
   "monitoring.settings.label": "Подпись",
   "monitoring.settings.labelAuto": "Авто",
