@@ -33,6 +33,19 @@ describe('ColorPickerWithPresets', () => {
     expect(slot).not.toHaveAttribute('aria-pressed');
   });
 
+  it('renders the extra swatch as a pressed tile that owns the selection', () => {
+    const onSelect = vi.fn();
+    const extra = { color: '#abcdef', label: 'Accent', selected: true, onSelect };
+    render(<ColorPickerWithPresets value="#111111" presets={PRESETS} onCommit={vi.fn()} allowCustom extraSwatch={extra} />);
+    const swatch = screen.getByLabelText('Accent');
+    expect(swatch).toHaveAttribute('aria-pressed', 'true');
+    expect(swatch.style.background).toBe('rgb(171, 205, 239)');
+    expect(screen.getByLabelText('#111111')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByLabelText('common.customColor')).not.toHaveAttribute('aria-current', 'true');
+    fireEvent.click(swatch);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
   it('renders no custom slot unless allowCustom is set', () => {
     render(<ColorPickerWithPresets value="#111111" presets={PRESETS} onCommit={vi.fn()} />);
     expect(screen.queryByLabelText('common.customColor')).toBeNull();

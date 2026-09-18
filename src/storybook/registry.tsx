@@ -1944,6 +1944,7 @@ function PreviewGradientStopsEditor() {
     <div style={{ width: 360 }}>
       <GradientStopsEditor
         stops={stops}
+        accent={DEFAULT_ACCENT}
         onPreview={setStops}
         onCommit={setStops}
         minStops={MIN_GAUGE_GRADIENT_STOPS}

@@ -1495,6 +1495,7 @@
   "gallery.settings.single": "Unique",
   "gallery.settings.slideshow": "Diaporama",
   "gallery.settings.title": "Lecture",
+  "gradientEditor.accent": "Couleur d'accentuation",
   "gradientEditor.bar": "Couleurs de la jauge",
   "gradientEditor.stop": "Point de couleur à {percent} %",
   "hello.first": "Salut !",
