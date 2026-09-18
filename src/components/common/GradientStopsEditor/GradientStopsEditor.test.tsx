@@ -82,12 +82,16 @@ describe('GradientStopsEditor', () => {
     expect(onCommit.mock.calls.at(-1)?.[0]).toHaveLength(2);
   });
 
-  it('opens the shared picker for a tapped handle and recolours through it', () => {
+  it('keeps the palette in place but inert until a handle is tapped, then recolours through it', () => {
     const { onCommit, bar } = mount();
-    expect(screen.queryByRole('button', { name: '#ef4444' })).toBeNull();
+    const swatch = screen.getByRole('button', { name: '#ef4444' });
+    expect(swatch).toBeDisabled();
+    fireEvent.click(swatch);
+    expect(onCommit).not.toHaveBeenCalled();
     fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1 });
     fireEvent.pointerUp(bar, { clientX: 100, clientY: 16, pointerId: 1 });
-    fireEvent.click(screen.getByRole('button', { name: '#ef4444' }));
+    expect(swatch).toBeEnabled();
+    fireEvent.click(swatch);
     expect(onCommit).toHaveBeenCalledWith([STOPS[0], { at: 0.5, color: '#ef4444' }, STOPS[2]]);
   });
 

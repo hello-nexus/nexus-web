@@ -2649,7 +2649,6 @@
   "monitoring.settings.description": "Wybierz, którego GPU statystyki są wyświetlane na całym pulpicie.",
   "monitoring.settings.design": "Wygląd",
   "monitoring.settings.device": "Urządzenie",
-  "monitoring.settings.gradientHint": "Wspólne dla całego panelu. Dotknij, aby dodać kolor, przeciągnij poza koniec, aby usunąć.",
   "monitoring.settings.gradientReset": "Resetuj kolory",
   "monitoring.settings.label": "Etykieta",
   "monitoring.settings.labelAuto": "Auto",

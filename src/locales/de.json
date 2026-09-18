@@ -2615,7 +2615,6 @@
   "monitoring.settings.description": "Wähle, welche GPU-Werte im gesamten Dashboard angezeigt werden.",
   "monitoring.settings.design": "Design",
   "monitoring.settings.device": "Gerät",
-  "monitoring.settings.gradientHint": "Gilt für das ganze Panel. Tippen fügt eine Farbe hinzu, über das Ende hinausziehen entfernt sie.",
   "monitoring.settings.gradientReset": "Farben zurücksetzen",
   "monitoring.settings.label": "Beschriftung",
   "monitoring.settings.labelAuto": "Auto",

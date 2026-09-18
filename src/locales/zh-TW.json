@@ -2615,7 +2615,6 @@
   "monitoring.settings.description": "選擇要在整個儀表板中顯示統計資料的 GPU。",
   "monitoring.settings.design": "設計",
   "monitoring.settings.device": "裝置",
-  "monitoring.settings.gradientHint": "此面板通用。點一下可新增顏色，拖出末端即可移除。",
   "monitoring.settings.gradientReset": "重設顏色",
   "monitoring.settings.label": "標籤",
   "monitoring.settings.labelAuto": "自動",

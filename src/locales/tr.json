@@ -2615,7 +2615,6 @@
   "monitoring.settings.description": "Pano genelinde hangi GPU'nun istatistiklerinin gösterileceğini seçin.",
   "monitoring.settings.design": "Tasarım",
   "monitoring.settings.device": "Cihaz",
-  "monitoring.settings.gradientHint": "Bu panelin tamamında ortaktır. Renk eklemek için dokunun, kaldırmak için ucun dışına sürükleyin.",
   "monitoring.settings.gradientReset": "Renkleri sıfırla",
   "monitoring.settings.label": "Etiket",
   "monitoring.settings.labelAuto": "Otomatik",

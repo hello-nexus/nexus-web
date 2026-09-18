@@ -41,8 +41,9 @@ interface Drag {
 /**
  * Touch-first gradient editor: a bar painted with the stops, one handle per
  * stop. Drag a handle along the bar to move it, drag it out past either end to
- * remove it, tap it to recolour it (the shared preset picker opens underneath),
- * tap empty bar to add a stop with the colour already there.
+ * remove it, tap it to recolour it through the preset picker underneath (greyed
+ * out until a stop is picked), tap empty bar to add a stop with the colour
+ * already there.
  */
 export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxStops, className }: GradientStopsEditorProps) {
   const { t } = useTranslation();
@@ -193,16 +194,16 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
           </span>
         ))}
       </div>
-      {selected !== null && selected < shown.length && (
-        <ColorPickerWithPresets
-          className={styles.picker}
-          value={shown[selected].color}
-          presets={PRESET_ACCENTS}
-          allowCustom
-          onPreview={hex => recolour(hex, false)}
-          onCommit={hex => recolour(hex, true)}
-        />
-      )}
+      <ColorPickerWithPresets
+        className={styles.picker}
+        value={selected !== null && selected < shown.length ? shown[selected].color : ''}
+        presets={PRESET_ACCENTS}
+        allowCustom
+        // Always in place so the sheet does not jump; live once a stop is tapped.
+        disabled={selected === null || selected >= shown.length}
+        onPreview={hex => recolour(hex, false)}
+        onCommit={hex => recolour(hex, true)}
+      />
     </div>
   );
 }

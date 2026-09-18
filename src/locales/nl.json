@@ -2615,7 +2615,6 @@
   "monitoring.settings.description": "Kies welke GPU-statistieken overal op het dashboard verschijnen.",
   "monitoring.settings.design": "Ontwerp",
   "monitoring.settings.device": "Apparaat",
-  "monitoring.settings.gradientHint": "Gedeeld op dit hele paneel. Tik om een kleur toe te voegen, sleep er een voorbij het uiteinde om die te verwijderen.",
   "monitoring.settings.gradientReset": "Kleuren herstellen",
   "monitoring.settings.label": "Label",
   "monitoring.settings.labelAuto": "Automatisch",

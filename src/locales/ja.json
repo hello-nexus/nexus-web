@@ -2615,7 +2615,6 @@
   "monitoring.settings.description": "ダッシュボード全体で統計を表示する GPU を選択します。",
   "monitoring.settings.design": "デザイン",
   "monitoring.settings.device": "デバイス",
-  "monitoring.settings.gradientHint": "このパネル全体で共有。タップで色を追加、端の外までドラッグで削除します。",
   "monitoring.settings.gradientReset": "色をリセット",
   "monitoring.settings.label": "ラベル",
   "monitoring.settings.labelAuto": "自動",

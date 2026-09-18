@@ -39,6 +39,8 @@ export interface ColorPickerWithPresetsProps {
   customColor?: string;
   /** Persist the custom slot. Called alongside onCommit, never on preview. */
   onCustomCommit?: (hex: string) => void;
+  /** Greyed out, nothing selected, nothing clickable; the grid keeps its place. */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -51,6 +53,7 @@ export function ColorPickerWithPresets({
   allowCustom,
   customColor,
   onCustomCommit,
+  disabled = false,
   className,
 }: ColorPickerWithPresetsProps) {
   const { t } = useTranslation();
@@ -58,7 +61,8 @@ export function ColorPickerWithPresets({
   const slotRef = useRef<HTMLDivElement>(null);
 
   const normalized = (value || fallback || presets[0] || '#000000').toLowerCase();
-  const isPreset = presets.some(hex => hex.toLowerCase() === normalized);
+  // Disabled shows no selection at all: a highlighted tile would read as a pick.
+  const isPreset = !disabled && presets.some(hex => hex.toLowerCase() === normalized);
   // An off-palette value IS the custom color right now, and it lands on preview,
   // a whole gesture before onCustomCommit does.
   const slotColor = (isPreset ? customColor?.toLowerCase() : normalized) || '';
@@ -80,6 +84,8 @@ export function ColorPickerWithPresets({
   return (
     <div
       className={`${styles.root} ${className ?? ''}`}
+      data-disabled={disabled || undefined}
+      aria-disabled={disabled || undefined}
       style={{
         maxWidth: `calc(${columns} * var(--swatch-size-cap) + ${columns - 1} * var(--swatch-gap))`,
       }}
@@ -89,13 +95,14 @@ export function ColorPickerWithPresets({
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {presets.map(hex => {
-          const selected = hex.toLowerCase() === normalized;
+          const selected = !disabled && hex.toLowerCase() === normalized;
           return (
             <button
               key={hex}
               type="button"
               className={`${styles.swatch} ${selected ? styles.swatchSelected : ''}`}
               style={{ background: hex }}
+              disabled={disabled}
               onClick={() => onCommit(hex)}
               aria-label={hex}
               aria-pressed={selected}
@@ -110,8 +117,9 @@ export function ColorPickerWithPresets({
           >
             <button
               type="button"
-              className={`${styles.swatch} ${styles.customSwatch} ${!isPreset ? styles.swatchSelected : ''}`}
+              className={`${styles.swatch} ${styles.customSwatch} ${!disabled && !isPreset ? styles.swatchSelected : ''}`}
               style={slotColor ? { background: slotColor, color: contrastTextOn(slotColor) } : undefined}
+              disabled={disabled}
               onClick={handleSlotClick}
               aria-label={t('common.customColor')}
               aria-haspopup="dialog"

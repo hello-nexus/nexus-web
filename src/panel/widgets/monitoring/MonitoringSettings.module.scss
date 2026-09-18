@@ -157,23 +157,22 @@
   &:hover { --select-bg: var(--bg-card-hover); }
 }
 
+// Air around the value-colour controls: the toggle sits under the range
+// buttons and the editor under the toggle, each with room to breathe.
+.valueColor {
+  margin-top: 16px;
+  padding-bottom: 6px;
+}
+
 .gradientBlock {
   display: flex;
   flex-direction: column;
-  margin-top: 8px;
+  margin-top: 18px;
 
-  @include vgap(8px);
+  @include vgap(10px);
 }
 
 .gradientFooter {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-
-  @include hgap(12px);
-
-  > :first-child {
-    flex: 1;
-    min-width: 0;
-  }
+  justify-content: flex-end;
 }

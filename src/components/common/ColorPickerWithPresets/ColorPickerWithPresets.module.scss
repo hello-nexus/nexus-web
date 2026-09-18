@@ -6,6 +6,11 @@
   --swatch-size-cap: 38px;
   --swatch-gap: 0.3rem;
 
+  &[data-disabled] {
+    opacity: var(--alpha-medium);
+    pointer-events: none;
+  }
+
   display: flex;
   flex-direction: column;
   gap: 0.75rem;

@@ -38,7 +38,7 @@ import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
 import {
   CATEGORY_LABEL_KEYS, DEVICE_OPTION_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys,
 } from '../monitoring/sensorPicker';
-import { SettingsSection, SettingsRow, SettingsToggle, SettingsButton, SettingsHint } from '../common/SettingsRow/SettingsRow';
+import { SettingsSection, SettingsRow, SettingsToggle, SettingsButton } from '../common/SettingsRow/SettingsRow';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import styles from './MonitoringSettings.module.scss';
@@ -60,7 +60,6 @@ function GaugeGradientSection() {
         maxStops={MAX_GAUGE_GRADIENT_STOPS}
       />
       <div className={styles.gradientFooter}>
-        <SettingsHint>{t('monitoring.settings.gradientHint')}</SettingsHint>
         <SettingsButton variant="muted" disabled={isDefault} onClick={() => commit([...DEFAULT_GAUGE_GRADIENT])}>
           {t('monitoring.settings.gradientReset')}
         </SettingsButton>
@@ -525,14 +524,16 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
             </div>
           )}
           {microSupportsValueColor && (
-            <SettingsToggle
-              label={t('monitoring.settings.valueColor')}
-              description={t('monitoring.settings.valueColorHint')}
-              checked={microValueColor}
-              onChange={next => onUpdate({ micro_valueColor: next })}
-            />
+            <div className={styles.valueColor}>
+              <SettingsToggle
+                label={t('monitoring.settings.valueColor')}
+                description={t('monitoring.settings.valueColorHint')}
+                checked={microValueColor}
+                onChange={next => onUpdate({ micro_valueColor: next })}
+              />
+              {microValueColor && <GaugeGradientSection />}
+            </div>
           )}
-          {microSupportsValueColor && microValueColor && <GaugeGradientSection />}
         </SettingsSection>
       </div>
     );
@@ -645,14 +646,16 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 </div>
               )}
               {sensorSupportsValueColor(activeSensor?.type) && (
-                <SettingsToggle
-                  label={t('monitoring.settings.valueColor')}
-                  description={t('monitoring.settings.valueColorHint')}
-                  checked={slotValueColor}
-                  onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
-                />
+                <div className={styles.valueColor}>
+                  <SettingsToggle
+                    label={t('monitoring.settings.valueColor')}
+                    description={t('monitoring.settings.valueColorHint')}
+                    checked={slotValueColor}
+                    onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
+                  />
+                  {slotValueColor && <GaugeGradientSection />}
+                </div>
               )}
-              {sensorSupportsValueColor(activeSensor?.type) && slotValueColor && <GaugeGradientSection />}
             </SettingsSection>
           )}
         </>

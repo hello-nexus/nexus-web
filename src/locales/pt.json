@@ -2615,7 +2615,6 @@
   "monitoring.settings.description": "Escolha de que GPU são apresentadas as estatísticas em todo o painel.",
   "monitoring.settings.design": "Design",
   "monitoring.settings.device": "Dispositivo",
-  "monitoring.settings.gradientHint": "Partilhado em todo o painel. Toque para adicionar uma cor, arraste uma para lá da ponta para a remover.",
   "monitoring.settings.gradientReset": "Repor cores",
   "monitoring.settings.label": "Etiqueta",
   "monitoring.settings.labelAuto": "Auto",
