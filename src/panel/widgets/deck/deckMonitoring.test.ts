@@ -22,8 +22,8 @@ function sensorState(overrides: Partial<SensorState> = {}): SensorState {
 }
 
 describe('DECK_MONITORING_CATEGORIES', () => {
-  it('offers every category the monitoring widget picker does, in the same order, bar the service-unresolvable igpu', () => {
-    expect(DECK_MONITORING_CATEGORIES).toEqual(DEVICE_OPTION_KEYS.filter(k => k !== 'igpu'));
+  it('offers every category the monitoring widget picker does, in the same order, bar the service-unresolvable gpu2/igpu', () => {
+    expect(DECK_MONITORING_CATEGORIES).toEqual(DEVICE_OPTION_KEYS.filter(k => k !== 'gpu2' && k !== 'igpu'));
   });
 
   it('never offers the legacy fan category', () => {

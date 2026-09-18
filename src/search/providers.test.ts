@@ -293,4 +293,13 @@ describe('buildEntries', () => {
     expect(flat?.kind).toBe('action');
     expect(flat?.hint).toBe('search.hint.active'); // settings.backgroundMode = flat
   });
+
+  it('accent actions switch accentSource to custom so the pick is not clobbered by the OS accent', () => {
+    const patches: Array<Record<string, unknown>> = [];
+    const entries = buildEntries(ctx(true, { updateSettings: (p) => { patches.push(p); } }));
+    const green = entries.find((e) => e.id === 'appearance:accent-#16c963');
+    expect(green?.kind).toBe('action');
+    green?.run();
+    expect(patches).toEqual([{ accentColor: '#16c963', accentSource: 'custom' }]);
+  });
 });

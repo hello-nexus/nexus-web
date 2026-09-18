@@ -345,10 +345,10 @@ describe('MonitoringSettings - Micro shared range', () => {
     const updates: Record<string, PanelConfigValue>[] = [];
     render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
 
-    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
 
-    act(() => { fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })); });
+    act(() => { fireEvent.click(screen.getByRole('radio', { name: 'monitoring.settings.scaleFixed' })); });
     expect(updates[updates.length - 1]).toEqual({ micro_scale: 'fixed' });
 
     // One shared min + one shared max (not per-sensor).

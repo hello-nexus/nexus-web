@@ -46,6 +46,27 @@ export function sensorsForCategory(
 // useSensors.storageSensors and useSensorExtras for why).
 
 /**
+ * Discrete cards other than the primary one, recognised by sensor id (ids are
+ * unique across GPUs, so two identically named cards still split). Unlike
+ * `igpuComponents` this follows the preferred-GPU setting: flipping it swaps
+ * which card is "GPU" and which "GPU 2", so a gpu2 slot keyed by the old
+ * second card's id falls back to a same-named sensor on the new one. Offered
+ * as one "GPU 2" category: with three or more discrete cards their sensors
+ * share the list under bare names, the known limit. Empty on every box with
+ * at most one discrete card. Widget-only for the same reason as
+ * `igpuComponents`.
+ */
+export function gpu2Components(sensors: SensorState): GpuComponent[] {
+  const primaryIds = new Set(sensors.gpu.map(s => s.id));
+  return sensors.gpuComponents.filter(g => !g.integrated && !g.sensors.some(s => primaryIds.has(s.id)));
+}
+
+/** Flattened sensors of `gpu2Components`. */
+export function gpu2Sensors(sensors: SensorState): HardwareSensor[] {
+  return gpu2Components(sensors).flatMap(g => g.sensors);
+}
+
+/**
  * The integrated GPU(s), offered only beside a discrete card: on an iGPU-only
  * box the 'gpu' category already is the iGPU, so this is empty and the picker
  * hides the category rather than listing one card twice. Not "the GPUs other

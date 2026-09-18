@@ -183,3 +183,25 @@ describe('resolveSensor + labelForDevice - igpu', () => {
     expect(labelForDevice('igpu', '')).toBe('iGPU');
   });
 });
+
+describe('resolveSensor + labelForDevice - gpu2', () => {
+  const aCore = sensor({ id: '/gpu-nvidia/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const bCore = sensor({ id: '/gpu-nvidia/1/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const bLoad = sensor({ id: '/gpu-nvidia/1/load/0', name: 'GPU Core', type: 'Load' });
+  const cardA = { id: '/gpu-nvidia/0', name: 'NVIDIA GeForce RTX 5080', integrated: false, sensors: [aCore] };
+  const cardB = { id: '/gpu-nvidia/1', name: 'NVIDIA GeForce RTX 4070', integrated: false, sensors: [bCore, bLoad] };
+  const sensors: SensorState = { ...EMPTY_SENSORS, gpu: cardA.sensors, gpuComponents: [cardA, cardB] };
+
+  it('resolves only within the second card: by id, by name, then GPU Core load', () => {
+    expect(resolveSensor(sensors, [], [], 'gpu2', bCore.id)).toBe(bCore);
+    expect(resolveSensor(sensors, [], [], 'gpu2', 'GPU Core')).toBe(bCore);
+    expect(resolveSensor(sensors, [], [], 'gpu2', '')).toBe(bLoad);
+    expect(resolveSensor(sensors, [], [], 'gpu2', aCore.id)).toBe(bCore);
+    expect(resolveSensor(sensors, [], [], 'gpu', bCore.id)?.id).not.toBe(bCore.id);
+  });
+
+  it('captions a second-card slot "GPU 2 <sensor>"', () => {
+    expect(labelForDevice('gpu2', 'GPU Core')).toBe('GPU 2 Core');
+    expect(labelForDevice('gpu2', '')).toBe('GPU 2');
+  });
+});
