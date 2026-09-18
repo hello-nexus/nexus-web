@@ -1495,6 +1495,7 @@
   "gallery.settings.single": "Einzelbild",
   "gallery.settings.slideshow": "Diashow",
   "gallery.settings.title": "Wiedergabe",
+  "gradientEditor.accent": "Akzentfarbe",
   "gradientEditor.bar": "Anzeigefarben",
   "gradientEditor.stop": "Farbpunkt bei {percent} %",
   "hello.first": "Hallo!",

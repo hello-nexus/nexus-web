@@ -1495,6 +1495,7 @@
   "gallery.settings.single": "Única",
   "gallery.settings.slideshow": "Presentación",
   "gallery.settings.title": "Reproducción",
+  "gradientEditor.accent": "Color de acento",
   "gradientEditor.bar": "Colores del indicador",
   "gradientEditor.stop": "Punto de color en {percent} %",
   "hello.first": "¡Hola!",

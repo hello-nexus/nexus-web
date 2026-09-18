@@ -22,6 +22,13 @@ const PRESET_COLUMNS = 10;
  * without persistence). Preset tiles and the custom slot are a single-click
  * commit and never preview.
  */
+export interface ExtraSwatch {
+  color: string;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}
+
 export interface ColorPickerWithPresetsProps {
   value: string;
   presets: readonly string[];
@@ -41,6 +48,12 @@ export interface ColorPickerWithPresetsProps {
   onCustomCommit?: (hex: string) => void;
   /** Greyed out, nothing selected, nothing clickable; the grid keeps its place. */
   disabled?: boolean;
+  /**
+   * One more swatch, labelled, in a row under the grid's last column, for a
+   * colour the host owns (the app accent). While it is selected no tile reads
+   * as selected; the custom wheel still opens at `value`.
+   */
+  extraSwatch?: ExtraSwatch;
   /** Where the custom-colour popover opens; hosts near the bottom of a sheet open it upward. */
   pickerPlacement?: PopoverPlacement;
   className?: string;
@@ -56,6 +69,7 @@ export function ColorPickerWithPresets({
   customColor,
   onCustomCommit,
   disabled = false,
+  extraSwatch,
   pickerPlacement = 'bottom-end',
   className,
 }: ColorPickerWithPresetsProps) {
@@ -65,10 +79,12 @@ export function ColorPickerWithPresets({
 
   const normalized = (value || fallback || presets[0] || '#000000').toLowerCase();
   // Disabled shows no selection at all: a highlighted tile would read as a pick.
-  const isPreset = !disabled && presets.some(hex => hex.toLowerCase() === normalized);
+  const extraSelected = !disabled && !!extraSwatch?.selected;
+  const selectable = !disabled && !extraSelected;
+  const isPreset = selectable && presets.some(hex => hex.toLowerCase() === normalized);
   // An off-palette value IS the custom color right now, and it lands on preview,
   // a whole gesture before onCustomCommit does.
-  const slotColor = (isPreset ? customColor?.toLowerCase() : normalized) || '';
+  const slotColor = (isPreset || extraSelected ? customColor?.toLowerCase() : normalized) || '';
 
   // Opening applies what the slot already shows, so the slot selects a colour
   // the way a preset tile does instead of only being a door to the picker.
@@ -98,7 +114,7 @@ export function ColorPickerWithPresets({
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {presets.map(hex => {
-          const selected = !disabled && hex.toLowerCase() === normalized;
+          const selected = selectable && hex.toLowerCase() === normalized;
           return (
             <button
               key={hex}
@@ -120,7 +136,7 @@ export function ColorPickerWithPresets({
           >
             <button
               type="button"
-              className={`${styles.swatch} ${styles.customSwatch} ${!disabled && !isPreset ? styles.swatchSelected : ''}`}
+              className={`${styles.swatch} ${styles.customSwatch} ${selectable && !isPreset ? styles.swatchSelected : ''}`}
               style={slotColor ? { background: slotColor, color: contrastTextOn(slotColor) } : undefined}
               disabled={disabled}
               onClick={handleSlotClick}
@@ -129,7 +145,7 @@ export function ColorPickerWithPresets({
               aria-expanded={pickerOpen}
               // Not aria-pressed: this button opens the picker, it does not
               // toggle the selection a press would announce.
-              aria-current={!isPreset}
+              aria-current={selectable && !isPreset}
             >
               <Pipette
                 className={`${styles.customIcon} ${slotColor ? styles.customIconOnFill : ''}`}
@@ -151,6 +167,22 @@ export function ColorPickerWithPresets({
               />
             </Popover>
           </div>
+        )}
+        {extraSwatch && (
+          <>
+            <span className={styles.extraLabel} style={{ gridColumn: `1 / ${columns}`, gridRow: presetRows + 1 }}>
+              {extraSwatch.label}
+            </span>
+            <button
+              type="button"
+              className={`${styles.swatch} ${styles.extraSwatch} ${extraSelected ? styles.swatchSelected : ''}`}
+              style={{ background: extraSwatch.color, gridColumn: columns, gridRow: presetRows + 1 }}
+              disabled={disabled}
+              onClick={extraSwatch.onSelect}
+              aria-label={extraSwatch.label}
+              aria-pressed={extraSelected}
+            />
+          </>
         )}
       </div>
     </div>

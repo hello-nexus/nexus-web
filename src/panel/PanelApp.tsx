@@ -52,6 +52,7 @@ import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/re
 import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
+import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -67,7 +68,7 @@ import { useCrossZoneDrag } from '../app/CrossZoneDrag';
 import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
-import { applyHtmlChromeTheme } from '../lib/settings';
+import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
@@ -123,6 +124,7 @@ import {
 import {
   buildEmbeddedPanelThemeVars,
   buildPanelThemeVars,
+  panelAccentColor,
   resolveEffectivePanelTheme,
   useDocumentResolvedThemeMode,
   usePanelLanguageSync,
@@ -380,12 +382,17 @@ export function PanelContent({
   const resolvedThemeMode = simulator && simulatorThemeMode
     ? simulatorThemeMode
     : embedded ? desktopResolvedThemeMode : panelResolvedThemeMode;
+  // Embedded in the desktop the panel paints the app's accent (see the theme
+  // vars below), so the accent-docked stops follow that one.
+  const gaugeAccent = embedded ? (appAccentColor || DEFAULT_ACCENT) : panelAccentColor(effectiveTheme);
   const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
-    stops: effectiveTheme.gaugeGradient,
+    stops: resolveGaugeGradient(effectiveTheme.gaugeGradient, gaugeAccent),
+    source: effectiveTheme.gaugeGradient,
+    accent: gaugeAccent,
     mode: resolvedThemeMode,
     preview: panelTheme.previewGaugeGradient,
     commit: panelTheme.commitGaugeGradient,
-  }), [effectiveTheme.gaugeGradient, resolvedThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
+  }), [effectiveTheme.gaugeGradient, gaugeAccent, resolvedThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
   // Standalone phone/kiosk owns the tab - mirror its resolved theme to <html>
   // so iOS Safari paints chrome (URL bar, overscroll, scrollbars) via the
   // matching color-scheme + <meta theme-color>. Skipped when embedded (the

@@ -105,11 +105,16 @@ export function buildEmbeddedPanelThemeVars(appAccentColor: string | undefined, 
   } as CSSProperties;
 }
 
-export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: ResolvedPanelThemeMode): CSSProperties {
+/** The hex the panel's --panel-accent family derives from. */
+export function panelAccentColor(theme: PanelThemeState): string {
   const accentColor = theme.accentSyncWithDesktop
     ? theme.appAccentColor
     : theme.accentColor || theme.appAccentColor;
-  const accentVars = deriveAccentVars(accentColor || DEFAULT_ACCENT, resolvedThemeMode);
+  return accentColor || DEFAULT_ACCENT;
+}
+
+export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: ResolvedPanelThemeMode): CSSProperties {
+  const accentVars = deriveAccentVars(panelAccentColor(theme), resolvedThemeMode);
   // Widget surface alpha (user-controlled). .panel-card in tokens.scss applies
   // it via color-mix so only the background fades, not the contents. Live panels
   // fill from the OPAQUE surface variant (not the translucent --surface embedded

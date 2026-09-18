@@ -89,3 +89,21 @@
   width: 220px;
   padding: 0.6rem;
 }
+
+/* The extra row sits a step further from the grid than the rows sit from
+   each other, so it reads as its own choice. */
+.extraLabel,
+.extraSwatch {
+  margin-top: 0.45rem;
+}
+
+.extraLabel {
+  align-self: center;
+  padding-right: 0.35rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

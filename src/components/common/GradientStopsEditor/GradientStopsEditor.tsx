@@ -1,17 +1,22 @@
-import { useCallback, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent } from 'react';
 import { ColorPickerWithPresets } from '../ColorPickerWithPresets/ColorPickerWithPresets';
 import type { PopoverPlacement } from '../Popover/Popover';
 import { PRESET_ACCENTS } from '../../../lib/settings';
 import { useTranslation } from '../../../lib/i18n';
 import {
+  ACCENT_STOP_COLOR,
   gaugeGradientColorAt,
   gaugeGradientCssStops,
+  resolveGaugeGradient,
   type GaugeGradientStop,
 } from '../../../panel/theme/gaugeGradient';
 import styles from './GradientStopsEditor.module.scss';
 
 export interface GradientStopsEditorProps {
+  /** The stored list; a stop coloured ACCENT_STOP_COLOR paints as `accent`. */
   stops: readonly GaugeGradientStop[];
+  /** The accent hex a docked stop follows. */
+  accent: string;
   /** Live while a handle is dragged or a colour previewed; nothing persists. */
   onPreview: (stops: GaugeGradientStop[]) => void;
   onCommit: (stops: GaugeGradientStop[]) => void;
@@ -48,9 +53,10 @@ interface Drag {
  * stop. Drag a handle along the bar to move it, drag it out past either end
  * (or right-click it) to remove it. Touching a handle selects it, and the
  * preset picker underneath (greyed out until then) recolours the selected
- * stop. Tap empty bar to add a stop with the colour already there.
+ * stop, or the accent square docks it to the panel's accent colour. Tap
+ * empty bar to add a stop with the colour already there.
  */
-export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxStops, className }: GradientStopsEditorProps) {
+export function GradientStopsEditor({ stops, accent, onPreview, onCommit, minStops, maxStops, className }: GradientStopsEditorProps) {
   const { t } = useTranslation();
   const trackRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<Drag | null>(null);
@@ -58,6 +64,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
   const [draft, setDraft] = useState<GaugeGradientStop[] | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
   const shown = draft ?? stops;
+  const painted = useMemo(() => resolveGaugeGradient(shown, accent), [shown, accent]);
   const canAdd = shown.length < maxStops;
   const canRemove = shown.length > minStops;
 
@@ -95,7 +102,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
       if (!canAdd) return;
       const at = fractionAt(event.clientX);
       if (shown.some(stop => Math.abs(stop.at - at) < MIN_GAP)) return;
-      const next = [...shown, { at, color: gaugeGradientColorAt(shown, at) }].sort((a, b) => a.at - b.at);
+      const next = [...shown, { at, color: gaugeGradientColorAt(painted, at) }].sort((a, b) => a.at - b.at);
       setSelected(next.findIndex(s => s.at === at));
       onCommit(next);
       return;
@@ -180,13 +187,15 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
   };
 
   const drag = dragRef.current;
+  const hasSelection = selected !== null && selected < shown.length;
+  const docked = hasSelection && shown[selected].color === ACCENT_STOP_COLOR;
 
   return (
     <div className={className ? `${styles.root} ${className}` : styles.root}>
       <div
         ref={trackRef}
         className={styles.track}
-        style={{ background: `linear-gradient(90deg, ${gaugeGradientCssStops(shown)})` }}
+        style={{ background: `linear-gradient(90deg, ${gaugeGradientCssStops(painted)})` }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -201,7 +210,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
               key={i}
               type="button"
               className={`${styles.handle} ${selected === i ? styles.handleSelected : ''} ${removing ? styles.handleRemoving : ''}`}
-              style={{ left: `${stop.at * 100}%`, '--stop-color': stop.color } as CSSProperties}
+              style={{ left: `${stop.at * 100}%`, '--stop-color': painted[i].color } as CSSProperties}
               aria-label={t('gradientEditor.stop', { percent: Math.round(stop.at * 100) })}
               aria-pressed={selected === i}
               onKeyDown={event => handleKeyDown(event, i)}
@@ -222,11 +231,18 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
       </div>
       <ColorPickerWithPresets
         className={styles.picker}
-        value={selected !== null && selected < shown.length ? shown[selected].color : ''}
+        value={hasSelection ? painted[selected].color : ''}
         presets={PRESET_ACCENTS}
         allowCustom
         // Always in place so the sheet does not jump; live once a stop is tapped.
-        disabled={selected === null || selected >= shown.length}
+        disabled={!hasSelection}
+        // The accent square: a stop docked to it follows the panel accent.
+        extraSwatch={{
+          color: accent,
+          label: t('gradientEditor.accent'),
+          selected: docked,
+          onSelect: () => recolour(ACCENT_STOP_COLOR, true),
+        }}
         pickerPlacement={WHEEL_PLACEMENT}
         onPreview={hex => recolour(hex, false)}
         onCommit={hex => recolour(hex, true)}

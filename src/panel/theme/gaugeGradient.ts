@@ -3,10 +3,19 @@
 // list serves a load percentage and a temperature alike and the Range setting
 // (adaptive / fixed) decides what the ends mean. One list per panel.
 
+import { DEFAULT_ACCENT } from '../../lib/settings';
+
 export interface GaugeGradientStop {
   at: number;
+  /** #rrggbb, or ACCENT_STOP_COLOR for a stop docked to the panel's accent. */
   color: string;
 }
+
+/**
+ * A stop docked to the panel's accent colour follows it when the accent
+ * changes. Stored as-is; resolveGaugeGradient swaps in the hex before paint.
+ */
+export const ACCENT_STOP_COLOR = 'accent';
 
 export const MIN_GAUGE_GRADIENT_STOPS = 2;
 export const MAX_GAUGE_GRADIENT_STOPS = 6;
@@ -27,8 +36,16 @@ function normalizeStop(raw: unknown): GaugeGradientStop | null {
   if (typeof at !== 'number' || !Number.isFinite(at)) return null;
   if (typeof color !== 'string') return null;
   const hex = color.trim().toLowerCase();
-  if (!HEX6_RE.test(hex)) return null;
+  if (hex !== ACCENT_STOP_COLOR && !HEX6_RE.test(hex)) return null;
   return { at: Math.max(0, Math.min(1, at)), color: hex };
+}
+
+/** The stored list with every accent-docked stop painted as `accent`; anything but #rrggbb paints the default accent. */
+export function resolveGaugeGradient(stops: readonly GaugeGradientStop[], accent: string): readonly GaugeGradientStop[] {
+  if (!stops.some(s => s.color === ACCENT_STOP_COLOR)) return stops;
+  const hex = accent.trim().toLowerCase();
+  const color = HEX6_RE.test(hex) ? hex : DEFAULT_ACCENT;
+  return stops.map(s => (s.color === ACCENT_STOP_COLOR ? { at: s.at, color } : s));
 }
 
 /**

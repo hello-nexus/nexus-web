@@ -1495,6 +1495,7 @@
   "gallery.settings.single": "Single",
   "gallery.settings.slideshow": "Slideshow",
   "gallery.settings.title": "Playback",
+  "gradientEditor.accent": "Accent color",
   "gradientEditor.bar": "Gauge colors",
   "gradientEditor.stop": "Color stop at {percent}%",
   "hello.first": "Hello!",

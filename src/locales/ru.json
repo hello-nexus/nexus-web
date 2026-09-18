@@ -1507,6 +1507,7 @@
   "gallery.settings.single": "Одно изображение",
   "gallery.settings.slideshow": "Слайд-шоу",
   "gallery.settings.title": "Воспроизведение",
+  "gradientEditor.accent": "Цвет акцента",
   "gradientEditor.bar": "Цвета индикатора",
   "gradientEditor.stop": "Точка цвета на {percent}%",
   "hello.first": "Привет!",

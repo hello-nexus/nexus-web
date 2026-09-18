@@ -48,12 +48,13 @@ import styles from './MonitoringSettings.module.scss';
 // other monitoring widget on the panel paints with.
 function GaugeGradientSection() {
   const { t } = useTranslation();
-  const { stops, preview, commit } = usePanelGaugeGradient();
-  const isDefault = gaugeGradientEquals(stops, DEFAULT_GAUGE_GRADIENT);
+  const { source, accent, preview, commit } = usePanelGaugeGradient();
+  const isDefault = gaugeGradientEquals(source, DEFAULT_GAUGE_GRADIENT);
   return (
     <div className={styles.gradientBlock}>
       <GradientStopsEditor
-        stops={stops}
+        stops={source}
+        accent={accent}
         onPreview={preview}
         onCommit={commit}
         minStops={MIN_GAUGE_GRADIENT_STOPS}
