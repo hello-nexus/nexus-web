@@ -2080,3 +2080,16 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+// The touch-via-pointer flag makes the pointer the user's finger; no cursor
+// under it, and no native image/link drag (it would cancel the pointer
+// gesture mid-swipe, which a finger never does). Set on the document by
+// PanelApp so surfaces mounted outside the panel root are covered.
+:global(html[data-touch-via-pointer='true']) {
+  cursor: none;
+
+  * {
+    cursor: none;
+    -webkit-user-drag: none;
+  }
+}

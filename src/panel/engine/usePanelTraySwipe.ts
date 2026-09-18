@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from './gestureThresholds';
 import { claimGestureAxis, resetGestureAxis } from './gestureAxisLock';
+import { bindGestureContacts, useTouchViaPointer, type GestureContact } from './touchViaPointer';
 import { triggerHaptic } from '../device/panelNativeBridge';
 
 /**
@@ -66,6 +67,7 @@ export function usePanelTraySwipe({
 }: TraySwipeOptions): TraySwipeResult {
   const [offset, setOffset] = useState(0);
   const [state, setState] = useState<TraySwipeState>('idle');
+  const touchViaPointer = useTouchViaPointer();
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onCommitRef = useRef(onCommit);
   const onCancelRef = useRef(onCancel);
@@ -117,9 +119,7 @@ export function usePanelTraySwipe({
     // we never mid-drag steal the gesture back.
     let yielded = false;
 
-    const onStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
+    const onStart = (t: GestureContact) => {
       const target = t.target instanceof Element ? t.target : null;
       // Yield ONLY to widget content scrollers. Interactive controls
       // (button, slider, etc.) are NOT yielded here - the engage check
@@ -139,7 +139,7 @@ export function usePanelTraySwipe({
       startX = t.clientX;
       startY = t.clientY;
       lastY = t.clientY;
-      lastTime = e.timeStamp;
+      lastTime = t.timeStamp;
       velocity = 0;
       lastOffset = 0;
       isDragging = false;
@@ -149,10 +149,8 @@ export function usePanelTraySwipe({
       clearSettle();
     };
 
-    const onMove = (e: TouchEvent) => {
+    const onMove = (t: GestureContact) => {
       if (yielded) return;
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
       const deltaY = startY - t.clientY; // upward = positive
       const deltaX = t.clientX - startX;
 
@@ -169,11 +167,11 @@ export function usePanelTraySwipe({
       }
 
       if (isDragging) {
-        if (e.cancelable) e.preventDefault();
-        const dt = e.timeStamp - lastTime;
+        t.preventDefault();
+        const dt = t.timeStamp - lastTime;
         if (dt > 0) velocity = (lastY - t.clientY) / dt; // upward = positive
         lastY = t.clientY;
-        lastTime = e.timeStamp;
+        lastTime = t.timeStamp;
         const lifted = Math.max(0, deltaY - engageDistanceRef.current);
         lastOffset = lifted;
         setOffset(lifted);
@@ -205,17 +203,8 @@ export function usePanelTraySwipe({
       }
     };
 
-    el.addEventListener('touchstart', onStart, { passive: true });
-    el.addEventListener('touchmove', onMove, { passive: false });
-    el.addEventListener('touchend', onEnd);
-    el.addEventListener('touchcancel', onEnd);
-    return () => {
-      el.removeEventListener('touchstart', onStart);
-      el.removeEventListener('touchmove', onMove);
-      el.removeEventListener('touchend', onEnd);
-      el.removeEventListener('touchcancel', onEnd);
-    };
-  }, [enabled, surfaceRef, clearSettle]);
+    return bindGestureContacts(el, touchViaPointer, { start: onStart, move: onMove, end: onEnd });
+  }, [enabled, surfaceRef, clearSettle, touchViaPointer]);
 
   return { offset, state, reset };
 }

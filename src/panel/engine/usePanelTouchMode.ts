@@ -39,6 +39,10 @@ interface PanelTouchModeOpts {
   // with it - the panel runtime opens immersive mode for widgets that
   // ship an ImmersiveComponent.
   onCellTap?: (widget: PanelWidget) => void;
+  // Let a mouse pointer arm the long-press context menu. Pass the
+  // surface's touch support: on a touch surface the hold is the gesture
+  // regardless of what the OS calls the pointer.
+  mouseLongPress?: boolean;
 }
 
 /**
@@ -48,7 +52,7 @@ interface PanelTouchModeOpts {
  * single flat-list path. This hook only disambiguates tap / long-press
  * / drag and tracks rearrange visuals.
  */
-export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
+export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTouchModeOpts) {
   const [rearranging, setRearranging] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
   const [pressedWidgetId, setPressedWidgetId] = useState<string | null>(null);
@@ -92,7 +96,7 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
     }
   }, [clearPressFeedback]);
 
-  const longPress = useLongPress(handleLongPress, CONTEXT_MENU_TRIGGER_MS);
+  const longPress = useLongPress(handleLongPress, CONTEXT_MENU_TRIGGER_MS, { allowMouse: mouseLongPress });
 
   const handleContextMenu = useCallback((e: React.MouseEvent, widget: PanelWidget) => {
     e.preventDefault();

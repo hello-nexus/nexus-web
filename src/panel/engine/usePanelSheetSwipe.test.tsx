@@ -2,6 +2,7 @@ import { act, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { usePanelSheetSwipe } from './usePanelSheetSwipe';
+import { TouchViaPointerContext } from './touchViaPointer';
 
 function SheetSwipeHarness() {
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -38,7 +39,48 @@ function SheetSwipeHarness() {
   );
 }
 
+function dispatchPointer(target: Element, type: string, x: number, y: number, timeStamp: number, buttons: number) {
+  const event = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, buttons, button: 0 });
+  Object.defineProperties(event, {
+    pointerType: { value: 'mouse' },
+    isPrimary: { value: true },
+    pointerId: { value: 1 },
+    timeStamp: { value: timeStamp },
+  });
+  target.dispatchEvent(event);
+}
+
 describe('usePanelSheetSwipe', () => {
+  it('ignores a mouse drag without the touch-via-pointer flag', () => {
+    render(<SheetSwipeHarness />);
+    const sheet = screen.getByTestId('sheet');
+    const blank = screen.getByTestId('blank');
+
+    act(() => {
+      dispatchPointer(blank, 'pointerdown', 120, 120, 0, 1);
+      dispatchPointer(blank, 'pointermove', 120, 200, 16, 1);
+    });
+
+    expect(sheet).toHaveAttribute('data-state', 'idle');
+  });
+
+  it('engages a downward mouse drag under the touch-via-pointer flag', () => {
+    render(
+      <TouchViaPointerContext.Provider value={true}>
+        <SheetSwipeHarness />
+      </TouchViaPointerContext.Provider>,
+    );
+    const sheet = screen.getByTestId('sheet');
+    const blank = screen.getByTestId('blank');
+
+    act(() => {
+      dispatchPointer(blank, 'pointerdown', 120, 120, 0, 1);
+      dispatchPointer(blank, 'pointermove', 120, 200, 16, 1);
+    });
+
+    expect(sheet).toHaveAttribute('data-state', 'dragging');
+  });
+
   it('does not engage swipe-dismiss gestures that start on range sliders', () => {
     render(<SheetSwipeHarness />);
 

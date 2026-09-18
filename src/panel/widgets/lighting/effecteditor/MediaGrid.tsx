@@ -19,6 +19,8 @@ import { localizeNumbers } from '../../../../lib/units';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import type { MediaItem } from '../../../../api/mediaLibrary';
 import styles from '../LightingPage.module.scss';
+import { useTouchViaPointer } from '../../../engine/touchViaPointer';
+import { PANEL_CONTEXT_MENU_TRIGGER_MS } from '../../../engine/usePanelTouchMode';
 
 // A press on the card's delete button never starts a drag.
 const offButton = (target: EventTarget | null) => !(target as HTMLElement | null)?.closest('button');
@@ -41,8 +43,13 @@ class CardTouchSensor extends TouchSensor {
 }
 
 function useCardSensors() {
+  // Under the touch-via-pointer flag the mouse is a finger: a swipe over a
+  // card must scroll the grid, not start a sort at a few pixels of travel.
+  // The hold matches the panel's long-press mark, which is where the
+  // drag-scroll yields a press inside a sortable.
+  const mouseIsFinger = useTouchViaPointer();
   return useSensors(
-    useSensor(CardMouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(CardMouseSensor, { activationConstraint: mouseIsFinger ? { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } : { distance: 6 } }),
     useSensor(CardTouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );

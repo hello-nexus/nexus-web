@@ -16,6 +16,7 @@ import { getDeviceId } from '../api/deviceId';
 import { upsertPairedPc, markActivePcNeedsRepair } from '../api/pairedPcs';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
+import { TouchViaPointerContext, readTouchViaPointerFlag } from '../panel/engine/touchViaPointer';
 import { useTranslation } from '../lib/i18n';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { PANEL_DEVICE_ID_KEY, PHONE_PANEL_PWA_KEY } from './panelRouting';
@@ -27,10 +28,14 @@ type PanelEntrypointState = 'claiming' | 'allocating' | 'ready' | 'failed';
 export function PanelWrapper({ deviceId, wired = false }: { deviceId: string; wired?: boolean }) {
   const multiplex = useMultiplexConnection(true, wired);
   useMonitoringStoreBridge(multiplex);
+  // Set only by the macOS overlay helper's kiosk URL (engine/touchViaPointer).
+  const touchViaPointer = useMemo(() => readTouchViaPointerFlag(), []);
   return (
     <MultiplexContext.Provider value={multiplex}>
       <UiSettingsProvider serviceOnline={true} manageDom={false}>
-        <PanelApp deviceId={deviceId} />
+        <TouchViaPointerContext.Provider value={touchViaPointer}>
+          <PanelApp deviceId={deviceId} />
+        </TouchViaPointerContext.Provider>
       </UiSettingsProvider>
     </MultiplexContext.Provider>
   );

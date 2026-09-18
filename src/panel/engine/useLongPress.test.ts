@@ -65,6 +65,28 @@ describe('useLongPress', () => {
     expect(onLongPress).not.toHaveBeenCalled();
   });
 
+  it('ignores a mouse pointer by default', () => {
+    const onLongPress = vi.fn();
+    const { result } = renderHook(() => useLongPress(onLongPress));
+
+    act(() => result.current.onPointerDown(pointerEvent({ pointerType: 'mouse' })));
+    act(() => { vi.advanceTimersByTime(500); });
+
+    expect(onLongPress).not.toHaveBeenCalled();
+    expect(result.current.firedRef.current).toBe(false);
+  });
+
+  it('arms a mouse pointer when allowMouse is set', () => {
+    const onLongPress = vi.fn();
+    const { result } = renderHook(() => useLongPress(onLongPress, 500, { allowMouse: true }));
+
+    act(() => result.current.onPointerDown(pointerEvent({ pointerType: 'mouse' })));
+    act(() => { vi.advanceTimersByTime(500); });
+
+    expect(onLongPress).toHaveBeenCalledWith(100, 200);
+    expect(result.current.firedRef.current).toBe(true);
+  });
+
   it('sets firedRef to true after firing', () => {
     const onLongPress = vi.fn();
     const { result } = renderHook(() => useLongPress(onLongPress));

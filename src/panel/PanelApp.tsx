@@ -21,6 +21,8 @@ import { usePageSync } from './engine/usePageSync';
 import { useConnectionIntro } from './engine/useConnectionIntro';
 import { useHomeIntro } from './engine/useHomeIntro';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS, usePanelTouchMode } from './engine/usePanelTouchMode';
+import { usePanelDragScroll } from './engine/usePanelDragScroll';
+import { TouchViaPointerContext, useTouchViaPointer } from './engine/touchViaPointer';
 import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
@@ -874,7 +876,19 @@ export function PanelContent({
     if (!def.meta.supportsImmersive[orientationKey]) return;
     enterImmersive(w.id);
   }, [embedded, enterImmersive, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
-  const touch = usePanelTouchMode({ onCellTap });
+  // macOS delivers touchscreen contacts as mouse pointers (see
+  // engine/touchViaPointer); only under that flag does a mouse get the
+  // touch gesture model.
+  const mouseAsTouch = useTouchViaPointer() && surfaceSupportsTouch(surface, deviceTouch);
+  const touch = usePanelTouchMode({ onCellTap, mouseLongPress: mouseAsTouch });
+  usePanelDragScroll(mouseAsTouch);
+  // On the document, not the root: the editor sheet and immersive overlay
+  // mount outside the root, and the pointer is the finger there too.
+  useEffect(() => {
+    if (!mouseAsTouch) return undefined;
+    document.documentElement.setAttribute('data-touch-via-pointer', 'true');
+    return () => document.documentElement.removeAttribute('data-touch-via-pointer');
+  }, [mouseAsTouch]);
   const contextMenuWidgetId = surface === 'phone' && !sheetMode
     ? touch.ctxMenu?.widget.id ?? null
     : null;
@@ -923,7 +937,7 @@ export function PanelContent({
   // widget long-press-to-menu). Kiosk surfaces only, not while in a sheet /
   // immersive / drag state, and only when the press misses widgets and
   // interactive elements.
-  const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS);
+  const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS, { allowMouse: mouseAsTouch });
   const backgroundPressBlocked = !kioskBehavior
     || !surfaceSupportsTouch(surface, deviceTouch)
     || trayOpen
@@ -1435,6 +1449,7 @@ export function PanelContent({
   }, [paginatedLayout, touch, widgetById, embedded, surface, setDraggingPinnableType, pinnedTail]);
 
   return (
+    <TouchViaPointerContext.Provider value={mouseAsTouch}>
     <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DndContext
       sensors={sensors}
@@ -2003,5 +2018,6 @@ export function PanelContent({
       </DragOverlay>
     </DndContext>
     </PanelGaugeGradientProvider>
+    </TouchViaPointerContext.Provider>
   );
 }

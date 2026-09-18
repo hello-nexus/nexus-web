@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { GESTURE_AXIS_DOMINANCE, GESTURE_ENGAGE_PX } from './gestureThresholds';
 import { claimGestureAxis, resetGestureAxis } from './gestureAxisLock';
+import { bindGestureContacts, useTouchViaPointer, type GestureContact } from './touchViaPointer';
 
 /**
  * iOS-style horizontal page swipe for PanelPager. Tracks pointer drag
@@ -55,6 +56,7 @@ export function usePanelHorizontalSwipe({
   const [offset, setOffset] = useState(0);
   const [state, setState] = useState<HorizontalSwipeState>('idle');
   const [pageWidth, setPageWidth] = useState(0);
+  const touchViaPointer = useTouchViaPointer();
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Stable refs read inside the touch listeners so the effect doesn't
@@ -103,13 +105,11 @@ export function usePanelHorizontalSwipe({
     let lastOffset = 0;
     let isDragging = false;
 
-    const onStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
+    const onStart = (t: GestureContact) => {
       startX = t.clientX;
       startY = t.clientY;
       lastX = t.clientX;
-      lastTime = e.timeStamp;
+      lastTime = t.timeStamp;
       velocity = 0;
       lastOffset = 0;
       isDragging = false;
@@ -118,9 +118,7 @@ export function usePanelHorizontalSwipe({
       clearSettle();
     };
 
-    const onMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
+    const onMove = (t: GestureContact) => {
       const deltaX = t.clientX - startX;
       const deltaY = t.clientY - startY;
 
@@ -137,11 +135,11 @@ export function usePanelHorizontalSwipe({
       }
 
       if (isDragging) {
-        if (e.cancelable) e.preventDefault();
-        const dt = e.timeStamp - lastTime;
+        t.preventDefault();
+        const dt = t.timeStamp - lastTime;
         if (dt > 0) velocity = (t.clientX - lastX) / dt;
         lastX = t.clientX;
-        lastTime = e.timeStamp;
+        lastTime = t.timeStamp;
         const sign = deltaX < 0 ? -1 : 1;
         const magnitude = Math.max(0, Math.abs(deltaX) - GESTURE_ENGAGE_PX);
         let signed = sign * magnitude;
@@ -186,17 +184,8 @@ export function usePanelHorizontalSwipe({
       }, SETTLE_MS);
     };
 
-    el.addEventListener('touchstart', onStart, { passive: true });
-    el.addEventListener('touchmove', onMove, { passive: false });
-    el.addEventListener('touchend', onEnd);
-    el.addEventListener('touchcancel', onEnd);
-    return () => {
-      el.removeEventListener('touchstart', onStart);
-      el.removeEventListener('touchmove', onMove);
-      el.removeEventListener('touchend', onEnd);
-      el.removeEventListener('touchcancel', onEnd);
-    };
-  }, [enabled, pagerRef, clearSettle]);
+    return bindGestureContacts(el, touchViaPointer, { start: onStart, move: onMove, end: onEnd });
+  }, [enabled, pagerRef, clearSettle, touchViaPointer]);
 
   return { offset, state, pageWidth };
 }
