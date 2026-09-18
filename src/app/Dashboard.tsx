@@ -88,6 +88,7 @@ import { IncomingPairModal } from './IncomingPairModal';
 import { ToastProvider } from '../components/common/Toast/Toast';
 import { TransferToasts } from './TransferToasts';
 import { MappingAppliedToasts } from './MappingAppliedToasts';
+import { AppAutoInstalledToasts } from './AppAutoInstalledToasts';
 import { SyncConflictGate } from './SyncConflictGate';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
@@ -1127,6 +1128,8 @@ export function Dashboard() {
         <TransferToasts />
         {/* Community-layout auto-apply announcements with Undo, active regardless of view. */}
         <MappingAppliedToasts />
+        {/* Announces an app the service installed for attached hardware, active regardless of view. */}
+        <AppAutoInstalledToasts />
         {/* Steam-cloud-style profile sync conflict prompt, active regardless of view. */}
         <SyncConflictGate sync={syncStatus} />
         <PairPhoneModal
