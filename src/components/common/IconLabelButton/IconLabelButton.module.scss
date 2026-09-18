@@ -11,8 +11,10 @@
   --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
   --icon-label-button-active-border: transparent;
-  --icon-label-button-active-bg: var(--accent-soft);
-  --icon-label-button-active-text: var(--text);
+  // No own declaration for active-bg / active-text: a token set on the button
+  // itself beats one inherited from a container, so the settings surfaces'
+  // presets (the edit-sheet mixin, a settings root) could never reach them.
+  // Their defaults live as var() fallbacks at the use sites below.
   --icon-label-icon-size: 18px;
   --icon-label-label-size: 10px;
 
@@ -58,15 +60,15 @@
   &[data-active='true']:hover:not(:disabled),
   &[data-active='true']:active:not(:disabled) {
     border-color: var(--icon-label-button-active-border);
-    background: var(--icon-label-button-active-bg);
-    color: var(--icon-label-button-active-text);
+    background: var(--icon-label-button-active-bg, var(--accent-soft));
+    color: var(--icon-label-button-active-text, var(--text));
   }
 
   // An already-lit button needs a step up, or hovering it repaints the fill it
   // is already wearing. Defaults to the active fill, so callers that don't set
   // the token are unaffected.
   &[data-active='true']:hover:not(:disabled) {
-    background: var(--icon-label-button-active-bg-hover, var(--icon-label-button-active-bg));
+    background: var(--icon-label-button-active-bg-hover, var(--icon-label-button-active-bg, var(--accent-soft)));
   }
 }
 

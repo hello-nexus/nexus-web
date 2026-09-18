@@ -78,6 +78,7 @@ describe('defaultNexusAction - every op is armed the moment it is picked', () =>
 describe('Nexus picker entries - Lighting / Cooling / Y70 stand alone', () => {
   it('a cooling op highlights the Cooling entry, not one shared "Nexus device" row', async () => {
     renderInspector([{ action: { type: 'nexus', action: { op: 'fanProfile', profile: 'balanced' } } }]);
+    expandActionList();
     const cooling = await screen.findByRole('option', { name: /panel.settings.deck.action.cooling/ });
     expect(cooling).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('option', { name: /panel.settings.deck.action.lighting/ })).toHaveAttribute('aria-selected', 'false');
@@ -87,6 +88,7 @@ describe('Nexus picker entries - Lighting / Cooling / Y70 stand alone', () => {
 
   it('a y70 op highlights the Y70 entry', async () => {
     renderInspector([{ action: { type: 'nexus', action: { op: 'y70Rotation', orientation: 'landscape' } } }]);
+    expandActionList();
     expect(await screen.findByRole('option', { name: /panel.settings.deck.action.y70/ })).toHaveAttribute('aria-selected', 'true');
   });
 
@@ -99,6 +101,7 @@ describe('Nexus picker entries - Lighting / Cooling / Y70 stand alone', () => {
 
   it('picking Cooling seeds a cooling action, not a lighting one', async () => {
     renderInspector([{ action: defaultActionFor('nexus') }]);
+    expandActionList();
     fireEvent.click(await screen.findByRole('option', { name: /panel.settings.deck.action.cooling/ }));
     expect(await screen.findByLabelText('panel.settings.deck.coolingMode')).toBeInTheDocument();
     expect(screen.queryByLabelText('panel.settings.deck.lightingMode')).not.toBeInTheDocument();
@@ -196,6 +199,11 @@ function renderWidgetInspector(slots: DeckSlot[] = [{}], opts: { surface?: Panel
   return render(<WidgetHarness initialSlots={slots} surface={opts.surface} desktopEditor={opts.desktopEditor} />);
 }
 
+/** Reopens the folded action list of a bound key (stacked layout). */
+function expandActionList() {
+  fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.changeAction' }));
+}
+
 function isBefore(a: Element, b: Element): boolean {
   return !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 }
@@ -217,12 +225,14 @@ describe('DeckKeyInspector section order', () => {
 describe('DeckKeyInspector action picker - collapsible category list', () => {
   it('starts with the current kind\'s category expanded and highlights the active kind', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
+    expandActionList();
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toHaveAttribute('aria-selected', 'false');
   });
 
   it('shows every category expanded by default', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
+    expandActionList();
     // Every category starts expanded, so a Stream Deck category action is
     // present without first clicking its header.
     expect(screen.getByRole('option', { name: 'panel.settings.deck.action.deckBrightness' })).toBeInTheDocument();
@@ -233,8 +243,90 @@ describe('DeckKeyInspector action picker - collapsible category list', () => {
     renderInspector();
     fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' }));
 
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('panel.settings.deck.hotkey')).toBeInTheDocument();
+    expandActionList();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('folds to the bound kind once a key has an action, and Change reopens the list', () => {
+    renderInspector();
+    // Unbound: the full list, no fold.
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.changeAction' })).toBeNull();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' }));
+
+    // Bound: the list is gone, the summary row names the kind, the fields show.
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.changeAction' })).toBeInTheDocument();
+    expect(screen.getByText('panel.settings.deck.hotkey')).toBeInTheDocument();
+
+    expandActionList();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.changeAction' })).toBeNull();
+    // Either the list or the fields, never both.
+    expect(screen.queryByText('panel.settings.deck.hotkey')).toBeNull();
+    expect(screen.queryByText('panel.settings.icon')).toBeNull();
+
+    // Picking another kind folds it again.
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.text' }));
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.changeAction' })).toBeInTheDocument();
+    expect(screen.getByText('panel.settings.icon')).toBeInTheDocument();
+  });
+
+  it('the close button folds a reopened list without changing the action', () => {
+    renderInspector([{ action: { type: 'text', text: 'hello' } }]);
+    // Folded: no close button to show.
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.closeActionList' })).toBeNull();
+
+    expandActionList();
+    expect(screen.queryByDisplayValue('hello')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.closeActionList' }));
+
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeNull();
+    expect(screen.getByDisplayValue('hello')).toBeInTheDocument();
+  });
+
+  it('a reopened list does not survive a trip to another key and back', () => {
+    function SwitchingHarness() {
+      const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: [{ action: { type: 'text', text: 'one' } }, { action: { type: 'text', text: 'two' } }] }] });
+      const [selected, setSelected] = useState(0);
+      const target = makePhysicalDeckTarget(2, 1, 2, config, setConfig);
+      return (
+        <>
+          <button type="button" onClick={() => setSelected(s => 1 - s)}>switch</button>
+          <DeckKeyInspector target={target} page={0} folderPath={[]} onFolderPathChange={() => {}} selectedSlot={selected} onSelectedSlotChange={setSelected} />
+        </>
+      );
+    }
+    render(<SwitchingHarness />);
+    expandActionList();
+    expect(screen.queryByDisplayValue('one')).toBeNull();
+
+    fireEvent.click(screen.getByText('switch'));
+    expect(screen.getByDisplayValue('two')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('switch'));
+    expect(screen.getByDisplayValue('one')).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.action.launchApp' })).toBeNull();
+  });
+
+  it('an unbound key\'s list has no close button - there is nothing to fold back to', () => {
+    renderInspector();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.closeActionList' })).toBeNull();
+  });
+
+  it('re-picking the bound kind only folds the list, keeping the configured action', () => {
+    renderInspector([{ action: { type: 'text', text: 'hello' } }]);
+    expandActionList();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.action.text' }));
+
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.changeAction' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('hello')).toBeInTheDocument();
+  });
+
+  it('never folds the device page\'s dedicated picker column', () => {
+    render(<Harness initialSlots={[{ action: { type: 'hotkey', keys: '' } }]} part="picker" />);
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.action.hotkey' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.changeAction' })).toBeNull();
   });
 
   it('shows the generic Power icon for the power picker row, not its lock sub-op default', () => {

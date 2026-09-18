@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus, Trash2 } from 'lucide-react';
+import { AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalJustifyStart, FolderInput, FolderOpen, Plus, Trash2, X } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
@@ -979,8 +979,11 @@ export function DeckActionDragPreview({ kind }: { kind: DeckPickerKind }) {
  * changes to a kind in a different category) so the active kind's highlight is
  * never hidden inside a collapsed group.
  */
-function ActionCategoryPicker({ categories, activeKind, onPick, surface, desktopEditor }: {
+function ActionCategoryPicker({ categories, activeKind, onPick, onClose, surface, desktopEditor }: {
   categories: DeckActionCategory[]; activeKind: DeckPickerKind; onPick: (k: DeckPickerKind) => void;
+  /** Set when the list was reopened over a bound key: renders the close
+   *  button beside the search bar that folds it back without a pick. */
+  onClose?: () => void;
   surface?: PanelSurface; desktopEditor?: boolean;
 }) {
   const { t } = useTranslation();
@@ -1010,13 +1013,28 @@ function ActionCategoryPicker({ categories, activeKind, onPick, surface, desktop
   return (
     <div className={styles.categoryList}>
       {locked && <p className={styles.description}>{t('panel.settings.deck.desktopOnlyAction')}</p>}
-      {showSearch && (
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          placeholder={t('panel.settings.deck.actionSearch')}
-          ariaLabel={t('panel.settings.deck.actionSearch')}
-        />
+      {(showSearch || onClose) && (
+        <div className={styles.searchRow}>
+          {showSearch && (
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder={t('panel.settings.deck.actionSearch')}
+              ariaLabel={t('panel.settings.deck.actionSearch')}
+            />
+          )}
+          {onClose && (
+            <Button
+              type="button"
+              tone="ghost"
+              size="sm"
+              icon={<X size={15} />}
+              onClick={onClose}
+              aria-label={t('panel.settings.deck.closeActionList')}
+              title={t('panel.settings.deck.closeActionList')}
+            />
+          )}
+        </div>
       )}
       {filteredCategories.map(cat => (
         <CollapsibleSection
@@ -1310,14 +1328,41 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
         .map(c => ({ ...c, kinds: kindsForTarget(c.kinds, target.kind) }))
         .filter(c => c.kinds.length > 0);
 
-  const onKindChange = (k: DeckPickerKind) => writeSlot(slotForPickerKind(k, slot, target.config.defaultTitleStyle));
+  // A slot with no assigned action or folder has nothing to style, so the
+  // editor stays empty until one is picked from the action list.
+  const hasBinding = !!slot.action || !!slot.folder;
+
+  // The folded action list, reopened by Change. Reset during render when the
+  // selection moves to another key (not in an effect, which would show the
+  // list for a frame on the way back), so no key ever inherits an open list.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerSlotKey, setPickerSlotKey] = useState(slotKey);
+  if (pickerSlotKey !== slotKey) {
+    setPickerSlotKey(slotKey);
+    setPickerOpen(false);
+  }
+
+  // Re-picking the bound kind only folds the list: slotForPickerKind would
+  // otherwise reseed the action and drop what the key already had configured.
+  // (An unbound slot reads as 'launchApp' too, so the guard needs hasBinding.)
+  const onKindChange = (k: DeckPickerKind) => {
+    if (!hasBinding || k !== kind) writeSlot(slotForPickerKind(k, slot, target.config.defaultTitleStyle));
+    setPickerOpen(false);
+  };
 
   const showPicker = part !== 'editor';
   const showEditor = part !== 'picker';
 
-  // A slot with no assigned action or folder has nothing to style, so the
-  // editor stays empty until one is picked from the action list.
-  const hasBinding = !!slot.action || !!slot.folder;
+  // The stacked layout shows either the action list or the bound key's own
+  // fields, never both. The device page's split layout never folds: its
+  // picker column would be left empty, and its editor column has no list
+  // to trade places with.
+  const pickerFolds = part === 'all';
+  const pickerExpanded = !pickerFolds || !hasBinding || pickerOpen;
+  const fieldsVisible = hasBinding && !(pickerFolds && pickerExpanded);
+  const closePicker = pickerFolds && hasBinding ? () => setPickerOpen(false) : undefined;
+  const KindIcon = pickerKindIcon(kind);
+
   // A surface whose grid enters folders on click (the device page) drops the
   // enter-folder button; DeckEditor's grid only selects, so a folder key there
   // keeps it. Param-less actions (pageIndicator, page next/prev) also have
@@ -1347,7 +1392,15 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
     <div className={styles.root}>
       {showPicker && (
         <SettingsSection title={t('panel.settings.deck.actionType')}>
-          <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} surface={surface} desktopEditor={desktopEditor} />
+          {pickerExpanded ? (
+            <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} onClose={closePicker} surface={surface} desktopEditor={desktopEditor} />
+          ) : (
+            <SettingsRow icon={<KindIcon size={14} aria-hidden />} label={t(`panel.settings.deck.action.${kind}`)}>
+              <Button type="button" size="sm" tone="neutral" onClick={() => setPickerOpen(true)}>
+                {t('panel.settings.deck.changeAction')}
+              </Button>
+            </SettingsRow>
+          )}
         </SettingsSection>
       )}
 
@@ -1360,7 +1413,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
         <EmptyState compact title={t('panel.settings.deck.emptyKeyHint')} />
       )}
 
-      {showEditor && hasBinding && (
+      {showEditor && fieldsVisible && (
         <>
           {hasActionConfig && (
             <SettingsSection title={t(`panel.settings.deck.action.${kind}`)}>

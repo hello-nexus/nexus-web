@@ -20,7 +20,7 @@ function mount(overrides: Partial<Parameters<typeof GradientStopsEditor>[0]> = {
   const onPreview = vi.fn();
   const onCommit = vi.fn();
   render(
-    <GradientStopsEditor stops={STOPS} onPreview={onPreview} onCommit={onCommit} minStops={2} maxStops={5} {...overrides} />,
+    <GradientStopsEditor stops={STOPS} accent="#00ff00" onPreview={onPreview} onCommit={onCommit} minStops={2} maxStops={5} {...overrides} />,
   );
   return { onPreview, onCommit, bar: screen.getByRole('group') };
 }
@@ -142,5 +142,27 @@ describe('GradientStopsEditor', () => {
     mount();
     // No I18nProvider here, so t() hands back the key.
     expect(screen.getAllByRole('button', { name: 'gradientEditor.stop' })).toHaveLength(3);
+  });
+
+  it('docks the selected stop to the accent through the accent square', () => {
+    const { onCommit, bar } = mount();
+    const square = screen.getByRole('button', { name: 'gradientEditor.accent' });
+    expect(square).toBeDisabled();
+    fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 100, clientY: 16, pointerId: 1 });
+    fireEvent.click(square);
+    expect(onCommit).toHaveBeenCalledWith([STOPS[0], { at: 0.5, color: 'accent' }, STOPS[2]]);
+  });
+
+  it('paints a docked stop as the accent and marks the square, not a palette tile, as its pick', () => {
+    const { bar } = mount({ stops: [STOPS[0], { at: 0.5, color: 'accent' }, STOPS[2]] });
+    const handle = screen.getAllByRole('button', { name: 'gradientEditor.stop' })[1];
+    expect(handle.style.getPropertyValue('--stop-color')).toBe('#00ff00');
+    // jsdom serialises the colours as rgb().
+    expect(bar.style.background).toContain('rgb(0, 255, 0) 50.00%');
+    fireEvent.pointerDown(bar, { clientX: 100, clientY: 16, button: 0, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 100, clientY: 16, pointerId: 1 });
+    expect(screen.getByRole('button', { name: 'gradientEditor.accent' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { pressed: true, name: /^#/ })).toBeNull();
   });
 });

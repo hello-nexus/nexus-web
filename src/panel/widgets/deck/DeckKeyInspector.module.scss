@@ -5,6 +5,8 @@
   --deck-settings-text: var(--text);
   --deck-settings-faint: var(--text-dim);
   --deck-settings-accent: var(--panel-accent, var(--accent));
+  --icon-label-button-active-bg: var(--deck-settings-accent);
+  --icon-label-button-active-text: var(--panel-accent-text, var(--accent-text));
 
   display: flex;
   flex-direction: column;
@@ -153,6 +155,15 @@ textarea.input { resize: vertical; min-height: 2.4rem; }
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+// Search bar + the close button that folds a reopened list. Without a search
+// bar (no keyboard on the surface) the button alone sits at the right edge.
+.searchRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .kindList {
