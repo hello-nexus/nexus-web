@@ -5,7 +5,7 @@
 // overriding those variables on the slot wrapper.
 
 import { deriveAccentVars } from '../../../lib/settings';
-import { gaugeGradientColorAt, type GaugeGradientStop } from '../../theme/gaugeGradient';
+import { gaugeGradientColorAt, gaugeGradientCss, type GaugeGradientStop } from '../../theme/gaugeGradient';
 import type { GaugeDesignKey } from './gauges/types';
 
 /** Sensor types the colouring is offered for: the percent family plus temperature. */
@@ -26,6 +26,8 @@ export interface GaugeGradient {
   id: string;
   /** Colours at positions 0..1 along the gauge's scale, ascending. */
   stops: readonly GaugeGradientStop[];
+  /** Alpha for a translucent body, matching the accent-shadow tier of the panel's theme. */
+  bodyAlpha: number;
 }
 
 /**
@@ -47,4 +49,9 @@ export function gaugeAccentVars(
     '--panel-accent-shadow': vars['--accent-glow-shadow'],
     '--panel-accent-text': vars['--accent-text'],
   };
+}
+
+/** The graded counterpart of --panel-accent-shadow: the gradient at the body's alpha. */
+export function gaugeBodyCss(gradient: GaugeGradient, angleDeg: number): string {
+  return gaugeGradientCss(gradient.stops, angleDeg, gradient.bodyAlpha);
 }

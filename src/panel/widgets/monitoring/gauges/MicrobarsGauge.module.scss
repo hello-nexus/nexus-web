@@ -25,8 +25,7 @@
 .bar {
   flex: 1;
   min-height: 3px;
-  // Same body color the Filled Line gauge uses for its area.
-  background: color-mix(in srgb, var(--panel-accent-glow) 40%, transparent);
+  background: var(--panel-accent-shadow);
   border-top: var(--gauge-line-thickness) solid var(--panel-accent);
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 }

@@ -81,8 +81,13 @@ export function gaugeGradientColorAt(stops: readonly GaugeGradientStop[], at: nu
  * accent cannot use color-mix on the Q60 panel (Chromium 83).
  */
 export function gaugeGradientCssStops(stops: readonly GaugeGradientStop[], alpha = 1): string {
-  const suffix = alpha >= 1 ? '' : Math.round(Math.max(0, alpha) * 255).toString(16).padStart(2, '0');
-  return stops.map(s => `${s.color}${suffix} ${(s.at * 100).toFixed(2)}%`).join(', ');
+  return stops.map(s => `${hexWithAlpha(s.color, alpha)} ${(s.at * 100).toFixed(2)}%`).join(', ');
+}
+
+/** `hex` (#rrggbb) with `alpha` (0..1) baked in as #rrggbbaa; opaque stays #rrggbb. */
+export function hexWithAlpha(hex: string, alpha: number): string {
+  if (alpha >= 1) return hex;
+  return `${hex}${Math.round(Math.max(0, alpha) * 255).toString(16).padStart(2, '0')}`;
 }
 
 /** A full linear-gradient() along `angleDeg` (90 = left to right, 0 = bottom to top). */

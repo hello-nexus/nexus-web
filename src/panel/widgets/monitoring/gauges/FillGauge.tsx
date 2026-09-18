@@ -1,6 +1,6 @@
 import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
-import { gaugeGradientCss } from '../../../theme/gaugeGradient';
+import { gaugeBodyCss } from '../valueColor';
 import styles from './FillGauge.module.scss';
 
 // A value-fill gauge: a dim accent sweeps the whole tile left-to-right to the
@@ -8,9 +8,8 @@ import styles from './FillGauge.module.scss';
 // Micro 'fill' row.
 export function FillGauge({ value, formatted, label, gradient }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
-  // The sweep keeps the accent-shadow translucency, baked into the stops.
   const barStyle = gradient
-    ? { width: '100%', background: gaugeGradientCss(gradient.stops, 90, 0.4), clipPath: `inset(0 ${(100 - clamped).toFixed(2)}% 0 0)` }
+    ? { width: '100%', background: gaugeBodyCss(gradient, 90), clipPath: `inset(0 ${(100 - clamped).toFixed(2)}% 0 0)` }
     : { width: `${clamped}%` };
   return (
     <div className={styles.fill}>

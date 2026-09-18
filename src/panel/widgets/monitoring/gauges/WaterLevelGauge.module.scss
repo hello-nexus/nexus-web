@@ -34,7 +34,6 @@
   transform: scale(var(--gauge-figure-scale, 1));
   transform-origin: 50% 50%;
   overflow: hidden;
-  background: var(--gauge-track);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -42,8 +41,7 @@
 
 .fill {
   width: 100%;
-  // Same body color the Filled Line gauge uses for its area.
-  background: color-mix(in srgb, var(--panel-accent-glow) 40%, transparent);
+  background: var(--panel-accent-shadow);
   border-top: var(--gauge-line-thickness) solid var(--panel-accent);
 }
 

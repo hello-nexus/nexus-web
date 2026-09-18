@@ -27,6 +27,7 @@ import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill,
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
 import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
 import { designSupportsValueColor, gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { accentShadowAlpha } from '../../../lib/settings';
 import styles from './MonitoringWidget.module.scss';
 
 interface TempSensorPrefs {
@@ -349,15 +350,17 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   // chart plots [domainMin, domainMax], so its copy of the stops is re-expressed
   // over that window and only changes when the window does.
   const stops = coloured ? gaugeGradient.stops : null;
+  const mode = gaugeGradient?.mode ?? 'dark';
   const chart = !designIsFill(design);
   const gradient = useMemo(() => {
     if (!stops) return null;
-    if (!chart) return { id: gradientId, stops };
+    const bodyAlpha = accentShadowAlpha(mode);
+    if (!chart) return { id: gradientId, stops, bodyAlpha };
     const valueAt = scale === 'fixed'
       ? (at: number) => domainMin + at * (domainMax - domainMin)
       : (at: number) => at * naturalMax;
-    return { id: gradientId, stops: remapGaugeGradientToDomain(stops, valueAt, domainMin, domainMax) };
-  }, [gradientId, stops, chart, scale, domainMin, domainMax, naturalMax]);
+    return { id: gradientId, stops: remapGaugeGradientToDomain(stops, valueAt, domainMin, domainMax), bodyAlpha };
+  }, [gradientId, stops, mode, chart, scale, domainMin, domainMax, naturalMax]);
   // Tints the number and glow to the reading; the figure carries the whole
   // gradient, so the two together read like a tachometer.
   const gradeStyle = coloured

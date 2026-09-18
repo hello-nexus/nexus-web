@@ -1,6 +1,7 @@
 import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
 import { gaugeGradientCss } from '../../../theme/gaugeGradient';
+import { gaugeBodyCss } from '../valueColor';
 import styles from './NumberFillGauge.module.scss';
 
 // Linear fill: the bright water line sits at value% of the glyph height, so
@@ -13,7 +14,7 @@ export function NumberFillGauge({ value, formatted, label, gradient }: GaugeProp
     <div className={styles.numberFill}>
       <div className={styles.textWrap}>
         <span className={styles.textDim} aria-hidden="true">
-          <GaugeValue formatted={formatted} />
+          <GaugeValue formatted={formatted} textFill={gradient ? gaugeBodyCss(gradient, 0) : undefined} />
         </span>
         <span className={styles.textBright}>
           <GaugeValue

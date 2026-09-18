@@ -26,6 +26,7 @@ import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverToolt
 import { MicroBar } from './MicroBar';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
 import { gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { accentShadowAlpha } from '../../../lib/settings';
 import { formatSensorValue } from './sensorValueFormat';
 import type { NumberFormat, TempUnit } from '../../../lib/units';
 import styles from './MicroMonitoringWidget.module.scss';
@@ -234,7 +235,8 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
   const gradientId = useId();
   const coloured = valueColor && sensorSupportsValueColor(sensor?.type);
   const stops = coloured ? gaugeGradient.stops : null;
-  const gradient = useMemo(() => (stops ? { id: gradientId, stops } : null), [gradientId, stops]);
+  const mode = gaugeGradient.mode;
+  const gradient = useMemo(() => (stops ? { id: gradientId, stops, bodyAlpha: accentShadowAlpha(mode) } : null), [gradientId, stops, mode]);
   return (
     <MicroBar
       label={label}

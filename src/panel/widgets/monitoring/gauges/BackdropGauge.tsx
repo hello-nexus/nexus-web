@@ -15,11 +15,10 @@ export function BackdropGauge({ formatted, label, history, historyDomain, gradie
         <Sparkline
           values={history}
           domain={historyDomain}
-          // Keeps the shadow tier's translucency with the gradient in place.
           defs={gradient && <HistoryGradientDefs gradient={gradient} height={CHART_HEIGHT} padding={GAUGE_LINE_THICKNESS} />}
           color={gradient ? `url(#${gradient.id})` : 'var(--panel-accent-shadow)'}
           strokeWidth={0}
-          fillOpacity={gradient ? 0.4 : 1}
+          fillOpacity={gradient ? gradient.bodyAlpha : 1}
           // Same inner y-padding the Filled Line graph uses, so the trace keeps
           // top/bottom margins and never runs into the tile edges.
           padding={GAUGE_LINE_THICKNESS}

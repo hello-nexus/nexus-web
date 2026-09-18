@@ -54,7 +54,7 @@ export function MirrorWaveGauge({ formatted, label, history, historyDomain, grad
           <path
             className={styles.fill}
             d={path}
-            style={gradient ? { fill: `url(#${gradient.id})`, fillOpacity: 0.4, stroke: `url(#${gradient.id})` } : undefined}
+            style={gradient ? { fill: `url(#${gradient.id})`, fillOpacity: gradient.bodyAlpha, stroke: `url(#${gradient.id})` } : undefined}
           />
         </svg>
       </div>

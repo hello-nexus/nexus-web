@@ -17,7 +17,8 @@ export function SparklineGauge({ formatted, label, history, historyDomain, gradi
           values={history}
           domain={historyDomain}
           defs={gradient && <HistoryGradientDefs gradient={gradient} height={CHART_HEIGHT} padding={GAUGE_LINE_THICKNESS} />}
-          color={paint ?? 'var(--panel-accent-glow)'}
+          color={paint ?? 'var(--panel-accent-shadow)'}
+          fillOpacity={gradient ? gradient.bodyAlpha : 1}
           // eslint-disable-next-line i18next/no-literal-string -- CSS color variable
           strokeColor={paint ?? 'var(--panel-accent)'}
           strokeWidth={GAUGE_LINE_THICKNESS}

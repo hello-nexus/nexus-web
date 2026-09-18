@@ -1,6 +1,6 @@
 import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
-import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
+import { gaugeGradientColorAt, hexWithAlpha } from '../../../theme/gaugeGradient';
 import styles from './MicrobarsGauge.module.scss';
 
 export function MicrobarsGauge({ formatted, label, history, gradient }: GaugeProps) {
@@ -12,15 +12,14 @@ export function MicrobarsGauge({ formatted, label, history, gradient }: GaugePro
       <div className={styles.barGroup}>
         {bars.map((val, i) => {
           const height = Math.max(4, Math.min(100, val));
-          // A bar takes the gradient's colour at its own sample; the body
-          // keeps the scss's translucency with the alpha baked in.
+          // A bar takes the gradient's colour at its own sample.
           const color = gradient ? gaugeGradientColorAt(gradient.stops, height / 100) : null;
           return (
             <div
               key={i}
               className={styles.bar}
-              style={color
-                ? { height: `${height}%`, background: `${color}66`, borderTopColor: color }
+              style={gradient && color
+                ? { height: `${height}%`, background: hexWithAlpha(color, gradient.bodyAlpha), borderTopColor: color }
                 : { height: `${height}%` }}
             />
           );

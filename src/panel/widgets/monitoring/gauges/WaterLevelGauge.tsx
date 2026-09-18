@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { GaugeValue } from './GaugeValue';
 import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
-import { gaugeGradientCss } from '../../../theme/gaugeGradient';
+import { gaugeBodyCss } from '../valueColor';
 import styles from './WaterLevelGauge.module.scss';
 
 // The vessel is a fraction of the stage's short side, matching the shared
@@ -35,10 +35,8 @@ export function WaterLevelGauge({ value, formatted, label, gradient }: GaugeProp
         <div className={styles.container} style={{ width: size, height: size }}>
           <div
             className={styles.fill}
-            // The water keeps the scss's translucency with the alpha baked
-            // into the gradient's stops instead of color-mix.
             style={gradient
-              ? { height: '100%', background: gaugeGradientCss(gradient.stops, 0, 0.4), clipPath: `inset(${(100 - fillPercent).toFixed(2)}% 0 0 0)` }
+              ? { height: '100%', background: gaugeBodyCss(gradient, 0), clipPath: `inset(${(100 - fillPercent).toFixed(2)}% 0 0 0)` }
               : { height: `${fillPercent}%` }}
           />
         </div>
