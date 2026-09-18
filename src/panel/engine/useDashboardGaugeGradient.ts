@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchPreferences, savePreferences } from '../../api/profiles';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
-import { DEFAULT_GAUGE_GRADIENT, normalizeGaugeGradient, type GaugeGradientStop } from '../theme/gaugeGradient';
+import { DEFAULT_GAUGE_GRADIENT, gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from '../theme/gaugeGradient';
 
 interface UseDashboardGaugeGradientResult {
   stops: readonly GaugeGradientStop[];
@@ -18,7 +18,11 @@ export function useDashboardGaugeGradient(enabled: boolean): UseDashboardGaugeGr
   const fetchStops = useCallback(() => {
     if (!enabled) return;
     fetchPreferences()
-      .then(prefs => setStops(normalizeGaugeGradient(prefs?.panel?.dashboardGaugeGradient)))
+      .then(prefs => {
+        const next = normalizeGaugeGradient(prefs?.panel?.dashboardGaugeGradient);
+        // Every prefs broadcast refetches; keep the reference when nothing moved.
+        setStops(prev => (gaugeGradientEquals(prev, next) ? prev : next));
+      })
       .catch(() => {});
   }, [enabled]);
 

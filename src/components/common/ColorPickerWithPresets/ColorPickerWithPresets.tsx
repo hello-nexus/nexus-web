@@ -22,13 +22,6 @@ const PRESET_COLUMNS = 10;
  * without persistence). Preset tiles and the custom slot are a single-click
  * commit and never preview.
  */
-export interface ExtraSwatch {
-  color: string;
-  label: string;
-  selected: boolean;
-  onSelect: () => void;
-}
-
 export interface ColorPickerWithPresetsProps {
   value: string;
   presets: readonly string[];
@@ -57,6 +50,13 @@ export interface ColorPickerWithPresetsProps {
   /** Where the custom-colour popover opens; hosts near the bottom of a sheet open it upward. */
   pickerPlacement?: PopoverPlacement;
   className?: string;
+}
+
+export interface ExtraSwatch {
+  color: string;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
 }
 
 export function ColorPickerWithPresets({
