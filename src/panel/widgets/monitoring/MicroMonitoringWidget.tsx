@@ -1,4 +1,4 @@
-import { useId, type CSSProperties } from 'react';
+import { useId, useMemo, type CSSProperties } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
@@ -233,6 +233,8 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
 
   const gradientId = useId();
   const coloured = valueColor && sensorSupportsValueColor(sensor?.type);
+  const stops = coloured ? gaugeGradient.stops : null;
+  const gradient = useMemo(() => (stops ? { id: gradientId, stops } : null), [gradientId, stops]);
   // The backdrop row plots history, so its colour sits on the plotted domain;
   // the bar and fill rows follow their fill.
   const axisFraction = design === 'backdrop'
@@ -247,7 +249,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
       design={design}
       history={history}
       historyDomain={[domainMin, domainMax]}
-      gradient={coloured ? { id: gradientId, stops: gaugeGradient.stops } : null}
+      gradient={gradient}
       style={coloured ? gaugeAccentVars(gaugeGradient.stops, axisFraction, gaugeGradient.mode) as CSSProperties : undefined}
     />
   );

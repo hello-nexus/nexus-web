@@ -77,18 +77,18 @@ describe('MonitoringWidget value colouring', () => {
     const { container } = render(
       <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Package', slot0_valueColor: true })} />,
     );
-    // The default gradient ends at #ef4444 (hue 0) from 90% up; a 95 °C
+    // The default gradient ends at #ef4444 (hue 0) from 85% up; a 95 °C
     // reading on the 0-100 scale sits past it.
     expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(0\.0,/);
-    expect(fillBackground(container)).toContain('linear-gradient(90deg, rgb(37, 99, 235) 0.00%');
+    expect(fillBackground(container)).toContain('linear-gradient(90deg, rgb(79, 128, 240) 27.00%');
   });
 
   it('keeps a light CPU load on the cool end', () => {
     const { container } = render(
       <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Total', slot0_valueColor: true })} />,
     );
-    // #2563eb is hue 221.2.
-    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(221\.2,/);
+    // #4f80f0 is hue 221.7.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(221\.7,/);
   });
 
   it('takes the stops the panel provides', () => {

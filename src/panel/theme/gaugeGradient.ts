@@ -9,15 +9,14 @@ export interface GaugeGradientStop {
 }
 
 export const MIN_GAUGE_GRADIENT_STOPS = 2;
-export const MAX_GAUGE_GRADIENT_STOPS = 5;
+export const MAX_GAUGE_GRADIENT_STOPS = 6;
 
-// Deep blue holding through the cool half, amber where a stock CPU limit puts
-// its warning, red at the limit.
+// Light blue through the cool third, amber past the middle, red before the
+// limit; the ends stay flat beyond the outer stops.
 export const DEFAULT_GAUGE_GRADIENT: readonly GaugeGradientStop[] = [
-  { at: 0, color: '#2563eb' },
-  { at: 0.45, color: '#4f80f0' },
-  { at: 0.7, color: '#f59e0b' },
-  { at: 0.9, color: '#ef4444' },
+  { at: 0.27, color: '#4f80f0' },
+  { at: 0.55, color: '#f59e0b' },
+  { at: 0.85, color: '#ef4444' },
 ];
 
 const HEX6_RE = /^#[0-9a-f]{6}$/;

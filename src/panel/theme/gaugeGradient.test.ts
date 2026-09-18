@@ -51,8 +51,8 @@ describe('gaugeGradientColorAt', () => {
     expect(mixHex('#2563eb', '#f59e0b', 0.5)).toBe('#8d817b');
   });
 
-  it('reads the default as the deep blue at empty and red past the limit', () => {
-    expect(gaugeGradientColorAt(DEFAULT_GAUGE_GRADIENT, 0)).toBe('#2563eb');
+  it('reads the default as light blue at empty and red past the limit', () => {
+    expect(gaugeGradientColorAt(DEFAULT_GAUGE_GRADIENT, 0)).toBe('#4f80f0');
     expect(gaugeGradientColorAt(DEFAULT_GAUGE_GRADIENT, 0.95)).toBe('#ef4444');
   });
 });

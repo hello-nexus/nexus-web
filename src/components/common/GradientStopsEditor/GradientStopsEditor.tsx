@@ -1,5 +1,6 @@
-import { useCallback, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent } from 'react';
+import { useCallback, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type KeyboardEvent } from 'react';
 import { ColorPickerWithPresets } from '../ColorPickerWithPresets/ColorPickerWithPresets';
+import type { PopoverPlacement } from '../Popover/Popover';
 import { PRESET_ACCENTS } from '../../../lib/settings';
 import { useTranslation } from '../../../lib/i18n';
 import {
@@ -29,6 +30,9 @@ const HANDLE_HIT = 18;
 // Neighbouring stops keep at least this much of the scale between them, so a
 // drag can reorder nothing and a gradient never has two stops on one point.
 const MIN_GAP = 0.02;
+// The editor sits at the bottom of a sheet: the custom-colour wheel opens
+// upward so it lands over the bar instead of below the fold.
+const WHEEL_PLACEMENT: PopoverPlacement = 'top-end';
 
 interface Drag {
   index: number;
@@ -40,10 +44,10 @@ interface Drag {
 
 /**
  * Touch-first gradient editor: a bar painted with the stops, one handle per
- * stop. Drag a handle along the bar to move it, drag it out past either end to
- * remove it, tap it to recolour it through the preset picker underneath (greyed
- * out until a stop is picked), tap empty bar to add a stop with the colour
- * already there.
+ * stop. Drag a handle along the bar to move it, drag it out past either end
+ * (or right-click it) to remove it, tap it to recolour it through the preset
+ * picker underneath (greyed out until a stop is picked), tap empty bar to add
+ * a stop with the colour already there.
  */
 export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxStops, className }: GradientStopsEditorProps) {
   const { t } = useTranslation();
@@ -135,16 +139,27 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const step = event.key === 'ArrowLeft' ? -0.01 : event.key === 'ArrowRight' ? 0.01 : 0;
     if (step === 0) {
-      if ((event.key === 'Delete' || event.key === 'Backspace') && canRemove) {
+      if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault();
-        setSelected(null);
-        onCommit(stops.filter((_, i) => i !== index));
+        removeAt(index);
       }
       return;
     }
     event.preventDefault();
     const at = clampBetweenNeighbours(stops, index, stops[index].at + step);
     onCommit(stops.map((stop, i) => (i === index ? { ...stop, at } : stop)));
+  };
+
+  const removeAt = (index: number) => {
+    if (!canRemove) return;
+    setSelected(null);
+    onCommit(stops.filter((_, i) => i !== index));
+  };
+
+  const handleContextMenu = (event: ReactMouseEvent<HTMLButtonElement>, index: number) => {
+    event.preventDefault();
+    event.stopPropagation();
+    removeAt(index);
   };
 
   const recolour = (hex: string, commit: boolean) => {
@@ -180,6 +195,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
               aria-label={t('gradientEditor.stop', { percent: Math.round(stop.at * 100) })}
               aria-pressed={selected === i}
               onKeyDown={event => handleKeyDown(event, i)}
+              onContextMenu={event => handleContextMenu(event, i)}
               // The track owns the pointer gesture; a handle must not start a
               // second one or swallow the tap that selects it.
               onPointerDown={event => event.preventDefault()}
@@ -201,6 +217,7 @@ export function GradientStopsEditor({ stops, onPreview, onCommit, minStops, maxS
         allowCustom
         // Always in place so the sheet does not jump; live once a stop is tapped.
         disabled={selected === null || selected >= shown.length}
+        pickerPlacement={WHEEL_PLACEMENT}
         onPreview={hex => recolour(hex, false)}
         onCommit={hex => recolour(hex, true)}
       />

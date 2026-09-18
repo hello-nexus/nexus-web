@@ -340,7 +340,10 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
     : domainMax > domainMin ? Math.max(0, Math.min(1, (rawValue - domainMin) / (domainMax - domainMin))) : 0;
   const gradientId = useId();
   const coloured = valueColor && !!gaugeGradient && sensorSupportsValueColor(sensor?.type);
-  const gradient = coloured ? { id: gradientId, stops: gaugeGradient.stops } : null;
+  // Stable identity: the arc gauges memoise their coloured geometry on it, and
+  // a fresh object per tick would rebuild forty paths a second.
+  const stops = coloured ? gaugeGradient.stops : null;
+  const gradient = useMemo(() => (stops ? { id: gradientId, stops } : null), [gradientId, stops]);
   // Tints the number and glow to the reading; the figure carries the whole
   // gradient, so the two together read like a tachometer.
   const gradeStyle = coloured

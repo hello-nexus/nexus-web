@@ -74,6 +74,18 @@ describe('GradientStopsEditor', () => {
     expect(onCommit.mock.calls.at(-1)?.[0]).toHaveLength(3);
   });
 
+  it('right-click removes a handle', () => {
+    const { onCommit } = mount();
+    fireEvent.contextMenu(screen.getAllByRole('button', { name: 'gradientEditor.stop' })[1]);
+    expect(onCommit).toHaveBeenCalledWith([STOPS[0], STOPS[2]]);
+  });
+
+  it('right-click does nothing at the minimum', () => {
+    const { onCommit } = mount({ stops: [STOPS[0], STOPS[2]] });
+    fireEvent.contextMenu(screen.getAllByRole('button', { name: 'gradientEditor.stop' })[1]);
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('never removes below the minimum: the drag is just a move', () => {
     const { onCommit, bar } = mount({ stops: [STOPS[0], STOPS[2]] });
     fireEvent.pointerDown(bar, { clientX: 0, clientY: 16, button: 0, pointerId: 1 });

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pipette } from 'lucide-react';
 import { HsvPicker } from '../HsvPicker/HsvPicker';
-import { Popover } from '../Popover/Popover';
+import { Popover, type PopoverPlacement } from '../Popover/Popover';
 import { contrastTextOn } from '../../../lib/settings';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ColorPickerWithPresets.module.scss';
@@ -41,6 +41,8 @@ export interface ColorPickerWithPresetsProps {
   onCustomCommit?: (hex: string) => void;
   /** Greyed out, nothing selected, nothing clickable; the grid keeps its place. */
   disabled?: boolean;
+  /** Where the custom-colour popover opens; hosts near the bottom of a sheet open it upward. */
+  pickerPlacement?: PopoverPlacement;
   className?: string;
 }
 
@@ -54,6 +56,7 @@ export function ColorPickerWithPresets({
   customColor,
   onCustomCommit,
   disabled = false,
+  pickerPlacement = 'bottom-end',
   className,
 }: ColorPickerWithPresetsProps) {
   const { t } = useTranslation();
@@ -137,7 +140,7 @@ export function ColorPickerWithPresets({
               open={pickerOpen}
               onClose={() => setPickerOpen(false)}
               anchorRef={slotRef}
-              placement="bottom-end"
+              placement={pickerPlacement}
               ariaLabel={t('common.customColor')}
               className={styles.customPopover}
             >
