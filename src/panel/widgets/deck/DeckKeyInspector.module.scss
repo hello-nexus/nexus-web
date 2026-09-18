@@ -5,6 +5,8 @@
   --deck-settings-text: var(--text);
   --deck-settings-faint: var(--text-dim);
   --deck-settings-accent: var(--panel-accent, var(--accent));
+  --icon-label-button-active-bg: var(--deck-settings-accent);
+  --icon-label-button-active-text: var(--panel-accent-text, var(--accent-text));
 
   display: flex;
   flex-direction: column;
