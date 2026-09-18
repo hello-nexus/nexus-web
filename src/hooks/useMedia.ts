@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import { fetchService, postService } from '../api/service';
-import { useMultiplex, useTopic } from './useMultiplexSocket';
+import { useTopic } from './useMultiplexSocket';
 
 export interface MediaSession {
   sourceAppName: string;
@@ -35,40 +34,13 @@ const EMPTY: MediaState = { sessions: {}, loading: false };
 /**
  * Active media sessions keyed by source name (e.g. "Spotify", "Music").
  * Subscribes to the multiplexed "media" topic: the service pushes the full
- * session set on change (a play/pause lands within its event latency instead
- * of at the next poll) and a fresh snapshot on subscribe. GET /api/media is
- * polled only while the socket is down, or where no socket context exists.
+ * session set on change and a fresh snapshot on subscribe. While the socket
+ * is down the last frame stands, as with every other topic-driven widget.
  */
-export function useMedia(enabled: boolean, pollingRateMs = 2000): MediaState {
-  const multiplex = useMultiplex();
-  const pushLive = !!multiplex?.connected;
-  const live = useTopic<Record<string, MediaSession>>('media', enabled && !!multiplex);
-  const [polled, setPolled] = useState<MediaState>({ sessions: {}, loading: true });
-
-  const poll = enabled && !pushLive;
-  useEffect(() => {
-    if (!poll) return;
-
-    // Per-run flag rather than a shared ref: the socket can open while a fetch
-    // is in flight, and a ref the next run re-arms would let that fetch
-    // reschedule itself alongside the push for the life of the component.
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = async () => {
-      const data = await fetchService<Record<string, MediaSession>>('/api/media');
-      if (cancelled) return;
-      setPolled({ sessions: data ?? {}, loading: false });
-      timer = setTimeout(tick, pollingRateMs);
-    };
-    tick();
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [poll, pollingRateMs]);
-
+export function useMedia(enabled: boolean): MediaState {
+  const live = useTopic<Record<string, MediaSession>>('media', enabled);
   if (!enabled) return EMPTY;
-  // The pushed frame is the state while the socket is up, and stands in for
-  // a poll that has not landed yet after it drops.
-  if (live && (pushLive || polled.loading)) return { sessions: live, loading: false };
-  return polled;
+  return live ? { sessions: live, loading: false } : { sessions: {}, loading: true };
 }
 
 /** Send a playback control command (play, pause, next, previous). */
