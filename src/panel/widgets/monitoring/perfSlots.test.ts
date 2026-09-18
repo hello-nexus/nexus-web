@@ -5,6 +5,7 @@ import {
   MICRO_MIN_COUNT,
   MICRO_WIDE_COUNTS,
   defaultSlotCountForSize,
+  defaultSlotDesign,
   isExtrasBackedDevice,
   isMicroLayout,
   isTwoColumnMicro,
@@ -257,6 +258,20 @@ describe('perfSlots', () => {
     it('leaves an allowed design alone', () => {
       expect(resolveSlotDesign('4x4', { count: 4, hero: false }, 0, 'sparkline')).toBe('sparkline');
       expect(resolveSlotDesign('2x2round', { count: 1, hero: false }, 0, 'caterpillar')).toBe('caterpillar');
+    });
+  });
+
+  describe('defaultSlotDesign', () => {
+    it('is the filled line for CPU usage on every rectangular size', () => {
+      for (const size of ['2x2', '4x2', '2x4', '4x4'] as const) {
+        expect(defaultSlotDesign(size, 0)).toBe('sparkline');
+      }
+      expect(defaultSlotDesign('4x4', 1)).toBe('halfgauge');
+      expect(defaultSlotDesign('4x4', 2)).toBe('sparkline');
+    });
+
+    it('is the ring only on the round glass', () => {
+      expect(defaultSlotDesign('2x2round', 0)).toBe('caterpillar');
     });
   });
 

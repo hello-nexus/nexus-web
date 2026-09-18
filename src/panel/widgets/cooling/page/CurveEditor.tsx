@@ -14,6 +14,8 @@ import { useChartHoverTooltip } from '../../../../hooks/useChartHoverTooltip';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { RangeSlider } from '../../../../components/common/Slider/RangeSlider';
 import { Select } from '../../../../components/common/Select/Select';
+import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
+import { gpuTagForSensor, type GpuComponent } from '../../../../lib/gpuResolver';
 import { isModeCurveDirty } from './coolingModes';
 import { interpolateCurve, type CurveEasing, type CurveWrap } from '../../../../lib/curveEasing';
 import styles from '../CoolingPage.module.scss';
@@ -501,6 +503,37 @@ export function CurveGraph({
 
 // ── Mix controls ───────────────────────────────────────────────────────────
 
+const NO_GPUS: GpuComponent[] = [];
+
+const gpuTopologyKey = (gpus: readonly GpuComponent[]) => gpus.map(g => `${g.id}:${g.integrated ? 1 : 0}`).join('|');
+
+// The `gpu` topic re-sends every frame, but a source label only depends on
+// which cards exist, so the list is held by topology: value-only frames leave
+// the state identical and the memo'd card skips them. The last topology is
+// kept at module scope because CurveCard remounts on every curve switch
+// (keyed by curve id) and useTopicCallback never replays a cached frame; the
+// plain category shows only before the first frame of the session.
+let lastGpuCards: GpuComponent[] = NO_GPUS;
+
+function useGpuCards(): GpuComponent[] {
+  const [cards, setCards] = useState<GpuComponent[]>(() => lastGpuCards);
+  useTopicCallback('gpu', true, frame => {
+    const next = (frame as GpuComponent[] | null) ?? NO_GPUS;
+    if (gpuTopologyKey(next) !== gpuTopologyKey(lastGpuCards)) lastGpuCards = next;
+    setCards(lastGpuCards);
+  });
+  return cards;
+}
+
+// "GPU" sources of two cards are otherwise identical rows ("GPU - GPU Core"
+// twice on an iGPU + dGPU box); the tag names the card the way the
+// monitoring widget does. Source ids are the monitoring sensor ids on
+// Windows; where they are not (Linux hwmon), the plain category stands.
+export function sourceCategoryLabel(source: TemperatureSource, gpus: readonly GpuComponent[]): string {
+  if (source.category !== 'GPU' || gpus.length <= 1) return source.category;
+  return gpuTagForSensor(gpus, source.id);
+}
+
 function MixControls({ curve, allCurves, sources, channels, onChange }: {
   curve: CurveDef;
   allCurves: CurveDef[];
@@ -601,6 +634,7 @@ export const CurveCard = memo(function CurveCard({
   };
   const isPreset = !!curve.preset;
   const [renaming, setRenaming] = useState(false);
+  const gpus = useGpuCards();
 
   // Hand-rolled rather than ChipGroup: each chip carries its own hover tooltip
   // describing the mode. Styling comes from the shared .chip-action classes.
@@ -632,7 +666,7 @@ export const CurveCard = memo(function CurveCard({
       </span>
       <Select className={styles.sourceSelect} value={curve.sourceId}
         onChange={v => set({ sourceId: v })} ariaLabel={t('cooling.curve.source')}>
-        {sources.map(s => (<option key={s.id} value={s.id}>{s.category} - {s.name} ({localizeNumbers(s.value.toFixed(1), numberFormat)}°C)</option>))}
+        {sources.map(s => (<option key={s.id} value={s.id}>{sourceCategoryLabel(s, gpus)} - {s.name} ({localizeNumbers(s.value.toFixed(1), numberFormat)}°C)</option>))}
       </Select>
     </label>
   ) : null;

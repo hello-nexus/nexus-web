@@ -1,5 +1,5 @@
 import { PerfSlot } from './MonitoringWidget';
-import { DEFAULT_DESIGN, DEFAULT_SLOTS, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
+import { DEFAULT_SLOTS, defaultSlotDesign, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import type { GaugeDesignKey } from './gauges';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
@@ -36,7 +36,7 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i)),
     ),
     // Carried so a cell grades against the same window the tile does; without
     // the range a Fixed slot would colour off the absolute limits instead.

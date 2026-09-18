@@ -22,8 +22,9 @@
   --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
   --icon-label-button-active-border: var(--panel-accent, var(--accent));
-  --icon-label-button-active-bg: var(--panel-accent-soft, var(--accent-soft));
-  --icon-label-button-active-text: var(--text);
+  // Same solid fill + contrast text as .chip-active.
+  --icon-label-button-active-bg: var(--panel-accent, var(--accent));
+  --icon-label-button-active-text: var(--panel-accent-text, var(--accent-text));
   --icon-label-icon-size: 21px;
   --icon-label-label-size: 10px;
 }

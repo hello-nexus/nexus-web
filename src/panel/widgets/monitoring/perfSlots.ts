@@ -6,14 +6,16 @@ import type { GaugeDesignKey } from './gauges';
 // existed keeps resolving its Fan-typed sensor; it is no longer offered in
 // either picker (see MonitoringSettings' DEVICE_OPTIONS).
 //
-// 'smart' (LHM SSD SMART, storage topic) and the extras-topic categories
-// ('memoryModule', 'battery', 'cooler', 'psu', 'embeddedController') are
-// widget-only: they are deliberately NOT part of sensorCategories.ts'
-// SENSOR_CATEGORIES, so the Tryx overlay picker (which mirrors that shared
-// set) never offers them - see useSensors.storageSensors and
-// useSensorExtras for why each is gated off that surface.
+// 'gpu2' (discrete cards beyond the primary), 'igpu' (the integrated GPU
+// beside a discrete primary), 'smart' (LHM SSD SMART, storage topic) and the
+// extras-topic categories ('memoryModule', 'battery', 'cooler', 'psu',
+// 'embeddedController') are widget-only: they are deliberately NOT part of
+// sensorCategories.ts' SENSOR_CATEGORIES, so the Tryx overlay picker (which
+// mirrors that shared set) never offers them - see useSensors.storageSensors
+// and useSensorExtras for why each is gated off that surface, and
+// sensorCategories.gpu2Components / igpuComponents for the two GPU ones.
 export type DeviceKey =
-  | 'quick' | 'cpu' | 'gpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps'
+  | 'quick' | 'cpu' | 'gpu' | 'gpu2' | 'igpu' | 'memory' | 'motherboard' | 'fan' | 'storage' | 'network' | 'fps'
   | 'smart' | 'memoryModule' | 'battery' | 'cooler' | 'psu' | 'embeddedController';
 
 // DeviceKeys resolved from the "extras" topic (useSensorExtras), as opposed
@@ -51,7 +53,11 @@ export const MICRO_WIDE_COUNTS = [6, 8] as const;
 export const MICRO_DESIGN_KEYS: GaugeDesignKey[] = ['bar', 'fill', 'backdrop'];
 export const DEFAULT_MICRO_DESIGN: GaugeDesignKey = 'bar';
 
-export const DEFAULT_DESIGN: GaugeDesignKey = 'caterpillar';
+export const DEFAULT_DESIGN: GaugeDesignKey = 'sparkline';
+
+// The round glass is the one surface whose default is the Ring: it fills the
+// frame, where the filled line would float in a circle.
+export const DEFAULT_ROUND_DESIGN: GaugeDesignKey = 'caterpillar';
 
 export const DEFAULT_SLOTS: SlotConfig[] = [
   { device: 'quick', sensor: 'summary/cpu-usage',    design: DEFAULT_DESIGN },
@@ -59,6 +65,12 @@ export const DEFAULT_SLOTS: SlotConfig[] = [
   { device: 'quick', sensor: 'summary/cpu-temp',     design: DEFAULT_DESIGN },
   { device: 'quick', sensor: 'summary/vram-usage',   design: DEFAULT_DESIGN },
 ];
+
+// Design a slot renders when none is stored for it.
+export function defaultSlotDesign(size: PanelWidgetSize, slotIndex: number): GaugeDesignKey {
+  if (size === '2x2round') return DEFAULT_ROUND_DESIGN;
+  return DEFAULT_SLOTS[slotIndex]?.design ?? DEFAULT_DESIGN;
+}
 
 // Default slot count for a freshly-resized widget when no explicit count is
 // persisted. Always a multi-sensor count, never the Micro count - existing
@@ -225,7 +237,6 @@ export function isFullBleedRound(
   if (size !== '2x2round') return false;
   if (resolvedSlotLayout(size, config).count !== 1) return false;
   const stored = (config?.slot0_design as GaugeDesignKey | undefined)
-    ?? DEFAULT_SLOTS[0]?.design
-    ?? DEFAULT_DESIGN;
+    ?? defaultSlotDesign(size, 0);
   return designFillsRoundFrame(size, stored);
 }

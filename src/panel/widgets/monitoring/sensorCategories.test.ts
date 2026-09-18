@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { HardwareSensor, SensorState } from '../../../hooks/useSensors';
 import type { SensorExtras } from '../../../hooks/useSensorExtras';
 import { EMPTY_SENSOR_EXTRAS } from '../../../hooks/useSensorExtras';
-import { extrasSensorsForDevice, FPS_SENSOR_TEMPLATE, SENSOR_CATEGORIES, sensorsForCategory, smartStorageSensors } from './sensorCategories';
+import { extrasSensorsForDevice, FPS_SENSOR_TEMPLATE, gpu2Components, gpu2Sensors, igpuComponents, igpuSensors, SENSOR_CATEGORIES, sensorsForCategory, smartStorageSensors } from './sensorCategories';
 
 function sensor(partial: Partial<HardwareSensor> & { id: string; name: string; type: string }): HardwareSensor {
   return { value: 0, units: '', formatted: '', parent: { id: '', name: '' }, ...partial };
@@ -104,5 +104,60 @@ describe('extrasSensorsForDevice', () => {
   it('returns an empty array for a non-extras device', () => {
     expect(extrasSensorsForDevice('cpu', extras)).toEqual([]);
     expect(extrasSensorsForDevice('smart', extras)).toEqual([]);
+  });
+});
+
+describe('igpuComponents / igpuSensors', () => {
+  const dCore = sensor({ id: '/gpu-nvidia/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const iCore = sensor({ id: '/gpu-amd/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const iSoc = sensor({ id: '/gpu-amd/0/temperature/1', name: 'GPU VR SoC', type: 'Temperature' });
+  const igpu = { id: '/gpu-amd/0', name: 'AMD Radeon(TM) Graphics', integrated: true, sensors: [iCore, iSoc] };
+  const dgpu = { id: '/gpu-nvidia/0', name: 'NVIDIA GeForce RTX 5080', integrated: false, sensors: [dCore] };
+
+  it('is the integrated card beside a discrete primary, and the gpu category stays the primary alone', () => {
+    const sensors: SensorState = { ...EMPTY_SENSORS, gpu: dgpu.sensors, gpuComponents: [igpu, dgpu] };
+    expect(igpuComponents(sensors)).toEqual([igpu]);
+    expect(igpuSensors(sensors).map(s => s.id)).toEqual([iCore.id, iSoc.id]);
+    expect(sensorsForCategory('gpu', sensors, [], [])).toBe(dgpu.sensors);
+  });
+
+  it('is empty on an iGPU-only box, where the gpu category already is the iGPU', () => {
+    expect(igpuComponents({ ...EMPTY_SENSORS, gpu: igpu.sensors, gpuComponents: [igpu] })).toEqual([]);
+  });
+
+  it('still lists the iGPU when it is picked as the preferred (primary) GPU, so igpu slots keep resolving', () => {
+    expect(igpuComponents({ ...EMPTY_SENSORS, gpu: igpu.sensors, gpuComponents: [igpu, dgpu] })).toEqual([igpu]);
+  });
+
+  it('is empty on a discrete-only box', () => {
+    expect(igpuComponents({ ...EMPTY_SENSORS, gpu: dgpu.sensors, gpuComponents: [dgpu] })).toEqual([]);
+  });
+});
+
+describe('gpu2Components / gpu2Sensors', () => {
+  const aCore = sensor({ id: '/gpu-nvidia/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const bCore = sensor({ id: '/gpu-nvidia/1/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  const bHot = sensor({ id: '/gpu-nvidia/1/temperature/1', name: 'GPU Hot Spot', type: 'Temperature' });
+  const iCore = sensor({ id: '/gpu-amd/0/temperature/0', name: 'GPU Core', type: 'Temperature' });
+  // Two identical cards: only the sensor ids tell them apart.
+  const cardA = { id: '/gpu-nvidia/0', name: 'NVIDIA GeForce RTX 5080', integrated: false, sensors: [aCore] };
+  const cardB = { id: '/gpu-nvidia/1', name: 'NVIDIA GeForce RTX 5080', integrated: false, sensors: [bCore, bHot] };
+  const igpu = { id: '/gpu-amd/0', name: 'AMD Radeon(TM) Graphics', integrated: true, sensors: [iCore] };
+
+  it('is every discrete card but the primary, split by sensor id even when the names match', () => {
+    const sensors: SensorState = { ...EMPTY_SENSORS, gpu: cardA.sensors, gpuComponents: [cardA, cardB, igpu] };
+    expect(gpu2Components(sensors)).toEqual([cardB]);
+    expect(gpu2Sensors(sensors).map(s => s.id)).toEqual([bCore.id, bHot.id]);
+    // The preference flipped to card B: card A becomes the second card.
+    expect(gpu2Components({ ...sensors, gpu: cardB.sensors })).toEqual([cardA]);
+  });
+
+  it('never holds the integrated card, and is empty with a single discrete card', () => {
+    expect(gpu2Components({ ...EMPTY_SENSORS, gpu: cardA.sensors, gpuComponents: [cardA, igpu] })).toEqual([]);
+    expect(gpu2Components({ ...EMPTY_SENSORS, gpu: cardA.sensors, gpuComponents: [cardA] })).toEqual([]);
+  });
+
+  it('reaches the discrete card when the iGPU is the preferred primary', () => {
+    expect(gpu2Components({ ...EMPTY_SENSORS, gpu: igpu.sensors, gpuComponents: [igpu, cardA] })).toEqual([cardA]);
   });
 });

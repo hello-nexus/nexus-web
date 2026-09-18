@@ -52,3 +52,24 @@ describe('sensorNames', () => {
     });
   });
 });
+
+describe('igpu labels', () => {
+  it('strips the GPU word the sensor arrives with and captions under iGPU', () => {
+    expect(bareSensorLabel('igpu', 'GPU Core')).toBe('Core');
+    expect(bareSensorLabel('igpu', 'GPU VR SoC')).toBe('VR SoC');
+    expect(prefixedSensorLabel('igpu', 'GPU Core')).toBe('iGPU Core');
+    expect(prefixedSensorLabel('igpu', 'Core')).toBe('iGPU Core');
+    // Idempotent on its own output, like every other device.
+    expect(prefixedSensorLabel('igpu', 'iGPU Core')).toBe('iGPU Core');
+    expect(bareSensorLabel('igpu', 'iGPU')).toBe('');
+  });
+});
+
+describe('gpu2 labels', () => {
+  it('strips the GPU word the sensor arrives with and captions under GPU 2, idempotently', () => {
+    expect(bareSensorLabel('gpu2', 'GPU Core')).toBe('Core');
+    expect(prefixedSensorLabel('gpu2', 'GPU Core')).toBe('GPU 2 Core');
+    expect(prefixedSensorLabel('gpu2', 'GPU 2 Core')).toBe('GPU 2 Core');
+    expect(bareSensorLabel('gpu2', 'GPU 2')).toBe('');
+  });
+});

@@ -2641,6 +2641,8 @@
   "monitoring.settings.category.embeddedController": "EC",
   "monitoring.settings.category.fps": "FPS",
   "monitoring.settings.category.gpu": "GPU",
+  "monitoring.settings.category.gpu2": "GPU 2",
+  "monitoring.settings.category.igpu": "iGPU",
   "monitoring.settings.category.memory": "메모리",
   "monitoring.settings.category.memoryModule": "메모리 모듈",
   "monitoring.settings.category.motherboard": "메인보드",

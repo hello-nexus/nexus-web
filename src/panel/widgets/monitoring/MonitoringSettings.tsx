@@ -13,9 +13,9 @@ import { GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
-  DEFAULT_DESIGN,
   DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
+  defaultSlotDesign,
   designKeysForSlot,
   isMicroLayout,
   MICRO_DESIGN_KEYS,
@@ -296,7 +296,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i)),
     );
     const scale = ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE);
     const fixedMin = widget.config?.[`slot${i}_min`] as number | undefined;
@@ -487,17 +487,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
         </SettingsSection>
 
         <SettingsSection title={t('monitoring.settings.range')}>
-          <div className={styles.scaleRow}>
-            {SCALE_OPTIONS.map(opt => (
-              <IconLabelButton
-                key={opt.value}
-                className={styles.scaleBtn}
-                active={opt.value === microScale}
-                label={t(opt.labelKey)}
-                onPress={() => onUpdate({ micro_scale: opt.value })}
-              />
-            ))}
-          </div>
+          <ChipGroup
+            fullWidth
+            ariaLabel={t('monitoring.settings.range')}
+            activeKey={microScale}
+            onChange={v => onUpdate({ micro_scale: v })}
+            options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+          />
           {microScale === 'fixed' && microCanType && (
             <div className={styles.rangeRow}>
               <div className={styles.rangeField}>
@@ -610,17 +606,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
 
           {designSupportsRange(activeConfig.design) && (
             <SettingsSection title={t('monitoring.settings.range')}>
-              <div className={styles.scaleRow}>
-                {SCALE_OPTIONS.map(opt => (
-                  <IconLabelButton
-                    key={opt.value}
-                    className={styles.scaleBtn}
-                    active={opt.value === activeConfig.scale}
-                    label={t(opt.labelKey)}
-                    onPress={() => onUpdate({ [`slot${activeSlot}_scale`]: opt.value })}
-                  />
-                ))}
-              </div>
+              <ChipGroup
+                fullWidth
+                ariaLabel={t('monitoring.settings.range')}
+                activeKey={activeConfig.scale}
+                onChange={v => onUpdate({ [`slot${activeSlot}_scale`]: v })}
+                options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+              />
               {activeConfig.scale === 'fixed' && canEditFreeText(surface, desktopEditor) && (
                 <div className={styles.rangeRow}>
                   <div className={styles.rangeField}>
