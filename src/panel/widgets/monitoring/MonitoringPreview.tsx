@@ -3,7 +3,7 @@ import { widgetLayoutSize } from '../../types';
 import type { WidgetProps } from '../types';
 import { GAUGE_DESIGNS } from './gauges';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
-import { DEFAULT_DESIGN, designFillsRoundFrame } from './perfSlots';
+import { defaultSlotDesign, designFillsRoundFrame } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { getPanelSensorHist } from '../../../lib/monitoringStore';
@@ -17,7 +17,6 @@ interface PreviewSlot {
   sensor: string;
   // Gauge label (the summary sensor's display name).
   label: string;
-  design: GaugeDesignKey;
   // Center value the synthetic walk hovers around (percent) and its swing
   // amplitude.
   base: number;
@@ -27,11 +26,11 @@ interface PreviewSlot {
   spike?: number;
 }
 
-// CPU usage in the default design, memory usage as a half gauge - the two
-// side-by-side gauges that fill the 4x2 picker tile.
+// CPU usage and memory usage in their default designs - the two side-by-side
+// gauges that fill the 4x2 picker tile.
 const PREVIEW_SLOTS: PreviewSlot[] = [
-  { device: 'quick', sensor: 'summary/cpu-usage',    label: 'CPU Usage',    design: DEFAULT_DESIGN, base: 40, swing: 22, spike: 0.24 },
-  { device: 'quick', sensor: 'summary/memory-usage', label: 'Memory Usage', design: 'halfgauge', base: 63, swing: 3 },
+  { device: 'quick', sensor: 'summary/cpu-usage',    label: 'CPU Usage',    base: 40, swing: 22, spike: 0.24 },
+  { device: 'quick', sensor: 'summary/memory-usage', label: 'Memory Usage', base: 63, swing: 3 },
 ];
 
 // Frozen, mean-reverting wiggle around `base` (so the line looks organic but
@@ -53,7 +52,7 @@ function synthHistory(base: number, swing: number, spike = 0): number[] {
   return out;
 }
 
-function buildGauge(slot: PreviewSlot) {
+function buildGauge(slot: PreviewSlot, design: GaugeDesignKey) {
   // Reuse the last ~30 s of real telemetry the live panel buffered, falling
   // back to a synthetic walk when the catalog opens before enough samples exist.
   const live = getPanelSensorHist(`${slot.device}::${slot.sensor}`);
@@ -70,7 +69,7 @@ function buildGauge(slot: PreviewSlot) {
     maxValue: 100,
     historyDomain: [0, 100],
   };
-  return { key: `${slot.device}-${slot.sensor}`, design: slot.design, props };
+  return { key: `${slot.device}-${slot.sensor}`, design, props };
 }
 
 // Static, non-animated monitoring tile for the add-widget catalog. Builds its
@@ -83,8 +82,9 @@ export function MonitoringPreview({ widget }: WidgetProps) {
   // side-by-side. Larger tiles keep the CPU+memory pair.
   const solo = size === '2x2';
   const slots = useMemo(
-    () => (solo ? PREVIEW_SLOTS.slice(0, 1) : PREVIEW_SLOTS).map(buildGauge),
-    [solo],
+    () => (solo ? PREVIEW_SLOTS.slice(0, 1) : PREVIEW_SLOTS)
+      .map((slot, i) => buildGauge(slot, defaultSlotDesign(widget.size, i))),
+    [solo, widget.size],
   );
   const layoutClass = solo
     ? styles.solo
