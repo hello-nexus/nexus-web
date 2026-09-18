@@ -41,7 +41,7 @@ export function useOemAppSeed({
   enabled, layoutLoaded, layout, setLayout, capacity,
   uiHydrated, uiSettings, updateUiSettings,
 }: UseOemAppSeedArgs): void {
-  const forceRender = useReducer((r: number) => r + 1, 0)[1];
+  const [registryRevision, forceRender] = useReducer((r: number) => r + 1, 0);
   // Deliberately NOT gated on `enabled`. The OEM seed below is desktop-only,
   // but the registry load is what lets lookupApp resolve an `app:<id>` type at
   // all - and every surface needs that to render an installed SDK app. Gating
@@ -106,5 +106,9 @@ export function useOemAppSeed({
       oemAppSeeded: true,
       pinnedSidebarApps: nextPinned,
     });
-  }, [enabled, layoutLoaded, uiHydrated, marketplaceLoaded, uiSettings, layout, capacity, setLayout, updateUiSettings]);
+    // registryRevision is a dep so a reload that ADDS an app re-runs this.
+    // marketplaceLoaded is already true by then, so nothing else in the list
+    // changes and the app would otherwise wait for a remount - which is the
+    // whole flow when the service installs one for attached hardware.
+  }, [enabled, layoutLoaded, uiHydrated, marketplaceLoaded, registryRevision, uiSettings, layout, capacity, setLayout, updateUiSettings]);
 }
