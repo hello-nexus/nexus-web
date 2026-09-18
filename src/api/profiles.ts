@@ -1,6 +1,7 @@
 import { fetchService, postService, putService, deleteService, loopbackFetchInit, resolveHttp, authFetchWithStatus } from './service';
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
+import type { PanelGaugeGradientStopDto } from './panel';
 import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
 import type { TempUnit, TimeFormat, NumberFormat } from '../lib/units';
@@ -74,6 +75,8 @@ export interface PanelSettings {
   // Profile-scoped desktop dashboard layout. Absent / null when the SPA's
   // built-in default seed applies on first load.
   dashboardLayout?: PanelLayout;
+  /** The desktop dashboard's gauge colour stops; absent = the client default. */
+  dashboardGaugeGradient?: PanelGaugeGradientStopDto[] | null;
 }
 
 export interface OverlaySettings {
