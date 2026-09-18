@@ -7,6 +7,7 @@ import {
   MAX_GAUGE_GRADIENT_STOPS,
   mixHex,
   normalizeGaugeGradient,
+  remapGaugeGradientToDomain,
 } from './gaugeGradient';
 
 describe('normalizeGaugeGradient', () => {
@@ -66,5 +67,30 @@ describe('gaugeGradientCssStops / equals', () => {
   it('compares by value', () => {
     expect(gaugeGradientEquals(DEFAULT_GAUGE_GRADIENT, [...DEFAULT_GAUGE_GRADIENT])).toBe(true);
     expect(gaugeGradientEquals(DEFAULT_GAUGE_GRADIENT, DEFAULT_GAUGE_GRADIENT.slice(1))).toBe(false);
+  });
+});
+
+describe('remapGaugeGradientToDomain', () => {
+  const stops = [{ at: 0.2, color: '#000000' }, { at: 0.6, color: '#ffffff' }];
+  const natural = (at: number) => at * 100;
+
+  it('re-expresses the stops over a chart window that shows part of the scale', () => {
+    // A chart stretched to 0-50: the 20 stop lands at 0.4 of it, the 60 stop is
+    // off the top, and the top edge takes the colour the scale has at 50.
+    expect(remapGaugeGradientToDomain(stops, natural, 0, 50)).toEqual([
+      { at: 0, color: '#000000' },
+      { at: 0.4, color: '#000000' },
+      { at: 1, color: gaugeGradientColorAt(stops, 0.5) },
+    ]);
+  });
+
+  it('is the identity over the full scale', () => {
+    expect(remapGaugeGradientToDomain(stops, natural, 0, 100)).toEqual([
+      { at: 0, color: '#000000' }, { at: 0.2, color: '#000000' }, { at: 0.6, color: '#ffffff' }, { at: 1, color: '#ffffff' },
+    ]);
+  });
+
+  it('keeps a degenerate window from dividing by zero', () => {
+    expect(remapGaugeGradientToDomain(stops, natural, 40, 40)).toEqual(stops);
   });
 });

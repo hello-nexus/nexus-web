@@ -12,6 +12,7 @@ const mockSensors = vi.hoisted(() => ({
   cpu: [
     { id: 'cpu-total', name: 'CPU Total', type: 'Load', value: 12, units: '%', formatted: '12%', parent: { id: 'cpu', name: 'CPU' } },
     { id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 95, units: '°C', formatted: '95 °C', parent: { id: 'cpu', name: 'CPU' } },
+    { id: 'cpu-die', name: 'CPU Die', type: 'Temperature', value: 36, units: '°C', formatted: '36 °C', parent: { id: 'cpu', name: 'CPU' } },
   ],
   gpu: [],
   memory: [],
@@ -103,6 +104,21 @@ describe('MonitoringWidget value colouring', () => {
     );
     // #00ff00 is hue 120.
     expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(120\.0,/);
+  });
+
+  it('colours a history chart by the reading itself, not by where the adaptive axis puts it', () => {
+    const { container } = render(
+      <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Die', slot0_design: 'sparkline', slot0_valueColor: true })} />,
+    );
+    // 36 °C on an adaptive chart stretched to 0-50 sits near the top of the
+    // axis; the tint and the gradient both stay at the 36-on-100 colour.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(22[0-9]\.[0-9],/);
+    const stopEls = Array.from(container.querySelectorAll('stop'));
+    expect(stopEls.length).toBeGreaterThanOrEqual(2);
+    // The chart's top edge (offset 1) plots 50 °C, which is short of the amber stop at 55.
+    const top = stopEls[stopEls.length - 1].getAttribute('stop-color');
+    expect(top).not.toBe('#ef4444');
+    expect(top).not.toBe('#f59e0b');
   });
 
   it('ignores the toggle on a sensor outside the percent/temperature families', () => {

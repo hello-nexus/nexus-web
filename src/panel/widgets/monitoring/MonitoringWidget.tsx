@@ -25,6 +25,7 @@ import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './ne
 import { formatSensorValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
+import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
 import { designSupportsValueColor, gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
 import styles from './MonitoringWidget.module.scss';
 
@@ -333,21 +334,34 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   // not array identity.
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);
 
-  // Where the reading sits along this gauge's figure, 0..1. Fill shapes use
-  // the same transform their fill does; history charts use their plotted domain.
-  const axisFraction = designIsFill(design)
-    ? value / 100
-    : domainMax > domainMin ? Math.max(0, Math.min(1, (rawValue - domainMin) / (domainMax - domainMin))) : 0;
+  // The gradient describes the sensor's own scale: the Fixed window when set,
+  // else the natural percent (0-100 for a load or a temperature, the sensor's
+  // capacity for a Data sensor). Every design colours by that scale, so a
+  // chart stretched to the recent history still colours 36 degrees as cool.
+  const naturalMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 100;
+  const scaleFraction = scale === 'fixed'
+    ? fixedFillPercent(rawValue, domainMin, domainMax) / 100
+    : percentForSensor(device, sensor, maxValue) / 100;
   const gradientId = useId();
   const coloured = valueColor && !!gaugeGradient && designSupportsValueColor(design) && sensorSupportsValueColor(sensor?.type);
   // Stable identity: the arc gauges memoise their coloured geometry on it, and
-  // a fresh object per tick would rebuild forty paths a second.
+  // a fresh object per tick would rebuild forty paths a second. A history
+  // chart plots [domainMin, domainMax], so its copy of the stops is re-expressed
+  // over that window and only changes when the window does.
   const stops = coloured ? gaugeGradient.stops : null;
-  const gradient = useMemo(() => (stops ? { id: gradientId, stops } : null), [gradientId, stops]);
+  const chart = !designIsFill(design);
+  const gradient = useMemo(() => {
+    if (!stops) return null;
+    if (!chart) return { id: gradientId, stops };
+    const valueAt = scale === 'fixed'
+      ? (at: number) => domainMin + at * (domainMax - domainMin)
+      : (at: number) => at * naturalMax;
+    return { id: gradientId, stops: remapGaugeGradientToDomain(stops, valueAt, domainMin, domainMax) };
+  }, [gradientId, stops, chart, scale, domainMin, domainMax, naturalMax]);
   // Tints the number and glow to the reading; the figure carries the whole
   // gradient, so the two together read like a tachometer.
   const gradeStyle = coloured
-    ? gaugeAccentVars(gaugeGradient.stops, axisFraction, gaugeGradient.mode) as CSSProperties
+    ? gaugeAccentVars(gaugeGradient.stops, scaleFraction, gaugeGradient.mode) as CSSProperties
     : undefined;
 
   const GaugeComponent = GAUGE_DESIGNS[design] ?? GAUGE_DESIGNS.sparkline;

@@ -235,12 +235,6 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
   const coloured = valueColor && sensorSupportsValueColor(sensor?.type);
   const stops = coloured ? gaugeGradient.stops : null;
   const gradient = useMemo(() => (stops ? { id: gradientId, stops } : null), [gradientId, stops]);
-  // The backdrop row plots history, so its colour sits on the plotted domain;
-  // the bar and fill rows follow their fill.
-  const axisFraction = design === 'backdrop'
-    ? (domainMax > domainMin ? Math.max(0, Math.min(1, (rawValue - domainMin) / (domainMax - domainMin))) : 0)
-    : fillPercent / 100;
-
   return (
     <MicroBar
       label={label}
@@ -250,7 +244,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
       history={history}
       historyDomain={[domainMin, domainMax]}
       gradient={gradient}
-      style={coloured ? gaugeAccentVars(gaugeGradient.stops, axisFraction, gaugeGradient.mode) as CSSProperties : undefined}
+      style={coloured ? gaugeAccentVars(gaugeGradient.stops, fillPercent / 100, gaugeGradient.mode) as CSSProperties : undefined}
     />
   );
 }

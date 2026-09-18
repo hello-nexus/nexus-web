@@ -89,3 +89,32 @@ export function gaugeGradientCssStops(stops: readonly GaugeGradientStop[], alpha
 export function gaugeGradientCss(stops: readonly GaugeGradientStop[], angleDeg: number, alpha = 1): string {
   return `linear-gradient(${angleDeg}deg, ${gaugeGradientCssStops(stops, alpha)})`;
 }
+
+/**
+ * The gradient re-expressed over a chart's plotted domain. The stops describe
+ * the sensor's own scale (a temperature, a load percent); a chart that
+ * stretches its y-axis to the recent history must still colour 36 degrees the
+ * same wherever that lands on the axis. `valueAt` maps a stop position to the
+ * sensor value it stands for; the chart's two ends take the colour the
+ * gradient has at the values they plot, and stops outside the window drop.
+ */
+export function remapGaugeGradientToDomain(
+  stops: readonly GaugeGradientStop[],
+  valueAt: (at: number) => number,
+  domainMin: number,
+  domainMax: number,
+): GaugeGradientStop[] {
+  const span = domainMax - domainMin;
+  if (!(span > 0)) return [...stops];
+  // Inverse of valueAt on its linear form: the scale position of a plotted value.
+  const zero = valueAt(0);
+  const perUnit = valueAt(1) - zero;
+  const positionOf = (value: number) => (perUnit > 0 ? (value - zero) / perUnit : 0);
+  const out: GaugeGradientStop[] = [{ at: 0, color: gaugeGradientColorAt(stops, positionOf(domainMin)) }];
+  for (const stop of stops) {
+    const at = (valueAt(stop.at) - domainMin) / span;
+    if (at > 0 && at < 1) out.push({ at, color: stop.color });
+  }
+  out.push({ at: 1, color: gaugeGradientColorAt(stops, positionOf(domainMax)) });
+  return out;
+}
