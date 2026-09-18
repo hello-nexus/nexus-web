@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCheck, Eye, EyeOff, ExternalLink, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
@@ -8,7 +8,7 @@ import {
   fetchMusicReactive, setMusicReactive, setLightingDevicePower, setLightingDeviceControlled,
   renameLightingDevice, saveLightingGroups, saveLightingStacks, saveDeviceLayout,
   fetchScreenEffect, setScreenEffect, fetchMediaEffect, setMediaEffect, fetchLedMap,
-  fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames, setGameSyncVendorOverride,
+  fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   fetchStaticDeviceLooks, setStaticDeviceLock,
   steamArtworkUrl, resolveActiveGame, setLightingPaused,
   resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
@@ -38,7 +38,6 @@ import { pluralKey } from '../../../lib/pluralKey';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
-import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/AdvancedModeCta';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -775,18 +774,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     activeApp: string | null;
     isReceiving: boolean;
     vendorConflict: boolean;
-    vendorOverride: boolean;
-  }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false, vendorConflict: false, vendorOverride: false });
+  }>({ devices: [], lastFrameAt: null, activeApp: null, isReceiving: false, vendorConflict: false });
 
-  // A poll answered while the switch request is in flight would carry the
-  // pre-switch disk state and flip the toggle back for one interval.
-  const vendorOverrideBusyRef = useRef(false);
   useEffect(() => {
     if (effectiveMode !== 'gamesync' || !serviceOnline) return;
     let cancelled = false;
     const poll = async () => {
       const data = await fetchGameSyncState().catch(() => null);
-      if (cancelled || !data || vendorOverrideBusyRef.current) return;
+      if (cancelled || !data) return;
       const lastFrameAt = data.lastFrameAt ?? null;
       setGameSyncState({
         devices: data.devices ?? [],
@@ -794,36 +789,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         activeApp: data.activeApp ?? null,
         isReceiving: lastFrameAt != null && (Date.now() - lastFrameAt) < 2000,
         vendorConflict: data.synapseConflict === true,
-        vendorOverride: data.vendorOverride === true,
       });
     };
     void poll();
     const id = window.setInterval(() => { void poll(); }, 1500);
     return () => { cancelled = true; window.clearInterval(id); };
   }, [effectiveMode, serviceOnline]);
-
-  const [vendorOverrideBusy, setVendorOverrideBusy] = useState(false);
-  const [vendorOverrideFailed, setVendorOverrideFailed] = useState(false);
-  const handleVendorOverride = useCallback(async (next: boolean) => {
-    vendorOverrideBusyRef.current = true;
-    setVendorOverrideBusy(true);
-    setVendorOverrideFailed(false);
-    try {
-      const data = await setGameSyncVendorOverride(next).catch(() => null);
-      if (!data) {
-        setVendorOverrideFailed(true);
-        return;
-      }
-      setGameSyncState(prev => ({
-        ...prev,
-        vendorConflict: data.synapseConflict === true,
-        vendorOverride: data.vendorOverride === true,
-      }));
-    } finally {
-      vendorOverrideBusyRef.current = false;
-      setVendorOverrideBusy(false);
-    }
-  }, []);
 
   const [gameSyncGames, setGameSyncGames] = useState<GameSyncGame[]>([]);
 
@@ -2392,10 +2363,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   isReceiving={gameSyncState.isReceiving}
                   activeApp={gameSyncState.activeApp}
                   vendorConflict={gameSyncState.vendorConflict}
-                  vendorOverride={gameSyncState.vendorOverride}
-                  vendorOverrideBusy={vendorOverrideBusy}
-                  vendorOverrideFailed={vendorOverrideFailed}
-                  onVendorOverride={handleVendorOverride}
                   games={gameSyncGames}
                 />
               </div>
@@ -2626,24 +2593,12 @@ interface GameSyncActivityBlockProps {
   isReceiving: boolean;
   activeApp: string | null;
   vendorConflict: boolean;
-  vendorOverride: boolean;
-  vendorOverrideBusy: boolean;
-  vendorOverrideFailed: boolean;
-  onVendorOverride: (next: boolean) => void;
   games: GameSyncGame[];
 }
 
-function GameSyncActivityBlock({
-  isReceiving, activeApp, vendorConflict, vendorOverride, vendorOverrideBusy, vendorOverrideFailed, onVendorOverride, games,
-}: GameSyncActivityBlockProps) {
+function GameSyncActivityBlock({ isReceiving, activeApp, vendorConflict, games }: GameSyncActivityBlockProps) {
   const { t } = useTranslation();
   const [imgFailed, setImgFailed] = useState(false);
-  const vendorLabelId = useId();
-  // A vendor SDK either holds a shim slot now, or sits set aside beside the
-  // slot the user gave to Nexus; both need the switch. Checked only when the
-  // override actually took: a vendor repair that put its DLL back reads as off.
-  const showVendorSwitch = !isReceiving && (vendorConflict || vendorOverride);
-  const vendorForced = vendorOverride && !vendorConflict;
 
   const matchedGame = isReceiving && activeApp
     ? resolveActiveGame(activeApp, games)
@@ -2660,8 +2615,8 @@ function GameSyncActivityBlock({
 
   const showImage = headerSrc !== null && !imgFailed;
 
-  const stage = (
-    <>
+  return (
+    <div className={styles.gameSyncActivity}>
       {showImage ? (
         <img
           src={headerSrc}
@@ -2684,61 +2639,25 @@ function GameSyncActivityBlock({
               : t('lighting.gameSync.signal.receivingUnknown'))
           : t('lighting.gameSync.signal.idle')}
       </span>
-    </>
-  );
-
-  // Anchored to the frame rather than the page: the guide explains what
-  // this frame is showing, so it belongs on it.
-  const guideLink = (
-    <a
-      className={styles.gameSyncGuideLink}
-      href={GAME_SYNC_GUIDE_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <ExternalLink size={12} aria-hidden />
-      {t('lighting.gameSync.guideLink')}
-    </a>
-  );
-
-  // The service never overwrites a real vendor SDK (Razer Synapse's,
-  // typically) on its own, so games on that interface never reach Nexus and
-  // the frame sits on "Waiting for a game". The switch sets the vendor DLL
-  // aside (on) or puts it back (off). It stacks under the stage as its own
-  // row, so the frame grows instead of overlapping the label.
-  if (showVendorSwitch) {
-    return (
-      <div className={`${styles.gameSyncActivity} ${styles.gameSyncActivityStacked}`}>
-        <div className={styles.gameSyncActivityStage}>{stage}</div>
-        <div className={styles.gameSyncDivider} />
-        <div className={styles.gameSyncVendorRow}>
-          <div className={styles.gameSyncVendorText}>
-            <span id={vendorLabelId} className={styles.gameSyncVendorTitle}>
-              {t('lighting.gameSync.vendor.toggle')}
-            </span>
-            <span className={`${styles.gameSyncActivityNote} ${vendorForced && !vendorOverrideFailed ? styles.gameSyncActivityNoteOk : ''}`}>
-              {t(vendorOverrideFailed
-                ? 'lighting.gameSync.vendor.failed'
-                : vendorForced ? 'lighting.gameSync.vendor.on' : 'lighting.gameSync.vendor.off')}
-            </span>
-          </div>
-          <Toggle
-            checked={vendorForced}
-            disabled={vendorOverrideBusy}
-            ariaLabelledBy={vendorLabelId}
-            onChange={onVendorOverride}
-          />
-        </div>
-        <div className={styles.gameSyncDivider} />
-        {guideLink}
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.gameSyncActivity}>
-      {stage}
-      {guideLink}
+      {/* The service leaves a real vendor SDK (Razer Synapse's, typically) in
+          place rather than replacing it, so games on that interface never reach
+          Nexus. Without this line that reads as an endless "Waiting for a game". */}
+      {!isReceiving && vendorConflict && (
+        <span className={styles.gameSyncActivityNote}>
+          {t('lighting.gameSync.signal.vendorConflict')}
+        </span>
+      )}
+      {/* Anchored to the frame rather than the page: the guide explains what
+          this frame is showing, so it belongs on it. */}
+      <a
+        className={styles.gameSyncGuideLink}
+        href={GAME_SYNC_GUIDE_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <ExternalLink size={12} aria-hidden />
+        {t('lighting.gameSync.guideLink')}
+      </a>
     </div>
   );
 }
