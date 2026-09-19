@@ -869,5 +869,20 @@ describe('StreamDeckDevicePage', () => {
 
       expect(screen.getByText('panel.settings.deck.recentApps.clear')).toBeInTheDocument();
     });
+
+    it('a navNext press on the hardware moves the visible recent page, not just the fixed-mode page', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })]));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      mockUseRecentApps.mockReturnValue({
+        apps: ringOf(8), focusedProcessKey: undefined, excluded: [], loaded: true,
+        setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn(),
+      });
+      await renderPage();
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":1}' })).toHaveAttribute('aria-pressed', 'true');
+
+      act(() => { capturedCallbacks.streamdeck?.({ kind: 'nav', serial: 'SN1', page: 1, folderPath: [] }); });
+
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":2}' })).toHaveAttribute('aria-pressed', 'true');
+    });
   });
 });

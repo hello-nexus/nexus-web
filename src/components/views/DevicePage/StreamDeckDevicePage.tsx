@@ -247,10 +247,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   useTopicCallback('streamdeck', !isLocalhostUnreachable() && !!serial, useCallback((data: unknown) => {
     const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[] };
     if (f.kind !== 'nav' || f.serial !== serial) return;
-    if (typeof f.page === 'number') setPage(f.page);
+    if (typeof f.page === 'number') {
+      setPage(f.page);
+      if (recentAppsMode) setRecentPage(f.page);
+    }
     setFolderPath(Array.isArray(f.folderPath) ? f.folderPath : []);
     setSelectedSlot(0);
-  }, [serial]));
+  }, [serial, recentAppsMode]));
 
   // Mirror an editor-initiated nav onto the hardware (desktop -> device). Only
   // user actions call this; the `nav`-frame subscription above (device ->
