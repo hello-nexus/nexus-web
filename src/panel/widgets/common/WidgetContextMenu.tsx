@@ -108,7 +108,13 @@ export function WidgetContextMenu({
   useLayoutEffect(() => {
     const el = menuRef.current;
     if (!el) return;
+    // A synchronous read sees the open keyframe's first frame, which is
+    // smaller than the resting box. Only an !important declaration outranks a
+    // running animation, so pin the resting transform for the read; the
+    // animation itself is untouched (no restart, safe while closing).
+    el.style.setProperty('transform', 'scale(var(--_menu-scale))', 'important');
     const rect = el.getBoundingClientRect();
+    el.style.removeProperty('transform');
     const safeInsets = readSafeAreaInsets();
     let nx = x;
     let ny = y;
@@ -124,9 +130,8 @@ export function WidgetContextMenu({
       x: clamp(x - nx, 16, rect.width - 16),
       y: clamp(y - ny, 16, rect.height - 16),
     });
-    // offsetWidth/offsetHeight return the layout box without CSS transforms,
-    // so the carve-out reflects the menu's final size, not the scale(0.96)
-    // open-animation frame the layout effect observes.
+    // offsetWidth/offsetHeight return the layout box without CSS transforms;
+    // the desktop overlay never scales the menu, so that is its resting size.
     onBoundsChangeRef.current?.({ x: nx, y: ny, w: el.offsetWidth, h: el.offsetHeight });
   }, [x, y]);
 
