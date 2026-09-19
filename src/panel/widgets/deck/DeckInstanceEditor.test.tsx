@@ -142,6 +142,18 @@ describe('DeckInstanceEditor - Recent Apps hides the editable grid', () => {
     expect(screen.queryByTestId('deck-editor')).toBeNull();
     expect(screen.getByTestId('recent-apps-section')).toBeInTheDocument();
   });
+
+  it('hides the preset toolbar, the import file input, and the fit note - none of them are visible in this mode', () => {
+    const deck = deckResult({
+      instance: { mode: 'recentApps', activePresetId: 'p1' },
+      preset: { id: 'p1', name: 'A', cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [{ label: 'a' }] }] } },
+    });
+    render(<DeckInstanceEditor {...baseProps({ deck, instanceGrid: { cols: 2, rows: 2 } })} />);
+
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeNull();
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+    expect(screen.queryByText(/fitNote/)).toBeNull();
+  });
 });
 
 describe('DeckInstanceEditor - preset toolbar wiring', () => {

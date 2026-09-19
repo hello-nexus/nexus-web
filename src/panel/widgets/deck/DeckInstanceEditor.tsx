@@ -150,49 +150,53 @@ export function DeckInstanceEditor({
       {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} desktopActions={desktopActions} />}
       {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} desktopActions={desktopActions} />}
 
-      <PresetToolbar
-        cap={DECK_PRESET_CAP}
-        allowDelete={desktopActions}
-        presets={deck.presets.map(p => ({ id: p.id, name: p.name, hasApps: !!p.apps?.length }))}
-        activeId={deck.instance?.activePresetId ?? null}
-        presetCount={deck.presets.length}
-        onLoad={activatePreset}
-        onCreate={deck.createPreset}
-        onRename={deck.renamePreset}
-        onDelete={onDelete ?? (id => void deck.deletePreset(id))}
-        onImport={onImport}
-        onExport={desktopActions ? id => void exportDeckPreset(id) : undefined}
-        onImportFile={desktopActions ? () => importFileInputRef.current?.click() : undefined}
-        canUndo={deck.canUndo}
-        canRedo={deck.canRedo}
-        onUndo={onUndo ?? deck.undo}
-        onRedo={onRedo ?? deck.redo}
-        onReset={onReset ?? deck.reset}
-        translationPrefix="panel.settings.deck.presets"
-      />
+      {mode !== 'recentApps' && (
+        <>
+          <PresetToolbar
+            cap={DECK_PRESET_CAP}
+            allowDelete={desktopActions}
+            presets={deck.presets.map(p => ({ id: p.id, name: p.name, hasApps: !!p.apps?.length }))}
+            activeId={deck.instance?.activePresetId ?? null}
+            presetCount={deck.presets.length}
+            onLoad={activatePreset}
+            onCreate={deck.createPreset}
+            onRename={deck.renamePreset}
+            onDelete={onDelete ?? (id => void deck.deletePreset(id))}
+            onImport={onImport}
+            onExport={desktopActions ? id => void exportDeckPreset(id) : undefined}
+            onImportFile={desktopActions ? () => importFileInputRef.current?.click() : undefined}
+            canUndo={deck.canUndo}
+            canRedo={deck.canRedo}
+            onUndo={onUndo ?? deck.undo}
+            onRedo={onRedo ?? deck.redo}
+            onReset={onReset ?? deck.reset}
+            translationPrefix="panel.settings.deck.presets"
+          />
 
-      {desktopActions && (
-        <input
-          ref={importFileInputRef}
-          type="file"
-          accept=".nexus-deck"
-          style={{ display: 'none' }}
-          onChange={onImportFileSelected}
-        />
-      )}
-
-      {importError && (
-        <div className={styles.importError} role="alert">
-          <span>{importError}</span>
-          {privilegedRetryFile && (
-            <Button type="button" size="sm" tone="neutral" onClick={() => void runImport(privilegedRetryFile, true)}>
-              {t('panel.settings.deck.presets.importAnyway')}
-            </Button>
+          {desktopActions && (
+            <input
+              ref={importFileInputRef}
+              type="file"
+              accept=".nexus-deck"
+              style={{ display: 'none' }}
+              onChange={onImportFileSelected}
+            />
           )}
-        </div>
-      )}
 
-      {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
+          {importError && (
+            <div className={styles.importError} role="alert">
+              <span>{importError}</span>
+              {privilegedRetryFile && (
+                <Button type="button" size="sm" tone="neutral" onClick={() => void runImport(privilegedRetryFile, true)}>
+                  {t('panel.settings.deck.presets.importAnyway')}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
+        </>
+      )}
 
       {bodyMode === 'full' && mode !== 'recentApps' && (
         deck.target ? (
