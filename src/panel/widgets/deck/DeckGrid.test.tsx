@@ -341,6 +341,23 @@ describe('DeckGrid right-click delete', () => {
     fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(screen.queryByText('common.delete')).toBeNull();
   });
+
+  it('a synthesized page-nav key (auto) never opens the delete menu, static or drag-enabled', () => {
+    const slots: DeckSlot[] = [{ action: { type: 'page', op: 'next' }, auto: true }];
+    const onDeleteSlot = vi.fn();
+    const { container, rerender } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable selectedIndex={-1} onCell={() => {}} onDeleteSlot={onDeleteSlot} />,
+    );
+    fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
+    expect(screen.queryByText('common.delete')).toBeNull();
+
+    rerender(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable dragEnabled selectedIndex={-1} onCell={() => {}} onDeleteSlot={onDeleteSlot} />,
+    );
+    fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
+    expect(screen.queryByText('common.delete')).toBeNull();
+    expect(onDeleteSlot).not.toHaveBeenCalled();
+  });
 });
 
 describe('DeckGrid transparent background', () => {

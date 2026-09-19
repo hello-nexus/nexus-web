@@ -161,18 +161,21 @@ function StaticCell({ slot, index, selectable, selected, onClick, onCellContextM
       aria-pressed={selectable ? selected : undefined}
       onClick={e => { e.stopPropagation(); onClick(); }}
       onPointerDown={e => e.stopPropagation()}
-      onContextMenu={e => { if (selectable) e.stopPropagation(); onCellContextMenu?.(e, index, empty); }}
+      onContextMenu={e => { if (selectable) e.stopPropagation(); if (!slot.auto) onCellContextMenu?.(e, index, empty); }}
     >
       {content}
     </button>
   );
 }
 
-/** Edit-mode cell: draggable (if it has content) + droppable, plus selectable. */
+/** Edit-mode cell: draggable (if it has content) + droppable, plus selectable.
+ *  A synthesized page-nav key (slot.auto) is read-only - fitToGrid inserted
+ *  it, and DeckTarget.updateSlot/swapSlots silently refuse to touch it, so
+ *  neither drag nor the delete context menu is offered on it. */
 function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, liveSrc, square }: CellProps) {
   const { accent, content, empty } = useCellVisual(slot, liveSrc, square);
   const id = String(index);
-  const drag = useDraggable({ id, disabled: empty });
+  const drag = useDraggable({ id, disabled: empty || !!slot.auto });
   const drop = useDroppable({ id });
   const setRef = (el: HTMLElement | null) => { drag.setNodeRef(el); drop.setNodeRef(el); };
   const style: CSSProperties = {
@@ -192,7 +195,7 @@ function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, live
       style={style}
       aria-pressed={selected}
       onClick={e => { e.stopPropagation(); onClick(); }}
-      onContextMenu={e => { e.stopPropagation(); onCellContextMenu?.(e, index, empty); }}
+      onContextMenu={e => { e.stopPropagation(); if (!slot.auto) onCellContextMenu?.(e, index, empty); }}
     >
       {content}
     </button>

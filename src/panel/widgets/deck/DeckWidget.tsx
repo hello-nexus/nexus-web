@@ -39,12 +39,14 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
     [recentApps.apps, recentApps.focusedProcessKey, cols, rows],
   );
 
-  // Editing shows the preset's AUTHORED grid (the editor's single source of
-  // truth); run mode shows the fitted projection for this widget's own size.
-  // Preview (add-widget catalog) skips the live instance entirely.
-  const gridCols = editing && target ? target.cols : cols;
-  const gridRows = editing && target ? target.rows : rows;
-  const gridCount = editing && target ? target.keyCount : count;
+  // target.cols/rows/keyCount always equal this widget's own inner grid
+  // (useDeckInstance is given the same {cols, rows} as instanceGrid), so
+  // editing and run mode render the identical fitted size - never the
+  // authored grid crammed into this tile. Preview (add-widget catalog) skips
+  // the live instance entirely.
+  const gridCols = cols;
+  const gridRows = rows;
+  const gridCount = count;
   const deck: DeckConfig | null = useMemo(() => {
     if (preview) return DECK_PREVIEW_CONFIG;
     if (editing) return target?.config ?? null;
