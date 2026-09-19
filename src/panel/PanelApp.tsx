@@ -55,6 +55,8 @@ import {
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
+import { useDeckInstance, DeckInstanceProvider } from './widgets/deck/useDeckInstance';
+import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
@@ -854,6 +856,16 @@ export function PanelContent({
 
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
   const editingWidgetSize = editingWidget?.size;
+  // The edited widget's own grid tile (PanelTouchCell, in the page below) and
+  // PanelEditorSheet's DeckSettings both bind to this same instance while the
+  // sheet is open; sharing one useDeckInstance call through DeckInstanceProvider
+  // keeps a tile drag and an inspector edit from racing each other's
+  // independent auto-saves (see useDeckInstance.ts, mirrors PanelDevicePage's
+  // InlineWidgetSettings).
+  const isEditingDeckWidget = sheetMode === 'settings' && editingWidget?.type === 'deck';
+  const editingDeckInstanceId = isEditingDeckWidget ? `widget:${editingWidget!.id}` : null;
+  const editingDeckInstanceGrid = isEditingDeckWidget ? innerGridForSize(editingWidget!.size) : { cols: 0, rows: 0 };
+  const sharedDeckInstance = useDeckInstance(editingDeckInstanceId, 'widget', editingDeckInstanceGrid, true);
   const editingImmersiveOnLoadAvailable =
     canMarkImmersiveOnLoad(paginatedLayout, editingWidget, surface, isLandscape, deviceTouch);
   const editingImmersiveOnLoad = editingWidget !== null
@@ -1474,6 +1486,7 @@ export function PanelContent({
   return (
     <TouchViaPointerContext.Provider value={mouseAsTouch}>
     <PanelGaugeGradientProvider value={gaugeGradientValue}>
+    <DeckInstanceProvider value={editingDeckInstanceId ? { instanceId: editingDeckInstanceId, value: sharedDeckInstance } : null}>
     <DndContext
       sensors={sensors}
       collisionDetection={panelCollisionDetection}
@@ -2044,6 +2057,7 @@ export function PanelContent({
         })()}
       </DragOverlay>
     </DndContext>
+    </DeckInstanceProvider>
     </PanelGaugeGradientProvider>
     </TouchViaPointerContext.Provider>
   );
