@@ -127,9 +127,11 @@ export function DeckInstanceEditor({
   };
 
   const preset = deck.preset;
-  const gridDiffers = !!preset && (preset.cols !== instanceGrid.cols || preset.rows !== instanceGrid.rows);
+  // Key COUNT, not cols/rows shape: a 4x2 preset on a 2x4 instance fits as an
+  // identity (same 8 keys, just a different visual arrangement) - nothing
+  // overflows or shrinks, so no note is warranted despite the shape differing.
   let fitNote: string | null = null;
-  if (preset && gridDiffers) {
+  if (preset) {
     const presetKeyCount = preset.cols * preset.rows;
     const instanceKeyCount = instanceGrid.cols * instanceGrid.rows;
     if (presetKeyCount > instanceKeyCount) {
@@ -137,7 +139,7 @@ export function DeckInstanceEditor({
       fitNote = pages > 1
         ? t('panel.settings.deck.instance.fitNoteLargerPaged', { pages })
         : t('panel.settings.deck.instance.fitNoteLarger');
-    } else {
+    } else if (presetKeyCount < instanceKeyCount) {
       fitNote = t('panel.settings.deck.instance.fitNoteSmaller');
     }
   }

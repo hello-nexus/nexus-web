@@ -407,6 +407,14 @@ describe('DeckInstanceEditor - fit note', () => {
     expect(screen.getByText('panel.settings.deck.instance.fitNoteLargerPaged:{"pages":3}')).toBeInTheDocument();
   });
 
+  it('shows no fit note when the shapes differ but the key count matches (4x2 authored, viewed on a 2x4 instance)', () => {
+    const deck = deckResult({
+      preset: { id: 'p1', name: 'A', cols: 4, rows: 2, pageCount: 1, deck: { pages: [{ slots: [{ label: 'a' }] }] } },
+    });
+    render(<DeckInstanceEditor {...baseProps({ deck, instanceGrid: { cols: 2, rows: 4 } })} />);
+    expect(screen.queryByText(/fitNote/)).toBeNull();
+  });
+
   it('shows the "smaller deck" note when the preset was authored at a smaller grid', () => {
     const deck = deckResult({
       preset: { id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, deck: { pages: [{ slots: [{ label: 'a' }] }] } },
