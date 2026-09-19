@@ -199,6 +199,23 @@ describe('updateSlotAt', () => {
     expect(next.pages).toHaveLength(2);
     expect(next.pages[1].slots[0].label).toBe('clamped');
   });
+  it('never truncates a page already longer than count - pads only, grows to the real length', () => {
+    const slots = Array.from({ length: 8 }, (_, i) => ({ label: `k${i}` }));
+    const deck: DeckConfig = { pages: [{ slots }] };
+    const next = updateSlotAt(deck, 0, [], 1, { label: 'set' }, 4);
+    expect(next.pages[0].slots).toHaveLength(8);
+    expect(next.pages[0].slots[1].label).toBe('set');
+    expect(next.pages[0].slots[7].label).toBe('k7');
+  });
+  it('never truncates a folder already longer than count - pads only, grows to the real length', () => {
+    const folderSlots = Array.from({ length: 6 }, (_, i) => ({ label: `f${i}` }));
+    const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: folderSlots } }] }] };
+    const next = updateSlotAt(deck, 0, [0], 3, { label: 'set' }, 4);
+    const folder = next.pages[0].slots[0].folder!;
+    expect(folder.slots).toHaveLength(6);
+    expect(folder.slots[3].label).toBe('set');
+    expect(folder.slots[5].label).toBe('f5');
+  });
 });
 
 describe('swapSlots', () => {

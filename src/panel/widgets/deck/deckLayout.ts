@@ -101,6 +101,16 @@ export function padSlots(slots: readonly DeckSlot[], count: number): DeckSlot[] 
   return out;
 }
 
+/**
+ * Pad a slot list to at least `count` cells, never discarding slots already
+ * past `count` - a write against a narrower fitted/folder view than the
+ * stored content must not truncate the rest of it (see updateSlotAt,
+ * swapSlots, mapLevel below).
+ */
+function growSlots(slots: readonly DeckSlot[], count: number): DeckSlot[] {
+  return padSlots(slots, Math.max(count, slots.length));
+}
+
 // A plain number applies uniformly at every folder depth (the touch widget's
 // only usage). A physical Stream Deck target instead reserves a Back key at
 // every folder depth >= 1, so it needs a smaller count there than at the
@@ -154,7 +164,7 @@ export function updateSlotAt(
   const p = clampPageIndex(deck, page);
   const pages = deck.pages.slice();
   pages[p] = {
-    slots: mapLevel(padSlots(pageAt(deck, p).slots, countAt(count, 0)), folderPath, 0, count, slots =>
+    slots: mapLevel(growSlots(pageAt(deck, p).slots, countAt(count, 0)), folderPath, 0, count, slots =>
       slots.map((s, i) => (i === slotIndex ? next : s))),
   };
   return { ...deck, pages };
@@ -173,7 +183,7 @@ export function swapSlots(
   const p = clampPageIndex(deck, page);
   const pages = deck.pages.slice();
   pages[p] = {
-    slots: mapLevel(padSlots(pageAt(deck, p).slots, countAt(count, 0)), folderPath, 0, count, slots => {
+    slots: mapLevel(growSlots(pageAt(deck, p).slots, countAt(count, 0)), folderPath, 0, count, slots => {
       const out = slots.slice();
       [out[from], out[to]] = [out[to], out[from]];
       return out;
@@ -193,7 +203,7 @@ function mapLevel(
   const idx = folderPath[depth];
   return slots.map((s, i) => {
     if (i !== idx) return s;
-    const child = padSlots(s.folder?.slots ?? [], countAt(count, depth + 1));
+    const child = growSlots(s.folder?.slots ?? [], countAt(count, depth + 1));
     return { ...s, folder: { slots: mapLevel(child, folderPath, depth + 1, count, fn) } };
   });
 }

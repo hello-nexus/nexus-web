@@ -190,6 +190,35 @@ describe('makePresetDeckTarget - overflow (chunked) writes and read-only auto ke
   });
 });
 
+describe('makePresetDeckTarget - a write never truncates authored content past the fitted view', () => {
+  it('editing a 2x2 preset whose page already grew to 12 real slots on a bigger deck keeps all 12 (repro A)', () => {
+    const grownSlots = Array.from({ length: 12 }, (_, i) => ({ label: `k${i}` }));
+    const grownPreset = preset({ pages: [{ slots: grownSlots }] }, 2, 2);
+    const save = vi.fn();
+    const target = makePresetDeckTarget(grownPreset, { cols: 2, rows: 2 }, 'widget', save);
+    target.updateSlot(0, [], 1, { label: 'edited' });
+    expect(save).toHaveBeenCalledTimes(1);
+    const next = save.mock.calls[0][0] as DeckConfig;
+    expect(next.pages[0].slots).toHaveLength(12);
+    expect(next.pages[0].slots[1].label).toBe('edited');
+    expect(next.pages[0].slots[11].label).toBe('k11');
+  });
+
+  it('editing inside a 10-key folder from a 2x2 widget keeps all 10 folder slots (repro B)', () => {
+    const folderSlots = Array.from({ length: 10 }, (_, i) => ({ label: `f${i}` }));
+    const bigPreset = preset({ pages: [{ slots: [{ folder: { slots: folderSlots } }] }] }, 4, 3);
+    const save = vi.fn();
+    const target = makePresetDeckTarget(bigPreset, { cols: 2, rows: 2 }, 'widget', save);
+    target.updateSlot(0, [0], 2, { label: 'edited' });
+    expect(save).toHaveBeenCalledTimes(1);
+    const next = save.mock.calls[0][0] as DeckConfig;
+    const folder = next.pages[0].slots[0].folder!;
+    expect(folder.slots).toHaveLength(10);
+    expect(folder.slots[2].label).toBe('edited');
+    expect(folder.slots[9].label).toBe('f9');
+  });
+});
+
 describe('resolveTargetView', () => {
   it('pads the root view to the physical target keyCount', () => {
     const target: DeckTarget = makePresetDeckTarget(preset({ pages: [{ slots: [{ label: 'a' }] }] }), IDENTITY_GRID, 'physical', vi.fn());
