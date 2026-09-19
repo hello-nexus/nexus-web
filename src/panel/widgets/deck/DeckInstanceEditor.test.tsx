@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeckInstanceEditor } from './DeckInstanceEditor';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckTarget } from './deckTarget';
+import type { DeckConfig } from './types';
 
 vi.mock('./DeckEditor', () => ({
   DeckEditor: ({ target }: { target: DeckTarget }) => <div data-testid="deck-editor">{target.kind}</div>,
@@ -171,12 +172,29 @@ describe('DeckInstanceEditor - fit note', () => {
     expect(screen.queryByText(/fitNote/)).toBeNull();
   });
 
-  it('shows a fit note naming the authored grid and page count when it differs from the instance grid', () => {
+  it('shows the plain "larger deck" note with no page count when the fitted view is still one page', () => {
     const deck = deckResult({
       preset: { id: 'p1', name: 'A', cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [{ label: 'a' }] }] } },
     });
     render(<DeckInstanceEditor {...baseProps({ deck, instanceGrid: { cols: 2, rows: 2 } })} />);
-    expect(screen.getByText('panel.settings.deck.instance.fitNote:{"cols":5,"rows":3,"pages":1}')).toBeInTheDocument();
+    expect(screen.getByText('panel.settings.deck.instance.fitNoteLarger')).toBeInTheDocument();
+  });
+
+  it('shows the "larger deck, N pages" note when the authored content actually overflows', () => {
+    const bigDeck: DeckConfig = { pages: [{ slots: Array.from({ length: 7 }, (_, i) => ({ label: `k${i}` })) }] };
+    const deck = deckResult({
+      preset: { id: 'p1', name: 'A', cols: 3, rows: 3, pageCount: 1, deck: bigDeck },
+    });
+    render(<DeckInstanceEditor {...baseProps({ deck, instanceGrid: { cols: 2, rows: 2 } })} />);
+    expect(screen.getByText('panel.settings.deck.instance.fitNoteLargerPaged:{"pages":3}')).toBeInTheDocument();
+  });
+
+  it('shows the "smaller deck" note when the preset was authored at a smaller grid', () => {
+    const deck = deckResult({
+      preset: { id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, deck: { pages: [{ slots: [{ label: 'a' }] }] } },
+    });
+    render(<DeckInstanceEditor {...baseProps({ deck, instanceGrid: { cols: 3, rows: 3 } })} />);
+    expect(screen.getByText('panel.settings.deck.instance.fitNoteSmaller')).toBeInTheDocument();
   });
 });
 

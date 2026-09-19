@@ -224,6 +224,29 @@ describe('DeckKeyInspector section order', () => {
   });
 });
 
+describe('DeckKeyInspector - synthesized page-nav key (auto)', () => {
+  it('shows a read-only hint instead of the action/icon/title editor', () => {
+    const target = {
+      kind: 'physical' as const, cols: 2, rows: 2, keyCount: 4,
+      config: { pages: [{ slots: [{ action: { type: 'page' as const, op: 'next' as const }, auto: true }] }] },
+      updateSlot: vi.fn(), swapSlots: vi.fn(), addPage: vi.fn(), removePage: vi.fn(), setTitleDefault: vi.fn(),
+    };
+    render(
+      <DeckKeyInspector
+        target={target}
+        page={0}
+        folderPath={[]}
+        onFolderPathChange={() => {}}
+        selectedSlot={0}
+        onSelectedSlotChange={() => {}}
+      />,
+    );
+    expect(screen.getByText('panel.settings.deck.autoKeyHint')).toBeInTheDocument();
+    expect(screen.queryByText('panel.settings.deck.actionType')).toBeNull();
+    expect(screen.queryByText('panel.settings.icon')).toBeNull();
+  });
+});
+
 describe('DeckKeyInspector action picker - collapsible category list', () => {
   it('starts with the current kind\'s category expanded and highlights the active kind', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' } }]);

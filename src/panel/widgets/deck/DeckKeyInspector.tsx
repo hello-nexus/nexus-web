@@ -1388,6 +1388,17 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   // fixed position).
   const isWeather = slot.action?.type === 'weather';
 
+  // fitToGrid inserted this key to move between pages on an overflowing
+  // preset; it is never authored and DeckTarget.updateSlot/swapSlots refuse
+  // to touch it, so there is nothing to edit or delete here.
+  if (slot.auto) {
+    return (
+      <div className={styles.root}>
+        <EmptyState compact title={t('panel.settings.deck.autoKeyHint')} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.root}>
       {showPicker && (

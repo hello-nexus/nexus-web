@@ -73,13 +73,19 @@ export function DeckInstanceEditor({
 
   const preset = deck.preset;
   const gridDiffers = !!preset && (preset.cols !== instanceGrid.cols || preset.rows !== instanceGrid.rows);
-  const fitNote = preset && gridDiffers
-    ? t('panel.settings.deck.instance.fitNote', {
-      cols: preset.cols,
-      rows: preset.rows,
-      pages: fitPageCount({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { ...instanceGrid, kind }),
-    })
-    : null;
+  let fitNote: string | null = null;
+  if (preset && gridDiffers) {
+    const presetKeyCount = preset.cols * preset.rows;
+    const instanceKeyCount = instanceGrid.cols * instanceGrid.rows;
+    if (presetKeyCount > instanceKeyCount) {
+      const pages = fitPageCount({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { ...instanceGrid, kind });
+      fitNote = pages > 1
+        ? t('panel.settings.deck.instance.fitNoteLargerPaged', { pages })
+        : t('panel.settings.deck.instance.fitNoteLarger');
+    } else {
+      fitNote = t('panel.settings.deck.instance.fitNoteSmaller');
+    }
+  }
 
   return (
     <div className={styles.root}>
