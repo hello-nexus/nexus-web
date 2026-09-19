@@ -2,7 +2,7 @@
 // Every route here is .LocalhostOnly() except the instance routes, which are
 // AllowPanel (a paired panel presses/reads its own instance; DeckLayoutPolicy
 // still gates privileged key authoring).
-import { fetchService, postService, putService, deleteService } from './service';
+import { fetchService, postService, putService, deleteService, authFetchWithStatus } from './service';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 
 export type DeckInstanceMode = 'fixed' | 'recentApps' | 'appAware';
@@ -87,8 +87,10 @@ export async function deleteDeckPreset(id: string): Promise<boolean> {
   return res !== null && res.error !== true;
 }
 
-export async function getDeckInstance(id: string): Promise<DeckInstance | null> {
-  const res = await fetchService<DeckInstanceResponse>(`/deck/instances/${encodeURIComponent(id)}`);
+/** `grid` sizes a widget instance's first-time preset (no-op once one exists). */
+export async function getDeckInstance(id: string, grid?: { cols: number; rows: number }): Promise<DeckInstance | null> {
+  const qs = grid ? `?cols=${grid.cols}&rows=${grid.rows}` : '';
+  const res = await fetchService<DeckInstanceResponse>(`/deck/instances/${encodeURIComponent(id)}${qs}`);
   return res?.instance ?? null;
 }
 
@@ -101,3 +103,105 @@ export async function updateDeckInstance(id: string, patch: UpdateDeckInstanceBo
   const res = await putService<DeckInstanceResponse>(`/deck/instances/${encodeURIComponent(id)}`, patch);
   return res?.instance ?? null;
 }
+
+// --- App Aware: preset app bindings ---
+
+/** 409 body when an app in the request already triggers another preset - same shape as lighting's PresetAppConflict. */
+export interface DeckPresetAppConflict {
+  error: boolean;
+  msg: string;
+  appName: string;
+  presetName: string;
+}
+
+/** A refused save is not the same as an unreachable service; see api/lighting.ts's SetPresetAppsResult for the same tradeoff. */
+export type SetDeckPresetAppsResult =
+  | { kind: 'ok'; preset: DeckPresetSummary }
+  | { kind: 'conflict'; conflict: DeckPresetAppConflict }
+  | { kind: 'failed' };
+
+export async function setDeckPresetApps(presetId: string, apps: PresetApp[]): Promise<SetDeckPresetAppsResult> {
+  const { response, status } = await authFetchWithStatus(
+    `/deck/presets/${encodeURIComponent(presetId)}/apps`,
+    { method: 'PUT', body: { apps } },
+  );
+  if (status === 200 && response) {
+    try {
+      const body = (await response.json()) as DeckPresetResponse | { preset: DeckPresetSummary };
+      return { kind: 'ok', preset: body.preset };
+    } catch {
+      return { kind: 'failed' };
+    }
+  }
+  if (status === 409 && response) {
+    try {
+      return { kind: 'conflict', conflict: (await response.json()) as DeckPresetAppConflict };
+    } catch {
+      return { kind: 'failed' };
+    }
+  }
+  return { kind: 'failed' };
+}
+
+// --- Templates (bundled per-app preset seeds) ---
+
+export interface DeckTemplateMatch {
+  processNames: string[];
+  displayNames: string[];
+}
+
+export interface DeckTemplate {
+  id: string;
+  name: string;
+  description: string;
+  cols: number;
+  rows: number;
+  match: DeckTemplateMatch;
+  /** Resolved server-side against the installed shortcut/process list; absent when nothing installed matches. */
+  installedAppId?: string;
+  installedAppName?: string;
+  processName?: string;
+}
+
+interface DeckTemplatesResponse {
+  templates: DeckTemplate[];
+}
+
+export async function getDeckTemplates(): Promise<DeckTemplate[]> {
+  const res = await fetchService<DeckTemplatesResponse>('/deck/templates');
+  return res?.templates ?? [];
+}
+
+// --- Recent Apps ---
+
+export interface RecentApp {
+  processKey: string;
+  name: string;
+  pid?: number;
+  exePath?: string;
+  /** GET /shortcuts id, resolved server-side by process name. */
+  shortcutId?: string;
+  lastFocusedUtcMs: number;
+}
+
+export interface RecentAppsResponse {
+  apps: RecentApp[];
+  excluded: string[];
+  focusedProcessKey?: string;
+}
+
+export async function getRecentApps(): Promise<RecentAppsResponse> {
+  const res = await fetchService<RecentAppsResponse>('/deck/recent-apps');
+  return res ?? { apps: [], excluded: [] };
+}
+
+/** Whole-list replace, same discipline as saveLightingGroups. */
+export const setRecentAppsExcluded = (processKeys: string[]) =>
+  putService('/deck/recent-apps/excluded', { processKeys });
+
+export const clearRecentApps = () =>
+  deleteService('/deck/recent-apps');
+
+/** Switches to the app if it has a live window, launches it otherwise. */
+export const activateRecentApp = (processKey: string) =>
+  postService('/deck/recent-apps/activate', { processKey });

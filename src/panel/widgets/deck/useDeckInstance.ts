@@ -107,10 +107,12 @@ function useOwnDeckInstance(
   const presetIdRef = useRef<string | null>(null);
   const presetRef = useRef(preset);
   presetRef.current = preset;
+  const instanceGridRef = useRef(instanceGrid);
+  instanceGridRef.current = instanceGrid;
 
   const loadAll = useCallback(async () => {
     if (!instanceId) return;
-    const [inst, list] = await Promise.all([getDeckInstance(instanceId), getDeckPresets()]);
+    const [inst, list] = await Promise.all([getDeckInstance(instanceId, instanceGridRef.current), getDeckPresets()]);
     if (instanceIdRef.current !== instanceId) return;
     if (!inst) { setLoadError(true); return; }
     setInstance(inst);
