@@ -116,9 +116,11 @@ interface ImportDeckPresetBody {
 
 /**
  * Uploads a `.nexus-deck` package as the raw zip body. `allowPrivileged`
- * retries past a 400 rejection for a package containing machine-specific
+ * retries past a 403 rejection for a package containing machine-specific
  * actions (file/hotkey/text/audio) - the caller shows that rejection's
- * message first and only sets this on an explicit "import anyway" retry.
+ * message first and only sets this on an explicit "import anyway" retry. A
+ * 400 (invalid or oversize package) falls through to `failed`, which the
+ * caller shows with its own localized copy - never the server's raw text.
  */
 export async function importDeckPreset(file: File, allowPrivileged: boolean): Promise<ImportDeckPresetResult> {
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -136,7 +138,7 @@ export async function importDeckPreset(file: File, allowPrivileged: boolean): Pr
   }
   if (status === 200 && body?.preset) return { kind: 'ok', preset: body.preset };
   if (status === 409) return { kind: 'conflict', msg: body?.msg ?? '' };
-  if (status === 400) return { kind: 'privileged', msg: body?.msg ?? '' };
+  if (status === 403) return { kind: 'privileged', msg: body?.msg ?? '' };
   return { kind: 'failed' };
 }
 

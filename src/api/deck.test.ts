@@ -190,14 +190,22 @@ describe('importDeckPreset', () => {
     });
   });
 
-  it('reports a 400 as a privileged-package rejection with the server message', async () => {
+  it('reports a 403 as a privileged-package rejection with the server message', async () => {
     vi.mocked(postServiceBytesWithStatus).mockResolvedValue({
       response: new Response(JSON.stringify({ error: true, msg: 'This package needs extra permission.' })),
-      status: 400,
+      status: 403,
     });
     expect(await importDeckPreset(file, false)).toEqual({
       kind: 'privileged', msg: 'This package needs extra permission.',
     });
+  });
+
+  it('reports a 400 (invalid/oversize package) as failed, not the server message', async () => {
+    vi.mocked(postServiceBytesWithStatus).mockResolvedValue({
+      response: new Response(JSON.stringify({ error: true, msg: 'Package exceeds the size limit.' })),
+      status: 400,
+    });
+    expect(await importDeckPreset(file, false)).toEqual({ kind: 'failed' });
   });
 
   it('reports failed on a transport failure (no response)', async () => {
