@@ -36,6 +36,13 @@ vi.mock('../../../panel/widgets/deck/useDeckInstance', () => ({
   useDeckInstance: (...args: unknown[]) => mockUseDeckInstance(...args),
 }));
 
+// Also covers DeckRecentAppsSection's own useRecentApps() call - both files
+// resolve to this same module.
+const mockUseRecentApps = vi.fn();
+vi.mock('../../../panel/widgets/deck/useRecentApps', () => ({
+  useRecentApps: (enabled: boolean) => mockUseRecentApps(enabled),
+}));
+
 const mockSetStreamDeckNav = vi.fn();
 vi.mock('../../../api/streamdeck', () => ({
   setStreamDeckNav: (serial: string, page: number, folderPath: readonly number[]) => mockSetStreamDeckNav(serial, page, folderPath),
@@ -184,6 +191,10 @@ beforeEach(() => {
   mockActivate.mockResolvedValue(undefined);
   mockCreatePreset.mockResolvedValue({ error: false });
   mockUseDeckInstance.mockReturnValue(deckInstanceReturn());
+  mockUseRecentApps.mockReturnValue({
+    apps: [], focusedProcessKey: undefined, excluded: [], loaded: true,
+    setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn(),
+  });
 });
 
 async function renderPage(device: UnifiedDevice = makeUnifiedDevice()) {
@@ -768,6 +779,63 @@ describe('StreamDeckDevicePage', () => {
       act(() => { capturedCallbacks.streamdeck?.({ kind: 'nav', serial: 'SN1', page: 2, folderPath: [] }); });
 
       expect(pageChip(3)).toHaveAttribute('aria-pressed', 'true');
+    });
+  });
+
+  describe('Recent Apps mode', () => {
+    function ringOf(count: number) {
+      return Array.from({ length: count }, (_, i) => ({ processKey: `p${i}`, name: `App ${i}`, lastFocusedUtcMs: 0 }));
+    }
+
+    it('renders one cell per deck key from the live ring, with no key inspector', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })])); // keyCount 6
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      mockUseRecentApps.mockReturnValue({
+        apps: ringOf(4), focusedProcessKey: undefined, excluded: [], loaded: true,
+        setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn(),
+      });
+      const { container } = await renderPage();
+
+      expect(container.querySelectorAll('[data-deck-slot-index]')).toHaveLength(6);
+      expect(screen.queryByTestId('deck-key-inspector-editor')).toBeNull();
+      expect(screen.queryByTestId('deck-key-inspector-picker')).toBeNull();
+    });
+
+    it('the page strip reflects buildRecentAppsView\'s auto pagination, not the preset\'s own pages', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })])); // keyCount 6
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      mockUseRecentApps.mockReturnValue({
+        apps: ringOf(8), focusedProcessKey: undefined, excluded: [], loaded: true,
+        setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn(),
+      });
+      await renderPage();
+
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":1}' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":2}' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.tab:{"n":3}' })).toBeNull();
+    });
+
+    it('pressing the navNext placeholder key advances the visible page', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })])); // keyCount 6
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      mockUseRecentApps.mockReturnValue({
+        apps: ringOf(8), focusedProcessKey: undefined, excluded: [], loaded: true,
+        setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn(),
+      });
+      const { container } = await renderPage();
+
+      // Page 1 is 5 apps + a navNext key at index 5 (keyCount 6, T-1=5).
+      fireEvent.click(container.querySelectorAll('[data-deck-slot-index]')[5]);
+
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":2}' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('shows the Recent Apps editor section instead of the fixed/appAware placeholder', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })]));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      await renderPage();
+
+      expect(screen.getByText('panel.settings.deck.recentApps.clear')).toBeInTheDocument();
     });
   });
 });

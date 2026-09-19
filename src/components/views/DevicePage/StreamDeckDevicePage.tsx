@@ -10,6 +10,8 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useDeckInstance } from '../../../panel/widgets/deck/useDeckInstance';
+import { useRecentApps } from '../../../panel/widgets/deck/useRecentApps';
+import { buildRecentAppsView, type RecentAppsViewKey } from '../../../panel/widgets/deck/recentAppsView';
 import { DeckInstanceEditor } from '../../../panel/widgets/deck/DeckInstanceEditor';
 import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
@@ -19,6 +21,7 @@ import { padSlots, pageHasContent, countBoundSlots, MAX_DECK_PAGES } from '../..
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
 import { isLocalhostUnreachable } from '../../../api/service';
+import type { DeckSlot } from '../../../panel/widgets/deck/types';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ElgatoImportModal } from './ElgatoImportModal';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -46,6 +49,17 @@ type StreamDeckTab = 'customize' | 'settings';
 
 const ORIENTATION_OPTIONS = [0, 90, 180, 270] as const;
 const SLEEP_AFTER_OPTIONS = [0, 60, 300, 600, 900, 1800] as const;
+
+// Placeholder DeckSlot for one Recent Apps ring key, so DeckGrid's liveTiles
+// path renders the service's own key image once pushed (a slot with no
+// action/icon/folder reads as "empty" and skips liveSrc entirely) - the
+// generic icon shown here is only what's visible before the first frame.
+function recentKeyToPlaceholderSlot(key: RecentAppsViewKey): DeckSlot {
+  if (key.kind === 'app') return { icon: { kind: 'lucide', value: 'AppWindow' } };
+  if (key.kind === 'navNext') return { action: { type: 'page', op: 'next' } };
+  if (key.kind === 'navPrev') return { action: { type: 'page', op: 'prev' } };
+  return {};
+}
 
 function PageShell({ children }: { children: ReactNode }) {
   return (
@@ -94,6 +108,20 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const instanceGrid = useMemo(() => ({ cols: deck?.cols ?? 0, rows: deck?.rows ?? 0 }), [deck?.cols, deck?.rows]);
   const instance = useDeckInstance(instanceId, 'physical', instanceGrid, tab === 'customize');
   const target = instance.target;
+
+  // Recent Apps has no authored preset content to render - every key comes
+  // from the live ring, painted server-side and pushed over streamdeckTiles
+  // like every other key; the desktop preview mirrors buildRecentAppsView
+  // only to know how many pages there are and which keys are nav vs blank.
+  const recentAppsMode = instance.instance?.mode === 'recentApps';
+  const recentApps = useRecentApps(recentAppsMode);
+  const recentPages = useMemo(
+    () => buildRecentAppsView(recentApps.apps, recentApps.focusedProcessKey, deck?.cols ?? 0, deck?.rows ?? 0),
+    [recentApps.apps, recentApps.focusedProcessKey, deck?.cols, deck?.rows],
+  );
+  const [recentPage, setRecentPage] = useState(0);
+  const recentMaxPage = Math.max(0, recentPages.length - 1);
+  useEffect(() => { if (recentPage > recentMaxPage) setRecentPage(recentMaxPage); }, [recentPage, recentMaxPage]);
 
   // Seeds the initial view from the deck summary's own live page/folder
   // (same fields the 'nav' frame carries) so the editor opens on whatever
@@ -370,6 +398,44 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
               bodyMode="toolbarOnly"
             />
+            {recentAppsMode ? (
+              <div className={styles.customizeSplit}>
+                <div className={styles.leftCol}>
+                  <div className={styles.previewTop}>
+                    <div className={styles.previewStage}>
+                      <DeckGrid
+                        slots={(recentPages[recentPage] ?? []).map(recentKeyToPlaceholderSlot)}
+                        cols={deck.cols}
+                        rows={deck.rows}
+                        square
+                        selectable={false}
+                        onCell={i => {
+                          const key = recentPages[recentPage]?.[i];
+                          if (key?.kind === 'navNext') setRecentPage(p => Math.min(p + 1, recentMaxPage));
+                          else if (key?.kind === 'navPrev') setRecentPage(p => Math.max(p - 1, 0));
+                        }}
+                        liveTiles={liveTiles}
+                        page={recentPage}
+                        folderPath={[]}
+                      />
+                    </div>
+                    <div className={styles.pageRow}>
+                      <div className={styles.pageRowSide} />
+                      <DeckPageStrip
+                        numbered
+                        pageCount={recentPages.length}
+                        currentPage={recentPage}
+                        onSelectPage={setRecentPage}
+                        onAddPage={() => {}}
+                        onRemoveCurrentPage={() => {}}
+                        currentPageHasContent={false}
+                      />
+                      <div className={`${styles.pageRowSide} ${styles.pageRowRight}`} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveDragKind(null)}>
             <div className={styles.customizeSplit}>
               <div className={styles.leftCol}>
@@ -466,6 +532,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
               {activeDragKind ? <DeckActionDragPreview kind={activeDragKind} /> : null}
             </DragOverlay>
             </DndContext>
+            )}
           </>
         ) : (
           <div className={styles.settingsFull}>
