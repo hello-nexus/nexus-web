@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "Yatay",
   "panel.settings.deck.lightingMode": "Mod",
   "panel.settings.deck.mode.appAware": "Uygulama Algılama",
-  "panel.settings.deck.mode.fixed": "Sabit",
+  "panel.settings.deck.mode.custom": "Özel",
   "panel.settings.deck.mode.label": "Mod",
   "panel.settings.deck.mode.recentApps": "Son Uygulamalar",
   "panel.settings.deck.mode.recentAppsDescription": "Her tuş, en yeniden en eskiye doğru son kullanılan bir uygulamayı gösterir. Ön plandaki uygulama vurgulanan tuşu alır.",

@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "Paysage",
   "panel.settings.deck.lightingMode": "Mode",
   "panel.settings.deck.mode.appAware": "Détection d'application",
-  "panel.settings.deck.mode.fixed": "Fixe",
+  "panel.settings.deck.mode.custom": "Personnalisé",
   "panel.settings.deck.mode.label": "Mode",
   "panel.settings.deck.mode.recentApps": "Applications récentes",
   "panel.settings.deck.mode.recentAppsDescription": "Chaque touche affiche une application récemment utilisée, la plus récente en premier. L'application au premier plan reçoit la touche en surbrillance.",

@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "Querformat",
   "panel.settings.deck.lightingMode": "Modus",
   "panel.settings.deck.mode.appAware": "App-Erkennung",
-  "panel.settings.deck.mode.fixed": "Fest",
+  "panel.settings.deck.mode.custom": "Benutzerdefiniert",
   "panel.settings.deck.mode.label": "Modus",
   "panel.settings.deck.mode.recentApps": "Zuletzt verwendete Apps",
   "panel.settings.deck.mode.recentAppsDescription": "Jede Taste zeigt eine zuletzt verwendete App, die aktuellste zuerst. Die App im Fokus erhält die hervorgehobene Taste.",

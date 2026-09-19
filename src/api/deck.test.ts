@@ -94,10 +94,10 @@ describe('deleteDeckPreset', () => {
 
 describe('getDeckInstance', () => {
   it('fetches one instance by id, URL-encoded', async () => {
-    vi.mocked(fetchService).mockResolvedValue({ instance: { mode: 'fixed', activePresetId: 'p1' } });
+    vi.mocked(fetchService).mockResolvedValue({ instance: { mode: 'custom', activePresetId: 'p1' } });
     const result = await getDeckInstance('widget:my id');
     expect(fetchService).toHaveBeenCalledWith('/deck/instances/widget%3Amy%20id');
-    expect(result).toEqual({ mode: 'fixed', activePresetId: 'p1' });
+    expect(result).toEqual({ mode: 'custom', activePresetId: 'p1' });
   });
 
   it('returns null when the fetch fails', async () => {

@@ -56,7 +56,7 @@ function fakeTarget(): DeckTarget {
 
 function deckResult(over: Partial<UseDeckInstanceResult> = {}): UseDeckInstanceResult {
   return {
-    instance: { mode: 'fixed', activePresetId: 'p1' },
+    instance: { mode: 'custom', activePresetId: 'p1' },
     preset: { id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } },
     presets: [{ id: 'p1', name: 'A', cols: 2, rows: 2, pageCount: 1 }],
     target: fakeTarget(),
@@ -104,9 +104,9 @@ describe('DeckInstanceEditor - mode chip', () => {
     expect(screen.getByRole('radio', { name: 'panel.settings.deck.mode.appAware' })).toHaveAttribute('aria-checked', 'true');
   });
 
-  it('defaults to fixed when the instance has not loaded yet', () => {
+  it('defaults to custom when the instance has not loaded yet', () => {
     render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: null }) })} />);
-    expect(screen.getByRole('radio', { name: 'panel.settings.deck.mode.fixed' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('radio', { name: 'panel.settings.deck.mode.custom' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('switching the chip calls setMode', () => {
@@ -116,7 +116,7 @@ describe('DeckInstanceEditor - mode chip', () => {
     expect(setMode).toHaveBeenCalledWith('recentApps');
   });
 
-  it('shows the Recent Apps or App Aware section for their modes, and nothing extra for Fixed', () => {
+  it('shows the Recent Apps or App Aware section for their modes, and nothing extra for Custom', () => {
     const { rerender } = render(<DeckInstanceEditor {...baseProps()} />);
     expect(screen.queryByTestId('recent-apps-section')).toBeNull();
     expect(screen.queryByTestId('app-aware-section')).toBeNull();

@@ -22,6 +22,12 @@ function normalizePresetDeck(full: DeckPresetFull): DeckPresetFull {
   return { ...full, deck: normalizeDeckConfig(full.deck) };
 }
 
+// An older paired service build still reports the deck-mode chip as
+// 'fixed'; treat it as 'custom' wherever an instance arrives from the wire.
+function normalizeInstance(instance: DeckInstance): DeckInstance {
+  return (instance.mode as string) === 'fixed' ? { ...instance, mode: 'custom' } : instance;
+}
+
 export interface UseDeckInstanceResult {
   instance: DeckInstance | null;
   /** The active preset's full record (summary fields + live deck). */
@@ -135,7 +141,7 @@ function useOwnDeckInstance(
     const [inst, list] = await Promise.all([getDeckInstance(instanceId, grid), getDeckPresets()]);
     if (instanceIdRef.current !== instanceId) return;
     if (!inst) { setLoadError(true); return; }
-    setInstance(inst);
+    setInstance(normalizeInstance(inst));
     setPresets(list);
     const full = await getDeckPreset(inst.activePresetId);
     if (instanceIdRef.current !== instanceId) return;
@@ -294,7 +300,7 @@ function useOwnDeckInstance(
     undoRedo.reset();
     const updated = await updateDeckInstance(instanceId, { activePresetId: presetId });
     if (instanceIdRef.current !== instanceId) return;
-    if (updated) setInstance(updated);
+    if (updated) setInstance(normalizeInstance(updated));
     const full = await getDeckPreset(presetId);
     if (instanceIdRef.current !== instanceId || !full) return;
     presetIdRef.current = full.id;
@@ -354,7 +360,7 @@ function useOwnDeckInstance(
       return;
     }
     if (frame.kind === 'active' && frame.instanceId === instanceId && frame.instance) {
-      const nextInstance = frame.instance;
+      const nextInstance = normalizeInstance(frame.instance);
       setInstance(nextInstance);
       if (nextInstance.activePresetId !== presetIdRef.current) {
         closeBurst();

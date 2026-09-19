@@ -152,7 +152,7 @@ const mockRetry = vi.fn();
 
 function deckInstanceReturn(over: Partial<UseDeckInstanceResult & { presets: Array<{ id: string; name: string }> }> = {}): UseDeckInstanceResult {
   return {
-    instance: { mode: 'fixed', activePresetId: 'p1' },
+    instance: { mode: 'custom', activePresetId: 'p1' },
     preset: { id: 'p1', name: 'A', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } },
     presets: [],
     target: fakeTarget(),
@@ -537,11 +537,11 @@ describe('StreamDeckDevicePage', () => {
   describe('Mode chip', () => {
     it('reflects the instance\'s current mode and switching it calls setMode', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
-      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'fixed', activePresetId: 'p1' } }));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'custom', activePresetId: 'p1' } }));
       await renderPage();
 
-      const fixedChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.fixed' });
-      expect(fixedChip).toHaveAttribute('aria-checked', 'true');
+      const customChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.custom' });
+      expect(customChip).toHaveAttribute('aria-checked', 'true');
 
       fireEvent.click(screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' }));
       expect(mockSetMode).toHaveBeenCalledWith('recentApps');
@@ -552,7 +552,7 @@ describe('StreamDeckDevicePage', () => {
     it('renders top-right on the Customize tab once the instance has loaded', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({
-        instance: { mode: 'fixed', activePresetId: 'p1' },
+        instance: { mode: 'custom', activePresetId: 'p1' },
         presets: [{ id: 'p1', name: 'Streaming layout' }],
       }));
       await renderPage();
@@ -604,7 +604,7 @@ describe('StreamDeckDevicePage', () => {
     it('loading a preset from the toolbar calls activate', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({
-        instance: { mode: 'fixed', activePresetId: 'p1' },
+        instance: { mode: 'custom', activePresetId: 'p1' },
         presets: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }],
       }));
       await renderPage();
@@ -621,7 +621,7 @@ describe('StreamDeckDevicePage', () => {
     it('deleting the active preset calls deletePreset', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({
-        instance: { mode: 'fixed', activePresetId: 'p1' },
+        instance: { mode: 'custom', activePresetId: 'p1' },
         presets: [{ id: 'p1', name: 'A' }],
       }));
       await renderPage();
@@ -893,7 +893,7 @@ describe('StreamDeckDevicePage', () => {
       // A truly empty slot never shows a liveSrc frame (DeckGrid's own
       // stale-clear rule for a self-cleared key) - slot 0 needs real content.
       const target = fakeTargetWithPages([{ slots: [{ action: { type: 'openUrl', url: 'x' } }] }]);
-      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'fixed', activePresetId: 'p1' }, target }));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'custom', activePresetId: 'p1' }, target }));
       const { container, rerender } = await renderPage();
 
       act(() => {

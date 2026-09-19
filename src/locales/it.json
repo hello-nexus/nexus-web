@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "Orizzontale",
   "panel.settings.deck.lightingMode": "Modalità",
   "panel.settings.deck.mode.appAware": "Rilevamento app",
-  "panel.settings.deck.mode.fixed": "Fissa",
+  "panel.settings.deck.mode.custom": "Personalizzato",
   "panel.settings.deck.mode.label": "Modalità",
   "panel.settings.deck.mode.recentApps": "App recenti",
   "panel.settings.deck.mode.recentAppsDescription": "Ogni tasto mostra un'app usata di recente, la più recente per prima. L'app in primo piano ottiene il tasto evidenziato.",

@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "가로",
   "panel.settings.deck.lightingMode": "모드",
   "panel.settings.deck.mode.appAware": "앱 인식",
-  "panel.settings.deck.mode.fixed": "고정",
+  "panel.settings.deck.mode.custom": "사용자 지정",
   "panel.settings.deck.mode.label": "모드",
   "panel.settings.deck.mode.recentApps": "최근 앱",
   "panel.settings.deck.mode.recentAppsDescription": "각 키에는 최근 사용한 앱이 최신순으로 표시됩니다. 포커스된 앱은 강조 표시된 키를 사용합니다.",

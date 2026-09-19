@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "Horizontal",
   "panel.settings.deck.lightingMode": "Modo",
   "panel.settings.deck.mode.appAware": "Deteção de aplicações",
-  "panel.settings.deck.mode.fixed": "Fixo",
+  "panel.settings.deck.mode.custom": "Personalizado",
   "panel.settings.deck.mode.label": "Modo",
   "panel.settings.deck.mode.recentApps": "Aplicações recentes",
   "panel.settings.deck.mode.recentAppsDescription": "Cada tecla mostra uma aplicação usada recentemente, a mais recente primeiro. A aplicação em primeiro plano recebe a tecla destacada.",

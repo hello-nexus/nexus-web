@@ -3015,7 +3015,7 @@
   "panel.settings.deck.landscape": "Pozioma",
   "panel.settings.deck.lightingMode": "Tryb",
   "panel.settings.deck.mode.appAware": "Wykrywanie aplikacji",
-  "panel.settings.deck.mode.fixed": "Stały",
+  "panel.settings.deck.mode.custom": "Własny",
   "panel.settings.deck.mode.label": "Tryb",
   "panel.settings.deck.mode.recentApps": "Ostatnie aplikacje",
   "panel.settings.deck.mode.recentAppsDescription": "Każdy klawisz pokazuje ostatnio używaną aplikację, najnowsza jako pierwsza. Aplikacja na pierwszym planie otrzymuje wyróżniony klawisz.",

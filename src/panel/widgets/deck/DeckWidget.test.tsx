@@ -32,7 +32,7 @@ function widget(size: PanelWidget['size'] = '2x2'): PanelWidget {
 function mockDeck(pages: DeckPage[], size: PanelWidget['size'] = '2x2') {
   const { cols, rows } = innerGridForSize(size);
   mockUseDeckInstance.mockReturnValue({
-    instance: { mode: 'fixed', activePresetId: 'p1' },
+    instance: { mode: 'custom', activePresetId: 'p1' },
     preset: { id: 'p1', name: 'Preset', cols, rows, pageCount: pages.length, deck: { pages } },
     presets: [],
     target: null,
@@ -292,7 +292,7 @@ describe('DeckWidget', () => {
       });
     }
 
-    it('renders the live ring instead of the fixed/appAware grid', () => {
+    it('renders the live ring instead of the custom/appAware grid', () => {
       mockRecentAppsInstance();
       mockUseRecentApps.mockReturnValue({
         apps: [{ processKey: 'discord', name: 'Discord', lastFocusedUtcMs: 1 }],

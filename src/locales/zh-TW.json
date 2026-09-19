@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "橫向",
   "panel.settings.deck.lightingMode": "模式",
   "panel.settings.deck.mode.appAware": "應用程式感知",
-  "panel.settings.deck.mode.fixed": "固定",
+  "panel.settings.deck.mode.custom": "自訂",
   "panel.settings.deck.mode.label": "模式",
   "panel.settings.deck.mode.recentApps": "最近使用的應用程式",
   "panel.settings.deck.mode.recentAppsDescription": "每個按鍵顯示一個最近使用的應用程式，最新的排在最前面。位於前景的應用程式會使用醒目按鍵。",

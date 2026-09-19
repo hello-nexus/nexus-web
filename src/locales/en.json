@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "Landscape",
   "panel.settings.deck.lightingMode": "Mode",
   "panel.settings.deck.mode.appAware": "App Aware",
-  "panel.settings.deck.mode.fixed": "Fixed",
+  "panel.settings.deck.mode.custom": "Custom",
   "panel.settings.deck.mode.label": "Mode",
   "panel.settings.deck.mode.recentApps": "Recent Apps",
   "panel.settings.deck.mode.recentAppsDescription": "Every key shows a recently used app, most recent first. The app in focus gets the highlighted key.",

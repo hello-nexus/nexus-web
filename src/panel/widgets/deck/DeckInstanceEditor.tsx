@@ -16,7 +16,7 @@ import styles from './DeckInstanceEditor.module.scss';
 
 export const DECK_PRESET_CAP = 50;
 
-const MODE_KEYS: DeckInstanceMode[] = ['fixed', 'recentApps', 'appAware'];
+const MODE_KEYS: DeckInstanceMode[] = ['custom', 'recentApps', 'appAware'];
 
 export interface DeckInstanceEditorProps {
   deck: UseDeckInstanceResult;
@@ -60,7 +60,7 @@ export function DeckInstanceEditor({
   onLoad, onDelete, onUndo, onRedo, onReset, bodyMode = 'full',
 }: DeckInstanceEditorProps) {
   const { t } = useTranslation();
-  const mode = deck.instance?.mode ?? 'fixed';
+  const mode = deck.instance?.mode ?? 'custom';
 
   // Presence-only: the payload is ignored. Mounted for as long as this editor
   // is on screen (unmounts on a tab switch or the widget sheet closing), so

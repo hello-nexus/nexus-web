@@ -44,7 +44,7 @@ vi.mock('../../../hooks/useStreamDecks', () => ({
 }));
 vi.mock('../../../panel/widgets/deck/useDeckInstance', () => ({
   useDeckInstance: (): UseDeckInstanceResult => ({
-    instance: { mode: 'fixed', activePresetId: 'p1' },
+    instance: { mode: 'custom', activePresetId: 'p1' },
     preset: { id: 'p1', name: 'Preset', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } },
     presets: [],
     target: fakeTarget(),

@@ -32,7 +32,7 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useMultiplex: () => ({ connected: mockConnected }),
 }));
 
-const INSTANCE: DeckInstance = { mode: 'fixed', activePresetId: 'p1' };
+const INSTANCE: DeckInstance = { mode: 'custom', activePresetId: 'p1' };
 const PRESET: DeckPresetFull = { id: 'p1', name: 'Streaming', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } };
 
 // PRESET is authored 3x2 (keyCount 6); updateSlotAt pads to that before
@@ -108,6 +108,14 @@ describe('useDeckInstance - initial load', () => {
     // - wait on the actual refetch outcome instead of that transient flag.
     await waitFor(() => expect(result.current.preset).toEqual(PRESET));
     expect(result.current.error).toBe(false);
+  });
+
+  it('normalizes an older service build\'s "fixed" mode to "custom" on the initial GET', async () => {
+    getDeckInstanceMock.mockResolvedValue({ mode: 'fixed', activePresetId: 'p1' } as unknown as DeckInstance);
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.instance?.mode).toBe('custom');
   });
 
   it('normalizes a zero-page preset from the server to one empty page so it stays editable', async () => {
@@ -312,6 +320,18 @@ describe('useDeckInstance - deck topic frames', () => {
     expect(result.current.presets).toHaveLength(2);
   });
 
+  it('normalizes an older service build\'s "fixed" mode to "custom" on an active frame', async () => {
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    await act(async () => {
+      capturedTopics.deck?.({ kind: 'active', instanceId: 'streamdeck:SN1', instance: { mode: 'fixed', activePresetId: 'p1' } });
+      await Promise.resolve();
+    });
+
+    expect(result.current.instance?.mode).toBe('custom');
+  });
+
   it('refetches the new preset and resets undo history when an active frame changes the activePresetId', async () => {
     const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));
@@ -319,11 +339,11 @@ describe('useDeckInstance - deck topic frames', () => {
     const PRESET_2: DeckPresetFull = { id: 'p2', name: 'Gaming', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [{ label: 'g' }] }] } };
     getDeckPresetMock.mockResolvedValue(PRESET_2);
     await act(async () => {
-      capturedTopics.deck?.({ kind: 'active', instanceId: 'streamdeck:SN1', instance: { mode: 'fixed', activePresetId: 'p2' } });
+      capturedTopics.deck?.({ kind: 'active', instanceId: 'streamdeck:SN1', instance: { mode: 'custom', activePresetId: 'p2' } });
       await Promise.resolve();
     });
 
-    expect(result.current.instance).toEqual({ mode: 'fixed', activePresetId: 'p2' });
+    expect(result.current.instance).toEqual({ mode: 'custom', activePresetId: 'p2' });
     expect(result.current.preset).toEqual(PRESET_2);
     expect(result.current.canUndo).toBe(false);
   });
@@ -347,7 +367,7 @@ describe('useDeckInstance - mode and preset management', () => {
     act(() => { result.current.setMode('appAware'); });
     expect(result.current.instance?.mode).toBe('appAware');
 
-    await waitFor(() => expect(result.current.instance?.mode).toBe('fixed'));
+    await waitFor(() => expect(result.current.instance?.mode).toBe('custom'));
   });
 
   it('activate switches the active preset and clears undo history', async () => {
@@ -358,7 +378,7 @@ describe('useDeckInstance - mode and preset management', () => {
     expect(result.current.canUndo).toBe(true);
 
     const PRESET_2: DeckPresetFull = { id: 'p2', name: 'Gaming', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } };
-    updateDeckInstanceMock.mockResolvedValue({ mode: 'fixed', activePresetId: 'p2' });
+    updateDeckInstanceMock.mockResolvedValue({ mode: 'custom', activePresetId: 'p2' });
     getDeckPresetMock.mockResolvedValue(PRESET_2);
 
     await act(async () => { await result.current.activate('p2'); });
@@ -374,7 +394,7 @@ describe('useDeckInstance - mode and preset management', () => {
 
     const CREATED: DeckPresetFull = { id: 'p3', name: 'New preset', cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [] }] } };
     createDeckPresetMock.mockResolvedValue(CREATED);
-    updateDeckInstanceMock.mockResolvedValue({ mode: 'fixed', activePresetId: 'p3' });
+    updateDeckInstanceMock.mockResolvedValue({ mode: 'custom', activePresetId: 'p3' });
     getDeckPresetMock.mockResolvedValue(CREATED);
 
     let outcome: { error: boolean } | undefined;
@@ -431,7 +451,7 @@ describe('useDeckInstance - mode and preset management', () => {
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     deleteDeckPresetMock.mockResolvedValue(true);
-    const PROMOTED: DeckInstance = { mode: 'fixed', activePresetId: 'p4' };
+    const PROMOTED: DeckInstance = { mode: 'custom', activePresetId: 'p4' };
     const PROMOTED_PRESET: DeckPresetFull = { id: 'p4', name: 'Promoted', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } };
     getDeckInstanceMock.mockResolvedValue(PROMOTED);
     getDeckPresetsMock.mockResolvedValue([{ id: 'p4', name: 'Promoted', cols: 3, rows: 2, pageCount: 1 }]);

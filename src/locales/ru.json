@@ -3015,7 +3015,7 @@
   "panel.settings.deck.landscape": "Альбомная",
   "panel.settings.deck.lightingMode": "Режим",
   "panel.settings.deck.mode.appAware": "Определение приложений",
-  "panel.settings.deck.mode.fixed": "Фиксированный",
+  "panel.settings.deck.mode.custom": "Свой",
   "panel.settings.deck.mode.label": "Режим",
   "panel.settings.deck.mode.recentApps": "Недавние приложения",
   "panel.settings.deck.mode.recentAppsDescription": "Каждая клавиша показывает недавно использованное приложение, сначала самое новое. Приложение в фокусе получает выделенную клавишу.",

@@ -175,7 +175,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // since the grid it feeds isn't mounted on Settings.
   const [liveTiles, setLiveTiles] = useState<Map<string, string>>(new Map());
   const clearLiveTiles = useCallback(() => setLiveTiles(new Map()), []);
-  // A mode switch (Fixed/Recent Apps/App Aware) repaints every key with
+  // A mode switch (Custom/Recent Apps/App Aware) repaints every key with
   // different content at the same page:slotPath keys - clear so a stale
   // frame from the previous mode can never show through the new one. The
   // ref skips the initial undefined -> first-loaded-mode transition, which
@@ -277,7 +277,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // Recent Apps has its own local page index (buildRecentAppsView's auto
   // pagination, not an authored page), but the service still keys its
   // streamdeckTiles pushes off the deck's CURRENT page, so browsing here has
-  // to push nav the same way a Fixed-mode page change does or the tiles for
+  // to push nav the same way a Custom-mode page change does or the tiles for
   // the newly selected page never arrive.
   const goToRecentPage = (next: number) => { setRecentPage(next); pushNav(next, []); };
 

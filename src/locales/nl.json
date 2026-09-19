@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "Liggend",
   "panel.settings.deck.lightingMode": "Modus",
   "panel.settings.deck.mode.appAware": "App-detectie",
-  "panel.settings.deck.mode.fixed": "Vast",
+  "panel.settings.deck.mode.custom": "Aangepast",
   "panel.settings.deck.mode.label": "Modus",
   "panel.settings.deck.mode.recentApps": "Recente apps",
   "panel.settings.deck.mode.recentAppsDescription": "Elke toets toont een recent gebruikte app, de meest recente eerst. De app op de voorgrond krijgt de gemarkeerde toets.",

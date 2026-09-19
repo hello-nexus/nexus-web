@@ -32,7 +32,7 @@ vi.mock('./useDeckInstance', () => ({
     const preset = { id: 'p1', name: 'Preset', cols: 2, rows: 2, pageCount: deck.pages.length, deck };
     const target = makePresetDeckTarget(preset, { cols: 2, rows: 2 }, 'widget', saveRef.current);
     return {
-      instance: { mode: 'fixed', activePresetId: 'p1' },
+      instance: { mode: 'custom', activePresetId: 'p1' },
       preset,
       presets: [{ id: 'p1', name: 'Preset', cols: 2, rows: 2, pageCount: deck.pages.length }],
       target,

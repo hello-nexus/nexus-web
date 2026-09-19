@@ -2979,7 +2979,7 @@
   "panel.settings.deck.landscape": "横向き",
   "panel.settings.deck.lightingMode": "モード",
   "panel.settings.deck.mode.appAware": "アプリ検知",
-  "panel.settings.deck.mode.fixed": "固定",
+  "panel.settings.deck.mode.custom": "カスタム",
   "panel.settings.deck.mode.label": "モード",
   "panel.settings.deck.mode.recentApps": "最近使ったアプリ",
   "panel.settings.deck.mode.recentAppsDescription": "各キーには最近使用したアプリが新しい順に表示されます。フォーカス中のアプリはハイライトされたキーになります。",

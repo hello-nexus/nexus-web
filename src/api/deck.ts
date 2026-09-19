@@ -11,7 +11,7 @@ import { saveBlobToFile } from '../lib/saveFile';
 import { sanitizeFileName } from '../panel/widgets/lighting/page/mappingUtils';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 
-export type DeckInstanceMode = 'fixed' | 'recentApps' | 'appAware';
+export type DeckInstanceMode = 'custom' | 'recentApps' | 'appAware';
 
 /** Same shape as lighting's PresetApp (api/lighting.ts) - an app bound to auto-activate this preset. */
 export interface PresetApp {
