@@ -1,9 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import fs from 'node:fs';
-import path from 'node:path';
 import { buildRecentAppsView, type RecentAppsViewPage } from './recentAppsView';
 import type { RecentApp } from '../../../api/deck';
+import vectorsFile from './recentAppsView.vectors.json';
 
 interface RecentAppsVectorCase {
   name: string;
@@ -15,13 +14,11 @@ interface RecentAppsVectorCase {
 }
 
 // Copied verbatim from the service worktree (see fitToGrid.vectors.json for
-// the established pattern); the authored suite below exercises the same
-// contract independently, so this file staying absent never blocks the build.
-const vectorsPath = path.join(__dirname, 'recentAppsView.vectors.json');
-const vectorsExist = fs.existsSync(vectorsPath);
+// the established pattern this mirrors). A static import so a missing/moved
+// file fails this suite loudly instead of silently skipping it.
+const { cases } = vectorsFile as { description: string; cases: RecentAppsVectorCase[] };
 
-describe.runIf(vectorsExist)('buildRecentAppsView (shared vectors, mirrored in nexus-service/tests/Deck/recentAppsView.vectors.json)', () => {
-  const { cases } = JSON.parse(fs.readFileSync(vectorsPath, 'utf8')) as { description: string; cases: RecentAppsVectorCase[] };
+describe('buildRecentAppsView (shared vectors, mirrored in nexus-service/tests/Deck/recentAppsView.vectors.json)', () => {
   it.each(cases)('$name', ({ ring, focusedProcessKey, cols, rows, expected }) => {
     expect(buildRecentAppsView(ring, focusedProcessKey, cols, rows)).toEqual(expected);
   });
