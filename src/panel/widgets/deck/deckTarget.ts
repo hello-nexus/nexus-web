@@ -5,7 +5,7 @@
 import type { DeckPresetFull } from '../../../api/deck';
 import type { DeckConfig, DeckSlot, DeckTitleStyle } from './types';
 import {
-  addPage, removePage, resolveViewSlots, swapSlots, updateSlotAt, fitToGridWithOrigins,
+  addPage, countBoundSlots, removePage, resolveViewSlots, swapSlots, updateSlotAt, fitToGridWithOrigins,
   type DepthCount, type FittedSlotOrigin,
 } from './deckLayout';
 
@@ -30,6 +30,13 @@ export interface DeckTarget {
   addPage(): void;
   /** Removes the authored page that produced fitted page `page`. */
   removePage(page: number): void;
+  /**
+   * Bound-key count of the AUTHORED page that `removePage(page)` would
+   * delete - on an overflow-chunked page this can exceed what's visible in
+   * the one fitted chunk `page` shows, since removing any of its chunks
+   * removes the whole authored page.
+   */
+  removePageKeyCount(page: number): number;
   /** Deck-wide default title style seeded onto newly bound keys. */
   setTitleDefault(next: DeckTitleStyle | undefined): void;
 }
@@ -126,6 +133,10 @@ export function makePresetDeckTarget(
     removePage(page) {
       const authoredPage = fitted.pageOrigins[page] ?? 0;
       save(removePage(preset.deck, authoredPage));
+    },
+    removePageKeyCount(page) {
+      const authoredPage = fitted.pageOrigins[page] ?? 0;
+      return countBoundSlots(preset.deck.pages[authoredPage]?.slots ?? []);
     },
     setTitleDefault(next) {
       save({ ...preset.deck, defaultTitleStyle: next });

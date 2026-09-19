@@ -3046,7 +3046,7 @@
   "panel.settings.deck.orientation": "Orientacja",
   "panel.settings.deck.page.add": "Dodaj stronę",
   "panel.settings.deck.page.remove": "Usuń stronę",
-  "panel.settings.deck.page.removeConfirmBody": "Spowoduje to usunięcie wszystkich przycisków skonfigurowanych na tej stronie. Tej operacji nie można cofnąć.",
+  "panel.settings.deck.page.removeConfirmBody": "Ta strona zawiera {count} przycisków, które zostaną usunięte. Tej operacji nie można cofnąć.",
   "panel.settings.deck.page.removeConfirmTitle": "Usunąć tę stronę?",
   "panel.settings.deck.page.stripAria": "Strony Deck",
   "panel.settings.deck.page.tab": "Strona {n}",

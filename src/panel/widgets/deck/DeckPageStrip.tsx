@@ -16,6 +16,10 @@ export interface DeckPageStripProps {
   onRemoveCurrentPage?: () => void;
   /** Whether the current page already holds configured buttons - gates a confirm before deleting it. */
   currentPageHasContent?: boolean;
+  /** Bound-key count of the AUTHORED page removal would delete - on an
+   *  overflow-chunked page this can exceed what's visible on the current
+   *  (fitted) page, so the confirm text names it explicitly. */
+  removeCount?: number;
   className?: string;
   /** Renders plain page-number chips (matching the Keeb device page's layer
    *  chips) instead of "Page N" tabs. Used by the Stream Deck device page's
@@ -36,7 +40,7 @@ export interface DeckPageStripProps {
  * deck's Customize tab (StreamDeckDevicePage).
  */
 export function DeckPageStrip({
-  pageCount, currentPage, onSelectPage, onAddPage, onRemoveCurrentPage, currentPageHasContent, className, numbered, readOnly,
+  pageCount, currentPage, onSelectPage, onAddPage, onRemoveCurrentPage, currentPageHasContent, removeCount, className, numbered, readOnly,
 }: DeckPageStripProps) {
   const { t } = useTranslation();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -99,7 +103,7 @@ export function DeckPageStrip({
       <ConfirmModal
         open={confirmOpen}
         title={t('panel.settings.deck.page.removeConfirmTitle')}
-        message={t('panel.settings.deck.page.removeConfirmBody')}
+        message={t('panel.settings.deck.page.removeConfirmBody', { count: removeCount ?? 0 })}
         destructive
         onConfirm={() => { setConfirmOpen(false); onRemoveCurrentPage?.(); }}
         onCancel={() => setConfirmOpen(false)}

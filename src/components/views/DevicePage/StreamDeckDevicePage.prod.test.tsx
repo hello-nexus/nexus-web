@@ -33,7 +33,7 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
 function fakeTarget(): DeckTarget {
   return {
     kind: 'physical', cols: 3, rows: 2, keyCount: 6, config: { pages: [{ slots: [] }] },
-    updateSlot: vi.fn(), swapSlots: vi.fn(), addPage: vi.fn(), removePage: vi.fn(), setTitleDefault: vi.fn(),
+    updateSlot: vi.fn(), swapSlots: vi.fn(), addPage: vi.fn(), removePage: vi.fn(), removePageKeyCount: vi.fn(), setTitleDefault: vi.fn(),
   };
 }
 

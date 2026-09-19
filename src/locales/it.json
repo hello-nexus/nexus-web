@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "Orientamento",
   "panel.settings.deck.page.add": "Aggiungi pagina",
   "panel.settings.deck.page.remove": "Rimuovi pagina",
-  "panel.settings.deck.page.removeConfirmBody": "Questa azione elimina tutti i pulsanti configurati in questa pagina. L'operazione non può essere annullata.",
+  "panel.settings.deck.page.removeConfirmBody": "Questa pagina contiene {count} pulsanti, che verranno tutti rimossi. L'operazione non può essere annullata.",
   "panel.settings.deck.page.removeConfirmTitle": "Rimuovere questa pagina?",
   "panel.settings.deck.page.stripAria": "Pagine del Deck",
   "panel.settings.deck.page.tab": "Pagina {n}",

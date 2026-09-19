@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "Orientation",
   "panel.settings.deck.page.add": "Ajouter une page",
   "panel.settings.deck.page.remove": "Retirer la page",
-  "panel.settings.deck.page.removeConfirmBody": "Cette action supprime tous les boutons configurés sur cette page. Cette action est irréversible.",
+  "panel.settings.deck.page.removeConfirmBody": "Cette page contient {count} boutons, qui seront tous supprimés. Cette action est irréversible.",
   "panel.settings.deck.page.removeConfirmTitle": "Retirer cette page ?",
   "panel.settings.deck.page.stripAria": "Pages du Deck",
   "panel.settings.deck.page.tab": "Page {n}",

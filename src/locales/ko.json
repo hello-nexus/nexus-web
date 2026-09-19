@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "방향",
   "panel.settings.deck.page.add": "페이지 추가",
   "panel.settings.deck.page.remove": "페이지 제거",
-  "panel.settings.deck.page.removeConfirmBody": "이 페이지에 설정된 모든 버튼이 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+  "panel.settings.deck.page.removeConfirmBody": "이 페이지에는 {count}개의 버튼이 있으며, 모두 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
   "panel.settings.deck.page.removeConfirmTitle": "이 페이지를 제거할까요?",
   "panel.settings.deck.page.stripAria": "Deck 페이지",
   "panel.settings.deck.page.tab": "페이지 {n}",

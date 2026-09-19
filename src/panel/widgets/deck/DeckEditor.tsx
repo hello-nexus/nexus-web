@@ -87,6 +87,7 @@ export function DeckEditor({ target, page, onPageChange, folderPath, onFolderPat
         onAddPage={() => { if (pageCount >= MAX_DECK_PAGES) return; target.addPage(); onSelectPage(pageCount); }}
         onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
         currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
+        removeCount={target.removePageKeyCount(page)}
       />
 
       {inFolder && (

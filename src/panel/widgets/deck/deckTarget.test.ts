@@ -123,6 +123,15 @@ describe('makePresetDeckTarget - writes translate the fitted view back to the au
     expect(next.pages[0].slots[0].label).toBe('b');
   });
 
+  it('removePageKeyCount counts the authored page\'s bound keys (identity fit: fitted page N is authored page N)', () => {
+    const target = makePresetDeckTarget(
+      preset({ pages: [{ slots: [{ action: { type: 'openUrl', url: 'a' } }] }, { slots: [{ action: { type: 'openUrl', url: 'b' } }, { action: { type: 'openUrl', url: 'c' } }] }] }),
+      IDENTITY_GRID, 'widget', vi.fn(),
+    );
+    expect(target.removePageKeyCount(0)).toBe(1);
+    expect(target.removePageKeyCount(1)).toBe(2);
+  });
+
   it('setTitleDefault saves the deck-wide default title style', () => {
     const save = vi.fn();
     const target = makePresetDeckTarget(preset({ pages: [{ slots: [] }] }), IDENTITY_GRID, 'widget', save);
@@ -187,6 +196,16 @@ describe('makePresetDeckTarget - overflow (chunked) writes and read-only auto ke
     const next = save.mock.calls[0][0] as DeckConfig;
     expect(next.pages).toHaveLength(1);
     expect(next.pages[0].slots[0].label).toBe('p1');
+  });
+
+  it('removePageKeyCount reports the WHOLE authored page\'s key count on every fitted chunk of it, not just what that chunk shows', () => {
+    const bound9 = { pages: [{ slots: Array.from({ length: 9 }, (_, i) => ({ action: { type: 'openUrl' as const, url: `u${i}` } })) }] };
+    const bigPreset = preset(bound9, 3, 3);
+    const target = makePresetDeckTarget(bigPreset, { cols: 3, rows: 2 }, 'widget', vi.fn());
+    // Chunked into 2 fitted pages, both from the same 9-key authored page.
+    expect(target.config.pages).toHaveLength(2);
+    expect(target.removePageKeyCount(0)).toBe(9);
+    expect(target.removePageKeyCount(1)).toBe(9);
   });
 });
 

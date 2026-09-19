@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "方向",
   "panel.settings.deck.page.add": "新增頁面",
   "panel.settings.deck.page.remove": "移除頁面",
-  "panel.settings.deck.page.removeConfirmBody": "這將刪除此頁面上設定的所有按鈕，且無法復原。",
+  "panel.settings.deck.page.removeConfirmBody": "此頁面包含 {count} 個按鈕，全部將被刪除，且無法復原。",
   "panel.settings.deck.page.removeConfirmTitle": "要移除此頁面嗎？",
   "panel.settings.deck.page.stripAria": "Deck 頁面",
   "panel.settings.deck.page.tab": "頁面 {n}",

@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "Oriëntatie",
   "panel.settings.deck.page.add": "Pagina toevoegen",
   "panel.settings.deck.page.remove": "Pagina verwijderen",
-  "panel.settings.deck.page.removeConfirmBody": "Hiermee worden alle knoppen verwijderd die op deze pagina zijn ingesteld. Dit kan niet ongedaan worden gemaakt.",
+  "panel.settings.deck.page.removeConfirmBody": "Deze pagina bevat {count} knoppen, die allemaal worden verwijderd. Dit kan niet ongedaan worden gemaakt.",
   "panel.settings.deck.page.removeConfirmTitle": "Deze pagina verwijderen?",
   "panel.settings.deck.page.stripAria": "Deck-pagina's",
   "panel.settings.deck.page.tab": "Pagina {n}",

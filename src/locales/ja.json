@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "向き",
   "panel.settings.deck.page.add": "ページを追加",
   "panel.settings.deck.page.remove": "ページを削除",
-  "panel.settings.deck.page.removeConfirmBody": "このページに設定されているすべてのボタンが削除されます。この操作は元に戻せません。",
+  "panel.settings.deck.page.removeConfirmBody": "このページには{count}個のボタンがあり、すべて削除されます。この操作は元に戻せません。",
   "panel.settings.deck.page.removeConfirmTitle": "このページを削除しますか?",
   "panel.settings.deck.page.stripAria": "Deck のページ",
   "panel.settings.deck.page.tab": "ページ {n}",

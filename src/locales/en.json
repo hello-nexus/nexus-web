@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "Orientation",
   "panel.settings.deck.page.add": "Add page",
   "panel.settings.deck.page.remove": "Remove page",
-  "panel.settings.deck.page.removeConfirmBody": "This deletes every button configured on this page. This cannot be undone.",
+  "panel.settings.deck.page.removeConfirmBody": "This page holds {count} keys, all of which will be removed. This cannot be undone.",
   "panel.settings.deck.page.removeConfirmTitle": "Remove this page?",
   "panel.settings.deck.page.stripAria": "Deck pages",
   "panel.settings.deck.page.tab": "Page {n}",

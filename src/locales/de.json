@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "Ausrichtung",
   "panel.settings.deck.page.add": "Seite hinzufügen",
   "panel.settings.deck.page.remove": "Seite entfernen",
-  "panel.settings.deck.page.removeConfirmBody": "Dies löscht alle auf dieser Seite konfigurierten Tasten. Dies kann nicht rückgängig gemacht werden.",
+  "panel.settings.deck.page.removeConfirmBody": "Diese Seite enthält {count} Tasten, die alle entfernt werden. Dies kann nicht rückgängig gemacht werden.",
   "panel.settings.deck.page.removeConfirmTitle": "Diese Seite entfernen?",
   "panel.settings.deck.page.stripAria": "Deck-Seiten",
   "panel.settings.deck.page.tab": "Seite {n}",

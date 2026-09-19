@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "Yön",
   "panel.settings.deck.page.add": "Sayfa ekle",
   "panel.settings.deck.page.remove": "Sayfayı kaldır",
-  "panel.settings.deck.page.removeConfirmBody": "Bu, bu sayfada yapılandırılmış tüm düğmeleri siler. Bu işlem geri alınamaz.",
+  "panel.settings.deck.page.removeConfirmBody": "Bu sayfada {count} düğme var ve hepsi kaldırılacak. Bu işlem geri alınamaz.",
   "panel.settings.deck.page.removeConfirmTitle": "Bu sayfa kaldırılsın mı?",
   "panel.settings.deck.page.stripAria": "Deck sayfaları",
   "panel.settings.deck.page.tab": "Sayfa {n}",

@@ -3010,7 +3010,7 @@
   "panel.settings.deck.orientation": "Orientament",
   "panel.settings.deck.page.add": "Zonte pagjine",
   "panel.settings.deck.page.remove": "Gjave pagjine",
-  "panel.settings.deck.page.removeConfirmBody": "Chest al elimine ducj i botons configurâts in cheste pagjine. No si pues tornâ indaûr.",
+  "panel.settings.deck.page.removeConfirmBody": "Cheste pagjine e ten {count} botons, che a vegnaran ducj eliminâts. No si pues tornâ indaûr.",
   "panel.settings.deck.page.removeConfirmTitle": "Gjavâ cheste pagjine?",
   "panel.settings.deck.page.stripAria": "Pagjinis dal Deck",
   "panel.settings.deck.page.tab": "Pagjine {n}",

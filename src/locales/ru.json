@@ -3046,7 +3046,7 @@
   "panel.settings.deck.orientation": "Ориентация",
   "panel.settings.deck.page.add": "Добавить страницу",
   "panel.settings.deck.page.remove": "Удалить страницу",
-  "panel.settings.deck.page.removeConfirmBody": "Это удалит все кнопки, настроенные на этой странице. Это действие нельзя отменить.",
+  "panel.settings.deck.page.removeConfirmBody": "Эта страница содержит {count} кнопок, которые будут удалены. Это действие нельзя отменить.",
   "panel.settings.deck.page.removeConfirmTitle": "Удалить эту страницу?",
   "panel.settings.deck.page.stripAria": "Страницы Deck",
   "panel.settings.deck.page.tab": "Страница {n}",
