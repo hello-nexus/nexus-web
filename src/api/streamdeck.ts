@@ -1,10 +1,11 @@
-// Client for the physical Stream Deck routes (mirrors nexus-service's
-// StreamDeckRoutes.cs). Every route is .LocalhostOnly() - a desktop-only
-// hardware configuration surface - so every call here fails closed on a
-// remote/panel origin via the shared fetchService/putServiceBytes guards.
-import { fetchService, postService, putService, putServiceBytes, deleteService } from './service';
+// Client for the physical Stream Deck HID/device routes (mirrors
+// nexus-service's StreamDeckRoutes.cs). Layout config/presets/key-image
+// routes moved to api/deck.ts (host-wide presets, one system for physical
+// decks and the Deck widget). Every route here is .LocalhostOnly() - a
+// desktop-only hardware configuration surface - so every call here fails
+// closed on a remote/panel origin via the shared fetchService guard.
+import { fetchService, postService, deleteService } from './service';
 import type { DeckConfig } from '../panel/widgets/deck/types';
-import type { DeckKeyTransform } from '../panel/widgets/deck/deckKeyTransform';
 
 export type StreamDeckFormat = 'bmp' | 'jpeg';
 
@@ -20,6 +21,8 @@ export interface StreamDeckSummary {
   keyPixels: number;
   format: StreamDeckFormat;
   brightness: number;
+  /** This deck's deck-instance id (`streamdeck:<serial>`), for useDeckInstance. */
+  instanceId: string;
   /** User mounting rotation, degrees: 0, 90, 180, or 270. Always sent by the DTO; optional here only so older test fixtures need not set it. */
   orientation?: number;
   /** Seconds of no key input before the deck blanks; 0 disables sleep-after. Always sent by the DTO; optional here for the same reason. */
@@ -30,8 +33,6 @@ export interface StreamDeckSummary {
   warning?: string;
   /** ConflictAppCatalog id to pass to POST /conflicts/kill when warning is set. */
   conflictAppId?: string;
-  /** Server-authoritative; absent on a service build that predates this field (see resolveDeckKeyTransform). */
-  transform?: DeckKeyTransform;
   /**
    * The physical deck's live page/folder, same semantics as the 'nav'
    * multiplex frame (see StreamDeckDevicePage's topic subscription). Seeds
@@ -46,14 +47,6 @@ export interface StreamDeckSummary {
 
 interface StreamDeckListResponse {
   decks: StreamDeckSummary[];
-}
-
-interface StreamDeckConfigResponse {
-  config: DeckConfig;
-}
-
-interface StreamDeckImageResponse {
-  hash: string;
 }
 
 // nexus-service's ApiResponse envelope: Ok() serializes { error: false,
@@ -78,41 +71,6 @@ export async function updateStreamDeck(
   patch: { name?: string; brightness?: number; orientation?: number; sleepAfterSeconds?: number; sleepWhenLocked?: boolean },
 ): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}`, patch));
-}
-
-export async function getStreamDeckConfig(serial: string): Promise<DeckConfig | null> {
-  const res = await fetchService<StreamDeckConfigResponse>(`/streamdeck/decks/${encodeURIComponent(serial)}/config`);
-  return res?.config ?? null;
-}
-
-export async function setStreamDeckConfig(serial: string, config: DeckConfig): Promise<boolean> {
-  const res = await putService<StreamDeckConfigResponse>(`/streamdeck/decks/${encodeURIComponent(serial)}/config`, { config });
-  return res !== null;
-}
-
-/**
- * slotPath is page-qualified: the page index leads the dot-joined folder/slot
- * index chain from that page's root ("0.3", "2.1.5" - see deckTarget's
- * deckImageSlotPath), or the reserved literal "back" for the folder-back key,
- * which stays page-independent.
- */
-export async function uploadStreamDeckKeyImage(
-  serial: string,
-  slotPath: string,
-  state: 0 | 1,
-  bytes: Uint8Array,
-  format: StreamDeckFormat,
-): Promise<string | null> {
-  const contentType = format === 'bmp' ? 'image/bmp' : 'image/jpeg';
-  const path = `/streamdeck/decks/${encodeURIComponent(serial)}/images/${slotPath}/${state}`;
-  const res = await putServiceBytes(path, bytes, contentType);
-  if (!res) return null;
-  try {
-    const json = (await res.json()) as StreamDeckImageResponse;
-    return json.hash ?? null;
-  } catch {
-    return null;
-  }
 }
 
 /** Dev-tools-only: push a test pattern to every key so a bench Stream Deck can be sanity-checked without editing a layout. */
@@ -147,42 +105,6 @@ interface PendingDeckEditResponse {
 export async function getPendingDeckEdit(): Promise<PendingDeckEdit | null> {
   const res = await fetchService<PendingDeckEditResponse>('/streamdeck/pending-edit');
   return res?.edit ?? null;
-}
-
-export interface DeckPreset {
-  id: string;
-  name: string;
-}
-
-interface DeckPresetsResponse {
-  presets: DeckPreset[];
-  activeId: string | null;
-}
-
-export async function fetchDeckPresets(serial: string): Promise<DeckPresetsResponse | null> {
-  return fetchService<DeckPresetsResponse>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets`);
-}
-
-export async function createDeckPreset(serial: string, name: string, config?: DeckConfig): Promise<{ preset: DeckPreset; activeId: string | null } | null> {
-  return postService(`/streamdeck/decks/${encodeURIComponent(serial)}/presets`, config ? { name, config } : { name });
-}
-
-export async function updateDeckPreset(serial: string, id: string, patch: { name?: string; saveCurrent?: boolean }): Promise<boolean> {
-  return acked(await putService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/${encodeURIComponent(id)}`, patch));
-}
-
-export async function deleteDeckPreset(serial: string, id: string): Promise<{ activeId: string | null } | null> {
-  return deleteService(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/${encodeURIComponent(id)}`);
-}
-
-/** Applies the preset's saved config + key images to the live deck and refreshes what's on-screen. */
-export async function activateDeckPreset(serial: string, id: string): Promise<boolean> {
-  return acked(await postService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/${encodeURIComponent(id)}/activate`, {}));
-}
-
-/** Sets the active-preset pointer only, without applying the preset's config. */
-export async function setActiveDeckPreset(serial: string, id: string | null): Promise<boolean> {
-  return acked(await putService<ApiResponseWrapper>(`/streamdeck/decks/${encodeURIComponent(serial)}/presets/active`, { id }));
 }
 
 export interface StreamDeckDevModel {

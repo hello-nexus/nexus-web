@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { Lock, Power } from 'lucide-react';
-import { makePhysicalDeckTarget, makeWidgetDeckTarget } from './deckTarget';
-import type { PanelWidget } from '../types';
+import { makePresetDeckTarget } from './deckTarget';
+import type { DeckPresetFull } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
 import type { DeckConfig, DeckSlot } from './types';
 import styles from './DeckKeyInspector.module.scss';
+
+/** A synthetic preset for makePresetDeckTarget, sized cols x rows (test-only helper). */
+function testPreset(deck: DeckConfig, cols: number, rows: number): DeckPresetFull {
+  return { id: 'test-preset', name: 'Test', cols, rows, pageCount: deck.pages.length, deck };
+}
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 vi.mock('../../../api/service', () => ({
@@ -141,7 +146,7 @@ describe('defaultActionFor - new Stream Deck action kinds', () => {
 /**
  * DeckKeyInspector is a controlled view over `target.config` - it has no
  * internal slot state, so a bare `vi.fn()` updateSlot mock never reflects
- * back into a re-render. This harness uses the real makePhysicalDeckTarget
+ * back into a re-render. This harness uses the real makePresetDeckTarget
  * (the same factory StreamDeckDevicePage uses) over a useState-backed config
  * so picker interactions round-trip exactly like production.
  */
@@ -149,7 +154,7 @@ function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot }: {
   initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean; part?: 'all' | 'picker' | 'editor'; onDeleteSlot?: () => void;
 }) {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
-  const target = makePhysicalDeckTarget(2, 1, initialSlots.length, config, setConfig);
+  const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), 'physical', setConfig);
   return (
     <DeckKeyInspector
       target={target}
@@ -176,11 +181,8 @@ function renderInspector(slots: DeckSlot[] = [{}]) {
 function WidgetHarness({ initialSlots, surface, desktopEditor }: {
   initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean;
 }) {
-  const [widget, setWidget] = useState<PanelWidget>({
-    id: 'w1', type: 'deck', size: '2x2', col: 0, row: 0,
-    config: { deck: { pages: [{ slots: initialSlots }] } as never },
-  });
-  const target = makeWidgetDeckTarget(widget, patch => setWidget(w => ({ ...w, config: { ...w.config, ...patch } })));
+  const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
+  const target = makePresetDeckTarget(testPreset(config, 2, 2), 'widget', setConfig);
   return (
     <DeckKeyInspector
       target={target}
@@ -290,7 +292,7 @@ describe('DeckKeyInspector action picker - collapsible category list', () => {
     function SwitchingHarness() {
       const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: [{ action: { type: 'text', text: 'one' } }, { action: { type: 'text', text: 'two' } }] }] });
       const [selected, setSelected] = useState(0);
-      const target = makePhysicalDeckTarget(2, 1, 2, config, setConfig);
+      const target = makePresetDeckTarget(testPreset(config, 2, 1), 'physical', setConfig);
       return (
         <>
           <button type="button" onClick={() => setSelected(s => 1 - s)}>switch</button>
@@ -1031,7 +1033,7 @@ describe('DeckKeyInspector - IconPicker remounts per slot (no sticky tab across 
       }],
     });
     const [selected, setSelected] = useState(0);
-    const target = makePhysicalDeckTarget(2, 1, 2, config, setConfig);
+    const target = makePresetDeckTarget(testPreset(config, 2, 1), 'physical', setConfig);
     return (
       <>
         <button type="button" onClick={() => setSelected(1)}>select second slot</button>
@@ -1089,7 +1091,7 @@ describe('DeckKeyInspector - delete action', () => {
   it('clearing the slot via onDeleteSlot hides the editor fields - the panel closes reactively, with no separate close call needed', () => {
     function SelfClearingHarness({ initialSlots }: { initialSlots: DeckSlot[] }) {
       const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
-      const target = makePhysicalDeckTarget(2, 1, initialSlots.length, config, setConfig);
+      const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), 'physical', setConfig);
       return (
         <DeckKeyInspector
           target={target}

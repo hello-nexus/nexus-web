@@ -1,9 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { coverFitRect } from './coverFitRect';
 
-// Shared by resizeDeckImage.ts (client-side upload crop) and
-// renderDeckKeyBitmap.ts's paintIcon image branch (hardware key bitmap) -
-// jsdom can't rasterize canvas, so this pure rect math is what's tested.
+// Used by resizeDeckImage.ts's client-side upload crop; jsdom can't
+// rasterize canvas, so this pure rect math is what's tested.
 describe('coverFitRect', () => {
   it('crops a wider-than-square image, centering the overflow horizontally', () => {
     const rect = coverFitRect(200, 100, 100);

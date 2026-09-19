@@ -1,0 +1,28 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modeSection {
+  margin: 0;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.fitNote {
+  margin: 0;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.loadError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim);
+}
+
+.loading {
+  color: var(--text-dim);
+}

@@ -1,4 +1,4 @@
-import type { PanelWidget, PanelWidgetSize, PanelConfigValue } from '../../types';
+import type { PanelWidgetSize } from '../../types';
 import type { DeckAction, DeckConfig, DeckMonitoringStyle, DeckPage, DeckSlot } from './types';
 
 export interface InnerGrid { cols: number; rows: number; count: number; }
@@ -18,31 +18,10 @@ export function emptyDeck(): DeckConfig {
   return { pages: [{ slots: [] }] };
 }
 
-// Seeded into a freshly-added deck so it's useful out of the box rather than a
-// grid of empty cells: two volume nudges plus "open system settings" (a
-// per-OS service action). Remaining cells pad empty.
-export function defaultDeckConfig(): DeckConfig {
-  return {
-    pages: [{
-      slots: [
-        { action: { type: 'system', action: { op: 'volumeUp' } } },
-        { action: { type: 'system', action: { op: 'volumeDown' } } },
-        { action: { type: 'system', action: { op: 'openSettings' } } },
-      ],
-    }],
-  };
-}
-
-/** Parse + normalize the deck config off a widget. */
-export function readDeckConfig(widget: PanelWidget): DeckConfig {
-  return normalizeDeckConfig(widget.config?.deck as unknown);
-}
-
 // A persisted text action may still carry a `paste` key the type no longer
 // declares. Strip it wherever it appears (a top-level slot, a folder, a
 // sequence step, or a toggle branch) so an unrelated edit elsewhere in the
-// config never round-trips it back out through deckConfigPatch's whole-tree
-// serialize.
+// config never round-trips it back out through the preset's whole-tree save.
 function stripLegacyTextPaste(action: DeckAction): DeckAction {
   if (action.type === 'text' && 'paste' in action) {
     const rest = { ...action } as DeckAction & { paste?: unknown };
@@ -260,13 +239,83 @@ export function pageHasContent(pageConfig: DeckPage): boolean {
   return pageConfig.slots.some(slotHasContent);
 }
 
-/** Persist a DeckConfig back through onUpdate (whole tree under the `deck` key). */
-export function deckConfigPatch(deck: DeckConfig): Record<string, PanelConfigValue> {
-  return { deck: deck as unknown as PanelConfigValue };
+// Trailing-edge debounce so a burst of edits (typing a label, dragging a key)
+// collapses into one auto-save; used by useDeckInstance's preset auto-save
+// and its undo-history burst coalescing.
+export const AUTO_SAVE_DEBOUNCE_MS = 1000;
+
+export interface FitGridPreset { cols: number; rows: number; deck: DeckConfig; }
+export interface FitGridTarget { cols: number; rows: number; kind: 'physical' | 'widget'; }
+
+/** Editable slot capacity of a folder at `depth` (0 = a page's root level), matching slotCountAtDepth's physical-Back-key reservation. */
+function fitFolderCapacity(kind: FitGridTarget['kind'], keyCount: number, depth: number): number {
+  if (kind === 'widget' || depth === 0) return keyCount;
+  return Math.max(0, keyCount - 1);
 }
 
-// Trailing-edge debounce so a burst of edits (typing a label, dragging a key)
-// collapses into one auto-save; used by the physical Stream Deck's
-// service-backed presets (useDeckPresets.ts, which re-exports this same value
-// for StreamDeckDevicePage's undo-history burst coalescing).
-export const AUTO_SAVE_DEBOUNCE_MS = 1000;
+// Folders don't paginate (DeckFolder has no page axis of its own); overflow
+// content beyond a folder's capacity is dropped, same as any other resize.
+function fitSlot(slot: DeckSlot, kind: FitGridTarget['kind'], keyCount: number, depth: number): DeckSlot {
+  if (!slot.folder) return slot;
+  const capacity = fitFolderCapacity(kind, keyCount, depth);
+  const slots = padSlots(slot.folder.slots, capacity).map(s => fitSlot(s, kind, keyCount, depth + 1));
+  return { ...slot, folder: { slots } };
+}
+
+function trimmedLength(slots: readonly DeckSlot[]): number {
+  let n = slots.length;
+  while (n > 0 && !slotHasContent(slots[n - 1])) n--;
+  return n;
+}
+
+const autoNextSlot = (): DeckSlot => ({ action: { type: 'page', op: 'next' }, auto: true });
+const autoPrevSlot = (): DeckSlot => ({ action: { type: 'page', op: 'prev' }, auto: true });
+
+/**
+ * Fits one authored page's slots to a target key count T, chunking into
+ * multiple pages with synthesized next/prev nav keys when the authored
+ * content overflows T. Requires T >= 3 (room for prev + 1 content + next in
+ * a middle chunk); a smaller T truncates instead of chunking, which never
+ * happens for a real deck or widget grid (both bottom out at 4 keys).
+ */
+function fitPage(slots: readonly DeckSlot[], kind: FitGridTarget['kind'], keyCount: number): DeckPage[] {
+  const trimLen = trimmedLength(slots);
+  const content = slots.slice(0, trimLen).map(s => fitSlot(s, kind, keyCount, 1));
+  if (trimLen <= keyCount || keyCount < 3) {
+    return [{ slots: padSlots(content, keyCount) }];
+  }
+  const pages: DeckPage[] = [{ slots: [...content.slice(0, keyCount - 1), autoNextSlot()] }];
+  let idx = keyCount - 1;
+  while (idx < trimLen) {
+    const remaining = trimLen - idx;
+    if (remaining <= keyCount - 1) {
+      pages.push({ slots: padSlots([autoPrevSlot(), ...content.slice(idx, trimLen)], keyCount) });
+      idx = trimLen;
+    } else {
+      const chunk = content.slice(idx, idx + (keyCount - 2));
+      pages.push({ slots: [autoPrevSlot(), ...chunk, autoNextSlot()] });
+      idx += keyCount - 2;
+    }
+  }
+  return pages;
+}
+
+/**
+ * Chunks `preset`'s authored config to fit `target`'s key count, inserting
+ * auto next/prev nav keys on overflow (DeckConfigNavigation.FitToGrid's web
+ * counterpart; both sides load fitToGrid.vectors.json). The editor always
+ * edits the pre-fit `preset.deck` - this is a read/render-only projection.
+ */
+export function fitToGrid(preset: FitGridPreset, target: FitGridTarget): DeckConfig {
+  const keyCount = target.cols * target.rows;
+  const pages = preset.deck.pages.flatMap(page => fitPage(page.slots, target.kind, keyCount));
+  return {
+    pages: pages.length > 0 ? pages : [{ slots: padSlots([], keyCount) }],
+    defaultTitleStyle: preset.deck.defaultTitleStyle,
+  };
+}
+
+/** How many fitted pages `preset` spans on `target` - the editor's "authored NxM, spans N pages" note. */
+export function fitPageCount(preset: FitGridPreset, target: FitGridTarget): number {
+  return fitToGrid(preset, target).pages.length;
+}

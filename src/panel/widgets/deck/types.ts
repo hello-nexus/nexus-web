@@ -173,6 +173,10 @@ export interface DeckSlot {
   title?: DeckTitleStyle; // styling for `label`; unset → deckTitleStyle.ts defaults
   action?: DeckAction; // a slot is an action OR a folder OR empty
   folder?: DeckFolder;
+  // Set only on a page-nav key synthesized by fitToGrid to chunk an authored
+  // page across a smaller target grid; never present on an authored preset
+  // (the editor always edits the pre-fit config), so it is never persisted.
+  auto?: boolean;
 }
 
 export interface DeckFolder {

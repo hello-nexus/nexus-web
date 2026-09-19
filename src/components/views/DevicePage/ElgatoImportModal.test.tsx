@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { ElgatoImportModal } from './ElgatoImportModal';
-import { fetchElgatoProfiles, importElgatoProfile, createDeckPreset } from '../../../api/streamdeck';
+import { fetchElgatoProfiles, importElgatoProfile } from '../../../api/streamdeck';
+import { createDeckPreset } from '../../../api/deck';
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -13,6 +14,9 @@ vi.mock('../../../lib/i18n', () => ({
 vi.mock('../../../api/streamdeck', () => ({
   fetchElgatoProfiles: vi.fn(),
   importElgatoProfile: vi.fn(),
+}));
+
+vi.mock('../../../api/deck', () => ({
   createDeckPreset: vi.fn(),
 }));
 
@@ -25,7 +29,8 @@ function renderModal(overrides: Partial<Parameters<typeof ElgatoImportModal>[0]>
     <ElgatoImportModal
       open
       onClose={onClose}
-      serial="SD123"
+      deckCols={5}
+      deckRows={3}
       existingPresetNames={[]}
       onImported={onImported}
       {...overrides}
@@ -86,13 +91,13 @@ describe('ElgatoImportModal import flow', () => {
       unmapped: [{ page: 1, position: '2,1', name: 'CPU Load', reason: 'plugin' as const }],
     };
     vi.mocked(importElgatoProfile).mockResolvedValue({ config, report });
-    vi.mocked(createDeckPreset).mockResolvedValue({ preset: { id: 'new1', name: 'Default Profile' }, activeId: null });
+    vi.mocked(createDeckPreset).mockResolvedValue({ id: 'new1', name: 'Default Profile', cols: 5, rows: 3, pageCount: 1, deck: config });
 
     const { onImported } = renderModal();
     fireEvent.click(await screen.findByText('Default Profile'));
     fireEvent.click(screen.getByText('devices.streamdeck.import.import'));
 
-    await waitFor(() => expect(createDeckPreset).toHaveBeenCalledWith('SD123', 'Default Profile', config));
+    await waitFor(() => expect(createDeckPreset).toHaveBeenCalledWith({ name: 'Default Profile', cols: 5, rows: 3, deck: config }));
     expect(importElgatoProfile).toHaveBeenCalledWith('p1');
     expect(onImported).toHaveBeenCalledTimes(1);
 
@@ -105,13 +110,13 @@ describe('ElgatoImportModal import flow', () => {
   it('dedupes the created preset name against existing presets', async () => {
     vi.mocked(fetchElgatoProfiles).mockResolvedValue({ status: 'ok', profiles: [PROFILE_A] });
     vi.mocked(importElgatoProfile).mockResolvedValue({ config: { pages: [{ slots: [] }] }, report: { totalKeys: 1, mappedKeys: 1, unmapped: [] } });
-    vi.mocked(createDeckPreset).mockResolvedValue({ preset: { id: 'new1', name: 'Default Profile (2)' }, activeId: null });
+    vi.mocked(createDeckPreset).mockResolvedValue({ id: 'new1', name: 'Default Profile (2)', cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [] }] } });
 
     renderModal({ existingPresetNames: ['Default Profile'] });
     fireEvent.click(await screen.findByText('Default Profile'));
     fireEvent.click(screen.getByText('devices.streamdeck.import.import'));
 
-    await waitFor(() => expect(createDeckPreset).toHaveBeenCalledWith('SD123', 'Default Profile (2)', expect.anything()));
+    await waitFor(() => expect(createDeckPreset).toHaveBeenCalledWith(expect.objectContaining({ name: 'Default Profile (2)' })));
   });
 
   it('shows an inline error and stays on the list when import fails', async () => {

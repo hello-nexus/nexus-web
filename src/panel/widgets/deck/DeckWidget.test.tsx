@@ -12,44 +12,80 @@ vi.mock('./deckExecutor', async importOriginal => {
 vi.mock('./useDeckState', () => ({ useDeckLiveState: () => ({ isOn: () => undefined }) }));
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 
-import { DeckWidget } from './DeckWidget';
-import type { PanelWidget } from '../../types';
-import type { DeckConfig, DeckPage } from './types';
+const mockUseDeckInstance = vi.fn();
+vi.mock('./useDeckInstance', () => ({ useDeckInstance: (...args: unknown[]) => mockUseDeckInstance(...args) }));
 
-function widget(pages: DeckPage[], size = '2x2'): PanelWidget {
-  const deck: DeckConfig = { pages };
-  return { id: 'w1', type: 'deck', size: size as PanelWidget['size'], col: 0, row: 0, config: { deck: deck as never } };
+import { DeckWidget } from './DeckWidget';
+import { innerGridForSize } from './deckLayout';
+import type { PanelWidget } from '../../types';
+import type { DeckPage } from './types';
+
+function widget(size: PanelWidget['size'] = '2x2'): PanelWidget {
+  return { id: 'w1', type: 'deck', size, col: 0, row: 0, config: {} };
+}
+
+/** Stubs useDeckInstance's run-mode read: a preset authored at the widget's own inner grid (so fitToGrid is an identity), matching the widget's own size unless overridden. */
+function mockDeck(pages: DeckPage[], size: PanelWidget['size'] = '2x2') {
+  const { cols, rows } = innerGridForSize(size);
+  mockUseDeckInstance.mockReturnValue({
+    instance: { mode: 'fixed', activePresetId: 'p1' },
+    preset: { id: 'p1', name: 'Preset', cols, rows, pageCount: pages.length, deck: { pages } },
+    presets: [],
+    target: null,
+    loaded: true,
+    error: false,
+    retry: vi.fn(),
+    setMode: vi.fn(),
+    activate: vi.fn(),
+    createPreset: vi.fn(),
+    renamePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    undo: vi.fn(),
+    redo: vi.fn(),
+    reset: vi.fn(),
+    endEditBurst: vi.fn(),
+  });
 }
 
 describe('DeckWidget', () => {
-  beforeEach(() => executeDeckAction.mockClear());
+  beforeEach(() => {
+    executeDeckAction.mockClear();
+    mockUseDeckInstance.mockReset();
+  });
 
   it('renders one cell per inner-grid slot for the size', () => {
-    const { container } = render(<DeckWidget widget={widget([{ slots: [] }])} />);
+    mockDeck([{ slots: [] }]);
+    const { container } = render(<DeckWidget widget={widget()} />);
     expect(container.querySelectorAll('[data-deck-slot-index]')).toHaveLength(4); // 2x2
   });
 
   it('renders a 4x4 inner grid as 16 cells', () => {
-    const { container } = render(<DeckWidget widget={widget([{ slots: [] }], '4x4')} />);
+    mockDeck([{ slots: [] }], '4x4');
+    const { container } = render(<DeckWidget widget={widget('4x4')} />);
     expect(container.querySelectorAll('[data-deck-slot-index]')).toHaveLength(16);
   });
 
   it('dispatches the slot action on press in run mode', () => {
     const deck: DeckPage[] = [{ slots: [{ action: { type: 'openUrl', url: 'https://x.com' } }] }];
-    const { container } = render(<DeckWidget widget={widget(deck)} />);
+    mockDeck(deck);
+    const { container } = render(<DeckWidget widget={widget()} />);
     fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'https://x.com' });
   });
 
   it('dispatches a monitoring slot press the same as any other action', () => {
     const deck: DeckPage[] = [{ slots: [{ action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' } }] }];
-    const { container } = render(<DeckWidget widget={widget(deck)} />);
+    mockDeck(deck);
+    const { container } = render(<DeckWidget widget={widget()} />);
     fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' });
   });
 
   it('does not dispatch an empty slot', () => {
-    const { container } = render(<DeckWidget widget={widget([{ slots: [] }])} />);
+    mockDeck([{ slots: [] }]);
+    const { container } = render(<DeckWidget widget={widget()} />);
     const cell = container.querySelector('[data-deck-slot-index="0"]')!;
     fireEvent.click(cell);
     expect(executeDeckAction).not.toHaveBeenCalled();
@@ -57,7 +93,8 @@ describe('DeckWidget', () => {
 
   it('navigates into a folder instead of dispatching', () => {
     const deck: DeckPage[] = [{ slots: [{ folder: { slots: [{ action: { type: 'openUrl', url: 'inner' } }] } }] }];
-    const { container } = render(<DeckWidget widget={widget(deck)} />);
+    mockDeck(deck);
+    const { container } = render(<DeckWidget widget={widget()} />);
     fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(executeDeckAction).not.toHaveBeenCalled();
     // After entering, slot 0 is now the inner action.
@@ -73,7 +110,8 @@ describe('DeckWidget', () => {
         { slots: [{ action: { type: 'page', op: 'next' } }] },
         { slots: [marker('p1')] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).not.toHaveBeenCalled();
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
@@ -86,7 +124,8 @@ describe('DeckWidget', () => {
         { slots: [] },
         { slots: [marker('p2')] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!); // wraps 0 -> 2
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'p2' });
@@ -98,7 +137,8 @@ describe('DeckWidget', () => {
         { slots: [marker('p1')] },
         { slots: [marker('p2')] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!); // goto page 2
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'p2' });
@@ -107,7 +147,8 @@ describe('DeckWidget', () => {
 
     it('pressing a pageIndicator slot does nothing', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'pageIndicator' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).not.toHaveBeenCalled();
     });
@@ -117,7 +158,8 @@ describe('DeckWidget', () => {
         { slots: [{ action: { type: 'page', op: 'next' } }, { action: { type: 'pageIndicator' } }] },
         { slots: [{}, { action: { type: 'pageIndicator' } }] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       expect(container.querySelector('[data-deck-slot-index="1"]')?.textContent).toContain('1/2');
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(container.querySelector('[data-deck-slot-index="1"]')?.textContent).toContain('2/2');
@@ -127,7 +169,8 @@ describe('DeckWidget', () => {
   describe('privileged action dispatch', () => {
     it('routes a privileged action through /panel/deck/dispatch when a deviceId is available', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'hotkey', keys: 'ctrl+c' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith(
         { type: 'hotkey', keys: 'ctrl+c' },
@@ -137,14 +180,16 @@ describe('DeckWidget', () => {
 
     it('keeps a non-privileged action on the unchanged single-argument call', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'openUrl', url: 'https://x.com' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'https://x.com' });
     });
 
     it('does not dispatch a privileged action with no deviceId (falls back to the direct route)', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'hotkey', keys: 'ctrl+c' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'hotkey', keys: 'ctrl+c' });
     });
@@ -159,7 +204,8 @@ describe('DeckWidget', () => {
           },
         }],
       }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       // No live state and no prior flip -> toggleOn() defaults to false, so the
       // press turns it on and fires the 'on' branch.
@@ -177,7 +223,8 @@ describe('DeckWidget', () => {
           { folder: { slots: [{}, {}, { action: { type: 'hotkey', keys: 'ctrl+c' } }] } },
         ],
       }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="1"]')!); // enter the folder at outer index 1
       fireEvent.click(container.querySelector('[data-deck-slot-index="2"]')!); // press the folder's inner slot 2
       expect(executeDeckAction).toHaveBeenCalledWith(
@@ -198,7 +245,8 @@ describe('DeckWidget', () => {
           },
         }],
       }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledTimes(1);
       expect(executeDeckAction).toHaveBeenCalledWith(

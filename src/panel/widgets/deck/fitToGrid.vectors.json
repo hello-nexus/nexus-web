@@ -1,0 +1,63 @@
+[
+  {
+    "name": "identity: same grid, single page, no chunking",
+    "preset": { "cols": 2, "rows": 2, "deck": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, { "label": "c" }, { "label": "d" } ] } ] } },
+    "target": { "cols": 2, "rows": 2, "kind": "physical" },
+    "expected": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, { "label": "c" }, { "label": "d" } ] } ] }
+  },
+  {
+    "name": "pads a single page that already fits the target",
+    "preset": { "cols": 1, "rows": 2, "deck": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" } ] } ] } },
+    "target": { "cols": 2, "rows": 2, "kind": "physical" },
+    "expected": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, {}, {} ] } ] }
+  },
+  {
+    "name": "trims trailing empty slots before deciding whether to chunk",
+    "preset": { "cols": 3, "rows": 1, "deck": { "pages": [ { "slots": [ { "label": "a" }, {}, {} ] } ] } },
+    "target": { "cols": 1, "rows": 3, "kind": "physical" },
+    "expected": { "pages": [ { "slots": [ { "label": "a" }, {}, {} ] } ] }
+  },
+  {
+    "name": "overflow chunks into 3 pages: first holds T-1 + next, middle holds prev + 1 + next, last holds prev + remainder",
+    "preset": { "cols": 5, "rows": 1, "deck": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, { "label": "c" }, { "label": "d" }, { "label": "e" } ] } ] } },
+    "target": { "cols": 3, "rows": 1, "kind": "physical" },
+    "expected": {
+      "pages": [
+        { "slots": [ { "label": "a" }, { "label": "b" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "c" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "d" }, { "label": "e" } ] }
+      ]
+    }
+  },
+  {
+    "name": "physical folders reserve a Back key (capacity T-1) at any depth",
+    "preset": {
+      "cols": 3, "rows": 1,
+      "deck": { "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" }, { "label": "z" }, { "label": "w" } ] } } ] } ] }
+    },
+    "target": { "cols": 3, "rows": 1, "kind": "physical" },
+    "expected": {
+      "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" } ] } }, {}, {} ] } ]
+    }
+  },
+  {
+    "name": "widget folders hold the full target capacity (no Back reservation)",
+    "preset": {
+      "cols": 3, "rows": 1,
+      "deck": { "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" }, { "label": "z" }, { "label": "w" } ] } } ] } ] }
+    },
+    "target": { "cols": 3, "rows": 1, "kind": "widget" },
+    "expected": {
+      "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" }, { "label": "z" } ] } }, {}, {} ] } ]
+    }
+  },
+  {
+    "name": "multiple authored pages are fitted independently and concatenated in order",
+    "preset": {
+      "cols": 2, "rows": 1,
+      "deck": { "pages": [ { "slots": [ { "label": "p0" } ] }, { "slots": [ { "label": "p1" } ] } ] }
+    },
+    "target": { "cols": 2, "rows": 1, "kind": "widget" },
+    "expected": { "pages": [ { "slots": [ { "label": "p0" }, {} ] }, { "slots": [ { "label": "p1" }, {} ] } ] }
+  }
+]

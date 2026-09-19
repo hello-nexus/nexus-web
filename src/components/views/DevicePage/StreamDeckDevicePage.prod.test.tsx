@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { StreamDeckSummary } from '../../../api/streamdeck';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import type { DeckTarget } from '../../../panel/widgets/deck/deckTarget';
+import type { UseDeckInstanceResult } from '../../../panel/widgets/deck/useDeckInstance';
 
 // Force a production build: dev tools off. The device page itself never
 // rendered a model chooser or test-pattern button even in dev builds (they
@@ -32,7 +33,7 @@ function makeDeck(over: Partial<StreamDeckSummary> = {}): StreamDeckSummary {
 function fakeTarget(): DeckTarget {
   return {
     kind: 'physical', cols: 3, rows: 2, keyCount: 6, config: { pages: [{ slots: [] }] },
-    updateSlot: vi.fn(), swapSlots: vi.fn(), addPage: vi.fn(), removePage: vi.fn(),
+    updateSlot: vi.fn(), swapSlots: vi.fn(), addPage: vi.fn(), removePage: vi.fn(), setTitleDefault: vi.fn(),
   };
 }
 
@@ -40,13 +41,26 @@ const mockUseStreamDecks = vi.fn();
 vi.mock('../../../hooks/useStreamDecks', () => ({
   useStreamDecks: () => mockUseStreamDecks(),
 }));
-vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
-  usePhysicalDeckTarget: () => ({ target: fakeTarget(), loaded: true, error: false, retry: vi.fn() }),
-}));
-vi.mock('../../../panel/widgets/deck/useDeckPresets', () => ({
-  useDeckPresets: () => ({
-    presets: [], activeId: null, presetCount: 0, available: false,
-    loadPresets: vi.fn(), handleCreate: vi.fn(), handleRename: vi.fn(), handleDelete: vi.fn(), handleLoad: vi.fn(),
+vi.mock('../../../panel/widgets/deck/useDeckInstance', () => ({
+  useDeckInstance: (): UseDeckInstanceResult => ({
+    instance: { mode: 'fixed', activePresetId: 'p1' },
+    preset: { id: 'p1', name: 'Preset', cols: 3, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] } },
+    presets: [],
+    target: fakeTarget(),
+    loaded: true,
+    error: false,
+    retry: vi.fn(),
+    setMode: vi.fn(),
+    activate: vi.fn(),
+    createPreset: vi.fn(),
+    renamePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    undo: vi.fn(),
+    redo: vi.fn(),
+    reset: vi.fn(),
+    endEditBurst: vi.fn(),
   }),
 }));
 

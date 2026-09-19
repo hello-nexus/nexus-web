@@ -106,9 +106,10 @@ import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
 import type { DeckIcon, DeckConfig } from '../panel/widgets/deck/types';
+import type { DeckPresetFull } from '../api/deck';
 import { DeckEditor } from '../panel/widgets/deck/DeckEditor';
 import { DeckPageStrip } from '../panel/widgets/deck/DeckPageStrip';
-import { makePhysicalDeckTarget } from '../panel/widgets/deck/deckTarget';
+import { makePresetDeckTarget } from '../panel/widgets/deck/deckTarget';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
@@ -1814,15 +1815,16 @@ function PreviewEmojiPicker() {
   );
 }
 
-// Uses the real makePhysicalDeckTarget factory (not a bespoke mock) so the
+// Uses the real makePresetDeckTarget factory (not a bespoke mock) so the
 // story exercises the same code path DeckSettings/StreamDeckDevicePage do:
-// a 2x3 Mini-shaped grid, editable in place.
+// a 2x3 Mini-shaped preset, editable in place.
 function PreviewDeckEditorPhysical() {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: [] }] });
   const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
-  const target = makePhysicalDeckTarget(3, 2, 6, config, setConfig);
+  const preset: DeckPresetFull = { id: 'story-preset', name: 'Story preset', cols: 3, rows: 2, pageCount: config.pages.length, deck: config };
+  const target = makePresetDeckTarget(preset, 'physical', setConfig);
   return (
     <div style={{ width: '100%', maxWidth: 420 }}>
       <DeckEditor
@@ -2999,7 +3001,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
     description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Trigger with apps... entry via onManageApps), optionally paired with Undo / Redo icon buttons via showHistory, plus a Reset button when onReset is supplied. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
-    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckInstance and requires a running service.',
   },
   {
     name: 'CorsairDevicePage', category: 'panel-kit',
@@ -3022,7 +3024,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeckEditor (physical target)', category: 'panel-kit',
     filePath: 'src/panel/widgets/deck/DeckEditor.tsx',
-    description: 'Shared grid + inspector for one Deck target. The touch widget renders its own grid elsewhere (the live tile) so DeckEditor only adds the inspector there; a physical Stream Deck has no other tile, so DeckEditor renders the live key grid (drag-reorder, reserved Back key inside a folder) too. This story drives it against a real physical target (makePhysicalDeckTarget) shaped like a Mini (2x3).',
+    description: 'Shared grid + inspector for one Deck target. The touch widget renders its own grid elsewhere (the live tile) so DeckEditor only adds the inspector there; a physical Stream Deck has no other tile, so DeckEditor renders the live key grid (drag-reorder, reserved Back key inside a folder) too. This story drives it against a real physical target (makePresetDeckTarget) shaped like a Mini (2x3).',
     Preview: PreviewDeckEditorPhysical,
     notes: 'Pick a key, set an action, then use "Folder" + "Edit folder" to see the reserved Back key.',
   },

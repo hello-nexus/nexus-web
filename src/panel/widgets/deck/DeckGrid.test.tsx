@@ -175,6 +175,19 @@ describe('DeckGrid live tile frames (physical editor preview)', () => {
     expect(cell.textContent).toContain('--');
   });
 
+  it('renders the service-pushed frame for an ordinary (non-monitoring/weather) slot too - every key is service-rendered now', () => {
+    const hotkeySlots: DeckSlot[] = [{ action: { type: 'hotkey', keys: 'ctrl+c' }, label: 'Copy' }];
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={hotkeySlots} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} square />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    const img = cell.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src')).toBe(liveSrc);
+    expect(img?.getAttribute('alt')).toBe('Copy');
+  });
+
   it('falls back to the CSS tile when no frame matches this cell key yet', () => {
     const liveTiles = new Map([['0:5', liveSrc]]);
     const { container } = render(

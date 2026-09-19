@@ -7,9 +7,10 @@ import { Spinner } from '../../common/Spinner/Spinner';
 import { Button } from '../../common/Button/Button';
 import { PRESET_CAP } from '../../common/PresetToolbar/PresetToolbar';
 import {
-  fetchElgatoProfiles, importElgatoProfile, createDeckPreset,
+  fetchElgatoProfiles, importElgatoProfile,
   type ElgatoProfileSummary, type ElgatoImportReport,
 } from '../../../api/streamdeck';
+import { createDeckPreset } from '../../../api/deck';
 import { dedupePresetName, unmappedReasonKey } from './elgatoImportUtils';
 import styles from './ElgatoImportModal.module.scss';
 
@@ -18,22 +19,24 @@ type Status = 'loading' | 'error' | 'notFound' | 'unsupportedVersion' | 'list';
 interface ElgatoImportModalProps {
   open: boolean;
   onClose: () => void;
-  serial: string;
-  /** Existing preset names on this deck, for dedupe + cap gating. */
+  /** The importing deck's own grid - the created preset is authored at this size. */
+  deckCols: number;
+  deckRows: number;
+  /** Existing preset names (host-wide), for dedupe + cap gating. */
   existingPresetNames: string[];
   /** Called with the new preset's id once it has been created, so the caller
-   *  can refresh its preset list AND load the imported config into the editor
-   *  (before the user hits Done). */
+   *  can refresh its preset list AND activate the imported preset on this
+   *  instance (before the user hits Done). */
   onImported: (presetId: string) => void;
 }
 
 /**
  * Import flow for the local Elgato Stream Deck install: fetch profiles ->
- * pick one -> translate + create a Nexus preset from it -> show the mapped/
- * unmapped report. The caller loads the created preset so the editor and the
- * physical deck show the imported layout immediately.
+ * pick one -> translate + create a host-wide Nexus preset from it -> show the
+ * mapped/unmapped report. The caller activates the created preset so the
+ * editor and the physical deck show the imported layout immediately.
  */
-export function ElgatoImportModal({ open, onClose, serial, existingPresetNames, onImported }: ElgatoImportModalProps) {
+export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingPresetNames, onImported }: ElgatoImportModalProps) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<Status>('loading');
   const [profiles, setProfiles] = useState<ElgatoProfileSummary[]>([]);
@@ -74,14 +77,14 @@ export function ElgatoImportModal({ open, onClose, serial, existingPresetNames, 
     const profile = profiles.find(p => p.id === selectedId);
     const fallbackName = t('lighting.layoutPresets.defaultName', { n: existingPresetNames.length + 1 });
     const name = dedupePresetName(profile?.name ?? '', existingPresetNames, fallbackName);
-    const createRes = await createDeckPreset(serial, name, importRes.config);
+    const createRes = await createDeckPreset({ name, cols: deckCols, rows: deckRows, deck: importRes.config });
     setImporting(false);
     if (!createRes) {
       setImportError(t('devices.streamdeck.import.importFailed'));
       return;
     }
     setResult({ presetName: name, report: importRes.report });
-    onImported(createRes.preset.id);
+    onImported(createRes.id);
   };
 
   return (

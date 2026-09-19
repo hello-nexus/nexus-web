@@ -157,6 +157,7 @@ npm run test:e2e:ui      # playwright UI mode
 npm run test:e2e:sandbox # playwright, SDK sandbox only (needs `cd sdk && npm ci && npm run build` once)
 npm run audit:locales    # locale key sync check
 npm run audit:styles     # style audits (also: audit:text-styles)
+npm run export:deck-icons # renders DECK_ICONS to PNGs for nexus-service's deck key renderer
 ```
 
 Tests default to the `jsdom` environment, and building one is the largest cost

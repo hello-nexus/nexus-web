@@ -29,10 +29,12 @@ const LABEL_ALIGN_CLASS = {
 
 /**
  * Visual content (icon + optional label) + the accent for a slot. `liveSrc`
- * is a data URI from the service's own key renderer (DeckGrid's liveTiles) -
- * when set, a monitoring/weather cell shows that frame instead of drawing
- * its own CSS tile, so the physical editor preview matches the hardware key
- * by construction.
+ * is a data URI from the service's own key renderer (DeckGrid's liveTiles,
+ * now pushed for EVERY key on a physical deck) - when set, ANY slot kind
+ * shows that frame instead of drawing its own CSS tile, so the physical
+ * editor preview matches the hardware key by construction; a monitoring/
+ * weather slot falls back to its own live CSS tile only until the first
+ * frame arrives.
  */
 function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { accent: string; content: ReactNode; empty: boolean } {
   const action = slot.action;
@@ -45,33 +47,29 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { ac
   // A slot with an explicit icon isn't "empty" even before an action is chosen,
   // so a picked icon renders immediately (not only after picking an action).
   const empty = !action && !isFolder && !icon;
+  const monitoringOrWeather = action?.type === 'monitoring' || action?.type === 'weather';
+
+  if (liveSrc) {
+    const liveAlt = slot.label
+      || (action?.type === 'monitoring' ? action.labelText : action?.type === 'weather' ? action.city : undefined)
+      || '';
+    return {
+      accent: slot.color ?? (monitoringOrWeather ? DECK_MONITORING_TILE_BG : categoryColor(isFolder ? 'folder' : deckCategory(action))),
+      content: <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />,
+      empty: false,
+    };
+  }
 
   // A monitoring tile draws its own name/graph/value content (never
   // slot.icon). It's never "empty" (always shows a
   // live or placeholder reading) and uses a near-black default accent instead
   // of the auto category color, since it has no icon to color-code.
   if (action?.type === 'monitoring') {
-    // The CSS tile's own text content names the button for screen readers;
-    // the live-frame img has none, so it borrows the same user-set label.
-    const liveAlt = slot.label || action.labelText || '';
-    return {
-      accent: slot.color ?? DECK_MONITORING_TILE_BG,
-      content: liveSrc
-        ? <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />
-        : <DeckMonitoringCell action={action} title={slot.title} />,
-      empty: false,
-    };
+    return { accent: slot.color ?? DECK_MONITORING_TILE_BG, content: <DeckMonitoringCell action={action} title={slot.title} />, empty: false };
   }
 
   if (action?.type === 'weather') {
-    const liveAlt = slot.label || action.city || '';
-    return {
-      accent: slot.color ?? DECK_MONITORING_TILE_BG,
-      content: liveSrc
-        ? <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />
-        : <DeckWeatherCell action={action} title={slot.title} />,
-      empty: false,
-    };
+    return { accent: slot.color ?? DECK_MONITORING_TILE_BG, content: <DeckWeatherCell action={action} title={slot.title} />, empty: false };
   }
 
   let iconEl: ReactNode;
@@ -88,7 +86,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { ac
       // accent fill behind it. Applies to every /shortcuts/icon source
       // (launchApp, an explicit app icon, an openFile exe). The physical
       // preview (square) keeps the glyph-on-accent look so it still matches
-      // renderDeckKeyBitmap.
+      // the service's own hardware-key render.
       appIconFills = !square;
       iconEl = <img src={appIconUrl} className={appIconFills ? styles.appIconFull : styles.appIcon} alt="" />;
     } else {
