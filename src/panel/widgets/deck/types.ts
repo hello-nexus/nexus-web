@@ -1,6 +1,7 @@
-// Deck widget data model. Every shape here is a subtype of PanelConfigValue
-// (string | number | boolean | null | arrays | plain objects) so the whole tree
-// persists directly under `widget.config.deck`.
+// Deck data model: a DeckConfig lives on a host-wide preset (api/deck.ts's
+// DeckPresetFull.deck), never on a widget's own config - a deck instance
+// (a physical Stream Deck or a Deck widget) only stores which preset it
+// points at (useDeckInstance).
 import type { ScaleMode } from '../monitoring/perfDomain';
 
 export type DeckIconKind = 'lucide' | 'emoji' | 'app' | 'image';
