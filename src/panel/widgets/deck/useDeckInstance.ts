@@ -35,7 +35,13 @@ export interface UseDeckInstanceResult {
   retry: () => void;
   setMode: (mode: DeckInstanceMode) => void;
   activate: (presetId: string) => Promise<void>;
-  createPreset: (name: string) => Promise<{ error: boolean; msg?: string }>;
+  /**
+   * `activatePreset` defaults to this hook's own `activate`; a host whose
+   * own `onLoad` also resets page/folder/selection (StreamDeckDevicePage)
+   * passes that instead, so a preset created from the toolbar resets the
+   * same way loading one does.
+   */
+  createPreset: (name: string, activatePreset?: (id: string) => void | Promise<void>) => Promise<{ error: boolean; msg?: string }>;
   renamePreset: (id: string, name: string) => Promise<void>;
   deletePreset: (id: string) => Promise<void>;
   canUndo: boolean;
@@ -276,14 +282,17 @@ function useOwnDeckInstance(
     setPreset(normalizePresetDeck(full));
   }, [instanceId, closeBurst, undoRedo]);
 
-  const createPreset = useCallback(async (name: string): Promise<{ error: boolean; msg?: string }> => {
+  const createPreset = useCallback(async (
+    name: string,
+    activatePreset: (id: string) => void | Promise<void> = activate,
+  ): Promise<{ error: boolean; msg?: string }> => {
     const created = await createDeckPreset({ name, cols: instanceGrid.cols, rows: instanceGrid.rows });
     if (!created) return { error: true };
     setPresets(prev => [...prev, {
       id: created.id, name: created.name, cols: created.cols, rows: created.rows,
       apps: created.apps, templateId: created.templateId, pageCount: created.pageCount,
     }]);
-    await activate(created.id);
+    await activatePreset(created.id);
     return { error: false };
   }, [instanceGrid.cols, instanceGrid.rows, activate]);
 

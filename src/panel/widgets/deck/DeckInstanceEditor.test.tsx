@@ -184,6 +184,32 @@ describe('DeckInstanceEditor - preset toolbar wiring', () => {
     expect(deck.undo).not.toHaveBeenCalled();
   });
 
+  it('a newly created preset activates through the host\'s onLoad reset, same as Load', () => {
+    const onLoad = vi.fn();
+    const deck = deckResult({ createPreset: vi.fn().mockResolvedValue({ error: false }) });
+    render(<DeckInstanceEditor {...baseProps({ deck, onLoad })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.newOption' }));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.new' }));
+
+    expect(deck.createPreset).toHaveBeenCalledWith(expect.any(String), onLoad);
+  });
+
+  it('without an onLoad override, a newly created preset activates through the hook\'s own activate', () => {
+    const deck = deckResult({ createPreset: vi.fn().mockResolvedValue({ error: false }) });
+    render(<DeckInstanceEditor {...baseProps({ deck })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.newOption' }));
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.new' }));
+
+    expect(deck.createPreset).toHaveBeenCalledWith(expect.any(String), expect.any(Function));
+    const activatePreset = deck.createPreset.mock.calls[0][1];
+    activatePreset('p9');
+    expect(deck.activate).toHaveBeenCalledWith('p9');
+  });
+
   it('hides the import option when onImport is omitted', () => {
     render(<DeckInstanceEditor {...baseProps()} />);
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));

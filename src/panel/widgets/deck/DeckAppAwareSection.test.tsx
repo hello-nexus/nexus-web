@@ -95,6 +95,16 @@ describe('DeckAppAwareSection - profiles list', () => {
     expect(activate).toHaveBeenCalledWith('p2');
   });
 
+  it('Edit routes through the host\'s own activatePreset when supplied, not deck.activate directly (keeps page/selection in sync)', () => {
+    const activate = vi.fn();
+    const activatePreset = vi.fn();
+    const presets: DeckPresetSummary[] = [{ id: 'p2', name: 'Chrome profile', cols: 5, rows: 3, pageCount: 1, apps: [{ id: 'a2', name: 'Chrome' }] }];
+    render(<DeckAppAwareSection deck={deckResult({ presets, activate })} instanceGrid={{ cols: 5, rows: 3 }} activatePreset={activatePreset} />);
+    fireEvent.click(screen.getByText('panel.settings.deck.appAware.edit'));
+    expect(activatePreset).toHaveBeenCalledWith('p2');
+    expect(activate).not.toHaveBeenCalled();
+  });
+
   it('Apps... opens PresetAppsModal with a taken map built across every OTHER preset', () => {
     const presets: DeckPresetSummary[] = [
       { id: 'p1', name: 'Discord profile', cols: 5, rows: 3, pageCount: 1, apps: [{ id: 'a1', name: 'Discord', processName: 'discord' }] },
@@ -166,5 +176,16 @@ describe('DeckAppAwareSection - add profile', () => {
     await act(async () => { lastSheetProps!.onCreated('new-preset'); });
     expect(activate).toHaveBeenCalledWith('new-preset');
     expect(screen.queryByTestId('add-app-profile-sheet')).toBeNull();
+  });
+
+  it('onCreated routes through the host\'s own activatePreset when supplied, not deck.activate directly', async () => {
+    const activate = vi.fn().mockResolvedValue(undefined);
+    const activatePreset = vi.fn();
+    render(<DeckAppAwareSection deck={deckResult({ activate })} instanceGrid={{ cols: 5, rows: 3 }} activatePreset={activatePreset} />);
+    fireEvent.click(screen.getByText('panel.settings.deck.appAware.addProfile'));
+
+    await act(async () => { lastSheetProps!.onCreated('new-preset'); });
+    expect(activatePreset).toHaveBeenCalledWith('new-preset');
+    expect(activate).not.toHaveBeenCalled();
   });
 });

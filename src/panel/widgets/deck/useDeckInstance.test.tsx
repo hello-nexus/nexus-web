@@ -349,6 +349,22 @@ describe('useDeckInstance - mode and preset management', () => {
     expect(result.current.preset?.id).toBe('p3');
   });
 
+  it('createPreset routes activation through a custom activatePreset override instead of its own activate', async () => {
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 5, rows: 3 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    const CREATED: DeckPresetFull = { id: 'p3', name: 'New preset', cols: 5, rows: 3, pageCount: 1, deck: { pages: [{ slots: [] }] } };
+    createDeckPresetMock.mockResolvedValue(CREATED);
+    const activatePreset = vi.fn();
+
+    let outcome: { error: boolean } | undefined;
+    await act(async () => { outcome = await result.current.createPreset('New preset', activatePreset); });
+
+    expect(outcome).toEqual({ error: false });
+    expect(activatePreset).toHaveBeenCalledWith('p3');
+    expect(updateDeckInstanceMock).not.toHaveBeenCalled();
+  });
+
   it('createPreset reports an error and does not activate when the write is refused', async () => {
     const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));

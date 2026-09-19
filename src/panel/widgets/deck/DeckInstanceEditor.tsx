@@ -148,7 +148,7 @@ export function DeckInstanceEditor({
       </SettingRow>
 
       {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} desktopActions={desktopActions} />}
-      {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} desktopActions={desktopActions} />}
+      {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} desktopActions={desktopActions} activatePreset={activatePreset} />}
 
       {mode !== 'recentApps' && (
         <>
@@ -159,7 +159,7 @@ export function DeckInstanceEditor({
             activeId={deck.instance?.activePresetId ?? null}
             presetCount={deck.presets.length}
             onLoad={activatePreset}
-            onCreate={deck.createPreset}
+            onCreate={name => deck.createPreset(name, activatePreset)}
             onRename={deck.renamePreset}
             onDelete={onDelete ?? (id => void deck.deletePreset(id))}
             onImport={onImport}

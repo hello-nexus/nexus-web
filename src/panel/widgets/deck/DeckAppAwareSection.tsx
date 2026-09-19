@@ -27,6 +27,10 @@ export interface DeckAppAwareSectionProps {
    *  profiles list renders read-only. Defaults to true (every existing
    *  desktop caller). */
   desktopActions?: boolean;
+  /** Activates a preset through the host's own reset (StreamDeckDevicePage's
+   *  onLoad also clears its page/folder/selection); defaults to the hook's
+   *  own activate for a host with nothing else to reset. */
+  activatePreset?: (id: string) => void;
 }
 
 /**
@@ -34,7 +38,9 @@ export interface DeckAppAwareSectionProps {
  * bindings), + Add app profile, and the "Showing: <preset>" status pill
  * driven by the instance's own live active-preset state.
  */
-export function DeckAppAwareSection({ deck, instanceGrid, desktopActions = true }: DeckAppAwareSectionProps) {
+export function DeckAppAwareSection({
+  deck, instanceGrid, desktopActions = true, activatePreset = id => void deck.activate(id),
+}: DeckAppAwareSectionProps) {
   const { t } = useTranslation();
   const [appsTarget, setAppsTarget] = useState<{ id: string; name: string; apps: PresetApp[] } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -77,7 +83,7 @@ export function DeckAppAwareSection({ deck, instanceGrid, desktopActions = true 
                 {t('panel.settings.deck.appAware.appsButton')}
               </Button>
             )}
-            <Button tone="ghost" size="sm" onClick={() => void deck.activate(p.id)}>
+            <Button tone="ghost" size="sm" onClick={() => activatePreset(p.id)}>
               {t('panel.settings.deck.appAware.edit')}
             </Button>
           </SettingRow>
@@ -120,7 +126,7 @@ export function DeckAppAwareSection({ deck, instanceGrid, desktopActions = true 
           boundApps={takenApps}
           instanceGrid={instanceGrid}
           onClose={() => setAddOpen(false)}
-          onCreated={id => { setAddOpen(false); void deck.activate(id); }}
+          onCreated={id => { setAddOpen(false); activatePreset(id); }}
         />
       )}
     </div>
