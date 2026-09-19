@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { completePanelSwipeOnboarding, fetchPanelSwipeOnboarding } from '../../api/onboarding';
+import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 
 // Swipe-up hand shown every period until the actions tray opens once; the
 // first open marks the install done (settings.json, cleared by factory
@@ -22,6 +23,7 @@ export function usePanelSwipeOnboarding({ enabled, blocked, trayOpen }: Options)
   const [hintVisible, setHintVisible] = useState(false);
   const [noticeVisible, setNoticeVisible] = useState(false);
 
+  const [readKey, setReadKey] = useState(0);
   // Any failure (a service without the route, a relay hop that drops it)
   // reads as completed: a panel must never nag because a request failed.
   useEffect(() => {
@@ -31,7 +33,10 @@ export function usePanelSwipeOnboarding({ enabled, blocked, trayOpen }: Options)
       .then(data => { if (!cancelled) setStatus(data?.completed === false ? 'pending' : 'completed'); })
       .catch(() => { if (!cancelled) setStatus('completed'); });
     return () => { cancelled = true; };
-  }, [enabled]);
+  }, [enabled, readKey]);
+  // POST /onboarding/reset broadcasts prefs, so a live kiosk picks the
+  // replay up without a reload.
+  useTopicCallback('prefs', enabled, () => setReadKey(k => k + 1));
 
   // The clock restarts on every unblock, so a closed sheet is followed by a
   // full quiet period rather than an instant hand.
