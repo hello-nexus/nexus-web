@@ -44,6 +44,11 @@ export interface DeckRecentAppsSectionProps {
    *  widget settings sheet); renders a read-only preview note in its place.
    *  StreamDeckDevicePage shows its own live tiles instead, so it passes false. */
   showPreviewNote: boolean;
+  /** PUT /deck/recent-apps/excluded and DELETE /deck/recent-apps are
+   *  LocalhostOnly - a paired panel can read the excluded list but not
+   *  change it, so Add/Clear are hidden there and the excluded chips render
+   *  read-only. Defaults to true (every existing desktop caller). */
+  desktopActions?: boolean;
 }
 
 /**
@@ -51,7 +56,7 @@ export interface DeckRecentAppsSectionProps {
  * by clicking a chip) and a clear-recent action. Every key in this mode is
  * the live ring - there is nothing else to configure here.
  */
-export function DeckRecentAppsSection({ showPreviewNote }: DeckRecentAppsSectionProps) {
+export function DeckRecentAppsSection({ showPreviewNote, desktopActions = true }: DeckRecentAppsSectionProps) {
   const { t } = useTranslation();
   const { apps, excluded, setExcluded, clear } = useRecentApps(true);
   const [sessionNames, setSessionNames] = useState<Record<string, string>>({});
@@ -75,33 +80,38 @@ export function DeckRecentAppsSection({ showPreviewNote }: DeckRecentAppsSection
                 activeKeys={new Set(excluded)}
                 options={excluded.map(key => ({
                   key,
+                  disabled: !desktopActions,
                   ariaLabel: t('panel.settings.deck.recentApps.excludedRemove', { name: nameFor(key) }),
                   label: (
                     <span className={styles.chipLabel}>
                       {nameFor(key)}
-                      <X size={12} aria-hidden />
+                      {desktopActions && <X size={12} aria-hidden />}
                     </span>
                   ),
                 }))}
                 onToggleKey={key => void setExcluded(excluded.filter(k => k !== key))}
               />
             )}
-            <Button
-              tone="ghost"
-              size="sm"
-              icon={<Plus size={14} aria-hidden />}
-              onClick={() => setPickerOpen(true)}
-            >
-              {t('panel.settings.deck.recentApps.addExcluded')}
-            </Button>
+            {desktopActions && (
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={<Plus size={14} aria-hidden />}
+                onClick={() => setPickerOpen(true)}
+              >
+                {t('panel.settings.deck.recentApps.addExcluded')}
+              </Button>
+            )}
           </div>
         </SettingRow>
 
-        <SettingRow>
-          <Button tone="ghost" size="sm" onClick={() => setConfirmClear(true)}>
-            {t('panel.settings.deck.recentApps.clear')}
-          </Button>
-        </SettingRow>
+        {desktopActions && (
+          <SettingRow>
+            <Button tone="ghost" size="sm" onClick={() => setConfirmClear(true)}>
+              {t('panel.settings.deck.recentApps.clear')}
+            </Button>
+          </SettingRow>
+        )}
       </SettingsSection>
 
       {showPreviewNote && <p className={styles.previewNote}>{t('panel.settings.deck.recentApps.previewNote')}</p>}

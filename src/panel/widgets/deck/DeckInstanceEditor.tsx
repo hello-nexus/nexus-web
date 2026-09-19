@@ -73,13 +73,14 @@ export function DeckInstanceEditor({
     label: t(`panel.settings.deck.mode.${key}`),
   }));
 
-  // DELETE /deck/presets/{id} is LocalhostOnly (unlike the preset edit
-  // routes, which accept a paired panel) - a panel session's own delete
-  // request would just fail, so the option is hidden instead of offered and
-  // silently rejected. `desktopEditor` covers the desktop dashboard's own
-  // simulated-panel preview, which is a real desktop request despite a
-  // non-desktop `surface`.
-  const allowDelete = !surface || surface === 'desktop' || !!desktopEditor;
+  // Several preset routes (DELETE /deck/presets/{id}, PUT .../apps, GET
+  // /deck/templates, PUT/DELETE /deck/recent-apps/*) are LocalhostOnly - a
+  // panel session's own request would just fail, so every control that would
+  // only drive one of those is hidden on a non-desktop surface instead of
+  // offered and silently rejected. `desktopEditor` covers the desktop
+  // dashboard's own simulated-panel preview, which is a real desktop request
+  // despite a non-desktop `surface`.
+  const desktopActions = !surface || surface === 'desktop' || !!desktopEditor;
 
   // Shared with the import-success path below so a physical deck's page/
   // folder/live-tile state resets the same way a normal preset switch does
@@ -146,12 +147,12 @@ export function DeckInstanceEditor({
         />
       </SettingRow>
 
-      {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} />}
-      {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} />}
+      {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} desktopActions={desktopActions} />}
+      {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} desktopActions={desktopActions} />}
 
       <PresetToolbar
         cap={DECK_PRESET_CAP}
-        allowDelete={allowDelete}
+        allowDelete={desktopActions}
         presets={deck.presets.map(p => ({ id: p.id, name: p.name, hasApps: !!p.apps?.length }))}
         activeId={deck.instance?.activePresetId ?? null}
         presetCount={deck.presets.length}
@@ -160,8 +161,8 @@ export function DeckInstanceEditor({
         onRename={deck.renamePreset}
         onDelete={onDelete ?? (id => void deck.deletePreset(id))}
         onImport={onImport}
-        onExport={allowDelete ? id => void exportDeckPreset(id) : undefined}
-        onImportFile={allowDelete ? () => importFileInputRef.current?.click() : undefined}
+        onExport={desktopActions ? id => void exportDeckPreset(id) : undefined}
+        onImportFile={desktopActions ? () => importFileInputRef.current?.click() : undefined}
         canUndo={deck.canUndo}
         canRedo={deck.canRedo}
         onUndo={onUndo ?? deck.undo}
@@ -170,7 +171,7 @@ export function DeckInstanceEditor({
         translationPrefix="panel.settings.deck.presets"
       />
 
-      {allowDelete && (
+      {desktopActions && (
         <input
           ref={importFileInputRef}
           type="file"

@@ -132,6 +132,17 @@ describe('DeckAppAwareSection - apps save', () => {
   });
 });
 
+describe('DeckAppAwareSection - desktopActions=false (a paired panel: PUT /deck/presets/{id}/apps is LocalhostOnly)', () => {
+  it('hides Apps... and + Add app profile but keeps Edit', () => {
+    const presets: DeckPresetSummary[] = [{ id: 'p1', name: 'Discord profile', cols: 5, rows: 3, pageCount: 1, apps: [{ id: 'a1', name: 'Discord' }] }];
+    render(<DeckAppAwareSection deck={deckResult({ presets })} instanceGrid={{ cols: 5, rows: 3 }} desktopActions={false} />);
+
+    expect(screen.queryByText('panel.settings.deck.appAware.appsButton')).toBeNull();
+    expect(screen.queryByText('panel.settings.deck.appAware.addProfile')).toBeNull();
+    expect(screen.getByText('panel.settings.deck.appAware.edit')).toBeInTheDocument();
+  });
+});
+
 describe('DeckAppAwareSection - add profile', () => {
   it('opens the add-app-profile sheet with the currently taken apps', () => {
     const presets: DeckPresetSummary[] = [{ id: 'p1', name: 'Discord profile', cols: 5, rows: 3, pageCount: 1, apps: [{ id: 'a1', name: 'Discord', processName: 'discord' }] }];

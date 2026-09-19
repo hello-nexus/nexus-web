@@ -21,6 +21,12 @@ function ProfileIcon({ appId }: { appId: string }) {
 export interface DeckAppAwareSectionProps {
   deck: UseDeckInstanceResult;
   instanceGrid: { cols: number; rows: number };
+  /** PUT /deck/presets/{id}/apps and GET /deck/templates are LocalhostOnly -
+   *  a paired panel can't bind apps or list Suggested templates, so the
+   *  Apps... and + Add app profile controls are hidden there and the
+   *  profiles list renders read-only. Defaults to true (every existing
+   *  desktop caller). */
+  desktopActions?: boolean;
 }
 
 /**
@@ -28,7 +34,7 @@ export interface DeckAppAwareSectionProps {
  * bindings), + Add app profile, and the "Showing: <preset>" status pill
  * driven by the instance's own live active-preset state.
  */
-export function DeckAppAwareSection({ deck, instanceGrid }: DeckAppAwareSectionProps) {
+export function DeckAppAwareSection({ deck, instanceGrid, desktopActions = true }: DeckAppAwareSectionProps) {
   const { t } = useTranslation();
   const [appsTarget, setAppsTarget] = useState<{ id: string; name: string; apps: PresetApp[] } | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -66,19 +72,23 @@ export function DeckAppAwareSection({ deck, instanceGrid }: DeckAppAwareSectionP
             icon={<div className={styles.profileIcons}>{(p.apps ?? []).slice(0, 4).map(a => <ProfileIcon key={a.id} appId={a.id} />)}</div>}
             iconLeading
           >
-            <Button tone="ghost" size="sm" onClick={() => openApps(p)}>
-              {t('panel.settings.deck.appAware.appsButton')}
-            </Button>
+            {desktopActions && (
+              <Button tone="ghost" size="sm" onClick={() => openApps(p)}>
+                {t('panel.settings.deck.appAware.appsButton')}
+              </Button>
+            )}
             <Button tone="ghost" size="sm" onClick={() => void deck.activate(p.id)}>
               {t('panel.settings.deck.appAware.edit')}
             </Button>
           </SettingRow>
         ))}
-        <SettingRow>
-          <Button tone="ghost" size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => setAddOpen(true)}>
-            {t('panel.settings.deck.appAware.addProfile')}
-          </Button>
-        </SettingRow>
+        {desktopActions && (
+          <SettingRow>
+            <Button tone="ghost" size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => setAddOpen(true)}>
+              {t('panel.settings.deck.appAware.addProfile')}
+            </Button>
+          </SettingRow>
+        )}
       </SettingsSection>
 
       <p className={styles.fallbackNote}>{t('panel.settings.deck.appAware.fallbackNote')}</p>

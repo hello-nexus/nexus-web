@@ -95,6 +95,17 @@ describe('DeckRecentAppsSection - excluded chip display names survive a reopen',
   });
 });
 
+describe('DeckRecentAppsSection - desktopActions=false (a paired panel: PUT excluded / DELETE recent-apps are LocalhostOnly)', () => {
+  it('hides Add excluded and Clear, and disables the excluded chips', () => {
+    mockUseRecentApps.mockReturnValue(baseResult({ excluded: ['discord'] }));
+    render(<DeckRecentAppsSection showPreviewNote={false} desktopActions={false} />);
+
+    expect(screen.queryByText('panel.settings.deck.recentApps.addExcluded')).toBeNull();
+    expect(screen.queryByText('panel.settings.deck.recentApps.clear')).toBeNull();
+    expect(screen.getByText('discord').closest('button')).toBeDisabled();
+  });
+});
+
 describe('DeckRecentAppsSection - clear recent', () => {
   it('confirms before clearing', () => {
     const clear = vi.fn();

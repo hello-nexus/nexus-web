@@ -4,6 +4,7 @@ import { DeckAddAppProfileSheet } from './DeckAddAppProfileSheet';
 import type { DeckPresetFull, DeckTemplate, SetDeckPresetAppsResult } from '../../../api/deck';
 
 const mockCreateDeckPreset = vi.fn<(body: unknown) => Promise<DeckPresetFull | null>>();
+const mockDeleteDeckPreset = vi.fn<(id: string) => Promise<boolean>>();
 const mockSetDeckPresetApps = vi.fn<(...a: unknown[]) => Promise<SetDeckPresetAppsResult>>();
 const mockGetDeckTemplates = vi.fn<() => Promise<DeckTemplate[]>>();
 vi.mock('../../../api/deck', async importOriginal => {
@@ -11,6 +12,7 @@ vi.mock('../../../api/deck', async importOriginal => {
   return {
     ...actual,
     createDeckPreset: (body: unknown) => mockCreateDeckPreset(body),
+    deleteDeckPreset: (id: string) => mockDeleteDeckPreset(id),
     setDeckPresetApps: (...a: unknown[]) => mockSetDeckPresetApps(...a),
     getDeckTemplates: () => mockGetDeckTemplates(),
   };
@@ -42,6 +44,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockGetDeckTemplates.mockResolvedValue([]);
   mockCreateDeckPreset.mockResolvedValue(PRESET);
+  mockDeleteDeckPreset.mockResolvedValue(true);
   mockSetDeckPresetApps.mockResolvedValue({ kind: 'ok', preset: PRESET });
 });
 
@@ -116,7 +119,7 @@ describe('DeckAddAppProfileSheet - All apps tab', () => {
     expect(mockSetDeckPresetApps).toHaveBeenCalledWith('p-new', [{ id: 'proc:steam', name: 'Steam', processName: 'steam' }]);
   });
 
-  it('a conflict on bind still hands back the created preset id, with a toast', async () => {
+  it('a conflict on bind deletes the just-created orphan preset instead of activating it', async () => {
     mockSetDeckPresetApps.mockResolvedValue({ kind: 'conflict', conflict: { error: true, msg: 'x', appName: 'Steam', presetName: 'Other' } });
     const onCreated = vi.fn();
     render(
@@ -125,7 +128,22 @@ describe('DeckAddAppProfileSheet - All apps tab', () => {
     fireEvent.click(screen.getByText('panel.settings.deck.appAware.allAppsTab'));
     fireEvent.click(screen.getByText('pick-steam'));
 
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('p-new'));
+    await waitFor(() => expect(mockDeleteDeckPreset).toHaveBeenCalledWith('p-new'));
     expect(mockToastPush).toHaveBeenCalled();
+    expect(onCreated).not.toHaveBeenCalled();
+  });
+
+  it('a failed bind (not a name conflict) also deletes the orphan preset and shows the save-failed toast', async () => {
+    mockSetDeckPresetApps.mockResolvedValue({ kind: 'failed' });
+    const onCreated = vi.fn();
+    render(
+      <DeckAddAppProfileSheet currentPresetId={null} boundApps={{}} instanceGrid={{ cols: 4, rows: 2 }} onClose={vi.fn()} onCreated={onCreated} />,
+    );
+    fireEvent.click(screen.getByText('panel.settings.deck.appAware.allAppsTab'));
+    fireEvent.click(screen.getByText('pick-steam'));
+
+    await waitFor(() => expect(mockDeleteDeckPreset).toHaveBeenCalledWith('p-new'));
+    expect(mockToastPush).toHaveBeenCalledWith({ title: 'panel.settings.deck.appAware.appsSaveFailed' });
+    expect(onCreated).not.toHaveBeenCalled();
   });
 });

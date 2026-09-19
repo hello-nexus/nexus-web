@@ -4,7 +4,7 @@ import { useToastSafe } from '../../../components/common/Toast/Toast';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
 import { Tabs, type TabDef } from '../../../components/common/Tabs/Tabs';
 import { AppPicker } from '../common/AppPicker';
-import { createDeckPreset, setDeckPresetApps, getDeckTemplates, type DeckTemplate } from '../../../api/deck';
+import { createDeckPreset, deleteDeckPreset, setDeckPresetApps, getDeckTemplates, type DeckTemplate } from '../../../api/deck';
 import styles from './DeckAddAppProfileSheet.module.scss';
 
 type AddTab = 'suggested' | 'all';
@@ -52,12 +52,18 @@ export function DeckAddAppProfileSheet({ currentPresetId, boundApps, instanceGri
   const finishCreate = async (presetId: string, app: { id: string; name: string; processName?: string }) => {
     const bound = await setDeckPresetApps(presetId, [{ id: app.id, name: app.name, processName: app.processName }]);
     setBusy(false);
+    if (bound.kind === 'ok') {
+      onCreated(presetId);
+      return;
+    }
+    // The bind failed: this profile has no app trigger, so leaving it
+    // activated would strand an orphan preset the user never asked for.
+    void deleteDeckPreset(presetId);
     if (bound.kind === 'conflict') {
       toast.push({ title: t('lighting.layoutPresets.appsTaken', { app: bound.conflict.appName, preset: bound.conflict.presetName }) });
-    } else if (bound.kind === 'failed') {
+    } else {
       toast.push({ title: t('panel.settings.deck.appAware.appsSaveFailed') });
     }
-    onCreated(presetId);
   };
 
   const pickTemplate = async (tpl: DeckTemplate) => {

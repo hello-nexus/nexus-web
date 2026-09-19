@@ -22,13 +22,15 @@ vi.mock('./DeckEditor', () => ({
 }));
 
 vi.mock('./DeckRecentAppsSection', () => ({
-  DeckRecentAppsSection: ({ showPreviewNote }: { showPreviewNote: boolean }) => (
-    <div data-testid="recent-apps-section">{String(showPreviewNote)}</div>
+  DeckRecentAppsSection: ({ showPreviewNote, desktopActions }: { showPreviewNote: boolean; desktopActions?: boolean }) => (
+    <div data-testid="recent-apps-section">{String(showPreviewNote)}:{String(desktopActions)}</div>
   ),
 }));
 
 vi.mock('./DeckAppAwareSection', () => ({
-  DeckAppAwareSection: () => <div data-testid="app-aware-section" />,
+  DeckAppAwareSection: ({ desktopActions }: { desktopActions?: boolean }) => (
+    <div data-testid="app-aware-section">{String(desktopActions)}</div>
+  ),
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -353,6 +355,29 @@ describe('DeckInstanceEditor - body', () => {
   it('shows a loading state while the target has not loaded and there is no error', () => {
     render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ target: null, preset: null, error: false }) })} />);
     expect(screen.getByText('panel.settings.deck.rail.loadingConfig')).toBeInTheDocument();
+  });
+});
+
+describe('DeckInstanceEditor - desktopActions threading (LocalhostOnly preset-apps/templates/recent-apps routes)', () => {
+  it('is true for the desktop device page (no surface)', () => {
+    render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'appAware', activePresetId: 'p1' } }) })} />);
+    expect(screen.getByTestId('app-aware-section')).toHaveTextContent('true');
+  });
+
+  it('is false on a paired panel surface', () => {
+    render(<DeckInstanceEditor {...baseProps({
+      deck: deckResult({ instance: { mode: 'appAware', activePresetId: 'p1' } }), surface: 'phone',
+    })}
+    />);
+    expect(screen.getByTestId('app-aware-section')).toHaveTextContent('false');
+  });
+
+  it('is true on a non-desktop surface marked desktopEditor (the desktop app\'s own simulated preview)', () => {
+    render(<DeckInstanceEditor {...baseProps({
+      deck: deckResult({ instance: { mode: 'appAware', activePresetId: 'p1' } }), surface: 'phone', desktopEditor: true,
+    })}
+    />);
+    expect(screen.getByTestId('app-aware-section')).toHaveTextContent('true');
   });
 });
 
