@@ -4,7 +4,7 @@ import { DeckGrid } from './DeckGrid';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
-vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null }));
+vi.mock('../common/AppPicker', () => ({ useAppIcon: (id?: string) => (id === 'has-icon' ? 'blob:mock-app-icon' : null) }));
 vi.mock('./useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? 'blob:mock-image' : null) }));
 vi.mock('./useSiteIcon', () => ({ useSiteIcon: (url?: string) => (url === 'https://has-icon.example' ? 'blob:mock-site-icon' : null) }));
 
@@ -369,6 +369,30 @@ describe('DeckGrid icon sources', () => {
     const container = renderSlot({ icon: { kind: 'app', value: 'Discord' } });
     expect(container.querySelector('svg.lucide-app-window')).not.toBeNull();
     expect(container.querySelector('svg.lucide-plus')).toBeNull();
+  });
+
+  it('shows a loaded app icon full-face with no accent fill on the touch widget', () => {
+    const container = renderSlot({ action: { type: 'launchApp', appId: 'has-icon' } });
+    const img = container.querySelector('img[src="blob:mock-app-icon"]')!;
+    expect(img.className).toBe(styles.appIconFull);
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('transparent');
+  });
+
+  it('keeps a user-picked color behind a full-face app icon', () => {
+    const container = renderSlot({ action: { type: 'launchApp', appId: 'has-icon' }, color: '#ff0000' });
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('#ff0000');
+  });
+
+  it('keeps the glyph-on-accent app icon in square (physical mirror) mode, matching the key bitmap', () => {
+    const { container } = render(
+      <DeckGrid slots={[{ action: { type: 'launchApp', appId: 'has-icon' } }]} cols={1} rows={1} selectable square onCell={() => {}} />,
+    );
+    const img = container.querySelector('img[src="blob:mock-app-icon"]')!;
+    expect(img.className).toBe(styles.appIcon);
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('#64748b');
   });
 
   it('falls back to the action icon, not AppWindow, when an exe key has no extractable icon', () => {

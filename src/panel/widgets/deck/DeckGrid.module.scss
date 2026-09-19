@@ -49,7 +49,9 @@
   // Stream Deck exactly (renderDeckKeyBitmap fills the full accent and draws
   // the glyph in #fff), so the on-screen preview reads the same as the hardware
   // for both the streamdeck editor and the touch widget. The opaque fill also
-  // keeps keys legible when the widget tile is set fully transparent.
+  // keeps keys legible when the widget tile is set fully transparent. One
+  // exception: a touch-widget key showing a loaded app icon (.appIconFull)
+  // gets a transparent accent, so the artwork itself is the key face.
   background: var(--deck-accent, #64748b);
   color: #ffffff;
   font: inherit;
@@ -145,6 +147,19 @@
   max-height: 100%;
   max-width: 86%;
   border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+// A loaded app icon on the touch widget is the whole key face: contain-fit
+// against .cell so the artwork's own shape (and transparency) shows at full
+// size with no accent fill behind it (useCellVisual sets the accent to
+// transparent). Cover would crop a non-square icon, so unlike .customImage
+// this letterboxes instead.
+.appIconFull {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 

@@ -34,7 +34,7 @@ const LABEL_ALIGN_CLASS = {
  * its own CSS tile, so the physical editor preview matches the hardware key
  * by construction.
  */
-function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; content: ReactNode; empty: boolean } {
+function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { accent: string; content: ReactNode; empty: boolean } {
   const action = slot.action;
   const isFolder = !!slot.folder;
   const icon = slot.icon;
@@ -75,6 +75,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   }
 
   let iconEl: ReactNode;
+  let appIconFills = false;
   if (icon?.kind === 'emoji') {
     iconEl = <span className={styles.emoji}>{icon.value}</span>;
   } else if (icon?.kind === 'lucide') {
@@ -82,11 +83,19 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   } else if (icon?.kind === 'image') {
     iconEl = imageIconUrl ? <img src={imageIconUrl} className={styles.customImage} alt="" /> : null;
   } else if (appId) {
-    iconEl = appIconUrl
-      ? <img src={appIconUrl} className={styles.appIcon} alt="" />
+    if (appIconUrl) {
+      // On the touch widget a loaded app icon IS the key face: full size, no
+      // accent fill behind it. Applies to every /shortcuts/icon source
+      // (launchApp, an explicit app icon, an openFile exe). The physical
+      // preview (square) keeps the glyph-on-accent look so it still matches
+      // renderDeckKeyBitmap.
+      appIconFills = !square;
+      iconEl = <img src={appIconUrl} className={appIconFills ? styles.appIconFull : styles.appIcon} alt="" />;
+    } else {
       // An icon-only app slot has no action to derive a glyph from, so it keeps
       // the app placeholder rather than autoIconName's add-a-key Plus.
-      : <span className={styles.icon}>{renderLucide(action ? autoIconName(action, isFolder) : 'AppWindow')}</span>;
+      iconEl = <span className={styles.icon}>{renderLucide(action ? autoIconName(action, isFolder) : 'AppWindow')}</span>;
+    }
   } else if (siteIconUrl) {
     iconEl = <img src={siteIconUrl} className={styles.appIcon} alt="" />;
   } else if (!empty) {
@@ -95,7 +104,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
     iconEl = null;
   }
 
-  const accent = slot.color ?? categoryColor(isFolder ? 'folder' : deckCategory(action));
+  const accent = slot.color ?? (appIconFills ? 'transparent' : categoryColor(isFolder ? 'folder' : deckCategory(action)));
   const titleStyle = resolveDeckTitleStyle(slot.title);
   const content = (
     <>
@@ -130,11 +139,13 @@ interface CellProps {
   onCellContextMenu?: (e: ReactMouseEvent<HTMLButtonElement>, index: number, empty: boolean) => void;
   /** See useCellVisual's liveSrc param. */
   liveSrc?: string;
+  /** See DeckGridProps.square. */
+  square?: boolean;
 }
 
 /** Run/select cell (no drag). */
-function StaticCell({ slot, index, selectable, selected, onClick, onCellContextMenu, liveSrc }: CellProps) {
-  const { accent, content, empty } = useCellVisual(slot, liveSrc);
+function StaticCell({ slot, index, selectable, selected, onClick, onCellContextMenu, liveSrc, square }: CellProps) {
+  const { accent, content, empty } = useCellVisual(slot, liveSrc, square);
   if (empty && !selectable) {
     return <div className={`${styles.cell} ${styles.empty}`} data-deck-slot-index={index} />;
   }
@@ -155,8 +166,8 @@ function StaticCell({ slot, index, selectable, selected, onClick, onCellContextM
 }
 
 /** Edit-mode cell: draggable (if it has content) + droppable, plus selectable. */
-function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, liveSrc }: CellProps) {
-  const { accent, content, empty } = useCellVisual(slot, liveSrc);
+function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, liveSrc, square }: CellProps) {
+  const { accent, content, empty } = useCellVisual(slot, liveSrc, square);
   const id = String(index);
   const drag = useDraggable({ id, disabled: empty });
   const drop = useDroppable({ id });
@@ -298,6 +309,7 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
           onClick={() => onCell(i)}
           onCellContextMenu={handleCellContextMenu}
           liveSrc={liveSrcFor(i)}
+          square={square}
         />
       ))}
       {ctxMenu && onDeleteSlot && (
