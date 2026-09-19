@@ -210,6 +210,50 @@ describe('DeckInstanceEditor - preset toolbar wiring', () => {
     expect(deck.activate).toHaveBeenCalledWith('p9');
   });
 
+  it('without an onLoad override, loading a preset resets page and selected slot (a switched-to preset can have fewer of either)', () => {
+    const onPageChange = vi.fn();
+    const onSelectedSlotChange = vi.fn();
+    const deck = deckResult({ presets: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }] });
+    render(<DeckInstanceEditor {...baseProps({ deck, page: 3, onPageChange, onSelectedSlotChange })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'B' }));
+
+    expect(deck.activate).toHaveBeenCalledWith('p2');
+    expect(onPageChange).toHaveBeenCalledWith(0);
+    expect(onSelectedSlotChange).toHaveBeenCalledWith(0);
+  });
+
+  it('without an onDelete override, deleting a preset resets page and selected slot', () => {
+    const onPageChange = vi.fn();
+    const onSelectedSlotChange = vi.fn();
+    const deck = deckResult({ presets: [{ id: 'p1', name: 'A' }, { id: 'p2', name: 'B' }] });
+    render(<DeckInstanceEditor {...baseProps({ deck, page: 2, onPageChange, onSelectedSlotChange })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.delete' }));
+    fireEvent.click(screen.getByText('confirm.ok'));
+
+    expect(deck.deletePreset).toHaveBeenCalledWith('p1');
+    expect(onPageChange).toHaveBeenCalledWith(0);
+    expect(onSelectedSlotChange).toHaveBeenCalledWith(0);
+  });
+
+  it('an onDelete override still wins, unchanged, over the default reset', () => {
+    const onDelete = vi.fn();
+    const onPageChange = vi.fn();
+    const deck = deckResult({ presets: [{ id: 'p1', name: 'A' }] });
+    render(<DeckInstanceEditor {...baseProps({ deck, onDelete, onPageChange })} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.delete' }));
+    fireEvent.click(screen.getByText('confirm.ok'));
+
+    expect(onDelete).toHaveBeenCalledWith('p1');
+    expect(deck.deletePreset).not.toHaveBeenCalled();
+    expect(onPageChange).not.toHaveBeenCalled();
+  });
+
   it('hides the import option when onImport is omitted', () => {
     render(<DeckInstanceEditor {...baseProps()} />);
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));

@@ -84,8 +84,15 @@ export function DeckInstanceEditor({
 
   // Shared with the import-success path below so a physical deck's page/
   // folder/live-tile state resets the same way a normal preset switch does
-  // (StreamDeckDevicePage overrides onLoad for exactly that reset).
-  const activatePreset = onLoad ?? ((id: string) => void deck.activate(id));
+  // (StreamDeckDevicePage overrides onLoad for exactly that reset). Without
+  // an override (the widget sheet), a switched-to preset can have fewer
+  // pages/slots than the one it replaced, so page/selectedSlot reset here too
+  // - otherwise the grid can render blank on a stale out-of-range page.
+  const activatePreset = onLoad ?? ((id: string) => {
+    void deck.activate(id);
+    onPageChange(0);
+    onSelectedSlotChange?.(0);
+  });
 
   const importFileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -161,7 +168,11 @@ export function DeckInstanceEditor({
             onLoad={activatePreset}
             onCreate={name => deck.createPreset(name, activatePreset)}
             onRename={deck.renamePreset}
-            onDelete={onDelete ?? (id => void deck.deletePreset(id))}
+            onDelete={onDelete ?? (id => {
+              void deck.deletePreset(id);
+              onPageChange(0);
+              onSelectedSlotChange?.(0);
+            })}
             onImport={onImport}
             onExport={desktopActions ? id => void exportDeckPreset(id) : undefined}
             onImportFile={desktopActions ? () => importFileInputRef.current?.click() : undefined}
