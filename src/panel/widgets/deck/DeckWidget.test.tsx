@@ -11,9 +11,13 @@ vi.mock('./deckExecutor', async importOriginal => {
 });
 vi.mock('./useDeckState', () => ({ useDeckLiveState: () => ({ isOn: () => undefined }) }));
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
+vi.mock('../../../hooks/useProcessIcon', () => ({ useProcessIcon: () => null }));
 
 const mockUseDeckInstance = vi.fn();
 vi.mock('./useDeckInstance', () => ({ useDeckInstance: (...args: unknown[]) => mockUseDeckInstance(...args) }));
+
+const mockUseRecentApps = vi.fn();
+vi.mock('./useRecentApps', () => ({ useRecentApps: (enabled: boolean) => mockUseRecentApps(enabled) }));
 
 import { DeckWidget } from './DeckWidget';
 import { innerGridForSize } from './deckLayout';
@@ -53,6 +57,8 @@ describe('DeckWidget', () => {
   beforeEach(() => {
     executeDeckAction.mockClear();
     mockUseDeckInstance.mockReset();
+    mockUseRecentApps.mockReset();
+    mockUseRecentApps.mockReturnValue({ apps: [], focusedProcessKey: undefined, excluded: [], loaded: true, setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn() });
   });
 
   it('renders one cell per inner-grid slot for the size', () => {
@@ -259,6 +265,70 @@ describe('DeckWidget', () => {
         },
         { deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [], slot: 0 },
       );
+    });
+  });
+
+  describe('Recent Apps mode', () => {
+    function mockRecentAppsInstance() {
+      mockUseDeckInstance.mockReturnValue({
+        instance: { mode: 'recentApps', activePresetId: 'p1' },
+        preset: null,
+        presets: [],
+        target: null,
+        loaded: true,
+        error: false,
+        retry: vi.fn(),
+        setMode: vi.fn(),
+        activate: vi.fn(),
+        createPreset: vi.fn(),
+        renamePreset: vi.fn(),
+        deletePreset: vi.fn(),
+        canUndo: false,
+        canRedo: false,
+        undo: vi.fn(),
+        redo: vi.fn(),
+        reset: vi.fn(),
+        endEditBurst: vi.fn(),
+      });
+    }
+
+    it('renders the live ring instead of the fixed/appAware grid', () => {
+      mockRecentAppsInstance();
+      mockUseRecentApps.mockReturnValue({
+        apps: [{ processKey: 'discord', name: 'Discord', lastFocusedUtcMs: 1 }],
+        focusedProcessKey: 'discord',
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate: vi.fn(),
+      });
+      const { getByText } = render(<DeckWidget widget={widget()} />);
+      expect(getByText('Discord')).toBeInTheDocument();
+      expect(mockUseRecentApps).toHaveBeenCalledWith(true);
+    });
+
+    it('pressing an unfocused key activates that process', () => {
+      mockRecentAppsInstance();
+      const activate = vi.fn();
+      mockUseRecentApps.mockReturnValue({
+        apps: [{ processKey: 'chrome', name: 'Chrome', lastFocusedUtcMs: 1 }],
+        focusedProcessKey: undefined,
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate,
+      });
+      const { getByText } = render(<DeckWidget widget={widget()} />);
+      fireEvent.click(getByText('Chrome').closest('button')!);
+      expect(activate).toHaveBeenCalledWith('chrome');
+    });
+
+    it('does not subscribe to the recent-apps ring outside Recent Apps mode', () => {
+      mockDeck([{ slots: [] }]);
+      render(<DeckWidget widget={widget()} />);
+      expect(mockUseRecentApps).toHaveBeenCalledWith(false);
     });
   });
 });

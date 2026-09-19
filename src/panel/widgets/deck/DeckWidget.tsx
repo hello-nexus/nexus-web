@@ -11,6 +11,9 @@ import { useDeckLiveState } from './useDeckState';
 import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { DECK_PREVIEW_CONFIG } from './deckPreviewData';
+import { useRecentApps } from './useRecentApps';
+import { buildRecentAppsView } from './recentAppsView';
+import { RecentAppsGrid } from './RecentAppsGrid';
 import type { DeckAction, DeckConfig, DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
@@ -25,6 +28,16 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   const instance = useDeckInstance(instanceId, 'widget', { cols, rows }, false);
   const preset = instance.preset;
   const target = instance.target;
+
+  // Recent Apps has no per-key content to fit/edit - every key is the live
+  // ring, rendered by RecentAppsGrid instead of the fitToGrid/DndContext path
+  // below. Hooks stay unconditional; only the render branches on mode.
+  const showRecentApps = !preview && instance.instance?.mode === 'recentApps';
+  const recentApps = useRecentApps(showRecentApps);
+  const recentPages = useMemo(
+    () => buildRecentAppsView(recentApps.apps, recentApps.focusedProcessKey, cols, rows),
+    [recentApps.apps, recentApps.focusedProcessKey, cols, rows],
+  );
 
   // Editing shows the preset's AUTHORED grid (the editor's single source of
   // truth); run mode shows the fitted projection for this widget's own size.
@@ -146,6 +159,20 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
       onCell={onCell}
     />
   );
+
+  if (showRecentApps) {
+    return (
+      <div className={styles.root}>
+        <RecentAppsGrid
+          pages={recentPages}
+          cols={cols}
+          rows={rows}
+          onPress={processKey => void recentApps.activate(processKey)}
+          ariaLabel={t('panel.settings.deck.mode.recentApps')}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.root}>
