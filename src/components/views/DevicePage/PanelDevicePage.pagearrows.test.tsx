@@ -38,6 +38,7 @@ vi.mock('../../../api/panel', () => ({
 }));
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useTopicCallback: () => {},
+  useMultiplex: () => ({ connected: true }),
 }));
 vi.mock('../../../panel/engine/panelSync', () => ({
   broadcastLayoutChanged: vi.fn(),

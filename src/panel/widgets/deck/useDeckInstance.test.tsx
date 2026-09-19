@@ -1,6 +1,6 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { act, render, renderHook, screen, fireEvent, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useDeckInstance } from './useDeckInstance';
+import { useDeckInstance, DeckInstanceProvider } from './useDeckInstance';
 import { AUTO_SAVE_DEBOUNCE_MS } from './deckLayout';
 import type { DeckConfig } from './types';
 import type { DeckInstance, DeckPresetFull } from '../../../api/deck';
@@ -386,5 +386,38 @@ describe('useDeckInstance - mode and preset management', () => {
 
     expect(getDeckInstanceMock).not.toHaveBeenCalled();
     expect(result.current.preset?.id).toBe('p1');
+  });
+});
+
+describe('useDeckInstance - DeckInstanceProvider sharing', () => {
+  // A widget's draggable preview tile and its settings inspector each call
+  // useDeckInstance independently; without a shared provider each holds its
+  // own preset copy and its own debounced auto-save, so an edit from one can
+  // be silently overwritten by the other's stale snapshot. Two consumers
+  // under one DeckInstanceProvider must instead read/write the same state.
+  function ConsumerA() {
+    const a = useDeckInstance('widget:w1', 'widget', { cols: 3, rows: 2 });
+    return <button type="button" onClick={() => a.target?.updateSlot(0, [], 0, { label: 'from-a' })}>edit-a</button>;
+  }
+  function ConsumerB() {
+    const b = useDeckInstance('widget:w1', 'widget', { cols: 3, rows: 2 });
+    return <div data-testid="b-label">{b.preset?.deck.pages[0]?.slots[0]?.label ?? ''}</div>;
+  }
+  function TwoConsumerHarness() {
+    const top = useDeckInstance('widget:w1', 'widget', { cols: 3, rows: 2 }, true);
+    return (
+      <DeckInstanceProvider value={top.preset ? { instanceId: 'widget:w1', value: top } : null}>
+        <ConsumerA />
+        <ConsumerB />
+      </DeckInstanceProvider>
+    );
+  }
+
+  it('an edit from one consumer under a shared provider is immediately visible to another (no independent, racing auto-save)', async () => {
+    render(<TwoConsumerHarness />);
+    await waitFor(() => expect(getDeckPresetMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByText('edit-a'));
+    expect(screen.getByTestId('b-label').textContent).toBe('from-a');
   });
 });

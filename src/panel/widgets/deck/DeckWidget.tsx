@@ -23,20 +23,21 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   const editing = typeof onSelectSlot === 'function';
   const instanceId = preview ? null : `widget:${widget.id}`;
   const instance = useDeckInstance(instanceId, 'widget', { cols, rows }, false);
+  const preset = instance.preset;
+  const target = instance.target;
 
   // Editing shows the preset's AUTHORED grid (the editor's single source of
   // truth); run mode shows the fitted projection for this widget's own size.
   // Preview (add-widget catalog) skips the live instance entirely.
-  const gridCols = editing && instance.target ? instance.target.cols : cols;
-  const gridRows = editing && instance.target ? instance.target.rows : rows;
-  const gridCount = editing && instance.target ? instance.target.keyCount : count;
-  const deck: DeckConfig | null = preview
-    ? DECK_PREVIEW_CONFIG
-    : editing
-      ? (instance.target?.config ?? null)
-      : (instance.preset
-        ? fitToGrid({ cols: instance.preset.cols, rows: instance.preset.rows, deck: instance.preset.deck }, { cols, rows, kind: 'widget' })
-        : null);
+  const gridCols = editing && target ? target.cols : cols;
+  const gridRows = editing && target ? target.rows : rows;
+  const gridCount = editing && target ? target.keyCount : count;
+  const deck: DeckConfig | null = useMemo(() => {
+    if (preview) return DECK_PREVIEW_CONFIG;
+    if (editing) return target?.config ?? null;
+    if (!preset) return null;
+    return fitToGrid({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { cols, rows, kind: 'widget' });
+  }, [preview, editing, target, preset, cols, rows]);
 
   const live = useDeckLiveState(deck ?? emptyDeck(), !editing && !preview);
   const [internalFolder, setInternalFolder] = useState<number[]>([]);
@@ -127,11 +128,11 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   };
 
   const onDragEnd = (e: DragEndEvent) => {
-    if (!instance.target) return;
+    if (!target) return;
     const from = Number(e.active.id);
     const to = e.over ? Number(e.over.id) : NaN;
     if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
-    instance.target.swapSlots(page, folderPath, from, to);
+    target.swapSlots(page, folderPath, from, to);
   };
 
   const grid = (

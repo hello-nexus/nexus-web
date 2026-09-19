@@ -95,6 +95,8 @@ import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import type { DeckEditView } from '../../../panel/widgets/types';
 import { sizeToSpan } from '../../../panel/engine/grid';
+import { useDeckInstance, DeckInstanceProvider } from '../../../panel/widgets/deck/useDeckInstance';
+import { innerGridForSize } from '../../../panel/widgets/deck/deckLayout';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
   type PanelLayout,
@@ -1711,6 +1713,15 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
   const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: 0, folderPath: [] });
 
+  // The preview tile (draggable in edit mode) and DeckSettings below it both
+  // bind to this same instance; sharing one useDeckInstance call through
+  // DeckInstanceProvider keeps a tile drag and an inspector edit from racing
+  // each other's independent auto-saves (see useDeckInstance.ts).
+  const isDeckWidget = widget.type === 'deck';
+  const deckInstanceId = isDeckWidget ? `widget:${widget.id}` : null;
+  const deckInstanceGrid = isDeckWidget ? innerGridForSize(widget.size) : { cols: 0, rows: 0 };
+  const sharedDeckInstance = useDeckInstance(deckInstanceId, 'widget', deckInstanceGrid, true);
+
   const handleConfigUpdate = (config: Record<string, PanelConfigValue>) => {
     onUpdate(widget.id, { ...widget.config, ...config });
   };
@@ -1728,6 +1739,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   const Icon = def?.meta.icon;
 
   return (
+    <DeckInstanceProvider value={isDeckWidget ? { instanceId: deckInstanceId!, value: sharedDeckInstance } : null}>
     <div className={styles.inlineSettings} data-docked={docked ? 'true' : undefined}>
       <div className={styles.inlineSettingsHeader}>
         <button type="button" className={styles.backBtn} onClick={onBack} aria-label={t('devices.panels.widgetSettings.back')}>
@@ -1866,6 +1878,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
         )}
       </div>
     </div>
+    </DeckInstanceProvider>
   );
 }
 

@@ -2,18 +2,28 @@
 import { describe, it, expect } from 'vitest';
 import { fitToGrid, fitPageCount, type FitGridPreset, type FitGridTarget } from './deckLayout';
 import type { DeckConfig } from './types';
-import vectors from './fitToGrid.vectors.json';
+import vectorsFile from './fitToGrid.vectors.json';
 
-interface FitToGridVector {
+interface FitToGridVectorCase {
   name: string;
-  preset: FitGridPreset;
-  target: FitGridTarget;
+  presetCols: number;
+  presetRows: number;
+  targetCols: number;
+  targetRows: number;
+  targetKind: FitGridTarget['kind'];
+  preset: DeckConfig;
   expected: DeckConfig;
 }
 
+const { cases } = vectorsFile as { description: string; cases: FitToGridVectorCase[] };
+
 describe('fitToGrid (shared vectors, mirrored in nexus-service/tests/Deck/fitToGrid.vectors.json)', () => {
-  it.each(vectors as FitToGridVector[])('$name', ({ preset, target, expected }) => {
-    expect(fitToGrid(preset, target)).toEqual(expected);
+  it.each(cases)('$name', ({ presetCols, presetRows, targetCols, targetRows, targetKind, preset, expected }) => {
+    const result = fitToGrid(
+      { cols: presetCols, rows: presetRows, deck: preset },
+      { cols: targetCols, rows: targetRows, kind: targetKind },
+    );
+    expect(result).toEqual(expected);
   });
 });
 

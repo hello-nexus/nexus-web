@@ -41,6 +41,7 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useTopicCallback: (topic: string, _on: boolean, cb: (raw: unknown) => void) => {
     if (topic === 'panel/device') topicHandler = cb;
   },
+  useMultiplex: () => ({ connected: true }),
 }));
 vi.mock('../../../panel/engine/panelSync', () => ({
   broadcastLayoutChanged: vi.fn(),

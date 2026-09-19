@@ -49,7 +49,12 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { ac
   const empty = !action && !isFolder && !icon;
   const monitoringOrWeather = action?.type === 'monitoring' || action?.type === 'weather';
 
-  if (liveSrc) {
+  // liveTiles is keyed by position and only cleared wholesale on a topology
+  // change (preset load/undo/redo/reset), so a slot just cleared by itself
+  // (not through one of those) can still carry a stale entry at its key -
+  // never let that force a truly empty slot to render (and drag-enable) as
+  // if it still held the old content.
+  if (liveSrc && !empty) {
     const liveAlt = slot.label
       || (action?.type === 'monitoring' ? action.labelText : action?.type === 'weather' ? action.city : undefined)
       || '';

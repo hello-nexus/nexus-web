@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getDeckInstance, updateDeckInstance, getDeckPresets, getDeckPreset,
   createDeckPreset, updateDeckPreset, deleteDeckPreset,
@@ -42,6 +42,21 @@ export interface UseDeckInstanceResult {
   endEditBurst: () => void;
 }
 
+interface SharedDeckInstance {
+  instanceId: string;
+  value: UseDeckInstanceResult;
+}
+
+// A widget's inline settings sheet mounts the widget's own preview tile
+// (draggable in edit mode) beside DeckSettings, both bound to the same
+// `widget:<id>` instance - two independent useDeckInstance calls would each
+// hold their own preset copy and their own debounced auto-save, so a
+// drag-reorder on the tile and an edit in the inspector within the same
+// debounce window can silently overwrite one another. A provider higher in
+// that tree lets both consumers share one instance instead.
+const DeckInstanceContext = createContext<SharedDeckInstance | null>(null);
+export const DeckInstanceProvider = DeckInstanceContext.Provider;
+
 /**
  * Owns one deck instance's mode + active preset (full config) + the
  * host-wide preset list, kept live over the `deck` multiplex topic with a
@@ -55,12 +70,28 @@ export interface UseDeckInstanceResult {
  * host actually presenting the editor (StreamDeckDevicePage, DeckSettings)
  * should own that global listener, not a widget tile just rendering its
  * fitted view.
+ *
+ * When a `DeckInstanceProvider` ancestor holds a value for this same
+ * `instanceId`, that shared instance is returned directly and this call's
+ * own fetch/subscribe/auto-save never runs.
  */
 export function useDeckInstance(
   instanceId: string | null,
   kind: 'physical' | 'widget',
   instanceGrid: { cols: number; rows: number },
   editing = false,
+): UseDeckInstanceResult {
+  const shared = useContext(DeckInstanceContext);
+  const usesShared = !!shared && !!instanceId && shared.instanceId === instanceId;
+  const own = useOwnDeckInstance(usesShared ? null : instanceId, kind, instanceGrid, editing);
+  return usesShared ? shared!.value : own;
+}
+
+function useOwnDeckInstance(
+  instanceId: string | null,
+  kind: 'physical' | 'widget',
+  instanceGrid: { cols: number; rows: number },
+  editing: boolean,
 ): UseDeckInstanceResult {
   const [instance, setInstance] = useState<DeckInstance | null>(null);
   const [preset, setPreset] = useState<DeckPresetFull | null>(null);

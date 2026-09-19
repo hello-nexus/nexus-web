@@ -1,63 +1,135 @@
-[
-  {
-    "name": "identity: same grid, single page, no chunking",
-    "preset": { "cols": 2, "rows": 2, "deck": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, { "label": "c" }, { "label": "d" } ] } ] } },
-    "target": { "cols": 2, "rows": 2, "kind": "physical" },
-    "expected": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, { "label": "c" }, { "label": "d" } ] } ] }
-  },
-  {
-    "name": "pads a single page that already fits the target",
-    "preset": { "cols": 1, "rows": 2, "deck": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" } ] } ] } },
-    "target": { "cols": 2, "rows": 2, "kind": "physical" },
-    "expected": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, {}, {} ] } ] }
-  },
-  {
-    "name": "trims trailing empty slots before deciding whether to chunk",
-    "preset": { "cols": 3, "rows": 1, "deck": { "pages": [ { "slots": [ { "label": "a" }, {}, {} ] } ] } },
-    "target": { "cols": 1, "rows": 3, "kind": "physical" },
-    "expected": { "pages": [ { "slots": [ { "label": "a" }, {}, {} ] } ] }
-  },
-  {
-    "name": "overflow chunks into 3 pages: first holds T-1 + next, middle holds prev + 1 + next, last holds prev + remainder",
-    "preset": { "cols": 5, "rows": 1, "deck": { "pages": [ { "slots": [ { "label": "a" }, { "label": "b" }, { "label": "c" }, { "label": "d" }, { "label": "e" } ] } ] } },
-    "target": { "cols": 3, "rows": 1, "kind": "physical" },
-    "expected": {
-      "pages": [
-        { "slots": [ { "label": "a" }, { "label": "b" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
-        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "c" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
-        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "d" }, { "label": "e" } ] }
-      ]
-    }
-  },
-  {
-    "name": "physical folders reserve a Back key (capacity T-1) at any depth",
-    "preset": {
-      "cols": 3, "rows": 1,
-      "deck": { "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" }, { "label": "z" }, { "label": "w" } ] } } ] } ] }
+{
+  "description": "Shared FitToGrid test vectors for nexus-service (DeckConfigNavigation.FitToGrid) and nexus-web (deckLayout.ts fitToGrid). Each case: preset.deck fitted from presetCols x presetRows onto targetCols x targetRows for targetKind must equal expected, field for field. Slots use plain labels as content markers - no actions are needed for FitToGrid's own behavior. Copied verbatim between both repos; do not hand-edit one copy without the other.",
+  "cases": [
+    {
+      "name": "identity_same_grid_no_change",
+      "presetCols": 2,
+      "presetRows": 2,
+      "targetCols": 2,
+      "targetRows": 2,
+      "targetKind": "physical",
+      "preset": { "pages": [ { "slots": [ { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" } ] } ] },
+      "expected": { "pages": [ { "slots": [ { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" } ] } ] }
     },
-    "target": { "cols": 3, "rows": 1, "kind": "physical" },
-    "expected": {
-      "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" } ] } }, {}, {} ] } ]
-    }
-  },
-  {
-    "name": "widget folders hold the full target capacity (no Back reservation)",
-    "preset": {
-      "cols": 3, "rows": 1,
-      "deck": { "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" }, { "label": "z" }, { "label": "w" } ] } } ] } ] }
+    {
+      "name": "single_page_padded_no_chunk",
+      "presetCols": 2,
+      "presetRows": 1,
+      "targetCols": 2,
+      "targetRows": 4,
+      "targetKind": "widget",
+      "preset": { "pages": [ { "slots": [ { "label": "A" }, { "label": "B" } ] } ] },
+      "expected": { "pages": [ { "slots": [ { "label": "A" }, { "label": "B" }, {}, {}, {}, {}, {}, {} ] } ] }
     },
-    "target": { "cols": 3, "rows": 1, "kind": "widget" },
-    "expected": {
-      "pages": [ { "slots": [ { "folder": { "slots": [ { "label": "x" }, { "label": "y" }, { "label": "z" } ] } }, {}, {} ] } ]
-    }
-  },
-  {
-    "name": "multiple authored pages are fitted independently and concatenated in order",
-    "preset": {
-      "cols": 2, "rows": 1,
-      "deck": { "pages": [ { "slots": [ { "label": "p0" } ] }, { "slots": [ { "label": "p1" } ] } ] }
+    {
+      "name": "one_page_overflow_15_to_6_physical",
+      "presetCols": 5,
+      "presetRows": 3,
+      "targetCols": 2,
+      "targetRows": 3,
+      "targetKind": "physical",
+      "preset": { "pages": [ { "slots": [
+        { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" }, { "label": "4" },
+        { "label": "5" }, { "label": "6" }, { "label": "7" }, { "label": "8" }, { "label": "9" },
+        { "label": "10" }, { "label": "11" }, { "label": "12" }, { "label": "13" }, { "label": "14" }
+      ] } ] },
+      "expected": { "pages": [
+        { "slots": [ { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" }, { "label": "4" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "5" }, { "label": "6" }, { "label": "7" }, { "label": "8" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "9" }, { "label": "10" }, { "label": "11" }, { "label": "12" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "13" }, { "label": "14" }, {}, {}, {} ] }
+      ] }
     },
-    "target": { "cols": 2, "rows": 1, "kind": "widget" },
-    "expected": { "pages": [ { "slots": [ { "label": "p0" }, {} ] }, { "slots": [ { "label": "p1" }, {} ] } ] }
-  }
-]
+    {
+      "name": "multi_chunk_32_to_6_physical",
+      "presetCols": 8,
+      "presetRows": 4,
+      "targetCols": 2,
+      "targetRows": 3,
+      "targetKind": "physical",
+      "preset": { "pages": [ { "slots": [
+        { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" }, { "label": "4" }, { "label": "5" }, { "label": "6" }, { "label": "7" },
+        { "label": "8" }, { "label": "9" }, { "label": "10" }, { "label": "11" }, { "label": "12" }, { "label": "13" }, { "label": "14" }, { "label": "15" },
+        { "label": "16" }, { "label": "17" }, { "label": "18" }, { "label": "19" }, { "label": "20" }, { "label": "21" }, { "label": "22" }, { "label": "23" },
+        { "label": "24" }, { "label": "25" }, { "label": "26" }, { "label": "27" }, { "label": "28" }, { "label": "29" }, { "label": "30" }, { "label": "31" }
+      ] } ] },
+      "expected": { "pages": [
+        { "slots": [ { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" }, { "label": "4" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "5" }, { "label": "6" }, { "label": "7" }, { "label": "8" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "9" }, { "label": "10" }, { "label": "11" }, { "label": "12" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "13" }, { "label": "14" }, { "label": "15" }, { "label": "16" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "17" }, { "label": "18" }, { "label": "19" }, { "label": "20" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "21" }, { "label": "22" }, { "label": "23" }, { "label": "24" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "25" }, { "label": "26" }, { "label": "27" }, { "label": "28" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "29" }, { "label": "30" }, { "label": "31" }, {}, {} ] }
+      ] }
+    },
+    {
+      "name": "widget_4x4_to_2x2",
+      "presetCols": 4,
+      "presetRows": 4,
+      "targetCols": 2,
+      "targetRows": 2,
+      "targetKind": "widget",
+      "preset": { "pages": [ { "slots": [
+        { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" }, { "label": "4" }, { "label": "5" }, { "label": "6" }, { "label": "7" },
+        { "label": "8" }, { "label": "9" }, { "label": "10" }, { "label": "11" }, { "label": "12" }, { "label": "13" }, { "label": "14" }, { "label": "15" }
+      ] } ] },
+      "expected": { "pages": [
+        { "slots": [ { "label": "0" }, { "label": "1" }, { "label": "2" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "3" }, { "label": "4" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "5" }, { "label": "6" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "7" }, { "label": "8" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "9" }, { "label": "10" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "11" }, { "label": "12" }, { "action": { "type": "page", "op": "next" }, "auto": true } ] },
+        { "slots": [ { "action": { "type": "page", "op": "prev" }, "auto": true }, { "label": "13" }, { "label": "14" }, { "label": "15" } ] }
+      ] }
+    },
+    {
+      "name": "trailing_empty_trim_then_pad",
+      "presetCols": 5,
+      "presetRows": 3,
+      "targetCols": 4,
+      "targetRows": 4,
+      "targetKind": "widget",
+      "preset": { "pages": [ { "slots": [
+        { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" }, { "label": "4" },
+        { "label": "5" }, { "label": "6" }, { "label": "7" }, { "label": "8" }, { "label": "9" },
+        {}, {}, {}, {}, {}
+      ] } ] },
+      "expected": { "pages": [ { "slots": [
+        { "label": "0" }, { "label": "1" }, { "label": "2" }, { "label": "3" }, { "label": "4" },
+        { "label": "5" }, { "label": "6" }, { "label": "7" }, { "label": "8" }, { "label": "9" },
+        {}, {}, {}, {}, {}, {}
+      ] } ] }
+    },
+    {
+      "name": "folder_reserves_back_key_on_physical",
+      "presetCols": 3,
+      "presetRows": 2,
+      "targetCols": 2,
+      "targetRows": 2,
+      "targetKind": "physical",
+      "preset": { "pages": [ { "slots": [
+        { "folder": { "slots": [ { "label": "f0" }, { "label": "f1" }, { "label": "f2" }, { "label": "f3" }, { "label": "f4" } ] } }
+      ] } ] },
+      "expected": { "pages": [ { "slots": [
+        { "folder": { "slots": [ { "label": "f0" }, { "label": "f1" }, { "label": "f2" } ] } }, {}, {}, {}
+      ] } ] }
+    },
+    {
+      "name": "folder_no_back_key_reservation_on_widget",
+      "presetCols": 3,
+      "presetRows": 2,
+      "targetCols": 2,
+      "targetRows": 2,
+      "targetKind": "widget",
+      "preset": { "pages": [ { "slots": [
+        { "folder": { "slots": [ { "label": "f0" }, { "label": "f1" }, { "label": "f2" }, { "label": "f3" }, { "label": "f4" } ] } }
+      ] } ] },
+      "expected": { "pages": [ { "slots": [
+        { "folder": { "slots": [ { "label": "f0" }, { "label": "f1" }, { "label": "f2" }, { "label": "f3" } ] } }, {}, {}, {}
+      ] } ] }
+    }
+  ]
+}

@@ -188,6 +188,16 @@ describe('DeckGrid live tile frames (physical editor preview)', () => {
     expect(img?.getAttribute('alt')).toBe('Copy');
   });
 
+  it('never shows a stale live frame for a slot that is now empty (cleared since the cached frame was pushed)', () => {
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={[{}]} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} square />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')).toBeNull();
+    expect(cell.className).toContain(styles.empty);
+  });
+
   it('falls back to the CSS tile when no frame matches this cell key yet', () => {
     const liveTiles = new Map([['0:5', liveSrc]]);
     const { container } = render(
