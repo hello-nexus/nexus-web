@@ -1,0 +1,78 @@
+@use '../styles/flexGap' as *;
+@use '../../styles/text' as *;
+
+@keyframes swipeNoticeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+// Positioned by the tray's zero-height anchor at its top edge, so it rides
+// the tray's slide and scale; the tray's child-gap margins never reach it.
+.card {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  @include vgap(16px);
+  width: max-content;
+  max-width: calc(100% - 16px);
+  padding: 22px 24px 24px;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--backdrop-base) 92%, transparent);
+  box-shadow: var(--shadow-xl);
+  color: var(--text);
+  box-sizing: border-box;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: swipeNoticeIn var(--ease-slow) cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.title {
+  @include text-label;
+  color: var(--text);
+  opacity: 0.72;
+}
+
+.items {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  @include hgap(20px);
+  max-width: 100%;
+}
+
+// Labels wrap inside a fixed column so a long locale never widens the row past the card.
+.item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  @include vgap(10px);
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 112px;
+}
+
+.icon {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  stroke-width: 1.75;
+  color: var(--text);
+}
+
+.label {
+  @include text-button;
+  text-align: center;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}

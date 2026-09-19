@@ -7,6 +7,7 @@ import { isNativeApp } from '../device/panelNativeBridge';
 import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../components/common/Button/Button';
 import { useTranslation } from '../../lib/i18n';
+import { PanelSwipeNotice } from './PanelSwipeNotice';
 import type { PanelSurface } from '../types';
 import styles from './PanelActionsTray.module.scss';
 
@@ -41,8 +42,8 @@ interface PanelActionsTrayProps {
   // not a local hardwired kiosk. The "Connected to <PC> 🔒" line shows only
   // then - a hardwired display already knows what it's plugged into.
   remotePaired?: boolean;
-  // One-shot line above the buttons on the first-ever open (usePanelSwipeOnboarding).
-  notice?: string;
+  // One-shot card above the tray on the first-ever open (usePanelSwipeOnboarding).
+  showNotice?: boolean;
 }
 
 export function PanelActionsTray({
@@ -61,7 +62,7 @@ export function PanelActionsTray({
   pinnedOpen = false,
   machineName,
   remotePaired = false,
-  notice,
+  showNotice = false,
 }: PanelActionsTrayProps) {
   const { t } = useTranslation();
   const trayRef = useRef<HTMLDivElement | null>(null);
@@ -147,8 +148,10 @@ export function PanelActionsTray({
             <Lock size={12} className={styles.connectedLock} aria-label={t('panel.actions.e2eEncrypted')} />
           </div>
         )}
-        {notice && (
-          <div className={styles.notice} role="status" aria-live="polite">{notice}</div>
+        {showNotice && (
+          <div className={styles.noticeAnchor}>
+            <PanelSwipeNotice />
+          </div>
         )}
         <div className={styles.actionRow}>
         <Button

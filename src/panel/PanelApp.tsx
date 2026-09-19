@@ -1762,7 +1762,7 @@ export function PanelContent({
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}
-                notice={swipeOnboarding.noticeVisible ? t('panel.swipeHint.notice') : undefined}
+                showNotice={swipeOnboarding.noticeVisible}
               />
             )}
             {swipeOnboarding.hintVisible && <PanelSwipeHint />}
