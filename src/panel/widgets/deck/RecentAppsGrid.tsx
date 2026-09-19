@@ -11,7 +11,7 @@ function RecentAppCell({ appKey, onPress }: { appKey: RecentAppKey; onPress: (pr
   const shortcutIcon = useAppIcon(appKey.shortcutId);
   const processIcon = useProcessIcon(appKey.shortcutId ? undefined : appKey.processKey);
   const iconUrl = shortcutIcon ?? processIcon;
-  const accent = iconUrl ? 'transparent' : categoryColor('launch');
+  const accent = categoryColor('launch');
   const cellClass = appKey.focused ? `${styles.cell} ${styles.selectable} ${styles.selected}` : styles.cell;
 
   return (
@@ -19,17 +19,17 @@ function RecentAppCell({ appKey, onPress }: { appKey: RecentAppKey; onPress: (pr
       type="button"
       className={cellClass}
       style={{ '--deck-accent': accent } as CSSProperties}
+      aria-label={appKey.name}
       aria-pressed={appKey.focused}
       onClick={() => { if (!appKey.focused) onPress(appKey.processKey); }}
     >
-      {iconUrl ? (
-        <img src={iconUrl} className={styles.appIconFull} alt="" />
-      ) : (
-        <span className={styles.iconWrap}>
+      <span className={styles.iconWrap}>
+        {iconUrl ? (
+          <img src={iconUrl} className={`${styles.appIcon} ${styles.recentAppIcon}`} alt="" />
+        ) : (
           <span className={styles.emoji} aria-hidden="true">{appKey.name.charAt(0).toUpperCase()}</span>
-        </span>
-      )}
-      <span className={`${styles.label} ${styles.labelAlignBottom}`}>{appKey.name}</span>
+        )}
+      </span>
     </button>
   );
 }

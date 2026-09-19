@@ -303,8 +303,8 @@ describe('DeckWidget', () => {
         clear: vi.fn(),
         activate: vi.fn(),
       });
-      const { getByText } = render(<DeckWidget widget={widget()} />);
-      expect(getByText('Discord')).toBeInTheDocument();
+      const { getByRole } = render(<DeckWidget widget={widget()} />);
+      expect(getByRole('button', { name: 'Discord' })).toBeInTheDocument();
       expect(mockUseRecentApps).toHaveBeenCalledWith(true);
     });
 
@@ -320,8 +320,8 @@ describe('DeckWidget', () => {
         clear: vi.fn(),
         activate,
       });
-      const { getByText } = render(<DeckWidget widget={widget()} />);
-      fireEvent.click(getByText('Chrome').closest('button')!);
+      const { getByRole } = render(<DeckWidget widget={widget()} />);
+      fireEvent.click(getByRole('button', { name: 'Chrome' }));
       expect(activate).toHaveBeenCalledWith('chrome');
     });
 
@@ -343,8 +343,8 @@ describe('DeckWidget', () => {
         clear: vi.fn(),
         activate,
       });
-      const { getByText } = render(<DeckWidget widget={widget()} onSelectSlot={vi.fn()} />);
-      fireEvent.click(getByText('Chrome').closest('button')!);
+      const { getByRole } = render(<DeckWidget widget={widget()} onSelectSlot={vi.fn()} />);
+      fireEvent.click(getByRole('button', { name: 'Chrome' }));
       expect(activate).not.toHaveBeenCalled();
     });
   });

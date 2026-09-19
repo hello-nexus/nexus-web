@@ -159,6 +159,14 @@
 // size with no accent fill behind it (useCellVisual sets the accent to
 // transparent). Cover would crop a non-square icon, so unlike .customImage
 // this letterboxes instead.
+// Recent Apps keys stay a glyph on the accent field, smaller than a bound
+// app key's artwork, so a reordering row reads as a list of icons rather than
+// a wall of logos; the focused key's ring/fill treatment stays visible.
+.recentAppIcon {
+  max-height: 64%;
+  max-width: 64%;
+}
+
 .appIconFull {
   position: absolute;
   inset: 0;

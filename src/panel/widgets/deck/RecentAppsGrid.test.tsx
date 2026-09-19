@@ -15,10 +15,13 @@ function appKey(over: Record<string, unknown> = {}) {
 }
 
 describe('RecentAppsGrid - app cells', () => {
-  it('shows the app name as the visible label', () => {
+  it('names the key after the app, with no visible label', () => {
     const pages: RecentAppsViewPage[] = [[appKey()]];
     render(<RecentAppsGrid pages={pages} cols={1} rows={1} onPress={vi.fn()} />);
-    expect(screen.getByText('Discord')).toBeInTheDocument();
+    const key = screen.getByRole('button', { name: 'Discord' });
+    expect(key).toBeInTheDocument();
+    // No caption under the icon - at most the initial-letter glyph fallback.
+    expect(screen.queryByText('Discord')).toBeNull();
   });
 
   it('renders a shortcut icon when shortcutId resolves', () => {
@@ -44,7 +47,7 @@ describe('RecentAppsGrid - app cells', () => {
     const onPress = vi.fn();
     const pages: RecentAppsViewPage[] = [[appKey({ focused: true })]];
     render(<RecentAppsGrid pages={pages} cols={1} rows={1} onPress={onPress} />);
-    const cell = screen.getByText('Discord').closest('button')!;
+    const cell = screen.getByRole('button', { name: 'Discord' });
     expect(cell).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(cell);
     expect(onPress).not.toHaveBeenCalled();
@@ -54,7 +57,7 @@ describe('RecentAppsGrid - app cells', () => {
     const onPress = vi.fn();
     const pages: RecentAppsViewPage[] = [[appKey({ processKey: 'discord' })]];
     render(<RecentAppsGrid pages={pages} cols={1} rows={1} onPress={onPress} />);
-    fireEvent.click(screen.getByText('Discord').closest('button')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Discord' }));
     expect(onPress).toHaveBeenCalledWith('discord');
   });
 
@@ -64,7 +67,7 @@ describe('RecentAppsGrid - app cells', () => {
       appKey({ processKey: 'b', name: 'App B' }),
     ]];
     const { rerender } = render(<RecentAppsGrid pages={before} cols={2} rows={1} onPress={vi.fn()} />);
-    const nodeA = screen.getByText('App A').closest('button');
+    const nodeA = screen.getByRole('button', { name: 'App A' });
 
     // The ring reorders on every focus change - same apps, new positions.
     const after: RecentAppsViewPage[] = [[
@@ -73,7 +76,7 @@ describe('RecentAppsGrid - app cells', () => {
     ]];
     rerender(<RecentAppsGrid pages={after} cols={2} rows={1} onPress={vi.fn()} />);
 
-    expect(screen.getByText('App A').closest('button')).toBe(nodeA);
+    expect(screen.getByRole('button', { name: 'App A' })).toBe(nodeA);
   });
 });
 
@@ -92,14 +95,14 @@ describe('RecentAppsGrid - pagination', () => {
       [{ kind: 'navPrev' }, appKey({ processKey: 'b', name: 'App B' })],
     ];
     render(<RecentAppsGrid pages={pages} cols={2} rows={1} onPress={vi.fn()} />);
-    expect(screen.getByText('App A')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'App A' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('panel.settings.deck.recentApps.nextPage'));
-    expect(screen.getByText('App B')).toBeInTheDocument();
-    expect(screen.queryByText('App A')).toBeNull();
+    expect(screen.getByRole('button', { name: 'App B' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'App A' })).toBeNull();
 
     fireEvent.click(screen.getByLabelText('panel.settings.deck.recentApps.prevPage'));
-    expect(screen.getByText('App A')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'App A' })).toBeInTheDocument();
   });
 
   it('clamps the current page down when the ring shrinks to fewer pages', () => {
@@ -109,10 +112,10 @@ describe('RecentAppsGrid - pagination', () => {
     ];
     const { rerender } = render(<RecentAppsGrid pages={twoPages} cols={2} rows={1} onPress={vi.fn()} />);
     fireEvent.click(screen.getByLabelText('panel.settings.deck.recentApps.nextPage'));
-    expect(screen.getByText('App B')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'App B' })).toBeInTheDocument();
 
     const onePage: RecentAppsViewPage[] = [[appKey({ processKey: 'a', name: 'App A' }), { kind: 'blank' }]];
     rerender(<RecentAppsGrid pages={onePage} cols={2} rows={1} onPress={vi.fn()} />);
-    expect(screen.getByText('App A')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'App A' })).toBeInTheDocument();
   });
 });
