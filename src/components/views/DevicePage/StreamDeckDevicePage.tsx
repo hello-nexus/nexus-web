@@ -175,6 +175,16 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // since the grid it feeds isn't mounted on Settings.
   const [liveTiles, setLiveTiles] = useState<Map<string, string>>(new Map());
   const clearLiveTiles = useCallback(() => setLiveTiles(new Map()), []);
+  // A mode switch (Fixed/Recent Apps/App Aware) repaints every key with
+  // different content at the same page:slotPath keys - clear so a stale
+  // frame from the previous mode can never show through the new one. The
+  // ref skips the initial undefined -> first-loaded-mode transition, which
+  // has nothing stale to clear.
+  const lastModeRef = useRef(instance.instance?.mode);
+  useEffect(() => {
+    if (lastModeRef.current !== undefined && lastModeRef.current !== instance.instance?.mode) clearLiveTiles();
+    lastModeRef.current = instance.instance?.mode;
+  }, [instance.instance?.mode, clearLiveTiles]);
   useTopicCallback('streamdeckTiles', !isLocalhostUnreachable() && !!serial && tab === 'customize', useCallback((data: unknown) => {
     const f = data as { serial?: string; page?: number; slotPath?: string; mime?: string; data?: string };
     if (f.serial !== serial || typeof f.page !== 'number' || typeof f.slotPath !== 'string' || typeof f.data !== 'string') return;

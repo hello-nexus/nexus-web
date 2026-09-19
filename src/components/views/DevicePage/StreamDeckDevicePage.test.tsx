@@ -886,4 +886,27 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":2}' })).toHaveAttribute('aria-pressed', 'true');
     });
   });
+
+  describe('live tiles clear on a mode switch', () => {
+    it('a switch from Fixed to App Aware drops a stale live-tile frame instead of showing through the new mode', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      // A truly empty slot never shows a liveSrc frame (DeckGrid's own
+      // stale-clear rule for a self-cleared key) - slot 0 needs real content.
+      const target = fakeTargetWithPages([{ slots: [{ action: { type: 'openUrl', url: 'x' } }] }]);
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'fixed', activePresetId: 'p1' }, target }));
+      const { container, rerender } = await renderPage();
+
+      act(() => {
+        capturedCallbacks.streamdeckTiles?.({ serial: 'SN1', page: 0, slotPath: '0', mime: 'image/jpeg', data: 'stale' });
+      });
+      expect(container.querySelector('img[src="data:image/jpeg;base64,stale"]')).toBeInTheDocument();
+
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'appAware', activePresetId: 'p1' }, target }));
+      await act(async () => {
+        rerender(<StreamDeckDevicePage device={makeUnifiedDevice()} controlDevice={mockControlDevice} />);
+      });
+
+      expect(container.querySelector('img[src="data:image/jpeg;base64,stale"]')).toBeNull();
+    });
+  });
 });
