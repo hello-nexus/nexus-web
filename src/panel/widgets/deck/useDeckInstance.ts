@@ -171,7 +171,7 @@ function useOwnDeckInstance(
   // preset id, superseding any still-pending one. `generation` guards a
   // response landing after a newer edit has already been scheduled (and
   // possibly already resolved).
-  const pendingPutRef = useRef<{ timer: ReturnType<typeof setTimeout>; run: () => void } | null>(null);
+  const pendingPutRef = useRef<{ timer: ReturnType<typeof setTimeout>; run: () => void; grow?: { cols: number; rows: number } } | null>(null);
   const generationRef = useRef(0);
 
   const flushPending = useCallback(() => {
@@ -184,17 +184,23 @@ function useOwnDeckInstance(
   useEffect(() => flushPending, [flushPending]);
 
   const schedulePut = useCallback((presetId: string, deck: DeckConfig, grow?: { cols: number; rows: number }) => {
+    // A later edit in the same debounce burst re-derives `grow` against the
+    // already-grown local preset (applyDeck), so it computes undefined even
+    // though the grow still needs to reach the server - carry the burst's
+    // first grow forward instead of letting a later call's schedulePut
+    // silently drop it from the eventual PUT.
+    const carriedGrow = grow ?? pendingPutRef.current?.grow;
     if (pendingPutRef.current) clearTimeout(pendingPutRef.current.timer);
     const generation = ++generationRef.current;
     const run = () => {
       pendingPutRef.current = null;
-      const patch = grow ? { deck, cols: grow.cols, rows: grow.rows } : { deck };
+      const patch = carriedGrow ? { deck, cols: carriedGrow.cols, rows: carriedGrow.rows } : { deck };
       void updateDeckPreset(presetId, patch).then(full => {
         if (generationRef.current !== generation || presetIdRef.current !== presetId) return;
         if (full) setPreset(normalizePresetDeck(full));
       });
     };
-    pendingPutRef.current = { timer: setTimeout(run, AUTO_SAVE_DEBOUNCE_MS), run };
+    pendingPutRef.current = { timer: setTimeout(run, AUTO_SAVE_DEBOUNCE_MS), run, grow: carriedGrow };
   }, []);
 
   const applyDeck = useCallback((next: DeckConfig) => {
