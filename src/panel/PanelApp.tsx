@@ -137,6 +137,7 @@ import {
   useResolvedPanelThemeMode,
 } from './theme/panelTheme';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
+import type { PanelThemeSettingsSection } from './editor/PanelThemeSettings';
 import {
   DragTargetHighlight,
   EmptyCellDroppable,
@@ -469,6 +470,7 @@ export function PanelContent({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);
+  const [panelSettingsSection, setPanelSettingsSection] = useState<PanelThemeSettingsSection>('all');
   const [sheetClosing, setSheetClosing] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
@@ -1042,12 +1044,13 @@ export function PanelContent({
   }, [clearCloseTimer, editingWidgetId, editingWidgetSize, editorDockSupported, finishSheetClose, sheetMode, surface]);
    
 
-  const openSheet = useCallback((mode: SheetMode) => {
+  const openSheet = useCallback((mode: SheetMode, section: PanelThemeSettingsSection = 'all') => {
     clearCloseTimer();
     setSheetClosing(false);
     setEditorDockMotion(null);
     setEditingWidgetId(null);
     setSelectedMonitoringSlot(0);
+    setPanelSettingsSection(section);
     setSheetMode(mode);
   }, [clearCloseTimer]);
 
@@ -1748,7 +1751,8 @@ export function PanelContent({
                 onOpen={() => setTrayOpen(true)}
                 onClose={() => setTrayOpen(false)}
                 onAddWidget={() => openSheet('catalog')}
-                onSettings={() => openSheet('panelSettings')}
+                onTheme={() => openSheet('panelSettings', 'theme')}
+                onBackground={() => openSheet('panelSettings', 'background')}
                 onPair={nativePairingAvailable ? nativeSettings.open : undefined}
                 pairAvailable={nativePairingAvailable}
                 onPairSheet={
@@ -1762,7 +1766,6 @@ export function PanelContent({
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}
-                showNotice={swipeOnboarding.noticeVisible}
               />
             )}
             {swipeOnboarding.hintVisible && <PanelSwipeHint />}
@@ -1963,6 +1966,7 @@ export function PanelContent({
           onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}
           machineName={machineName}
           showHostName={connectionIdentityVisible}
+          panelSettingsSection={panelSettingsSection}
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}
           onResize={resizeWidget}

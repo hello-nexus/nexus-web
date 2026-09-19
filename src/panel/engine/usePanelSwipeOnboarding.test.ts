@@ -71,37 +71,25 @@ describe('usePanelSwipeOnboarding', () => {
     expect(result.current.hintVisible).toBe(true);
   });
 
-  it('first tray open completes on the service, drops the hand and raises the notice', async () => {
+  it('first tray open completes on the service and drops the hand for good', async () => {
     const { result, rerender, opts } = await setup();
     act(() => { vi.advanceTimersByTime(SWIPE_HINT_PERIOD_MS); });
     expect(result.current.hintVisible).toBe(true);
     rerender({ ...opts, trayOpen: true });
     expect(api.completePanelSwipeOnboarding).toHaveBeenCalledTimes(1);
     expect(result.current.hintVisible).toBe(false);
-    expect(result.current.noticeVisible).toBe(true);
+    rerender({ ...opts, trayOpen: false });
+    rerender({ ...opts, trayOpen: true });
     rerender({ ...opts, trayOpen: false });
     act(() => { vi.advanceTimersByTime(SWIPE_HINT_PERIOD_MS * 2); });
     expect(result.current.hintVisible).toBe(false);
-    expect(result.current.noticeVisible).toBe(false);
-  });
-
-  it('the next tap ends the notice for good', async () => {
-    const { result, rerender, opts } = await setup();
-    rerender({ ...opts, trayOpen: true });
-    expect(result.current.noticeVisible).toBe(true);
-    act(() => { document.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
-    expect(result.current.noticeVisible).toBe(false);
-    rerender({ ...opts, trayOpen: false });
-    rerender({ ...opts, trayOpen: true });
-    expect(result.current.noticeVisible).toBe(false);
     expect(api.completePanelSwipeOnboarding).toHaveBeenCalledTimes(1);
   });
 
   it('a tray open while already completed posts nothing', async () => {
-    const { result, rerender, opts } = await setup({}, true);
+    const { rerender, opts } = await setup({}, true);
     rerender({ ...opts, trayOpen: true });
     expect(api.completePanelSwipeOnboarding).not.toHaveBeenCalled();
-    expect(result.current.noticeVisible).toBe(false);
   });
 
   it('a re-read that still says pending lets the next open post again', async () => {
