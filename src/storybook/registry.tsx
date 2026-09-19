@@ -96,7 +96,6 @@ import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
 import { PanelSwipeHint } from '../panel/chrome/PanelSwipeHint';
-import { PanelSwipeNotice } from '../panel/chrome/PanelSwipeNotice';
 import { SWIPE_HINT_VISIBLE_MS } from '../panel/engine/usePanelSwipeOnboarding';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { StableDigits } from '../panel/widgets/common/StableDigits';
@@ -1734,17 +1733,6 @@ function PreviewPanelSwipeHint() {
   );
 }
 
-function PreviewPanelSwipeNotice() {
-  return (
-    <div style={{ position: 'relative', width: 420, height: 260, borderRadius: 12, background: 'var(--panel-background-solid, var(--bg))' }}>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 56, height: 0 }}>
-        <PanelSwipeNotice />
-      </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56, borderTop: '1px solid var(--separator)' }} />
-    </div>
-  );
-}
-
 function PreviewPanelPageIndicator() {
   const [page, setPage] = useState(0);
   return (
@@ -2885,13 +2873,6 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks toward a chevron, then it unmounts. Pointer-transparent.',
     Preview: PreviewPanelSwipeHint,
     notes: 'Click "Replay" to run the cycle again. Period, cycle length and count come from usePanelSwipeOnboarding.',
-  },
-  {
-    name: 'PanelSwipeNotice', category: 'panel-kit',
-    filePath: 'src/panel/chrome/PanelSwipeNotice.tsx',
-    description: 'One-shot card the actions tray carries above itself on its first-ever open: what the tray is for, as three big icons in the text colour. Anchored to the tray top edge, pointer-transparent.',
-    Preview: PreviewPanelSwipeNotice,
-    notes: 'The preview stands in a bare tray strip; in the app it mounts inside PanelActionsTray and rides its slide.',
   },
   {
     name: 'PanelPager', category: 'panel-kit',
