@@ -7,7 +7,7 @@ export const emojiApp: AppManifest = {
     type: 'emoji',
     i18nKey: 'panel.widget.emoji',
     icon: Smile,
-    sizes: ['4x4'],
+    sizes: ['4x2', '4x4'],
     defaultSize: '4x4',
     supportsImmersive: { portrait: true, landscape: false },
     hasConfig: false,
