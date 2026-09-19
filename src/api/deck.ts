@@ -3,7 +3,12 @@
 // GET/PUT, and recent-apps GET/activate, which are AllowPanel (a paired panel
 // reads/edits its own instance; DeckLayoutPolicy still gates privileged key
 // authoring on a preset write). Preset DELETE and /apps stay LocalhostOnly.
-import { fetchService, postService, putService, deleteService, authFetchWithStatus } from './service';
+import {
+  fetchService, postService, putService, deleteService, authFetchWithStatus,
+  fetchServiceBlob, postServiceBytesWithStatus,
+} from './service';
+import { saveBlobToFile } from '../lib/saveFile';
+import { sanitizeFileName } from '../panel/widgets/lighting/page/mappingUtils';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 
 export type DeckInstanceMode = 'fixed' | 'recentApps' | 'appAware';
@@ -86,6 +91,53 @@ export async function updateDeckPreset(id: string, patch: UpdateDeckPresetBody):
 export async function deleteDeckPreset(id: string): Promise<boolean> {
   const res = await deleteService<{ error?: boolean }>(`/deck/presets/${encodeURIComponent(id)}`);
   return res !== null && res.error !== true;
+}
+
+/** Downloads the preset as a `.nexus-deck` package (native save dialog, or an anchor-download fallback). Returns false on any failure. */
+export async function exportDeckPreset(id: string): Promise<boolean> {
+  const [preset, blob] = await Promise.all([
+    getDeckPreset(id),
+    fetchServiceBlob(`/deck/presets/${encodeURIComponent(id)}/export`),
+  ]);
+  if (!blob) return false;
+  return saveBlobToFile(blob, `${sanitizeFileName(preset?.name ?? id)}.nexus-deck`);
+}
+
+export type ImportDeckPresetResult =
+  | { kind: 'ok'; preset: DeckPresetFull }
+  | { kind: 'conflict'; msg: string }
+  | { kind: 'privileged'; msg: string }
+  | { kind: 'failed' };
+
+interface ImportDeckPresetBody {
+  preset?: DeckPresetFull;
+  msg?: string;
+}
+
+/**
+ * Uploads a `.nexus-deck` package as the raw zip body. `allowPrivileged`
+ * retries past a 400 rejection for a package containing machine-specific
+ * actions (file/hotkey/text/audio) - the caller shows that rejection's
+ * message first and only sets this on an explicit "import anyway" retry.
+ */
+export async function importDeckPreset(file: File, allowPrivileged: boolean): Promise<ImportDeckPresetResult> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const { response, status } = await postServiceBytesWithStatus(
+    `/deck/presets/import?allowPrivileged=${allowPrivileged ? 1 : 0}`,
+    bytes,
+    'application/zip',
+  );
+  if (!response) return { kind: 'failed' };
+  let body: ImportDeckPresetBody | null = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (status === 200 && body?.preset) return { kind: 'ok', preset: body.preset };
+  if (status === 409) return { kind: 'conflict', msg: body?.msg ?? '' };
+  if (status === 400) return { kind: 'privileged', msg: body?.msg ?? '' };
+  return { kind: 'failed' };
 }
 
 /** `grid` sizes a widget instance's first-time preset (no-op once one exists). */
