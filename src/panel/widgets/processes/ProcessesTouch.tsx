@@ -26,7 +26,7 @@ import styles from './ProcessesTouch.module.scss';
  * shared history's 40-sample window (PERF_HISTORY_SAMPLES).
  *
  * Left on ImmersiveLayout's default fillLast, so the list - alone on its own
- * page - takes the full height instead of sitting in a pinned 4x4. The graph
+ * page - takes the full height instead of sitting in a pinned tile. The graph
  * pages are unaffected wherever the cards divide the long axis exactly, which
  * is every surface that fits a whole number of them.
  */

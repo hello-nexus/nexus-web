@@ -196,9 +196,10 @@ interface RowsMetrics {
 
 /**
  * Measures the row area. Measured rather than derived from the widget size:
- * the same 4x4 tile is a different pixel height per surface. Takes the element
- * rather than a ref because the row container only mounts once rows exist, so
- * a ref would still read null on the effect's single run.
+ * the same tile is a different pixel height per surface, and 4x2 is just a
+ * shorter one. Takes the element rather than a ref because the row container
+ * only mounts once rows exist, so a ref would still read null on the effect's
+ * single run.
  */
 function useRowsMetrics(el: HTMLDivElement | null, immersive?: boolean): RowsMetrics {
   const [metrics, setMetrics] = useState<RowsMetrics>({
