@@ -1,9 +1,21 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeckInstanceEditor } from './DeckInstanceEditor';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckTarget } from './deckTarget';
 import type { DeckConfig } from './types';
+import type { DeckPresetFull, ImportDeckPresetResult } from '../../../api/deck';
+
+const mockExportDeckPreset = vi.fn<(id: string) => Promise<boolean>>();
+const mockImportDeckPreset = vi.fn<(file: File, allowPrivileged: boolean) => Promise<ImportDeckPresetResult>>();
+vi.mock('../../../api/deck', async importOriginal => {
+  const actual = await importOriginal<typeof import('../../../api/deck')>();
+  return {
+    ...actual,
+    exportDeckPreset: (id: string) => mockExportDeckPreset(id),
+    importDeckPreset: (file: File, allowPrivileged: boolean) => mockImportDeckPreset(file, allowPrivileged),
+  };
+});
 
 vi.mock('./DeckEditor', () => ({
   DeckEditor: ({ target }: { target: DeckTarget }) => <div data-testid="deck-editor">{target.kind}</div>,
@@ -189,6 +201,101 @@ describe('DeckInstanceEditor - preset toolbar wiring', () => {
     })} />);
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
     expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.delete' })).toBeInTheDocument();
+  });
+
+  it('shows Export and Import file when no surface is given (the desktop device page)', () => {
+    render(<DeckInstanceEditor {...baseProps()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.export' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.importFileOption' })).toBeInTheDocument();
+  });
+
+  it('hides Export and Import file on a paired panel surface, same rule as Delete', () => {
+    render(<DeckInstanceEditor {...baseProps({ surface: 'phone' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.presets.export' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.presets.importFileOption' })).toBeNull();
+  });
+
+  it('still offers Export and Import file on a non-desktop surface marked desktopEditor', () => {
+    render(<DeckInstanceEditor {...baseProps({ surface: 'phone', desktopEditor: true })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.export' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.importFileOption' })).toBeInTheDocument();
+  });
+
+  it('selecting Export calls exportDeckPreset with the active preset id', () => {
+    render(<DeckInstanceEditor {...baseProps()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.export' }));
+    expect(mockExportDeckPreset).toHaveBeenCalledWith('p1');
+  });
+
+  it('selecting Import file... opens the hidden file picker', () => {
+    render(<DeckInstanceEditor {...baseProps()} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, 'click');
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.importFileOption' }));
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('DeckInstanceEditor - import file flow', () => {
+  const IMPORTED_PRESET: DeckPresetFull = {
+    id: 'p-new', name: 'New', cols: 2, rows: 2, pageCount: 1, deck: { pages: [{ slots: [] }] },
+  };
+  const FILE = new File(['zip bytes'], 'Streaming.nexus-deck');
+
+  function pickFile(file: File) {
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [file] } });
+  }
+
+  it('a successful import activates the imported preset on this instance', async () => {
+    mockImportDeckPreset.mockResolvedValue({ kind: 'ok', preset: IMPORTED_PRESET });
+    const activate = vi.fn();
+    render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ activate }) })} />);
+
+    pickFile(FILE);
+
+    await waitFor(() => expect(mockImportDeckPreset).toHaveBeenCalledWith(FILE, false));
+    await waitFor(() => expect(activate).toHaveBeenCalledWith('p-new'));
+  });
+
+  it('a 409 name conflict shows the server message with no retry offered', async () => {
+    mockImportDeckPreset.mockResolvedValue({ kind: 'conflict', msg: 'A preset named "Streaming" already exists.' });
+    render(<DeckInstanceEditor {...baseProps()} />);
+
+    pickFile(FILE);
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('A preset named "Streaming" already exists.'));
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.presets.importAnyway' })).toBeNull();
+  });
+
+  it('a privileged-package rejection shows the message with an Import anyway retry, resent with allowPrivileged=true', async () => {
+    mockImportDeckPreset
+      .mockResolvedValueOnce({ kind: 'privileged', msg: 'This package needs extra permission.' })
+      .mockResolvedValueOnce({ kind: 'ok', preset: IMPORTED_PRESET });
+    const activate = vi.fn();
+    render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ activate }) })} />);
+
+    pickFile(FILE);
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('This package needs extra permission.'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.importAnyway' }));
+
+    await waitFor(() => expect(mockImportDeckPreset).toHaveBeenLastCalledWith(FILE, true));
+    await waitFor(() => expect(activate).toHaveBeenCalledWith('p-new'));
+  });
+
+  it('a transport failure shows the generic import-failed message', async () => {
+    mockImportDeckPreset.mockResolvedValue({ kind: 'failed' });
+    render(<DeckInstanceEditor {...baseProps()} />);
+
+    pickFile(FILE);
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('panel.settings.deck.presets.importFailed'));
   });
 });
 

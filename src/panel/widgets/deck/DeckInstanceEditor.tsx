@@ -1,3 +1,4 @@
+import { useRef, useState, type ChangeEvent } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { ChipGroup, type ChipOption } from '../../../components/common/ChipGroup/ChipGroup';
@@ -9,7 +10,7 @@ import { DeckEditor } from './DeckEditor';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
 import { DeckAppAwareSection } from './DeckAppAwareSection';
 import type { UseDeckInstanceResult } from './useDeckInstance';
-import type { DeckInstanceMode } from '../../../api/deck';
+import { exportDeckPreset, importDeckPreset, type DeckInstanceMode } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
 import styles from './DeckInstanceEditor.module.scss';
 
@@ -80,6 +81,43 @@ export function DeckInstanceEditor({
   // non-desktop `surface`.
   const allowDelete = !surface || surface === 'desktop' || !!desktopEditor;
 
+  // Shared with the import-success path below so a physical deck's page/
+  // folder/live-tile state resets the same way a normal preset switch does
+  // (StreamDeckDevicePage overrides onLoad for exactly that reset).
+  const activatePreset = onLoad ?? ((id: string) => void deck.activate(id));
+
+  const importFileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [privilegedRetryFile, setPrivilegedRetryFile] = useState<File | null>(null);
+
+  const runImport = async (file: File, allowPrivileged: boolean) => {
+    const result = await importDeckPreset(file, allowPrivileged);
+    if (result.kind === 'ok') {
+      setImportError(null);
+      setPrivilegedRetryFile(null);
+      activatePreset(result.preset.id);
+      return;
+    }
+    if (result.kind === 'conflict') {
+      setImportError(result.msg || t('panel.settings.deck.presets.duplicateName'));
+      setPrivilegedRetryFile(null);
+      return;
+    }
+    if (result.kind === 'privileged') {
+      setImportError(result.msg || t('panel.settings.deck.presets.importPrivileged'));
+      setPrivilegedRetryFile(file);
+      return;
+    }
+    setImportError(t('panel.settings.deck.presets.importFailed'));
+    setPrivilegedRetryFile(null);
+  };
+
+  const onImportFileSelected = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void runImport(file, false);
+  };
+
   const preset = deck.preset;
   const gridDiffers = !!preset && (preset.cols !== instanceGrid.cols || preset.rows !== instanceGrid.rows);
   let fitNote: string | null = null;
@@ -117,11 +155,13 @@ export function DeckInstanceEditor({
         presets={deck.presets.map(p => ({ id: p.id, name: p.name, hasApps: !!p.apps?.length }))}
         activeId={deck.instance?.activePresetId ?? null}
         presetCount={deck.presets.length}
-        onLoad={onLoad ?? (id => void deck.activate(id))}
+        onLoad={activatePreset}
         onCreate={deck.createPreset}
         onRename={deck.renamePreset}
         onDelete={onDelete ?? (id => void deck.deletePreset(id))}
         onImport={onImport}
+        onExport={allowDelete ? id => void exportDeckPreset(id) : undefined}
+        onImportFile={allowDelete ? () => importFileInputRef.current?.click() : undefined}
         canUndo={deck.canUndo}
         canRedo={deck.canRedo}
         onUndo={onUndo ?? deck.undo}
@@ -129,6 +169,27 @@ export function DeckInstanceEditor({
         onReset={onReset ?? deck.reset}
         translationPrefix="panel.settings.deck.presets"
       />
+
+      {allowDelete && (
+        <input
+          ref={importFileInputRef}
+          type="file"
+          accept=".nexus-deck"
+          style={{ display: 'none' }}
+          onChange={onImportFileSelected}
+        />
+      )}
+
+      {importError && (
+        <div className={styles.importError} role="alert">
+          <span>{importError}</span>
+          {privilegedRetryFile && (
+            <Button type="button" size="sm" tone="neutral" onClick={() => void runImport(privilegedRetryFile, true)}>
+              {t('panel.settings.deck.presets.importAnyway')}
+            </Button>
+          )}
+        </div>
+      )}
 
       {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
 

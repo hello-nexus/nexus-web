@@ -17,6 +17,14 @@
   color: var(--text-dim);
 }
 
+.importError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--type-mini);
+  color: var(--bad);
+}
+
 .loading {
   color: var(--text-dim);
 }

@@ -304,3 +304,51 @@ describe('PresetToolbar (onImport)', () => {
     expect(screen.getByRole('option', { name: 'My Preset' }).getAttribute('data-icon')).toBe('no');
   });
 });
+
+describe('PresetToolbar (onExport)', () => {
+  it('hides the export option without onExport', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', presetCount: 1 })} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.export' })).toBeNull();
+  });
+
+  it('hides the export option with no preset active - it exports the active one', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: null, presetCount: 1, onExport: vi.fn() })} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.export' })).toBeNull();
+  });
+
+  it('fires onExport with the active preset id when the export option is selected', () => {
+    const onExport = vi.fn();
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', presetCount: 1, onExport })} />);
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__export__' } });
+    expect(onExport).toHaveBeenCalledWith('a');
+  });
+});
+
+describe('PresetToolbar (onImportFile)', () => {
+  it('hides the import-file option without onImportFile', () => {
+    render(<PresetToolbar {...defaultProps()} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.importFileOption' })).toBeNull();
+  });
+
+  it('appends an import-file option after the Elgato-style import option', () => {
+    render(<PresetToolbar {...defaultProps({ onImport: vi.fn(), onImportFile: vi.fn() })} />);
+    const options = screen.getAllByRole('option').map(o => o.textContent);
+    const importIndex = options.indexOf('lighting.layoutPresets.importOption');
+    const importFileIndex = options.indexOf('lighting.layoutPresets.importFileOption');
+    expect(importIndex).toBeGreaterThanOrEqual(0);
+    expect(importFileIndex).toBeGreaterThan(importIndex);
+  });
+
+  it('fires onImportFile (no arguments - the caller owns the file input) when selected', () => {
+    const onImportFile = vi.fn();
+    render(<PresetToolbar {...defaultProps({ onImportFile })} />);
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__importFile__' } });
+    expect(onImportFile).toHaveBeenCalledWith();
+  });
+
+  it('disables the import-file option at the cap, like create', () => {
+    const presets = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `Preset ${i}` }));
+    render(<PresetToolbar {...defaultProps({ presets, presetCount: 10, onImportFile: vi.fn() })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.importFileOption' })).toBeDisabled();
+  });
+});
