@@ -107,7 +107,7 @@ export function RecentAppsGrid({ pages, cols, rows, onPress, ariaLabel }: Recent
             />
           );
         }
-        return <RecentAppCell key={i} appKey={key} onPress={onPress} />;
+        return <RecentAppCell key={key.processKey} appKey={key} onPress={onPress} />;
       })}
     </div>
   );

@@ -57,6 +57,24 @@ describe('RecentAppsGrid - app cells', () => {
     fireEvent.click(screen.getByText('Discord').closest('button')!);
     expect(onPress).toHaveBeenCalledWith('discord');
   });
+
+  it('an app cell\'s element identity survives a reorder (keyed by processKey, not array index)', () => {
+    const before: RecentAppsViewPage[] = [[
+      appKey({ processKey: 'a', name: 'App A' }),
+      appKey({ processKey: 'b', name: 'App B' }),
+    ]];
+    const { rerender } = render(<RecentAppsGrid pages={before} cols={2} rows={1} onPress={vi.fn()} />);
+    const nodeA = screen.getByText('App A').closest('button');
+
+    // The ring reorders on every focus change - same apps, new positions.
+    const after: RecentAppsViewPage[] = [[
+      appKey({ processKey: 'b', name: 'App B' }),
+      appKey({ processKey: 'a', name: 'App A' }),
+    ]];
+    rerender(<RecentAppsGrid pages={after} cols={2} rows={1} onPress={vi.fn()} />);
+
+    expect(screen.getByText('App A').closest('button')).toBe(nodeA);
+  });
 });
 
 describe('RecentAppsGrid - blank keys', () => {
