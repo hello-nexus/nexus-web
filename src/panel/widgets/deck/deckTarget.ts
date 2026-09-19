@@ -83,20 +83,35 @@ function authoredDepthCount(fitted: Pick<DeckTarget, 'kind' | 'keyCount'>, autho
  * (`auto: true`) has no authored origin and is silently read-only.
  */
 export function makePresetDeckTarget(
-  preset: DeckPresetFull,
+  presetIn: DeckPresetFull,
   instanceGrid: { cols: number; rows: number },
   kind: 'widget' | 'physical',
   save: (next: DeckConfig) => void,
 ): DeckTarget {
+  // A slot entry can go missing entirely (a prior out-of-bounds write left a
+  // hole - see the authoredCountFor comment below); treat a hole as an empty
+  // slot instead of letting it throw deeper in fitToGridWithOrigins.
+  const preset: DeckPresetFull = {
+    ...presetIn,
+    deck: { ...presetIn.deck, pages: presetIn.deck.pages.map(p => ({ slots: p.slots.map(s => s ?? {}) })) },
+  };
   const authoredKeyCount = preset.cols * preset.rows;
   const fitted = fitToGridWithOrigins(
     { cols: preset.cols, rows: preset.rows, deck: preset.deck },
     { cols: instanceGrid.cols, rows: instanceGrid.rows, kind },
   );
   const target: Pick<DeckTarget, 'kind' | 'keyCount'> = { kind, keyCount: instanceGrid.cols * instanceGrid.rows };
-  const authoredCount = authoredDepthCount(target, Math.max(authoredKeyCount, target.keyCount));
 
   const rootOriginAt = (page: number, index: number): FittedSlotOrigin | undefined => fitted.origins[page]?.[index];
+
+  // The root level must reach whichever authored slot index THIS write
+  // targets - a closing overflow chunk's blank cells carry origins past
+  // authoredKeyCount (they're room to grow the authored page, not real
+  // content yet), so a count fixed at authoredKeyCount silently drops
+  // (updateSlot) or writes past the array end (swapSlots, corrupting the
+  // saved deck with sparse holes) a write to one of them.
+  const authoredCountFor = (...rootIndices: number[]) =>
+    authoredDepthCount(target, Math.max(authoredKeyCount, target.keyCount, ...rootIndices.map(i => i + 1)));
 
   return {
     kind,
@@ -110,7 +125,7 @@ export function makePresetDeckTarget(
       if (!origin || origin.kind === 'auto') return;
       const authoredFolderPath = folderPath.length === 0 ? [] : [origin.slotIndex, ...folderPath.slice(1)];
       const authoredSlotIndex = folderPath.length === 0 ? origin.slotIndex : slotIndex;
-      save(updateSlotAt(preset.deck, origin.page, authoredFolderPath, authoredSlotIndex, next, authoredCount));
+      save(updateSlotAt(preset.deck, origin.page, authoredFolderPath, authoredSlotIndex, next, authoredCountFor(origin.slotIndex)));
     },
     swapSlots(page, folderPath, from, to) {
       const rootFrom = folderPath.length === 0 ? from : folderPath[0];
@@ -119,12 +134,12 @@ export function makePresetDeckTarget(
       if (folderPath.length === 0) {
         const toOrigin = rootOriginAt(page, to);
         if (!toOrigin || toOrigin.kind === 'auto') return;
-        const nextConfig = swapSlots(preset.deck, origin.page, [], origin.slotIndex, toOrigin.slotIndex, authoredCount);
+        const nextConfig = swapSlots(preset.deck, origin.page, [], origin.slotIndex, toOrigin.slotIndex, authoredCountFor(origin.slotIndex, toOrigin.slotIndex));
         if (nextConfig !== preset.deck) save(nextConfig);
         return;
       }
       const authoredFolderPath = [origin.slotIndex, ...folderPath.slice(1)];
-      const nextConfig = swapSlots(preset.deck, origin.page, authoredFolderPath, from, to, authoredCount);
+      const nextConfig = swapSlots(preset.deck, origin.page, authoredFolderPath, from, to, authoredCountFor(origin.slotIndex));
       if (nextConfig !== preset.deck) save(nextConfig);
     },
     addPage() {

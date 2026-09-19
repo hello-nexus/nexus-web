@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { makePresetDeckTarget, resolveTargetView, slotCountAtDepth, slotPathAt, type DeckTarget } from './deckTarget';
 import type { DeckPresetFull } from '../../../api/deck';
-import type { DeckConfig } from './types';
+import type { DeckConfig, DeckSlot } from './types';
 
 function preset(deck: DeckConfig, cols = 3, rows = 2): DeckPresetFull {
   return { id: 'p1', name: 'Preset', cols, rows, pageCount: deck.pages.length, deck };
@@ -235,6 +235,51 @@ describe('makePresetDeckTarget - a write never truncates authored content past t
     expect(folder.slots).toHaveLength(10);
     expect(folder.slots[2].label).toBe('edited');
     expect(folder.slots[9].label).toBe('f9');
+  });
+});
+
+describe('makePresetDeckTarget - writes to a closing overflow chunk\'s blank cells (authored origin past authoredKeyCount)', () => {
+  // Authored 8x4 (32 keys) filled to capacity, fitted to a 6-key (3x2) target
+  // chunks into 7 fitted pages; the last one is [auto-prev, k29, k30, k31, -, -]
+  // - the two trailing blanks have authored origins 32 and 33, past the
+  // preset's own 32-key declared size.
+  function fullXlPreset() {
+    const slots = Array.from({ length: 32 }, (_, i) => ({ label: `k${i}` }));
+    return preset({ pages: [{ slots }] }, 8, 4);
+  }
+
+  it('updateSlot on a blank cell past authoredKeyCount writes (never silently drops)', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(fullXlPreset(), { cols: 3, rows: 2 }, 'physical', save);
+    expect(target.config.pages).toHaveLength(8);
+    const lastPage = target.config.pages[7].slots;
+    expect(lastPage.map(s => s.label ?? (s.auto ? 'auto' : undefined))).toEqual(['auto', 'k29', 'k30', 'k31', undefined, undefined]);
+
+    target.updateSlot(7, [], 4, { label: 'new' });
+    expect(save).toHaveBeenCalledTimes(1);
+    const next = save.mock.calls[0][0] as DeckConfig;
+    expect(next.pages[0].slots).toHaveLength(33);
+    expect(next.pages[0].slots[32].label).toBe('new');
+  });
+
+  it('swapSlots between two blank cells past authoredKeyCount does not corrupt the deck with sparse holes', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(fullXlPreset(), { cols: 3, rows: 2 }, 'physical', save);
+    target.swapSlots(7, [], 4, 5);
+    expect(save).toHaveBeenCalledTimes(1);
+    const next = save.mock.calls[0][0] as DeckConfig;
+    expect(next.pages[0].slots).toHaveLength(34);
+    expect(next.pages[0].slots.every(s => s !== undefined && s !== null)).toBe(true);
+
+    // A saved deck with no sparse holes must re-fit without throwing.
+    expect(() => makePresetDeckTarget({ ...fullXlPreset(), deck: next }, { cols: 3, rows: 2 }, 'physical', vi.fn())).not.toThrow();
+  });
+
+  it('tolerates a null/undefined slot already present in the preset (defensive - treats it as empty)', () => {
+    const corrupted: DeckConfig = { pages: [{ slots: [{ label: 'a' }, null as unknown as DeckSlot, { label: 'c' }] }] };
+    expect(() => makePresetDeckTarget(preset(corrupted), IDENTITY_GRID, 'widget', vi.fn())).not.toThrow();
+    const target = makePresetDeckTarget(preset(corrupted), IDENTITY_GRID, 'widget', vi.fn());
+    expect(target.config.pages[0].slots[1]).toEqual({});
   });
 });
 
