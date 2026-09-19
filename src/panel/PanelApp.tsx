@@ -42,6 +42,8 @@ import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
 import { PanelActionsTray } from './chrome/PanelActionsTray';
+import { PanelSwipeHint } from './chrome/PanelSwipeHint';
+import { usePanelSwipeOnboarding } from './engine/usePanelSwipeOnboarding';
 import { PanelImmersiveOverlay } from './overlays/PanelImmersiveOverlay';
 import {
   canMarkImmersiveOnLoad,
@@ -925,6 +927,12 @@ export function PanelContent({
   // Embedded desktop only mounts once the service is online (DashboardOnline),
   // so layout `loaded` is the readiness signal; serviceStatus is kiosk-only here.
   const homeIntroActive = useHomeIntro(embedded && surface === 'desktop' && loaded);
+  // Same surfaces as the tray; the connection intro blocks it so the two never stack.
+  const swipeOnboarding = usePanelSwipeOnboarding({
+    enabled: kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && loaded && !isOffline,
+    blocked: connectionIntroBlocked || Boolean(connectionIntroHost),
+    trayOpen,
+  });
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
@@ -1754,8 +1762,10 @@ export function PanelContent({
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}
+                notice={swipeOnboarding.noticeVisible ? t('panel.swipeHint.notice') : undefined}
               />
             )}
+            {swipeOnboarding.hintVisible && <PanelSwipeHint />}
             <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
             {connectionIntroHost && connectionIdentityVisible && (
               <>

@@ -3067,6 +3067,8 @@
   "panel.stopwatch.pause": "Pause",
   "panel.stopwatch.reset": "Reset",
   "panel.stopwatch.start": "Start",
+  "panel.swipeHint.label": "Swipe up",
+  "panel.swipeHint.notice": "Add widgets, change colors and background from here.",
   "panel.widget.advancedMode": "Advanced mode",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Blocks",

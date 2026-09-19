@@ -3067,6 +3067,8 @@
   "panel.stopwatch.pause": "暫停",
   "panel.stopwatch.reset": "重設",
   "panel.stopwatch.start": "開始",
+  "panel.swipeHint.label": "向上滑動",
+  "panel.swipeHint.notice": "在這裡新增小工具、變更顏色和背景。",
   "panel.widget.advancedMode": "進階模式",
   "panel.widget.benchmark": "基準測試",
   "panel.widget.blocks": "方塊",

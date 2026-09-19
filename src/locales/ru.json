@@ -3103,6 +3103,8 @@
   "panel.stopwatch.pause": "Пауза",
   "panel.stopwatch.reset": "Сбросить",
   "panel.stopwatch.start": "Старт",
+  "panel.swipeHint.label": "Проведите вверх",
+  "panel.swipeHint.notice": "Здесь можно добавить виджеты, изменить цвета и фон.",
   "panel.widget.advancedMode": "Расширенный режим",
   "panel.widget.benchmark": "Бенчмарк",
   "panel.widget.blocks": "Блоки",

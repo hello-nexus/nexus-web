@@ -3067,6 +3067,8 @@
   "panel.stopwatch.pause": "Pauzeren",
   "panel.stopwatch.reset": "Herstellen",
   "panel.stopwatch.start": "Starten",
+  "panel.swipeHint.label": "Veeg omhoog",
+  "panel.swipeHint.notice": "Voeg hier widgets toe en wijzig kleuren en achtergrond.",
   "panel.widget.advancedMode": "Geavanceerde modus",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Blokken",

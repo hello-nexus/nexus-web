@@ -24,6 +24,19 @@ export async function completeFeaturesOnboarding() {
   return postService<OnboardingStatusResponse>('/onboarding/features-complete', {});
 }
 
+export interface PanelSwipeOnboardingResponse {
+  completed: boolean;
+}
+
+/** Touch-panel swipe-up hint flag; panel-reachable, unlike the flags above. */
+export async function fetchPanelSwipeOnboarding() {
+  return fetchService<PanelSwipeOnboardingResponse>('/onboarding/panel-swipe');
+}
+
+export async function completePanelSwipeOnboarding() {
+  return postService<PanelSwipeOnboardingResponse>('/onboarding/panel-swipe/complete', {});
+}
+
 /** Replays the whole first-run sequence, import steps included where still detected. */
 export async function resetOnboarding() {
   return postService<OnboardingStatusResponse>('/onboarding/reset', {});

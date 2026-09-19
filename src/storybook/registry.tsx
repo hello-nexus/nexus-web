@@ -95,6 +95,8 @@ import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
+import { PanelSwipeHint } from '../panel/chrome/PanelSwipeHint';
+import { SWIPE_HINT_VISIBLE_MS } from '../panel/engine/usePanelSwipeOnboarding';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { StableDigits } from '../panel/widgets/common/StableDigits';
 import { FitLine } from '../panel/widgets/common/FitLine';
@@ -1711,6 +1713,26 @@ function PreviewPanelArrowButtons() {
   );
 }
 
+function PreviewPanelSwipeHint() {
+  const [run, setRun] = useState(0);
+  const [shown, setShown] = useState(true);
+  useEffect(() => {
+    setShown(true);
+    const timer = window.setTimeout(() => setShown(false), SWIPE_HINT_VISIBLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [run]);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+      <div style={{ position: 'relative', width: 240, height: 260, borderRadius: 12, background: 'var(--panel-background-solid, var(--bg))' }}>
+        {shown && <PanelSwipeHint key={run} />}
+      </div>
+      <button type="button" className={styles.previewBtn} onClick={() => setRun(r => r + 1)}>
+        Replay
+      </button>
+    </div>
+  );
+}
+
 function PreviewPanelPageIndicator() {
   const [page, setPage] = useState(0);
   return (
@@ -2844,6 +2866,13 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Fading dot page indicator. Un-fades for 1.5s whenever visibilityToken or the active page changes, then fades back out. Renders nothing when total <= 1.',
     Preview: PreviewPanelPageIndicator,
     notes: 'Click "Next page" to bump the token and watch the un-fade cycle.',
+  },
+  {
+    name: 'PanelSwipeHint', category: 'panel-kit',
+    filePath: 'src/panel/chrome/PanelSwipeHint.tsx',
+    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks toward a chevron, then it unmounts. Pointer-transparent.',
+    Preview: PreviewPanelSwipeHint,
+    notes: 'Click "Replay" to run the cycle again. Period, cycle length and count come from usePanelSwipeOnboarding.',
   },
   {
     name: 'PanelPager', category: 'panel-kit',

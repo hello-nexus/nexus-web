@@ -3067,6 +3067,8 @@
   "panel.stopwatch.pause": "Pause",
   "panel.stopwatch.reset": "Ripristine",
   "panel.stopwatch.start": "Invie",
+  "panel.swipeHint.label": "Scor in sù",
+  "panel.swipeHint.notice": "Zonte widget, cambie colôrs e sfont di chi.",
   "panel.widget.advancedMode": "Modalitât avanzade",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Blocs",

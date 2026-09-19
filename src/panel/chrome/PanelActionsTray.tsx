@@ -41,6 +41,8 @@ interface PanelActionsTrayProps {
   // not a local hardwired kiosk. The "Connected to <PC> 🔒" line shows only
   // then - a hardwired display already knows what it's plugged into.
   remotePaired?: boolean;
+  // One-shot line above the buttons on the first-ever open (usePanelSwipeOnboarding).
+  notice?: string;
 }
 
 export function PanelActionsTray({
@@ -59,6 +61,7 @@ export function PanelActionsTray({
   pinnedOpen = false,
   machineName,
   remotePaired = false,
+  notice,
 }: PanelActionsTrayProps) {
   const { t } = useTranslation();
   const trayRef = useRef<HTMLDivElement | null>(null);
@@ -143,6 +146,9 @@ export function PanelActionsTray({
             <span className={styles.connectedName}>{machineName}</span>
             <Lock size={12} className={styles.connectedLock} aria-label={t('panel.actions.e2eEncrypted')} />
           </div>
+        )}
+        {notice && (
+          <div className={styles.notice} role="status" aria-live="polite">{notice}</div>
         )}
         <div className={styles.actionRow}>
         <Button

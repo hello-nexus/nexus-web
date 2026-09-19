@@ -3067,6 +3067,8 @@
   "panel.stopwatch.pause": "一時停止",
   "panel.stopwatch.reset": "リセット",
   "panel.stopwatch.start": "開始",
+  "panel.swipeHint.label": "上にスワイプ",
+  "panel.swipeHint.notice": "ここからウィジェットの追加、色や背景の変更ができます。",
   "panel.widget.advancedMode": "詳細モード",
   "panel.widget.benchmark": "ベンチマーク",
   "panel.widget.blocks": "ブロック",

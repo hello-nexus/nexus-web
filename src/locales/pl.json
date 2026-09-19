@@ -3103,6 +3103,8 @@
   "panel.stopwatch.pause": "Wstrzymaj",
   "panel.stopwatch.reset": "Resetuj",
   "panel.stopwatch.start": "Uruchom",
+  "panel.swipeHint.label": "Przesuń w górę",
+  "panel.swipeHint.notice": "Stąd dodasz widżety oraz zmienisz kolory i tło.",
   "panel.widget.advancedMode": "Tryb zaawansowany",
   "panel.widget.benchmark": "Benchmark",
   "panel.widget.blocks": "Bloki",
