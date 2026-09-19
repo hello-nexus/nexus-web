@@ -272,50 +272,106 @@ const autoNextSlot = (): DeckSlot => ({ action: { type: 'page', op: 'next' }, au
 const autoPrevSlot = (): DeckSlot => ({ action: { type: 'page', op: 'prev' }, auto: true });
 
 /**
+ * Where one fitted root-level slot's content actually lives: a synthesized
+ * next/prev nav key (never persisted, never editable), or a specific slot of
+ * a specific AUTHORED page. The editor writes through this to keep editing
+ * the pre-fit preset even while rendering the fitted projection; nested
+ * folder indices need no translation (fitSlot pads/truncates a folder's own
+ * slots without reordering them).
+ */
+export type FittedSlotOrigin = { kind: 'auto' } | { kind: 'authored'; page: number; slotIndex: number };
+
+const AUTO_ORIGIN: FittedSlotOrigin = { kind: 'auto' };
+
+interface FittedPageResult { page: DeckPage; origins: FittedSlotOrigin[]; }
+
+/**
  * Fits one authored page's slots to a target key count T, chunking into
  * multiple pages with synthesized next/prev nav keys when the authored
  * content overflows T. Requires T >= 3 (room for prev + 1 content + next in
  * a middle chunk); a smaller T truncates instead of chunking, which never
  * happens for a real deck or widget grid (both bottom out at 4 keys).
  */
-function fitPage(slots: readonly DeckSlot[], kind: FitGridTarget['kind'], keyCount: number): DeckPage[] {
+function fitPageWithOrigins(slots: readonly DeckSlot[], authoredPage: number, kind: FitGridTarget['kind'], keyCount: number): FittedPageResult[] {
   const trimLen = trimmedLength(slots);
   const content = slots.slice(0, trimLen).map(s => fitSlot(s, kind, keyCount, 1));
+  const authoredAt = (i: number): FittedSlotOrigin => ({ kind: 'authored', page: authoredPage, slotIndex: i });
+
   if (trimLen <= keyCount || keyCount < 3) {
-    return [{ slots: padSlots(content, keyCount) }];
+    return [{
+      page: { slots: padSlots(content, keyCount) },
+      origins: Array.from({ length: keyCount }, (_, i) => authoredAt(i)),
+    }];
   }
-  const pages: DeckPage[] = [{ slots: [...content.slice(0, keyCount - 1), autoNextSlot()] }];
+
+  const results: FittedPageResult[] = [{
+    page: { slots: [...content.slice(0, keyCount - 1), autoNextSlot()] },
+    origins: [...Array.from({ length: keyCount - 1 }, (_, i) => authoredAt(i)), AUTO_ORIGIN],
+  }];
   let idx = keyCount - 1;
   while (idx < trimLen) {
     const remaining = trimLen - idx;
     if (remaining <= keyCount - 1) {
-      pages.push({ slots: padSlots([autoPrevSlot(), ...content.slice(idx, trimLen)], keyCount) });
+      const tailLen = trimLen - idx;
+      const origins = [AUTO_ORIGIN, ...Array.from({ length: tailLen }, (_, k) => authoredAt(idx + k))];
+      // Blank cells past the last real key on the closing chunk still belong
+      // to this authored page (room to add a new key there), never 'auto'.
+      while (origins.length < keyCount) origins.push(authoredAt(trimLen + (origins.length - 1 - tailLen)));
+      results.push({ page: { slots: padSlots([autoPrevSlot(), ...content.slice(idx, trimLen)], keyCount) }, origins });
       idx = trimLen;
     } else {
       const chunk = content.slice(idx, idx + (keyCount - 2));
-      pages.push({ slots: [autoPrevSlot(), ...chunk, autoNextSlot()] });
+      results.push({
+        page: { slots: [autoPrevSlot(), ...chunk, autoNextSlot()] },
+        origins: [AUTO_ORIGIN, ...Array.from({ length: keyCount - 2 }, (_, k) => authoredAt(idx + k)), AUTO_ORIGIN],
+      });
       idx += keyCount - 2;
     }
   }
-  return pages;
+  return results;
 }
 
 /**
  * Chunks `preset`'s authored config to fit `target`'s key count, inserting
  * auto next/prev nav keys on overflow (DeckConfigNavigation.FitToGrid's web
- * counterpart; both sides load fitToGrid.vectors.json). The editor always
- * edits the pre-fit `preset.deck` - this is a read/render-only projection.
+ * counterpart; both sides load fitToGrid.vectors.json).
  */
 export function fitToGrid(preset: FitGridPreset, target: FitGridTarget): DeckConfig {
+  return fitToGridWithOrigins(preset, target).config;
+}
+
+export interface FitToGridResult {
+  config: DeckConfig;
+  /** Per fitted page, per root-level slot index: where that key's content actually lives. */
+  origins: FittedSlotOrigin[][];
+  /** Per fitted page: which authored page it was chunked from. */
+  pageOrigins: number[];
+}
+
+/**
+ * Same projection as fitToGrid, plus the fitted -> authored slot map an
+ * editing surface needs to write through the fitted view it shows the user
+ * back onto the real preset (see deckTarget.ts's makePresetDeckTarget).
+ */
+export function fitToGridWithOrigins(preset: FitGridPreset, target: FitGridTarget): FitToGridResult {
   const keyCount = target.cols * target.rows;
-  const pages = preset.deck.pages.flatMap(page => fitPage(page.slots, target.kind, keyCount));
+  const perAuthoredPage = preset.deck.pages.map((p, authoredPage) => fitPageWithOrigins(p.slots, authoredPage, target.kind, keyCount));
+  const flat = perAuthoredPage.flat();
+  if (flat.length === 0) {
+    return {
+      config: { pages: [{ slots: padSlots([], keyCount) }], defaultTitleStyle: preset.deck.defaultTitleStyle },
+      origins: [Array.from({ length: keyCount }, () => AUTO_ORIGIN)],
+      pageOrigins: [0],
+    };
+  }
   return {
-    pages: pages.length > 0 ? pages : [{ slots: padSlots([], keyCount) }],
-    defaultTitleStyle: preset.deck.defaultTitleStyle,
+    config: { pages: flat.map(r => r.page), defaultTitleStyle: preset.deck.defaultTitleStyle },
+    origins: flat.map(r => r.origins),
+    pageOrigins: perAuthoredPage.flatMap((results, authoredPage) => results.map(() => authoredPage)),
   };
 }
 
-/** How many fitted pages `preset` spans on `target` - the editor's "authored NxM, spans N pages" note. */
+/** How many fitted pages `preset` spans on `target`. */
 export function fitPageCount(preset: FitGridPreset, target: FitGridTarget): number {
   return fitToGrid(preset, target).pages.length;
 }
