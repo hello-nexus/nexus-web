@@ -4,10 +4,20 @@ import { useToastSafe } from '../../../components/common/Toast/Toast';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
 import { Tabs, type TabDef } from '../../../components/common/Tabs/Tabs';
 import { AppPicker } from '../common/AppPicker';
-import { createDeckPreset, deleteDeckPreset, setDeckPresetApps, getDeckTemplates, type DeckTemplate } from '../../../api/deck';
+import {
+  createDeckPreset, deleteDeckPreset, setDeckPresetApps, getDeckTemplates,
+  type DeckPresetFull, type DeckTemplate,
+} from '../../../api/deck';
 import styles from './DeckAddAppProfileSheet.module.scss';
 
 type AddTab = 'suggested' | 'all';
+
+// A create refused for a duplicate name reads the same as any other refusal
+// (createDeckPreset collapses both to null - see its own doc comment), so a
+// straight retry with a numbered suffix resolves the common case (the app's
+// own name is already taken by another profile) without needing the server
+// to distinguish the reason.
+const MAX_NAME_RETRY_ATTEMPTS = 5;
 
 export interface DeckAddAppProfileSheetProps {
   /** Copied into a new "All apps" profile so it starts from the instance's current look. */
@@ -77,10 +87,14 @@ export function DeckAddAppProfileSheet({ currentPresetId, boundApps, instanceGri
   const pickApp = async (app: { id: string; name: string; processName?: string }) => {
     if (busy) return;
     setBusy(true);
-    const created = await createDeckPreset({
-      name: app.name, cols: instanceGrid.cols, rows: instanceGrid.rows,
-      copyOfPresetId: currentPresetId ?? undefined,
-    });
+    let created: DeckPresetFull | null = null;
+    for (let attempt = 0; attempt < MAX_NAME_RETRY_ATTEMPTS && !created; attempt++) {
+      const name = attempt === 0 ? app.name : `${app.name} ${attempt + 1}`;
+      created = await createDeckPreset({
+        name, cols: instanceGrid.cols, rows: instanceGrid.rows,
+        copyOfPresetId: currentPresetId ?? undefined,
+      });
+    }
     if (!created) { fail(); return; }
     await finishCreate(created.id, app);
   };

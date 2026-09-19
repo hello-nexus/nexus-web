@@ -119,6 +119,38 @@ describe('DeckAddAppProfileSheet - All apps tab', () => {
     expect(mockSetDeckPresetApps).toHaveBeenCalledWith('p-new', [{ id: 'proc:steam', name: 'Steam', processName: 'steam' }]);
   });
 
+  it('retries with a numbered suffix when the app\'s own name collides with an existing preset', async () => {
+    mockCreateDeckPreset
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(PRESET);
+    const onCreated = vi.fn();
+    render(
+      <DeckAddAppProfileSheet currentPresetId="p1" boundApps={{}} instanceGrid={{ cols: 4, rows: 2 }} onClose={vi.fn()} onCreated={onCreated} />,
+    );
+    fireEvent.click(screen.getByText('panel.settings.deck.appAware.allAppsTab'));
+    fireEvent.click(screen.getByText('pick-steam'));
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('p-new'));
+    expect(mockCreateDeckPreset).toHaveBeenNthCalledWith(1, { name: 'Steam', cols: 4, rows: 2, copyOfPresetId: 'p1' });
+    expect(mockCreateDeckPreset).toHaveBeenNthCalledWith(2, { name: 'Steam 2', cols: 4, rows: 2, copyOfPresetId: 'p1' });
+    expect(mockCreateDeckPreset).toHaveBeenNthCalledWith(3, { name: 'Steam 3', cols: 4, rows: 2, copyOfPresetId: 'p1' });
+  });
+
+  it('gives up and shows the failure toast after exhausting the numbered-suffix retries', async () => {
+    mockCreateDeckPreset.mockResolvedValue(null);
+    const onCreated = vi.fn();
+    render(
+      <DeckAddAppProfileSheet currentPresetId="p1" boundApps={{}} instanceGrid={{ cols: 4, rows: 2 }} onClose={vi.fn()} onCreated={onCreated} />,
+    );
+    fireEvent.click(screen.getByText('panel.settings.deck.appAware.allAppsTab'));
+    fireEvent.click(screen.getByText('pick-steam'));
+
+    await waitFor(() => expect(mockToastPush).toHaveBeenCalledWith({ title: 'panel.settings.deck.appAware.addProfileFailed' }));
+    expect(onCreated).not.toHaveBeenCalled();
+    expect(mockSetDeckPresetApps).not.toHaveBeenCalled();
+  });
+
   it('a conflict on bind deletes the just-created orphan preset instead of activating it', async () => {
     mockSetDeckPresetApps.mockResolvedValue({ kind: 'conflict', conflict: { error: true, msg: 'x', appName: 'Steam', presetName: 'Other' } });
     const onCreated = vi.fn();
