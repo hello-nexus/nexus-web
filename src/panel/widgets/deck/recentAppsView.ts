@@ -11,21 +11,32 @@ export interface RecentAppKey {
   focused: boolean;
 }
 
-export interface RecentNavKey {
-  kind: 'navNext' | 'navPrev';
+export interface RecentNavNextKey {
+  kind: 'navNext';
 }
+
+export interface RecentNavPrevKey {
+  kind: 'navPrev';
+}
+
+/** Both nav-key shapes, for callers that don't need to discriminate direction. */
+export type RecentNavKey = RecentNavNextKey | RecentNavPrevKey;
 
 export interface RecentBlankKey {
   kind: 'blank';
 }
 
-export type RecentAppsViewKey = RecentAppKey | RecentNavKey | RecentBlankKey;
+// Each variant flattened at the top level (not nested inside RecentNavKey) so
+// a `key.kind === 'navNext'` check narrows the whole union - TS does not
+// split a member whose own discriminant property is itself a multi-value
+// union when narrowing the outer union.
+export type RecentAppsViewKey = RecentAppKey | RecentNavNextKey | RecentNavPrevKey | RecentBlankKey;
 
 /** One page's keys, in grid order (index 0 = top-left). */
 export type RecentAppsViewPage = RecentAppsViewKey[];
 
-const NAV_NEXT: RecentNavKey = { kind: 'navNext' };
-const NAV_PREV: RecentNavKey = { kind: 'navPrev' };
+const NAV_NEXT: RecentNavNextKey = { kind: 'navNext' };
+const NAV_PREV: RecentNavPrevKey = { kind: 'navPrev' };
 const BLANK: RecentBlankKey = { kind: 'blank' };
 
 /** Pages beyond this are dropped, same as the service's ring view. */
