@@ -1194,8 +1194,8 @@
 
 // A promoted DESK monitor's add-widget / edit sheet is fixed-size chrome, not
 // scaled panel content, so neutralise the live panel's --panel-scale (a
-// content zoom, e.g. ~1.57x on a 1920px monitor) the way the desktop drawer
-// does; otherwise the sheet transform scale(var(--panel-scale)) blows it up.
+// content zoom) the way the desktop drawer does; otherwise the sheet's zoom
+// would blow it up.
 // The catalog grid sets its own --panel-scale for its preview cells (a closer
 // ancestor), so those still scale correctly. Whether this surface shows a
 // bottom sheet or a side drawer is decided by orientation below (portrait
@@ -1213,10 +1213,10 @@
   --panel-page-padding: 16px;
   --panel-card-radius: var(--radius);
   // The desktop add-widget drawer is a fixed-size side sheet, NOT a scaled kiosk
-  // panel. It otherwise inherits the live panel's --panel-scale (a content zoom,
-  // e.g. ~2.16x on a wide embedded dashboard), which the editor-sheet transform
-  // (`scale(var(--panel-scale))`) then applies - blowing the whole catalog up by
-  // that factor. Neutralise it here; the catalog grid sets its own --panel-scale
+  // panel. It otherwise inherits the live panel's --panel-scale (a content
+  // zoom), which the editor sheet's zoom then applies - blowing the whole
+  // catalog up by that factor. Neutralise it here; the catalog grid sets its
+  // own --panel-scale
   // for its preview cells (a closer ancestor), so those still scale correctly.
   --panel-scale: 1;
   background: color-mix(in srgb, var(--bg) 58%, transparent);
@@ -1300,7 +1300,6 @@
   overflow: hidden;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  will-change: transform;
 }
 
 .editorBackdrop[data-state='closing'] .editorSheet {
@@ -1319,17 +1318,25 @@
   transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+// Composite only while the swipe is live. Holding will-change for the sheet's
+// whole life pins one raster of it, and a scaled panel then stretches that
+// raster instead of repainting at the size it is shown - the sheet's contents
+// read soft for as long as it is open.
+.editorSheet[data-drag] {
+  will-change: transform;
+}
+
 // After the entry keyframe plays, suppress further animations so toggling
 // [data-drag] off at the end of a swipe snap-back doesn't restart the
 // entrance. Scoped with a descendant + :not() so it outranks the
 // bottom-anchored `.editorBackdrop:not([data-surface='desktop']) .editorSheet`
 // sheetUp rule (which would otherwise win on Y70/phone and replay the slide-up
 // on snap-back). The resting transform is restated because dropping the
-// keyframe also drops its held translateY(0) scale(--panel-scale).
+// keyframe also drops its held translateY(0).
 // [data-state='closing'] is excluded so the close keyframe still plays.
 .editorBackdrop:not([data-state='closing']) .editorSheet[data-entered='true'] {
   animation: none;
-  transform: translateY(0) scale(var(--panel-scale, 1));
+  transform: translateY(0);
 }
 
 // Top-center grabber pill signaling swipe-down. Shown only for
@@ -1503,16 +1510,17 @@
   to { transform: translateX(28px); opacity: 0; }
 }
 
-// Compose --panel-scale into the transform so Y70 (var = cell-size/90)
-// animates at scale; other surfaces (var unset → 1) see no change.
+// Plain translates. Surfaces that scale the sheet do it with zoom, which the
+// slide rides for free; the unscaled ones never counter-sized for a scale
+// here, so composing one only pushed the sheet past its own box.
 @keyframes sheetUp {
-  from { transform: translateY(100%) scale(var(--panel-scale, 1)); }
-  to { transform: translateY(0) scale(var(--panel-scale, 1)); }
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 @keyframes sheetDown {
-  from { transform: translateY(0) scale(var(--panel-scale, 1)); }
-  to { transform: translateY(100%) scale(var(--panel-scale, 1)); }
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
 }
 
 // Bottom-sheet layout, decided by SURFACE - not the CSS-px viewport width. A
@@ -1557,17 +1565,22 @@
 }
 
 // Scaled surfaces (Y70 / Q60 / portrait monitor): the sheet is scaled panel
-// content (--panel-scale), so shrink width / max-height by 1/s and re-grow from
-// bottom center - the post-scale box then fills the target area and stays
-// centered. Without it the half-width child sits at flex-start (25vw) and 2x
-// scaling pushes it off-left. Visual max-height rises to a 3:1 aspect (3 ×
-// viewport width), capped at 100dvh. Phone is not scaled (keeps min(76dvh, 760px)).
+// content, so it zooms with --panel-scale and its text is shaped at the size
+// it is shown rather than resampled. Visual max-height rises to a 3:1 aspect
+// against the viewport width, capped at the viewport height. Phone is not
+// scaled and keeps the unscaled mixin's own cap.
+// margin-inline is vestigial at width:100%; left in place rather than
+// changing layout on a surface this change was not measured against.
 @mixin editorBottomSheetScaled {
   .editorSheet {
-    width: calc(100% / var(--panel-scale, 1));
+    zoom: var(--panel-scale, 1);
+    --sheet-zoom: var(--panel-scale, 1);
+    width: 100%;
+    // The viewport terms keep the division: vw/dvh ARE multiplied by the
+    // zoom, so an undivided cap would come out a factor too large. A
+    // percentage is not, so width needs no division.
     max-height: calc(min(300vw, 100dvh) / var(--panel-scale, 1));
     margin-inline: auto;
-    transform-origin: bottom center;
   }
 }
 
@@ -1595,18 +1608,21 @@
 }
 
 // Touch-chrome landscape monitor (Xeneon Edge): the sheet keeps the desktop
-// dashboard's side-drawer shape but scales with the panel content. Shrink the
-// box by 1/s and re-grow from the right edge so the post-scale drawer hugs
-// the side and fills the height exactly (align-items centers the pre-scale
-// box so the center-origin growth stays on screen).
+// dashboard's side-drawer shape but scales with the panel content, zooming so
+// its contents are shaped at their shown size. The drawer hugs the right edge
+// and fills the height. align-items is vestigial at height:100%; left alone
+// rather than changing layout this change was not measured against.
 @media (orientation: landscape) {
   .editorBackdrop[data-touch-chrome='true'][data-surface='monitor'] {
     align-items: center;
 
     .editorSheet {
+      zoom: var(--panel-scale, 1);
+      --sheet-zoom: var(--panel-scale, 1);
+      // The px term is multiplied by the zoom, which is what the drawer
+      // wants; the vw cap is divided because it would be multiplied too.
       width: min(380px, calc(88vw / var(--panel-scale, 1)));
-      height: calc(100% / var(--panel-scale, 1));
-      transform-origin: right center;
+      height: 100%;
       animation: sheetInSide 170ms ease-out both;
     }
 
@@ -1622,16 +1638,15 @@
   }
 }
 
-// Compose --panel-scale into the side-drawer slide, same trick as sheetUp
-// for the bottom sheet; unscaled surfaces never use these keyframes.
+// Plain translates; the drawer's scale rides its zoom.
 @keyframes sheetInSide {
-  from { transform: translateX(28px) scale(var(--panel-scale, 1)); opacity: 0; }
-  to { transform: translateX(0) scale(var(--panel-scale, 1)); opacity: 1; }
+  from { transform: translateX(28px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes sheetOutSide {
-  from { transform: translateX(0) scale(var(--panel-scale, 1)); opacity: 1; }
-  to { transform: translateX(28px) scale(var(--panel-scale, 1)); opacity: 0; }
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(28px); opacity: 0; }
 }
 
 .editorBackdrop[data-surface='phone'][data-mode='settings'] .editorSheet {

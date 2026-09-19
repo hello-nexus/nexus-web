@@ -3,9 +3,9 @@ import { completePanelSwipeOnboarding, fetchPanelSwipeOnboarding } from '../../a
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 
 // Swipe-up hand shown every period until the actions tray opens once; the
-// first open marks the install done (settings.json, cleared by factory
-// reset only) and swaps the hand for a one-shot notice the next tap ends.
-export const SWIPE_HINT_PERIOD_MS = 15_000;
+// first open marks the install done (settings.json, cleared by a factory
+// reset or the Settings onboarding reset).
+export const SWIPE_HINT_PERIOD_MS = 10_000;
 export const SWIPE_HINT_CYCLE_MS = 800;
 export const SWIPE_HINT_CYCLES = 3;
 export const SWIPE_HINT_VISIBLE_MS = SWIPE_HINT_CYCLE_MS * SWIPE_HINT_CYCLES;
@@ -21,7 +21,6 @@ interface Options {
 export function usePanelSwipeOnboarding({ enabled, blocked, trayOpen }: Options) {
   const [status, setStatus] = useState<Status>('unknown');
   const [hintVisible, setHintVisible] = useState(false);
-  const [noticeVisible, setNoticeVisible] = useState(false);
 
   const [readKey, setReadKey] = useState(0);
   // Any failure (a service without the route, a relay hop that drops it)
@@ -61,17 +60,8 @@ export function usePanelSwipeOnboarding({ enabled, blocked, trayOpen }: Options)
   useEffect(() => {
     if (!trayOpen || status !== 'pending') return;
     setStatus('completed');
-    setNoticeVisible(true);
     completePanelSwipeOnboarding().catch(() => {});
   }, [trayOpen, status]);
 
-  useEffect(() => {
-    if (!noticeVisible) return;
-    if (!trayOpen) { setNoticeVisible(false); return; }
-    const dismiss = () => setNoticeVisible(false);
-    document.addEventListener('pointerdown', dismiss, { capture: true });
-    return () => document.removeEventListener('pointerdown', dismiss, { capture: true });
-  }, [noticeVisible, trayOpen]);
-
-  return { hintVisible, noticeVisible };
+  return { hintVisible };
 }

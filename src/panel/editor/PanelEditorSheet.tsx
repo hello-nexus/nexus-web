@@ -12,7 +12,7 @@ import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout,
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
-import { PanelThemeSettings, type PanelSlideshowSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
+import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
@@ -82,6 +82,7 @@ export function PanelEditorSheet({
   deviceH,
   machineName,
   showHostName,
+  panelSettingsSection = 'all',
   onMachineNameCommit,
   onAdd,
   onResize,
@@ -160,6 +161,8 @@ export function PanelEditorSheet({
   // and the field is unusable without a keyboard. Mirrors the connection
   // identity gate that hides the tray's "Connected to <PC>" line.
   showHostName: boolean;
+  // Which part of the panel settings the sheet shows; the tray opens theme and background separately.
+  panelSettingsSection?: PanelThemeSettingsSection;
   onMachineNameCommit: (next: string) => void;
   onAdd: (type: string, size: PanelWidgetSize) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
@@ -173,7 +176,9 @@ export function PanelEditorSheet({
   const { t, language } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
-    ? t('panel.actions.settings')
+    ? t(panelSettingsSection === 'theme' ? 'panel.actions.theme'
+      : panelSettingsSection === 'background' ? 'panel.actions.background'
+      : 'panel.actions.settings')
     : mode === 'pairRemote'
     ? t('phonePair.title')
     : mode === 'pairedPcs'
@@ -217,11 +222,13 @@ export function PanelEditorSheet({
     lockBackground: false,
     restoreFocus: false,
   });
-  // scale(var(--panel-scale, 1)) keeps the monitor-panel chrome scale during
-  // a swipe-dismiss drag; no-op on phone/desktop (var unset → 1).
+  // The offset is a pointer delta in viewport px; where the sheet is zoomed
+  // its own lengths are in that zoomed space, so the delta is converted back.
+  // --sheet-zoom is published only by the rules that apply the zoom, so every
+  // other surface divides by 1 rather than by a scale it never applied.
   const sheetTransform = swipe.state === 'idle' && swipe.offset === 0
     ? undefined
-    : { transform: `translateY(${swipe.offset}px) scale(var(--panel-scale, 1))` };
+    : { transform: `translateY(calc(${swipe.offset}px / var(--sheet-zoom, 1)))` };
   // [data-entered] suppresses the entry keyframe after it plays, so toggling
   // [data-drag] at the end of a snap-back doesn't re-trigger the slide-up. The
   // fallback timer covers the no-interaction case; the effect flips the flag
@@ -404,13 +411,14 @@ export function PanelEditorSheet({
 
         {mode === 'panelSettings' && (
           <div className={`${styles.settingsBody} ${styles.panelSettingsStack}`}>
-            {showHostName && (
+            {showHostName && panelSettingsSection !== 'background' && (
               <PanelHostNameSetting
                 machineName={machineName}
                 onCommit={onMachineNameCommit}
               />
             )}
             <PanelThemeSettings
+              sections={panelSettingsSection}
               theme={panelTheme}
               deviceId={deviceId}
               resolvedThemeMode={resolvedThemeMode}

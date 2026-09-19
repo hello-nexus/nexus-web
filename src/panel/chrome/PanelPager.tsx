@@ -43,8 +43,13 @@ export function PanelPager<T extends { id: string }>({
   // Critical: do NOT set transform at rest on page 0. Any non-none transform
   // creates a containing block for fixed descendants, breaking the editor's
   // `position: fixed` docked widget (anchors to .track, hides under the scrim).
+  // 2D translate, never translate3d: the 3D form pins the track to its own
+  // composited layer for as long as it is off page 0, and a panel that scales
+  // its content then stretches that layer's raster instead of painting the
+  // text at the size it is shown. The stylesheet promotes the track only while
+  // a swipe is actually running, which is the only time it buys anything.
   const trackStyle: CSSProperties | undefined = translateX !== 0
-    ? { transform: `translate3d(${translateX}px, 0, 0)` }
+    ? { transform: `translate(${translateX}px, 0)` }
     : undefined;
 
   return (
