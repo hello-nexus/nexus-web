@@ -726,7 +726,7 @@ async function sendServiceBytes(method: 'PUT' | 'POST', path: string, bytes: Uin
  * Status-preserving raw-bytes POST: unlike postServiceBytes, a non-2xx
  * response is returned rather than collapsed to null, so the caller can read
  * the server's error body (e.g. a deck preset import branching on a 409 name
- * conflict vs a 400 privileged-package rejection).
+ * conflict vs a 403 privileged-package rejection).
  */
 export async function postServiceBytesWithStatus(path: string, bytes: Uint8Array, contentType: string): Promise<{ response: Response | null; status: number }> {
   return sendServiceBytesWithStatus('POST', path, bytes, contentType);
