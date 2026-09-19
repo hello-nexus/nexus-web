@@ -61,8 +61,12 @@
   touch-action: manipulation;
   transition: transform var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast), border-color var(--ease-fast);
 
-  &:hover {
-    background: color-mix(in srgb, var(--deck-accent, #64748b) 90%, #ffffff);
+  // Pointer-only: a tap leaves the emulated hover on the key until the next
+  // touch elsewhere, which reads as a highlight stuck on after release.
+  @media (hover: hover) {
+    &:hover {
+      background: color-mix(in srgb, var(--deck-accent, #64748b) 90%, #ffffff);
+    }
   }
 
   &:active {
