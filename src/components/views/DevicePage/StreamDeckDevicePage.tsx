@@ -164,8 +164,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   }, [applyEditorTarget]);
 
   // Live per-key tile frames the service renders for this deck (the same
-  // pixels pushed to the hardware, now for EVERY key), keyed
-  // `${page}:${slotPath}` (slotPath per deckTarget.slotPathAt) to a data URI -
+  // pixels pushed to the hardware), keyed `${page}:${slotPath}` (slotPath per
+  // deckTarget.slotPathAt) to a data URI -
   // handed to DeckGrid's liveTiles so the preview is pixel-identical to the
   // physical key by construction rather than approximated in CSS. Frames for
   // a different deck's serial are dropped. clearLiveTiles resets the map

@@ -1,7 +1,8 @@
 // Client for the host-wide deck routes (nexus-service's src/Routes/DeckRoutes.cs).
-// Every route here is .LocalhostOnly() except the instance routes, which are
-// AllowPanel (a paired panel presses/reads its own instance; DeckLayoutPolicy
-// still gates privileged key authoring).
+// Every route here is .LocalhostOnly() except preset GET/POST/PUT, instance
+// GET/PUT, and recent-apps GET/activate, which are AllowPanel (a paired panel
+// reads/edits its own instance; DeckLayoutPolicy still gates privileged key
+// authoring on a preset write). Preset DELETE and /apps stay LocalhostOnly.
 import { fetchService, postService, putService, deleteService, authFetchWithStatus } from './service';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 

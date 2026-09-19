@@ -6,7 +6,12 @@ import type { UseDeckInstanceResult } from '../../../panel/widgets/deck/useDeckI
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => false }));
+vi.mock('../../../api/service', () => ({
+  isLocalhostUnreachable: () => false,
+  // DeckRecentAppsSection resolves excluded-chip display names from
+  // GET /shortcuts; no chips are exercised in this file's Recent Apps tests.
+  fetchService: () => Promise.resolve({ shortcuts: [] }),
+}));
 vi.mock('../../../panel/widgets/common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 
 // Real useTranslation returns the bare key (no interpolation) when there is no

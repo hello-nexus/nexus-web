@@ -29,12 +29,11 @@ const LABEL_ALIGN_CLASS = {
 
 /**
  * Visual content (icon + optional label) + the accent for a slot. `liveSrc`
- * is a data URI from the service's own key renderer (DeckGrid's liveTiles,
- * now pushed for EVERY key on a physical deck) - when set, ANY slot kind
- * shows that frame instead of drawing its own CSS tile, so the physical
- * editor preview matches the hardware key by construction; a monitoring/
- * weather slot falls back to its own live CSS tile only until the first
- * frame arrives.
+ * is a data URI from the service's own key renderer (DeckGrid's liveTiles) -
+ * when set, ANY slot kind shows that frame instead of drawing its own CSS
+ * tile, so the physical editor preview matches the hardware key by
+ * construction; a monitoring/weather slot falls back to its own live CSS
+ * tile until the first frame arrives.
  */
 function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { accent: string; content: ReactNode; empty: boolean } {
   const action = slot.action;
