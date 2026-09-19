@@ -68,7 +68,10 @@ describe('useDeckInstance - initial load', () => {
     expect(result.current.instance).toEqual(INSTANCE);
     expect(result.current.preset).toEqual(PRESET);
     expect(result.current.presets).toEqual([{ id: 'p1', name: 'Streaming', cols: 3, rows: 2, pageCount: 1 }]);
-    expect(result.current.target?.config).toEqual(PRESET.deck);
+    // target.config is the FITTED view (deckTarget.ts's makePresetDeckTarget),
+    // padded to the instance's own keyCount - not the raw authored PRESET.deck.
+    expect(result.current.target?.config.pages).toHaveLength(1);
+    expect(result.current.target?.config.pages[0].slots).toEqual([{}, {}, {}, {}, {}, {}]);
     expect(result.current.error).toBe(false);
   });
 

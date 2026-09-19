@@ -7,17 +7,17 @@
 .pill {
   align-self: flex-start;
   padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-pill, 999px);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
   color: var(--accent);
   font-size: var(--type-mini);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .subsectionLabel {
   font-size: var(--type-small);
   color: var(--text);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .profileList {
@@ -32,7 +32,7 @@
   gap: 0.5rem;
   padding: 0.4rem 0.5rem;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  background: var(--surface);
 }
 
 .profileIcons {

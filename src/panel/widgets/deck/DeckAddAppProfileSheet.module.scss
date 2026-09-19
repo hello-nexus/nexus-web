@@ -20,7 +20,7 @@
   gap: 0.5rem;
   padding: 0.5rem 0.6rem;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--surface) 60%, transparent);
+  background: var(--surface);
   cursor: pointer;
   text-align: left;
   border: 0;
@@ -28,7 +28,7 @@
   font: inherit;
 
   &:hover {
-    background: color-mix(in srgb, var(--surface) 80%, transparent);
+    background: var(--surface-hover);
   }
 
   &:disabled {

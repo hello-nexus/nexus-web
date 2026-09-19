@@ -154,7 +154,7 @@ function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot }: {
   initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean; part?: 'all' | 'picker' | 'editor'; onDeleteSlot?: () => void;
 }) {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
-  const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), 'physical', setConfig);
+  const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), { cols: initialSlots.length, rows: 1 }, 'physical', setConfig);
   return (
     <DeckKeyInspector
       target={target}
@@ -182,7 +182,7 @@ function WidgetHarness({ initialSlots, surface, desktopEditor }: {
   initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean;
 }) {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
-  const target = makePresetDeckTarget(testPreset(config, 2, 2), 'widget', setConfig);
+  const target = makePresetDeckTarget(testPreset(config, 2, 2), { cols: 2, rows: 2 }, 'widget', setConfig);
   return (
     <DeckKeyInspector
       target={target}
@@ -292,7 +292,7 @@ describe('DeckKeyInspector action picker - collapsible category list', () => {
     function SwitchingHarness() {
       const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: [{ action: { type: 'text', text: 'one' } }, { action: { type: 'text', text: 'two' } }] }] });
       const [selected, setSelected] = useState(0);
-      const target = makePresetDeckTarget(testPreset(config, 2, 1), 'physical', setConfig);
+      const target = makePresetDeckTarget(testPreset(config, 2, 1), { cols: 2, rows: 1 }, 'physical', setConfig);
       return (
         <>
           <button type="button" onClick={() => setSelected(s => 1 - s)}>switch</button>
@@ -1033,7 +1033,7 @@ describe('DeckKeyInspector - IconPicker remounts per slot (no sticky tab across 
       }],
     });
     const [selected, setSelected] = useState(0);
-    const target = makePresetDeckTarget(testPreset(config, 2, 1), 'physical', setConfig);
+    const target = makePresetDeckTarget(testPreset(config, 2, 1), { cols: 2, rows: 1 }, 'physical', setConfig);
     return (
       <>
         <button type="button" onClick={() => setSelected(1)}>select second slot</button>
@@ -1091,7 +1091,7 @@ describe('DeckKeyInspector - delete action', () => {
   it('clearing the slot via onDeleteSlot hides the editor fields - the panel closes reactively, with no separate close call needed', () => {
     function SelfClearingHarness({ initialSlots }: { initialSlots: DeckSlot[] }) {
       const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
-      const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), 'physical', setConfig);
+      const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), { cols: initialSlots.length, rows: 1 }, 'physical', setConfig);
       return (
         <DeckKeyInspector
           target={target}

@@ -1824,7 +1824,7 @@ function PreviewDeckEditorPhysical() {
   const [folderPath, setFolderPath] = useState<number[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
   const preset: DeckPresetFull = { id: 'story-preset', name: 'Story preset', cols: 3, rows: 2, pageCount: config.pages.length, deck: config };
-  const target = makePresetDeckTarget(preset, 'physical', setConfig);
+  const target = makePresetDeckTarget(preset, { cols: preset.cols, rows: preset.rows }, 'physical', setConfig);
   return (
     <div style={{ width: '100%', maxWidth: 420 }}>
       <DeckEditor

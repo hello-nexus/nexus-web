@@ -243,8 +243,9 @@ function useOwnDeckInstance(
 
   const target = useMemo<DeckTarget | null>(() => {
     if (!preset) return null;
-    return makePresetDeckTarget(preset, kind, commitDeck);
-  }, [preset, kind, commitDeck]);
+    return makePresetDeckTarget(preset, instanceGrid, kind, commitDeck);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preset, kind, commitDeck, instanceGrid.cols, instanceGrid.rows]);
 
   const setMode = useCallback((mode: DeckInstanceMode) => {
     if (!instanceId) return;

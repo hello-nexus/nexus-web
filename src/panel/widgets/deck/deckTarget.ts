@@ -1,21 +1,34 @@
 // Target-agnostic binding for the shared Deck editor (DeckEditor.tsx): a
-// physical Stream Deck instance and a widget instance both edit the same
-// host-wide preset's authored grid through this one DeckTarget shape, so the
-// grid + inspector never branch on which kind of instance is editing it.
+// physical Stream Deck instance and a widget instance both edit through this
+// one DeckTarget shape, so the grid + inspector never branch on which kind of
+// instance is editing it.
 import type { DeckPresetFull } from '../../../api/deck';
 import type { DeckConfig, DeckSlot, DeckTitleStyle } from './types';
-import { addPage, removePage, resolveViewSlots, swapSlots, updateSlotAt, type DepthCount } from './deckLayout';
+import {
+  addPage, removePage, resolveViewSlots, swapSlots, updateSlotAt, fitToGridWithOrigins,
+  type DepthCount, type FittedSlotOrigin,
+} from './deckLayout';
 
 export interface DeckTarget {
   kind: 'widget' | 'physical';
+  /** The INSTANCE's own grid (a widget's size, or the physical deck's key
+   *  layout) - what the user is actually looking at, not the preset's
+   *  authored size. */
   cols: number;
   rows: number;
-  /** Root-level slot count (the widget's size grid, or the deck's keyCount). */
+  /** Root-level slot count for this instance's grid. */
   keyCount: number;
+  /** The FITTED projection of the active preset onto this instance's grid
+   *  (deckLayout.ts's fitToGrid) - editing always happens against this, the
+   *  same view the hardware/widget renders, never the pre-fit authored grid
+   *  directly. A slot with `auto: true` is a synthesized page-nav key and is
+   *  read-only: updateSlot/swapSlots silently ignore it. */
   config: DeckConfig;
   updateSlot(page: number, folderPath: readonly number[], slotIndex: number, next: DeckSlot): void;
   swapSlots(page: number, folderPath: readonly number[], from: number, to: number): void;
+  /** Appends a new (fitted-space-empty) page to the AUTHORED preset. */
   addPage(): void;
+  /** Removes the authored page that produced fitted page `page`. */
   removePage(page: number): void;
   /** Deck-wide default title style seeded onto newly bound keys. */
   setTitleDefault(next: DeckTitleStyle | undefined): void;
@@ -42,40 +55,80 @@ export function resolveTargetView(target: DeckTarget, page: number, folderPath: 
 }
 
 /**
- * Editing target for a deck instance: always the ACTIVE PRESET's authored
- * grid (preset.cols/rows), never the instance's own physical/widget grid -
- * fitToGrid handles the render-time projection separately. `kind` still
- * distinguishes a physical instance (Back-key reservation in folders) from a
- * widget instance, same as before.
+ * Root-level authored depth-count: the AUTHORED page's own key count (grown
+ * to the instance's fitted key count on the rare case a small preset is
+ * viewed on a bigger instance, so a blank cell past the preset's own
+ * declared size is still a real, writable authored slot). Folder depths
+ * still use the fitted capacity (unchanged from before this instance edited
+ * the fitted view - folders never paginate, so their capacity was already a
+ * render-time-target concept, not an authored one).
+ */
+function authoredDepthCount(fitted: Pick<DeckTarget, 'kind' | 'keyCount'>, authoredRootCount: number): DepthCount {
+  return (depth: number) => (depth === 0 ? authoredRootCount : slotCountAtDepth(fitted, depth));
+}
+
+/**
+ * Editing target for a deck instance: the FITTED projection of the active
+ * preset onto `instanceGrid` (what the user physically sees - a hardware key,
+ * or a widget tile), read via `config`. Writes translate the fitted (page,
+ * slotIndex) touched back to the authored preset's own (page, slotIndex)
+ * through fitToGridWithOrigins's map before saving; a synthesized nav key
+ * (`auto: true`) has no authored origin and is silently read-only.
  */
 export function makePresetDeckTarget(
   preset: DeckPresetFull,
+  instanceGrid: { cols: number; rows: number },
   kind: 'widget' | 'physical',
   save: (next: DeckConfig) => void,
 ): DeckTarget {
-  const config = preset.deck;
-  const target: Pick<DeckTarget, 'kind' | 'keyCount'> = { kind, keyCount: preset.cols * preset.rows };
+  const authoredKeyCount = preset.cols * preset.rows;
+  const fitted = fitToGridWithOrigins(
+    { cols: preset.cols, rows: preset.rows, deck: preset.deck },
+    { cols: instanceGrid.cols, rows: instanceGrid.rows, kind },
+  );
+  const target: Pick<DeckTarget, 'kind' | 'keyCount'> = { kind, keyCount: instanceGrid.cols * instanceGrid.rows };
+  const authoredCount = authoredDepthCount(target, Math.max(authoredKeyCount, target.keyCount));
+
+  const rootOriginAt = (page: number, index: number): FittedSlotOrigin | undefined => fitted.origins[page]?.[index];
+
   return {
     kind,
-    cols: preset.cols,
-    rows: preset.rows,
+    cols: instanceGrid.cols,
+    rows: instanceGrid.rows,
     keyCount: target.keyCount,
-    config,
+    config: fitted.config,
     updateSlot(page, folderPath, slotIndex, next) {
-      save(updateSlotAt(config, page, folderPath, slotIndex, next, depthCount(target)));
+      const rootIndex = folderPath.length === 0 ? slotIndex : folderPath[0];
+      const origin = rootOriginAt(page, rootIndex);
+      if (!origin || origin.kind === 'auto') return;
+      const authoredFolderPath = folderPath.length === 0 ? [] : [origin.slotIndex, ...folderPath.slice(1)];
+      const authoredSlotIndex = folderPath.length === 0 ? origin.slotIndex : slotIndex;
+      save(updateSlotAt(preset.deck, origin.page, authoredFolderPath, authoredSlotIndex, next, authoredCount));
     },
     swapSlots(page, folderPath, from, to) {
-      const nextConfig = swapSlots(config, page, folderPath, from, to, depthCount(target));
-      if (nextConfig !== config) save(nextConfig);
+      const rootFrom = folderPath.length === 0 ? from : folderPath[0];
+      const origin = rootOriginAt(page, rootFrom);
+      if (!origin || origin.kind === 'auto') return;
+      if (folderPath.length === 0) {
+        const toOrigin = rootOriginAt(page, to);
+        if (!toOrigin || toOrigin.kind === 'auto') return;
+        const nextConfig = swapSlots(preset.deck, origin.page, [], origin.slotIndex, toOrigin.slotIndex, authoredCount);
+        if (nextConfig !== preset.deck) save(nextConfig);
+        return;
+      }
+      const authoredFolderPath = [origin.slotIndex, ...folderPath.slice(1)];
+      const nextConfig = swapSlots(preset.deck, origin.page, authoredFolderPath, from, to, authoredCount);
+      if (nextConfig !== preset.deck) save(nextConfig);
     },
     addPage() {
-      save(addPage(config));
+      save(addPage(preset.deck));
     },
     removePage(page) {
-      save(removePage(config, page));
+      const authoredPage = fitted.pageOrigins[page] ?? 0;
+      save(removePage(preset.deck, authoredPage));
     },
     setTitleDefault(next) {
-      save({ ...config, defaultTitleStyle: next });
+      save({ ...preset.deck, defaultTitleStyle: next });
     },
   };
 }

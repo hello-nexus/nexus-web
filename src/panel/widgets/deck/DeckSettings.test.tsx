@@ -30,7 +30,7 @@ vi.mock('./useDeckInstance', () => ({
       latestSave = saveRef.current;
     }
     const preset = { id: 'p1', name: 'Preset', cols: 2, rows: 2, pageCount: deck.pages.length, deck };
-    const target = makePresetDeckTarget(preset, 'widget', saveRef.current);
+    const target = makePresetDeckTarget(preset, { cols: 2, rows: 2 }, 'widget', saveRef.current);
     return {
       instance: { mode: 'fixed', activePresetId: 'p1' },
       preset,
@@ -160,7 +160,9 @@ describe('DeckSettings (touch widget)', () => {
   });
 
   it('deletes an empty folder outright - nothing inside it to warn about', () => {
-    const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: [] } }] }] };
+    // A trailing populated slot keeps the fitted view from trimming the empty
+    // folder away entirely (fitToGrid only trims trailing CONTENTLESS slots).
+    const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: [] } }, { action: { type: 'hotkey', keys: 'x' } }] }] };
     renderSettings(deck);
 
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.deleteKey' }));
