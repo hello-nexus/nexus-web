@@ -79,6 +79,11 @@ function baseProps(over: Partial<Parameters<typeof DeckInstanceEditor>[0]> = {})
 beforeEach(() => vi.clearAllMocks());
 
 describe('DeckInstanceEditor - mode chip', () => {
+  it('shows a visible "Mode" label, not just an aria-label', () => {
+    render(<DeckInstanceEditor {...baseProps()} />);
+    expect(screen.getByText('panel.settings.deck.mode.label')).toBeInTheDocument();
+  });
+
   it('reflects the instance\'s current mode', () => {
     render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'appAware', activePresetId: 'p1' } }) })} />);
     expect(screen.getByRole('radio', { name: 'panel.settings.deck.mode.appAware' })).toHaveAttribute('aria-checked', 'true');

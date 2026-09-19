@@ -3,6 +3,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { ChipGroup, type ChipOption } from '../../../components/common/ChipGroup/ChipGroup';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { Button } from '../../../components/common/Button/Button';
+import { SettingRow } from '../../../components/common/SettingRow/SettingRow';
 import { fitPageCount } from './deckLayout';
 import { DeckEditor } from './DeckEditor';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
@@ -89,13 +90,15 @@ export function DeckInstanceEditor({
 
   return (
     <div className={styles.root}>
-      <ChipGroup
-        fullWidth
-        ariaLabel={t('panel.settings.deck.mode.label')}
-        options={modeOptions}
-        activeKey={mode}
-        onChange={key => deck.setMode(key as DeckInstanceMode)}
-      />
+      <SettingRow label={t('panel.settings.deck.mode.label')} wrapControl>
+        <ChipGroup
+          fullWidth
+          ariaLabel={t('panel.settings.deck.mode.label')}
+          options={modeOptions}
+          activeKey={mode}
+          onChange={key => deck.setMode(key as DeckInstanceMode)}
+        />
+      </SettingRow>
 
       {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} />}
       {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} />}

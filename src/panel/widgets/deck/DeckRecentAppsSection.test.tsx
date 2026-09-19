@@ -1,9 +1,12 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
 
 const mockUseRecentApps = vi.fn();
 vi.mock('./useRecentApps', () => ({ useRecentApps: (enabled: boolean) => mockUseRecentApps(enabled) }));
+
+const mockFetchService = vi.fn();
+vi.mock('../../../api/service', () => ({ fetchService: (path: string) => mockFetchService(path) }));
 
 vi.mock('../common/AppPicker', () => ({
   AppPicker: ({ onSelect }: { onSelect: (app: { id: string; name: string; processName?: string }) => void }) => (
@@ -29,6 +32,8 @@ function baseResult(over: Partial<ReturnType<typeof mockUseRecentApps>> = {}) {
 beforeEach(() => {
   mockUseRecentApps.mockReset();
   mockUseRecentApps.mockReturnValue(baseResult());
+  mockFetchService.mockReset();
+  mockFetchService.mockResolvedValue({ shortcuts: [] });
 });
 
 describe('DeckRecentAppsSection - excluded chips', () => {
@@ -59,6 +64,34 @@ describe('DeckRecentAppsSection - excluded chips', () => {
     fireEvent.click(screen.getByText('panel.settings.deck.recentApps.addExcluded'));
     fireEvent.click(screen.getByText('pick-chrome'));
     expect(setExcluded).toHaveBeenCalledWith(['discord', 'chrome']);
+  });
+});
+
+describe('DeckRecentAppsSection - excluded chip display names survive a reopen', () => {
+  it('resolves a name from the installed shortcuts list when the ring no longer carries it', async () => {
+    mockFetchService.mockResolvedValue({ shortcuts: [{ name: 'Discord', processName: 'discord' }] });
+    mockUseRecentApps.mockReturnValue(baseResult({ excluded: ['discord'] }));
+    render(<DeckRecentAppsSection showPreviewNote={false} />);
+
+    await waitFor(() => expect(screen.getByText('Discord')).toBeInTheDocument());
+    expect(screen.queryByText('discord')).toBeNull();
+  });
+
+  it('prefers the live ring name over the shortcuts list', async () => {
+    mockFetchService.mockResolvedValue({ shortcuts: [{ name: 'Old Name', processName: 'discord' }] });
+    mockUseRecentApps.mockReturnValue(baseResult({
+      excluded: ['discord'],
+      apps: [{ processKey: 'discord', name: 'Discord (running)', lastFocusedUtcMs: 0 }],
+    }));
+    render(<DeckRecentAppsSection showPreviewNote={false} />);
+
+    await waitFor(() => expect(screen.getByText('Discord (running)')).toBeInTheDocument());
+  });
+
+  it('falls back to the raw process key when no name resolves anywhere', () => {
+    mockUseRecentApps.mockReturnValue(baseResult({ excluded: ['mystery-app'] }));
+    render(<DeckRecentAppsSection showPreviewNote={false} />);
+    expect(screen.getByText('mystery-app')).toBeInTheDocument();
   });
 });
 
