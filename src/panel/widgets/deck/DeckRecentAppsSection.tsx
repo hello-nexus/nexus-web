@@ -5,6 +5,8 @@ import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { Button } from '../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
+import { SettingsSection } from '../../../components/common/SettingsSection/SettingsSection';
+import { SettingRow } from '../../../components/common/SettingRow/SettingRow';
 import { AppPicker } from '../common/AppPicker';
 import { fetchService } from '../../../api/service';
 import { useRecentApps } from './useRecentApps';
@@ -62,42 +64,45 @@ export function DeckRecentAppsSection({ showPreviewNote }: DeckRecentAppsSection
 
   return (
     <div className={styles.root}>
-      <p className={styles.description}>{t('panel.settings.deck.mode.recentAppsDescription')}</p>
+      <SettingsSection description={t('panel.settings.deck.mode.recentAppsDescription')}>
+        <SettingRow label={t('panel.settings.deck.recentApps.excludedTitle')} wrapControl stackOnNarrow>
+          <div className={styles.chipRow}>
+            {excluded.length > 0 && (
+              <ChipGroup
+                wrap
+                multiSelect
+                ariaLabel={t('panel.settings.deck.recentApps.excludedTitle')}
+                activeKeys={new Set(excluded)}
+                options={excluded.map(key => ({
+                  key,
+                  ariaLabel: t('panel.settings.deck.recentApps.excludedRemove', { name: nameFor(key) }),
+                  label: (
+                    <span className={styles.chipLabel}>
+                      {nameFor(key)}
+                      <X size={12} aria-hidden />
+                    </span>
+                  ),
+                }))}
+                onToggleKey={key => void setExcluded(excluded.filter(k => k !== key))}
+              />
+            )}
+            <Button
+              tone="ghost"
+              size="sm"
+              icon={<Plus size={14} aria-hidden />}
+              onClick={() => setPickerOpen(true)}
+            >
+              {t('panel.settings.deck.recentApps.addExcluded')}
+            </Button>
+          </div>
+        </SettingRow>
 
-      <span className={styles.subsectionLabel}>{t('panel.settings.deck.recentApps.excludedTitle')}</span>
-      <div className={styles.chipRow}>
-        {excluded.length > 0 && (
-          <ChipGroup
-            wrap
-            multiSelect
-            ariaLabel={t('panel.settings.deck.recentApps.excludedTitle')}
-            activeKeys={new Set(excluded)}
-            options={excluded.map(key => ({
-              key,
-              ariaLabel: t('panel.settings.deck.recentApps.excludedRemove', { name: nameFor(key) }),
-              label: (
-                <span className={styles.chipLabel}>
-                  {nameFor(key)}
-                  <X size={12} aria-hidden />
-                </span>
-              ),
-            }))}
-            onToggleKey={key => void setExcluded(excluded.filter(k => k !== key))}
-          />
-        )}
-        <Button
-          tone="ghost"
-          size="sm"
-          icon={<Plus size={14} aria-hidden />}
-          onClick={() => setPickerOpen(true)}
-        >
-          {t('panel.settings.deck.recentApps.addExcluded')}
-        </Button>
-      </div>
-
-      <Button tone="ghost" size="sm" onClick={() => setConfirmClear(true)}>
-        {t('panel.settings.deck.recentApps.clear')}
-      </Button>
+        <SettingRow>
+          <Button tone="ghost" size="sm" onClick={() => setConfirmClear(true)}>
+            {t('panel.settings.deck.recentApps.clear')}
+          </Button>
+        </SettingRow>
+      </SettingsSection>
 
       {showPreviewNote && <p className={styles.previewNote}>{t('panel.settings.deck.recentApps.previewNote')}</p>}
 

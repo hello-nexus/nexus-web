@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { AppWindow, Plus } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
+import { SettingsSection } from '../../../components/common/SettingsSection/SettingsSection';
+import { SettingRow } from '../../../components/common/SettingRow/SettingRow';
 import { useAppIcon } from '../common/AppPicker';
 import { PresetAppsModal } from '../lighting/page/PresetAppsModal';
 import { setDeckPresetApps, type DeckPresetSummary, type PresetApp } from '../../../api/deck';
@@ -47,34 +49,37 @@ export function DeckAppAwareSection({ deck, instanceGrid }: DeckAppAwareSectionP
 
   const openApps = (preset: DeckPresetSummary) => setAppsTarget({ id: preset.id, name: preset.name, apps: preset.apps ?? [] });
 
+  const statusPill = (
+    <span className={styles.pill}>
+      {t('panel.settings.deck.appAware.statusPill', { name: deck.preset?.name ?? '' })}
+    </span>
+  );
+
   return (
     <div className={styles.root}>
-      <span className={styles.pill}>
-        {t('panel.settings.deck.appAware.statusPill', { name: deck.preset?.name ?? '' })}
-      </span>
-
-      <span className={styles.subsectionLabel}>{t('panel.settings.deck.appAware.profilesTitle')}</span>
-      <div className={styles.profileList}>
+      <SettingsSection title={t('panel.settings.deck.appAware.profilesTitle')} action={statusPill}>
         {boundPresets.length === 0 && <p className={styles.emptyNote}>{t('panel.settings.deck.appAware.noProfiles')}</p>}
         {boundPresets.map(p => (
-          <div key={p.id} className={styles.profileRow}>
-            <div className={styles.profileIcons}>
-              {(p.apps ?? []).slice(0, 4).map(a => <ProfileIcon key={a.id} appId={a.id} />)}
-            </div>
-            <span className={styles.profileName}>{p.name}</span>
+          <SettingRow
+            key={p.id}
+            label={p.name}
+            icon={<div className={styles.profileIcons}>{(p.apps ?? []).slice(0, 4).map(a => <ProfileIcon key={a.id} appId={a.id} />)}</div>}
+            iconLeading
+          >
             <Button tone="ghost" size="sm" onClick={() => openApps(p)}>
               {t('panel.settings.deck.appAware.appsButton')}
             </Button>
             <Button tone="ghost" size="sm" onClick={() => void deck.activate(p.id)}>
               {t('panel.settings.deck.appAware.edit')}
             </Button>
-          </div>
+          </SettingRow>
         ))}
-      </div>
-
-      <Button tone="ghost" size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => setAddOpen(true)}>
-        {t('panel.settings.deck.appAware.addProfile')}
-      </Button>
+        <SettingRow>
+          <Button tone="ghost" size="sm" icon={<Plus size={14} aria-hidden />} onClick={() => setAddOpen(true)}>
+            {t('panel.settings.deck.appAware.addProfile')}
+          </Button>
+        </SettingRow>
+      </SettingsSection>
 
       <p className={styles.fallbackNote}>{t('panel.settings.deck.appAware.fallbackNote')}</p>
 

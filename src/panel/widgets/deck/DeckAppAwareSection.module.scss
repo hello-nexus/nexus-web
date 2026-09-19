@@ -14,27 +14,6 @@
   font-weight: var(--weight-strong);
 }
 
-.subsectionLabel {
-  font-size: var(--type-small);
-  color: var(--text);
-  font-weight: var(--weight-strong);
-}
-
-.profileList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.profileRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-}
-
 .profileIcons {
   display: flex;
   align-items: center;
@@ -65,15 +44,6 @@
   border-radius: var(--radius-sm);
   padding: 2px;
   box-sizing: content-box;
-}
-
-.profileName {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--type-small);
 }
 
 .emptyNote {
