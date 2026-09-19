@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DeckEditor } from './DeckEditor';
 import type { DeckTarget } from './deckTarget';
@@ -16,7 +16,7 @@ vi.mock('./DeckKeyInspector', () => ({
   slotForPickerKind: () => ({}),
 }));
 
-function fakeTarget(pageCount: number): DeckTarget {
+function fakeTarget(pageCount: number, authoredPageCount = pageCount): DeckTarget {
   return {
     kind: 'widget',
     cols: 2,
@@ -29,6 +29,7 @@ function fakeTarget(pageCount: number): DeckTarget {
     removePage: vi.fn().mockReturnValue(0),
     removePageKeyCount: vi.fn().mockReturnValue(0),
     setTitleDefault: vi.fn(),
+    authoredPageCount,
   };
 }
 
@@ -73,5 +74,53 @@ describe('DeckEditor - page clamp', () => {
       />,
     );
     expect(screen.getByTestId('inspector-page')).toHaveTextContent('0');
+  });
+});
+
+describe('DeckEditor - page-remove control keys off the AUTHORED page count', () => {
+  it('disables Remove when a single authored page spans several fitted (chunked) pages', () => {
+    const target = fakeTarget(2, 1);
+    render(
+      <DeckEditor
+        target={target}
+        page={0}
+        onPageChange={vi.fn()}
+        folderPath={[]}
+        onFolderPathChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeDisabled();
+  });
+
+  it('enables Remove when there is more than one authored page', () => {
+    const target = fakeTarget(2, 2);
+    render(
+      <DeckEditor
+        target={target}
+        page={0}
+        onPageChange={vi.fn()}
+        folderPath={[]}
+        onFolderPathChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' })).not.toBeDisabled();
+  });
+
+  it('onRemoveCurrentPage selects the fitted page target.removePage returns, not page - 1', () => {
+    const onPageChange = vi.fn();
+    const target = fakeTarget(3, 2);
+    (target.removePage as ReturnType<typeof vi.fn>).mockReturnValue(1);
+    render(
+      <DeckEditor
+        target={target}
+        page={2}
+        onPageChange={onPageChange}
+        folderPath={[]}
+        onFolderPathChange={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' }));
+    expect(target.removePage).toHaveBeenCalledWith(2);
+    expect(onPageChange).toHaveBeenCalledWith(1);
   });
 });

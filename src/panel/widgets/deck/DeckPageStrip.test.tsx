@@ -169,6 +169,38 @@ describe('DeckPageStrip', () => {
     expect(screen.getByText('panel.settings.deck.page.removeConfirmBody:{"count":0}')).toBeInTheDocument();
   });
 
+  it('canRemove=false disables the remove control even when the fitted pageCount is > 1 (one authored page spanning several fitted chunks)', () => {
+    render(
+      <DeckPageStrip
+        pageCount={3}
+        currentPage={0}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onRemoveCurrentPage={vi.fn()}
+        currentPageHasContent={false}
+        canRemove={false}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeDisabled();
+  });
+
+  it('canRemove=true enables the remove control even when the (unrelated) fitted pageCount is 1', () => {
+    const onRemove = vi.fn();
+    render(
+      <DeckPageStrip
+        pageCount={1}
+        currentPage={0}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onRemoveCurrentPage={onRemove}
+        currentPageHasContent={false}
+        canRemove
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' }));
+    expect(onRemove).toHaveBeenCalledTimes(1);
+  });
+
   it('cancelling the confirm leaves the page untouched', () => {
     const onRemove = vi.fn();
     render(

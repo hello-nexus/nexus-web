@@ -29,6 +29,15 @@ export interface DeckPageStripProps {
    *  automatically (Recent Apps' auto pagination), not authored, so there is
    *  nothing for those controls to do. */
   readOnly?: boolean;
+  /**
+   * Whether the current page can be removed. Defaults to `pageCount > 1` for
+   * a caller with no authored/fitted distinction; a caller whose `pageCount`
+   * is the FITTED (chunked) count must pass this explicitly - one authored
+   * page spanning several fitted chunks would otherwise enable removal, and
+   * removing any of its chunks no-ops (deckLayout.ts's removePage refuses to
+   * drop a deck's last authored page).
+   */
+  canRemove?: boolean;
 }
 
 /**
@@ -41,10 +50,11 @@ export interface DeckPageStripProps {
  */
 export function DeckPageStrip({
   pageCount, currentPage, onSelectPage, onAddPage, onRemoveCurrentPage, currentPageHasContent, removeCount, className, numbered, readOnly,
+  canRemove: canRemoveProp,
 }: DeckPageStripProps) {
   const { t } = useTranslation();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const canRemove = pageCount > 1;
+  const canRemove = canRemoveProp ?? pageCount > 1;
 
   const requestRemove = () => {
     if (!canRemove || !onRemoveCurrentPage) return;

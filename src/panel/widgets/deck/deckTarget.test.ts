@@ -192,10 +192,39 @@ describe('makePresetDeckTarget - overflow (chunked) writes and read-only auto ke
     const target = makePresetDeckTarget(bigPreset, { cols: 3, rows: 2 }, 'widget', save);
     // 3 fitted pages total: 2 chunked from authored page 0, 1 from authored page 1.
     expect(target.config.pages).toHaveLength(3);
-    target.removePage(1); // still chunked from authored page 0
+    const nextFittedPage = target.removePage(1); // still chunked from authored page 0
     const next = save.mock.calls[0][0] as DeckConfig;
     expect(next.pages).toHaveLength(1);
     expect(next.pages[0].slots[0].label).toBe('p1');
+    // Fitted page 0 is the first (only remaining) chunk of authored page 0.
+    expect(nextFittedPage).toBe(0);
+  });
+
+  it('removePage returns a fitted index OUTSIDE the whole removed authored page\'s chunk group, not naively page - 1', () => {
+    const save = vi.fn();
+    // Authored A (9 keys, chunks to fitted[0,1]) + B (9 keys, chunks to
+    // fitted[2,3]) + C (1 key, fitted[4]). Removing fitted page 3 (B's SECOND
+    // chunk): a naive page-1 (= 2) would land back inside B's own group,
+    // which is being deleted along with it.
+    const nineKeys = () => Array.from({ length: 9 }, (_, i) => ({ label: `k${i}` }));
+    const threePages = preset({ pages: [{ slots: nineKeys() }, { slots: nineKeys() }, { slots: [{ label: 'c' }] }] }, 3, 3);
+    const target = makePresetDeckTarget(threePages, { cols: 3, rows: 2 }, 'widget', save);
+    expect(target.config.pages).toHaveLength(5);
+    const nextFittedPage = target.removePage(3);
+    const next = save.mock.calls[0][0] as DeckConfig;
+    expect(next.pages).toHaveLength(2); // A and C remain
+    // Lands on the last fitted chunk of A (the preceding authored page), not
+    // inside B's now-deleted group.
+    expect(nextFittedPage).toBe(1);
+  });
+
+  it('authoredPageCount counts AUTHORED pages, never the fitted/chunked count', () => {
+    const nineKeys = () => Array.from({ length: 9 }, (_, i) => ({ label: `k${i}` }));
+    const bigPreset = preset({ pages: [{ slots: nineKeys() }] }, 3, 3);
+    const target = makePresetDeckTarget(bigPreset, { cols: 3, rows: 2 }, 'widget', vi.fn());
+    // One authored page chunks into 2 fitted pages here.
+    expect(target.config.pages).toHaveLength(2);
+    expect(target.authoredPageCount).toBe(1);
   });
 
   it('removePageKeyCount reports the WHOLE authored page\'s key count on every fitted chunk of it, not just what that chunk shows', () => {

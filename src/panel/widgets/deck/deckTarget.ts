@@ -28,8 +28,13 @@ export interface DeckTarget {
   swapSlots(page: number, folderPath: readonly number[], from: number, to: number): void;
   /** Appends a new (fitted-space-empty) page to the AUTHORED preset. */
   addPage(): void;
-  /** Removes the authored page that produced fitted page `page`. */
-  removePage(page: number): void;
+  /**
+   * Removes the authored page that produced fitted page `page` (removing any
+   * of its overflow chunks removes the whole authored page) and returns the
+   * fitted page index to select next - the last fitted chunk of the
+   * preceding authored page, never one still inside the group just removed.
+   */
+  removePage(page: number): number;
   /**
    * Bound-key count of the AUTHORED page that `removePage(page)` would
    * delete - on an overflow-chunked page this can exceed what's visible in
@@ -37,6 +42,12 @@ export interface DeckTarget {
    * removes the whole authored page.
    */
   removePageKeyCount(page: number): number;
+  /**
+   * Number of AUTHORED pages (never the fitted/chunked count) - a single
+   * authored page can chunk into several fitted ones, and only the authored
+   * count says whether there is anything left to remove.
+   */
+  authoredPageCount: number;
   /** Deck-wide default title style seeded onto newly bound keys. */
   setTitleDefault(next: DeckTitleStyle | undefined): void;
 }
@@ -148,11 +159,13 @@ export function makePresetDeckTarget(
     removePage(page) {
       const authoredPage = fitted.pageOrigins[page] ?? 0;
       save(removePage(preset.deck, authoredPage));
+      return Math.max(0, fitted.pageOrigins.indexOf(authoredPage) - 1);
     },
     removePageKeyCount(page) {
       const authoredPage = fitted.pageOrigins[page] ?? 0;
       return countBoundSlots(preset.deck.pages[authoredPage]?.slots ?? []);
     },
+    authoredPageCount: preset.deck.pages.length,
     setTitleDefault(next) {
       save({ ...preset.deck, defaultTitleStyle: next });
     },

@@ -230,6 +230,7 @@ describe('DeckKeyInspector - synthesized page-nav key (auto)', () => {
       kind: 'physical' as const, cols: 2, rows: 2, keyCount: 4,
       config: { pages: [{ slots: [{ action: { type: 'page' as const, op: 'next' as const }, auto: true }] }] },
       updateSlot: vi.fn(), swapSlots: vi.fn(), addPage: vi.fn(), removePage: vi.fn(), removePageKeyCount: vi.fn(), setTitleDefault: vi.fn(),
+      authoredPageCount: 1,
     };
     render(
       <DeckKeyInspector
