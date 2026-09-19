@@ -1,13 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Lock, Plus, QrCode, Settings2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Image, Lock, Palette, Plus, QrCode } from 'lucide-react';
 import { usePanelTraySwipe } from '../engine/usePanelTraySwipe';
 import { cssPxPerMm } from '../engine/panelGrid';
 import { TRAY_COMMIT_FLICK_MM_PER_MS, TRAY_COMMIT_TRAVEL_MM, TRAY_ENGAGE_TRAVEL_MM } from '../engine/gestureThresholds';
 import { isNativeApp } from '../device/panelNativeBridge';
-import { HoverTooltip } from '../../components/common/HoverTooltip/HoverTooltip';
-import { Button } from '../../components/common/Button/Button';
+import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { useTranslation } from '../../lib/i18n';
-import { PanelSwipeNotice } from './PanelSwipeNotice';
 import type { PanelSurface } from '../types';
 import styles from './PanelActionsTray.module.scss';
 
@@ -16,7 +14,9 @@ interface PanelActionsTrayProps {
   onOpen: () => void;
   onClose: () => void;
   onAddWidget: () => void;
-  onSettings?: () => void;
+  // The panel settings sheet, opened on its theme or its background section.
+  onTheme?: () => void;
+  onBackground?: () => void;
   onPair?: () => void;
   pairAvailable: boolean;
   // Opens the in-panel pairing sheet: on a local hardwired kiosk (Y70, touch
@@ -42,8 +42,6 @@ interface PanelActionsTrayProps {
   // not a local hardwired kiosk. The "Connected to <PC> 🔒" line shows only
   // then - a hardwired display already knows what it's plugged into.
   remotePaired?: boolean;
-  // One-shot card above the tray on the first-ever open (usePanelSwipeOnboarding).
-  showNotice?: boolean;
 }
 
 export function PanelActionsTray({
@@ -51,7 +49,8 @@ export function PanelActionsTray({
   onOpen,
   onClose,
   onAddWidget,
-  onSettings,
+  onTheme,
+  onBackground,
   onPair,
   pairAvailable,
   onPairSheet,
@@ -62,7 +61,6 @@ export function PanelActionsTray({
   pinnedOpen = false,
   machineName,
   remotePaired = false,
-  showNotice = false,
 }: PanelActionsTrayProps) {
   const { t } = useTranslation();
   const trayRef = useRef<HTMLDivElement | null>(null);
@@ -113,6 +111,27 @@ export function PanelActionsTray({
     ? (pairAvailable && onPair ? onPair : undefined)
     : (pairSheetAvailable && onPairSheet ? onPairSheet : undefined);
 
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  // Tiles keep their width until the row is narrower than the full set; then
+  // they shrink together and the row flags itself compact for smaller type.
+  const [compact, setCompact] = useState(false);
+  const tileCount = 1 + Number(Boolean(onTheme)) + Number(Boolean(onBackground)) + Number(Boolean(pairAction));
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      const tiles = tileCount;
+      const styles = getComputedStyle(row);
+      const tileWidth = parseFloat(styles.getPropertyValue('--tray-tile-width')) || 0;
+      const gap = parseFloat(styles.getPropertyValue('--tray-tile-gap')) || 0;
+      setCompact(row.clientWidth < tiles * tileWidth + (tiles - 1) * gap);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [tileCount]);
+
   return (
     <>
       {showScrim && (
@@ -148,44 +167,37 @@ export function PanelActionsTray({
             <Lock size={12} className={styles.connectedLock} aria-label={t('panel.actions.e2eEncrypted')} />
           </div>
         )}
-        {showNotice && (
-          <div className={styles.noticeAnchor}>
-            <PanelSwipeNotice />
-          </div>
-        )}
-        <div className={styles.actionRow}>
-        <Button
-          size="lg"
-          tone="neutral"
-          icon={<Plus />}
-          className={styles.trayButton}
-          onClick={() => { onAddWidget(); onClose(); }}
-        >
-          {t('panel.actions.addWidget')}
-        </Button>
-        {onSettings && (
-          <Button
-            size="lg"
-            tone="neutral"
-            icon={<Settings2 />}
-            className={styles.trayButton}
-            onClick={() => { onSettings(); onClose(); }}
-          >
-            {t('panel.actions.settings')}
-          </Button>
-        )}
-        {pairAction && (
-          <HoverTooltip body={t('panel.actions.pairing')} side="top">
-            <Button
-              size="lg"
-              tone="neutral"
-              icon={<QrCode />}
-              className={styles.trayButtonCompact}
-              onClick={() => { pairAction(); onClose(); }}
-              aria-label={t('panel.actions.pairing')}
+        <div ref={rowRef} className={styles.actionRow} data-compact={compact ? 'true' : undefined}>
+          <IconLabelButton
+            className={styles.tile}
+            icon={<Plus />}
+            label={t('panel.actions.addWidget')}
+            onPress={() => { onAddWidget(); onClose(); }}
+          />
+          {onTheme && (
+            <IconLabelButton
+              className={styles.tile}
+              icon={<Palette />}
+              label={t('panel.actions.theme')}
+              onPress={() => { onTheme(); onClose(); }}
             />
-          </HoverTooltip>
-        )}
+          )}
+          {onBackground && (
+            <IconLabelButton
+              className={styles.tile}
+              icon={<Image />}
+              label={t('panel.actions.background')}
+              onPress={() => { onBackground(); onClose(); }}
+            />
+          )}
+          {pairAction && (
+            <IconLabelButton
+              className={styles.tile}
+              icon={<QrCode />}
+              label={t('panel.actions.pairing')}
+              onPress={() => { pairAction(); onClose(); }}
+            />
+          )}
         </div>
       </aside>
     </>
