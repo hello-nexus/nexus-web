@@ -111,6 +111,24 @@ describe('DeckPageStrip', () => {
     expect(screen.getByRole('button', { name: 'panel.settings.deck.page.add' })).toBeInTheDocument();
   });
 
+  it('readOnly hides the add/remove controls entirely, page switching still works', () => {
+    const onSelectPage = vi.fn();
+    render(
+      <DeckPageStrip
+        numbered
+        readOnly
+        pageCount={2}
+        currentPage={0}
+        onSelectPage={onSelectPage}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.add' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeNull();
+
+    fireEvent.click(screen.getByText('2'));
+    expect(onSelectPage).toHaveBeenCalledWith(1);
+  });
+
   it('cancelling the confirm leaves the page untouched', () => {
     const onRemove = vi.fn();
     render(

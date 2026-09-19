@@ -261,6 +261,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); pushNav(next, []); };
   const onEnterFolder = (next: number[]) => { setFolderPath(next); setSelectedSlot(0); pushNav(page, next); };
 
+  // Recent Apps has its own local page index (buildRecentAppsView's auto
+  // pagination, not an authored page), but the service still keys its
+  // streamdeckTiles pushes off the deck's CURRENT page, so browsing here has
+  // to push nav the same way a Fixed-mode page change does or the tiles for
+  // the newly selected page never arrive.
+  const goToRecentPage = (next: number) => { setRecentPage(next); pushNav(next, []); };
+
   // /streamdeck/* is .LocalhostOnly(); a remote-paired session (or a browser
   // reaching the dashboard over the relay) would otherwise sit on this page
   // forever with useStreamDecks refusing to fetch and `loaded` never true.
@@ -411,8 +418,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                         selectable={false}
                         onCell={i => {
                           const key = recentPages[recentPage]?.[i];
-                          if (key?.kind === 'navNext') setRecentPage(p => Math.min(p + 1, recentMaxPage));
-                          else if (key?.kind === 'navPrev') setRecentPage(p => Math.max(p - 1, 0));
+                          if (key?.kind === 'navNext') goToRecentPage(Math.min(recentPage + 1, recentMaxPage));
+                          else if (key?.kind === 'navPrev') goToRecentPage(Math.max(recentPage - 1, 0));
                         }}
                         liveTiles={liveTiles}
                         page={recentPage}
@@ -423,12 +430,10 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       <div className={styles.pageRowSide} />
                       <DeckPageStrip
                         numbered
+                        readOnly
                         pageCount={recentPages.length}
                         currentPage={recentPage}
-                        onSelectPage={setRecentPage}
-                        onAddPage={() => {}}
-                        onRemoveCurrentPage={() => {}}
-                        currentPageHasContent={false}
+                        onSelectPage={goToRecentPage}
                       />
                       <div className={`${styles.pageRowSide} ${styles.pageRowRight}`} />
                     </div>

@@ -828,6 +828,33 @@ describe('StreamDeckDevicePage', () => {
       fireEvent.click(container.querySelectorAll('[data-deck-slot-index]')[5]);
 
       expect(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":2}' })).toHaveAttribute('aria-pressed', 'true');
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 1, []);
+    });
+
+    it('clicking a page chip also pushes nav so the service starts pushing tiles for it', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })]));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      mockUseRecentApps.mockReturnValue({
+        apps: ringOf(8), focusedProcessKey: undefined, excluded: [], loaded: true,
+        setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn(),
+      });
+      await renderPage();
+
+      fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.page.tab:{"n":2}' }));
+      expect(mockSetStreamDeckNav).toHaveBeenCalledWith('SN1', 1, []);
+    });
+
+    it('the page strip has no add/remove controls - pages are computed, not authored', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })]));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      mockUseRecentApps.mockReturnValue({
+        apps: ringOf(8), focusedProcessKey: undefined, excluded: [], loaded: true,
+        setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn(),
+      });
+      await renderPage();
+
+      expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.add' })).toBeNull();
+      expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeNull();
     });
 
     it('shows the Recent Apps editor section instead of the fixed/appAware placeholder', async () => {
