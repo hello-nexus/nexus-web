@@ -8,6 +8,12 @@ vi.mock('./DeckEditor', () => ({
   DeckEditor: ({ target }: { target: DeckTarget }) => <div data-testid="deck-editor">{target.kind}</div>,
 }));
 
+vi.mock('./DeckRecentAppsSection', () => ({
+  DeckRecentAppsSection: ({ showPreviewNote }: { showPreviewNote: boolean }) => (
+    <div data-testid="recent-apps-section">{String(showPreviewNote)}</div>
+  ),
+}));
+
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
@@ -78,16 +84,32 @@ describe('DeckInstanceEditor - mode chip', () => {
     expect(setMode).toHaveBeenCalledWith('recentApps');
   });
 
-  it('shows a one-line placeholder for Recent Apps and App Aware, and nothing extra for Fixed', () => {
+  it('shows the Recent Apps section or the App Aware placeholder for their modes, and nothing extra for Fixed', () => {
     const { rerender } = render(<DeckInstanceEditor {...baseProps()} />);
-    expect(screen.queryByText('panel.settings.deck.mode.recentAppsPlaceholder')).toBeNull();
+    expect(screen.queryByTestId('recent-apps-section')).toBeNull();
     expect(screen.queryByText('panel.settings.deck.mode.appAwarePlaceholder')).toBeNull();
 
     rerender(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } }) })} />);
-    expect(screen.getByText('panel.settings.deck.mode.recentAppsPlaceholder')).toBeInTheDocument();
+    expect(screen.getByTestId('recent-apps-section')).toBeInTheDocument();
 
     rerender(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'appAware', activePresetId: 'p1' } }) })} />);
     expect(screen.getByText('panel.settings.deck.mode.appAwarePlaceholder')).toBeInTheDocument();
+  });
+
+  it('tells the Recent Apps section whether it owns the preview note (bodyMode full vs toolbarOnly)', () => {
+    const { rerender } = render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } }) })} />);
+    expect(screen.getByTestId('recent-apps-section')).toHaveTextContent('true');
+
+    rerender(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } }), bodyMode: 'toolbarOnly' })} />);
+    expect(screen.getByTestId('recent-apps-section')).toHaveTextContent('false');
+  });
+});
+
+describe('DeckInstanceEditor - Recent Apps hides the editable grid', () => {
+  it('does not render the DeckEditor body in Recent Apps mode even with bodyMode="full"', () => {
+    render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } }) })} />);
+    expect(screen.queryByTestId('deck-editor')).toBeNull();
+    expect(screen.getByTestId('recent-apps-section')).toBeInTheDocument();
   });
 });
 

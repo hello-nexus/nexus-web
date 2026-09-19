@@ -1,0 +1,44 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.description {
+  margin: 0;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.subsectionLabel {
+  font-size: var(--type-small);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.chipRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+
+  > :first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.chipLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.previewNote {
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px dashed color-mix(in srgb, var(--text-dim) 40%, transparent);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}

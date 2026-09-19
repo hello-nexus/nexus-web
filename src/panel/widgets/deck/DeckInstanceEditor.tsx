@@ -1,9 +1,11 @@
 import { useTranslation } from '../../../lib/i18n';
+import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { ChipGroup, type ChipOption } from '../../../components/common/ChipGroup/ChipGroup';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { Button } from '../../../components/common/Button/Button';
 import { fitPageCount } from './deckLayout';
 import { DeckEditor } from './DeckEditor';
+import { DeckRecentAppsSection } from './DeckRecentAppsSection';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckInstanceMode } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
@@ -57,6 +59,12 @@ export function DeckInstanceEditor({
   const { t } = useTranslation();
   const mode = deck.instance?.mode ?? 'fixed';
 
+  // Presence-only: the payload is ignored. Mounted for as long as this editor
+  // is on screen (unmounts on a tab switch or the widget sheet closing), so
+  // the service's App Aware switcher can pause while any editor for this
+  // instance is open and settle once the last one closes.
+  useTopicCallback('deck-edit', true, () => {});
+
   const modeOptions: ChipOption[] = MODE_KEYS.map(key => ({
     key,
     label: t(`panel.settings.deck.mode.${key}`),
@@ -82,7 +90,7 @@ export function DeckInstanceEditor({
         onChange={key => deck.setMode(key as DeckInstanceMode)}
       />
 
-      {mode === 'recentApps' && <p className={styles.modeSection}>{t('panel.settings.deck.mode.recentAppsPlaceholder')}</p>}
+      {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} />}
       {mode === 'appAware' && <p className={styles.modeSection}>{t('panel.settings.deck.mode.appAwarePlaceholder')}</p>}
 
       <PresetToolbar
@@ -105,7 +113,7 @@ export function DeckInstanceEditor({
 
       {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
 
-      {bodyMode === 'full' && (
+      {bodyMode === 'full' && mode !== 'recentApps' && (
         deck.target ? (
           <DeckEditor
             target={deck.target}
