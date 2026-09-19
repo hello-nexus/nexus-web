@@ -44,7 +44,7 @@
   min-height: 0;
   display: flex;
   align-items: stretch;
-  padding: 0.4rem 0;
+  padding: 6.4px 0;
 }
 
 .card[data-graph-only='true'] .chart {
@@ -66,7 +66,7 @@
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.4rem;
+  gap: 6.4px;
   height: var(--proc-row-h);
   font-size: var(--type-small);
   color: var(--text);

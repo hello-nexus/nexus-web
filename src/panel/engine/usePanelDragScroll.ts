@@ -32,6 +32,25 @@ export function usePanelDragScroll(enabled: boolean): void {
     let startY = 0;
     let startTop = 0;
     let startLeft = 0;
+    // Effective scale of the scroller on screen. Chrome surfaces render
+    // inside a transform, and pointer deltas arrive in viewport px while
+    // scrollTop/scrollLeft are in the element's own unscaled space, so the
+    // content would move by the scale factor more than the finger.
+    let scaleX = 1;
+    let scaleY = 1;
+    // Rendered size over layout size. The rect is in viewport units and
+    // scrollTop/scrollLeft are in the element's own units, so a surface the
+    // panel scales moves its content by this factor more than the finger.
+    // Reads the same under either scaling mechanism the panel uses.
+    const axisScale = (el: HTMLElement | null, axis: 'x' | 'y') => {
+      if (!el) return 1;
+      const rect = el.getBoundingClientRect();
+      const layout = axis === 'y' ? el.offsetHeight : el.offsetWidth;
+      const rendered = axis === 'y' ? rect.height : rect.width;
+      if (!(layout > 0) || !(rendered > 0)) return 1;
+      const s = rendered / layout;
+      return s > 0 ? s : 1;
+    };
     let lastY = 0;
     let lastX = 0;
     let lastTime = 0;
@@ -69,6 +88,11 @@ export function usePanelDragScroll(enabled: boolean): void {
       startY = lastY = e.clientY;
       startTop = scrollerY?.scrollTop ?? 0;
       startLeft = scrollerX?.scrollLeft ?? 0;
+      // Each axis measures its OWN scroller: the two can be different
+      // elements at different scales, and taking both factors off one of them
+      // skews the axis it did not come from.
+      scaleY = axisScale(scrollerY, 'y');
+      scaleX = axisScale(scrollerX, 'x');
       lastTime = e.timeStamp;
       velocityX = velocityY = 0;
       engaged = false;
@@ -105,8 +129,8 @@ export function usePanelDragScroll(enabled: boolean): void {
       lastX = e.clientX;
       lastY = e.clientY;
       lastTime = e.timeStamp;
-      if (scroller === scrollerY) scroller.scrollTop = startTop - dy;
-      else scroller.scrollLeft = startLeft - dx;
+      if (scroller === scrollerY) scroller.scrollTop = startTop - dy / scaleY;
+      else scroller.scrollLeft = startLeft - dx / scaleX;
     };
 
     // The click that lands where an engaged scroll ends is swallowed: a
@@ -128,8 +152,8 @@ export function usePanelDragScroll(enabled: boolean): void {
       engaged = false;
       if (!el || !wasEngaged) return;
       swallowClick = true;
-      let vy = velocityY;
-      let vx = velocityX;
+      let vy = velocityY / scaleY;
+      let vx = velocityX / scaleX;
       let prev = performance.now();
       const step = (now: number) => {
         const dt = now - prev;
