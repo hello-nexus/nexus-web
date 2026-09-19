@@ -1,0 +1,89 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.pill {
+  align-self: flex-start;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-pill, 999px);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: var(--type-mini);
+  font-weight: 600;
+}
+
+.subsectionLabel {
+  font-size: var(--type-small);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.profileList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profileRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+
+.profileIcons {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  > * {
+    margin-left: -6px;
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+}
+
+.profileIcon {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--surface);
+  object-fit: cover;
+  background: var(--surface);
+}
+
+.profileIconFallback {
+  color: var(--text-dim);
+  background: var(--surface);
+  border: 1.5px solid var(--surface);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  box-sizing: content-box;
+}
+
+.profileName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-small);
+}
+
+.emptyNote {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+}
+
+.fallbackNote {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+}

@@ -14,6 +14,10 @@ vi.mock('./DeckRecentAppsSection', () => ({
   ),
 }));
 
+vi.mock('./DeckAppAwareSection', () => ({
+  DeckAppAwareSection: () => <div data-testid="app-aware-section" />,
+}));
+
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
@@ -84,16 +88,16 @@ describe('DeckInstanceEditor - mode chip', () => {
     expect(setMode).toHaveBeenCalledWith('recentApps');
   });
 
-  it('shows the Recent Apps section or the App Aware placeholder for their modes, and nothing extra for Fixed', () => {
+  it('shows the Recent Apps or App Aware section for their modes, and nothing extra for Fixed', () => {
     const { rerender } = render(<DeckInstanceEditor {...baseProps()} />);
     expect(screen.queryByTestId('recent-apps-section')).toBeNull();
-    expect(screen.queryByText('panel.settings.deck.mode.appAwarePlaceholder')).toBeNull();
+    expect(screen.queryByTestId('app-aware-section')).toBeNull();
 
     rerender(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } }) })} />);
     expect(screen.getByTestId('recent-apps-section')).toBeInTheDocument();
 
     rerender(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'appAware', activePresetId: 'p1' } }) })} />);
-    expect(screen.getByText('panel.settings.deck.mode.appAwarePlaceholder')).toBeInTheDocument();
+    expect(screen.getByTestId('app-aware-section')).toBeInTheDocument();
   });
 
   it('tells the Recent Apps section whether it owns the preview note (bodyMode full vs toolbarOnly)', () => {

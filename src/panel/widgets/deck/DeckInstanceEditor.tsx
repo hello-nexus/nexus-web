@@ -6,6 +6,7 @@ import { Button } from '../../../components/common/Button/Button';
 import { fitPageCount } from './deckLayout';
 import { DeckEditor } from './DeckEditor';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
+import { DeckAppAwareSection } from './DeckAppAwareSection';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckInstanceMode } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
@@ -91,7 +92,7 @@ export function DeckInstanceEditor({
       />
 
       {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} />}
-      {mode === 'appAware' && <p className={styles.modeSection}>{t('panel.settings.deck.mode.appAwarePlaceholder')}</p>}
+      {mode === 'appAware' && <DeckAppAwareSection deck={deck} instanceGrid={instanceGrid} />}
 
       <PresetToolbar
         cap={DECK_PRESET_CAP}
