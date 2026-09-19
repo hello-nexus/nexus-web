@@ -8,12 +8,16 @@ vi.mock('./useRecentApps', () => ({ useRecentApps: (enabled: boolean) => mockUse
 const mockFetchService = vi.fn();
 vi.mock('../../../api/service', () => ({ fetchService: (path: string) => mockFetchService(path) }));
 
+let lastPickerSelectedIds: string[] | null = null;
 vi.mock('../common/AppPicker', () => ({
-  AppPicker: ({ onSelect }: { onSelect: (app: { id: string; name: string; processName?: string }) => void }) => (
-    <button type="button" onClick={() => onSelect({ id: 'proc:chrome', name: 'Chrome', processName: 'chrome' })}>
-      pick-chrome
-    </button>
-  ),
+  AppPicker: ({ onSelect, selectedIds }: { onSelect: (app: { id: string; name: string; processName?: string }) => void; selectedIds?: string[] }) => {
+    lastPickerSelectedIds = selectedIds ?? null;
+    return (
+      <button type="button" onClick={() => onSelect({ id: 'proc:chrome', name: 'Chrome', processName: 'chrome' })}>
+        pick-chrome
+      </button>
+    );
+  },
 }));
 
 function baseResult(over: Partial<ReturnType<typeof mockUseRecentApps>> = {}) {
@@ -34,6 +38,7 @@ beforeEach(() => {
   mockUseRecentApps.mockReturnValue(baseResult());
   mockFetchService.mockReset();
   mockFetchService.mockResolvedValue({ shortcuts: [] });
+  lastPickerSelectedIds = null;
 });
 
 describe('DeckRecentAppsSection - excluded chips', () => {
@@ -47,6 +52,13 @@ describe('DeckRecentAppsSection - excluded chips', () => {
     render(<DeckRecentAppsSection showPreviewNote={false} />);
     expect(screen.getByText('discord')).toBeInTheDocument();
     expect(screen.getByText('chrome')).toBeInTheDocument();
+  });
+
+  it('renders excluded chips in their normal (removable) state, not as toggled-active', () => {
+    mockUseRecentApps.mockReturnValue(baseResult({ excluded: ['discord', 'chrome'] }));
+    render(<DeckRecentAppsSection showPreviewNote={false} />);
+    expect(screen.getByText('discord').closest('button')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('chrome').closest('button')).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('clicking a chip removes it from the excluded list', () => {
@@ -103,6 +115,25 @@ describe('DeckRecentAppsSection - desktopActions=false (a paired panel: PUT excl
     expect(screen.queryByText('panel.settings.deck.recentApps.addExcluded')).toBeNull();
     expect(screen.queryByText('panel.settings.deck.recentApps.clear')).toBeNull();
     expect(screen.getByText('discord').closest('button')).toBeDisabled();
+  });
+});
+
+describe('DeckRecentAppsSection - picker selectedIds map to shortcut ids, not process keys', () => {
+  it('maps an excluded process key to its installed shortcut id so the picker shows it selected', async () => {
+    mockFetchService.mockResolvedValue({ shortcuts: [{ id: 'shortcut-discord', name: 'Discord', processName: 'discord' }] });
+    mockUseRecentApps.mockReturnValue(baseResult({ excluded: ['discord'] }));
+    render(<DeckRecentAppsSection showPreviewNote={false} />);
+    fireEvent.click(screen.getByText('panel.settings.deck.recentApps.addExcluded'));
+
+    await waitFor(() => expect(lastPickerSelectedIds).toEqual(['shortcut-discord']));
+  });
+
+  it('falls back to the raw process key when no installed shortcut resolves it', () => {
+    mockUseRecentApps.mockReturnValue(baseResult({ excluded: ['mystery-app'] }));
+    render(<DeckRecentAppsSection showPreviewNote={false} />);
+    fireEvent.click(screen.getByText('panel.settings.deck.recentApps.addExcluded'));
+
+    expect(lastPickerSelectedIds).toEqual(['mystery-app']);
   });
 });
 

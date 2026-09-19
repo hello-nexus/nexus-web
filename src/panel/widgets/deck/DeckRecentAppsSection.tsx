@@ -13,31 +13,38 @@ import { useRecentApps } from './useRecentApps';
 import styles from './DeckRecentAppsSection.module.scss';
 
 interface ShortcutSummary {
+  id: string;
   name: string;
   processName?: string;
 }
 
-/** processKey (lowercased process name) -> display name, resolved once from
- *  the installed shortcut list - the same source AppPicker reads, so an
- *  excluded app still shows its real name after a reopen (the recents ring
- *  itself never carries an excluded app's name once it drops out). */
-function useShortcutNamesByProcess(): Record<string, string> {
-  const [names, setNames] = useState<Record<string, string>>({});
+/** processKey (lowercased process name) -> the installed shortcut, resolved
+ *  once from the same list AppPicker reads. Gives an excluded app its real
+ *  name after a reopen (the recents ring itself never carries an excluded
+ *  app's name once it drops out) and its shortcut id, so the picker can mark
+ *  it selected - AppPicker keys selection off its entries' ids, not process
+ *  keys. */
+function useShortcutsByProcess(): Record<string, ShortcutSummary> {
+  const [byProcess, setByProcess] = useState<Record<string, ShortcutSummary>>({});
   useEffect(() => {
     let cancelled = false;
     void fetchService<{ shortcuts: ShortcutSummary[] }>('/shortcuts').then(res => {
       if (cancelled || !res) return;
-      const map: Record<string, string> = {};
+      const map: Record<string, ShortcutSummary> = {};
       for (const s of res.shortcuts) {
         const key = s.processName?.toLowerCase();
-        if (key && !map[key]) map[key] = s.name;
+        if (key && !map[key]) map[key] = s;
       }
-      setNames(map);
+      setByProcess(map);
     });
     return () => { cancelled = true; };
   }, []);
-  return names;
+  return byProcess;
 }
+
+// Stable reference for ChipGroup's activeKeys: the excluded chips are a plain
+// removable list, not a toggle - none of them render "active".
+const NO_ACTIVE_CHIPS = new Set<string>();
 
 export interface DeckRecentAppsSectionProps {
   /** True when the host has no grid of its own to show for this mode (the
@@ -60,12 +67,17 @@ export function DeckRecentAppsSection({ showPreviewNote, desktopActions = true }
   const { t } = useTranslation();
   const { apps, excluded, setExcluded, clear } = useRecentApps(true);
   const [sessionNames, setSessionNames] = useState<Record<string, string>>({});
-  const shortcutNames = useShortcutNamesByProcess();
+  const shortcutsByProcess = useShortcutsByProcess();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
 
   const nameFor = (key: string): string =>
-    sessionNames[key] ?? apps.find(a => a.processKey === key)?.name ?? shortcutNames[key] ?? key;
+    sessionNames[key] ?? apps.find(a => a.processKey === key)?.name ?? shortcutsByProcess[key]?.name ?? key;
+  // AppPicker's selectedIds compares against its entries' ids (a shortcut id
+  // for an installed app), not process keys - map the excluded list forward
+  // so an already-excluded app shows selected instead of silently no-oping
+  // when re-picked.
+  const pickerSelectedIds = excluded.map(key => shortcutsByProcess[key]?.id ?? key);
 
   return (
     <div className={styles.root}>
@@ -77,7 +89,7 @@ export function DeckRecentAppsSection({ showPreviewNote, desktopActions = true }
                 wrap
                 multiSelect
                 ariaLabel={t('panel.settings.deck.recentApps.excludedTitle')}
-                activeKeys={new Set(excluded)}
+                activeKeys={NO_ACTIVE_CHIPS}
                 options={excluded.map(key => ({
                   key,
                   disabled: !desktopActions,
@@ -123,7 +135,7 @@ export function DeckRecentAppsSection({ showPreviewNote, desktopActions = true }
         medium
       >
         <AppPicker
-          selectedIds={excluded}
+          selectedIds={pickerSelectedIds}
           onSelect={app => {
             const key = app.processName;
             if (!key || excluded.includes(key)) return;
