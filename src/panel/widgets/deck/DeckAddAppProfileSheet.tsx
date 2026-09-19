@@ -79,7 +79,11 @@ export function DeckAddAppProfileSheet({ currentPresetId, boundApps, instanceGri
   const pickTemplate = async (tpl: DeckTemplate) => {
     if (busy || !tpl.installedAppId) return;
     setBusy(true);
-    const created = await createDeckPreset({ name: tpl.name, cols: tpl.cols, rows: tpl.rows, templateId: tpl.id });
+    let created: DeckPresetFull | null = null;
+    for (let attempt = 0; attempt < MAX_NAME_RETRY_ATTEMPTS && !created; attempt++) {
+      const name = attempt === 0 ? tpl.name : `${tpl.name} ${attempt + 1}`;
+      created = await createDeckPreset({ name, cols: tpl.cols, rows: tpl.rows, templateId: tpl.id });
+    }
     if (!created) { fail(); return; }
     await finishCreate(created.id, { id: tpl.installedAppId, name: tpl.installedAppName ?? tpl.name, processName: tpl.processName });
   };

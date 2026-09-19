@@ -89,6 +89,25 @@ describe('DeckAddAppProfileSheet - Suggested tab', () => {
     expect(mockSetDeckPresetApps).toHaveBeenCalledWith('p-new', [{ id: 'shortcut-discord', name: 'Discord', processName: 'discord' }]);
   });
 
+  it('retries with a numbered suffix when the template\'s own name collides with an existing preset', async () => {
+    mockGetDeckTemplates.mockResolvedValue([template()]);
+    mockCreateDeckPreset
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(PRESET);
+    const onCreated = vi.fn();
+    render(
+      <DeckAddAppProfileSheet currentPresetId="p1" boundApps={{}} instanceGrid={{ cols: 2, rows: 2 }} onClose={vi.fn()} onCreated={onCreated} />,
+    );
+    await waitFor(() => screen.getByText('Discord'));
+    fireEvent.click(screen.getByText('Discord'));
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith('p-new'));
+    expect(mockCreateDeckPreset).toHaveBeenNthCalledWith(1, { name: 'Discord', cols: 5, rows: 3, templateId: 'discord' });
+    expect(mockCreateDeckPreset).toHaveBeenNthCalledWith(2, { name: 'Discord 2', cols: 5, rows: 3, templateId: 'discord' });
+    expect(mockCreateDeckPreset).toHaveBeenNthCalledWith(3, { name: 'Discord 3', cols: 5, rows: 3, templateId: 'discord' });
+  });
+
   it('a non-2xx create (the current templateId 501) shows a toast and does not call onCreated', async () => {
     mockGetDeckTemplates.mockResolvedValue([template()]);
     mockCreateDeckPreset.mockResolvedValue(null);
