@@ -75,9 +75,11 @@
 }
 
 
-// Monitor-attached panel chrome scaling via transform: scale. The kiosk
-// WebView2 ignores CSS `zoom` (IsZoomControlEnabled = false), so this uses
-// the cellScaler's widget algorithm (transform: scale(cell/90)). Width
+// Monitor-attached panel chrome scaling via transform: scale, using the
+// cellScaler's widget algorithm (transform: scale(cell/90)). The kiosk's
+// IsZoomControlEnabled = false only withholds the user's zoom GESTURE; it
+// does not govern the CSS zoom property, which the immersive overlay uses to
+// avoid resampling its text. Width
 // shrinks to 1/s so post-scale the tray spans 100% of the viewport; the
 // closed-state translateY scales to (100% × s) to push the full visual
 // height off-screen. Phone and desktop skip this (no display-scaling).

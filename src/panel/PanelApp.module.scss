@@ -1300,7 +1300,6 @@
   overflow: hidden;
   overscroll-behavior: contain;
   touch-action: pan-y;
-  will-change: transform;
 }
 
 .editorBackdrop[data-state='closing'] .editorSheet {
@@ -1317,6 +1316,14 @@
 
 .editorSheet[data-drag='settling'] {
   transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+// Composite only while the swipe is live. Holding will-change for the sheet's
+// whole life pins one raster of it, and a scaled panel then stretches that
+// raster instead of repainting at the size it is shown - the sheet's contents
+// read soft for as long as it is open.
+.editorSheet[data-drag] {
+  will-change: transform;
 }
 
 // After the entry keyframe plays, suppress further animations so toggling

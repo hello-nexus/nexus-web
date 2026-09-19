@@ -4,7 +4,7 @@
 // only exists on Windows (see ProcessesWidget), so the template swaps rather
 // than reserving a blank track for it.
 .processes {
-  --proc-cols: minmax(0, 1fr) 3.2rem 4rem;
+  --proc-cols: minmax(0, 1fr) 51.2px 64px;
   // Every panel widget insets its own content (ScreentimeWidget uses
   // 14px 16px). Without it the leftmost icons sit flush against the tile edge
   // and the tile's rounded corner clips them.
@@ -12,7 +12,7 @@
   // ProcessIcon's fixed 16px slot plus .nameCell's gap - the NAME heading is
   // indented by it so it starts where the process names do, the same way the
   // metric headings end where their numbers do.
-  --proc-name-indent: calc(16px + 0.4rem);
+  --proc-name-indent: calc(16px + 6.4px);
 
   display: flex;
   flex-direction: column;
@@ -32,7 +32,7 @@
 }
 
 .processes[data-gpu='true'] {
-  --proc-cols: minmax(0, 1fr) 3.2rem 3.2rem 4rem;
+  --proc-cols: minmax(0, 1fr) 51.2px 51.2px 64px;
 }
 
 .header {
@@ -54,9 +54,9 @@
 .headerButton {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 3.2px;
   width: 100%;
-  padding: 0.55rem 0;
+  padding: 8.8px 0;
   background: none;
   border: none;
   cursor: pointer;
@@ -129,7 +129,7 @@
 .nameCell {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 6.4px;
   min-width: 0;
 }
 
@@ -157,7 +157,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 8px;
   text-align: center;
   font-size: var(--type-small);
   color: var(--text-dim);

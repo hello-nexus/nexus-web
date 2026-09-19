@@ -111,6 +111,23 @@ describe('usePanelDragScroll', () => {
     resetGestureAxis();
   });
 
+  it('tracks the finger when the scroller is rendered inside a transform', () => {
+    render(<Harness enabled={true} />);
+    const pane = screen.getByTestId('pane');
+    const content = screen.getByTestId('content');
+    // Rendered at twice its layout size, as a chrome surface is.
+    Object.defineProperty(pane, 'offsetHeight', { value: 150, configurable: true });
+    pane.getBoundingClientRect = () => ({
+      x: 0, y: 0, top: 0, left: 0, right: 300, bottom: 300, width: 300, height: 300, toJSON: () => {},
+    }) as DOMRect;
+    act(() => {
+      pointer(content, 'pointerdown', 100, 200, 0);
+      pointer(content, 'pointermove', 100, 100, 16);
+    });
+    // 100px of finger over a 2x surface is 50px of the scroller's own space.
+    expect(pane.scrollTop).toBe(550);
+  });
+
   it('leaves a downward pull on a pane already at its top to the sheet gesture', () => {
     render(<Harness enabled={true} />);
     const pane = screen.getByTestId('pane');
