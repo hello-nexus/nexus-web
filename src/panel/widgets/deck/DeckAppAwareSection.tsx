@@ -104,8 +104,10 @@ export function DeckAppAwareSection({ deck, instanceGrid, desktopActions = true 
               return t('lighting.layoutPresets.appsTaken', { app: result.conflict.appName, preset: result.conflict.presetName });
             }
             if (result.kind === 'failed') return t('panel.settings.deck.appAware.appsSaveFailed');
+            // The service broadcasts a `preset` deck-topic frame for this
+            // write, which useDeckInstance already applies to `presets` -
+            // no need to re-fetch the whole hook and flash a loading state.
             setAppsTarget(null);
-            deck.retry();
             return null;
           }}
           onClose={() => setAppsTarget(null)}
@@ -118,7 +120,7 @@ export function DeckAppAwareSection({ deck, instanceGrid, desktopActions = true 
           boundApps={takenApps}
           instanceGrid={instanceGrid}
           onClose={() => setAddOpen(false)}
-          onCreated={id => { setAddOpen(false); void deck.activate(id).then(() => deck.retry()); }}
+          onCreated={id => { setAddOpen(false); void deck.activate(id); }}
         />
       )}
     </div>

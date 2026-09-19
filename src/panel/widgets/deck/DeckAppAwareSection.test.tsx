@@ -119,16 +119,20 @@ describe('DeckAppAwareSection - apps save', () => {
     expect(result).toBe('lighting.layoutPresets.appsTaken');
   });
 
-  it('closes the modal and retries the instance load on a clean save', async () => {
+  it('closes the modal on a clean save without resetting the whole instance hook', async () => {
     const retry = vi.fn();
     const presets: DeckPresetSummary[] = [{ id: 'p1', name: 'Discord profile', cols: 5, rows: 3, pageCount: 1, apps: [{ id: 'a1', name: 'Discord' }] }];
     mockSetDeckPresetApps.mockResolvedValue({ kind: 'ok', preset: presets[0] });
     render(<DeckAppAwareSection deck={deckResult({ presets, retry })} instanceGrid={{ cols: 5, rows: 3 }} />);
     fireEvent.click(screen.getByText('panel.settings.deck.appAware.appsButton'));
 
-    const result = await lastModalProps!.onSave([]);
+    let result: string | null = null;
+    await act(async () => { result = await lastModalProps!.onSave([]); });
     expect(result).toBeNull();
-    expect(retry).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('preset-apps-modal')).toBeNull();
+    // The `preset` deck-topic frame already updates state; re-running the
+    // hook's whole fetch would flash a loading state and lose selection.
+    expect(retry).not.toHaveBeenCalled();
   });
 });
 
