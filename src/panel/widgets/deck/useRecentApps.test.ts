@@ -74,17 +74,37 @@ describe('useRecentApps - deck topic', () => {
 
     expect(result.current.apps).toEqual(APPS);
   });
-});
 
-describe('useRecentApps - actions', () => {
-  it('setExcluded updates state optimistically and persists the whole list', async () => {
+  it('applies excluded from a recents frame when the field is present (a second editor stays fresh)', async () => {
     const { result } = renderHook(() => useRecentApps(true));
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
+    act(() => capturedTopics.deck?.({ kind: 'recents', apps: APPS, excluded: ['discord'] }));
+
+    expect(result.current.excluded).toEqual(['discord']);
+  });
+
+  it('leaves excluded untouched when the frame carries no excluded field (today\'s service shape)', async () => {
+    const { result } = renderHook(() => useRecentApps(true));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    act(() => capturedTopics.deck?.({ kind: 'recents', apps: APPS }));
+
+    expect(result.current.excluded).toEqual(['explorer']);
+  });
+});
+
+describe('useRecentApps - actions', () => {
+  it('setExcluded updates state optimistically, persists the whole list, then refetches to reconcile with the server (the recents frame carries no excluded field)', async () => {
+    const { result } = renderHook(() => useRecentApps(true));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    getRecentAppsMock.mockResolvedValue({ apps: APPS, excluded: ['explorer', 'discord'], focusedProcessKey: 'discord' });
     await act(async () => { await result.current.setExcluded(['explorer', 'discord']); });
 
-    expect(result.current.excluded).toEqual(['explorer', 'discord']);
     expect(setRecentAppsExcludedMock).toHaveBeenCalledWith(['explorer', 'discord']);
+    expect(getRecentAppsMock).toHaveBeenCalledTimes(2);
+    expect(result.current.excluded).toEqual(['explorer', 'discord']);
   });
 
   it('clear empties local apps and calls the delete route', async () => {
