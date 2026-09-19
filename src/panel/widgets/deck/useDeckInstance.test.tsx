@@ -152,6 +152,18 @@ describe('useDeckInstance - debounced auto-save', () => {
     expect(updateDeckPresetMock).toHaveBeenCalledWith('p1', { deck: label('second') });
   });
 
+  it('grows the preset to the instance grid when editing on a bigger deck than it was authored for (never shrinks)', async () => {
+    const { result } = renderHook(() => useDeckInstance('streamdeck:XL1', 'physical', { cols: 8, rows: 4 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    act(() => result.current.target!.updateSlot(0, [], 0, { label: 'x' }));
+    expect(result.current.preset?.cols).toBe(8);
+    expect(result.current.preset?.rows).toBe(4);
+
+    await act(async () => { vi.advanceTimersByTime(AUTO_SAVE_DEBOUNCE_MS); });
+    expect(updateDeckPresetMock).toHaveBeenCalledWith('p1', expect.objectContaining({ cols: 8, rows: 4 }));
+  });
+
   it('flushes a pending save immediately when a newer edit is not yet scheduled and the component unmounts', async () => {
     const { result, unmount } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));

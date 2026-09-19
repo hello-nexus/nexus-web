@@ -183,12 +183,13 @@ function useOwnDeckInstance(
   }, []);
   useEffect(() => flushPending, [flushPending]);
 
-  const schedulePut = useCallback((presetId: string, deck: DeckConfig) => {
+  const schedulePut = useCallback((presetId: string, deck: DeckConfig, grow?: { cols: number; rows: number }) => {
     if (pendingPutRef.current) clearTimeout(pendingPutRef.current.timer);
     const generation = ++generationRef.current;
     const run = () => {
       pendingPutRef.current = null;
-      void updateDeckPreset(presetId, { deck }).then(full => {
+      const patch = grow ? { deck, cols: grow.cols, rows: grow.rows } : { deck };
+      void updateDeckPreset(presetId, patch).then(full => {
         if (generationRef.current !== generation || presetIdRef.current !== presetId) return;
         if (full) setPreset(normalizePresetDeck(full));
       });
@@ -199,8 +200,13 @@ function useOwnDeckInstance(
   const applyDeck = useCallback((next: DeckConfig) => {
     const current = presetRef.current;
     if (!current) return;
-    setPreset({ ...current, deck: next });
-    schedulePut(current.id, next);
+    const grid = instanceGridRef.current;
+    // Editing a preset on a bigger instance than it was authored for grows
+    // the preset to match, so it keeps that room on every instance - never
+    // shrinks it back when edited from a smaller one.
+    const grow = grid.cols * grid.rows > current.cols * current.rows ? grid : undefined;
+    setPreset(grow ? { ...current, deck: next, cols: grow.cols, rows: grow.rows } : { ...current, deck: next });
+    schedulePut(current.id, next, grow);
   }, [schedulePut]);
 
   // A rapid run of commits (typing a label keystroke by keystroke, dragging)
