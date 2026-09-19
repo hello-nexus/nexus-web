@@ -277,8 +277,15 @@ function useOwnDeckInstance(
 
   const setMode = useCallback((mode: DeckInstanceMode) => {
     if (!instanceId) return;
-    setInstance(prev => (prev ? { ...prev, mode } : prev));
-    void updateDeckInstance(instanceId, { mode });
+    let previousMode: DeckInstanceMode | undefined;
+    setInstance(prev => {
+      previousMode = prev?.mode;
+      return prev ? { ...prev, mode } : prev;
+    });
+    void updateDeckInstance(instanceId, { mode }).then(updated => {
+      if (updated || instanceIdRef.current !== instanceId || !previousMode) return;
+      setInstance(prev => (prev ? { ...prev, mode: previousMode! } : prev));
+    });
   }, [instanceId]);
 
   const activate = useCallback(async (presetId: string) => {

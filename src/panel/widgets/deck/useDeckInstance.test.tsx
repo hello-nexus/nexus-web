@@ -339,6 +339,17 @@ describe('useDeckInstance - mode and preset management', () => {
     expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { mode: 'appAware' });
   });
 
+  it('setMode reverts the optimistic mode when the PUT is refused (resolves null)', async () => {
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    updateDeckInstanceMock.mockResolvedValue(null);
+    act(() => { result.current.setMode('appAware'); });
+    expect(result.current.instance?.mode).toBe('appAware');
+
+    await waitFor(() => expect(result.current.instance?.mode).toBe('fixed'));
+  });
+
   it('activate switches the active preset and clears undo history', async () => {
     const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));
