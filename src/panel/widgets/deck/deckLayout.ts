@@ -249,6 +249,22 @@ export function pageHasContent(pageConfig: DeckPage): boolean {
   return pageConfig.slots.some(slotHasContent);
 }
 
+/**
+ * Total configured keys (recursively) by the same definition pageHasContent
+ * uses (action, folder, icon or label) - for a page-removal confirm, which
+ * must count everything pageHasContent triggered on. countBoundSlots is
+ * narrower (action/folder only) and undercounts a page holding only
+ * icon/label styling, misreporting it as "0 keys" removed.
+ */
+export function countConfiguredSlots(slots: readonly DeckSlot[]): number {
+  let n = 0;
+  for (const s of slots) {
+    if (slotHasContent(s)) n++;
+    if (s.folder) n += countConfiguredSlots(s.folder.slots);
+  }
+  return n;
+}
+
 // Trailing-edge debounce so a burst of edits (typing a label, dragging a key)
 // collapses into one auto-save; used by useDeckInstance's preset auto-save
 // and its undo-history burst coalescing.

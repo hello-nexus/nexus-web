@@ -236,6 +236,12 @@ describe('makePresetDeckTarget - overflow (chunked) writes and read-only auto ke
     expect(target.removePageKeyCount(0)).toBe(9);
     expect(target.removePageKeyCount(1)).toBe(9);
   });
+
+  it('removePageKeyCount never reports 0 for a page holding only icon/label keys (matches pageHasContent, unlike the narrower countBoundSlots)', () => {
+    const iconOnly = { pages: [{ slots: [{ icon: { kind: 'lucide' as const, value: 'Star' } }, { label: 'x' }] }] };
+    const target = makePresetDeckTarget(preset(iconOnly), IDENTITY_GRID, 'widget', vi.fn());
+    expect(target.removePageKeyCount(0)).toBe(2);
+  });
 });
 
 describe('makePresetDeckTarget - a write never truncates authored content past the fitted view', () => {

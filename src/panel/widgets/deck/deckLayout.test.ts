@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
-  addPage, removePage, pageHasContent,
+  addPage, removePage, pageHasContent, countBoundSlots, countConfiguredSlots,
 } from './deckLayout';
 import type { DeckConfig } from './types';
 
@@ -278,5 +278,32 @@ describe('addPage / removePage / pageHasContent', () => {
   it('pageHasContent is true when a nested folder slot has content', () => {
     const page = { slots: [{ folder: { slots: [{ label: 'nested' }] } }] };
     expect(pageHasContent(page)).toBe(true);
+  });
+});
+
+describe('countConfiguredSlots', () => {
+  it('counts icon/label-only slots that countBoundSlots misses (pageHasContent triggers on these too)', () => {
+    const slots = [{ icon: { kind: 'emoji' as const, value: '🎮' } }, { label: 'x' }, {}];
+    expect(countBoundSlots(slots)).toBe(0);
+    expect(countConfiguredSlots(slots)).toBe(2);
+  });
+
+  it('counts an action slot the same way countBoundSlots does', () => {
+    const slots = [{ action: { type: 'hotkey' as const, keys: 'a' } }];
+    expect(countConfiguredSlots(slots)).toBe(countBoundSlots(slots));
+    expect(countConfiguredSlots(slots)).toBe(1);
+  });
+
+  it('recurses into a folder\'s own configured slots', () => {
+    const slots = [{ folder: { slots: [{ label: 'a' }, { icon: { kind: 'emoji' as const, value: '🎮' } }] } }];
+    // The folder itself (icon/label/action-less but content-bearing via its
+    // children, matching slotHasContent) plus its 2 configured children.
+    expect(countConfiguredSlots(slots)).toBe(3);
+  });
+
+  it('does not count a folder with no configured content anywhere inside it (matches pageHasContent)', () => {
+    const slots = [{ folder: { slots: [{}, {}] } }];
+    expect(countConfiguredSlots(slots)).toBe(0);
+    expect(pageHasContent({ slots })).toBe(false);
   });
 });
