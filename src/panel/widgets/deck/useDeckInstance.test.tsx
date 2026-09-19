@@ -110,6 +110,17 @@ describe('useDeckInstance - initial load', () => {
     expect(result.current.error).toBe(false);
   });
 
+  it('normalizes a zero-page preset from the server to one empty page so it stays editable', async () => {
+    const ZERO_PAGE_PRESET: DeckPresetFull = { id: 'p1', name: 'Streaming', cols: 3, rows: 2, pageCount: 0, deck: { pages: [] } };
+    getDeckPresetMock.mockResolvedValue(ZERO_PAGE_PRESET);
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.preset?.deck.pages).toHaveLength(1);
+    act(() => result.current.target!.updateSlot(0, [], 0, { label: 'x' }));
+    expect(result.current.preset?.deck.pages[0].slots[0]?.label).toBe('x');
+  });
+
   it('refetches on reconnect (a dropped socket may have missed deck frames)', async () => {
     const { result, rerender } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));

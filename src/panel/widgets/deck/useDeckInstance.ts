@@ -7,10 +7,20 @@ import {
 import { useMultiplex, useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { makePresetDeckTarget, type DeckTarget } from './deckTarget';
-import { AUTO_SAVE_DEBOUNCE_MS, emptyDeck } from './deckLayout';
+import { AUTO_SAVE_DEBOUNCE_MS, emptyDeck, normalizeDeckConfig } from './deckLayout';
 import type { DeckConfig } from './types';
 
 const MAX_UNDO_DEPTH = 50;
+
+// The service is being fixed to always create a preset with one empty page,
+// but a zero-page one is still possible to receive (an old/foreign record) -
+// fitToGridWithOrigins maps `pages: []` to an all-`auto` fitted page, which
+// makePresetDeckTarget's updateSlot/swapSlots silently refuse to write
+// through. Normalizing to at least one real (possibly empty) page here keeps
+// every preset the target sees editable.
+function normalizePresetDeck(full: DeckPresetFull): DeckPresetFull {
+  return { ...full, deck: normalizeDeckConfig(full.deck) };
+}
 
 export interface UseDeckInstanceResult {
   instance: DeckInstance | null;
@@ -125,7 +135,7 @@ function useOwnDeckInstance(
     if (instanceIdRef.current !== instanceId) return;
     if (!full) { setLoadError(true); return; }
     presetIdRef.current = full.id;
-    setPreset(full);
+    setPreset(normalizePresetDeck(full));
     setLoadError(false);
   }, [instanceId, kind]);
 
@@ -174,7 +184,7 @@ function useOwnDeckInstance(
       pendingPutRef.current = null;
       void updateDeckPreset(presetId, { deck }).then(full => {
         if (generationRef.current !== generation || presetIdRef.current !== presetId) return;
-        if (full) setPreset(full);
+        if (full) setPreset(normalizePresetDeck(full));
       });
     };
     pendingPutRef.current = { timer: setTimeout(run, AUTO_SAVE_DEBOUNCE_MS), run };
@@ -263,7 +273,7 @@ function useOwnDeckInstance(
     const full = await getDeckPreset(presetId);
     if (instanceIdRef.current !== instanceId || !full) return;
     presetIdRef.current = full.id;
-    setPreset(full);
+    setPreset(normalizePresetDeck(full));
   }, [instanceId, closeBurst, undoRedo]);
 
   const createPreset = useCallback(async (name: string): Promise<{ error: boolean; msg?: string }> => {
@@ -311,7 +321,7 @@ function useOwnDeckInstance(
       // A pending local edit will overwrite this shortly anyway - skip the
       // echo so a slower topic frame can't stomp a newer unsaved keystroke.
       if (presetIdRef.current === frame.presetId && !pendingPutRef.current) {
-        setPreset({ ...summary, deck });
+        setPreset(normalizePresetDeck({ ...summary, deck }));
       }
       return;
     }
@@ -324,7 +334,7 @@ function useOwnDeckInstance(
         void getDeckPreset(nextInstance.activePresetId).then(full => {
           if (instanceIdRef.current !== instanceId || !full) return;
           presetIdRef.current = full.id;
-          setPreset(full);
+          setPreset(normalizePresetDeck(full));
         });
       }
     }
