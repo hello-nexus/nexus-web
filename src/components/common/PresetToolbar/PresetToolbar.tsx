@@ -68,6 +68,11 @@ interface PresetToolbarProps {
    *  unusable on a keyboardless surface. Switching and deleting stay
    *  available. Defaults to true (every existing caller keeps typing). */
   allowCreateRename?: boolean;
+  /** Hides the delete option - for a caller whose delete route is
+   *  LocalhostOnly (a paired panel's own request would just fail there).
+   *  Defaults to true (every existing caller's delete route accepts a
+   *  panel). */
+  allowDelete?: boolean;
 }
 
 export function PresetToolbar({
@@ -77,6 +82,7 @@ export function PresetToolbar({
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
   allowCreateRename = true,
+  allowDelete = true,
   rail,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
@@ -104,7 +110,7 @@ export function PresetToolbar({
       { value: '__sep__', label: '', divider: true },
       ...(allowCreateRename ? [{ value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> }] : []),
       ...(onManageApps ? [{ value: '__apps__', label: t(key('apps')), className: styles.actionOption, icon: <AppWindow size={14} /> }] : []),
-      { value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> },
+      ...(allowDelete ? [{ value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> }] : []),
     ] : []),
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
     ...(onImport ? [{ value: '__import__', label: t(importKey), className: styles.createOption, disabled: atCap || !!importDisabled, icon: <Import size={14} /> }] : []),

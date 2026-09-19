@@ -203,6 +203,23 @@ describe('PresetToolbar (allowCreateRename=false)', () => {
   });
 });
 
+describe('PresetToolbar (allowDelete=false)', () => {
+  it('hides the delete option for the active preset', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', allowDelete: false })} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.delete' })).toBeNull();
+  });
+
+  it('still offers rename and lists presets for switching', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', allowDelete: false })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.rename' })).toBeTruthy();
+  });
+
+  it('defaults to allowing delete when the prop is omitted', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a' })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.delete' })).toBeTruthy();
+  });
+});
+
 describe('PresetToolbar (resetLabelKey/resetConfirmKey overrides)', () => {
   it('uses the override key for the reset button instead of translationPrefix.reset', () => {
     render(<PresetToolbar {...defaultProps({ resetLabelKey: 'devices.streamdeck.presets.reset' })} />);

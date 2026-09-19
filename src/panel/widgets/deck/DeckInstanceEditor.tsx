@@ -72,6 +72,14 @@ export function DeckInstanceEditor({
     label: t(`panel.settings.deck.mode.${key}`),
   }));
 
+  // DELETE /deck/presets/{id} is LocalhostOnly (unlike the preset edit
+  // routes, which accept a paired panel) - a panel session's own delete
+  // request would just fail, so the option is hidden instead of offered and
+  // silently rejected. `desktopEditor` covers the desktop dashboard's own
+  // simulated-panel preview, which is a real desktop request despite a
+  // non-desktop `surface`.
+  const allowDelete = !surface || surface === 'desktop' || !!desktopEditor;
+
   const preset = deck.preset;
   const gridDiffers = !!preset && (preset.cols !== instanceGrid.cols || preset.rows !== instanceGrid.rows);
   let fitNote: string | null = null;
@@ -105,6 +113,7 @@ export function DeckInstanceEditor({
 
       <PresetToolbar
         cap={DECK_PRESET_CAP}
+        allowDelete={allowDelete}
         presets={deck.presets.map(p => ({ id: p.id, name: p.name, hasApps: !!p.apps?.length }))}
         activeId={deck.instance?.activePresetId ?? null}
         presetCount={deck.presets.length}

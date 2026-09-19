@@ -169,6 +169,27 @@ describe('DeckInstanceEditor - preset toolbar wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
     expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.importOption' })).toBeInTheDocument();
   });
+
+  it('offers delete when no surface is given (the desktop device page)', () => {
+    render(<DeckInstanceEditor {...baseProps()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.delete' })).toBeInTheDocument();
+  });
+
+  it('hides delete on a paired panel surface - DELETE /deck/presets/{id} is LocalhostOnly', () => {
+    render(<DeckInstanceEditor {...baseProps({ surface: 'phone' })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.presets.delete' })).toBeNull();
+  });
+
+  it('still offers delete on a non-desktop surface when desktopEditor marks it as the desktop app\'s own simulated preview', () => {
+    render(<DeckInstanceEditor {...baseProps({
+      surface: 'phone',
+      desktopEditor: true,
+    })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.delete' })).toBeInTheDocument();
+  });
 });
 
 describe('DeckInstanceEditor - fit note', () => {
