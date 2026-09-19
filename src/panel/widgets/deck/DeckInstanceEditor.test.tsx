@@ -24,6 +24,13 @@ vi.mock('../../../lib/i18n', () => ({
   }),
 }));
 
+const capturedTopics: Record<string, { enabled: boolean; cb: (data: unknown) => void } | null> = {};
+vi.mock('../../../hooks/useMultiplexSocket', () => ({
+  useTopicCallback: (topic: string, enabled: boolean, cb: (data: unknown) => void) => {
+    capturedTopics[topic] = { enabled, cb };
+  },
+}));
+
 function fakeTarget(): DeckTarget {
   return {
     kind: 'widget', cols: 2, rows: 2, keyCount: 4, config: { pages: [{ slots: [] }] },
@@ -195,5 +202,12 @@ describe('DeckInstanceEditor - body', () => {
   it('shows a loading state while the target has not loaded and there is no error', () => {
     render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ target: null, preset: null, error: false }) })} />);
     expect(screen.getByText('panel.settings.deck.rail.loadingConfig')).toBeInTheDocument();
+  });
+});
+
+describe('DeckInstanceEditor - deck-edit presence subscription', () => {
+  it('subscribes to deck-edit for as long as the editor is mounted, regardless of mode', () => {
+    render(<DeckInstanceEditor {...baseProps()} />);
+    expect(capturedTopics['deck-edit']?.enabled).toBe(true);
   });
 });
