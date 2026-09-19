@@ -169,7 +169,10 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
           pages={recentPages}
           cols={cols}
           rows={rows}
-          onPress={processKey => void recentApps.activate(processKey)}
+          // Recent Apps has nothing to edit per key (the layout is dynamic,
+          // not authored), so a tap while arranging the panel must not
+          // switch to or launch an app.
+          onPress={editing ? () => {} : processKey => void recentApps.activate(processKey)}
           ariaLabel={t('panel.settings.deck.mode.recentApps')}
         />
       </div>

@@ -330,5 +330,22 @@ describe('DeckWidget', () => {
       render(<DeckWidget widget={widget()} />);
       expect(mockUseRecentApps).toHaveBeenCalledWith(false);
     });
+
+    it('does not activate a recent app on tap while arranging the panel (edit mode)', () => {
+      mockRecentAppsInstance();
+      const activate = vi.fn();
+      mockUseRecentApps.mockReturnValue({
+        apps: [{ processKey: 'chrome', name: 'Chrome', lastFocusedUtcMs: 1 }],
+        focusedProcessKey: undefined,
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate,
+      });
+      const { getByText } = render(<DeckWidget widget={widget()} onSelectSlot={vi.fn()} />);
+      fireEvent.click(getByText('Chrome').closest('button')!);
+      expect(activate).not.toHaveBeenCalled();
+    });
   });
 });
