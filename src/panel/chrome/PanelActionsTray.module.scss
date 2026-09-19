@@ -75,23 +75,24 @@
 }
 
 
-// Monitor-attached panel chrome scaling via transform: scale, using the
-// cellScaler's widget algorithm (transform: scale(cell/90)). The kiosk's
-// IsZoomControlEnabled = false only withholds the user's zoom GESTURE; it
-// does not govern the CSS zoom property, which the immersive overlay uses to
-// avoid resampling its text. Width
-// shrinks to 1/s so post-scale the tray spans 100% of the viewport; the
-// closed-state translateY scales to (100% × s) to push the full visual
-// height off-screen. Phone and desktop skip this (no display-scaling).
+// Monitor-attached panel chrome scaling. zoom, not transform: scale - a
+// transform paints the tray at its layout size and resamples the result, so
+// its labels are stretched from a smaller raster. zoom multiplies into layout
+// and the text is shaped at the size it is shown. No counter-sizing: a
+// percentage resolves in the parent's zoom space, so 100% already spans the
+// viewport, and translateY(100%) is the tray's own height either way. The
+// kiosk's IsZoomControlEnabled = false withholds only the user's zoom
+// GESTURE; it does not govern this property. Phone and desktop skip this
+// (no display-scaling).
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .tray {
   right: auto;
-  width: calc(100% / var(--panel-scale, 1));
-  transform: translateY(calc(100% * var(--panel-scale, 1))) scale(var(--panel-scale, 1));
-  transform-origin: bottom left;
-}
-
-:global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .tray[data-state='open'] {
-  transform: translateY(0) scale(var(--panel-scale, 1));
+  width: 100%;
+  zoom: var(--panel-scale, 1);
+  // Published only where the zoom is, so the swipe-drag transform the
+  // component sets inline knows whether to convert its pointer delta. It must
+  // NOT read --panel-scale for that: phone carries a live value of that var
+  // while taking no zoom here, and would convert an offset it never scaled.
+  --tray-zoom: var(--panel-scale, 1);
 }
 
 // Desktop sidebar already shows the host PC; hide the in-tray label.

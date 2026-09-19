@@ -152,10 +152,12 @@ export function PanelActionsTray({
           swipe.state === 'dragging' && !open
             // Track the finger 1:1 from translateY(100%) toward
             // translateY(0) as offset grows. Clamp at 0 so an over-pull
-            // can't push the tray above its rest position.
-            // scale(var(--panel-scale, 1)) preserves the monitor-panel
-            // chrome scale (no-op on phone where the var is unset).
-            ? { transform: `translateY(max(0px, calc(100% - ${swipe.offset}px))) scale(var(--panel-scale, 1))` }
+            // can't push the tray above its rest position. The offset is a
+            // pointer delta in viewport px; where the tray is zoomed its own
+            // lengths are in that zoomed space, so the delta is converted
+            // back. --tray-zoom is set only by the rule that applies the
+            // zoom, so every other surface divides by 1.
+            ? { transform: `translateY(max(0px, calc(100% - ${swipe.offset}px / var(--tray-zoom, 1))))` }
             : undefined
         }
         aria-label={t('panel.actions.label')}

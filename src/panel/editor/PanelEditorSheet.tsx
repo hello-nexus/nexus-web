@@ -222,11 +222,13 @@ export function PanelEditorSheet({
     lockBackground: false,
     restoreFocus: false,
   });
-  // scale(var(--panel-scale, 1)) keeps the monitor-panel chrome scale during
-  // a swipe-dismiss drag; no-op on phone/desktop (var unset → 1).
+  // The offset is a pointer delta in viewport px; where the sheet is zoomed
+  // its own lengths are in that zoomed space, so the delta is converted back.
+  // --sheet-zoom is published only by the rules that apply the zoom, so every
+  // other surface divides by 1 rather than by a scale it never applied.
   const sheetTransform = swipe.state === 'idle' && swipe.offset === 0
     ? undefined
-    : { transform: `translateY(${swipe.offset}px) scale(var(--panel-scale, 1))` };
+    : { transform: `translateY(calc(${swipe.offset}px / var(--sheet-zoom, 1)))` };
   // [data-entered] suppresses the entry keyframe after it plays, so toggling
   // [data-drag] at the end of a snap-back doesn't re-trigger the slide-up. The
   // fallback timer covers the no-interaction case; the effect flips the flag

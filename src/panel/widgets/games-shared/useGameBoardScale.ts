@@ -5,9 +5,9 @@ import { computeGameCellSize } from './gameBoardScale';
  * Measured cell size (px) that fits a `cols` x `rows` logical game grid
  * inside its container, recomputed on every resize via ResizeObserver.
  * `clientWidth`/`clientHeight` are layout-box sizes, unaffected by the
- * `--panel-scale` CSS transform the immersive overlay body applies - unlike
- * `getBoundingClientRect`, which would read back a transform-scaled (and
- * therefore wrong) box here (see CoolingImmersiveStatus for the same trap).
+ * `--panel-scale` the immersive overlay body applies as a zoom - unlike
+ * `getBoundingClientRect`, which reads back the scaled (and therefore wrong)
+ * box here (see CoolingImmersiveStatus for the same trap).
  *
  * The ref is a callback ref: the board container can remount across game
  * phases (select -> playing -> game over), and a plain ref object would

@@ -86,7 +86,7 @@ const MAX_PIXEL_RATIO = 2;
  *
  * Measured with getBoundingClientRect, NOT clientWidth: panel surfaces render
  * their content at a reduced layout size and scale it up with the
- * `--panel-scale` transform, so clientWidth is the pre-transform box and
+ * `--panel-scale` factor, so clientWidth is the unscaled layout box and
  * under-reports the pixels actually painted - on a panel it would pick a
  * bucket several rungs too small, which is the whole quantity this feature
  * turns on. (The opposite of the layout-math case useGameBoardScale
