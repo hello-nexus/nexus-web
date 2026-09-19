@@ -112,7 +112,11 @@ function useOwnDeckInstance(
 
   const loadAll = useCallback(async () => {
     if (!instanceId) return;
-    const [inst, list] = await Promise.all([getDeckInstance(instanceId, instanceGridRef.current), getDeckPresets()]);
+    // Only a widget instance's first-ever GET needs its grid (a fresh
+    // instance joins the first preset sized to it); a physical instance
+    // already carries its grid on the deck's own preset once one exists.
+    const grid = kind === 'widget' ? instanceGridRef.current : undefined;
+    const [inst, list] = await Promise.all([getDeckInstance(instanceId, grid), getDeckPresets()]);
     if (instanceIdRef.current !== instanceId) return;
     if (!inst) { setLoadError(true); return; }
     setInstance(inst);
@@ -123,7 +127,7 @@ function useOwnDeckInstance(
     presetIdRef.current = full.id;
     setPreset(full);
     setLoadError(false);
-  }, [instanceId]);
+  }, [instanceId, kind]);
 
   useEffect(() => {
     setInstance(null);
