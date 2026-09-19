@@ -38,13 +38,39 @@ describe('HotkeyInput capture', () => {
     expect(onChange).toHaveBeenLastCalledWith('meta+.');
   });
 
-  it('ignores keys no injector can send (unmapped punctuation)', () => {
+  it('ignores keys no injector can send (unmapped ISO extra key)', () => {
     const onChange = vi.fn();
     render(<HotkeyInput value="" onChange={onChange} />);
     const field = screen.getByText('panel.settings.deck.hotkeySet');
     fireEvent.click(field);
-    fireEvent.keyDown(field, { code: 'Comma', ctrlKey: true });
+    fireEvent.keyDown(field, { code: 'IntlBackslash', ctrlKey: true });
     expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('captures every punctuation token DeckActionExecutor.CanonicalKey accepts', () => {
+    const cases: Array<[string, string]> = [
+      ['Comma', ','], ['Slash', '/'], ['Semicolon', ';'], ['Quote', "'"],
+      ['BracketLeft', '['], ['BracketRight', ']'], ['Backslash', '\\'],
+      ['Minus', '-'], ['Equal', '='], ['Backquote', '`'],
+    ];
+    for (const [code, char] of cases) {
+      const onChange = vi.fn();
+      const { unmount } = render(<HotkeyInput value="" onChange={onChange} />);
+      const field = screen.getByText('panel.settings.deck.hotkeySet');
+      fireEvent.click(field);
+      fireEvent.keyDown(field, { code, ctrlKey: true });
+      expect(onChange).toHaveBeenCalledWith(`ctrl+${char}`);
+      unmount();
+    }
+  });
+
+  it('displays each captured punctuation token as its literal character', () => {
+    const chars = [',', '.', '/', ';', "'", '[', ']', '\\', '-', '=', '`'];
+    for (const c of chars) {
+      const { unmount } = render(<HotkeyInput value={`ctrl+${c}`} onChange={vi.fn()} />);
+      expect(screen.getByText(`ctrl+${c}`)).toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('ignores a bare modifier keydown, waiting for the following non-modifier key', () => {

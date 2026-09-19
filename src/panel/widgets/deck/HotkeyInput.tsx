@@ -17,14 +17,18 @@ const MOD_CODES = new Set([
 
 // Only keys the executors (touch /system/input/keys and the physical
 // DeckActionExecutor) can actually inject are capturable; capturing a key that
-// no injector maps would store a chord that silently does nothing. Period and
-// PrintScreen are the punctuation the preset list needs and both injectors map.
+// no injector maps would store a chord that silently does nothing. The named
+// punctuation here mirrors DeckActionExecutor.CanonicalKey (nexus-service) and
+// deckExecutor.ts's own canonicalKey, so a captured token always resolves on
+// both the physical and widget dispatch paths.
 const NAMED: Record<string, string> = {
   Space: 'space', Enter: 'enter', NumpadEnter: 'enter', Tab: 'tab', Escape: 'escape',
   Backspace: 'backspace', Delete: 'delete', Insert: 'insert', Home: 'home', End: 'end',
   PageUp: 'pageup', PageDown: 'pagedown',
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
   PrintScreen: 'printscreen', Period: '.',
+  Comma: ',', Slash: '/', Semicolon: ';', Quote: "'",
+  BracketLeft: '[', BracketRight: ']', Backslash: '\\', Minus: '-', Equal: '=', Backquote: '`',
 };
 
 function codeToToken(code: string): string {

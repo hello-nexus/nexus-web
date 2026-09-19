@@ -35,6 +35,11 @@ describe('HOTKEY_PRESET_CATEGORIES shape', () => {
     ]);
   });
 
+  it('includes the ctrl+, preferences shortcut in the General category', () => {
+    const general = HOTKEY_PRESET_CATEGORIES.find(c => c.key === 'general');
+    expect(general?.presets.map(p => p.keys)).toContain('ctrl+,');
+  });
+
   it('carries the documented Screenshots category entries, including the bare and modified printscreen tokens', () => {
     const screenshots = HOTKEY_PRESET_CATEGORIES.find(c => c.key === 'screenshots');
     expect(screenshots?.presets.map(p => p.keys)).toEqual([
