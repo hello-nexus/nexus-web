@@ -251,8 +251,12 @@ describe('LightingWidget', () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByText('lighting.simple.animation')).toBeInTheDocument());
-    const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
-    expect(paths.some(p => p.includes('sweepink'))).toBe(true);
+    // The thumbnail fetch is a second round trip, so it can still be in flight
+    // when the name lands.
+    await waitFor(() => {
+      const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
+      expect(paths.some(p => p.includes('sweepink'))).toBe(true);
+    });
     expect(screen.queryByText('lighting.controls.rainbow')).not.toBeInTheDocument();
   });
 

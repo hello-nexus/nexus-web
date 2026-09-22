@@ -428,14 +428,16 @@ describe('LightingOnboardingScreen mode choice', () => {
     renderScreen();
     await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
     expect(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.simple/ })).toHaveAttribute('aria-checked', 'true');
-    // The bulk actions stay on the screen, with nothing to act on.
-    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
+    // The bulk actions stay on the screen, with nothing to act on. The mode
+    // radios render before the device list lands.
+    expect(await screen.findByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
   });
 
   it('Simple drives every device, putting back any the user had switched off', async () => {
     seed([{ ...strip, controlled: false }]);
     const onComplete = renderScreen();
-    await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
+    // Continue reads the device list, which lands after the mode radios.
+    await screen.findByRole('switch', { name: 'Test Strip' });
 
     fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
