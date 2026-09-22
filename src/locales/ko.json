@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "조명 모드를 선택하여 장치 검색 또는 스캔을 시작하세요.",
   "lighting.devices.selectOnly": "{name}만 선택",
   "lighting.devices.smarthub.firmwareBadge": "펌웨어 제어 중",
-  "lighting.devices.smarthub.fwControlDisable": "펌웨어 제어 비활성화",
-  "lighting.devices.smarthub.fwControlEnable": "펌웨어 제어 활성화",
   "lighting.devices.stackCount.one": "스택 ({count}개 장치)",
   "lighting.devices.stackCount.other": "스택 ({count}개 장치)",
   "lighting.devices.stackLayout": "스택 배치",

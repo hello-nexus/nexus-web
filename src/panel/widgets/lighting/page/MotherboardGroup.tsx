@@ -30,8 +30,6 @@ export function MotherboardGroup({
   ariaLabel,
   collapsed,
   onToggleCollapsed,
-  leftAction,
-  hideLights,
   notice,
   drag,
   hideActions,
@@ -66,10 +64,6 @@ export function MotherboardGroup({
   /** Collapse state, owned by the parent so it can be persisted across restarts. */
   collapsed: boolean;
   onToggleCollapsed: () => void;
-  /** Optional node rendered to the left of the actions menu in the header right slot. */
-  leftAction?: React.ReactNode;
-  /** Omits the lights row - firmware owns the group's LEDs. */
-  hideLights?: boolean;
   /** Optional advisory shown via an (i) right after the group title. */
   notice?: string;
   /** Optional reorder drag wiring; makes the whole group draggable. */
@@ -126,7 +120,7 @@ export function MotherboardGroup({
         onSelect: onSelectAll.run, separatorAfter: true,
       });
     }
-    if (!hideLights && !empty) {
+    if (!empty) {
       items.push(groupOn
         ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: onTogglePower }
         : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: onTogglePower });
@@ -171,7 +165,7 @@ export function MotherboardGroup({
         titleAfter={notice != null ? <DeviceNotice notice={notice} /> : undefined}
         drag={drag}
         rightInteractive
-        right={hideActions ? leftAction : (
+        right={hideActions ? undefined : (
           <>
             {hasUncontrolled && (
               <HoverTooltip body={t('devices.hidden.groupHasUncontrolled')} side="top">
@@ -181,7 +175,6 @@ export function MotherboardGroup({
               </HoverTooltip>
             )}
             {count !== undefined && <span className={styles.deviceGroupCount}>{count}</span>}
-            {leftAction}
             <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
               <button
                 type="button"

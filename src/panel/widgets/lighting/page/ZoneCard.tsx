@@ -109,8 +109,6 @@ export interface StackMenu {
   /** True iff at least one zone is controlled, so the row offers to release the device. */
   controlled: boolean;
   onToggleControlled: () => void;
-  /** Omits the lights row - firmware owns the device's LEDs. */
-  hideLights?: boolean;
   /** Commits a new device name; absent where no stored name could come back. */
   onRename?: (name: string) => void;
   /** Present only on a renamed device; puts the header back on the hardware name. */
@@ -165,11 +163,9 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount 
     if (menu.onOpenSettings) {
       items.push({ key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'), onSelect: menu.onOpenSettings });
     }
-    if (!menu.hideLights) {
-      items.push(menu.on
-        ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
-        : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: menu.onTogglePower });
-    }
+    items.push(menu.on
+      ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
+      : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: menu.onTogglePower });
     items.push(menu.controlled
       ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: menu.onToggleControlled }
       : { key: 'controlled', icon: <Link size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: menu.onToggleControlled });

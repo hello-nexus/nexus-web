@@ -38,23 +38,12 @@ export type SmartHubConnectionState = 'connected' | 'disconnected' | 'unknown';
 
 interface SmartHubStateResponseShape {
   connected?: boolean;
-  firmwareControl?: boolean;
 }
 
 export async function getSmartHubConnectionState(): Promise<SmartHubConnectionState> {
   const raw = await fetchService<SmartHubStateResponseShape>('/devices/smarthub');
   if (!raw) return 'unknown';
   return raw.connected ? 'connected' : 'disconnected';
-}
-
-export async function getSmartHubFirmwareControl(): Promise<boolean | null> {
-  const raw = await fetchService<SmartHubStateResponseShape>('/devices/smarthub');
-  if (!raw) return null;
-  return raw.firmwareControl ?? false;
-}
-
-export function setSmartHubFirmwareControl(enabled: boolean): Promise<unknown | null> {
-  return putService('/devices/smarthub/firmware-control', { enabled });
 }
 
 // ── Fetches / writes ──

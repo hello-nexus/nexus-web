@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "Selezione une modalitât di iluminazion par scomençâ a scuvierzi o scansionâ i dispositîfs.",
   "lighting.devices.selectOnly": "Selezione dome {name}",
   "lighting.devices.smarthub.firmwareBadge": "Controlât dal firmware",
-  "lighting.devices.smarthub.fwControlDisable": "Disabilite il control firmware",
-  "lighting.devices.smarthub.fwControlEnable": "Abilite il control firmware",
   "lighting.devices.stackCount.one": "Intassâ ({count} dispositîf)",
   "lighting.devices.stackCount.other": "Intassâ ({count} dispositîfs)",
   "lighting.devices.stackLayout": "Disposizion de pile",

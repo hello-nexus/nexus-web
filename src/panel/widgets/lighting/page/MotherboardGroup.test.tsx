@@ -59,13 +59,6 @@ describe('MotherboardGroup actions menu', () => {
     expect(props.onTogglePower).toHaveBeenCalledTimes(1);
   });
 
-  it('omits the lights row while firmware owns the group', () => {
-    renderGroup({ hideLights: true });
-    openMenu();
-    expect(screen.queryByRole('button', { name: /menuLights/ })).toBeNull();
-    expect(screen.getByRole('button', { name: /menuControlOff/ })).toBeTruthy();
-  });
-
   it('leaves the group expanded and its rows reachable after opening the menu', () => {
     const props = renderGroup();
     openMenu();

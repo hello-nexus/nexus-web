@@ -2213,8 +2213,6 @@
   "lighting.devices.selectModeHint": "Выберите режим подсветки, чтобы начать обнаружение устройств.",
   "lighting.devices.selectOnly": "Выбрать только {name}",
   "lighting.devices.smarthub.firmwareBadge": "Управляется прошивкой",
-  "lighting.devices.smarthub.fwControlDisable": "Отключить управление прошивкой",
-  "lighting.devices.smarthub.fwControlEnable": "Включить управление прошивкой",
   "lighting.devices.stackCount.few": "Сложить в стопку ({count} устройства)",
   "lighting.devices.stackCount.one": "Сложить в стопку ({count} устройство)",
   "lighting.devices.stackCount.other": "Сложить в стопку ({count} устройств)",

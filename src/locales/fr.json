@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "Sélectionnez un mode d'éclairage pour découvrir ou rechercher des appareils.",
   "lighting.devices.selectOnly": "Sélectionner uniquement {name}",
   "lighting.devices.smarthub.firmwareBadge": "Contrôlé par Firmware",
-  "lighting.devices.smarthub.fwControlDisable": "Désactiver le contrôle Firmware",
-  "lighting.devices.smarthub.fwControlEnable": "Activer le contrôle Firmware",
   "lighting.devices.stackCount.one": "Empiler ({count} appareil)",
   "lighting.devices.stackCount.other": "Empiler ({count} appareils)",
   "lighting.devices.stackLayout": "Disposition de la pile",

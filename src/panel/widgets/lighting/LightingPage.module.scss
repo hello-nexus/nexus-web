@@ -1412,18 +1412,6 @@
   align-items: center;
 }
 
-// Active state for the FW Control toggle button in the group header.
-.deviceFwControlBtnOn {
-  opacity: 1;
-  color: var(--accent-text);
-  background: var(--accent);
-
-  &:hover {
-    background: var(--accent-glow);
-    color: var(--accent-text);
-  }
-}
-
 // Community-layouts pill on a device card: shown when the registry has
 // cached layouts for this device. Click deep-links to the LED map editor's
 // Community tab.

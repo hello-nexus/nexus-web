@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "Selecteer een verlichtingsmodus om apparaten te ontdekken of te scannen.",
   "lighting.devices.selectOnly": "Alleen {name} selecteren",
   "lighting.devices.smarthub.firmwareBadge": "Firmware-aangestuurd",
-  "lighting.devices.smarthub.fwControlDisable": "Firmwarebesturing uitschakelen",
-  "lighting.devices.smarthub.fwControlEnable": "Firmwarebesturing inschakelen",
   "lighting.devices.stackCount.one": "Stapelen ({count} apparaat)",
   "lighting.devices.stackCount.other": "Stapelen ({count} apparaten)",
   "lighting.devices.stackLayout": "Stapelindeling",

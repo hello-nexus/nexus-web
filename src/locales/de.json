@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "Wähle einen Beleuchtungsmodus, um Geräte zu entdecken oder zu suchen.",
   "lighting.devices.selectOnly": "Nur {name} auswählen",
   "lighting.devices.smarthub.firmwareBadge": "Firmware-gesteuert",
-  "lighting.devices.smarthub.fwControlDisable": "Firmware-Steuerung deaktivieren",
-  "lighting.devices.smarthub.fwControlEnable": "Firmware-Steuerung aktivieren",
   "lighting.devices.stackCount.one": "Stapeln ({count} Gerät)",
   "lighting.devices.stackCount.other": "Stapeln ({count} Geräte)",
   "lighting.devices.stackLayout": "Stapel-Layout",
