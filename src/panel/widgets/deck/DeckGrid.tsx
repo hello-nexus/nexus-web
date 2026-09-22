@@ -35,7 +35,7 @@ const LABEL_ALIGN_CLASS = {
  * construction; a monitoring/weather slot falls back to its own live CSS
  * tile until the first frame arrives.
  */
-function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { accent: string; content: ReactNode; empty: boolean } {
+function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; content: ReactNode; empty: boolean } {
   const action = slot.action;
   const isFolder = !!slot.folder;
   const icon = slot.icon;
@@ -86,13 +86,12 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string, square?: boolean): { ac
     iconEl = imageIconUrl ? <img src={imageIconUrl} className={styles.customImage} alt="" /> : null;
   } else if (appId) {
     if (appIconUrl) {
-      // On the touch widget a loaded app icon IS the key face: full size, no
-      // accent fill behind it. Applies to every /shortcuts/icon source
-      // (launchApp, an explicit app icon, an openFile exe). The physical
-      // preview (square) keeps the glyph-on-accent look so it still matches
-      // the service's own hardware-key render.
-      appIconFills = !square;
-      iconEl = <img src={appIconUrl} className={appIconFills ? styles.appIconFull : styles.appIcon} alt="" />;
+      // A loaded app icon IS the key face: full size, no accent fill behind
+      // it, on the touch widget and the physical preview alike (the service
+      // renders hardware keys the same way). Applies to every /shortcuts/icon
+      // source (launchApp, an explicit app icon, an openFile exe).
+      appIconFills = true;
+      iconEl = <img src={appIconUrl} className={styles.appIconFull} alt="" />;
     } else {
       // An icon-only app slot has no action to derive a glyph from, so it keeps
       // the app placeholder rather than autoIconName's add-a-key Plus.
@@ -141,13 +140,11 @@ interface CellProps {
   onCellContextMenu?: (e: ReactMouseEvent<HTMLButtonElement>, index: number, empty: boolean) => void;
   /** See useCellVisual's liveSrc param. */
   liveSrc?: string;
-  /** See DeckGridProps.square. */
-  square?: boolean;
 }
 
 /** Run/select cell (no drag). */
-function StaticCell({ slot, index, selectable, selected, onClick, onCellContextMenu, liveSrc, square }: CellProps) {
-  const { accent, content, empty } = useCellVisual(slot, liveSrc, square);
+function StaticCell({ slot, index, selectable, selected, onClick, onCellContextMenu, liveSrc }: CellProps) {
+  const { accent, content, empty } = useCellVisual(slot, liveSrc);
   if (empty && !selectable) {
     return <div className={`${styles.cell} ${styles.empty}`} data-deck-slot-index={index} />;
   }
@@ -171,8 +168,8 @@ function StaticCell({ slot, index, selectable, selected, onClick, onCellContextM
  *  A synthesized page-nav key (slot.auto) is read-only - fitToGrid inserted
  *  it, and DeckTarget.updateSlot/swapSlots silently refuse to touch it, so
  *  neither drag nor the delete context menu is offered on it. */
-function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, liveSrc, square }: CellProps) {
-  const { accent, content, empty } = useCellVisual(slot, liveSrc, square);
+function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, liveSrc }: CellProps) {
+  const { accent, content, empty } = useCellVisual(slot, liveSrc);
   const id = String(index);
   const drag = useDraggable({ id, disabled: empty || !!slot.auto });
   const drop = useDroppable({ id });
@@ -314,7 +311,6 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
           onClick={() => onCell(i)}
           onCellContextMenu={handleCellContextMenu}
           liveSrc={liveSrcFor(i)}
-          square={square}
         />
       ))}
       {ctxMenu && onDeleteSlot && (

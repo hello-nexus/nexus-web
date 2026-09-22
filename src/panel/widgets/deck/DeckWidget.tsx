@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
@@ -12,7 +12,7 @@ import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { DECK_PREVIEW_CONFIG } from './deckPreviewData';
 import { useRecentApps } from './useRecentApps';
-import { buildRecentAppsView } from './recentAppsView';
+import { paginateRecentApps, stableRecentAppsOrder } from './recentAppsView';
 import { RecentAppsGrid } from './RecentAppsGrid';
 import type { DeckAction, DeckConfig, DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
@@ -34,10 +34,20 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   // below. Hooks stay unconditional; only the render branches on mode.
   const showRecentApps = !preview && instance.instance?.mode === 'recentApps';
   const recentApps = useRecentApps(showRecentApps);
-  const recentPages = useMemo(
-    () => buildRecentAppsView(recentApps.apps, recentApps.focusedProcessKey, cols, rows),
-    [recentApps.apps, recentApps.focusedProcessKey, cols, rows],
-  );
+  // This widget's own display order (stableRecentAppsOrder): a focus change
+  // only reorders when the focused app is not on the page being shown, so
+  // the page index has to be known here rather than inside RecentAppsGrid.
+  const [recentPage, setRecentPage] = useState(0);
+  const recentOrderRef = useRef<{ order: string[]; focused: string | null | undefined } | null>(null);
+  const recentPages = useMemo(() => {
+    const previous = recentOrderRef.current;
+    const ordered = stableRecentAppsOrder(
+      recentApps.apps, previous?.order ?? null, previous?.focused, recentApps.focusedProcessKey, cols, rows, recentPage);
+    // The empty pre-load ring must not count as a first build, or the real
+    // one would skip the focused-first seeding.
+    if (recentApps.loaded) recentOrderRef.current = { order: ordered.map(a => a.processKey), focused: recentApps.focusedProcessKey };
+    return paginateRecentApps(ordered, recentApps.focusedProcessKey, cols, rows);
+  }, [recentApps.apps, recentApps.focusedProcessKey, recentApps.loaded, cols, rows, recentPage]);
 
   // target.cols/rows/keyCount always equal this widget's own inner grid
   // (useDeckInstance is given the same {cols, rows} as instanceGrid), so
@@ -169,6 +179,8 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
           pages={recentPages}
           cols={cols}
           rows={rows}
+          page={recentPage}
+          onPageChange={setRecentPage}
           // Recent Apps has nothing to edit per key (the layout is dynamic,
           // not authored), so a tap while arranging the panel must not
           // switch to or launch an app.

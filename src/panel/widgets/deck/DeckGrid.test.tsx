@@ -425,14 +425,14 @@ describe('DeckGrid icon sources', () => {
     expect(cell.style.getPropertyValue('--deck-accent')).toBe('#ff0000');
   });
 
-  it('keeps the glyph-on-accent app icon in square (physical mirror) mode, matching the key bitmap', () => {
+  it('shows the app icon full-face in square (physical mirror) mode too, matching the hardware key render', () => {
     const { container } = render(
       <DeckGrid slots={[{ action: { type: 'launchApp', appId: 'has-icon' } }]} cols={1} rows={1} selectable square onCell={() => {}} />,
     );
     const img = container.querySelector('img[src="blob:mock-app-icon"]')!;
-    expect(img.className).toBe(styles.appIcon);
+    expect(img.className).toBe(styles.appIconFull);
     const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
-    expect(cell.style.getPropertyValue('--deck-accent')).toBe('#64748b');
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('transparent');
   });
 
   it('falls back to the action icon, not AppWindow, when an exe key has no extractable icon', () => {

@@ -59,15 +59,19 @@ function toKey(app: RecentApp, focused: boolean): RecentAppKey {
   };
 }
 
+function focusedFirst(ring: readonly RecentApp[], focusedProcessKey: string | null | undefined): RecentApp[] {
+  const focusedApp = focusedProcessKey ? ring.find(a => a.processKey === focusedProcessKey) : undefined;
+  const rest = ring.filter(a => a !== focusedApp);
+  return focusedApp ? [focusedApp, ...rest] : rest;
+}
+
 /**
- * Orders the host's recent-apps ring for display and paginates it to a
- * cols x rows grid: the focused app first (selected treatment), then the
- * rest in MRU order, unpaged if it fits. `ring` is assumed already excluded-
- * filtered (BuildRecentAppsView never filters exclusions itself). Overflow
- * chunks into pages with synthesized navNext/navPrev keys (mirrors
- * deckLayout.ts's fitPage), capped at RECENT_APPS_MAX_PAGES; entries beyond
- * the cap are dropped. A focused process absent from the ring (excluded, or
- * not seen yet) renders with no key marked focused.
+ * The stateless layout: the focused app first (selected treatment), then the
+ * rest in MRU order, paginated by paginateRecentApps. `ring` is assumed
+ * already excluded-filtered (BuildRecentAppsView never filters exclusions
+ * itself). A focused process absent from the ring (excluded, or not seen
+ * yet) renders with no key marked focused. A viewer that keeps its own order
+ * uses stableRecentAppsOrder + paginateRecentApps instead.
  */
 export function buildRecentAppsView(
   ring: readonly RecentApp[],
@@ -75,13 +79,64 @@ export function buildRecentAppsView(
   cols: number,
   rows: number,
 ): RecentAppsViewPage[] {
+  return paginateRecentApps(focusedFirst(ring, focusedProcessKey), focusedProcessKey, cols, rows);
+}
+
+/**
+ * One viewer's display order, kept stable across focus changes (service
+ * counterpart: RecentAppsTracker.StableOrder, same vectors): an app already
+ * visible on the viewer's current page only gets the focused treatment; a
+ * newly seen app, or one on a page the viewer is not showing, moves to the
+ * front. `previousOrder` is the viewer's last result (null on first build,
+ * which is buildRecentAppsView's focused-first order) and `previousFocused`
+ * the focus it was built for - the visibility rule runs only when the focus
+ * changed, so a page turn never shuffles the page just left. Ring entries
+ * the previous order lacks join at the front in ring order; entries gone
+ * from the ring drop out. Same inputs give the same order.
+ */
+export function stableRecentAppsOrder(
+  ring: readonly RecentApp[],
+  previousOrder: readonly string[] | null,
+  previousFocused: string | null | undefined,
+  focusedProcessKey: string | null | undefined,
+  cols: number,
+  rows: number,
+  currentPage: number,
+): RecentApp[] {
+  if (previousOrder === null) return focusedFirst(ring, focusedProcessKey);
+  const byKey = new Map(ring.map(a => [a.processKey, a] as const));
+  const seen = new Set<string>();
+  const kept: RecentApp[] = [];
+  for (const key of previousOrder) {
+    const app = byKey.get(key);
+    if (app && !seen.has(key)) { seen.add(key); kept.push(app); }
+  }
+  const ordered = [...ring.filter(a => !seen.has(a.processKey)), ...kept];
+
+  if (!focusedProcessKey || focusedProcessKey === previousFocused || !byKey.has(focusedProcessKey)) return ordered;
+  const pages = paginateRecentApps(ordered, focusedProcessKey, cols, rows);
+  const page = Math.min(Math.max(currentPage, 0), Math.max(pages.length - 1, 0));
+  if (pages[page]?.some(k => k.kind === 'app' && k.processKey === focusedProcessKey)) return ordered;
+  const focusedApp = byKey.get(focusedProcessKey)!;
+  return [focusedApp, ...ordered.filter(a => a !== focusedApp)];
+}
+
+/**
+ * Lays an already-ordered list onto a cols x rows grid, marking the focused
+ * entry: unpaged if it fits, else chunked into pages with synthesized
+ * navNext/navPrev keys (mirrors deckLayout.ts's fitPage), capped at
+ * RECENT_APPS_MAX_PAGES; entries beyond the cap are dropped.
+ */
+export function paginateRecentApps(
+  ordered: readonly RecentApp[],
+  focusedProcessKey: string | null | undefined,
+  cols: number,
+  rows: number,
+): RecentAppsViewPage[] {
   const keyCount = cols * rows;
   if (keyCount <= 0) return [[]];
 
-  const focusedApp = focusedProcessKey ? ring.find(a => a.processKey === focusedProcessKey) : undefined;
-  const rest = ring.filter(a => a !== focusedApp);
-  const ordered = focusedApp ? [focusedApp, ...rest] : rest;
-  const entries = ordered.map(a => toKey(a, a === focusedApp));
+  const entries = ordered.map(a => toKey(a, !!focusedProcessKey && a.processKey === focusedProcessKey));
 
   if (entries.length <= keyCount || keyCount < 3) {
     return [padKeys(entries, keyCount)];
