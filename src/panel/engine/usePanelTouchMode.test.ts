@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { usePanelTouchMode } from './usePanelTouchMode';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PANEL_CONTEXT_MENU_TRIGGER_MS, PRESS_FEEDBACK_MS, usePanelTouchMode } from './usePanelTouchMode';
 import type { PanelWidget } from '../types';
 
 const widget: PanelWidget = {
@@ -90,5 +90,59 @@ describe('usePanelTouchMode', () => {
 
     expect(result.current.ctxMenu?.widget.id).toBe(other.id);
     expect(result.current.ctxMenu?.seq).not.toBe(firstSeq);
+  });
+
+  describe('press feedback', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it('shrinks a held touch after the dead time and snaps back when the menu opens', () => {
+      const { result } = renderHook(() => usePanelTouchMode({}));
+
+      act(() => {
+        result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ pointerType: 'touch' }));
+      });
+      act(() => vi.advanceTimersByTime(PRESS_FEEDBACK_MS - 1));
+      expect(result.current.pressedWidgetId).toBeNull();
+
+      act(() => vi.advanceTimersByTime(1));
+      expect(result.current.pressedWidgetId).toBe(widget.id);
+
+      act(() => vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS - PRESS_FEEDBACK_MS));
+      expect(result.current.ctxMenu?.widget.id).toBe(widget.id);
+      expect(result.current.pressedWidgetId).toBeNull();
+    });
+
+    it('does not shrink under a mouse unless the mouse is the finger', () => {
+      const plain = renderHook(() => usePanelTouchMode({}));
+      act(() => {
+        plain.result.current.bindCellPointers(widget).onPointerDown(pointerEvent());
+      });
+      act(() => vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS));
+      expect(plain.result.current.pressedWidgetId).toBeNull();
+
+      const finger = renderHook(() => usePanelTouchMode({ mouseLongPress: true }));
+      act(() => {
+        finger.result.current.bindCellPointers(widget).onPointerDown(pointerEvent());
+      });
+      act(() => vi.advanceTimersByTime(PRESS_FEEDBACK_MS));
+      expect(finger.result.current.pressedWidgetId).toBe(widget.id);
+    });
+
+    it('releases the shrink at the drift that cancels the long-press', () => {
+      const { result } = renderHook(() => usePanelTouchMode({}));
+      act(() => {
+        result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ pointerType: 'touch' }));
+      });
+      act(() => vi.advanceTimersByTime(PRESS_FEEDBACK_MS));
+      expect(result.current.pressedWidgetId).toBe(widget.id);
+
+      act(() => {
+        result.current.bindCellPointers(widget).onPointerMove(pointerEvent({ pointerType: 'touch', clientX: 110 }));
+      });
+      expect(result.current.pressedWidgetId).toBeNull();
+      act(() => vi.advanceTimersByTime(PANEL_CONTEXT_MENU_TRIGGER_MS));
+      expect(result.current.ctxMenu).toBeNull();
+    });
   });
 });

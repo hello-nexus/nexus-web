@@ -9,7 +9,7 @@ interface LongPressResult {
 }
 
 const HOLD_MS = 500;
-const MOVE_THRESHOLD = 8;
+export const LONG_PRESS_MOVE_THRESHOLD = 8;
 
 export interface LongPressOptions {
   // Arm on a mouse pointer too; see engine/touchViaPointer for the one host
@@ -55,7 +55,7 @@ export function useLongPress(
     if (!timer.current) return;
     const dx = e.clientX - origin.current.x;
     const dy = e.clientY - origin.current.y;
-    if (dx * dx + dy * dy > MOVE_THRESHOLD * MOVE_THRESHOLD) {
+    if (dx * dx + dy * dy > LONG_PRESS_MOVE_THRESHOLD * LONG_PRESS_MOVE_THRESHOLD) {
       cancel();
     }
   }, [cancel]);

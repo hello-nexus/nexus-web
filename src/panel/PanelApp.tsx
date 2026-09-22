@@ -1687,7 +1687,7 @@ export function PanelContent({
                               surface={surface}
                               deviceTouch={deviceTouch}
                               rearranging={touch.rearranging}
-                              pressHint={surface === 'phone' && !sheetMode && (touch.pressedWidgetId === w.id || contextMenuWidgetId === w.id)}
+                              pressHint={!sheetMode && touch.pressedWidgetId === w.id}
                               dimmed={Boolean(contextMenuWidgetId) && contextMenuWidgetId !== w.id}
                               editorDockMotion={editorDockSupported && sheetMode === 'settings' && editorDockMotion?.widgetId === w.id ? editorDockMotion : null}
                               editorDockPortal={editorDockPortalEl}

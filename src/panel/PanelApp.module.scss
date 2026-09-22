@@ -798,7 +798,8 @@
 }
 
 .cell {
-  --panel-press-duration: var(--ease-fast);
+  // Snap-back after a press; the shrink itself rides .cellPressHint's duration.
+  --panel-press-duration: 100ms;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -861,13 +862,10 @@
     filter 140ms ease-out;
 }
 
-.panelRoot[data-surface='phone'] .cell {
+.cellPressHint {
   // Must match PRESS_SHRINK_MS in usePanelTouchMode.ts.
-  --panel-press-duration: var(--ease-slow);
-}
-
-.panelRoot[data-surface='phone'] .cellPressHint {
-  transform: scale(0.982);
+  --panel-press-duration: 300ms;
+  transform: scale(0.95);
   border-color: var(--panel-accent-soft);
   box-shadow:
     0 10px 24px rgba(0, 0, 0, 0.26),
