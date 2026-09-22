@@ -13,6 +13,7 @@ import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './eng
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
+import { useAppsChangedSync } from './engine/useAppsChangedSync';
 import { useFlashWidgets } from './engine/useFlashWidgets';
 import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
 import { useMachineName } from './engine/useMachineName';
@@ -203,6 +204,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
     if (connected && !wasConnected.current) refetch();
     wasConnected.current = connected;
   }, [connected, refetch]);
+  useAppsChangedSync(refetch);
 
   // Keep the record's viewport facts truthful across a display rotation. The
   // Y70 record is not display-bound, so the promoted-monitor topology sync

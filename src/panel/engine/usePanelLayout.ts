@@ -15,6 +15,7 @@ import { broadcastLayoutChanged } from './panelSync';
 import {
   getMarketplaceListing,
   hasMarketplaceLoadedOnce,
+  isMarketplaceRegistryExpired,
   isMarketplaceType,
   marketplaceIdFromType,
   normalizeAppType,
@@ -83,8 +84,8 @@ function reconcileAppsAgainstRegistry(
       //   1. App-start: the marketplace registry hasn't loaded yet, so
       //      every app:* type is "unknown" transiently. Preserve
       //      the rect so a slow first fetch doesn't silently delete the
-      //      user's widgets; MarketplaceWidget renders a Loading…
-      //      placeholder until the listing lands.
+      //      user's widgets; the cell renders empty at its span until the
+      //      listing lands, since lookupApp resolves no component for it.
       //   2. Post-load: the registry HAS loaded but the listing for this
       //      id is missing - the widget was uninstalled (or renamed, e.g.
       //      com.nexus.* → com.hellonexus.*). Drop it from the layout so the
@@ -93,8 +94,13 @@ function reconcileAppsAgainstRegistry(
         if (!hasMarketplaceLoadedOnce()) return [widget];
         const id = marketplaceIdFromType(widget.type);
         if (id && getMarketplaceListing(id)) return [widget];
-        // Stale id - purge silently. The layout writer will persist the
-        // cleaned shape on the next debounced flush.
+        // A read past the freshness window cannot tell an uninstalled app from
+        // one installed since it; useMarketplaceRegistryRefresh reloads and a
+        // later pass decides.
+        if (isMarketplaceRegistryExpired()) return [widget];
+        // An uninstall purges the placement service-side, so a miss against a
+        // current registry is an app the listing hides (OEM gating) or one whose
+        // files went missing.
          
         console.info(`[panel-layout] dropping orphaned marketplace widget: ${widget.type}`);
         return [];

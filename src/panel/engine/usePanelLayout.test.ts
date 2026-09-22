@@ -1,9 +1,27 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { normalizePanelLayout } from './usePanelLayout';
 import { repaginatePanelLayout } from './paginate';
 import { sizeToSpan } from './grid';
 import type { PanelLayout, PanelWidget } from '../types';
+import {
+  _resetMarketplaceRegistryForTests,
+  _seedMarketplaceRegistryForTests,
+  loadMarketplaceApps,
+} from '../../widgets/marketplaceRegistry';
+import { listInstalledApps } from '../../widgets/api';
+
+vi.mock('../../widgets/api', () => ({ listInstalledApps: vi.fn() }));
+const mockList = vi.mocked(listInstalledApps);
+
+const INA_TYPE = 'app:com.hellonexus.ina';
+
+const OTHER_APP = {
+  id: 'com.hellonexus.aquarium', name: 'Aquarium', version: '1.0.0',
+  surfaces: ['y70'], runtime: 'sdk', page: false,
+  capabilities: {}, sizes: ['2x2'], defaultSize: '2x2',
+  source: 'user', preinstalled: false,
+};
 
 function widget(overrides: Partial<PanelWidget> & Pick<PanelWidget, 'id' | 'type' | 'size'>): PanelWidget {
   return {
@@ -176,5 +194,45 @@ describe('normalizePanelLayout immersive-on-load mark', () => {
       'monitor',
     );
     expect(result.immersiveOnLoadWidgetId).toBe('a');
+  });
+});
+
+// An app installs while a panel is live, so its registry read predates the
+// install. Dropping the placement on that read is what left the auto-installed
+// Ina widget off the Y70 until the page reloaded.
+describe('normalizePanelLayout app placements against an expired registry', () => {
+  beforeEach(() => _resetMarketplaceRegistryForTests());
+  afterEach(() => { _resetMarketplaceRegistryForTests(); vi.useRealTimers(); vi.clearAllMocks(); });
+
+  const inaLayout = () => layout([widget({ id: 'a', type: INA_TYPE, size: '4x4' })]);
+
+  it('keeps an unresolved app placement once the registry read has expired', () => {
+    _seedMarketplaceRegistryForTests([OTHER_APP] as never);
+    vi.useFakeTimers();
+    vi.setSystemTime(Date.now() + 31_000);
+
+    expect(normalizePanelLayout(inaLayout(), 'y70').pages[0].widgets.map(w => w.type)).toEqual([INA_TYPE]);
+  });
+
+  it('drops an unresolved app placement while the read is current', () => {
+    _seedMarketplaceRegistryForTests([OTHER_APP] as never);
+
+    expect(normalizePanelLayout(inaLayout(), 'y70').pages[0].widgets).toEqual([]);
+  });
+
+  // An empty listing is an answer, not an unknown: holding the placement here
+  // would leave a blank cell at its full span on a machine with no apps.
+  it('drops it against a current read that lists nothing', async () => {
+    mockList.mockResolvedValue([] as never);
+    await loadMarketplaceApps();
+
+    expect(normalizePanelLayout(inaLayout(), 'y70').pages[0].widgets).toEqual([]);
+  });
+
+  it('keeps a placement the current registry resolves', () => {
+    _seedMarketplaceRegistryForTests([{ ...OTHER_APP, id: 'com.hellonexus.ina', name: 'Ina' }] as never);
+
+    expect(normalizePanelLayout(layout([widget({ id: 'a', type: INA_TYPE, size: '2x2' })]), 'y70')
+      .pages[0].widgets.map(w => w.type)).toEqual([INA_TYPE]);
   });
 });

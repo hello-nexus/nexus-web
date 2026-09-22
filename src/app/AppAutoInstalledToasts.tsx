@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useToast } from '../components/common/Toast/Toast';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
-import { loadMarketplaceApps } from '../widgets/marketplaceRegistry';
+import { reloadMarketplaceApps } from '../widgets/marketplaceRegistry';
 import { APP_AUTO_INSTALLED_TOPIC, type AppAutoInstalledFrame } from '../api/store';
 
 // The only announcement that software appeared without being asked for, so it
@@ -20,7 +20,7 @@ export function AppAutoInstalledToasts() {
     const frame = raw as AppAutoInstalledFrame | null;
     if (!frame || !frame.appId) return;
     const name = typeof frame.appName === 'string' && frame.appName !== '' ? frame.appName : frame.appId;
-    void loadMarketplaceApps();
+    void reloadMarketplaceApps();
     push({
       title: t('store.autoInstalledTitle', { name }),
       body: frame.placed ? t('store.autoInstalledBodyPlaced', { name }) : t('store.autoInstalledBody', { name }),

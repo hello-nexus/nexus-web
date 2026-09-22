@@ -94,6 +94,14 @@ export function isMarketplaceRegistryStale(): boolean {
   return cache.size === 0 || Date.now() - lastLoadAt > STALE_AFTER_MS;
 }
 
+/** Whether the last successful read is older than the freshness window. Unlike
+ *  isMarketplaceRegistryStale, an empty cache is an answer ("nothing installed")
+ *  rather than a permanent unknown, so a caller deciding whether the registry
+ *  may be trusted about a missing id does not wait forever on an empty machine. */
+export function isMarketplaceRegistryExpired(): boolean {
+  return Date.now() - lastLoadAt > STALE_AFTER_MS;
+}
+
 /**
  * Has the marketplace registry ever completed a successful load? Used by the
  * panel layout reconciler to decide whether an `app:<id>` widget
@@ -135,12 +143,32 @@ export async function loadMarketplaceApps(): Promise<void> {
   return loadInFlight;
 }
 
+let reloadInFlight: Promise<boolean> | null = null;
+
+/**
+ * Refresh from a change that has already happened, reporting whether the cache
+ * actually reloaded. An in-flight load may have issued its request before that
+ * change, so joining it (what loadMarketplaceApps does) can settle on a listing
+ * that predates the install; reloads prompted by the same change do share one.
+ */
+export function reloadMarketplaceApps(): Promise<boolean> {
+  if (reloadInFlight) return reloadInFlight;
+  reloadInFlight = (async () => {
+    if (loadInFlight) await loadInFlight;
+    await loadMarketplaceApps();
+    return lastLoadError === '';
+  })().finally(() => { reloadInFlight = null; });
+  return reloadInFlight;
+}
+
 /** Test seam: drop the cache + listener set. */
 export function _resetMarketplaceRegistryForTests(): void {
   cache.clear();
   listeners.clear();
   loadInFlight = null;
+  reloadInFlight = null;
   lastLoadAt = 0;
+  lastLoadError = '';
 }
 
 /** Test seam: mark the registry as loaded with a custom set. */

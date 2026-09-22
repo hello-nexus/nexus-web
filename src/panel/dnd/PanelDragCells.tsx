@@ -226,11 +226,11 @@ export function PanelTouchCell({
   const previewTransition = 'transform 220ms cubic-bezier(0.25, 1, 0.5, 1)';
 
   if (!def) {
-    // usePanelLayout's reconciler drops orphan marketplace widgets once the
-    // registry loads, so reaching here means (a) the registry is still loading
-    // at app start, or (b) a built-in type was renamed/removed mid-session.
-    // Render a blank placeholder, not a "unknown:" box; the layout self-heals
-    // on the next normalize pass.
+    // usePanelLayout's reconciler keeps an app:<id> placement its registry
+    // cannot vouch for yet, so reaching here means (a) the registry has not
+    // loaded or has gone past its freshness window, or (b) a built-in type was
+    // renamed/removed mid-session. Render a blank placeholder, not an
+    // "unknown:" box; a later normalize against a current registry decides.
     return (
       <div
         className={styles.cellWrap}

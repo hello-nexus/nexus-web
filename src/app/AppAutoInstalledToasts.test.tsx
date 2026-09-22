@@ -1,9 +1,9 @@
 import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-const loadMarketplaceApps = vi.fn(() => Promise.resolve());
+const reloadMarketplaceApps = vi.fn(() => Promise.resolve());
 vi.mock('../widgets/marketplaceRegistry', () => ({
-  loadMarketplaceApps: () => loadMarketplaceApps(),
+  reloadMarketplaceApps: () => reloadMarketplaceApps(),
 }));
 
 // Interpolation-aware t() so assertions can verify the frame's fields land.
@@ -53,13 +53,13 @@ function renderWithMultiplex() {
 
 describe('AppAutoInstalledToasts', () => {
   it('announces the app by name and reloads the registry so it resolves', () => {
-    loadMarketplaceApps.mockClear();
+    reloadMarketplaceApps.mockClear();
     const { emit } = renderWithMultiplex();
     emit({ revision: 1, appId: 'com.ibuypower.control', appName: 'iBUYPOWER', placed: false });
 
     expect(screen.getByText('store.autoInstalledTitle name=iBUYPOWER')).toBeTruthy();
     expect(screen.getByText('store.autoInstalledBody name=iBUYPOWER')).toBeTruthy();
-    expect(loadMarketplaceApps).toHaveBeenCalledTimes(1);
+    expect(reloadMarketplaceApps).toHaveBeenCalledTimes(1);
   });
 
   it('says so when the widget was also placed on the panel', () => {
@@ -78,12 +78,12 @@ describe('AppAutoInstalledToasts', () => {
   });
 
   it('ignores a frame with no app id', () => {
-    loadMarketplaceApps.mockClear();
+    reloadMarketplaceApps.mockClear();
     const { emit } = renderWithMultiplex();
     emit(null);
     emit({ revision: 1, appId: '' });
 
     expect(screen.queryByText(/store\.autoInstalled/)).toBeNull();
-    expect(loadMarketplaceApps).not.toHaveBeenCalled();
+    expect(reloadMarketplaceApps).not.toHaveBeenCalled();
   });
 });

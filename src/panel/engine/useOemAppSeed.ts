@@ -5,19 +5,14 @@
 // per session; ui.oemAppSeeded persists so a user who later removes the
 // widget or unpins it keeps it removed on the next mount.
 
-import { useEffect, useReducer, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { createUuid } from '../../lib/uuid';
 import { isPinnableAppKey } from '../../app/sidebarAppKeys';
 import { appendWidget } from './panelLayoutOps';
 import type { PaginateCapacity } from './paginate';
 import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
-import {
-  getAllMarketplaceListings,
-  hasMarketplaceLoadedOnce,
-  isMarketplaceRegistryStale,
-  loadMarketplaceApps,
-  subscribeMarketplaceRegistry,
-} from '../../widgets/marketplaceRegistry';
+import { getAllMarketplaceListings, hasMarketplaceLoadedOnce } from '../../widgets/marketplaceRegistry';
+import { useMarketplaceRegistryRefresh } from './useMarketplaceRegistryRefresh';
 import { hasOemApp, planOemAppSeed } from './oemAppSeed';
 import type { UiSettingsValue } from '../../hooks/useUiSettings';
 
@@ -41,7 +36,6 @@ export function useOemAppSeed({
   enabled, layoutLoaded, layout, setLayout, capacity,
   uiHydrated, uiSettings, updateUiSettings,
 }: UseOemAppSeedArgs): void {
-  const [registryRevision, forceRender] = useReducer((r: number) => r + 1, 0);
   // Deliberately NOT gated on `enabled`. The OEM seed below is desktop-only,
   // but the registry load is what lets lookupApp resolve an `app:<id>` type at
   // all - and every surface needs that to render an installed SDK app. Gating
@@ -49,17 +43,7 @@ export function useOemAppSeed({
   // registry, so lookupApp returned undefined, the widget had no component, and
   // the cell rendered blank: an SDK app could be added to a panel and would
   // simply never appear.
-  useEffect(() => {
-    // TEMP EXPERIMENT: retry while stale. A kiosk panel can reach this effect
-    // before its token is usable; the single original attempt then failed and
-    // the registry stayed empty for the life of the page, so every app:<id>
-    // widget rendered as a blank cell.
-    const tick = () => { if (isMarketplaceRegistryStale()) void loadMarketplaceApps(); };
-    tick();
-    const timer = setInterval(tick, 5_000);
-    const unsubscribe = subscribeMarketplaceRegistry(forceRender);
-    return () => { clearInterval(timer); unsubscribe(); };
-  }, [forceRender]);
+  const registryRevision = useMarketplaceRegistryRefresh();
 
   // Guards a duplicate run within one mount (e.g. React StrictMode's
   // double-invoke); the persisted oemAppSeeded flag is what makes the

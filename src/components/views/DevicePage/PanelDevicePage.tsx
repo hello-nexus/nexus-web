@@ -24,6 +24,8 @@ import {
 } from '../../../panel/engine/grid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
+import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
+import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
@@ -703,6 +705,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     }).catch(() => {});
   }, [editingDeviceId, surface, deviceTouch]);
 
+  // Every broadcast-driven read goes through this. A write of ours in flight
+  // must defer rather than apply, or the echo reverts a controlled field
+  // mid-edit; the write's settle runs the deferred read.
+  const syncRecordFromBroadcast = useCallback(() => {
+    if (pendingWritesRef.current > 0) {
+      missedBroadcastRef.current = true;
+      return;
+    }
+    refetchDeviceRecord();
+  }, [refetchDeviceRecord]);
+
+  useAppsChangedSync(syncRecordFromBroadcast);
+  useMarketplaceRegistryRefresh();
+
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
     // conform the geometry to the editor grid before persisting - the stored
@@ -785,13 +801,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         }
       }).catch(() => {});
     }
-    // A write of ours is in flight: defer rather than apply, or the echo
-    // reverts a controlled field mid-edit. The write's settle runs it.
-    if (pendingWritesRef.current > 0) {
-      missedBroadcastRef.current = true;
-      return;
-    }
-    refetchDeviceRecord();
+    syncRecordFromBroadcast();
   });
 
   const singleWidget = isSingleWidgetSurface(surface);
