@@ -308,6 +308,33 @@ describe('DeckWidget', () => {
       expect(mockUseRecentApps).toHaveBeenCalledWith(true);
     });
 
+    it('keeps its layout when focus moves to an app already on the visible page', () => {
+      mockRecentAppsInstance();
+      const ring = (focused: string, order: string[]) => ({
+        apps: order.map((k, i) => ({ processKey: k, name: k.toUpperCase(), lastFocusedUtcMs: order.length - i })),
+        focusedProcessKey: focused,
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate: vi.fn(),
+      });
+      mockUseRecentApps.mockReturnValue(ring('chrome', ['chrome', 'discord']));
+      const { rerender, getAllByRole, getByRole } = render(<DeckWidget widget={widget()} />);
+      expect(getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['CHROME', 'DISCORD']);
+
+      // Discord takes focus: the host ring reorders MRU, the widget only re-highlights.
+      mockUseRecentApps.mockReturnValue(ring('discord', ['discord', 'chrome']));
+      rerender(<DeckWidget widget={widget()} />);
+      expect(getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['CHROME', 'DISCORD']);
+      expect(getByRole('button', { name: 'DISCORD' })).toHaveAttribute('aria-pressed', 'true');
+
+      // A newly seen app goes to the front.
+      mockUseRecentApps.mockReturnValue(ring('slack', ['slack', 'discord', 'chrome']));
+      rerender(<DeckWidget widget={widget()} />);
+      expect(getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['SLACK', 'CHROME', 'DISCORD']);
+    });
+
     it('pressing an unfocused key activates that process', () => {
       mockRecentAppsInstance();
       const activate = vi.fn();

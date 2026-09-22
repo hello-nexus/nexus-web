@@ -66,18 +66,24 @@ export interface RecentAppsGridProps {
   rows: number;
   onPress: (processKey: string) => void;
   ariaLabel?: string;
+  /** Controlled page index; with `onPageChange`, the host owns the page (DeckWidget, whose layout order depends on it). */
+  page?: number;
+  onPageChange?: (page: number) => void;
 }
 
 /** Read-only key grid for Recent Apps mode: reuses DeckGrid's cell classes for
- *  pixel parity, owns its own page index (clamped as the ring reorders), and
- *  never renders drag/slot-selection affordances - there is no per-key
- *  editing in this mode. */
-export function RecentAppsGrid({ pages, cols, rows, onPress, ariaLabel }: RecentAppsGridProps) {
+ *  pixel parity, owns its own page index (clamped as the ring reorders) unless
+ *  the host controls it, and never renders drag/slot-selection affordances -
+ *  there is no per-key editing in this mode. */
+export function RecentAppsGrid({ pages, cols, rows, onPress, ariaLabel, page: controlledPage, onPageChange }: RecentAppsGridProps) {
   const { t } = useTranslation();
-  const [page, setPage] = useState(0);
+  const [internalPage, setInternalPage] = useState(0);
+  const controlled = controlledPage !== undefined && !!onPageChange;
+  const page = controlled ? controlledPage : internalPage;
+  const setPage = (next: number) => (controlled ? onPageChange(next) : setInternalPage(next));
   const maxPage = Math.max(0, pages.length - 1);
   const clampedPage = Math.min(page, maxPage);
-  useEffect(() => { if (page !== clampedPage) setPage(clampedPage); }, [page, clampedPage]);
+  useEffect(() => { if (page !== clampedPage) setPage(clampedPage); });
   const keys = pages[clampedPage] ?? [];
 
   return (
@@ -95,7 +101,7 @@ export function RecentAppsGrid({ pages, cols, rows, onPress, ariaLabel }: Recent
               key={i}
               direction="next"
               ariaLabel={t('panel.settings.deck.recentApps.nextPage')}
-              onPress={() => setPage(p => Math.min(p + 1, maxPage))}
+              onPress={() => setPage(Math.min(clampedPage + 1, maxPage))}
             />
           );
         }
@@ -105,7 +111,7 @@ export function RecentAppsGrid({ pages, cols, rows, onPress, ariaLabel }: Recent
               key={i}
               direction="prev"
               ariaLabel={t('panel.settings.deck.recentApps.prevPage')}
-              onPress={() => setPage(p => Math.max(p - 1, 0))}
+              onPress={() => setPage(Math.max(clampedPage - 1, 0))}
             />
           );
         }
