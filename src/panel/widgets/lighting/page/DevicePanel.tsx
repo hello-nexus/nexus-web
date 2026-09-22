@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import { Cpu, FolderPlus, Plus } from 'lucide-react';
+import { FolderPlus, Plus } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import { useTranslation } from '../../../../lib/i18n';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
@@ -10,7 +10,6 @@ import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
-import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../../components/common/SortableList/groupedDrag';
@@ -33,7 +32,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, smartHubFirmwareControl, onSetSmartHubFirmwareControl, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareActive, onLianLiTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -86,10 +85,6 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   communityCounts?: Record<string, number>;
   /** Badge click: open the LED map editor on its Community tab. */
   onOpenCommunity?: (id: string) => void;
-  /** FW Control state for the HYTE SmartHub group (default false). */
-  smartHubFirmwareControl?: boolean;
-  /** Toggle FW Control for the HYTE SmartHub. */
-  onSetSmartHubFirmwareControl?: (enabled: boolean) => void;
   /** When true, Lian Li device cards are shown in the firmwareControlled (dimmed) state. */
   lianLiFirmwareActive?: boolean;
   /** Switches the Lian Li hub to its per-LED 'custom' mode, handing its zones
@@ -336,8 +331,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   };
 
   // The same gate a card's own click has, over a group's members.
-  const fwOf = (d: LightingDevice) => (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))
-    || (!!smartHubFirmwareControl && !!d.parentDeviceId?.startsWith('smarthub:'));
+  const fwOf = (d: LightingDevice) => !!lianLiFirmwareActive && d.id.startsWith('lianli:');
   const selectAllFor = (members: readonly LightingDevice[]) => {
     const ids = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
     return ids.length > 0 ? { count: ids.length, run: () => onSetSelection(new Set(ids), ids[0]) } : undefined;
@@ -372,7 +366,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     };
   };
 
-  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, fwControlled?: boolean, drag?: SortableRowArgs, stacked?: StackPosition) => (
+  const renderCard = (d: LightingDevice, indent: boolean, displayName?: string, drag?: SortableRowArgs, stacked?: StackPosition) => (
     <ZoneCard
       key={d.id}
       device={d}
@@ -392,10 +386,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       drag={drag}
       communityCount={communityCounts?.[d.id]}
       onOpenCommunity={onOpenCommunity ? () => onOpenCommunity(d.id) : undefined}
-      firmwareControlled={fwControlled || (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))}
-      // Only the Lian Li hub exposes a mode switch back to per-LED control;
-      // the SmartHub's FW Control lives on its group header instead.
-      onTakeControl={!!lianLiFirmwareActive && d.id.startsWith('lianli:') ? onLianLiTakeControl : undefined}
+      firmwareControlled={fwOf(d)}
+      onTakeControl={fwOf(d) ? onLianLiTakeControl : undefined}
       // Grouped members carry the notice on their group header instead.
       notice={indent ? undefined : noticeFor(d)}
       bulk={bulkFor(d)}
@@ -410,11 +402,11 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   // The stack carries the drag, so any zone drags the whole device. Power and
   // Nexus Control routes are card-keyed, so the header's toggles fan out over
   // the zones the way the group header's do.
-  const renderStack = (block: Extract<ZoneBlock, { kind: 'split' }>, drag?: SortableRowArgs, indent = false, fwControlled?: boolean) => {
+  const renderStack = (block: Extract<ZoneBlock, { kind: 'split' }>, drag?: SortableRowArgs, indent = false) => {
     const members = block.devices;
     const last = members.length - 1;
     // The same gate a card's own click has.
-    const selectable = members.filter(z => !zoneCardUnavailable(z) && !fwControlled && !fwOf(z)).map(z => z.id);
+    const selectable = members.filter(z => !zoneCardUnavailable(z) && !fwOf(z)).map(z => z.id);
     const stackOn = members.some(z => z.ledsOn);
     const stackControlled = members.some(z => z.controlled !== false);
     const flashable = members.filter(z => z.ledCount > 0);
@@ -444,44 +436,24 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
           onTogglePower: () => { const target = !stackOn; for (const z of members) onSetPower(z.id, target); },
           controlled: stackControlled,
           onToggleControlled: () => { const target = !stackControlled; for (const z of members) onSetControlled(z.id, target); },
-          hideLights: fwControlled,
           onRename: onRenameDevice ? name => onRenameDevice(block.deviceId, name) : undefined,
           onResetName: onRenameDevice && renamed ? () => onRenameDevice(block.deviceId, '') : undefined,
           ...stackFor(members.map(z => z.id), block.label, true),
         }}
       >
-        {members.map((z, i) => renderCard(z, indent, stripParentPrefix(z.name, block.stripLabel), fwControlled, undefined, i === last ? 'last' : 'inner'))}
+        {members.map((z, i) => renderCard(z, indent, stripParentPrefix(z.name, block.stripLabel), undefined, i === last ? 'last' : 'inner'))}
       </ZoneCardStack>
     );
   };
 
   const renderBlock = (block: DeviceBlock, a: SortableRowArgs | null) => {
-    if (block.kind === 'single') return renderCard(block.device, false, undefined, undefined, a ?? undefined);
+    if (block.kind === 'single') return renderCard(block.device, false, undefined, a ?? undefined);
     if (block.kind === 'split') return renderStack(block, a ?? undefined);
-    const { groupKey, label, stripLabel, parentDeviceId, isBrand, isSmartHub, devices: members, blocks: rows } = block;
+    const { groupKey, label, stripLabel, parentDeviceId, isBrand, devices: members, blocks: rows } = block;
     const groupOn = members.some(z => z.ledsOn);
     const handleToggle = () => { const target = !groupOn; for (const z of members) onSetPower(z.id, target); };
     const groupControlled = members.some(z => z.controlled !== false);
     const handleToggleControlled = () => { const target = !groupControlled; for (const z of members) onSetControlled(z.id, target); };
-    const fwOn = isSmartHub && !!smartHubFirmwareControl;
-    const leftAction = isSmartHub && onSetSmartHubFirmwareControl ? (
-      <HoverTooltip
-        body={t(fwOn ? 'lighting.devices.smarthub.fwControlDisable' : 'lighting.devices.smarthub.fwControlEnable')}
-        side="top"
-      >
-        <button
-          type="button"
-          role="switch"
-          aria-checked={fwOn}
-          aria-label={t(fwOn ? 'lighting.devices.smarthub.fwControlDisable' : 'lighting.devices.smarthub.fwControlEnable')}
-          className={`${styles.deviceSettingsBtn} ${fwOn ? styles.deviceFwControlBtnOn : ''}`}
-          data-no-dnd
-          onClick={e => { e.stopPropagation(); onSetSmartHubFirmwareControl(!fwOn); }}
-        >
-          <Cpu />
-        </button>
-      </HoverTooltip>
-    ) : undefined;
     const inner = innerArrangements.get(groupKey) ?? { rowIds: rows.map(blockKey), groupMembers: {} };
     const rowById = new Map(rows.map(r => [blockKey(r), r]));
     const devicesOfRowId = (id: string): LightingDevice[] => { const r = rowById.get(id); return r ? devicesOfBlock(r) : []; };
@@ -491,10 +463,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     const renderRow = (rowId: string, da: SortableRowArgs) => {
       const row = rowById.get(rowId);
       if (!row) return null;
-      if (row.kind === 'split') return renderStack(row, da, true, isSmartHub && fwOn);
+      if (row.kind === 'split') return renderStack(row, da, true);
       return isBrand
-        ? renderCard(row.device, true, undefined, undefined, da)
-        : renderCard(row.device, true, stripParentPrefix(row.device.name, stripLabel), isSmartHub && fwOn, da);
+        ? renderCard(row.device, true, undefined, da)
+        : renderCard(row.device, true, stripParentPrefix(row.device.name, stripLabel), da);
     };
     // One drop rewrites the groups inside this hardware group and the flat
     // device order the page persists: this group's zones in their new order,
@@ -522,7 +494,6 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         groupOn={groupOn} onTogglePower={handleToggle}
         groupControlled={groupControlled} onToggleControlled={handleToggleControlled}
         collapsed={isCollapsed(groupKey)} onToggleCollapsed={() => toggleCollapsed(groupKey)}
-        leftAction={leftAction} hideLights={fwOn}
         notice={noticeFor(members[0])}
         onSelectAll={selectAllFor(members)}
         groupMove={blockGroupMove(groupKey)}
@@ -555,7 +526,6 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
                 onDelete={() => onGroupsChange?.(removeGroup(groups, groupId))}
                 onSelectAll={selectAllFor(held)}
                 {...headerStack(held.map(z => z.id), group.name)}
-                hideLights={fwOn}
                 dropTarget={isDropTarget}
                 empty={held.length === 0}
                 count={held.length}

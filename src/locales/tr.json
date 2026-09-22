@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "Cihazlari kesfetmek veya taramak icin bir aydinlatma modu secin.",
   "lighting.devices.selectOnly": "Yalnızca {name} seç",
   "lighting.devices.smarthub.firmwareBadge": "Firmware Tarafından Kontrol Ediliyor",
-  "lighting.devices.smarthub.fwControlDisable": "Firmware Kontrolünü devre dışı bırak",
-  "lighting.devices.smarthub.fwControlEnable": "Firmware Kontrolünü etkinleştir",
   "lighting.devices.stackCount.one": "Yığınla ({count} cihaz)",
   "lighting.devices.stackCount.other": "Yığınla ({count} cihaz)",
   "lighting.devices.stackLayout": "Yığın düzeni",

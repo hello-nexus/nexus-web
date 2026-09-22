@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "选择灯光模式以开始发现或扫描设备。",
   "lighting.devices.selectOnly": "仅选择 {name}",
   "lighting.devices.smarthub.firmwareBadge": "固件控制中",
-  "lighting.devices.smarthub.fwControlDisable": "禁用固件控制",
-  "lighting.devices.smarthub.fwControlEnable": "启用固件控制",
   "lighting.devices.stackCount.one": "堆叠（{count} 个设备）",
   "lighting.devices.stackCount.other": "堆叠（{count} 个设备）",
   "lighting.devices.stackLayout": "堆叠布局",

@@ -117,8 +117,8 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
   // A group's rows are its devices, each a card or a split. A parent-device
   // group with a single row (a keeb: keys + underglow are one device) is that
   // row on its own, not a one-child category. Brand and smart-hub groups keep
-  // their header even at one member: it carries the brand/firmware-control
-  // affordances a card can't.
+  // their header even at one member: it carries the brand name, or the hub's
+  // own name and whole-hub power / Nexus Control, which a card can't.
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     if (b.kind !== 'group') continue;

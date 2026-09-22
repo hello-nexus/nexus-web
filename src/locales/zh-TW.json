@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "選擇燈光模式以開始探索或掃描裝置。",
   "lighting.devices.selectOnly": "僅選擇 {name}",
   "lighting.devices.smarthub.firmwareBadge": "韌體控制中",
-  "lighting.devices.smarthub.fwControlDisable": "停用韌體控制",
-  "lighting.devices.smarthub.fwControlEnable": "啟用韌體控制",
   "lighting.devices.stackCount.one": "堆疊（{count} 台裝置）",
   "lighting.devices.stackCount.other": "堆疊（{count} 台裝置）",
   "lighting.devices.stackLayout": "堆疊佈局",

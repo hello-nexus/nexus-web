@@ -2186,8 +2186,6 @@
   "lighting.devices.selectModeHint": "Select a lighting mode to start discovering or scanning devices.",
   "lighting.devices.selectOnly": "Select only {name}",
   "lighting.devices.smarthub.firmwareBadge": "Firmware Controlled",
-  "lighting.devices.smarthub.fwControlDisable": "Disable Firmware Control",
-  "lighting.devices.smarthub.fwControlEnable": "Enable Firmware Control",
   "lighting.devices.stackCount.one": "Stack ({count} device)",
   "lighting.devices.stackCount.other": "Stack ({count} devices)",
   "lighting.devices.stackLayout": "Stack layout",

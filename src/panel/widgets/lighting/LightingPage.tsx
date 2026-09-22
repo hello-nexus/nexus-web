@@ -19,7 +19,6 @@ import { type DeviceGroup } from '../../../lib/deviceGroups';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
-import { getSmartHubFirmwareControl, setSmartHubFirmwareControl } from '../../../api/smarthub';
 import { getLianLiLighting, setLianLiLighting } from '../../../api/lianli';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync, normalizeSync } from '../../../hooks/useLightingSync';
@@ -266,14 +265,13 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] });
   }, []);
 
-  const [smartHubFirmwareControl, setSmartHubFirmwareControlState] = useState(false);
   const [lianLiMode, setLianLiMode] = useState<string | null>(null);
   // true when the hub's active lighting mode is not 'custom' (firmware animation overrides per-LED engine).
   const lianLiFirmwareActive = lianLiMode !== null && lianLiMode !== 'custom';
 
-  // Hands the hub's LEDs back to the engine. Optimistic like the SmartHub
-  // toggle above: the card state flips immediately and reverts if the PUT
-  // fails, since nothing else re-reads the mode until a refetch.
+  // Hands the hub's LEDs back to the engine. Optimistic: the card state
+  // flips immediately and reverts if the PUT fails, since nothing else
+  // re-reads the mode until a refetch.
   const handleLianLiTakeControl = useCallback(async () => {
     const previous = lianLiMode;
     setLianLiMode('custom');
@@ -283,15 +281,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       setLianLiMode(previous);
     }
   }, [lianLiMode]);
-
-  const handleSetSmartHubFirmwareControl = useCallback(async (enabled: boolean) => {
-    setSmartHubFirmwareControlState(enabled);
-    try {
-      await setSmartHubFirmwareControl(enabled);
-    } catch {
-      setSmartHubFirmwareControlState(!enabled);
-    }
-  }, []);
 
   // Per-device static pick, keyed by device id. Kept out of the device records
   // so a topic refetch cannot clobber a just-applied pick. A pick is (effect,
@@ -1510,9 +1499,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   useEffect(() => {
     if (!serviceOnline) return;
     let cancelled = false;
-    getSmartHubFirmwareControl().then(v => {
-      if (!cancelled && v !== null) setSmartHubFirmwareControlState(v);
-    }).catch(() => {});
     getLianLiLighting().then(data => {
       if (!cancelled && data) setLianLiMode(data.mode);
     }).catch(() => {});
@@ -1522,9 +1508,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   useEffect(() => {
     const onFocus = () => {
       if (!serviceOnline) return;
-      getSmartHubFirmwareControl().then(v => {
-        if (v !== null) setSmartHubFirmwareControlState(v);
-      }).catch(() => {});
       getLianLiLighting().then(data => {
         if (data) setLianLiMode(data.mode);
       }).catch(() => {});
@@ -2346,8 +2329,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
             communityCounts={mappingCounts}
             onOpenCommunity={handleOpenCommunity}
-            smartHubFirmwareControl={smartHubFirmwareControl}
-            onSetSmartHubFirmwareControl={handleSetSmartHubFirmwareControl}
             lianLiFirmwareActive={lianLiFirmwareActive}
             onLianLiTakeControl={handleLianLiTakeControl}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
