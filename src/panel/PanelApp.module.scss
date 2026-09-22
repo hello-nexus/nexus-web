@@ -133,6 +133,19 @@
   object-fit: cover;
 }
 
+// Chromium holds a display+system "Video Wake Lock" for any playing <video>
+// whose border box is more than 75% on screen, so a looping media background
+// kept the host PC from ever sleeping (WebView2 kiosks and streamed panels).
+// Transparent side padding keeps the border box under that threshold while
+// the content box object-fit paints into, and the native video compositing,
+// are unchanged. The panel screenshot zeroes it for the rasterize
+// (PanelEmbedFrame unpadVideosForCapture).
+.backgroundMediaVideo {
+  box-sizing: content-box;
+  padding: 0 100%;
+  margin-left: -100%;
+}
+
 // Frosted glass over the background layer (backgroundFrost, sibling rendered
 // after the shader / media / wallpaper layers so its backdrop is exactly
 // those). Hard radius, never animated - tweening backdrop-filter re-runs an

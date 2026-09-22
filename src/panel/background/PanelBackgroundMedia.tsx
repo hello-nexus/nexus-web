@@ -63,7 +63,7 @@ export function PanelBackgroundMedia({
         <video
           ref={videoRef}
           src={url}
-          className={styles.backgroundMediaContent}
+          className={`${styles.backgroundMediaContent} ${styles.backgroundMediaVideo}`}
           autoPlay
           loop={loop}
           muted
