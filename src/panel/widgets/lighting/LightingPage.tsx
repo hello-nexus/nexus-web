@@ -28,6 +28,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
 import { buildDeviceBlocks, sortZonesWithinDevice } from './page/deviceBlocks';
 import { canStack, isStackedSet, setStackLayout, stackDevices, stackOf, unstackDevices, withStacked, type DeviceStack } from './page/deviceStacks';
+import { controlGroupOf } from './page/controlGroupOf';
 import { stackLayoutOf, type StackLayout } from '../../../lib/stackSlots';
 import { useTranslation } from '../../../lib/i18n';
 import { publishControlSync, subscribeControlSync } from '../../../lib/controlSync';
@@ -1284,17 +1285,21 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   // "Controlled" mirrors the power toggle/setter pair above, but controls
   // whether Nexus pushes frames to the device at all (distinct from power,
-  // which drives it to black).
+  // which drives it to black). One write lands on every card the service
+  // widens it to, so the optimistic state covers the same set.
   const handleToggleControlled = useCallback((id: string) => {
     const current = devicesRef.current.find(d => d.id === id);
     if (!current) return;
     const nextControlled = current.controlled === false;
+    const ids = controlGroupOf(devicesRef.current, current);
     setLightingDeviceControlled(id, nextControlled).catch(() => { /* 3s poll reconciles */ });
-    setDevices(prev => prev.map(d => d.id === id ? { ...d, controlled: nextControlled } : d));
+    setDevices(prev => prev.map(d => ids.has(d.id) ? { ...d, controlled: nextControlled } : d));
   }, []);
   const handleSetControlled = useCallback((id: string, controlled: boolean) => {
+    const current = devicesRef.current.find(d => d.id === id);
+    const ids = current ? controlGroupOf(devicesRef.current, current) : new Set([id]);
     setLightingDeviceControlled(id, controlled).catch(() => { /* 3s poll reconciles */ });
-    setDevices(prev => prev.map(d => d.id === id ? { ...d, controlled } : d));
+    setDevices(prev => prev.map(d => ids.has(d.id) ? { ...d, controlled } : d));
   }, []);
   // The card keeps the hardware name it is replacing, so the LED settings
   // modal can still show what the device calls itself. A rename off an already
