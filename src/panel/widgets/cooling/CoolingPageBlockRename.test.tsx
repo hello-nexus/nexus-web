@@ -119,7 +119,10 @@ describe('CoolingPage rail block renames', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(screen.getByText('Board headers')).toBeInTheDocument());
 
-    // startRename left the menu open, so Reset name is already on screen.
+    // Selecting a menu row closes the menu on a 120ms exit timer, where the
+    // menu button closes it at once, so Reset name is reached by reopening.
+    await waitFor(() => expect(screen.queryByText(/fan\.rename$/)).toBeNull());
+    toggleMenu(BOARD);
     fireEvent.click(screen.getByRole('button', { name: /resetName/ }));
     expect(renameFan).toHaveBeenCalledWith('motherboard', '');
     await waitFor(() => expect(screen.getByText('ROG STRIX Z790-E')).toBeInTheDocument());
