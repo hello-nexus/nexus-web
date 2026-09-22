@@ -202,11 +202,10 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount 
           } : undefined}
         >
           {menu?.onRename ? (
-            /* data-no-dnd so a press on the name edits instead of dragging the
-               stack. Only a click inside the open editor is kept from the
-               header: on the label it must still select the zones. */
+            /* Only a click inside the open editor is kept from the header: on
+               the label it must still select the zones, and a press there
+               drags the stack like the rest of the bar. */
             <span
-              data-no-dnd
               style={{ display: 'contents' }}
               onClick={e => { if ((e.target as HTMLElement).tagName === 'INPUT') e.stopPropagation(); }}
             >

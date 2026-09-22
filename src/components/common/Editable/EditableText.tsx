@@ -54,7 +54,8 @@ export const EditableText = forwardRef<EditableTextHandle, EditableTextProps>(fu
   useImperativeHandle(ref, () => ({ startEditing: () => editable.start() }));
 
   if (editable.editing) {
-    return <input className={`${styles.input} ${className ?? ''}`} maxLength={maxLength} aria-label={ariaLabel} {...editable.inputProps} />;
+    // data-no-dnd: a press-drag inside the editor selects text, never the row.
+    return <input className={`${styles.input} ${className ?? ''}`} maxLength={maxLength} aria-label={ariaLabel} data-no-dnd {...editable.inputProps} />;
   }
 
   // Without click-to-edit the text is not a control, so it must not advertise

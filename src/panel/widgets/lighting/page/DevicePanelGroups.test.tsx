@@ -330,11 +330,19 @@ describe('DevicePanel split card header', () => {
     expect(onSetSelection).toHaveBeenCalledTimes(1);
   });
 
+  it('leaves the resting name inside the drag handle and fences off only the open editor', () => {
+    renderRail(keeb);
+    expect(headerName('HYTE Keeb TKL').closest('[data-no-dnd]')).toBeNull();
+    openMenu('HYTE Keeb TKL');
+    fireEvent.click(screen.getByText('lighting.devices.rename'));
+    expect(screen.getByDisplayValue('HYTE Keeb TKL').closest('[data-no-dnd]')).not.toBeNull();
+  });
+
   it('lays the header out as the name, then the kebab pinned last', () => {
     renderRail(keeb);
     const header = document.querySelector(`.${styles.deviceCardStackHeader}`)!;
-    // The name rides inside a display:contents no-dnd wrapper, so it is the
-    // first child's content rather than the first child itself.
+    // The name rides inside a display:contents wrapper, so it is the first
+    // child's content rather than the first child itself.
     expect(header.children[0].contains(header.querySelector(`.${styles.deviceCardStackName}`))).toBe(true);
     expect(header.children).toHaveLength(2);
     expect(header.lastElementChild?.tagName).toBe('BUTTON');

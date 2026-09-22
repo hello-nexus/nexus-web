@@ -55,6 +55,24 @@ describe('CollapsibleSection title renamed from a menu', () => {
     fireEvent.click(screen.getByDisplayValue('Desk'));
     expect(onToggle).not.toHaveBeenCalled();
   });
+
+  it('starts a drag from the resting title, never from the open editor', () => {
+    const onPointerDown = vi.fn();
+    const ref = createRef<EditableTextHandle>();
+    render(
+      <CollapsibleSection
+        title="Desk" ariaLabel="Desk" open onToggle={() => {}} onTitleRename={() => {}} titleRenameRef={ref}
+        drag={{ ref: () => {}, style: {}, attributes: {}, listeners: { onPointerDown }, isDragging: false, placeholderClassName: '' }}
+      >
+        <div>body</div>
+      </CollapsibleSection>,
+    );
+    fireEvent.pointerDown(screen.getByText('Desk'));
+    expect(onPointerDown).toHaveBeenCalledTimes(1);
+    act(() => ref.current!.startEditing());
+    fireEvent.pointerDown(screen.getByDisplayValue('Desk'));
+    expect(onPointerDown).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('CollapsibleSection plain title', () => {

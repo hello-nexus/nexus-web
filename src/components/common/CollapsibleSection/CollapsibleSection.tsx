@@ -71,7 +71,7 @@ export function CollapsibleSection({
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
   sectionId?: string;
   /** When set, the whole section becomes reorderable among its siblings via
-   *  dnd-kit. The header bar is the drag handle, minus the title and any
+   *  dnd-kit. The header bar is the drag handle, title included, minus any
    *  interactive `right` control. */
   drag?: SortableRowArgs;
   /** Lets the section's own menu rename the title, through `titleRenameRef`.
@@ -151,9 +151,16 @@ export function CollapsibleSection({
                 {...rename.inputProps}
               />
             ) : (
-              /* The strip between the chevron and the fill toggles like the
-                 rest of the bar, so it is not dead and shows the hand. */
-              <span className={`${styles.title} ${styles.titleSlot}`} onClick={onToggle}>{title}</span>
+              /* The strip between the chevron and the fill toggles and drags
+                 like the rest of the bar, so it is not dead and shows the hand. */
+              <span
+                className={`${styles.title} ${styles.titleSlot}`}
+                data-drag-handle={drag ? 'true' : undefined}
+                onClick={onToggle}
+                {...(drag?.listeners ?? {})}
+              >
+                {title}
+              </span>
             )}
             {titleAfter !== undefined && <span className={styles.titleAfterSlot}>{titleAfter}</span>}
             {/* Keeps the bar's empty run a toggle target now that the title owns
