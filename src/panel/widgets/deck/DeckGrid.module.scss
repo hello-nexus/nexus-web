@@ -59,16 +59,12 @@
   box-sizing: border-box;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: transform var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast), border-color var(--ease-fast);
 
-  // Pointer-only: a tap leaves the emulated hover on the key until the next
-  // touch elsewhere, which reads as a highlight stuck on after release.
-  @media (hover: hover) {
-    &:hover {
-      background: color-mix(in srgb, var(--deck-accent, #64748b) 90%, #ffffff);
-    }
-  }
-
+  // No hover fill: a hybrid touch PC reports (hover: hover) for its mouse and
+  // then latches the emulated hover on a tapped key until the next tap
+  // elsewhere, so the press feedback is the scale alone, released with the key.
   &:active {
     transform: scale(0.94);
   }
