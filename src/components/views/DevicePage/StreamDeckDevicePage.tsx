@@ -78,9 +78,9 @@ interface StreamDeckDevicePageProps {
 
 /**
  * Routed device page for one physical Stream Deck, in the standard device-page
- * split: the Customize tab has the mode chip + preset toolbar on top, the
- * shared key inspector on the left and, on the right, the top-aligned deck
- * preview with page-number pagination and the model name below it; the
+ * split: the Customize tab has the top-aligned deck preview with page-number
+ * pagination and the shared key inspector on the left and, on the right, the
+ * mode chip + mode section + preset toolbar above the action picker; the
  * Settings tab has device prefs on the left and a read-only preview of the
  * same grid on the right. Each connected/persisted deck gets its own sidebar
  * entry (see useUnifiedDevices), so `device` always identifies exactly one
@@ -371,6 +371,31 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     else clearSlot(i);
   };
 
+  const instanceEditor = (
+    <DeckInstanceEditor
+      deck={instance}
+      instanceGrid={instanceGrid}
+      kind="physical"
+      page={page}
+      onPageChange={onSelectPage}
+      folderPath={folderPath}
+      onFolderPathChange={onEnterFolder}
+      selectedSlot={selectedSlot}
+      onSelectedSlotChange={setSelectedSlot}
+      // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+      surface="desktop"
+      desktopEditor
+      onImport={() => setImportOpen(true)}
+      onLoad={id => void onDeckPresetLoad(id)}
+      onDelete={id => void onDeckPresetDelete(id)}
+      onUndo={handleUndoDeck}
+      onRedo={handleRedoDeck}
+      onReset={handleDeckReset}
+      // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
+      bodyMode="toolbarOnly"
+    />
+  );
+
   const TABS: TabDef[] = [
     { key: 'customize', label: t('devices.streamdeck.tab.customize'), icon: <LayoutGrid size={14} /> },
     { key: 'settings', label: t('devices.streamdeck.tab.settings'), icon: <SettingsIcon size={14} /> },
@@ -395,31 +420,12 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
         {tab === 'customize' ? (
-          <>
-            <DeckInstanceEditor
-              deck={instance}
-              instanceGrid={instanceGrid}
-              kind="physical"
-              page={page}
-              onPageChange={onSelectPage}
-              folderPath={folderPath}
-              onFolderPathChange={onEnterFolder}
-              selectedSlot={selectedSlot}
-              onSelectedSlotChange={setSelectedSlot}
-              // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
-              surface="desktop"
-              desktopEditor
-              onImport={() => setImportOpen(true)}
-              onLoad={id => void onDeckPresetLoad(id)}
-              onDelete={id => void onDeckPresetDelete(id)}
-              onUndo={handleUndoDeck}
-              onRedo={handleRedoDeck}
-              onReset={handleDeckReset}
-              // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
-              bodyMode="toolbarOnly"
-            />
-            {recentAppsMode ? (
-              <div className={styles.customizeSplit}>
+          // One DndContext and one split for every mode (inert in Recent Apps,
+          // which has no draggables), so the right column never remounts on a
+          // mode switch and the chip that committed it keeps focus.
+          <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveDragKind(null)}>
+            <div className={styles.customizeSplit}>
+              {recentAppsMode ? (
                 <div className={styles.leftCol}>
                   <div className={styles.previewTop}>
                     <div className={styles.previewStage}>
@@ -452,10 +458,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-            <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveDragKind(null)}>
-            <div className={styles.customizeSplit}>
+              ) : (
               <div className={styles.leftCol}>
                 <div className={styles.previewTop}>
                   <div className={styles.previewStage} ref={previewStageRef}>
@@ -529,9 +532,11 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                   )}
                 </div>
               </div>
+              )}
 
-              {target && (
-                <div className={styles.pickerPane}>
+              <div className={styles.pickerPane}>
+                {instanceEditor}
+                {!recentAppsMode && target && (
                   <DeckKeyInspector
                     target={target}
                     page={page}
@@ -545,15 +550,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="picker"
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
             <DragOverlay dropAnimation={null}>
               {activeDragKind ? <DeckActionDragPreview kind={activeDragKind} /> : null}
             </DragOverlay>
-            </DndContext>
-            )}
-          </>
+          </DndContext>
         ) : (
           <div className={styles.settingsFull}>
             <SettingsSection>

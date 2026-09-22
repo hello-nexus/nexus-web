@@ -462,6 +462,29 @@ describe('StreamDeckDevicePage', () => {
       expect(!!(grid.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
       // Right column: the action picker follows the whole left column in DOM order.
       expect(!!(editor.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      // The mode chip heads the right column: after the left column, before the picker.
+      const modeChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.custom' });
+      expect(!!(editor.compareDocumentPosition(modeChip) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      expect(!!(modeChip.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    });
+
+    it('keeps the focused mode chip mounted across a Custom to Recent Apps switch', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'custom', activePresetId: 'p1' } }));
+      const { rerender } = await renderPage();
+
+      const recentChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' });
+      recentChip.focus();
+      expect(document.activeElement).toBe(recentChip);
+
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
+      await act(async () => {
+        rerender(<StreamDeckDevicePage device={makeUnifiedDevice()} controlDevice={mockControlDevice} />);
+      });
+      // Same node, still focused: the right column sits outside the mode branch.
+      expect(screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' })).toBe(recentChip);
+      expect(document.activeElement).toBe(recentChip);
+      expect(screen.queryByTestId('deck-key-inspector-picker')).toBeNull();
     });
   });
 
