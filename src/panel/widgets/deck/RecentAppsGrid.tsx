@@ -11,7 +11,9 @@ function RecentAppCell({ appKey, onPress }: { appKey: RecentAppKey; onPress: (pr
   const shortcutIcon = useAppIcon(appKey.shortcutId);
   const processIcon = useProcessIcon(appKey.shortcutId ? undefined : appKey.processKey);
   const iconUrl = shortcutIcon ?? processIcon;
-  const accent = categoryColor('launch');
+  // A loaded icon is the whole key face, as DeckGrid renders a bound app key on
+  // the touch widget; the initial-letter fallback keeps the accent fill.
+  const accent = iconUrl ? 'transparent' : categoryColor('launch');
   const cellClass = appKey.focused ? `${styles.cell} ${styles.selectable} ${styles.selected}` : styles.cell;
 
   return (
@@ -25,7 +27,7 @@ function RecentAppCell({ appKey, onPress }: { appKey: RecentAppKey; onPress: (pr
     >
       <span className={styles.iconWrap}>
         {iconUrl ? (
-          <img src={iconUrl} className={`${styles.appIcon} ${styles.recentAppIcon}`} alt="" />
+          <img src={iconUrl} className={styles.appIconFull} alt="" />
         ) : (
           <span className={styles.emoji} aria-hidden="true">{appKey.name.charAt(0).toUpperCase()}</span>
         )}

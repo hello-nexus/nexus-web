@@ -156,17 +156,9 @@
 
 // A loaded app icon on the touch widget is the whole key face: contain-fit
 // against .cell so the artwork's own shape (and transparency) shows at full
-// size with no accent fill behind it (useCellVisual sets the accent to
-// transparent). Cover would crop a non-square icon, so unlike .customImage
-// this letterboxes instead.
-// Recent Apps keys stay a glyph on the accent field, smaller than a bound
-// app key's artwork, so a reordering row reads as a list of icons rather than
-// a wall of logos; the focused key's ring/fill treatment stays visible.
-.recentAppIcon {
-  max-height: 64%;
-  max-width: 64%;
-}
-
+// size with no accent fill behind it (useCellVisual and RecentAppCell set the
+// accent to transparent). Cover would crop a non-square icon, so unlike
+// .customImage this letterboxes instead.
 .appIconFull {
   position: absolute;
   inset: 0;

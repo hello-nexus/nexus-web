@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { RecentAppsGrid } from './RecentAppsGrid';
 import type { RecentAppsViewPage } from './recentAppsView';
+import styles from './DeckGrid.module.scss';
 
 vi.mock('../common/AppPicker', () => ({ useAppIcon: (id?: string) => (id === 'has-icon' ? 'blob:mock-shortcut-icon' : null) }));
 vi.mock('../../../hooks/useProcessIcon', () => ({ useProcessIcon: (name?: string) => (name === 'chrome' ? 'blob:mock-process-icon' : null) }));
@@ -24,10 +25,13 @@ describe('RecentAppsGrid - app cells', () => {
     expect(screen.queryByText('Discord')).toBeNull();
   });
 
-  it('renders a shortcut icon when shortcutId resolves', () => {
+  it('renders a shortcut icon when shortcutId resolves, as the full key face on a transparent accent', () => {
     const pages: RecentAppsViewPage[] = [[appKey({ shortcutId: 'has-icon' })]];
     const { container } = render(<RecentAppsGrid pages={pages} cols={1} rows={1} onPress={vi.fn()} />);
-    expect(container.querySelector('img')).toHaveAttribute('src', 'blob:mock-shortcut-icon');
+    const img = container.querySelector('img');
+    expect(img).toHaveAttribute('src', 'blob:mock-shortcut-icon');
+    expect(img?.className).toBe(styles.appIconFull);
+    expect(screen.getByRole('button', { name: 'Discord' }).style.getPropertyValue('--deck-accent')).toBe('transparent');
   });
 
   it('falls back to the process icon when there is no shortcutId', () => {
@@ -36,11 +40,12 @@ describe('RecentAppsGrid - app cells', () => {
     expect(container.querySelector('img')).toHaveAttribute('src', 'blob:mock-process-icon');
   });
 
-  it('falls back to an initial-letter glyph when neither icon resolves', () => {
+  it('falls back to an initial-letter glyph on the accent fill when neither icon resolves', () => {
     const pages: RecentAppsViewPage[] = [[appKey({ processKey: 'unknownapp', name: 'Unknown App' })]];
     const { container } = render(<RecentAppsGrid pages={pages} cols={1} rows={1} onPress={vi.fn()} />);
     expect(container.querySelector('img')).toBeNull();
     expect(screen.getByText('U')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unknown App' }).style.getPropertyValue('--deck-accent')).not.toBe('transparent');
   });
 
   it('the focused key gets the selected treatment and a press is a no-op', () => {
