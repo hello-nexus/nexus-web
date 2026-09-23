@@ -33,13 +33,6 @@
   min-width: 0;
 }
 
-// Nothing paired: take the body's full height so the intro centers in it.
-.pairedColumnEmpty {
-  align-self: stretch;
-  display: flex;
-  flex-direction: column;
-}
-
 // Inside an ImmersiveLayout cell (Touch facet): fill the cell and scroll
 // internally. The cell already handles the fixed-4x4 / fill sizing per
 // orientation, so the column just takes whatever height it's given.

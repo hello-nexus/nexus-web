@@ -135,10 +135,10 @@ describe('FramesPage - History tab states', () => {
     renderPage();
     expect(await screen.findByText('frames.intro.title')).toBeInTheDocument();
 
-    fireEvent.click(await screen.findByText('frames.intro.enableTracking'));
+    fireEvent.click(await screen.findByRole('switch', { name: 'settings.localDataStore.fps.label' }));
     expect(setFpsTrackingEnabledMock).toHaveBeenCalledWith(true);
     await flush();
-    expect(screen.queryByText('frames.intro.enableTracking')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'settings.localDataStore.fps.label' })).not.toBeInTheDocument();
   });
 
   it('shows a dedicated blank state with no search box or counter when there are no recordings at all', async () => {
@@ -147,7 +147,7 @@ describe('FramesPage - History tab states', () => {
 
     expect(await screen.findByText('frames.intro.title')).toBeInTheDocument();
     expect(screen.getByText('frames.intro.body')).toBeInTheDocument();
-    expect(screen.queryByText('frames.intro.enableTracking')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'settings.localDataStore.fps.label' })).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText('steam.library.searchPlaceholder')).not.toBeInTheDocument();
     expect(screen.queryByText(/steam\.library\.count/)).not.toBeInTheDocument();
   });

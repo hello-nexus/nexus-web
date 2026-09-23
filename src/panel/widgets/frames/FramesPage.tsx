@@ -6,6 +6,7 @@ import { EpicIcon, SteamIcon } from '../../../components/icons/PlatformIcons';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
+import { NexusControlCard } from '../../../components/common/NexusControlCard/NexusControlCard';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
@@ -167,9 +168,13 @@ function HistoryTab({
             { icon: <Compass />, text: t('frames.intro.pointDiscover') },
           ]}
           action={trackingEnabled === false && (
-            <Button tone="accent" loading={enabling} onClick={handleEnable}>
-              {t('frames.intro.enableTracking')}
-            </Button>
+            <NexusControlCard
+              checked={enabling}
+              disabled={enabling}
+              icon={<Film size={13} aria-hidden />}
+              label={t('settings.localDataStore.fps.label')}
+              onChange={handleEnable}
+            />
           )}
         />
       </div>

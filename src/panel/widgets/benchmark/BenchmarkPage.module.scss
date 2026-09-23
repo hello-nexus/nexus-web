@@ -24,6 +24,18 @@
   border-radius: var(--radius-lg);
 }
 
+// No run yet: the intro, then the specs under it at the intro's width.
+.firstRun {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .specsSection {
+    width: 100%;
+    max-width: var(--intro-max);
+  }
+}
+
 .specsSection {
   display: flex;
   flex-direction: column;
@@ -40,17 +52,6 @@
 @media (max-width: 32rem) {
   .specGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-.whatItMeasures {
-  margin: 0;
-  padding-left: 1.25rem;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-
-  li {
-    margin: 0;
   }
 }
 

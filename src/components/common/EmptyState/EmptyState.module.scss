@@ -52,11 +52,15 @@
 }
 
 // Feature intro for an empty page: haloed icon, heading, optional points.
+// Docked at the top of whatever holds it, never centered, so content that
+// follows (a setup form, specs) sits right below it.
 .hero {
-  // Fills a flex-column page body too, where height: 100% alone may not resolve.
-  flex: 1 1 auto;
+  flex: none;
+  align-self: stretch;
+  height: auto;
+  justify-content: flex-start;
   gap: 0;
-  padding: 2rem 1rem;
+  padding: 3rem 1rem 2rem;
 
   .icon {
     position: relative;
@@ -98,7 +102,13 @@
     max-width: 46ch;
   }
 
-  .action { margin-top: 1.25rem; }
+  // Wide enough for a toggle card to read as a control row; a button stays
+  // its own width, centered.
+  .action {
+    margin-top: 1.25rem;
+    width: 100%;
+    max-width: 22rem;
+  }
 }
 
 .iconDisc {
@@ -122,7 +132,7 @@
   grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
   gap: 0.5rem;
   width: 100%;
-  max-width: 34rem;
+  max-width: var(--intro-max);
 }
 
 .point {

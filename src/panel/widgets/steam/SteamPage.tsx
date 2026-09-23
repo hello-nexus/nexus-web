@@ -171,7 +171,6 @@ export function SteamPage() {
             <div className={styles.setupInner}>
               <EmptyState
                 hero
-                className={styles.setupNotice}
                 icon={<SteamLogo />}
                 title={t('steam.intro.title')}
                 hint={t('steam.intro.body')}

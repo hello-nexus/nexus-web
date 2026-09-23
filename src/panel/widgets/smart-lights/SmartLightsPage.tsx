@@ -401,11 +401,8 @@ export function SmartLightsPairedColumn({
   const { t } = useTranslation();
   const { paired, grouped } = ctrl;
   const empty = paired.length === 0;
-  const columnClass = immersive
-    ? `${styles.pairedColumn} ${styles.columnImmersive}`
-    : `${styles.pairedColumn} ${empty ? styles.pairedColumnEmpty : ''}`;
   return (
-    <div className={columnClass}>
+    <div className={immersive ? `${styles.pairedColumn} ${styles.columnImmersive}` : styles.pairedColumn}>
       <SectionHeader className={styles.colHeader}>{t('smartLights.paired')}</SectionHeader>
       {empty && immersive ? (
         <EmptyState

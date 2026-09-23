@@ -40,24 +40,15 @@ $dot-offline: var(--text-dim);
 }
 
 .setupInner {
-  margin: auto;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  max-width: 520px;
-  padding: 1rem 0;
+  max-width: var(--intro-max);
+  padding: 0 0 1rem;
   box-sizing: border-box;
-}
-
-// EmptyState fills its container by default, which would push the form to the
-// bottom of the page instead of sitting directly under the notice. Nested under
-// .setupInner so this wins on specificity rather than on CSS chunk order.
-.setupInner .setupNotice {
-  flex: none;
-  height: auto;
-  padding: 0 1rem;
 }
 
 .setupForm {

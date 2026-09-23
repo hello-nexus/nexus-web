@@ -443,7 +443,6 @@ export function HomeAssistantSetupForm({
       {showIntro && (
         <EmptyState
           hero
-          className={styles.introHero}
           icon={<House />}
           title={t('homeAssistant.intro.title')}
           hint={t('homeAssistant.intro.body')}
