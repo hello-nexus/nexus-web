@@ -225,7 +225,6 @@
   "build.offline.open": "開啟 build.hellonexus.com",
   "build.offline.retry": "重試",
   "build.offline.title": "無法連線至 Build",
-  "build.openInBrowser": "在瀏覽器中開啟",
   "builder.copied": "已複製！",
   "chart.addEvent": "新增事件",
   "chart.minus60s": "-60s",

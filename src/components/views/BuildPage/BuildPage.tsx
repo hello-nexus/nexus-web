@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ExternalLink, RotateCw } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
-import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -267,14 +266,6 @@ export function BuildPage({ path }: BuildPageProps) {
 
   return (
     <div className={styles.app}>
-      <ViewHeader
-        title={t('panel.widget.build')}
-        actions={
-          <Button size="sm" tone="ghost" icon={<ExternalLink size={14} />} onClick={openInBrowser}>
-            {t('build.openInBrowser')}
-          </Button>
-        }
-      />
       <div className={styles.body}>
         {showFallback ? (
           <div className={styles.fallbackWrap}>
