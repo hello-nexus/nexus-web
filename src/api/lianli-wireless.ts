@@ -1,4 +1,4 @@
-import { fetchService, postService, postServiceForm, deleteService, resolveHttp } from './service';
+import { fetchService, postService, postServiceForm, putService, deleteService, resolveHttp } from './service';
 import { getTokenSync } from './auth';
 import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
 
@@ -61,6 +61,55 @@ export async function unbindLianLiWirelessFan(mac: string): Promise<boolean> {
 
 export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/identify', { mac }));
+}
+
+export interface LianLiWirelessStrimerEffect {
+  key: string;
+  hasSpeed: boolean;
+  hasDirection: boolean;
+  colorsMin: number;
+  colorsMax: number;
+}
+
+export interface LianLiWirelessStrimerLane {
+  mode: string;
+  direction: number;
+  /** "#RRGGBB" */
+  color: string;
+}
+
+export interface LianLiWirelessStrimer {
+  mac: string;
+  devType: number;
+  model: string;
+  lanes: number;
+  ledsPerLane: number;
+  /** 'custom' streams the Lighting page's effects; 'perLane' plays one effect per lane; otherwise an effect key the cable plays on its own. */
+  mode: string;
+  /** 0 slowest .. 4 fastest */
+  speed: number;
+  direction: number;
+  /** 0 off .. 4 full */
+  brightness: number;
+  colors: string[];
+  laneSettings: LianLiWirelessStrimerLane[];
+}
+
+export interface LianLiWirelessStrimers {
+  modes: LianLiWirelessStrimerEffect[];
+  laneModes: string[];
+  strimers: LianLiWirelessStrimer[];
+}
+
+export type LianLiWirelessStrimerPatch = Partial<Pick<LianLiWirelessStrimer,
+  'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'laneSettings'>>;
+
+export function getLianLiWirelessStrimers(): Promise<LianLiWirelessStrimers | null> {
+  return fetchService<LianLiWirelessStrimers>('/devices/lianli-wireless/strimers');
+}
+
+export async function setLianLiWirelessStrimer(mac: string, patch: LianLiWirelessStrimerPatch): Promise<boolean> {
+  return isOk(await putService<OkResponse>(`/devices/lianli-wireless/strimers/${encodeURIComponent(mac)}`, patch));
 }
 
 export type LianLiWirelessScreenContentType =

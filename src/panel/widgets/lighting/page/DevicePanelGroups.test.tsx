@@ -786,3 +786,38 @@ describe('DevicePanel color lock', () => {
     expect(document.querySelector(`.${styles.deviceLockBtnFlash}`)).toBeNull();
   });
 });
+
+describe('DevicePanel firmware-played devices', () => {
+  const strimer = device('lianli-wireless:64F271E566E1:z0', 'Strimer 24-Pin', { deviceId: 'lianli-wireless:64F271E566E1' });
+
+  function renderFirmware(onFirmwareTakeControl = vi.fn()) {
+    render(
+      <DevicePanel
+        devices={[strimer, devices[0]]}
+        selectedIds={new Set()}
+        onSetSelection={() => {}}
+        onTogglePower={() => {}}
+        onSetPower={() => {}}
+        onToggleControlled={() => {}}
+        onSetControlled={() => {}}
+        lightingOff={false}
+        onOpenSettings={() => {}}
+        firmwareDeviceIds={new Set(['lianli-wireless:64F271E566E1'])}
+        onFirmwareTakeControl={onFirmwareTakeControl}
+      />,
+    );
+    return onFirmwareTakeControl;
+  }
+
+  it('badges only the card whose device plays a stored animation', () => {
+    renderFirmware();
+    expect(screen.getAllByText('lighting.devices.smarthub.firmwareBadge')).toHaveLength(1);
+  });
+
+  it('hands that device back to the engine from its menu', () => {
+    const onFirmwareTakeControl = renderFirmware();
+    fireEvent.click(screen.getAllByRole('button', { name: 'lighting.devices.moreActions' })[0]);
+    fireEvent.click(screen.getByText('lighting.devices.menuTakeControl'));
+    expect(onFirmwareTakeControl).toHaveBeenCalledWith('lianli-wireless:64F271E566E1');
+  });
+});

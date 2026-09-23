@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, MonitorSmartphone, Unplug } from 'lucide-react';
+import { Fan, Lightbulb, MonitorSmartphone, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { getLianLiWirelessState, type LianLiWirelessLinkStatus, type LianLiWirelessState } from '../../../api/lianli-wireless';
@@ -8,13 +8,17 @@ import { L_CONNECT_CONFLICT_ID } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
+import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
 
-type LianLiWirelessTab = 'fans' | 'screen';
+type LianLiWirelessTab = 'fans' | 'lighting' | 'screen';
+
+// Strimer Wireless cables report dev_type 1..9.
+const isStrimerDevType = (devType: number) => devType >= 1 && devType <= 9;
 
 // One hint line under the disconnected title. 'none' has none: the title
 // already says nothing is connected.
@@ -95,8 +99,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   const { conflicts } = useConflictApps(disconnected && linkStatus === 'busy');
   const blockingApp = conflicts.find(c => c.id === L_CONNECT_CONFLICT_ID);
 
+  const hasStrimer = !!state?.fans.some(f => f.boundToUs && isStrimerDevType(f.devType));
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.fans'), icon: <Fan size={14} /> },
+    ...(hasStrimer ? [{ key: 'lighting', label: t('devices.lianli-wireless.tab.lighting'), icon: <Lightbulb size={14} /> }] : []),
     { key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <MonitorSmartphone size={14} /> },
   ];
 
@@ -124,6 +130,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
           {activeTab === 'fans' && (
             <LianLiWirelessFansTab state={state} refresh={refresh} onSectionNavigate={onSectionNavigate} />
           )}
+          {activeTab === 'lighting' && hasStrimer && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
           {activeTab === 'screen' && <LianLiWirelessScreenTab />}
         </div>
       </div>

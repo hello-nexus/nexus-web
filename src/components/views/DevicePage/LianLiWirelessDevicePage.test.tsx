@@ -252,6 +252,17 @@ describe('LianLiWirelessDevicePage', () => {
     expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":1}')).not.toBeInTheDocument();
   });
+
+  it('offers the Lighting tab once a Strimer is bound', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], mac: '112233445566', devType: 2, fanType: 0, fanCount: 0 }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).toBeInTheDocument();
+  });
 });
 
 const unboundFan = {
