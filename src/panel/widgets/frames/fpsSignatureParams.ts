@@ -29,7 +29,7 @@ function parseMonitorResolution(monitor: string): { width: number; height: numbe
  * AMD-iGPU rigs, so its first segment is only a fallback for a service that
  * predates primaryGpu.
  */
-function primaryGpuModel(specs: SystemSpecs): string | undefined {
+export function primaryGpuModel(specs: SystemSpecs): string | undefined {
   const primary = specs.primaryGpu?.trim();
   if (primary) return primary;
   const first = specs.graphicsCard.split(' + ')[0]?.trim();

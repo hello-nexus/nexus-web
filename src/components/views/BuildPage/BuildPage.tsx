@@ -8,18 +8,20 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveTheme } from '../../../lib/settings';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
-import { buildFpsSignatureParams } from '../../../panel/widgets/frames/fpsSignatureParams';
+import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { isRemoteOrigin } from '../../../api/service';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
 const DEFAULT_PATH = '/upgrade';
-// No `ready` handshake within this window reads as the portal being
-// unreachable, matching the plan's embed protocol fallback.
 const READY_TIMEOUT_MS = 8000;
 const MAX_GAMES = 10;
 const BYTES_PER_GIB = 1024 ** 3;
+// Only the iframe's own script/form/same-origin-storage capabilities are
+// granted - no allow-top-navigation, no allow-popups, so the only way out of
+// the frame is the open-external message.
+const IFRAME_SANDBOX = 'allow-scripts allow-same-origin allow-forms';
 
 interface BuildMachine {
   processor?: string;
@@ -47,21 +49,48 @@ function isFrameMessage(data: unknown): data is FrameMessage {
   return typeof data === 'object' && data !== null && typeof (data as { type?: unknown }).type === 'string';
 }
 
+// Must start with exactly one leading slash (rejects a protocol-relative
+// "//host" segment) and carry no "@" before the query string, so
+// `${BUILD_ORIGIN}${path}` can never resolve to a different host.
+function isSafeBuildPath(path: string): boolean {
+  if (!/^\/(?!\/)/.test(path)) return false;
+  const queryIndex = path.indexOf('?');
+  const beforeQuery = queryIndex === -1 ? path : path.slice(0, queryIndex);
+  return !beforeQuery.includes('@');
+}
+
+// The router carries this as one URL-encoded path segment (see buildNav.ts +
+// Dashboard's onOpenBuild wiring), so a slash or query character inside it
+// never splits across route segments or leaks into the app's own query
+// string. Anything that fails to decode, or decodes to an unsafe shape,
+// falls back to the default page rather than reaching the iframe src.
+export function sanitizeBuildPath(raw: string | null | undefined): string {
+  if (!raw) return DEFAULT_PATH;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return DEFAULT_PATH;
+  }
+  return isSafeBuildPath(decoded) ? decoded : DEFAULT_PATH;
+}
+
 interface BuildPageProps {
-  /** Portal path (pathname + search), e.g. "/upgrade?bench=<id>". Defaults to "/upgrade". */
+  /** URL-encoded portal path (pathname + search), e.g. encodeURIComponent("/upgrade?bench=<id>"). Defaults to "/upgrade". */
   path?: string | null;
 }
 
 /**
  * Build: a full-height iframe onto build.hellonexus.com, the upgrade
- * advisor portal. nexus-web carries no catalog/affiliate code itself - see
- * plans/build-app-embed.md for the postMessage protocol this implements.
+ * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
 export function BuildPage({ path }: BuildPageProps) {
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);
   const { gamesByKey } = useFpsGames();
+
+  const safePath = sanitizeBuildPath(path);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [ready, setReady] = useState(false);
@@ -72,8 +101,8 @@ export function BuildPage({ path }: BuildPageProps) {
   const [timedOut, setTimedOut] = useState(false);
   const [offline, setOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine);
   const [reloadNonce, setReloadNonce] = useState(0);
-  const [frameSrcPath, setFrameSrcPath] = useState(() => path ?? DEFAULT_PATH);
-  const [lastPath, setLastPath] = useState(() => path ?? DEFAULT_PATH);
+  const [frameSrcPath, setFrameSrcPath] = useState(safePath);
+  const [lastPath, setLastPath] = useState(safePath);
 
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>(() => resolveTheme(settings.themeMode));
   useEffect(() => {
@@ -85,8 +114,21 @@ export function BuildPage({ path }: BuildPageProps) {
     return () => mq.removeEventListener('change', handler);
   }, [settings.themeMode]);
 
+  const readyRef = useRef(ready);
+  useEffect(() => { readyRef.current = ready; }, [ready]);
+
+  const remount = useCallback((target: string) => {
+    setReady(false);
+    setTimedOut(false);
+    setFrameSrcPath(target);
+    setReloadNonce(n => n + 1);
+  }, []);
+
   useEffect(() => {
-    const onOnline = () => setOffline(false);
+    const onOnline = () => {
+      setOffline(false);
+      if (!readyRef.current) remount(lastPath);
+    };
     const onOffline = () => setOffline(true);
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
@@ -94,13 +136,17 @@ export function BuildPage({ path }: BuildPageProps) {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
     };
-  }, []);
+  }, [lastPath, remount]);
 
+  // Tied to the iframe's own mount (reloadNonce), not to `ready`: a stale
+  // `ready` from a prior mount would otherwise suppress the timer on a fresh
+  // frame that never sends its own ready.
   useEffect(() => {
-    if (ready) return;
-    const timer = window.setTimeout(() => setTimedOut(true), READY_TIMEOUT_MS);
+    const timer = window.setTimeout(() => {
+      if (!readyRef.current) setTimedOut(true);
+    }, READY_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [ready, reloadNonce]);
+  }, [reloadNonce]);
 
   const post = useCallback((message: FrameMessage) => {
     const win = iframeRef.current?.contentWindow;
@@ -122,7 +168,7 @@ export function BuildPage({ path }: BuildPageProps) {
           break;
         case 'nexus-build:navigate': {
           const nextPath = typeof data.path === 'string' ? data.path : null;
-          if (nextPath) setLastPath(nextPath);
+          if (nextPath && isSafeBuildPath(nextPath)) setLastPath(nextPath);
           break;
         }
         case 'nexus-build:open-external': {
@@ -142,7 +188,7 @@ export function BuildPage({ path }: BuildPageProps) {
     const sig = buildFpsSignatureParams(specs);
     return {
       processor: specs.processor || undefined,
-      primaryGpu: specs.primaryGpu ?? specs.graphicsCard.split(' + ')[0]?.trim() ?? undefined,
+      primaryGpu: primaryGpuModel(specs),
       memory: specs.memory || undefined,
       motherboard: specs.motherboard || undefined,
       storage: specs.storage || undefined,
@@ -158,12 +204,18 @@ export function BuildPage({ path }: BuildPageProps) {
     .slice(0, MAX_GAMES)
     .map(g => ({ gameKey: g.gameKey, title: g.name }));
 
-  // Fires once per `ready` message (including a page-to-page renavigation
-  // inside the frame), carrying whatever machine/games/theme/locale are
-  // known at that moment.
+  const machineKey = machine ? JSON.stringify(machine) : '';
+  const gamesKey = games.length > 0 ? JSON.stringify(games) : '';
+  const lastHelloNonceRef = useRef(0);
+  const lastHelloSentRef = useRef<string | null>(null);
+
+  // Fires once per `ready` message unconditionally (a page-to-page
+  // renavigation inside the frame), and again - deduped by payload - when
+  // specs or the games list resolve after the handshake already ran (a slow
+  // service or relay can still be fetching either at that point).
   useEffect(() => {
-    if (helloNonce === 0) return;
-    post({
+    if (!ready || helloNonce === 0) return;
+    const payload: FrameMessage = {
       type: 'nexus-build:hello',
       v: 1,
       theme: resolvedTheme,
@@ -171,9 +223,15 @@ export function BuildPage({ path }: BuildPageProps) {
       host: isRemoteOrigin ? 'web' : 'app',
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per ready message; live theme/locale changes post their own message below
-  }, [helloNonce]);
+    };
+    const serialized = JSON.stringify(payload);
+    const isNewPage = helloNonce !== lastHelloNonceRef.current;
+    if (!isNewPage && serialized === lastHelloSentRef.current) return;
+    lastHelloNonceRef.current = helloNonce;
+    lastHelloSentRef.current = serialized;
+    post(payload);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- theme/locale changes post their own delta message below; this only needs to re-run on a new page or on late-arriving machine/games data
+  }, [ready, helloNonce, machineKey, gamesKey, post]);
 
   const prevThemeRef = useRef(resolvedTheme);
   useEffect(() => {
@@ -189,20 +247,17 @@ export function BuildPage({ path }: BuildPageProps) {
     post({ type: 'nexus-build:locale', v: 1, locale: language });
   }, [language, ready, post]);
 
-  const prevPathRef = useRef(path);
+  const prevPathRef = useRef(safePath);
   useEffect(() => {
-    if (!ready || path == null || path === prevPathRef.current) return;
-    prevPathRef.current = path;
-    post({ type: 'nexus-build:route', v: 1, path });
-    setLastPath(path);
-  }, [path, ready, post]);
+    if (!ready || safePath === prevPathRef.current) return;
+    prevPathRef.current = safePath;
+    post({ type: 'nexus-build:route', v: 1, path: safePath });
+    setLastPath(safePath);
+  }, [safePath, ready, post]);
 
   const handleRetry = useCallback(() => {
-    setReady(false);
-    setTimedOut(false);
-    setFrameSrcPath(path ?? lastPath);
-    setReloadNonce(n => n + 1);
-  }, [path, lastPath]);
+    remount(lastPath);
+  }, [remount, lastPath]);
 
   const openInBrowser = useCallback(() => {
     void openExternalUrl(`${BUILD_ORIGIN}${lastPath}`);
@@ -247,6 +302,7 @@ export function BuildPage({ path }: BuildPageProps) {
             className={styles.frame}
             title={t('panel.widget.build')}
             allow=""
+            sandbox={IFRAME_SANDBOX}
             referrerPolicy="strict-origin-when-cross-origin"
             loading="eager"
           />
