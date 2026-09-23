@@ -78,8 +78,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide; ':preview' keeps a preview worker
-  // from ever being reused for a live mount.
-  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}`;
+  // from ever being reused for a live mount. The bundle URL is part of it:
+  // useSdkBundle mints one per app version, so a new URL means updated code.
+  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}:${entryUrl}`;
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
   // render shows the tree - no blank frame / flicker.
@@ -172,11 +173,10 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         }, KEEP_ALIVE_MS);
       }
     };
-    // Identity is the widget instance + surface (+ preview); entryUrl/settings
-    // change in place (reused worker is updated, never respawned for a
-    // transient blob-url change).
+    // Identity is the widget instance + surface (+ preview) + bundle; settings
+    // change in place on the reused worker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetId, instanceId, surface, preview]);
+  }, [widgetId, instanceId, surface, preview, entryUrl]);
 
   useEffect(() => {
     handle?.update({ settings: settings ?? {} });
