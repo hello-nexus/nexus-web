@@ -22,6 +22,8 @@ const DEG2RAD = Math.PI / 180;
 /** One browser wheel notch (deltaY ~100) ~= Unity's 0.1 scroll-axis step. */
 const WHEEL_PIXELS_TO_SCROLL = 0.001;
 const WHEEL_LINES_TO_SCROLL = 1 / 30;
+/** Time constant (seconds) of the idle ease back to the rest yaw/pitch. */
+const RECENTER_TAU_S = 0.5;
 
 export interface CameraControllerOptions {
   /** Unity-space offset from the target's origin to the focus point. */
@@ -58,6 +60,10 @@ export interface CameraControllerOptions {
   overshootDeg?: number;
   /** Fraction of the remaining overshoot eased away per second once nothing holds it. */
   overshootReturn?: number;
+  /** Pitch upper bound (lowest camera) at zero zoom, blending to maxAngles[1] at full zoom along with its overshoot. */
+  zoomOutMaxPitchDeg?: number;
+  /** Seconds without input before yaw and pitch ease back to rest; 0 leaves the view where the user put it. */
+  recenterAfterS?: number;
   /** World-Y added to zoomFocusTarget's position (head bones anchor at the chin). */
   zoomFocusHeightOffset?: number;
   /**
@@ -153,6 +159,8 @@ export class CameraController {
   private readonly zoomFocusLock: number;
   private readonly overshootDeg: number;
   private readonly overshootReturn: number;
+  private readonly zoomOutMaxPitchDeg: number | null;
+  private readonly recenterAfterS: number;
   private readonly zoomFocusHeightOffset: number;
   private readonly elevationDeg: number;
   private readonly runDemoOnStart: boolean;
@@ -177,6 +185,8 @@ export class CameraController {
   private pendingDy = 0;
   private yawSlack = 0;
   private pitchSlack = 0;
+  /** Seconds since the last drag, pinch or wheel input. */
+  private idleS = 0;
   private isPinching = false;
   private lastTouchMag = 0;
 
@@ -237,6 +247,8 @@ export class CameraController {
     this.overshootDeg = Math.max(0, options.overshootDeg ?? 0);
     // 0 would leave the slack in place forever; keep a floor under the ease.
     this.overshootReturn = clamp(options.overshootReturn ?? 0.85, 0.01, 0.999999);
+    this.zoomOutMaxPitchDeg = options.zoomOutMaxPitchDeg ?? null;
+    this.recenterAfterS = Math.max(0, options.recenterAfterS ?? 0);
     this.zoomFocusHeightOffset = options.zoomFocusHeightOffset ?? 0;
     this.elevationDeg = options.elevationDeg ?? 0;
     this.runDemoOnStart = options.runDemoOnStart ?? true;
@@ -313,6 +325,8 @@ export class CameraController {
       return;
     }
 
+    // A stolen slot otherwise reads as a held drag until the next pointerdown, stalling the recenter.
+    this.releaseStolenSlots();
     if (this.p0Id !== -1) {
       // dragDelta chases the frame movement (C# Vector2.Lerp factor 0.5).
       this.dragDeltaX += (this.pendingDx - this.dragDeltaX) * 0.5;
@@ -341,12 +355,38 @@ export class CameraController {
     if (yaw.blocked) this.dragDeltaX = 0;
     const pitch = this.applyLimit(
       this.pitchDeg - this.dragDeltaY * this.dragSensitivity,
-      this.minAngles[1], this.maxAngles[1], this.pitchSlack, dragging, dt);
+      this.minAngles[1], this.maxPitch(), this.pitchSlack, dragging, dt);
     this.pitchDeg = pitch.angle;
-    this.pitchSlack = pitch.slack;
+    // Positive pitch slack lowers the camera below its limit.
+    this.pitchSlack = this.zoomOutMaxPitchDeg === null
+      ? pitch.slack
+      : Math.min(pitch.slack, this.overshootDeg * this.getZoomFraction());
     if (pitch.blocked) this.dragDeltaY = 0;
 
+    this.idleS = dragging ? 0 : this.idleS + dt;
+    if (this.recenterAfterS > 0 && this.idleS >= this.recenterAfterS) this.recenter(dt);
+
     this.applyTransform();
+  }
+
+  private maxPitch(): number {
+    if (this.zoomOutMaxPitchDeg === null) return this.maxAngles[1];
+    return lerp(this.zoomOutMaxPitchDeg, this.maxAngles[1], this.getZoomFraction());
+  }
+
+  /** Eases yaw, pitch and their slack toward rest, cancelling any leftover drag inertia. */
+  private recenter(dt: number): void {
+    const k = 1 - Math.exp(-dt / RECENTER_TAU_S);
+    const ease = (v: number): number => {
+      const next = v - v * k;
+      return Math.abs(next) < 0.01 ? 0 : next;
+    };
+    this.dragDeltaX = 0;
+    this.dragDeltaY = 0;
+    this.yawDeg = clamp(ease(this.yawDeg), this.minAngles[0], this.maxAngles[0]);
+    this.pitchDeg = clamp(ease(this.pitchDeg), this.minAngles[1], this.maxPitch());
+    this.yawSlack = ease(this.yawSlack);
+    this.pitchSlack = ease(this.pitchSlack);
   }
 
   dispose(): void {
@@ -419,8 +459,8 @@ export class CameraController {
 
       const yawCenter = (this.minAngles[0] + this.maxAngles[0]) * 0.5;
       const yawHalf = (this.maxAngles[0] - this.minAngles[0]) * 0.5;
-      const pitchCenter = (this.minAngles[1] + this.maxAngles[1]) * 0.5;
-      const pitchHalf = (this.maxAngles[1] - this.minAngles[1]) * 0.5;
+      const pitchCenter = (this.minAngles[1] + this.maxPitch()) * 0.5;
+      const pitchHalf = (this.maxPitch() - this.minAngles[1]) * 0.5;
 
       this.yawDeg = yawCenter + yawSweep * yawHalf * this.demoYawAmplitude * 2;
       this.pitchDeg = pitchCenter + pitchSweep * pitchHalf * this.demoPitchAmplitude * 2;
@@ -591,6 +631,7 @@ export class CameraController {
   private handleWheel(e: WheelEvent): void {
     e.preventDefault();
     if (this.scriptedActive) return;
+    this.idleS = 0;
     const scroll = -e.deltaY * (e.deltaMode === 1 ? WHEEL_LINES_TO_SCROLL : WHEEL_PIXELS_TO_SCROLL);
     if (Math.abs(scroll) > 0.01) this.zoom(scroll * this.mouseZoomSpeed);
   }
