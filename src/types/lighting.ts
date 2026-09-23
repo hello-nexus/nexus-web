@@ -129,13 +129,14 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   ringtunnel: 'geometric', vortextunnel: 'geometric', helixtunnel: 'geometric',
   boxtunnel: 'geometric', harlequin: 'geometric', mosaic: 'geometric',
   cybertunnel: 'geometric',
-  // Pattern: waves, gradients, abstract graphic shapes (21).
+  // Pattern: waves, gradients, abstract graphic shapes (22).
   rainbow: 'pattern', matrix: 'pattern', ripple: 'pattern', wave: 'pattern',
   gradientwave: 'pattern', ball: 'pattern', radar: 'pattern', pulse: 'pattern',
   interference: 'pattern', domainwarp: 'pattern', dotmatrix: 'pattern',
   prismwave: 'pattern', ribbonflow: 'pattern', meshgradient: 'pattern',
   tide: 'pattern', ridgeline: 'pattern', chevron: 'pattern', terrace: 'pattern',
   sharplines: 'pattern', synthwave: 'pattern', retropetals: 'pattern',
+  breathing: 'pattern',
 };
 
 export const BASE_DEFAULTS: Omit<EffectState, 'params'> = {
@@ -274,6 +275,11 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_density',  label: 'Density', labelKey: 'lighting.controls.param.density' },
       { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
       { name: 'u_position', label: 'Position', labelKey: 'lighting.controls.param.position' },
+  ]},
+  { key: 'breathing',    labelKey: 'lighting.controls.breathing',    params: [
+      { name: 'u_colors', label: 'Colors', labelKey: 'lighting.controls.param.colors' },
+      { name: 'u_depth',  label: 'Depth', labelKey: 'lighting.controls.param.depth' },
+      { name: 'u_spread', label: 'Spread', labelKey: 'lighting.controls.param.spread' },
   ]},
   { key: 'spiral',       labelKey: 'lighting.controls.spiral',       params: [
       { name: 'u_arms',      label: 'Arms', labelKey: 'lighting.controls.param.arms' },

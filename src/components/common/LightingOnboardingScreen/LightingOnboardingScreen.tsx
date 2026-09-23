@@ -10,11 +10,14 @@ import {
   fetchLightingDevices,
   fetchLightingStatus,
   setLightingDeviceControlled,
+  startAnimate,
   startStatic,
-  fetchAnimateDefaults,
-  cachedAnimateDefaults,
   type LightingDevice,
 } from '../../../api/lighting';
+import { DEFAULT_STATIC_EFFECT } from '../../../types/lighting';
+import { paletteColor, paletteKey } from '../../../types/lightingPalette';
+import { pushPalettePick } from '../../../panel/widgets/lighting/staticPicks';
+import { SIMPLE_ANIMATION_KEYS, simpleAnimationState } from '../../../panel/widgets/lighting/simpleAnimations';
 import { ZoneCard, zoneCardUnavailable } from '../../../panel/widgets/lighting/page/ZoneCard';
 import { visibleCards } from '../../../panel/widgets/lighting/page/zoneUtils';
 import { useUiSettingsUpdateSafe } from '../../../hooks/useUiSettings';
@@ -47,17 +50,20 @@ const MODE_CHOICES = [
   { key: 'advanced' as const, Icon: PanelsTopLeft },
 ];
 
-// A few of the simple fills, for checking which lights actually respond. The
-// swatch is the fill's own colour; the fills themselves are server-owned, so
-// this only names them.
-const TEST_FILLS: { key: string; swatch: string }[] = [
-  { key: 'simplewhite', swatch: '#ffffff' },
-  { key: 'simplered', swatch: '#ff2d2d' },
-  { key: 'simpleorange', swatch: '#ff8a1e' },
-  { key: 'simplegreen', swatch: '#2fd45a' },
-  { key: 'simplecyan', swatch: '#22d3ee' },
-  { key: 'simpleblue', swatch: '#2f6bff' },
-  { key: 'simpleviolet', swatch: '#a855f7' },
+// Simple mode's first tile, which a fresh install already runs.
+const RAINBOW = SIMPLE_ANIMATION_KEYS[0];
+const RAINBOW_SWATCH = 'conic-gradient(#ff2d2d, #ffd21e, #2fd45a, #22d3ee, #2f6bff, #a855f7, #ff2d2d)';
+
+// Simple mode's own palette colours, so a pick here is the swatch the simple
+// page marks active afterwards.
+const TEST_COLORS: { id: string; labelKey: string }[] = [
+  { id: 'white-1', labelKey: 'lighting.controls.simplewhite' },
+  { id: 'red-3', labelKey: 'lighting.controls.simplered' },
+  { id: 'orange-3', labelKey: 'lighting.controls.simpleorange' },
+  { id: 'green-3', labelKey: 'lighting.controls.simplegreen' },
+  { id: 'cyan-3', labelKey: 'lighting.controls.simplecyan' },
+  { id: 'blue-3', labelKey: 'lighting.controls.simpleblue' },
+  { id: 'violet-3', labelKey: 'lighting.controls.simpleviolet' },
 ];
 
 // Cards ZoneCard renders non-interactive are excluded from bulk toggles.
@@ -77,7 +83,8 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
   const [scanning, setScanning] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
-  const [testFill, setTestFill] = useState<string | null>(null);
+  // RAINBOW or a palette id: what the lights are wearing, and what Finish keeps.
+  const [pick, setPick] = useState<string>(RAINBOW);
   // Which way the app opens after this, and whether this screen picks devices
   // at all. Simple drives everything, so there is nothing here to choose.
   const [mode, setMode] = useState<'simple' | 'advanced'>('simple');
@@ -94,10 +101,11 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     mode === 'simple' ? { ...d, controlled: true } : d
   );
 
-  // Renders in each card's own LED strip, the way a Static pick does.
-  const testSwatch = TEST_FILLS.find(f => f.key === testFill)?.swatch;
-  const testPick = testFill && testSwatch
-    ? { key: testFill, hex: testSwatch, slot: 0, version: testFill }
+  // A colour renders in each card's own LED strip, the way a Static pick does;
+  // the rainbow is an animation and has no single colour to paint there.
+  const pickColor = pick === RAINBOW ? undefined : paletteColor(pick);
+  const testPick = pickColor
+    ? { key: paletteKey(pickColor.id), hex: pickColor.hex, slot: 0, version: pickColor.id }
     : undefined;
   // Timestamp of the last local toggle (bumped again when its write settles);
   // a poll response whose fetch started before it would clobber the
@@ -157,33 +165,41 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
     return () => clearInterval(timer);
   }, [open, settled, refresh]);
 
-  // Primes the cache the test fills read their colours from.
-  useEffect(() => {
-    if (!open) return;
-    void fetchAnimateDefaults();
-  }, [open]);
+  // Every device this screen leaves driven: all of them in simple mode.
+  const drivenIds = useCallback((): string[] => (devicesRef.current ?? [])
+    .filter(d => !zoneCardUnavailable(d) && (mode === 'simple' || d.controlled !== false))
+    .map(d => d.id), [mode]);
 
-  // Each fill's colour lives in its server-side template slot, not in the key:
-  // the simple fills share one parameter set, so sending generic params paints
-  // every one of them the same.
-  const runTestFill = useCallback(async (key: string) => {
-    setTestFill(key);
-    const bundle = (cachedAnimateDefaults() ?? {})[key];
-    const look = bundle?.slots[bundle.selected];
-    try {
-      await startStatic(
-        key,
-        look?.intensity ?? 1,
-        look?.hue ?? 0,
-        look?.colorize ?? 0,
-        look?.saturation ?? 1,
-        look?.contrast ?? 1,
-        look?.params,
-        // A look at the lights, not a saved choice.
-        false,
-      );
-    } catch { /* best-effort */ }
+  // Picks are saved, not previewed: Finish keeps whatever the lights show.
+  // They run one at a time and only the latest runs at all, so a slow earlier
+  // pick can never land on top of the one the dots show.
+  const pickSeqRef = useRef(0);
+  const pickChainRef = useRef<Promise<void>>(Promise.resolve());
+  const applyPick = useCallback((id: string, apply: () => Promise<unknown>) => {
+    setPick(id);
+    const seq = ++pickSeqRef.current;
+    pickChainRef.current = pickChainRef.current.then(async () => {
+      if (seq !== pickSeqRef.current) return;
+      try { await apply(); } catch { /* best-effort */ }
+    });
   }, []);
+
+  const runRainbow = useCallback(() => {
+    const state = simpleAnimationState(false);
+    applyPick(RAINBOW, () => startAnimate(RAINBOW, state.speed, state.intensity, state.hue, state.colorize, state.saturation, state.contrast, state.params));
+  }, [applyPick]);
+
+  // The simple page's palette path: Static owns the output first, then every
+  // device takes the colour as its own pick (after, or the shared effect
+  // repaints them).
+  const runColor = useCallback((id: string) => {
+    const color = paletteColor(id);
+    if (!color) return;
+    applyPick(id, async () => {
+      await startStatic(DEFAULT_STATIC_EFFECT);
+      await pushPalettePick(color, drivenIds());
+    });
+  }, [applyPick, drivenIds]);
 
   if (!open) return null;
 
@@ -238,6 +254,10 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
           await Promise.allSettled(off.map(d => setLightingDeviceControlled(d.id, true)));
         }
       }
+      // A device detected after the colour was picked has no pick of its own
+      // and would wear the shared Static effect instead.
+      await pickChainRef.current;
+      if (pickColor) await pushPalettePick(pickColor, drivenIds());
       updateUiSettings({ lightingDashboardMode: mode });
       const result = await completeLightingOnboarding();
       if (result?.lightingCompleted) {
@@ -373,16 +393,25 @@ export function LightingOnboardingScreen({ open, onComplete, onBack, onSkipOnboa
       {cards !== null && cards.length > 0 && (
         <div className={styles.testStrip} role="group" aria-label={t('lightingOnboarding.testColors')}>
           <span className={styles.testLabel}>{t('lightingOnboarding.testColors')}</span>
-          {TEST_FILLS.map(f => (
+          <button
+            type="button"
+            className={`${styles.swatch} ${pick === RAINBOW ? styles.swatchActive : ''}`}
+            style={{ '--swatch': RAINBOW_SWATCH } as CSSProperties}
+            aria-label={t('lighting.simple.anim.rainbow')}
+            title={t('lighting.simple.anim.rainbow')}
+            aria-pressed={pick === RAINBOW}
+            onClick={runRainbow}
+          />
+          {TEST_COLORS.map(c => (
             <button
-              key={f.key}
+              key={c.id}
               type="button"
-              className={`${styles.swatch} ${testFill === f.key ? styles.swatchActive : ''}`}
-              style={{ '--swatch': f.swatch } as CSSProperties}
-              aria-label={t(`lighting.controls.${f.key}`)}
-              title={t(`lighting.controls.${f.key}`)}
-              aria-pressed={testFill === f.key}
-              onClick={() => { void runTestFill(f.key); }}
+              className={`${styles.swatch} ${pick === c.id ? styles.swatchActive : ''}`}
+              style={{ '--swatch': paletteColor(c.id)?.hex } as CSSProperties}
+              aria-label={t(c.labelKey)}
+              title={t(c.labelKey)}
+              aria-pressed={pick === c.id}
+              onClick={() => runColor(c.id)}
             />
           ))}
         </div>
