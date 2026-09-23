@@ -87,10 +87,11 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
         // bare browser fetch has no way to attach that token.
         const res = await submitCloudBenchmark(payload);
         if (!cancelled && res) {
-          setSubmission({ percentile: res.percentile, rank: res.rank, total: res.totalSubmissions });
+          const standing = { percentile: res.percentile, rank: res.rank, total: res.totalSubmissions };
+          setSubmission(standing);
           setLastSubmissionId(res.id);
           setSubmissionIdState(res.id);
-          addRun(result, res.id);
+          addRun(result, res.id, standing);
           onTabChange('results');
         } else if (!cancelled) {
           addRun(result, null);
@@ -213,7 +214,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
       <div className={styles.resultsTab}>
         <BenchmarkResults
           result={latest.result}
-          submission={null}
+          submission={latest.submission ?? null}
           submitting={false}
           submissionId={latest.submissionId}
         />
