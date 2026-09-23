@@ -169,12 +169,18 @@
   );
   margin-top: 2px;
   border: none;
-  // Same pill + faint fill as the APPS / DEVICES section chips (this file's
-  // .headerChip and SidebarDevicesSection's, both reading --sidebar-chip-bg).
+  // Same pill as the APPS / DEVICES section chips, but unfilled at rest so it
+  // reads lighter than the headings.
   border-radius: var(--radius-pill);
-  background: var(--sidebar-chip-bg);
+  background: transparent;
   color: var(--text-dim);
   cursor: pointer;
+  transition: background var(--ease-fast), color var(--ease-fast);
+
+  &:hover {
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+    color: var(--text);
+  }
 }
 
 // The glyph keeps the toggle's collapsed box, so the arrow holds the icon

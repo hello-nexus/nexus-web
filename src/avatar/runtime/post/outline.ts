@@ -200,7 +200,7 @@ export function outlineParamsFromScene(outline: SceneOutline | undefined): Outli
   p.thickness = rawFloat(raw, '_OutlineThickness', p.thickness);
   const color = rawColor(raw, '_OutlineColor');
   if (color) {
-    p.color.setRGB(color[0], color[1], color[2]);
+    p.color.setRGB(color[0], color[1], color[2], THREE.SRGBColorSpace);
     p.strength = color[3];
   }
   return p;

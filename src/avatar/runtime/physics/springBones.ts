@@ -11,7 +11,7 @@
 import type * as THREE from 'three';
 import type { AvatarPack } from '../../pack/loadPack';
 import type { SpringBoneColliderEntry, SpringBoneComponent } from '../../pack/types';
-import { CapsuleSoftBoneCollider } from './softBoneColliders';
+import { CapsuleSoftBoneCollider, PlaneSoftBoneCollider } from './softBoneColliders';
 import {
   SoftBoneSystem,
   type DeltaTimeMode,
@@ -106,23 +106,30 @@ function resolveNodePath(root: THREE.Object3D, path: string): THREE.Object3D | n
 
 // --- factory -------------------------------------------------------------------
 
+type BoneCollider = CapsuleSoftBoneCollider | PlaneSoftBoneCollider;
+
 /** Builds the component's body colliders (Unity extraColliders equivalent). */
 function createColliders(
   entries: readonly SpringBoneColliderEntry[],
   skeletonRoot: THREE.Object3D,
-): CapsuleSoftBoneCollider[] {
-  const out: CapsuleSoftBoneCollider[] = [];
+): BoneCollider[] {
+  const out: BoneCollider[] = [];
   for (const entry of entries) {
-    if (entry.shape !== 'capsule') {
-      console.warn(`[springBones] unsupported collider shape "${String(entry.shape)}" skipped`);
-      continue;
-    }
     const attach = resolveNodePath(skeletonRoot, entry.nodePath);
     if (attach === null) {
       console.warn(`[springBones] collider attachment "${entry.nodePath}" not found; collider skipped`);
       continue;
     }
-    out.push(new CapsuleSoftBoneCollider(attach, entry.center, entry.direction, entry.radius, entry.height));
+    switch (entry.shape) {
+      case 'capsule':
+        out.push(new CapsuleSoftBoneCollider(attach, entry.center, entry.direction, entry.radius, entry.height));
+        break;
+      case 'plane':
+        out.push(new PlaneSoftBoneCollider(attach, entry.center, entry.normal));
+        break;
+      default:
+        console.warn(`[springBones] unsupported collider shape "${String((entry as { shape: unknown }).shape)}" skipped`);
+    }
   }
   return out;
 }
@@ -194,20 +201,20 @@ export function createSpringBones(
   options: SpringBonesOptions = {},
 ): SpringBones {
   const systems: SoftBoneSystem[] = [];
-  const capsules: CapsuleSoftBoneCollider[] = [];
+  const colliders: BoneCollider[] = [];
   for (const component of pack.springbones?.components ?? []) {
     const own = createColliders(component.colliders ?? [], skeletonRoot);
     const system = createSystem(component, skeletonRoot, options, [...own, ...(options.colliders ?? [])]);
     if (system !== null) {
       systems.push(system);
-      capsules.push(...own);
+      colliders.push(...own);
     }
   }
   return {
     update(dt: number): void {
-      // Capsules follow mixer-posed humanoid bones; refresh before stepping,
+      // Colliders follow mixer-posed humanoid bones; refresh before stepping,
       // as Unity's colliders read live transforms during LateUpdate.
-      for (let i = 0; i < capsules.length; i++) capsules[i].updateWorld();
+      for (let i = 0; i < colliders.length; i++) colliders[i].updateWorld();
       for (let i = 0; i < systems.length; i++) systems[i].update(dt);
     },
     setFrozen(frozen: boolean): void {

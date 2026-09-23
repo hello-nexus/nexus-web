@@ -6,17 +6,15 @@
 
 import * as THREE from 'three';
 import type { AvatarPack } from '../pack/loadPack';
-import type { Color4, MaterialEntry, SceneLight, Vec3 } from '../pack/types';
+import type { MaterialEntry, SceneLight, Vec3 } from '../pack/types';
 import { AvatarStateMachine } from './anim/stateMachine';
-import { createToonMaterial } from './materials/toonMaterial';
+import { eventsBetween, type FxEvent } from './fx/clipEvents';
+import { FxLayer } from './fx/fxLayer';
+import { createToonMaterial, packColor } from './materials/toonMaterial';
 import { createSpringBones, type SpringBones } from './physics/springBones';
 
 const DEG2RAD = Math.PI / 180;
 
-/** Pack colors are linear-space floats; THREE.Color is linear working space. */
-function toColor(c: Color4): THREE.Color {
-  return new THREE.Color(c[0], c[1], c[2]);
-}
 
 /**
  * Unity euler degrees -> world direction of the rotated Unity +Z (forward).
@@ -55,6 +53,10 @@ export class AvatarRuntime {
   readonly mixer: THREE.AnimationMixer;
   readonly stateMachine: AvatarStateMachine;
   readonly springBones: SpringBones;
+  /** Particles scheduled by the playing clip's events. */
+  readonly fx: FxLayer;
+  private eventGeneration = -1;
+  private eventTime = 0;
 
   private readonly ownedMaterials: THREE.Material[] = [];
   /** Environment atlas textures: exclusively env-owned, disposed with the runtime
@@ -81,7 +83,7 @@ export class AvatarRuntime {
       this.scene.background = this.pack.sky;
       this.ownedTextures.push(this.pack.sky);
     } else if (sceneDef?.background.color) {
-      this.scene.background = toColor(sceneDef.background.color);
+      this.scene.background = packColor(sceneDef.background.color);
     }
 
     // --- lights -----------------------------------------------------------
@@ -95,7 +97,7 @@ export class AvatarRuntime {
         console.warn(`[AvatarRuntime] unsupported light type "${lightDef.type}" skipped`);
         continue;
       }
-      const light = new THREE.DirectionalLight(toColor(lightDef.color), lightDef.intensity);
+      const light = new THREE.DirectionalLight(packColor(lightDef.color), lightDef.intensity);
       const forward = unityEulerToForward(lightDef.rotationEuler);
       light.position.copy(forward).multiplyScalar(-10);
       light.target.position.set(0, 0, 0);
@@ -122,8 +124,8 @@ export class AvatarRuntime {
     // evaluate the trilight exactly later.)
     const ambient = sceneDef?.ambient;
     if (ambient) {
-      this.scene.add(new THREE.HemisphereLight(toColor(ambient.sky), toColor(ambient.ground), 1));
-      this.scene.add(new THREE.AmbientLight(toColor(ambient.equator), 0.35));
+      this.scene.add(new THREE.HemisphereLight(packColor(ambient.sky), packColor(ambient.ground), 1));
+      this.scene.add(new THREE.AmbientLight(packColor(ambient.equator), 0.35));
     } else {
       this.scene.add(new THREE.HemisphereLight(0x8888aa, 0x333344, 1));
     }
@@ -161,6 +163,7 @@ export class AvatarRuntime {
     this.mixer = new THREE.AnimationMixer(pack.gltf.scene);
     this.stateMachine = new AvatarStateMachine(pack.states, this.mixer, pack.gltf.animations);
     this.springBones = createSpringBones(pack, pack.gltf.scene);
+    this.fx = new FxLayer(pack.gltf.scene);
   }
 
   /**
@@ -268,10 +271,37 @@ export class AvatarRuntime {
     this.mixer.update(dt);
     this.stateMachine.update(dt);
     this.springBones.update(dt);
+    this.fireClipEvents();
+    this.fx.update(dt);
+  }
+
+  /** Spawns the active clip's events whose time the action crossed this frame. */
+  private fireClipEvents(): void {
+    const action = this.stateMachine.activeAction;
+    if (!action) return;
+    const now = action.time;
+    // A new generation is a fresh start (even of the same, rewound action),
+    // not a loop wrap, so no tail events fire.
+    const generation = this.stateMachine.actionGeneration;
+    const prev = generation === this.eventGeneration ? this.eventTime : -1;
+    this.eventGeneration = generation;
+    this.eventTime = now;
+    const events = action.getClip().userData?.events as FxEvent[] | undefined;
+    if (!events?.length) return;
+    for (const e of eventsBetween(events, prev, now)) this.fx.spawn(e);
   }
 
   render(): void {
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Draws the effect particles over the frame already on the canvas. */
+  renderFx(): void {
+    if (!this.fx.active) return;
+    const autoClear = this.renderer.autoClear;
+    this.renderer.autoClear = false;
+    this.renderer.render(this.fx.scene, this.camera);
+    this.renderer.autoClear = autoClear;
   }
 
   /**
@@ -319,6 +349,7 @@ export class AvatarRuntime {
       this.shadowPlane.geometry.dispose();
       this.shadowPlane = null;
     }
+    this.fx.dispose();
     this.mixer.stopAllAction();
     this.mixer.uncacheRoot(this.pack.gltf.scene);
     this.scene.remove(this.pack.gltf.scene);

@@ -6,12 +6,12 @@
  * Conventions (from the doc):
  * - Node paths are '/'-joined Unity transform paths relative to the exported
  *   root, matching GLB node names exactly.
- * - Colors are linear-space [r, g, b, a] floats.
+ * - Colors are sRGB-encoded [r, g, b, a] floats (Unity inspector values); the runtime decodes them to linear.
  * - Every JSON file carries formatVersion: 1.
  */
 
 export type Vec3 = [number, number, number];
-/** Linear-space color, as Unity serializes it. */
+/** sRGB-encoded color (Unity inspector values); the runtime decodes it to linear. */
 export type Color4 = [number, number, number, number];
 /** [t, value] pair sampled from a Unity AnimationCurve (t normalized 0..1). */
 export type CurvePoint = [number, number];
@@ -119,7 +119,9 @@ export interface SpringBoneChain {
  * fields in the attachment node's local space (a sphere is a capsule with
  * height <= 2*radius); dimensions in the node's local units.
  */
-export interface SpringBoneColliderEntry {
+export type SpringBoneColliderEntry = SpringBoneCapsuleEntry | SpringBonePlaneEntry;
+
+export interface SpringBoneCapsuleEntry {
   shape: 'capsule';
   /** '/'-joined node path of the bone the capsule follows. */
   nodePath: string;
@@ -128,6 +130,18 @@ export interface SpringBoneColliderEntry {
   direction: 0 | 1 | 2;
   radius: number;
   height: number;
+}
+
+/**
+ * Half-space wall in the attachment node's local space: sim nodes may not
+ * cross the plane through `center` toward `normal` (e.g. hair kept behind the
+ * body's front). No Unity counterpart; authored for this runtime.
+ */
+export interface SpringBonePlaneEntry {
+  shape: 'plane';
+  nodePath: string;
+  center: Vec3;
+  normal: Vec3;
 }
 
 export interface SpringBoneComponent {

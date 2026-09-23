@@ -82,14 +82,22 @@ function prepareTexture(tex: THREE.Texture, srgb: boolean): void {
   if (dirty) tex.needsUpdate = true;
 }
 
+/**
+ * Pack color -> working-space (linear) THREE.Color. Pack colors are the
+ * sRGB-encoded values Unity's inspector shows (the pack exporter decodes them
+ * the same way for the GLB); read as linear they wash out (pale base colors,
+ * ambient fill too strong).
+ */
+export function packColor(c: readonly number[]): THREE.Color {
+  return new THREE.Color().setRGB(c[0], c[1], c[2], THREE.SRGBColorSpace);
+}
+
 export function createToonMaterial(entry: MaterialEntry, textureLookup: TextureLookup): THREE.Material {
   const p = entry.params;
   const mat = new THREE.MeshToonMaterial();
   mat.name = entry.name;
 
-  // Pack colors are linear-space floats; THREE.Color components are the
-  // linear working space, so assign directly (no sRGB conversion).
-  mat.color = new THREE.Color(p.baseColor[0], p.baseColor[1], p.baseColor[2]);
+  mat.color = packColor(p.baseColor);
 
   const map = textureLookup('main');
   if (map) {
@@ -148,7 +156,7 @@ export function createToonMaterial(entry: MaterialEntry, textureLookup: TextureL
   // Allocated once per material; onBeforeCompile only wires references, so
   // recompiles keep the same value objects and nothing allocates per frame.
   const uniforms: ToonMaterialUniforms = {
-    toonShadowColor: { value: new THREE.Color(p.shadowColor[0], p.shadowColor[1], p.shadowColor[2]) },
+    toonShadowColor: { value: packColor(p.shadowColor) },
     toonRampThreshold: { value: p.rampThreshold },
     toonRampSmoothing: { value: Math.max(p.rampSmoothing, MIN_EDGE_SPAN) },
     toonFresnelMin: { value: p.fresnelMin },

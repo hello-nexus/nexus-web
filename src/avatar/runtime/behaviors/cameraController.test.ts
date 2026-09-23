@@ -163,3 +163,29 @@ describe('CameraController pointer slots', () => {
     controller.dispose();
   });
 });
+
+describe('CameraController elevation', () => {
+  function placed(elevationDeg: number): THREE.PerspectiveCamera {
+    const el = document.createElement('div');
+    const camera = new THREE.PerspectiveCamera();
+    const c = new CameraController(camera, new THREE.Object3D(), el, { elevationDeg, runDemoOnStart: false, targetOffset: [0, 0.9, 1] });
+    c.update(1 / 60);
+    camera.updateMatrixWorld();
+    return camera;
+  }
+
+  it('raises the camera and looks down', () => {
+    const flat = placed(0);
+    const up = placed(8);
+    expect(up.position.y).toBeGreaterThan(flat.position.y);
+    expect(up.getWorldDirection(new THREE.Vector3()).y).toBeLessThan(0);
+  });
+
+  it('keeps the target plane where it was on screen instead of the point in front of it', () => {
+    // A point on the target's own vertical plane at the unelevated focus height.
+    const onPlane = new THREE.Vector3(0, 0.9, 0);
+    const flatY = onPlane.clone().project(placed(0)).y;
+    const upY = onPlane.clone().project(placed(8)).y;
+    expect(Math.abs(upY - flatY)).toBeLessThan(0.03);
+  });
+});

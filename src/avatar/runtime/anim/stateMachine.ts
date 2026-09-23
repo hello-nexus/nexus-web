@@ -44,6 +44,7 @@ export class AvatarStateMachine {
 
   private currentStateDef: AnimState | null = null;
   private currentAction: THREE.AnimationAction | null = null;
+  private generation = 0;
   private currentClipDuration = 0;
   private currentSpeed = 1;
   /** Unscaled seconds spent in the current state (or debug clip). */
@@ -82,6 +83,19 @@ export class AvatarStateMachine {
 
   get current(): string | null {
     return this.currentStateDef?.name ?? this.currentAction?.getClip().name ?? null;
+  }
+
+  /** The action the machine is playing or fading into (clip-event timing reads it). */
+  get activeAction(): THREE.AnimationAction | null {
+    return this.currentAction;
+  }
+
+  /**
+   * Bumps on every (re)start of an action, including a restart of the one
+   * already playing, which mixer.clipAction reuses and reset() rewinds.
+   */
+  get actionGeneration(): number {
+    return this.generation;
   }
 
   /** Graph state name, or null when a debug clip plays outside the graph. */
@@ -267,6 +281,7 @@ export class AvatarStateMachine {
       action.play();
     }
     this.currentAction = action;
+    this.generation++;
   }
 
   private notifyStateChange(state: string, previous: string | null): void {
