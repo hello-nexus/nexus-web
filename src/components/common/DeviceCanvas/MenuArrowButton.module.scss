@@ -10,9 +10,20 @@
   color: var(--text-dim);
   cursor: pointer;
   opacity: 0;
-  // Hidden, it must not catch a tap in the gap it hangs into.
-  pointer-events: none;
   transition: opacity var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
+
+  // Hidden, it still takes the pointer across the whole gutter (--rail-gap,
+  // inherited from the hosting page or list); as the host's descendant that
+  // hovers the host, which reveals it. Any wider overflows the rail's scroller
+  // into a horizontal scrollbar.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--rail-gap);
+  }
 
   &:hover {
     color: var(--accent);
@@ -20,18 +31,18 @@
   }
 
   &:focus-visible,
-  &[aria-expanded='true'] { opacity: 1; pointer-events: auto; }
+  &[aria-expanded='true'] { opacity: 1; }
 
   svg { width: 14px; height: 14px; }
 }
 
 :global([data-menu-arrow-host]) { position: relative; }
 
-:global([data-menu-arrow-host]:hover) .arrow { opacity: 1; pointer-events: auto; }
+:global([data-menu-arrow-host]:hover) .arrow { opacity: 1; }
 
 // Touch-first screens never hover, and the menu holds actions nothing else reaches.
 @media (hover: none) {
-  .arrow { opacity: 1; pointer-events: auto; }
+  .arrow { opacity: 1; }
 }
 
 // Hangs off the host's right edge with no gap, so the pointer keeps the host

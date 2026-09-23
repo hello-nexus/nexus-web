@@ -189,3 +189,101 @@ describe('CameraController elevation', () => {
     expect(Math.abs(upY - flatY)).toBeLessThan(0.03);
   });
 });
+
+describe('CameraController recenter and pitch floor', () => {
+  const opts = { minAngles: [-30, -10] as [number, number], maxAngles: [30, 0] as [number, number], overshootDeg: 8, dragSensitivity: 1, inertiaDamping: 0.5, maxDragDelta: 1000 };
+
+  function mounted(o: Record<string, unknown> = {}): { el: HTMLElement; c: CameraController } {
+    const el = document.createElement('div');
+    Object.assign(el, { setPointerCapture: () => {}, hasPointerCapture: () => true });
+    return { el, c: new CameraController(new THREE.PerspectiveCamera(), new THREE.Object3D(), el, { ...opts, ...o }) };
+  }
+
+  /** Placed yaw and pitch: the clamped angles plus any slack. */
+  function angles(c: CameraController): { yaw: number; pitch: number } {
+    const p = c as unknown as { yawDeg: number; yawSlack: number; pitchDeg: number; pitchSlack: number };
+    return { yaw: p.yawDeg + p.yawSlack, pitch: p.pitchDeg + p.pitchSlack };
+  }
+
+  function dragAndRelease(el: HTMLElement, c: CameraController, dx: number, dy: number): void {
+    el.dispatchEvent(pointer('pointerdown', 1, 0, 0));
+    for (let i = 1; i <= 10; i++) el.dispatchEvent(pointer('pointermove', 1, (dx / 10) * i, (dy / 10) * i));
+    for (let i = 0; i < 20; i++) c.update(1 / 60);
+    el.dispatchEvent(pointer('pointerup', 1, dx, dy));
+  }
+
+  const run = (c: CameraController, seconds: number): void => {
+    for (let i = 0; i < seconds * 60; i++) c.update(1 / 60);
+  };
+
+  it('eases yaw and pitch back to rest once the camera sits idle', () => {
+    const { el, c } = mounted({ recenterAfterS: 3 });
+    dragAndRelease(el, c, -15, 5);
+    run(c, 2);
+    const held = angles(c);
+    expect(held.yaw).toBeGreaterThan(5);
+    expect(held.pitch).toBeLessThan(-1);
+    run(c, 4);
+    expect(angles(c).yaw).toBeCloseTo(0, 1);
+    expect(angles(c).pitch).toBeCloseTo(0, 1);
+    c.dispose();
+  });
+
+  it('a wheel turn restarts the idle clock', () => {
+    const { el, c } = mounted({ recenterAfterS: 3 });
+    dragAndRelease(el, c, -15, 0);
+    run(c, 2);
+    el.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, cancelable: true }));
+    run(c, 2);
+    expect(angles(c).yaw).toBeGreaterThan(5);
+    c.dispose();
+  });
+
+  it('stays where the user left it when recentering is off', () => {
+    const { el, c } = mounted();
+    dragAndRelease(el, c, -15, 0);
+    run(c, 10);
+    expect(angles(c).yaw).toBeGreaterThan(5);
+    c.dispose();
+  });
+
+  it('looking up opens only as the zoom closes in', () => {
+    // Pointer up raises pitch, which lowers the camera.
+    const lookUp = (zoom: number): number => {
+      const { el, c } = mounted({ maxAngles: [30, 15], zoomOutMaxPitchDeg: 0 });
+      c.setZoomFraction(zoom);
+      el.dispatchEvent(pointer('pointerdown', 1, 0, 0));
+      for (let i = 1; i <= 20; i++) el.dispatchEvent(pointer('pointermove', 1, 0, -i * 20));
+      run(c, 0.5);
+      const pitch = angles(c).pitch;
+      c.dispose();
+      return pitch;
+    };
+    expect(lookUp(0)).toBe(0);
+    const half = lookUp(0.5);
+    expect(half).toBeGreaterThan(7.5);
+    expect(half).toBeLessThanOrEqual(7.5 + opts.overshootDeg / 2);
+    expect(lookUp(1)).toBeGreaterThan(15);
+  });
+});
+
+describe('CameraController recenter with a stolen pointer', () => {
+  it('recenters once an ancestor has taken the dragging pointer', () => {
+    const el = document.createElement('div');
+    const held = new Set<number>();
+    Object.assign(el, {
+      setPointerCapture: (id: number) => { held.add(id); },
+      hasPointerCapture: (id: number) => held.has(id),
+    });
+    const c = new CameraController(new THREE.PerspectiveCamera(), new THREE.Object3D(), el, { recenterAfterS: 1, dragSensitivity: 1, maxDragDelta: 1000 });
+    const yaw = (): number => (c as unknown as { yawDeg: number }).yawDeg;
+    el.dispatchEvent(pointer('pointerdown', 7, 0, 0));
+    el.dispatchEvent(pointer('pointermove', 7, -8, 0));
+    for (let i = 0; i < 10; i++) c.update(1 / 60);
+    expect(yaw()).toBeGreaterThan(1);
+    held.delete(7);
+    for (let i = 0; i < 240; i++) c.update(1 / 60);
+    expect(yaw()).toBeCloseTo(0, 1);
+    c.dispose();
+  });
+});
