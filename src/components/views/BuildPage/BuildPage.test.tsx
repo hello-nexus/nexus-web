@@ -129,16 +129,6 @@ describe('BuildPage', () => {
     expect(getIframe()).toBe(iframe);
   });
 
-  it('tracks the open-in-browser link target from a navigate message', () => {
-    render(<BuildPage path="/upgrade" />);
-    const iframe = getIframe();
-    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
-    act(() => postFromFrame(iframe, { type: 'nexus-build:navigate', path: '/products/rtx-5080' }));
-
-    act(() => { screen.getByText('build.openInBrowser').click(); });
-    expect(h.openExternalUrl).toHaveBeenCalledWith(`${BUILD_ORIGIN}/products/rtx-5080`);
-  });
-
   it('posts a fresh hello on every ready message, not just the first (the portal full-loads between routes)', () => {
     render(<BuildPage path="/upgrade" />);
     const iframe = getIframe();
@@ -151,15 +141,10 @@ describe('BuildPage', () => {
     expect(helloPosts).toHaveLength(2);
   });
 
-  it('still updates the open-in-browser target from a navigate message after a later ready', () => {
+  it('renders no chrome of its own above the frame (the portal carries its own bar)', () => {
     render(<BuildPage path="/upgrade" />);
-    const iframe = getIframe();
-    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
-    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
-    act(() => postFromFrame(iframe, { type: 'nexus-build:navigate', path: '/products/rtx-5080' }));
-
-    act(() => { screen.getByText('build.openInBrowser').click(); });
-    expect(h.openExternalUrl).toHaveBeenCalledWith(`${BUILD_ORIGIN}/products/rtx-5080`);
+    expect(screen.queryByText('build.openInBrowser')).toBeNull();
+    expect(document.querySelector('iframe')).not.toBeNull();
   });
 
   it('shows the offline fallback card after 8s with no ready message', () => {

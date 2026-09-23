@@ -224,7 +224,6 @@
   "build.offline.open": "Открыть build.hellonexus.com",
   "build.offline.retry": "Повторить",
   "build.offline.title": "Не удалось подключиться к Build",
-  "build.openInBrowser": "Открыть в браузере",
   "builder.copied": "Скопировано!",
   "chart.addEvent": "Добавить событие",
   "chart.minus60s": "-60s",

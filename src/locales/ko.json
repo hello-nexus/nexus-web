@@ -224,7 +224,6 @@
   "build.offline.open": "build.hellonexus.com 열기",
   "build.offline.retry": "다시 시도",
   "build.offline.title": "Build에 연결할 수 없습니다",
-  "build.openInBrowser": "브라우저에서 열기",
   "builder.copied": "복사됨!",
   "chart.addEvent": "이벤트 추가",
   "chart.minus60s": "-60s",

@@ -224,7 +224,6 @@
   "build.offline.open": "build.hellonexus.com openen",
   "build.offline.retry": "Opnieuw",
   "build.offline.title": "Kan Build niet bereiken",
-  "build.openInBrowser": "Openen in browser",
   "builder.copied": "Gekopieerd!",
   "chart.addEvent": "Gebeurtenis toevoegen",
   "chart.minus60s": "-60s",
