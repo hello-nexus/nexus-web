@@ -7,6 +7,7 @@ import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
+import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
 import { StatTile } from '../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
@@ -1705,6 +1706,14 @@ function PreviewBrand() {
   );
 }
 
+function PreviewDomainGlyph() {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', isolation: 'isolate', height: 120, background: 'var(--surface)', borderRadius: 'var(--radius-lg)' }}>
+      <DomainGlyph icon={HardDrive} />
+    </div>
+  );
+}
+
 function PreviewPanelArrowButtons() {
   return (
     <div style={{ position: 'relative', height: 72, width: '100%' }}>
@@ -2331,6 +2340,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'Card', category: 'cards',
     filePath: 'src/components/common/Card/Card.tsx',
     description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids); `fillHeight` fills the parent height and scrolls the body on its own instead of content-sizing (an inline detail sidebar); `selected` is the rail selected-item treatment (accent border + accent-soft fill, the lighting / cooling device cards); `role`/`ariaLabel` name the root as a landmark.', Preview: PreviewCard,
+  },
+  {
+    name: 'DomainGlyph', category: 'cards',
+    filePath: 'src/components/common/DomainGlyph/DomainGlyph.tsx',
+    description: 'Large faint icon silhouette bled off a card edge, behind its content. Pass any LucideIcon; size defaults to 136. The host card supplies position: relative; overflow: hidden; isolation: isolate so the glyph paints above the card surface but beneath its text.', Preview: PreviewDomainGlyph,
   },
   {
     name: 'SensorCard', category: 'cards',
