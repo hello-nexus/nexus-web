@@ -92,7 +92,10 @@
 
   @include raised-edge(var(--accent));
 
+  // Restated on hover: as a link, the global a:hover tint would otherwise
+  // outrank the tone and paint the label accent-on-accent.
   &:hover:not(:disabled) {
+    color: var(--accent-text);
     filter: brightness(1.12);
   }
 }
@@ -106,7 +109,9 @@
 
   @include raised-edge(var(--bad));
 
+  // Restated on hover for the same link case as the accent tone.
   &:hover:not(:disabled) {
+    color: #fff;
     filter: brightness(1.1);
   }
 }
