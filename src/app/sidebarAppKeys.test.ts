@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest';
 import { normalizeAppType } from '../widgets/marketplaceRegistry';
-import { appendRecent, sanitizePinnedTail, sanitizeRecents } from './sidebarAppKeys';
+import { appendRecent, sanitizeAppOrder, sanitizePinnedTail, sanitizeRecents } from './sidebarAppKeys';
 
 const registryState = vi.hoisted(() => ({ loaded: true }));
 
@@ -66,22 +66,22 @@ describe('sanitizePinnedTail legacy keys', () => {
 describe('sanitizeRecents', () => {
   it('rewrites the legacy marketplace: prefix for a page-capable app', () => {
     expect(sanitizeRecents(['monitoring', 'marketplace:com.test.pageapp']))
-      .toEqual(['monitoring', 'app:com.test.pageapp']);
+      .toEqual(['app:com.test.pageapp']);
   });
 
   it('drops unknown keys once the registry has loaded', () => {
-    expect(sanitizeRecents(['marketplace:com.gone.app', 'monitoring']))
+    expect(sanitizeRecents(['monitoring', 'marketplace:com.gone.app']))
       .toEqual(['monitoring']);
   });
 
-  it('dedupes while preserving first-occurrence order', () => {
-    expect(sanitizeRecents(['monitoring', 'lighting', 'monitoring']))
-      .toEqual(['monitoring', 'lighting']);
+  it('dedupes before capping', () => {
+    expect(sanitizeRecents(['lighting', 'monitoring', 'monitoring']))
+      .toEqual(['monitoring']);
   });
 
-  it('caps to the last 2 entries - the newest - in input order', () => {
+  it('caps to the last entry - the newest', () => {
     expect(sanitizeRecents(['monitoring', 'lighting', 'cooling', 'clock']))
-      .toEqual(['cooling', 'clock']);
+      .toEqual(['clock']);
   });
 
   it('returns an empty array for undefined or non-array input', () => {
@@ -90,26 +90,23 @@ describe('sanitizeRecents', () => {
 });
 
 describe('appendRecent', () => {
-  it('appends a new key at the end', () => {
-    expect(appendRecent(['monitoring'], 'lighting')).toEqual(['monitoring', 'lighting']);
+  it('replaces the entry with a newly opened key', () => {
+    expect(appendRecent(['monitoring'], 'lighting')).toEqual(['lighting']);
   });
 
-  it('is a no-op (same order, same reference) when the key is already present', () => {
-    const list = ['monitoring', 'lighting'];
-    const next = appendRecent(list, 'monitoring');
-    expect(next).toBe(list);
-    expect(next).toEqual(['monitoring', 'lighting']);
+  it('is a no-op (same reference) when the key is already present', () => {
+    const list = ['monitoring'];
+    expect(appendRecent(list, 'monitoring')).toBe(list);
+  });
+});
+
+describe('sanitizeAppOrder', () => {
+  it('rewrites the legacy prefix, dedupes, and keeps unknown keys', () => {
+    expect(sanitizeAppOrder(['weather', 'marketplace:com.gone.app', 'weather', 3]))
+      .toEqual(['weather', 'app:com.gone.app']);
   });
 
-  it('evicts the oldest (index 0) once the list would exceed the cap of 2', () => {
-    expect(appendRecent(['monitoring', 'lighting'], 'cooling'))
-      .toEqual(['lighting', 'cooling']);
-  });
-
-  it('never moves an existing entry, even one about to be evicted by a different append', () => {
-    // Re-opening 'monitoring' does not move it to the end - eviction order is
-    // purely first-insertion order, not recency of re-open.
-    const list = ['monitoring', 'lighting'];
-    expect(appendRecent(list, 'monitoring')).toEqual(['monitoring', 'lighting']);
+  it('returns an empty array for undefined input', () => {
+    expect(sanitizeAppOrder(undefined)).toEqual([]);
   });
 });

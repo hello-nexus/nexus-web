@@ -4,8 +4,9 @@
 import { type ReactNode, createElement } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { ICON_SIZE } from './sidebarNav';
-import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
+import { APP_REGISTRY, getCatalogEntries, lookupApp } from '../panel/widgets/registry';
 import { isMarketplaceType } from '../widgets/marketplaceRegistry';
+import { DEV_TOOLS } from '../lib/devTools';
 import { DASHBOARD_APP_KEY } from './sidebarAppKeys';
 import { PAGE_ONLY_APPS } from './pageOnlyApps';
 
@@ -16,6 +17,7 @@ export {
   DEFAULT_PINNED_TAIL,
   appendRecent,
   isPinnableAppKey,
+  sanitizeAppOrder,
   sanitizePinnedTail,
   sanitizeRecents,
   type SidebarAppKey,
@@ -55,4 +57,22 @@ export function getSidebarAppMeta(key: string): SidebarAppMeta | null {
     icon: createElement(manifest.meta.icon, { size: ICON_SIZE }),
     i18nKey: manifest.meta.i18nKey,
   };
+}
+
+/**
+ * Every app the sidebar can list: page-only apps plus each catalog app with a
+ * desktop Page. The `listed` filter is the widget catalog's: an app delisted on
+ * beta/prod is resolvable but not browseable, and DEV_TOOLS builds browse
+ * everything. Reads the marketplace registry's module-level cache, so callers
+ * derive it per render rather than memoising it.
+ */
+export function listSidebarAppKeys(): string[] {
+  return [
+    ...Object.keys(PAGE_ONLY_APPS),
+    ...getCatalogEntries().flatMap(([key, def]) => {
+      if (def.Page == null) return [];
+      if (!DEV_TOOLS && def.meta.listed === false) return [];
+      return [key];
+    }),
+  ];
 }

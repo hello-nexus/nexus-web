@@ -2673,7 +2673,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Sidebar', category: 'navigation',
     filePath: 'src/components/common/Sidebar/Sidebar.tsx',
-    description: 'Main app navigation column: drag-to-reorder nav rows, compact (icon-only) mode, service status shield, bottom-pinned Settings. `addItem` closes the list with a short + strip that fades in on sidebar hover. SidebarNavButton reuses the exact row chrome for one-off entries, incl. a `disabled` (aria-disabled, still tabbable) variant for rows that are already placed.',
+    description: 'Main app navigation column: drag-to-reorder nav rows, compact (icon-only) mode, service status shield, bottom-pinned Settings. Below a separator sit the unpinned apps: `more` collapses them to the recent one behind a Show more / Show less toggle, and expanded they show in the order the user dragged them, alphabetical by default. The separator is an undraggable sortable item, so a drag across it docks or undocks.',
     notes: 'No live preview - needs DnD context, service state, and profile store.',
   },
   {

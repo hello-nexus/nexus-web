@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useReducer, useRef, useState, type ReactNode } from 'react';
 import classNames from 'classnames';
-import { LayoutGrid, Pin, PinOff, X } from 'lucide-react';
+import { LayoutGrid, Pin, PinOff } from 'lucide-react';
 import { Sidebar } from '../components/common/Sidebar/Sidebar';
 import { useUiSettings, type UiSettingsValue } from '../hooks/useUiSettings';
 import type { ServiceState } from '../hooks/useServiceState';
@@ -10,15 +10,20 @@ import { SidebarBrand } from './sidebar';
 import { PairPhoneButton } from './PairPhoneModal';
 import { SidebarContextMenu } from './SidebarContextMenu';
 import { SidebarDevicesSection } from './SidebarDevicesSection';
-import { AddSidebarAppSlideout } from './AddSidebarAppSlideout';
 import { ICON_SIZE } from './sidebarNav';
 import {
   DASHBOARD_APP_KEY,
   appendRecent,
   getSidebarAppMeta,
   isPinnableAppKey,
+  listSidebarAppKeys,
   sanitizePinnedTail,
 } from './sidebarApps';
+import {
+  isMarketplaceRegistryStale,
+  loadMarketplaceApps,
+  subscribeMarketplaceRegistry,
+} from '../widgets/marketplaceRegistry';
 import { useCrossZoneDrag } from './CrossZoneDrag';
 import styles from '../App.module.scss';
 
@@ -32,6 +37,10 @@ function featureFlagOff(key: string, settings: UiSettingsValue): boolean {
     case 'diagnostics': return !settings.featureDiagnosticsEnabled;
     default: return false;
   }
+}
+
+function sameOrder(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((key, i) => key === b[i]);
 }
 
 interface ExtraNavItem {
@@ -95,25 +104,16 @@ export function SidebarColumn({
   // or hand-edited prefs blob can't render gaps.
   const tail = sanitizePinnedTail(settings.pinnedSidebarApps);
   const offTooltip = t('featureDisabled.sidebarTooltip');
-  const items = tail.flatMap(key => {
+  const navItem = (key: string) => {
     const meta = getSidebarAppMeta(key);
     if (!meta) return [];
     return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined }];
-  });
-
-  // Persist a reorder by writing the new tail back. The sanitizer in
-  // useUiSettings drops any non-pinnable keys so a bad nextTail can never
-  // poison settings.
-  const handleTailReorder = (nextTailKeys: string[]) => {
-    update({ pinnedSidebarApps: nextTailKeys });
   };
-
-  const [addAppOpen, setAddAppOpen] = useState(false);
+  const items = tail.flatMap(navItem);
 
   // Right-click context menu state. Held here so the menu portal dismisses
   // on outside click without each row tracking its own open state. `pinned`
-  // picks the menu: a pinned row offers Unpin; a recent row offers Pin (plus
-  // Remove, unless it's the currently-active view - see the menu render below).
+  // picks the menu: a pinned row offers Unpin; a lower row offers Pin.
   const [ctxMenu, setCtxMenu] = useState<{ key: string; x: number; y: number; pinned: boolean } | null>(null);
   const handleItemContextMenu = (key: string, event: React.MouseEvent) => {
     setCtxMenu({ key, x: event.clientX, y: event.clientY, pinned: tail.includes(key) });
@@ -128,16 +128,11 @@ export function SidebarColumn({
     update({ pinnedSidebarApps: [...tail, key] });
     setRecents(storedRecentsRaw.filter(k => k !== key));
   };
-  const handleRemoveRecent = (key: string) => {
-    setRecents(storedRecentsRaw.filter(k => k !== key));
-  };
 
-  // Taskbar / macOS-dock semantics: recently opened pinnable apps that
-  // aren't pinned surface as rows below the pinned tail (behind a hairline
-  // separator), stable FIFO order, oldest evicted first. Excludes anything
-  // already pinned - handlePin/handleRunningPinAt/handlePinDrop strip the
-  // recents entry the moment it's pinned, but this filter also guards a
-  // list stored before the pin landed.
+  // The last unpinned app opened (appendRecent caps the list) is the lower row
+  // shown while Show more is collapsed. Excludes anything already pinned -
+  // pinning strips the recents entry, but this filter also guards a list
+  // stored before the pin landed.
   const storedRecents = storedRecentsRaw.filter(k => !tail.includes(k));
   // Render the just-opened app immediately, even a tick before the append
   // effect below persists it - otherwise navigating to a new unpinned app
@@ -145,11 +140,6 @@ export function SidebarColumn({
   const recents = isPinnableAppKey(serviceNavActive) && !tail.includes(serviceNavActive)
     ? appendRecent(storedRecents, serviceNavActive)
     : storedRecents;
-  const recentItems = recents.flatMap(key => {
-    const meta = getSidebarAppMeta(key);
-    if (!meta) return [];
-    return [{ key, label: t(meta.i18nKey), icon: meta.icon, offTooltip: featureFlagOff(key, settings) ? offTooltip : undefined }];
-  });
 
   // Persists the FIFO append: stable order, no-op when the app is already in
   // the list (appendRecent enforces the cap). Waits for the stored list, so
@@ -164,22 +154,47 @@ export function SidebarColumn({
     if (next !== storedRecentsRaw) setRecents(next);
   }, [recentsLoaded, serviceNavActive, settings.pinnedSidebarApps, storedRecentsRaw, setRecents]);
 
-  // Add from the drawer: pin it, then open it. Picking an app out of a list of
-  // apps reads as "I want this one", so landing on its page is the expected
-  // end of the gesture - the row is already pinned behind you.
-  const handleAddApp = (key: string) => {
-    handlePin(key);
-    onServiceNavChange(key);
-  };
+  // Below the separator: every unpinned app, in the user's dragged order, then
+  // the rest by name. Collapsed, only the recent row shows; opening an app
+  // never moves it, so an expanded list keeps its order.
+  const [moreOpen, setMoreOpen] = useState(false);
+  // The marketplace registry is a module-level cache React can't observe;
+  // subscribe while the list is open so an SDK app that finishes loading shows
+  // up. Same pattern as PanelWidgetCatalog.
+  const forceRender = useReducer((r: number) => r + 1, 0)[1];
+  useEffect(() => {
+    if (!moreOpen) return;
+    if (isMarketplaceRegistryStale()) void loadMarketplaceApps();
+    return subscribeMarketplaceRegistry(forceRender);
+  }, [moreOpen, forceRender]);
+  const order = settings.sidebarAppOrder;
+  const unpinned = listSidebarAppKeys().filter(key => !tail.includes(key));
+  // A recent app the catalog doesn't browse (delisted, opened from search).
+  for (const key of recents) if (!unpinned.includes(key)) unpinned.push(key);
+  const lowerItems = [
+    ...order.filter(key => unpinned.includes(key)).flatMap(navItem),
+    ...unpinned.filter(key => !order.includes(key)).flatMap(navItem).sort((a, b) => a.label.localeCompare(b.label)),
+  ];
 
-  // Drop-pin from dragging a recent row above the fold: insert at the slot it
-  // was dropped on and strip it from recents.
-  const handleRunningPinAt = (key: string, index: number) => {
-    if (!isPinnableAppKey(key) || tail.includes(key)) return;
-    const next = [...tail];
-    next.splice(Math.max(0, Math.min(index, next.length)), 0, key);
-    update({ pinnedSidebarApps: next });
-    setRecents(storedRecentsRaw.filter(k => k !== key));
+  // One drop reorders either side, docks a lower row (it leaves recents) or
+  // undocks a pinned one at the drop slot. Collapsed, the undocked row becomes
+  // the recent so it stays visible - unless the current page is itself
+  // unpinned, which keeps the one collapsed slot.
+  const handleArrange = ({ pinned, lower }: { pinned: string[]; lower: string[] }) => {
+    const patch: { pinnedSidebarApps?: string[]; sidebarAppOrder?: string[] } = {};
+    if (!sameOrder(pinned, tail)) patch.pinnedSidebarApps = pinned;
+    // Docking only removes a key; the saved order changes when a row moves
+    // within the lower list or lands in it. Saved keys not rendered right now
+    // (registry still loading, app briefly uninstalled) keep a slot at the end.
+    const lowerBefore = lowerItems.map(i => i.key).filter(k => lower.includes(k));
+    if (!sameOrder(lower, lowerBefore)) {
+      patch.sidebarAppOrder = [...lower, ...order.filter(k => !lower.includes(k) && !pinned.includes(k))];
+    }
+    if (patch.pinnedSidebarApps || patch.sidebarAppOrder) update(patch);
+    const docked = pinned.find(k => !tail.includes(k));
+    if (docked) setRecents(storedRecentsRaw.filter(k => k !== docked));
+    const undocked = tail.find(k => !pinned.includes(k));
+    if (undocked && !moreOpen) setRecents([undocked]);
   };
 
   // Cross-zone drop from the dashboard panel. Published by PanelContent
@@ -211,11 +226,16 @@ export function SidebarColumn({
         onSectionLabelClick={() => onServiceNavChange(DASHBOARD_APP_KEY)}
         sectionLabelActive={serviceNavActive === DASHBOARD_APP_KEY}
         serviceState={serviceState}
-        onTailReorder={handleTailReorder}
+        onArrange={handleArrange}
         onItemContextMenu={handleItemContextMenu}
-        runningItems={recentItems}
-        onRunningPinAt={handleRunningPinAt}
-        addItem={{ label: t('sidebar.moreApps'), onClick: () => setAddAppOpen(true) }}
+        lowerItems={lowerItems}
+        more={{
+          collapsedKeys: recents,
+          expanded: moreOpen,
+          onToggle: () => setMoreOpen(open => !open),
+          showLabel: t('sidebar.showMore'),
+          hideLabel: t('sidebar.showLess'),
+        }}
         compact={compact}
         extraItems={portalNav}
         extraSectionLabel=""
@@ -231,12 +251,6 @@ export function SidebarColumn({
             headerActive={devicesHeaderActive}
           />
         }
-      />
-      <AddSidebarAppSlideout
-        open={addAppOpen}
-        onClose={() => setAddAppOpen(false)}
-        pinnedKeys={tail}
-        onAdd={handleAddApp}
       />
       <PairPhoneButton
         connectedCount={phoneSubscribers}
@@ -265,17 +279,6 @@ export function SidebarColumn({
               icon: <Pin size={14} />,
               onSelect: () => handlePin(ctxMenu.key),
             },
-            // Remove only for a recent row that isn't the current view - the
-            // active row always stays visible below the separator.
-            ...(ctxMenu.key === serviceNavActive ? [] : [
-              {
-                // eslint-disable-next-line i18next/no-literal-string -- menu item id
-                key: 'remove',
-                label: t('sidebar.removeFromRecents'),
-                icon: <X size={14} />,
-                onSelect: () => handleRemoveRecent(ctxMenu.key),
-              },
-            ]),
           ]}
           onClose={() => setCtxMenu(null)}
         />
@@ -294,9 +297,9 @@ interface SidebarPinDropTargetProps {
 // Listens to the panel widget drag via document-level pointer events
 // while it's in flight (mounted only when CrossZoneDragContext publishes
 // a draggingPinnableType). Computes an insertion index from the cursor
-// position relative to the sidebar's tail-scroll region, renders an
-// insertion line at the corresponding viewport y, and pins the widget
-// on pointerup when the drop landed inside the tail. The panel's own
+// position relative to the pinned rows, renders an insertion line at the
+// corresponding viewport y, and pins the widget on pointerup when the drop
+// landed above the separator. The panel's own
 // onDragEnd handles clearing its drag state - this overlay only acts on
 // the sidebar side.
 function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
@@ -320,16 +323,21 @@ function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
 
     // Snapshot row rects once per drag. The tail isn't reordered while
     // a panel drag is in flight, so the rects stay valid; this avoids a
-    // querySelectorAll on every pointermove.
-    const rowEls = Array.from(tailEl.querySelectorAll<HTMLElement>('[data-sidebar-row-key]'));
-    const rects = rowEls.map(el => el.getBoundingClientRect());
+    // querySelectorAll on every pointermove. Only pinned rows count - the
+    // zone ends at the separator, so a drop is a pin exactly when it lands
+    // where the pinned slots are.
     const tailRect = tailEl.getBoundingClientRect();
+    const separator = tailEl.querySelector<HTMLElement>('[data-sidebar-running-separator]');
+    const zoneBottom = Math.min(separator ? separator.getBoundingClientRect().top : tailRect.bottom, tailRect.bottom);
+    const rects = Array.from(tailEl.querySelectorAll<HTMLElement>('[data-sidebar-row-key]'))
+      .map(el => el.getBoundingClientRect())
+      .filter(r => r.top < zoneBottom);
 
     const handleMove = (e: PointerEvent) => {
       const inside = e.clientX >= tailRect.left
         && e.clientX <= tailRect.right
         && e.clientY >= tailRect.top
-        && e.clientY <= tailRect.bottom;
+        && e.clientY <= zoneBottom;
       if (!inside) {
         insertionIndexRef.current = null;
         setPosition(null);
@@ -361,10 +369,12 @@ function SidebarPinDropTarget({ onDrop }: SidebarPinDropTargetProps) {
 
     // Synchronous drop committer the panel invokes from its onDragEnd before
     // drag-state cleanup unmounts us. Reads the latest pointermove insertion
-    // index.
+    // index; true tells the panel the drop was a pin, not a move.
     dropHandlerRef.current = () => {
       const idx = insertionIndexRef.current;
-      if (idx !== null) onDropRef.current(idx);
+      if (idx === null) return false;
+      onDropRef.current(idx);
+      return true;
     };
 
     document.addEventListener('pointermove', handleMove);

@@ -26,7 +26,7 @@ import {
 } from '../lib/units';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
-import { sanitizePinnedTail } from '../app/sidebarApps';
+import { sanitizeAppOrder, sanitizePinnedTail } from '../app/sidebarApps';
 
 /**
  * Unified user-settings hook.
@@ -93,6 +93,9 @@ export interface UiSettingsValue {
   // but nexus-service has no matching field yet - see UiPrefs.pinnedSidebarApps
   // in api/profiles.ts for the durability gap this leaves.
   pinnedSidebarApps: string[];
+  // User-dragged order of the unpinned sidebar apps below the separator;
+  // empty = sorted by name. Posted under ui.sidebarAppOrder.
+  sidebarAppOrder: string[];
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile (see useOemAppSeed). Server-only,
   // like the update block below - not mirrored to localStorage.
@@ -229,6 +232,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuTempSensorId: '',
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
+    sidebarAppOrder: sanitizeAppOrder(src.general.sidebarAppOrder),
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     lightingDashboardMode: src.general.lightingDashboardMode,
@@ -293,6 +297,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       showWindowsTrayIcon: src.showWindowsTrayIcon,
       rememberLastPage: src.rememberLastPage,
       pinnedSidebarApps: src.pinnedSidebarApps,
+      sidebarAppOrder: src.sidebarAppOrder,
       widgetAdvancedMode: src.widgetAdvancedMode,
       lightingDashboardMode: src.lightingDashboardMode,
       coolingDashboardMode: src.coolingDashboardMode,
@@ -342,11 +347,12 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
+  if (patch.sidebarAppOrder !== undefined) ui.sidebarAppOrder = patch.sidebarAppOrder;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (patch.lightingDashboardMode !== undefined) ui.lightingDashboardMode = patch.lightingDashboardMode;
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
@@ -475,6 +481,9 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
+    sidebarAppOrder: server.ui?.sidebarAppOrder != null
+      ? sanitizeAppOrder(server.ui.sidebarAppOrder)
+      : base.sidebarAppOrder,
     oemAppSeeded: server.ui?.oemAppSeeded ?? base.oemAppSeeded,
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
@@ -660,6 +669,7 @@ export function UiSettingsProvider({
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
         showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
         pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
+        sidebarAppOrder: prefs.ui?.sidebarAppOrder,
       });
     }).catch(() => { /* best-effort */ });
   }, [serviceOnline, persistLocal, setLanguage, manageDom, scheduleServerWrite]);

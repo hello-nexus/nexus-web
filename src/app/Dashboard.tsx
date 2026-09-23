@@ -501,6 +501,7 @@ export function Dashboard() {
       showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
       showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
       pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
+      sidebarAppOrder: prefs.ui?.sidebarAppOrder,
     });
   }, [setLanguage]);
 

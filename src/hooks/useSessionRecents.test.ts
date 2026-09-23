@@ -18,14 +18,14 @@ beforeEach(() => {
 });
 
 describe('useSessionRecents', () => {
-  it('loads the stored keys once the service is reachable', async () => {
+  it('loads the stored keys, sanitized to the newest, once the service is reachable', async () => {
     mockFetch.mockResolvedValue(['monitoring', 'lighting']);
 
     const { result } = renderHook(() => useSessionRecents(true));
     await act(async () => {});
 
     expect(result.current.loaded).toBe(true);
-    expect(result.current.recents).toEqual(['monitoring', 'lighting']);
+    expect(result.current.recents).toEqual(['lighting']);
   });
 
   it('does not read while the service is offline', async () => {
