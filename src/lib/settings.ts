@@ -157,6 +157,9 @@ export interface GeneralSettings {
   // User-dragged order of the unpinned sidebar apps; empty = sorted by name.
   // Server-mirrored under ui.sidebarAppOrder.
   sidebarAppOrder: string[];
+  // True while the user has collapsed the dashboard sidebar by hand.
+  // Server-mirrored under ui.sidebarCollapsed.
+  sidebarCollapsed: boolean;
   // When true, lighting + cooling widgets render the full controls
   // (animation/mirror/static buttons on lighting, response chart +
   // silent/balanced/turbo chips on cooling); default false (single-icon
@@ -233,6 +236,7 @@ export function getDefaultSettings(): NexusSettings {
       rememberLastPage: true,
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics'],
       sidebarAppOrder: [],
+      sidebarCollapsed: false,
       widgetAdvancedMode: false,
       lightingDashboardMode: 'simple',
       coolingDashboardMode: 'simple',
