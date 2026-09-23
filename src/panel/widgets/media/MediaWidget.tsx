@@ -15,6 +15,7 @@ import { surfaceSupportsTouch, widgetLayoutSize } from '../../types';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { mediaArtSignature } from './mediaArt';
+import { useLivePositionMs } from './mediaTime';
 import { MEDIA_PREVIEW } from './mediaPreviewData';
 import styles from './MediaWidget.module.scss';
 
@@ -56,6 +57,13 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
 
   const active = preview ? MEDIA_PREVIEW.active : pickActive(sessions);
   const activeKey = active?.key ?? '';
+  // The media topic sends no frame while playback runs at 1x, so the bar
+  // ticks locally between frames.
+  const livePositionMs = useLivePositionMs(
+    active?.session.playback.positionMs ?? 0,
+    active?.session.playback.durationMs ?? 0,
+    !preview && !!active?.session.playback.playing && !active.session.playback.stopped,
+  );
   const artSignature = mediaArtSignature(active?.session);
   const showVolume = showControls && !compact && !tall && volume.supported;
   const artUrl = artAsset.key === activeKey && artAsset.signature === artSignature ? artAsset.url : '';
@@ -125,7 +133,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const s = active.session;
   const playing = s.playback.playing;
   const progress = s.playback.durationMs > 0
-    ? Math.min(100, (s.playback.positionMs / s.playback.durationMs) * 100)
+    ? Math.min(100, (livePositionMs / s.playback.durationMs) * 100)
     : 0;
   const repeatMode = (s.playback.repeatMode || 'None');
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
