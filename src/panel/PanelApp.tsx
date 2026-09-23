@@ -1529,8 +1529,9 @@ export function PanelContent({
         // React 19 flushes setDraggingPinnableType(null) synchronously here,
         // unmounting SidebarPinDropTarget and detaching its pointerup listener
         // before pointerup reaches it; commit the pin imperatively while the
-        // sidebar state is still live.
-        sidebarDropHandlerRef.current?.();
+        // sidebar state is still live. A drop on the sidebar only pins: the
+        // widget keeps its dashboard cell.
+        const pinnedToSidebar = sidebarDropHandlerRef.current?.() === true;
         currentOverIdRef.current = null;
         setActiveDragId(null);
         // Clear the make-room preview in the same batch as the committed
@@ -1546,7 +1547,7 @@ export function PanelContent({
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
         touch.handleDragEnd();
         setDraggingPinnableType(null);
-        if (!overId || activeId === overId) return;
+        if (pinnedToSidebar || !overId || activeId === overId) return;
         const activeWidget = widgetById(activeId);
         if (!activeWidget) return;
         const target = parseDragTarget(overId, layoutForDrop, activeWidget);

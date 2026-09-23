@@ -154,6 +154,9 @@ export interface GeneralSettings {
   // 'diagnostics' | 'devices'). Server-mirrored under ui.pinnedSidebarApps so
   // it follows the profile.
   pinnedSidebarApps: string[];
+  // User-dragged order of the unpinned sidebar apps; empty = sorted by name.
+  // Server-mirrored under ui.sidebarAppOrder.
+  sidebarAppOrder: string[];
   // When true, lighting + cooling widgets render the full controls
   // (animation/mirror/static buttons on lighting, response chart +
   // silent/balanced/turbo chips on cooling); default false (single-icon
@@ -229,6 +232,7 @@ export function getDefaultSettings(): NexusSettings {
       showWindowsTrayIcon: true,
       rememberLastPage: true,
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics'],
+      sidebarAppOrder: [],
       widgetAdvancedMode: false,
       lightingDashboardMode: 'simple',
       coolingDashboardMode: 'simple',
@@ -312,6 +316,7 @@ export function cachePreferencesLocally(prefs: {
   showMacStatusBarIcon?: boolean;
   showWindowsTrayIcon?: boolean;
   pinnedSidebarApps?: string[];
+  sidebarAppOrder?: string[];
 }): void {
   const current = loadSettings();
   if (prefs.language) current.general.language = prefs.language as Language;
@@ -324,6 +329,7 @@ export function cachePreferencesLocally(prefs: {
   if (prefs.showMacStatusBarIcon !== undefined) current.general.showMacStatusBarIcon = prefs.showMacStatusBarIcon;
   if (prefs.showWindowsTrayIcon !== undefined) current.general.showWindowsTrayIcon = prefs.showWindowsTrayIcon;
   if (prefs.pinnedSidebarApps !== undefined) current.general.pinnedSidebarApps = prefs.pinnedSidebarApps;
+  if (prefs.sidebarAppOrder !== undefined) current.general.sidebarAppOrder = prefs.sidebarAppOrder;
   saveSettings(current);
 }
 

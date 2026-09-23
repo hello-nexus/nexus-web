@@ -73,6 +73,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       showWindowsTrayIcon: ui.showWindowsTrayIcon,
       rememberLastPage: ui.rememberLastPage,
       pinnedSidebarApps: ui.pinnedSidebarApps,
+      sidebarAppOrder: ui.sidebarAppOrder,
       widgetAdvancedMode: ui.widgetAdvancedMode,
       lightingDashboardMode: ui.lightingDashboardMode,
       coolingDashboardMode: ui.coolingDashboardMode,

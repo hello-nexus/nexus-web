@@ -31,16 +31,18 @@ export interface CrossZoneDragValue {
    * Invoked by the panel's onDragEnd BEFORE it clears drag state: under
    * React 19 that clear unmounts the sidebar (detaching its pointerup
    * listener) in a synchronous flush before the native pointerup lands.
-   * The handler reads the latest pointermove insertion index and pins it.
+   * The handler reads the latest pointermove insertion index and pins it,
+   * returning true when the drop landed on the sidebar, so the panel leaves
+   * its own layout untouched.
    */
-  dropHandlerRef: MutableRefObject<(() => void) | null>;
+  dropHandlerRef: MutableRefObject<(() => boolean) | null>;
 }
 
 const CrossZoneDragContext = createContext<CrossZoneDragValue | null>(null);
 
 export function CrossZoneDragProvider({ children }: { children: ReactNode }) {
   const [draggingPinnableType, setDraggingPinnableType] = useState<string | null>(null);
-  const dropHandlerRef = useRef<(() => void) | null>(null);
+  const dropHandlerRef = useRef<(() => boolean) | null>(null);
   const setter = useCallback((type: string | null) => {
     setDraggingPinnableType(type);
   }, []);
