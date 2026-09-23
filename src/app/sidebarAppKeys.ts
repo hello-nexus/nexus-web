@@ -72,10 +72,9 @@ export function sanitizePinnedTail(input: readonly unknown[] | undefined): strin
   return out;
 }
 
-// FIFO window for the sidebar's below-separator "recently opened" rows
-// (macOS dock semantics) - the last RECENTS_CAP unpinned apps opened,
-// oldest first.
-const RECENTS_CAP = 2;
+// The unpinned apps the sidebar shows while its Show more list is collapsed -
+// the last RECENTS_CAP opened, oldest first.
+const RECENTS_CAP = 1;
 
 // Normalize a recents array read from settings/server: same legacy-prefix
 // rewrite and pinnable-key filter as sanitizePinnedTail, deduped preserving
@@ -97,6 +96,20 @@ export function sanitizeRecents(input: readonly unknown[] | undefined): string[]
     out.push(key);
   }
   return out.slice(-RECENTS_CAP);
+}
+
+// Normalize the user-dragged order of the unpinned apps: legacy-prefix
+// rewrite and dedupe only. Unknown and pinned keys are filtered where the
+// list is rendered.
+export function sanitizeAppOrder(input: readonly unknown[] | undefined): string[] {
+  if (!input || !Array.isArray(input)) return [];
+  const out: string[] = [];
+  for (const entry of input) {
+    if (typeof entry !== 'string') continue;
+    const key = normalizeAppType(entry);
+    if (!out.includes(key)) out.push(key);
+  }
+  return out;
 }
 
 // Append `key` to the recents FIFO: a newly opened key is appended at the
