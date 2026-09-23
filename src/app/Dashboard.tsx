@@ -29,6 +29,7 @@ const ScreentimePage = lazy(() => import('../panel/widgets/screentime/Screentime
 const BenchmarkPage = lazy(() => import('../panel/widgets/benchmark/BenchmarkPage').then(m => ({ default: m.BenchmarkPage })));
 const DiagnosticsPage = lazy(() => import('../panel/widgets/diagnostics/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })));
 const FramesPage = lazy(() => import('../panel/widgets/frames/FramesPage').then(m => ({ default: m.FramesPage })));
+const BuildPage = lazy(() => import('../components/views/BuildPage/BuildPage').then(m => ({ default: m.BuildPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
@@ -48,6 +49,7 @@ import { useRoute, type Section } from '../hooks/useRoute';
 import { useLastRoute } from '../hooks/useLastRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
 import { onOpenFramesGame } from '../panel/widgets/frames/framesNav';
+import { onOpenBuild } from '../components/views/BuildPage/buildNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
@@ -510,6 +512,7 @@ export function Dashboard() {
   // has no router access) to this surface's in-app Monitoring page.
   useEffect(() => onDeckOpenMonitoring(() => navigate('system', 'monitoring')), [navigate]);
   useEffect(() => onOpenFramesGame(gameKey => navigate('system', 'frames', gameKey)), [navigate]);
+  useEffect(() => onOpenBuild(path => navigate('system', 'build', path)), [navigate]);
 
   // Navigate to the held deck's editor and hand the target to the (possibly
   // about-to-mount) device page, which selects the held key.
@@ -610,6 +613,7 @@ export function Dashboard() {
     // Gated views keep their own title on the Placeholder a release build
     // renders, rather than falling through to the generic "Apps" label.
     if (activeView === 'store') return t('apps.tabs.store');
+    if (activeView === 'build') return t('panel.widget.build');
     // A specific device page shows the device's own name; the all-devices
     // landing keeps the generic "Devices" label.
     if (activeView === 'device') {
@@ -882,6 +886,7 @@ export function Dashboard() {
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return DEV_TOOLS ? <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} /> : <Placeholder title={activeView} />;
+      case 'build':      return DEV_TOOLS ? <BuildPage path={subtab} /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;

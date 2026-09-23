@@ -26,7 +26,7 @@ import styles from './BenchmarkPage.module.scss';
 
 type BenchmarkTab = 'run' | 'results' | 'leaderboards';
 
-// The rig shown as big blocks before a run: the four scored subsystems plus
+// The rig shown as compact tiles before a run: the four scored subsystems plus
 // the board and OS for context. `get` pulls the model string from /system/specs.
 const SPEC_BLOCKS: Array<{
   key: string;
@@ -34,12 +34,12 @@ const SPEC_BLOCKS: Array<{
   labelKey: string;
   get: (s: SystemSpecs) => string;
 }> = [
-  { key: 'cpu', icon: <Cpu size={28} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
-  { key: 'gpu', icon: <Monitor size={28} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
-  { key: 'mobo', icon: <CircuitBoard size={28} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
-  { key: 'ram', icon: <MemoryStick size={28} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
-  { key: 'storage', icon: <HardDrive size={28} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
-  { key: 'os', icon: <AppWindow size={28} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
+  { key: 'cpu', icon: <Cpu size={14} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
+  { key: 'gpu', icon: <Monitor size={14} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
+  { key: 'mobo', icon: <CircuitBoard size={14} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
+  { key: 'ram', icon: <MemoryStick size={14} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
+  { key: 'storage', icon: <HardDrive size={14} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
+  { key: 'os', icon: <AppWindow size={14} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
 ];
 
 interface BenchmarkPageProps {
@@ -87,10 +87,11 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
         // bare browser fetch has no way to attach that token.
         const res = await submitCloudBenchmark(payload);
         if (!cancelled && res) {
-          setSubmission({ percentile: res.percentile, rank: res.rank, total: res.totalSubmissions });
+          const standing = { percentile: res.percentile, rank: res.rank, total: res.totalSubmissions };
+          setSubmission(standing);
           setLastSubmissionId(res.id);
           setSubmissionIdState(res.id);
-          addRun(result, res.id);
+          addRun(result, res.id, standing);
           onTabChange('results');
         } else if (!cancelled) {
           addRun(result, null);
@@ -119,27 +120,53 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     );
   }
 
+  // Shown wherever the page has no run yet: the Run tab you land on and the
+  // Results tab.
+  const renderIntro = (onStart: () => void) => (
+    <EmptyState
+      hero
+      icon={<Gauge />}
+      title={t('benchmark.results.introTitle')}
+      hint={t('benchmark.results.introBody')}
+      points={[
+        { icon: <Cpu />, text: t('benchmark.phase.cpu') },
+        { icon: <Monitor />, text: t('benchmark.phase.gpu') },
+        { icon: <MemoryStick />, text: t('benchmark.phase.ram') },
+        { icon: <HardDrive />, text: t('benchmark.phase.storage') },
+      ]}
+      action={(
+        <Button tone="accent" icon={<Play size={16} />} onClick={onStart}>
+          {t('benchmark.start')}
+        </Button>
+      )}
+    />
+  );
+
   const renderRunTab = () => {
     if (status === 'idle') {
+      const specsSection = specs && (
+        <div className={styles.specsSection}>
+          <SectionHeader>{t('benchmark.run.systemTitle')}</SectionHeader>
+          <div className={styles.specGrid}>
+            <SystemSpecsPanel
+              variant="tiles"
+              iconInline
+              rows={SPEC_BLOCKS.map(b => ({ icon: b.icon, label: t(b.labelKey), value: b.get(specs) }))}
+            />
+          </div>
+        </div>
+      );
+      if (history.length === 0) {
+        return (
+          <div className={styles.firstRun}>
+            {renderIntro(() => { void start(); })}
+            {specsSection}
+          </div>
+        );
+      }
       return (
         <div className={styles.intro}>
-          {specs && (
-            <div className={styles.specsSection}>
-              <SectionHeader>{t('benchmark.run.systemTitle')}</SectionHeader>
-              <div className={styles.specGrid}>
-                <SystemSpecsPanel
-                  variant="tiles"
-                  rows={SPEC_BLOCKS.map(b => ({ icon: b.icon, label: t(b.labelKey), value: b.get(specs) }))}
-                />
-              </div>
-            </div>
-          )}
-          <ul className={styles.whatItMeasures}>
-            <li>{t('benchmark.intro.cpu')}</li>
-            <li>{t('benchmark.intro.ram')}</li>
-            <li>{t('benchmark.intro.storage')}</li>
-            <li>{t('benchmark.intro.gpu')}</li>
-          </ul>
+          {specsSection}
           <div className={styles.controls}>
             <Button tone="accent" icon={<Play size={16} />} onClick={() => start()}>
               {t('benchmark.start')}
@@ -201,19 +228,14 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   const renderResultsTab = () => {
     const latest = history[0] ?? null;
     if (!latest) {
-      return (
-        <EmptyState
-          icon={<Gauge size={32} />}
-          title={t('benchmark.history.empty')}
-        />
-      );
+      return renderIntro(() => { onTabChange('run'); void start(); });
     }
 
     return (
       <div className={styles.resultsTab}>
         <BenchmarkResults
           result={latest.result}
-          submission={null}
+          submission={latest.submission ?? null}
           submitting={false}
           submissionId={latest.submissionId}
         />

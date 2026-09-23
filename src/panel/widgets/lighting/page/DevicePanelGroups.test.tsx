@@ -338,7 +338,7 @@ describe('DevicePanel split card header', () => {
     expect(screen.getByDisplayValue('HYTE Keeb TKL').closest('[data-no-dnd]')).not.toBeNull();
   });
 
-  it('lays the header out as the name, then the kebab pinned last', () => {
+  it('lays the header out as the name, then the menu arrow last', () => {
     renderRail(keeb);
     const header = document.querySelector(`.${styles.deviceCardStackHeader}`)!;
     // The name rides inside a display:contents wrapper, so it is the first
@@ -346,7 +346,7 @@ describe('DevicePanel split card header', () => {
     expect(header.children[0].contains(header.querySelector(`.${styles.deviceCardStackName}`))).toBe(true);
     expect(header.children).toHaveLength(2);
     expect(header.lastElementChild?.tagName).toBe('BUTTON');
-    expect(header.lastElementChild?.className).toContain(styles.deviceCardStackMenuBtn);
+    expect(header.lastElementChild?.getAttribute('aria-haspopup')).toBe('menu');
   });
 
   it('orders the header menu the way a card orders its own rows', () => {
@@ -739,7 +739,7 @@ describe('DevicePanel color lock', () => {
   }
   const menuOf = (name: string) => {
     const card = screen.getByText(name).closest(`.${styles.deviceCard}`)!;
-    fireEvent.click(card.querySelector(`.${styles.deviceMenuBtn}`)!);
+    fireEvent.click(card.querySelector('[aria-label="lighting.devices.moreActions"]')!);
   };
   const row = (re: RegExp) => screen.queryAllByRole('button').find(b => re.test(b.textContent ?? '')) ?? null;
 

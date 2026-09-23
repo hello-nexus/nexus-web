@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Compass, Film, Gamepad2, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, ChartLine, Compass, Film, Gamepad2, History, Trash2, Users, Wrench } from 'lucide-react';
+import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { EpicIcon, SteamIcon } from '../../../components/icons/PlatformIcons';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
+import { NexusControlCard } from '../../../components/common/NexusControlCard/NexusControlCard';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
@@ -18,6 +21,7 @@ import { fpsGameArtUrl,
   deleteFpsSession,
   fetchFpsGameSessions,
   getFpsTrackingStatus,
+  setFpsTrackingEnabled,
   type FpsGameSummary,
   type FpsSession,
 } from '../../../api/fps';
@@ -68,6 +72,11 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
     return () => { cancelled = true; };
   }, []);
 
+  const enableTracking = async () => {
+    const resp = await setFpsTrackingEnabled(true);
+    if (resp) setTrackingEnabled(resp.enabled);
+  };
+
   const tabs = [
     { key: 'history', label: t('frames.tab.history'), icon: <Film size={14} /> },
     { key: 'discover', label: t('frames.tab.discover'), icon: <Compass size={14} /> },
@@ -91,6 +100,7 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
             games={games}
             supported={supported}
             trackingEnabled={trackingEnabled}
+            onEnableTracking={enableTracking}
             onOpenGame={onTabChange}
           />
         )}
@@ -112,16 +122,19 @@ function HistoryTab({
   games,
   supported,
   trackingEnabled,
+  onEnableTracking,
   onOpenGame,
 }: {
   games: FpsGameSummary[];
   supported: boolean;
   trackingEnabled: boolean | null;
+  onEnableTracking: () => Promise<void>;
   onOpenGame: (gameKey: string) => void;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [search, setSearch] = useState('');
+  const [enabling, setEnabling] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -137,22 +150,33 @@ function HistoryTab({
     );
   }
 
-  if (trackingEnabled === false) {
+  if (trackingEnabled === false || games.length === 0) {
+    const handleEnable = async () => {
+      setEnabling(true);
+      try { await onEnableTracking(); } finally { setEnabling(false); }
+    };
     return (
       <div className={styles.emptyWrap}>
         <EmptyState
-          icon={<Film size={28} />}
-          title={t('frames.trackingOff.title')}
-          hint={t('frames.trackingOff.hint')}
+          hero
+          icon={<Film />}
+          title={t('frames.intro.title')}
+          hint={t('frames.intro.body')}
+          points={[
+            { icon: <History />, text: t('frames.intro.pointStats') },
+            { icon: <ChartLine />, text: t('frames.intro.pointTimeline') },
+            { icon: <Compass />, text: t('frames.intro.pointDiscover') },
+          ]}
+          action={trackingEnabled === false && (
+            <NexusControlCard
+              checked={enabling}
+              disabled={enabling}
+              icon={<Film size={13} aria-hidden />}
+              label={t('settings.localDataStore.fps.label')}
+              onChange={handleEnable}
+            />
+          )}
         />
-      </div>
-    );
-  }
-
-  if (games.length === 0) {
-    return (
-      <div className={styles.emptyWrap}>
-        <EmptyState icon={<Film size={28} />} title={t('frames.empty.title')} hint={t('frames.empty.hint')} />
       </div>
     );
   }
@@ -292,6 +316,16 @@ function GameDetail({
           {t('steam.action.back')}
         </Button>
         <h2 className={styles.detailTitle}>{title}</h2>
+        {DEV_TOOLS && (
+          <Button
+            size="sm"
+            tone="neutral"
+            icon={<Wrench size={14} />}
+            onClick={() => requestOpenBuild(`/upgrade?game=${encodeURIComponent(gameKey)}`)}
+          >
+            {t('frames.findUpgrades')}
+          </Button>
+        )}
         <Button
           size="sm"
           tone="danger"

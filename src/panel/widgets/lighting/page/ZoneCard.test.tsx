@@ -791,17 +791,16 @@ describe('ZoneCard color lock', () => {
     expect(badge()).toBeNull();
   });
 
-  it('badges a locked card between the strip and the menu, in any mode, and the badge unlocks', () => {
+  it('badges a locked card after the strip, in any mode, and the badge unlocks', () => {
     const setLocked = vi.fn();
     renderLock({ locked: true, lockable: false, hasPick: true, setLocked });
     const btn = badge()!;
     const row = document.querySelector(`.${styles.deviceMetaRow}`)!;
     const order = [...row.children].map(el =>
       el.classList.contains(styles.ledStrip) ? 'strip'
-        : el.querySelector(`.${styles.deviceLockBtn}`) || el.classList.contains(styles.deviceLockBtn) ? 'lock'
-          : el.classList.contains(styles.deviceCardActions) ? 'menu' : null,
+        : el.querySelector(`.${styles.deviceLockBtn}`) || el.classList.contains(styles.deviceLockBtn) ? 'lock' : null,
     ).filter(Boolean);
-    expect(order).toEqual(['strip', 'lock', 'menu']);
+    expect(order).toEqual(['strip', 'lock']);
     fireEvent.click(btn);
     expect(setLocked).toHaveBeenCalledWith(false);
   });

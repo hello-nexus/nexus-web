@@ -17,6 +17,14 @@ export interface BenchmarkRun {
   scoringVersion: string;
   result: BenchmarkResult;
   submissionId?: string | null;
+  /** Leaderboard standing returned by the submit, so the Results tab can keep showing it. */
+  submission?: BenchmarkStanding | null;
+}
+
+export interface BenchmarkStanding {
+  percentile: number;
+  rank: number;
+  total: number;
 }
 
 function loadHistory(): BenchmarkRun[] {
@@ -31,7 +39,11 @@ function loadHistory(): BenchmarkRun[] {
 export function useBenchmarkHistory() {
   const [history, setHistory] = useState<BenchmarkRun[]>(() => loadHistory());
 
-  const addRun = useCallback((result: BenchmarkResult, submissionId?: string | null) => {
+  const addRun = useCallback((
+    result: BenchmarkResult,
+    submissionId?: string | null,
+    submission?: BenchmarkStanding | null,
+  ) => {
     const run: BenchmarkRun = {
       id: `${Date.now()}`,
       timestamp: Date.now(),
@@ -45,6 +57,7 @@ export function useBenchmarkHistory() {
       scoringVersion: result.scoringVersion ?? '',
       result,
       submissionId,
+      submission: submission ?? null,
     };
     setHistory(prev => {
       const next = [run, ...prev].slice(0, MAX_RUNS);

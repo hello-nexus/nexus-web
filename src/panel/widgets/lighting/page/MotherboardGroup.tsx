@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Power, PowerOff, Unlink, Link, MoreVertical, MousePointerClick, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { Power, PowerOff, Unlink, Link, MousePointerClick, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -7,6 +7,7 @@ import { type EditableTextHandle } from '../../../../components/common/Editable/
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/MenuArrowButton';
 import { groupMenuItems, stackMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { DeviceNotice } from './DeviceNotice';
 import styles from '../LightingPage.module.scss';
@@ -175,21 +176,14 @@ export function MotherboardGroup({
               </HoverTooltip>
             )}
             {count !== undefined && <span className={styles.deviceGroupCount}>{count}</span>}
-            <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
-              <button
-                type="button"
-                className={`${styles.deviceSettingsBtn} ${styles.deviceMenuBtn}`}
-                aria-label={t('lighting.devices.groupActions', { name: parentName })}
-                onClick={e => {
-                  e.stopPropagation();
-                  if (menuAt) { setMenuAt(null); return; }
-                  const r = e.currentTarget.getBoundingClientRect();
-                  setMenuAt({ x: r.right, y: r.bottom + 4, seq: ++menuSeq.current });
-                }}
-              >
-                <MoreVertical />
-              </button>
-            </HoverTooltip>
+            <MenuArrowButton
+              variant="header"
+              label={t('lighting.devices.groupActions', { name: parentName })}
+              tooltip={t('lighting.devices.moreActions')}
+              open={menuAt != null}
+              onOpen={(x, y) => setMenuAt({ x, y, seq: ++menuSeq.current })}
+              onClose={() => setMenuAt(null)}
+            />
           </>
         )}
       >

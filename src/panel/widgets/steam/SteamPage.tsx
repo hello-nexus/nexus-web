@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Newspaper, Play, Users } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Newspaper, Play, Users } from 'lucide-react';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import {
   fetchSteamAchievements,
@@ -170,10 +170,15 @@ export function SteamPage() {
           <div className={styles.setup}>
             <div className={styles.setupInner}>
               <EmptyState
-                className={styles.setupNotice}
-                icon={<SteamLogo size={40} />}
-                title={t('steam.notConfigured.title')}
-                hint={t(status?.hasApiKey ? 'steam.notConfigured.hintSteamId' : 'steam.notConfigured.hint')}
+                hero
+                icon={<SteamLogo />}
+                title={t('steam.intro.title')}
+                hint={t('steam.intro.body')}
+                points={[
+                  { icon: <Gamepad2 />, text: t('steam.intro.pointLibrary') },
+                  { icon: <Users />, text: t('steam.intro.pointFriends') },
+                  { icon: <Newspaper />, text: t('steam.intro.pointNews') },
+                ]}
               />
               <div className={styles.setupForm}>
                 <SteamSettings onSaved={() => setConfigRev(rev => rev + 1)} />
