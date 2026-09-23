@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper, TvMinimal } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -389,6 +389,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // same PATCH as the mounting toggles below rather than its own endpoint.
   const [recordSupportsBrightness, setRecordSupportsBrightness] = useState(false);
   const isDimmableLcdPanel = recordSupportsBrightness && !isSimulated;
+  // Streamed cooler LCDs (e.g. the Aftershock Glacier Matrix) whose driver can
+  // hand the screen to Windows as a virtual monitor. While on, the service
+  // streams the desktop instead of Nexus content and the Widgets/Theme/
+  // Background tabs are inert.
+  const [recordSupportsSecondaryMonitor, setRecordSupportsSecondaryMonitor] = useState(false);
+  const isSecondaryMonitorCapablePanel = recordSupportsSecondaryMonitor && !isSimulated;
+  const [recordSecondaryMonitor, setRecordSecondaryMonitor] = useState(false);
+  const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
+    useState<PanelDeviceRecord['secondaryMonitorState']>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
   // bench) - null hides the whole block until the read completes.
   const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
@@ -451,7 +460,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || (surfaceSupportsMountOrientation(surface) && !isSimulated)
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
-    || isDimmableLcdPanel;
+    || isDimmableLcdPanel
+    || isSecondaryMonitorCapablePanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -527,6 +537,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordMirror(match?.mirror ?? false);
       setRecordLcdBrightness(match?.lcdBrightness ?? DEFAULT_LCD_BRIGHTNESS);
       setRecordSupportsBrightness(match?.capabilities?.supportsBrightness ?? false);
+      setRecordSupportsSecondaryMonitor(match?.capabilities?.supportsSecondaryMonitor ?? false);
+      setRecordSecondaryMonitor(match?.secondaryMonitor ?? false);
+      setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordFamily(match?.capabilities?.family);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       const touchFromRecord = match?.capabilities?.touch ?? device?.capabilities.touch;
@@ -695,6 +708,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // mount-time value, so the rotation picker and the landscape preview
       // dock never track a panel the user turns in their hands.
       if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
+      // secondaryMonitor/secondaryMonitorState can change from another client
+      // or a hardware-settings reset, not just a write from this page, so both
+      // must track every broadcast rather than only the initial load.
+      setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
+      setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
@@ -1137,10 +1155,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
-        // Only where there is a panel to capture: the firmware-gate and
-        // disconnected states render an EmptyState with no embed frame, so the
-        // button could do nothing but report an error.
-        tabActions={showFwGate || showDisconnected ? undefined : (
+        // Only where there is a panel to capture: the firmware-gate,
+        // disconnected and secondary-monitor states render no embed frame, so
+        // the button could do nothing but report an error.
+        tabActions={showFwGate || showDisconnected || recordSecondaryMonitor ? undefined : (
           <>
             <Button
               size="sm"
@@ -1223,19 +1241,33 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               <>
                 <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>
                   {activeTab === 'widgets' && (
-                    <PanelWidgetCatalog
-                      surface={surface}
-                      deviceTouch={deviceTouch}
-                      onAdd={handleAddWidget}
-                      onEditWidget={setConfiguringWidgetId}
-                      placedTypes={placedTypes}
-                      variant="desktop-modal"
-                      remote={isRemotePanel(device?.connectionKind)}
-                      className={styles.catalog}
-                      selectedWidgetType={currentSingleWidget?.type}
-                      themeMode={desktopResolvedThemeMode}
-                      themeStyle={panelPreviewThemeStyle}
-                    />
+                    <>
+                      {recordSecondaryMonitor && (
+                        <div className={styles.usbNotice}>
+                          <AlertTriangle size={14} aria-hidden />
+                          <span>{t('devices.lcd.secondaryMonitorNotice')}</span>
+                        </div>
+                      )}
+                      <div
+                        className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
+                        aria-disabled={recordSecondaryMonitor || undefined}
+                        inert={recordSecondaryMonitor || undefined}
+                      >
+                        <PanelWidgetCatalog
+                          surface={surface}
+                          deviceTouch={deviceTouch}
+                          onAdd={handleAddWidget}
+                          onEditWidget={setConfiguringWidgetId}
+                          placedTypes={placedTypes}
+                          variant="desktop-modal"
+                          remote={isRemotePanel(device?.connectionKind)}
+                          className={styles.catalog}
+                          selectedWidgetType={currentSingleWidget?.type}
+                          themeMode={desktopResolvedThemeMode}
+                          themeStyle={panelPreviewThemeStyle}
+                        />
+                      </div>
+                    </>
                   )}
                   {(activeTab === 'theme' || activeTab === 'background') && (() => {
                     // Aspect from live CSS viewport (DPR cancels); bake target =
@@ -1252,44 +1284,58 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     const nativeW = native.nativeWidth;
                     const nativeH = native.nativeHeight;
                     return (
-                      <PanelThemeSettings
-                        theme={theme}
-                        deviceId={editingDeviceId}
-                        resolvedThemeMode={resolvedPanelThemeMode}
-                        onThemeSyncCommit={panelTheme.commitThemeSync}
-                        onThemeModeCommit={panelTheme.commitThemeMode}
-                        onAccentSyncCommit={panelTheme.commitAccentSync}
-                        onAccentPreview={panelTheme.previewAccent}
-                        onAccentCommit={panelTheme.commitAccent}
-                        onBackgroundPreview={panelTheme.previewBackground}
-                        onBackgroundCommit={panelTheme.commitBackground}
-                        onBackgroundModeCommit={panelTheme.commitBackgroundMode}
-                        onBackdropCommit={panelTheme.commitBackdrop}
-                        showBackdropSelector={supportsDesktopWallpaper(surface, !!device?.displayId)}
-                        onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
-                        onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
-                        onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
-                        onBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
-                        onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
-                        onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
-                        onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
-                        onBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
-                        onBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
-                        onBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
-                        onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
-                        onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
-                        onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
-                        onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
-                        onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
-                        onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
-                        showMediaTab={surface !== 'desktop'}
-                        deviceAspect={devAspect}
-                        deviceW={nativeW}
-                        deviceH={nativeH}
-                        hideWidgetLabelsToggle={singleWidget}
-                        hideWidgetChromeControls={singleWidget}
-                        sections={activeTab}
-                      />
+                      <>
+                        {recordSecondaryMonitor && (
+                          <div className={styles.usbNotice}>
+                            <AlertTriangle size={14} aria-hidden />
+                            <span>{t('devices.lcd.secondaryMonitorNotice')}</span>
+                          </div>
+                        )}
+                        <div
+                          className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
+                          aria-disabled={recordSecondaryMonitor || undefined}
+                          inert={recordSecondaryMonitor || undefined}
+                        >
+                          <PanelThemeSettings
+                            theme={theme}
+                            deviceId={editingDeviceId}
+                            resolvedThemeMode={resolvedPanelThemeMode}
+                            onThemeSyncCommit={panelTheme.commitThemeSync}
+                            onThemeModeCommit={panelTheme.commitThemeMode}
+                            onAccentSyncCommit={panelTheme.commitAccentSync}
+                            onAccentPreview={panelTheme.previewAccent}
+                            onAccentCommit={panelTheme.commitAccent}
+                            onBackgroundPreview={panelTheme.previewBackground}
+                            onBackgroundCommit={panelTheme.commitBackground}
+                            onBackgroundModeCommit={panelTheme.commitBackgroundMode}
+                            onBackdropCommit={panelTheme.commitBackdrop}
+                            showBackdropSelector={supportsDesktopWallpaper(surface, !!device?.displayId)}
+                            onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
+                            onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
+                            onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
+                            onBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
+                            onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
+                            onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
+                            onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+                            onBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
+                            onBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
+                            onBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
+                            onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
+                            onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
+                            onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
+                            onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+                            onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
+                            onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
+                            showMediaTab={surface !== 'desktop'}
+                            deviceAspect={devAspect}
+                            deviceW={nativeW}
+                            deviceH={nativeH}
+                            hideWidgetLabelsToggle={singleWidget}
+                            hideWidgetChromeControls={singleWidget}
+                            sections={activeTab}
+                          />
+                        </div>
+                      </>
                     );
                   })()}
                   {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (
@@ -1481,6 +1527,38 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       </SettingsSection>
                     </div>
                   )}
+                  {activeTab === 'settings' && isSecondaryMonitorCapablePanel && (
+                    <div className={styles.settingsContent}>
+                      <SettingsSection title={t('devices.lcd.secondaryMonitorSection')} boxClassName={styles.deviceSettingsBox}>
+                        <SettingToggle
+                          label={t('devices.lcd.secondaryMonitor')}
+                          description={t('devices.lcd.secondaryMonitorHint')}
+                          checked={recordSecondaryMonitor}
+                          onChange={() => {
+                            const next = !recordSecondaryMonitor;
+                            setRecordSecondaryMonitor(next);
+                            if (!next) setRecordSecondaryMonitorState(null);
+                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { secondaryMonitor: next }).catch(() => {});
+                          }}
+                        />
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'driver-missing' && (
+                          <div className={styles.usbNotice}>
+                            <AlertTriangle size={14} aria-hidden />
+                            <span>{t('devices.lcd.secondaryMonitorDriverMissing')}</span>
+                          </div>
+                        )}
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'failed' && (
+                          <div className={styles.usbNotice}>
+                            <AlertTriangle size={14} aria-hidden />
+                            <span>{t('devices.lcd.secondaryMonitorFailed')}</span>
+                          </div>
+                        )}
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'starting' && (
+                          <SettingRow label={t('devices.lcd.secondaryMonitorStarting')} />
+                        )}
+                      </SettingsSection>
+                    </div>
+                  )}
                   {activeTab === 'settings' && isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <CorsairLcdSettings />
@@ -1578,6 +1656,19 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
           <div className={styles.previewPane} data-surface={surface}>
             <div className={styles.previewStage}>
+              {recordSecondaryMonitor ? (
+                <div className={styles.secondaryMonitorPreview}>
+                  <TvMinimal size={40} strokeWidth={1.5} aria-hidden />
+                  <p>
+                    {recordSecondaryMonitorState === 'driver-missing'
+                      ? t('devices.lcd.secondaryMonitorDriverMissing')
+                      : recordSecondaryMonitorState === 'failed'
+                        ? t('devices.lcd.secondaryMonitorFailed')
+                        : t('devices.lcd.secondaryMonitorPreview')}
+                  </p>
+                </div>
+              ) : (
+              <>
               {showPageArrows && (
                 <PanelArrowButton
                   side="prev"
@@ -1625,6 +1716,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 displayBound={!!device?.displayId}
               />
+              </>
+              )}
             </div>
           </div>
         </div>
