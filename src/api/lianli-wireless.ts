@@ -63,7 +63,7 @@ export async function identifyLianLiWirelessFan(mac: string): Promise<boolean> {
   return isOk(await postService<OkResponse>('/devices/lianli-wireless/identify', { mac }));
 }
 
-export interface LianLiWirelessStrimerEffect {
+export interface LianLiWirelessLightingEffect {
   key: string;
   hasSpeed: boolean;
   hasDirection: boolean;
@@ -71,22 +71,30 @@ export interface LianLiWirelessStrimerEffect {
   colorsMax: number;
 }
 
-export interface LianLiWirelessStrimerLane {
+export interface LianLiWirelessLane {
   mode: string;
   direction: number;
   /** "#RRGGBB" */
   color: string;
 }
 
-export interface LianLiWirelessStrimer {
+/** A bound wireless chain that can play an uploaded animation: a Strimer cable or a fan chain. */
+export interface LianLiWirelessChainLighting {
   mac: string;
+  kind: 'strimer' | 'fans';
   devType: number;
+  /** Strimer model name; empty for a fan chain, which is named from fanType. */
   model: string;
+  fanType: number;
+  fanCount: number;
   lanes: number;
   ledsPerLane: number;
-  /** 'custom' streams the Lighting page's effects; 'perLane' plays one effect per lane; otherwise an effect key the cable plays on its own. */
+  /** Animations this chain plays on its own, in display order. */
+  modes: LianLiWirelessLightingEffect[];
+  supportsPerLane: boolean;
+  /** 'custom' streams the Lighting page's effects; 'perLane' plays one effect per lane; otherwise an effect key. */
   mode: string;
-  /** The animation the device plays when the Lighting page is not driving it. Absent on an older service. */
+  /** The animation the device plays when the Lighting page is not driving it. */
   effectMode?: string;
   /** 0 slowest .. 4 fastest */
   speed: number;
@@ -94,24 +102,23 @@ export interface LianLiWirelessStrimer {
   /** 0 off .. 4 full */
   brightness: number;
   colors: string[];
-  laneSettings: LianLiWirelessStrimerLane[];
+  laneSettings: LianLiWirelessLane[];
 }
 
-export interface LianLiWirelessStrimers {
-  modes: LianLiWirelessStrimerEffect[];
+export interface LianLiWirelessLighting {
   laneModes: string[];
-  strimers: LianLiWirelessStrimer[];
+  chains: LianLiWirelessChainLighting[];
 }
 
-export type LianLiWirelessStrimerPatch = Partial<Pick<LianLiWirelessStrimer,
+export type LianLiWirelessChainPatch = Partial<Pick<LianLiWirelessChainLighting,
   'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'laneSettings'>>;
 
-export function getLianLiWirelessStrimers(): Promise<LianLiWirelessStrimers | null> {
-  return fetchService<LianLiWirelessStrimers>('/devices/lianli-wireless/strimers');
+export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | null> {
+  return fetchService<LianLiWirelessLighting>('/devices/lianli-wireless/lighting');
 }
 
-export async function setLianLiWirelessStrimer(mac: string, patch: LianLiWirelessStrimerPatch): Promise<boolean> {
-  return isOk(await putService<OkResponse>(`/devices/lianli-wireless/strimers/${encodeURIComponent(mac)}`, patch));
+export async function setLianLiWirelessChainLighting(mac: string, patch: LianLiWirelessChainPatch): Promise<boolean> {
+  return isOk(await putService<OkResponse>(`/devices/lianli-wireless/lighting/${encodeURIComponent(mac)}`, patch));
 }
 
 export type LianLiWirelessScreenContentType =

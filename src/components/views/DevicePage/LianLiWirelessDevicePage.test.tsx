@@ -379,7 +379,7 @@ describe('LianLiWirelessDevicePage - bind/unbind/identify', () => {
 });
 
 describe('LianLiWirelessDevicePage - tabs', () => {
-  it('renders the Devices and Screens tabs with Devices active by default', async () => {
+  it('renders Devices, Lighting, Cooling and Screens tabs for a bound fan chain, Devices active', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
@@ -387,7 +387,7 @@ describe('LianLiWirelessDevicePage - tabs', () => {
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.devices/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /lighting\.title/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /lighting\.title/ })).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
   });
 

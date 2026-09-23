@@ -102,9 +102,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
 
   const hasStrimer = !!state?.fans.some(f => f.boundToUs && isStrimerDevType(f.devType));
   const hasFans = !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType));
+  const hasLighting = hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0);
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <Fan size={14} /> },
-    ...(hasStrimer ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
+    ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
     ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Thermometer size={14} /> }] : []),
     { key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <MonitorSmartphone size={14} /> },
   ];
@@ -133,7 +134,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
           {activeTab === 'fans' && (
             <LianLiWirelessFansTab state={state} refresh={refresh} />
           )}
-          {activeTab === 'lighting' && hasStrimer && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
+          {activeTab === 'lighting' && hasLighting && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
           {activeTab === 'cooling' && hasFans && <LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />}
           {activeTab === 'screen' && <LianLiWirelessScreenTab />}
         </div>

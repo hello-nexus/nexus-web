@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
-import type { LianLiWirelessStrimer, LianLiWirelessStrimers } from '../../../api/lianli-wireless';
+import type { LianLiWirelessChainLighting, LianLiWirelessLighting } from '../../../api/lianli-wireless';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -16,16 +16,27 @@ const mockGetStrimers = vi.fn();
 const mockSetStrimer = vi.fn();
 
 vi.mock('../../../api/lianli-wireless', () => ({
-  getLianLiWirelessStrimers: (...args: any[]) => mockGetStrimers(...args),
-  setLianLiWirelessStrimer: (...args: any[]) => mockSetStrimer(...args),
+  getLianLiWirelessLighting: (...args: any[]) => mockGetStrimers(...args),
+  setLianLiWirelessChainLighting: (...args: any[]) => mockSetStrimer(...args),
 }));
 
-const strimer: LianLiWirelessStrimer = {
+const effects = [
+  { key: 'rainbow', hasSpeed: true, hasDirection: true, colorsMin: 0, colorsMax: 0 },
+  { key: 'static', hasSpeed: false, hasDirection: false, colorsMin: 1, colorsMax: 1 },
+  { key: 'meteor', hasSpeed: true, hasDirection: true, colorsMin: 1, colorsMax: 3 },
+];
+
+const strimer: LianLiWirelessChainLighting = {
   mac: '64F271E566E1',
+  kind: 'strimer',
   devType: 2,
   model: 'Strimer 24-Pin',
+  fanType: 0,
+  fanCount: 0,
   lanes: 6,
   ledsPerLane: 22,
+  modes: effects,
+  supportsPerLane: true,
   mode: 'meteor',
   speed: 2,
   direction: 0,
@@ -34,21 +45,31 @@ const strimer: LianLiWirelessStrimer = {
   laneSettings: [],
 };
 
-const catalog: LianLiWirelessStrimers = {
-  modes: [
-    { key: 'rainbow', hasSpeed: true, hasDirection: true, colorsMin: 0, colorsMax: 0 },
-    { key: 'static', hasSpeed: false, hasDirection: false, colorsMin: 1, colorsMax: 1 },
-    { key: 'meteor', hasSpeed: true, hasDirection: true, colorsMin: 1, colorsMax: 3 },
-  ],
-  laneModes: ['rainbow', 'static'],
-  strimers: [strimer],
+const fanChain: LianLiWirelessChainLighting = {
+  ...strimer,
+  mac: '998D1DE566E1',
+  kind: 'fans',
+  devType: 0,
+  model: '',
+  fanType: 24,
+  fanCount: 3,
+  lanes: 0,
+  ledsPerLane: 0,
+  modes: [effects[0], effects[1]],
+  supportsPerLane: false,
+  mode: 'rainbow',
 };
 
-function withStrimer(patch: Partial<LianLiWirelessStrimer>): LianLiWirelessStrimers {
-  return { ...catalog, strimers: [{ ...strimer, ...patch }] };
+const catalog: LianLiWirelessLighting = {
+  laneModes: ['rainbow', 'static'],
+  chains: [strimer],
+};
+
+function withStrimer(patch: Partial<LianLiWirelessChainLighting>): LianLiWirelessLighting {
+  return { ...catalog, chains: [{ ...strimer, ...patch }] };
 }
 
-async function renderTab(data: LianLiWirelessStrimers = catalog, onSectionNavigate?: (s: string) => void) {
+async function renderTab(data: LianLiWirelessLighting = catalog, onSectionNavigate?: (s: string) => void) {
   mockGetStrimers.mockResolvedValue(data);
   await act(async () => {
     render(<LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />);
@@ -61,9 +82,17 @@ beforeEach(() => {
 });
 
 describe('LianLiWirelessLightingTab', () => {
-  it('renders one section per cable, titled with its model', async () => {
-    await renderTab();
+  it('renders one section per chain, a Strimer by model and a fan chain by product line', async () => {
+    await renderTab({ ...catalog, chains: [strimer, fanChain] });
     expect(screen.getByText('Strimer 24-Pin')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.fanTypeSlv3Lcd')).toBeInTheDocument();
+  });
+
+  it('offers a fan chain its own catalog and no per-lane mode', async () => {
+    await renderTab({ ...catalog, chains: [fanChain] });
+    fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
+    const options = await screen.findAllByRole('option');
+    expect(options.map(o => o.textContent)).toEqual(['devices.lianliEffect.rainbow', 'devices.lianliEffect.static']);
   });
 
   it('an effect with colours shows speed, direction and the default palette up to its maximum', async () => {
@@ -91,7 +120,7 @@ describe('LianLiWirelessLightingTab', () => {
     await renderTab();
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
     await act(async () => {
-      fireEvent.click(await screen.findByRole('option', { name: 'devices.strimerEffect.rainbow' }));
+      fireEvent.click(await screen.findByRole('option', { name: 'devices.lianliEffect.rainbow' }));
     });
     expect(mockGetStrimers).toHaveBeenCalledTimes(2);
   });
@@ -108,7 +137,7 @@ describe('LianLiWirelessLightingTab', () => {
     await renderTab(withStrimer({ mode: 'custom', effectMode: 'static' }), nav);
     expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toHaveAttribute('aria-checked', 'true');
     const modeSelect = screen.getByRole('button', { name: 'devices.lianli.lightingMode' });
-    expect(modeSelect).toHaveTextContent('devices.strimerEffect.static');
+    expect(modeSelect).toHaveTextContent('devices.lianliEffect.static');
     expect(modeSelect).toBeDisabled();
     expect(screen.getByRole('slider', { name: 'devices.lianli.lightingBrightnessAria' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' }));
@@ -134,7 +163,7 @@ describe('LianLiWirelessLightingTab', () => {
   it('picking a mode sends it for that cable', async () => {
     await renderTab();
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
-    fireEvent.click(await screen.findByRole('option', { name: 'devices.strimerEffect.rainbow' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'devices.lianliEffect.rainbow' }));
     expect(mockSetStrimer).toHaveBeenCalledWith('64F271E566E1', { mode: 'rainbow', effectMode: undefined });
   });
 
@@ -143,9 +172,9 @@ describe('LianLiWirelessLightingTab', () => {
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
     const options = await screen.findAllByRole('option');
     expect(options.map(o => o.textContent)).toEqual([
-      'devices.strimerEffect.rainbow',
-      'devices.strimerEffect.static',
-      'devices.strimerEffect.meteor',
+      'devices.lianliEffect.rainbow',
+      'devices.lianliEffect.static',
+      'devices.lianliEffect.meteor',
       'devices.lianli-wireless.strimerModePerLane',
     ]);
   });

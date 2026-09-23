@@ -20,7 +20,7 @@ import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
 import { getLianLiLighting, setLianLiLighting } from '../../../api/lianli';
-import { getLianLiWirelessStrimers, setLianLiWirelessStrimer } from '../../../api/lianli-wireless';
+import { getLianLiWirelessLighting, setLianLiWirelessChainLighting } from '../../../api/lianli-wireless';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync, normalizeSync } from '../../../hooks/useLightingSync';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -284,20 +284,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     }
   }, [lianLiMode]);
 
-  // Device ids of Strimer Wireless cables playing a stored animation instead of the engine's frames.
-  const [strimerPresetIds, setStrimerPresetIds] = useState<ReadonlySet<string>>(() => new Set());
-  const refreshStrimerPresets = useCallback(async () => {
-    const data = await getLianLiWirelessStrimers();
+  // Device ids of wireless chains playing an uploaded animation instead of the engine's frames.
+  const [wirelessPresetIds, setWirelessPresetIds] = useState<ReadonlySet<string>>(() => new Set());
+  const refreshWirelessPresets = useCallback(async () => {
+    const data = await getLianLiWirelessLighting();
     if (!data) return;
-    setStrimerPresetIds(new Set(
-      data.strimers.filter(s => s.mode !== 'custom').map(s => `lianli-wireless:${s.mac}`),
+    setWirelessPresetIds(new Set(
+      data.chains.filter(c => c.mode !== 'custom').map(c => `lianli-wireless:${c.mac}`),
     ));
   }, []);
-  const handleStrimerTakeControl = useCallback(async (deviceId: string) => {
+  const handleWirelessTakeControl = useCallback(async (deviceId: string) => {
     const mac = deviceId.slice('lianli-wireless:'.length);
-    setStrimerPresetIds(prev => new Set([...prev].filter(id => id !== deviceId)));
-    if (!await setLianLiWirelessStrimer(mac, { mode: 'custom' })) void refreshStrimerPresets();
-  }, [refreshStrimerPresets]);
+    setWirelessPresetIds(prev => new Set([...prev].filter(id => id !== deviceId)));
+    if (!await setLianLiWirelessChainLighting(mac, { mode: 'custom' })) void refreshWirelessPresets();
+  }, [refreshWirelessPresets]);
 
   // Per-device static pick, keyed by device id. Kept out of the device records
   // so a topic refetch cannot clobber a just-applied pick. A pick is (effect,
@@ -750,7 +750,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     // static check is safe to disable.
      
     void refreshDevices();
-    void refreshStrimerPresets();
+    void refreshWirelessPresets();
     // A lock set from another client arrives on this frame. Only the lock
     // flags are taken: replacing the picks wholesale here would put a
     // still-queued colour write's record back to the older look.
@@ -1527,9 +1527,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     getLianLiLighting().then(data => {
       if (!cancelled && data) setLianLiMode(data.mode);
     }).catch(() => {});
-    void refreshStrimerPresets();
+    void refreshWirelessPresets();
     return () => { cancelled = true; };
-  }, [serviceOnline, refreshStrimerPresets]);
+  }, [serviceOnline, refreshWirelessPresets]);
 
   useEffect(() => {
     const onFocus = () => {
@@ -1537,11 +1537,11 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       getLianLiLighting().then(data => {
         if (data) setLianLiMode(data.mode);
       }).catch(() => {});
-      void refreshStrimerPresets();
+      void refreshWirelessPresets();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [serviceOnline, refreshStrimerPresets]);
+  }, [serviceOnline, refreshWirelessPresets]);
 
   useTopicCallback('devices', serviceOnline, () => {
     void refreshDevices();
@@ -2358,8 +2358,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onOpenCommunity={handleOpenCommunity}
             lianLiFirmwareActive={lianLiFirmwareActive}
             onLianLiTakeControl={handleLianLiTakeControl}
-            firmwareDeviceIds={strimerPresetIds}
-            onFirmwareTakeControl={id => { void handleStrimerTakeControl(id); }}
+            firmwareDeviceIds={wirelessPresetIds}
+            onFirmwareTakeControl={id => { void handleWirelessTakeControl(id); }}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}
             discovery={discovery}
             rgbRunning={rgb.running}

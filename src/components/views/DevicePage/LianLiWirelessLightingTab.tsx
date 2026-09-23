@@ -4,14 +4,14 @@ import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { LightingPageSwitch } from './LightingPageSwitch';
 import {
-  getLianLiWirelessStrimers,
-  setLianLiWirelessStrimer,
-  type LianLiWirelessStrimer,
-  type LianLiWirelessStrimerEffect,
-  type LianLiWirelessStrimerLane,
-  type LianLiWirelessStrimerPatch,
-  type LianLiWirelessStrimers,
+  getLianLiWirelessLighting,
+  setLianLiWirelessChainLighting,
+  type LianLiWirelessChainLighting,
+  type LianLiWirelessChainPatch,
+  type LianLiWirelessLane,
+  type LianLiWirelessLighting,
 } from '../../../api/lianli-wireless';
+import { fanTypeKey } from './LianLiWirelessFansTab';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -22,20 +22,26 @@ const MODE_CUSTOM = 'custom';
 const MODE_PER_LANE = 'perLane';
 const DEFAULT_LANE_MODE = 'rainbow';
 const DEFAULT_EFFECT = 'rainbow';
-// The palette the service renders with when a cable has no user colours.
-const STRIMER_DEFAULT_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
+// The palette the service renders with when a chain has no user colours.
+const DEFAULT_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
 
 type Translate = ReturnType<typeof useTranslation>['t'];
 
 function effectLabel(t: Translate, key: string): string {
-  return t(`devices.strimerEffect.${key}` as Parameters<Translate>[0]);
+  return t(`devices.lianliEffect.${key}` as Parameters<Translate>[0]);
 }
 
-function lanesOf(strimer: LianLiWirelessStrimer): LianLiWirelessStrimerLane[] {
-  return Array.from({ length: strimer.lanes }, (_, i) => strimer.laneSettings[i] ?? {
+function chainTitle(t: Translate, chain: LianLiWirelessChainLighting): string {
+  return chain.kind === 'strimer'
+    ? chain.model
+    : t(`devices.lianli-wireless.${fanTypeKey(chain.fanType)}` as Parameters<Translate>[0]);
+}
+
+function lanesOf(chain: LianLiWirelessChainLighting): LianLiWirelessLane[] {
+  return Array.from({ length: chain.lanes }, (_, i) => chain.laneSettings[i] ?? {
     mode: DEFAULT_LANE_MODE,
     direction: 0,
-    color: STRIMER_DEFAULT_COLORS[i % STRIMER_DEFAULT_COLORS.length],
+    color: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
   });
 }
 
@@ -43,13 +49,13 @@ interface LianLiWirelessLightingTabProps {
   onSectionNavigate?: (section: string) => void;
 }
 
-/** Per-cable animation picker for the Strimer Wireless cables bound to the dongle. */
+/** Per-chain animation picker for the Strimer cables and fan chains bound to the controller. */
 export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessLightingTabProps) {
-  const [data, setData] = useState<LianLiWirelessStrimers | null>(null);
+  const [data, setData] = useState<LianLiWirelessLighting | null>(null);
   const aliveRef = useRef(true);
 
   const refresh = useCallback(async () => {
-    const d = await getLianLiWirelessStrimers();
+    const d = await getLianLiWirelessLighting();
     if (aliveRef.current && d) setData(d);
   }, []);
 
@@ -64,30 +70,29 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
     };
   }, [refresh]);
 
-  const preview = useCallback((mac: string, patch: LianLiWirelessStrimerPatch) => {
+  const preview = useCallback((mac: string, patch: LianLiWirelessChainPatch) => {
     setData(prev => prev && {
       ...prev,
-      strimers: prev.strimers.map(s => (s.mac === mac ? { ...s, ...patch } : s)),
+      chains: prev.chains.map(c => (c.mac === mac ? { ...c, ...patch } : c)),
     });
   }, []);
 
-  const commit = useCallback(async (mac: string, patch: LianLiWirelessStrimerPatch) => {
+  const commit = useCallback(async (mac: string, patch: LianLiWirelessChainPatch) => {
     preview(mac, patch);
     // effectMode is derived by the service; it only feeds the preview.
-    if (!await setLianLiWirelessStrimer(mac, { ...patch, effectMode: undefined })) void refresh();
+    if (!await setLianLiWirelessChainLighting(mac, { ...patch, effectMode: undefined })) void refresh();
   }, [preview, refresh]);
 
   if (!data) return null;
   return (
     <>
-      {data.strimers.map(strimer => (
-        <StrimerSection
-          key={strimer.mac}
-          strimer={strimer}
-          effects={data.modes}
+      {data.chains.map(chain => (
+        <ChainSection
+          key={chain.mac}
+          chain={chain}
           laneModes={data.laneModes}
-          onPreview={patch => preview(strimer.mac, patch)}
-          onCommit={patch => { void commit(strimer.mac, patch); }}
+          onPreview={patch => preview(chain.mac, patch)}
+          onCommit={patch => { void commit(chain.mac, patch); }}
           onSectionNavigate={onSectionNavigate}
         />
       ))}
@@ -95,27 +100,26 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
   );
 }
 
-interface StrimerSectionProps {
-  strimer: LianLiWirelessStrimer;
-  effects: LianLiWirelessStrimerEffect[];
+interface ChainSectionProps {
+  chain: LianLiWirelessChainLighting;
   laneModes: string[];
-  onPreview: (patch: LianLiWirelessStrimerPatch) => void;
-  onCommit: (patch: LianLiWirelessStrimerPatch) => void;
+  onPreview: (patch: LianLiWirelessChainPatch) => void;
+  onCommit: (patch: LianLiWirelessChainPatch) => void;
   onSectionNavigate?: (section: string) => void;
 }
 
-function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSectionNavigate }: StrimerSectionProps) {
+function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate }: ChainSectionProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
-  const lightingPage = strimer.mode === MODE_CUSTOM;
-  // The animation the cable plays when the Lighting page is not driving it.
-  const effectKey = lightingPage ? strimer.effectMode ?? DEFAULT_EFFECT : strimer.mode;
-  const effect = effects.find(e => e.key === effectKey) ?? null;
-  const perLane = effectKey === MODE_PER_LANE;
+  const lightingPage = chain.mode === MODE_CUSTOM;
+  // The animation the chain plays when the Lighting page is not driving it.
+  const effectKey = lightingPage ? chain.effectMode ?? DEFAULT_EFFECT : chain.mode;
+  const effect = chain.modes.find(e => e.key === effectKey) ?? null;
+  const perLane = chain.supportsPerLane && effectKey === MODE_PER_LANE;
 
   const modeOptions = [
-    ...effects.map(e => ({ value: e.key, label: effectLabel(t, e.key) })),
-    { value: MODE_PER_LANE, label: t('devices.lianli-wireless.strimerModePerLane') },
+    ...chain.modes.map(e => ({ value: e.key, label: effectLabel(t, e.key) })),
+    ...(chain.supportsPerLane ? [{ value: MODE_PER_LANE, label: t('devices.lianli-wireless.strimerModePerLane') }] : []),
   ];
   const directionOptions = [
     { value: '0', label: t('devices.lianli.directionLtr') },
@@ -123,22 +127,22 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
   ];
   const percent = (v: number) => localizeNumbers(`${v}%`, numberFormat);
 
-  // The cable's palette is a fixed set of slots; an effect reads its first colorsMax.
-  const palette = STRIMER_DEFAULT_COLORS.map((fallback, i) => strimer.colors[i] ?? fallback);
+  // The palette is a fixed set of slots; an effect reads its first colorsMax.
+  const palette = DEFAULT_COLORS.map((fallback, i) => chain.colors[i] ?? fallback);
   const setColor = (i: number, hex: string, commit: boolean) => {
     const next = [...palette];
     next[i] = hex;
     (commit ? onCommit : onPreview)({ colors: next });
   };
 
-  const lanes = lanesOf(strimer);
-  const setLane = (i: number, lane: Partial<LianLiWirelessStrimerLane>, commit: boolean) => {
+  const lanes = lanesOf(chain);
+  const setLane = (i: number, lane: Partial<LianLiWirelessLane>, commit: boolean) => {
     const next = lanes.map((l, idx) => (idx === i ? { ...l, ...lane } : l));
     (commit ? onCommit : onPreview)({ laneSettings: next });
   };
 
   return (
-    <SettingsSection title={strimer.model} boxClassName={styles.sectionBox}>
+    <SettingsSection title={chainTitle(t, chain)} boxClassName={styles.sectionBox}>
       <LightingPageSwitch
         on={lightingPage}
         onChange={on => onCommit(on ? { mode: MODE_CUSTOM } : { mode: effectKey, effectMode: effectKey })}
@@ -157,7 +161,7 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
         editable
         trackFill
         label={t('devices.lianli.lightingBrightness')}
-        value={strimer.brightness * PERCENT_PER_LEVEL}
+        value={chain.brightness * PERCENT_PER_LEVEL}
         min={0}
         max={100}
         step={PERCENT_PER_LEVEL}
@@ -176,7 +180,7 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
           editable
           trackFill
           label={t('devices.lianli.lightingSpeed')}
-          value={strimer.speed * PERCENT_PER_LEVEL}
+          value={chain.speed * PERCENT_PER_LEVEL}
           min={0}
           max={100}
           step={PERCENT_PER_LEVEL}
@@ -194,7 +198,7 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
       {effect?.hasDirection && (
         <SettingSelect
           label={t('devices.lianli.lightingDirection')}
-          value={String(strimer.direction)}
+          value={String(chain.direction)}
           onChange={v => onCommit({ direction: Number(v) })}
           options={directionOptions}
           disabled={lightingPage}
