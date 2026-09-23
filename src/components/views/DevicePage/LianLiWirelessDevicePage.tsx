@@ -17,8 +17,8 @@ const RPM_POLL_MS = 2000;
 
 type LianLiWirelessTab = 'fans' | 'lighting' | 'screen';
 
-// Strimer Wireless cables report dev_type 1..9.
-const isStrimerDevType = (devType: number) => devType >= 1 && devType <= 9;
+// Strimer Wireless dev_types with a known LED layout; the service lists only these.
+const isStrimerDevType = (devType: number) => devType >= 1 && devType <= 4;
 
 // One hint line under the disconnected title. 'none' has none: the title
 // already says nothing is connected.

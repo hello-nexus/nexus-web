@@ -75,6 +75,26 @@ describe('LianLiWirelessLightingTab', () => {
     expect(within(section).queryByText('devices.lianli.addColor')).not.toBeInTheDocument();
   });
 
+  it('editing one colour keeps the rest of the stored palette', async () => {
+    await renderTab(withStrimer({ colors: ['#111111', '#222222', '#333333', '#444444', '#555555', '#666666'] }));
+    const inputs = screen.getAllByLabelText('common.hexColor');
+    expect(inputs.map(i => (i as HTMLInputElement).value)).toEqual(['#111111', '#222222', '#333333']);
+    fireEvent.change(inputs[1], { target: { value: '#abcdef' } });
+    expect(mockSetStrimer).toHaveBeenLastCalledWith('64F271E566E1', {
+      colors: ['#111111', '#abcdef', '#333333', '#444444', '#555555', '#666666'],
+    });
+  });
+
+  it('re-reads the cable when the service rejects a change', async () => {
+    mockSetStrimer.mockResolvedValue(false);
+    await renderTab();
+    fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
+    await act(async () => {
+      fireEvent.click(await screen.findByRole('option', { name: 'devices.strimerEffect.rainbow' }));
+    });
+    expect(mockGetStrimers).toHaveBeenCalledTimes(2);
+  });
+
   it('an effect without speed or direction hides both', async () => {
     await renderTab(withStrimer({ mode: 'static' }));
     expect(screen.queryByText('devices.lianli.lightingSpeed')).not.toBeInTheDocument();

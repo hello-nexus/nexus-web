@@ -71,10 +71,10 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
     });
   }, []);
 
-  const commit = useCallback((mac: string, patch: LianLiWirelessStrimerPatch) => {
+  const commit = useCallback(async (mac: string, patch: LianLiWirelessStrimerPatch) => {
     preview(mac, patch);
-    void setLianLiWirelessStrimer(mac, patch);
-  }, [preview]);
+    if (!await setLianLiWirelessStrimer(mac, patch)) void refresh();
+  }, [preview, refresh]);
 
   if (!data) return null;
   return (
@@ -86,7 +86,7 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
           effects={data.modes}
           laneModes={data.laneModes}
           onPreview={patch => preview(strimer.mac, patch)}
-          onCommit={patch => commit(strimer.mac, patch)}
+          onCommit={patch => { void commit(strimer.mac, patch); }}
           onSectionNavigate={onSectionNavigate}
         />
       ))}
@@ -121,10 +121,10 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
   ];
   const percent = (v: number) => localizeNumbers(`${v}%`, numberFormat);
 
-  const colors = (strimer.colors.length > 0 ? strimer.colors : STRIMER_DEFAULT_COLORS)
-    .slice(0, effect?.colorsMax ?? 0);
+  // The cable's palette is a fixed set of slots; an effect reads its first colorsMax.
+  const palette = STRIMER_DEFAULT_COLORS.map((fallback, i) => strimer.colors[i] ?? fallback);
   const setColor = (i: number, hex: string, commit: boolean) => {
-    const next = [...colors];
+    const next = [...palette];
     next[i] = hex;
     (commit ? onCommit : onPreview)({ colors: next });
   };
@@ -209,7 +209,7 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
           {effect && effect.colorsMax > 0 && (
             <div className={styles.colorBlock} data-settings-aside="true">
               <div className={styles.colorPairRow}>
-                {colors.map((color, i) => (
+                {palette.slice(0, effect.colorsMax).map((color, i) => (
                   <div key={i} className={styles.colorEntry}>
                     <span className={styles.colorLabel}>{t('devices.lianli.colorN', { n: i + 1 })}</span>
                     <HsvPicker
@@ -217,33 +217,9 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
                       onPreview={(hex: string) => setColor(i, hex, false)}
                       onCommit={(hex: string) => setColor(i, hex, true)}
                     />
-                    {colors.length > Math.max(1, effect.colorsMin) && (
-                      <div className={styles.colorActions}>
-                        <Button
-                          size="sm"
-                          tone="neutral"
-                          onClick={() => onCommit({ colors: colors.filter((_, idx) => idx !== i) })}
-                        >
-                          {t('devices.lianli.removeColor')}
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
-              {colors.length < effect.colorsMax && (
-                <div className={styles.colorActions}>
-                  <Button
-                    size="sm"
-                    tone="neutral"
-                    onClick={() => onCommit({
-                      colors: [...colors, STRIMER_DEFAULT_COLORS[colors.length % STRIMER_DEFAULT_COLORS.length]],
-                    })}
-                  >
-                    {t('devices.lianli.addColor')}
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
