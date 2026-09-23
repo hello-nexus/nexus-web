@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, Lightbulb, MonitorSmartphone, Unplug } from 'lucide-react';
+import { Fan, Lightbulb, MonitorSmartphone, Thermometer, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { getLianLiWirelessState, type LianLiWirelessLinkStatus, type LianLiWirelessState } from '../../../api/lianli-wireless';
@@ -7,7 +7,8 @@ import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { L_CONNECT_CONFLICT_ID } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
-import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, isFanDevice } from './LianLiWirelessFansTab';
+import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 import styles from './LianLiWirelessDevicePage.module.scss';
@@ -15,7 +16,7 @@ import styles from './LianLiWirelessDevicePage.module.scss';
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
 
-type LianLiWirelessTab = 'fans' | 'lighting' | 'screen';
+type LianLiWirelessTab = 'fans' | 'lighting' | 'cooling' | 'screen';
 
 // Strimer Wireless dev_types with a known LED layout; the service lists only these.
 const isStrimerDevType = (devType: number) => devType >= 1 && devType <= 4;
@@ -100,9 +101,11 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   const blockingApp = conflicts.find(c => c.id === L_CONNECT_CONFLICT_ID);
 
   const hasStrimer = !!state?.fans.some(f => f.boundToUs && isStrimerDevType(f.devType));
+  const hasFans = !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType));
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <Fan size={14} /> },
-    ...(hasStrimer ? [{ key: 'lighting', label: t('devices.lianli-wireless.tab.lighting'), icon: <Lightbulb size={14} /> }] : []),
+    ...(hasStrimer ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
+    ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Thermometer size={14} /> }] : []),
     { key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <MonitorSmartphone size={14} /> },
   ];
 
@@ -128,9 +131,10 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>
           {activeTab === 'fans' && (
-            <LianLiWirelessFansTab state={state} refresh={refresh} onSectionNavigate={onSectionNavigate} />
+            <LianLiWirelessFansTab state={state} refresh={refresh} />
           )}
           {activeTab === 'lighting' && hasStrimer && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
+          {activeTab === 'cooling' && hasFans && <LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />}
           {activeTab === 'screen' && <LianLiWirelessScreenTab />}
         </div>
       </div>

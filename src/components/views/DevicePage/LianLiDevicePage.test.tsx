@@ -56,33 +56,29 @@ afterEach(() => {
 });
 
 describe('LianLiDevicePage', () => {
-  it('renders no tabs - single scrolling page', async () => {
+  it('opens on Lighting with a Cooling tab beside it', async () => {
     await act(async () => {
       render(<LianLiDevicePage />);
     });
-    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /lighting\.title/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli.lightingSection')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli.portsSection')).not.toBeInTheDocument();
   });
 
-  it('port configuration section renders first with all 4 ports', async () => {
+  it('Cooling tab lists all 4 ports and points to the Cooling page', async () => {
+    const nav = vi.fn();
     await act(async () => {
-      render(<LianLiDevicePage />);
+      render(<LianLiDevicePage onSectionNavigate={nav} />);
     });
+    fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
     const portSection = screen.getByText('devices.lianli.portsSection').closest('section')!;
-    expect(portSection).toBeInTheDocument();
-    expect(within(portSection).getByText('devices.lianli.port:{"n":1}')).toBeInTheDocument();
-    expect(within(portSection).getByText('devices.lianli.port:{"n":2}')).toBeInTheDocument();
-    expect(within(portSection).getByText('devices.lianli.port:{"n":3}')).toBeInTheDocument();
-    expect(within(portSection).getByText('devices.lianli.port:{"n":4}')).toBeInTheDocument();
-  });
-
-  it('lighting section renders below port configuration', async () => {
-    await act(async () => {
-      render(<LianLiDevicePage />);
-    });
-    const portSection = screen.getByText('devices.lianli.portsSection').closest('section')!;
-    const lightingSection = screen.getByText('devices.lianli.lightingSection').closest('section')!;
-    // Lighting section follows port section in the DOM.
-    expect(portSection.compareDocumentPosition(lightingSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (let n = 1; n <= 4; n++) {
+      expect(within(portSection).getByText(`devices.lianli.port:{"n":${n}}`)).toBeInTheDocument();
+    }
+    expect(within(portSection).getByText('devices.coolingPage.speedHint')).toBeInTheDocument();
+    fireEvent.click(within(portSection).getByRole('button', { name: 'devices.coolingPage.go' }));
+    expect(nav).toHaveBeenCalledWith('cooling');
   });
 
   it('firmware mode shows brightness slider first, then speed slider', async () => {

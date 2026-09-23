@@ -130,17 +130,15 @@ describe('deviceTypeKey', () => {
 });
 
 describe('LianLiWirelessDevicePage', () => {
-  it('renders connection info and the fan chain with live RPM', async () => {
+  it('renders connection info and the fan chain, with a Cooling tab for its fans', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
     expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
     expect(screen.getByText('8A0EEF6232DC')).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.fanTypeSlv3Lcd')).toBeInTheDocument();
-    expect(screen.getByText('devices.lianli-wireless.fanN:{"n":1}')).toBeInTheDocument();
-    expect(screen.getByText('1,918 RPM')).toBeInTheDocument();
-    // Only the first fanCount (3) rpm entries render, not the trailing 0.
-    expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":4}')).not.toBeInTheDocument();
+    expect(screen.queryByText('1,918 RPM')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
   });
 
   it('shows the bound badge for a fan bound to us', async () => {
@@ -263,7 +261,7 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
-    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /lighting\.title/ })).toBeInTheDocument();
   });
 });
 
@@ -388,8 +386,8 @@ describe('LianLiWirelessDevicePage - tabs', () => {
 
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.devices/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.cooling/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /lighting\.title/ })).not.toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
   });
 
