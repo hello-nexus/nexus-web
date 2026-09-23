@@ -558,7 +558,7 @@
   "devices.lcd.secondaryMonitorDriverMissing": "此电脑上尚未安装第二显示器模式所需的显示驱动程序。",
   "devices.lcd.secondaryMonitorFailed": "Windows 未能创建该显示器。请关闭并重新打开此设置，或查看 Nexus 服务日志。",
   "devices.lcd.secondaryMonitorHint": "Windows 会将桌面扩展到此屏幕。此选项开启期间，Nexus 小组件、主题和背景均不可用。",
-  "devices.lcd.secondaryMonitorNotice": "此屏幕已设置为第二显示器，因此 Nexus 小组件和主题已停用。在设置中关闭 \"用作第二显示器\" 即可重新使用它们。",
+  "devices.lcd.secondaryMonitorNotice": "此屏幕已设置为第二显示器，因此 Nexus 小组件、主题和背景已停用。在设置中关闭“用作第二显示器”即可重新使用它们。",
   "devices.lcd.secondaryMonitorSection": "第二显示器",
   "devices.lcd.secondaryMonitorStarting": "正在启动显示器",
   "devices.lianli-aio.fan": "风扇",

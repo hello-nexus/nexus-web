@@ -565,7 +565,7 @@
   "devices.lcd.secondaryMonitorDriverMissing": "Sterownik wyświetlacza dla trybu dodatkowego monitora nie jest zainstalowany na tym komputerze.",
   "devices.lcd.secondaryMonitorFailed": "Windows nie utworzył monitora. Wyłącz i włącz ponownie to ustawienie albo sprawdź dziennik usługi Nexus.",
   "devices.lcd.secondaryMonitorHint": "Windows rozszerza pulpit na ten ekran. Widżety, motywy i tła Nexus są wyłączone, dopóki ta opcja jest włączona.",
-  "devices.lcd.secondaryMonitorNotice": "Ten ekran jest skonfigurowany jako dodatkowy monitor, więc widżety i motywy Nexus są wyłączone. Wyłącz \"Użyj jako dodatkowy monitor\" w Ustawieniach, aby znów z nich korzystać.",
+  "devices.lcd.secondaryMonitorNotice": "Ten ekran jest skonfigurowany jako dodatkowy monitor, więc widżety, motywy i tła Nexus są wyłączone. Wyłącz \"Użyj jako dodatkowy monitor\" w Ustawieniach, aby znów z nich korzystać.",
   "devices.lcd.secondaryMonitorSection": "Dodatkowy monitor",
   "devices.lcd.secondaryMonitorStarting": "Uruchamianie monitora",
   "devices.lianli-aio.fan": "Wentylator",

@@ -558,7 +558,7 @@
   "devices.lcd.secondaryMonitorDriverMissing": "El controlador de pantalla del monitor secundario no está instalado en este PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows no pudo crear el monitor. Desactiva y vuelve a activar el ajuste, o revisa el registro del servicio Nexus.",
   "devices.lcd.secondaryMonitorHint": "Windows extiende el escritorio a esta pantalla. Los widgets, temas y fondos de Nexus se desactivan mientras esto está activado.",
-  "devices.lcd.secondaryMonitorNotice": "Esta pantalla está configurada como monitor secundario, por lo que los widgets y temas de Nexus están desactivados. Desactiva \"Usar como monitor secundario\" en Ajustes para volver a usarlos.",
+  "devices.lcd.secondaryMonitorNotice": "Esta pantalla está configurada como monitor secundario, por lo que los widgets, temas y fondos de Nexus están desactivados. Desactiva \"Usar como monitor secundario\" en Ajustes para volver a usarlos.",
   "devices.lcd.secondaryMonitorSection": "Monitor secundario",
   "devices.lcd.secondaryMonitorStarting": "Iniciando el monitor",
   "devices.lianli-aio.fan": "Ventilador",

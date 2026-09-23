@@ -558,7 +558,7 @@
   "devices.lcd.secondaryMonitorDriverMissing": "Il driver video per la modalità monitor secondario non è installato su questo PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows non è riuscito a creare il monitor. Disattiva e riattiva l'impostazione, oppure controlla il log del servizio Nexus.",
   "devices.lcd.secondaryMonitorHint": "Windows estende il desktop su questo schermo. I widget, i temi e gli sfondi di Nexus sono disattivati finché questa opzione è attiva.",
-  "devices.lcd.secondaryMonitorNotice": "Questo schermo è configurato come monitor secondario, quindi i widget e i temi di Nexus sono disattivati. Disattiva \"Usa come monitor secondario\" nelle Impostazioni per usarli di nuovo.",
+  "devices.lcd.secondaryMonitorNotice": "Questo schermo è configurato come monitor secondario, quindi i widget, i temi e gli sfondi di Nexus sono disattivati. Disattiva \"Usa come monitor secondario\" nelle Impostazioni per usarli di nuovo.",
   "devices.lcd.secondaryMonitorSection": "Monitor secondario",
   "devices.lcd.secondaryMonitorStarting": "Avvio del monitor in corso",
   "devices.lianli-aio.fan": "Ventola",

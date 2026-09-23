@@ -41,9 +41,8 @@ export interface PanelDeviceCapabilitiesDto {
   // The panel's backlight is host-settable, so the settings tab offers the
   // brightness control. Absent on every surface that cannot dim.
   supportsBrightness?: boolean;
-  // This panel's driver can drive it as a Windows secondary monitor (today
-  // only the Aftershock Glacier Matrix zmatrices-lcd family). Absent/false
-  // hides the setting entirely.
+  // This panel's driver can drive it as a Windows secondary monitor.
+  // Absent/false hides the setting entirely.
   supportsSecondaryMonitor?: boolean;
 }
 

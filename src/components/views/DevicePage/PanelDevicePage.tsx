@@ -708,9 +708,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // mount-time value, so the rotation picker and the landscape preview
       // dock never track a panel the user turns in their hands.
       if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
-      // secondaryMonitorState is route-computed on the service side (driver
-      // init, virtual-monitor creation), so it can change without any write
-      // from this page and must track every broadcast, not just the load.
+      // secondaryMonitor/secondaryMonitorState can change from another client
+      // or a hardware-settings reset, not just a write from this page, so both
+      // must track every broadcast rather than only the initial load.
+      setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
