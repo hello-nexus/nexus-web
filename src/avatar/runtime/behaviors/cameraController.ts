@@ -60,6 +60,14 @@ export interface CameraControllerOptions {
   overshootReturn?: number;
   /** World-Y added to zoomFocusTarget's position (head bones anchor at the chin). */
   zoomFocusHeightOffset?: number;
+  /**
+   * Degrees the camera sits above the focus, looking down at it. Added on top
+   * of the (clamped) drag pitch at every zoom, so minAngles/maxAngles bound
+   * the drag around this elevation. The rest focus rises by its forward
+   * offset times tan(elevation) so the character's own vertical plane, not
+   * the point in front of it, stays centered.
+   */
+  elevationDeg?: number;
   /** Chain the demo tour after the intro push-in completes. */
   runDemoOnStart?: boolean;
   demoInitialDelay?: number;
@@ -146,6 +154,7 @@ export class CameraController {
   private readonly overshootDeg: number;
   private readonly overshootReturn: number;
   private readonly zoomFocusHeightOffset: number;
+  private readonly elevationDeg: number;
   private readonly runDemoOnStart: boolean;
   private readonly demoInitialDelay: number;
   private readonly demoZoomInDuration: number;
@@ -229,6 +238,7 @@ export class CameraController {
     // 0 would leave the slack in place forever; keep a floor under the ease.
     this.overshootReturn = clamp(options.overshootReturn ?? 0.85, 0.01, 0.999999);
     this.zoomFocusHeightOffset = options.zoomFocusHeightOffset ?? 0;
+    this.elevationDeg = options.elevationDeg ?? 0;
     this.runDemoOnStart = options.runDemoOnStart ?? true;
     this.demoInitialDelay = options.demoInitialDelay ?? 5;
     this.demoZoomInDuration = options.demoZoomInDuration ?? 3.5;
@@ -428,14 +438,16 @@ export class CameraController {
     // Unity: Quaternion.Euler(pitch, yaw, 0) * Vector3.forward, X negated for
     // three.js handedness. With rest angles the camera sits at +Z of the focus.
     const zoomFraction = this.maxZoomLevel > 0 ? clamp01(this.zoomLevel / this.maxZoomLevel) : 0;
+    // Negative X pitch swings the camera above the focus (dir.y > 0).
     this.euler.set(
-      (this.pitchDeg + this.pitchSlack) * DEG2RAD,
+      (this.pitchDeg + this.pitchSlack - this.elevationDeg) * DEG2RAD,
       (this.yawDeg + this.yawSlack + zoomFraction * this.zoomYawOffsetDeg) * DEG2RAD,
       0);
     this.dir.set(0, 0, 1).applyEuler(this.euler);
     this.dir.x = -this.dir.x;
 
     this.focus.copy(this.target.position).add(this.offset);
+    this.focus.y += this.offset.z * Math.tan(this.elevationDeg * DEG2RAD);
     if (this.zoomFocusTarget) {
       this.zoomFocusTarget.getWorldPosition(this.zoomFocus);
       this.zoomFocus.y += this.zoomFocusHeightOffset;

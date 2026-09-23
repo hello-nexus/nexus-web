@@ -42,6 +42,7 @@ function composeWorldMatrix(obj: Object3D, out: Matrix4): Matrix4 {
   return out;
 }
 const _scale = new Vector3();
+const _offset = new Vector3();
 const _c0 = new Vector3();
 const _c1 = new Vector3();
 const _capsuleDir = new Vector3();
@@ -139,5 +140,31 @@ export class CapsuleSoftBoneCollider implements SoftBoneCollider {
         position.addScaledVector(_bounce, push / dist);
       }
     }
+  }
+}
+
+/** Half-space wall following a bone: keeps nodes on the far side of the plane from `normal`. */
+export class PlaneSoftBoneCollider implements SoftBoneCollider {
+  private readonly attach: Object3D;
+  private readonly center = new Vector3();
+  private readonly normal = new Vector3();
+  private readonly worldCenter = new Vector3();
+  private readonly worldNormal = new Vector3();
+
+  constructor(attach: Object3D, center: readonly [number, number, number], normal: readonly [number, number, number]) {
+    this.attach = attach;
+    this.center.set(center[0], center[1], center[2]);
+    this.normal.set(normal[0], normal[1], normal[2]).normalize();
+  }
+
+  updateWorld(): void {
+    composeWorldMatrix(this.attach, _m4);
+    this.worldCenter.copy(this.center).applyMatrix4(_m4);
+    this.worldNormal.copy(this.normal).transformDirection(_m4);
+  }
+
+  collide(position: Vector3, nodeRadius: number): void {
+    const depth = _offset.copy(position).sub(this.worldCenter).dot(this.worldNormal) + nodeRadius;
+    if (depth > 0) position.addScaledVector(this.worldNormal, -depth);
   }
 }

@@ -87,6 +87,7 @@ export async function createAvatarSession(
   const renderFrame = (): void => {
     if (outline) outline.render();
     else renderer.render(runtime.scene, runtime.camera);
+    runtime.renderFx();
   };
 
   // First render otherwise compiles every GPU program synchronously (~800ms
@@ -134,6 +135,8 @@ export async function createAvatarSession(
     restZoomFraction: 1,
     zoomYawOffsetDeg: 15,
     zoomFocusHeightOffset: 0.06,
+    // The camera stays above the focus, looking down; the drag pitch is bounded around it.
+    elevationDeg: 8,
     // A partial lock keeps the head framed without pinning the camera to it.
     zoomFocusLock: 0.72,
     overshootDeg: 7,
