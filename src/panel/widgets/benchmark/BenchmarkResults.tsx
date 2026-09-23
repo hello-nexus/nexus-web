@@ -84,7 +84,9 @@ export function BenchmarkResults({ result, submission, submitting, submissionId 
           <div className={styles.compositeLabel}>{t('benchmark.result.composite')}</div>
           <div className={styles.compositeScore}>{Math.round(result.composite)}</div>
           {submitting && !submission && (
-            <div className={styles.percentilePending}>{t('benchmark.result.submitting')}</div>
+            <div className={styles.compositeResultLine}>
+              <span className={styles.percentilePending}>{t('benchmark.result.submitting')}</span>
+            </div>
           )}
           {submission && (
             <div className={styles.compositeResultLine}>

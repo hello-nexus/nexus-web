@@ -76,10 +76,13 @@
 }
 
 .thRank { width: 6rem; }
-.thScore { width: 5rem; text-align: right; }
+.thScore { width: 5rem; }
 .thHardware { }
 .thDate { width: 7rem; }
 .thExpand { width: 2rem; }
+
+// Beats .table th's text-align: left on specificity.
+.table th.thScore { text-align: right; }
 
 .row {
   border-bottom: 1px solid var(--separator);
@@ -95,7 +98,7 @@
   background: var(--accent-soft);
   border-left-color: var(--accent);
 
-  &:hover { background: var(--accent-soft); }
+  &:hover { background: var(--bg-elevated); }
 }
 
 .table td {
@@ -119,8 +122,8 @@
   display: inline-block;
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent-glow);
+  background: var(--accent);
+  color: var(--accent-text);
   font-size: var(--type-tiny);
   text-transform: uppercase;
   font-weight: var(--weight-heading);

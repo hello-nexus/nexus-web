@@ -10,7 +10,6 @@ import { LeaderboardView } from './LeaderboardView';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import type { WidgetProps } from '../types';
 import { useTranslation } from '../../../lib/i18n';
-import styles from './BenchmarkTouch.module.scss';
 
 export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
@@ -20,7 +19,7 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
   const statusCell: ReactNode = (() => {
     if (status === 'running' && progress) {
       return (
-        <div className={styles.cell}>
+        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
           <BenchmarkProgress progress={progress} />
           <Button tone="ghost" icon={<X size={14} />} onClick={cancel}>
             {t('benchmark.cancel')}
@@ -31,15 +30,15 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
 
     if (status === 'starting') {
       return (
-        <div className={styles.cellCompact}>
-          <span className={styles.starting}>{t('benchmark.starting')}</span>
+        <div style={{ padding: '1rem', color: 'var(--text-dim)', fontSize: 'var(--type-small)' }}>
+          {t('benchmark.starting')}
         </div>
       );
     }
 
     if (status === 'complete' && result) {
       return (
-        <div className={styles.cellScroll}>
+        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%', overflowY: 'auto' }}>
           <BenchmarkResults result={result} submission={null} submitting={false} />
           <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
             {t('benchmark.rerun')}
@@ -50,8 +49,8 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
 
     if (status === 'failed') {
       return (
-        <div className={styles.cellCompact}>
-          <p className={styles.failedText}>
+        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <p style={{ color: 'var(--bad)', fontSize: 'var(--type-small)' }}>
             {t('benchmark.failed')}: {error ?? t('benchmark.unknownError')}
           </p>
           <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
@@ -63,8 +62,8 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
 
     if (status === 'cancelled') {
       return (
-        <div className={styles.cellCompact}>
-          <p className={styles.cancelledText}>{t('benchmark.cancelled')}</p>
+        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <p style={{ color: 'var(--text-dim)', fontSize: 'var(--type-small)' }}>{t('benchmark.cancelled')}</p>
           <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
             {t('benchmark.rerun')}
           </Button>
@@ -73,10 +72,10 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
     }
 
     return (
-      <div className={styles.cellStart}>
+      <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start', height: '100%' }}>
         {latest && (
-          <div className={styles.idleComposite}>
-            {t('benchmark.result.composite')}: <strong className={styles.idleCompositeValue}>{Math.round(latest.composite)}</strong>
+          <div style={{ fontSize: 'var(--type-small)', color: 'var(--text-dim)' }}>
+            {t('benchmark.result.composite')}: <strong style={{ color: 'var(--accent-glow)', fontFamily: 'var(--font-mono)' }}>{Math.round(latest.composite)}</strong>
           </div>
         )}
         <Button tone="accent" icon={<Play size={16} />} onClick={() => start()}>
