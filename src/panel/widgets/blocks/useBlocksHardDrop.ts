@@ -15,9 +15,9 @@ export interface BlocksHardDropControls {
  * one row per interval tick until it reaches that row - one extra tick then
  * locks it through the same `hardDrop` path the instant version uses, so
  * even a one-row drop visibly moves before it merges into the board. Line
- * clears and game-over evaluate only once, after the piece lands. Reduced
- * motion, and a piece that is already resting, skip straight to the instant
- * drop with no interval at all. A mid-drop pause (the orientation flip that
+ * clears and game-over evaluate only once, after the piece lands. A piece
+ * that is already resting skips straight to the instant drop with no
+ * interval at all. A mid-drop pause (the orientation flip that
  * shows RotatePrompt) freezes ticks in place rather than advancing blind,
  * matching every other mutator in BlocksTouch.
  *
