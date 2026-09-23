@@ -58,7 +58,7 @@ import { isLocalhostUnreachable, isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
-import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
+import { applyThemeMode, applyAccentColor, cachePreferencesLocally, loadSettings } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
 import type { Language, ThemeMode } from '../lib/settings';
 import { FULLSCREEN_CAPABLE_VIEWS, NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
@@ -68,6 +68,7 @@ import { PageChromeProvider } from './PageChrome';
 import { AppBackdrop } from './AppBackdrop';
 import { BackgroundEffects } from './BackgroundEffects';
 import { SystemAccentSync } from './SystemAccentSync';
+import { SidebarCollapsedSync } from './SidebarCollapsedSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
 import { ServiceGatePage } from './ServiceGatePage';
 import { getSidebarAppMeta } from './sidebarApps';
@@ -642,8 +643,17 @@ export function Dashboard() {
     const meta = getSidebarAppMeta(activeView);
     return meta ? t(meta.i18nKey) : t('sidebar.section.apps');
   })();
-  // null = auto (follow viewport), true = user-collapsed, false = user-expanded
-  const [manualOverride, setManualOverride] = useState<boolean | null>(null);
+  // null = auto (follow viewport), true = user-collapsed, false = user-expanded.
+  // Seeded from the local settings cache so a reload doesn't flash expanded
+  // before SidebarCollapsedSync restores the server value.
+  const [manualOverride, setManualOverride] = useState<boolean | null>(
+    () => (loadSettings().general.sidebarCollapsed ? true : null),
+  );
+  // A stored false only clears a user-collapse; the transient "expanded while
+  // narrow" override stays.
+  const restoreSidebarCollapsed = useCallback((collapsed: boolean) => {
+    setManualOverride(prev => (collapsed ? true : prev === true ? null : prev));
+  }, []);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
@@ -946,6 +956,7 @@ export function Dashboard() {
         <AppBackdrop />
         <BackgroundEffects />
         <SystemAccentSync />
+        <SidebarCollapsedSync onChange={restoreSidebarCollapsed} />
         <ResolvedThemeSync />
         <OpenInAppBanner />
         {/* Nexus Windows shell only: window-resize grab strips along each

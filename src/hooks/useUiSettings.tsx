@@ -96,6 +96,9 @@ export interface UiSettingsValue {
   // User-dragged order of the unpinned sidebar apps below the separator;
   // empty = sorted by name. Posted under ui.sidebarAppOrder.
   sidebarAppOrder: string[];
+  // True while the user has collapsed the dashboard sidebar by hand. Posted
+  // under ui.sidebarCollapsed.
+  sidebarCollapsed: boolean;
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile (see useOemAppSeed). Server-only,
   // like the update block below - not mirrored to localStorage.
@@ -233,6 +236,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
     sidebarAppOrder: sanitizeAppOrder(src.general.sidebarAppOrder),
+    sidebarCollapsed: src.general.sidebarCollapsed,
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     lightingDashboardMode: src.general.lightingDashboardMode,
@@ -298,6 +302,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       rememberLastPage: src.rememberLastPage,
       pinnedSidebarApps: src.pinnedSidebarApps,
       sidebarAppOrder: src.sidebarAppOrder,
+      sidebarCollapsed: src.sidebarCollapsed,
       widgetAdvancedMode: src.widgetAdvancedMode,
       lightingDashboardMode: src.lightingDashboardMode,
       coolingDashboardMode: src.coolingDashboardMode,
@@ -347,12 +352,13 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (patch.sidebarAppOrder !== undefined) ui.sidebarAppOrder = patch.sidebarAppOrder;
+  if (patch.sidebarCollapsed !== undefined) ui.sidebarCollapsed = patch.sidebarCollapsed;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (patch.lightingDashboardMode !== undefined) ui.lightingDashboardMode = patch.lightingDashboardMode;
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
@@ -484,6 +490,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     sidebarAppOrder: server.ui?.sidebarAppOrder != null
       ? sanitizeAppOrder(server.ui.sidebarAppOrder)
       : base.sidebarAppOrder,
+    sidebarCollapsed: server.ui?.sidebarCollapsed ?? base.sidebarCollapsed,
     oemAppSeeded: server.ui?.oemAppSeeded ?? base.oemAppSeeded,
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
@@ -551,6 +558,10 @@ export function UiSettingsProvider({
 
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingWriteRef = useRef<PreferencesPatch | null>(null);
+  // The same write in the hook's flat shape, held until its POST settles. A
+  // fetch that resolves before then still carries the old values, so reload
+  // keeps these fields.
+  const pendingLocalRef = useRef<Patch | null>(null);
   // backgroundMode/accentSource moved from localStorage-only to the server
   // Theme block. A window that already had saved settings before this change
   // seeds the server once so an upgrade keeps the user's choice; a fresh window
@@ -586,12 +597,19 @@ export function UiSettingsProvider({
     pendingWriteRef.current = pendingWriteRef.current
       ? mergeServerPatch(pendingWriteRef.current as Record<string, unknown>, serverPatch as Record<string, unknown>) as PreferencesPatch
       : serverPatch;
+    pendingLocalRef.current = { ...pendingLocalRef.current, ...patch };
     // 250ms debounce collapses rapid slider-style updates into one POST.
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
       const toSend = pendingWriteRef.current;
+      const sentLocal = pendingLocalRef.current;
       pendingWriteRef.current = null;
-      if (toSend) savePreferences(toSend).catch(() => { /* best-effort */ });
+      if (toSend) {
+        savePreferences(toSend).catch(() => { /* best-effort */ }).finally(() => {
+          // A newer update() replaced the object; its own write clears it.
+          if (pendingLocalRef.current === sentLocal) pendingLocalRef.current = null;
+        });
+      }
     }, 250);
   }, [serviceOnline]);
 
@@ -630,7 +648,7 @@ export function UiSettingsProvider({
     fetchPreferences().then(prefs => {
       if (!prefs) return;
       setSettings(prev => {
-        const next = applyServerToLocal(prefs, prev);
+        const next = { ...applyServerToLocal(prefs, prev), ...pendingLocalRef.current };
         persistLocal(next);
         // Re-apply theme/accent when server state differs (profile-switch
         // path). Same `manageDom` guard as update().

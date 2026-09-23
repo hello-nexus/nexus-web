@@ -419,6 +419,65 @@ describe('UiSettingsProvider - per-page dashboard modes', () => {
   });
 });
 
+describe('UiSettingsProvider - sidebar collapse', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const serverPrefs = (ui: Record<string, unknown> = {}) => ({
+    theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
+    ui,
+  });
+
+  it('hydrates from the server and posts a toggle under ui.sidebarCollapsed', async () => {
+    vi.useFakeTimers();
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ sidebarCollapsed: true }));
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(true);
+
+    await act(async () => { captured.ctx!.update({ sidebarCollapsed: false }); });
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(false);
+    await act(async () => { vi.runOnlyPendingTimers(); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { sidebarCollapsed: false } });
+  });
+
+  it('keeps a toggle until its write lands when an older fetch resolves with the old value', async () => {
+    vi.useFakeTimers();
+    let resolveFetch!: (v: unknown) => void;
+    let resolveSave!: (v: unknown) => void;
+    h.fetchPreferences.mockReturnValue(new Promise(r => { resolveFetch = r; }));
+    h.savePreferences.mockReturnValue(new Promise(r => { resolveSave = r; }));
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+
+    await act(async () => { captured.ctx!.update({ sidebarCollapsed: true }); });
+    // Past the debounce: the POST is in flight when the stale fetch answers.
+    await act(async () => { vi.runOnlyPendingTimers(); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { sidebarCollapsed: true } });
+    await act(async () => { resolveFetch(serverPrefs({ sidebarCollapsed: false })); });
+    await flush();
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(true);
+
+    // Once the write has landed, the server is authoritative again.
+    await act(async () => { resolveSave(undefined); });
+    await flush();
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ sidebarCollapsed: false }));
+    await act(async () => { captured.ctx!.reload(); });
+    await flush();
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(false);
+  });
+});
+
 describe('UiSettingsProvider - features patch', () => {
   const flush = () => act(async () => { await Promise.resolve(); });
   const serverPrefs = () => ({

@@ -10,6 +10,7 @@ import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDro
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useClickOutside } from '../hooks/useClickOutside';
+import { useUiSettingsUpdateSafe } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
 import { DEV_TOOLS } from '../lib/devTools';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
@@ -185,6 +186,14 @@ export function TopBar({
   const setTabsSlot = pageChrome?.setTabsSlot;
   // Empty areas of the bar drag the window (Windows shell only); see hook.
   const dragRegion = useWindowDragRegion();
+  const updateUiSettings = useUiSettingsUpdateSafe();
+  // A manual collapse survives window closes and restarts (restored by
+  // SidebarCollapsedSync); the button only renders with a sidebar, so
+  // `compact` is the state being toggled away from.
+  const toggleCompact = () => {
+    onToggleCompact();
+    updateUiSettings({ sidebarCollapsed: !compact });
+  };
 
   const offlineLabel = connectionState === 'checking'
     ? t('status.checking')
@@ -206,7 +215,7 @@ export function TopBar({
             <button
               type="button"
               className={styles.iconButton}
-              onClick={onToggleCompact}
+              onClick={toggleCompact}
               aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
             >
               {compact ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
