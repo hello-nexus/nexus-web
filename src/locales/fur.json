@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "Vert",
   "devices.xeneonEdge.red": "Ros",
   "devices.y70.brightness": "Luminositât",
+  "devices.y70.compatibilityRendering": "Modalitât di compatibilitât",
+  "devices.y70.compatibilityRenderingHint": "Impiile se il panel al somee confusionât o voltât di bande. Al cambie il mût che Nexus al dissegne il panel par che al funzioni cun plui schedis grafichis. Lassile distudade se il panel al somee just.",
   "devices.y70.display": "Display",
   "devices.y70.displayDisconnectedNotice": "Tache il cjâf dal display dal Y70 par vê un schermi par mostrâ la imagjin sul panel.",
   "devices.y70.editor.addWidget": "Zonte widget",

@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "Verde",
   "devices.xeneonEdge.red": "Rosso",
   "devices.y70.brightness": "Luminosità",
+  "devices.y70.compatibilityRendering": "Modalità compatibilità",
+  "devices.y70.compatibilityRenderingHint": "Attivala se il pannello appare confuso o girato di lato. Cambia il modo in cui Nexus disegna il pannello così che funzioni con più schede grafiche. Lasciala disattivata se il pannello appare corretto.",
   "devices.y70.display": "Display",
   "devices.y70.displayDisconnectedNotice": "Collega il cavo del display del Y70 in modo che il pannello abbia uno schermo su cui mostrare i contenuti.",
   "devices.y70.editor.addWidget": "Aggiungi widget",

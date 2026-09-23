@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "초록",
   "devices.xeneonEdge.red": "빨강",
   "devices.y70.brightness": "밝기",
+  "devices.y70.compatibilityRendering": "호환 모드",
+  "devices.y70.compatibilityRenderingHint": "패널 화면이 뒤섞이거나 옆으로 보이면 켜세요. Nexus가 패널을 그리는 방식을 바꿔 더 많은 그래픽 카드에서 제대로 표시되도록 합니다. 패널이 정상적으로 보이면 끈 상태로 두세요.",
   "devices.y70.display": "디스플레이",
   "devices.y70.displayDisconnectedNotice": "패널에 표시할 화면이 있도록 Y70의 디스플레이 케이블을 연결하세요.",
   "devices.y70.editor.addWidget": "위젯 추가",

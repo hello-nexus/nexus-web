@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "Grün",
   "devices.xeneonEdge.red": "Rot",
   "devices.y70.brightness": "Helligkeit",
+  "devices.y70.compatibilityRendering": "Kompatibilitätsmodus",
+  "devices.y70.compatibilityRenderingHint": "Einschalten, wenn das Panel verzerrt oder seitlich gedreht aussieht. Nexus zeichnet das Panel dann so, dass es mit mehr Grafikkarten funktioniert. Ausgeschaltet lassen, wenn das Panel richtig aussieht.",
   "devices.y70.display": "Display",
   "devices.y70.displayDisconnectedNotice": "Schließen Sie das Displaykabel des Y70 an, damit das Panel einen Bildschirm zur Anzeige hat.",
   "devices.y70.editor.addWidget": "Widget hinzufügen",

@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "Yeşil",
   "devices.xeneonEdge.red": "Kırmızı",
   "devices.y70.brightness": "Parlaklik",
+  "devices.y70.compatibilityRendering": "Uyumluluk modu",
+  "devices.y70.compatibilityRenderingHint": "Panel karışık veya yan dönmüş görünüyorsa açın. Nexus'un paneli çizme şeklini değiştirerek daha fazla ekran kartıyla çalışmasını sağlar. Panel doğru görünüyorsa kapalı bırakın.",
   "devices.y70.display": "Ekran",
   "devices.y70.displayDisconnectedNotice": "Panelin görüntü göstereceği bir ekranı olması için Y70'in ekran kablosunu bağlayın.",
   "devices.y70.editor.addWidget": "Widget Ekle",
