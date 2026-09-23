@@ -240,12 +240,12 @@ describe('LightingPage simple mode', () => {
 
   it('marks the running sweep and does not call it a custom setup', async () => {
     syncState.mode = 'animate';
-    syncState.rawSync = 'sweepink';
+    syncState.rawSync = 'sweepcycle';
     const { container } = renderPage();
     await waitFor(() => {
       expect(vi.mocked(lightingApi.fetchLightingDevices)).toHaveBeenCalled();
     });
-    const tile = container.querySelector('[data-effect-key="sweepink"]') as HTMLButtonElement;
+    const tile = container.querySelector('[data-effect-key="sweepcycle"]') as HTMLButtonElement;
     expect(tile.className).toContain('cardActive');
     expect(screen.queryByText('lighting.simple.customActive')).toBeNull();
   });

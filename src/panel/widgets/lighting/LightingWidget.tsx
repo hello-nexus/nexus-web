@@ -26,7 +26,7 @@ import {
 } from '../../../api/mediaLibrary';
 import { fetchServiceBlob, pingService } from '../../../api/service';
 import { Button } from '../../../components/common/Button/Button';
-import { isSimpleAnimation, simpleAnimationIndex, simpleAnimationState } from './simpleAnimations';
+import { isSimpleAnimation, simpleAnimationLabelKey, simpleAnimationState } from './simpleAnimations';
 import { EffectCard } from '../../../components/common/EffectCard/EffectCard';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
@@ -438,7 +438,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
         return {
           kind: 'thumb',
           thumbUrl: thumbs[activeEffect] ?? null,
-          label: t('lighting.simple.animation', { index: simpleAnimationIndex(activeEffect) }),
+          label: t(simpleAnimationLabelKey(activeEffect)),
           onPrev: prev,
           onNext: next,
         };

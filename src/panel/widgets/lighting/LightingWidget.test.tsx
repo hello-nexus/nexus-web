@@ -246,16 +246,16 @@ describe('LightingWidget', () => {
   // A simple-mode sweep drives the LEDs without a catalogue entry: the tile
   // has to picture that, not fall back to the last catalogue effect.
   it('names and pictures a running simple-mode sweep', async () => {
-    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'sweepink' });
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'sweepcycle' });
     vi.mocked(fetchServiceBlob).mockClear();
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
-    await waitFor(() => expect(screen.getByText('lighting.simple.animation')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('lighting.simple.anim.colorCycle')).toBeInTheDocument());
     // The thumbnail fetch is a second round trip, so it can still be in flight
     // when the name lands.
     await waitFor(() => {
       const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
-      expect(paths.some(p => p.includes('sweepink'))).toBe(true);
+      expect(paths.some(p => p.includes('sweepcycle'))).toBe(true);
     });
     expect(screen.queryByText('lighting.controls.rainbow')).not.toBeInTheDocument();
   });

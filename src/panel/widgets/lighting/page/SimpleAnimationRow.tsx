@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { EffectCard } from '../../../../components/common/EffectCard/EffectCard';
 import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
-import { SIMPLE_ANIMATION_KEYS, simpleAnimationIndex } from '../simpleAnimations';
+import { SIMPLE_ANIMATION_KEYS, simpleAnimationLabelKey } from '../simpleAnimations';
 import styles from '../LightingPage.module.scss';
 
 // A tile spans two palette swatches and the gap between them; the swatches are
@@ -20,16 +20,13 @@ function AnimationTile({ effectKey, active, noGpu, onSelect }: {
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
-  // The set has no names by design - the thumbnail is the whole label - so the
-  // accessible name is its position in the row.
-  const label = t('lighting.simple.animation', { index: simpleAnimationIndex(effectKey) });
+  const label = t(simpleAnimationLabelKey(effectKey));
   // Slot 0 with a fixed version: a sweep has no templates to edit, so its
   // thumbnail is its one canonical render.
   const url = useEffectThumbnail(effectKey, 0, '0', noGpu);
   return (
     <EffectCard
       overlay
-      hideLabel
       dataEffectKey={effectKey}
       label={label}
       thumbUrl={url}
