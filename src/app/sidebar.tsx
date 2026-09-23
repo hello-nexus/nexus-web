@@ -5,7 +5,6 @@ import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { useUiSettings } from '../hooks/useUiSettings';
 import { useConflictApps } from '../hooks/useConflictApps';
-import { useNewConflictPulse } from '../hooks/useNewConflictPulse';
 import { useTopicCallback } from '../hooks/useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
 import { useWindowDragRegion } from './useWindowDragRegion';
@@ -75,8 +74,9 @@ export function ConnectedProfileSlot({ connectEpoch, children }: {
  * `showConflictAlerts` pref (the in-modal "Don't show again" checkbox
  * toggles it), keeping the badge presentational.
  */
-export function ConflictStatusSlot({ serviceOnline }: {
+export function ConflictStatusSlot({ serviceOnline, onManageApps }: {
   serviceOnline: boolean;
+  onManageApps: () => void;
 }) {
   const { settings, update } = useUiSettings();
   const [open, setOpen] = useState(false);
@@ -86,17 +86,16 @@ export function ConflictStatusSlot({ serviceOnline }: {
   // collapsing to the "all clear" state mid-read.
   const enabled = serviceOnline && (!suppressed || open);
   const { conflicts, ready } = useConflictApps(enabled);
-  const pulsing = useNewConflictPulse(conflicts, ready);
 
   return (
     <ConflictWarningBadge
       conflicts={conflicts}
       ready={ready}
-      pulsing={pulsing}
       suppressed={suppressed}
       open={open}
       onOpenChange={setOpen}
       onSuppressedChange={value => update({ showConflictAlerts: !value })}
+      onManageApps={onManageApps}
     />
   );
 }

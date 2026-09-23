@@ -264,6 +264,7 @@
   "conflicts.modal.empty": "Конфликтующие приложения сейчас не запущены.",
   "conflicts.modal.endTask": "Завершить задачу",
   "conflicts.modal.intro": "Эти приложения могут конкурировать с Nexus за управление подсветкой, вентиляторами или периферией. Завершите ненужные, чтобы Nexus мог управлять ими без помех.",
+  "conflicts.modal.manageApps": "Управление приложениями",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.resolveAll": "Устранить все конфликты",
   "conflicts.modal.terminated": "Завершено",

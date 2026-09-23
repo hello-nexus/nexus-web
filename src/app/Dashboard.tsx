@@ -508,6 +508,14 @@ export function Dashboard() {
     navigate('system', 'settings');
   }, [navigate]);
 
+  const handleManageConflictApps = useCallback(() => {
+    navigate('system', 'settings', 'general');
+    // Fired after navigating: the signal is held until General mounts and
+    // subscribes, which is what opens the modal.
+    requestSearchScroll('set-conflict-apps');
+    fireSearchSignal('conflict-apps');
+  }, [navigate]);
+
   // Bridges a monitoring deck tile's `press: 'monitoringPage'` (deckExecutor
   // has no router access) to this surface's in-app Monitoring page.
   useEffect(() => onDeckOpenMonitoring(() => navigate('system', 'monitoring')), [navigate]);
@@ -795,12 +803,8 @@ export function Dashboard() {
       url.searchParams.delete(MANAGE_CONFLICTS_PARAM);
       window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     }
-    navigate('system', 'settings', 'general');
-    // Fired after navigating: the signal is held until General mounts and
-    // subscribes, which is what opens the modal.
-    requestSearchScroll('set-conflict-apps');
-    fireSearchSignal('conflict-apps');
-  }, [manageConflictsRequested, navigate]);
+    handleManageConflictApps();
+  }, [manageConflictsRequested, handleManageConflictApps]);
 
   // Bump on every offline -> online transition so the profile dropdown
   // remounts and replays its fade-in once.
@@ -990,6 +994,7 @@ export function Dashboard() {
               onNavigateTools={handleNavigateTools}
               onOpenUpdate={() => handleUpdateOpen()}
               onInstall={handleInstall}
+              onManageConflictApps={handleManageConflictApps}
               onManageProfiles={handleManageProfiles}
               onNavigateAccount={handleNavigateAccount}
               isWindowsApp={isWindowsAppShell()}

@@ -10,8 +10,8 @@ interface TopBarStatusButtonProps {
   /** Tooltip body and accessible label. Drives the hover text, so it should
    *  describe what clicking does (e.g. "Install update" vs "Update available"). */
   label: string;
-  /** Pulse the button (a ping ring in its tone) to draw attention to a
-   *  just-changed state, e.g. a conflicting app that just started running. */
+  /** Pulse the button continuously (a repeating ping ring in its tone) while
+   *  the flagged state needs action, e.g. a conflicting app is running. */
   pulsing?: boolean;
   onClick: () => void;
 }

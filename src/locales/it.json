@@ -264,6 +264,7 @@
   "conflicts.modal.empty": "Nessuna app in conflitto è in esecuzione.",
   "conflicts.modal.endTask": "Termina processo",
   "conflicts.modal.intro": "Queste app possono contendere a Nexus il controllo di illuminazione, ventole o periferiche. Chiudi quelle che non ti servono per consentire a Nexus di gestirle senza interferenze.",
+  "conflicts.modal.manageApps": "Gestisci app",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.resolveAll": "Risolvi tutti i conflitti",
   "conflicts.modal.terminated": "Terminato",

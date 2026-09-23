@@ -35,23 +35,20 @@
   }
 }
 
-// Attention flash: a single expanding ping ring in the button's tone
-// (currentColor), played once when the flagged state just changed.
+// Attention pulse: a repeating expanding ping ring in the button's tone
+// (currentColor). Only box-shadow animates, so the hover wash still shows.
 .pulsing {
-  animation: topbar-status-pulse 1s ease-out;
+  animation: topbar-status-pulse 1.6s ease-out infinite;
 }
 
 @keyframes topbar-status-pulse {
   0% {
-    background: color-mix(in srgb, currentColor 20%, transparent);
     box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
   }
   70% {
-    background: transparent;
     box-shadow: 0 0 0 7px color-mix(in srgb, currentColor 0%, transparent);
   }
   100% {
-    background: transparent;
     box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent);
   }
 }

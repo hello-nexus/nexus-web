@@ -63,6 +63,7 @@ function renderTopBar(overrides: Partial<Parameters<typeof TopBar>[0]> = {}) {
       onNavigateTools={() => {}}
       onOpenUpdate={() => {}}
       onInstall={() => {}}
+      onManageConflictApps={() => {}}
       onManageProfiles={() => {}}
       onNavigateAccount={() => {}}
       isWindowsApp
@@ -153,6 +154,7 @@ function renderTopBarWithSettingsAction(
         onNavigateTools={() => {}}
         onOpenUpdate={() => {}}
         onInstall={() => {}}
+        onManageConflictApps={() => {}}
         onManageProfiles={() => {}}
         onNavigateAccount={() => {}}
         isWindowsApp

@@ -20,6 +20,9 @@ export function useWindowDragRegion(): { onMouseDown?: (e: ReactMouseEvent) => v
   return {
     onMouseDown: (e: ReactMouseEvent) => {
       if (e.button !== 0) return;
+      // React bubbles events from portaled overlays (modals opened from the
+      // bar) through here; only real DOM descendants are chrome.
+      if (!e.currentTarget.contains(e.target as Node)) return;
       // Clicks on interactive controls (and anything opting out) are not drags.
       if ((e.target as HTMLElement).closest(NO_DRAG_SELECTOR)) return;
       e.preventDefault();
