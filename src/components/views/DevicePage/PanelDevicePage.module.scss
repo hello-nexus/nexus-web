@@ -463,3 +463,10 @@
     flex-shrink: 0;
   }
 }
+
+// Widgets/Theme/Background tab body while the panel is set up as a
+// secondary monitor: read-only preview under the usbNotice above.
+.tabDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
