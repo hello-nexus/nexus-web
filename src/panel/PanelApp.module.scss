@@ -332,28 +332,6 @@
   animation: connectionIntroWidget 1040ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .connectionIntroBackdrop {
-    animation: none;
-    opacity: 0;
-  }
-
-  .connectionIntroTray {
-    animation: none;
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-
-  .cellEntrance,
-  .panelRoot[data-connection-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell),
-  .panelRoot[data-home-intro='active'] .cellWrap:not(.cellEditorDocked):not(.cellResizeMotion):not(.dragOverlayCell) {
-    animation: none;
-    opacity: 1;
-    filter: none;
-    transform: none;
-  }
-}
-
 // 4-column grid. `minmax(0, 1fr)` lets cells shrink below content width when
 // the viewport is narrower than 4 × cell-size + 3 × gap (Y70 portrait).
 .grid {

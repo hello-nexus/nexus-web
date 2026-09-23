@@ -64,10 +64,3 @@
   margin-top: 36px;
   animation: swipeHintLift var(--swipe-hint-cycle) cubic-bezier(0.32, 0.72, 0, 1) var(--swipe-hint-cycles);
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .chevron,
-  .hand {
-    animation: none;
-  }
-}

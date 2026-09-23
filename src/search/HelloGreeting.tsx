@@ -4,14 +4,6 @@ import styles from './HelloGreeting.module.scss';
 
 const TYPE_MS_PER_CHAR = 40;
 
-function usePrefersReducedMotion(): boolean {
-  const [reduced] = useState(() =>
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      : false);
-  return reduced;
-}
-
 /**
  * Renders a greeting string in the top search bar's resting title slot,
  * typed out one character at a time then left resting at baseline.
@@ -21,13 +13,12 @@ function usePrefersReducedMotion(): boolean {
 export function HelloGreeting({ textKey }: { textKey: string }) {
   const { t } = useTranslation();
   const text = t(textKey);
-  const reducedMotion = usePrefersReducedMotion();
   const chars = useMemo(() => Array.from(text), [text]);
 
-  const [typedCount, setTypedCount] = useState(reducedMotion ? chars.length : 0);
+  const [typedCount, setTypedCount] = useState(0);
 
   useEffect(() => {
-    if (reducedMotion || chars.length === 0) {
+    if (chars.length === 0) {
       setTypedCount(chars.length);
       return;
     }
@@ -43,13 +34,11 @@ export function HelloGreeting({ textKey }: { textKey: string }) {
     };
     timeoutId = window.setTimeout(tick, TYPE_MS_PER_CHAR);
     return () => { cancelled = true; window.clearTimeout(timeoutId); };
-  }, [chars.length, reducedMotion]);
-
-  const visibleCount = reducedMotion ? chars.length : typedCount;
+  }, [chars.length]);
 
   return (
     <h1 className={styles.greeting} aria-label={text}>
-      {chars.slice(0, visibleCount).join('')}
+      {chars.slice(0, typedCount).join('')}
     </h1>
   );
 }

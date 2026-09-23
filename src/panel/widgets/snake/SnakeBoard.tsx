@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { GRID_COLS, GRID_ROWS, type SnakeState } from './snakeLogic';
 import { useGameBoardScale } from '../games-shared/useGameBoardScale';
-import { appendCappedBurst, prefersReducedMotion, randomBurstStyle, BURST_TONES, type BurstParticle } from '../games-shared/particleBurst';
+import { appendCappedBurst, randomBurstStyle, BURST_TONES, type BurstParticle } from '../games-shared/particleBurst';
 import styles from './SnakeBoard.module.scss';
 
 // Tail segments fade toward this floor so a long snake stays legible instead
@@ -37,7 +37,7 @@ export function SnakeBoard({ state, boardLabel, onTouchStart, onTouchEnd, onMous
   useEffect(() => {
     const ate = state.score > prevScoreRef.current;
     prevScoreRef.current = state.score;
-    if (!ate || cellSize <= 0 || prefersReducedMotion()) return;
+    if (!ate || cellSize <= 0) return;
     const head = state.snake[0];
     const cx = head.x * cellSize + cellSize / 2;
     const cy = head.y * cellSize + cellSize / 2;

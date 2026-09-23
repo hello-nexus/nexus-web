@@ -578,7 +578,6 @@
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 
-  @media (prefers-reduced-motion: reduce) { animation: none; }
 }
 
 @keyframes siteFanSpin {
@@ -991,9 +990,4 @@
     transform: none;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
 }

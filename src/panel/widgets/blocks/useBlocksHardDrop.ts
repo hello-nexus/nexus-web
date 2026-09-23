@@ -2,10 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { computeFastFallStepMs, computeHardDropDistance, hardDrop, hasCollision, type BlocksRunState } from './blocksLogic';
 
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
 export interface BlocksHardDropControls {
   // True for the duration of the fast-fall animation; callers gate rotate,
   // move, and the gravity tick on this so no input lands mid-drop.
@@ -53,7 +49,7 @@ export function useBlocksHardDrop(
 
     const live = runStateRef.current;
     const distance = computeHardDropDistance(live.board, live.blocks, live.position);
-    if (distance <= 0 || prefersReducedMotion()) {
+    if (distance <= 0) {
       setRunState(prev => hardDrop(prev, randomFn));
       return;
     }

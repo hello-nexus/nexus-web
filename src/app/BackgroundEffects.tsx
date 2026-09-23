@@ -7,17 +7,12 @@ interface ActiveEffect {
   readonly effect: BackgroundEffect;
 }
 
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
 // Mounted once behind the dashboard; entries self-remove on animationend.
 export function BackgroundEffects() {
   const [active, setActive] = useState<readonly ActiveEffect[]>([]);
   const idRef = useRef(0);
 
   useEffect(() => subscribeBackgroundEffects(effect => {
-    if (prefersReducedMotion()) return;
     idRef.current += 1;
     setActive(prev => [...prev, { id: idRef.current, effect }]);
   }), []);

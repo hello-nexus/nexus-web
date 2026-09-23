@@ -67,13 +67,6 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pillAi.pillActive {
-    animation: none;
-    box-shadow: 0 0 0 3px var(--accent-soft), 0 0 14px 2px color-mix(in srgb, var(--accent-glow-shadow) 70%, transparent);
-  }
-}
-
 .glyph { flex-shrink: 0; color: var(--text-dim); }
 
 .title {
@@ -202,10 +195,6 @@
   40% { background: color-mix(in srgb, var(--accent) 42%, transparent); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rowFlash { animation: none; }
-}
-
 .rowIcon {
   flex-shrink: 0;
   width: 22px;
@@ -279,10 +268,6 @@
 
 .switchOn .switchKnob { transform: translateX(12px); }
 
-@media (prefers-reduced-motion: reduce) {
-  .switch, .switchKnob { transition: none; }
-}
-
 // Trailing action/navigation cue. Navigation (opens a page) sits muted; an
 // immediate action (applies now) is accent-tinted so it reads as "this changes
 // something." The focused row spells out the verb (Open / Apply).
@@ -311,10 +296,6 @@
 }
 
 .langGlyph { opacity: 0.85; }
-
-@media (prefers-reduced-motion: reduce) {
-  .dropdown { animation: none; }
-}
 
 // ── Assistant panel ──────────────────────────────────────────────────────────
 // Replaces the result list while a submitted query is loading/answered/errored.

@@ -4,7 +4,6 @@ import { useTranslation } from '../../lib/i18n';
 import { CurveGraph } from '../../panel/widgets/cooling/page/CurveEditor';
 import type { CurvePoint } from '../../api/cooling';
 import { useInViewport } from '../hooks/useInViewport';
-import { prefersReducedMotion } from '../hooks/useTickingHistory';
 import { DemoFrame } from '../components/DemoFrame';
 import styles from '../site.module.scss';
 
@@ -43,7 +42,7 @@ export function CoolingSection() {
 
   // A slow thermal wander (sine + jitter) stands in for a live CPU sensor.
   useEffect(() => {
-    if (!inView || prefersReducedMotion()) return;
+    if (!inView) return;
     let tick = 0;
     const id = setInterval(() => {
       tick += 1;

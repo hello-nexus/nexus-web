@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { appendCappedBurst, prefersReducedMotion, randomBurstStyle, BURST_TONES, type BurstParticle } from '../games-shared/particleBurst';
+import { appendCappedBurst, randomBurstStyle, BURST_TONES, type BurstParticle } from '../games-shared/particleBurst';
 import { type Board, type BlockCell, type ComboJuiceTier, type LandingPreview } from './blocksLogic';
 import styles from './BlocksBoard.module.scss';
 
@@ -48,7 +48,7 @@ export function BlocksBoard({
   useEffect(() => {
     const cleared = score > prevScoreRef.current;
     prevScoreRef.current = score;
-    if (!cleared || cellSize <= 0 || clearedRowIndices.length === 0 || prefersReducedMotion()) return;
+    if (!cleared || cellSize <= 0 || clearedRowIndices.length === 0) return;
 
     const burst: BurstParticle[] = [];
     for (const rowY of clearedRowIndices) {

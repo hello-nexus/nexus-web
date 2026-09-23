@@ -29,15 +29,10 @@ export function spawnDropRing(el: HTMLElement | null | undefined): void {
   s.willChange = 'transform, opacity';
   document.body.appendChild(ring);
 
-  // Reduced-motion: a plain fade, no expansion.
-  const reduce = typeof matchMedia === 'function'
-    && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const frames: Keyframe[] = reduce
-    ? [{ opacity: 0.85 }, { opacity: 0 }]
-    : [
-        { transform: 'scale(1)', opacity: 0.85 },
-        { transform: 'scale(1.16)', opacity: 0 },
-      ];
+  const frames: Keyframe[] = [
+    { transform: 'scale(1)', opacity: 0.85 },
+    { transform: 'scale(1.16)', opacity: 0 },
+  ];
   const anim = ring.animate(frames, { duration: 440, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' });
   const done = () => ring.remove();
   anim.onfinish = done;

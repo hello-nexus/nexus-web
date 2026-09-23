@@ -117,14 +117,3 @@
     transform: translate(var(--particle-dx, 0), var(--particle-dy, 0)) scale(0.3);
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .box[data-combo-tier] {
-    animation: none;
-  }
-
-  .particle {
-    animation: none;
-    opacity: 0;
-  }
-}
