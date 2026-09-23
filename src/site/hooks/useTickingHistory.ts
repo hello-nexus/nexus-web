@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PERF_HISTORY_SAMPLES } from '../../panel/widgets/common/panelHistoryConfig';
 
-export function prefersReducedMotion(): boolean {
-  return typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 // Same mean-reverting walk as MonitoringPreview's synthHistory (kept local:
 // that file's fixture shape is pinned by previewMode.test.tsx). The value
 // hovers around `base` with `swing` noise; `spike` adds sharp mostly-upward
@@ -37,8 +32,7 @@ export interface TickingSpec {
 /**
  * Animated mock telemetry for the marketing demos: pre-seeded history
  * buffers that shift one new sample in per tick while `active`. One shared
- * interval drives every series so the gauges move in lockstep. Frozen under
- * prefers-reduced-motion (the seeded buffers still render plausible traces).
+ * interval drives every series so the gauges move in lockstep.
  * The specs array's length is fixed at mount (buffers seed once); per-spec
  * values may change, but added or removed entries are ignored.
  */
@@ -56,7 +50,7 @@ export function useTickingHistories(
   specsRef.current = specs;
 
   useEffect(() => {
-    if (!active || prefersReducedMotion()) return;
+    if (!active) return;
     const id = setInterval(() => {
       setHistories(prev => prev.map((history, i) => {
         const s = specsRef.current[i];

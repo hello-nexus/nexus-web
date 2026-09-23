@@ -264,6 +264,7 @@
   "conflicts.modal.empty": "Er draaien momenteel geen conflicterende apps.",
   "conflicts.modal.endTask": "Taak beëindigen",
   "conflicts.modal.intro": "Deze apps kunnen met Nexus vechten om de controle over je verlichting, ventilatoren of randapparatuur. Beëindig de apps die je niet nodig hebt zodat Nexus ze zuiver kan aansturen.",
+  "conflicts.modal.manageApps": "Apps beheren",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.resolveAll": "Alle conflicten oplossen",
   "conflicts.modal.terminated": "Beëindigd",

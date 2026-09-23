@@ -63,6 +63,8 @@ interface TopBarProps {
   onOpenUpdate: () => void;
   // The update status button's action when an update is staged: start install.
   onInstall: () => void;
+  // Conflict modal's "Manage apps" target (Settings' Manage conflicting apps modal).
+  onManageConflictApps: () => void;
   // Profile dropdown's "Manage profiles" target (standalone Profiles page).
   onManageProfiles: () => void;
   // Profile dropdown's top account entry target (standalone Account page).
@@ -162,6 +164,7 @@ export function TopBar({
   onNavigateTools,
   onOpenUpdate,
   onInstall,
+  onManageConflictApps,
   onManageProfiles,
   onNavigateAccount,
   isWindowsApp,
@@ -298,7 +301,7 @@ export function TopBar({
             and update-available (green). Each hides itself when inactive.
             All hidden in Focus mode along with the rest of this cluster - only
             the window controls (below) survive it. */}
-        {!fullscreen && <ConflictStatusSlot serviceOnline={online} />}
+        {!fullscreen && <ConflictStatusSlot serviceOnline={online} onManageApps={onManageConflictApps} />}
         {!fullscreen && OFFICIAL_BUILD && <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />}
         {!fullscreen && (
           <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />

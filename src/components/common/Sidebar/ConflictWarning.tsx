@@ -1,4 +1,4 @@
-import { AlertTriangle, ShieldCheck, ShieldOff } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import type { DetectedConflict } from '../../../api/conflicts';
 import { Button } from '../Button/Button';
 import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
@@ -16,8 +16,6 @@ interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
   /** False while the detected-app snapshot is unresolved (service offline); the modal then holds its rows rather than reading the gap as apps exiting. */
   ready: boolean;
-  /** Pulse the badge to flag a conflicting app that just started running. */
-  pulsing: boolean;
   /** Whether conflict alerts are currently suppressed (the persisted setting). */
   suppressed: boolean;
   open: boolean;
@@ -29,6 +27,8 @@ interface ConflictWarningProps {
    * badge stays purely presentational.
    */
   onSuppressedChange: (suppressed: boolean) => void;
+  /** Open Settings' Manage conflicting applications modal. */
+  onManageApps: () => void;
 }
 
 /**
@@ -40,7 +40,7 @@ interface ConflictWarningProps {
  * listed as terminated, and the "all clear" state shows only for a modal
  * opened with nothing detected.
  */
-export function ConflictWarningBadge({ conflicts, ready, pulsing, suppressed, open, onOpenChange, onSuppressedChange }: ConflictWarningProps) {
+export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange, onSuppressedChange, onManageApps }: ConflictWarningProps) {
   const { t } = useTranslation();
   const count = conflicts.length;
   const showButton = count > 0 && !suppressed;
@@ -53,7 +53,7 @@ export function ConflictWarningBadge({ conflicts, ready, pulsing, suppressed, op
       {showButton && (
         <TopBarStatusButton
           tone="warn"
-          pulsing={pulsing}
+          pulsing
           icon={<AlertTriangle size={16} />}
           label={t('conflicts.badge.text')}
           onClick={() => onOpenChange(true)}
@@ -66,6 +66,7 @@ export function ConflictWarningBadge({ conflicts, ready, pulsing, suppressed, op
         suppressed={suppressed}
         onClose={() => onOpenChange(false)}
         onSuppressedChange={onSuppressedChange}
+        onManageApps={() => { onOpenChange(false); onManageApps(); }}
       />
     </>
   );
@@ -78,10 +79,11 @@ interface ConflictWarningModalProps {
   suppressed: boolean;
   onClose: () => void;
   onSuppressedChange: (suppressed: boolean) => void;
+  onManageApps: () => void;
 }
 
 export function ConflictWarningModal({
-  open, conflicts, ready, suppressed, onClose, onSuppressedChange,
+  open, conflicts, ready, suppressed, onClose, onSuppressedChange, onManageApps,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
   // Rows are sticky for as long as the modal stays open: an app ended from
@@ -128,8 +130,11 @@ export function ConflictWarningModal({
           <ConflictAllClear />
         )}
 
-        {hasConflicts && (
-          <div className={styles.resolveRow}>
+        <div className={styles.actionRow}>
+          <Button tone="neutral" size="sm" icon={<SlidersHorizontal />} onClick={onManageApps}>
+            {t('conflicts.modal.manageApps')}
+          </Button>
+          {hasConflicts && (
             <Button
               tone="neutral"
               size="sm"
@@ -141,8 +146,8 @@ export function ConflictWarningModal({
             >
               {t('conflicts.modal.resolveAll')}
             </Button>
-          </div>
-        )}
+          )}
+        </div>
 
         <label className={styles.dismissRow}>
           <input
@@ -150,10 +155,7 @@ export function ConflictWarningModal({
             checked={suppressed}
             onChange={() => onSuppressedChange(!suppressed)}
           />
-          <span className={styles.dismissText}>
-            <ShieldOff size={14} className={styles.dismissIcon} />
-            {t('conflicts.modal.dontShowAgain')}
-          </span>
+          <span>{t('conflicts.modal.dontShowAgain')}</span>
         </label>
       </div>
     </DeviceModal>

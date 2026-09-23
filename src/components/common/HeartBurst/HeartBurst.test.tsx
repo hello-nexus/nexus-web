@@ -1,19 +1,8 @@
 import { render, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { HeartBurst, useHeartBurstTrigger } from './HeartBurst';
 
 describe('HeartBurst', () => {
-  // The suite-wide matchMedia stub (setup.ts) answers `matches: true` for any
-  // non-"light" query, so prefers-reduced-motion would suppress the burst.
-  const stubbedMatchMedia = window.matchMedia;
-  beforeEach(() => {
-    window.matchMedia = (query: string) =>
-      ({ ...stubbedMatchMedia(query), matches: false }) as MediaQueryList;
-  });
-  afterEach(() => {
-    window.matchMedia = stubbedMatchMedia;
-  });
-
   it('renders no hearts before a burst', () => {
     render(<HeartBurst burstKey={0} />);
     expect(document.body.querySelectorAll('svg')).toHaveLength(0);

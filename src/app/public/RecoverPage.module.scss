@@ -49,10 +49,6 @@
 // vanishing under the cursor.
 .codeFieldWrong {
   animation: code-wrong var(--ease-slow) ease-in-out;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
 }
 
 @keyframes code-wrong {
@@ -91,14 +87,6 @@
   stroke-dasharray: 36;
   stroke-dashoffset: 36;
   animation: check-mark var(--ease) var(--ease-slow) ease-out forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .checkCircle,
-  .checkMark {
-    animation: none;
-    stroke-dashoffset: 0;
-  }
 }
 
 @keyframes check-circle {

@@ -721,14 +721,6 @@
   to   { opacity: 0; }
 }
 
-// Reduced motion: reveal instantly - no lingering white overlay.
-@media (prefers-reduced-motion: reduce) {
-  .phonePairReveal {
-    animation: none;
-    opacity: 0;
-  }
-}
-
 .phonePairLoading {
   @include text-button;
   color: var(--text);

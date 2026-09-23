@@ -157,10 +157,3 @@
   from { transform: translateY(0);    opacity: 1; }
   to   { transform: translateY(100%); opacity: 0; }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .overlay { animation: none; }
-  .overlay[data-state='exiting'] { animation: none; opacity: 0; }
-  // Idle fade still applies, but as an instant swap rather than an animated one.
-  .exitHint { transition: none; }
-}

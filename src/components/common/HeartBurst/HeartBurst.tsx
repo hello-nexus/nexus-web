@@ -9,10 +9,6 @@ interface Heart {
 
 const HEART_COUNT = 16;
 
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
 function randomHeartStyle(): CSSProperties {
   const dx = (Math.random() - 0.5) * 140; // px, final horizontal drift
   const dy = -(90 + Math.random() * 90); // px, always upward
@@ -58,7 +54,7 @@ export function HeartBurst({ burstKey, originTop = 0 }: { burstKey: number; orig
   useEffect(() => {
     const rose = burstKey > 0 && burstKey !== prevKeyRef.current;
     prevKeyRef.current = burstKey;
-    if (!rose || prefersReducedMotion()) return;
+    if (!rose) return;
     const origin = anchorRef.current?.getBoundingClientRect();
     if (!origin) return;
     const next: Heart[] = Array.from({ length: HEART_COUNT }, () => {

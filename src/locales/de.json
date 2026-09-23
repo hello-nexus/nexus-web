@@ -264,6 +264,7 @@
   "conflicts.modal.empty": "Es laufen derzeit keine konfliktverursachenden Apps.",
   "conflicts.modal.endTask": "Task beenden",
   "conflicts.modal.intro": "Diese Apps können mit Nexus um die Kontrolle über deine Beleuchtung, Lüfter oder Peripherie konkurrieren. Beende die, die du nicht brauchst, damit Nexus sie sauber steuern kann.",
+  "conflicts.modal.manageApps": "Apps verwalten",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.resolveAll": "Alle Konflikte beheben",
   "conflicts.modal.terminated": "Beendet",

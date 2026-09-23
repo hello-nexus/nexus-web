@@ -264,6 +264,7 @@
   "conflicts.modal.empty": "Şu anda çakışan uygulama çalışmıyor.",
   "conflicts.modal.endTask": "Görevi sonlandır",
   "conflicts.modal.intro": "Bu uygulamalar aydınlatmanızın, fanlarınızın veya çevre birimlerinizin kontrolü için Nexus ile çekişebilir. Nexus'un bunları sorunsuz yönetebilmesi için ihtiyaç duymadıklarınızı sonlandırın.",
+  "conflicts.modal.manageApps": "Uygulamaları yönet",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.resolveAll": "Tüm çakışmaları çöz",
   "conflicts.modal.terminated": "Sonlandırıldı",

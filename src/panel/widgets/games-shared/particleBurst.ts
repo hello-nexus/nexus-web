@@ -8,10 +8,6 @@ export interface BurstParticle {
 /** Alternating tones for a burst's particles, shared by every panel game's capture/clear effect. */
 export const BURST_TONES = ['var(--accent)', 'var(--accent-glow)'];
 
-export function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
 /**
  * A randomized outward-flight style for a capture/clear burst particle: an
  * angle, a distance scaled off the board's cell size, and a duration, exposed

@@ -264,6 +264,7 @@
   "conflicts.modal.empty": "目前沒有正在執行的衝突應用程式。",
   "conflicts.modal.endTask": "結束工作",
   "conflicts.modal.intro": "這些應用程式可能會與 Nexus 爭奪燈效、風扇或周邊裝置的控制權。請結束你不需要的應用程式，讓 Nexus 能順暢地控制它們。",
+  "conflicts.modal.manageApps": "管理應用程式",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.resolveAll": "解決所有衝突",
   "conflicts.modal.terminated": "已結束",

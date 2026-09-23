@@ -131,13 +131,6 @@
   to   { opacity: 1; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .simpleMax[data-spinning='true'] {
-    animation-name: maxFadeIn;
-    animation-duration: var(--ease);
-  }
-}
-
 // Preset-change feedback: coast-to-stop spin scaled to the chosen level -
 // one turn per rung, +0.5s per rung. Custom/off (no level) gets the 1-turn
 // baseline.

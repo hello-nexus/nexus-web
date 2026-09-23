@@ -2,6 +2,7 @@
 // footprint of the bar's other icon buttons but stays coloured at rest to flag
 // an active state (conflict / update), washing its tone on hover.
 .button {
+  position: relative;
   display: grid;
   place-items: center;
   width: 32px;
@@ -35,30 +36,27 @@
   }
 }
 
-// Attention flash: a single expanding ping ring in the button's tone
-// (currentColor), played once when the flagged state just changed.
-.pulsing {
-  animation: topbar-status-pulse 1s ease-out;
+// Attention pulse: a repeating ring in the button's tone. Opacity and scale
+// animate on a pseudo-element because Chromium steps color-mix(currentColor)
+// box-shadow keyframes discretely, which never shows a ring.
+.pulsing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 2px currentColor;
+  pointer-events: none;
+  animation: topbar-status-pulse 1.6s ease-out infinite;
 }
 
 @keyframes topbar-status-pulse {
   0% {
-    background: color-mix(in srgb, currentColor 20%, transparent);
-    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+    opacity: 0.7;
+    transform: scale(1);
   }
-  70% {
-    background: transparent;
-    box-shadow: 0 0 0 7px color-mix(in srgb, currentColor 0%, transparent);
-  }
+  70%,
   100% {
-    background: transparent;
-    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 0%, transparent);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulsing {
-    animation: none;
-    background: color-mix(in srgb, currentColor 20%, transparent);
+    opacity: 0;
+    transform: scale(1.45);
   }
 }

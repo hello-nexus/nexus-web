@@ -3,17 +3,6 @@ import { renderHook, act } from '@testing-library/react';
 import { useTickingHistories } from './useTickingHistory';
 import { PERF_HISTORY_SAMPLES } from '../../panel/widgets/common/panelHistoryConfig';
 
-function allowMotion() {
-  // The shared setup stubs matchMedia to `matches: true` for non-light
-  // queries, which reads as prefers-reduced-motion and freezes the ticker.
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: false,
-    media: query,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-  }));
-}
-
 const SPECS = [
   { base: 50, swing: 10 },
   { base: 70, swing: 5, spike: 0.2 },
@@ -22,11 +11,9 @@ const SPECS = [
 describe('useTickingHistories', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    allowMotion();
   });
   afterEach(() => {
     vi.useRealTimers();
-    vi.unstubAllGlobals();
   });
 
   it('seeds a full clamped history buffer per spec', () => {

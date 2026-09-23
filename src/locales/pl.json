@@ -264,6 +264,7 @@
   "conflicts.modal.empty": "Żadne aplikacje powodujące konflikty nie są obecnie uruchomione.",
   "conflicts.modal.endTask": "Zakończ zadanie",
   "conflicts.modal.intro": "Te aplikacje mogą rywalizować z Nexusem o kontrolę nad podświetleniem, wentylatorami lub urządzeniami peryferyjnymi. Zakończ te, których nie potrzebujesz, aby Nexus mógł nimi sterować bez zakłóceń.",
+  "conflicts.modal.manageApps": "Zarządzaj aplikacjami",
   "conflicts.modal.pid": "PID {pid}",
   "conflicts.modal.resolveAll": "Rozwiąż wszystkie konflikty",
   "conflicts.modal.terminated": "Zakończono",

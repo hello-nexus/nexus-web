@@ -4,8 +4,7 @@ import { I18nProvider } from '../lib/i18n';
 import { SiteApp } from './SiteApp';
 
 // jsdom has no WebGL2 (shader canvases fall back to the gradient panel) and
-// no IntersectionObserver (useInViewport reports visible); the reduced-motion
-// stub in setup.ts keeps every ticker frozen. The page must still mount all
+// no IntersectionObserver (useInViewport reports visible). The page must still mount all
 // sections when its one network call, the graceful download-manifest fetch,
 // is rejected.
 describe('SiteApp', () => {

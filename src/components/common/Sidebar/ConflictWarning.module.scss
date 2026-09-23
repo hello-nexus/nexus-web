@@ -27,9 +27,10 @@
   gap: 0.5rem;
 }
 
-.resolveRow {
+.actionRow {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .dismissRow {
@@ -48,17 +49,6 @@
     cursor: pointer;
     margin: 0;
   }
-}
-
-.dismissText {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.dismissIcon {
-  flex-shrink: 0;
-  opacity: 0.7;
 }
 
 .warnIcon {

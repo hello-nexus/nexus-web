@@ -36,18 +36,11 @@ function useHarness(initial: BlocksRunState, paused: boolean) {
 }
 
 describe('useBlocksHardDrop', () => {
-  // The suite-wide matchMedia stub (setup.ts) answers `matches: true` for any
-  // non-"light" query, so prefers-reduced-motion would suppress the
-  // fast-fall animation in every test unless overridden here.
-  const stubbedMatchMedia = window.matchMedia;
   beforeEach(() => {
     vi.useFakeTimers();
-    window.matchMedia = (query: string) =>
-      ({ ...stubbedMatchMedia(query), matches: false }) as MediaQueryList;
   });
   afterEach(() => {
     vi.useRealTimers();
-    window.matchMedia = stubbedMatchMedia;
   });
 
   it('steps the falling piece down one row at a time toward the landing row', () => {
@@ -222,18 +215,5 @@ describe('useBlocksHardDrop', () => {
     // The I piece's own row sits directly on top of the nubs.
     expect(result.current.runState.board[BOARD_HEIGHT - 2].slice(0, 4))
       .toEqual(['cyan', 'cyan', 'cyan', 'cyan']);
-  });
-
-  it('respects reduced motion by dropping instantly with no intermediate steps', () => {
-    window.matchMedia = (query: string) =>
-      ({ ...stubbedMatchMedia(query), matches: true }) as MediaQueryList;
-
-    const initial = stateAtSpawn();
-    const { result } = renderHook(() => useHarness(initial, false));
-
-    act(() => result.current.triggerHardDrop());
-    expect(result.current.dropping).toBe(false);
-    expect(result.current.runState.position).toEqual(SPAWN_POSITION);
-    expect(result.current.runState.board).not.toBe(initial.board);
   });
 });
