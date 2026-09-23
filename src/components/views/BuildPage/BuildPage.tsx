@@ -21,6 +21,9 @@ const BYTES_PER_GIB = 1024 ** 3;
 // granted - no allow-top-navigation, no allow-popups, so the only way out of
 // the frame is the open-external message.
 const IFRAME_SANDBOX = 'allow-scripts allow-same-origin allow-forms';
+// The async clipboard API is denied to a cross-origin frame unless the parent
+// delegates clipboard-write; the portal's Share Build copies a permalink.
+const IFRAME_ALLOW = 'clipboard-write';
 
 interface BuildMachine {
   processor?: string;
@@ -311,7 +314,7 @@ export function BuildPage({ path }: BuildPageProps) {
             src={`${BUILD_ORIGIN}${frameSrcPath}`}
             className={styles.frame}
             title={t('panel.widget.build')}
-            allow=""
+            allow={IFRAME_ALLOW}
             sandbox={IFRAME_SANDBOX}
             referrerPolicy="strict-origin-when-cross-origin"
             loading="eager"
