@@ -76,13 +76,14 @@
 }
 
 .thRank { width: 6rem; }
-.thScore { width: 5rem; }
+.thScore { width: 5rem; text-align: right; }
 .thHardware { }
 .thDate { width: 7rem; }
 .thExpand { width: 2rem; }
 
 .row {
   border-bottom: 1px solid var(--separator);
+  border-left: 2px solid transparent;
   cursor: pointer;
   transition: background 0.1s ease;
 
@@ -91,9 +92,10 @@
 }
 
 .rowOwn {
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
 
-  &:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  &:hover { background: var(--accent-soft); }
 }
 
 .table td {
@@ -129,6 +131,7 @@
   font-size: var(--type-body);
   font-weight: var(--weight-heading);
   color: var(--accent-glow);
+  text-align: right;
 }
 
 .tdHardware { }

@@ -34,12 +34,12 @@ const SPEC_BLOCKS: Array<{
   labelKey: string;
   get: (s: SystemSpecs) => string;
 }> = [
-  { key: 'cpu', icon: <Cpu size={28} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
-  { key: 'gpu', icon: <Monitor size={28} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
-  { key: 'mobo', icon: <CircuitBoard size={28} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
-  { key: 'ram', icon: <MemoryStick size={28} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
-  { key: 'storage', icon: <HardDrive size={28} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
-  { key: 'os', icon: <AppWindow size={28} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
+  { key: 'cpu', icon: <Cpu size={18} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
+  { key: 'gpu', icon: <Monitor size={18} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
+  { key: 'mobo', icon: <CircuitBoard size={18} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
+  { key: 'ram', icon: <MemoryStick size={18} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
+  { key: 'storage', icon: <HardDrive size={18} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
+  { key: 'os', icon: <AppWindow size={18} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
 ];
 
 interface BenchmarkPageProps {

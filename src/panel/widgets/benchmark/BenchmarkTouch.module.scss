@@ -1,0 +1,51 @@
+@use '../../styles/flexGap' as *;
+
+.cell {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  @include vgap(1rem);
+}
+
+.cellScroll {
+  composes: cell;
+  overflow-y: auto;
+}
+
+.cellCompact {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  @include vgap(0.5rem);
+}
+
+.cellStart {
+  composes: cell;
+  align-items: flex-start;
+}
+
+.starting {
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.failedText {
+  color: var(--bad);
+  font-size: var(--type-small);
+}
+
+.cancelledText {
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+.idleComposite {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.idleCompositeValue {
+  color: var(--accent-glow);
+  font-family: var(--font-mono);
+}
