@@ -41,6 +41,9 @@ export interface PanelDeviceCapabilitiesDto {
   // The panel's backlight is host-settable, so the settings tab offers the
   // brightness control. Absent on every surface that cannot dim.
   supportsBrightness?: boolean;
+  // This panel's driver can drive it as a Windows secondary monitor.
+  // Absent/false hides the setting entirely.
+  supportsSecondaryMonitor?: boolean;
 }
 
 export interface PanelGaugeGradientStopDto {
@@ -121,6 +124,13 @@ export interface PanelDeviceRecord {
   // Kraken LCD, a D213 board). Such a panel has neither a curated device nor a
   // display behind it, so nothing else marks it as present.
   streamed?: boolean | null;
+  // Streamed panels whose driver supports it: the service creates a Windows
+  // virtual monitor and streams the desktop instead of Nexus content. Absent/
+  // null = off; Nexus widgets/theme/background have no effect while on.
+  secondaryMonitor?: boolean | null;
+  // Response-only, route-computed, never persisted: absent/null when
+  // secondaryMonitor is off or the panel is not streaming.
+  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'failed' | null;
 }
 
 export interface PanelDevicePatch {
@@ -165,6 +175,8 @@ export interface PanelDevicePatch {
   mirror?: boolean;
   // Dimmable cooler LCDs only; ignored for other panels.
   lcdBrightness?: number;
+  // Streamed panels whose driver supports it only; ignored for other panels.
+  secondaryMonitor?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 

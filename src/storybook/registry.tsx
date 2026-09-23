@@ -2,11 +2,12 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause, Pointer, Power } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause, Pointer, Power, Cpu, Gauge, MemoryStick } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
+import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
 import { StatTile } from '../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
@@ -1185,11 +1186,26 @@ function PreviewToggleOff() {
 
 function PreviewEmptyState() {
   return (
-    <EmptyState
-      icon={<Monitor strokeWidth={1.4} />}
-      title="No displays detected"
-      hint="Plug in a DDC/CI capable monitor to control brightness from here."
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <EmptyState
+        icon={<Monitor strokeWidth={1.4} />}
+        title="No displays detected"
+        hint="Plug in a DDC/CI capable monitor to control brightness from here."
+      />
+      <EmptyState
+        hero
+        icon={<Gauge />}
+        title="See how your PC scores"
+        hint="A benchmark runs real workloads on your CPU, GPU, RAM and storage in about 40 seconds."
+        points={[
+          { icon: <Cpu />, text: 'CPU' },
+          { icon: <Monitor />, text: 'GPU' },
+          { icon: <MemoryStick />, text: 'RAM' },
+          { icon: <HardDrive />, text: 'Storage' },
+        ]}
+        action={<Button tone="accent">Start benchmark</Button>}
+      />
+    </div>
   );
 }
 
@@ -1701,6 +1717,14 @@ function PreviewBrand() {
     <div className={styles.previewRow}>
       <NexusMark size={40} />
       <NexusWordmark height={22} />
+    </div>
+  );
+}
+
+function PreviewDomainGlyph() {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', isolation: 'isolate', height: 120, background: 'var(--surface)', borderRadius: 'var(--radius-lg)' }}>
+      <DomainGlyph icon={HardDrive} />
     </div>
   );
 }
@@ -2333,6 +2357,11 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids); `fillHeight` fills the parent height and scrolls the body on its own instead of content-sizing (an inline detail sidebar); `selected` is the rail selected-item treatment (accent border + accent-soft fill, the lighting / cooling device cards); `role`/`ariaLabel` name the root as a landmark.', Preview: PreviewCard,
   },
   {
+    name: 'DomainGlyph', category: 'cards',
+    filePath: 'src/components/common/DomainGlyph/DomainGlyph.tsx',
+    description: 'Large faint icon silhouette bled off a card edge, behind its content. Pass any LucideIcon; size defaults to 136. The host card supplies position: relative; overflow: hidden; isolation: isolate so the glyph paints above the card surface but beneath its text.', Preview: PreviewDomainGlyph,
+  },
+  {
     name: 'SensorCard', category: 'cards',
     filePath: 'src/components/common/SensorCard/SensorCard.tsx',
     description: 'Sensor display: title + optional subtitle + name/value rows. Composes Card for the chrome.', Preview: PreviewSensorCard,
@@ -2702,7 +2731,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EmptyState', category: 'status',
     filePath: 'src/components/common/EmptyState/EmptyState.tsx',
-    description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts.', Preview: PreviewEmptyState,
+    description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts. Pass `hero` (+ optional `points`) for a page that opens with nothing to show: the feature intro with a haloed icon, heading, what-it-does points and one next step.', Preview: PreviewEmptyState,
   },
   {
     name: 'DesktopOnlyBadge', category: 'status',

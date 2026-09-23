@@ -1,3 +1,4 @@
+import { Cpu, MemoryStick, HardDrive, Monitor, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import type { BenchmarkProgressFrame } from '../../../types/benchmark';
 import styles from './BenchmarkPage.module.scss';
@@ -6,11 +7,11 @@ interface Props {
   progress: BenchmarkProgressFrame;
 }
 
-const PHASES: Array<{ key: string; labelKey: string }> = [
-  { key: 'cpu', labelKey: 'benchmark.phase.cpu' },
-  { key: 'ram', labelKey: 'benchmark.phase.ram' },
-  { key: 'storage', labelKey: 'benchmark.phase.storage' },
-  { key: 'gpu', labelKey: 'benchmark.phase.gpu' },
+const PHASES: Array<{ key: string; labelKey: string; icon: LucideIcon }> = [
+  { key: 'cpu', labelKey: 'benchmark.phase.cpu', icon: Cpu },
+  { key: 'ram', labelKey: 'benchmark.phase.ram', icon: MemoryStick },
+  { key: 'storage', labelKey: 'benchmark.phase.storage', icon: HardDrive },
+  { key: 'gpu', labelKey: 'benchmark.phase.gpu', icon: Monitor },
 ];
 
 export function BenchmarkProgress({ progress }: Props) {
@@ -39,7 +40,10 @@ export function BenchmarkProgress({ progress }: Props) {
           const pct = state === 'done' ? 100 : state === 'active' ? Math.round((progress.phase.percent ?? 0) * 100) : 0;
           return (
             <li key={p.key} className={`${styles.phase} ${styles[`phase_${state}`]}`}>
-              <div className={styles.phaseLabel}>{t(p.labelKey)}</div>
+              <div className={styles.phaseLabel}>
+                <p.icon size={14} className={styles.phaseIcon} aria-hidden="true" />
+                {t(p.labelKey)}
+              </div>
               <div className={styles.phaseBar}>
                 <div className={styles.phaseFill} style={{ width: `${pct}%` }} />
               </div>

@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { Badge } from '../../common/Badge/Badge';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { Card } from '../../common/Card/Card';
+import { DomainGlyph } from '../../common/DomainGlyph/DomainGlyph';
 import type { DiagnosticsComponent, DiagnosticsKind } from '../../../api/diagnostics';
 import { aggregateDomainTiles, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
@@ -47,7 +48,7 @@ export function ComponentHealthGrid({ components, onNavigate }: ComponentHealthG
             actions={<Badge label={t(statusLabelKey(tile.status))} color={statusColor(tile.status)} />}
             onClick={() => onNavigate(tile.domain)}
           >
-            {Icon && <Icon className={styles.healthWatermark} size={136} strokeWidth={1.5} aria-hidden="true" />}
+            {Icon && <DomainGlyph icon={Icon} />}
             {tile.reasons.length > 0 && (
               <ul className={styles.reasonList}>
                 {tile.reasons.map((reason, i) => (

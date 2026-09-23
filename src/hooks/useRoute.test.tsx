@@ -102,4 +102,26 @@ describe('useRoute', () => {
     expect(result.current.view).toBe('store');
     expect(result.current.subtab).toBe('com.hellonexus.aquarium');
   });
+
+  it('round-trips a URL-encoded Build portal path through navigate and a reload', () => {
+    // buildNav.requestOpenBuild encodes the whole "/upgrade?bench=..." path
+    // into one segment before it ever reaches navigate() - a slash or query
+    // character inside it must survive a reload (parsePath re-deriving the
+    // route from window.location alone) intact and undecoded.
+    const original = '/upgrade?bench=abc&game=steam:730';
+    const encoded = encodeURIComponent(original);
+    const { result } = renderHook(() => useRoute());
+
+    act(() => result.current.navigate('system', 'build', encoded));
+
+    expect(window.location.pathname).toBe(`/system/build/${encoded}`);
+    expect(result.current.subtab).toBe(encoded);
+
+    // Simulate a reload: a fresh hook instance re-derives the route from the
+    // URL alone (parsePath), never from in-memory Route state.
+    const { result: reloaded } = renderHook(() => useRoute());
+    expect(reloaded.current.view).toBe('build');
+    expect(reloaded.current.subtab).toBe(encoded);
+    expect(decodeURIComponent(reloaded.current.subtab!)).toBe(original);
+  });
 });
