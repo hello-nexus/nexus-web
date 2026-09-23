@@ -564,6 +564,7 @@
   "devices.lcd.secondaryMonitorFailed": "O Windows não conseguiu criar o monitor. Desative e ative a definição novamente, ou verifique o registo do serviço Nexus.",
   "devices.lcd.secondaryMonitorHint": "O Windows estende o ambiente de trabalho para este ecrã. Os widgets, temas e fundos do Nexus ficam desativados enquanto isto estiver ativo.",
   "devices.lcd.secondaryMonitorNotice": "Este ecrã está configurado como monitor secundário, pelo que os widgets, temas e fundos do Nexus estão desativados. Desative \"Utilizar como monitor secundário\" nas Definições para voltar a usá-los.",
+  "devices.lcd.secondaryMonitorPreview": "Este ecrã está a ser utilizado como monitor secundário.",
   "devices.lcd.secondaryMonitorSection": "Monitor secundário",
   "devices.lcd.secondaryMonitorStarting": "A iniciar o monitor",
   "devices.lianli-aio.fan": "Ventoinha",

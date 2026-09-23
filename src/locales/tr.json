@@ -564,6 +564,7 @@
   "devices.lcd.secondaryMonitorFailed": "Windows monitörü oluşturamadı. Ayarı kapatıp tekrar açın veya Nexus hizmet günlüğünü kontrol edin.",
   "devices.lcd.secondaryMonitorHint": "Windows masaüstünü bu ekrana genişletir. Bu açıkken Nexus widget'ları, temaları ve arka planları devre dışı kalır.",
   "devices.lcd.secondaryMonitorNotice": "Bu ekran ikincil monitör olarak ayarlandığından Nexus widget'ları, temaları ve arka planları devre dışı. Tekrar kullanmak için Ayarlar'da \"İkincil monitör olarak kullan\" seçeneğini kapatın.",
+  "devices.lcd.secondaryMonitorPreview": "Bu ekran ikincil monitör olarak kullanılıyor.",
   "devices.lcd.secondaryMonitorSection": "İkincil monitör",
   "devices.lcd.secondaryMonitorStarting": "Monitör başlatılıyor",
   "devices.lianli-aio.fan": "Fan",

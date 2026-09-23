@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper, TvMinimal } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -1155,10 +1155,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
-        // Only where there is a panel to capture: the firmware-gate and
-        // disconnected states render an EmptyState with no embed frame, so the
-        // button could do nothing but report an error.
-        tabActions={showFwGate || showDisconnected ? undefined : (
+        // Only where there is a panel to capture: the firmware-gate,
+        // disconnected and secondary-monitor states render no embed frame, so
+        // the button could do nothing but report an error.
+        tabActions={showFwGate || showDisconnected || recordSecondaryMonitor ? undefined : (
           <>
             <Button
               size="sm"
@@ -1656,6 +1656,19 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
           <div className={styles.previewPane} data-surface={surface}>
             <div className={styles.previewStage}>
+              {recordSecondaryMonitor ? (
+                <div className={styles.secondaryMonitorPreview}>
+                  <TvMinimal size={40} strokeWidth={1.5} aria-hidden />
+                  <p>
+                    {recordSecondaryMonitorState === 'driver-missing'
+                      ? t('devices.lcd.secondaryMonitorDriverMissing')
+                      : recordSecondaryMonitorState === 'failed'
+                        ? t('devices.lcd.secondaryMonitorFailed')
+                        : t('devices.lcd.secondaryMonitorPreview')}
+                  </p>
+                </div>
+              ) : (
+              <>
               {showPageArrows && (
                 <PanelArrowButton
                   side="prev"
@@ -1703,6 +1716,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 displayBound={!!device?.displayId}
               />
+              </>
+              )}
             </div>
           </div>
         </div>

@@ -470,3 +470,19 @@
   opacity: 0.5;
   pointer-events: none;
 }
+
+.secondaryMonitorPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 320px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--type-body);
+
+  p {
+    margin: 0;
+  }
+}

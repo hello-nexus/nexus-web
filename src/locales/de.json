@@ -564,6 +564,7 @@
   "devices.lcd.secondaryMonitorFailed": "Windows konnte den Bildschirm nicht erstellen. Schalten Sie die Einstellung aus und wieder ein, oder prüfen Sie das Nexus-Dienstprotokoll.",
   "devices.lcd.secondaryMonitorHint": "Windows erweitert den Desktop auf diesen Bildschirm. Nexus-Widgets, Designs und Hintergründe sind währenddessen deaktiviert.",
   "devices.lcd.secondaryMonitorNotice": "Dieser Bildschirm ist als zweiter Bildschirm eingerichtet, daher sind Nexus-Widgets, Designs und Hintergründe deaktiviert. Deaktivieren Sie \"Als zweiten Bildschirm verwenden\" in den Einstellungen, um sie wieder zu nutzen.",
+  "devices.lcd.secondaryMonitorPreview": "Dieser Bildschirm wird als zweiter Bildschirm verwendet.",
   "devices.lcd.secondaryMonitorSection": "Zweiter Bildschirm",
   "devices.lcd.secondaryMonitorStarting": "Bildschirm wird gestartet",
   "devices.lianli-aio.fan": "Lüfter",

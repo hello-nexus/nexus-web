@@ -564,6 +564,7 @@
   "devices.lcd.secondaryMonitorFailed": "Windows がモニターを作成できませんでした。設定をオフにしてから再度オンにするか、Nexus サービスのログを確認してください。",
   "devices.lcd.secondaryMonitorHint": "Windows がデスクトップをこの画面に拡張します。オンの間、Nexus のウィジェット、テーマ、背景は無効になります。",
   "devices.lcd.secondaryMonitorNotice": "この画面はセカンドモニターとして設定されているため、Nexus のウィジェット、テーマ、背景は無効になっています。再度使用するには、設定で「セカンドモニターとして使用」をオフにしてください。",
+  "devices.lcd.secondaryMonitorPreview": "この画面はセカンドモニターとして使用中です。",
   "devices.lcd.secondaryMonitorSection": "セカンドモニター",
   "devices.lcd.secondaryMonitorStarting": "モニターを起動しています",
   "devices.lianli-aio.fan": "ファン",

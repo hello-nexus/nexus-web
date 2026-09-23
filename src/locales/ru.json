@@ -571,6 +571,7 @@
   "devices.lcd.secondaryMonitorFailed": "Windows не удалось создать монитор. Выключите и снова включите этот параметр или проверьте журнал службы Nexus.",
   "devices.lcd.secondaryMonitorHint": "Windows расширяет рабочий стол на этот экран. Пока эта функция включена, виджеты, темы и фоны Nexus не работают.",
   "devices.lcd.secondaryMonitorNotice": "Этот экран настроен как второй монитор, поэтому виджеты, темы и фоны Nexus отключены. Отключите \"Использовать как второй монитор\" в настройках, чтобы снова их использовать.",
+  "devices.lcd.secondaryMonitorPreview": "Этот экран используется как второй монитор.",
   "devices.lcd.secondaryMonitorSection": "Второй монитор",
   "devices.lcd.secondaryMonitorStarting": "Запуск монитора",
   "devices.lianli-aio.fan": "Вентилятор",

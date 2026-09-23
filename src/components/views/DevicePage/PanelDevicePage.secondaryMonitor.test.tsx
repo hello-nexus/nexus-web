@@ -158,7 +158,8 @@ describe('PanelDevicePage secondary monitor', () => {
     render(<PanelDevicePage device={DEVICE} />);
     await openSettingsTab();
 
-    expect(await screen.findByText('devices.lcd.secondaryMonitorDriverMissing')).toBeInTheDocument();
+    // Once in the Settings row, once in the preview.
+    expect(await screen.findAllByText('devices.lcd.secondaryMonitorDriverMissing')).toHaveLength(2);
   });
 
   it('disables the Widgets tab body and shows the notice while it is on', async () => {
@@ -170,5 +171,29 @@ describe('PanelDevicePage secondary monitor', () => {
     expect(await screen.findByText('devices.lcd.secondaryMonitorNotice')).toBeInTheDocument();
     const catalog = await screen.findByTestId('catalog');
     expect(catalog.closest('[aria-disabled="true"]')).not.toBeNull();
+  });
+
+  it('replaces the canvas preview with the monitor message while it is on', async () => {
+    fetchPanelDevicesMock.mockResolvedValue(record({ supportsSecondaryMonitor: true, secondaryMonitor: true }));
+    render(<PanelDevicePage device={DEVICE} />);
+
+    expect(await screen.findByText('devices.lcd.secondaryMonitorPreview')).toBeInTheDocument();
+    expect(screen.queryByTestId('embed')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'devices.panels.screenshot' })).toBeNull();
+  });
+
+  it('swaps the canvas preview for the message when the toggle turns on', async () => {
+    fetchPanelDevicesMock.mockResolvedValue(record({ supportsSecondaryMonitor: true, secondaryMonitor: false }));
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: TOGGLE_LABEL });
+    expect(screen.getByTestId('embed')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lcd.secondaryMonitorPreview')).toBeNull();
+
+    fireEvent.click(toggle);
+
+    expect(await screen.findByText('devices.lcd.secondaryMonitorPreview')).toBeInTheDocument();
+    expect(screen.queryByTestId('embed')).toBeNull();
   });
 });
