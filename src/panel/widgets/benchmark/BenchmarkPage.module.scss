@@ -125,7 +125,7 @@
 
 .phase {
   display: grid;
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: 96px 1fr;
   grid-template-rows: auto auto;
   gap: 0.25rem 0.75rem;
   align-items: center;
@@ -134,8 +134,16 @@
 .phaseLabel {
   grid-column: 1;
   grid-row: 1 / 3;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: var(--type-small);
   color: var(--text);
+}
+
+.phaseIcon {
+  flex-shrink: 0;
+  color: var(--text-dim);
 }
 
 .phaseBar {
@@ -168,11 +176,24 @@
   .phaseFill {
     background: var(--good);
   }
+
+  .phaseIcon {
+    color: var(--good);
+  }
 }
 
 .phase_active {
   .phaseFill {
     background: var(--accent);
+  }
+
+  .phaseIcon {
+    color: var(--accent-glow);
+  }
+
+  .phaseLabel {
+    color: var(--accent-glow);
+    font-weight: var(--weight-heading);
   }
 }
 
@@ -194,10 +215,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.75rem;
   padding: 1.75rem 1.5rem;
   background: var(--accent-soft);
   border-radius: var(--radius-lg);
+}
+
+.compositeHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
 }
 
 .compositeLabel {
@@ -211,10 +239,22 @@
   font-size: var(--type-hero);
   font-weight: var(--weight-heading);
   color: var(--accent-glow);
+  line-height: var(--leading-tight);
+}
+
+// Percentile + rank read as one result, tighter to each other than to the
+// score above and the version/CTA below.
+.compositeResultLine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  margin-top: 0.35rem;
 }
 
 .percentile {
-  font-size: var(--type-small);
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
   color: var(--text);
 }
 
@@ -228,6 +268,10 @@
   color: var(--text-dim);
 }
 
+.exploreCta {
+  margin-top: 0.25rem;
+}
+
 .scoringVersion {
   font-size: var(--type-small);
   color: var(--text-dim);
@@ -238,6 +282,14 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
+}
+
+.subCard {
+  position: relative;
+  overflow: hidden;
+  // Own stacking context so the domain glyph's negative z-index paints above
+  // the card surface but beneath the card's own text.
+  isolation: isolate;
 }
 
 .subCardTitle {

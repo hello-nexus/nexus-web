@@ -34,12 +34,12 @@ const SPEC_BLOCKS: Array<{
   labelKey: string;
   get: (s: SystemSpecs) => string;
 }> = [
-  { key: 'cpu', icon: <Cpu size={28} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
-  { key: 'gpu', icon: <Monitor size={28} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
-  { key: 'mobo', icon: <CircuitBoard size={28} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
-  { key: 'ram', icon: <MemoryStick size={28} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
-  { key: 'storage', icon: <HardDrive size={28} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
-  { key: 'os', icon: <AppWindow size={28} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
+  { key: 'cpu', icon: <Cpu size={18} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
+  { key: 'gpu', icon: <Monitor size={18} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
+  { key: 'mobo', icon: <CircuitBoard size={18} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
+  { key: 'ram', icon: <MemoryStick size={18} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
+  { key: 'storage', icon: <HardDrive size={18} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
+  { key: 'os', icon: <AppWindow size={18} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
 ];
 
 interface BenchmarkPageProps {
@@ -87,10 +87,11 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
         // bare browser fetch has no way to attach that token.
         const res = await submitCloudBenchmark(payload);
         if (!cancelled && res) {
-          setSubmission({ percentile: res.percentile, rank: res.rank, total: res.totalSubmissions });
+          const standing = { percentile: res.percentile, rank: res.rank, total: res.totalSubmissions };
+          setSubmission(standing);
           setLastSubmissionId(res.id);
           setSubmissionIdState(res.id);
-          addRun(result, res.id);
+          addRun(result, res.id, standing);
           onTabChange('results');
         } else if (!cancelled) {
           addRun(result, null);
@@ -213,7 +214,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
       <div className={styles.resultsTab}>
         <BenchmarkResults
           result={latest.result}
-          submission={null}
+          submission={latest.submission ?? null}
           submitting={false}
           submissionId={latest.submissionId}
         />
