@@ -6,11 +6,12 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: var(--space-sm);
 }
 
 // Same weight as the lighting page's own pane titles, which this sits beside.
 .header {
+  margin-bottom: var(--space-xs);
   font-size: var(--type-body);
   font-weight: var(--weight-strong);
   color: var(--text);
@@ -19,14 +20,18 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: var(--space-sm);
 }
+
+// Shared by the rows and the add button below them.
+$row-height: 36px;
 
 .row {
   position: relative;
   display: flex;
   align-items: center;
   gap: 0.1rem;
+  min-height: $row-height;
   padding: 0.1rem 0.25rem;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
@@ -79,20 +84,32 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
+  gap: 0.3rem;
   padding: 0.15rem 0.3rem 0.15rem 0.6rem;
   font-size: var(--type-small);
   border: none;
   background: transparent;
   color: var(--text);
   cursor: pointer;
+
+  &:disabled { cursor: default; }
+  &:hover:not(:disabled) .rowChevron { color: var(--text); }
+}
+
+.nameLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-
-  &:disabled { cursor: default; }
 }
 
-.pick,
+.rowChevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
 .remove {
   display: inline-flex;
   align-items: center;
@@ -174,7 +191,7 @@ $count-column: 4.4rem;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.3rem;
+  gap: var(--space-sm);
 }
 
 // Anchors the add picker under its button.
@@ -189,7 +206,7 @@ $count-column: 4.4rem;
   justify-content: center;
   gap: 0.35rem;
   width: 100%;
-  height: 28px;
+  height: $row-height;
   white-space: nowrap;
   padding: 0 0.75rem;
   font: inherit;

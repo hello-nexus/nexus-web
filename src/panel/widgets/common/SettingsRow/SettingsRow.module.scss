@@ -35,6 +35,8 @@
 .saved,
 .hint {
   @include text-caption;
+  // One step above the caption size: hints carry instructions and links.
+  font-size: var(--type-mini);
   color: var(--text-dim);
 }
 

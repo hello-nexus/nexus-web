@@ -52,7 +52,9 @@
   // Row 1: the preset tabs across both columns. Row 2: the two pane titles, so
   // they share one baseline. Row 3: content.
   grid-template-rows: auto auto minmax(0, 1fr);
-  column-gap: 1.5rem;
+  // The fan rail's scroller reaches across this gap; see .fanList.
+  --rail-gap: 1.5rem;
+  column-gap: var(--rail-gap);
   flex: 1;
   min-height: 0;
 }
@@ -287,6 +289,10 @@
   min-height: 0;
   // Bottom-only inset, matching the lighting rail's .devicePanel.
   padding-bottom: 1rem;
+  // Reaches across the .body column gap so the MenuArrowButton hanging off
+  // each card's right edge sits inside the scroller instead of being clipped.
+  margin-right: calc(-1 * var(--rail-gap));
+  padding-right: var(--rail-gap);
   overflow-y: auto;
 }
 // Fan cards inside a hub group: indented under the shared CollapsibleSection
@@ -312,21 +318,6 @@
   font-size: var(--type-mini);
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
-}
-
-// Overflow button on a fan group header. Matches the lighting rail's group
-// menu button: bare icon, dim until the header is hovered.
-.fanGroupMenuBtn {
-  display: flex;
-  align-items: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--ease-fast);
-
-  &:hover { color: var(--text); }
 }
 
 // A group a dragged fan card is about to land in. Only a soft wash: the inset
@@ -454,53 +445,19 @@
   &:hover { border-color: var(--border-strong); }
 }
 
-// The mode control and the overflow button share one row, so the button's
-// width comes out of the dropdown rather than out of the whole card.
 .fanModeRow {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   min-width: 0;
 
-  // The mode control takes whatever the button leaves.
   > :first-child { flex: 1 1 auto; min-width: 0; }
-}
-
-// Overflow-menu slot, mirroring .deviceCardActions / .deviceMenuBtn on the
-// lighting card. Always visible: the menu is the only route to Lock and Nexus
-// Control, so hover is not a precondition for reaching them.
-.fanCardActions {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
 }
 
 // Stands in for the dropdown's lock icon on the rows that have no dropdown.
 .fanLockGlyph {
   color: var(--text-dim);
   flex: 0 0 auto;
-}
-
-.fanMenuBtn {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--ease-fast), background var(--ease-fast);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: var(--accent);
-    background: var(--accent-soft);
-  }
-
-  svg { width: 13px; height: 13px; }
 }
 
 // The role picker is an inline <Popover>, so it paints inside this card's

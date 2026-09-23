@@ -1,10 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, Lock, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, Lock, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
 } from '../../../../api/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/MenuArrowButton';
 import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { groupMenuItems, stackMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
@@ -194,6 +195,7 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount 
             onSelect ? styles.deviceCardStackHeaderSelectable : '',
             selected ? styles.deviceCardStackHeaderSelected : '',
           ].filter(Boolean).join(' ')}
+          data-menu-arrow-host={menu ? 'true' : undefined}
           onClick={onSelect ? e => onSelect(isMultiSelectModifier(e)) : undefined}
           onContextMenu={menu ? e => {
             e.preventDefault();
@@ -222,22 +224,14 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount 
             <span className={styles.deviceCardStackName}>{name}</span>
           )}
           {menu && (
-            <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
-              <button
-                type="button"
-                className={`${styles.deviceSettingsBtn} ${styles.deviceMenuBtn} ${styles.deviceCardStackMenuBtn}`}
-                aria-label={t('lighting.devices.groupActions', { name })}
-                data-no-dnd
-                onClick={e => {
-                  e.stopPropagation();
-                  if (menuAt) { setMenuAt(null); return; }
-                  const r = e.currentTarget.getBoundingClientRect();
-                  openMenu(r.right, r.bottom + 4);
-                }}
-              >
-                <MoreVertical />
-              </button>
-            </HoverTooltip>
+            <MenuArrowButton
+              variant="card"
+              label={t('lighting.devices.groupActions', { name })}
+              tooltip={t('lighting.devices.moreActions')}
+              open={menuAt != null}
+              onOpen={openMenu}
+              onClose={() => setMenuAt(null)}
+            />
           )}
         </div>
         {children}
@@ -602,6 +596,7 @@ export function ZoneCard({
         stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
+      data-menu-arrow-host={menuEnabled || undefined}
       onClick={e => {
         if (!clickable) return;
         // Toggle mode is how an un-driven device gets turned back on, so it
@@ -728,29 +723,18 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {menuEnabled && (
-          <div className={styles.deviceCardActions} data-no-dnd>
-            <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
-              <button
-                type="button"
-                className={`${styles.deviceSettingsBtn} ${styles.deviceMenuBtn}`}
-                aria-label={t('lighting.devices.moreActions')}
-                onClick={e => {
-                  e.stopPropagation();
-                  // Explicit toggle: the button is its own close affordance,
-                  // and the menu's outside-pointerdown close has already run.
-                  if (menuAt) { setMenuAt(null); return; }
-                  const r = e.currentTarget.getBoundingClientRect();
-                  openMenu(r.right, r.bottom + 4);
-                }}
-              >
-                <MoreVertical />
-              </button>
-            </HoverTooltip>
-          </div>
-        )}
       </div>
       </div>
+      {menuEnabled && (
+        <MenuArrowButton
+          variant="card"
+          label={t('lighting.devices.moreActions')}
+          tooltip={t('lighting.devices.moreActions')}
+          open={menuAt != null}
+          onOpen={openMenu}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
     </div>
   );
   // Only failed/zero-LED zones get an explanatory tooltip; configurable zones

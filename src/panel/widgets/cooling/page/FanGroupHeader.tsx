@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
-import { Link, Lock, MoreVertical, MousePointerClick, Pencil, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
+import { Link, Lock, MousePointerClick, Pencil, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/MenuArrowButton';
 import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -125,22 +126,14 @@ export function FanGroupHeader({
               </HoverTooltip>
             )}
             <span className={styles.fanGroupCount}>{count}</span>
-            <HoverTooltip body={t('cooling.fan.groupActions', { name })} side="top">
-              <button
-                type="button"
-                className={styles.fanGroupMenuBtn}
-                aria-label={t('cooling.fan.groupActions', { name })}
-                data-no-dnd
-                onClick={e => {
-                  e.stopPropagation();
-                  if (menuAt) { setMenuAt(null); return; }
-                  const r = e.currentTarget.getBoundingClientRect();
-                  setMenuAt({ x: r.right, y: r.bottom + 4, seq: ++menuSeq.current });
-                }}
-              >
-                <MoreVertical size={14} />
-              </button>
-            </HoverTooltip>
+            <MenuArrowButton
+              variant="header"
+              label={t('cooling.fan.groupActions', { name })}
+              tooltip={t('cooling.fan.groupActions', { name })}
+              open={menuAt != null}
+              onOpen={(x, y) => setMenuAt({ x, y, seq: ++menuSeq.current })}
+              onClose={() => setMenuAt(null)}
+            />
           </>
         )}
       >

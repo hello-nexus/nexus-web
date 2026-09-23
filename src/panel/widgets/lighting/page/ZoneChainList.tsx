@@ -117,27 +117,22 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
             <GripVertical size={14} aria-hidden />
           </button>
         )}
+        {/* Name and chevron are one trigger: the picker's outside-click check exempts only its anchor. */}
         <button
           type="button"
           className={styles.rowName}
           disabled={disabled}
-          onClick={e => onSelect(row.zoneId, isMultiSelectModifier(e))}
+          aria-haspopup={chainable ? 'listbox' : undefined}
+          aria-expanded={chainable ? picker === i : undefined}
+          onClick={e => {
+            const multi = isMultiSelectModifier(e);
+            onSelect(row.zoneId, multi);
+            if (chainable && !multi) { setPickerAnchor(e.currentTarget); setPicker(picker === i ? null : i); }
+          }}
         >
-          {row.name}
+          <span className={styles.nameLabel}>{row.name}</span>
+          {chainable && <ChevronDown size={13} className={styles.rowChevron} aria-hidden />}
         </button>
-        {chainable && (
-          <button
-            type="button"
-            className={styles.pick}
-            disabled={disabled}
-            aria-haspopup="listbox"
-            aria-expanded={picker === i}
-            aria-label={t('lighting.ledMap.assignDevice')}
-            onClick={e => { setPickerAnchor(e.currentTarget); setPicker(picker === i ? null : i); }}
-          >
-            <ChevronDown size={13} aria-hidden />
-          </button>
-        )}
         {editable ? (
           <CountInput
             value={row.ledCount}
@@ -398,14 +393,15 @@ function ProductPicker({ anchor, current, onPick, onClose }: {
   // Close on an outside click or Escape. The anchor is not outside: its own
   // click toggles the picker, and closing on the mousedown first would reopen
   // it. Escape is captured so the editor modal does not also close on the
-  // same key.
+  // same key. Only Escape hands focus back to the trigger; an outside click
+  // keeps the focus it moved.
   useEffect(() => {
     const onPointerDown = (e: MouseEvent) => {
       const target = e.target as Node;
       if (!rootRef.current?.contains(target) && !anchor?.contains(target)) onCloseRef.current();
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); anchor?.focus(); }
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown, true);
@@ -469,6 +465,13 @@ function ProductPicker({ anchor, current, onPick, onClose }: {
     };
   }, [anchor]);
 
+  // The popover stays visibility:hidden until placed and focus() is a no-op on
+  // a hidden element, so an autoFocus on the input never lands.
+  const placed = coords !== null;
+  useEffect(() => {
+    if (placed) rootRef.current?.querySelector('input')?.focus();
+  }, [placed]);
+
   return createPortal(
     <div
       className={styles.popover}
@@ -487,7 +490,6 @@ function ProductPicker({ anchor, current, onPick, onClose }: {
       <SearchInput
         value={query}
         onChange={setQuery}
-        autoFocus
         placeholder={t('lighting.ledMap.assignSearch')}
         ariaLabel={t('lighting.ledMap.assignSearch')}
       />

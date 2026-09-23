@@ -62,10 +62,10 @@ beforeEach(() => {
 });
 
 describe('GalleryPage', () => {
-  it('shows the no-sources empty state', async () => {
+  it('shows the feature intro when there are no sources', async () => {
     render(<GalleryPage />);
 
-    expect(await screen.findByText('gallery.page.noSources')).toBeTruthy();
+    expect(await screen.findByText('gallery.intro.title')).toBeTruthy();
   });
 
   it('lists sources with derived item counts', async () => {
@@ -118,7 +118,7 @@ describe('GalleryPage', () => {
   it('add-folder opens the native picker and adds the chosen path', async () => {
     const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFolder'));
     await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalledWith(true));
@@ -160,7 +160,7 @@ describe('GalleryPage', () => {
     vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: ['/home/user/Pictures'] });
     vi.mocked(addGallerySource).mockResolvedValueOnce({ source: null, error: true, code: 'duplicate' });
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFolder'));
 
@@ -172,7 +172,7 @@ describe('GalleryPage', () => {
     const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
     vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: [], cancelled: true });
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFile'));
     await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalled());
@@ -185,7 +185,7 @@ describe('GalleryPage', () => {
     const { pickGalleryPaths } = await import('../../../../api/gallery');
     vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: [], error: true, msg: '' });
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFile'));
 
@@ -194,7 +194,7 @@ describe('GalleryPage', () => {
 
   it('a drop without the shell bridge shows the desktop-app hint', async () => {
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     const drop = document.querySelector('[class*=dropZone]')!;
     fireEvent.drop(drop, { dataTransfer: { files: [new File(['x'], 'a.png')] } });
@@ -206,7 +206,7 @@ describe('GalleryPage', () => {
     const { postGalleryDrop } = await import('../../../../app/windowActions');
     mockState.bridgeAvailable = true;
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     const drop = document.querySelector('[class*=dropZone]')!;
     fireEvent.drop(drop, { dataTransfer: { files: [new File(['x'], 'a.png')] } });

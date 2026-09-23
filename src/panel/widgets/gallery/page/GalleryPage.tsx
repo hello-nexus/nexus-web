@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Play, Trash2, Undo2, X } from 'lucide-react';
+import { FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, Play, Trash2, Undo2, X } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
@@ -246,14 +246,7 @@ export function GalleryPage() {
             </Button>
           </div>
           {actionError && <p className={styles.uploadError}>{actionError}</p>}
-          {sources.length === 0 ? (
-            <EmptyState
-              compact
-              icon={<ImageIcon size={22} />}
-              title={t('gallery.page.noSources')}
-              hint={t('gallery.page.noSourcesHint')}
-            />
-          ) : (
+          {sources.length > 0 && (
             <ul className={styles.sourceList}>
               {sources.map(source => {
                 const Icon = sourceIcon(source, items);
@@ -305,7 +298,19 @@ export function GalleryPage() {
             <span className={styles.libraryCount}>{t('gallery.page.itemCount', { count: items.length })}</span>
           </SectionHeader>
           <Card className={styles.libraryCard}>
-            {items.length === 0 ? (
+            {sources.length === 0 ? (
+              <EmptyState
+                hero
+                icon={<ImageIcon />}
+                title={t('gallery.intro.title')}
+                hint={t('gallery.intro.body')}
+                points={[
+                  { icon: <ImagePlus />, text: t('gallery.intro.pointDrop') },
+                  { icon: <Images />, text: t('gallery.intro.pointFormats') },
+                  { icon: <LayoutDashboard />, text: t('gallery.intro.pointWidget') },
+                ]}
+              />
+            ) : items.length === 0 ? (
               <EmptyState
                 compact
                 icon={<ImageIcon size={22} />}

@@ -74,7 +74,7 @@ function setup(rows: ChainRow[], chainable: boolean, over: Partial<Parameters<ty
 
 const total = () => document.querySelector(`.${styles.totalCount}`)?.textContent;
 const countInputs = () => document.querySelectorAll<HTMLInputElement>(`.${styles.zoneCountInput}`);
-const pickButtons = () => screen.queryAllByRole('button', { name: 'lighting.ledMap.assignDevice' });
+const pickButtons = () => Array.from(document.querySelectorAll<HTMLElement>(`.${styles.rowName}[aria-haspopup="listbox"]`));
 const dragHandles = () => document.querySelectorAll(`.${styles.dragHandle}`);
 
 describe('ZoneChainList on a chainable port', () => {
@@ -133,6 +133,15 @@ describe('ZoneChainList on a chainable port', () => {
     expect(onSelect).toHaveBeenCalledWith('p:z1', false);
     fireEvent.click(screen.getByText('Generic Fan'), { metaKey: true, ctrlKey: true });
     expect(onSelect).toHaveBeenLastCalledWith('p:z0', true);
+  });
+
+  it('opens the product picker from a plain click on the name, not a modifier-click', async () => {
+    setup(port, true);
+    fireEvent.click(screen.getByText('Generic Fan'), { metaKey: true, ctrlKey: true });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    fireEvent.click(screen.getByText('Corsair QX Fan'));
+    await screen.findByRole('listbox');
+    expect(pickButtons()[1].getAttribute('aria-expanded')).toBe('true');
   });
 
   it('marks the active and merge-marked rows', () => {
@@ -241,6 +250,7 @@ describe('ZoneChainList on a chainable port', () => {
     document.body.dispatchEvent(escape);
     expect(stop).toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull());
+    expect(document.activeElement).toBe(pickButtons()[0]);
   });
 });
 

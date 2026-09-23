@@ -2,7 +2,7 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause, Pointer, Power } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause, Pointer, Power, Cpu, Gauge, MemoryStick } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
@@ -1186,11 +1186,26 @@ function PreviewToggleOff() {
 
 function PreviewEmptyState() {
   return (
-    <EmptyState
-      icon={<Monitor strokeWidth={1.4} />}
-      title="No displays detected"
-      hint="Plug in a DDC/CI capable monitor to control brightness from here."
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <EmptyState
+        icon={<Monitor strokeWidth={1.4} />}
+        title="No displays detected"
+        hint="Plug in a DDC/CI capable monitor to control brightness from here."
+      />
+      <EmptyState
+        hero
+        icon={<Gauge />}
+        title="See how your PC scores"
+        hint="A benchmark runs real workloads on your CPU, GPU, RAM and storage in about 40 seconds."
+        points={[
+          { icon: <Cpu />, text: 'CPU' },
+          { icon: <Monitor />, text: 'GPU' },
+          { icon: <MemoryStick />, text: 'RAM' },
+          { icon: <HardDrive />, text: 'Storage' },
+        ]}
+        action={<Button tone="accent">Start benchmark</Button>}
+      />
+    </div>
   );
 }
 
@@ -2716,7 +2731,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EmptyState', category: 'status',
     filePath: 'src/components/common/EmptyState/EmptyState.tsx',
-    description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts.', Preview: PreviewEmptyState,
+    description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts. Pass `hero` (+ optional `points`) for a page that opens with nothing to show: the feature intro with a haloed icon, heading, what-it-does points and one next step.', Preview: PreviewEmptyState,
   },
   {
     name: 'DesktopOnlyBadge', category: 'status',
