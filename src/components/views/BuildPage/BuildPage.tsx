@@ -4,7 +4,7 @@ import { Button } from '../../common/Button/Button';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { useTranslation } from '../../../lib/i18n';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import { resolveTheme } from '../../../lib/settings';
+import { resolveTheme, currentAccentColor } from '../../../lib/settings';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
@@ -218,6 +218,7 @@ export function BuildPage({ path }: BuildPageProps) {
       type: 'nexus-build:hello',
       v: 1,
       theme: resolvedTheme,
+      accent: currentAccentColor(),
       locale: language,
       host: isRemoteOrigin ? 'web' : 'app',
       ...(machine ? { machine } : {}),
@@ -236,8 +237,26 @@ export function BuildPage({ path }: BuildPageProps) {
   useEffect(() => {
     if (!ready || resolvedTheme === prevThemeRef.current) return;
     prevThemeRef.current = resolvedTheme;
-    post({ type: 'nexus-build:theme', v: 1, theme: resolvedTheme });
+    post({ type: 'nexus-build:theme', v: 1, theme: resolvedTheme, accent: currentAccentColor() });
   }, [resolvedTheme, ready, post]);
+
+  // The accent is applied as inline custom properties on <html>, so a style
+  // mutation there is the moment a new accent (user pick or OS push) exists.
+  const prevAccentRef = useRef(currentAccentColor());
+  useEffect(() => {
+    if (!ready) return undefined;
+    // The hello that opened this ready window carried the accent of that
+    // moment; changes made before it must not be mistaken for the baseline.
+    prevAccentRef.current = currentAccentColor();
+    const observer = new MutationObserver(() => {
+      const accent = currentAccentColor();
+      if (accent === prevAccentRef.current) return;
+      prevAccentRef.current = accent;
+      post({ type: 'nexus-build:theme', v: 1, theme: prevThemeRef.current, accent });
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    return () => observer.disconnect();
+  }, [ready, post]);
 
   const prevLangRef = useRef(language);
   useEffect(() => {
