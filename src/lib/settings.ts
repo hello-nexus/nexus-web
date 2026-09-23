@@ -348,6 +348,11 @@ export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
 // thread the accent through.
 let currentAccent = DEFAULT_ACCENT;
 
+/** The accent last applied to the page, as #rrggbb (the Build frame mirrors it). */
+export function currentAccentColor(): string {
+  return currentAccent;
+}
+
 // Match the --bg-elevated chrome tokens in src/styles/variables.scss (the top
 // bar is what sits under the URL bar). Kept in sync manually so the iOS Safari
 // URL bar / overscroll area painted via the theme-color meta matches the
