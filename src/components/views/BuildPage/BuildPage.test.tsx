@@ -120,6 +120,29 @@ describe('BuildPage', () => {
     expect(h.openExternalUrl).toHaveBeenCalledWith(`${BUILD_ORIGIN}/products/rtx-5080`);
   });
 
+  it('posts a fresh hello on every ready message, not just the first (the portal full-loads between routes)', () => {
+    render(<BuildPage path="/upgrade" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+    const helloPosts = postSpy.mock.calls.filter(([msg]) => (msg as { type?: string }).type === 'nexus-build:hello');
+    expect(helloPosts).toHaveLength(2);
+  });
+
+  it('still updates the open-in-browser target from a navigate message after a later ready', () => {
+    render(<BuildPage path="/upgrade" />);
+    const iframe = getIframe();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    act(() => postFromFrame(iframe, { type: 'nexus-build:navigate', path: '/products/rtx-5080' }));
+
+    act(() => { screen.getByText('build.openInBrowser').click(); });
+    expect(h.openExternalUrl).toHaveBeenCalledWith(`${BUILD_ORIGIN}/products/rtx-5080`);
+  });
+
   it('shows the offline fallback card after 8s with no ready message', () => {
     render(<BuildPage path="/upgrade" />);
     expect(screen.queryByText('build.offline.title')).toBeNull();

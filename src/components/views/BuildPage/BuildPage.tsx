@@ -65,6 +65,10 @@ export function BuildPage({ path }: BuildPageProps) {
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [ready, setReady] = useState(false);
+  // Bumped on every `ready` message, not just the first: the portal navigates
+  // between routes with full page loads inside the iframe, so each new page
+  // re-announces `ready` and needs its own `hello` (fresh machine/theme/locale).
+  const [helloNonce, setHelloNonce] = useState(0);
   const [timedOut, setTimedOut] = useState(false);
   const [offline, setOffline] = useState(() => typeof navigator !== 'undefined' && !navigator.onLine);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -114,6 +118,7 @@ export function BuildPage({ path }: BuildPageProps) {
         case 'nexus-build:ready':
           setReady(true);
           setTimedOut(false);
+          setHelloNonce(n => n + 1);
           break;
         case 'nexus-build:navigate': {
           const nextPath = typeof data.path === 'string' ? data.path : null;
@@ -153,10 +158,11 @@ export function BuildPage({ path }: BuildPageProps) {
     .slice(0, MAX_GAMES)
     .map(g => ({ gameKey: g.gameKey, title: g.name }));
 
-  // One-shot per handshake: fires when `ready` flips true, carrying whatever
-  // machine/games/theme/locale are known at that moment.
+  // Fires once per `ready` message (including a page-to-page renavigation
+  // inside the frame), carrying whatever machine/games/theme/locale are
+  // known at that moment.
   useEffect(() => {
-    if (!ready) return;
+    if (helloNonce === 0) return;
     post({
       type: 'nexus-build:hello',
       v: 1,
@@ -166,8 +172,8 @@ export function BuildPage({ path }: BuildPageProps) {
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires once per ready transition; live theme/locale changes post their own message below
-  }, [ready]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per ready message; live theme/locale changes post their own message below
+  }, [helloNonce]);
 
   const prevThemeRef = useRef(resolvedTheme);
   useEffect(() => {
