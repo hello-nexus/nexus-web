@@ -562,7 +562,7 @@
   "devices.lcd.mirror": "Зеркально",
   "devices.lcd.mounting": "Установка",
   "devices.lcd.secondaryMonitor": "Использовать как второй монитор",
-  "devices.lcd.secondaryMonitorDriverMissing": "Драйвер дисплея для этого экрана не установлен. Установите приложение ZMatrices один раз, чтобы добавить его, затем снова включите эту функцию.",
+  "devices.lcd.secondaryMonitorDriverMissing": "Драйвер дисплея для режима второго монитора не установлен на этом ПК.",
   "devices.lcd.secondaryMonitorFailed": "Windows не удалось создать монитор. Выключите и снова включите этот параметр или проверьте журнал службы Nexus.",
   "devices.lcd.secondaryMonitorHint": "Windows расширяет рабочий стол на этот экран. Пока эта функция включена, виджеты, темы и фоны Nexus не работают.",
   "devices.lcd.secondaryMonitorNotice": "Этот экран настроен как второй монитор, поэтому виджеты и темы Nexus отключены. Отключите \"Использовать как второй монитор\" в настройках, чтобы снова их использовать.",

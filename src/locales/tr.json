@@ -555,7 +555,7 @@
   "devices.lcd.mirror": "Aynala",
   "devices.lcd.mounting": "Montaj",
   "devices.lcd.secondaryMonitor": "İkincil monitör olarak kullan",
-  "devices.lcd.secondaryMonitorDriverMissing": "Bu ekran için görüntü sürücüsü yüklü değil. Eklemek için ZMatrices uygulamasını bir kez yükleyin, ardından bu ayarı tekrar açın.",
+  "devices.lcd.secondaryMonitorDriverMissing": "İkincil monitör modu için görüntü sürücüsü bu PC'de yüklü değil.",
   "devices.lcd.secondaryMonitorFailed": "Windows monitörü oluşturamadı. Ayarı kapatıp tekrar açın veya Nexus hizmet günlüğünü kontrol edin.",
   "devices.lcd.secondaryMonitorHint": "Windows masaüstünü bu ekrana genişletir. Bu açıkken Nexus widget'ları, temaları ve arka planları devre dışı kalır.",
   "devices.lcd.secondaryMonitorNotice": "Bu ekran ikincil monitör olarak ayarlandığından Nexus widget'ları ve temaları devre dışı. Tekrar kullanmak için Ayarlar'da \"İkincil monitör olarak kullan\" seçeneğini kapatın.",

@@ -555,7 +555,7 @@
   "devices.lcd.mirror": "Mirror",
   "devices.lcd.mounting": "Mounting",
   "devices.lcd.secondaryMonitor": "Use as a secondary monitor",
-  "devices.lcd.secondaryMonitorDriverMissing": "The display driver for this screen isn't installed. Install the ZMatrices app once to add it, then turn this on again.",
+  "devices.lcd.secondaryMonitorDriverMissing": "The display driver for secondary monitor mode isn't installed on this PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows didn't create the monitor. Turn the setting off and on again, or check the Nexus service log.",
   "devices.lcd.secondaryMonitorHint": "Windows extends the desktop onto this screen. Nexus widgets, themes and backgrounds are off while this is on.",
   "devices.lcd.secondaryMonitorNotice": "This screen is set up as a secondary monitor, so Nexus widgets and themes are off. Turn off \"Use as a secondary monitor\" in Settings to use them again.",

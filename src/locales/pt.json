@@ -555,7 +555,7 @@
   "devices.lcd.mirror": "Espelhar",
   "devices.lcd.mounting": "Montagem",
   "devices.lcd.secondaryMonitor": "Utilizar como monitor secundário",
-  "devices.lcd.secondaryMonitorDriverMissing": "O controlador de ecrã para este ecrã não está instalado. Instale a aplicação ZMatrices uma vez para o adicionar e ative esta opção novamente.",
+  "devices.lcd.secondaryMonitorDriverMissing": "O controlador de ecrã para o modo de monitor secundário não está instalado neste PC.",
   "devices.lcd.secondaryMonitorFailed": "O Windows não conseguiu criar o monitor. Desative e ative a definição novamente, ou verifique o registo do serviço Nexus.",
   "devices.lcd.secondaryMonitorHint": "O Windows estende o ambiente de trabalho para este ecrã. Os widgets, temas e fundos do Nexus ficam desativados enquanto isto estiver ativo.",
   "devices.lcd.secondaryMonitorNotice": "Este ecrã está configurado como monitor secundário, pelo que os widgets e temas do Nexus estão desativados. Desative \"Utilizar como monitor secundário\" nas Definições para voltar a usá-los.",

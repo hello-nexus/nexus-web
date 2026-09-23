@@ -555,7 +555,7 @@
   "devices.lcd.mirror": "Spiegelen",
   "devices.lcd.mounting": "Montage",
   "devices.lcd.secondaryMonitor": "Gebruiken als tweede monitor",
-  "devices.lcd.secondaryMonitorDriverMissing": "Het schermstuurprogramma voor dit scherm is niet geïnstalleerd. Installeer eenmalig de ZMatrices-app om het toe te voegen en schakel dit dan opnieuw in.",
+  "devices.lcd.secondaryMonitorDriverMissing": "Het schermstuurprogramma voor de tweede-monitormodus is niet geïnstalleerd op deze pc.",
   "devices.lcd.secondaryMonitorFailed": "Windows kon de monitor niet aanmaken. Schakel de instelling uit en weer in, of controleer het Nexus-servicelog.",
   "devices.lcd.secondaryMonitorHint": "Windows breidt het bureaublad uit naar dit scherm. Nexus-widgets, thema's en achtergronden zijn uitgeschakeld zolang dit aanstaat.",
   "devices.lcd.secondaryMonitorNotice": "Dit scherm is ingesteld als tweede monitor, dus Nexus-widgets en thema's zijn uitgeschakeld. Schakel \"Gebruiken als tweede monitor\" uit bij Instellingen om ze weer te gebruiken.",

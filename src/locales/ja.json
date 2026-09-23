@@ -555,7 +555,7 @@
   "devices.lcd.mirror": "左右反転",
   "devices.lcd.mounting": "取り付け",
   "devices.lcd.secondaryMonitor": "セカンドモニターとして使用",
-  "devices.lcd.secondaryMonitorDriverMissing": "この画面のディスプレイドライバーがインストールされていません。ZMatrices アプリを一度インストールして追加してから、もう一度オンにしてください。",
+  "devices.lcd.secondaryMonitorDriverMissing": "セカンドモニターモード用のディスプレイドライバーがこの PC にインストールされていません。",
   "devices.lcd.secondaryMonitorFailed": "Windows がモニターを作成できませんでした。設定をオフにしてから再度オンにするか、Nexus サービスのログを確認してください。",
   "devices.lcd.secondaryMonitorHint": "Windows がデスクトップをこの画面に拡張します。オンの間、Nexus のウィジェット、テーマ、背景は無効になります。",
   "devices.lcd.secondaryMonitorNotice": "この画面はセカンドモニターとして設定されているため、Nexus のウィジェットとテーマは無効になっています。再度使用するには、設定で「セカンドモニターとして使用」をオフにしてください。",

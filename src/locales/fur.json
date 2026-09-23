@@ -555,7 +555,7 @@
   "devices.lcd.mirror": "Spieli",
   "devices.lcd.mounting": "Montadure",
   "devices.lcd.secondaryMonitor": "Dopre come monitor secondari",
-  "devices.lcd.secondaryMonitorDriverMissing": "Il driver di visualizazion par chest schermi nol è instalât. Instale une volte la aplicazion ZMatrices par zontâlu, dopo torne ative cheste opzion.",
+  "devices.lcd.secondaryMonitorDriverMissing": "Il driver di visualizazion pal mût monitor secondari nol è instalât su chest PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows nol à podût creâ il monitor. Distude e torne ative la impostazion, o controle il regjistri dal servizi Nexus.",
   "devices.lcd.secondaryMonitorHint": "Windows al slargje il scritori su chest schermi. I widget, i temis e i sfonts di Nexus a son distudâts fintremai che chest al è ativât.",
   "devices.lcd.secondaryMonitorNotice": "Chest schermi al è configurât come monitor secondari, duncje i widget e i temis di Nexus a son distudâts. Distude \"Dopre come monitor secondari\" tes Impostazions par tornâ a doprâju.",
