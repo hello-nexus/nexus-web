@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Izgara hizala",
   "lighting.ledMap.alignHorizontal": "Seridi hizala",
   "lighting.ledMap.appliesOnSave": "Kaydedildiğinde uygulanır.",
-  "lighting.ledMap.assignDevice": "Cihaz ata",
   "lighting.ledMap.assignFailed": "Cihaz atanamadı",
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Eşleşen cihaz yok",

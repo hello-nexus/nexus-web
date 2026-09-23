@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "对齐为网格",
   "lighting.ledMap.alignHorizontal": "对齐为条带",
   "lighting.ledMap.appliesOnSave": "保存时生效。",
-  "lighting.ledMap.assignDevice": "分配设备",
   "lighting.ledMap.assignFailed": "无法分配该设备",
   "lighting.ledMap.assignLeds": "{count} 颗 LED",
   "lighting.ledMap.assignNoResults": "没有匹配的设备",

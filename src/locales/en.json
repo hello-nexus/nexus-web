@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Align as grid",
   "lighting.ledMap.alignHorizontal": "Align as strip",
   "lighting.ledMap.appliesOnSave": "Applied when you save.",
-  "lighting.ledMap.assignDevice": "Assign device",
   "lighting.ledMap.assignFailed": "Could not assign that device",
   "lighting.ledMap.assignLeds": "{count} LEDs",
   "lighting.ledMap.assignNoResults": "No matching device",

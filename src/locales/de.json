@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Als Raster ausrichten",
   "lighting.ledMap.alignHorizontal": "Als Leiste ausrichten",
   "lighting.ledMap.appliesOnSave": "Wird beim Speichern übernommen.",
-  "lighting.ledMap.assignDevice": "Gerät zuweisen",
   "lighting.ledMap.assignFailed": "Gerät konnte nicht zugewiesen werden",
   "lighting.ledMap.assignLeds": "{count} LEDs",
   "lighting.ledMap.assignNoResults": "Kein passendes Gerät",

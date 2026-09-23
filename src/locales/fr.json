@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Aligner en grille",
   "lighting.ledMap.alignHorizontal": "Aligner en bande",
   "lighting.ledMap.appliesOnSave": "Sera appliqué lors de l'enregistrement.",
-  "lighting.ledMap.assignDevice": "Attribuer un appareil",
   "lighting.ledMap.assignFailed": "Impossible d'attribuer cet appareil",
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Aucun appareil correspondant",

@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Alinhar em grelha",
   "lighting.ledMap.alignHorizontal": "Alinhar em tira",
   "lighting.ledMap.appliesOnSave": "Será aplicado ao guardar.",
-  "lighting.ledMap.assignDevice": "Atribuir dispositivo",
   "lighting.ledMap.assignFailed": "Não foi possível atribuir esse dispositivo",
   "lighting.ledMap.assignLeds": "{count} LEDs",
   "lighting.ledMap.assignNoResults": "Nenhum dispositivo correspondente",

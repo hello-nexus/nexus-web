@@ -2285,7 +2285,6 @@
   "lighting.ledMap.alignGrid": "Wyrownaj w siatke",
   "lighting.ledMap.alignHorizontal": "Wyrownaj w pasek",
   "lighting.ledMap.appliesOnSave": "Zostanie zastosowane przy zapisie.",
-  "lighting.ledMap.assignDevice": "Przypisz urządzenie",
   "lighting.ledMap.assignFailed": "Nie udało się przypisać urządzenia",
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Brak pasującego urządzenia",

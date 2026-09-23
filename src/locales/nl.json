@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Als raster uitlijnen",
   "lighting.ledMap.alignHorizontal": "Als strip uitlijnen",
   "lighting.ledMap.appliesOnSave": "Toegepast wanneer je opslaat.",
-  "lighting.ledMap.assignDevice": "Apparaat toewijzen",
   "lighting.ledMap.assignFailed": "Kon dat apparaat niet toewijzen",
   "lighting.ledMap.assignLeds": "{count} leds",
   "lighting.ledMap.assignNoResults": "Geen overeenkomend apparaat",

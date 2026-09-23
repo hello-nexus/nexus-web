@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "グリッドに整列",
   "lighting.ledMap.alignHorizontal": "ストリップに整列",
   "lighting.ledMap.appliesOnSave": "保存時に適用されます。",
-  "lighting.ledMap.assignDevice": "デバイスを割り当て",
   "lighting.ledMap.assignFailed": "デバイスを割り当てできませんでした",
   "lighting.ledMap.assignLeds": "{count} 個の LED",
   "lighting.ledMap.assignNoResults": "一致するデバイスがありません",

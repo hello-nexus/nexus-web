@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "對齊為格狀",
   "lighting.ledMap.alignHorizontal": "對齊為條帶",
   "lighting.ledMap.appliesOnSave": "儲存時生效。",
-  "lighting.ledMap.assignDevice": "指派裝置",
   "lighting.ledMap.assignFailed": "無法指派該裝置",
   "lighting.ledMap.assignLeds": "{count} 顆 LED",
   "lighting.ledMap.assignNoResults": "沒有相符的裝置",

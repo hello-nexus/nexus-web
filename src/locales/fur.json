@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Aline a rêt",
   "lighting.ledMap.alignHorizontal": "Aline a strisse",
   "lighting.ledMap.appliesOnSave": "Aplicât cuant che tu salvis.",
-  "lighting.ledMap.assignDevice": "Assegne dispositîf",
   "lighting.ledMap.assignFailed": "No si è podût assegnâ chel dispositîf",
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Nissun dispositîf corispondent",

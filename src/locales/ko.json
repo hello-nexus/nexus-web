@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "격자로 정렬",
   "lighting.ledMap.alignHorizontal": "스트립으로 정렬",
   "lighting.ledMap.appliesOnSave": "저장 시 적용됩니다.",
-  "lighting.ledMap.assignDevice": "장치 할당",
   "lighting.ledMap.assignFailed": "장치를 할당할 수 없습니다",
   "lighting.ledMap.assignLeds": "LED {count}개",
   "lighting.ledMap.assignNoResults": "일치하는 장치 없음",

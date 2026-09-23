@@ -2255,7 +2255,6 @@
   "lighting.ledMap.alignGrid": "Alinear en cuadricula",
   "lighting.ledMap.alignHorizontal": "Alinear en tira",
   "lighting.ledMap.appliesOnSave": "Se aplicará al guardar.",
-  "lighting.ledMap.assignDevice": "Asignar dispositivo",
   "lighting.ledMap.assignFailed": "No se pudo asignar ese dispositivo",
   "lighting.ledMap.assignLeds": "{count} LED",
   "lighting.ledMap.assignNoResults": "Ningún dispositivo coincide",
