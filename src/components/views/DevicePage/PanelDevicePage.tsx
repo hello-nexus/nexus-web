@@ -126,6 +126,7 @@ interface PanelDevicePageProps {
 interface BrightnessResponse { brightness: number }
 interface RotationParams { orientation: string; forceOrientation: boolean }
 interface ToggleResponse { toggle: boolean }
+interface CompatibilityRenderingResponse { enabled: boolean; supported: boolean }
 
 const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
@@ -246,6 +247,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [brightness, setBrightness] = useState(50);
   const [orientation, setOrientation] = useState<Y70Orientation>('PortraitFlipped');
   const [forceOrientation, setForceOrientation] = useState(true);
+  const [compatibilityRendering, setCompatibilityRendering] = useState<CompatibilityRenderingResponse | null>(null);
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
@@ -507,9 +509,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       isQSeries ? getQSeriesDisplay() : Promise.resolve(null),
       fetchPreferences(),
       fetchPanelDevices(),
-    ]).then(([b, r, tog, qRotation, qDisplay, prefs, devices]) => {
+      // Tolerates a service that predates the route (relay to an older host).
+      supportsDisplayControls ? fetchService<CompatibilityRenderingResponse>('/y70/compatibility-rendering').catch(() => null) : Promise.resolve(null),
+    ]).then(([b, r, tog, qRotation, qDisplay, prefs, devices, compat]) => {
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
+      setCompatibilityRendering(compat);
       if (r) {
         setOrientation(normalizeOrientation(r.orientation));
         setForceOrientation(r.forceOrientation ?? true);
@@ -1393,6 +1398,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         if (!supportsDisplayControls) return;
                         postService('/y70/rotation', { forceOrientation: next }).catch(() => {});
                       }}
+                      compatibilityRendering={compatibilityRendering?.supported ? compatibilityRendering.enabled : undefined}
+                      onCompatibilityRenderingToggle={() => {
+                        if (!compatibilityRendering) return;
+                        const next = !compatibilityRendering.enabled;
+                        setCompatibilityRendering({ ...compatibilityRendering, enabled: next });
+                        postService('/y70/compatibility-rendering', { enabled: next }).catch(() => {});
+                      }}
                       screenOn={screenOn}
                       onScreenToggle={() => {
                         const next = !screenOn;
@@ -2166,6 +2178,9 @@ interface SettingsPanelProps {
   orientationOptions: readonly Y70Orientation[];
   forceOrientation: boolean;
   onForceOrientationToggle: () => void;
+  // Undefined hides the toggle: the host's panel window does not support it.
+  compatibilityRendering?: boolean;
+  onCompatibilityRenderingToggle: () => void;
   screenOn: boolean;
   onScreenToggle: () => void;
   autoLaunch: boolean;
@@ -2187,6 +2202,7 @@ function SettingsPanel({
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,
   forceOrientation, onForceOrientationToggle,
+  compatibilityRendering, onCompatibilityRenderingToggle,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
   reserveMonitor, onReserveMonitorToggle,
@@ -2278,6 +2294,15 @@ function SettingsPanel({
 
           {!forceOrientation && (
             <OrientationSelectRow value={orientation} onChange={onOrientation} options={orientationOptions} />
+          )}
+
+          {compatibilityRendering !== undefined && (
+            <SettingToggle
+              label={t('devices.y70.compatibilityRendering')}
+              description={t('devices.y70.compatibilityRenderingHint')}
+              checked={compatibilityRendering}
+              onChange={onCompatibilityRenderingToggle}
+            />
           )}
 
           <SettingRow

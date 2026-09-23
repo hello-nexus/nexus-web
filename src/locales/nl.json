@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "Groen",
   "devices.xeneonEdge.red": "Rood",
   "devices.y70.brightness": "Helderheid",
+  "devices.y70.compatibilityRendering": "Compatibiliteitsmodus",
+  "devices.y70.compatibilityRenderingHint": "Schakel in als het paneel door elkaar of gedraaid wordt weergegeven. Nexus tekent het paneel dan op een manier die met meer videokaarten werkt. Laat uit als het paneel er goed uitziet.",
   "devices.y70.display": "Weergave",
   "devices.y70.displayDisconnectedNotice": "Sluit de beeldkabel van de Y70 aan zodat het paneel een scherm heeft om op weer te geven.",
   "devices.y70.editor.addWidget": "Widget toevoegen",

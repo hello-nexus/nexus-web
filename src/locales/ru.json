@@ -1034,6 +1034,8 @@
   "devices.xeneonEdge.green": "Зелёный",
   "devices.xeneonEdge.red": "Красный",
   "devices.y70.brightness": "Яркость",
+  "devices.y70.compatibilityRendering": "Режим совместимости",
+  "devices.y70.compatibilityRenderingHint": "Включите, если изображение на панели перемешано или повёрнуто набок. Nexus изменит способ отрисовки панели, чтобы она работала с большим числом видеокарт. Оставьте выключенным, если панель выглядит правильно.",
   "devices.y70.display": "Дисплей",
   "devices.y70.displayDisconnectedNotice": "Подключите кабель дисплея Y70, чтобы у панели был экран для вывода изображения.",
   "devices.y70.editor.addWidget": "Добавить виджет",

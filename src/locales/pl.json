@@ -1034,6 +1034,8 @@
   "devices.xeneonEdge.green": "Zielony",
   "devices.xeneonEdge.red": "Czerwony",
   "devices.y70.brightness": "Jasnosc",
+  "devices.y70.compatibilityRendering": "Tryb zgodności",
+  "devices.y70.compatibilityRenderingHint": "Włącz, jeśli obraz panelu jest pomieszany lub obrócony na bok. Zmienia sposób, w jaki Nexus rysuje panel, aby działał z większą liczbą kart graficznych. Pozostaw wyłączone, jeśli panel wygląda prawidłowo.",
   "devices.y70.display": "Wyswietlacz",
   "devices.y70.displayDisconnectedNotice": "Podłącz kabel wyświetlacza Y70, aby panel miał ekran do wyświetlania obrazu.",
   "devices.y70.editor.addWidget": "Dodaj widget",

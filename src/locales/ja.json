@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "グリーン",
   "devices.xeneonEdge.red": "レッド",
   "devices.y70.brightness": "明るさ",
+  "devices.y70.compatibilityRendering": "互換モード",
+  "devices.y70.compatibilityRenderingHint": "パネルの表示が乱れたり横向きになったりする場合はオンにしてください。Nexus がパネルを描画する方法を変更し、より多くのグラフィックカードで正しく表示されるようにします。パネルが正常に表示されている場合はオフのままにしてください。",
   "devices.y70.display": "ディスプレイ",
   "devices.y70.displayDisconnectedNotice": "Y70 のディスプレイケーブルを接続して、パネルに表示先の画面があるようにしてください。",
   "devices.y70.editor.addWidget": "ウィジェットを追加",

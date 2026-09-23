@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "绿色",
   "devices.xeneonEdge.red": "红色",
   "devices.y70.brightness": "亮度",
+  "devices.y70.compatibilityRendering": "兼容模式",
+  "devices.y70.compatibilityRenderingHint": "如果面板显示错乱或横向显示，请开启此项。它会改变 Nexus 绘制面板的方式，以兼容更多显卡。如果面板显示正常，请保持关闭。",
   "devices.y70.display": "显示",
   "devices.y70.displayDisconnectedNotice": "请连接 Y70 的显示器数据线，让面板有屏幕可以显示内容。",
   "devices.y70.editor.addWidget": "添加小组件",

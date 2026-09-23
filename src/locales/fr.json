@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "Vert",
   "devices.xeneonEdge.red": "Rouge",
   "devices.y70.brightness": "Luminosité",
+  "devices.y70.compatibilityRendering": "Mode de compatibilité",
+  "devices.y70.compatibilityRenderingHint": "Activez cette option si le panneau s'affiche brouillé ou de travers. Elle change la façon dont Nexus dessine le panneau pour fonctionner avec davantage de cartes graphiques. Laissez-la désactivée si le panneau s'affiche correctement.",
   "devices.y70.display": "Affichage",
   "devices.y70.displayDisconnectedNotice": "Connectez le câble d'affichage du Y70 pour que le panneau ait un écran sur lequel afficher l'image.",
   "devices.y70.editor.addWidget": "Ajouter un widget",

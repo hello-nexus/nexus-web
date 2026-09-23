@@ -1027,6 +1027,8 @@
   "devices.xeneonEdge.green": "Verde",
   "devices.xeneonEdge.red": "Vermelho",
   "devices.y70.brightness": "Brilho",
+  "devices.y70.compatibilityRendering": "Modo de compatibilidade",
+  "devices.y70.compatibilityRenderingHint": "Ative se o painel aparecer embaralhado ou de lado. Muda a forma como o Nexus desenha o painel para funcionar com mais placas de vídeo. Deixe desativado se o painel estiver aparecendo corretamente.",
   "devices.y70.display": "Tela",
   "devices.y70.displayDisconnectedNotice": "Conecte o cabo de tela do Y70 para que o painel tenha uma tela para exibir conteúdo.",
   "devices.y70.editor.addWidget": "Adicionar Widget",
