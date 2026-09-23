@@ -28,6 +28,23 @@
   gap: 1rem;
 }
 
+// Page setup state: the feature intro above the form, centered in the body.
+.setupIntro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-block: auto;
+  width: 100%;
+
+  .setupCard { width: 100%; }
+
+  // Nested to outrank EmptyState's own hero fill; the form sits right below.
+  .introHero {
+    flex: none;
+    height: auto;
+  }
+}
+
 // Setup form (shown when not configured or on connection error).
 .setupCard {
   padding: 1.25rem;

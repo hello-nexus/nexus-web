@@ -55,6 +55,7 @@ $dot-offline: var(--text-dim);
 // bottom of the page instead of sitting directly under the notice. Nested under
 // .setupInner so this wins on specificity rather than on CSS chunk order.
 .setupInner .setupNotice {
+  flex: none;
   height: auto;
   padding: 0 1rem;
 }

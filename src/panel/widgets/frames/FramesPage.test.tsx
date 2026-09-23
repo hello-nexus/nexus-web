@@ -9,11 +9,13 @@ import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { FpsTableGameItem } from '../../../types/fps-estimates';
 
 const getFpsTrackingStatusMock = vi.fn();
+const setFpsTrackingEnabledMock = vi.fn();
 const fetchFpsGameSessionsMock = vi.fn();
 const deleteFpsSessionMock = vi.fn();
 const deleteFpsGameMock = vi.fn();
 vi.mock('../../../api/fps', () => ({
   getFpsTrackingStatus: () => getFpsTrackingStatusMock(),
+  setFpsTrackingEnabled: (enabled: boolean) => setFpsTrackingEnabledMock(enabled),
   fetchFpsGameSessions: (gameKey: string, limit?: number) => fetchFpsGameSessionsMock(gameKey, limit),
   deleteFpsSession: (id: string) => deleteFpsSessionMock(id),
   deleteFpsGame: (gameKey: string) => deleteFpsGameMock(gameKey),
@@ -95,6 +97,7 @@ beforeEach(() => {
   systemSpecs = null;
   fpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
   getFpsTrackingStatusMock.mockReset().mockResolvedValue({ enabled: true });
+  setFpsTrackingEnabledMock.mockReset().mockResolvedValue({ enabled: true });
   fetchFpsGameSessionsMock.mockReset().mockResolvedValue({ sessions: [] });
   deleteFpsSessionMock.mockReset().mockResolvedValue({ deleted: 1 });
   deleteFpsGameMock.mockReset().mockResolvedValue({ deleted: 1 });
@@ -127,19 +130,24 @@ describe('FramesPage - History tab states', () => {
     expect(await screen.findByText('frames.unsupported')).toBeInTheDocument();
   });
 
-  it('shows the tracking-off message when the toggle is off', async () => {
+  it('offers to turn tracking on from the intro when the toggle is off', async () => {
     getFpsTrackingStatusMock.mockResolvedValue({ enabled: false });
     renderPage();
-    expect(await screen.findByText('frames.trackingOff.title')).toBeInTheDocument();
-    expect(screen.getByText('frames.trackingOff.hint')).toBeInTheDocument();
+    expect(await screen.findByText('frames.intro.title')).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByText('frames.intro.enableTracking'));
+    expect(setFpsTrackingEnabledMock).toHaveBeenCalledWith(true);
+    await flush();
+    expect(screen.queryByText('frames.intro.enableTracking')).not.toBeInTheDocument();
   });
 
   it('shows a dedicated blank state with no search box or counter when there are no recordings at all', async () => {
     renderPage();
     await flush();
 
-    expect(await screen.findByText('frames.empty.title')).toBeInTheDocument();
-    expect(screen.getByText('frames.empty.hint')).toBeInTheDocument();
+    expect(await screen.findByText('frames.intro.title')).toBeInTheDocument();
+    expect(screen.getByText('frames.intro.body')).toBeInTheDocument();
+    expect(screen.queryByText('frames.intro.enableTracking')).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText('steam.library.searchPlaceholder')).not.toBeInTheDocument();
     expect(screen.queryByText(/steam\.library\.count/)).not.toBeInTheDocument();
   });

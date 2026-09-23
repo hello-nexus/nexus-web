@@ -204,8 +204,21 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     if (!latest) {
       return (
         <EmptyState
-          icon={<Gauge size={32} />}
-          title={t('benchmark.history.empty')}
+          hero
+          icon={<Gauge />}
+          title={t('benchmark.results.introTitle')}
+          hint={t('benchmark.results.introBody')}
+          points={[
+            { icon: <Cpu />, text: t('benchmark.phase.cpu') },
+            { icon: <Monitor />, text: t('benchmark.phase.gpu') },
+            { icon: <MemoryStick />, text: t('benchmark.phase.ram') },
+            { icon: <HardDrive />, text: t('benchmark.phase.storage') },
+          ]}
+          action={(
+            <Button tone="accent" icon={<Play size={16} />} onClick={() => { onTabChange('run'); void start(); }}>
+              {t('benchmark.start')}
+            </Button>
+          )}
         />
       );
     }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Compass, Film, Gamepad2, Trash2, Users, Wrench } from 'lucide-react';
+import { ArrowLeft, ChartLine, Compass, Film, Gamepad2, History, Trash2, Users, Wrench } from 'lucide-react';
 import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
 import { DEV_TOOLS } from '../../../lib/devTools';
 import { EpicIcon, SteamIcon } from '../../../components/icons/PlatformIcons';
@@ -20,6 +20,7 @@ import { fpsGameArtUrl,
   deleteFpsSession,
   fetchFpsGameSessions,
   getFpsTrackingStatus,
+  setFpsTrackingEnabled,
   type FpsGameSummary,
   type FpsSession,
 } from '../../../api/fps';
@@ -70,6 +71,11 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
     return () => { cancelled = true; };
   }, []);
 
+  const enableTracking = async () => {
+    const resp = await setFpsTrackingEnabled(true);
+    if (resp) setTrackingEnabled(resp.enabled);
+  };
+
   const tabs = [
     { key: 'history', label: t('frames.tab.history'), icon: <Film size={14} /> },
     { key: 'discover', label: t('frames.tab.discover'), icon: <Compass size={14} /> },
@@ -93,6 +99,7 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
             games={games}
             supported={supported}
             trackingEnabled={trackingEnabled}
+            onEnableTracking={enableTracking}
             onOpenGame={onTabChange}
           />
         )}
@@ -114,16 +121,19 @@ function HistoryTab({
   games,
   supported,
   trackingEnabled,
+  onEnableTracking,
   onOpenGame,
 }: {
   games: FpsGameSummary[];
   supported: boolean;
   trackingEnabled: boolean | null;
+  onEnableTracking: () => Promise<void>;
   onOpenGame: (gameKey: string) => void;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [search, setSearch] = useState('');
+  const [enabling, setEnabling] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -139,22 +149,29 @@ function HistoryTab({
     );
   }
 
-  if (trackingEnabled === false) {
+  if (trackingEnabled === false || games.length === 0) {
+    const handleEnable = async () => {
+      setEnabling(true);
+      try { await onEnableTracking(); } finally { setEnabling(false); }
+    };
     return (
       <div className={styles.emptyWrap}>
         <EmptyState
-          icon={<Film size={28} />}
-          title={t('frames.trackingOff.title')}
-          hint={t('frames.trackingOff.hint')}
+          hero
+          icon={<Film />}
+          title={t('frames.intro.title')}
+          hint={t('frames.intro.body')}
+          points={[
+            { icon: <History />, text: t('frames.intro.pointStats') },
+            { icon: <ChartLine />, text: t('frames.intro.pointTimeline') },
+            { icon: <Compass />, text: t('frames.intro.pointDiscover') },
+          ]}
+          action={trackingEnabled === false && (
+            <Button tone="accent" loading={enabling} onClick={handleEnable}>
+              {t('frames.intro.enableTracking')}
+            </Button>
+          )}
         />
-      </div>
-    );
-  }
-
-  if (games.length === 0) {
-    return (
-      <div className={styles.emptyWrap}>
-        <EmptyState icon={<Film size={28} />} title={t('frames.empty.title')} hint={t('frames.empty.hint')} />
       </div>
     );
   }

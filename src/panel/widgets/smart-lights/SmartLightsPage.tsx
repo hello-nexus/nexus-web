@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ExternalLink, LampCeiling, Lightbulb, RefreshCw } from 'lucide-react';
+import { ExternalLink, LampCeiling, Lightbulb, Network, Palette, Radar, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -400,14 +400,30 @@ export function SmartLightsPairedColumn({
 }) {
   const { t } = useTranslation();
   const { paired, grouped } = ctrl;
+  const empty = paired.length === 0;
+  const columnClass = immersive
+    ? `${styles.pairedColumn} ${styles.columnImmersive}`
+    : `${styles.pairedColumn} ${empty ? styles.pairedColumnEmpty : ''}`;
   return (
-    <div className={immersive ? `${styles.pairedColumn} ${styles.columnImmersive}` : styles.pairedColumn}>
+    <div className={columnClass}>
       <SectionHeader className={styles.colHeader}>{t('smartLights.paired')}</SectionHeader>
-      {paired.length === 0 ? (
+      {empty && immersive ? (
         <EmptyState
           icon={<LampCeiling size={28} />}
           title={t('smartLights.noLightsYet')}
           compact
+        />
+      ) : empty ? (
+        <EmptyState
+          hero
+          icon={<LampCeiling />}
+          title={t('smartLights.intro.title')}
+          hint={t('smartLights.intro.body')}
+          points={[
+            { icon: <Radar />, text: t('smartLights.intro.pointScan') },
+            { icon: <Network />, text: t('smartLights.intro.pointIp') },
+            { icon: <Palette />, text: t('smartLights.intro.pointColor') },
+          ]}
         />
       ) : (
         <div className={styles.categories}>
