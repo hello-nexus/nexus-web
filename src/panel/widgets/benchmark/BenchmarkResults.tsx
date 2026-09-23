@@ -1,4 +1,4 @@
-import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow } from 'lucide-react';
+import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow, Wrench } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -6,6 +6,9 @@ import type { BenchmarkResult, BenchmarkSubScore } from '../../../types/benchmar
 import { Card } from '../../../components/common/Card/Card';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
+import { Button } from '../../../components/common/Button/Button';
+import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import styles from './BenchmarkPage.module.scss';
 
 interface Props {
@@ -58,7 +61,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
   );
 }
 
-export function BenchmarkResults({ result, submission, submitting }: Props) {
+export function BenchmarkResults({ result, submission, submitting, submissionId }: Props) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const hw = result.hardware;
@@ -99,6 +102,16 @@ export function BenchmarkResults({ result, submission, submitting }: Props) {
             {t('benchmark.leaderboard.version')}{': '}
             <span>{result.scoringVersion}</span>
           </div>
+        )}
+        {DEV_TOOLS && submissionId && (
+          <Button
+            size="sm"
+            tone="neutral"
+            icon={<Wrench size={14} />}
+            onClick={() => requestOpenBuild(`/upgrade?bench=${encodeURIComponent(submissionId)}`)}
+          >
+            {t('benchmark.result.exploreUpgrades')}
+          </Button>
         )}
       </div>
 

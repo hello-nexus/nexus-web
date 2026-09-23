@@ -6,7 +6,7 @@
 // Not pinned by default: an entry here is reachable from the Add-app drawer
 // and global search until the user pins it.
 
-import { Film, ShoppingBag } from 'lucide-react';
+import { Film, Hammer, ShoppingBag } from 'lucide-react';
 import type { AppIcon } from '../panel/widgets/types';
 import { DEV_TOOLS } from '../lib/devTools';
 
@@ -22,6 +22,9 @@ export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
   // Gating this entry is what removes the store everywhere: pinning, pin
   // sanitizing, the add-app drawer and search all resolve through this record.
   ...(DEV_TOOLS ? { store: { i18nKey: 'apps.tabs.store', icon: ShoppingBag } } : {}),
+  // Build (build.hellonexus.com) has no affiliate tags wired up yet, same
+  // gating posture as the store above.
+  ...(DEV_TOOLS ? { build: { i18nKey: 'panel.widget.build', icon: Hammer } } : {}),
 };
 
 export function isPageOnlyAppKey(key: string): boolean {
