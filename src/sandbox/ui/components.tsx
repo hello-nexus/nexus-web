@@ -69,6 +69,8 @@ export function Grid(p: HostProps) {
 }
 
 export function Frame(p: HostProps) {
+  const color = p.tone ? toneVar(str(p.tone)) : 'var(--surface, rgba(255,255,255,0.05))';
+  const image = frameImageSrc(p.image);
   const style: CSSProperties = {
     display: 'flex',
     flexDirection: p.direction === 'row' ? 'row' : 'column',
@@ -76,13 +78,21 @@ export function Frame(p: HostProps) {
     padding: num(p.padding) ?? 12,
     alignItems: alignValue(str(p.align), 'stretch'),
     justifyContent: justifyValue(str(p.justify), 'flex-start'),
-    background: p.tone ? toneVar(str(p.tone)) : 'var(--surface, rgba(255,255,255,0.05))',
+    background: image ? `center / cover no-repeat url("${image}"), ${color}` : color,
     borderRadius: num(p.radius) ?? 12,
     border: p.border ? '1px solid var(--border, rgba(255,255,255,0.10))' : undefined,
     flex: p.grow ? 1 : undefined,
     minWidth: 0, minHeight: 0,
   };
   return <div style={style}>{p.children}</div>;
+}
+
+// Same scheme allowlist as Image and the same url() breakout guard as Sprite.
+function frameImageSrc(v: unknown): string | undefined {
+  const src = str(v);
+  if (!src || CSS_URL_UNSAFE.test(src)) return undefined;
+  if (isAppAsset(src)) return appAssetSrc(src);
+  return SAFE_IMG.test(src) ? src : undefined;
 }
 
 export function Spacer(p: HostProps) {
@@ -262,7 +272,7 @@ function sdkToneToNative(sdkTone: unknown, variant: unknown): ButtonTone {
   const t = str(sdkTone) ?? '';
   const v = str(variant) ?? 'soft';
   if (v === 'ghost') return 'ghost';
-  if (t === 'bad') return 'danger';
+  if (t === 'bad') return v === 'solid' ? 'danger-solid' : 'danger';
   if (t === 'accent' && v === 'solid') return 'accent';
   if (v === 'solid') return 'accent';
   return 'neutral';

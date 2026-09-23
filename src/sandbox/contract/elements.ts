@@ -29,7 +29,7 @@ export const UI_ELEMENTS = {
     properties: ['columns', 'rows', 'gap', 'padding', 'align', 'justify', 'grow'],
   },
   'ui-frame': {
-    properties: ['padding', 'gap', 'direction', 'align', 'justify', 'tone', 'radius', 'border', 'grow'],
+    properties: ['padding', 'gap', 'direction', 'align', 'justify', 'tone', 'radius', 'border', 'grow', 'image'],
   },
   'ui-spacer': { properties: ['size'] },
   'ui-divider': { properties: ['tone'] },

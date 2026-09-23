@@ -367,7 +367,12 @@ A styled box - background, border, radius, direction.
 | `radius` | `number` |
 | `border` | `boolean` |
 | `grow` | `boolean` |
+| `image` | `string` |
 | `children` | `ReactNode` |
+
+`image` is an `https:`, `data:image/`, `blob:` or own-asset URL painted cover-fit
+under the children, over the `tone`. A value containing a quote, apostrophe,
+paren, backslash or whitespace is ignored.
 
 #### `Spacer`
 Flexible gap. `size` is in px (default: flex-fills remaining space).
@@ -595,7 +600,7 @@ Host renders `src/components/common/Button/Button.tsx`.
 | Prop | Type | Notes |
 |---|---|---|
 | `label` | `string` | |
-| `tone` | `UiTone` | |
+| `tone` | `UiTone` | `bad` is the danger button, filled with `variant="solid"` |
 | `variant` | `'solid' \| 'soft' \| 'ghost'` | |
 | `disabled` | `boolean` | |
 | `icon` | `string` | icon name (lucide) |

@@ -62,6 +62,8 @@ export interface FrameProps extends WithChildren {
   padding?: number; gap?: number; direction?: 'row' | 'column';
   align?: Align; justify?: Justify; tone?: UiTone; radius?: number;
   border?: boolean; grow?: boolean;
+  /** https:, data:image/, blob: or app-asset URL painted cover-fit under the children, over the tone. */
+  image?: string;
 }
 export interface SpacerProps { size?: number }
 export interface DividerProps { tone?: UiTone }
