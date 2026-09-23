@@ -31,7 +31,7 @@
   // profile). Consumed by .topBar in TopBar.module.scss.
   --topbar-height: 52px;
   // Expanded sidebar column width, and the faint fill behind the sidebar's
-  // section chips (APPS / DEVICES headers, the Show more toggle).
+  // section chips (APPS / DEVICES headers).
   --sidebar-width: 240px;
   --sidebar-chip-bg: color-mix(in srgb, var(--text) 5%, transparent);
   // Collapsed sidebar rail width. An undefined --rail-item-pad invalidates the
