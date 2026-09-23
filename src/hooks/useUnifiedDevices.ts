@@ -108,7 +108,7 @@ const CURATED_ICONS: Record<string, string> = {
   'lianli-tl': '/assets/devices/lianli.svg',
   'lianli-aio': '/assets/devices/lianli.svg',
   'lianli-wireless': '/assets/devices/lianli.svg',
-  strimer: '/assets/devices/device.svg',
+  strimer: '/assets/devices/lianli.svg',
   nollie: '/assets/devices/nollie.svg',
   tryx: '/assets/devices/tryx.svg',
   'nzxt-kraken': '/assets/devices/nzxt.svg',

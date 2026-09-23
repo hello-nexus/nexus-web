@@ -101,6 +101,7 @@ const STREAMED_PANEL_ICONS: Partial<Record<PanelSurface, string>> = {
 // surfaces need this because 'lcd-round' alone cannot tell a Lian Li from an ID-Cooling.
 const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'lianli-galahad2-lcd': '/assets/devices/lianli.svg',
+  'lianli-hydroshift-lcd': '/assets/devices/lianli.svg',
   'corsair-link-lcd': '/assets/devices/corsair.svg',
   'corsair-xc7-lcd': '/assets/devices/corsair.svg',
   'corsair-capellix-lcd': '/assets/devices/corsair.svg',

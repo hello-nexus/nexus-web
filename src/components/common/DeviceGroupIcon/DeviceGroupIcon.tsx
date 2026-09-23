@@ -12,6 +12,7 @@ const PREFIX_LOOK: ReadonlyArray<readonly [prefix: string, look: Look]> = [
   ['minihub:', art('ibuypower.svg')],
   ['ibp:', art('ibuypower.svg')],
   ['lianli', art('lianli.svg')],
+  ['strimer', art('lianli.svg')],
   ['corsair:', art('corsair.svg')],
   ['keeb:', art('keeb.svg')],
   ['qseries:', art('q60.svg')],
