@@ -301,6 +301,22 @@ describe('LightingPage selection in a drive-everything mode', () => {
     await waitFor(() => expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']));
   });
 
+  it('select all includes a device with its lights off', async () => {
+    devicesRef.current = [makeDevice('dev-a', 'Device A'), { ...makeDevice('dev-b', 'Device B'), ledsOn: false }];
+    const { findByLabelText } = render(
+      <UiSettingsProvider>
+        <LightingPage serviceOnline serviceState={{ cooling: null, lighting: null, panel: null }} activeProfileId="old" />
+      </UiSettingsProvider>,
+    );
+
+    fireEvent.click(await findByLabelText('lightingOnboarding.selectNone'));
+    await waitFor(() => expect(canvasDeviceIds.current).toEqual([]));
+    fireEvent.click(await findByLabelText('lighting.pane.selectAllControlled'));
+
+    await waitFor(() => expect(canvasDeviceIds.current).toEqual(['dev-a', 'dev-b']));
+    expect(await findByLabelText('lighting.pane.selectAllControlled')).toBeDisabled();
+  });
+
   it('keeps every selected frame drawn when a canvas click clears the focus', async () => {
     const { findByTestId, findByLabelText } = render(
       <UiSettingsProvider>

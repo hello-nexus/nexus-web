@@ -1388,9 +1388,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [orderedDevices, hideUncontrolled],
   );
 
-  // zoneCardSelectable already drops unavailable cards and anything with Nexus
-  // Control off, which is also what the page hides when hiding uncontrolled
-  // devices - so select-all never builds a selection the user cannot see.
   const selectableIds = useMemo(
     () => orderedDevices.filter(zoneCardSelectable).map(d => d.id),
     [orderedDevices],
@@ -1399,6 +1396,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // un-driven card too, since selecting it is how its menu gets opened.
   const selectionKeepIds = useMemo(
     () => orderedDevices.filter(d => !zoneCardUnavailable(d)).map(d => d.id),
+    [orderedDevices],
+  );
+  // Select all takes dark cards too, but skips Nexus Control off ones, which the
+  // eye can hide - so it never builds a selection the user cannot see.
+  const selectAllIds = useMemo(
+    () => orderedDevices.filter(d => !zoneCardUnavailable(d) && d.controlled !== false).map(d => d.id),
     [orderedDevices],
   );
 
@@ -2033,7 +2036,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Selected devices wearing different looks have no single value for the
   // controls to edit, so the dock locks until the selection agrees.
   const mixedSelection = scoped.kind === 'locked';
-  const allSelected = selectableIds.length > 0 && selectableIds.every(id => selectedDeviceIds.has(id));
+  const allSelected = selectAllIds.length > 0 && selectAllIds.every(id => selectedDeviceIds.has(id));
   // The canvas previews the shared effect canvas, which Static does not sample
   // and Off has nothing to show on. Game Sync substitutes its own activity block.
   const showCanvas = effectiveMode !== 'static' && effectiveMode !== 'none' && effectiveMode !== 'gamesync';
@@ -2237,7 +2240,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
           <div className={styles.deviceHeaderActions}>
             <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
-            {selectableIds.length > 0 && (
+            {selectAllIds.length > 0 && (
             <>
               <span className={styles.headerSep} aria-hidden />
               {/* Icon-only: the rail is too narrow for both labels beside the title. */}
@@ -2248,7 +2251,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   icon={<CheckCheck />}
                   aria-label={t('lighting.pane.selectAllControlled')}
                   disabled={allSelected}
-                  onClick={() => handleSetSelection(new Set(selectableIds), selectableIds[0] ?? null)}
+                  onClick={() => handleSetSelection(new Set(selectAllIds), selectAllIds[0] ?? null)}
                 />
               </HoverTooltip>
               <HoverTooltip body={t('lightingOnboarding.selectNone')} side="bottom">
