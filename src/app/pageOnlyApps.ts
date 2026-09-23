@@ -22,8 +22,8 @@ export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
   // Gating this entry is what removes the store everywhere: pinning, pin
   // sanitizing, the add-app drawer and search all resolve through this record.
   ...(DEV_TOOLS ? { store: { i18nKey: 'apps.tabs.store', icon: ShoppingBag } } : {}),
-  // Build (build.hellonexus.com) has no affiliate tags wired up yet, same
-  // gating posture as the store above.
+  // Gated the same way as the store above: this record is what removes it
+  // from pinning, the add-app drawer and search.
   ...(DEV_TOOLS ? { build: { i18nKey: 'panel.widget.build', icon: Hammer } } : {}),
 };
 

@@ -220,7 +220,7 @@
   "benchmark.widget.justNow": "Ahora mismo",
   "benchmark.widget.minsAgo": "hace {n}min",
   "brand": "Nexus",
-  "build.offline.body": "Build necesita conexi\u00f3n a internet para cargar.",
+  "build.offline.body": "Build necesita conexión a internet para cargar.",
   "build.offline.open": "Abrir build.hellonexus.com",
   "build.offline.retry": "Reintentar",
   "build.offline.title": "No se puede acceder a Build",
