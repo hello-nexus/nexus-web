@@ -89,10 +89,12 @@ describe('fanTypeKey', () => {
     expect(fanTypeKey(99)).toBe('fanTypeGeneric');
   });
 
-  it('maps 27-35 to TL-V2', () => {
-    expect(fanTypeKey(27)).toBe('fanTypeTlv2');
+  it('maps 27-35 to TL Wireless and TL LCD Wireless, 40-42 to CL Wireless', () => {
+    expect(fanTypeKey(27)).toBe('fanTypeTlLcd');
     expect(fanTypeKey(28)).toBe('fanTypeTlv2');
-    expect(fanTypeKey(35)).toBe('fanTypeTlv2');
+    expect(fanTypeKey(31)).toBe('fanTypeTlv2');
+    expect(fanTypeKey(35)).toBe('fanTypeTlLcd');
+    expect(fanTypeKey(41)).toBe('fanTypeCl');
   });
 });
 
@@ -103,8 +105,8 @@ describe('deviceTypeKey', () => {
   });
 
   it('names a Water Block from dev_type 10/11', () => {
-    expect(deviceTypeKey(10, 0)).toBe('deviceWaterBlock');
-    expect(deviceTypeKey(11, 0)).toBe('deviceWaterBlock');
+    expect(deviceTypeKey(10, 0)).toBe('deviceHydroShift');
+    expect(deviceTypeKey(11, 0)).toBe('deviceHydroShift');
   });
 
   it('names a fan chain by its sub-family (dev_type 0, sub-family in fanType)', () => {
@@ -227,7 +229,7 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
-    expect(screen.getByText('devices.lianli-wireless.noFansPaired')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.noDevicesPaired')).toBeInTheDocument();
   });
 
   it('names a non-fan device (Strimer) and shows no fan rows', async () => {
@@ -379,12 +381,12 @@ describe('LianLiWirelessDevicePage - bind/unbind/identify', () => {
 });
 
 describe('LianLiWirelessDevicePage - tabs', () => {
-  it('renders both tabs with Fans active by default', async () => {
+  it('renders the Devices and Screens tabs with Devices active by default', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
 
-    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.fans/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.devices/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.cooling/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).not.toBeInTheDocument();

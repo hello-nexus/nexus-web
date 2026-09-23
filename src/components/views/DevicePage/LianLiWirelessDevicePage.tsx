@@ -101,7 +101,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
 
   const hasStrimer = !!state?.fans.some(f => f.boundToUs && isStrimerDevType(f.devType));
   const tabs = [
-    { key: 'fans', label: t('devices.lianli-wireless.tab.fans'), icon: <Fan size={14} /> },
+    { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <Fan size={14} /> },
     ...(hasStrimer ? [{ key: 'lighting', label: t('devices.lianli-wireless.tab.lighting'), icon: <Lightbulb size={14} /> }] : []),
     { key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <MonitorSmartphone size={14} /> },
   ];
@@ -110,7 +110,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
     <div className={styles.page}>
       <ViewHeader
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
-        title="Lian Li Uni Fan Wireless"
+        title="Lian Li L-Wireless Controller"
         tabs={disconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}

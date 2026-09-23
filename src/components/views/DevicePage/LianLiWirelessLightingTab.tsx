@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Lightbulb } from 'lucide-react';
 import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
-import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { LightingPageSwitch } from './LightingPageSwitch';
 import {
   getLianLiWirelessStrimers,
   setLianLiWirelessStrimer,
@@ -22,6 +21,7 @@ const PERCENT_PER_LEVEL = 25;
 const MODE_CUSTOM = 'custom';
 const MODE_PER_LANE = 'perLane';
 const DEFAULT_LANE_MODE = 'rainbow';
+const DEFAULT_EFFECT = 'rainbow';
 // The palette the service renders with when a cable has no user colours.
 const STRIMER_DEFAULT_COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#00ffff', '#ff00ff'];
 
@@ -73,7 +73,8 @@ export function LianLiWirelessLightingTab({ onSectionNavigate }: LianLiWirelessL
 
   const commit = useCallback(async (mac: string, patch: LianLiWirelessStrimerPatch) => {
     preview(mac, patch);
-    if (!await setLianLiWirelessStrimer(mac, patch)) void refresh();
+    // effectMode is derived by the service; it only feeds the preview.
+    if (!await setLianLiWirelessStrimer(mac, { ...patch, effectMode: undefined })) void refresh();
   }, [preview, refresh]);
 
   if (!data) return null;
@@ -106,12 +107,13 @@ interface StrimerSectionProps {
 function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSectionNavigate }: StrimerSectionProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
-  const effect = effects.find(e => e.key === strimer.mode) ?? null;
-  const perLane = strimer.mode === MODE_PER_LANE;
-  const custom = !perLane && effect === null;
+  const lightingPage = strimer.mode === MODE_CUSTOM;
+  // The animation the cable plays when the Lighting page is not driving it.
+  const effectKey = lightingPage ? strimer.effectMode ?? DEFAULT_EFFECT : strimer.mode;
+  const effect = effects.find(e => e.key === effectKey) ?? null;
+  const perLane = effectKey === MODE_PER_LANE;
 
   const modeOptions = [
-    { value: MODE_CUSTOM, label: t('devices.lianli-wireless.strimerModeCustom') },
     ...effects.map(e => ({ value: e.key, label: effectLabel(t, e.key) })),
     { value: MODE_PER_LANE, label: t('devices.lianli-wireless.strimerModePerLane') },
   ];
@@ -137,115 +139,108 @@ function StrimerSection({ strimer, effects, laneModes, onPreview, onCommit, onSe
 
   return (
     <SettingsSection title={strimer.model} boxClassName={styles.sectionBox}>
-      <SettingSelect
-        label={t('devices.lianli.lightingMode')}
-        value={custom ? MODE_CUSTOM : strimer.mode}
-        onChange={v => onCommit({ mode: v })}
-        options={modeOptions}
+      <LightingPageSwitch
+        on={lightingPage}
+        onChange={on => onCommit(on ? { mode: MODE_CUSTOM } : { mode: effectKey, effectMode: effectKey })}
+        onSectionNavigate={onSectionNavigate}
       />
 
-      {custom ? (
-        <>
-          <p className={styles.customNote} data-settings-aside="true">{t('devices.lianli.customModeNote')}</p>
-          {onSectionNavigate && (
-            <Button
-              className={styles.lightingLink}
-              size="sm"
-              tone="neutral"
-              icon={<Lightbulb size={14} />}
-              onClick={() => onSectionNavigate('lighting')}
-            >
-              {t('smartLights.colorOnLightingPage')}
-            </Button>
-          )}
-        </>
-      ) : (
-        <>
-          <SettingSlider
-            editable
-            trackFill
-            label={t('devices.lianli.lightingBrightness')}
-            value={strimer.brightness * PERCENT_PER_LEVEL}
-            min={0}
-            max={100}
-            step={PERCENT_PER_LEVEL}
-            formatValue={percent}
-            ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-            onChange={(v: number, commit?: boolean) => {
-              const level = Math.round(v / PERCENT_PER_LEVEL);
-              (commit ? onCommit : onPreview)({ brightness: level });
-            }}
-            onCommit={(v: number) => onCommit({ brightness: Math.round(v / PERCENT_PER_LEVEL) })}
-          />
+      <SettingSelect
+        label={t('devices.lianli.lightingMode')}
+        value={effectKey}
+        onChange={v => onCommit({ mode: v, effectMode: v })}
+        options={modeOptions}
+        disabled={lightingPage}
+      />
 
-          {(perLane || effect?.hasSpeed) && (
-            <SettingSlider
-              editable
-              trackFill
-              label={t('devices.lianli.lightingSpeed')}
-              value={strimer.speed * PERCENT_PER_LEVEL}
-              min={0}
-              max={100}
-              step={PERCENT_PER_LEVEL}
-              formatValue={percent}
-              ariaLabel={t('devices.lianli.lightingSpeedAria')}
-              onChange={(v: number, commit?: boolean) => {
-                const level = Math.round(v / PERCENT_PER_LEVEL);
-                (commit ? onCommit : onPreview)({ speed: level });
-              }}
-              onCommit={(v: number) => onCommit({ speed: Math.round(v / PERCENT_PER_LEVEL) })}
-            />
-          )}
+      <SettingSlider
+        editable
+        trackFill
+        label={t('devices.lianli.lightingBrightness')}
+        value={strimer.brightness * PERCENT_PER_LEVEL}
+        min={0}
+        max={100}
+        step={PERCENT_PER_LEVEL}
+        formatValue={percent}
+        ariaLabel={t('devices.lianli.lightingBrightnessAria')}
+        disabled={lightingPage}
+        onChange={(v: number, commit?: boolean) => {
+          const level = Math.round(v / PERCENT_PER_LEVEL);
+          (commit ? onCommit : onPreview)({ brightness: level });
+        }}
+        onCommit={(v: number) => onCommit({ brightness: Math.round(v / PERCENT_PER_LEVEL) })}
+      />
 
-          {effect?.hasDirection && (
-            <SettingSelect
-              label={t('devices.lianli.lightingDirection')}
-              value={String(strimer.direction)}
-              onChange={v => onCommit({ direction: Number(v) })}
-              options={directionOptions}
-            />
-          )}
-
-          {effect && effect.colorsMax > 0 && (
-            <div className={styles.colorBlock} data-settings-aside="true">
-              <div className={styles.colorPairRow}>
-                {palette.slice(0, effect.colorsMax).map((color, i) => (
-                  <div key={i} className={styles.colorEntry}>
-                    <span className={styles.colorLabel}>{t('devices.lianli.colorN', { n: i + 1 })}</span>
-                    <HsvPicker
-                      value={color}
-                      onPreview={(hex: string) => setColor(i, hex, false)}
-                      onCommit={(hex: string) => setColor(i, hex, true)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {perLane && lanes.map((lane, i) => (
-            <div key={i} className={styles.colorBlock} data-settings-aside="true">
-              <SettingSelect
-                label={t('devices.lianli-wireless.strimerLaneN', { n: i + 1 })}
-                value={lane.mode}
-                onChange={v => setLane(i, { mode: v }, true)}
-                options={laneModes.map(key => ({ value: key, label: effectLabel(t, key) }))}
-              />
-              <SettingSelect
-                label={t('devices.lianli.lightingDirection')}
-                value={String(lane.direction)}
-                onChange={v => setLane(i, { direction: Number(v) }, true)}
-                options={directionOptions}
-              />
-              <HsvPicker
-                value={lane.color}
-                onPreview={(hex: string) => setLane(i, { color: hex }, false)}
-                onCommit={(hex: string) => setLane(i, { color: hex }, true)}
-              />
-            </div>
-          ))}
-        </>
+      {(perLane || effect?.hasSpeed) && (
+        <SettingSlider
+          editable
+          trackFill
+          label={t('devices.lianli.lightingSpeed')}
+          value={strimer.speed * PERCENT_PER_LEVEL}
+          min={0}
+          max={100}
+          step={PERCENT_PER_LEVEL}
+          formatValue={percent}
+          ariaLabel={t('devices.lianli.lightingSpeedAria')}
+          disabled={lightingPage}
+          onChange={(v: number, commit?: boolean) => {
+            const level = Math.round(v / PERCENT_PER_LEVEL);
+            (commit ? onCommit : onPreview)({ speed: level });
+          }}
+          onCommit={(v: number) => onCommit({ speed: Math.round(v / PERCENT_PER_LEVEL) })}
+        />
       )}
+
+      {effect?.hasDirection && (
+        <SettingSelect
+          label={t('devices.lianli.lightingDirection')}
+          value={String(strimer.direction)}
+          onChange={v => onCommit({ direction: Number(v) })}
+          options={directionOptions}
+          disabled={lightingPage}
+        />
+      )}
+
+      {effect && effect.colorsMax > 0 && (
+        <div className={`${styles.colorBlock} ${lightingPage ? styles.rowDisabled : ''}`} data-settings-aside="true">
+          <div className={styles.colorPairRow}>
+            {palette.slice(0, effect.colorsMax).map((color, i) => (
+              <div key={i} className={styles.colorEntry}>
+                <span className={styles.colorLabel}>{t('devices.lianli.colorN', { n: i + 1 })}</span>
+                <HsvPicker
+                  value={color}
+                  onPreview={(hex: string) => setColor(i, hex, false)}
+                  onCommit={(hex: string) => setColor(i, hex, true)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {perLane && lanes.map((lane, i) => (
+        <div key={i} className={`${styles.colorBlock} ${lightingPage ? styles.rowDisabled : ''}`} data-settings-aside="true">
+          <SettingSelect
+            label={t('devices.lianli-wireless.strimerLaneN', { n: i + 1 })}
+            value={lane.mode}
+            onChange={v => setLane(i, { mode: v }, true)}
+            options={laneModes.map(key => ({ value: key, label: effectLabel(t, key) }))}
+            disabled={lightingPage}
+          />
+          <SettingSelect
+            label={t('devices.lianli.lightingDirection')}
+            value={String(lane.direction)}
+            onChange={v => setLane(i, { direction: Number(v) }, true)}
+            options={directionOptions}
+            disabled={lightingPage}
+          />
+          <HsvPicker
+            value={lane.color}
+            onPreview={(hex: string) => setLane(i, { color: hex }, false)}
+            onCommit={(hex: string) => setLane(i, { color: hex }, true)}
+          />
+        </div>
+      ))}
     </SettingsSection>
   );
 }

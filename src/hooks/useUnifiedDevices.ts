@@ -130,8 +130,8 @@ const CURATED_SHORT_NAMES: Record<string, string> = {
   aw5: 'iBUYPOWER AW5',
   'lianli-tl': 'Lian Li Uni Fan TL',
   'lianli-aio': 'Lian Li Galahad II',
-  'lianli-wireless': 'Lian Li Uni Fan Wireless',
-  strimer: 'Lian Li Strimer',
+  'lianli-wireless': 'Lian Li L-Wireless Controller',
+  strimer: 'Lian Li Strimer Plus',
   nollie: 'Nollie',
   tryx: 'Tryx Panorama',
   // The Kraken's row is its LCD panel entry, whose record is named for the

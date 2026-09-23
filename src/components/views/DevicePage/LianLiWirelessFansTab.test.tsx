@@ -89,26 +89,29 @@ describe('LianLiWirelessFansTab - cooling controls', () => {
     expect(screen.getByText('1,918 RPM')).toBeInTheDocument();
     expect(screen.getByText('1,905 RPM')).toBeInTheDocument();
 
-    const modeSelects = screen.getAllByRole('button', { name: 'cooling.card.mode' });
-    expect(modeSelects).toHaveLength(2);
-    expect(modeSelects[0]).toHaveTextContent('cooling.card.manual');
-    expect(modeSelects[1]).toHaveTextContent('cooling.card.bios');
+    const switches = screen.getAllByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' });
+    expect(switches).toHaveLength(2);
+    expect(switches[0]).toHaveAttribute('aria-checked', 'true');
+    expect(switches[1]).toHaveAttribute('aria-checked', 'false');
   });
 
-  it('shows a speed slider only for the port in Manual mode', async () => {
+  it('greys out the speed slider of a port that follows the motherboard', async () => {
     await renderTab();
-    expect(screen.getByRole('slider', { name: 'devices.lianli-wireless.fanSpeed' })).toBeInTheDocument();
+    const sliders = screen.getAllByRole('slider', { name: 'devices.lianli-wireless.fanSpeed' });
+    expect(sliders).toHaveLength(2);
+    expect(sliders[0]).not.toBeDisabled();
+    expect(sliders[1]).toBeDisabled();
   });
 
   it('shows RPM but no mode controls for an unbound fan (no cooling channel registered)', async () => {
     await renderTab({ ...wirelessState, fans: [{ ...boundFan, boundToUs: false, slot: 0 }] });
     expect(screen.getByText('1,918 RPM')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'cooling.card.mode' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).not.toBeInTheDocument();
   });
 
   it('renders bind/unbind/identify actions alongside the RPM and mode controls for the same chain', async () => {
     await renderTab();
-    expect(screen.getAllByRole('button', { name: 'cooling.card.mode' })).toHaveLength(2);
+    expect(screen.getAllByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
   });
@@ -132,7 +135,7 @@ describe('LianLiWirelessFansTab - cooling controls', () => {
     expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'cooling.card.mode' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).not.toBeInTheDocument();
   });
 
   it('shows the curve hint and, when onSectionNavigate is provided, a Go to Cooling button', async () => {
@@ -149,22 +152,18 @@ describe('LianLiWirelessFansTab - cooling controls', () => {
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.goToCooling' })).not.toBeInTheDocument();
   });
 
-  it('switching a port to Manual calls setFanSpeed with the last known duty', async () => {
+  it('turning on Manual speed calls setFanSpeed with the last known duty', async () => {
     await renderTab();
 
-    const modeSelects = screen.getAllByRole('button', { name: 'cooling.card.mode' });
-    fireEvent.click(modeSelects[1]);
-    fireEvent.click(screen.getByRole('option', { name: 'cooling.card.manual' }));
+    fireEvent.click(screen.getAllByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })[1]);
 
     expect(mockSetFanSpeed).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1:port1', 6);
   });
 
-  it('switching a port to BIOS calls releaseFanAuto', async () => {
+  it('turning off Manual speed hands the port to the motherboard', async () => {
     await renderTab();
 
-    const modeSelects = screen.getAllByRole('button', { name: 'cooling.card.mode' });
-    fireEvent.click(modeSelects[0]);
-    fireEvent.click(screen.getByRole('option', { name: 'cooling.card.bios' }));
+    fireEvent.click(screen.getAllByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })[0]);
 
     expect(mockReleaseFanAuto).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1:port0');
   });
@@ -172,7 +171,7 @@ describe('LianLiWirelessFansTab - cooling controls', () => {
   it('committing the manual slider drag calls setFanSpeed with the committed value', async () => {
     await renderTab();
 
-    const slider = screen.getByRole('slider', { name: 'devices.lianli-wireless.fanSpeed' });
+    const slider = screen.getAllByRole('slider', { name: 'devices.lianli-wireless.fanSpeed' })[0];
     fireEvent.change(slider, { target: { value: '80' } });
     fireEvent.pointerUp(slider);
     await act(async () => {
@@ -182,13 +181,13 @@ describe('LianLiWirelessFansTab - cooling controls', () => {
     expect(mockSetFanSpeed).toHaveBeenCalledWith('lianli-wireless:998D1DE566E1:port0', 80);
   });
 
-  it('shows a curve-active note instead of the mode control when a port is Curve-driven', async () => {
+  it('shows a curve-active note instead of the speed controls when a port is Curve-driven', async () => {
     mockFetchFanChannels.mockResolvedValue({
       channels: [{ ...channelsFixture[0], mode: 'Curve' }, channelsFixture[1]],
     });
     await renderTab();
     expect(screen.getByText('devices.lianli-wireless.coolingCurveActive')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'cooling.card.mode' })).toHaveLength(1);
+    expect(screen.getAllByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).toHaveLength(1);
   });
 
   it('polls the fan channels on an interval', async () => {

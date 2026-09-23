@@ -3,8 +3,7 @@ import { Fan, GaugeCircle, Thermometer } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
-import { type SelectOption } from '../../common/Select/Select';
-import { SettingSelect } from '../../common/SettingRow/SettingRow';
+import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Slider } from '../../common/Slider/Slider';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
@@ -32,12 +31,15 @@ const FAN_CHANNELS_POLL_MS = 2000;
 
 type BindAction = 'bind' | 'unbind';
 
-/** Fan subtype (fans_type[0]) -> i18n key suffix. */
-export function fanTypeKey(fanType: number): 'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeTlv2' | 'fanTypeSlInfinity' | 'fanTypeGeneric' {
+/** Fan subtype (fans_type[0]) -> i18n key suffix naming the product line; same ranges as the service's fan families. */
+export function fanTypeKey(fanType: number):
+  'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeTlv2' | 'fanTypeTlLcd' | 'fanTypeSlInfinity' | 'fanTypeCl' | 'fanTypeGeneric' {
   if (fanType >= 24 && fanType <= 26) return 'fanTypeSlv3Lcd';
   if (fanType >= 20 && fanType <= 23) return 'fanTypeSlv3Led';
-  if (fanType >= 27 && fanType <= 35) return 'fanTypeTlv2';
+  if (fanType === 27 || (fanType >= 32 && fanType <= 35)) return 'fanTypeTlLcd';
+  if (fanType >= 28 && fanType <= 31) return 'fanTypeTlv2';
   if (fanType >= 36 && fanType <= 39) return 'fanTypeSlInfinity';
+  if (fanType >= 40 && fanType <= 42) return 'fanTypeCl';
   return 'fanTypeGeneric';
 }
 
@@ -51,9 +53,9 @@ export function isFanDevice(devType: number): boolean {
 /** dev_type (+ fan sub-family) -> i18n key naming the device, so the list says
  *  what each paired device is instead of calling everything a fan. */
 export function deviceTypeKey(devType: number, fanType: number):
-  ReturnType<typeof fanTypeKey> | 'deviceStrimer' | 'deviceWaterBlock' | 'deviceGeneric' {
+  ReturnType<typeof fanTypeKey> | 'deviceStrimer' | 'deviceHydroShift' | 'deviceGeneric' {
   if (devType >= 1 && devType <= 9) return 'deviceStrimer';
-  if (devType === 10 || devType === 11) return 'deviceWaterBlock';
+  if (devType === 10 || devType === 11) return 'deviceHydroShift';
   if (isFanDevice(devType)) return fanTypeKey(fanType);
   return 'deviceGeneric';
 }
@@ -215,7 +217,7 @@ export function LianLiWirelessFansTab({ state, refresh, onSectionNavigate }: Lia
       </SettingsSection>
 
       <SettingsSection
-        title={t('devices.lianli-wireless.fansSection')}
+        title={t('devices.lianli-wireless.devicesSection')}
         boxClassName={styles.sectionBox}
       >
         {loaded && state.fans.length > 0
@@ -233,7 +235,7 @@ export function LianLiWirelessFansTab({ state, refresh, onSectionNavigate }: Lia
               onSetManual={handleSetManual}
             />
           ))
-          : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noFansPaired')}</p>}
+          : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>}
         <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.coolingCurveHint')}</p>
         {onSectionNavigate && (
           <div className={styles.actionsRow} data-settings-aside="true">
@@ -377,11 +379,6 @@ function FanPortRow({
   const loaded = channel !== null;
   const isCurve = channel?.mode === 'Curve';
   const isManual = channel?.mode === 'Manual';
-  const modeValue = isManual ? 'manual' : 'auto';
-  const modeOptions: SelectOption[] = [
-    { value: 'auto', label: t('cooling.card.bios') },
-    { value: 'manual', label: t('cooling.card.manual') },
-  ];
 
   return (
     <div className={styles.portBlock}>
@@ -406,49 +403,48 @@ function FanPortRow({
           <p className={styles.emptyNote}>{t('devices.lianli-wireless.coolingCurveActive')}</p>
         ) : (
           <>
-            <SettingSelect
-              label={t('cooling.card.mode')}
-              value={modeValue}
-              onChange={v => {
+            <SettingToggle
+              label={t('devices.lianli-wireless.manualSpeed')}
+              description={t('devices.lianli-wireless.manualSpeedHint')}
+              checked={isManual}
+              onChange={on => {
                 if (!channel) return;
-                if (v === 'manual') onSetManual(channel.id, draft);
+                if (on) onSetManual(channel.id, draft);
                 else onSetAuto(channel.id);
               }}
-              options={modeOptions}
               disabled={!loaded}
             />
-            {isManual && (
-              <Slider
-                // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-                orientation="stacked"
-                editable
-                trackFill
-                label={t('devices.lianli-wireless.fanSpeed')}
-                value={draft}
-                min={0}
-                max={100}
-                step={1}
-                formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
-                ariaLabel={t('devices.lianli-wireless.fanSpeed')}
-                onChange={(v, commit) => {
-                  const rounded = Math.round(v);
-                  if (commit) {
-                    interactingRef.current = false;
-                    setDraft(rounded);
-                    if (channel) onSetManual(channel.id, rounded);
-                    return;
-                  }
-                  interactingRef.current = true;
-                  setDraft(rounded);
-                }}
-                onCommit={v => {
+            <Slider
+              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
+              orientation="stacked"
+              editable
+              trackFill
+              label={t('devices.lianli-wireless.fanSpeed')}
+              value={draft}
+              min={0}
+              max={100}
+              step={1}
+              formatValue={v => localizeNumbers(`${Math.round(v)}%`, numberFormat)}
+              ariaLabel={t('devices.lianli-wireless.fanSpeed')}
+              disabled={!isManual}
+              onChange={(v, commit) => {
+                const rounded = Math.round(v);
+                if (commit) {
                   interactingRef.current = false;
-                  const rounded = Math.round(v);
                   setDraft(rounded);
                   if (channel) onSetManual(channel.id, rounded);
-                }}
-              />
-            )}
+                  return;
+                }
+                interactingRef.current = true;
+                setDraft(rounded);
+              }}
+              onCommit={v => {
+                interactingRef.current = false;
+                const rounded = Math.round(v);
+                setDraft(rounded);
+                if (channel) onSetManual(channel.id, rounded);
+              }}
+            />
           </>
         )
       )}

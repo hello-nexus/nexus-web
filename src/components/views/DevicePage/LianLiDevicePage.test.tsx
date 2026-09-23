@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiDevicePage } from './LianLiDevicePage';
 
@@ -99,21 +99,51 @@ describe('LianLiDevicePage', () => {
     expect(brightness.compareDocumentPosition(speed) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('custom mode shows customModeNote and lighting-page button; no speed/brightness sliders', async () => {
+  it('Lighting page mode turns the switch on and greys out the animation it will return to', async () => {
     mockGetLianLiLighting.mockResolvedValue({
       ...defaultLighting,
       mode: 'custom',
+      effectMode: 'rainbowWave',
     });
     await act(async () => {
       render(<LianLiDevicePage onSectionNavigate={vi.fn()} />);
     });
-    expect(screen.getByText('devices.lianli.customModeNote')).toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli.lightingSpeed')).not.toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli.lightingBrightness')).not.toBeInTheDocument();
-    // Mode Select stays rendered in custom mode.
-    expect(screen.getByText('devices.lianli.lightingMode')).toBeInTheDocument();
-    // Lighting-page link button present only in custom mode.
+    expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' })).toBeInTheDocument();
+    const modeSelect = screen.getByRole('button', { name: 'devices.lianli.lightingMode' });
+    expect(modeSelect).toHaveTextContent('Rainbow Wave');
+    expect(modeSelect).toBeDisabled();
+    expect(screen.getByRole('slider', { name: 'devices.lianli.lightingSpeedAria' })).toBeDisabled();
+  });
+
+  it('turning the switch off restores the last animation', async () => {
+    mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, mode: 'custom', effectMode: 'rainbowWave' });
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
+    });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'rainbowWave' });
+  });
+
+  it('turning the switch on hands the hub to the Lighting page', async () => {
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
+    });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'custom' });
+  });
+
+  it('keeps the Lighting page mode out of the animation list', async () => {
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.lightingMode' }));
+    const options = screen.getAllByRole('option');
+    expect(options.map(o => o.textContent)).not.toContain('Custom (per-LED effects)');
   });
 
   it('firmware mode does NOT show lighting-page link button', async () => {

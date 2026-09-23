@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Lightbulb, Unplug } from 'lucide-react';
+import { Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
@@ -7,6 +7,7 @@ import { SettingRow, SettingSelect, SettingSlider } from '../../common/SettingRo
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { LightingPageSwitch } from './LightingPageSwitch';
 import {
   getLianLiState,
   getLianLiLighting,
@@ -25,6 +26,8 @@ const PORT_COUNT = 4;
 const FAN_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
 // Firmware brightness/speed are 5 discrete levels (0..4) presented as a percent.
 const PERCENT_PER_LEVEL = 25;
+// Mode key under which the Lighting page drives the device.
+const LIGHTING_PAGE_MODE = 'custom';
 const DEFAULT_COLOR = '#ffffff';
 const DEFAULT_COLOR_SECONDARY = '#000000';
 // Polling interval matches the service RpmPollMs.
@@ -132,10 +135,13 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const stateLoaded = lianliState !== null;
   const lightingLoaded = lighting !== null;
 
-  const selectedMode = lighting
-    ? (lighting.modes.find(m => m.key === lighting.mode) ?? null)
-    : null;
-  const isCustomMode = lighting?.mode === 'custom';
+  // The animation the device plays when the Lighting page is not driving it.
+  const effectModes = (lighting?.modes ?? []).filter(m => m.key !== LIGHTING_PAGE_MODE);
+  const effectKey = lighting
+    ? (lighting.mode !== LIGHTING_PAGE_MODE ? lighting.mode : lighting.effectMode ?? effectModes[0]?.key ?? '')
+    : '';
+  const selectedMode = effectModes.find(m => m.key === effectKey) ?? null;
+  const isCustomMode = lighting?.mode === LIGHTING_PAGE_MODE;
 
   return (
     <div className={styles.page}>
@@ -177,193 +183,186 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
           title={t('devices.lianli.lightingSection')}
           boxClassName={styles.sectionBox}
         >
-          <SettingSelect
-            label={t('devices.lianli.lightingMode')}
-            value={lighting?.mode ?? ''}
-            onChange={v => {
-              if (!lighting) return;
-              setLighting({ ...lighting, mode: v });
-              void commitLighting({ mode: v });
-            }}
-            options={(lighting?.modes ?? []).map(m => ({ value: m.key, label: m.label }))}
+          <LightingPageSwitch
+            on={isCustomMode}
             disabled={!lightingLoaded}
+            onChange={on => {
+              if (!lighting) return;
+              const mode = on ? LIGHTING_PAGE_MODE : effectKey;
+              setLighting({ ...lighting, mode });
+              void commitLighting({ mode });
+            }}
+            onSectionNavigate={onSectionNavigate}
           />
 
-          {isCustomMode ? (
-            <>
-              <p className={styles.customNote} data-settings-aside="true">{t('devices.lianli.customModeNote')}</p>
-              {onSectionNavigate && (
-                <Button
-                  className={styles.lightingLink}
-                  size="sm"
-                  tone="neutral"
-                  icon={<Lightbulb size={14} />}
-                  onClick={() => onSectionNavigate('lighting')}
-                >
-                  {t('smartLights.colorOnLightingPage')}
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              {selectedMode?.hasBrightness && (
-                <SettingSlider
-                  editable
-                  trackFill
-                  label={t('devices.lianli.lightingBrightness')}
-                  value={(lighting?.brightness ?? 0) * PERCENT_PER_LEVEL}
-                  min={0}
-                  max={100}
-                  step={PERCENT_PER_LEVEL}
-                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
-                  ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-                  disabled={!lightingLoaded}
-                  onChange={(v: number, commit?: boolean) => {
-                    if (!lighting) return;
-                    const level = Math.round(v / PERCENT_PER_LEVEL);
-                    setLighting({ ...lighting, brightness: level });
-                    if (commit) void commitLighting({ brightness: level });
-                  }}
-                  onCommit={(v: number) => {
-                    void commitLighting({ brightness: Math.round(v / PERCENT_PER_LEVEL) });
-                  }}
-                />
-              )}
+          <SettingSelect
+            label={t('devices.lianli.lightingMode')}
+            value={effectKey}
+            onChange={v => {
+              if (!lighting) return;
+              setLighting({ ...lighting, mode: v, effectMode: v });
+              void commitLighting({ mode: v });
+            }}
+            options={effectModes.map(m => ({ value: m.key, label: m.label }))}
+            disabled={!lightingLoaded || isCustomMode}
+          />
 
-              {selectedMode?.hasSpeed && (
-                <SettingSlider
-                  editable
-                  trackFill
-                  label={t('devices.lianli.lightingSpeed')}
-                  value={(lighting?.speed ?? 0) * PERCENT_PER_LEVEL}
-                  min={0}
-                  max={100}
-                  step={PERCENT_PER_LEVEL}
-                  formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
-                  ariaLabel={t('devices.lianli.lightingSpeedAria')}
-                  disabled={!lightingLoaded}
-                  onChange={(v: number, commit?: boolean) => {
-                    if (!lighting) return;
-                    const level = Math.round(v / PERCENT_PER_LEVEL);
-                    setLighting({ ...lighting, speed: level });
-                    if (commit) void commitLighting({ speed: level });
-                  }}
-                  onCommit={(v: number) => {
-                    void commitLighting({ speed: Math.round(v / PERCENT_PER_LEVEL) });
-                  }}
-                />
-              )}
+          {selectedMode?.hasBrightness && (
+            <SettingSlider
+              editable
+              trackFill
+              label={t('devices.lianli.lightingBrightness')}
+              value={(lighting?.brightness ?? 0) * PERCENT_PER_LEVEL}
+              min={0}
+              max={100}
+              step={PERCENT_PER_LEVEL}
+              formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
+              ariaLabel={t('devices.lianli.lightingBrightnessAria')}
+              disabled={!lightingLoaded || isCustomMode}
+              onChange={(v: number, commit?: boolean) => {
+                if (!lighting) return;
+                const level = Math.round(v / PERCENT_PER_LEVEL);
+                setLighting({ ...lighting, brightness: level });
+                if (commit) void commitLighting({ brightness: level });
+              }}
+              onCommit={(v: number) => {
+                void commitLighting({ brightness: Math.round(v / PERCENT_PER_LEVEL) });
+              }}
+            />
+          )}
 
-              {selectedMode?.hasDirection && (
-                <SettingSelect
-                  label={t('devices.lianli.lightingDirection')}
-                  value={String(lighting?.direction ?? 0)}
-                  onChange={v => {
-                    if (!lighting) return;
-                    const d = Number(v);
-                    setLighting({ ...lighting, direction: d });
-                    void commitLighting({ direction: d });
-                  }}
-                  options={[
-                    { value: '0', label: t('devices.lianli.directionLtr') },
-                    { value: '1', label: t('devices.lianli.directionRtl') },
-                  ]}
-                  disabled={!lightingLoaded}
-                />
-              )}
+          {selectedMode?.hasSpeed && (
+            <SettingSlider
+              editable
+              trackFill
+              label={t('devices.lianli.lightingSpeed')}
+              value={(lighting?.speed ?? 0) * PERCENT_PER_LEVEL}
+              min={0}
+              max={100}
+              step={PERCENT_PER_LEVEL}
+              formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
+              ariaLabel={t('devices.lianli.lightingSpeedAria')}
+              disabled={!lightingLoaded || isCustomMode}
+              onChange={(v: number, commit?: boolean) => {
+                if (!lighting) return;
+                const level = Math.round(v / PERCENT_PER_LEVEL);
+                setLighting({ ...lighting, speed: level });
+                if (commit) void commitLighting({ speed: level });
+              }}
+              onCommit={(v: number) => {
+                void commitLighting({ speed: Math.round(v / PERCENT_PER_LEVEL) });
+              }}
+            />
+          )}
 
-              {selectedMode && selectedMode.colorsMax > 0 && lightingLoaded && (
-                <div className={styles.colorBlock} data-settings-aside="true">
-                  {selectedMode.colorsMax === 2 ? (
-                    <div className={styles.colorPairRow}>
-                      {([0, 1] as const).map(i => {
-                        const color = lighting?.colors[i] ?? DEFAULT_COLOR_SECONDARY;
-                        return (
-                          <div key={i} className={styles.colorEntry}>
-                            <span className={styles.colorLabel}>
-                              {t('devices.lianli.colorN', { n: i + 1 })}
-                            </span>
-                            <HsvPicker
-                              value={color}
-                              onPreview={(hex: string) => {
-                                if (!lighting) return;
-                                const next = [...lighting.colors];
-                                while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
-                                next[i] = hex;
-                                setLighting({ ...lighting, colors: next });
-                              }}
-                              onCommit={(hex: string) => {
-                                if (!lighting) return;
-                                const next = [...lighting.colors];
-                                while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
-                                next[i] = hex;
-                                setLighting({ ...lighting, colors: next });
-                                void commitLighting({ colors: next });
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <>
-                      {(lighting?.colors ?? []).map((color, i) => (
-                        <div key={i} className={styles.colorEntry}>
-                          <HsvPicker
-                            value={color}
-                            onPreview={(hex: string) => {
-                              if (!lighting) return;
-                              const next = [...lighting.colors];
-                              next[i] = hex;
-                              setLighting({ ...lighting, colors: next });
-                            }}
-                            onCommit={(hex: string) => {
-                              if (!lighting) return;
-                              const next = [...lighting.colors];
-                              next[i] = hex;
-                              setLighting({ ...lighting, colors: next });
-                              void commitLighting({ colors: next });
-                            }}
-                          />
-                          <div className={styles.colorActions}>
-                            {(lighting?.colors.length ?? 0) > selectedMode.colorsMin && (
-                              <Button
-                                size="sm"
-                                tone="neutral"
-                                onClick={() => {
-                                  if (!lighting) return;
-                                  const next = lighting.colors.filter((_, idx) => idx !== i);
-                                  setLighting({ ...lighting, colors: next });
-                                  void commitLighting({ colors: next });
-                                }}
-                              >
-                                {t('devices.lianli.removeColor')}
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                      {(lighting?.colors.length ?? 0) < selectedMode.colorsMax && (
-                        <div className={styles.colorActions}>
+          {selectedMode?.hasDirection && (
+            <SettingSelect
+              label={t('devices.lianli.lightingDirection')}
+              value={String(lighting?.direction ?? 0)}
+              onChange={v => {
+                if (!lighting) return;
+                const d = Number(v);
+                setLighting({ ...lighting, direction: d });
+                void commitLighting({ direction: d });
+              }}
+              options={[
+                { value: '0', label: t('devices.lianli.directionLtr') },
+                { value: '1', label: t('devices.lianli.directionRtl') },
+              ]}
+              disabled={!lightingLoaded || isCustomMode}
+            />
+          )}
+
+          {selectedMode && selectedMode.colorsMax > 0 && lightingLoaded && (
+            <div className={`${styles.colorBlock} ${isCustomMode ? styles.rowDisabled : ''}`} data-settings-aside="true">
+              {selectedMode.colorsMax === 2 ? (
+                <div className={styles.colorPairRow}>
+                  {([0, 1] as const).map(i => {
+                    const color = lighting?.colors[i] ?? DEFAULT_COLOR_SECONDARY;
+                    return (
+                      <div key={i} className={styles.colorEntry}>
+                        <span className={styles.colorLabel}>
+                          {t('devices.lianli.colorN', { n: i + 1 })}
+                        </span>
+                        <HsvPicker
+                          value={color}
+                          onPreview={(hex: string) => {
+                            if (!lighting) return;
+                            const next = [...lighting.colors];
+                            while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
+                            next[i] = hex;
+                            setLighting({ ...lighting, colors: next });
+                          }}
+                          onCommit={(hex: string) => {
+                            if (!lighting) return;
+                            const next = [...lighting.colors];
+                            while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
+                            next[i] = hex;
+                            setLighting({ ...lighting, colors: next });
+                            void commitLighting({ colors: next });
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <>
+                  {(lighting?.colors ?? []).map((color, i) => (
+                    <div key={i} className={styles.colorEntry}>
+                      <HsvPicker
+                        value={color}
+                        onPreview={(hex: string) => {
+                          if (!lighting) return;
+                          const next = [...lighting.colors];
+                          next[i] = hex;
+                          setLighting({ ...lighting, colors: next });
+                        }}
+                        onCommit={(hex: string) => {
+                          if (!lighting) return;
+                          const next = [...lighting.colors];
+                          next[i] = hex;
+                          setLighting({ ...lighting, colors: next });
+                          void commitLighting({ colors: next });
+                        }}
+                      />
+                      <div className={styles.colorActions}>
+                        {(lighting?.colors.length ?? 0) > selectedMode.colorsMin && (
                           <Button
                             size="sm"
                             tone="neutral"
                             onClick={() => {
                               if (!lighting) return;
-                              const next = [...lighting.colors, DEFAULT_COLOR];
+                              const next = lighting.colors.filter((_, idx) => idx !== i);
                               setLighting({ ...lighting, colors: next });
                               void commitLighting({ colors: next });
                             }}
                           >
-                            {t('devices.lianli.addColor')}
+                            {t('devices.lianli.removeColor')}
                           </Button>
-                        </div>
-                      )}
-                    </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {(lighting?.colors.length ?? 0) < selectedMode.colorsMax && (
+                    <div className={styles.colorActions}>
+                      <Button
+                        size="sm"
+                        tone="neutral"
+                        onClick={() => {
+                          if (!lighting) return;
+                          const next = [...lighting.colors, DEFAULT_COLOR];
+                          setLighting({ ...lighting, colors: next });
+                          void commitLighting({ colors: next });
+                        }}
+                      >
+                        {t('devices.lianli.addColor')}
+                      </Button>
+                    </div>
                   )}
-                </div>
+                </>
               )}
-            </>
+            </div>
           )}
         </SettingsSection>
       </div>

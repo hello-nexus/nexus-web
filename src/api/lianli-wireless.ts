@@ -86,6 +86,8 @@ export interface LianLiWirelessStrimer {
   ledsPerLane: number;
   /** 'custom' streams the Lighting page's effects; 'perLane' plays one effect per lane; otherwise an effect key the cable plays on its own. */
   mode: string;
+  /** The animation the device plays when the Lighting page is not driving it. Absent on an older service. */
+  effectMode?: string;
   /** 0 slowest .. 4 fastest */
   speed: number;
   direction: number;
@@ -102,7 +104,7 @@ export interface LianLiWirelessStrimers {
 }
 
 export type LianLiWirelessStrimerPatch = Partial<Pick<LianLiWirelessStrimer,
-  'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'laneSettings'>>;
+  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'laneSettings'>>;
 
 export function getLianLiWirelessStrimers(): Promise<LianLiWirelessStrimers | null> {
   return fetchService<LianLiWirelessStrimers>('/devices/lianli-wireless/strimers');

@@ -82,6 +82,7 @@ describe('LianLiWirelessLightingTab', () => {
     fireEvent.change(inputs[1], { target: { value: '#abcdef' } });
     expect(mockSetStrimer).toHaveBeenLastCalledWith('64F271E566E1', {
       colors: ['#111111', '#abcdef', '#333333', '#444444', '#555555', '#666666'],
+      effectMode: undefined,
     });
   });
 
@@ -102,13 +103,24 @@ describe('LianLiWirelessLightingTab', () => {
     expect(screen.getAllByLabelText('common.hexColor')).toHaveLength(1);
   });
 
-  it('custom mode shows the lighting-page note and link instead of the animation controls', async () => {
+  it('Lighting page mode greys out the animation the cable returns to', async () => {
     const nav = vi.fn();
-    await renderTab(withStrimer({ mode: 'custom' }), nav);
-    expect(screen.getByText('devices.lianli.customModeNote')).toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli.lightingBrightness')).not.toBeInTheDocument();
+    await renderTab(withStrimer({ mode: 'custom', effectMode: 'static' }), nav);
+    expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toHaveAttribute('aria-checked', 'true');
+    const modeSelect = screen.getByRole('button', { name: 'devices.lianli.lightingMode' });
+    expect(modeSelect).toHaveTextContent('devices.strimerEffect.static');
+    expect(modeSelect).toBeDisabled();
+    expect(screen.getByRole('slider', { name: 'devices.lianli.lightingBrightnessAria' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' }));
     expect(nav).toHaveBeenCalledWith('lighting');
+  });
+
+  it('turning the switch off plays the last animation again', async () => {
+    await renderTab(withStrimer({ mode: 'custom', effectMode: 'static' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
+    });
+    expect(mockSetStrimer).toHaveBeenCalledWith('64F271E566E1', { mode: 'static', effectMode: undefined });
   });
 
   it('per-lane mode shows one row per lane', async () => {
@@ -123,15 +135,14 @@ describe('LianLiWirelessLightingTab', () => {
     await renderTab();
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
     fireEvent.click(await screen.findByRole('option', { name: 'devices.strimerEffect.rainbow' }));
-    expect(mockSetStrimer).toHaveBeenCalledWith('64F271E566E1', { mode: 'rainbow' });
+    expect(mockSetStrimer).toHaveBeenCalledWith('64F271E566E1', { mode: 'rainbow', effectMode: undefined });
   });
 
-  it('lists custom first and per-lane last around the effect catalog', async () => {
+  it('lists the effect catalog with per-lane last', async () => {
     await renderTab();
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));
     const options = await screen.findAllByRole('option');
     expect(options.map(o => o.textContent)).toEqual([
-      'devices.lianli-wireless.strimerModeCustom',
       'devices.strimerEffect.rainbow',
       'devices.strimerEffect.static',
       'devices.strimerEffect.meteor',
