@@ -119,6 +119,7 @@ export function CollapsibleSection({
         className={styles.header}
         data-compact={compact ? 'true' : undefined}
         data-collapsed={open ? undefined : 'true'}
+        data-menu-arrow-host={onHeaderContextMenu ? 'true' : undefined}
         onContextMenu={onHeaderContextMenu && (e => {
           if ((e.target as HTMLElement).closest('input, textarea, [contenteditable]')) return;
           onHeaderContextMenu(e);

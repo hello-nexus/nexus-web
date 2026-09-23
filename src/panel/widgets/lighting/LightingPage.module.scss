@@ -42,7 +42,9 @@
   // CoolingPage's sidebar width.
   grid-template-columns: 300px minmax(0, 1fr) 300px;
   // Gutter between the rail and the centre column, as on the cooling page.
-  column-gap: 1.5rem;
+  // The device rail reaches across it; see .devicePane.
+  --rail-gap: 1.5rem;
+  column-gap: var(--rail-gap);
   // Row 1: mode tabs across the left + centre, layout presets at their right.
   // Row 2: the three pane titles, so they share one baseline. Row 3: content.
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -154,6 +156,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  // Reaches across the .body column gap so .devicePanel's card menu arrows are
+  // not clipped here.
+  margin-right: calc(-1 * var(--rail-gap));
 }
 
 // Effect and Effect Editor each sit on their own card surface, matching the
@@ -993,6 +998,9 @@
   // matches the canvas beside them and their left matches the cooling rail.
   // Bottom gap matches .animateGrid, so a scrolled-to-end list is not flush.
   padding: 0 0 1rem;
+  // Holds the MenuArrowButton hanging off each card's right edge, in the
+  // column gap .devicePane reaches into.
+  padding-right: var(--rail-gap);
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
@@ -1133,8 +1141,7 @@
 }
 
 // Same border + padding inset as .deviceCard so the name lines up with the
-// zone names under it; the seam below is the first zone's border. The kebab
-// takes the far right, where the group header keeps its own.
+// zone names under it; the seam below is the first zone's border.
 .deviceCardStackHeader {
   display: flex;
   align-items: center;
@@ -1164,10 +1171,6 @@
   flex: 0 1 auto;
   min-width: 0;
   word-break: break-word;
-}
-
-.deviceCardStackMenuBtn {
-  margin-left: auto;
 }
 
 // One class deep on purpose: .deviceCard's hover and selected rules are two
@@ -1203,10 +1206,8 @@
   background: var(--gauge-track);
   image-rendering: pixelated;
   align-self: center;
-  // Breathing room from the LED count on its left and the overflow menu on
-  // its right; the left gap is wider because the count sits right against it.
+  // Breathing room from the LED count, which sits right against it.
   margin-left: 0.65rem;
-  margin-right: 0.35rem;
 }
 
 // Card body: the name and meta rows, stacked beside the selection checkbox.
@@ -1216,13 +1217,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-}
-
-.deviceCardActions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
 }
 
 .deviceSettingsBtn {
@@ -1251,16 +1245,10 @@
   svg { width: 13px; height: 13px; }
 }
 
-// The actions menu carries the only route to the ignore/power state, so it
-// stays visible on every card - hover and pointers are not preconditions.
-.deviceMenuBtn {
-  opacity: 1;
-}
-
-// Colour lock between the LED strip and the menu, only on a locked card.
+// Colour lock after the LED strip, only on a locked card.
 // Always visible: a lock the user has to hover to find is a lock they will
-// not know is set. Same dim ink as the stack badge and the menu button, so
-// it reads as card chrome rather than a state light.
+// not know is set. Same dim ink as the stack badge, so it reads as card
+// chrome rather than a state light.
 .deviceLockBtn {
   opacity: 1;
   flex-shrink: 0;

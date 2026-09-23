@@ -13,6 +13,8 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  // Room for the MenuArrowButton hanging off each card's right edge.
+  padding-right: 1.5rem;
 }
 
 .empty {

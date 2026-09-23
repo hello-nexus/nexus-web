@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, GaugeCircle, Gpu, Link, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, GaugeCircle, Gpu, Link, Lock, LockOpen, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
@@ -12,6 +12,7 @@ import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTo
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/MenuArrowButton';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
@@ -406,37 +407,13 @@ export const FanCard = memo(function FanCard({
   // beside the state badge in those rows instead.
   const lockGlyph = locked ? <Lock size={12} className={styles.fanLockGlyph} aria-hidden="true" /> : null;
 
-  // Shares the mode control's row rather than the card's full height, so the
-  // space it takes comes out of the dropdown's width and the card keeps its
-  // original height.
-  const menuButton = menuEnabled ? (
-    <div className={styles.fanCardActions} data-no-dnd>
-      <HoverTooltip body={t('cooling.fan.moreActions')} side="top">
-        <button
-          type="button"
-          className={styles.fanMenuBtn}
-          aria-label={t('cooling.fan.moreActions')}
-          onClick={e => {
-            e.stopPropagation();
-            // Explicit toggle: the button is its own close affordance, and the
-            // menu's outside-pointerdown close has already run.
-            if (menuAt) { setMenuAt(null); return; }
-            const r = e.currentTarget.getBoundingClientRect();
-            openMenu(r.right, r.bottom + 4);
-          }}
-        >
-          <MoreVertical />
-        </button>
-      </HoverTooltip>
-    </div>
-  ) : null;
-
   return (
     <div
       ref={setCardEl}
       style={drag?.style ?? {}}
       {...(drag?.attributes ?? {})}
       {...(drag?.listeners ?? {})}
+      data-menu-arrow-host={menuEnabled || undefined}
       className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${roleMenuOpen ? styles.fanCardMenuOpen : ''} ${dragClasses}`}
       onClick={onSelect ? e => {
         // Controls inside the card own their own clicks; only bare card
@@ -559,7 +536,6 @@ export const FanCard = memo(function FanCard({
             <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
           </div>
           {lockGlyph}
-          {menuButton}
         </div>
       ) : isReadOnly ? null : isFixed ? (
         // Fixed speed: the RPM readout stays in the header and the duty bar
@@ -572,7 +548,6 @@ export const FanCard = memo(function FanCard({
             </div>
           </HoverTooltip>
           {lockGlyph}
-          {menuButton}
         </div>
       ) : (
         <>
@@ -625,11 +600,20 @@ export const FanCard = memo(function FanCard({
               options={modeOptions}
             />
             </span>
-            {menuButton}
           </div>
         </>
       )}
       </div>
+      {menuEnabled && (
+        <MenuArrowButton
+          variant="card"
+          label={t('cooling.fan.moreActions')}
+          tooltip={t('cooling.fan.moreActions')}
+          open={menuAt != null}
+          onOpen={openMenu}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
       {menuAt && (
         <DeviceContextMenu
           key={menuAt.seq}
