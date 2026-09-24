@@ -8,10 +8,11 @@ const HOST_RENDERED_SURFACES: ReadonlySet<PanelSurface> = new Set<PanelSurface>(
   'y70', 'monitor', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide',
 ]);
 
-/** True when the active focus mode asks this surface for its solid background. */
-export function focusForcesStaticBackground(status: FocusStatus | null, surface: PanelSurface): boolean {
-  if (!status?.activeModeId || !HOST_RENDERED_SURFACES.has(surface)) return false;
-  return status.modes.find(m => m.id === status.activeModeId)?.staticPanelBackgrounds === true;
+/** Name of the active focus mode when it asks this surface for its solid background, else null. */
+export function focusStaticBackgroundMode(status: FocusStatus | null, surface: PanelSurface): string | null {
+  if (!status?.activeModeId || !HOST_RENDERED_SURFACES.has(surface)) return null;
+  const mode = status.modes.find(m => m.id === status.activeModeId);
+  return mode?.staticPanelBackgrounds ? mode.name : null;
 }
 
 /** Whether a background redraws every frame: a shader, animated media, or a slideshow. */
@@ -27,8 +28,8 @@ export function withStaticBackground(theme: PanelThemeState): PanelThemeState {
     : theme;
 }
 
-/** Live {@link focusForcesStaticBackground} for a real panel (not a preview). */
-export function useFocusStaticBackground(surface: PanelSurface, enabled: boolean): boolean {
+/** Live {@link focusStaticBackgroundMode} for a real panel (not a preview). */
+export function useFocusStaticBackground(surface: PanelSurface, enabled: boolean): string | null {
   const { status } = useFocus(enabled && HOST_RENDERED_SURFACES.has(surface));
-  return focusForcesStaticBackground(status, surface);
+  return focusStaticBackgroundMode(status, surface);
 }

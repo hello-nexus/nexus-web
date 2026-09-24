@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Zeichnet dein Desktop-Hintergrundbild hinter den Widgets nach",
   "panel.settings.backgroundFrost": "Milchglas",
   "panel.settings.backgroundFrost.desc": "Verbessert die Lesbarkeit bei unruhigen Hintergründen",
+  "panel.settings.backgroundHeldByFocus": "{mode} zeigt gerade einen einfachen Hintergrund. Ihr Hintergrund kehrt zurück, sobald der Modus endet.",
   "panel.settings.backgroundMode": "Hintergrundmodus",
   "panel.settings.backgroundMode.animations": "Animationen",
   "panel.settings.backgroundMode.media": "Medien",

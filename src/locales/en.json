@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Redraws your desktop wallpaper behind the widgets",
   "panel.settings.backgroundFrost": "Frosted glass",
   "panel.settings.backgroundFrost.desc": "Improves clarity on busy backdrops",
+  "panel.settings.backgroundHeldByFocus": "{mode} is showing a plain background right now. Your background comes back when it ends.",
   "panel.settings.backgroundMode": "Background mode",
   "panel.settings.backgroundMode.animations": "Animations",
   "panel.settings.backgroundMode.media": "Media",

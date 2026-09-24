@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Ridisegna lo sfondo del desktop dietro i widget",
   "panel.settings.backgroundFrost": "Vetro smerigliato",
   "panel.settings.backgroundFrost.desc": "Migliora la leggibilità sugli sfondi movimentati",
+  "panel.settings.backgroundHeldByFocus": "{mode} sta mostrando uno sfondo semplice. Il tuo sfondo torna quando la modalità termina.",
   "panel.settings.backgroundMode": "Modalità sfondo",
   "panel.settings.backgroundMode.animations": "Animazioni",
   "panel.settings.backgroundMode.media": "Media",

@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Al torne a disegnâ il sfont dal desktop daûr dai widget",
   "panel.settings.backgroundFrost": "Veri smerilât",
   "panel.settings.backgroundFrost.desc": "Al miore la clarece sui sfonts plui carics",
+  "panel.settings.backgroundHeldByFocus": "{mode} al mostre cumò un sfont sempliç. Il to sfont al torne cuant che la modalitât e finìs.",
   "panel.settings.backgroundMode": "Modalitât dal sfont",
   "panel.settings.backgroundMode.animations": "Animazions",
   "panel.settings.backgroundMode.media": "Media",

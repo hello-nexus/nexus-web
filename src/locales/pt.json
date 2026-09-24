@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Redesenha o fundo do ambiente de trabalho atrás dos widgets",
   "panel.settings.backgroundFrost": "Vidro fosco",
   "panel.settings.backgroundFrost.desc": "Melhora a clareza em fundos carregados",
+  "panel.settings.backgroundHeldByFocus": "{mode} está a mostrar um fundo liso neste momento. O seu fundo volta quando o modo terminar.",
   "panel.settings.backgroundMode": "Modo de fundo",
   "panel.settings.backgroundMode.animations": "Animações",
   "panel.settings.backgroundMode.media": "Mídia",

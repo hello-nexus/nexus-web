@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "デスクトップの壁紙をウィジェットの背後に描画します",
   "panel.settings.backgroundFrost": "すりガラス",
   "panel.settings.backgroundFrost.desc": "情報量の多い背景でも見やすくします",
+  "panel.settings.backgroundHeldByFocus": "現在 {mode} により単色の背景が表示されています。終了すると元の背景に戻ります。",
   "panel.settings.backgroundMode": "背景モード",
   "panel.settings.backgroundMode.animations": "アニメーション",
   "panel.settings.backgroundMode.media": "メディア",

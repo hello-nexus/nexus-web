@@ -25,6 +25,7 @@ import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
 import { AnimateGrid } from '../widgets/lighting/page/AnimateGrid';
 import { EffectControls } from '../widgets/lighting/page/EffectControls';
 import { BackgroundMediaPicker } from '../background/BackgroundMediaPicker';
+import { SimpleModeNotice } from '../../components/common/SimpleModeNotice/SimpleModeNotice';
 import styles from './PanelThemeSettings.module.scss';
 
 export type ResolvedPanelThemeMode = 'dark' | 'light';
@@ -141,6 +142,8 @@ export interface PanelThemeSettingsProps {
    * the wallpaper and see-through modes need a desktop behind the panel. */
   showBackdropSelector?: boolean;
   sections?: PanelThemeSettingsSection;
+  /** Name of the focus mode holding this panel on a plain background right now, if any. */
+  backgroundHeldBy?: string | null;
 }
 
 export function PanelThemeSettings({
@@ -180,6 +183,7 @@ export function PanelThemeSettings({
   hideWidgetChromeControls = false,
   showBackdropSelector = false,
   sections = 'all',
+  backgroundHeldBy = null,
 }: PanelThemeSettingsProps) {
   const showTheme = sections !== 'background';
   const showBackground = sections !== 'theme';
@@ -380,6 +384,9 @@ export function PanelThemeSettings({
           {/* Single aside child so the box adds no row dividers between the
               opacity slider, mode tabs, and the mode content. */}
           <div className={styles.backgroundContent} data-settings-aside>
+            {backgroundHeldBy && (
+              <SimpleModeNotice message={label('panel.settings.backgroundHeldByFocus', '{mode} is showing a plain background right now. Your background comes back when it ends.').replace('{mode}', () => backgroundHeldBy)} />
+            )}
             {showBackdropSelector && (
               <SettingRow
                 label={label('panel.settings.backdrop', 'Backdrop')}

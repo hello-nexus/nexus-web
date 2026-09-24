@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Masaüstü duvar kağıdınızı widget'ların arkasına yeniden çizer",
   "panel.settings.backgroundFrost": "Buzlu cam",
   "panel.settings.backgroundFrost.desc": "Yoğun arka planlarda okunabilirliği artırır",
+  "panel.settings.backgroundHeldByFocus": "{mode} şu anda düz bir arka plan gösteriyor. Mod bittiğinde arka plan geri gelir.",
   "panel.settings.backgroundMode": "Arka plan modu",
   "panel.settings.backgroundMode.animations": "Animasyonlar",
   "panel.settings.backgroundMode.media": "Medya",

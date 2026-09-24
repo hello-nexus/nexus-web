@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Tekent je bureaubladachtergrond achter de widgets",
   "panel.settings.backgroundFrost": "Matglas",
   "panel.settings.backgroundFrost.desc": "Verbetert de leesbaarheid op drukke achtergronden",
+  "panel.settings.backgroundHeldByFocus": "{mode} toont nu een effen achtergrond. Je achtergrond komt terug zodra de modus stopt.",
   "panel.settings.backgroundMode": "Achtergrondmodus",
   "panel.settings.backgroundMode.animations": "Animaties",
   "panel.settings.backgroundMode.media": "Media",

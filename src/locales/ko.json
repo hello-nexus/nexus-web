@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "바탕 화면 배경을 위젯 뒤에 다시 그립니다",
   "panel.settings.backgroundFrost": "젖빛 유리",
   "panel.settings.backgroundFrost.desc": "복잡한 배경에서도 선명하게 보이도록 합니다",
+  "panel.settings.backgroundHeldByFocus": "지금 {mode}에서 단색 배경을 표시하고 있습니다. 모드가 끝나면 배경이 돌아옵니다.",
   "panel.settings.backgroundMode": "배경 모드",
   "panel.settings.backgroundMode.animations": "애니메이션",
   "panel.settings.backgroundMode.media": "미디어",

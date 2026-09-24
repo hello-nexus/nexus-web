@@ -111,6 +111,7 @@ import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevi
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
 import '../../../panel/styles/tokens.scss';
+import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
 import styles from './PanelDevicePage.module.scss';
 
 interface PanelDevicePageProps {
@@ -329,6 +330,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordFamily, setRecordFamily] = useState<string | undefined>(undefined);
   const surface = device?.runtimeSurface ?? 'y70';
   const isSimulated = device?.connectionKind === 'simulated';
+  // Simulated panels render a preview that never takes the focus hold.
+  const backgroundHeldBy = useFocusStaticBackground(surface, !isSimulated);
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
   // Y70 connected as a monitor only (no USB serial channel): brightness and
@@ -1332,6 +1335,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
                             onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
                             showMediaTab={surface !== 'desktop'}
+                            backgroundHeldBy={backgroundHeldBy}
                             deviceAspect={devAspect}
                             deviceW={nativeW}
                             deviceH={nativeH}

@@ -6,7 +6,7 @@ export interface SimpleModeNoticeProps {
   message: string;
 }
 
-/** Accent-tinted info line: a simple-page state with no tile, or standing help text under a list. */
+/** Accent-tinted info line: a simple-page state with no tile, standing help text under a list, or a temporary override of a setting. */
 export function SimpleModeNotice({ message }: SimpleModeNoticeProps) {
   return (
     <p className={styles.notice} role="status">

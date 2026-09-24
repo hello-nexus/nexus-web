@@ -3006,6 +3006,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Перерисовывает обои рабочего стола за виджетами",
   "panel.settings.backgroundFrost": "Матовое стекло",
   "panel.settings.backgroundFrost.desc": "Улучшает читаемость на пёстром фоне",
+  "panel.settings.backgroundHeldByFocus": "Сейчас {mode} показывает однотонный фон. Ваш фон вернётся, когда режим завершится.",
   "panel.settings.backgroundMode": "Режим фона",
   "panel.settings.backgroundMode.animations": "Анимации",
   "panel.settings.backgroundMode.media": "Медиа",

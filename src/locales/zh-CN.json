@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "在小组件后方重绘桌面壁纸",
   "panel.settings.backgroundFrost": "毛玻璃",
   "panel.settings.backgroundFrost.desc": "在杂乱的背景上提升清晰度",
+  "panel.settings.backgroundHeldByFocus": "{mode} 当前显示纯色背景。模式结束后会恢复你的背景。",
   "panel.settings.backgroundMode": "背景模式",
   "panel.settings.backgroundMode.animations": "动画",
   "panel.settings.backgroundMode.media": "媒体",

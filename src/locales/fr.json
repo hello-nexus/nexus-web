@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Redessine le fond d'écran de votre bureau derrière les widgets",
   "panel.settings.backgroundFrost": "Verre dépoli",
   "panel.settings.backgroundFrost.desc": "Améliore la lisibilité sur les fonds chargés",
+  "panel.settings.backgroundHeldByFocus": "{mode} affiche un arrière-plan uni en ce moment. Votre arrière-plan revient à la fin du mode.",
   "panel.settings.backgroundMode": "Mode d'arrière-plan",
   "panel.settings.backgroundMode.animations": "Animations",
   "panel.settings.backgroundMode.media": "Médias",

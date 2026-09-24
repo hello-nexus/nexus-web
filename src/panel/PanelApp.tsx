@@ -380,11 +380,11 @@ export function PanelContent({
   // Render-time per-surface overrides (persisted theme intact); see
   // resolveEffectivePanelTheme for what each surface forces.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
-  const focusStaticBackground = useFocusStaticBackground(surface, !simulator && !embedded);
+  const focusStaticMode = useFocusStaticBackground(surface, !simulator && !embedded);
   const effectiveTheme = useMemo(() => {
     const theme = resolveEffectivePanelTheme(baseTheme, surface);
-    return focusStaticBackground ? withStaticBackground(theme) : theme;
-  }, [baseTheme, surface, focusStaticBackground]);
+    return focusStaticMode ? withStaticBackground(theme) : theme;
+  }, [baseTheme, surface, focusStaticMode]);
   usePanelLanguageSync(kioskBehavior, panelTheme.prefs);
   // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
   // tracking the desktop OS); fall back to appThemeMode when unpublished -
@@ -1972,6 +1972,7 @@ export function PanelContent({
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
           onThemeBackdropCommit={panelTheme.commitBackdrop}
           showBackdropSelector={wallpaperBackgroundAvailable}
+          backgroundHeldBy={focusStaticMode}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}

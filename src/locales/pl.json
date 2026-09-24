@@ -3006,6 +3006,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Rysuje tapetę pulpitu za widgetami",
   "panel.settings.backgroundFrost": "Matowe szkło",
   "panel.settings.backgroundFrost.desc": "Poprawia czytelność na niespokojnym tle",
+  "panel.settings.backgroundHeldByFocus": "{mode} wyświetla teraz jednolite tło. Twoje tło wróci po zakończeniu trybu.",
   "panel.settings.backgroundMode": "Tryb tła",
   "panel.settings.backgroundMode.animations": "Animacje",
   "panel.settings.backgroundMode.media": "Multimedia",

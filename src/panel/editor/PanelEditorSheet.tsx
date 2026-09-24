@@ -71,6 +71,7 @@ export function PanelEditorSheet({
   onThemeBackgroundFrostPreview,
   onThemeBackgroundFrostCommit,
   showBackdropSelector = false,
+  backgroundHeldBy = null,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
@@ -146,6 +147,8 @@ export function PanelEditorSheet({
   onThemeBackgroundFrostCommit: (percent: number) => void;
   // Backdrop selector; kiosk-hosted surfaces only.
   showBackdropSelector?: boolean;
+  // Focus mode holding the panel on a plain background right now, if any.
+  backgroundHeldBy?: string | null;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
@@ -432,6 +435,7 @@ export function PanelEditorSheet({
               onBackgroundModeCommit={onThemeBackgroundModeCommit}
               onBackdropCommit={onThemeBackdropCommit}
               showBackdropSelector={showBackdropSelector}
+              backgroundHeldBy={backgroundHeldBy}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}

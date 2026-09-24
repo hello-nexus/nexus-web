@@ -2970,6 +2970,7 @@
   "panel.settings.backdrop.wallpaper.desc": "Redibuja el fondo de pantalla del escritorio detrás de los widgets",
   "panel.settings.backgroundFrost": "Vidrio esmerilado",
   "panel.settings.backgroundFrost.desc": "Mejora la claridad en fondos recargados",
+  "panel.settings.backgroundHeldByFocus": "{mode} muestra ahora un fondo liso. Tu fondo vuelve cuando termine.",
   "panel.settings.backgroundMode": "Modo de fondo",
   "panel.settings.backgroundMode.animations": "Animaciones",
   "panel.settings.backgroundMode.media": "Multimedia",
