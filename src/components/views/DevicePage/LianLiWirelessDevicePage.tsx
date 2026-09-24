@@ -7,7 +7,7 @@ import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { L_CONNECT_CONFLICT_ID } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
-import { LianLiWirelessFansTab, isFanDevice } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, fanTypeKey, isFanDevice } from './LianLiWirelessFansTab';
 import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
@@ -102,13 +102,17 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
 
   const hasStrimer = !!state?.fans.some(f => f.boundToUs && isStrimerDevType(f.devType));
   const hasFans = !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType));
-  const hasLighting = hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0);
+  // Fan families the service can upload animations to; CL and unclassified chains stream only.
+  const hasLighting = hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
+    && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <Fan size={14} /> },
     ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
     ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Thermometer size={14} /> }] : []),
     { key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <MonitorSmartphone size={14} /> },
   ];
+  // A tab that disappears (its chain unbound or out of range) falls back to Devices.
+  const tab: LianLiWirelessTab = tabs.some(x => x.key === activeTab) ? activeTab : 'fans';
 
   return (
     <div className={styles.page}>
@@ -116,7 +120,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
         title="Lian Li L-Wireless Controller"
         tabs={disconnected ? undefined : tabs}
-        activeTab={activeTab}
+        activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
       />
       <div className={`${styles.pageBody} pageBody`}>
@@ -131,12 +135,12 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         {/* Tab body stays mounted across a transient disconnect so a fan's
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>
-          {activeTab === 'fans' && (
+          {tab === 'fans' && (
             <LianLiWirelessFansTab state={state} refresh={refresh} />
           )}
-          {activeTab === 'lighting' && hasLighting && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
-          {activeTab === 'cooling' && hasFans && <LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />}
-          {activeTab === 'screen' && <LianLiWirelessScreenTab />}
+          {tab === 'lighting' && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
+          {tab === 'cooling' && <LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />}
+          {tab === 'screen' && <LianLiWirelessScreenTab />}
         </div>
       </div>
     </div>

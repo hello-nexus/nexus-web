@@ -33,6 +33,12 @@ vi.mock('../../../api/lianli-wireless', () => ({
   identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
 }));
 
+vi.mock('../../../api/cooling', () => ({
+  fetchFanChannels: () => Promise.resolve({ channels: [] }),
+  setFanSpeed: () => Promise.resolve(null),
+  releaseFanAuto: () => Promise.resolve(null),
+}));
+
 const connectedState = {
   isConnected: true,
   masterMac: '8A0EEF6232DC',
@@ -251,6 +257,24 @@ describe('LianLiWirelessDevicePage', () => {
     });
     expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":1}')).not.toBeInTheDocument();
+  });
+
+  it('falls back to Devices when the selected Cooling tab disappears', async () => {
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
+    });
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], boundToUs: false, slot: 0 }],
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(screen.queryByRole('tab', { name: /cooling\.title/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.devices/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('offers the Lighting tab once a Strimer is bound', async () => {

@@ -145,14 +145,12 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const selectedMode = effectModes.find(m => m.key === effectKey) ?? null;
   const isCustomMode = lighting?.mode === LIGHTING_PAGE_MODE;
 
-  const hasCooling = true;
-  const tab = hasCooling ? activeTab : 'lighting';
-  const tabs = hasCooling
-    ? [
-        { key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> },
-        { key: 'cooling', label: t('cooling.title'), icon: <Thermometer size={14} /> },
-      ]
-    : undefined;
+  // Every port is a fan header, so the hub always has a Cooling tab.
+  const tab = activeTab;
+  const tabs = [
+    { key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> },
+    { key: 'cooling', label: t('cooling.title'), icon: <Thermometer size={14} /> },
+  ];
 
   return (
     <div className={styles.page}>
