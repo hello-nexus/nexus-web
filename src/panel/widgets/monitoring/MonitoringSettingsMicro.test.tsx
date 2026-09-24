@@ -46,7 +46,9 @@ const mockSensors = vi.hoisted(() => ({
   motherboard: [],
   motherboardModel: '',
   cpuModel: 'AMD Ryzen 7 9800X3D',
+  gpuModel: 'NVIDIA RTX 5080',
   gpuModels: ['NVIDIA RTX 5080'],
+  gpuComponents: [],
   memoryTotal: '32 GB',
 }));
 
@@ -343,10 +345,10 @@ describe('MonitoringSettings - Micro shared range', () => {
     const updates: Record<string, PanelConfigValue>[] = [];
     render(<MicroHarness initial={microWidget(4)} onUpdate={cfg => updates.push(cfg)} />);
 
-    expect(screen.getByRole('button', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'monitoring.settings.scaleAdaptive' })).toBeInTheDocument();
     expect(screen.queryByRole('spinbutton', { name: 'monitoring.settings.rangeMin' })).not.toBeInTheDocument();
 
-    act(() => { fireEvent.click(screen.getByRole('button', { name: 'monitoring.settings.scaleFixed' })); });
+    act(() => { fireEvent.click(screen.getByRole('radio', { name: 'monitoring.settings.scaleFixed' })); });
     expect(updates[updates.length - 1]).toEqual({ micro_scale: 'fixed' });
 
     // One shared min + one shared max (not per-sensor).

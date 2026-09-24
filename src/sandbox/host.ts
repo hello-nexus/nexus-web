@@ -18,11 +18,19 @@ export interface SandboxContext {
   instanceId: string;
   widgetId: string;
   /** Which surface this worker drives: 'cell' (panel tile) or 'page' (expanded
-   *  full view). Passed straight through to the worker's mount; default 'cell'. */
+   *  full view). Passed straight through to the worker's mount; default 'cell'.
+   *  This is the published SDK contract (useSurface) - host-only render
+   *  surfaces like 'immersive' must be collapsed to 'cell' before this. */
   surface?: 'cell' | 'page';
   /** Catalog preview: net.fetch is refused; sensors stay live (local store,
    *  zero I/O). The app branches via the SDK's usePreview(). */
   preview?: boolean;
+  /** Host is a DEV_TOOLS build. Static for the render; the app branches via
+   *  the SDK's useDevTools(). Lets an app relax a ship-time gate on an
+   *  internal build without a second bundle. */
+  devTools?: boolean;
+  /** This worker renders the panel's fullscreen immersive view. */
+  immersive?: boolean;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -39,6 +47,8 @@ export interface SandboxContext {
      *  sources (e.g. screentime.today). The action must be in the manifest's
      *  capabilities.dispatch allowlist. */
     dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
+    /** The overlay's animated exit; only wired for the immersive worker. */
+    exitImmersive?(): void;
   };
 }
 

@@ -1,0 +1,66 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+.templateList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.templateRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+  border: 0;
+  color: inherit;
+  font: inherit;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+.templateInfo {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.templateName {
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+
+.templateDescription {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  text-align: center;
+  padding: 1rem 0;
+}

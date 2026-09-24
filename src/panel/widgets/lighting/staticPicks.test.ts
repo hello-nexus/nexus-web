@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { setLightingDeviceColor } from '../../../api/lighting';
 import { paletteColor } from '../../../types/lightingPalette';
 import { defaultStateFor } from '../../../types/lighting';
-import { devicePicksFromLooks, pickCustomForDevices, pickLookForDevices, pickPaletteForDevices } from './staticPicks';
+import {
+  devicePicksFromLooks, lockedPicks, mergeLocksFromLooks, pickCustomForDevices, pickLookForDevices,
+  pickPaletteForDevices, setPickLocked, unlockedIds,
+} from './staticPicks';
 
 vi.mock('../../../api/lighting', () => ({
   setLightingDeviceColor: vi.fn(() => Promise.resolve()),
@@ -72,5 +75,69 @@ describe('staticPicks', () => {
     expect(restored.a.key).toBe(next.a.key);
     expect(restored.a.hex).toBe('#abcdef');
     expect(paletteColor(restored.a.key.replace('flat:', ''))?.hex).not.toBe('#abcdef');
+  });
+
+  describe('locks', () => {
+    const locked = () => setPickLocked(pickCustomForDevices({}, '#112233', ['a', 'b'], false), 'a', true);
+
+    it('leaves a locked device out of every pick, record and write alike', () => {
+      const prev = locked();
+      const red = paletteColor('red-3')!;
+
+      const viaLook = pickLookForDevices(prev, 'stripes', 0, defaultStateFor('stripes'), ['a', 'b'], true);
+      expect(viaLook.a).toEqual(prev.a);
+      expect(viaLook.b.key).toBe('stripes');
+      expect(setLightingDeviceColor).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(setLightingDeviceColor).mock.calls[0][0]).toBe('b');
+
+      vi.mocked(setLightingDeviceColor).mockClear();
+      const viaPalette = pickPaletteForDevices(prev, red, ['a', 'b']);
+      expect(viaPalette.a).toEqual(prev.a);
+      expect(viaPalette.b.key).toBe('flat:red-3');
+      expect(setLightingDeviceColor).toHaveBeenCalledTimes(1);
+
+      vi.mocked(setLightingDeviceColor).mockClear();
+      const viaCustom = pickCustomForDevices(prev, '#abcdef', ['a', 'b']);
+      expect(viaCustom.a).toEqual(prev.a);
+      expect(viaCustom.b.hex).toBe('#abcdef');
+      expect(setLightingDeviceColor).toHaveBeenCalledTimes(1);
+    });
+
+    it('names the ids a write may still reach', () => {
+      expect(unlockedIds(locked(), ['a', 'b', 'c'])).toEqual(['b', 'c']);
+    });
+
+    it('cannot lock a device with no pick', () => {
+      const prev = pickCustomForDevices({}, '#112233', ['a'], false);
+      expect(setPickLocked(prev, 'zzz', true)).toBe(prev);
+    });
+
+    it('merges lock flags from the service without replacing the picks it has', () => {
+      const prev = pickCustomForDevices({}, '#112233', ['a', 'b'], false);
+      const looks = {
+        // a: locked on the service with a colour this client has not written yet.
+        a: { effect: 'flat', color: '#00ff00', hue: 0, saturation: 0, slot: 0, locked: true },
+        // c: locked, never seen here - comes in whole so the card can show it.
+        c: { effect: 'stripes', color: '', hue: 0.5, saturation: 1, slot: 2, locked: true },
+      } as Parameters<typeof mergeLocksFromLooks>[1];
+      const next = mergeLocksFromLooks(prev, looks);
+      expect(next.a).toEqual({ ...prev.a, locked: true });   // hex kept: #112233
+      expect(next.b).toBe(prev.b);
+      expect(next.c).toMatchObject({ key: 'stripes', slot: 2, locked: true });
+      // Nothing changed: the same object comes back, so no re-render.
+      expect(mergeLocksFromLooks(next, looks)).toBe(next);
+      // An unlock on the service clears the flag here too.
+      expect(mergeLocksFromLooks(next, {}).a.locked).toBe(false);
+    });
+
+    it('round-trips the lock from the service and keeps only locked picks for other modes', () => {
+      const restored = devicePicksFromLooks({
+        a: { effect: 'flat', color: '#abcdef', hue: 0, saturation: 0, slot: 0, locked: true },
+        b: { effect: 'stripes', color: '', hue: 0.5, saturation: 1, slot: 1 },
+      } as Parameters<typeof devicePicksFromLooks>[0]);
+      expect(restored.a.locked).toBe(true);
+      expect(restored.b.locked).toBeUndefined();
+      expect(Object.keys(lockedPicks(restored))).toEqual(['a']);
+    });
   });
 });

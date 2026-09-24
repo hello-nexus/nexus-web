@@ -1,0 +1,96 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+@use './weatherColors' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  @include vgap(0.5rem);
+}
+
+.title {
+  padding: 0 0.25rem;
+}
+
+.card {
+  padding: 0.75rem 1rem;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: minmax(3.5em, auto) auto 2.5em 1fr 2.5em;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.55rem;
+  color: var(--text);
+}
+
+.day {
+  @include text-button;
+  white-space: nowrap;
+}
+
+.iconCell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 2.2em;
+}
+
+.icon {
+  width: 1.3em;
+  height: 1.3em;
+  color: var(--accent-glow);
+}
+
+.precip {
+  @include text-caption;
+  color: $precip;
+  min-height: 0.9em;
+}
+
+.lo,
+.hi {
+  @include text-button;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.lo {
+  color: var(--text-dim);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  min-width: 3rem;
+}
+
+// Immersive: the card takes the whole cell and its rows share the height, so
+// every day fits without scrolling.
+.immersive {
+  height: 100%;
+  @include vgap(0.35rem);
+
+  .title { @include text-button; }
+  .card {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 0.5rem 1.25rem;
+    overflow: hidden;
+
+    > * { flex: 1 1 auto; min-height: 0; }
+  }
+
+  .list {
+    height: 100%;
+    grid-auto-rows: minmax(0, 1fr);
+    /* c83:allow - .list is display: grid */ row-gap: 0;
+  }
+  .day, .lo, .hi { font-size: var(--type-body); }
+  // Rows can be short in landscape: the chance sits beside the glyph, not under it.
+  .iconCell { flex-direction: row; align-items: center; min-width: 3.6em; @include hgap(0.3rem); }
+  .icon { width: 1.4em; height: 1.4em; }
+  .precip { font-size: var(--type-small); min-height: 0; }
+}

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Ban, CheckCheck, FolderPlus, Gauge, Power } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Ban, CheckCheck, Eye, EyeOff, FolderPlus, Gauge, Power } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
@@ -56,17 +56,23 @@ import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/Si
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
-import { SortableList, type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
+import { type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../components/common/SortableList/GroupedSortableList';
 import { type Arrangement } from '../../../components/common/SortableList/groupedDrag';
-import { addGroup, anchorGroups, groupedRows, groupOf, MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup } from '../../../lib/deviceGroups';
+import { DeviceGroupIcon } from '../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
+import { type GroupMove } from '../../../components/common/DeviceCanvas/groupMenuItems';
+import {
+  addGroup, applyArrangement, arrangementOf, canGroupIn, groupedRows, groupOf, groupRows, groupsIn, hardwareContainerOf,
+  MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup,
+} from '../../../lib/deviceGroups';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
-import { fanDeviceGroupName } from './page/deviceGroupName';
+import { fanDeviceGroupName, MOTHERBOARD_BLOCK_ID, blockIdOf } from './page/deviceGroupName';
+import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { COOLING_MODES, isCoolingModeKey, type CoolingModeKey } from './page/coolingModes';
 import { loadCoolingCache, saveCoolingCache } from './coolingCache';
 import { resolveCpuTempSensor, defaultCurveSourceId } from '../../../lib/tempSensorResolver';
@@ -139,9 +145,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // Manual on any one fan of a hub. Seeded from the same persistent
   // cache so the per-fan dropdowns don't blink to a default on visit.
   const [hubModes, setHubModes] = useState<Record<string, FanCardHubMode>>(() => cachedSeed.hubModes);
-  // Per-group collapse state for the fan grid (external hub groups + the
-  // Disconnected group), persisted across restarts. Keyed by the group's
-  // deviceId, plus the literal 'disconnected'. Default: only Disconnected
+  // The hub-mode polls below skip while this page's own hub write is fresh,
+  // so a read already in flight cannot put the pre-switch mode back.
+  const hubModeLockUntilRef = useRef(0);
+  const writeHubMode = useCallback((deviceId: string, kind: FanCardHubMode) => {
+    hubModeLockUntilRef.current = Date.now() + 4000;
+    setHubModes(prev => ({ ...prev, [deviceId]: kind }));
+  }, []);
+  // Per-group collapse state for the fan grid, persisted across restarts. Keyed
+  // by rail block id (a device id or the board's synthetic one), by user-group
+  // id, plus the literal 'disconnected'. Default: only Disconnected
   // starts collapsed so a calibration-flagged-unresponsive fan doesn't
   // visually dominate the section; hub groups start expanded.
   const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', ['disconnected']);
@@ -283,8 +296,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return () => { cancelled = true; };
   }, [serviceOnline, hasNp50Fan]);
 
-  // Seed the Q-series pump's hub mode from the cooler's reported control mode
-  // (Software/Motherboard/Firmware) so its fan-card dropdown shows the live mode.
+  // Poll the Q-series cooler's reported control mode (Software/Motherboard/
+  // Firmware) on the NP50 poll's cadence, so its fan cards follow a hand-back
+  // the service makes on its own - the last curve unbound, a cooling reset, a
+  // profile switch - not just the modes this page sets.
   const hasQSeriesPump = useMemo(
     () => channels.some(c => c.deviceId?.startsWith('qseries:')),
     [channels],
@@ -292,15 +307,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   useEffect(() => {
     if (!serviceOnline || !hasQSeriesPump) return;
     let cancelled = false;
-    (async () => {
+    const tick = async () => {
       const s = await getQSeriesState();
       if (cancelled || !s?.connected || !s.deviceId) return;
+      if (Date.now() < hubModeLockUntilRef.current) return;
       const kind = s.controlMode === QSERIES_MODE_SOFTWARE ? 'software'
         : s.controlMode === QSERIES_MODE_FIRMWARE ? 'firmware'
         : 'motherboard';
-      setHubModes(prev => ({ ...prev, [s.deviceId]: kind }));
-    })();
-    return () => { cancelled = true; };
+      setHubModes(prev => prev[s.deviceId] === kind ? prev : { ...prev, [s.deviceId]: kind });
+    };
+    void tick();
+    const id = window.setInterval(tick, 3000);
+    return () => { cancelled = true; window.clearInterval(id); };
   }, [serviceOnline, hasQSeriesPump]);
 
   useEffect(() => subscribeControlSync(event => {
@@ -382,6 +400,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const tick = async () => {
       const conn = await getNp50ConnectionState();
       if (cancelled || !conn || !conn.connected || !conn.deviceId) return;
+      if (Date.now() < hubModeLockUntilRef.current) return;
       const kind = np50HubModeFromName(conn.coolingMode);
       if (!kind) return;
       setHubModes(prev => prev[conn.deviceId] === kind ? prev : { ...prev, [conn.deviceId]: kind });
@@ -649,8 +668,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     void saveActivePreset();
   }, [exitOffToCustomIfNeeded, saveActivePreset, pushHistory]);
 
-  // `id` is a channel id, or the device id of a group header. An empty name
-  // clears the rename and the card falls back to the hardware name it carries.
+  const { specs } = useSystemSpecs(serviceOnline);
+  // The board's block has no hardware name; the spec sheet's board model stands in.
+  const boardBlockName = specs?.motherboard || t('cooling.fan.motherboardGroup');
+
+  // `id` is a channel id, a group header's device id, or the board's block id.
+  // An empty name clears the rename and the header falls back to what it carries.
   const handleRename = useCallback(async (id: string, name: string) => {
     await renameFan(id, name);
     setChannels(prev => prev.map(ch => {
@@ -663,6 +686,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         return name === ''
           ? { ...ch, deviceName: ch.originalDeviceName ?? ch.deviceName, originalDeviceName: undefined }
           : { ...ch, deviceName: name, originalDeviceName: ch.originalDeviceName ?? ch.deviceName ?? undefined };
+      }
+      // The board block's rename rides deviceName on every one of its fans.
+      if (id === MOTHERBOARD_BLOCK_ID && !ch.deviceId) {
+        return { ...ch, deviceName: name === '' ? undefined : name };
       }
       return ch;
     }));
@@ -695,21 +722,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     const fans = await fetchFanChannels();
     if (fans?.channels) setChannels(fans.channels);
   }, [channels]);
-
-  // A locked fan is skipped by the preset buttons, and simple mode has no fan
-  // rail to unlock it from - it would sit on its old speed, unexplained.
-  // Latched per id: every lock write refetches the channels, so an unlatched
-  // effect re-fires on its own result and a fan the service refuses to unlock
-  // would loop forever.
-  const unlockAttemptedRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!simpleDashboard) { unlockAttemptedRef.current.clear(); return; }
-    for (const ch of channels) {
-      if (!ch.locked || unlockAttemptedRef.current.has(ch.id)) continue;
-      unlockAttemptedRef.current.add(ch.id);
-      void handleToggleLock(ch.id, false);
-    }
-  }, [simpleDashboard, channels, handleToggleLock]);
 
   // Counts Nexus Control, not "currently driven": the Off preset legitimately
   // drives nothing, and a summary that read 0/6 there would put a claim button
@@ -780,7 +792,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
       await setNp50FirmwareControl();
-      setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
+      writeHubMode(deviceId, 'firmware');
       return;
     }
 
@@ -790,18 +802,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
       await setQSeriesControlMode(QSERIES_MODE_FIRMWARE);
-      setHubModes(prev => ({ ...prev, [deviceId]: 'firmware' }));
+      writeHubMode(deviceId, 'firmware');
       return;
     }
 
     if (value === 'bios') {
       if (isMiniHub && deviceId) {
         await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_MOTHERBOARD);
-        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+        writeHubMode(deviceId, 'motherboard');
       }
       if (isQSeries && deviceId) {
         await setQSeriesControlMode(QSERIES_MODE_MOTHERBOARD);
-        setHubModes(prev => ({ ...prev, [deviceId]: 'motherboard' }));
+        writeHubMode(deviceId, 'motherboard');
       }
       const wasSw = fanStates[fanId]?.softwareControl ?? false;
       if (wasSw) await toggleSoftwareControl(fanId, false);
@@ -817,7 +829,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       if (isNp50) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
       else if (isMiniHub) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
       else if (isQSeries) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
-      setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
+      writeHubMode(deviceId, 'software');
     }
 
     await exitOffToCustomIfNeeded();
@@ -833,7 +845,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     } else {
       await assignCurve(fanId, targetCurveId);
     }
-  }, [channels, fanStates, curves, hubModes, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded]);
+  }, [channels, fanStates, curves, hubModes, pushCurves, toggleSoftwareControl, assignCurve, exitOffToCustomIfNeeded, writeHubMode]);
 
   // A change on a card that is part of the selection applies to the whole
   // selection; an unselected card still acts alone.
@@ -903,7 +915,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       if (deviceId.startsWith('np50:')) await setNp50LiveCoolingMode(NP50_LIVE_MODE_SOFTWARE);
       else if (deviceId.startsWith('minihub:')) await setMiniHubLiveCoolingMode(MINIHUB_LIVE_MODE_SOFTWARE);
       else if (deviceId.startsWith('qseries:')) await setQSeriesControlMode(QSERIES_MODE_SOFTWARE);
-      setHubModes(prev => ({ ...prev, [deviceId]: 'software' }));
+      writeHubMode(deviceId, 'software');
     }
     await exitOffToCustomIfNeeded();
 
@@ -922,7 +934,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       const fans = await fetchFanChannels();
       if (fans?.channels) setChannels(fans.channels);
     }
-  }, [channels, curves, exitOffToCustomIfNeeded, fanStates, hubModes, pushCurves, pushHistory]);
+  }, [channels, curves, exitOffToCustomIfNeeded, fanStates, hubModes, pushCurves, pushHistory, writeHubMode]);
 
   const applyFanMode = useCallback((fanId: string, value: string) => {
     const ids = selectedFanIds.has(fanId) ? [...selectedFanIds] : [fanId];
@@ -972,7 +984,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
   }, [cpuTemp?.id, curves, exitOffToCustomIfNeeded, fanStates, pushCurves, setSelectedCurveId, setSelectedFanIds, sources]);
 
-  // Reset a preset curve (silent/balanced/turbo) back to defaults via
+  // Reset a preset curve (silent/balanced/turbo/max) back to defaults via
   // the service endpoint. Fan attachments are preserved server-side, so the
   // active preset stays in place; we just refetch to pick up the new template
   // values.
@@ -1091,7 +1103,28 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // User-made fan groups. The service owns them (they ride the channel list),
   // so a write is optimistic and the cooling topic reconciles.
   const [fanGroupsState, setFanGroupsState] = useState<DeviceGroup[]>([]);
-  const fanGroups = fanGroupsState;
+  // A saved top-level group can still hold a bare fan id from before that fan's
+  // rail block existed. Unmapped it resolves to no block, gets dropped from the
+  // rebuilt arrangement, and the next drag persists the pruned list. A group
+  // inside a block holds fan ids by design and is left alone.
+  const legacyBlockIds = useMemo(() => {
+    const byFanId = new Map<string, string>();
+    for (const c of channels) {
+      const block = blockIdOf(c);
+      if (block !== c.id) byFanId.set(c.id, block);
+    }
+    return byFanId;
+  }, [channels]);
+  const fanGroups = useMemo(() => fanGroupsState.map(g => {
+    if (g.parent != null) return g;
+    const members: string[] = [];
+    for (const m of g.members) {
+      const mapped = legacyBlockIds.get(m) ?? m;
+      if (!members.includes(mapped)) members.push(mapped);
+    }
+    const unchanged = members.length === g.members.length && members.every((m, i) => m === g.members[i]);
+    return unchanged ? g : { ...g, members };
+  }), [fanGroupsState, legacyBlockIds]);
   const setFanGroups = useCallback((next: DeviceGroup[]) => {
     setFanGroupsState(next);
     saveFanGroups(next).catch(() => { /* the cooling topic reconciles */ });
@@ -1136,12 +1169,43 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return dead.length === 0 ? base : [...live, ...dead];
   }, [channels, fanOrder]);
 
-  // Fans a click can select, which is what select-all has to match. Nexus
-  // Control off is NOT excluded: the card takes its click, and turning control
-  // back on over a whole selection is the reason to gather them.
+  // Nexus Control off means the motherboard or a vendor app owns the fan, so
+  // the eye hides it here rather than showing a card that drives nothing. The
+  // unfiltered list stays available for the group headers' indicator.
+  const hideUncontrolled = !uiSettings.showUncontrolledCoolingDevices;
+  const visibleChannels = useMemo(
+    () => hideUncontrolled
+      ? orderedChannels.filter(c => c.controlled !== false && !isFanDisconnected(c))
+      : orderedChannels,
+    [orderedChannels, hideUncontrolled],
+  );
+  // Ids the eye is holding back. A drag rebuilds fanOrder from what is on
+  // screen, and orderedChannels DROPS any channel missing from that order, so
+  // without re-appending these a reorder while hiding would erase them.
+  // What the eye holds back: a fan Nexus does not drive, or one the hardware
+  // stopped answering. The group badge stays narrower - it means "no Nexus
+  // Control" and must not fire for a fan that is merely disconnected.
+  const isHiddenFan = useCallback(
+    (c: FanChannel) => c.controlled === false || isFanDisconnected(c),
+    [],
+  );
+  const hiddenFanIds = useMemo(() => {
+    if (!hideUncontrolled) return [] as string[];
+    const shown = new Set(visibleChannels.map(c => c.id));
+    return orderedChannels.filter(c => !shown.has(c.id)).map(c => c.id);
+  }, [orderedChannels, visibleChannels, hideUncontrolled]);
+
+  // Fans a click can select, which is what select-all has to match. It takes
+  // only fans it can actually drive. A fan with Nexus Control off is
+  // deliberately left to its firmware - and is hidden outright when the page
+  // is hiding uncontrolled devices, so selecting it would build a selection
+  // the user cannot see.
   const selectableFanIds = useMemo(
     () => orderedChannels
-      .filter(c => !isFanDisconnected(c) && !(c.readOnly ?? false) && c.classification !== 'Fixed')
+      .filter(c => !isFanDisconnected(c)
+        && !(c.readOnly ?? false)
+        && c.classification !== 'Fixed'
+        && c.controlled !== false)
       .map(c => c.id),
     [orderedChannels],
   );
@@ -1216,10 +1280,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   };
   const modeTabs = [modeMenuTab, ...COOLING_MODES.filter(p => p.key !== 'off').map(p => ({
     key: p.key,
-    // Silent/Balanced/Turbo apply to every fan, so the tab reads "All <preset>".
-    label: p.key === 'silent' || p.key === 'balanced' || p.key === 'turbo'
-      ? `${t('cooling.mode.allPrefix')} ${t(p.i18nKey)}`
-      : t(p.i18nKey),
+    // Plain mode names, matching the simple-mode tiles. They used to read
+    // "All <mode>", which stopped being true once pumps and GPU fans started
+    // defaulting out of a preset apply (FanProfiles.IsLockedByDefault).
+    label: t(p.i18nKey),
     icon: <p.Icon size={14} />,
   }))];
   // The strip marks the mode tab while cooling is off - it is the tab Off now
@@ -1249,8 +1313,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     />
   );
 
+  // Sits at the right edge of the Curves header while Off is active, at the
+  // header's own control height so the row never grows when it appears.
   const offStatusCard = activeMode === 'off' ? (
-    <div className={styles.offStatus}
+    <div className={`${styles.offStatus} ${styles.offStatusHeader}`}
       role="status"
       aria-label={t('cooling.mode.off.banner')}>
       <Power size={13} aria-hidden />
@@ -1380,7 +1446,20 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <div className={styles.paneTitleGroup}>
             <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
-            <Badge label={String(channels.length)} compact color="var(--text-dim)" />
+            <Badge label={String(visibleChannels.length)} compact color="var(--text-dim)" />
+            <HoverTooltip
+              body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+              side="bottom"
+            >
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
+                aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+                aria-pressed={hideUncontrolled}
+                onClick={() => updateUiSettings({ showUncontrolledCoolingDevices: hideUncontrolled })}
+              />
+            </HoverTooltip>
           </div>
           <div className={styles.fanHeaderActions}>
             <HoverTooltip
@@ -1400,12 +1479,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             <>
               <span className={styles.headerSep} aria-hidden />
               {/* Icon-only, matching the lighting rail: too narrow for labels. */}
-              <HoverTooltip body={t('lighting.ledMap.selectAll')} side="bottom">
+              <HoverTooltip body={t('lighting.pane.selectAllControlled')} side="bottom">
                 <Button
                   tone="ghost"
                   size="sm"
                   icon={<CheckCheck />}
-                  aria-label={t('lighting.ledMap.selectAll')}
+                  aria-label={t('lighting.pane.selectAllControlled')}
                   disabled={allFansSelected}
                   onClick={() => setSelectedFanIds(new Set(selectableFanIds))}
                 />
@@ -1428,6 +1507,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <span className={styles.paneTitle}>{t('cooling.label.curves')}</span>
           {/* What a curve press would apply to, in the lighting page's wording. */}
           <Badge label={selectedFanLabel} compact uppercase color="var(--text-dim)" />
+          {offStatusCard}
         </div>
         <aside className={styles.fanSidebar}>
           {calibrationResults && !calibrating && (
@@ -1473,39 +1553,115 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               aria-hidden={calibrating || undefined}
               className={`${styles.fanList} ${calibrating ? styles.fanGridDisabled : ''}`}
             >
-            {offStatusCard}
             {(() => {
-              const disconnected = orderedChannels.filter(isFanDisconnected);
-              const live = orderedChannels.filter(c => !isFanDisconnected(c));
-              const groups = new Map<string | null, FanChannel[]>();
+              const disconnected = visibleChannels.filter(isFanDisconnected);
+              const live = visibleChannels.filter(c => !isFanDisconnected(c));
+              // Group headers report members from the unfiltered list, so a
+              // group still accounts for the fans the eye is holding back.
+              // Disconnected fans are in here too: they hide on the same
+              // switch, so the vanish rule below has to see them.
+              const allByBlock = new Map<string, FanChannel[]>();
+              for (const ch of orderedChannels) {
+                const key = blockIdOf(ch);
+                const bucket = allByBlock.get(key);
+                if (bucket) bucket.push(ch); else allByBlock.set(key, [ch]);
+              }
+              const groupBlockIds = (groupId: string) =>
+                fanGroups.find(g => g.id === groupId)?.members ?? [];
+              // Every fan lands in a block: its device, or the synthetic block
+              // the board's own headers share.
+              const groups = new Map<string, FanChannel[]>();
               for (const ch of live) {
-                const key = ch.deviceId || null;
+                const key = blockIdOf(ch);
                 if (!groups.has(key)) groups.set(key, []);
                 groups.get(key)!.push(ch);
               }
               const disconnectedIds = disconnected.map(c => c.id);
-              const mobo = groups.get(null) ?? [];
-              const moboIds = mobo.map(c => c.id);
-              const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k);
+              // A group is ONE block, so dragging it moves the whole device and
+              // its ports never split.
+              const blockIds = Array.from(groups.keys());
 
-              // A fan's group membership is its BLOCK's: a fan on a hub moves
-              // with the whole block, the way dragging one does.
-              const groupMoveFor = (ch: FanChannel) => {
-                const blockId = ch.deviceId || ch.id;
-                const current = groupOf(fanGroups, blockId);
+              const expand = (blockId: string): string[] => {
+                const memberIds = (groups.get(blockId) ?? []).map(c => c.id);
+                const ordered = fanOrder.filter(id => memberIds.includes(id));
+                return ordered.length > 0 ? ordered : memberIds;
+              };
+              // Rail arrangement: hub and board blocks that no user group claims
+              // stay at the top level, each user group sits where the user
+              // dropped it, and a group row's members are the blocks and groups
+              // it holds. A block is ONE row, so dragging it moves the whole
+              // device; the groups a user makes INSIDE it live in its own list.
+              const rootRows = groupedRows(blockIds, id => id, fanGroups);
+              const arrangement = arrangementOf(rootRows);
+              const innerArrangements = new Map<string, Arrangement>(blockIds.map(blockId =>
+                [blockId, arrangementOf(groupedRows(expand(blockId), id => id, fanGroups, blockId))]));
+              const siblingsIn = (container: string | null): readonly string[] => {
+                if (container === null) return arrangement.rowIds;
+                if (container in arrangement.groupMembers) return arrangement.groupMembers[container];
+                const inner = innerArrangements.get(container);
+                if (inner) return inner.rowIds;
+                for (const arr of innerArrangements.values()) {
+                  if (container in arr.groupMembers) return arr.groupMembers[container];
+                }
+                return [];
+              };
+              const fansOfRows = (arr: Arrangement, ids: readonly string[]): FanChannel[] => ids.flatMap(id => {
+                if (id in arr.groupMembers) return fansOfRows(arr, arr.groupMembers[id]);
+                if (arr === arrangement) return expand(id).map(fid => channels.find(c => c.id === fid)).filter((c): c is FanChannel => c !== undefined);
+                const ch = channels.find(c => c.id === id);
+                return ch ? [ch] : [];
+              });
+              const fansIn = (arr: Arrangement, groupId: string) => fansOfRows(arr, arr.groupMembers[groupId] ?? []);
+
+              // A fan's row sits in its own hub or board block, or in a user
+              // group inside it; the fan only ever moves among those groups.
+              const containerOfFan = (ch: FanChannel) => groupOf(fanGroups, ch.id)?.id ?? blockIdOf(ch);
+              const groupFans = (fans: readonly FanChannel[]): (() => void) | undefined => {
+                const first = fans[0];
+                if (!first) return undefined;
+                const container = containerOfFan(first);
+                if (fans.some(c => containerOfFan(c) !== container) || !canGroupIn(fanGroups, container)) return undefined;
+                return () => setFanGroups(groupRows(fanGroups, t('cooling.fan.groupDefaultName'), container, fans.map(c => c.id), siblingsIn(container)));
+              };
+              const groupMoveFor = (ch: FanChannel): GroupMove => {
+                const current = groupOf(fanGroups, ch.id);
+                const hardware = blockIdOf(ch);
+                const reachable = fanGroups.filter(g => g.id !== current?.id && hardwareContainerOf(fanGroups, g.id) === hardware);
                 return {
-                  targets: fanGroups.filter(g => g.id !== current?.id).map(g => ({ id: g.id, name: g.name })),
+                  targets: reachable.map(g => ({ id: g.id, name: g.name })),
+                  onMove: (groupId: string) => setFanGroups(moveBlock(fanGroups, ch.id, groupId, Number.MAX_SAFE_INTEGER)),
+                  onRemove: current
+                    ? { name: current.name, run: () => setFanGroups(moveBlock(fanGroups, ch.id, null, 0)) }
+                    : undefined,
+                  onGroup: groupFans([ch]),
+                };
+              };
+              // A hub or board block is a group in its own right: it only
+              // enters a top-level group, and none while it holds a group.
+              const blockGroupMove = (blockId: string): GroupMove => {
+                const current = groupOf(fanGroups, blockId);
+                const holds = groupsIn(fanGroups, blockId).length > 0;
+                const targets = holds ? [] : fanGroups.filter(g => g.id !== current?.id && g.parent == null);
+                return {
+                  targets: targets.map(g => ({ id: g.id, name: g.name })),
                   onMove: (groupId: string) => setFanGroups(moveBlock(fanGroups, blockId, groupId, Number.MAX_SAFE_INTEGER)),
                   onRemove: current
                     ? { name: current.name, run: () => setFanGroups(moveBlock(fanGroups, blockId, null, 0)) }
                     : undefined,
-                  onMoveToNew: fanGroups.length < MAX_DEVICE_GROUPS
-                    ? () => {
-                        const withNew = addGroup(fanGroups, t('cooling.fan.groupDefaultName'));
-                        setFanGroups(moveBlock(withNew, blockId, withNew[withNew.length - 1].id, 0));
-                      }
+                  onGroup: !holds && current === null && canGroupIn(fanGroups, null)
+                    ? () => setFanGroups(groupRows(fanGroups, t('cooling.fan.groupDefaultName'), null, [blockId], arrangement.rowIds))
                     : undefined,
                 };
+              };
+              // The same gate a card's own click has, over a group's members.
+              const selectAllFor = (fans: readonly FanChannel[]) => {
+                const ids = fans.filter(c => !isFanDisconnected(c) && c.classification !== 'Fixed' && !c.readOnly).map(c => c.id);
+                return ids.length > 0 ? { count: ids.length, run: () => setSelectedFanIds(new Set(ids)) } : undefined;
+              };
+              const bulkFor = (ch: FanChannel): FanBulkSelection | undefined => {
+                const bulk = bulkForFan(ch);
+                if (!bulk) return undefined;
+                return { ...bulk, group: groupFans(channels.filter(c => selectedFanIds.has(c.id))) };
               };
 
               const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => (
@@ -1526,7 +1682,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   onToggleLock={handleToggleLock}
                   onToggleControlled={handleSetFanControlled}
                   onSelectOnly={() => setSelectedFanIds(new Set([ch.id]))}
-                  bulk={bulkForFan(ch)}
+                  bulk={bulkFor(ch)}
                   onSetRole={handleSetRole}
                   onClearOffset={handleClearOffset}
                   drag={drag}
@@ -1534,60 +1690,94 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 />
               );
 
-              // Rail blocks: one per motherboard fan card, one per hub device
-              // group. A hub group is ONE block, so dragging it into a user
-              // group moves the whole hub and its ports are never split.
-              const blockIds = [...moboIds, ...deviceKeys];
-              const expand = (blockId: string): string[] => {
-                if (!deviceKeys.includes(blockId)) return [blockId];
-                const memberIds = (groups.get(blockId) ?? []).map(c => c.id);
-                const ordered = fanOrder.filter(id => memberIds.includes(id));
-                return ordered.length > 0 ? ordered : memberIds;
-              };
-              const rows = groupedRows(blockIds, id => id, fanGroups);
-              const arrangement: Arrangement = {
-                rowIds: rows.map(r => r.id),
-                groupMembers: Object.fromEntries(fanGroups.map(g => [
-                  g.id,
-                  (rows.find(r => r.id === g.id && r.kind === 'group') as { blocks: string[] } | undefined)?.blocks ?? [],
-                ])),
-              };
-              const handleArrange = (next: Arrangement) => {
-                // anchorGroups records the row each group now follows, so a group
-                // emptied by this very drop keeps its slot instead of tailing.
-                setFanGroups(anchorGroups(
-                  next.rowIds
-                    .filter(id => id in next.groupMembers)
-                    .map(id => ({
-                      ...(fanGroups.find(g => g.id === id) ?? { id, name: '' }),
-                      members: next.groupMembers[id] ?? [],
-                    })),
-                  next.rowIds,
-                ));
-                const order: string[] = [];
-                for (const rowId of next.rowIds) {
-                  if (rowId in next.groupMembers) {
-                    for (const memberId of next.groupMembers[rowId] ?? []) order.push(...expand(memberId));
-                  } else {
-                    order.push(...expand(rowId));
-                  }
-                }
-                order.push(...disconnectedIds);
+              const persistOrder = (order: string[]) => {
                 setFanOrder(order);
                 if (serviceOnline) updateUiSettings({ fanChannelOrder: order });
               };
+              // One drop rewrites both halves: which group holds which row, and
+              // the flat fan order the page persists.
+              const handleArrange = (next: Arrangement) => {
+                setFanGroups(applyArrangement(fanGroups, next, null));
+                const expandRow = (id: string): string[] => id in next.groupMembers
+                  ? (next.groupMembers[id] ?? []).flatMap(expandRow)
+                  : expand(id);
+                persistOrder([...next.rowIds.flatMap(expandRow), ...disconnectedIds, ...hiddenFanIds]);
+              };
 
-              const renderBlock = (blockId: string, a: SortableRowArgs) => {
-                if (!deviceKeys.includes(blockId)) {
-                  const ch = channels.find(c => c.id === blockId);
-                  return ch ? renderFanCard(ch, a) : null;
-                }
-                const list = groups.get(blockId) ?? [];
-                const memberIds = list.map(c => c.id);
+              // The user group header, for a group at the top level or inside
+              // a block: `arr` is the list it sits in.
+              const renderUserGroup = (arr: Arrangement, groupId: string, a: SortableRowArgs, children: ReactNode, isDropTarget: boolean) => {
+                const group = fanGroups.find(g => g.id === groupId);
+                if (!group) return null;
+                // A group holding nothing the eye lets through goes with its
+                // members. One the user just made is empty, not hidden, so it
+                // stays put as a drop target. Nested groups count with their parent.
+                // A top-level group holds blocks, one inside a block holds fans.
+                const allIn = (id: string): FanChannel[] => [
+                  ...groupBlockIds(id).flatMap(m => allByBlock.get(m) ?? orderedChannels.filter(c => c.id === m)),
+                  ...groupsIn(fanGroups, id).flatMap(g => allIn(g.id)),
+                ];
+                const groupAll = allIn(groupId);
+                if (hideUncontrolled && groupAll.length > 0
+                  && groupAll.every(isHiddenFan)) return null;
+                const members = fansIn(arr, groupId);
                 return (
                   <FanGroupHeader
-                    name={fanDeviceGroupName(blockId, list[0]?.deviceName)}
+                    name={group.name}
+                    count={members.length}
+                    hasUncontrolled={groupAll.some(c => c.controlled === false)}
+                    collapsed={isFanGroupCollapsed(groupId)}
+                    onToggleCollapsed={() => toggleFanGroup(groupId)}
+                    groupControlled={members.some(c => c.controlled !== false)}
+                    onToggleControlled={() => {
+                      const target = !members.some(c => c.controlled !== false);
+                      for (const c of members) handleSetFanControlled(c.id, target);
+                    }}
+                    groupLocked={members.some(c => c.locked)}
+                    onToggleLock={() => {
+                      const target = !members.some(c => c.locked);
+                      for (const c of members) handleToggleLock(c.id, target);
+                    }}
+                    onRename={name => setFanGroups(renameGroup(fanGroups, groupId, name))}
+                    onDelete={() => setFanGroups(removeGroup(fanGroups, groupId))}
+                    onSelectAll={selectAllFor(members)}
+                    dropTarget={isDropTarget}
+                    drag={a}
+                  >
+                    <div className={styles.fanGroupChildren}>{children}</div>
+                  </FanGroupHeader>
+                );
+              };
+
+              const renderBlock = (blockId: string, a: SortableRowArgs) => {
+                const list = groups.get(blockId) ?? [];
+                // On the board's block deviceName carries the rename and nothing
+                // else, so an un-renamed one has no name to reset to.
+                const custom = list[0]?.deviceName;
+                const isBoard = blockId === MOTHERBOARD_BLOCK_ID;
+                const inner = innerArrangements.get(blockId) ?? { rowIds: expand(blockId), groupMembers: {} };
+                // A drop inside this block rewrites its groups and the flat fan
+                // order: this block's fans in their new order, the rest as they were.
+                const handleInnerArrange = (next: Arrangement) => {
+                  setFanGroups(applyArrangement(fanGroups, next, blockId));
+                  const expandRow = (id: string): string[] => id in next.groupMembers
+                    ? (next.groupMembers[id] ?? []).flatMap(expandRow)
+                    : [id];
+                  const memberIds = list.map(c => c.id);
+                  const newIds = next.rowIds.flatMap(expandRow);
+                  const firstIdx = fanOrder.findIndex(id => memberIds.includes(id));
+                  const without = fanOrder.filter(id => !memberIds.includes(id));
+                  const at = firstIdx < 0 ? without.length : firstIdx;
+                  persistOrder([...without.slice(0, at), ...newIds, ...without.slice(at)]);
+                };
+                return (
+                  <FanGroupHeader
+                    name={isBoard
+                      ? (custom || boardBlockName)
+                      : fanDeviceGroupName(blockId, custom)}
+                    icon={<DeviceGroupIcon id={blockId} iconType={list[0]?.isGpu ? 'gpu' : undefined} />}
                     count={list.length}
+                    hasUncontrolled={(allByBlock.get(blockId) ?? []).some(c => c.controlled === false)}
                     collapsed={isFanGroupCollapsed(blockId)}
                     onToggleCollapsed={() => toggleFanGroup(blockId)}
                     groupControlled={list.some(c => c.controlled !== false)}
@@ -1601,28 +1791,23 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       for (const c of list) handleToggleLock(c.id, target);
                     }}
                     onRename={name => handleRename(blockId, name)}
-                    onResetName={list[0]?.originalDeviceName != null ? () => handleRename(blockId, '') : undefined}
+                    onResetName={(isBoard ? custom != null : list[0]?.originalDeviceName != null)
+                      ? () => handleRename(blockId, '')
+                      : undefined}
+                    onSelectAll={selectAllFor(list)}
+                    groupMove={blockGroupMove(blockId)}
                     drag={a}
                   >
                     <div className={styles.fanGroupChildren}>
-                      <SortableList
-                        ids={memberIds}
-                        onReorder={(newIds) => {
-                          const firstIdx = fanOrder.findIndex(id => memberIds.includes(id));
-                          const without = fanOrder.filter(id => !memberIds.includes(id));
-                          const next = [
-                            ...without.slice(0, firstIdx < 0 ? without.length : firstIdx),
-                            ...newIds,
-                            ...without.slice(firstIdx < 0 ? without.length : firstIdx),
-                          ];
-                          setFanOrder(next);
-                          if (serviceOnline) updateUiSettings({ fanChannelOrder: next });
-                        }}
-                        renderRow={(fanId, fa) => {
+                      <GroupedSortableList
+                        arrangement={inner}
+                        onArrange={handleInnerArrange}
+                        renderBlock={(fanId, fa) => {
                           const ch = channels.find(c => c.id === fanId);
                           if (!ch) return null;
                           return renderFanCard(ch, fa);
                         }}
+                        renderGroup={(groupId, ga, children, isDropTarget) => renderUserGroup(inner, groupId, ga, children, isDropTarget)}
                       />
                     </div>
                   </FanGroupHeader>
@@ -1636,38 +1821,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       arrangement={arrangement}
                       onArrange={handleArrange}
                       renderBlock={renderBlock}
-                      renderGroup={(groupId, a, children, isDropTarget) => {
-                        const group = fanGroups.find(g => g.id === groupId);
-                        if (!group) return null;
-                        const members = (arrangement.groupMembers[groupId] ?? [])
-                          .flatMap(id => expand(id))
-                          .map(id => channels.find(c => c.id === id))
-                          .filter((c): c is FanChannel => c !== undefined);
-                        return (
-                          <FanGroupHeader
-                            name={group.name}
-                            count={members.length}
-                            collapsed={isFanGroupCollapsed(groupId)}
-                            onToggleCollapsed={() => toggleFanGroup(groupId)}
-                            groupControlled={members.some(c => c.controlled !== false)}
-                            onToggleControlled={() => {
-                              const target = !members.some(c => c.controlled !== false);
-                              for (const c of members) handleSetFanControlled(c.id, target);
-                            }}
-                            groupLocked={members.some(c => c.locked)}
-                            onToggleLock={() => {
-                              const target = !members.some(c => c.locked);
-                              for (const c of members) handleToggleLock(c.id, target);
-                            }}
-                            onRename={name => setFanGroups(renameGroup(fanGroups, groupId, name))}
-                            onDelete={() => setFanGroups(removeGroup(fanGroups, groupId))}
-                            dropTarget={isDropTarget}
-                            drag={a}
-                          >
-                            <div className={styles.fanGroupChildren}>{children}</div>
-                          </FanGroupHeader>
-                        );
-                      }}
+                      nestGroups
+                      groupBlock={id => groups.has(id)}
+                      holdsGroup={id => groupsIn(fanGroups, id).length > 0}
+                      renderGroup={(groupId, a, children, isDropTarget) => renderUserGroup(arrangement, groupId, a, children, isDropTarget)}
                     />
                   )}
                   {fanGroups.length < MAX_DEVICE_GROUPS && (

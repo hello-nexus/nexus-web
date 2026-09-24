@@ -2,6 +2,8 @@
 
 import { fetchService, postService, deleteService, putService, authFetchWithStatus, resolveAuthWs } from './service';
 import { type DeviceGroup } from '../lib/deviceGroups';
+import { type DeviceStack } from '../lib/stackSlots';
+import { parseShaderParams, type ShaderParamSpec } from '../lib/shaderParams';
 
 export async function lightingOutputUrl(): Promise<string> {
   return resolveAuthWs('/lighting/output');
@@ -14,7 +16,7 @@ export async function lightingOutputUrl(): Promise<string> {
 // content hash of the slot's saved look (`version`), so a stale URL is never
 // pinned. EFFECT_THUMB_VERSION is the global kill-switch (bump on a shader or
 // render-path change to invalidate every thumbnail at once).
-export const EFFECT_THUMB_VERSION = 4;
+export const EFFECT_THUMB_VERSION = 7;
 
 /**
  * Path to a preset slot's universal thumbnail. `version` is a content hash of
@@ -27,7 +29,11 @@ export const effectThumbnailPath = (key: string, slot: number, version: string, 
 
 // --- Shader source (for client-side WebGL rendering) ---
 
-export interface ShaderSource { frag: string; }
+export type { ShaderParamSpec };
+
+/** `params` is parsed client-side from the frag's `hint_range` annotations
+ *  (see parseShaderParams) - the service never sends a separate params field. */
+export interface ShaderSource { frag: string; params: ShaderParamSpec[]; }
 
 const shaderCache = new Map<string, ShaderSource>();
 
@@ -38,14 +44,21 @@ const shaderCache = new Map<string, ShaderSource>();
  * network for that effect.
  */
 export function primeShaderSource(name: string, frag: string): void {
-  shaderCache.set(name, { frag });
+  shaderCache.set(name, { frag, params: parseShaderParams(frag) });
+}
+
+/** Synchronous cache read so a consumer can seed state without a load tick. */
+export function peekShaderSource(name: string): ShaderSource | undefined {
+  return shaderCache.get(name);
 }
 
 export async function fetchShaderSource(name: string): Promise<ShaderSource | null> {
   const cached = shaderCache.get(name);
   if (cached) return cached;
-  const src = await fetchService<ShaderSource>(`/lighting/shaders/${encodeURIComponent(name)}`);
-  if (src) shaderCache.set(name, src);
+  const res = await fetchService<{ frag: string }>(`/lighting/shaders/${encodeURIComponent(name)}`);
+  if (!res) return null;
+  const src: ShaderSource = { frag: res.frag, params: parseShaderParams(res.frag) };
+  shaderCache.set(name, src);
   return src;
 }
 
@@ -328,6 +341,8 @@ export interface LightingDevice {
   originalName?: string;
   /** Custom name for this card's group, set only when the group header itself was renamed. */
   parentName?: string;
+  /** Custom name for the device this card's zone belongs to (deviceId), set only when that device was renamed. */
+  deviceName?: string | null;
   type?: string;
   iconType?: string;
   ledsOn: boolean;
@@ -371,28 +386,20 @@ export interface LightingDevicesResponse {
   devices: LightingDevice[];
   /** User-made card groups, in display order. Absent on older services. */
   groups?: DeviceGroup[];
+  /** Cards stacked to one canvas frame and one selection, each with how the frame is shared. Absent on older services. */
+  stacks?: DeviceStack[];
 }
 
 /** Whole-list replace; the page owns group order and membership. */
 export const saveLightingGroups = (groups: DeviceGroup[]) =>
   putService<{ groups: DeviceGroup[] }>('/devices/lighting-devices/groups', { groups });
 
-// Dev-tools builds stand in mock hardware when the host has none, so the
-// lighting page can be driven on a machine with no RGB devices.
-const loadLightingMock = (import.meta.env.DEV || __DEV_TOOLS__)
-  ? () => import('./mockLightingDevices')
-  : null;
+/** Whole-list replace; the page owns stack membership. */
+export const saveLightingStacks = (stacks: DeviceStack[]) =>
+  putService<{ stacks: DeviceStack[] }>('/devices/lighting-devices/stacks', { stacks });
 
-export const fetchLightingDevices = async (): Promise<LightingDevicesResponse | null> => {
-  const res = await fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
-  if (!loadLightingMock) return res;
-  const mock = await loadLightingMock();
-  // isInit is the OpenRGB bridge's connection state, not "enumeration done" - a
-  // Mac with no bridge never reports it, so an empty list is the only signal.
-  const empty = !res || res.devices.length === 0;
-  mock.setMockLightingActive(empty);
-  return empty ? { isInit: true, devices: mock.MOCK_LIGHTING_DEVICES } : res;
-};
+export const fetchLightingDevices = () =>
+  fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
 
 export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
   postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
@@ -523,31 +530,13 @@ export const setLightingDeviceBrightness = (id: string, brightness: number) =>
  * (gradients, two-tone, spectrum) and the tint controls (hue shift, warmth,
  * contrast) reach the hardware. Pass effect '' to clear the assignment.
  */
-export const setLightingDeviceColor = async (
+export const setLightingDeviceColor = (
   id: string,
   hue: number,
   saturation: number,
   look?: { effect: string; color?: string; intensity: number; colorize: number; contrast: number; params?: Record<string, number>; slot?: number },
-) => {
-  // Scoped to mock ids: a real device's write must never be swallowed, even in
-  // the window where a host with hardware has not enumerated it yet.
-  if (loadLightingMock && id.startsWith('mock-')) {
-    const mock = await loadLightingMock();
-    if (mock.mockLightingActive()) {
-      mock.setMockLightingLook(id, {
-        effect: look?.effect ?? '',
-        color: look?.color ?? '',
-        intensity: look?.intensity ?? 1,
-        hue,
-        colorize: look?.colorize ?? 0,
-        saturation,
-        contrast: look?.contrast ?? 1,
-        slot: look?.slot ?? 0,
-      });
-      return null;
-    }
-  }
-  return postService('/devices/lighting-devices/color', {
+) =>
+  postService('/devices/lighting-devices/color', {
     id, hue, saturation,
     effect: look?.effect ?? '',
     // A palette pick is just this colour; the service skips the shader for it.
@@ -560,7 +549,6 @@ export const setLightingDeviceColor = async (
     // service carries it without reading it.
     slot: look?.slot ?? 0,
   });
-};
 
 /** One device's stored Static assignment, as the service holds it. */
 export interface StaticDeviceLookDto {
@@ -572,18 +560,30 @@ export interface StaticDeviceLookDto {
   saturation: number;
   contrast: number;
   slot: number;
+  /** Held in every mode and refused a new pick until unlocked. Absent from a
+   *  service predating the lock, so readers treat it as false. */
+  locked?: boolean;
 }
+
+/**
+ * Lock a device onto its Static look: the service paints it in every mode
+ * and answers 409 to any pick for it until it is unlocked. Resolves false
+ * when the service refused (404: no look of its own to hold) or is a build
+ * without the route, so the caller can put its optimistic record back;
+ * authFetch would fold both into null.
+ */
+export const setStaticDeviceLock = async (id: string, locked: boolean): Promise<boolean> => {
+  const { status } = await authFetchWithStatus('/devices/lighting-devices/static-lock', {
+    method: 'POST', body: { id, locked },
+  });
+  return status === 200;
+};
 
 /** Every per-device Static assignment. The service owns these, so this is how a
  *  client rebuilds them after a preset activate or on a machine that has never
  *  seen them. */
-export const fetchStaticDeviceLooks = async () => {
-  if (loadLightingMock) {
-    const mock = await loadLightingMock();
-    if (mock.mockLightingActive()) return { looks: mock.mockLightingLooks() };
-  }
-  return fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
-};
+export const fetchStaticDeviceLooks = () =>
+  fetchService<{ looks: Record<string, StaticDeviceLookDto> }>('/devices/lighting-devices/static-looks');
 
 // --- Per-device colour tuning ---
 // Channel gains / temperature / saturation trims applied by the service on the
@@ -627,6 +627,20 @@ export const fetchGlobalBrightness = () =>
 
 export const setGlobalBrightness = (value: number) =>
   postService('/lighting/global-brightness', { value });
+
+// Time-of-day cap on master brightness: `min(global, schedule(now))` while
+// enabled. Points sit on whole hours 0..23 with 0..100%; the service
+// interpolates by the minute and wraps midnight (mirrored in
+// lib/brightnessSchedule.ts for the live readout). The GET carries the
+// out-of-box curve so a reset needs no second copy of it.
+export interface BrightnessSchedulePoint { hour: number; brightness: number }
+export interface BrightnessSchedule { enabled: boolean; points: BrightnessSchedulePoint[] }
+
+export const fetchBrightnessSchedule = () =>
+  fetchService<BrightnessSchedule & { defaults: BrightnessSchedulePoint[] }>('/lighting/brightness-schedule');
+
+export const setBrightnessSchedule = (schedule: BrightnessSchedule) =>
+  postService('/lighting/brightness-schedule', schedule);
 
 // Resize a motherboard ARGB zone's LED count. Persisted + applied live via
 // OpenRGB's RESIZEZONE opcode. Only valid for split zone ids ("openrgb-N-Z").
@@ -672,10 +686,10 @@ export interface LedGroup {
 
 /** Local apply state for a community / file mapping on one device. */
 export interface AppliedMappingSummary {
-  /** Registry id when the mapping came from the community; null for file imports. */
+  /** Registry id for a community mapping, product key for a built-in; null for file imports. */
   mappingId: string | null;
   name: string;
-  /** "community" | "file" */
+  /** "community" | "file" | "builtin" */
   source: string;
   contentHash: string;
   autoApplied: boolean;
@@ -690,7 +704,7 @@ export interface LedMapResponse {
   aspectRatio: number;
   /** Named LED segments (resolved: user delta wins over the applied mapping's groups). */
   groups?: LedGroup[];
-  /** Set when a community/file mapping is applied to this device. */
+  /** Set when a built-in, community or file mapping is applied to this device. */
   applied?: AppliedMappingSummary | null;
   deviceKey?: string;
 }
@@ -726,6 +740,8 @@ export interface DeviceSegment {
   ledCount: number;
   /** True when the protocol lets the user re-wire the LED count (motherboard ARGB headers); such segments are partition walls. */
   resizable: boolean;
+  /** Most LEDs this port can drive, 0 when the hardware declares no ceiling. Past it the firmware lights only the head of the chain. */
+  maxLedCount: number;
   zoneType: string;
 }
 
@@ -763,6 +779,10 @@ export interface DeviceStructureResponse {
   zones: DeviceZone[];
   isDefaultPartition: boolean;
   hubComposition?: HubComposition;
+  /** True when the device is a single addressable port, so its zones are whatever is wired to it. */
+  chainable?: boolean;
+  /** What is wired to a chainable port, one entry per zone in wire order. */
+  chain?: ChainEntry[];
   /** Set when the service has no structure for the device; the body is otherwise an empty shell at HTTP 200. */
   error?: boolean;
   msg?: string;
@@ -964,6 +984,98 @@ export const publishDeviceMapping = (id: string) =>
 export const fetchAvailableMappings = () =>
   fetchService<MappingsAvailableResponse>('/devices/lighting-devices/mappings/available');
 
+// --- built-in mapping catalog (assign a product to an ARGB port) ---
+
+/** One product in the catalog that ships inside the service binary. */
+export interface BuiltInMappingSummary {
+  /** Virtual product key, e.g. "product:corsair-qx-fan". */
+  key: string;
+  name: string;
+  brand: string;
+  /** Fan | Strip | AIO | Case | Cable | Water Block | ... */
+  type: string;
+  ledCount: number;
+  /** True for the generic fan and strip, whose geometry the service generates from a count the user types. Absent on services before them. */
+  parametric?: boolean;
+}
+
+export interface MappingCatalogResponse extends ApiEnvelope {
+  items: BuiltInMappingSummary[];
+  /** Catalog size before the query and limit. */
+  total: number;
+}
+
+/**
+ * Search the pre-built product catalog. Served from an embedded resource, so
+ * this works with no network and no account - which is the point: an ARGB
+ * header cannot report what is plugged into it, so the picker is the only way
+ * for the user to say, and it has to work on a machine that has never been
+ * online.
+ */
+export const fetchMappingCatalog = (query: string, type?: string, limit = 50) => {
+  const params = new URLSearchParams();
+  if (query) params.set('q', query);
+  if (type) params.set('type', type);
+  params.set('limit', String(limit));
+  return fetchService<MappingCatalogResponse>(
+    `/devices/lighting-devices/mappings/catalog?${params.toString()}`,
+  );
+};
+
+/**
+ * Assign a catalog product to a device. The user's own edits keep layering on
+ * top (they are stored separately), so re-assigning restores the shipped
+ * layout rather than whatever the last edit left behind.
+ */
+export const assignDeviceMapping = (id: string, key: string) =>
+  postService<ApiEnvelope>(`/devices/lighting-devices/${encodeURIComponent(id)}/mappings/assign`, { key });
+
+/** One link of a port's chain; matches the resolved zones one-for-one, in wire order. */
+export interface ChainEntry {
+  key: string;
+  name: string;
+  ledCount: number;
+  /** True for a generic fan or strip: the count is the user's to type. A real product's count is its artifact's. */
+  editableCount: boolean;
+}
+
+/** A catalog product. The count is required for a generic key and ignored for a real product. */
+export interface ChainEntryBody {
+  key: string;
+  ledCount?: number;
+  /** Ordinal this link holds in the chain on disk, so the service moves its rename with it; omitted for a link the user just added. */
+  fromOrdinal?: number;
+}
+
+export interface SetChainResponse extends ApiEnvelope {
+  /** The port's LED count, the sum of its entries. */
+  ledCount: number;
+  /** Card ids the chain produced, one per entry, in wire order. */
+  zoneIds: string[];
+}
+
+/** Wire what is plugged into a port, in order. An empty list clears the chain. */
+export const setDeviceChain = (deviceId: string, entries: ChainEntryBody[]) =>
+  postService<SetChainResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/mappings/chain`, { entries });
+
+export interface ChainPreviewResponse {
+  /** What GET .../structure would answer once this chain is saved. */
+  structure?: DeviceStructureResponse;
+  /** What GET .../device-map would answer once this chain is saved, product geometry included. */
+  map?: DeviceMapResponse;
+  error?: boolean;
+  msg?: string;
+}
+
+/**
+ * What a chain WOULD produce, computed without persisting anything. The LED
+ * geometry of each product lives in the service binary, so the editor cannot
+ * derive it locally; this lets a chain edit preview live and still commit only
+ * on Save. It rejects exactly what the real chain POST rejects.
+ */
+export const previewDeviceChain = (deviceId: string, entries: ChainEntryBody[]) =>
+  postService<ChainPreviewResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/mappings/chain/preview`, { entries });
+
 // --- Game Sync ---
 
 export interface GameSyncDevice {
@@ -974,6 +1086,14 @@ export interface GameSyncDevice {
 
 export interface GameSyncStateResponse {
   active: boolean;
+  /** Every Nexus shim DLL is in place in System32/SysWOW64. */
+  providerInstalled: boolean;
+  /**
+   * A real vendor DLL (Razer Synapse's Chroma SDK, most often) already holds
+   * one of the shim slots. Nexus never overwrites it, so games on that
+   * interface light the vendor's software instead of Nexus.
+   */
+  synapseConflict: boolean;
   devices: GameSyncDevice[];
   lastFrameAt?: number | null;
   activeApp?: string | null;

@@ -49,7 +49,9 @@
   // Stream Deck exactly (renderDeckKeyBitmap fills the full accent and draws
   // the glyph in #fff), so the on-screen preview reads the same as the hardware
   // for both the streamdeck editor and the touch widget. The opaque fill also
-  // keeps keys legible when the widget tile is set fully transparent.
+  // keeps keys legible when the widget tile is set fully transparent. One
+  // exception: a key showing a loaded app icon (.appIconFull) gets a
+  // transparent accent, so the artwork itself is the key face.
   background: var(--deck-accent, #64748b);
   color: #ffffff;
   font: inherit;
@@ -57,12 +59,12 @@
   box-sizing: border-box;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: transform var(--ease-fast), background var(--ease-fast), box-shadow var(--ease-fast), border-color var(--ease-fast);
 
-  &:hover {
-    background: color-mix(in srgb, var(--deck-accent, #64748b) 90%, #ffffff);
-  }
-
+  // No hover fill: a hybrid touch PC reports (hover: hover) for its mouse and
+  // then latches the emulated hover on a tapped key until the next tap
+  // elsewhere, so the press feedback is the scale alone, released with the key.
   &:active {
     transform: scale(0.94);
   }
@@ -145,6 +147,19 @@
   max-height: 100%;
   max-width: 86%;
   border-radius: var(--radius-sm);
+  object-fit: contain;
+}
+
+// A loaded app icon is the whole key face: contain-fit
+// against .cell so the artwork's own shape (and transparency) shows at full
+// size with no accent fill behind it (useCellVisual and RecentAppCell set the
+// accent to transparent). Cover would crop a non-square icon, so unlike
+// .customImage this letterboxes instead.
+.appIconFull {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
 }
 

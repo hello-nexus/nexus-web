@@ -175,6 +175,25 @@ function composeFrostForCapture(doc: Document): () => void {
   return () => undo.forEach(fn => fn());
 }
 
+// html-to-image rasterizes a <video> by drawing it into a canvas sized to its
+// padding box (clientWidth), not its content box, so the wake-lock side
+// padding on the media background (.backgroundMediaVideo) would rasterize a
+// horizontally stretched frame. Returns an undo.
+function unpadVideosForCapture(doc: Document): () => void {
+  const undo: Array<() => void> = [];
+  doc.querySelectorAll<HTMLVideoElement>('[data-panel-bg-layer] video').forEach(video => {
+    const prevPadding = video.style.padding;
+    const prevMarginLeft = video.style.marginLeft;
+    video.style.padding = '0';
+    video.style.marginLeft = '0';
+    undo.push(() => {
+      video.style.padding = prevPadding;
+      video.style.marginLeft = prevMarginLeft;
+    });
+  });
+  return () => undo.forEach(fn => fn());
+}
+
 function findWidget(layout: PanelLayout, id: string): PanelWidget | undefined {
   for (const page of layout.pages) {
     const w = page.widgets.find(w => w.id === id);
@@ -275,6 +294,11 @@ export function PanelEmbedFrame({
     win.postMessage(message, window.location.origin);
   }, []);
 
+  // Rounded before posting: each post re-renders the whole iframe document, and
+  // without the round a drawer animation or a window drag would do that every
+  // frame for sub-pixel deltas the overlays cannot show.
+  const postedPreviewScale = Math.round(measured.scale * 1000) / 1000;
+
   // 'simulator/ready' is the handshake signal from the child. Until it
   // arrives we cannot post 'simulator/init' (the child's listener may
   // not be wired yet on a brand-new iframe).
@@ -328,6 +352,7 @@ export function PanelEmbedFrame({
       screenOn,
       showPanel,
       deviceId,
+      previewScale: postedPreviewScale,
     });
     lastSyncedLayoutSerializedRef.current = JSON.stringify(layout);
     // Initial init only; subsequent changes flow through the per-prop
@@ -353,6 +378,13 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-theme', theme, themeMode, deviceId });
   }, [childReady, theme, themeMode, deviceId, post]);
+
+  // The fit scale changes on every container resize, and overlays the preview
+  // draws at desktop size divide it back out.
+  useEffect(() => {
+    if (!childReady) return;
+    post({ type: 'simulator/set-preview-scale', previewScale: postedPreviewScale });
+  }, [childReady, postedPreviewScale, post]);
 
   // Grid density can resolve after the init handshake (the device record
   // fetch races the iframe boot), so mirror it like the other props.
@@ -412,6 +444,7 @@ export function PanelEmbedFrame({
     let restoreCanvases: (() => void) | null = null;
     let restoreSvg: (() => void) | null = null;
     let restoreFrost: (() => void) | null = null;
+    let restoreVideos: (() => void) | null = null;
     try {
       restoreCanvases = await snapshotCanvases(doc);
       // html-to-image deep-clones <svg> subtrees without copying computed
@@ -422,6 +455,7 @@ export function PanelEmbedFrame({
       // clone; the capture is a one-shot user action, so a retake covers it.
       restoreSvg = inlineSvgDescendantStyles(doc);
       restoreFrost = composeFrostForCapture(doc);
+      restoreVideos = unpadVideosForCapture(doc);
       const blob = await toBlob(body, {
         width: canvasW,
         height: canvasH,
@@ -440,12 +474,16 @@ export function PanelEmbedFrame({
       return blob;
     } finally {
       try {
-        restoreFrost?.();
+        restoreVideos?.();
       } finally {
         try {
-          restoreSvg?.();
+          restoreFrost?.();
         } finally {
-          restoreCanvases?.();
+          try {
+            restoreSvg?.();
+          } finally {
+            restoreCanvases?.();
+          }
         }
       }
     }

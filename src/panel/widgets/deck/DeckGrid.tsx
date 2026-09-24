@@ -30,9 +30,10 @@ const LABEL_ALIGN_CLASS = {
 /**
  * Visual content (icon + optional label) + the accent for a slot. `liveSrc`
  * is a data URI from the service's own key renderer (DeckGrid's liveTiles) -
- * when set, a monitoring/weather cell shows that frame instead of drawing
- * its own CSS tile, so the physical editor preview matches the hardware key
- * by construction.
+ * when set, ANY slot kind shows that frame instead of drawing its own CSS
+ * tile, so the physical editor preview matches the hardware key by
+ * construction; a monitoring/weather slot falls back to its own live CSS
+ * tile until the first frame arrives.
  */
 function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; content: ReactNode; empty: boolean } {
   const action = slot.action;
@@ -45,36 +46,38 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   // A slot with an explicit icon isn't "empty" even before an action is chosen,
   // so a picked icon renders immediately (not only after picking an action).
   const empty = !action && !isFolder && !icon;
+  const monitoringOrWeather = action?.type === 'monitoring' || action?.type === 'weather';
+
+  // liveTiles is keyed by position and only cleared wholesale on a topology
+  // change (preset load/undo/redo/reset), so a slot just cleared by itself
+  // (not through one of those) can still carry a stale entry at its key -
+  // never let that force a truly empty slot to render (and drag-enable) as
+  // if it still held the old content.
+  if (liveSrc && !empty) {
+    const liveAlt = slot.label
+      || (action?.type === 'monitoring' ? action.labelText : action?.type === 'weather' ? action.city : undefined)
+      || '';
+    return {
+      accent: slot.color ?? (monitoringOrWeather ? DECK_MONITORING_TILE_BG : categoryColor(isFolder ? 'folder' : deckCategory(action))),
+      content: <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />,
+      empty: false,
+    };
+  }
 
   // A monitoring tile draws its own name/graph/value content (never
   // slot.icon). It's never "empty" (always shows a
   // live or placeholder reading) and uses a near-black default accent instead
   // of the auto category color, since it has no icon to color-code.
   if (action?.type === 'monitoring') {
-    // The CSS tile's own text content names the button for screen readers;
-    // the live-frame img has none, so it borrows the same user-set label.
-    const liveAlt = slot.label || action.labelText || '';
-    return {
-      accent: slot.color ?? DECK_MONITORING_TILE_BG,
-      content: liveSrc
-        ? <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />
-        : <DeckMonitoringCell action={action} title={slot.title} />,
-      empty: false,
-    };
+    return { accent: slot.color ?? DECK_MONITORING_TILE_BG, content: <DeckMonitoringCell action={action} title={slot.title} />, empty: false };
   }
 
   if (action?.type === 'weather') {
-    const liveAlt = slot.label || action.city || '';
-    return {
-      accent: slot.color ?? DECK_MONITORING_TILE_BG,
-      content: liveSrc
-        ? <img src={liveSrc} draggable={false} alt={liveAlt} className={styles.customImage} />
-        : <DeckWeatherCell action={action} title={slot.title} />,
-      empty: false,
-    };
+    return { accent: slot.color ?? DECK_MONITORING_TILE_BG, content: <DeckWeatherCell action={action} title={slot.title} />, empty: false };
   }
 
   let iconEl: ReactNode;
+  let appIconFills = false;
   if (icon?.kind === 'emoji') {
     iconEl = <span className={styles.emoji}>{icon.value}</span>;
   } else if (icon?.kind === 'lucide') {
@@ -82,11 +85,18 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   } else if (icon?.kind === 'image') {
     iconEl = imageIconUrl ? <img src={imageIconUrl} className={styles.customImage} alt="" /> : null;
   } else if (appId) {
-    iconEl = appIconUrl
-      ? <img src={appIconUrl} className={styles.appIcon} alt="" />
+    if (appIconUrl) {
+      // A loaded app icon IS the key face: full size, no accent fill behind
+      // it, on the touch widget and the physical preview alike (the service
+      // renders hardware keys the same way). Applies to every /shortcuts/icon
+      // source (launchApp, an explicit app icon, an openFile exe).
+      appIconFills = true;
+      iconEl = <img src={appIconUrl} className={styles.appIconFull} alt="" />;
+    } else {
       // An icon-only app slot has no action to derive a glyph from, so it keeps
       // the app placeholder rather than autoIconName's add-a-key Plus.
-      : <span className={styles.icon}>{renderLucide(action ? autoIconName(action, isFolder) : 'AppWindow')}</span>;
+      iconEl = <span className={styles.icon}>{renderLucide(action ? autoIconName(action, isFolder) : 'AppWindow')}</span>;
+    }
   } else if (siteIconUrl) {
     iconEl = <img src={siteIconUrl} className={styles.appIcon} alt="" />;
   } else if (!empty) {
@@ -95,7 +105,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
     iconEl = null;
   }
 
-  const accent = slot.color ?? categoryColor(isFolder ? 'folder' : deckCategory(action));
+  const accent = slot.color ?? (appIconFills ? 'transparent' : categoryColor(isFolder ? 'folder' : deckCategory(action)));
   const titleStyle = resolveDeckTitleStyle(slot.title);
   const content = (
     <>
@@ -147,18 +157,21 @@ function StaticCell({ slot, index, selectable, selected, onClick, onCellContextM
       aria-pressed={selectable ? selected : undefined}
       onClick={e => { e.stopPropagation(); onClick(); }}
       onPointerDown={e => e.stopPropagation()}
-      onContextMenu={e => { if (selectable) e.stopPropagation(); onCellContextMenu?.(e, index, empty); }}
+      onContextMenu={e => { if (selectable) e.stopPropagation(); if (!slot.auto) onCellContextMenu?.(e, index, empty); }}
     >
       {content}
     </button>
   );
 }
 
-/** Edit-mode cell: draggable (if it has content) + droppable, plus selectable. */
+/** Edit-mode cell: draggable (if it has content) + droppable, plus selectable.
+ *  A synthesized page-nav key (slot.auto) is read-only - fitToGrid inserted
+ *  it, and DeckTarget.updateSlot/swapSlots silently refuse to touch it, so
+ *  neither drag nor the delete context menu is offered on it. */
 function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, liveSrc }: CellProps) {
   const { accent, content, empty } = useCellVisual(slot, liveSrc);
   const id = String(index);
-  const drag = useDraggable({ id, disabled: empty });
+  const drag = useDraggable({ id, disabled: empty || !!slot.auto });
   const drop = useDroppable({ id });
   const setRef = (el: HTMLElement | null) => { drag.setNodeRef(el); drop.setNodeRef(el); };
   const style: CSSProperties = {
@@ -178,7 +191,7 @@ function DraggableCell({ slot, index, selected, onClick, onCellContextMenu, live
       style={style}
       aria-pressed={selected}
       onClick={e => { e.stopPropagation(); onClick(); }}
-      onContextMenu={e => { e.stopPropagation(); onCellContextMenu?.(e, index, empty); }}
+      onContextMenu={e => { e.stopPropagation(); if (!slot.auto) onCellContextMenu?.(e, index, empty); }}
     >
       {content}
     </button>

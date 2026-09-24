@@ -4,7 +4,7 @@ import { DeckGrid } from './DeckGrid';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
-vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null }));
+vi.mock('../common/AppPicker', () => ({ useAppIcon: (id?: string) => (id === 'has-icon' ? 'blob:mock-app-icon' : null) }));
 vi.mock('./useDeckImage', () => ({ useDeckImage: (id?: string) => (id ? 'blob:mock-image' : null) }));
 vi.mock('./useSiteIcon', () => ({ useSiteIcon: (url?: string) => (url === 'https://has-icon.example' ? 'blob:mock-site-icon' : null) }));
 
@@ -175,6 +175,29 @@ describe('DeckGrid live tile frames (physical editor preview)', () => {
     expect(cell.textContent).toContain('--');
   });
 
+  it('renders the service-pushed frame for an ordinary (non-monitoring/weather) slot too - every key is service-rendered now', () => {
+    const hotkeySlots: DeckSlot[] = [{ action: { type: 'hotkey', keys: 'ctrl+c' }, label: 'Copy' }];
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={hotkeySlots} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} square />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    const img = cell.querySelector('img');
+    expect(img).not.toBeNull();
+    expect(img?.getAttribute('src')).toBe(liveSrc);
+    expect(img?.getAttribute('alt')).toBe('Copy');
+  });
+
+  it('never shows a stale live frame for a slot that is now empty (cleared since the cached frame was pushed)', () => {
+    const liveTiles = new Map([['0:0', liveSrc]]);
+    const { container } = render(
+      <DeckGrid slots={[{}]} cols={1} rows={1} selectable={false} onCell={() => {}} liveTiles={liveTiles} page={0} folderPath={[]} square />,
+    );
+    const cell = container.querySelector('[data-deck-slot-index="0"]')!;
+    expect(cell.querySelector('img')).toBeNull();
+    expect(cell.className).toContain(styles.empty);
+  });
+
   it('falls back to the CSS tile when no frame matches this cell key yet', () => {
     const liveTiles = new Map([['0:5', liveSrc]]);
     const { container } = render(
@@ -318,6 +341,23 @@ describe('DeckGrid right-click delete', () => {
     fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(screen.queryByText('common.delete')).toBeNull();
   });
+
+  it('a synthesized page-nav key (auto) never opens the delete menu, static or drag-enabled', () => {
+    const slots: DeckSlot[] = [{ action: { type: 'page', op: 'next' }, auto: true }];
+    const onDeleteSlot = vi.fn();
+    const { container, rerender } = render(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable selectedIndex={-1} onCell={() => {}} onDeleteSlot={onDeleteSlot} />,
+    );
+    fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
+    expect(screen.queryByText('common.delete')).toBeNull();
+
+    rerender(
+      <DeckGrid slots={slots} cols={1} rows={1} selectable dragEnabled selectedIndex={-1} onCell={() => {}} onDeleteSlot={onDeleteSlot} />,
+    );
+    fireEvent.contextMenu(container.querySelector('[data-deck-slot-index="0"]')!);
+    expect(screen.queryByText('common.delete')).toBeNull();
+    expect(onDeleteSlot).not.toHaveBeenCalled();
+  });
 });
 
 describe('DeckGrid transparent background', () => {
@@ -369,6 +409,30 @@ describe('DeckGrid icon sources', () => {
     const container = renderSlot({ icon: { kind: 'app', value: 'Discord' } });
     expect(container.querySelector('svg.lucide-app-window')).not.toBeNull();
     expect(container.querySelector('svg.lucide-plus')).toBeNull();
+  });
+
+  it('shows a loaded app icon full-face with no accent fill on the touch widget', () => {
+    const container = renderSlot({ action: { type: 'launchApp', appId: 'has-icon' } });
+    const img = container.querySelector('img[src="blob:mock-app-icon"]')!;
+    expect(img.className).toBe(styles.appIconFull);
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('transparent');
+  });
+
+  it('keeps a user-picked color behind a full-face app icon', () => {
+    const container = renderSlot({ action: { type: 'launchApp', appId: 'has-icon' }, color: '#ff0000' });
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('#ff0000');
+  });
+
+  it('shows the app icon full-face in square (physical mirror) mode too, matching the hardware key render', () => {
+    const { container } = render(
+      <DeckGrid slots={[{ action: { type: 'launchApp', appId: 'has-icon' } }]} cols={1} rows={1} selectable square onCell={() => {}} />,
+    );
+    const img = container.querySelector('img[src="blob:mock-app-icon"]')!;
+    expect(img.className).toBe(styles.appIconFull);
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('transparent');
   });
 
   it('falls back to the action icon, not AppWindow, when an exe key has no extractable icon', () => {

@@ -18,8 +18,7 @@ interface AccountSignedOutProps {
 }
 
 // Routes the three signed-out flows off the caller's subtab (URL-backed in
-// both the in-app AccountView and the public /login|/register|/recover
-// pages), so each flow is a distinct, freshly-mounted component whenever the
+// the in-app AccountView), so each flow is a distinct, freshly-mounted component whenever the
 // subtab changes into it.
 export function AccountSignedOut({ backend, subtab, onSubtabChange, onRecoveryApproved, onSignedIn }: AccountSignedOutProps) {
   const goToSignIn = () => onSubtabChange('login');

@@ -4,9 +4,9 @@ import { EmptyState } from '../../../../components/common/EmptyState/EmptyState'
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { useTranslation } from '../../../../lib/i18n';
 import type { LightingDevice } from '../../../../api/lighting';
-import { ZoneCard, zoneCardSelectable } from '../page/ZoneCard';
+import { ZoneCard, ZoneCardStack, zoneCardSelectable, type StackPosition } from '../page/ZoneCard';
 import { MotherboardGroup } from '../page/MotherboardGroup';
-import { buildDeviceBlocks, stripParentPrefix } from '../page/deviceBlocks';
+import { buildDeviceBlocks, stripParentPrefix, type ZoneBlock } from '../page/deviceBlocks';
 import { visibleCards } from '../page/zoneUtils';
 import type { LedPick } from '../page/DeviceLedStrip';
 import styles from './StaticDeviceSelect.module.scss';
@@ -59,11 +59,12 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
     onSetSelection(next, primary);
   };
 
-  const card = (d: LightingDevice, indent: boolean, displayName?: string) => (
+  const card = (d: LightingDevice, indent: boolean, displayName?: string, stacked?: StackPosition) => (
     <ZoneCard
       key={d.id}
       device={d}
       displayName={displayName}
+      stacked={stacked}
       selectOnly
       ledFullscreen
       ledPickOnly
@@ -73,6 +74,29 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
       onSelect={() => toggle(d.id)}
     />
   );
+
+  // A tap on a stack header toggles its pickable zones as one, the way a tap
+  // on a card toggles that card.
+  const toggleAll = (ids: string[]) => {
+    const next = new Set(selectedIds);
+    const allIn = ids.every(id => next.has(id));
+    ids.forEach(id => allIn ? next.delete(id) : next.add(id));
+    onSetSelection(next, allIn ? (selectableIds.filter(x => next.has(x)).pop() ?? null) : ids[0]);
+  };
+
+  const stack = (block: Extract<ZoneBlock, { kind: 'split' }>, indent: boolean) => {
+    const pickable = block.devices.filter(zoneCardSelectable).map(d => d.id);
+    return (
+      <ZoneCardStack
+        key={block.groupKey}
+        name={block.label}
+        selected={block.devices.some(d => selectedIds.has(d.id))}
+        onSelect={pickable.length > 0 ? () => toggleAll(pickable) : undefined}
+      >
+        {block.devices.map((d, i) => card(d, indent, stripParentPrefix(d.name, block.stripLabel), i === block.devices.length - 1 ? 'last' : 'inner'))}
+      </ZoneCardStack>
+    );
+  };
 
   return (
     <div className={styles.pane}>
@@ -99,6 +123,8 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
       <div className={styles.grid} role="group" aria-label={t('lighting.rightPane.devices')}>
         {blocks.map(block => block.kind === 'single'
           ? card(block.device, false)
+          : block.kind === 'split'
+          ? stack(block, false)
           : (
             <MotherboardGroup
               key={block.groupKey}
@@ -112,11 +138,9 @@ export function StaticDeviceSelect({ devices, selectedIds, onSetSelection, ledPi
               onToggleControlled={() => {}}
               hideActions
             >
-              {block.devices.map(d => card(
-                d,
-                true,
-                block.isBrand ? undefined : stripParentPrefix(d.name, block.label),
-              ))}
+              {block.blocks.map(row => row.kind === 'split'
+                ? stack(row, true)
+                : card(row.device, true, block.isBrand ? undefined : stripParentPrefix(row.device.name, block.stripLabel)))}
             </MotherboardGroup>
           ))}
       </div>

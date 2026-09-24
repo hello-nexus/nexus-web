@@ -1,0 +1,338 @@
+@use '../../../../styles/text' as *;
+
+// The editor's Devices section: a header, then a vertical list of one row per
+// zone in wire order, a footer with the add button, the zone tools and the
+// LED total.
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+// Same weight as the lighting page's own pane titles, which this sits beside.
+.header {
+  margin-bottom: var(--space-xs);
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+// Shared by the rows and the add button below them.
+$row-height: 36px;
+
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  min-height: $row-height;
+  padding: 0.1rem 0.25rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  &:hover { background: var(--bg-card-hover); }
+}
+
+// Marked for merge (modifier+click). Accent border only, so the editable
+// (active) zone's filled treatment stays distinguishable.
+.rowMarked { border-color: var(--accent); }
+
+// The zone whose LEDs are editable on the canvas.
+.rowActive {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+// A generic not sized yet: dashed until its count is typed.
+.rowPending {
+  border-style: dashed;
+  border-color: var(--border-strong);
+}
+
+// Drag-to-reorder handle; only rendered on a chainable port with more than
+// one row. Also the row's keyboard-reorder focus target (Space to lift,
+// arrow keys to move, Space again to drop, Escape to cancel).
+.dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: grab;
+  touch-action: none;
+
+  &:hover:not(:disabled) { color: var(--text); }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.rowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.3rem 0.15rem 0.6rem;
+  font-size: var(--type-small);
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+
+  &:disabled { cursor: default; }
+  &:hover:not(:disabled) .rowChevron { color: var(--text); }
+}
+
+.nameLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowChevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover:not(:disabled) { color: var(--text); background: var(--surface-hover); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+// One column for every LED count in the list, editable or not, so the numbers
+// and their icons line up down the rows and with the total below them.
+$count-column: 4.4rem;
+
+.ledIcon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.zoneCount {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: $count-column;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.zoneCountField {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: $count-column;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+
+  &:focus-within { border-color: var(--accent); }
+}
+
+.zoneCountFieldDisabled { opacity: 0.5; }
+
+.zoneCountInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-small);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  -moz-appearance: textfield;
+
+  &:focus { outline: none; }
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+}
+
+// Below the row list: the add button full width, then the zone tools and the
+// LED total on their own line, the count under the rows' count column.
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+}
+
+// Anchors the add picker under its button.
+.addWrap { position: relative; }
+
+// Carries the hover a disabled add button cannot.
+.addHover { display: block; }
+
+.add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  width: 100%;
+  height: $row-height;
+  white-space: nowrap;
+  padding: 0 0.75rem;
+  font: inherit;
+  font-size: var(--type-small);
+  border: var(--border-width) dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), color var(--ease-fast);
+
+  &:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+  &:disabled { opacity: 0.3; cursor: not-allowed; }
+}
+
+.total {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.totalCount {
+  box-sizing: border-box;
+  width: $count-column;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  padding: 0.2rem 0.4rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+// Matches .remove, which sits after every row's count but not after the total.
+.removeSpacer {
+  flex-shrink: 0;
+  width: 22px;
+}
+
+// Portaled to <body> and pinned to its trigger in JS: the sidebar it opens
+// from is a scroll container, which clipped it when it was absolutely
+// positioned inside. Position, width and height come inline.
+.popover {
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  // The popover's own max-height is the viewport room its trigger leaves, so
+  // the list just takes what it is given rather than capping itself short.
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+// The recent picks lead the list under their own label, then a rule, then the
+// catalog head; the rows themselves are the ordinary result rows.
+.resultsHeading {
+  @include text-caption;
+  padding: 0.35rem 0.45rem 0.15rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.resultsDivider {
+  height: 1px;
+  margin: 0.25rem 0;
+  background: var(--separator);
+}
+
+.result {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--type-small);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover, &.active { background: var(--surface-hover); }
+}
+
+.resultName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultMeta {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: var(--type-tiny);
+}
+
+.empty {
+  padding: 0.5rem 0.45rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
+// The port is carrying everything it can drive: the count wears a warning and
+// the add button is closed, though what is already there still saves.
+.totalCountCapped {
+  color: var(--warn);
+}
+
+.capWarn {
+  display: inline-flex;
+  align-items: center;
+  color: var(--warn);
+}

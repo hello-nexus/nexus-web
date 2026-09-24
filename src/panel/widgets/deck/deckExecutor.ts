@@ -322,6 +322,8 @@ function canonicalKey(tok: string): string {
     home: 'Home', end: 'End', pageup: 'PageUp', pagedown: 'PageDown',
     up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight',
     printscreen: 'PrintScreen', '.': 'Period',
+    ',': 'Comma', '/': 'Slash', ';': 'Semicolon', "'": 'Quote',
+    '[': 'BracketLeft', ']': 'BracketRight', '\\': 'Backslash', '-': 'Minus', '=': 'Equal', '`': 'Backquote',
   };
   return named[tok] ?? '';
 }

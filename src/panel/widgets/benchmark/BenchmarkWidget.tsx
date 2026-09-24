@@ -38,7 +38,7 @@ export function BenchmarkWidget({ widget }: WidgetProps) {
     <PanelWidgetShell size={size} className={styles.widget}>
       <div className={styles.main}>
         <div className={styles.compositeRow}>
-          <Gauge size={16} className={styles.gaugeIcon} />
+          <Gauge size={14} className={styles.gaugeIcon} />
           <div className={styles.score}>{Math.round(latest.composite)}</div>
         </div>
         <div className={styles.label}>{t('benchmark.result.composite')}</div>
@@ -47,19 +47,19 @@ export function BenchmarkWidget({ widget }: WidgetProps) {
       {size === '4x2' && (
         <div className={styles.axisRow}>
           <div className={styles.axisChip}>
-            <Cpu size={12} />
+            <Cpu size={14} />
             <span>{Math.round(latest.cpu)}</span>
           </div>
           <div className={styles.axisChip}>
-            <Monitor size={12} />
+            <Monitor size={14} />
             <span>{Math.round(latest.gpu)}</span>
           </div>
           <div className={styles.axisChip}>
-            <MemoryStick size={12} />
+            <MemoryStick size={14} />
             <span>{Math.round(latest.ram)}</span>
           </div>
           <div className={styles.axisChip}>
-            <HardDrive size={12} />
+            <HardDrive size={14} />
             <span>{Math.round(latest.storage)}</span>
           </div>
         </div>

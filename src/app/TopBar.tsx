@@ -10,6 +10,7 @@ import { ProfileDropdown } from '../components/common/ProfileDropdown/ProfileDro
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useClickOutside } from '../hooks/useClickOutside';
+import { useUiSettingsUpdateSafe } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
 import { DEV_TOOLS } from '../lib/devTools';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
@@ -63,6 +64,8 @@ interface TopBarProps {
   onOpenUpdate: () => void;
   // The update status button's action when an update is staged: start install.
   onInstall: () => void;
+  // Conflict modal's "Manage apps" target (Settings' Manage conflicting apps modal).
+  onManageConflictApps: () => void;
   // Profile dropdown's "Manage profiles" target (standalone Profiles page).
   onManageProfiles: () => void;
   // Profile dropdown's top account entry target (standalone Account page).
@@ -162,6 +165,7 @@ export function TopBar({
   onNavigateTools,
   onOpenUpdate,
   onInstall,
+  onManageConflictApps,
   onManageProfiles,
   onNavigateAccount,
   isWindowsApp,
@@ -182,6 +186,14 @@ export function TopBar({
   const setTabsSlot = pageChrome?.setTabsSlot;
   // Empty areas of the bar drag the window (Windows shell only); see hook.
   const dragRegion = useWindowDragRegion();
+  const updateUiSettings = useUiSettingsUpdateSafe();
+  // A manual collapse survives window closes and restarts (restored by
+  // SidebarCollapsedSync); the button only renders with a sidebar, so
+  // `compact` is the state being toggled away from.
+  const toggleCompact = () => {
+    onToggleCompact();
+    updateUiSettings({ sidebarCollapsed: !compact });
+  };
 
   const offlineLabel = connectionState === 'checking'
     ? t('status.checking')
@@ -203,7 +215,7 @@ export function TopBar({
             <button
               type="button"
               className={styles.iconButton}
-              onClick={onToggleCompact}
+              onClick={toggleCompact}
               aria-label={compact ? t('sidebar.expand') : t('sidebar.collapse')}
             >
               {compact ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
@@ -298,7 +310,7 @@ export function TopBar({
             and update-available (green). Each hides itself when inactive.
             All hidden in Focus mode along with the rest of this cluster - only
             the window controls (below) survive it. */}
-        {!fullscreen && <ConflictStatusSlot serviceOnline={online} />}
+        {!fullscreen && <ConflictStatusSlot serviceOnline={online} onManageApps={onManageConflictApps} />}
         {!fullscreen && OFFICIAL_BUILD && <UpdateStatusSlot serviceOnline={online} onOpen={onOpenUpdate} onInstall={onInstall} />}
         {!fullscreen && (
           <TopBarMenu onNavigateSettings={onNavigateSettings} onNavigateTools={onNavigateTools} onOpenAbout={() => setAboutOpen(true)} onOpenUpdate={onOpenUpdate} />

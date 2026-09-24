@@ -20,6 +20,8 @@ import {
   normalizePanelBackgroundMode,
   normalizePanelBackgroundOpacity,
   normalizePanelBackgroundTemplate,
+  normalizePanelBackgroundMediaOrder,
+  normalizePanelSlideshowInterval,
   normalizePanelWidgetLabels,
   normalizePanelWidgetOpacity,
   normalizePanelWidgetPadding,
@@ -28,9 +30,10 @@ import {
   type PanelBackgroundMode,
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
+import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
-import type { PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
+import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 import { isSingleWidgetSurface, type PanelSurface } from '../types';
 import { supportsDesktopWallpaper } from '../device/wiredPanel';
 
@@ -102,11 +105,16 @@ export function buildEmbeddedPanelThemeVars(appAccentColor: string | undefined, 
   } as CSSProperties;
 }
 
-export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: ResolvedPanelThemeMode): CSSProperties {
+/** The hex the panel's --panel-accent family derives from. */
+export function panelAccentColor(theme: PanelThemeState): string {
   const accentColor = theme.accentSyncWithDesktop
     ? theme.appAccentColor
     : theme.accentColor || theme.appAccentColor;
-  const accentVars = deriveAccentVars(accentColor || DEFAULT_ACCENT, resolvedThemeMode);
+  return accentColor || DEFAULT_ACCENT;
+}
+
+export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: ResolvedPanelThemeMode): CSSProperties {
+  const accentVars = deriveAccentVars(panelAccentColor(theme), resolvedThemeMode);
   // Widget surface alpha (user-controlled). .panel-card in tokens.scss applies
   // it via color-mix so only the background fades, not the contents. Live panels
   // fill from the OPAQUE surface variant (not the translucent --surface embedded
@@ -168,13 +176,11 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
   const r = record;
   // Single-widget immersive surfaces (q60) fill the screen with one tile, so a
   // solid background or an opaque widget would hide the lighting: they default
-  // to a plasma shader behind a transparent widget.
+  // to the shader background behind a transparent widget.
   const single = isSingleWidgetSurface(r?.capabilities?.surface as PanelSurface);
   // Back-compat: seed the active shader's preset from the legacy scalar when
   // the per-shader map does not carry it.
-  const effect = r?.backgroundEffect == null && single
-    ? 'plasma'
-    : normalizePanelBackgroundEffect(r?.backgroundEffect);
+  const effect = normalizePanelBackgroundEffect(r?.backgroundEffect);
   const templates: Record<string, number> = { ...(r?.backgroundTemplates ?? {}) };
   if (templates[effect] === undefined) {
     templates[effect] = normalizePanelBackgroundTemplate(r?.backgroundTemplate);
@@ -201,9 +207,10 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundEffect: effect,
     backgroundTemplate: normalizePanelBackgroundTemplate(templates[effect]),
     backgroundTemplates: templates,
-    // No stored opacity: mode-aware default (solid opaque, overlay 50%), except
-    // under a non-theme backdrop, which is opaque so see-through never
-    // inherits a shader/media dim.
+    // No stored opacity: full strength in every mode (see
+    // defaultBackgroundOpacityForMode, which keeps the per-mode seam), and
+    // likewise under a non-theme backdrop, which must stay opaque so
+    // see-through never inherits a shader/media dim.
     backgroundOpacity: r?.backgroundOpacity == null
       ? (backdrop !== 'theme' ? 1 : defaultBackgroundOpacityForMode(bgMode))
       : normalizePanelBackgroundOpacity(r.backgroundOpacity),
@@ -212,10 +219,16 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundMediaId: r?.backgroundMediaId ?? null,
     backgroundMediaType: r?.backgroundMediaType ?? null,
     backgroundMediaAlpha: r?.backgroundMediaAlpha ?? false,
+    backgroundSlideshow: r?.backgroundMediaSlideshow === true,
+    backgroundSlideshowInterval: normalizePanelSlideshowInterval(r?.backgroundMediaInterval),
+    backgroundSlideshowShuffle: r?.backgroundMediaShuffle === true,
+    backgroundSlideshowFinishVideos: r?.backgroundMediaFinishVideos !== false,
+    backgroundMediaOrder: normalizePanelBackgroundMediaOrder(r?.backgroundMediaOrder),
     backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
     widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
     widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
     widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
+    gaugeGradient: normalizeGaugeGradient(r?.gaugeGradient),
   };
 }
 
@@ -427,6 +440,31 @@ export function usePanelTheme(
     persistPatch({ backgroundMediaId: mediaId ?? '', backgroundMediaType: type ?? '', backgroundMediaAlpha: alpha });
   }, [persistPatch]);
 
+  // One patch for the slideshow group so a toggle + interval edit is a single
+  // record write and a single panel refetch.
+  const commitBackgroundSlideshow = useCallback((patch: Partial<PanelSlideshowSettings>) => {
+    const next: Partial<PanelSlideshowSettings> = { ...patch };
+    if (next.interval !== undefined) next.interval = normalizePanelSlideshowInterval(next.interval);
+    setTheme(prev => ({
+      ...prev,
+      ...(next.enabled !== undefined ? { backgroundSlideshow: next.enabled } : {}),
+      ...(next.interval !== undefined ? { backgroundSlideshowInterval: next.interval } : {}),
+      ...(next.shuffle !== undefined ? { backgroundSlideshowShuffle: next.shuffle } : {}),
+      ...(next.finishVideos !== undefined ? { backgroundSlideshowFinishVideos: next.finishVideos } : {}),
+    }));
+    persistPatch({
+      ...(next.enabled !== undefined ? { backgroundMediaSlideshow: next.enabled } : {}),
+      ...(next.interval !== undefined ? { backgroundMediaInterval: next.interval } : {}),
+      ...(next.shuffle !== undefined ? { backgroundMediaShuffle: next.shuffle } : {}),
+      ...(next.finishVideos !== undefined ? { backgroundMediaFinishVideos: next.finishVideos } : {}),
+    });
+  }, [persistPatch]);
+
+  const commitBackgroundMediaOrder = useCallback((ids: string[]) => {
+    setTheme(prev => ({ ...prev, backgroundMediaOrder: ids }));
+    persistPatch({ backgroundMediaOrder: ids });
+  }, [persistPatch]);
+
   const commitBackgroundFrost = useCallback((percent: number) => {
     const next = normalizePanelBackgroundFrost(percent);
     setTheme(prev => ({ ...prev, backgroundFrost: next }));
@@ -449,6 +487,16 @@ export function usePanelTheme(
     const next = normalizePanelWidgetPadding(percent);
     setTheme(prev => ({ ...prev, widgetPadding: next }));
     persistPatch({ widgetPadding: next });
+  }, [persistPatch]);
+
+  const previewGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
+    setTheme(prev => ({ ...prev, gaugeGradient: normalizeGaugeGradient(stops) }));
+  }, []);
+
+  const commitGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
+    const next = normalizeGaugeGradient(stops);
+    setTheme(prev => (gaugeGradientEquals(prev.gaugeGradient, next) ? prev : { ...prev, gaugeGradient: next }));
+    persistPatch({ gaugeGradient: next });
   }, [persistPatch]);
 
   // The background's live render state: a draft while editing, else the global
@@ -480,6 +528,8 @@ export function usePanelTheme(
     )),
     commitBackgroundOpacity,
     commitBackgroundMedia,
+    commitBackgroundSlideshow,
+    commitBackgroundMediaOrder,
     previewBackgroundFrost: (percent: number) => setTheme(prev => (
       { ...prev, backgroundFrost: normalizePanelBackgroundFrost(percent) }
     )),
@@ -493,6 +543,8 @@ export function usePanelTheme(
       { ...prev, widgetPadding: normalizePanelWidgetPadding(percent) }
     )),
     commitWidgetPadding,
+    previewGaugeGradient,
+    commitGaugeGradient,
     prefs,
   };
 }

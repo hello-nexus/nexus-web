@@ -35,6 +35,7 @@ function mode(overrides: Partial<FocusMode> = {}): FocusMode {
     holdNotifications: true,
     holdBackgroundTraffic: true,
     turnPanelDisplaysOff: false,
+    staticPanelBackgrounds: false,
     exitGraceSeconds: 30,
     ...overrides,
   };

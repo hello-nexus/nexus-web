@@ -1,6 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import type { AudioSnapshot } from '../../hooks/useAudioState';
-import { prefersReducedMotion } from './useTickingHistory';
 
 // Beat pulse driving the Beat Builder demo.
 const DEMO_BPM = 125;
@@ -52,14 +51,14 @@ function synthSnapshot(t: number): AudioSnapshot {
  * A fake AudioSnapshot feed for the marketing lighting demo. Mutation-free
  * per tick (the shader renderer keys its peak-hold / history updates on
  * snapshot identity), refs only - no React re-renders. Idle (null) when
- * inactive or under prefers-reduced-motion, which the audio shaders treat as
- * silence and fall back to their idle animation.
+ * inactive, which the audio shaders treat as silence and fall back to their
+ * idle animation.
  */
 export function useFakeAudio(active: boolean): RefObject<AudioSnapshot | null> {
   const ref = useRef<AudioSnapshot | null>(null);
 
   useEffect(() => {
-    if (!active || prefersReducedMotion()) {
+    if (!active) {
       ref.current = null;
       return;
     }

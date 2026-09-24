@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
 import { fetchService, postService } from '../api/service';
+import { useTopic } from './useMultiplexSocket';
 
 export interface MediaSession {
   sourceAppName: string;
@@ -29,32 +29,18 @@ export interface MediaState {
   loading: boolean;
 }
 
+const EMPTY: MediaState = { sessions: {}, loading: false };
+
 /**
- * Polls GET /api/media for active media sessions. Returns all sessions keyed
- * by source name (e.g. "Spotify", "Music"). 2s default polling.
+ * Active media sessions keyed by source name (e.g. "Spotify", "Music").
+ * Subscribes to the multiplexed "media" topic: the service pushes the full
+ * session set on change and a fresh snapshot on subscribe. While the socket
+ * is down the last frame stands, as with every other topic-driven widget.
  */
-export function useMedia(enabled: boolean, pollingRateMs = 2000): MediaState {
-  const [state, setState] = useState<MediaState>({ sessions: {}, loading: true });
-  const mounted = useRef(true);
-
-  useEffect(() => {
-    mounted.current = true;
-    // When disabled, clear sessions and stop polling.
-    if (!enabled) { setState({ sessions: {}, loading: false }); return () => { mounted.current = false; }; }
-
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = async () => {
-      const data = await fetchService<Record<string, MediaSession>>('/api/media');
-      if (mounted.current) {
-        setState({ sessions: data ?? {}, loading: false });
-      }
-      timer = setTimeout(tick, pollingRateMs);
-    };
-    tick();
-    return () => { mounted.current = false; clearTimeout(timer); };
-  }, [enabled, pollingRateMs]);
-
-  return state;
+export function useMedia(enabled: boolean): MediaState {
+  const live = useTopic<Record<string, MediaSession>>('media', enabled);
+  if (!enabled) return EMPTY;
+  return live ? { sessions: live, loading: false } : { sessions: {}, loading: true };
 }
 
 /** Send a playback control command (play, pause, next, previous). */

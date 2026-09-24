@@ -32,11 +32,10 @@ export function CoolingImmersiveStatus({ cooling }: { cooling: CoolingImmersiveC
     const slot = chartSlotRef.current;
     if (!slot) return;
     const measure = () => {
-      // offsetHeight, not getBoundingClientRect: the immersive render area is
-      // inside the --panel-scale transform, so client rects come back in
-      // visually-scaled px while the chart lays out in layout px. Mixing the
-      // two oversizes the svg by the scale factor (clipped chart on the Y70's
-      // 150% default).
+      // offsetHeight, not getBoundingClientRect: the immersive render area
+      // is scaled by --panel-scale, so client rects come back in rendered px
+      // while the chart lays out in layout px. Mixing the two oversizes the
+      // svg by the scale factor (clipped chart on the Y70).
       const slotH = slot.offsetHeight;
       const wrap = slot.firstElementChild as HTMLElement | null;
       const svg = wrap?.querySelector('svg');

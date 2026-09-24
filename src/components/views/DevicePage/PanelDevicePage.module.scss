@@ -178,6 +178,15 @@
   }
 }
 
+// Tab-row actions (Change background, screenshot). Ghost buttons here sit on
+// the bare page backdrop with no resting fill, so the tone's --bg-card-hover
+// hover block reads as a card appearing out of nowhere. Doubled class to
+// outrank Button's own .tone-ghost:hover rule regardless of module order; the
+// hover still brightens the label + icon via the tone's colour change.
+.headerAction.headerAction:hover:not(:disabled) {
+  background: transparent;
+}
+
 .tabContent {
   flex: 1;
   min-height: 0;
@@ -321,8 +330,8 @@
   --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
   --icon-label-button-active-border: transparent;
-  --icon-label-button-active-bg: var(--accent-soft);
-  --icon-label-button-active-text: var(--accent-glow);
+  --icon-label-button-active-bg: var(--accent);
+  --icon-label-button-active-text: var(--accent-text);
   --icon-label-icon-size: 21px;
   --icon-label-label-size: 10px;
 
@@ -383,6 +392,28 @@
   gap: 0.75rem;
 }
 
+// Docked-canvas pages give this block the full page width, which leaves the
+// preview a lonely band across the top and the scroller squeezed underneath.
+.inlineSettings[data-docked='true'] {
+  display: grid;
+  // Floor keeps a small widget's preview off the divider; the column still
+  // grows for a wide one.
+  grid-template-columns: minmax(200px, auto) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 1.25rem;
+}
+
+.inlineSettings[data-docked='true'] .inlineSettingsHeader {
+  grid-column: 1 / -1;
+}
+
+.inlineSettings[data-docked='true'] .inlineSettingsPreview {
+  align-items: flex-start;
+  padding: 1rem 1.25rem 1rem 0;
+  border-bottom: none;
+  border-right: 1px solid var(--separator);
+}
+
 .inlineSettingsEmpty {
   padding: 2rem 0;
   text-align: center;
@@ -430,5 +461,28 @@
 
   svg {
     flex-shrink: 0;
+  }
+}
+
+// Widgets/Theme/Background tab body while the panel is set up as a
+// secondary monitor: read-only preview under the usbNotice above.
+.tabDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.secondaryMonitorPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 320px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--type-body);
+
+  p {
+    margin: 0;
   }
 }

@@ -37,6 +37,11 @@ export interface AuthUsernameResponse extends AuthEnvelope {
 
 export interface AuthRecoveryStartResponse {
   grantId: string;
+  /**
+   * Short verification code, shown on THIS device and typed into the page the
+   * emailed link opens. Absent when the backend predates the code.
+   */
+  code?: string;
 }
 
 export type AuthRecoveryStatusValue = 'idle' | 'pending' | 'approved' | 'expired';

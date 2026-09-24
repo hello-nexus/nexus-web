@@ -110,3 +110,9 @@
     box-shadow: none;
   }
 }
+
+// Carries the value-colour --panel-accent* overrides without taking part in
+// layout; custom properties inherit through it.
+.slotPaint {
+  display: contents;
+}

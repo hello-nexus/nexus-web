@@ -3,11 +3,13 @@
 // renders the worker's remote tree as real @hellonexus/ui components. A pure
 // flex-fill container, like DeclarativeWidget, since the panel cell sizes it.
 
+import { DEV_TOOLS } from '../lib/devTools';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 import { MediaImportProvider } from './mediaImportContext';
+import { useImmersiveExit } from '../panel/overlays/immersiveExit';
 
 export interface SandboxedWidgetProps {
   /** Blob URL of the host-shared SDK runtime; the worker imports it before the
@@ -22,9 +24,13 @@ export interface SandboxedWidgetProps {
   netFetch?: string[];
   /** Cert/manifest sensors.read pattern allowlist (e.g. ["cpu.*"]). */
   sensorsRead?: string[];
-  /** Which surface to render: 'cell' (panel tile, default) or 'page' (expanded
-   *  full view). The page is a separate worker render of the same bundle. */
-  surface?: 'cell' | 'page';
+  /** Which surface to render: 'cell' (panel tile, default), 'page' (expanded
+   *  full view), or 'immersive' (fullscreen overlay). Each is a separate
+   *  worker render of the same bundle - the distinct cache key keeps an
+   *  immersive mount from adopting (and then disposing) the tile's live
+   *  worker. The worker itself only ever sees the published 'cell' | 'page'
+   *  contract; 'immersive' collapses to 'cell' in its init context. */
+  surface?: 'cell' | 'page' | 'immersive';
   /** Catalog preview - host I/O stubbed (persistLocal no-op, dispatch resolves
    *  { ok: false }); the app branches via the SDK's usePreview(). */
   preview?: boolean;
@@ -57,17 +63,24 @@ interface LiveWidget {
   // drive this one worker, which holds one size. Newest mount last: it owns the
   // size, and when it leaves the one below re-asserts its own, else the cell
   // stays drawn at fullscreen scale. Disposal waits for the last mount.
-  mounts: Array<{ pushSize: () => void }>;
+  mounts: Array<{ pushSize: () => void; exitImmersive: () => void }>;
 }
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
 export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport }: SandboxedWidgetProps) {
+  // The overlay's animated close, for the immersive worker's useImmersive().
+  // The worker's api object is created once, so a reused worker resolves it
+  // through the cache entry's newest mount, not the mount that spawned it.
+  const exitImmersive = useImmersiveExit();
+  const exitImmersiveRef = useRef(exitImmersive);
+  exitImmersiveRef.current = exitImmersive;
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide; ':preview' keeps a preview worker
-  // from ever being reused for a live mount.
-  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}`;
+  // from ever being reused for a live mount. The bundle URL is part of it:
+  // useSdkBundle mints one per app version, so a new URL means updated code.
+  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}:${entryUrl}`;
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
   // render shows the tree - no blank frame / flicker.
@@ -86,8 +99,8 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     if (width > 0 && height > 0) h.update({ size: { width, height } });
   }, []);
   // This mount's identity inside the cache entry's stack; stable for its life.
-  const mountRef = useRef<{ pushSize: () => void } | null>(null);
-  if (mountRef.current === null) mountRef.current = { pushSize: () => pushOwnSize() };
+  const mountRef = useRef<LiveWidget["mounts"][number] | null>(null);
+  if (mountRef.current === null) mountRef.current = { pushSize: () => pushOwnSize(), exitImmersive: () => exitImmersiveRef.current?.() };
 
   useEffect(() => {
     const key = cacheKey;
@@ -107,8 +120,13 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       const context: SandboxContext = {
         instanceId,
         widgetId,
-        surface: surface ?? 'cell',
+        // 'immersive' is host-side only (own worker + cache key); the worker
+        // contract (useSurface) knows 'cell' | 'page', and the immersive
+        // worker renders the cell face.
+        surface: surface === 'page' ? 'page' : 'cell',
+        immersive: surface === 'immersive',
         preview: !!preview,
+        devTools: DEV_TOOLS,
         size,
         settings: settings ?? {},
         local: readLocal(widgetId, instanceId),
@@ -125,6 +143,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           dispatch: preview
             ? () => Promise.resolve({ ok: false })
             : (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
+          exitImmersive: surface === 'immersive'
+            ? () => { const e = liveWidgets.get(key); e?.mounts[e.mounts.length - 1]?.exitImmersive(); }
+            : undefined,
         },
       };
       entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [] };
@@ -152,11 +173,10 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         }, KEEP_ALIVE_MS);
       }
     };
-    // Identity is the widget instance + surface (+ preview); entryUrl/settings
-    // change in place (reused worker is updated, never respawned for a
-    // transient blob-url change).
+    // Identity is the widget instance + surface (+ preview) + bundle; settings
+    // change in place on the reused worker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetId, instanceId, surface, preview]);
+  }, [widgetId, instanceId, surface, preview, entryUrl]);
 
   useEffect(() => {
     handle?.update({ settings: settings ?? {} });

@@ -87,13 +87,6 @@
   cursor: help;
 }
 
-.chainBody {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  padding-left: 0.75rem;
-}
-
 // Cooling tab - groups one port's RPM/mode/speed rows so multiple ports in
 // the same chain read as distinct blocks rather than one flat row list.
 .portBlock {
@@ -101,38 +94,6 @@
   flex-direction: column;
   gap: 0.4rem;
   padding-bottom: 0.4rem;
-}
-
-.actionsRow {
-  display: flex;
-  gap: 0.6rem;
-  padding-top: 0.5rem;
-}
-
-.slotBadge,
-.boundBadge,
-.unboundBadge {
-  flex: 0 0 auto;
-  font-size: var(--type-mini);
-  font-family: var(--font-mono);
-  border-radius: var(--radius-sm);
-  padding: 2px 5px;
-  white-space: nowrap;
-}
-
-.slotBadge {
-  color: var(--text-dim);
-  background: color-mix(in srgb, var(--text-dim) 10%, transparent);
-}
-
-.boundBadge {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.unboundBadge {
-  color: var(--text-dim);
-  background: color-mix(in srgb, var(--text-dim) 10%, transparent);
 }
 
 .emptyNote {

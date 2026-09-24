@@ -26,6 +26,8 @@ export interface LianLiLightingMode {
 
 export interface LianLiLighting {
   mode: string;
+  /** The animation the device plays when the Lighting page is not driving it. Absent on an older service. */
+  effectMode?: string;
   speed: number;
   direction: number;
   brightness: number;

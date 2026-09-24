@@ -81,8 +81,12 @@
 .thDate { width: 7rem; }
 .thExpand { width: 2rem; }
 
+// Beats .table th's text-align: left on specificity.
+.table th.thScore { text-align: right; }
+
 .row {
   border-bottom: 1px solid var(--separator);
+  border-left: 2px solid transparent;
   cursor: pointer;
   transition: background 0.1s ease;
 
@@ -91,9 +95,10 @@
 }
 
 .rowOwn {
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
 
-  &:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  &:hover { background: var(--bg-elevated); }
 }
 
 .table td {
@@ -117,8 +122,8 @@
   display: inline-block;
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent-glow);
+  background: var(--accent);
+  color: var(--accent-text);
   font-size: var(--type-tiny);
   text-transform: uppercase;
   font-weight: var(--weight-heading);
@@ -129,6 +134,7 @@
   font-size: var(--type-body);
   font-weight: var(--weight-heading);
   color: var(--accent-glow);
+  text-align: right;
 }
 
 .tdHardware { }

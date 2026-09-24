@@ -207,13 +207,13 @@ export function Select({
   // there, and cap its height to the chosen side so a long list scrolls inside
   // the viewport instead of off-screen.
   //
-  // The trigger may sit inside the panel's `scale(--panel-scale)` transform (the
-  // Y70 kiosk scales its whole chrome up ~2.5x); the menu is portaled to <body>,
-  // outside that transform, so left alone it renders at base size and its text
-  // looks tiny next to the trigger. Measure the applied scale (transformed rect
-  // width / untransformed offsetWidth) and re-apply it to the menu so its text
-  // matches the trigger 1:1. offsetWidth is the layout box without transforms;
-  // getBoundingClientRect includes them (see WidgetContextMenu). The menu is
+  // The trigger may sit inside a panel surface that scales its chrome - some
+  // do it with a transform, the editor sheet and immersive overlay with zoom.
+  // The menu is portaled to <body>, outside either, so left alone it renders
+  // at base size and its text looks tiny next to the trigger. Measure the
+  // applied scale (rendered rect width / layout offsetWidth, which reads the
+  // factor under both mechanisms) and re-apply it to the menu so its text
+  // matches the trigger 1:1 (see WidgetContextMenu). The menu is
   // sized in base px and scaled, so positions stay in real screen px.
   const reposition = useCallback(() => {
     const trigger = triggerRef.current;
@@ -512,8 +512,6 @@ export function Select({
                   key={`${opt.value}-${i}`}
                   id={optionId(i)}
                   role="option"
-                  // Surfaces the full label when an option ellipsizes.
-                  title={opt.label}
                   aria-selected={opt.value === value}
                   aria-disabled={opt.disabled || undefined}
                   className={classNames(

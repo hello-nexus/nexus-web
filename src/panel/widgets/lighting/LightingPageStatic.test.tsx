@@ -27,7 +27,7 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../hooks/useLightingFrames', () => ({
-  useLightingFrames: () => ({ canvasPixels: null, canvasW: 160, canvasH: 90 }),
+  useLightingFrames: () => ({ connected: false, live: false }),
 }));
 vi.mock('../../../hooks/useUsbDevices', () => ({ useUsbDevices: () => ({ devices: [] }) }));
 vi.mock('../../../hooks/useAudioState', () => ({ useAudioState: () => ({ current: null }) }));

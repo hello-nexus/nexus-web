@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowDown, ArrowUp, BellOff, Cloud, MonitorOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, BellOff, Cloud, ImageIcon, MonitorOff, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../components/common/Button/Button';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -164,6 +164,15 @@ export function FocusModesModal({ open, onClose, serviceOnline }: {
             description={t('focus.panelsOff.description')}
             checked={mode.turnPanelDisplaysOff}
             onChange={() => void updateMode(mode.id, { turnPanelDisplaysOff: !mode.turnPanelDisplaysOff })}
+            disabled={disabled}
+          />
+          <SettingToggle
+            label={t('focus.staticBackgrounds.label')}
+            icon={<ImageIcon />}
+            iconLeading="subtle"
+            description={t('focus.staticBackgrounds.description')}
+            checked={mode.staticPanelBackgrounds}
+            onChange={() => void updateMode(mode.id, { staticPanelBackgrounds: !mode.staticPanelBackgrounds })}
             disabled={disabled}
           />
         </CollapsibleSection>

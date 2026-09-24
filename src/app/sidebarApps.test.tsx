@@ -1,7 +1,8 @@
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, sanitizePinnedTail } from './sidebarApps';
-import { Boxes } from 'lucide-react';
+import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, listSidebarAppKeys, sanitizePinnedTail, sanitizeRecents } from './sidebarApps';
+import { APP_REGISTRY } from '../panel/widgets/registry';
+import { Boxes, Film } from 'lucide-react';
 import { appIconComponent } from '../components/icons/AppIconImage';
 import {
   _resetMarketplaceRegistryForTests,
@@ -73,13 +74,32 @@ describe('page-only apps (Store)', () => {
     expect(meta!.i18nKey).toBe('apps.tabs.store');
   });
 
-  it('is pinnable, so it can be added from the drawer and persisted', () => {
+  it('is pinnable, so it can be pinned and persisted', () => {
     expect(isPinnableAppKey('store')).toBe(true);
     expect(sanitizePinnedTail(['store'])).toEqual(['store']);
   });
 
   it('is not in the default pinned tail', () => {
     expect(DEFAULT_PINNED_TAIL).not.toContain('store');
+  });
+});
+
+describe('page-only apps (Frames)', () => {
+  it('resolves sidebar meta from the page-only registry, not the widget registry', () => {
+    const meta = getSidebarAppMeta('frames');
+    expect(meta).not.toBeNull();
+    expect(meta!.i18nKey).toBe('panel.widget.frames');
+    expect((meta!.icon as ReactElement).type).toBe(Film);
+  });
+
+  it('keeps an existing pin and recents entry after leaving the widget registry', () => {
+    expect(isPinnableAppKey('frames')).toBe(true);
+    expect(sanitizePinnedTail(['frames'])).toEqual(['frames']);
+    expect(sanitizeRecents(['frames'])).toEqual(['frames']);
+  });
+
+  it('is not in the default pinned tail', () => {
+    expect(DEFAULT_PINNED_TAIL).not.toContain('frames');
   });
 });
 
@@ -103,5 +123,26 @@ describe('sanitizePinnedTail - marketplace registry-load window', () => {
   it('drops an app-typed pin that is uninstalled after the registry loaded', () => {
     _seedMarketplaceRegistryForTests([]); // loaded, but the app is not installed
     expect(sanitizePinnedTail([IBP])).toEqual([]);
+  });
+});
+
+describe('listSidebarAppKeys', () => {
+  it('lists page-only apps and built-ins with a Page, and no page-less widget', () => {
+    const keys = listSidebarAppKeys();
+    expect(keys).toContain('frames');
+    const pageless = Object.entries(APP_REGISTRY).filter(([, def]) => def.Page == null).map(([key]) => key);
+    expect(pageless.length).toBeGreaterThan(0);
+    for (const key of pageless) expect(keys).not.toContain(key);
+    for (const key of keys) expect(isPinnableAppKey(key)).toBe(true);
+  });
+
+  it('lists a page-capable SDK app but not a widget-only one', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.weather', name: 'Weather', page: true }),
+      listing({ id: 'com.hellonexus.tile', name: 'Tile', page: false }),
+    ]);
+    const keys = listSidebarAppKeys();
+    expect(keys).toContain(typeForMarketplace('com.hellonexus.weather'));
+    expect(keys).not.toContain(typeForMarketplace('com.hellonexus.tile'));
   });
 });

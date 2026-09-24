@@ -9,9 +9,12 @@ import { isExtrasBackedDevice, type DeviceKey } from '../monitoring/perfSlots';
 import type { ScaleMode } from '../monitoring/perfDomain';
 import type { DeckMonitoringCategory } from './types';
 
-// Every category the monitoring widget's picker offers, in its order.
+// Every category the monitoring widget's picker offers, in its order, minus
+// 'gpu2' and 'igpu': the physical key is rendered service-side
+// (SensorSnapshotResolver), which knows "gpu" as every card flattened and
+// nothing narrower, so such a key would read "--" on the hardware.
 // deckMonitoring.test asserts this stays equal to sensorPicker.ts'
-// DEVICE_OPTION_KEYS, which is itself every DeviceKey but the legacy 'fan'.
+// DEVICE_OPTION_KEYS without those two.
 export const DECK_MONITORING_CATEGORIES: readonly DeckMonitoringCategory[] = [
   'quick', 'cpu', 'gpu', 'memory', 'memoryModule', 'motherboard',
   'storage', 'smart', 'network', 'fps',

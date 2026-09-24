@@ -38,13 +38,14 @@ vi.mock('../../../api/panel', () => ({
 }));
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
   useTopicCallback: () => {},
+  useMultiplex: () => ({ connected: true }),
 }));
 vi.mock('../../../panel/engine/panelSync', () => ({
   broadcastLayoutChanged: vi.fn(),
 }));
 vi.mock('../../../panel/theme/panelTheme', () => ({
   usePanelTheme: () => ({
-    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark' },
+    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [] },
     commitThemeSync: vi.fn(), commitThemeMode: vi.fn(), commitAccentSync: vi.fn(),
     previewAccent: vi.fn(), commitAccent: vi.fn(), previewBackground: vi.fn(),
     commitBackground: vi.fn(), commitBackgroundMode: vi.fn(), commitBackgroundEffect: vi.fn(),
@@ -53,6 +54,7 @@ vi.mock('../../../panel/theme/panelTheme', () => ({
     commitWidgetOpacity: vi.fn(), commitWidgetLabels: vi.fn(), commitBackgroundFrost: vi.fn(),
   }),
   buildPanelThemeVars: () => ({}),
+  panelAccentColor: () => '#2563eb',
   useResolvedPanelThemeMode: () => 'dark',
 }));
 vi.mock('../../../panel/editor/PanelWidgetCatalog', () => ({

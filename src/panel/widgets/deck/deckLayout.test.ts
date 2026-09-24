@@ -2,28 +2,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
-  defaultDeckConfig, deckConfigPatch, addPage, removePage, pageHasContent,
+  addPage, removePage, pageHasContent, countBoundSlots, countConfiguredSlots,
 } from './deckLayout';
-import { deckApp } from './index';
 import type { DeckConfig } from './types';
-
-describe('defaultDeckConfig', () => {
-  it('seeds a new deck with volume up/down + open settings on a single page', () => {
-    expect(defaultDeckConfig().pages).toHaveLength(1);
-    expect(defaultDeckConfig().pages[0].slots.map(s => s.action)).toEqual([
-      { type: 'system', action: { op: 'volumeUp' } },
-      { type: 'system', action: { op: 'volumeDown' } },
-      { type: 'system', action: { op: 'openSettings' } },
-    ]);
-  });
-
-  it('manifest defaultConfig returns a fresh deck patch each call', () => {
-    const a = deckApp.meta.defaultConfig?.();
-    const b = deckApp.meta.defaultConfig?.();
-    expect(a).toEqual(deckConfigPatch(defaultDeckConfig()));
-    expect(a).not.toBe(b);
-  });
-});
 
 describe('innerGridForSize', () => {
   it('maps sizes to inner grid counts', () => {
@@ -218,6 +199,23 @@ describe('updateSlotAt', () => {
     expect(next.pages).toHaveLength(2);
     expect(next.pages[1].slots[0].label).toBe('clamped');
   });
+  it('never truncates a page already longer than count - pads only, grows to the real length', () => {
+    const slots = Array.from({ length: 8 }, (_, i) => ({ label: `k${i}` }));
+    const deck: DeckConfig = { pages: [{ slots }] };
+    const next = updateSlotAt(deck, 0, [], 1, { label: 'set' }, 4);
+    expect(next.pages[0].slots).toHaveLength(8);
+    expect(next.pages[0].slots[1].label).toBe('set');
+    expect(next.pages[0].slots[7].label).toBe('k7');
+  });
+  it('never truncates a folder already longer than count - pads only, grows to the real length', () => {
+    const folderSlots = Array.from({ length: 6 }, (_, i) => ({ label: `f${i}` }));
+    const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: folderSlots } }] }] };
+    const next = updateSlotAt(deck, 0, [0], 3, { label: 'set' }, 4);
+    const folder = next.pages[0].slots[0].folder!;
+    expect(folder.slots).toHaveLength(6);
+    expect(folder.slots[3].label).toBe('set');
+    expect(folder.slots[5].label).toBe('f5');
+  });
 });
 
 describe('swapSlots', () => {
@@ -280,5 +278,32 @@ describe('addPage / removePage / pageHasContent', () => {
   it('pageHasContent is true when a nested folder slot has content', () => {
     const page = { slots: [{ folder: { slots: [{ label: 'nested' }] } }] };
     expect(pageHasContent(page)).toBe(true);
+  });
+});
+
+describe('countConfiguredSlots', () => {
+  it('counts icon/label-only slots that countBoundSlots misses (pageHasContent triggers on these too)', () => {
+    const slots = [{ icon: { kind: 'emoji' as const, value: '🎮' } }, { label: 'x' }, {}];
+    expect(countBoundSlots(slots)).toBe(0);
+    expect(countConfiguredSlots(slots)).toBe(2);
+  });
+
+  it('counts an action slot the same way countBoundSlots does', () => {
+    const slots = [{ action: { type: 'hotkey' as const, keys: 'a' } }];
+    expect(countConfiguredSlots(slots)).toBe(countBoundSlots(slots));
+    expect(countConfiguredSlots(slots)).toBe(1);
+  });
+
+  it('recurses into a folder\'s own configured slots', () => {
+    const slots = [{ folder: { slots: [{ label: 'a' }, { icon: { kind: 'emoji' as const, value: '🎮' } }] } }];
+    // The folder itself (icon/label/action-less but content-bearing via its
+    // children, matching slotHasContent) plus its 2 configured children.
+    expect(countConfiguredSlots(slots)).toBe(3);
+  });
+
+  it('does not count a folder with no configured content anywhere inside it (matches pageHasContent)', () => {
+    const slots = [{ folder: { slots: [{}, {}] } }];
+    expect(countConfiguredSlots(slots)).toBe(0);
+    expect(pageHasContent({ slots })).toBe(false);
   });
 });

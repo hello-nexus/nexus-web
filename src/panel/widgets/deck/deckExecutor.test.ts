@@ -36,6 +36,18 @@ describe('parseHotkey', () => {
     expect(parseHotkey('meta+printscreen')?.key).toBe('PrintScreen');
     expect(parseHotkey('alt+printscreen')).toEqual({ key: 'PrintScreen', ctrl: false, shift: false, alt: true, meta: false });
   });
+  it('maps the punctuation tokens HotkeyInput can now capture to their KeyboardEvent.code names', () => {
+    expect(parseHotkey('ctrl+,')?.key).toBe('Comma');
+    expect(parseHotkey('ctrl+/')?.key).toBe('Slash');
+    expect(parseHotkey('ctrl+;')?.key).toBe('Semicolon');
+    expect(parseHotkey("ctrl+'")?.key).toBe('Quote');
+    expect(parseHotkey('ctrl+[')?.key).toBe('BracketLeft');
+    expect(parseHotkey('ctrl+]')?.key).toBe('BracketRight');
+    expect(parseHotkey('ctrl+\\')?.key).toBe('Backslash');
+    expect(parseHotkey('ctrl+-')?.key).toBe('Minus');
+    expect(parseHotkey('ctrl+=')?.key).toBe('Equal');
+    expect(parseHotkey('ctrl+`')?.key).toBe('Backquote');
+  });
 });
 
 describe('executeDeckAction → REST', () => {

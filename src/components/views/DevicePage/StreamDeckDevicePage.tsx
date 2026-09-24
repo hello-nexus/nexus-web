@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
@@ -7,28 +7,28 @@ import { localizeNumbers } from '../../../lib/units';
 import { useStreamDecks } from '../../../hooks/useStreamDecks';
 import { setStreamDeckNav } from '../../../api/streamdeck';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
-import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { useConflictApps } from '../../../hooks/useConflictApps';
-import { usePhysicalDeckTarget } from '../../../panel/widgets/deck/usePhysicalDeckTarget';
+import { useDeckInstance } from '../../../panel/widgets/deck/useDeckInstance';
+import { useRecentApps } from '../../../panel/widgets/deck/useRecentApps';
+import { buildRecentAppsView, type RecentAppsViewKey } from '../../../panel/widgets/deck/recentAppsView';
+import { DeckInstanceEditor } from '../../../panel/widgets/deck/DeckInstanceEditor';
 import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
-import { useDeckPresets, AUTO_SAVE_DEBOUNCE_MS } from '../../../panel/widgets/deck/useDeckPresets';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
-import { padSlots, pageHasContent, emptyDeck, countBoundSlots, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
+import { padSlots, pageHasContent, countBoundSlots, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
-import type { DeckConfig } from '../../../panel/widgets/deck/types';
-import { isRemoteOrigin } from '../../../api/service';
+import { isLocalhostUnreachable } from '../../../api/service';
+import type { DeckSlot } from '../../../panel/widgets/deck/types';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
-import { PresetToolbar } from '../../common/PresetToolbar/PresetToolbar';
 import { ElgatoImportModal } from './ElgatoImportModal';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { EditableText } from '../../common/Editable/EditableText';
-import { SettingRow, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { Button } from '../../common/Button/Button';
@@ -50,6 +50,17 @@ type StreamDeckTab = 'customize' | 'settings';
 const ORIENTATION_OPTIONS = [0, 90, 180, 270] as const;
 const SLEEP_AFTER_OPTIONS = [0, 60, 300, 600, 900, 1800] as const;
 
+// Placeholder DeckSlot for one Recent Apps ring key, so DeckGrid's liveTiles
+// path renders the service's own key image once pushed (a slot with no
+// action/icon/folder reads as "empty" and skips liveSrc entirely) - the
+// generic icon shown here is only what's visible before the first frame.
+function recentKeyToPlaceholderSlot(key: RecentAppsViewKey): DeckSlot {
+  if (key.kind === 'app') return { icon: { kind: 'lucide', value: 'AppWindow' } };
+  if (key.kind === 'navNext') return { action: { type: 'page', op: 'next' } };
+  if (key.kind === 'navPrev') return { action: { type: 'page', op: 'prev' } };
+  return {};
+}
+
 function PageShell({ children }: { children: ReactNode }) {
   return (
     <div className={styles.page}>
@@ -67,17 +78,18 @@ interface StreamDeckDevicePageProps {
 
 /**
  * Routed device page for one physical Stream Deck, in the standard device-page
- * split: the Customize tab has the shared key inspector on the left and, on the
- * right, the top-aligned deck preview with page-number pagination and the model
- * name below it; the Settings tab has device prefs on the left and a read-only
- * preview of the same grid on the right. Each connected/persisted deck gets its
- * own sidebar entry (see useUnifiedDevices), so `device` always identifies
- * exactly one deck by serial - there is no in-page deck picker.
+ * split: the Customize tab has the top-aligned deck preview with page-number
+ * pagination and the shared key inspector on the left and, on the right, the
+ * mode chip + mode section + preset toolbar above the action picker; the
+ * Settings tab has device prefs on the left and a read-only preview of the
+ * same grid on the right. Each connected/persisted deck gets its own sidebar
+ * entry (see useUnifiedDevices), so `device` always identifies exactly one
+ * deck by serial - there is no in-page deck picker.
  */
 export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
-  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds } = useStreamDecks(true);
+  const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked } = useStreamDecks(true);
   const serial = device.streamdeckSerial ?? null;
   const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
@@ -92,8 +104,24 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const deck = decks.find(d => d.serial === serial) ?? null;
-  const deckPresets = useDeckPresets(serial);
-  const { scheduleAutoSave } = deckPresets;
+  const instanceId = serial ? `streamdeck:${serial}` : null;
+  const instanceGrid = useMemo(() => ({ cols: deck?.cols ?? 0, rows: deck?.rows ?? 0 }), [deck?.cols, deck?.rows]);
+  const instance = useDeckInstance(instanceId, 'physical', instanceGrid, tab === 'customize');
+  const target = instance.target;
+
+  // Recent Apps has no authored preset content to render - every key comes
+  // from the live ring, painted server-side and pushed over streamdeckTiles
+  // like every other key; the desktop preview mirrors buildRecentAppsView
+  // only to know how many pages there are and which keys are nav vs blank.
+  const recentAppsMode = instance.instance?.mode === 'recentApps';
+  const recentApps = useRecentApps(recentAppsMode);
+  const recentPages = useMemo(
+    () => buildRecentAppsView(recentApps.apps, recentApps.focusedProcessKey, deck?.cols ?? 0, deck?.rows ?? 0),
+    [recentApps.apps, recentApps.focusedProcessKey, deck?.cols, deck?.rows],
+  );
+  const [recentPage, setRecentPage] = useState(0);
+  const recentMaxPage = Math.max(0, recentPages.length - 1);
+  useEffect(() => { if (recentPage > recentMaxPage) setRecentPage(recentMaxPage); }, [recentPage, recentMaxPage]);
 
   // Seeds the initial view from the deck summary's own live page/folder
   // (same fields the 'nav' frame carries) so the editor opens on whatever
@@ -121,68 +149,43 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // page/folder can't clobber the held target when `deck` loads afterward.
   const applyEditorTarget = useCallback(() => {
     if (!serial) return;
-    const target = takePendingDeckEditorTarget(serial);
-    if (!target) return;
+    const editTarget = takePendingDeckEditorTarget(serial);
+    if (!editTarget) return;
     seededNavRef.current = true;
     setTab('customize');
-    setPage(target.page);
-    setFolderPath(target.folderPath);
-    setSelectedSlot(target.keyIndex);
-    setPendingFlashSlot(target.keyIndex);
+    setPage(editTarget.page);
+    setFolderPath(editTarget.folderPath);
+    setSelectedSlot(editTarget.keyIndex);
+    setPendingFlashSlot(editTarget.keyIndex);
   }, [serial]);
   useEffect(() => {
     applyEditorTarget();
     return onDeckOpenEditor(applyEditorTarget);
   }, [applyEditorTarget]);
 
-  // Every commit funnels through usePhysicalDeckTarget's target.updateSlot/
-  // swapSlots/addPage/removePage/setTitleDefault -> persist, the single
-  // choke point onCommit fires from - so history + auto-save cover assign/
-  // edit/label/icon/color/title/folder/page/clear/drag without instrumenting
-  // each widget. pushDeckHistoryRef breaks the circular dependency: onCommit
-  // is needed before useUndoRedo (below) exists to supply the real push.
-  const pushDeckHistoryRef = useRef<(prev: DeckConfig) => void>(() => {});
-
-  // A rapid run of commits (typing a label keystroke by keystroke, dragging)
-  // collapses into one history entry: the first commit of a burst pushes its
-  // pre-edit config immediately, and burstTimerRef staying set through
-  // AUTO_SAVE_DEBOUNCE_MS of quiet marks every later commit in the run as a
-  // continuation, so only the value from before the run ever lands on the
-  // undo stack. Once the timer lapses, the next commit starts a new burst.
-  const burstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Undo/redo/reset/preset-load close an in-flight burst before acting, so an
-  // edit made right after one of those doesn't get folded into a burst whose
-  // anchor no longer matches the (now undone/redone/reset/switched) config.
-  const closeCommitBurst = useCallback(() => {
-    if (burstTimerRef.current) {
-      clearTimeout(burstTimerRef.current);
-      burstTimerRef.current = null;
-    }
-  }, []);
-  useEffect(() => closeCommitBurst, [closeCommitBurst]);
-
-  const onDeckConfigCommit = useCallback((prev: DeckConfig) => {
-    if (!burstTimerRef.current) pushDeckHistoryRef.current(prev);
-    else clearTimeout(burstTimerRef.current);
-    burstTimerRef.current = setTimeout(() => { burstTimerRef.current = null; }, AUTO_SAVE_DEBOUNCE_MS);
-    scheduleAutoSave();
-  }, [scheduleAutoSave]);
-
-  const { target, error: configError, retry: retryConfig, applyConfig } = usePhysicalDeckTarget(deck, onDeckConfigCommit);
-
   // Live per-key tile frames the service renders for this deck (the same
-  // pixels pushed to the hardware), keyed `${page}:${slotPath}` (slotPath
-  // per deckTarget.slotPathAt) to a data URI - handed to DeckGrid's
-  // liveTiles so the preview is pixel-identical to the physical key by
-  // construction rather than approximated in CSS. Frames for a different
-  // deck's serial are dropped. clearLiveTiles resets the map wherever the
-  // config's topology changes client-side (undo/redo/reset/preset load), so
-  // a reordered or deleted slot can never show a frame keyed at the old
-  // shape; the subscription itself is gated to the Customize tab, since the
-  // grid it feeds isn't mounted on Settings.
+  // pixels pushed to the hardware), keyed `${page}:${slotPath}` (slotPath per
+  // deckTarget.slotPathAt) to a data URI -
+  // handed to DeckGrid's liveTiles so the preview is pixel-identical to the
+  // physical key by construction rather than approximated in CSS. Frames for
+  // a different deck's serial are dropped. clearLiveTiles resets the map
+  // wherever the config's topology changes client-side (undo/redo/reset/
+  // preset load), so a reordered or deleted slot can never show a frame keyed
+  // at the old shape; the subscription itself is gated to the Customize tab,
+  // since the grid it feeds isn't mounted on Settings.
   const [liveTiles, setLiveTiles] = useState<Map<string, string>>(new Map());
   const clearLiveTiles = useCallback(() => setLiveTiles(new Map()), []);
-  useTopicCallback('streamdeckTiles', !isRemoteOrigin && !!serial && tab === 'customize', useCallback((data: unknown) => {
+  // A mode switch (Custom/Recent Apps/App Aware) repaints every key with
+  // different content at the same page:slotPath keys - clear so a stale
+  // frame from the previous mode can never show through the new one. The
+  // ref skips the initial undefined -> first-loaded-mode transition, which
+  // has nothing stale to clear.
+  const lastModeRef = useRef(instance.instance?.mode);
+  useEffect(() => {
+    if (lastModeRef.current !== undefined && lastModeRef.current !== instance.instance?.mode) clearLiveTiles();
+    lastModeRef.current = instance.instance?.mode;
+  }, [instance.instance?.mode, clearLiveTiles]);
+  useTopicCallback('streamdeckTiles', !isLocalhostUnreachable() && !!serial && tab === 'customize', useCallback((data: unknown) => {
     const f = data as { serial?: string; page?: number; slotPath?: string; mime?: string; data?: string };
     if (f.serial !== serial || typeof f.page !== 'number' || typeof f.slotPath !== 'string' || typeof f.data !== 'string') return;
     const key = `${f.page}:${f.slotPath}`;
@@ -211,109 +214,56 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { conflicts } = useConflictApps(!!deck?.conflictAppId);
   const activeConflict = deck?.conflictAppId ? conflicts.find(c => c.id === deck.conflictAppId) : undefined;
 
-  // A preset's config + key images are applied server-side; retryConfig()
-  // re-fetches usePhysicalDeckTarget's config so the editor reflects it.
+  // A preset's config is applied server-side (activation resets nav to page
+  // 0); useDeckInstance.activate already refetches the new preset's config.
   const onDeckPresetLoad = useCallback(async (id: string) => {
-    closeCommitBurst();
-    await deckPresets.handleLoad(id);
+    await instance.activate(id);
     clearLiveTiles();
-    // A loaded preset opens on page 1 at the top level, not wherever the editor
-    // was left; the service resets the physical deck's nav to match.
     setPage(0);
     setFolderPath([]);
     setSelectedSlot(0);
-    retryConfig();
-  }, [closeCommitBurst, deckPresets, retryConfig, clearLiveTiles]);
+  }, [instance, clearLiveTiles]);
 
-  // Deleting the active preset promotes the first remaining one server-side and
-  // applies its layout; re-render it in the editor (from page 1) so the view
-  // shows the promoted preset rather than the deleted one's stale config.
+  // Deleting the active preset promotes the first remaining one server-side;
+  // re-render from page 1 so the view shows the promoted preset rather than
+  // the deleted one's stale config.
   const onDeckPresetDelete = useCallback(async (id: string) => {
-    const wasActive = deckPresets.activeId === id;
-    await deckPresets.handleDelete(id);
+    const wasActive = instance.instance?.activePresetId === id;
+    await instance.deletePreset(id);
     if (wasActive) {
       setPage(0);
       setFolderPath([]);
       setSelectedSlot(0);
       clearLiveTiles();
-      retryConfig();
     }
-  }, [deckPresets, retryConfig, clearLiveTiles]);
+  }, [instance, clearLiveTiles]);
 
-  // Undo/redo apply the restored DeckConfig through applyConfig - the same
-  // debounced PUT + key-image resync path a normal edit takes - and re-save
-  // the active preset exactly like a fresh edit would.
-  const undoRedoRef = useRef<{
-    undo: (current: DeckConfig) => DeckConfig | null;
-    redo: (current: DeckConfig) => DeckConfig | null;
-  }>({ undo: () => null, redo: () => null });
-
-  const handleUndoDeck = useCallback(() => {
-    if (!target) return;
-    closeCommitBurst();
-    const restored = undoRedoRef.current.undo(target.config);
-    if (!restored) return;
-    clearLiveTiles();
-    applyConfig(restored);
-    scheduleAutoSave();
-  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst, clearLiveTiles]);
-
-  const handleRedoDeck = useCallback(() => {
-    if (!target) return;
-    closeCommitBurst();
-    const restored = undoRedoRef.current.redo(target.config);
-    if (!restored) return;
-    clearLiveTiles();
-    applyConfig(restored);
-    scheduleAutoSave();
-  }, [target, applyConfig, scheduleAutoSave, closeCommitBurst, clearLiveTiles]);
-
-  const {
-    push: pushDeckHistory,
-    undo: undoDeck,
-    redo: redoDeck,
-    canUndo: canUndoDeck,
-    canRedo: canRedoDeck,
-  } = useUndoRedo<DeckConfig>({
-    maxDepth: 50,
-    enabled: tab === 'customize',
-    onUndo: handleUndoDeck,
-    onRedo: handleRedoDeck,
-  });
-
-  undoRedoRef.current = { undo: undoDeck, redo: redoDeck };
-  pushDeckHistoryRef.current = pushDeckHistory;
-
-  // Reset pushes the pre-reset config so it can be undone, then clears to a
-  // single empty page through the same update path as every other edit.
-  const handleDeckReset = useCallback(() => {
-    if (!target) return;
-    closeCommitBurst();
-    pushDeckHistory(target.config);
-    clearLiveTiles();
-    applyConfig(emptyDeck());
-    scheduleAutoSave();
-  }, [target, applyConfig, pushDeckHistory, scheduleAutoSave, closeCommitBurst, clearLiveTiles]);
+  const handleUndoDeck = useCallback(() => { clearLiveTiles(); instance.undo(); }, [instance, clearLiveTiles]);
+  const handleRedoDeck = useCallback(() => { clearLiveTiles(); instance.redo(); }, [instance, clearLiveTiles]);
+  const handleDeckReset = useCallback(() => { clearLiveTiles(); instance.reset(); }, [instance, clearLiveTiles]);
 
   // DeckDefaultTitleSettings (Settings tab) commits through the same
-  // onDeckConfigCommit choke point as the Customize tab's key editor, so a
-  // tab switch mid-burst must close it - otherwise an edit on the other tab
-  // lands inside a burst anchored on an unrelated field's pre-edit config.
+  // instance as the Customize tab's key editor, so a tab switch mid-burst
+  // must close it - otherwise an edit on the other tab lands inside a burst
+  // anchored on an unrelated field's pre-edit config.
   const handleTabChange = useCallback((next: StreamDeckTab) => {
-    closeCommitBurst();
+    instance.endEditBurst();
     setTab(next);
-  }, [closeCommitBurst]);
+  }, [instance]);
 
   // Follow the physical deck's navigation: pressing prev/next page, go-to-page,
   // or entering/leaving a folder on the hardware broadcasts a `nav` frame, so
   // the editor moves to the same page/folder the deck is showing.
-  useTopicCallback('streamdeck', !isRemoteOrigin && !!serial, useCallback((data: unknown) => {
+  useTopicCallback('streamdeck', !isLocalhostUnreachable() && !!serial, useCallback((data: unknown) => {
     const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[] };
     if (f.kind !== 'nav' || f.serial !== serial) return;
-    if (typeof f.page === 'number') setPage(f.page);
+    if (typeof f.page === 'number') {
+      setPage(f.page);
+      if (recentAppsMode) setRecentPage(f.page);
+    }
     setFolderPath(Array.isArray(f.folderPath) ? f.folderPath : []);
     setSelectedSlot(0);
-  }, [serial]));
+  }, [serial, recentAppsMode]));
 
   // Mirror an editor-initiated nav onto the hardware (desktop -> device). Only
   // user actions call this; the `nav`-frame subscription above (device ->
@@ -324,10 +274,17 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const onSelectPage = (next: number) => { setPage(next); setFolderPath([]); setSelectedSlot(0); pushNav(next, []); };
   const onEnterFolder = (next: number[]) => { setFolderPath(next); setSelectedSlot(0); pushNav(page, next); };
 
+  // Recent Apps has its own local page index (buildRecentAppsView's auto
+  // pagination, not an authored page), but the service still keys its
+  // streamdeckTiles pushes off the deck's CURRENT page, so browsing here has
+  // to push nav the same way a Custom-mode page change does or the tiles for
+  // the newly selected page never arrive.
+  const goToRecentPage = (next: number) => { setRecentPage(next); pushNav(next, []); };
+
   // /streamdeck/* is .LocalhostOnly(); a remote-paired session (or a browser
   // reaching the dashboard over the relay) would otherwise sit on this page
   // forever with useStreamDecks refusing to fetch and `loaded` never true.
-  if (isRemoteOrigin) {
+  if (isLocalhostUnreachable()) {
     return (
       <PageShell>
         <EmptyState icon={<Monitor size={40} />} title={t('devices.streamdeck.desktopOnly')} />
@@ -414,6 +371,31 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     else clearSlot(i);
   };
 
+  const instanceEditor = (
+    <DeckInstanceEditor
+      deck={instance}
+      instanceGrid={instanceGrid}
+      kind="physical"
+      page={page}
+      onPageChange={onSelectPage}
+      folderPath={folderPath}
+      onFolderPathChange={onEnterFolder}
+      selectedSlot={selectedSlot}
+      onSelectedSlotChange={setSelectedSlot}
+      // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+      surface="desktop"
+      desktopEditor
+      onImport={() => setImportOpen(true)}
+      onLoad={id => void onDeckPresetLoad(id)}
+      onDelete={id => void onDeckPresetDelete(id)}
+      onUndo={handleUndoDeck}
+      onRedo={handleRedoDeck}
+      onReset={handleDeckReset}
+      // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
+      bodyMode="toolbarOnly"
+    />
+  );
+
   const TABS: TabDef[] = [
     { key: 'customize', label: t('devices.streamdeck.tab.customize'), icon: <LayoutGrid size={14} /> },
     { key: 'settings', label: t('devices.streamdeck.tab.settings'), icon: <SettingsIcon size={14} /> },
@@ -426,27 +408,6 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         tabs={TABS}
         activeTab={tab}
         onTabChange={k => handleTabChange(k as StreamDeckTab)}
-        tabActions={tab === 'customize' && deckPresets.available ? (
-          <PresetToolbar
-            rail
-            presets={deckPresets.presets}
-            activeId={deckPresets.activeId}
-            presetCount={deckPresets.presetCount}
-            canUndo={canUndoDeck}
-            canRedo={canRedoDeck}
-            onLoad={onDeckPresetLoad}
-            onCreate={deckPresets.handleCreate}
-            onRename={deckPresets.handleRename}
-            onDelete={onDeckPresetDelete}
-            onReset={handleDeckReset}
-            onUndo={handleUndoDeck}
-            onRedo={handleRedoDeck}
-            onImport={() => setImportOpen(true)}
-            resetLabelKey="devices.streamdeck.presets.reset"
-            resetConfirmKey="devices.streamdeck.presets.resetConfirm"
-            importLabelKey="devices.streamdeck.presets.importOption"
-          />
-        ) : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
         {deck.warning && (
@@ -459,54 +420,123 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
         {tab === 'customize' ? (
+          // One DndContext and one split for every mode (inert in Recent Apps,
+          // which has no draggables), so the right column never remounts on a
+          // mode switch and the chip that committed it keeps focus.
           <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveDragKind(null)}>
-          <div className={styles.customizeSplit}>
-            <div className={styles.leftCol}>
-              <div className={styles.previewTop}>
-                <div className={styles.previewStage} ref={previewStageRef}>
-                  {target && (
-                    <DeckGrid
-                      slots={viewSlots}
-                      cols={target.cols}
-                      rows={target.rows}
-                      square
-                      selectable
-                      dragEnabled
-                      selectedIndex={selSlot}
-                      onCell={onCellClick}
-                      backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
-                      onDeleteSlot={requestDelete}
-                      liveTiles={liveTiles}
-                      page={page}
-                      folderPath={folderPath}
-                    />
-                  )}
-                </div>
-                {target && (
-                  <div className={styles.pageRow}>
-                    <div className={styles.pageRowSide} />
-                    <DeckPageStrip
-                      numbered
-                      pageCount={pageCount}
-                      currentPage={page}
-                      onSelectPage={onSelectPage}
-                      onAddPage={() => { if (pageCount >= MAX_DECK_PAGES) return; target.addPage(); onSelectPage(pageCount); }}
-                      onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
-                      currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
-                    />
-                    <div className={`${styles.pageRowSide} ${styles.pageRowRight}`}>
-                      {selectedBound && (
-                        <button type="button" className={styles.pageRowBtn} onClick={() => requestDelete(selSlot)} aria-label={t('common.delete')}>
-                          <Trash2 size={16} />
-                        </button>
-                      )}
+            <div className={styles.customizeSplit}>
+              {recentAppsMode ? (
+                <div className={styles.leftCol}>
+                  <div className={styles.previewTop}>
+                    <div className={styles.previewStage}>
+                      <DeckGrid
+                        slots={(recentPages[recentPage] ?? []).map(recentKeyToPlaceholderSlot)}
+                        cols={deck.cols}
+                        rows={deck.rows}
+                        square
+                        selectable={false}
+                        onCell={i => {
+                          const key = recentPages[recentPage]?.[i];
+                          if (key?.kind === 'navNext') goToRecentPage(Math.min(recentPage + 1, recentMaxPage));
+                          else if (key?.kind === 'navPrev') goToRecentPage(Math.max(recentPage - 1, 0));
+                        }}
+                        liveTiles={liveTiles}
+                        page={recentPage}
+                        folderPath={[]}
+                      />
+                    </div>
+                    <div className={styles.pageRow}>
+                      <div className={styles.pageRowSide} />
+                      <DeckPageStrip
+                        numbered
+                        readOnly
+                        pageCount={recentPages.length}
+                        currentPage={recentPage}
+                        onSelectPage={goToRecentPage}
+                      />
+                      <div className={`${styles.pageRowSide} ${styles.pageRowRight}`} />
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+              <div className={styles.leftCol}>
+                <div className={styles.previewTop}>
+                  <div className={styles.previewStage} ref={previewStageRef}>
+                    {target && (
+                      <DeckGrid
+                        slots={viewSlots}
+                        cols={target.cols}
+                        rows={target.rows}
+                        square
+                        selectable
+                        dragEnabled
+                        selectedIndex={selSlot}
+                        onCell={onCellClick}
+                        backCell={inFolder ? { onBack, ariaLabel: t('panel.settings.deck.back') } : undefined}
+                        onDeleteSlot={requestDelete}
+                        liveTiles={liveTiles}
+                        page={page}
+                        folderPath={folderPath}
+                      />
+                    )}
+                  </div>
+                  {target && (
+                    <div className={styles.pageRow}>
+                      <div className={styles.pageRowSide} />
+                      <DeckPageStrip
+                        numbered
+                        pageCount={pageCount}
+                        currentPage={page}
+                        onSelectPage={onSelectPage}
+                        onAddPage={() => { if (pageCount >= MAX_DECK_PAGES) return; target.addPage(); onSelectPage(pageCount); }}
+                        onRemoveCurrentPage={() => onSelectPage(target.removePage(page))}
+                        currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
+                        removeCount={target.removePageKeyCount(page)}
+                        canRemove={target.authoredPageCount > 1}
+                      />
+                      <div className={`${styles.pageRowSide} ${styles.pageRowRight}`}>
+                        {selectedBound && (
+                          <button type="button" className={styles.pageRowBtn} onClick={() => requestDelete(selSlot)} aria-label={t('common.delete')}>
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
-              <div className={styles.editorPane}>
-                {target ? (
+                <div className={styles.editorPane}>
+                  {target ? (
+                    <DeckKeyInspector
+                      target={target}
+                      page={page}
+                      folderPath={folderPath}
+                      onFolderPathChange={onEnterFolder}
+                      selectedSlot={selectedSlot}
+                      onSelectedSlotChange={setSelectedSlot}
+                      // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
+                      surface="desktop"
+                      desktopEditor
+                      // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
+                      part="editor"
+                      gridEntersFolders
+                      onDeleteSlot={() => requestDelete(selSlot)}
+                    />
+                  ) : instance.error ? (
+                    <div className={styles.loadError}>
+                      <span>{t('panel.settings.deck.rail.loadFailed')}</span>
+                      <Button type="button" size="sm" tone="neutral" onClick={instance.retry}>{t('panel.settings.deck.rail.retry')}</Button>
+                    </div>
+                  ) : (
+                    <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
+                  )}
+                </div>
+              </div>
+              )}
+
+              <div className={styles.pickerPane}>
+                {instanceEditor}
+                {!recentAppsMode && target && (
                   <DeckKeyInspector
                     target={target}
                     page={page}
@@ -518,42 +548,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     surface="desktop"
                     desktopEditor
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
-                    part="editor"
-                    gridEntersFolders
-                    onDeleteSlot={() => requestDelete(selSlot)}
+                    part="picker"
                   />
-                ) : configError ? (
-                  <div className={styles.loadError}>
-                    <span>{t('panel.settings.deck.rail.loadFailed')}</span>
-                    <Button type="button" size="sm" tone="neutral" onClick={retryConfig}>{t('panel.settings.deck.rail.retry')}</Button>
-                  </div>
-                ) : (
-                  <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
                 )}
               </div>
             </div>
-
-            {target && (
-              <div className={styles.pickerPane}>
-                <DeckKeyInspector
-                  target={target}
-                  page={page}
-                  folderPath={folderPath}
-                  onFolderPathChange={onEnterFolder}
-                  selectedSlot={selectedSlot}
-                  onSelectedSlotChange={setSelectedSlot}
-                  // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
-                  surface="desktop"
-                  desktopEditor
-                  // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
-                  part="picker"
-                />
-              </div>
-            )}
-          </div>
-          <DragOverlay dropAnimation={null}>
-            {activeDragKind ? <DeckActionDragPreview kind={activeDragKind} /> : null}
-          </DragOverlay>
+            <DragOverlay dropAnimation={null}>
+              {activeDragKind ? <DeckActionDragPreview kind={activeDragKind} /> : null}
+            </DragOverlay>
           </DndContext>
         ) : (
           <div className={styles.settingsFull}>
@@ -587,6 +589,11 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     : t('devices.streamdeck.sleepAfterMinutes', { n: seconds / 60 }),
                 }))}
                 onChange={v => void setSleepAfterSeconds(deck.serial, Number(v))}
+              />
+              <SettingToggle
+                label={t('devices.streamdeck.sleepWhenLocked')}
+                checked={deck.sleepWhenLocked ?? true}
+                onChange={v => void setSleepWhenLocked(deck.serial, v)}
               />
               <SettingSlider
                 editable
@@ -632,9 +639,10 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         <ElgatoImportModal
           open={importOpen}
           onClose={() => setImportOpen(false)}
-          serial={serial}
-          existingPresetNames={deckPresets.presets.map(p => p.name)}
-          onImported={id => { void (async () => { await deckPresets.loadPresets(); await onDeckPresetLoad(id); })(); }}
+          deckCols={deck.cols}
+          deckRows={deck.rows}
+          existingPresetNames={instance.presets.map(p => p.name)}
+          onImported={id => void onDeckPresetLoad(id)}
         />
       )}
     </div>

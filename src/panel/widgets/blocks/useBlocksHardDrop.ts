@@ -2,10 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { computeFastFallStepMs, computeHardDropDistance, hardDrop, hasCollision, type BlocksRunState } from './blocksLogic';
 
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
-
 export interface BlocksHardDropControls {
   // True for the duration of the fast-fall animation; callers gate rotate,
   // move, and the gravity tick on this so no input lands mid-drop.
@@ -19,9 +15,9 @@ export interface BlocksHardDropControls {
  * one row per interval tick until it reaches that row - one extra tick then
  * locks it through the same `hardDrop` path the instant version uses, so
  * even a one-row drop visibly moves before it merges into the board. Line
- * clears and game-over evaluate only once, after the piece lands. Reduced
- * motion, and a piece that is already resting, skip straight to the instant
- * drop with no interval at all. A mid-drop pause (the orientation flip that
+ * clears and game-over evaluate only once, after the piece lands. A piece
+ * that is already resting skips straight to the instant drop with no
+ * interval at all. A mid-drop pause (the orientation flip that
  * shows RotatePrompt) freezes ticks in place rather than advancing blind,
  * matching every other mutator in BlocksTouch.
  *
@@ -53,7 +49,7 @@ export function useBlocksHardDrop(
 
     const live = runStateRef.current;
     const distance = computeHardDropDistance(live.board, live.blocks, live.position);
-    if (distance <= 0 || prefersReducedMotion()) {
+    if (distance <= 0) {
       setRunState(prev => hardDrop(prev, randomFn));
       return;
     }

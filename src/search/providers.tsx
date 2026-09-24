@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import {
   Moon, Sun, Monitor, Smartphone, Palette, Power, MonitorUp, Film, Sparkles, Wifi, Cloud, RadioTower,
-  SlidersHorizontal, UserRound, FlaskConical, Gamepad2, Bug, FolderOpen, Info, MessageCircle, RefreshCw,
+  SlidersHorizontal, UserRound, FlaskConical, Gamepad2, FolderOpen, Info, MessageCircle, RefreshCw,
   Music, Lightbulb, VolumeX, Play, SkipForward, SkipBack, Lock, LayoutGrid, AppWindow, Crosshair,
-  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones,
+  ScrollText, Wrench, Download, Upload, Plus, Disc, Radio, Mic, Headphones, PackageOpen, FileText,
 } from 'lucide-react';
 import { NAV_ICONS } from '../app/sidebarNav';
 import {
@@ -28,7 +28,7 @@ import { syncCloudNow } from '../api/cloud';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { exportProfile } from '../api/profiles';
 import {
-  openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport,
+  openDiagnosticsEventViewer, openDiagnosticsDeviceManager, downloadDiagnosticsReport, downloadSupportBundle,
 } from '../api/diagnostics';
 import { postService } from '../api/service';
 import type { UpdateMode, UpdateChannel } from '../api/update';
@@ -37,7 +37,7 @@ import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '..
 import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
 import { PAGE_ONLY_APPS } from '../app/pageOnlyApps';
 import { DEV_TOOLS } from '../lib/devTools';
-import { DISCORD_INVITE_URL, GITHUB_ISSUES_URL } from '../lib/externalLinks';
+import { DISCORD_INVITE_URL } from '../lib/externalLinks';
 import type { CommandContext, SearchEntry, SearchSource } from './types';
 import { requestSearchScroll } from './scroll';
 import { fireSearchSignal } from './signals';
@@ -54,9 +54,9 @@ function go(id: string, e: {
 }
 function act(id: string, e: {
   title: string; run: () => void;
-  icon?: ReactNode; subtitle?: string; keywords?: string[]; hint?: string;
+  icon?: ReactNode; subtitle?: string; keywords?: string[]; aliases?: string[]; hint?: string;
 }): SearchEntry {
-  return { id, kind: 'action', title: e.title, run: e.run, icon: e.icon, subtitle: e.subtitle, keywords: e.keywords, hint: e.hint };
+  return { id, kind: 'action', title: e.title, run: e.run, icon: e.icon, subtitle: e.subtitle, keywords: e.keywords, aliases: e.aliases, hint: e.hint };
 }
 
 // A boolean on/off control as ONE entry: the row renders a switch in the
@@ -87,7 +87,7 @@ const NAV: { view: string; labelKey: string; keywords: string[] }[] = [
   // pairs with the direct actions (search "silent" or "mirror" → preset/mode
   // action + the page to see more).
   { view: 'lighting',   labelKey: 'lighting.title', keywords: ['rgb', 'led', 'leds', 'effects', 'color', 'colour', 'animation', 'effect', 'mirror', 'media', 'brightness', 'off'] },
-  { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'custom', 'curve', 'off'] },
+  { view: 'cooling',    labelKey: 'cooling.title',  keywords: ['fans', 'fan curve', 'pump', 'thermals', 'temps', 'preset', 'profile', 'silent', 'balanced', 'turbo', 'max', 'custom', 'curve', 'off'] },
   { view: 'devices',    labelKey: 'devices.title',  keywords: ['usb', 'peripherals', 'hardware', 'connected'] },
   { view: 'settings',   labelKey: 'settings.title', keywords: ['preferences', 'config', 'options', 'setup', 'settings', 'update', 'updates', 'software update'] },
 ];
@@ -176,6 +176,7 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.units.number.label',      anchor: 'set-number-format', keywords: ['number', 'decimal', 'separator', 'comma', 'period', 'thousands', 'units', 'format'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.lighting.label', anchor: 'set-feature-lighting', keywords: ['lighting', 'rgb', 'led', 'on', 'off', 'switch', 'feature'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.cooling.label',  anchor: 'set-feature-cooling',  keywords: ['cooling', 'fans', 'on', 'off', 'switch', 'feature'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.schedule.row.label', anchor: 'set-brightness-schedule', keywords: ['schedule', 'brightness', 'dim', 'night', 'evening', 'time', 'timer', 'clock', 'curve', 'leds', 'lights'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.sleepBlackout.label', anchor: 'set-sleep-blackout', keywords: ['sleep', 'suspend', 'standby', 'shutdown', 'power off', 'fade', 'leds', 'lights', 'off', 'ram', 'memory'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.lockBlackout.label', anchor: 'set-lock-blackout', keywords: ['lock', 'locked', 'lock screen', 'away', 'afk', 'fade', 'dim', 'leds', 'lights', 'off'], platforms: ['windows', 'macos', 'linux'] },
@@ -334,7 +335,7 @@ const installedApps: SearchSource = (ctx) =>
     });
 
 // Widget-only apps (no page) open the dashboard's add-widget catalog, so
-// searching "weather" lands somewhere useful instead of nowhere. The catalog
+// searching "stocks" lands somewhere useful instead of nowhere. The catalog
 // itself is the picker; the signal survives the navigation.
 const widgetApps: SearchSource = (ctx) =>
   getCatalogEntries()
@@ -395,11 +396,11 @@ const lightingEffects: SearchSource = (ctx) => {
   const animation = ctx.t('lighting.mode.animate');
   const { speed, intensity, hue, colorize, saturation, contrast } = BASE_DEFAULTS;
   return EFFECTS.map((e) => {
-    const params = Object.fromEntries(e.params.map((p) => [p.name, p.defaultValue]));
     return act(`effect:${e.key}`, {
       title: ctx.t(e.labelKey), subtitle: animation, icon: <Sparkles size={18} />,
       keywords: ['animation', 'animate', 'animated', 'effect', e.key, categoryOf(e.key)],
-      run: () => { void startAnimate(e.key, speed, intensity, hue, colorize, saturation, contrast, params).catch(() => {}); },
+      // Empty params: the service fills every declared param's default from the shader.
+      run: () => { void startAnimate(e.key, speed, intensity, hue, colorize, saturation, contrast, {}).catch(() => {}); },
     });
   });
 };
@@ -420,7 +421,9 @@ const appearance: SearchSource = (ctx) => {
       icon: <span className={styles.accentDot} style={{ background: hex }} aria-hidden />,
       keywords: ['accent', 'color', 'colour', 'theme', name],
       hint: ctx.settings.accentColor.toLowerCase() === hex.toLowerCase() ? active : undefined,
-      run: () => ctx.updateSettings({ accentColor: hex }),
+      // Picking a colour switches off the system-accent tracking, else
+      // SystemAccentSync writes the OS accent straight back over it.
+      run: () => ctx.updateSettings({ accentColor: hex, accentSource: 'custom' }),
     }));
   }
   for (const lang of LANGUAGES) {
@@ -547,7 +550,7 @@ const quickOpens: SearchSource = (ctx) => [
   }),
   go('open:discord-invite', {
     title: ctx.t('nav.discord'), icon: <MessageCircle size={18} />,
-    keywords: ['discord', 'community', 'chat', 'help', 'support', 'invite'],
+    keywords: ['discord', 'community', 'chat', 'help', 'support', 'invite', 'bug', 'report', 'feedback', 'issue', 'problem', 'hardware', 'request'],
     to: () => { window.open(DISCORD_INVITE_URL, '_blank', 'noopener,noreferrer'); },
   }),
   go('open:add-widget', {
@@ -807,25 +810,30 @@ const accountExtra: SearchSource = (ctx) => {
 };
 
 const diagnostics: SearchSource = (ctx) => [
-  act('diag:open-logs', {
-    title: ctx.t('settings.diagnostics.openLogsButton'),
+  // "/logs" is the shortcut support hands out, so the bundle owns "logs"
+  // outright and the folder entry answers to folder/data/files only.
+  ...(ctx.online ? [
+    act('diag:support-bundle', {
+      title: ctx.t('settings.diagnostics.supportBundleButton'),
+      subtitle: ctx.t('settings.diagnostics.title'),
+      icon: <PackageOpen size={18} />,
+      keywords: ['log', 'support', 'bundle', 'zip', 'export', 'debug', 'troubleshoot', 'issue'],
+      aliases: ['logs'],
+      run: () => { void downloadSupportBundle().catch(() => {}); },
+    }),
+  ] : []),
+  act('diag:open-data-folder', {
+    title: ctx.t('settings.diagnostics.openDataFolderButton'),
     subtitle: ctx.t('settings.diagnostics.title'),
     icon: <FolderOpen size={18} />,
-    keywords: ['logs', 'log', 'folder', 'diagnostics', 'debug', 'troubleshoot'],
+    keywords: ['folder', 'data', 'files', 'programdata', 'app data', 'settings.json', 'diagnostics'],
     run: () => { void postService('/diagnostics/open-logs', {}).catch(() => {}); },
-  }),
-  act('diag:report-bug', {
-    title: ctx.t('settings.feedback.report'),
-    subtitle: ctx.t('settings.feedback'),
-    icon: <Bug size={18} />,
-    keywords: ['bug', 'report', 'feedback', 'issue', 'github', 'problem'],
-    run: () => { window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer'); },
   }),
   ...(ctx.online ? [
     act('diag:download-report', {
       title: ctx.t('diagnostics.header.downloadReport'),
       subtitle: ctx.t('diagnostics.title'),
-      icon: <Download size={18} />,
+      icon: <FileText size={18} />,
       keywords: ['diagnostics', 'report', 'bundle', 'export', 'download', 'support'],
       run: () => { void downloadDiagnosticsReport().catch(() => {}); },
     }),

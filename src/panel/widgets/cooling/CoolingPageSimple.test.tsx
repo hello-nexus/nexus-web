@@ -88,12 +88,15 @@ describe('CoolingPage simple mode', () => {
     expect(vi.mocked(setFanControlled).mock.calls.some(c => c[0] === 'fan-cpu')).toBe(false);
   });
 
-  it('unlocks a fan the mode buttons would otherwise skip', async () => {
+  it('writes no lock override on open or on a mode click', async () => {
     renderPage();
+    // Locked is the service's default for pumps, GPU and AIO channels.
+    await screen.findByText('cooling.simple.controlledOf.other');
+    fireEvent.click(screen.getByRole('button', { name: /cooling\.mode\.silent\b/ }));
     await waitFor(() => {
-      expect(vi.mocked(setFanLock)).toHaveBeenCalledWith('fan-rear', false);
+      expect(vi.mocked(applyProfile)).toHaveBeenCalledWith('silent');
     });
-    expect(vi.mocked(setFanLock).mock.calls.some(c => c[0] === 'fan-cpu')).toBe(false);
+    expect(vi.mocked(setFanLock)).not.toHaveBeenCalled();
   });
 
   it('applies a mode from its tile', async () => {

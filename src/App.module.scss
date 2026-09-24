@@ -23,8 +23,7 @@
   // gradient backdrop reads through the gaps between cards (panel gap,
   // margins), not through the cards themselves.
   // --topbar-height, --sidebar-width, --sidebar-chip-bg, --rail-width and
-  // --rail-item-pad live in styles/variables.scss (:root): the add-app drawer
-  // paints the same nav rows from a <body> portal, outside this element.
+  // --rail-item-pad live in styles/variables.scss (:root).
   // macOS shell only: horizontal inset that pushes the top bar's collapse toggle
   // clear of the native traffic lights (centered in the rail) with extra gap.
   --mac-traffic-light-inset: 96px;
@@ -720,14 +719,6 @@
 @keyframes phonePairRevealFade {
   from { opacity: 1; }
   to   { opacity: 0; }
-}
-
-// Reduced motion: reveal instantly - no lingering white overlay.
-@media (prefers-reduced-motion: reduce) {
-  .phonePairReveal {
-    animation: none;
-    opacity: 0;
-  }
 }
 
 .phonePairLoading {

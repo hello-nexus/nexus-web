@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import classNames from 'classnames';
-import { Ghost, Link2, Trash2, Unlink, Usb } from 'lucide-react';
+import { Ghost, Link2, Link2Off, Trash2, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
@@ -132,7 +132,7 @@ export function SidebarDevicesSection({
     ...(toggleNexusControl ? [{
       key: 'nexus-control',
       label: t(ctxDevice.nexusControlEnabled ? 'lighting.devices.menuControlOff' : 'lighting.devices.menuControlOn'),
-      icon: ctxDevice.nexusControlEnabled ? <Unlink size={14} /> : <Link2 size={14} />,
+      icon: ctxDevice.nexusControlEnabled ? <Link2Off size={14} /> : <Link2 size={14} />,
       onSelect: toggleNexusControl,
     }] : []),
     ...(removeSimulated ? [{

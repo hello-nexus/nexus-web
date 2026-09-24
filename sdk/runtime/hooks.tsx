@@ -42,6 +42,21 @@ export function usePreview(): boolean {
   return useStore().preview;
 }
 
+/** True when the host is an internal DEV_TOOLS build. Static for the render.
+ *  Use it to relax a ship-time availability gate on an internal machine; never
+ *  to unlock something a shipped build must refuse. */
+export function useDevTools(): boolean {
+  return useStore().devTools;
+}
+
+/** Whether this render is the panel's fullscreen immersive view (its own
+ *  worker, so `active` is static for the render), and the host's animated way
+ *  out of it. `exit` is a no-op anywhere else. */
+export function useImmersive(): { active: boolean; exit: () => void } {
+  const store = useStore();
+  return { active: store.immersive, exit: () => { store.api.exitImmersive?.(); } };
+}
+
 /** Per-instance local state bag. Persisted by the host across reloads; the
  *  setter merges, doing a shallow `localUpdate`-style merge. */
 export function useLocalState<T extends object>(

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
-import { Fan } from 'lucide-react';
+import { Fan, Tornado } from 'lucide-react';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import {
   applyProfile, fetchProfiles,
@@ -29,7 +29,7 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { CoolingResponseChart } from './CoolingResponseChart';
 import styles from './CoolingWidget.module.scss';
 
-const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['silent', 'balanced', 'turbo'];
+const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['off', 'silent', 'balanced', 'turbo', 'max'];
 const TEMP_MAX = 100;
 // Catalog preview shows a deterministic preset (label via the existing
 // cooling.mode.balanced key). Keep in sync with the simple-mode render;
@@ -56,12 +56,34 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
   // Cleared on animationend: a finished fill-mode animation stays active
   // on the node (holding a compositor layer) until the attribute drops.
   const [spinDoneAt, setSpinDoneAt] = useState(0);
+  // Max's tornado runs its own entrance, on its own clock: it is much shorter
+  // than the fan's coast-to-stop, and sharing spinDoneAt would let whichever
+  // finished first cut the other off mid-animation.
+  const [maxDoneAt, setMaxDoneAt] = useState(0);
   // Enabled one render after hydration commits, so the bars snap to the
   // initial server state instead of transitioning to it.
   const [barsAnimate, setBarsAnimate] = useState(false);
   useEffect(() => {
     if (hydrated) setBarsAnimate(true);
   }, [hydrated]);
+  // Leaving Max unmounts the bars, so on the way back they mount at their
+  // final level with nothing to transition from and the fill never plays.
+  // Hold them empty for two frames - one to paint empty, one to start the
+  // fill - so Max to Silent reads as the first bar filling, not appearing.
+  const maxActive = active === 'max';
+  const [barsFillIn, setBarsFillIn] = useState(false);
+  useEffect(() => {
+    if (maxActive) {
+      setBarsFillIn(true);
+      return;
+    }
+    if (!barsFillIn) return;
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setBarsFillIn(false));
+    });
+    return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner); };
+  }, [maxActive, barsFillIn]);
   const [curves, setCurves] = useState<CurveDef[]>([]);
   const [fanStates, setFanStates] = useState<Record<string, FanState>>({});
   const [channels, setChannels] = useState<FanChannel[]>([]);
@@ -197,16 +219,15 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
     applyProfile(key).catch(() => { /* best-effort */ });
   }, []);
 
-  // Simple mode handlers: arrows cycle ONLY silent/balanced/turbo.
-  // Center always shows the current `active` state - could be one of
-  // those three, or 'custom' / 'off'. First press from a non-cycle
-  // state jumps to the first item in the cycle direction: right →
-  // silent, left → turbo (per user spec).
+  // Simple mode handlers: arrows cycle off/silent/balanced/turbo/max.
+  // Center always shows the current `active` state, which can also be
+  // 'custom'. First press from Custom jumps to the first fan-driving
+  // step in the cycle direction: right → silent, left → max (per user spec).
   const cyclePreset = useCallback((delta: number) => {
     const idx = WIDGET_PRESET_KEYS.indexOf(active as CoolingModeKey);
     let nextIdx: number;
     if (idx < 0) {
-      nextIdx = delta > 0 ? 0 : WIDGET_PRESET_KEYS.length - 1;
+      nextIdx = delta > 0 ? WIDGET_PRESET_KEYS.indexOf('silent') : WIDGET_PRESET_KEYS.length - 1;
     } else {
       nextIdx = (idx + delta + WIDGET_PRESET_KEYS.length) % WIDGET_PRESET_KEYS.length;
     }
@@ -233,15 +254,21 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
   if (simpleMode) {
     // Identical layout at every size: fan-with-signal-bars icon centered,
     // current-mode label below, prev/next arrows on either side.
+    // Max renders the tornado instead of bars, so it sits outside
+    // the 1/2/3 scale but still drives the fan's spin as the top rung.
+    const isMax = active === 'max';
+    const isOff = active === 'off';
     const level: 1 | 2 | 3 | null =
       active === 'silent' ? 1
       : active === 'balanced' ? 2
       : active === 'turbo' ? 3
       : null;
+    const spinLevel = isMax ? 4 : level;
     const labelKey =
       active === 'silent' ? 'cooling.mode.silent'
       : active === 'balanced' ? 'cooling.mode.balanced'
       : active === 'turbo' ? 'cooling.mode.turbo'
+      : isMax ? 'cooling.mode.max'
       : active === 'off' ? 'cooling.mode.off'
       : 'cooling.mode.custom';
     const showLabel = widget.size !== '2x2';
@@ -255,19 +282,36 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
             ariaLabel={t('cooling.panel.prev')}
           />
           <div className={styles.simpleCenter}>
-            <div className={`${styles.simpleIconGroup} ${level ? '' : styles.simpleIconMuted}`}>
-              {/* Keyed remount restarts the spin if the preset changes mid-spin. */}
+            <div className={`${styles.simpleIconGroup} ${level || isMax ? '' : styles.simpleIconMuted}`}>
+              {/* Keyed remount restarts the spin if the preset changes mid-spin.
+                  The key is prefixed because the tornado beside it remounts on
+                  the same pulse, and two siblings sharing a key reconcile as one
+                  element - which duplicated the fan on every Max entrance. */}
               <Fan
-                key={spinPulse}
+                key={`fan-${spinPulse}`}
                 size={56}
                 aria-hidden
+                // Off hands the fans to hardware control; Nexus no longer drives them, so no spin.
                 // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean
-                data-spinning={spinPulse > spinDoneAt ? 'true' : undefined}
-                data-level={level ?? undefined}
+                data-spinning={spinPulse > spinDoneAt && !isOff ? 'true' : undefined}
+                data-level={spinLevel ?? undefined}
                 className={styles.simpleFan}
                 onAnimationEnd={() => setSpinDoneAt(spinPulse)}
               />
-              <SignalBarsIcon level={level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />
+              {isMax
+                ? (
+                  /* Keyed remount restarts the touchdown if Max is re-picked. */
+                  <Tornado
+                    key={`max-${spinPulse}`}
+                    size={56}
+                    aria-hidden
+                    // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean
+                    data-spinning={spinPulse > maxDoneAt ? 'true' : undefined}
+                    className={`${styles.simpleBars} ${styles.simpleMax}`}
+                    onAnimationEnd={() => setMaxDoneAt(spinPulse)}
+                  />
+                )
+                : <SignalBarsIcon level={barsFillIn || isOff ? 0 : level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />}
             </div>
             {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
           </div>

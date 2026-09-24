@@ -1,4 +1,4 @@
-import type { AudioDevice, AudioMixerPreset, AudioSession } from '../../../api/mixer';
+import type { AudioDevice, AudioMixerPreset, AudioSession, AudioSpatialState } from '../../../api/mixer';
 
 /** Catalog / marketing preview: a plausible streaming mix, no I/O. */
 export const MIXER_PREVIEW: {
@@ -7,6 +7,7 @@ export const MIXER_PREVIEW: {
   presets: AudioMixerPreset[];
   outputs: AudioDevice[];
   inputs: AudioDevice[];
+  spatial: AudioSpatialState;
 } = {
   master: { volume: 0.62, muted: false },
   // Three strips, not a full session list: the catalog renders this into a small
@@ -27,4 +28,13 @@ export const MIXER_PREVIEW: {
   inputs: [
     { id: 'in-mic', name: 'Shure MV7', isDefault: true, direction: 'input' },
   ],
+  spatial: {
+    supported: true,
+    deviceId: 'out-headset',
+    activeId: 'sonic',
+    formats: [
+      { id: 'sonic', name: 'Windows Sonic for Headphones' },
+      { id: 'atmos', name: 'Dolby Atmos for Headphones' },
+    ],
+  },
 };

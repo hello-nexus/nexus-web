@@ -20,4 +20,20 @@ describe('page-only apps without dev tools', () => {
     expect(isPinnableAppKey('store')).toBe(false);
     expect(sanitizePinnedTail(['store'])).toEqual([]);
   });
+
+  it('does not register build', () => {
+    expect(PAGE_ONLY_APPS.build).toBeUndefined();
+    expect(isPageOnlyAppKey('build')).toBe(false);
+  });
+
+  it('refuses to pin build, and drops one already pinned', () => {
+    expect(isPinnableAppKey('build')).toBe(false);
+    expect(sanitizePinnedTail(['build'])).toEqual([]);
+  });
+
+  it('keeps frames registered and pinnable: it ships on release builds', () => {
+    expect(isPageOnlyAppKey('frames')).toBe(true);
+    expect(isPinnableAppKey('frames')).toBe(true);
+    expect(sanitizePinnedTail(['frames'])).toEqual(['frames']);
+  });
 });

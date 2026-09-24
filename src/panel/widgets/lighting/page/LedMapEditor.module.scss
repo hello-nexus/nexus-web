@@ -4,6 +4,55 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  // The wide modal body is a row flex container; without an explicit grow
+  // this sole child shrinks to its own content width instead of filling it.
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+// Sidebar (device list + editor tooling) beside the canvas, which stays the
+// dominant element. Below the phone-width breakpoint the two stack, sidebar
+// first, matching SettingRow's stackNarrow convention.
+.layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+}
+
+.sidebar {
+  flex: 0 0 344px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  // The wide DeviceModal body is `overflow: hidden` (it expects a two-pane
+  // layout to scroll each pane on its own), and the canvas's height is fixed
+  // by its aspect ratio rather than the available space - so a long device
+  // chain needs its own scroll region instead of being clipped silently.
+  max-height: 70vh;
+  overflow-y: auto;
+  // Nothing in here may scroll sideways: every row is meant to wrap or
+  // truncate to the column, and a horizontal bar under one wide row is the
+  // tell that it did neither.
+  overflow-x: hidden;
+
+  @media (max-width: 480px) {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+.canvasColumn {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-x: hidden;
 }
 
 .canvas {
@@ -12,10 +61,10 @@
   // Box shape (aspect-ratio) comes inline from CANVAS_RATIO in
   // LedMapEditor.tsx, which also derives the device frame's default
   // placement from it so the frame-to-edge gap is equal on all sides.
+  // Black, and only black: the grid belongs to the device frame, so the margin
+  // around it stays clear and an LED on an edge is drawn whole.
   background-color: #080808;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-  background-size: 20px 20px;
-  border: 1px solid transparent;
+  border: none;
   border-radius: var(--radius);
   overflow: hidden;
   touch-action: none;
@@ -25,48 +74,29 @@
 
 .deviceRect {
   position: absolute;
-  border: 1.5px solid rgb(255 255 255 / var(--alpha-medium));
-  border-radius: var(--radius-sm);
+  // No outline: the grid is what marks the mappable area, the same way the
+  // lighting canvas reads. An edge LED would otherwise sit on a line.
+  border: none;
   background-color: transparent;
-  background-image: radial-gradient(circle, rgb(0 0 0 / var(--alpha-medium)) 0.7px, transparent 1.1px);
-  background-size: 4px 4px;
+  // Very faint lines on the snap grid. --grid-cols / --grid-rows come inline
+  // from GRID_COLS x GRID_ROWS in zoneUtils.ts, whose ratio matches the
+  // frame's so cells stay square.
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / calc(var(--alpha-faint) / 2)) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / calc(var(--alpha-faint) / 2)) 1px, transparent 1px);
+  background-size: calc(100% / var(--grid-cols)) calc(100% / var(--grid-rows));
   pointer-events: none;
   z-index: 0;
 }
 
-.rectResize {
-  position: absolute;
-  bottom: -4px;
-  right: -4px;
-  width: 12px;
-  height: 12px;
-  cursor: nwse-resize;
-  pointer-events: auto;
-  z-index: 6;
-  opacity: 0.4;
-  transition: opacity var(--ease-fast);
-
-  &::after {
-    content: '';
-    position: absolute;
-    right: 2px;
-    bottom: 2px;
-    width: 6px;
-    height: 6px;
-    border-right: 2px solid rgb(255 255 255 / var(--alpha-medium));
-    border-bottom: 2px solid rgb(255 255 255 / var(--alpha-medium));
-  }
-
-  &:hover { opacity: 1; }
-}
 
 .led {
   position: absolute;
   // Bigger than a dot so the LED index sits legibly inside the circle.
   // Still small enough to pack hundreds of keys on a keyboard matrix without
   // the circles merging into one blob.
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   cursor: grab;
@@ -131,18 +161,24 @@
 // the coloured LED fills (accent, good, warn). pointer-events none so the
 // underlying .led still owns drag + click.
 .ledIndex {
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   font-weight: var(--weight-display);
   line-height: 1;
   color: #fff;
-  text-shadow: 0 0 3px rgb(0 0 0 / var(--alpha-strong));
+  // The circle underneath is whatever colour the LED renders, including a
+  // pale one, so the number carries its own dark outline rather than relying
+  // on the fill for contrast.
+  text-shadow:
+    0 0 2px #000,
+    0 0 3px #000,
+    0 1px 1px #000;
   pointer-events: none;
   user-select: none;
 }
 
 .ledGroup {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   box-shadow: 0 0 0 2.5px var(--accent), 0 0 0 4px var(--accent-soft);
 }
 
@@ -210,7 +246,10 @@
   position: absolute;
   display: flex;
   gap: 0.25rem;
-  transform: translate(-100%, -100%);
+  // Hangs up-left of the selection by default. The canvas clips, so near an
+  // edge the anchoring flips instead - the variables are set inline from the
+  // measured anchor.
+  transform: translate(var(--sel-toolbar-x, -100%), var(--sel-toolbar-y, -100%));
   margin-top: -4px;
   margin-left: -2px;
   padding: 0.2rem;
@@ -245,15 +284,16 @@
 
 .sweepLine {
   position: absolute;
-  background: rgb(255 255 255 / var(--alpha-medium));
+  background: rgb(255 255 255 / calc(var(--alpha-faint) * 2));
   pointer-events: none;
   z-index: 0;
 }
 
 .marquee {
   position: absolute;
-  border: 1px dashed var(--accent);
-  background: var(--accent-soft);
+  // White, not accent: the accent tint vanishes over a lit LED canvas.
+  border: 1px dashed rgb(255 255 255);
+  background: rgb(255 255 255 / 0.12);
   pointer-events: none;
   z-index: 15;
 }
@@ -298,24 +338,6 @@
   }
 }
 
-// Thin horizontal divider drawn just below the device frame to visually
-// separate the live-canvas from the parking row where deleted LEDs live.
-.parkSeparator {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--separator);
-  pointer-events: none;
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
 // Compact control groups in the row above the canvas: preview tooling
 // (test patterns + brightness) on the left, selection tooling on the right.
 .controlsRow {
@@ -335,17 +357,25 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  flex-wrap: wrap;
 }
 
 .modeBtnsLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  margin-right: 0.15rem;
+  font-size: var(--type-body);
+  font-weight: 600;
+  color: var(--text);
+  // Reads as a section title rather than a button label, so it needs air
+  // between it and the first mode.
+  margin-right: 0.45rem;
   white-space: nowrap;
 }
 
 .modeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 0.3rem 0.6rem;
+  white-space: nowrap;
   font-size: var(--type-small);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
@@ -372,44 +402,6 @@
   height: 20px;
   background: var(--separator);
   margin: 0 0.15rem;
-}
-
-.ledCountField {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--type-small);
-  color: var(--text-dim);
-}
-
-.ledCountLabel {
-  color: var(--text-dim);
-}
-
-.ledCountReadonly {
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.ledCountInput {
-  width: 3.5rem;
-  padding: 0.2rem 0.4rem;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  color: var(--text);
-  font: inherit;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  outline: none;
-  transition: border-color var(--ease-fast);
-
-  &:hover { border-color: var(--border-strong); }
-  &:focus { border-color: var(--accent); }
-
-  &::-webkit-outer-spin-button,
-  &::-webkit-inner-spin-button { -webkit-appearance: none; }
-  -moz-appearance: textfield;
 }
 
 // Compact icon-track-value layout for the smart-light hue / saturation
@@ -469,6 +461,22 @@
   }
 }
 
+// Must follow .iconBtn: equal specificity, so source order decides which
+// background wins and the base one would paint over the active state.
+.iconBtnActive {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  // The glyph carries the state too - a toggle read at a glance from a 28px
+  // square needs more than a tinted ground.
+  color: var(--accent);
+
+  &:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+}
+
 .btn {
   padding: 0.3rem 0.65rem;
   font-size: var(--type-small);
@@ -508,9 +516,43 @@
   gap: 0.3rem;
 }
 
+// Under the canvas: what was removed on the left, Save on the right.
+.hintRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  // Reserve the button's height whether or not it is there, so removing the
+  // first LED does not grow the modal under the pointer.
+  min-height: 26px;
+}
+
+// Foot of the whole modal, spanning both columns: away from the map, so it
+// needs no ground of its own and cannot swallow a lasso drag.
+.modalFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  padding-top: 0.25rem;
+}
+
 .hint {
-  font-size: 0.65rem;
+  font-size: var(--type-small);
+  line-height: 1.45;
   color: var(--text-dim);
+}
+
+.hintLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--type-small);
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
 }
 
 .loading {
@@ -518,87 +560,6 @@
   padding: 2rem;
   color: var(--text-dim);
   font-size: var(--type-small);
-}
-
-// Zone rail: one compact chip row listing the device's zones, plus the
-// partition actions (rename / merge / split / reset) and the community
-// layouts button at the right edge.
-.zonesBar {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-
-.zonesLabel {
-  font-size: var(--type-small);
-  color: var(--text-dim);
-  margin-right: 0.15rem;
-  white-space: nowrap;
-}
-
-.zoneChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.1rem;
-  padding: 0.1rem 0.25rem 0.1rem 0;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius);
-  background: var(--surface);
-  transition: border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover {
-    background: var(--bg-card-hover);
-  }
-}
-
-// Marked for merge (modifier+click). Accent border only, so the editable
-// (active) zone's filled treatment stays distinguishable.
-.zoneChipMarked {
-  border-color: var(--accent);
-}
-
-// The zone whose LEDs are editable on the canvas.
-.zoneChipActive {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.zoneChipName {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.15rem 0.3rem 0.15rem 0.6rem;
-  font-size: var(--type-small);
-  border: none;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  white-space: nowrap;
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-// LED count beside the zone name.
-.zoneChipCount {
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-// Lock affordance for zones pinned to a resizable segment (partition wall).
-.zoneChipLock {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  color: var(--text-dim);
-}
-
-.ledMergeTarget {
-  box-shadow: 0 0 0 3px var(--accent), 0 0 8px 2px var(--accent-glow);
-  z-index: 4;
 }
 
 @keyframes ringContract {
@@ -630,26 +591,42 @@
   animation: ringExpand 280ms ease-out forwards;
 }
 
+// The centre of the DEVICE FRAME, not of the canvas: the frame is what a
+// layout is centred on, and it no longer fills the canvas. Both are placed
+// inline from devRect. A step above the snap grid, which is deliberately
+// near-invisible.
 .centerGuideV {
   position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
   width: 1px;
-  background: rgb(255 255 255 / var(--alpha-faint));
+  background: rgb(255 255 255 / calc(var(--alpha-faint) * 2));
   pointer-events: none;
-  z-index: 0;
+  // Above the frame: the frame is painted after these in DOM order, so at the
+  // same depth its grid covered them. Still below the LEDs.
+  z-index: 1;
 }
 
 .centerGuideH {
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
   height: 1px;
-  background: rgb(255 255 255 / var(--alpha-faint));
+  background: rgb(255 255 255 / calc(var(--alpha-faint) * 2));
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
+}
+
+// Where a multi-LED selection snaps: the selection's own centre is the point
+// that lands on the grid, so it is the point that has to be visible.
+.selectionAnchor {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  margin: -4.5px 0 0 -4.5px;
+  border-radius: 50%;
+  background: var(--accent);
+  // Ring rather than a shadow: it has to stay readable over both the black
+  // frame and a lit LED right under it.
+  outline: 2px solid rgb(0 0 0 / var(--alpha-strong));
+  pointer-events: none;
+  z-index: 3;
 }
 
 // Shown instead of the LED swarm above MAX_MAPPABLE_LEDS. Centred in the

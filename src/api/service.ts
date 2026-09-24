@@ -216,6 +216,17 @@ export function isForceLanMode(): boolean {
 }
 
 /**
+ * A remote origin has no localhost PC to reach - except the detected-desktop
+ * case (forceLanMode), where http://localhost really is this machine's own
+ * service. Read by desktop-only surfaces (Stream Deck, the panel-device
+ * helpers) so the website behaves like the bundled app on that machine
+ * while a phone/relay origin still fails closed.
+ */
+export function isLocalhostUnreachable(): boolean {
+  return isRemoteOrigin && !forceLanMode;
+}
+
+/**
  * Publish the live multiplex transport so the REST fetch layer can route
  * accordingly. Called only by useMultiplexSocket as the connection opens /
  * closes. Off-LAN (transport === 'relay') REST calls tunnel over the relay;
@@ -685,8 +696,8 @@ export async function postServiceBytes(path: string, bytes: Uint8Array, contentT
   return sendServiceBytes('POST', path, bytes, contentType);
 }
 
-async function sendServiceBytes(method: 'PUT' | 'POST', path: string, bytes: Uint8Array, contentType: string): Promise<Response | null> {
-  if (isTunnelActive() || blockedLocalhostFetch()) return null;
+async function sendServiceBytesWithStatus(method: 'PUT' | 'POST', path: string, bytes: Uint8Array, contentType: string): Promise<{ response: Response | null; status: number }> {
+  if (isTunnelActive() || blockedLocalhostFetch()) return { response: null, status: 0 };
   try {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': contentType };
@@ -700,11 +711,25 @@ async function sendServiceBytes(method: 'PUT' | 'POST', path: string, bytes: Uin
         response = await fetch(resolveHttp(path), { ...loopbackFetchInit, method, headers, body });
       }
     }
-    if (!response.ok) return null;
-    return response;
+    return { response, status: response.status };
   } catch {
-    return null;
+    return { response: null, status: 0 };
   }
+}
+
+async function sendServiceBytes(method: 'PUT' | 'POST', path: string, bytes: Uint8Array, contentType: string): Promise<Response | null> {
+  const { response } = await sendServiceBytesWithStatus(method, path, bytes, contentType);
+  return response?.ok ? response : null;
+}
+
+/**
+ * Status-preserving raw-bytes POST: unlike postServiceBytes, a non-2xx
+ * response is returned rather than collapsed to null, so the caller can read
+ * the server's error body (e.g. a deck preset import branching on a 409 name
+ * conflict vs a 403 privileged-package rejection).
+ */
+export async function postServiceBytesWithStatus(path: string, bytes: Uint8Array, contentType: string): Promise<{ response: Response | null; status: number }> {
+  return sendServiceBytesWithStatus('POST', path, bytes, contentType);
 }
 
 export async function fetchServiceBlob(path: string): Promise<Blob | null> {

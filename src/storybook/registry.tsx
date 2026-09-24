@@ -2,11 +2,12 @@
 // file per preview to satisfy the fast-refresh rule would be dozens of tiny
 // files. Storybook entries reload (not HMR) on edit.
 import { useEffect, useRef, useState, type CSSProperties, type FC } from 'react';
-import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause, Pointer, Power } from 'lucide-react';
+import { Monitor, Palette, Sparkles, X, Plus, Settings, Download, AlertTriangle, HardDrive, Heart, Pause, Pointer, Power, Cpu, Gauge, MemoryStick } from 'lucide-react';
 import { ViewHeader } from '../components/common/ViewHeader/ViewHeader';
 import { Sparkline } from '../components/common/Sparkline/Sparkline';
 import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
+import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
 import { StatTile } from '../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
@@ -25,6 +26,7 @@ import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../components/common/ChartHoverTooltip/ChartHoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { DeviceGroupIcon } from '../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
 import { FeatureDisabled } from '../components/common/FeatureDisabled/FeatureDisabled';
@@ -37,6 +39,7 @@ import { Tabs } from '../components/common/Tabs/Tabs';
 import { ChipGroup } from '../components/common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { PromptModal } from '../components/common/PromptModal/PromptModal';
+import { KlipyPicker } from '../components/common/KlipyPicker/KlipyPicker';
 import { UsageBar } from '../components/common/UsageBar/UsageBar';
 import { CapacityBar } from '../components/common/CapacityBar/CapacityBar';
 import { SupportedDevicesModal } from '../components/common/SupportedDevicesModal/SupportedDevicesModal';
@@ -72,6 +75,7 @@ import { GaugeTrack } from '../panel/widgets/monitoring/gauges/GaugeTrack';
 import { GaugeValue } from '../panel/widgets/monitoring/gauges/GaugeValue';
 import { pairingPreviewQr } from '../components/common/PairingQr/pairingPreviewData';
 import { PanelThemeSettings, type PanelThemeSettingsState } from '../panel/editor/PanelThemeSettings';
+import { DEFAULT_PANEL_SLIDESHOW_INTERVAL } from '../panel/background/panelBackground';
 import { SectionHeader } from '../components/common/SectionHeader/SectionHeader';
 import { MenuDivider } from '../components/common/MenuDivider/MenuDivider';
 import { CollapsibleSection } from '../components/common/CollapsibleSection/CollapsibleSection';
@@ -92,20 +96,27 @@ import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
 import { NexusMark, NexusWordmark } from '../components/icons/NexusBrand';
 import { PanelArrowButton } from '../panel/chrome/PanelArrowButton';
 import { PanelPageIndicator } from '../panel/chrome/PanelPageIndicator';
+import { PanelSwipeHint } from '../panel/chrome/PanelSwipeHint';
+import { SWIPE_HINT_VISIBLE_MS } from '../panel/engine/usePanelSwipeOnboarding';
 import { WidgetCellLabel } from '../panel/widgets/common/WidgetCellLabel';
 import { StableDigits } from '../panel/widgets/common/StableDigits';
+import { FitLine } from '../panel/widgets/common/FitLine';
+import { WidgetOfflineState } from '../panel/widgets/common/WidgetOfflineState';
 import { SIZE_ICONS } from '../panel/widgets/common/SizeIcons';
 import { IconPicker } from '../panel/widgets/common/IconPicker';
 import { EmojiPicker } from '../panel/widgets/common/EmojiPicker';
 import type { DeckIcon, DeckConfig } from '../panel/widgets/deck/types';
+import type { DeckPresetFull } from '../api/deck';
 import { DeckEditor } from '../panel/widgets/deck/DeckEditor';
 import { DeckPageStrip } from '../panel/widgets/deck/DeckPageStrip';
-import { makePhysicalDeckTarget } from '../panel/widgets/deck/deckTarget';
+import { makePresetDeckTarget } from '../panel/widgets/deck/deckTarget';
 import { MediaCropper } from '../components/common/MediaCropper/MediaCropper';
 import { SyncConflictModal } from '../components/common/SyncConflictModal/SyncConflictModal';
 import { Spinner as StorybookSpinner } from '../components/common/Spinner/Spinner';
 import { Stepper as StorybookStepper } from '../components/common/Stepper/Stepper';
 import { RangeBar } from '../components/common/RangeBar/RangeBar';
+import { GradientStopsEditor } from '../components/common/GradientStopsEditor/GradientStopsEditor';
+import { DEFAULT_GAUGE_GRADIENT, MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS, type GaugeGradientStop } from '../panel/theme/gaugeGradient';
 import { Badge as StorybookBadge } from '../components/common/Badge/Badge';
 import { LiveFollowControl } from '../components/common/LiveFollowControl/LiveFollowControl';
 import { SeriesChart } from '../components/common/SeriesChart/SeriesChart';
@@ -331,6 +342,30 @@ function PreviewDeviceWarningIcon() {
   );
 }
 
+function PreviewDeviceGroupIcon() {
+  const rows: Array<[label: string, id: string, iconType?: string]> = [
+    ['Motherboard (OpenRGB)', 'openrgb-1', 'motherboard'],
+    ['GPU (OpenRGB)', 'openrgb-2', 'gpu'],
+    ['RAM (OpenRGB)', 'openrgb-3', 'dram'],
+    ['Motherboard headers (cooling)', 'motherboard'],
+    ['HYTE NP50', 'np50:ABCD'],
+    ['HYTE SmartHub', 'smarthub:1'],
+    ['Lian Li hub', 'lianli:hub'],
+    ['Philips Hue', 'hue:bridge', 'bulb'],
+    ['Unknown device', 'something-else'],
+  ];
+  return (
+    <div className={styles.previewStack}>
+      {rows.map(([label, id, iconType]) => (
+        <div key={id} className={styles.previewHoverCard}>
+          <DeviceGroupIcon id={id} iconType={iconType} />
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PreviewNexusControlOffIcon() {
   return (
     <div className={styles.previewStack}>
@@ -547,6 +582,32 @@ function PreviewConfirmModal() {
           children renders extra content here, e.g. a password field for a destructive confirm.
         </p>
       </ConfirmModal>
+    </>
+  );
+}
+
+// Searches the live service: the catalog runs inside the app, and without a
+// Klipy key the picker shows its own unavailable state, which is a state worth
+// previewing too.
+function PreviewKlipyPicker() {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [last, setLast] = useState<string | null>(null);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Browse GIFs
+      </button>
+      {last && <p className={styles.previewNote}>Last pick: <strong>{last}</strong></p>}
+      <KlipyPicker
+        open={open}
+        busySlug={busy}
+        onPick={gif => {
+          setBusy(gif.slug);
+          window.setTimeout(() => { setBusy(null); setLast(gif.title || gif.slug); setOpen(false); }, 600);
+        }}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
@@ -1106,6 +1167,14 @@ function PreviewConflictAppCard() {
         onSetOwner={async () => {}}
         terminated
       />
+      <ConflictAppCard
+        conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }}
+        autostart={[
+          { kind: 'runKeyMachine', entryName: 'Corsair iCUE5 Software' },
+          { kind: 'service', entryName: 'CorsairDeviceListerService' },
+        ]}
+        onDisableAutostart={async () => true}
+      />
     </div>
   );
 }
@@ -1117,11 +1186,26 @@ function PreviewToggleOff() {
 
 function PreviewEmptyState() {
   return (
-    <EmptyState
-      icon={<Monitor strokeWidth={1.4} />}
-      title="No displays detected"
-      hint="Plug in a DDC/CI capable monitor to control brightness from here."
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <EmptyState
+        icon={<Monitor strokeWidth={1.4} />}
+        title="No displays detected"
+        hint="Plug in a DDC/CI capable monitor to control brightness from here."
+      />
+      <EmptyState
+        hero
+        icon={<Gauge />}
+        title="See how your PC scores"
+        hint="A benchmark runs real workloads on your CPU, GPU, RAM and storage in about 40 seconds."
+        points={[
+          { icon: <Cpu />, text: 'CPU' },
+          { icon: <Monitor />, text: 'GPU' },
+          { icon: <MemoryStick />, text: 'RAM' },
+          { icon: <HardDrive />, text: 'Storage' },
+        ]}
+        action={<Button tone="accent">Start benchmark</Button>}
+      />
+    </div>
   );
 }
 
@@ -1294,6 +1378,29 @@ function PreviewStableDigits() {
   );
 }
 
+function PreviewFitLine() {
+  return (
+    <div className={styles.previewStack} style={{ gap: 10, width: 140, fontSize: 18, color: 'var(--text)' }}>
+      <FitLine text="Sep 2026" />
+      <FitLine text="September 2026" />
+      <FitLine text="septiembre de 2026" align="start" />
+    </div>
+  );
+}
+
+function PreviewWidgetOfflineState() {
+  return (
+    <div className="panel-root" style={{ display: 'flex', gap: 12 }}>
+      <div style={{ width: 90, height: 90, background: 'var(--bg-card)', borderRadius: 12 }}>
+        <WidgetOfflineState compact />
+      </div>
+      <div style={{ width: 186, height: 186, background: 'var(--bg-card)', borderRadius: 12 }}>
+        <WidgetOfflineState />
+      </div>
+    </div>
+  );
+}
+
 function PreviewSectionHeader() {
   return (
     <div className="panel-root" style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1427,8 +1534,12 @@ function PreviewPanelThemeSettings() {
     backgroundOpacity: 0.4,
     backdrop: 'theme' as const,
     backgroundEffectState: { speed: 0, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params: {} },
-    backgroundMediaId: null, backgroundMediaType: null, backgroundMediaAlpha: false, backgroundFrost: 0,
+    backgroundMediaId: null, backgroundMediaType: null, backgroundMediaAlpha: false,
+    backgroundSlideshow: false, backgroundSlideshowInterval: DEFAULT_PANEL_SLIDESHOW_INTERVAL, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
+    backgroundMediaOrder: [],
+    backgroundFrost: 0,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
+    gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
   return (
@@ -1453,6 +1564,13 @@ function PreviewPanelThemeSettings() {
         onBackgroundOpacityPreview={o => set({ backgroundOpacity: o })}
         onBackgroundOpacityCommit={o => set({ backgroundOpacity: o })}
         onBackgroundMediaCommit={() => { /* no media service in Storybook */ }}
+        onBackgroundSlideshowCommit={patch => set({
+          ...(patch.enabled !== undefined ? { backgroundSlideshow: patch.enabled } : {}),
+          ...(patch.interval !== undefined ? { backgroundSlideshowInterval: patch.interval } : {}),
+          ...(patch.shuffle !== undefined ? { backgroundSlideshowShuffle: patch.shuffle } : {}),
+          ...(patch.finishVideos !== undefined ? { backgroundSlideshowFinishVideos: patch.finishVideos } : {}),
+        })}
+        onBackgroundMediaOrderCommit={ids => set({ backgroundMediaOrder: ids })}
         onWidgetOpacityPreview={o => set({ widgetOpacity: o })}
         onWidgetOpacityCommit={o => set({ widgetOpacity: o })}
         onWidgetLabelsCommit={v => set({ widgetLabels: v })}
@@ -1603,11 +1721,39 @@ function PreviewBrand() {
   );
 }
 
+function PreviewDomainGlyph() {
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', isolation: 'isolate', height: 120, background: 'var(--surface)', borderRadius: 'var(--radius-lg)' }}>
+      <DomainGlyph icon={HardDrive} />
+    </div>
+  );
+}
+
 function PreviewPanelArrowButtons() {
   return (
     <div style={{ position: 'relative', height: 72, width: '100%' }}>
       <PanelArrowButton side="prev" onClick={() => {}} ariaLabel="Previous page" />
       <PanelArrowButton side="next" onClick={() => {}} ariaLabel="Next page" />
+    </div>
+  );
+}
+
+function PreviewPanelSwipeHint() {
+  const [run, setRun] = useState(0);
+  const [shown, setShown] = useState(true);
+  useEffect(() => {
+    setShown(true);
+    const timer = window.setTimeout(() => setShown(false), SWIPE_HINT_VISIBLE_MS);
+    return () => window.clearTimeout(timer);
+  }, [run]);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+      <div style={{ position: 'relative', width: 240, height: 260, borderRadius: 12, background: 'var(--panel-background-solid, var(--bg))' }}>
+        {shown && <PanelSwipeHint key={run} />}
+      </div>
+      <button type="button" className={styles.previewBtn} onClick={() => setRun(r => r + 1)}>
+        Replay
+      </button>
     </div>
   );
 }
@@ -1681,15 +1827,16 @@ function PreviewEmojiPicker() {
   );
 }
 
-// Uses the real makePhysicalDeckTarget factory (not a bespoke mock) so the
+// Uses the real makePresetDeckTarget factory (not a bespoke mock) so the
 // story exercises the same code path DeckSettings/StreamDeckDevicePage do:
-// a 2x3 Mini-shaped grid, editable in place.
+// a 2x3 Mini-shaped preset, editable in place.
 function PreviewDeckEditorPhysical() {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: [] }] });
   const [page, setPage] = useState(0);
   const [folderPath, setFolderPath] = useState<number[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
-  const target = makePhysicalDeckTarget(3, 2, 6, config, setConfig);
+  const preset: DeckPresetFull = { id: 'story-preset', name: 'Story preset', cols: 3, rows: 2, pageCount: config.pages.length, deck: config };
+  const target = makePresetDeckTarget(preset, { cols: preset.cols, rows: preset.rows }, 'physical', setConfig);
   return (
     <div style={{ width: '100%', maxWidth: 420 }}>
       <DeckEditor
@@ -1837,6 +1984,22 @@ function PreviewCanvasNoticeBar() {
 function PreviewStepper() {
   const [v, setV] = useState(12);
   return <StorybookStepper value={v} min={0} max={59} onChange={setV} />;
+}
+
+function PreviewGradientStopsEditor() {
+  const [stops, setStops] = useState<GaugeGradientStop[]>([...DEFAULT_GAUGE_GRADIENT]);
+  return (
+    <div style={{ width: 360 }}>
+      <GradientStopsEditor
+        stops={stops}
+        accent={DEFAULT_ACCENT}
+        onPreview={setStops}
+        onCommit={setStops}
+        minStops={MIN_GAUGE_GRADIENT_STOPS}
+        maxStops={MAX_GAUGE_GRADIENT_STOPS}
+      />
+    </div>
+  );
 }
 
 function PreviewRangeBar() {
@@ -2057,7 +2220,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Button', category: 'inputs',
     filePath: 'src/components/common/Button/Button.tsx',
-    description: 'Canonical button. Replaces every ad-hoc button SCSS class across views. Three sizes (sm/md/lg) x five tones (neutral/accent/danger/danger-solid/ghost), optional pill shape, optional leading/trailing icon, optional loading + disabled states. Icon-only buttons render square automatically when no children are passed.',
+    description: 'Canonical button. Replaces every ad-hoc button SCSS class across views. Three sizes (sm/md/lg) x five tones (neutral/accent/danger/danger-solid/ghost), optional pill shape, an optional leading icon (there is no trailing slot), optional loading + disabled states. Icon-only buttons render square automatically when no children are passed.',
     Preview: PreviewButtonMatrix,
     fullWidth: true,
     notes: 'Reach for size="md" tone="neutral" for tertiary actions. tone="accent" for primary CTAs. tone="danger" for destructive. tone="danger-solid" for a destructive modal confirm, where the outline reads too quietly. tone="ghost" when bordered chrome would compete with adjacent UI. accent and danger-solid carry a raised bottom edge, which is what separates a primary action from a selected chip on the same fill.',
@@ -2120,6 +2283,13 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Renders the raw code as a fallback tooltip if it has no mapped i18n key, so an unmapped code fails visibly instead of silently.',
   },
   {
+    name: 'DeviceGroupIcon', category: 'status',
+    filePath: 'src/components/common/DeviceGroupIcon/DeviceGroupIcon.tsx',
+    description: 'The glyph before a hardware group\'s name on the lighting and cooling rails: curated device art for a known device-id prefix (NP50, SmartHub, Lian Li, Corsair, keeb, Q-series, Kraken, CNVS), a generic board / GPU / RAM / fan / bulb mark for an OpenRGB or smart-light iconType, else the generic device. User-made groups carry no icon.',
+    Preview: PreviewDeviceGroupIcon,
+    notes: 'Curated art is the same /assets/devices/*.svg the Devices page shows, drawn as a currentColor mask so it matches the lucide glyphs beside it. Sized to the compact CollapsibleSection chevron.',
+  },
+  {
     name: 'NexusControlOffIcon', category: 'status',
     filePath: 'src/components/common/NexusControlOffIcon/NexusControlOffIcon.tsx',
     description: 'Right-aligned glyph on a sidebar device row when Nexus Control is off for that device (supportsNexusControl true, nexusControlEnabled false). A bare non-focusable icon, same pattern as DeviceWarningIcon.',
@@ -2135,7 +2305,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'HeartBurst', category: 'status',
     filePath: 'src/components/common/HeartBurst/HeartBurst.tsx',
     description: 'Burst of small red hearts rising and drifting apart, then unmounting - fired from the telemetry consent toggle on an off-to-on flip. Pure CSS transform/opacity keyframes, each heart self-removes on its own animationend. useHeartBurstTrigger derives the required burstKey from a boolean so the burst never fires on mount.', Preview: PreviewHeartBurst,
-    notes: 'Respects prefers-reduced-motion (renders nothing). Caller wraps the anchor in a position:relative container - HeartBurst anchors to its top-right corner. Hearts render in a document.body portal on the --z-particles layer, so they are never clipped by a scrolling ancestor or covered by other stacking contexts.',
+    notes: 'Caller wraps the anchor in a position:relative container - HeartBurst anchors to its top-right corner. Hearts render in a document.body portal on the --z-particles layer, so they are never clipped by a scrolling ancestor or covered by other stacking contexts.',
   },
   {
     name: 'Popover', category: 'modals',
@@ -2184,7 +2354,12 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Card', category: 'cards',
     filePath: 'src/components/common/Card/Card.tsx',
-    description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids); `fillHeight` fills the parent height and scrolls the body on its own instead of content-sizing (an inline detail sidebar); `role`/`ariaLabel` name the root as a landmark.', Preview: PreviewCard,
+    description: 'Canonical card surface (background, border, radius, padding) with optional icon / title / subtitle / actions header. Compose for any panel. `icon` renders a leading glyph before the title; `interactive` adds a hover state; `compact` tightens padding for dense layouts (tile grids); `fillHeight` fills the parent height and scrolls the body on its own instead of content-sizing (an inline detail sidebar); `selected` is the rail selected-item treatment (accent border + accent-soft fill, the lighting / cooling device cards); `role`/`ariaLabel` name the root as a landmark.', Preview: PreviewCard,
+  },
+  {
+    name: 'DomainGlyph', category: 'cards',
+    filePath: 'src/components/common/DomainGlyph/DomainGlyph.tsx',
+    description: 'Large faint icon silhouette bled off a card edge, behind its content. Pass any LucideIcon; size defaults to 136. The host card supplies position: relative; overflow: hidden; isolation: isolate so the glyph paints above the card surface but beneath its text.', Preview: PreviewDomainGlyph,
   },
   {
     name: 'SensorCard', category: 'cards',
@@ -2253,7 +2428,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictAppCard', category: 'cards',
     filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
-    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
+    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. With `autostart` (from useConflictAutostart) a "Disable auto start" button sits under End task, over a line naming each Windows startup entry or service it will turn off - only for the apps the service holds a hand-verified recipe for, and only while one is still armed; ending the task does not stop the next boot, so a terminated row keeps it. A partial or failed disable leaves the button up under a warning. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
     Preview: PreviewConflictAppCard,
   },
 
@@ -2280,6 +2455,13 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/ConfirmModal/ConfirmModal.tsx',
     description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmModal,
     notes: 'destructive defaults to true (red confirm button). Pass destructive={false} for non-destructive confirmations like "save changes?". Optional children render after the note, before the actions row - e.g. a current-password field for delete-account. confirmDisabled disables the confirm button and suppresses Enter-to-confirm while an async action is in flight.',
+  },
+  {
+    name: 'KlipyPicker', category: 'modals',
+    filePath: 'src/components/common/KlipyPicker/KlipyPicker.tsx',
+    description: 'Search-and-pick modal over the Klipy GIF catalog: trending on open, debounced search, infinite scroll, one tap hands the pick to the caller. Thumbnails and search go through the service (a panel has no route to Klipy), and the required KLIPY attribution sits in the footer.',
+    notes: 'busySlug marks the card that is importing and locks the grid. Pass thumbAspect so the cards preview the crop the consuming surface will make (16:9 for the lighting canvas, the panel aspect for backgrounds). A refused import is shown through importError while the picker stays open.',
+    Preview: PreviewKlipyPicker,
   },
   {
     name: 'PromptModal', category: 'modals',
@@ -2467,6 +2649,12 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewSeriesChart,
   },
   {
+    name: 'GradientStopsEditor', category: 'editable',
+    filePath: 'src/components/common/GradientStopsEditor/GradientStopsEditor.tsx',
+    description: 'Touch-first gradient editor: drag a handle to move a stop, drag it out past either end to remove it, tap it to recolour through the shared preset picker, tap empty bar to add one. Backs the per-panel monitoring gauge gradient.',
+    Preview: PreviewGradientStopsEditor,
+  },
+  {
     name: 'RangeBar', category: 'charts',
     filePath: 'src/components/common/RangeBar/RangeBar.tsx',
     description: 'Horizontal range indicator: a colored segment [lo, hi] on a faint track. Two built-in gradients (temp, accent). Optional glow. Host-renderer bridge for the SDK Range element.',
@@ -2500,7 +2688,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Sidebar', category: 'navigation',
     filePath: 'src/components/common/Sidebar/Sidebar.tsx',
-    description: 'Main app navigation column: drag-to-reorder nav rows, compact (icon-only) mode, service status shield, bottom-pinned Settings. `addItem` closes the list with a short + strip that fades in on sidebar hover. SidebarNavButton reuses the exact row chrome for one-off entries, incl. a `disabled` (aria-disabled, still tabbable) variant for rows that are already placed.',
+    description: 'Main app navigation column: drag-to-reorder nav rows, compact (icon-only) mode, service status shield, bottom-pinned Settings. Below a separator sit the unpinned apps: `more` collapses them to the recent one behind a Show more / Show less toggle, and expanded they show in the order the user dragged them, alphabetical by default. The separator is an undraggable sortable item, so a drag across it docks or undocks.',
     notes: 'No live preview - needs DnD context, service state, and profile store.',
   },
   {
@@ -2525,7 +2713,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Avatar', category: 'status',
     filePath: 'src/components/common/Avatar/Avatar.tsx',
-    description: 'Circular avatar. Renders the src image when present; falls back to the first letter of name over an accent-filled circle when src is absent or fails to load. size is a px diameter (default 36, matching the control-avatar size token). Used by the public account profile page (/u/<username>).',
+    description: 'Circular avatar. Renders the src image when present; falls back to the first letter of name over an accent-filled circle when src is absent or fails to load. size is a px diameter (default 36, matching the control-avatar size token). Used by the account header and the public profile page on the Build portal.',
     Preview: PreviewAvatar,
   },
   {
@@ -2543,7 +2731,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'EmptyState', category: 'status',
     filePath: 'src/components/common/EmptyState/EmptyState.tsx',
-    description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts.', Preview: PreviewEmptyState,
+    description: 'Centered icon + title + optional hint + optional action. Used by panel widgets when their data source has no entries (no displays, no media playing) and by app views to convey "nothing here yet". Pass `compact` for tight panel widget contexts. Pass `hero` (+ optional `points`) for a page that opens with nothing to show: the feature intro with a haloed icon, heading, what-it-does points and one next step.', Preview: PreviewEmptyState,
   },
   {
     name: 'DesktopOnlyBadge', category: 'status',
@@ -2649,7 +2837,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'CollapsibleSection', category: 'panel-kit',
     filePath: 'src/components/common/CollapsibleSection/CollapsibleSection.tsx',
-    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use. boxed wraps the whole section in the standard surface/border/radius card chrome for a standalone full-width section (monitoring Detailed).',
+    description: 'Canonical collapsible group header: chevron + title on the left, optional values/buttons on the right, a hover background bar, no borders. The one treatment for paired smart lights, monitoring detail, and lighting/cooling device groups. compact is the smaller uppercase variant the lighting/cooling groups use. boxed wraps the whole section in the standard surface/border/radius card chrome for a standalone full-width section (monitoring Detailed). titleBefore slots a glyph between the chevron and the title (the hardware group icon on the device rails).',
     Preview: PreviewCollapsibleSection,
   },
   {
@@ -2661,7 +2849,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'GroupedSortableList', category: 'panel-kit' as StorybookCategory,
     filePath: 'src/components/common/SortableList/GroupedSortableList.tsx',
-    description: 'Two-level drag list: top-level rows plus one nested list per group, all under ONE DndContext so a row can be dragged into, out of and between groups. Used by the lighting and cooling rails for user-made device groups. SortableList stays the choice for a flat list - it owns its own context, so two of them can never exchange rows. Nesting is one level: a group row never enters another group.',
+    description: 'Two-level drag list: top-level rows plus one nested list per group, all under ONE DndContext so a row can be dragged into, out of and between groups. Used by the lighting and cooling rails for user-made device groups. SortableList stays the choice for a flat list - it owns its own context, so two of them can never exchange rows. A group\'s members may name another group, which renders nested; by default a group row never enters another group, and with nestGroups it can enter a top-level group and no deeper (groupBlock / holdsGroup let a block that is itself a group, or holds one, obey the same depth rule).',
     Preview: PreviewGroupedSortableList,
   },
   {
@@ -2673,14 +2861,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelThemeSettings', category: 'panel-kit',
     filePath: 'src/panel/editor/PanelThemeSettings.tsx',
-    description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown in the Y70 touch editor sheet and the dashboard device Settings tab. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
+    description: 'Per-panel theme editor (Widgets / Theme / Accent / Background) shown stacked in the Y70 touch editor sheet and split by `sections` across the device page\'s Theme and Background tabs. Section headers match the Y70 device Settings (.device-modal-section): uppercase, --type-small / --weight-heading, with a full-width rule underneath.',
     Preview: PreviewPanelThemeSettings,
     notes: 'Preview is in solid background mode; switching to Animations hits the live thumbnail service, so the grid is empty in Storybook.',
   },
   {
     name: 'PanelBackgroundMedia', category: 'panel-kit',
     filePath: 'src/panel/background/PanelBackgroundMedia.tsx',
-    description: 'Full-bleed background layer rendered in the panel kiosk when backgroundMode is "media". Renders <img> (static) or <video autoPlay loop muted playsInline> (animated) based on the type prop; URL carries the session token for auth.',
+    description: 'Full-bleed background layer rendered in the panel kiosk when backgroundMode is "media". Renders <img> (static) or <video autoPlay loop muted playsInline> (animated) based on the type prop; URL carries the session token for auth. PanelBackgroundSlideshow stacks two of these to crossfade through the library.',
     notes: 'No live preview - requires a running service with background-media items and a device deviceId.',
   },
   {
@@ -2711,6 +2899,13 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Click "Next page" to bump the token and watch the un-fade cycle.',
   },
   {
+    name: 'PanelSwipeHint', category: 'panel-kit',
+    filePath: 'src/panel/chrome/PanelSwipeHint.tsx',
+    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks toward a chevron, then it unmounts. Pointer-transparent.',
+    Preview: PreviewPanelSwipeHint,
+    notes: 'Click "Replay" to run the cycle again. Period, cycle length and count come from usePanelSwipeOnboarding.',
+  },
+  {
     name: 'PanelPager', category: 'panel-kit',
     filePath: 'src/panel/chrome/PanelPager.tsx',
     description: 'Horizontal swipeable pager container: edge-swipe gesture handling, per-page render callback, momentum snapping. Hosts the panel page grid and the immersive overlay pages.',
@@ -2727,6 +2922,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/panel/widgets/common/StableDigits.tsx',
     description: 'Renders a numeric string with every digit in a fixed-width cell so ticking values (clock, timer, stopwatch) keep a constant width. Lexend has no tabular-figures feature, so font-variant-numeric: tabular-nums silently does nothing - use this for any centered readout whose digits change over time.',
     Preview: PreviewStableDigits,
+  },
+  {
+    name: 'FitLine', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/FitLine.tsx',
+    description: 'One line of text that scales down to its container width instead of wrapping or ellipsizing (clock date, calendar month). className goes on the box so font rules inherit; align="start" keeps a shrunk line on the left edge.',
+    Preview: PreviewFitLine,
+  },
+  {
+    name: 'WidgetOfflineState', category: 'panel-kit',
+    filePath: 'src/panel/widgets/common/WidgetOfflineState.tsx',
+    description: 'Shared no-connection face for widgets that need the internet (weather, stocks). Rendered once a fetch settles with no data at all - a stale reading stays on screen instead. compact drops the label for a 1x1 cell.',
+    Preview: PreviewWidgetOfflineState,
   },
   {
     name: 'SizeIcons', category: 'panel-kit',
@@ -2804,7 +3011,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'PresetToolbar', category: 'inputs',
     filePath: 'src/components/common/PresetToolbar/PresetToolbar.tsx',
     description: 'Generic named-preset manager: dropdown (with Rename/Delete when active and a capped New preset... entry, plus an optional capped Import preset... entry via onImport and an optional Trigger with apps... entry via onManageApps), optionally paired with Undo / Redo icon buttons via showHistory, plus a Reset button when onReset is supplied. A preset with `hasApps` carries an app glyph, marking it as one an app in focus activates. Used by the lighting canvas layout toolbar (full history controls) and the Stream Deck page (dropdown + onImport opening the Elgato import modal).',
-    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckPresets and requires a running service.',
+    notes: 'No live preview -- bound to live preset state via useLayoutPresets / useDeckInstance and requires a running service.',
   },
   {
     name: 'CorsairDevicePage', category: 'panel-kit',
@@ -2827,7 +3034,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'DeckEditor (physical target)', category: 'panel-kit',
     filePath: 'src/panel/widgets/deck/DeckEditor.tsx',
-    description: 'Shared grid + inspector for one Deck target. The touch widget renders its own grid elsewhere (the live tile) so DeckEditor only adds the inspector there; a physical Stream Deck has no other tile, so DeckEditor renders the live key grid (drag-reorder, reserved Back key inside a folder) too. This story drives it against a real physical target (makePhysicalDeckTarget) shaped like a Mini (2x3).',
+    description: 'Shared grid + inspector for one Deck target. The touch widget renders its own grid elsewhere (the live tile) so DeckEditor only adds the inspector there; a physical Stream Deck has no other tile, so DeckEditor renders the live key grid (drag-reorder, reserved Back key inside a folder) too. This story drives it against a real physical target (makePresetDeckTarget) shaped like a Mini (2x3).',
     Preview: PreviewDeckEditorPhysical,
     notes: 'Pick a key, set an action, then use "Folder" + "Edit folder" to see the reserved Back key.',
   },

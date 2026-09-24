@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper, TvMinimal } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
+import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from '../../../panel/widgets/common/PanelGaugeGradientContext';
 import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../../../panel/widgets/monitoring/perfSlots';
 import { SlotLayoutIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
 import {
@@ -23,9 +24,16 @@ import {
 } from '../../../panel/engine/grid';
 import { normalizePanelWidgetPadding } from '../../../panel/background/panelBackground';
 import { normalizePanelLayout } from '../../../panel/engine/usePanelLayout';
+import { useAppsChangedSync } from '../../../panel/engine/useAppsChangedSync';
+import { useMarketplaceRegistryRefresh } from '../../../panel/engine/useMarketplaceRegistryRefresh';
 import { repaginatePanelLayout } from '../../../panel/engine/paginate';
 import { simulatedPanelEditorCapacity } from '../../../panel/embed/simulatedPanelViewport';
 import { getPanelGridSizingSettings } from '../../../lib/panelSimulation';
+import {
+  canMarkImmersiveOnLoad,
+  isImmersiveOnLoadWidget,
+  setImmersiveOnLoadWidgetId,
+} from '../../../panel/engine/immersiveOnLoad';
 import { isSingleWidgetSurface, singleWidgetSurfaceSize, surfaceSupportsMountOrientation } from '../../../panel/types';
 import { supportsDesktopWallpaper } from '../../../panel/device/wiredPanel';
 import { fetchService, postService } from '../../../api/service';
@@ -49,6 +57,7 @@ import {
   resetPanelDevice,
   resetPanelDeviceHardware,
   factoryResetPanelDevice,
+  type PanelDeviceRecord,
 } from '../../../api/panel';
 import {
   getQSeriesRotation,
@@ -56,7 +65,10 @@ import {
   getQSeriesDisplay,
   setQSeriesDisplay,
   rebootQSeriesPanel,
+  getQSeriesLinkState,
+  repairQSeriesLink,
   type QSeriesOrientation,
+  type QSeriesLinkState,
 } from '../../../api/qseries';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
@@ -79,11 +91,14 @@ import { Button } from '../../common/Button/Button';
 import { PanelArrowButton } from '../../../panel/chrome/PanelArrowButton';
 import { broadcastLayoutChanged } from '../../../panel/engine/panelSync';
 import { usePanelRecord } from '../../../panel/engine/usePanelRecord';
-import { buildPanelThemeVars, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
+import { buildPanelThemeVars, panelAccentColor, usePanelTheme, useResolvedPanelThemeMode } from '../../../panel/theme/panelTheme';
+import { resolveGaugeGradient } from '../../../panel/theme/gaugeGradient';
 import { PanelThemeSettings } from '../../../panel/editor/PanelThemeSettings';
 import { lookupApp, sizesForSurface } from '../../../panel/widgets/registry';
 import type { DeckEditView } from '../../../panel/widgets/types';
 import { sizeToSpan } from '../../../panel/engine/grid';
+import { useDeckInstance, DeckInstanceProvider } from '../../../panel/widgets/deck/useDeckInstance';
+import { innerGridForSize } from '../../../panel/widgets/deck/deckLayout';
 import { ErrorBoundary } from '../../common/ErrorBoundary/ErrorBoundary';
 import {
   type PanelLayout,
@@ -96,6 +111,7 @@ import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevi
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
 import '../../../panel/styles/tokens.scss';
+import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
 import styles from './PanelDevicePage.module.scss';
 
 interface PanelDevicePageProps {
@@ -111,6 +127,7 @@ interface PanelDevicePageProps {
 interface BrightnessResponse { brightness: number }
 interface RotationParams { orientation: string; forceOrientation: boolean }
 interface ToggleResponse { toggle: boolean }
+interface CompatibilityRenderingResponse { enabled: boolean; supported: boolean }
 
 const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
@@ -122,6 +139,15 @@ const REBOOT_COMPLETION_TIMEOUT_MS = 300_000;
 
 // Q60/Q80 mount portrait or portrait-flipped only; no landscape orientation exists.
 const QSERIES_ORIENTATIONS: readonly Y70Orientation[] = ['Portrait', 'PortraitFlipped'];
+
+// While the disconnected empty state is showing, re-poll the USB/adb link so
+// the page can tell apart "unplugged", "enumerated but adb wedged", and
+// "Windows deferred the USB reset" without a full reload.
+const QSERIES_LINK_POLL_INTERVAL_MS = 5_000;
+// After a manual repair, poll faster and give up once the recovery pass has
+// had a realistic chance to bring adb back.
+const QSERIES_LINK_REPAIR_POLL_INTERVAL_MS = 3_000;
+const QSERIES_LINK_REPAIR_POLL_TIMEOUT_MS = 60_000;
 
 function normalizeOrientation(value: string | undefined | null): Y70Orientation {
   // The Y70 panel is a fixed portrait strip; an unset/unknown value defaults to
@@ -148,7 +174,7 @@ function toTouchRepairErrorStatus(status: string): TouchRepairErrorStatus {
     : 'failed';
 }
 
-type Tab = 'widgets' | 'theme' | 'settings';
+type Tab = 'widgets' | 'theme' | 'background' | 'settings';
 
 type XeneonEdgeControlKey = 'brightness' | 'backlight' | 'contrast' | 'red' | 'green' | 'blue';
 
@@ -196,6 +222,24 @@ const XENEON_EDGE_CONTROLS: { key: XeneonEdgeControlKey; labelKey: string; min: 
   { key: 'blue', labelKey: 'devices.xeneonEdge.blue', min: 0, max: 255 },
 ];
 
+// Record-backed entries (promoted monitors) bind by their explicit record id:
+// several records share the 'monitor' surface, so a surface scan would grab
+// whichever was last seen. Everything else (Y70 / Q-series / simulators) takes
+// the most recently active record for its surface (/panel/devices is sorted by
+// lastSeenAt desc). Display-bound records are excluded from the surface match:
+// they are per-physical-monitor and only their own row (panelRecordId) may edit
+// them - a simulated monitor otherwise binds a real display's record, PATCHes
+// its layout, and inherits its canvas instead of the preset's.
+function matchPanelRecord(
+  records: PanelDeviceRecord[] | undefined,
+  panelRecordId: string | undefined,
+  surface: PanelSurface,
+): PanelDeviceRecord | undefined {
+  return panelRecordId
+    ? records?.find(d => d.id === panelRecordId)
+    : records?.find(d => d.capabilities?.surface === surface && !d.displayId);
+}
+
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
   const { t } = useTranslation();
   const isQSeries = device?.runtimeSurface === 'q60';
@@ -204,6 +248,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [brightness, setBrightness] = useState(50);
   const [orientation, setOrientation] = useState<Y70Orientation>('PortraitFlipped');
   const [forceOrientation, setForceOrientation] = useState(true);
+  const [compatibilityRendering, setCompatibilityRendering] = useState<CompatibilityRenderingResponse | null>(null);
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
@@ -248,6 +293,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // genuine device edit inside the window would be lost until some unrelated
   // broadcast - the very bug this page is being fixed for.
   const missedBroadcastRef = useRef(false);
+  // The first edit on a record-less surface allocates; the service broadcasts
+  // that record before the POST returns. The unbound topic branch must not
+  // bind from the broadcast, or a second edit persists ahead of the first.
+  const allocatingRef = useRef(false);
   const embedFrameRef = useRef<PanelEmbedFrameHandle | null>(null);
   const [screenshotBusy, setScreenshotBusy] = useState(false);
   const [resetPersonalizationConfirmOpen, setResetPersonalizationConfirmOpen] = useState(false);
@@ -281,6 +330,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordFamily, setRecordFamily] = useState<string | undefined>(undefined);
   const surface = device?.runtimeSurface ?? 'y70';
   const isSimulated = device?.connectionKind === 'simulated';
+  // Simulated panels render a preview that never takes the focus hold.
+  const backgroundHeldBy = useFocusStaticBackground(surface, !isSimulated);
   const supportsDisplayControls = device?.capabilities.displayControls ?? surface === 'y70';
   const supportsAutoLaunch = device?.capabilities.launchClose ?? surface === 'y70';
   // Y70 connected as a monitor only (no USB serial channel): brightness and
@@ -343,6 +394,15 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // same PATCH as the mounting toggles below rather than its own endpoint.
   const [recordSupportsBrightness, setRecordSupportsBrightness] = useState(false);
   const isDimmableLcdPanel = recordSupportsBrightness && !isSimulated;
+  // Streamed cooler LCDs (e.g. the Aftershock Glacier Matrix) whose driver can
+  // hand the screen to Windows as a virtual monitor. While on, the service
+  // streams the desktop instead of Nexus content and the Widgets/Theme/
+  // Background tabs are inert.
+  const [recordSupportsSecondaryMonitor, setRecordSupportsSecondaryMonitor] = useState(false);
+  const isSecondaryMonitorCapablePanel = recordSupportsSecondaryMonitor && !isSimulated;
+  const [recordSecondaryMonitor, setRecordSecondaryMonitor] = useState(false);
+  const [recordSecondaryMonitorState, setRecordSecondaryMonitorState] =
+    useState<PanelDeviceRecord['secondaryMonitorState']>(null);
   // The Xeneon Edge's native settings block (msgid 0x0e read, ~1s on the
   // bench) - null hides the whole block until the read completes.
   const [xeneonSettings, setXeneonSettings] = useState<XeneonEdgeSettingsValues | null>(null);
@@ -386,6 +446,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     && Math.max(previewCanvas.width, previewCanvas.height)
        / Math.min(previewCanvas.width, previewCanvas.height) >= STRIP_ASPECT_MIN;
   const dockPreview = isStripPanel && previewCanvas!.width > previewCanvas!.height;
+  // The panel's live orientation, read from the same canvas the preview frame
+  // renders, so the immersive-on-load toggle offers exactly the immersive views
+  // the device can actually open.
+  const previewLandscape = !!previewCanvas && previewCanvas.width > previewCanvas.height;
   const settingsAvailable = supportsDisplayControls || supportsAutoLaunch || ddcSupported
     || monitorRotation || monitorReserve
     // The Xeneon Edge's native settings replace DDC brightness for this
@@ -401,7 +465,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     || (surfaceSupportsMountOrientation(surface) && !isSimulated)
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
-    || isDimmableLcdPanel;
+    || isDimmableLcdPanel
+    || isSecondaryMonitorCapablePanel;
   const activeTab: Tab = tab === 'settings' && !settingsAvailable ? 'widgets' : tab;
   // Simulator and real hardware share one code path: theme, layout,
   // brightness, orientation, screen-on, and auto-launch all read/write the
@@ -413,6 +478,17 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     ? (theme.appResolvedThemeMode || theme.appThemeMode)
     : theme.themeMode;
   const resolvedPanelThemeMode = useResolvedPanelThemeMode(effectiveThemeMode);
+  // The monitoring settings pane edits the panel's gauge gradient in place; the
+  // simulator iframe repaints from the same theme via the postMessage sync.
+  const gaugeAccent = panelAccentColor(theme);
+  const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
+    stops: resolveGaugeGradient(theme.gaugeGradient, gaugeAccent),
+    source: theme.gaugeGradient,
+    accent: gaugeAccent,
+    mode: resolvedPanelThemeMode,
+    preview: panelTheme.previewGaugeGradient,
+    commit: panelTheme.commitGaugeGradient,
+  }), [theme.gaugeGradient, gaugeAccent, resolvedPanelThemeMode, panelTheme.previewGaugeGradient, panelTheme.commitGaugeGradient]);
   // Desktop resolved mode from the app theme (concrete dark/light, not 'system').
   // Used for the widget preview in InlineWidgetSettings so it inherits the
   // desktop chrome's active theme instead of the panel theme.
@@ -436,9 +512,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       isQSeries ? getQSeriesDisplay() : Promise.resolve(null),
       fetchPreferences(),
       fetchPanelDevices(),
-    ]).then(([b, r, tog, qRotation, qDisplay, prefs, devices]) => {
+      // Tolerates a service that predates the route (relay to an older host).
+      supportsDisplayControls ? fetchService<CompatibilityRenderingResponse>('/y70/compatibility-rendering').catch(() => null) : Promise.resolve(null),
+    ]).then(([b, r, tog, qRotation, qDisplay, prefs, devices, compat]) => {
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
+      setCompatibilityRendering(compat);
       if (r) {
         setOrientation(normalizeOrientation(r.orientation));
         setForceOrientation(r.forceOrientation ?? true);
@@ -452,19 +531,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       }
       // /y70/toggle returns the persisted ScreenOff value, not "screen on".
       if (tog) setScreenOn(!tog.toggle);
-      // Record-backed entries (promoted monitors) bind by their explicit
-      // record id - several records share the 'monitor' surface, so a
-      // surface scan would grab whichever was last seen. Everything else
-      // (Y70 / Q-series / simulators) keeps the surface match: pick the most
-      // recently active record for this surface (/panel/devices is sorted
-      // by lastSeenAt desc). Display-bound records are excluded from the
-      // surface match: they are per-physical-monitor and only their own row
-      // (panelRecordId) may edit them - a simulated monitor otherwise binds a
-      // real display's record, PATCHes its layout, and inherits its canvas
-      // instead of the preset's.
-      const match = device?.panelRecordId
-        ? devices?.devices.find(d => d.id === device.panelRecordId)
-        : devices?.devices.find(d => d.capabilities?.surface === surface && !d.displayId);
+      const match = matchPanelRecord(devices?.devices, device?.panelRecordId, surface);
       setEditingDeviceId(match?.id ?? null);
       const cw = match?.capabilities?.cssWidth;
       const ch = match?.capabilities?.cssHeight;
@@ -478,6 +545,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordMirror(match?.mirror ?? false);
       setRecordLcdBrightness(match?.lcdBrightness ?? DEFAULT_LCD_BRIGHTNESS);
       setRecordSupportsBrightness(match?.capabilities?.supportsBrightness ?? false);
+      setRecordSupportsSecondaryMonitor(match?.capabilities?.supportsSecondaryMonitor ?? false);
+      setRecordSecondaryMonitor(match?.secondaryMonitor ?? false);
+      setRecordSecondaryMonitorState(match?.secondaryMonitorState ?? null);
       setRecordFamily(match?.capabilities?.family);
       if (match?.capabilities?.orientation) setOrientation(normalizeOrientation(match.capabilities.orientation));
       const touchFromRecord = match?.capabilities?.touch ?? device?.capabilities.touch;
@@ -646,6 +716,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // mount-time value, so the rotation picker and the landscape preview
       // dock never track a panel the user turns in their hands.
       if (record.capabilities?.orientation) setOrientation(normalizeOrientation(record.capabilities.orientation));
+      // secondaryMonitor/secondaryMonitorState can change from another client
+      // or a hardware-settings reset, not just a write from this page, so both
+      // must track every broadcast rather than only the initial load.
+      setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
+      setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
@@ -656,13 +731,27 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     }).catch(() => {});
   }, [editingDeviceId, surface, deviceTouch]);
 
+  // Every broadcast-driven read goes through this. A write of ours in flight
+  // must defer rather than apply, or the echo reverts a controlled field
+  // mid-edit; the write's settle runs the deferred read.
+  const syncRecordFromBroadcast = useCallback(() => {
+    if (pendingWritesRef.current > 0) {
+      missedBroadcastRef.current = true;
+      return;
+    }
+    refetchDeviceRecord();
+  }, [refetchDeviceRecord]);
+
+  useAppsChangedSync(syncRecordFromBroadcast);
+  useMarketplaceRegistryRefresh();
+
   const updateLayout = useCallback((next: PanelLayout) => {
     // Normalize is geometry-neutral (registry reconcile + size snap only), so
     // conform the geometry to the editor grid before persisting - the stored
     // bytes must be a fixed point of the capacity repair or the preview and
     // the persisted placement diverge. Skipped while the capacity is a
-    // fallback guess; the un-conformed persist self-heals when the device
-    // next renders and auto-persists its repagination.
+    // fallback guess: the bytes stay un-conformed and every render path
+    // re-fits them at its own capacity.
     const normalized = editorCapacityDerived
       ? repaginatePanelLayout(normalizePanelLayout(next, surface, deviceTouch), editorCapacity)
       : normalizePanelLayout(next, surface, deviceTouch);
@@ -688,12 +777,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       void persist(editingDeviceId);
       return;
     }
+    allocatingRef.current = true;
     void allocatePanelDevice({ surface }, `${surface} panel`).then(record => {
       if (record?.id) {
         setEditingDeviceId(record.id);
         return persist(record.id);
       }
-    });
+    }).finally(() => { allocatingRef.current = false; });
   }, [editingDeviceId, surface, deviceTouch, editorCapacity, editorCapacityDerived, refetchDeviceRecord]);
 
   // Reverse sync: when the physical panel (or another editor) saves a layout,
@@ -703,7 +793,26 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // own writes a no-op. Mirrors usePanelLayout's panel/device subscription.
   useTopicCallback('panel/device', true, (raw) => {
     const frame = raw as { deviceId?: string } | null;
-    if (!editingDeviceId || frame?.deviceId !== editingDeviceId) return;
+    // No record bound yet: the frame may be the panel's first page load
+    // creating one. Bind it so the record-bound controls arm, and complete a
+    // pending reboot the panel has come back from. Only the id is taken: the
+    // full settings load would re-apply a server snapshot over an edit whose
+    // PATCH has not been issued yet. Our own allocate binds on its response.
+    if (!editingDeviceId) {
+      if (allocatingRef.current) return;
+      void fetchPanelDevices().then(list => {
+        const match = matchPanelRecord(list?.devices, device?.panelRecordId, surface);
+        if (!match) return;
+        setEditingDeviceId(match.id);
+        const since = rebootRequestedAtRef.current;
+        if (since !== null && (match.lastSeenAt ?? 0) > since) {
+          rebootRequestedAtRef.current = null;
+          setRebootingPanel(false);
+        }
+      }).catch(() => {});
+      return;
+    }
+    if (frame?.deviceId !== editingDeviceId) return;
     // The frame carries no payload and fires for this client's own writes too,
     // so its arrival cannot end a reboot on its own. lastSeenAt advancing past
     // the request is what proves the panel came back; checked ahead of the
@@ -718,13 +827,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         }
       }).catch(() => {});
     }
-    // A write of ours is in flight: defer rather than apply, or the echo
-    // reverts a controlled field mid-edit. The write's settle runs it.
-    if (pendingWritesRef.current > 0) {
-      missedBroadcastRef.current = true;
-      return;
-    }
-    refetchDeviceRecord();
+    syncRecordFromBroadcast();
   });
 
   const singleWidget = isSingleWidgetSurface(surface);
@@ -784,6 +887,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const handleUpdateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
   }, [editorCapacity, layout, updateLayout]);
+
+  const handleImmersiveOnLoad = useCallback((widgetId: string, on: boolean) => {
+    updateLayout(setImmersiveOnLoadWidgetId(layout, on ? widgetId : null));
+  }, [layout, updateLayout]);
 
   const handleResizeWidget = useCallback((widgetId: string, size: PanelWidgetSize) => {
     // Cascade siblings across pages (creating pages up to MAX_PANEL_PAGES), the
@@ -947,6 +1054,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const tabs: { key: Tab; label: string; icon: ReactNode }[] = [
     { key: 'widgets', label: t('devices.y70.tab.widgets'), icon: <LayoutGrid size={14} /> },
     { key: 'theme', label: t('devices.y70.tab.theme'), icon: <Palette size={14} /> },
+    { key: 'background', label: t('devices.y70.theme.background'), icon: <Wallpaper size={14} /> },
     ...(settingsAvailable
       ? [{ key: 'settings' as const, label: t('devices.y70.tab.settings'), icon: <Settings size={14} /> }]
       : []),
@@ -981,6 +1089,73 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const showFwGate = isQSeries && !isSimulated && fwGateReady && panelReachable && !panelAppInstalled && !panelOperationInFlight;
   const showDisconnected = isQSeries && !isSimulated && fwGateReady && !panelReachable && !panelOperationInFlight;
 
+  // Distinguishes why a Q-series panel isn't reachable: unplugged, USB
+  // enumerated but adb wedged, or Windows holding a deferred USB reset that
+  // only a host restart clears. Null (endpoint failed, or not yet fetched)
+  // reads the same as usbPresent=false - the unplugged copy.
+  const [qseriesLinkState, setQseriesLinkState] = useState<QSeriesLinkState | null>(null);
+  const [repairingQseriesLink, setRepairingQseriesLink] = useState(false);
+  const qseriesLinkMountedRef = useRef(true);
+  useEffect(() => () => { qseriesLinkMountedRef.current = false; }, []);
+  // The background poll and a repair poll loop both call getQSeriesLinkState;
+  // only the response to the most recently issued call is applied, so a slow
+  // background tick can never overwrite a fresher repair result out of order.
+  const qseriesLinkRequestIdRef = useRef(0);
+  // Bumped on every repair click. A loop compares its own token each tick and
+  // stops touching state once superseded, so a panel-state flap that resets
+  // repairingQseriesLink and lets the user re-click can't leave two loops
+  // fighting over the same spinner.
+  const qseriesLinkRepairTokenRef = useRef(0);
+
+  useEffect(() => {
+    if (!showDisconnected) {
+      setQseriesLinkState(null);
+      setRepairingQseriesLink(false);
+      qseriesLinkRepairTokenRef.current += 1;
+      return;
+    }
+    let cancelled = false;
+    const refresh = async () => {
+      const requestId = ++qseriesLinkRequestIdRef.current;
+      const state = await getQSeriesLinkState();
+      if (cancelled || requestId !== qseriesLinkRequestIdRef.current) return;
+      setQseriesLinkState(state);
+    };
+    void refresh();
+    const intervalId = window.setInterval(() => { void refresh(); }, QSERIES_LINK_POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [showDisconnected]);
+
+  // Fire-and-forget repair: the response carries no outcome, so poll the link
+  // state until adb comes back or the bound expires, driving the button's
+  // spinner off either result.
+  const repairQseriesLinkNow = useCallback(async () => {
+    const myToken = ++qseriesLinkRepairTokenRef.current;
+    setRepairingQseriesLink(true);
+    await repairQSeriesLink();
+    const deadline = Date.now() + QSERIES_LINK_REPAIR_POLL_TIMEOUT_MS;
+    const poll = async () => {
+      const requestId = ++qseriesLinkRequestIdRef.current;
+      const state = await getQSeriesLinkState();
+      if (!qseriesLinkMountedRef.current || myToken !== qseriesLinkRepairTokenRef.current) return;
+      if (requestId === qseriesLinkRequestIdRef.current) setQseriesLinkState(state);
+      if (state?.adbOnline || Date.now() >= deadline) {
+        setRepairingQseriesLink(false);
+        return;
+      }
+      window.setTimeout(() => { void poll(); }, QSERIES_LINK_REPAIR_POLL_INTERVAL_MS);
+    };
+    void poll();
+  }, []);
+
+  const showQseriesUnresponsive = showDisconnected
+    && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && !qseriesLinkState.hostRebootPending;
+  const showQseriesNeedsHostReboot = showDisconnected
+    && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && qseriesLinkState.hostRebootPending;
+
   return (
     <section className={styles.page}>
       <ViewHeader
@@ -988,24 +1163,44 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         tabs={showFwGate || showDisconnected ? undefined : tabs}
         activeTab={activeTab}
         onTabChange={(k) => { setConfiguringWidgetId(null); setTab(k as Tab); }}
-        // Only where there is a panel to capture: the firmware-gate and
-        // disconnected states render an EmptyState with no embed frame, so the
-        // button could do nothing but report an error.
-        tabActions={showFwGate || showDisconnected ? undefined : (
-          <Button
-            size="sm"
-            tone="ghost"
-            icon={<Camera size={14} />}
-            title={t('devices.panels.screenshot')}
-            aria-label={t('devices.panels.screenshot')}
-            loading={screenshotBusy}
-            onClick={() => { void takeScreenshot(); }}
-          />
+        // Only where there is a panel to capture: the firmware-gate,
+        // disconnected and secondary-monitor states render no embed frame, so
+        // the button could do nothing but report an error.
+        tabActions={showFwGate || showDisconnected || recordSecondaryMonitor ? undefined : (
+          <>
+            <Button
+              size="sm"
+              tone="ghost"
+              className={styles.headerAction}
+              icon={<Camera size={14} />}
+              title={t('devices.panels.screenshot')}
+              aria-label={t('devices.panels.screenshot')}
+              loading={screenshotBusy}
+              onClick={() => { void takeScreenshot(); }}
+            />
+          </>
         )}
       />
       <div className={`${styles.pageBody} pageBody`}>
       {!fwGateReady ? (
         <div style={{ color: 'var(--text-dim)', padding: 20 }}>{t('devices.loading')}</div>
+      ) : showQseriesUnresponsive ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.unresponsive.title')}
+          hint={t('devices.qseries.unresponsive.hint')}
+          action={
+            <Button type="button" tone="accent" loading={repairingQseriesLink} onClick={() => { void repairQseriesLinkNow(); }}>
+              {t('devices.qseries.unresponsive.cta')}
+            </Button>
+          }
+        />
+      ) : showQseriesNeedsHostReboot ? (
+        <EmptyState
+          icon={<Unplug size={48} />}
+          title={t('devices.qseries.needsHostReboot.title')}
+          hint={t('devices.qseries.needsHostReboot.hint')}
+        />
       ) : showDisconnected ? (
         <EmptyState
           icon={<Unplug size={48} />}
@@ -1029,6 +1224,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
               strip panels stack instead: options above, canvas docked below. */}
           <div className={styles.leftPane}>
             {configuringWidget ? (
+              <PanelGaugeGradientProvider value={gaugeGradientValue}>
               <InlineWidgetSettings
                 key={configuringWidget.id}
                 widget={configuringWidget}
@@ -1036,31 +1232,52 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 themeMode={desktopResolvedThemeMode}
                 themeStyle={panelPreviewThemeStyle}
+                docked={dockPreview}
                 onBack={() => setConfiguringWidgetId(null)}
                 onUpdate={handleUpdateWidgetConfig}
                 onResize={handleResizeWidget}
                 onRemove={handleRemoveWidget}
+                immersiveOnLoadAvailable={
+                  canMarkImmersiveOnLoad(layout, configuringWidget, surface, previewLandscape, deviceTouch)
+                }
+                immersiveOnLoad={isImmersiveOnLoadWidget(layout, configuringWidget.id)}
+                onImmersiveOnLoadChange={handleImmersiveOnLoad}
                 onSectionNavigate={onSectionNavigate}
               />
+              </PanelGaugeGradientProvider>
             ) : (
               <>
                 <div className={`${styles.tabContent}${activeTab === 'widgets' ? ` ${styles.tabContentCatalog}` : ''}`}>
                   {activeTab === 'widgets' && (
-                    <PanelWidgetCatalog
-                      surface={surface}
-                      deviceTouch={deviceTouch}
-                      onAdd={handleAddWidget}
-                      onEditWidget={setConfiguringWidgetId}
-                      placedTypes={placedTypes}
-                      variant="desktop-modal"
-                      remote={isRemotePanel(device?.connectionKind)}
-                      className={styles.catalog}
-                      selectedWidgetType={currentSingleWidget?.type}
-                      themeMode={desktopResolvedThemeMode}
-                      themeStyle={panelPreviewThemeStyle}
-                    />
+                    <>
+                      {recordSecondaryMonitor && (
+                        <div className={styles.usbNotice}>
+                          <AlertTriangle size={14} aria-hidden />
+                          <span>{t('devices.lcd.secondaryMonitorNotice')}</span>
+                        </div>
+                      )}
+                      <div
+                        className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
+                        aria-disabled={recordSecondaryMonitor || undefined}
+                        inert={recordSecondaryMonitor || undefined}
+                      >
+                        <PanelWidgetCatalog
+                          surface={surface}
+                          deviceTouch={deviceTouch}
+                          onAdd={handleAddWidget}
+                          onEditWidget={setConfiguringWidgetId}
+                          placedTypes={placedTypes}
+                          variant="desktop-modal"
+                          remote={isRemotePanel(device?.connectionKind)}
+                          className={styles.catalog}
+                          selectedWidgetType={currentSingleWidget?.type}
+                          themeMode={desktopResolvedThemeMode}
+                          themeStyle={panelPreviewThemeStyle}
+                        />
+                      </div>
+                    </>
                   )}
-                  {activeTab === 'theme' && (() => {
+                  {(activeTab === 'theme' || activeTab === 'background') && (() => {
                     // Aspect from live CSS viewport (DPR cancels); bake target =
                     // the device's physical resolution. Shared with the
                     // screenshot export above.
@@ -1075,41 +1292,59 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     const nativeW = native.nativeWidth;
                     const nativeH = native.nativeHeight;
                     return (
-                      <PanelThemeSettings
-                        theme={theme}
-                        deviceId={editingDeviceId}
-                        resolvedThemeMode={resolvedPanelThemeMode}
-                        onThemeSyncCommit={panelTheme.commitThemeSync}
-                        onThemeModeCommit={panelTheme.commitThemeMode}
-                        onAccentSyncCommit={panelTheme.commitAccentSync}
-                        onAccentPreview={panelTheme.previewAccent}
-                        onAccentCommit={panelTheme.commitAccent}
-                        onBackgroundPreview={panelTheme.previewBackground}
-                        onBackgroundCommit={panelTheme.commitBackground}
-                        onBackgroundModeCommit={panelTheme.commitBackgroundMode}
-                        onBackdropCommit={panelTheme.commitBackdrop}
-                        showBackdropSelector={supportsDesktopWallpaper(surface, !!device?.displayId)}
-                        onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
-                        onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
-                        onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
-                        onBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
-                        onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
-                        onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
-                        onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
-                        onBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
-                        onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
-                        onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
-                        onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
-                        onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
-                        onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
-                        onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
-                        showMediaTab={surface !== 'desktop'}
-                        deviceAspect={devAspect}
-                        deviceW={nativeW}
-                        deviceH={nativeH}
-                        hideWidgetLabelsToggle={singleWidget}
-                        hideWidgetChromeControls={singleWidget}
-                      />
+                      <>
+                        {recordSecondaryMonitor && (
+                          <div className={styles.usbNotice}>
+                            <AlertTriangle size={14} aria-hidden />
+                            <span>{t('devices.lcd.secondaryMonitorNotice')}</span>
+                          </div>
+                        )}
+                        <div
+                          className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
+                          aria-disabled={recordSecondaryMonitor || undefined}
+                          inert={recordSecondaryMonitor || undefined}
+                        >
+                          <PanelThemeSettings
+                            theme={theme}
+                            deviceId={editingDeviceId}
+                            resolvedThemeMode={resolvedPanelThemeMode}
+                            onThemeSyncCommit={panelTheme.commitThemeSync}
+                            onThemeModeCommit={panelTheme.commitThemeMode}
+                            onAccentSyncCommit={panelTheme.commitAccentSync}
+                            onAccentPreview={panelTheme.previewAccent}
+                            onAccentCommit={panelTheme.commitAccent}
+                            onBackgroundPreview={panelTheme.previewBackground}
+                            onBackgroundCommit={panelTheme.commitBackground}
+                            onBackgroundModeCommit={panelTheme.commitBackgroundMode}
+                            onBackdropCommit={panelTheme.commitBackdrop}
+                            showBackdropSelector={supportsDesktopWallpaper(surface, !!device?.displayId)}
+                            onBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
+                            onBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
+                            onBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
+                            onBackgroundEffectStateCommit={panelTheme.commitBackgroundEffectState}
+                            onBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
+                            onBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
+                            onBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+                            onBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
+                            onBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
+                            onBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
+                            onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
+                            onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
+                            onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
+                            onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+                            onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
+                            onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
+                            showMediaTab={surface !== 'desktop'}
+                            backgroundHeldBy={backgroundHeldBy}
+                            deviceAspect={devAspect}
+                            deviceW={nativeW}
+                            deviceH={nativeH}
+                            hideWidgetLabelsToggle={singleWidget}
+                            hideWidgetChromeControls={singleWidget}
+                            sections={activeTab}
+                          />
+                        </div>
+                      </>
                     );
                   })()}
                   {activeTab === 'settings' && (isMonitorPanel || ddcSupported) && !supportsDisplayControls && !supportsAutoLaunch && (
@@ -1166,6 +1401,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setForceOrientation(next);
                         if (!supportsDisplayControls) return;
                         postService('/y70/rotation', { forceOrientation: next }).catch(() => {});
+                      }}
+                      compatibilityRendering={compatibilityRendering?.supported ? compatibilityRendering.enabled : undefined}
+                      onCompatibilityRenderingToggle={() => {
+                        if (!compatibilityRendering) return;
+                        const next = !compatibilityRendering.enabled;
+                        setCompatibilityRendering({ ...compatibilityRendering, enabled: next });
+                        postService('/y70/compatibility-rendering', { enabled: next }).catch(() => {});
                       }}
                       screenOn={screenOn}
                       onScreenToggle={() => {
@@ -1301,6 +1543,38 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       </SettingsSection>
                     </div>
                   )}
+                  {activeTab === 'settings' && isSecondaryMonitorCapablePanel && (
+                    <div className={styles.settingsContent}>
+                      <SettingsSection title={t('devices.lcd.secondaryMonitorSection')} boxClassName={styles.deviceSettingsBox}>
+                        <SettingToggle
+                          label={t('devices.lcd.secondaryMonitor')}
+                          description={t('devices.lcd.secondaryMonitorHint')}
+                          checked={recordSecondaryMonitor}
+                          onChange={() => {
+                            const next = !recordSecondaryMonitor;
+                            setRecordSecondaryMonitor(next);
+                            if (!next) setRecordSecondaryMonitorState(null);
+                            if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { secondaryMonitor: next }).catch(() => {});
+                          }}
+                        />
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'driver-missing' && (
+                          <div className={styles.usbNotice}>
+                            <AlertTriangle size={14} aria-hidden />
+                            <span>{t('devices.lcd.secondaryMonitorDriverMissing')}</span>
+                          </div>
+                        )}
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'failed' && (
+                          <div className={styles.usbNotice}>
+                            <AlertTriangle size={14} aria-hidden />
+                            <span>{t('devices.lcd.secondaryMonitorFailed')}</span>
+                          </div>
+                        )}
+                        {recordSecondaryMonitor && recordSecondaryMonitorState === 'starting' && (
+                          <SettingRow label={t('devices.lcd.secondaryMonitorStarting')} />
+                        )}
+                      </SettingsSection>
+                    </div>
+                  )}
                   {activeTab === 'settings' && isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <CorsairLcdSettings />
@@ -1312,10 +1586,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     </div>
                   )}
                   {/* Panel devices with a settings tab (Y70 / Q-series /
-                      promoted monitors) get the two per-device resets below
-                      the surface-specific settings: personalization (the
-                      Widgets + Theme tabs) and hardware settings (this tab). */}
-                  {activeTab === 'settings' && editingDeviceId && (
+                      promoted monitors) get the per-device resets below the
+                      surface-specific settings: personalization (the Widgets +
+                      Theme tabs) and hardware settings (this tab). Gated on the
+                      device, not its panel record: the record is created by the
+                      panel page's first load, Reboot panel takes no record id,
+                      and the record-bound resets disable until one binds. */}
+                  {activeTab === 'settings' && !isSimulated && (
                     <div className={`${styles.settingsContent} ${styles.settingsContentDanger}`}>
                       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
                       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
@@ -1328,7 +1605,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             tone="danger"
                             size="sm"
                             onClick={() => setResetPersonalizationConfirmOpen(true)}
-                            disabled={resettingPersonalization}
+                            disabled={resettingPersonalization || !editingDeviceId}
                           >
                             {t('devices.panels.resetPersonalization.button')}
                           </Button>
@@ -1344,7 +1621,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             tone="danger"
                             size="sm"
                             onClick={() => setResetHardwareConfirmOpen(true)}
-                            disabled={resettingHardware}
+                            disabled={resettingHardware || !editingDeviceId}
                           >
                             {t('devices.panels.resetHardware.button')}
                           </Button>
@@ -1376,7 +1653,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                 tone="danger"
                                 size="sm"
                                 onClick={() => setFactoryResetConfirmOpen(true)}
-                                disabled={factoryResettingPanel || rebootingPanel}
+                                disabled={factoryResettingPanel || rebootingPanel || !editingDeviceId}
                               >
                                 {factoryResettingPanel
                                   ? t('devices.q60.factoryResetPanel.busy')
@@ -1395,6 +1672,19 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
           <div className={styles.previewPane} data-surface={surface}>
             <div className={styles.previewStage}>
+              {recordSecondaryMonitor ? (
+                <div className={styles.secondaryMonitorPreview}>
+                  <TvMinimal size={40} strokeWidth={1.5} aria-hidden />
+                  <p>
+                    {recordSecondaryMonitorState === 'driver-missing'
+                      ? t('devices.lcd.secondaryMonitorDriverMissing')
+                      : recordSecondaryMonitorState === 'failed'
+                        ? t('devices.lcd.secondaryMonitorFailed')
+                        : t('devices.lcd.secondaryMonitorPreview')}
+                  </p>
+                </div>
+              ) : (
+              <>
               {showPageArrows && (
                 <PanelArrowButton
                   side="prev"
@@ -1442,6 +1732,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceTouch={deviceTouch}
                 displayBound={!!device?.displayId}
               />
+              </>
+              )}
             </div>
           </div>
         </div>
@@ -1509,14 +1801,22 @@ interface InlineWidgetSettingsProps {
   // Panel accent vars injected onto the preview root so the widget preview
   // highlights in the panel's accent, not the desktop chrome's.
   themeStyle?: CSSProperties;
+  // Set when the canvas is docked below (landscape strips), which gives this
+  // block the full page width.
+  docked?: boolean;
   onBack: () => void;
   onUpdate: (widgetId: string, config: Record<string, PanelConfigValue>) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
   onRemove: (widgetId: string) => void;
+  // Whether this widget can be marked immersive-on-load: a first-page widget
+  // with an immersive view in the panel's current orientation.
+  immersiveOnLoadAvailable?: boolean;
+  immersiveOnLoad?: boolean;
+  onImmersiveOnLoadChange?: (widgetId: string, on: boolean) => void;
   onSectionNavigate?: (section: string) => void;
 }
 
-function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, onBack, onUpdate, onResize, onRemove, onSectionNavigate }: InlineWidgetSettingsProps) {
+function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark', themeStyle, docked, onBack, onUpdate, onResize, onRemove, immersiveOnLoadAvailable = false, immersiveOnLoad = false, onImmersiveOnLoadChange, onSectionNavigate }: InlineWidgetSettingsProps) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
   const widgetLabel = def ? (t(def.meta.i18nKey) || widget.type) : widget.type;
@@ -1531,6 +1831,15 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   const slotLayout = resolvedSlotLayout(widget.size, widget.config);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
   const [deckEditView, setDeckEditView] = useState<DeckEditView>({ page: 0, folderPath: [] });
+
+  // The preview tile (draggable in edit mode) and DeckSettings below it both
+  // bind to this same instance; sharing one useDeckInstance call through
+  // DeckInstanceProvider keeps a tile drag and an inspector edit from racing
+  // each other's independent auto-saves (see useDeckInstance.ts).
+  const isDeckWidget = widget.type === 'deck';
+  const deckInstanceId = isDeckWidget ? `widget:${widget.id}` : null;
+  const deckInstanceGrid = isDeckWidget ? innerGridForSize(widget.size) : { cols: 0, rows: 0 };
+  const sharedDeckInstance = useDeckInstance(deckInstanceId, 'widget', deckInstanceGrid, true);
 
   const handleConfigUpdate = (config: Record<string, PanelConfigValue>) => {
     onUpdate(widget.id, { ...widget.config, ...config });
@@ -1549,7 +1858,8 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   const Icon = def?.meta.icon;
 
   return (
-    <div className={styles.inlineSettings}>
+    <DeckInstanceProvider value={isDeckWidget ? { instanceId: deckInstanceId!, value: sharedDeckInstance } : null}>
+    <div className={styles.inlineSettings} data-docked={docked ? 'true' : undefined}>
       <div className={styles.inlineSettingsHeader}>
         <button type="button" className={styles.backBtn} onClick={onBack} aria-label={t('devices.panels.widgetSettings.back')}>
           <ArrowLeft size={16} />
@@ -1574,41 +1884,43 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
         </div>
       </div>
 
-      <div className={styles.inlineSettingsPreview}>
-        {def && (() => {
-          const Comp = def.Widget;
-          const span = sizeToSpan(widget.size);
-          const previewW = span.cols * 90 + (span.cols - 1) * 6;
-          const previewH = span.rows * 90 + (span.rows - 1) * 6;
-          return (
-            <div
-              className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
-              data-theme={themeMode}
-              style={{ ...themeStyle, width: previewW, height: previewH }}
-            >
-              <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
-                <ErrorBoundary label={widget.type}>
-                  <Comp
-                    widget={widget}
-                    // The preview mirrors the target surface's interactivity.
-                    surface={surface}
-                    deviceTouch={deviceTouch}
-                    selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
-                    onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
-                    editView={usesSlotSelection ? deckEditView : undefined}
-                    onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
-                    // Same semantics as the canvas tile: this preview shows the
-                    // same nav arrows, so pressing one has to mean the same
-                    // thing rather than moving a throwaway view.
-                    onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
-                    editorPreview={def.meta.persistsFromTile ? true : undefined}
-                  />
-                </ErrorBoundary>
+      {def && (
+        <div className={styles.inlineSettingsPreview}>
+          {(() => {
+            const Comp = def.Widget;
+            const span = sizeToSpan(widget.size);
+            const previewW = span.cols * 90 + (span.cols - 1) * 6;
+            const previewH = span.rows * 90 + (span.rows - 1) * 6;
+            return (
+              <div
+                className={`panel-root ${usesSlotSelection ? styles.inlineSettingsPreviewRootInteractive : styles.inlineSettingsPreviewRoot}`}
+                data-theme={themeMode}
+                style={{ ...themeStyle, width: previewW, height: previewH }}
+              >
+                <div className={`panel-card ${styles.inlineSettingsPreviewCard}`} data-size={widget.size} data-widget-type={widget.type}>
+                  <ErrorBoundary label={widget.type}>
+                    <Comp
+                      widget={widget}
+                      // The preview mirrors the target surface's interactivity.
+                      surface={surface}
+                      deviceTouch={deviceTouch}
+                      selectedSlot={usesSlotSelection ? selectedMonitoringSlot : undefined}
+                      onSelectSlot={usesSlotSelection ? setSelectedMonitoringSlot : undefined}
+                      editView={usesSlotSelection ? deckEditView : undefined}
+                      onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
+                      // Same semantics as the canvas tile: this preview shows the
+                      // same nav arrows, so pressing one has to mean the same
+                      // thing rather than moving a throwaway view.
+                      onUpdate={def.meta.persistsFromTile ? handleConfigUpdate : undefined}
+                      editorPreview={def.meta.persistsFromTile ? true : undefined}
+                    />
+                  </ErrorBoundary>
+                </div>
               </div>
-            </div>
-          );
-        })()}
-      </div>
+            );
+          })()}
+        </div>
+      )}
 
       <div className={styles.inlineSettingsBody}>
         {(sizes.length > 1 || slotLayoutOptions.length > 1) && (
@@ -1667,13 +1979,25 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
             onEditViewChange={usesSlotSelection ? setDeckEditView : undefined}
             onSectionNavigate={onSectionNavigate}
           />
-        ) : (
+        ) : immersiveOnLoadAvailable ? null : (
           <div className={styles.inlineSettingsEmpty}>
             {t('peripheral.noCapabilities') || t('devices.panels.widgetSettings.noConfigurableSettings')}
           </div>
         )}
+
+        {immersiveOnLoadAvailable && onImmersiveOnLoadChange && (
+          <SettingsSection title={t('devices.panels.widgetSettings.immersiveOnLoad.title')}>
+            <SettingToggle
+              label={t('devices.panels.widgetSettings.immersiveOnLoad')}
+              description={t('devices.panels.widgetSettings.immersiveOnLoad.hint')}
+              checked={immersiveOnLoad}
+              onChange={on => onImmersiveOnLoadChange(widget.id, on)}
+            />
+          </SettingsSection>
+        )}
       </div>
     </div>
+    </DeckInstanceProvider>
   );
 }
 
@@ -1858,6 +2182,9 @@ interface SettingsPanelProps {
   orientationOptions: readonly Y70Orientation[];
   forceOrientation: boolean;
   onForceOrientationToggle: () => void;
+  // Undefined hides the toggle: the host's panel window does not support it.
+  compatibilityRendering?: boolean;
+  onCompatibilityRenderingToggle: () => void;
   screenOn: boolean;
   onScreenToggle: () => void;
   autoLaunch: boolean;
@@ -1879,6 +2206,7 @@ function SettingsPanel({
   brightness, onBrightness,
   orientation, onOrientation, orientationOptions,
   forceOrientation, onForceOrientationToggle,
+  compatibilityRendering, onCompatibilityRenderingToggle,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
   reserveMonitor, onReserveMonitorToggle,
@@ -1970,6 +2298,15 @@ function SettingsPanel({
 
           {!forceOrientation && (
             <OrientationSelectRow value={orientation} onChange={onOrientation} options={orientationOptions} />
+          )}
+
+          {compatibilityRendering !== undefined && (
+            <SettingToggle
+              label={t('devices.y70.compatibilityRendering')}
+              description={t('devices.y70.compatibilityRenderingHint')}
+              checked={compatibilityRendering}
+              onChange={onCompatibilityRenderingToggle}
+            />
           )}
 
           <SettingRow

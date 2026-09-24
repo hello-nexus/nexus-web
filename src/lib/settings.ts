@@ -154,9 +154,12 @@ export interface GeneralSettings {
   // 'diagnostics' | 'devices'). Server-mirrored under ui.pinnedSidebarApps so
   // it follows the profile.
   pinnedSidebarApps: string[];
-  // Recently opened unpinned apps, oldest first - the sidebar's below-separator
-  // "recently opened" rows. Server-mirrored under ui.recentSidebarApps.
-  recentSidebarApps: string[];
+  // User-dragged order of the unpinned sidebar apps; empty = sorted by name.
+  // Server-mirrored under ui.sidebarAppOrder.
+  sidebarAppOrder: string[];
+  // True while the user has collapsed the dashboard sidebar by hand.
+  // Server-mirrored under ui.sidebarCollapsed.
+  sidebarCollapsed: boolean;
   // When true, lighting + cooling widgets render the full controls
   // (animation/mirror/static buttons on lighting, response chart +
   // silent/balanced/turbo chips on cooling); default false (single-icon
@@ -167,6 +170,13 @@ export interface GeneralSettings {
   // ui.coolingDashboardMode.
   lightingDashboardMode: DashboardMode;
   coolingDashboardMode: DashboardMode;
+  // False hides every device with Nexus Control off from that page's device
+  // rail. One per page: wanting every light listed says nothing about wanting
+  // every fan listed. Server-mirrored under
+  // ui.showUncontrolledLightingDevices / ui.showUncontrolledCoolingDevices,
+  // each seeded from the single pre-split ui.showUncontrolledDevices.
+  showUncontrolledLightingDevices: boolean;
+  showUncontrolledCoolingDevices: boolean;
   // Display-unit choices. Server-mirrored under the preferences `units` block
   // so they follow the profile. See lib/units.ts for their meaning. The
   // monitoring temperature unit governs in-app hardware temps only; outdoor
@@ -212,7 +222,7 @@ export function getDefaultSettings(): NexusSettings {
       accentSource: 'system',
       startOnLogin: false,
       showConflictAlerts: true,
-      autoKillConflictsAtStartup: false,
+      autoKillConflictsAtStartup: true,
       conflictAutoKillExclusions: [],
       monitoringDetailedCollapsed: [],
       monitoringEventsEnabled: true,
@@ -225,10 +235,13 @@ export function getDefaultSettings(): NexusSettings {
       showWindowsTrayIcon: true,
       rememberLastPage: true,
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics'],
-      recentSidebarApps: [],
+      sidebarAppOrder: [],
+      sidebarCollapsed: false,
       widgetAdvancedMode: false,
       lightingDashboardMode: 'simple',
       coolingDashboardMode: 'simple',
+      showUncontrolledLightingDevices: true,
+      showUncontrolledCoolingDevices: true,
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
@@ -307,7 +320,7 @@ export function cachePreferencesLocally(prefs: {
   showMacStatusBarIcon?: boolean;
   showWindowsTrayIcon?: boolean;
   pinnedSidebarApps?: string[];
-  recentSidebarApps?: string[];
+  sidebarAppOrder?: string[];
 }): void {
   const current = loadSettings();
   if (prefs.language) current.general.language = prefs.language as Language;
@@ -320,7 +333,7 @@ export function cachePreferencesLocally(prefs: {
   if (prefs.showMacStatusBarIcon !== undefined) current.general.showMacStatusBarIcon = prefs.showMacStatusBarIcon;
   if (prefs.showWindowsTrayIcon !== undefined) current.general.showWindowsTrayIcon = prefs.showWindowsTrayIcon;
   if (prefs.pinnedSidebarApps !== undefined) current.general.pinnedSidebarApps = prefs.pinnedSidebarApps;
-  if (prefs.recentSidebarApps !== undefined) current.general.recentSidebarApps = prefs.recentSidebarApps;
+  if (prefs.sidebarAppOrder !== undefined) current.general.sidebarAppOrder = prefs.sidebarAppOrder;
   saveSettings(current);
 }
 
@@ -338,6 +351,11 @@ export function resolveTheme(mode: ThemeMode): 'dark' | 'light' {
 // shades when the user flips dark ↔ light without needing the caller to
 // thread the accent through.
 let currentAccent = DEFAULT_ACCENT;
+
+/** The accent last applied to the page, as #rrggbb (the Build frame mirrors it). */
+export function currentAccentColor(): string {
+  return currentAccent;
+}
 
 // Match the --bg-elevated chrome tokens in src/styles/variables.scss (the top
 // bar is what sits under the URL bar). Kept in sync manually so the iOS Safari
@@ -514,6 +532,11 @@ export function contrastTextOn(hex: string): string {
   return needsDarkTextOnHsl(h, s, l) ? '#000000' : '#ffffff';
 }
 
+/** The --accent-glow-shadow tier's alpha; surfaces painting a body the same weight bake it in. */
+export function accentShadowAlpha(mode: 'dark' | 'light'): number {
+  return mode === 'dark' ? 0.45 : 0.35;
+}
+
 /**
  * Derive all accent variants for a base hex and apply them as CSS custom
  * properties on <html>. Safe to call on every color-picker input event.
@@ -535,7 +558,7 @@ export function deriveAccentVars(hex: string, mode: 'dark' | 'light' = 'dark'): 
   const deepL = mode === 'dark' ? clamp(baseL - 16, 22, 50) : clamp(baseL - 20, 14, 40);
   const deepS = clamp(baseS + 5);
   const softAlpha       = mode === 'dark' ? 0.14 : 0.12;
-  const glowShadowAlpha = mode === 'dark' ? 0.45 : 0.35;
+  const glowShadowAlpha = accentShadowAlpha(mode);
   return {
     '--accent':             hslCss(h, s, l),
     '--accent-glow':        hslCss(h, baseS, glowL),
@@ -565,7 +588,7 @@ export function applyAccentColor(hex: string): void {
   const deepS = clamp(baseS + 5);
 
   const softAlpha       = effective === 'dark' ? 0.14 : 0.12;
-  const glowShadowAlpha = effective === 'dark' ? 0.45 : 0.35;
+  const glowShadowAlpha = accentShadowAlpha(effective);
 
   // Pick black-or-white text for the accent surface based on its luminance.
   // Keeps text legible across the full hue range - dark picks keep white text;

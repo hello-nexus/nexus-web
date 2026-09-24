@@ -160,9 +160,11 @@ export function FanControlImportSection({
   const selectionEmpty = selected.size === 0;
   const locked = importPhase === 'busy' || !!disabled;
 
+  // Silent until the preview has settled: before that the answer is not known.
+  const previewSettled = previewStatus === 'loaded' || previewStatus === 'error';
   useEffect(() => {
-    onSelectionChange?.(!selectionEmpty);
-  }, [selectionEmpty, onSelectionChange]);
+    if (previewSettled) onSelectionChange?.(!selectionEmpty);
+  }, [previewSettled, selectionEmpty, onSelectionChange]);
 
   // Guards on its own phase only: a host driving this from its own button sets
   // `disabled` in the same tick, and consulting it here would no-op the call.

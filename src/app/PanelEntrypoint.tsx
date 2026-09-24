@@ -16,10 +16,12 @@ import { getDeviceId } from '../api/deviceId';
 import { upsertPairedPc, markActivePcNeedsRepair } from '../api/pairedPcs';
 import { MultiplexContext, useMultiplexConnection } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
+import { TouchViaPointerContext, readTouchViaPointerFlag } from '../panel/engine/touchViaPointer';
 import { useTranslation } from '../lib/i18n';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { PANEL_DEVICE_ID_KEY, PHONE_PANEL_PWA_KEY } from './panelRouting';
 import styles from '../App.module.scss';
+import { framePacingQuery } from '../lib/framePacer';
 
 type PanelFailureKind = 'auth' | 'network' | 'pair-expired';
 type PanelEntrypointState = 'claiming' | 'allocating' | 'ready' | 'failed';
@@ -27,10 +29,14 @@ type PanelEntrypointState = 'claiming' | 'allocating' | 'ready' | 'failed';
 export function PanelWrapper({ deviceId, wired = false }: { deviceId: string; wired?: boolean }) {
   const multiplex = useMultiplexConnection(true, wired);
   useMonitoringStoreBridge(multiplex);
+  // Set only by the macOS overlay helper's kiosk URL (engine/touchViaPointer).
+  const touchViaPointer = useMemo(() => readTouchViaPointerFlag(), []);
   return (
     <MultiplexContext.Provider value={multiplex}>
       <UiSettingsProvider serviceOnline={true} manageDom={false}>
-        <PanelApp deviceId={deviceId} />
+        <TouchViaPointerContext.Provider value={touchViaPointer}>
+          <PanelApp deviceId={deviceId} />
+        </TouchViaPointerContext.Provider>
       </UiSettingsProvider>
     </MultiplexContext.Provider>
   );
@@ -151,7 +157,8 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       if (cancelled) return;
       localStorage.setItem(PANEL_DEVICE_ID_KEY, id);
       setDeviceId(id);
-      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}`;
+      // The kiosk host's frame-pacing hint must survive the move to the device URL.
+      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}${framePacingQuery(window.location.search)}`;
       window.history.replaceState(null, '', target);
       setState('ready');
     };

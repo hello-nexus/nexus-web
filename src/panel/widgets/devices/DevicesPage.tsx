@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Usb, Monitor, Microchip, FileText, Cable, BookOpen, Link } from 'lucide-react';
+import { Usb, Monitor, Microchip, FileText, Cable, BookOpen, Link2 } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
@@ -17,6 +17,7 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
+import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
@@ -135,7 +136,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         tabsDisabled={!serviceOnline}
       />
 
-      <div className="pageBody">
+      <div className={`${styles.body} pageBody`}>
         {availableActive ? (
           !serviceOnline ? (
             <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
@@ -174,6 +175,10 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
                   {orderedDevices.map(renderDeviceCard)}
                 </div>
               )}
+
+              <div className={styles.missingNotice}>
+                <SimpleModeNotice message={t('devices.available.missingNotice')} />
+              </div>
             </>
           )
         ) : tab === 'displays' ? (
@@ -280,7 +285,7 @@ function DeviceCard({
           onClick={e => e.stopPropagation()}
           onKeyDown={e => e.stopPropagation()}
         >
-          <span className={styles.controlLabel}><Link size={13} aria-hidden />{t('devices.nexusControl')}</span>
+          <span className={styles.controlLabel}><Link2 size={13} aria-hidden />{t('devices.nexusControl')}</span>
           <Toggle
             checked={device.nexusControlEnabled}
             onChange={onToggleControl}

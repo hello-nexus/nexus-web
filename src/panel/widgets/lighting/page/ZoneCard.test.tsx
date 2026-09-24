@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ZoneCard, zoneCardSelectable, type BulkSelection } from './ZoneCard';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -95,14 +95,14 @@ describe('ZoneCard actions menu', () => {
   it('labels both rows with the action they perform, not the state they are in', () => {
     renderCard({ ...baseDevice, controlled: false, ledsOn: true });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    expect(rowIcon(/menuControlOn/)).toContain('lucide-link-2');
+    expect(rowIcon(/menuControlOn/)?.split(' ')).toContain('lucide-link-2');
     expect(rowIcon(/menuLightsOff/)).toContain('lucide-power-off');
   });
 
   it('flips both labels and icons when the state flips', () => {
     renderCard({ ...baseDevice, controlled: true, ledsOn: false });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    expect(rowIcon(/menuControlOff/)).toContain('lucide-unlink');
+    expect(rowIcon(/menuControlOff/)?.split(' ')).toContain('lucide-link-2-off');
     // lucide-power-off also contains "lucide-power", so pin the exact class.
     expect(rowIcon(/menuLightsOn/)?.split(' ')).toContain('lucide-power');
   });
@@ -178,6 +178,7 @@ describe('ZoneCard bulk selection', () => {
       identifyCount: 3,
       controlled: true,
       ledsOn: true,
+      oneDevice: false,
       setControlled: vi.fn(),
       setPower: vi.fn(),
       identify: vi.fn(),
@@ -212,9 +213,16 @@ describe('ZoneCard bulk selection', () => {
     expect(screen.getByRole('button', { name: /menuLightsOffCount.*"count":3/ })).toBeTruthy();
   });
 
-  it('hides the LED map row, which edits one device only', () => {
+  it('hides the LED map row when the selection spans devices', () => {
     renderBulkAndOpen(bulkProps());
     expect(screen.queryByRole('button', { name: /ledMap.settings/ })).toBeNull();
+  });
+
+  it('keeps the LED map row when the selection is one device\'s own zones', () => {
+    // Selecting a keeb's keys and underglow still names one device, and the
+    // editor opens on that device and lists both.
+    renderBulkAndOpen(bulkProps({ oneDevice: true }));
+    expect(screen.getByRole('button', { name: /ledMap.settings/ })).toBeTruthy();
   });
 
   it('drives the whole selection to one state, not per-device toggles', () => {
@@ -603,27 +611,40 @@ describe('ZoneCard rename', () => {
     />,
   );
 
+  const startRename = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    fireEvent.click(screen.getByText('lighting.devices.rename'));
+  };
+
   it('commits the trimmed name on Enter', () => {
     const onRename = vi.fn();
     renderRenameable({}, onRename);
-    fireEvent.click(screen.getByText('Test Strip'));
+    startRename();
     const input = screen.getByDisplayValue('Test Strip');
     fireEvent.change(input, { target: { value: '  Top intake  ' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onRename).toHaveBeenCalledWith('Top intake');
   });
 
-  it('does not select the card when the name is clicked to edit it', () => {
+  it('does not start a rename when the name is clicked', () => {
+    renderRenameable({ onSelect: vi.fn() });
+    fireEvent.click(screen.getByText('Test Strip'));
+    expect(screen.queryByDisplayValue('Test Strip')).toBeNull();
+  });
+
+  it('selects the card when the name is clicked, like any other part of it', () => {
+    // The name used to swallow the click so it could open an editor; with
+    // rename on the menu it is just part of the card surface.
     const onSelect = vi.fn();
     renderRenameable({ onSelect });
     fireEvent.click(screen.getByText('Test Strip'));
-    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalled();
   });
 
   it('edits the shown name, so a grouped zone renames off its stripped label', () => {
     const onRename = vi.fn();
     renderRenameable({ displayName: 'ARGB header 1', indent: true }, onRename);
-    fireEvent.click(screen.getByText('ARGB header 1'));
+    startRename();
     expect(screen.getByDisplayValue('ARGB header 1')).toBeTruthy();
   });
 
@@ -717,5 +738,159 @@ describe('ZoneCard menu bands', () => {
     // Naming and grouping close the menu, behind a rule of their own. This
     // device carries no hardware name to reset, so there are two rows.
     expect(rows.slice(-3)).toEqual(['|', 'lighting.devices.rename', 'lighting.devices.moveToGroup']);
+  });
+});
+
+describe('ZoneCard stacked', () => {
+  const cardClass = () => document.querySelector(`.${styles.deviceCard}`)?.className ?? '';
+  const renderStacked = (stacked: 'inner' | 'last') => render(
+    <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={() => {}} stacked={stacked} />,
+  );
+
+  it('carries no stack classes on its own', () => {
+    renderCard(baseDevice);
+    expect(cardClass()).not.toContain(styles.deviceCardStacked);
+    expect(cardClass()).not.toContain(styles.deviceCardStackLast);
+  });
+
+  it('squares its corners and seams to the row above as an inner member', () => {
+    renderStacked('inner');
+    expect(cardClass()).toContain(styles.deviceCardStacked);
+    expect(cardClass()).not.toContain(styles.deviceCardStackLast);
+  });
+
+  it('keeps the bottom corners as the last member', () => {
+    renderStacked('last');
+    expect(cardClass()).toContain(styles.deviceCardStacked);
+    expect(cardClass()).toContain(styles.deviceCardStackLast);
+  });
+});
+
+describe('ZoneCard color lock', () => {
+  const badge = () => screen.queryByRole('button', { name: 'lighting.devices.unlockLook' }) as HTMLButtonElement | null;
+  const menuRow = (re: RegExp) => screen.queryAllByRole('button').find(b => re.test(b.textContent ?? '')) ?? null;
+  const openMenu = () => fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+  const renderLock = (lock: { locked: boolean; lockable: boolean; hasPick: boolean; setLocked?: (locked: boolean) => void }, extra: Partial<Parameters<typeof ZoneCard>[0]> = {}) => render(
+    <ZoneCard
+      device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+      onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+      lock={{ setLocked: () => {}, ...lock }}
+      {...extra}
+    />,
+  );
+
+  it('renders no badge and no rows without a lock prop', () => {
+    renderCard(baseDevice);
+    expect(badge()).toBeNull();
+    openMenu();
+    expect(menuRow(/lighting\.devices\.(un)?lockLook/)).toBeNull();
+  });
+
+  it('shows no badge on an unlocked card, even on the Static tab', () => {
+    renderLock({ locked: false, lockable: true, hasPick: true });
+    expect(badge()).toBeNull();
+  });
+
+  it('badges a locked card after the strip, in any mode, and the badge unlocks', () => {
+    const setLocked = vi.fn();
+    renderLock({ locked: true, lockable: false, hasPick: true, setLocked });
+    const btn = badge()!;
+    const row = document.querySelector(`.${styles.deviceMetaRow}`)!;
+    const order = [...row.children].map(el =>
+      el.classList.contains(styles.ledStrip) ? 'strip'
+        : el.querySelector(`.${styles.deviceLockBtn}`) || el.classList.contains(styles.deviceLockBtn) ? 'lock' : null,
+    ).filter(Boolean);
+    expect(order).toEqual(['strip', 'lock']);
+    fireEvent.click(btn);
+    expect(setLocked).toHaveBeenCalledWith(false);
+  });
+
+  it('does not select the card when the badge is pressed', () => {
+    const onSelect = vi.fn();
+    renderLock({ locked: true, lockable: false, hasPick: true }, { onSelect });
+    fireEvent.click(badge()!);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('offers Lock in the menu on the Static tab when the card has a pick', () => {
+    const setLocked = vi.fn();
+    renderLock({ locked: false, lockable: true, hasPick: true, setLocked });
+    openMenu();
+    const row = menuRow(/^lighting\.devices\.lockLook$/)!;
+    expect(row).not.toBeNull();
+    expect(menuRow(/unlockLook/)).toBeNull();
+    fireEvent.click(row);
+    expect(setLocked).toHaveBeenCalledWith(true);
+  });
+
+  it('offers no Lock row without a pick, or outside the Static tab', () => {
+    renderLock({ locked: false, lockable: true, hasPick: false });
+    openMenu();
+    expect(menuRow(/lockLook/)).toBeNull();
+    cleanup();
+    renderLock({ locked: false, lockable: false, hasPick: true });
+    openMenu();
+    expect(menuRow(/lockLook/)).toBeNull();
+  });
+
+  it('offers Unlock in the menu on a locked card in any mode', () => {
+    const setLocked = vi.fn();
+    renderLock({ locked: true, lockable: false, hasPick: true, setLocked });
+    openMenu();
+    const row = menuRow(/^lighting\.devices\.unlockLook$/)!;
+    expect(row).not.toBeNull();
+    expect(menuRow(/^lighting\.devices\.lockLook$/)).toBeNull();
+    fireEvent.click(row);
+    expect(setLocked).toHaveBeenCalledWith(false);
+  });
+
+  it('flashes on a seq bump, restarts on the next, and never on the seq it mounted with', () => {
+    const withSeq = (seq: number) => (
+      <ZoneCard
+        device={baseDevice} selected={false} indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        lock={{ locked: true, lockable: true, hasPick: true, setLocked: () => {}, flashSeq: seq }}
+      />
+    );
+    // A card mounted while the page still holds an old burst does not flash:
+    // a collapsed group re-expanding is not a pick.
+    const { rerender } = render(withSeq(3));
+    expect(badge()!.className).not.toContain(styles.deviceLockBtnFlash);
+    // A bump flashes, and remounts the badge so the animation starts over.
+    rerender(withSeq(4));
+    const first = badge()!;
+    expect(first.className).toContain(styles.deviceLockBtnFlash);
+    rerender(withSeq(5));
+    const second = badge()!;
+    expect(second).not.toBe(first);
+    expect(second.className).toContain(styles.deviceLockBtnFlash);
+    // The same seq again keeps the same element: no re-run on a plain re-render.
+    rerender(withSeq(5));
+    expect(badge()).toBe(second);
+  });
+
+  it('counts the members each row reaches in a selection', () => {
+    const setLocked = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice} selected indent={false} onSelect={() => {}}
+        onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+        lock={{ locked: false, lockable: true, hasPick: true, setLocked: () => {} }}
+        bulk={{
+          count: 3, identifyCount: 3, tunableCount: 3, controlled: true, ledsOn: true, oneDevice: false,
+          setControlled: () => {}, setPower: () => {}, identify: () => {},
+          lockCount: 2, unlockCount: 1, setLocked,
+        }}
+      />,
+    );
+    openMenu();
+    const lockRow = menuRow(/lockLookCount\.other:\{"count":2\}/)!;
+    const unlockRow = menuRow(/unlockLookCount\.one:\{"count":1\}/)!;
+    expect(lockRow).not.toBeNull();
+    expect(unlockRow).not.toBeNull();
+    fireEvent.click(lockRow);
+    expect(setLocked).toHaveBeenCalledWith(true);
+    fireEvent.click(unlockRow);
+    expect(setLocked).toHaveBeenCalledWith(false);
   });
 });

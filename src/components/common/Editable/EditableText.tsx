@@ -12,12 +12,27 @@ import styles from './Editable.module.scss';
  *
  * The ref opens edit mode from a menu's Rename row.
  */
+/**
+ * Cap for a lighting or cooling device or group name. Longer than the 20-char
+ * default because these are the names users write sentences into - "Front
+ * radiator intake", "Corsair QL Fan 3" - and the service stores them uncapped.
+ */
+export const DEVICE_NAME_MAX_LENGTH = 40;
+
 export interface EditableTextProps {
   value: string;
   onCommit: (value: string) => void;
   maxLength?: number;
   className?: string;
   ariaLabel?: string;
+  /**
+   * Whether clicking the text starts an edit. False leaves renaming to the
+   * imperative handle alone, for names that sit on something else clickable -
+   * a device card or a group header, where a click on the title should select
+   * or collapse rather than drop into a text field. The context menu's Rename
+   * still works, because that calls startEditing() directly.
+   */
+  clickToEdit?: boolean;
 }
 
 export interface EditableTextHandle {
@@ -25,7 +40,7 @@ export interface EditableTextHandle {
 }
 
 export const EditableText = forwardRef<EditableTextHandle, EditableTextProps>(function EditableText(
-  { value, onCommit, maxLength = 20, className, ariaLabel }, ref,
+  { value, onCommit, maxLength = 20, className, ariaLabel, clickToEdit = true }, ref,
 ) {
   const editable = useEditable<string>({
     value,
@@ -39,7 +54,15 @@ export const EditableText = forwardRef<EditableTextHandle, EditableTextProps>(fu
   useImperativeHandle(ref, () => ({ startEditing: () => editable.start() }));
 
   if (editable.editing) {
-    return <input className={`${styles.input} ${className ?? ''}`} maxLength={maxLength} aria-label={ariaLabel} {...editable.inputProps} />;
+    // data-no-dnd: a press-drag inside the editor selects text, never the row.
+    return <input className={`${styles.input} ${className ?? ''}`} maxLength={maxLength} aria-label={ariaLabel} data-no-dnd {...editable.inputProps} />;
+  }
+
+  // Without click-to-edit the text is not a control, so it must not advertise
+  // itself as one: no button role, no tab stop, no Enter/Space handler, and
+  // none of the hover affordance either.
+  if (!clickToEdit) {
+    return <span className={`${styles.displayStatic} ${className ?? ''}`}>{value}</span>;
   }
 
   return (

@@ -2,6 +2,15 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { DeckPageStrip } from './DeckPageStrip';
 
+// The default (no-provider) t() ignores interpolation params entirely, which
+// would hide a regression in how removeCount reaches the confirm text - mock
+// it the same interpolation-aware way DeckInstanceEditor.test.tsx does.
+vi.mock('../../../lib/i18n', () => ({
+  useTranslation: () => ({
+    t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
+  }),
+}));
+
 describe('DeckPageStrip', () => {
   it('renders one tab per page and switches on click', () => {
     const onSelectPage = vi.fn();
@@ -109,6 +118,87 @@ describe('DeckPageStrip', () => {
 
     // The add/remove controls are unchanged in numbered mode.
     expect(screen.getByRole('button', { name: 'panel.settings.deck.page.add' })).toBeInTheDocument();
+  });
+
+  it('readOnly hides the add/remove controls entirely, page switching still works', () => {
+    const onSelectPage = vi.fn();
+    render(
+      <DeckPageStrip
+        numbered
+        readOnly
+        pageCount={2}
+        currentPage={0}
+        onSelectPage={onSelectPage}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.add' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeNull();
+
+    fireEvent.click(screen.getByText('2'));
+    expect(onSelectPage).toHaveBeenCalledWith(1);
+  });
+
+  it('names the authored page\'s key count in the remove confirm text', () => {
+    render(
+      <DeckPageStrip
+        pageCount={2}
+        currentPage={0}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onRemoveCurrentPage={vi.fn()}
+        currentPageHasContent
+        removeCount={12}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' }));
+    expect(screen.getByText('panel.settings.deck.page.removeConfirmBody:{"count":12}')).toBeInTheDocument();
+  });
+
+  it('defaults the remove confirm count to 0 when removeCount is omitted', () => {
+    render(
+      <DeckPageStrip
+        pageCount={2}
+        currentPage={0}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onRemoveCurrentPage={vi.fn()}
+        currentPageHasContent
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' }));
+    expect(screen.getByText('panel.settings.deck.page.removeConfirmBody:{"count":0}')).toBeInTheDocument();
+  });
+
+  it('canRemove=false disables the remove control even when the fitted pageCount is > 1 (one authored page spanning several fitted chunks)', () => {
+    render(
+      <DeckPageStrip
+        pageCount={3}
+        currentPage={0}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onRemoveCurrentPage={vi.fn()}
+        currentPageHasContent={false}
+        canRemove={false}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeDisabled();
+  });
+
+  it('canRemove=true enables the remove control even when the (unrelated) fitted pageCount is 1', () => {
+    const onRemove = vi.fn();
+    render(
+      <DeckPageStrip
+        pageCount={1}
+        currentPage={0}
+        onSelectPage={vi.fn()}
+        onAddPage={vi.fn()}
+        onRemoveCurrentPage={onRemove}
+        currentPageHasContent={false}
+        canRemove
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.page.remove' }));
+    expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
   it('cancelling the confirm leaves the page untouched', () => {

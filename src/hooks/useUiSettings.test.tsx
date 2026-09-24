@@ -1,6 +1,6 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { UiSettingsProvider, useUiSettings, type UiSettingsContextValue } from './useUiSettings';
+import { UiSettingsProvider, useIgnoredComponents, useUiSettings, type UiSettingsContextValue } from './useUiSettings';
 import { applyThemeMode } from '../lib/settings';
 
 // Capture the 'prefs' topic callback and stub the network so the test can drive
@@ -39,9 +39,10 @@ const prefs = (themeMode: string) => ({
   theme: { themeMode, accentColor: '#7c5cff', language: 'en' },
 });
 
-const captured: { ctx: UiSettingsContextValue | null } = { ctx: null };
+const captured: { ctx: UiSettingsContextValue | null; ignore: ReturnType<typeof useIgnoredComponents> | null } = { ctx: null, ignore: null };
 function Consumer() {
   captured.ctx = useUiSettings();
+  captured.ignore = useIgnoredComponents();
   return null;
 }
 
@@ -50,7 +51,66 @@ afterEach(() => {
   vi.clearAllMocks();
   h.prefsCb = null;
   captured.ctx = null;
+  captured.ignore = null;
   localStorage.clear();
+});
+
+describe('useIgnoredComponents', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const serverPrefs = (ignoredComponents?: string[]) => ({
+    theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
+    diagnostics: ignoredComponents ? { ignoredComponents } : {},
+  });
+
+  it('hydrates from preferences.diagnostics.ignoredComponents and defaults to nothing ignored', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs(['storage:Z52AFCNF']));
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    expect(captured.ignore!.isIgnored('storage:Z52AFCNF')).toBe(true);
+    expect(captured.ignore!.isIgnored('storage:other')).toBe(false);
+  });
+
+  it('toggle appends, then removes, and posts the whole list under diagnostics', async () => {
+    h.fetchPreferences.mockResolvedValue(serverPrefs());
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+    expect(captured.ignore!.isIgnored('cooling:pump-1')).toBe(false);
+
+    await act(async () => { captured.ignore!.toggle('cooling:pump-1'); });
+    expect(captured.ignore!.isIgnored('cooling:pump-1')).toBe(true);
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ diagnostics: { ignoredComponents: ['cooling:pump-1'] } });
+
+    await act(async () => { captured.ignore!.toggle('cooling:pump-1'); });
+    expect(captured.ignore!.isIgnored('cooling:pump-1')).toBe(false);
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenLastCalledWith({ diagnostics: { ignoredComponents: [] } });
+  });
+
+  it('is a no-op outside a provider', () => {
+    // Consumer also calls useUiSettings, which throws providerless by design.
+    function IgnoreOnly() {
+      captured.ignore = useIgnoredComponents();
+      return null;
+    }
+    render(<IgnoreOnly />);
+    expect(captured.ignore!.isIgnored('gpu:0')).toBe(false);
+    expect(() => captured.ignore!.toggle('gpu:0')).not.toThrow();
+  });
 });
 
 describe('UiSettingsProvider - prefs-topic reload', () => {
@@ -356,6 +416,65 @@ describe('UiSettingsProvider - per-page dashboard modes', () => {
     await act(async () => { h.prefsCb?.(); });
     await flush();
     expect(captured.ctx!.settings.lightingDashboardMode).toBe('advanced');
+  });
+});
+
+describe('UiSettingsProvider - sidebar collapse', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+  const serverPrefs = (ui: Record<string, unknown> = {}) => ({
+    theme: { themeMode: 'dark', accentColor: '#2563eb', language: 'en' },
+    ui,
+  });
+
+  it('hydrates from the server and posts a toggle under ui.sidebarCollapsed', async () => {
+    vi.useFakeTimers();
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ sidebarCollapsed: true }));
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(true);
+
+    await act(async () => { captured.ctx!.update({ sidebarCollapsed: false }); });
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(false);
+    await act(async () => { vi.runOnlyPendingTimers(); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { sidebarCollapsed: false } });
+  });
+
+  it('keeps a toggle until its write lands when an older fetch resolves with the old value', async () => {
+    vi.useFakeTimers();
+    let resolveFetch!: (v: unknown) => void;
+    let resolveSave!: (v: unknown) => void;
+    h.fetchPreferences.mockReturnValue(new Promise(r => { resolveFetch = r; }));
+    h.savePreferences.mockReturnValue(new Promise(r => { resolveSave = r; }));
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+
+    await act(async () => { captured.ctx!.update({ sidebarCollapsed: true }); });
+    // Past the debounce: the POST is in flight when the stale fetch answers.
+    await act(async () => { vi.runOnlyPendingTimers(); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { sidebarCollapsed: true } });
+    await act(async () => { resolveFetch(serverPrefs({ sidebarCollapsed: false })); });
+    await flush();
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(true);
+
+    // Once the write has landed, the server is authoritative again.
+    await act(async () => { resolveSave(undefined); });
+    await flush();
+    h.fetchPreferences.mockResolvedValue(serverPrefs({ sidebarCollapsed: false }));
+    await act(async () => { captured.ctx!.reload(); });
+    await flush();
+    expect(captured.ctx!.settings.sidebarCollapsed).toBe(false);
   });
 });
 

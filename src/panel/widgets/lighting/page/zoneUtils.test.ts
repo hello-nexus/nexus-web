@@ -10,6 +10,11 @@ import {
   defaultPartitionGuess,
   emptyHistory,
   flattenDeviceMap,
+  GRID_COLS,
+  GRID_ROWS,
+  selectionCenter,
+  selectionSnapAdjust,
+  settleLed,
   formatZoneChipCount,
   isCardFullyParked,
   isStagedZoneId,
@@ -21,6 +26,7 @@ import {
   redoHistory,
   relabelLedZones,
   renameZone,
+  reorderChainEntries,
   segmentOffsets,
   splitStagedZones,
   splitZone,
@@ -379,6 +385,9 @@ describe('editor history', () => {
     leds: [],
     rectRatio: 16 / 9,
     partition: null,
+    chain: null,
+    structure: null,
+    received: new Map(),
     ...over,
   });
 
@@ -624,5 +633,90 @@ describe('visibleCards', () => {
       { id: 'c-1', deviceId: 'c', ledCount: 10 },
     ];
     expect(visibleCards(cards).map(c => c.id)).toEqual(['a-1', 'b-1', 'c-1']);
+  });
+});
+
+describe('reorderChainEntries', () => {
+  const order = ['z0', 'z1', 'z2'];
+  const entries = [{ key: 'a' }, { key: 'b' }, { key: 'c' }];
+
+  it('reorders entries to match the dropped-to zone id order', () => {
+    expect(reorderChainEntries(entries, order, ['z2', 'z0', 'z1'])).toEqual([{ key: 'c' }, { key: 'a' }, { key: 'b' }]);
+  });
+
+  it('is a no-op when the order is unchanged', () => {
+    expect(reorderChainEntries(entries, order, order)).toEqual(entries);
+  });
+
+  it('returns null when the new order has a different length', () => {
+    expect(reorderChainEntries(entries, order, ['z0', 'z1'])).toBeNull();
+  });
+
+  it('returns null when a zone id is not in the current order', () => {
+    expect(reorderChainEntries(entries, order, ['z0', 'z1', 'unknown'])).toBeNull();
+  });
+});
+
+describe('settleLed', () => {
+  it('puts a dragged LED on the nearest grid point', () => {
+    // 1/32 = 0.03125 across, 1/18 = 0.0555... down.
+    expect(settleLed(0.1, 0.1, true)).toEqual({ u: 3 / GRID_COLS, v: 2 / GRID_ROWS });
+    expect(settleLed(0.999, 0.999, true)).toEqual({ u: 1, v: 1 });
+    expect(settleLed(0, 0, true)).toEqual({ u: 0, v: 0 });
+  });
+
+  it('makes the canvas centre a grid point, so centre snapping comes for free', () => {
+    expect(GRID_COLS % 2).toBe(0);
+    expect(GRID_ROWS % 2).toBe(0);
+    expect(settleLed(0.5, 0.5, true)).toEqual({ u: 0.5, v: 0.5 });
+    expect(settleLed(0.505, 0.503, true)).toEqual({ u: 0.5, v: 0.5 });
+  });
+
+  it('leaves a position alone with the grid off, except near the centre', () => {
+    expect(settleLed(0.1234, 0.4321, false)).toEqual({ u: 0.1234, v: 0.4321 });
+    // Inside CENTER_SNAP_EPSILON of the middle.
+    expect(settleLed(0.505, 0.505, false)).toEqual({ u: 0.5, v: 0.5 });
+    expect(settleLed(0.55, 0.55, false)).toEqual({ u: 0.55, v: 0.55 });
+  });
+
+  it('keeps every snapped point inside the canvas', () => {
+    for (const [u, v] of [[-0.2, -0.2], [1.4, 1.4], [0.5, 1.2]] as const) {
+      const r = settleLed(Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v)), true);
+      expect(r.u).toBeGreaterThanOrEqual(0);
+      expect(r.u).toBeLessThanOrEqual(1);
+      expect(r.v).toBeGreaterThanOrEqual(0);
+      expect(r.v).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
+describe('selectionSnapAdjust', () => {
+  const pts = [{ u: 0.20, v: 0.30 }, { u: 0.40, v: 0.50 }];
+
+  it('moves a selection by the offset that puts its centre on the grid', () => {
+    const adj = selectionSnapAdjust(pts, true);
+    const center = selectionCenter(pts)!;
+    expect(center.u).toBeCloseTo(0.30, 10);
+    expect(center.v).toBeCloseTo(0.40, 10);
+    // Every member shifts by the same amount, so the spacing inside the
+    // selection is untouched.
+    const moved = pts.map(p => ({ u: p.u + adj.du, v: p.v + adj.dv }));
+    expect(moved[1].u - moved[0].u).toBeCloseTo(0.2, 10);
+    expect(moved[1].v - moved[0].v).toBeCloseTo(0.2, 10);
+    // ...and the centre lands on a grid point.
+    const movedCenter = selectionCenter(moved)!;
+    expect(movedCenter.u * GRID_COLS).toBeCloseTo(Math.round(movedCenter.u * GRID_COLS), 10);
+    expect(movedCenter.v * GRID_ROWS).toBeCloseTo(Math.round(movedCenter.v * GRID_ROWS), 10);
+  });
+
+  it('does nothing with snapping off or nothing selected', () => {
+    expect(selectionSnapAdjust(pts, false)).toEqual({ du: 0, dv: 0 });
+    expect(selectionSnapAdjust([], true)).toEqual({ du: 0, dv: 0 });
+    expect(selectionCenter([])).toBeNull();
+  });
+
+  it('takes the bounding box centre, not the average, so outliers do not drag it', () => {
+    expect(selectionCenter([{ u: 0, v: 0 }, { u: 0, v: 0 }, { u: 1, v: 1 }]))
+      .toEqual({ u: 0.5, v: 0.5 });
   });
 });

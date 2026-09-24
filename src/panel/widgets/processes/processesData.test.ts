@@ -6,6 +6,8 @@ import {
   PROCESS_COLUMNS,
   rankableFor,
   resolveRefreshSeconds,
+  resolveSortColumn,
+  resolveSortDirection,
   sortModeForColumn,
   valueForColumn,
   type ProcessRow,
@@ -30,6 +32,30 @@ describe('resolveRefreshSeconds', () => {
 
   it('accepts a numeric string, which is what a stored config can hold', () => {
     expect(resolveRefreshSeconds('3')).toBe(3);
+  });
+});
+
+describe('resolveSortColumn', () => {
+  it('accepts every column', () => {
+    for (const c of PROCESS_COLUMNS) expect(resolveSortColumn(c)).toBe(c);
+  });
+
+  it('falls back to the default for anything else a stored config can hold', () => {
+    for (const bad of [undefined, null, '', 'io', 'CPU', 0, {}]) {
+      expect(resolveSortColumn(bad)).toBe(DEFAULT_COLUMN);
+    }
+  });
+});
+
+describe('resolveSortDirection', () => {
+  it('accepts both directions', () => {
+    expect(resolveSortDirection('asc', 'cpu')).toBe('asc');
+    expect(resolveSortDirection('desc', 'name')).toBe('desc');
+  });
+
+  it("falls back to the column's own direction", () => {
+    expect(resolveSortDirection(undefined, 'ram')).toBe('desc');
+    expect(resolveSortDirection('up', 'name')).toBe('asc');
   });
 });
 

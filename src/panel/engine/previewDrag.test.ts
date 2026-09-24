@@ -161,4 +161,115 @@ describe('previewDrag', () => {
     ]);
     expect(previewDrag(l, 'a', 'p2', 0, 0, CAPACITY)).toBeNull();
   });
+
+  // A full 4x16 Y70 column: a 4x2 between 4x4s can only move by shifting
+  // the stack, since no 4x4 ever finds a free 4-row hole.
+  describe('shift fallback on a full column', () => {
+    const TALL = { gridCols: 4, pageRows: 16 };
+    const rows = (result: PanelLayout) => Object.fromEntries(
+      result.pages[0].widgets.map(w => [w.id, w.row]));
+
+    it('drags a 4x2 to the bottom: the 4x4s below it shift up by its span', () => {
+      const l = layout([[
+        widget('clock', '4x2', 0, 0), widget('cal', '4x2', 0, 2), widget('wea', '4x4', 0, 4),
+        widget('mon', '4x4', 0, 8), widget('coo', '4x4', 0, 12),
+      ]]);
+      const result = previewDrag(l, 'cal', 'p1', 0, 14, TALL);
+      expect(result).not.toBeNull();
+      expect(rows(result!)).toEqual({ clock: 0, wea: 2, mon: 6, coo: 10, cal: 14 });
+      expectNoOverlap(result!);
+    });
+
+    it('drags a 4x2 from the bottom to row 2: the 4x4s above it shift down', () => {
+      const l = layout([[
+        widget('clock', '4x2', 0, 0), widget('wea', '4x4', 0, 2), widget('mon', '4x4', 0, 6),
+        widget('coo', '4x4', 0, 10), widget('cal', '4x2', 0, 14),
+      ]]);
+      const result = previewDrag(l, 'cal', 'p1', 0, 2, TALL);
+      expect(result).not.toBeNull();
+      expect(rows(result!)).toEqual({ clock: 0, cal: 2, wea: 4, mon: 8, coo: 12 });
+      expectNoOverlap(result!);
+    });
+
+    it('inserts between two 4x4s and leaves the widgets outside the shift alone', () => {
+      const l = layout([[
+        widget('clock', '4x2', 0, 0), widget('wea', '4x4', 0, 2), widget('mon', '4x4', 0, 6),
+        widget('coo', '4x4', 0, 10), widget('cal', '4x2', 0, 14),
+      ]]);
+      // Dropped over the top half of mon: goes between wea and mon.
+      const result = previewDrag(l, 'cal', 'p1', 0, 6, TALL);
+      expect(result).not.toBeNull();
+      expect(rows(result!)).toEqual({ clock: 0, wea: 2, cal: 6, mon: 8, coo: 12 });
+      expectNoOverlap(result!);
+    });
+
+    it('keeps a gap that sits outside the shifted run', () => {
+      // Row 0-2 empty on purpose; the shift never pulls the stack into it.
+      const l = layout([[
+        widget('wea', '4x4', 0, 2), widget('mon', '4x4', 0, 6),
+        widget('coo', '4x4', 0, 10), widget('cal', '4x2', 0, 14),
+      ]]);
+      const result = previewDrag(l, 'cal', 'p1', 0, 2, TALL);
+      expect(result).not.toBeNull();
+      expect(rows(result!)).toEqual({ cal: 2, wea: 4, mon: 8, coo: 12 });
+      expectNoOverlap(result!);
+    });
+
+    it('still refuses a drop the page cannot hold', () => {
+      const l = layout([
+        [widget('cal', '4x2', 0, 0)],
+        [widget('a', '4x4', 0, 0), widget('b', '4x4', 0, 4), widget('c', '4x4', 0, 8), widget('d', '4x4', 0, 12)],
+      ]);
+      expect(previewDrag(l, 'cal', 'p2', 0, 4, TALL)).toBeNull();
+    });
+
+    it('refuses a drop that crosses no sibling centre instead of a silent no-op', () => {
+      const l = layout([[
+        widget('clock', '4x2', 0, 0), widget('cal', '4x2', 0, 2), widget('wea', '4x4', 0, 4),
+        widget('mon', '4x4', 0, 8), widget('coo', '4x4', 0, 12),
+      ]]);
+      expect(previewDrag(l, 'cal', 'p1', 0, 4, TALL)).toBeNull();
+    });
+
+    it('drops the clock to row 2 when the 4x2 takes the top slot (shift beats a far cascade)', () => {
+      const l = layout([[
+        widget('clock', '4x2', 0, 0), widget('wea', '4x4', 0, 2), widget('mon', '4x4', 0, 6),
+        widget('coo', '4x4', 0, 10), widget('cal', '4x2', 0, 14),
+      ]]);
+      const result = previewDrag(l, 'cal', 'p1', 0, 0, TALL);
+      expect(result).not.toBeNull();
+      expect(rows(result!)).toEqual({ cal: 0, clock: 2, wea: 4, mon: 8, coo: 12 });
+    });
+  });
+
+  describe('shift versus cascade on sparse grids', () => {
+    const PHONE = { gridCols: 4, pageRows: 8 };
+
+    it('keeps the cascade when the shift would land the source off the drop cell', () => {
+      const l = layout([[widget('w0', '2x2', 2, 0), widget('w1', '4x2', 0, 4), widget('w2', '2x4', 0, 0)]]);
+      const result = previewDrag(l, 'w2', 'p1', 0, 2, PHONE);
+      expect(result).not.toBeNull();
+      expect(findWidget(result!, 'w2')!.widget).toMatchObject({ col: 0, row: 2 });
+      expectNoOverlap(result!);
+    });
+
+    it('keeps the swap when dropping a 4x4 onto another on the dashboard grid', () => {
+      const dash = { gridCols: 12, pageRows: 8 };
+      const l = layout([[widget('w0', '4x4', 0, 2), widget('w1', '4x2', 0, 6), widget('w2', '4x4', 4, 0)]]);
+      const result = previewDrag(l, 'w0', 'p1', 4, 0, dash);
+      expect(result).not.toBeNull();
+      expect(findWidget(result!, 'w0')!.widget).toMatchObject({ col: 4, row: 0 });
+      expect(findWidget(result!, 'w2')!.widget).not.toMatchObject({ col: 4, row: 0 });
+      expectNoOverlap(result!);
+    });
+
+    it('never lets a 1x1 shift a larger widget', () => {
+      const l = layout([[widget('i1', '1x1', 0, 0), widget('big', '2x2', 0, 1), widget('i2', '1x1', 0, 3)]]);
+      const result = previewDrag(l, 'i1', 'p1', 0, 3, CAPACITY);
+      if (result) {
+        expect(findWidget(result!, 'big')!.widget).toMatchObject({ col: 0, row: 1 });
+        expectNoOverlap(result!);
+      }
+    });
+  });
 });

@@ -21,8 +21,8 @@ export const DEMO_SLOT_ZERO: Record<string, EffectState> = {
     params: { u_arms: 5, u_tightness: 8 },
   },
   neongrid: {
-    speed: 70, intensity: 1, hue: 0.58, colorize: 0.55, saturation: 1.2, contrast: 1.1,
-    params: { u_density: 12, u_pulse: 1.2, u_glow: 1.2 },
+    speed: 70, intensity: 1, hue: 0.7, colorize: 0.85, saturation: 1.5, contrast: 1.1,
+    params: { u_density: 12, u_pulse: 1.2, u_glow: 1.2, u_spread: 0.3 },
   },
   beatbuilder: {
     speed: 50, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1,

@@ -15,6 +15,7 @@ import {
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
+import { resolveHttp } from '../../../api/service';
 import styles from './StorePage.module.scss';
 
 type InstallState = 'idle' | 'working' | 'failed';
@@ -41,7 +42,7 @@ function installedMap(): Map<string, InstalledInfo> {
  * which is what lets an app carry a richer store icon than its in-app mark.
  */
 function iconFor(app: { id: string; iconUrl: string | null }, installed?: InstalledInfo): string | null {
-  return app.iconUrl ?? installed?.iconUrl ?? null;
+  return app.iconUrl ?? (installed?.iconUrl ? resolveHttp(installed.iconUrl) : null);
 }
 
 /** The app's own short line: its tagline, else the first sentence of its description. Never abbreviated - a card clips its own line in CSS. */

@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WelcomeScreen } from './WelcomeScreen';
 import { fetchTelemetryConsent, type TelemetryConsentResponse } from '../../../api/telemetry';
 import { completeOnboarding } from '../../../api/onboarding';
@@ -89,19 +89,6 @@ describe('WelcomeScreen - telemetry consent seeding', () => {
 });
 
 describe('WelcomeScreen - HeartBurst', () => {
-  // The suite-wide matchMedia stub (setup.ts) answers matches:true for any
-  // non-"light" query, which would mask a broken null-baseline guard by
-  // suppressing every burst via prefers-reduced-motion regardless of
-  // burstKey. Override it so this test actually exercises the guard.
-  const stubbedMatchMedia = window.matchMedia;
-  beforeEach(() => {
-    window.matchMedia = (query: string) =>
-      ({ ...stubbedMatchMedia(query), matches: false }) as MediaQueryList;
-  });
-  afterEach(() => {
-    window.matchMedia = stubbedMatchMedia;
-  });
-
   it('never fires the burst animation from the initial consent seed, even seeding straight to ON', async () => {
     vi.mocked(fetchTelemetryConsent).mockResolvedValue({ enabled: true });
     renderWelcome();

@@ -31,9 +31,12 @@ import {
   selectTryxMedia,
   deleteTryxMedia,
   setTryxOverlay,
+  setTryxSlideshow,
   uploadTryxMedia,
+  DEFAULT_TRYX_SLIDESHOW,
   TRYX_MEDIA_WIDTH,
   TRYX_MEDIA_HEIGHT,
+  type TryxSlideshow,
   type TryxStatus,
   type TryxPreset,
   type TryxMediaItem,
@@ -66,6 +69,7 @@ import {
   type TryxSensorGroup,
   type TryxSensorsByGroup,
 } from './tryxOverlayUtils';
+import { SLIDESHOW_INTERVALS, normalizeSlideshowInterval, slideshowIntervalLabel } from '../../../panel/slideshow/slideshow';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
@@ -93,6 +97,9 @@ const TRYX_MEDIA_PLACEHOLDER =
 // Custom uploads carry the on-device filename (stem + ".mp4.h264_2240x1080");
 // show just the stem in the library.
 const mediaDisplayName = (deviceName: string): string => deviceName.split('.mp4')[0] || deviceName;
+
+const sameSlideshow = (a: TryxSlideshow, b: TryxSlideshow): boolean =>
+  a.enabled === b.enabled && a.intervalSec === b.intervalSec && a.shuffle === b.shuffle && a.finishVideos === b.finishVideos;
 
 interface OverlayItemState {
   enabled: boolean;
@@ -135,7 +142,7 @@ type TryxTab = 'display' | 'media';
  * until the service reports it back.
  */
 export function TryxDevicePage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const simulated = useTryxSimulated();
   const [status, setStatus] = useState<TryxStatus | null>(null);
@@ -152,6 +159,7 @@ export function TryxDevicePage() {
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [screenOverride, setScreenOverride] = useState<boolean | null>(null);
+  const [slideshowOverride, setSlideshowOverride] = useState<TryxSlideshow | null>(null);
   const [overlayItems, setOverlayItems] = useState<OverlayItemState[]>(DEFAULT_OVERLAY_ITEMS);
   const [overlayFont, setOverlayFont] = useState<string>(TRYX_FONTS[0]);
   const [overlaySize, setOverlaySize] = useState(100);
@@ -388,6 +396,20 @@ export function TryxDevicePage() {
   useEffect(() => {
     if (screenOverride != null && status?.state?.screenEnabled === screenOverride) setScreenOverride(null);
   }, [status?.state?.screenEnabled, screenOverride]);
+  // Optimistic slideshow edit wins until the poll reports it back.
+  const slideshow = slideshowOverride ?? status?.slideshow ?? DEFAULT_TRYX_SLIDESHOW;
+  useEffect(() => {
+    if (slideshowOverride && status?.slideshow && sameSlideshow(status.slideshow, slideshowOverride)) {
+      setSlideshowOverride(null);
+    }
+  }, [status?.slideshow, slideshowOverride]);
+  const handleSlideshowChange = (patch: Partial<TryxSlideshow>) => {
+    const next = { ...slideshow, ...patch };
+    setSlideshowOverride(next);
+    void setTryxSlideshow(next).then(ok => {
+      if (!ok) setSlideshowOverride(cur => (cur === next ? null : cur));
+    });
+  };
   const reportedMedia = status?.state?.currentMedia ?? '';
   // Optimistic pick wins until the cooler confirms it; reported value drives
   // otherwise, so opening the page shows whatever is currently on the screen.
@@ -835,6 +857,38 @@ export function TryxDevicePage() {
               </SettingsSection>
 
               <SettingsSection title={t('devices.tryx.customSection')} boxClassName={styles.sectionBox}>
+                <SettingToggle
+                  label={t('devices.tryx.slideshow')}
+                  description={t('devices.tryx.slideshowHint')}
+                  checked={slideshow.enabled}
+                  onChange={enabled => handleSlideshowChange({ enabled })}
+                />
+                {slideshow.enabled && (
+                  <SettingSelect
+                    label={t('slideshow.interval')}
+                    value={String(normalizeSlideshowInterval(slideshow.intervalSec, DEFAULT_TRYX_SLIDESHOW.intervalSec))}
+                    options={SLIDESHOW_INTERVALS.map(seconds => ({
+                      value: String(seconds),
+                      label: slideshowIntervalLabel(t, language, seconds),
+                    }))}
+                    onChange={value => handleSlideshowChange({ intervalSec: Number(value) })}
+                  />
+                )}
+                {slideshow.enabled && (
+                  <SettingToggle
+                    label={t('slideshow.shuffle')}
+                    checked={slideshow.shuffle}
+                    onChange={shuffle => handleSlideshowChange({ shuffle })}
+                  />
+                )}
+                {slideshow.enabled && (
+                  <SettingToggle
+                    label={t('slideshow.finishVideos')}
+                    description={t('slideshow.finishVideosHint')}
+                    checked={slideshow.finishVideos}
+                    onChange={finishVideos => handleSlideshowChange({ finishVideos })}
+                  />
+                )}
                 <div className={styles.libraryBlock}>
                   <div className={styles.libraryHeaderRow}>
                     <Button

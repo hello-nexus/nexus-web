@@ -1,7 +1,18 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, isTunnelActive, isRemoteOrigin, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
+import { deleteService, fetchService, isForceLanMode, isLocalhostUnreachable, isTunnelActive, isRemoteOrigin, loopbackFetchInit, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
+
+// Init for the direct localhost fetches below. The phone-session cookie only
+// ever rides a same-origin request; cross-origin from the website the service
+// answers without Access-Control-Allow-Credentials, so an 'include' fetch is
+// rejected by the browser, and Chromium needs the loopback address space
+// declared or it never leaves the page (see loopbackFetchInit).
+function directFetchInit(): RequestInit {
+  return isRemoteOrigin && isForceLanMode()
+    ? { ...loopbackFetchInit, credentials: 'same-origin' }
+    : { credentials: 'include' };
+}
 
 export interface PanelStatus {
   msg: string;
@@ -30,6 +41,14 @@ export interface PanelDeviceCapabilitiesDto {
   // The panel's backlight is host-settable, so the settings tab offers the
   // brightness control. Absent on every surface that cannot dim.
   supportsBrightness?: boolean;
+  // This panel's driver can drive it as a Windows secondary monitor.
+  // Absent/false hides the setting entirely.
+  supportsSecondaryMonitor?: boolean;
+}
+
+export interface PanelGaugeGradientStopDto {
+  at: number;
+  color: string;
 }
 
 export interface PanelDeviceRecord {
@@ -55,9 +74,22 @@ export interface PanelDeviceRecord {
   backgroundMediaId?: string | null;
   backgroundMediaType?: 'static' | 'animated' | null;
   backgroundMediaAlpha?: boolean | null;
+  // Cycle the whole background-media library; backgroundMediaId is then the
+  // slide the cycle starts from. Absent/null = single background.
+  backgroundMediaSlideshow?: boolean | null;
+  // Seconds per slide. Absent/null defaults to DEFAULT_PANEL_SLIDESHOW_INTERVAL.
+  backgroundMediaInterval?: number | null;
+  backgroundMediaShuffle?: boolean | null;
+  // Absent/null defaults to on (a video slide plays whole before the next).
+  backgroundMediaFinishVideos?: boolean | null;
+  // Grid + in-order slideshow order by asset id; unlisted ids follow, oldest first.
+  backgroundMediaOrder?: string[] | null;
   // Frost strength, percent 0-100. Absent/null defaults to
   // DEFAULT_PANEL_BACKGROUND_FROST (normalizePanelBackgroundFrost).
   backgroundFrostLevel?: number | null;
+  // Colour stops for the value-coloured monitoring gauges, 0-1 along a gauge's
+  // scale. Absent/null defaults to DEFAULT_GAUGE_GRADIENT (normalizeGaugeGradient).
+  gaugeGradient?: PanelGaugeGradientStopDto[] | null;
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetPadding?: number;
@@ -92,6 +124,13 @@ export interface PanelDeviceRecord {
   // Kraken LCD, a D213 board). Such a panel has neither a curated device nor a
   // display behind it, so nothing else marks it as present.
   streamed?: boolean | null;
+  // Streamed panels whose driver supports it: the service creates a Windows
+  // virtual monitor and streams the desktop instead of Nexus content. Absent/
+  // null = off; Nexus widgets/theme/background have no effect while on.
+  secondaryMonitor?: boolean | null;
+  // Response-only, route-computed, never persisted: absent/null when
+  // secondaryMonitor is off or the panel is not streaming.
+  secondaryMonitorState?: 'starting' | 'active' | 'driver-missing' | 'failed' | null;
 }
 
 export interface PanelDevicePatch {
@@ -112,7 +151,15 @@ export interface PanelDevicePatch {
   // '' clears the reference server-side (NullIfEmpty); a JSON null is ignored by the patch-merge.
   backgroundMediaType?: 'static' | 'animated' | '' | null;
   backgroundMediaAlpha?: boolean | null;
+  backgroundMediaSlideshow?: boolean;
+  backgroundMediaInterval?: number;
+  backgroundMediaShuffle?: boolean;
+  backgroundMediaFinishVideos?: boolean;
+  // Full list (the client sends the whole order).
+  backgroundMediaOrder?: string[];
   backgroundFrostLevel?: number;
+  // Full list (the client sends the whole gradient).
+  gaugeGradient?: PanelGaugeGradientStopDto[];
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetPadding?: number;
@@ -128,6 +175,8 @@ export interface PanelDevicePatch {
   mirror?: boolean;
   // Dimmable cooler LCDs only; ignored for other panels.
   lcdBrightness?: number;
+  // Streamed panels whose driver supports it only; ignored for other panels.
+  secondaryMonitor?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 
@@ -154,15 +203,15 @@ export async function allocatePanelDeviceWithStatus(
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
   // Remote origin without a usable relay yet ⇒ never hit http://localhost.
-  if (isRemoteOrigin) return { ok: false, status: 0 };
+  if (isLocalhostUnreachable()) return { ok: false, status: 0 };
   try {
     const token = await getToken();
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(resolveHttp('/panel/devices'), {
+      ...directFetchInit(),
       method: 'POST',
       headers,
-      credentials: 'include',
       body: JSON.stringify({ displayName, capabilities }),
     });
     if (!res.ok) return { ok: false, status: res.status };
@@ -207,27 +256,28 @@ export type PanelDeviceFetchResult =
 
 // Status-aware variants so usePanelLayout can distinguish a 404 ("device
 // record was wiped, e.g. after a profile switch") from a network failure.
-// The non-status variants conflate both as `null` and trigger an infinite
-// auto-persist loop when the kiosk holds an id the server no longer knows.
+// The non-status variants conflate both as `null`, which a kiosk holding an
+// id the server no longer knows cannot tell from a transient outage.
 export async function fetchPanelDeviceWithStatus(id: string): Promise<PanelDeviceFetchResult> {
   if (isTunnelActive()) {
     // Bounded: the panel's loading gate is up until this settles, and an
     // unreachable PC leaves the tunnel request pending indefinitely. On
-    // timeout the caller gets status 0 and stops auto-persisting, so the
-    // default layout it is still holding cannot overwrite the stored one.
+    // timeout the caller gets status 0 and retries with no record in hand;
+    // writes are gated on a fetched record, so the default layout it is
+    // still holding cannot overwrite the stored one.
     const { response, status } = await relayRequestWithStatus(
       'GET', `/panel/devices/${encodeURIComponent(id)}`, undefined, { timeoutMs: RELAY_BOOT_TIMEOUT_MS });
     if (response && response.ok) return { found: true, record: (await response.json()) as PanelDeviceRecord };
     return { found: false, status };
   }
-  if (isRemoteOrigin) return { found: false, status: 0 };
+  if (isLocalhostUnreachable()) return { found: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
     const buildInit = (): RequestInit => {
       const headers: Record<string, string> = {};
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      return { headers, credentials: 'include', cache: 'no-store' };
+      return { ...directFetchInit(), headers, cache: 'no-store' };
     };
     let res = await fetch(url, buildInit());
     if (res.status === 401) {
@@ -268,14 +318,14 @@ export async function patchPanelDeviceWithStatus(id: string, patch: PanelDeviceP
     if (!response || !response.ok) return { ok: false, status, msg: await readErrorMsg(response) };
     return { ok: true, record: (await response.json()) as PanelDeviceRecord };
   }
-  if (isRemoteOrigin) return { ok: false, status: 0 };
+  if (isLocalhostUnreachable()) return { ok: false, status: 0 };
   try {
     let token = await getToken();
     const url = resolveHttp(`/panel/devices/${encodeURIComponent(id)}`);
     const buildInit = (): RequestInit => {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      return { method: 'POST', headers, credentials: 'include', body: JSON.stringify(patch) };
+      return { ...directFetchInit(), method: 'POST', headers, body: JSON.stringify(patch) };
     };
     let res = await fetch(url, buildInit());
     if (res.status === 401) {

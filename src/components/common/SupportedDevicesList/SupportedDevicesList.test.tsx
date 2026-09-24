@@ -20,6 +20,16 @@ describe('SupportedDevicesList', () => {
     expect(screen.getAllByRole('row')).toHaveLength(DEVICES.length + 1); // + header row
   });
 
+  it('renders a single dash for a keyless row (EDID-identified panel, OpenRGB detector without a USB id)', () => {
+    const keyless: SupportedDeviceRow[] = [
+      { vendor: 'HYTE', model: 'Y70 Ina Touch', category: 'case', vendorId: '-', productId: '-', capabilities: ['screen'], source: 'nexus' },
+    ];
+    render(<SupportedDevicesList devices={keyless} />);
+
+    expect(screen.getByText('-')).toBeInTheDocument();
+    expect(screen.queryByText('-:-')).not.toBeInTheDocument();
+  });
+
   it('marks a row detected only when its VID:PID is in detectedVidPids', () => {
     render(<SupportedDevicesList devices={DEVICES} detectedVidPids={new Set(['0x3402:0x0300'])} />);
 

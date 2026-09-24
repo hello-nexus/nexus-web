@@ -1,0 +1,97 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+@use './weatherColors' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  @include vgap(0.5rem);
+}
+
+.title {
+  padding: 0 0.25rem;
+}
+
+.scroller {
+  padding: 0;
+  overflow: hidden;
+}
+
+// Card's body wrapper; the strip inside scrolls sideways.
+.scroller > * {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.strip {
+  position: relative;
+  display: flex;
+  padding: 0.75rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.curve {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.1;
+
+  polygon {
+    fill: var(--accent);
+    stroke: none;
+  }
+}
+
+.column {
+  position: relative;
+  flex: 1 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  color: var(--text);
+  @include vgap(0.3rem);
+}
+
+.hour {
+  @include text-caption;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.icon {
+  width: 1.4em;
+  height: 1.4em;
+  color: var(--accent-glow);
+}
+
+.precip {
+  @include text-caption;
+  color: $precip;
+  min-height: 1.3em;
+}
+
+.temp {
+  @include text-button;
+  font-variant-numeric: tabular-nums;
+}
+
+// Immersive: shares a fixed cell with the hero and must never push it past
+// the cell, so every vertical allowance is trimmed.
+.immersive {
+  @include vgap(0.35rem);
+
+  .title { @include text-button; }
+  .scroller > * { overflow-x: hidden; }
+  .strip { padding: 0.5rem; }
+  .column { @include vgap(0.25rem); }
+  .icon { width: 1.6em; height: 1.6em; }
+  .temp { font-size: var(--type-body); }
+}

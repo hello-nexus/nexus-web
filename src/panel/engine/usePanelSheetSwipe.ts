@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { bindGestureContacts, useTouchViaPointer, type GestureContact } from './touchViaPointer';
+import { findScroller } from './scrollers';
 
 // iOS-style swipe-to-dismiss for the bottom-anchored panel drawer (catalog,
 // settings, panelSettings). Once the user starts a fresh gesture from
@@ -38,6 +40,7 @@ export function usePanelSheetSwipe({
 }: SwipeOptions): SwipeResult {
   const [offset, setOffset] = useState(0);
   const [state, setState] = useState<SheetSwipeState>('idle');
+  const touchViaPointer = useTouchViaPointer();
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearSettle = useCallback(() => {
@@ -62,8 +65,7 @@ export function usePanelSheetSwipe({
     let isDragging = false;
     let startedAtTop = false;
 
-    const onStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
+    const onStart = (t: GestureContact) => {
       // Side-anchored sheets (landscape phone settings, wide-screen desktop)
       // shouldn't dismiss via downward swipe - the sheet enters horizontally,
       // so a vertical drag has nowhere to go. They're narrow and offset from
@@ -81,7 +83,6 @@ export function usePanelSheetSwipe({
         startedAtTop = false;
         return;
       }
-      const t = e.touches[0];
       if (isSheetSwipeControlTarget(t.target as Element | null, sheet)) {
         isDragging = false;
         startedAtTop = false;
@@ -91,17 +92,15 @@ export function usePanelSheetSwipe({
       startY = t.clientY;
       startX = t.clientX;
       lastY = t.clientY;
-      lastTime = e.timeStamp;
+      lastTime = t.timeStamp;
       velocity = 0;
       isDragging = false;
-      const scroller = findVerticalScroller(t.target as Element | null, sheet);
+      const scroller = findScroller(t.target as Element | null, sheet, 'y');
       startedAtTop = (scroller?.scrollTop ?? 0) <= 0;
       clearSettle();
     };
 
-    const onMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      const t = e.touches[0];
+    const onMove = (t: GestureContact) => {
       const deltaY = t.clientY - startY;
       const deltaX = t.clientX - startX;
 
@@ -114,11 +113,11 @@ export function usePanelSheetSwipe({
       }
 
       if (isDragging) {
-        if (e.cancelable) e.preventDefault();
-        const dt = e.timeStamp - lastTime;
+        t.preventDefault();
+        const dt = t.timeStamp - lastTime;
         if (dt > 0) velocity = (t.clientY - lastY) / dt;
         lastY = t.clientY;
-        lastTime = e.timeStamp;
+        lastTime = t.timeStamp;
         setOffset(Math.max(0, deltaY - ENGAGE_DELTA));
       }
     };
@@ -155,17 +154,8 @@ export function usePanelSheetSwipe({
       }
     };
 
-    sheet.addEventListener('touchstart', onStart, { passive: true });
-    sheet.addEventListener('touchmove', onMove, { passive: false });
-    sheet.addEventListener('touchend', onEnd);
-    sheet.addEventListener('touchcancel', onEnd);
-    return () => {
-      sheet.removeEventListener('touchstart', onStart);
-      sheet.removeEventListener('touchmove', onMove);
-      sheet.removeEventListener('touchend', onEnd);
-      sheet.removeEventListener('touchcancel', onEnd);
-    };
-  }, [enabled, sheetRef, onDismiss, dismissDistanceFraction, dismissVelocity, clearSettle]);
+    return bindGestureContacts(sheet, touchViaPointer, { start: onStart, move: onMove, end: onEnd });
+  }, [enabled, sheetRef, onDismiss, dismissDistanceFraction, dismissVelocity, clearSettle, touchViaPointer]);
 
   return { offset, state };
 }
@@ -189,15 +179,3 @@ function isSheetSwipeControlTarget(start: Element | null, until: HTMLElement): b
 // viewport. Returns null when the user touched a non-scrolling region (e.g.
 // the header) - in that case the gesture is treated as starting at scrollTop
 // 0 and a downward drag dismisses immediately.
-function findVerticalScroller(start: Element | null, until: HTMLElement): HTMLElement | null {
-  let node = start instanceof HTMLElement ? start : null;
-  while (node && node !== until) {
-    const style = getComputedStyle(node);
-    if ((style.overflowY === 'auto' || style.overflowY === 'scroll')
-      && node.scrollHeight > node.clientHeight + 1) {
-      return node;
-    }
-    node = node.parentElement;
-  }
-  return null;
-}

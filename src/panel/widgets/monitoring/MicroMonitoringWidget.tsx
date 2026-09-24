@@ -1,3 +1,4 @@
+import { useId, useMemo, type CSSProperties } from 'react';
 import { useSensors } from '../../../hooks/useSensors';
 import { useSensorExtras } from '../../../hooks/useSensorExtras';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
@@ -20,16 +21,24 @@ import {
   staticMaxForDevice,
 } from './MonitoringWidget';
 import { bareSensorLabel } from './sensorNames';
+import { gpu2Components, igpuComponents } from './sensorCategories';
 import { chartDomainForScale, defaultFixedMax, DEFAULT_SCALE_MODE, fixedFillPercent, type ScaleMode } from './perfDomain';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
+import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
+import { gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { accentShadowAlpha } from '../../../lib/settings';
 import { formatSensorValue } from './sensorValueFormat';
 import type { NumberFormat, TempUnit } from '../../../lib/units';
 import styles from './MicroMonitoringWidget.module.scss';
+import perfStyles from './MonitoringWidget.module.scss';
 
 interface MicroMonitoringWidgetProps {
   widget: PanelWidget;
   count: number;
+  // Editing only: the bar the settings sheet is on, drawn as a selected slot.
+  selectedSlot?: number;
+  onSelectSlot?: (slot: number) => void;
 }
 
 // Micro mode persists in its own keyspace (`micro_device`, `micro_sensorN`)
@@ -57,6 +66,12 @@ export function bottomLabelForDevice(
     case 'quick': return 'Quick';
     case 'cpu': return sensors.cpuModel || 'CPU';
     case 'gpu': return sensors.gpuModel || 'GPU';
+    case 'gpu2': {
+      // Two identical cards would caption both widgets with one model string.
+      const name = gpu2Components(sensors)[0]?.name;
+      return name && name !== sensors.gpuModel ? name : 'GPU 2';
+    }
+    case 'igpu': return igpuComponents(sensors)[0]?.name || 'iGPU';
     case 'memory': return sensors.memoryTotal ? `RAM | ${sensors.memoryTotal}` : 'RAM';
     case 'motherboard': return sensors.motherboardModel || 'Motherboard';
     case 'fan': return sensors.motherboardModel || 'Fan';
@@ -72,7 +87,7 @@ export function bottomLabelForDevice(
   }
 }
 
-export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetProps) {
+export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlot }: MicroMonitoringWidgetProps) {
   const { t } = useTranslation();
   const device = readMicroDevice(widget);
   const sensorNames = Array.from({ length: count }, (_, i) => readMicroSensorName(widget, i));
@@ -87,6 +102,9 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const extras = useSensorExtras(usesExtras);
   const tempPrefs = useTempSensorPrefs();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
+  // One toggle for every bar, like the shared Micro range.
+  const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
+  const gaugeGradient = usePanelGaugeGradient();
 
   // The bottom device caption ("GPU") is the widget's category label with the
   // same auto/hide/custom model as a sensor caption: 'hide' drops the whole row
@@ -105,26 +123,61 @@ export function MicroMonitoringWidget({ widget, count }: MicroMonitoringWidgetPr
   const microDesign = (widget.config?.micro_design as GaugeDesignKey | undefined) ?? DEFAULT_MICRO_DESIGN;
   const twoColumn = isTwoColumnMicro(widget.size, count);
 
-  const rowEls = sensorNames.map((rawName, i) => (
-    <MicroRow
-      key={`${i}-${device}-${rawName}`}
-      sensors={sensors}
-      fpsSensors={fpsSensors}
-      networkSensors={networkSensors}
-      extras={extras}
-      device={device}
-      sensorName={rawName}
-      labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
-      labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
-      design={microDesign}
-      scale={microScale}
-      fixedMin={microMin}
-      fixedMax={microMax}
-      tempPrefs={tempPrefs}
-      monitoringTempUnit={monitoringTempUnit}
-      numberFormat={numberFormat}
-    />
-  ));
+  const selectable = typeof onSelectSlot === 'function';
+  const activeSlot = selectedSlot == null ? 0 : Math.max(0, Math.min(selectedSlot, count - 1));
+
+  // Only the bar design sizes itself to its content; fill and backdrop stretch.
+  const growsRow = microDesign === 'fill' || microDesign === 'backdrop';
+
+  const rowEls = sensorNames.map((rawName, i) => {
+    const key = `${i}-${device}-${rawName}`;
+    const row = (
+      <MicroRow
+        key={key}
+        sensors={sensors}
+        fpsSensors={fpsSensors}
+        networkSensors={networkSensors}
+        extras={extras}
+        device={device}
+        sensorName={rawName}
+        labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
+        labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
+        design={microDesign}
+        scale={microScale}
+        fixedMin={microMin}
+        fixedMax={microMax}
+        valueColor={microValueColor}
+        gaugeGradient={gaugeGradient}
+        tempPrefs={tempPrefs}
+        monitoringTempUnit={monitoringTempUnit}
+        numberFormat={numberFormat}
+      />
+    );
+
+    if (!selectable) return row;
+    const selected = i === activeSlot;
+    return (
+      <button
+        key={key}
+        type="button"
+        className={`${perfStyles.slot} ${perfStyles.slotSelectable} ${styles.rowSelectable} ${growsRow ? styles.rowSelectableGrow : ''} ${selected ? perfStyles.slotSelected : ''}`}
+        aria-pressed={selected}
+        onClick={event => {
+          event.stopPropagation();
+          onSelectSlot?.(i);
+        }}
+        onPointerDown={event => event.stopPropagation()}
+        onPointerUp={event => {
+          event.stopPropagation();
+          if (event.pointerType === 'mouse' && event.button !== 0) return;
+          onSelectSlot?.(i);
+        }}
+        onContextMenu={event => event.stopPropagation()}
+      >
+        {row}
+      </button>
+    );
+  });
   const half = Math.ceil(count / 2);
 
   return (
@@ -159,12 +212,14 @@ interface MicroRowProps {
   scale: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
+  valueColor: boolean;
+  gaugeGradient: PanelGaugeGradientValue;
   tempPrefs?: { cpuId: string; gpuId: string };
   monitoringTempUnit: TempUnit;
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, valueColor, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
@@ -184,6 +239,11 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
     ? fixedFillPercent(rawValue, domainMin, domainMax)
     : percentForSensor(device, sensor, maxValue);
 
+  const gradientId = useId();
+  const coloured = valueColor && sensorSupportsValueColor(sensor?.type);
+  const stops = coloured ? gaugeGradient.stops : null;
+  const mode = gaugeGradient.mode;
+  const gradient = useMemo(() => (stops ? { id: gradientId, stops, bodyAlpha: accentShadowAlpha(mode) } : null), [gradientId, stops, mode]);
   return (
     <MicroBar
       label={label}
@@ -192,6 +252,8 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorN
       design={design}
       history={history}
       historyDomain={[domainMin, domainMax]}
+      gradient={gradient}
+      style={coloured ? gaugeAccentVars(gaugeGradient.stops, fillPercent / 100, gaugeGradient.mode) as CSSProperties : undefined}
     />
   );
 }

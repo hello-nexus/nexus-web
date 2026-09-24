@@ -1,24 +1,27 @@
-import { DeckEditor } from './DeckEditor';
-import { makeWidgetDeckTarget } from './deckTarget';
+import { useDeckInstance } from './useDeckInstance';
+import { innerGridForSize } from './deckLayout';
+import { DeckInstanceEditor } from './DeckInstanceEditor';
 import type { WidgetSettingsProps } from '../types';
 import styles from './DeckSettings.module.scss';
 
 /**
- * Deck widget settings sheet: the shared key inspector (DeckEditor) bound to
- * the touch widget's own config.deck. The widget has zero physical-Stream-
- * Deck awareness - a connected physical deck is configured on its own routed
- * device page (StreamDeckDevicePage), not from inside this widget. Presets
- * live only on that physical-deck device page.
+ * Deck widget settings sheet: the shared instance editor (mode chip + preset
+ * toolbar + DeckEditor) bound to this widget's own instance
+ * (`widget:<widget.id>`), which points at a host-wide preset - the same
+ * system a physical Stream Deck's device page edits.
  */
-export function DeckSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
-  const target = makeWidgetDeckTarget(widget, onUpdate);
+export function DeckSettings({ widget, surface, desktopEditor, selectedSlot, onSelectedSlotChange, editView, onEditViewChange }: WidgetSettingsProps) {
+  const instanceGrid = innerGridForSize(widget.size);
+  const deck = useDeckInstance(`widget:${widget.id}`, 'widget', instanceGrid, true);
   const page = editView?.page ?? 0;
   const folderPath = editView?.folderPath ?? [];
 
   return (
     <div className={styles.root}>
-      <DeckEditor
-        target={target}
+      <DeckInstanceEditor
+        deck={deck}
+        instanceGrid={instanceGrid}
+        kind="widget"
         page={page}
         onPageChange={next => onEditViewChange?.({ page: next, folderPath: [] })}
         folderPath={folderPath}

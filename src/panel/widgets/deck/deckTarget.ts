@@ -1,26 +1,54 @@
-// Target-agnostic binding for the shared Deck editor (DeckEditor.tsx): the
-// touch widget's config.deck patch path and a physical Stream Deck's
-// serial-keyed service config both implement the same DeckTarget shape, so
-// the grid + inspector never branch on which one they're editing.
-import type { PanelConfigValue, PanelWidget } from '../../types';
+// Target-agnostic binding for the shared Deck editor (DeckEditor.tsx): a
+// physical Stream Deck instance and a widget instance both edit through this
+// one DeckTarget shape, so the grid + inspector never branch on which kind of
+// instance is editing it.
+import type { DeckPresetFull } from '../../../api/deck';
 import type { DeckConfig, DeckSlot, DeckTitleStyle } from './types';
 import {
-  addPage, deckConfigPatch, innerGridForSize, padSlots, readDeckConfig, removePage, resolveViewSlots, swapSlots, updateSlotAt,
-  type DepthCount,
+  addPage, countConfiguredSlots, removePage, resolveViewSlots, swapSlots, updateSlotAt, fitToGridWithOrigins,
+  type DepthCount, type FittedSlotOrigin,
 } from './deckLayout';
-import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 
 export interface DeckTarget {
   kind: 'widget' | 'physical';
+  /** The INSTANCE's own grid (a widget's size, or the physical deck's key
+   *  layout) - what the user is actually looking at, not the preset's
+   *  authored size. */
   cols: number;
   rows: number;
-  /** Root-level slot count (the widget's size grid, or the deck's keyCount). */
+  /** Root-level slot count for this instance's grid. */
   keyCount: number;
+  /** The FITTED projection of the active preset onto this instance's grid
+   *  (deckLayout.ts's fitToGrid) - editing always happens against this, the
+   *  same view the hardware/widget renders, never the pre-fit authored grid
+   *  directly. A slot with `auto: true` is a synthesized page-nav key and is
+   *  read-only: updateSlot/swapSlots silently ignore it. */
   config: DeckConfig;
   updateSlot(page: number, folderPath: readonly number[], slotIndex: number, next: DeckSlot): void;
   swapSlots(page: number, folderPath: readonly number[], from: number, to: number): void;
+  /** Appends a new (fitted-space-empty) page to the AUTHORED preset. */
   addPage(): void;
-  removePage(page: number): void;
+  /**
+   * Removes the authored page that produced fitted page `page` (removing any
+   * of its overflow chunks removes the whole authored page) and returns the
+   * fitted page index to select next - the last fitted chunk of the
+   * preceding authored page, never one still inside the group just removed.
+   */
+  removePage(page: number): number;
+  /**
+   * Configured-key count (deckLayout.ts's countConfiguredSlots, the same
+   * definition pageHasContent uses) of the AUTHORED page that
+   * `removePage(page)` would delete - on an overflow-chunked page this can
+   * exceed what's visible in the one fitted chunk `page` shows, since
+   * removing any of its chunks removes the whole authored page.
+   */
+  removePageKeyCount(page: number): number;
+  /**
+   * Number of AUTHORED pages (never the fitted/chunked count) - a single
+   * authored page can chunk into several fitted ones, and only the authored
+   * count says whether there is anything left to remove.
+   */
+  authoredPageCount: number;
   /** Deck-wide default title style seeded onto newly bound keys. */
   setTitleDefault(next: DeckTitleStyle | undefined): void;
 }
@@ -45,149 +73,111 @@ export function resolveTargetView(target: DeckTarget, page: number, folderPath: 
   return resolveViewSlots(target.config, page, folderPath, depthCount(target));
 }
 
-export function makeWidgetDeckTarget(
-  widget: PanelWidget,
-  onUpdate: (patch: Record<string, PanelConfigValue>) => void,
-): DeckTarget {
-  const config = readDeckConfig(widget);
-  const { cols, rows, count } = innerGridForSize(widget.size);
-  const target: Pick<DeckTarget, 'kind' | 'keyCount'> = { kind: 'widget', keyCount: count };
-  return {
-    kind: 'widget',
-    cols,
-    rows,
-    keyCount: count,
-    config,
-    updateSlot(page, folderPath, slotIndex, next) {
-      onUpdate(deckConfigPatch(updateSlotAt(config, page, folderPath, slotIndex, next, depthCount(target))));
-    },
-    swapSlots(page, folderPath, from, to) {
-      onUpdate(deckConfigPatch(swapSlots(config, page, folderPath, from, to, depthCount(target))));
-    },
-    addPage() {
-      onUpdate(deckConfigPatch(addPage(config)));
-    },
-    removePage(page) {
-      onUpdate(deckConfigPatch(removePage(config, page)));
-    },
-    setTitleDefault(next) {
-      onUpdate(deckConfigPatch({ ...config, defaultTitleStyle: next }));
-    },
-  };
+/**
+ * Root-level authored depth-count: the AUTHORED page's own key count (grown
+ * to the instance's fitted key count on the rare case a small preset is
+ * viewed on a bigger instance, so a blank cell past the preset's own
+ * declared size is still a real, writable authored slot). Folder depths
+ * still use the fitted capacity (unchanged from before this instance edited
+ * the fitted view - folders never paginate, so their capacity was already a
+ * render-time-target concept, not an authored one).
+ */
+function authoredDepthCount(fitted: Pick<DeckTarget, 'kind' | 'keyCount'>, authoredRootCount: number): DepthCount {
+  return (depth: number) => (depth === 0 ? authoredRootCount : slotCountAtDepth(fitted, depth));
 }
 
-export function makePhysicalDeckTarget(
-  cols: number,
-  rows: number,
-  keyCount: number,
-  config: DeckConfig,
-  persist: (next: DeckConfig) => void,
+/**
+ * Editing target for a deck instance: the FITTED projection of the active
+ * preset onto `instanceGrid` (what the user physically sees - a hardware key,
+ * or a widget tile), read via `config`. Writes translate the fitted (page,
+ * slotIndex) touched back to the authored preset's own (page, slotIndex)
+ * through fitToGridWithOrigins's map before saving; a synthesized nav key
+ * (`auto: true`) has no authored origin and is silently read-only.
+ */
+export function makePresetDeckTarget(
+  presetIn: DeckPresetFull,
+  instanceGrid: { cols: number; rows: number },
+  kind: 'widget' | 'physical',
+  save: (next: DeckConfig) => void,
 ): DeckTarget {
-  const target: Pick<DeckTarget, 'kind' | 'keyCount'> = { kind: 'physical', keyCount };
+  // A slot entry can go missing entirely (a prior out-of-bounds write left a
+  // hole - see the authoredCountFor comment below); treat a hole as an empty
+  // slot instead of letting it throw deeper in fitToGridWithOrigins.
+  const preset: DeckPresetFull = {
+    ...presetIn,
+    deck: { ...presetIn.deck, pages: presetIn.deck.pages.map(p => ({ slots: p.slots.map(s => s ?? {}) })) },
+  };
+  const authoredKeyCount = preset.cols * preset.rows;
+  const fitted = fitToGridWithOrigins(
+    { cols: preset.cols, rows: preset.rows, deck: preset.deck },
+    { cols: instanceGrid.cols, rows: instanceGrid.rows, kind },
+  );
+  const target: Pick<DeckTarget, 'kind' | 'keyCount'> = { kind, keyCount: instanceGrid.cols * instanceGrid.rows };
+
+  const rootOriginAt = (page: number, index: number): FittedSlotOrigin | undefined => fitted.origins[page]?.[index];
+
+  // The root level must reach whichever authored slot index THIS write
+  // targets - a closing overflow chunk's blank cells carry origins past
+  // authoredKeyCount (they're room to grow the authored page, not real
+  // content yet), so a count fixed at authoredKeyCount silently drops
+  // (updateSlot) or writes past the array end (swapSlots, corrupting the
+  // saved deck with sparse holes) a write to one of them.
+  const authoredCountFor = (...rootIndices: number[]) =>
+    authoredDepthCount(target, Math.max(authoredKeyCount, target.keyCount, ...rootIndices.map(i => i + 1)));
+
   return {
-    kind: 'physical',
-    cols,
-    rows,
-    keyCount,
-    config,
+    kind,
+    cols: instanceGrid.cols,
+    rows: instanceGrid.rows,
+    keyCount: target.keyCount,
+    config: fitted.config,
     updateSlot(page, folderPath, slotIndex, next) {
-      persist(updateSlotAt(config, page, folderPath, slotIndex, next, depthCount(target)));
+      const rootIndex = folderPath.length === 0 ? slotIndex : folderPath[0];
+      const origin = rootOriginAt(page, rootIndex);
+      if (!origin || origin.kind === 'auto') return;
+      const authoredFolderPath = folderPath.length === 0 ? [] : [origin.slotIndex, ...folderPath.slice(1)];
+      const authoredSlotIndex = folderPath.length === 0 ? origin.slotIndex : slotIndex;
+      save(updateSlotAt(preset.deck, origin.page, authoredFolderPath, authoredSlotIndex, next, authoredCountFor(origin.slotIndex)));
     },
     swapSlots(page, folderPath, from, to) {
-      const nextConfig = swapSlots(config, page, folderPath, from, to, depthCount(target));
-      if (nextConfig !== config) persist(nextConfig);
+      const rootFrom = folderPath.length === 0 ? from : folderPath[0];
+      const origin = rootOriginAt(page, rootFrom);
+      if (!origin || origin.kind === 'auto') return;
+      if (folderPath.length === 0) {
+        const toOrigin = rootOriginAt(page, to);
+        if (!toOrigin || toOrigin.kind === 'auto') return;
+        const nextConfig = swapSlots(preset.deck, origin.page, [], origin.slotIndex, toOrigin.slotIndex, authoredCountFor(origin.slotIndex, toOrigin.slotIndex));
+        if (nextConfig !== preset.deck) save(nextConfig);
+        return;
+      }
+      const authoredFolderPath = [origin.slotIndex, ...folderPath.slice(1)];
+      const nextConfig = swapSlots(preset.deck, origin.page, authoredFolderPath, from, to, authoredCountFor(origin.slotIndex));
+      if (nextConfig !== preset.deck) save(nextConfig);
     },
     addPage() {
-      persist(addPage(config));
+      save(addPage(preset.deck));
     },
     removePage(page) {
-      persist(removePage(config, page));
+      const authoredPage = fitted.pageOrigins[page] ?? 0;
+      save(removePage(preset.deck, authoredPage));
+      return Math.max(0, fitted.pageOrigins.indexOf(authoredPage) - 1);
     },
+    removePageKeyCount(page) {
+      const authoredPage = fitted.pageOrigins[page] ?? 0;
+      return countConfiguredSlots(preset.deck.pages[authoredPage]?.slots ?? []);
+    },
+    authoredPageCount: preset.deck.pages.length,
     setTitleDefault(next) {
-      persist({ ...config, defaultTitleStyle: next });
+      save({ ...preset.deck, defaultTitleStyle: next });
     },
   };
-}
-
-export interface DeckUploadJob {
-  page: number;
-  slotPath: string;
-  state: 0 | 1;
-  slot: DeckSlot;
 }
 
 /**
  * Slot path for one index within a folder view: the dot-joined index-chain
  * grammar DeckConfigNavigation.ParseSlotPath/BuildSlotPath define ("3",
- * "2.1.5"). The single source of truth for that grammar client-side - both
- * the key-image upload path (deckImageSlotPath) and the live-tile frame map
- * (DeckGrid's liveTiles) key off it.
+ * "2.1.5") - the live-tile frame map (DeckGrid's liveTiles) keys off it.
  */
 export function slotPathAt(folderPath: readonly number[], index: number): string {
   return [...folderPath, index].join('.');
-}
-
-/**
- * Page-qualified slotPath for the images route: the page index leads the
- * same grammar as slotPathAt ("0.3", "2.1.5"). The reserved back key stays
- * page-independent (the literal "back", built where it's uploaded) and never
- * goes through this.
- */
-export function deckImageSlotPath(page: number, slotPath: string): string {
-  return `${page}.${slotPath}`;
-}
-
-/**
- * Every key image job for one resolved folder view. Toggle slots render both
- * states up front, each already resolved to that branch's icon/color (state
- * 0 = off, state 1 = on) so the renderer never needs to know about toggle
- * semantics; everything else renders once at state 0.
- *
- * A 'monitoring' or 'weather' slot's key image is never uploaded from here:
- * the service owns those pixels (StreamDeckConnectionWorker's per-tick render
- * loop), so a web-driven upload would fight it and briefly stomp the live
- * tile on every config sync. DeckGrid shows the live gauge/weather tile in
- * its place instead.
- */
-function viewUploadJobs(slots: readonly DeckSlot[], page: number, folderPath: readonly number[]): DeckUploadJob[] {
-  const jobs: DeckUploadJob[] = [];
-  slots.forEach((slot, i) => {
-    if (slot.action?.type === 'monitoring' || slot.action?.type === 'weather') return;
-    const slotPath = slotPathAt(folderPath, i);
-    const action = slot.action;
-    if (action?.type === 'toggle') {
-      jobs.push({ page, slotPath, state: 0, slot: toggleBranchSlot(slot, action, false) });
-      jobs.push({ page, slotPath, state: 1, slot: toggleBranchSlot(slot, action, true) });
-    } else {
-      jobs.push({ page, slotPath, state: 0, slot });
-    }
-  });
-  return jobs;
-}
-
-/**
- * Every key image job across the WHOLE deck tree: every page, and every
- * folder reachable within it (recursing into `.folder` slots), each job
- * page-qualified so pages that reuse the same slot indices no longer
- * overwrite each other's ImageRefs entries server-side (the image-refs v2
- * contract). Slot counts follow the same physical Back-key reservation as a
- * live view (slotCountAtDepth), and a page's `pageIndicator` slot bakes that
- * page's own "N/total" label - it is static per page, not the currently
- * navigated page, so a full-tree sweep renders it correctly without knowing
- * which page the hardware is showing.
- */
-export function computeDeckUploadJobs(target: Pick<DeckTarget, 'kind' | 'keyCount' | 'config'>): DeckUploadJob[] {
-  const jobs: DeckUploadJob[] = [];
-  const pageCount = target.config.pages.length;
-  target.config.pages.forEach((pageConfig, page) => {
-    const walk = (rawSlots: readonly DeckSlot[], folderPath: readonly number[], depth: number): void => {
-      const slots = padSlots(rawSlots, slotCountAtDepth(target, depth));
-      jobs.push(...viewUploadJobs(withPageIndicatorDisplay(slots, page, pageCount), page, folderPath));
-      slots.forEach((slot, i) => {
-        if (slot.folder) walk(slot.folder.slots, [...folderPath, i], depth + 1);
-      });
-    };
-    walk(pageConfig.slots, [], 0);
-  });
-  return jobs;
 }

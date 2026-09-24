@@ -31,7 +31,15 @@ describe('buildFpsSignatureParams', () => {
     });
   });
 
-  it('takes the first GPU when the string joins a dGPU and an iGPU', () => {
+  it('prefers the service-picked primaryGpu over the joined graphicsCard string', () => {
+    const params = buildFpsSignatureParams(specs({
+      graphicsCard: 'AMD Radeon Graphics + AMD Radeon RX 7700 XT',
+      primaryGpu: 'AMD Radeon RX 7700 XT',
+    }));
+    expect(params?.gpu).toBe('AMD Radeon RX 7700 XT');
+  });
+
+  it('falls back to the first GPU segment when the service sends no primaryGpu', () => {
     const params = buildFpsSignatureParams(specs({ graphicsCard: 'NVIDIA GeForce RTX 4070 + AMD Radeon Graphics' }));
     expect(params?.gpu).toBe('NVIDIA GeForce RTX 4070');
   });
@@ -71,5 +79,17 @@ describe('buildFpsSignatureParams', () => {
   it('returns null when the monitor string has no parseable resolution', () => {
     expect(buildFpsSignatureParams(specs({ monitor: '' }))).toBeNull();
     expect(buildFpsSignatureParams(specs({ monitor: 'Dell U2723QE' }))).toBeNull();
+  });
+
+  it('takes a requested resolution over the display, and keeps the display refresh rate', () => {
+    const params = buildFpsSignatureParams(specs({ monitor: '3840×1100 @ 60 Hz' }), '1920x1080');
+    expect(params?.res).toBe('1920x1080');
+    expect(params?.hz).toBe(60);
+  });
+
+  it('signs a rig with no parseable display when a resolution is requested', () => {
+    const params = buildFpsSignatureParams(specs({ monitor: 'Dell U2723QE' }), '2560x1440');
+    expect(params?.res).toBe('2560x1440');
+    expect(params?.hz).toBeUndefined();
   });
 });

@@ -105,7 +105,7 @@
   font-weight: var(--weight-heading);
 }
 
-// Zero leading pad so the label starts on the brand mark's left edge.
+// Flush left so the row's leading icon lines up with the brand mark above it.
 .guideLink {
   align-self: flex-start;
   margin-top: 6px;

@@ -1,0 +1,130 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
+@use '../../../styles/scrollbar' as *;
+@use '../../styles/flexGap' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  @include vgap(0.5rem);
+}
+
+.title {
+  padding: 0 0.25rem;
+}
+
+.search {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  @include vgap(0.35rem);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  @include scrollbar-visible;
+  @include vgap(0.5rem);
+}
+
+// Card chrome (surface, hover, selected) comes from Card; the option button
+// inside carries the padding so the whole card is the hit target, and the
+// delete X floats in the corner without taking a column.
+.row {
+  position: relative;
+  padding: 0;
+}
+
+.rowSelect {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  @include hgap(0.75rem);
+
+  &:focus-visible { @include focus-ring-inset; }
+}
+
+.rowMain {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  @include vgap(0.15rem);
+}
+
+.rowName {
+  @include text-button;
+  font-size: var(--type-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowMeta {
+  @include text-caption;
+  color: var(--text-dim);
+  display: flex;
+  flex-wrap: wrap;
+  @include hgap(0.5rem);
+}
+
+.rowCondition {
+  @include text-caption;
+  display: flex;
+  align-items: center;
+  color: var(--text-dim);
+  @include hgap(0.3rem);
+}
+
+.rowIcon {
+  width: 1.1em;
+  height: 1.1em;
+}
+
+.rowSide {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  // Bottom-aligned so the corner above the temperature stays clear for the
+  // delete X.
+  justify-content: flex-end;
+  @include vgap(0.15rem);
+}
+
+.rowTemp {
+  @include text-display;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowHiLo {
+  @include text-caption;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.remove {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.3rem;
+}
+
+.row:hover [data-card-delete='hover'],
+.row:focus-within [data-card-delete='hover'] {
+  opacity: 1;
+  pointer-events: auto;
+}

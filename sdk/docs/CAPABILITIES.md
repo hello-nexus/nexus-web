@@ -202,6 +202,17 @@ const preview = usePreview();
 if (preview) return <Text value="42 °C" />;
 ```
 
+### `useImmersive()`
+
+Returns `{ active, exit }`: whether this render is the panel's fullscreen
+immersive view (its own worker, so `active` is static for the render) and the
+host's animated way out of it. `exit` is a no-op anywhere else.
+
+```tsx
+const { active, exit } = useImmersive();
+if (active) return <Stage onClose={exit} />;
+```
+
 ### `useLocalState<T>(defaults)`
 
 Per-instance state bag, persisted by the host across reloads (localStorage,
@@ -356,7 +367,12 @@ A styled box - background, border, radius, direction.
 | `radius` | `number` |
 | `border` | `boolean` |
 | `grow` | `boolean` |
+| `image` | `string` |
 | `children` | `ReactNode` |
+
+`image` is an `https:`, `data:image/`, `blob:` or own-asset URL painted cover-fit
+under the children, over the `tone`. A value containing a quote, apostrophe,
+paren, backslash or whitespace is ignored.
 
 #### `Spacer`
 Flexible gap. `size` is in px (default: flex-fills remaining space).
@@ -584,7 +600,7 @@ Host renders `src/components/common/Button/Button.tsx`.
 | Prop | Type | Notes |
 |---|---|---|
 | `label` | `string` | |
-| `tone` | `UiTone` | |
+| `tone` | `UiTone` | `bad` is the danger button, filled with `variant="solid"` |
 | `variant` | `'solid' \| 'soft' \| 'ghost'` | |
 | `disabled` | `boolean` | |
 | `icon` | `string` | icon name (lucide) |
@@ -740,6 +756,71 @@ The full day/night world map + scrollable city cards. Self-ticking.
 | Prop | Type |
 |---|---|
 | `highlightTz` | `string` (IANA tz to highlight on the map) |
+
+#### `Avatar`
+A first-party 3D character (three.js) rendered host-side from a pack the app
+ships. In a tile it is inert; a tap opens the panel's fullscreen immersive
+view, where pointer orbit/zoom lives. Everything around the character (a
+controls bar, a stream, stickers) is the app's to build from the primitives
+below; the composite carries only the character.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `pack` | `string` | URL to a pack directory or an encrypted `.nxpack` container (app-asset route) |
+| `dance` / `listening` | `boolean` | signal levels forwarded to the pack's bridge |
+| `energy` | `number` | 0..1 |
+| `reaction` | `string` | one-shot `"Trigger#seq"`; bump `seq` to re-fire |
+| `intro` | `boolean` | walk-in + camera push-in once on mount |
+| `interactive` | `boolean` | orbit/zoom in the immersive view (default true) |
+| `demo` | `boolean` | loops the authored reaction showcase |
+| `zoom` | `number` | camera depth as 0..1 of the deepest closeup; omit to leave the camera to its own gestures |
+| `onZoom` | `(fraction: number) => void` | the depth after a wheel or pinch on the canvas, so a control can track it |
+| `onInteraction` | `() => void` | throttled, on any pointer or wheel activity on the stage (idle timers) |
+
+#### `Manipulable`
+A freely placed, transformable child of a `Layer`. With the layer's
+`gestures` on and `editable` set, the host drags, pinches (scale, clamped) and
+twists it and reports the settled transform; a tap fires `onPress`. Wraps any
+blessed content, typically an `Image`. Coordinates are resolution independent:
+centre `x`/`y` as 0..1 of the layer box, `size` as a fraction of the layer's
+shorter side, `scale` multiplier, `rotation` in degrees.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `id` | `string` | required, stable |
+| `x` / `y` | `number` | centre, 0..1 of the layer |
+| `scale` / `rotation` | `number` | multiplier / degrees |
+| `size` | `number` | unscaled size as a fraction of the layer's shorter side (default 0.24) |
+| `z` | `number` | stacking within the layer |
+| `minScale` / `maxScale` | `number` | pinch clamp (defaults 0.35 / 3) |
+| `editable` | `boolean` | the layer's gestures may move it |
+| `selected` | `boolean` | draws the selection outline |
+| `onPress` | `() => void` | a tap on it |
+| `onChange` | `(t: { x, y, scale, rotation }) => void` | after a drag, pinch or twist |
+| `onRemove` | `() => void` | set it and a remove handle sits at the top-right corner while `selected`; fires on tap |
+
+```tsx
+<Layer grow gestures={editing} onPress={() => setSelected(null)}>
+  {items.map((it) => (
+    <Manipulable key={it.id} id={it.id} {...it.transform} editable={editing}
+      selected={selected === it.id} onPress={() => setSelected(it.id)}
+      onChange={(t) => update(it.id, t)} onRemove={() => remove(it.id)}>
+      <Image src={it.src} fit="contain" />
+    </Manipulable>
+  ))}
+</Layer>
+```
+
+#### `YouTube`
+A YouTube embed player by video id (the host builds the privacy-enhanced
+embed URL; nothing else can be framed). 16:9 at the full width of its parent.
+
+| Prop | Type |
+|---|---|
+| `videoId` | `string` (required) |
+| `autoplay` | `boolean` (muted autoplay, default true) |
+| `title` | `string` (accessible frame title) |
+| `radius` | `number` |
 
 ### `MediaImport`
 

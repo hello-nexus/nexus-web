@@ -52,10 +52,3 @@ $heart-size: 0.85rem;
     transform: translate(var(--heart-dx, 0), var(--heart-dy, -90px)) rotate(var(--heart-rot, 0deg)) scale(var(--heart-scale, 1));
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .heart {
-    animation: none;
-    opacity: 0;
-  }
-}

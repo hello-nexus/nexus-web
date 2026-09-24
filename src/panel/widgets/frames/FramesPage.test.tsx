@@ -9,11 +9,13 @@ import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { FpsTableGameItem } from '../../../types/fps-estimates';
 
 const getFpsTrackingStatusMock = vi.fn();
+const setFpsTrackingEnabledMock = vi.fn();
 const fetchFpsGameSessionsMock = vi.fn();
 const deleteFpsSessionMock = vi.fn();
 const deleteFpsGameMock = vi.fn();
 vi.mock('../../../api/fps', () => ({
   getFpsTrackingStatus: () => getFpsTrackingStatusMock(),
+  setFpsTrackingEnabled: (enabled: boolean) => setFpsTrackingEnabledMock(enabled),
   fetchFpsGameSessions: (gameKey: string, limit?: number) => fetchFpsGameSessionsMock(gameKey, limit),
   deleteFpsSession: (id: string) => deleteFpsSessionMock(id),
   deleteFpsGame: (gameKey: string) => deleteFpsGameMock(gameKey),
@@ -38,8 +40,9 @@ vi.mock('../../../hooks/useSystemSpecs', () => ({
 }));
 
 let fpsEstimatesResult: UseFpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
+const useFpsEstimatesMock = vi.fn<(res?: string) => UseFpsEstimatesResult>(() => fpsEstimatesResult);
 vi.mock('../../../hooks/useFpsEstimates', () => ({
-  useFpsEstimates: () => fpsEstimatesResult,
+  useFpsEstimates: (res?: string) => useFpsEstimatesMock(res),
 }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
@@ -94,6 +97,7 @@ beforeEach(() => {
   systemSpecs = null;
   fpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
   getFpsTrackingStatusMock.mockReset().mockResolvedValue({ enabled: true });
+  setFpsTrackingEnabledMock.mockReset().mockResolvedValue({ enabled: true });
   fetchFpsGameSessionsMock.mockReset().mockResolvedValue({ sessions: [] });
   deleteFpsSessionMock.mockReset().mockResolvedValue({ deleted: 1 });
   deleteFpsGameMock.mockReset().mockResolvedValue({ deleted: 1 });
@@ -126,19 +130,24 @@ describe('FramesPage - History tab states', () => {
     expect(await screen.findByText('frames.unsupported')).toBeInTheDocument();
   });
 
-  it('shows the tracking-off message when the toggle is off', async () => {
+  it('offers to turn tracking on from the intro when the toggle is off', async () => {
     getFpsTrackingStatusMock.mockResolvedValue({ enabled: false });
     renderPage();
-    expect(await screen.findByText('frames.trackingOff.title')).toBeInTheDocument();
-    expect(screen.getByText('frames.trackingOff.hint')).toBeInTheDocument();
+    expect(await screen.findByText('frames.intro.title')).toBeInTheDocument();
+
+    fireEvent.click(await screen.findByRole('switch', { name: 'settings.localDataStore.fps.label' }));
+    expect(setFpsTrackingEnabledMock).toHaveBeenCalledWith(true);
+    await flush();
+    expect(screen.queryByRole('switch', { name: 'settings.localDataStore.fps.label' })).not.toBeInTheDocument();
   });
 
   it('shows a dedicated blank state with no search box or counter when there are no recordings at all', async () => {
     renderPage();
     await flush();
 
-    expect(await screen.findByText('frames.empty.title')).toBeInTheDocument();
-    expect(screen.getByText('frames.empty.hint')).toBeInTheDocument();
+    expect(await screen.findByText('frames.intro.title')).toBeInTheDocument();
+    expect(screen.getByText('frames.intro.body')).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'settings.localDataStore.fps.label' })).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText('steam.library.searchPlaceholder')).not.toBeInTheDocument();
     expect(screen.queryByText(/steam\.library\.count/)).not.toBeInTheDocument();
   });
@@ -396,26 +405,46 @@ describe('FramesPage - Discover tab', () => {
     };
   });
 
-  it('shows the rig spec rows regardless of estimate status', async () => {
+  function ready(...games: FpsTableGameItem[]): UseFpsEstimatesResult {
+    return { status: 'ready', games, gamesByKey: new Map(games.map(g => [g.gameKey, g])), resClass: '1920x1080' };
+  }
+
+  it('asks for 1920x1080 by default and re-asks for the chip picked, without any rig spec panel', async () => {
+    fpsEstimatesResult = ready(estimateGame());
+    renderPage('discover');
+    await flush();
+
+    expect(useFpsEstimatesMock).toHaveBeenLastCalledWith('1920x1080');
+    expect(screen.queryByText('Ryzen 9 9950X3D')).not.toBeInTheDocument();
+    const chips = within(screen.getByRole('radiogroup', { name: 'frames.discover.resolution' }));
+    expect(chips.getByRole('radio', { name: '1080p' })).toBeChecked();
+
+    fireEvent.click(chips.getByRole('radio', { name: '2160p' }));
+    await flush();
+    expect(useFpsEstimatesMock).toHaveBeenLastCalledWith('3840x2160');
+  });
+
+  it('shows a spinner, not an empty state, while a table is loading', async () => {
     fpsEstimatesResult = { status: 'loading', games: [], gamesByKey: new Map(), resClass: null };
     renderPage('discover');
     await flush();
 
-    expect(await screen.findByText('Ryzen 9 9950X3D')).toBeInTheDocument();
-    expect(screen.getByText('RTX 5080')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'common.loading' })).toBeInTheDocument();
+    expect(screen.queryByText('frames.discover.empty.title')).not.toBeInTheDocument();
   });
 
-  it('is silent (no estimates section) while the rig cannot be resolved', async () => {
+  it('says the community data is unavailable, not empty, when the rig cannot be resolved', async () => {
     fpsEstimatesResult = { status: 'unresolved', games: [], gamesByKey: new Map(), resClass: null };
     renderPage('discover');
     await flush();
 
-    expect(screen.queryByText('frames.discover.title')).not.toBeInTheDocument();
+    expect(screen.getByText('frames.discover.unavailable')).toBeInTheDocument();
     expect(screen.queryByText('frames.discover.empty.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('steam.library.count(count=0)')).not.toBeInTheDocument();
   });
 
   it('shows the no-community-data empty state when the table has no games yet', async () => {
-    fpsEstimatesResult = { status: 'empty', games: [], gamesByKey: new Map(), resClass: '2560x1440' };
+    fpsEstimatesResult = { status: 'empty', games: [], gamesByKey: new Map(), resClass: '1920x1080' };
     renderPage('discover');
     await flush();
 
@@ -423,42 +452,58 @@ describe('FramesPage - Discover tab', () => {
     expect(screen.getByText('frames.discover.empty.hint')).toBeInTheDocument();
   });
 
-  it('lists a community estimate with its avg, level label, confidence, and based-on count', async () => {
-    const estimate = estimateGame();
-    fpsEstimatesResult = {
-      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
-    };
-    renderPage('discover');
-    await flush();
-
-    expect(await screen.findByText('frames.discover.title')).toBeInTheDocument();
-    expect(screen.getByText('Counter-Strike 2')).toBeInTheDocument();
-    expect(screen.getByText('220')).toBeInTheDocument();
-    expect(screen.getByText('frames.discover.level.3')).toBeInTheDocument();
-    expect(screen.getByText('frames.discover.confidence.medium')).toBeInTheDocument();
-    expect(screen.getByText('frames.discover.basedOn(count=12)')).toBeInTheDocument();
-  });
-
-  it('adds an at-resolution note when the estimate came from a different resClass than the rig', async () => {
-    const estimate = estimateGame({ resBasis: '3840x2160' });
-    fpsEstimatesResult = {
-      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
-    };
-    renderPage('discover');
-    await flush();
-
-    expect(await screen.findByText(/frames\.discover\.resBasis\(res=3840×2160\)/)).toBeInTheDocument();
-  });
-
-  it('omits the at-resolution note when resBasis matches the rig own resClass', async () => {
-    const estimate = estimateGame({ resBasis: '2560x1440' });
-    fpsEstimatesResult = {
-      status: 'ready', games: [estimate], gamesByKey: new Map([[estimate.gameKey, estimate]]), resClass: '2560x1440',
-    };
+  it('lists a community estimate with its avg at the picked resolution, level label, and confidence mark, and no install count', async () => {
+    fpsEstimatesResult = ready(estimateGame());
     renderPage('discover');
     await flush();
 
     expect(await screen.findByText('Counter-Strike 2')).toBeInTheDocument();
+    expect(screen.getByText('220')).toBeInTheDocument();
+    expect(screen.getByText('@ 1080p')).toBeInTheDocument();
+    expect(screen.getByText('frames.discover.level.3')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'frames.discover.confidence.medium' })).toBeInTheDocument();
+    expect(screen.queryByText(/frames\.discover\.basedOn/)).not.toBeInTheDocument();
+    expect(screen.getByText('steam.library.count(count=1)')).toBeInTheDocument();
+  });
+
+  it('labels the fps with the resolution it was measured at and notes the missing one when the cloud fell back', async () => {
+    fpsEstimatesResult = ready(estimateGame({ resBasis: '3840x2160' }));
+    renderPage('discover');
+    await flush();
+
+    expect(await screen.findByText('@ 2160p')).toBeInTheDocument();
+    expect(screen.getByText(/frames\.discover\.resBasis\(res=1080p\)/)).toBeInTheDocument();
+  });
+
+  it('omits the fallback note when resBasis matches the picked resolution', async () => {
+    fpsEstimatesResult = ready(estimateGame({ resBasis: '1920x1080' }));
+    renderPage('discover');
+    await flush();
+
+    expect(await screen.findByText('@ 1080p')).toBeInTheDocument();
     expect(screen.queryByText(/frames\.discover\.resBasis/)).not.toBeInTheDocument();
+  });
+
+  it('filters estimates by title from the search box', async () => {
+    fpsEstimatesResult = ready(estimateGame(), estimateGame({ gameKey: 'steam:570', title: 'Dota 2' }));
+    renderPage('discover');
+    await flush();
+
+    fireEvent.change(screen.getByPlaceholderText('frames.discover.searchPlaceholder'), { target: { value: 'dota' } });
+    expect(screen.getByText('Dota 2')).toBeInTheDocument();
+    expect(screen.queryByText('Counter-Strike 2')).not.toBeInTheDocument();
+    expect(screen.getByText('steam.library.countFiltered(count=1,total=2)')).toBeInTheDocument();
+  });
+
+  it('falls back to the controller placeholder once store art and icon both fail', async () => {
+    fpsEstimatesResult = ready(estimateGame({ gameKey: 'epic:alanwake2', title: 'Alan Wake 2', steamAppId: null }));
+    const { container } = renderPage('discover');
+    await flush();
+
+    const art = () => container.querySelector('img[src^="/api/fps/games/epic%3Aalanwake2/art"]') as HTMLImageElement | null;
+    fireEvent.error(art()!);
+    fireEvent.error(art()!);
+    expect(art()).toBeNull();
+    expect(container.querySelector('svg.lucide-gamepad-2')).not.toBeNull();
   });
 });

@@ -1,8 +1,8 @@
 import { createPortal } from 'react-dom';
-import { Check, Settings } from 'lucide-react';
+import { Check, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
-import type { CSSProperties } from 'react';
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { sizeToSpan } from '../engine/grid';
 import { lookupApp } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
@@ -10,11 +10,25 @@ import { WidgetCellLabel } from '../widgets/common/WidgetCellLabel';
 import { PanelPreviewProvider } from '../widgets/common/PanelPreviewContext';
 import { ErrorBoundary } from '../../components/common/ErrorBoundary/ErrorBoundary';
 import { useTranslation } from '../../lib/i18n';
-import type { PanelLayout, PanelSurface, PanelWidget, PanelConfigValue } from '../types';
+import { surfaceSupportsTouch, type PanelLayout, type PanelSurface, type PanelWidget, type PanelConfigValue } from '../types';
 import { findWidgetById, readCellMetrics, type DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
 import type { EditorDockMotion } from '../editor/panelEditorDock';
 import type { ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
 import styles from '../PanelApp.module.scss';
+
+// A container React renders into but never places itself, so moving it moves
+// its subtree without remounting it.
+function createHost(): HTMLDivElement {
+  const el = document.createElement('div');
+  el.className = styles.cellHost;
+  return el;
+}
+
+// appendChild, not moveBefore: a re-inserted host is restyled from scratch, so
+// no CSS transition runs across the move, as with the remount this replaces.
+function moveHost(parent: HTMLElement, host: HTMLElement): void {
+  if (host.parentNode !== parent) parent.appendChild(host);
+}
 
 // Highlights the cells the dragged widget would land on if dropped now.
 // Reads currentOverIdRef + the active widget's size to compute the
@@ -120,6 +134,7 @@ export function PanelTouchCell({
   dimmed = false,
   editorDockMotion = null,
   editorDockPortal = null,
+  dragOverlaySlot = null,
   flash = false,
   entrance = false,
   isDragSource = false,
@@ -135,6 +150,7 @@ export function PanelTouchCell({
   cellPointers,
   onSimulatorClick,
   editHint = false,
+  immersiveOnLoad = false,
   previewLayout = null,
   onSectionNavigate,
   onConfigureWidget,
@@ -148,6 +164,7 @@ export function PanelTouchCell({
   dimmed?: boolean;
   editorDockMotion?: EditorDockMotion | null;
   editorDockPortal?: HTMLElement | null;
+  dragOverlaySlot?: HTMLElement | null;
   flash?: boolean;
   entrance?: boolean;
   isDragSource?: boolean;
@@ -168,6 +185,9 @@ export function PanelTouchCell({
   };
   onSimulatorClick?: () => void;
   editHint?: boolean;
+  // Device-page preview: this is the widget the panel opens immersive on load.
+  // Hovering the cell frames it and names the mark.
+  immersiveOnLoad?: boolean;
   previewLayout?: PanelLayout | null;
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
@@ -186,6 +206,29 @@ export function PanelTouchCell({
     id: widget.id,
     disabled: Boolean(editorDockMotion) || Boolean(resizeMotion),
   });
+
+  // The cell renders into cellHost and its card + label into contentHost, so
+  // the editor dock and the drag overlay move the live widget instead of
+  // mounting a second one. Each anchor renders before the portal it places,
+  // so its host is in the document when the widget's layout effects run.
+  const [cellHost] = useState(createHost);
+  const [contentHost] = useState(createHost);
+  // The docked cell lives in a panel-root-level container: inside the pager
+  // track, whose transform on page 2+ is the containing block, its
+  // `position: fixed` would land offscreen.
+  const cellTarget = editorDockMotion ? editorDockPortal : null;
+  const contentTarget = isDragSource ? dragOverlaySlot : null;
+  const placeCell = useCallback((anchor: HTMLElement | null) => {
+    if (anchor) moveHost(cellTarget ?? anchor, cellHost);
+  }, [cellHost, cellTarget]);
+  const placeContent = useCallback((anchor: HTMLElement | null) => {
+    const home = anchor?.parentElement;
+    if (home) moveHost(contentTarget ?? home, contentHost);
+  }, [contentHost, contentTarget]);
+  useEffect(() => () => {
+    cellHost.remove();
+    contentHost.remove();
+  }, [cellHost, contentHost]);
 
   // Explicit grid placement: widgets sit at their stored (col, row),
   // gaps are honored. CSS Grid is 1-indexed.
@@ -222,11 +265,11 @@ export function PanelTouchCell({
   const previewTransition = 'transform 220ms cubic-bezier(0.25, 1, 0.5, 1)';
 
   if (!def) {
-    // usePanelLayout's reconciler drops orphan marketplace widgets once the
-    // registry loads, so reaching here means (a) the registry is still loading
-    // at app start, or (b) a built-in type was renamed/removed mid-session.
-    // Render a blank placeholder, not a "unknown:" box; the layout self-heals
-    // on the next normalize pass.
+    // usePanelLayout's reconciler keeps an app:<id> placement its registry
+    // cannot vouch for yet, so reaching here means (a) the registry has not
+    // loaded or has gone past its freshness window, or (b) a built-in type was
+    // renamed/removed mid-session. Render a blank placeholder, not an
+    // "unknown:" box; a later normalize against a current registry decides.
     return (
       <div
         className={styles.cellWrap}
@@ -252,8 +295,29 @@ export function PanelTouchCell({
     ...editorDockMotion?.style,
   } as CSSProperties;
 
+  // A surface with no touch input neither drags nor docks a widget, so its
+  // cell renders in place and skips the hosts' portal setup.
+  const movable = !surface || surfaceSupportsTouch(surface, deviceTouch);
+  const hosted = (content: ReactNode) => (movable
+    ? <><span ref={placeContent} hidden />{createPortal(content, contentHost)}</>
+    : content);
+  const placed = (node: ReactNode) => (!movable ? node : (
+    <>
+      <div ref={placeCell} className={styles.cellHost} />
+      {createPortal(node, cellHost)}
+      {editorDockMotion && (
+        <div
+          data-panel-widget-slot-id={widget.id}
+          className={styles.cellSlotPlaceholder}
+          style={{ gridColumn, gridRow }}
+          aria-hidden="true"
+        />
+      )}
+    </>
+  ));
+
   if (rearranging) {
-    return (
+    return placed(
       <div
         ref={setNodeRef}
         data-panel-widget-id={widget.id}
@@ -279,15 +343,19 @@ export function PanelTouchCell({
         {...attributes}
         {...listeners}
       >
-        <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
-          <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
-            <Comp widget={widget} deviceId={deviceId} surface={surface} deviceTouch={deviceTouch} />
-          </div>
-        </div>
-        <div className={styles.cellLabelStrip}>
-          <WidgetCellLabel label={labelText} />
-        </div>
-      </div>
+        {hosted(
+          <>
+            <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
+              <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
+                <Comp widget={widget} deviceId={deviceId} surface={surface} deviceTouch={deviceTouch} />
+              </div>
+            </div>
+            <div className={styles.cellLabelStrip}>
+              <WidgetCellLabel label={labelText} />
+            </div>
+          </>,
+        )}
+      </div>,
     );
   }
 
@@ -319,6 +387,8 @@ export function PanelTouchCell({
       data-panel-cell-row-span={span.rows}
       data-cell-state={editorDockMotion ? 'docked' : undefined}
       data-clickthrough={clickthrough && !editorDockMotion ? 'true' : undefined}
+      data-edit-hint={editHint ? 'true' : undefined}
+      data-immersive-on-load={immersiveOnLoad ? 'true' : undefined}
       className={`${styles.cellWrap} ${editorDockMotion ? styles.cellEditorDocked : ''} ${resizeMotion ? styles.cellResizeMotion : ''} ${editorDockMotion?.phase === 'closing' ? styles.cellEditorDockClosing : ''} ${dimmed ? styles.cellContextDimmed : ''} ${flash ? styles.cellFlash : ''} ${entrance ? styles.cellEntrance : ''}`}
       style={{
         ...wrapStyle,
@@ -340,61 +410,51 @@ export function PanelTouchCell({
       {...(dragMotionActive ? {} : attributes)}
       {...composedPointerHandlers}
     >
-      <div
-        className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
-        data-size={widget.size}
-        data-widget-type={widget.type}
-      >
-        <div className={styles.cellScaler}>
-          <Comp
-            widget={widget}
-            deviceId={deviceId}
-            surface={surface}
-            deviceTouch={deviceTouch}
-            selectedSlot={selectedSlot}
-            onSelectSlot={onSelectSlot}
-            editView={editView}
-            onEditViewChange={onEditViewChange}
-            onUpdate={onUpdate}
-            editorPreview={editorPreview}
-            onSectionNavigate={onSectionNavigate}
-            onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
-          />
-        </div>
-        {editHint && (
-          <div className={styles.cellEditHint} aria-hidden="true">
-            <div className={styles.cellEditHintContent}>
-              <Settings className={styles.cellEditHintIcon} />
-              <span className={styles.cellEditHintLabel}>{t('panel.widget.editWidget')}</span>
+      {hosted(
+        <>
+          <div
+            className={`panel-card ${styles.cell} ${pressHint ? styles.cellPressHint : ''}`}
+            data-size={widget.size}
+            data-widget-type={widget.type}
+          >
+            <div className={styles.cellScaler}>
+              <Comp
+                widget={widget}
+                deviceId={deviceId}
+                surface={surface}
+                deviceTouch={deviceTouch}
+                selectedSlot={selectedSlot}
+                onSelectSlot={onSelectSlot}
+                editView={editView}
+                onEditViewChange={onEditViewChange}
+                onUpdate={onUpdate}
+                editorPreview={editorPreview}
+                onSectionNavigate={onSectionNavigate}
+                onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
+              />
             </div>
+            {editHint && (
+              <div className={styles.cellEditHint} aria-hidden="true">
+                <div className={styles.cellEditHintContent}>
+                  <Pencil className={styles.cellEditHintIcon} />
+                  <span className={styles.cellEditHintLabel}>{t('panel.widget.editWidget')}</span>
+                </div>
+              </div>
+            )}
+            {immersiveOnLoad && <div className={styles.cellImmersiveFrame} aria-hidden="true" />}
           </div>
-        )}
-      </div>
-      <div className={styles.cellLabelStrip}>
-        <WidgetCellLabel label={labelText} />
-      </div>
+          {immersiveOnLoad && (
+            <div className={styles.cellImmersiveFrameLabel}>{t('panel.editor.immersiveOnLoad')}</div>
+          )}
+          <div className={styles.cellLabelStrip}>
+            <WidgetCellLabel label={labelText} />
+          </div>
+        </>,
+      )}
     </div>
   );
 
-  if (editorDockMotion) {
-    // Portal the docked cell into a panel-root-level container so its
-    // `position: fixed` anchors to the viewport, not the pager track. The
-    // track's transform on non-first pages would otherwise be the containing
-    // block and offset the cell offscreen by the page translation.
-    return (
-      <>
-        {editorDockPortal ? createPortal(cellNode, editorDockPortal) : cellNode}
-        <div
-          data-panel-widget-slot-id={widget.id}
-          className={styles.cellSlotPlaceholder}
-          style={{ gridColumn, gridRow }}
-          aria-hidden="true"
-        />
-      </>
-    );
-  }
-
-  return cellNode;
+  return placed(cellNode);
 }
 
 // Non-interactive panel cell for the add-widget catalog. Reuses the exact
@@ -506,7 +566,7 @@ export function PanelCatalogCell({
                 </>
               ) : (
                 <>
-                  <Settings className={styles.cellAddedIcon} />
+                  <Pencil className={styles.cellAddedIcon} />
                   <span className={styles.cellAddedLabel}>{t('panel.widget.editWidget')}</span>
                 </>
               )}
@@ -524,32 +584,33 @@ export function PanelCatalogCell({
 }
 
 // Renders inside @dnd-kit's DragOverlay (portaled to body). Carries the panel
-// CSS context so theme tokens + the panel-card class chain apply to the clone.
+// CSS context so theme tokens + the panel-card class chain apply to the
+// dragged cell's own content, which PanelTouchCell moves into this slot.
 export function PanelDragOverlayCell({
   widget,
   surface,
-  deviceTouch,
   themeStyle,
   themeMode,
   fixedWidth,
   fixedHeight,
   showLabels = true,
+  onSlot,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
-  deviceTouch?: boolean;
   themeStyle: CSSProperties;
   themeMode: ResolvedPanelThemeMode;
   fixedWidth?: number;
   fixedHeight?: number;
   showLabels?: boolean;
+  onSlot: (slot: HTMLElement, attached: boolean) => void;
 }) {
-  const { t } = useTranslation();
-  const def = lookupApp(widget.type);
+  const slotRef = useCallback((slot: HTMLDivElement) => {
+    onSlot(slot, true);
+    return () => onSlot(slot, false);
+  }, [onSlot]);
   const span = sizeToSpan(widget.size);
-  if (!def) return null;
-  const Comp = def.Widget;
-  const labelText = t(def.meta.i18nKey) || widget.type;
+  if (!lookupApp(widget.type)) return null;
   return (
     <div
       className={`panel-root ${styles.dragOverlayHost}`}
@@ -561,6 +622,7 @@ export function PanelDragOverlayCell({
       style={themeStyle}
     >
       <div
+        ref={slotRef}
         className={`${styles.cellWrap} ${styles.dragOverlayCell}`}
         style={{
           width: fixedWidth ? `${fixedWidth}px` : undefined,
@@ -568,16 +630,7 @@ export function PanelDragOverlayCell({
           '--panel-span-cols': span.cols,
           '--panel-span-rows': span.rows,
         } as CSSProperties}
-      >
-        <div className={`panel-card ${styles.cell}`} data-size={widget.size} data-widget-type={widget.type}>
-          <div className={styles.cellScaler} style={{ pointerEvents: 'none' }}>
-            <Comp widget={widget} surface={surface} deviceTouch={deviceTouch} />
-          </div>
-        </div>
-        <div className={styles.cellLabelStrip}>
-          <WidgetCellLabel label={labelText} />
-        </div>
-      </div>
+      />
     </div>
   );
 }

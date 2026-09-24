@@ -8,7 +8,7 @@ vi.mock('../api/streamdeck', () => ({
   updateStreamDeck: vi.fn(),
 }));
 
-vi.mock('../api/service', () => ({ isRemoteOrigin: false }));
+vi.mock('../api/service', () => ({ isLocalhostUnreachable: () => false }));
 
 let capturedTopicCallback: ((data: unknown) => void) | null = null;
 vi.mock('./useMultiplexSocket', () => ({
@@ -176,5 +176,19 @@ describe('useStreamDecks', () => {
     await flush();
     expect(ok).toBe(true);
     expect(mockUpdate).toHaveBeenCalledWith('ABC123', { sleepAfterSeconds: 300 });
+  });
+
+  it('setSleepWhenLocked optimistically updates and keeps the value on success', async () => {
+    mockGetDecks.mockResolvedValue([makeDeck({ sleepWhenLocked: true })]);
+    const { result } = renderHook(() => useStreamDecks(true));
+    await flush();
+
+    let ok = false;
+    act(() => { void result.current.setSleepWhenLocked('ABC123', false).then(v => { ok = v; }); });
+    expect(result.current.decks[0].sleepWhenLocked).toBe(false);
+
+    await flush();
+    expect(ok).toBe(true);
+    expect(mockUpdate).toHaveBeenCalledWith('ABC123', { sleepWhenLocked: false });
   });
 });

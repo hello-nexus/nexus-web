@@ -28,18 +28,15 @@
   --border-width: 1px;
 
   // Height of the full-width application top bar (collapse + nav + search +
-  // profile). Consumed by .topBar in TopBar.module.scss, and by the add-app
-  // drawer, which clears the same band the macOS traffic lights sit in.
+  // profile). Consumed by .topBar in TopBar.module.scss.
   --topbar-height: 52px;
   // Expanded sidebar column width, and the faint fill behind the sidebar's
-  // section chips (APPS / DEVICES headers, the add-app button). Both are read
-  // by the add-app drawer, which is portaled to <body>.
+  // section chips (APPS / DEVICES headers).
   --sidebar-width: 240px;
   --sidebar-chip-bg: color-mix(in srgb, var(--text) 5%, transparent);
-  // Collapsed sidebar rail width. Declared here rather than on .layout because
-  // the add-app drawer paints the same nav rows from a <body> portal, outside
-  // it - and an undefined --rail-item-pad invalidates the row's `padding`
-  // shorthand, dropping the inset entirely rather than degrading.
+  // Collapsed sidebar rail width. An undefined --rail-item-pad invalidates the
+  // row's `padding` shorthand, dropping the inset entirely rather than
+  // degrading.
   --rail-width: 70px;
   // Horizontal padding on each nav item, subtracting .nav's side pad and the
   // icon half-width from --rail-width / 2 so the icon's center lands on the
@@ -59,11 +56,12 @@
   // ~50%. Theme-independent (accent is shared), so defined once here.
   --control-border-accent: color-mix(in srgb, var(--accent) 50%, transparent);
 
-  // Recessed-channel fill for unfilled gauge tracks, graph backdrops, and the
-  // cooling duty bars. A light overlay on dark (black can't darken a near-black
-  // surface, so it would vanish) and a dark overlay on light - symmetric so the
-  // channel reads equally in both themes. The accent fill carries the contrast.
-  --gauge-track: rgba(255, 255, 255, 0.05);
+  // Fill for unfilled gauge tracks, graph backdrops, the cooling duty bars, and
+  // the gauge shapes drawn with it alone (Battery shell + cap, Thermometer
+  // tube). A light overlay on dark (black can't darken a near-black surface, so
+  // it would vanish) and a dark overlay on light - symmetric so the channel
+  // reads equally in both themes.
+  --gauge-track: rgba(255, 255, 255, 0.2);
 
   // Zebra wash for SupportedDevicesList: dedicated (not --bg-card-hover) so a
   // host page rendering that component outside the app (the marketing site)
@@ -87,15 +85,15 @@
   // glass mode the host paints a native frosted backdrop and this is transparent.
   // Ribbon tints reference the live --accent* vars; color-mix is used elsewhere
   // (tokens.scss).
-  --backdrop-base: #202020;
+  --backdrop-base: #1d1d1d;
   --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 26%, transparent);
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 22%, transparent);
   --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 30%, transparent);
 
   // Text - two ink tiers. rgba, NOT color-mix(): Q60 WebView is Chromium 83.
-  // Keep the rgb triplet in sync with --text.
+  // The dim tier is neutral white, deliberately not the --text triplet.
   --text: #f5f5f5;
-  --text-dim: rgba(245, 245, 245, 0.5);
+  --text-dim: rgba(255, 255, 255, 0.6);
   // Separator/divider lines - the text hue at low alpha. The single source for
   // every dividing rule (app + panel). Keep the triplet synced with --text.
   // Same alpha rung as --control-border (the faint tier).
@@ -244,6 +242,9 @@
   // tabs + underline) caps here and centers in the content column; the header
   // itself stays full width. Tune this one value to retune every page.
   --page-max: 1400px;
+  // Width of an empty page's feature intro points row, and of the setup form
+  // or specs that follow it, so their edges line up.
+  --intro-max: 40rem;
 }
 
 // ── Light theme ──────────────────────────────────────────────────────────────
@@ -262,7 +263,7 @@
   --border-strong: #c6c6c6;
   --surface: rgba(255, 255, 255, 0.6);
   --surface-hover: rgba(255, 255, 255, 0.8);  // hover: a variation of --surface
-  --gauge-track: rgba(0, 0, 0, 0.06);
+  --gauge-track: rgba(0, 0, 0, 0.2);
   --devices-row-alt: rgba(0, 0, 0, 0.035);
   --devices-row-hover: rgba(0, 0, 0, 0.07);
 
@@ -271,14 +272,14 @@
   --control-border-strong: rgba(26, 26, 46, 0.4);
 
   // Light backdrop: grayscale flat surface grey (flattens gradient + glass).
-  --backdrop-base: #dfdfdf;
+  --backdrop-base: #ededed;
   --backdrop-tint-a: color-mix(in srgb, var(--accent-glow) 28%, transparent);
   --backdrop-tint-b: color-mix(in srgb, var(--accent) 24%, transparent);
   --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 22%, transparent);
 
   --text: #1a1a2e;
-  // Two ink tiers; keep the rgb triplet in sync with --text above.
-  --text-dim: rgba(26, 26, 46, 0.5);
+  // Two ink tiers; the dim tier is neutral black, deliberately not the --text triplet.
+  --text-dim: rgba(0, 0, 0, 0.6);
   --separator: rgba(26, 26, 46, 0.12);
 
   --accent: #2563eb;

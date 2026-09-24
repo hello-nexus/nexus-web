@@ -33,17 +33,17 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-height: 0;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
 
 .searchInput {
-  max-width: 320px;
+  max-width: 260px;
 }
 
 .count {
@@ -52,11 +52,13 @@
   margin-left: auto;
 }
 
+// Not a scroll box of its own: .body is the page's one scroller. A
+// height-constrained grid shares its height out across the rows, and the
+// cards clip their overflow.
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
-  overflow-y: auto;
 }
 
 .gameCard {
@@ -106,6 +108,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-dim);
 }
 
 .gameCardBody {
@@ -139,6 +142,14 @@
 .gameCardAvgUnit {
   @include text-caption;
   color: var(--text-dim);
+}
+
+// The resolution the figure was measured at, set off from the unit.
+.gameCardAvgRes {
+  @include text-caption;
+  color: var(--text-dim);
+  margin-left: 10px;
+  white-space: nowrap;
 }
 
 // Opposite the fps reading on its own row, where the old text badge used to
@@ -280,39 +291,59 @@
   font-variant-numeric: tabular-nums;
 }
 
-// ---------- Rig ----------
-
-.rig {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-height: 0;
-}
+// ---------- Discover ----------
 
 .discover {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  min-height: 0;
 }
 
-.discoverMeta {
+// Confidence mark + basis text. Two caption lines are reserved whatever the
+// text needs, so every card in a row lands at the same height.
+.discoverBasis {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 6px;
   margin-top: 8px;
 }
 
-.discoverLevel {
+.discoverBasisText {
   @include text-caption;
   color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-height: calc(2 * #{$caption-line-height} * 1em);
 }
 
-.discoverBasedOn {
-  @include text-caption;
-  color: var(--text-dim);
-  margin-top: 4px;
+// Three signal bars, sized to sit inside one caption line.
+.confidence {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: #{$caption-line-height}em;
+  flex-shrink: 0;
+  padding-top: 1px;
+  font-size: var(--type-tiny);
 }
+
+.confidenceBar,
+.confidenceBarOn {
+  width: 3px;
+  border-radius: 1px;
+  background: currentColor;
+
+  &:nth-child(1) { height: 5px; }
+  &:nth-child(2) { height: 8px; }
+  &:nth-child(3) { height: 11px; }
+}
+
+.confidenceBar {
+  opacity: 0.25;
+}
+
+.confidence_low { color: var(--bad); }
+.confidence_medium { color: var(--warn); }
+.confidence_high { color: var(--good); }

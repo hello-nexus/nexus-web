@@ -434,21 +434,21 @@ function filenameFromContentDisposition(header: string | null): string | null {
 }
 
 /**
- * Downloads the support bundle ZIP. Uses fetchServiceBlobWithHeaders (not a
- * plain anchor href) because the route requires the session bearer token,
- * which a browser navigation can't attach; it also tunnels over the relay
- * when the panel is off-LAN. Returns false on any failure so the caller can
- * surface a toast.
+ * Downloads the support bundle ZIP: every log, daemon logs, redacted settings,
+ * live state. Uses fetchServiceBlobWithHeaders (not a plain anchor href)
+ * because the route requires the session bearer token, which a browser
+ * navigation can't attach; it also tunnels over the relay when the panel is
+ * off-LAN. Returns false on any failure so the caller can surface a toast.
  */
-export async function downloadDiagnosticsBundle(): Promise<boolean> {
-  const result = await fetchServiceBlobWithHeaders('/diagnostics/bundle/download');
+export async function downloadSupportBundle(): Promise<boolean> {
+  const result = await fetchServiceBlobWithHeaders('/diagnostics/support-bundle/download');
   if (!result) return false;
   const url = URL.createObjectURL(result.blob);
   const a = document.createElement('a');
   a.href = url;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   a.download = filenameFromContentDisposition(result.headers.get('Content-Disposition'))
-    ?? `nexus-diagnostics-${stamp}.zip`;
+    ?? `nexus-support-${stamp}.zip`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -458,7 +458,7 @@ export async function downloadDiagnosticsBundle(): Promise<boolean> {
 
 /**
  * Downloads the diagnostics report PDF. Same fetchServiceBlobWithHeaders
- * mechanism as downloadDiagnosticsBundle above: the route requires the
+ * mechanism as downloadSupportBundle above: the route requires the
  * session bearer token and may tunnel over the relay when off-LAN.
  */
 export async function downloadDiagnosticsReport(): Promise<boolean> {

@@ -18,8 +18,13 @@
   gap: 4px;
   min-width: 140px;
   box-shadow: var(--shadow-md);
+  // Monitor-attached chrome scale, composed into the keyframes below so the
+  // fade runs at scale instead of clobbering it. The edge clamp in the
+  // component reads it too, to measure the resting box under the animation.
+  --_menu-scale: 1;
   animation: menuFadeIn 140ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
-  will-change: opacity, transform, filter;
+  // No will-change here: it pins a composited layer for the menu's whole life,
+  // and the entry keyframe promotes one by itself for as long as it runs.
 
   &[data-state='closing'] {
     pointer-events: none;
@@ -40,13 +45,13 @@
   from {
     opacity: 0;
     filter: blur(0.5px);
-    transform: translateY(5px) scale(0.96);
+    transform: translateY(5px) scale(calc(0.96 * var(--_menu-scale, 1)));
   }
 
   to {
     opacity: 1;
     filter: blur(0);
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(var(--_menu-scale, 1));
   }
 }
 
@@ -54,13 +59,13 @@
   from {
     opacity: 1;
     filter: blur(0);
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(var(--_menu-scale, 1));
   }
 
   to {
     opacity: 0;
     filter: blur(0.5px);
-    transform: translateY(3px) scale(0.985);
+    transform: translateY(3px) scale(calc(0.985 * var(--_menu-scale, 1)));
   }
 }
 
@@ -161,11 +166,9 @@
 }
 
 // Monitor-attached panel chrome scaling (everything except phone +
-// desktop). Animation is disabled because it also sets transform - running
-// both at once would clobber the scale.
+// desktop). The keyframes hold the resting scale via their `both` fill.
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']).menu {
-  transform: scale(var(--panel-scale, 1));
-  animation: none;
+  --_menu-scale: var(--panel-scale, 1);
 }
 
 // On the desktop device-canvas surface the panel hover token

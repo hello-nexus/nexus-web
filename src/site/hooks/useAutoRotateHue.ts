@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { prefersReducedMotion } from './useTickingHistory';
 
 // Slow enough to read as ambient, fast enough that the wheel visibly turns.
 const HUE_PER_SECOND = 0.035;
@@ -22,7 +21,7 @@ export function useAutoRotateHue(initialHue: number, initialColorize: number, ac
   const lastTouchRef = useRef(0);
 
   useEffect(() => {
-    if (!active || prefersReducedMotion()) return;
+    if (!active) return;
     let raf = 0;
     let prev = performance.now();
     let pushedHue = hueRef.current;

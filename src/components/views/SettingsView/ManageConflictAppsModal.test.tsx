@@ -1,12 +1,19 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ManageConflictAppsModal } from './ManageConflictAppsModal';
-import { fetchConflictCatalog } from '../../../api/conflicts';
+import {
+  fetchConflictCatalog, fetchDynamicLighting, setDynamicLighting,
+  type WindowsDynamicLightingState,
+} from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 
 vi.mock('../../../api/conflicts', () => ({
   fetchConflictCatalog: vi.fn(),
+  fetchDynamicLighting: vi.fn(),
+  setDynamicLighting: vi.fn(),
 }));
+
+const LIGHTING_OFF_PLATFORM = { available: false, enabled: false, deviceCount: 0 };
 
 vi.mock('../../../hooks/useConflictApps', () => ({
   useConflictApps: vi.fn(),
@@ -35,6 +42,13 @@ function renderModal(overrides: Partial<Parameters<typeof ManageConflictAppsModa
   render(<ManageConflictAppsModal {...props} />);
   return props;
 }
+
+// Every existing case runs on a machine with no readable Lighting key, so the
+// section is absent unless a case opts in.
+beforeEach(() => {
+  vi.mocked(fetchDynamicLighting).mockResolvedValue(LIGHTING_OFF_PLATFORM);
+  vi.mocked(setDynamicLighting).mockResolvedValue(null);
+});
 
 describe('ManageConflictAppsModal', () => {
   it('lists every catalog app, on by default', async () => {
@@ -92,5 +106,81 @@ describe('ManageConflictAppsModal', () => {
     // The running app is listed once - in that group, not again under its category.
     expect(screen.getAllByLabelText('MSI Afterburner')).toHaveLength(1);
     expect(headings).not.toContain('settings.conflictApps.category.monitoring');
+  });
+
+  it('hides the Dynamic Lighting switch when the service cannot read it', async () => {
+    vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
+    vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+    renderModal();
+
+    await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
+    expect(screen.queryByLabelText('settings.conflictApps.dynamicLighting.title')).toBeNull();
+  });
+
+  it('renders the Dynamic Lighting switch from the state the service reported', async () => {
+    vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
+    vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 1 });
+    renderModal();
+
+    await waitFor(() => expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
+    expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('hides the switch when nothing compatible is connected', async () => {
+    vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
+    vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+    // Windows carries the setting on every machine; with no compatible
+    // hardware attached it contends for nothing, so there is nothing to offer.
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 0 });
+    renderModal();
+
+    await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
+    expect(screen.queryByLabelText('settings.conflictApps.dynamicLighting.title')).toBeNull();
+  });
+
+  it('writes the switch and renders what the service read back', async () => {
+    vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
+    vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 1 });
+    vi.mocked(setDynamicLighting).mockResolvedValue({ available: true, enabled: false, deviceCount: 1 });
+    renderModal();
+
+    await waitFor(() => expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
+    expect(setDynamicLighting).toHaveBeenCalledWith({ enabled: false });
+    await waitFor(() => expect(
+      screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
+    ).toBe('false'));
+  });
+
+  it('a slow earlier write does not overwrite the newer one', async () => {
+    vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
+    vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+    vi.mocked(fetchDynamicLighting).mockResolvedValue({ available: true, enabled: true, deviceCount: 1 });
+
+    let resolveFirst: (v: WindowsDynamicLightingState) => void = () => {};
+    vi.mocked(setDynamicLighting)
+      .mockReturnValueOnce(new Promise<WindowsDynamicLightingState>(r => { resolveFirst = r; }))
+      .mockResolvedValueOnce({ available: true, enabled: false, deviceCount: 1 });
+    renderModal();
+
+    await waitFor(() => expect(screen.getByLabelText('settings.conflictApps.dynamicLighting.title')).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
+    fireEvent.click(screen.getByLabelText('settings.conflictApps.dynamicLighting.title'));
+
+    // Off is not the pre-click state, so this only holds once the second
+    // write's answer has been rendered.
+    await waitFor(() => expect(
+      screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
+    ).toBe('false'));
+
+    // The first write lands last, answering with the state before either. The
+    // act() flushes that answer, so the assertion reads what the stale
+    // response did rather than passing on the value already on screen.
+    await act(async () => { resolveFirst({ available: true, enabled: true, deviceCount: 1 }); });
+    expect(
+      screen.getByLabelText('settings.conflictApps.dynamicLighting.title').getAttribute('aria-checked'),
+    ).toBe('false');
   });
 });

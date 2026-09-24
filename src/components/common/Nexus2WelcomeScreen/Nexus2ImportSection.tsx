@@ -33,7 +33,7 @@ export interface Nexus2ImportSectionProps {
   onBusyChange?: (busy: boolean) => void;
   /** False hides the built-in apply button for hosts that drive the import from their own (the welcome screen's Continue). */
   showAction?: boolean;
-  /** Reports whether any group is selected, so a host can label its own action. */
+  /** Reports whether any group is selected, so a host can label its own action. Silent until the preview has settled: before that the answer is not known. */
   onSelectionChange?: (hasSelection: boolean) => void;
   /** Receives the apply runner for hosts with showAction=false. */
   handleRef?: RefObject<Nexus2ImportHandle | null>;
@@ -113,9 +113,10 @@ export function Nexus2ImportSection({
 
   // Both hooks sit above the closed-early-return so hook order stays stable
   // across open toggles (the component stays mounted, per Dashboard gating).
+  const previewSettled = previewStatus === 'loaded' || previewStatus === 'error';
   useEffect(() => {
-    onSelectionChange?.(!selectionEmpty);
-  }, [selectionEmpty, onSelectionChange]);
+    if (previewSettled) onSelectionChange?.(!selectionEmpty);
+  }, [previewSettled, selectionEmpty, onSelectionChange]);
 
   // No dep list: the handle must always close over the latest selection state.
   useImperativeHandle(handleRef, () => ({ runImport }));

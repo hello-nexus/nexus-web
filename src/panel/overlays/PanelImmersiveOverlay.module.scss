@@ -112,23 +112,38 @@
 
 .body {
   position: relative;
-  // Render area is sized at 1/zoom then scaled back up by --panel-scale, so
-  // the immersive content (sliders, fonts, fixed-px chrome) reads at the same
-  // proportion as the rest of the monitor panel - mirroring the editor sheet
-  // and actions tray. The var is unset on phone/desktop (→ 1), making the
-  // counter-size + transform a no-op there. margin:auto centers the shrunk box
-  // in both axes; bottom-center origin is wrong here since the overlay is
-  // centered, so scale from the center.
-  flex: 0 0 auto;
-  width: calc(100% / var(--panel-scale, 1));
-  height: calc(100% / var(--panel-scale, 1));
-  margin: auto;
+  // The immersive content (sliders, fonts, fixed-px chrome) reads at the same
+  // proportion as the rest of the monitor panel. The var is unset on
+  // phone/desktop (→ 1), making this a no-op there.
+  flex: 1 1 auto;
+  // No counter-sizing under zoom. A percentage resolves against the parent in
+  // the PARENT's zoom space, so 100% already spans the overlay and the zoom
+  // factor then applies to the lengths inside it. Dividing here as a transform
+  // would require shrinks the view to 1/scale of the screen.
+  width: 100%;
+  height: 100%;
   min-height: 0;
-  transform: scale(var(--panel-scale, 1));
-  transform-origin: center center;
+  // zoom, not transform: scale. A transform paints the subtree at its layout
+  // size and then resamples the result, so every glyph in a full-screen view
+  // is stretched from a smaller raster. zoom feeds the factor into layout, so
+  // text is shaped and rasterized at the size it is actually shown.
+  zoom: var(--panel-scale, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+// Fallback for an engine without zoom, which would otherwise drop the
+// declaration and render the view unscaled. Resamples the text, as the whole
+// panel did before, but that beats ignoring the panel's scale entirely.
+@supports not (zoom: 2) {
+  .body {
+    width: calc(100% / var(--panel-scale, 1));
+    height: calc(100% / var(--panel-scale, 1));
+    margin: auto;
+    transform: scale(var(--panel-scale, 1));
+    transform-origin: center center;
+  }
 }
 
 // Slide UP from the bottom on enter (matches the editor sheet); exit slides
@@ -141,11 +156,4 @@
 @keyframes immersiveExit {
   from { transform: translateY(0);    opacity: 1; }
   to   { transform: translateY(100%); opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .overlay { animation: none; }
-  .overlay[data-state='exiting'] { animation: none; opacity: 0; }
-  // Idle fade still applies, but as an instant swap rather than an animated one.
-  .exitHint { transition: none; }
 }

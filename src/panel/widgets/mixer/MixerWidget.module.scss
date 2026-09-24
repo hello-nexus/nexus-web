@@ -205,7 +205,6 @@
 .pickerRow {
   display: flex;
   align-items: center;
-  @include hgap(9px);
   width: 100%;
   min-height: 44px;
   padding: 8px 12px;
@@ -223,47 +222,19 @@
   }
 }
 
-// Same slot width as .pickerKind, so the back label and every device name
-// start at the same x.
-// Docked above the paged rows, styled as one of them.
-.pickerBack {
+// Docked above the paged rows: the back arrow plus one tab per category
+// that has entries.
+.pickerTabs {
   display: flex;
   align-items: center;
+  @include hgap(6px);
   flex: 0 0 auto;
   width: 100%;
-  min-height: 44px;
-  padding: 8px 12px;
-  border: none;
-  border-radius: var(--radius-sm, 8px);
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  text-align: left;
-  transition: background-color var(--ease-fast) ease;
-
-  &:hover {
-    background: var(--panel-control-translucent);
-  }
 }
 
-.pickerBackIcon {
-  flex: 0 0 auto;
-  box-sizing: content-box;
-  width: 17px;
-  height: 17px;
-  padding-right: 25px;
-}
-
-// Fixed width so every device name starts at the same x.
-.pickerKind {
-  flex: 0 0 auto;
-  width: 42px;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  line-height: 1.1;
-  text-transform: uppercase;
-  color: var(--text-dim);
+.pickerTabBar {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .pickerRowName {
@@ -272,13 +243,6 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.pickerCheck {
-  flex: 0 0 auto;
-  width: 17px;
-  height: 17px;
-  color: var(--panel-accent);
 }
 
 // ── Presets + hint ────────────────────────────────────────────────────────

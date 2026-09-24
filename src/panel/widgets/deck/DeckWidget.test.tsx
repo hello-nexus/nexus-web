@@ -11,45 +11,87 @@ vi.mock('./deckExecutor', async importOriginal => {
 });
 vi.mock('./useDeckState', () => ({ useDeckLiveState: () => ({ isOn: () => undefined }) }));
 vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
+vi.mock('../../../hooks/useProcessIcon', () => ({ useProcessIcon: () => null }));
+
+const mockUseDeckInstance = vi.fn();
+vi.mock('./useDeckInstance', () => ({ useDeckInstance: (...args: unknown[]) => mockUseDeckInstance(...args) }));
+
+const mockUseRecentApps = vi.fn();
+vi.mock('./useRecentApps', () => ({ useRecentApps: (enabled: boolean) => mockUseRecentApps(enabled) }));
 
 import { DeckWidget } from './DeckWidget';
+import { innerGridForSize } from './deckLayout';
 import type { PanelWidget } from '../../types';
-import type { DeckConfig, DeckPage } from './types';
+import type { DeckPage } from './types';
 
-function widget(pages: DeckPage[], size = '2x2'): PanelWidget {
-  const deck: DeckConfig = { pages };
-  return { id: 'w1', type: 'deck', size: size as PanelWidget['size'], col: 0, row: 0, config: { deck: deck as never } };
+function widget(size: PanelWidget['size'] = '2x2'): PanelWidget {
+  return { id: 'w1', type: 'deck', size, col: 0, row: 0, config: {} };
+}
+
+/** Stubs useDeckInstance's run-mode read: a preset authored at the widget's own inner grid (so fitToGrid is an identity), matching the widget's own size unless overridden. */
+function mockDeck(pages: DeckPage[], size: PanelWidget['size'] = '2x2') {
+  const { cols, rows } = innerGridForSize(size);
+  mockUseDeckInstance.mockReturnValue({
+    instance: { mode: 'custom', activePresetId: 'p1' },
+    preset: { id: 'p1', name: 'Preset', cols, rows, pageCount: pages.length, deck: { pages } },
+    presets: [],
+    target: null,
+    loaded: true,
+    error: false,
+    retry: vi.fn(),
+    setMode: vi.fn(),
+    activate: vi.fn(),
+    createPreset: vi.fn(),
+    renamePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    undo: vi.fn(),
+    redo: vi.fn(),
+    reset: vi.fn(),
+    endEditBurst: vi.fn(),
+  });
 }
 
 describe('DeckWidget', () => {
-  beforeEach(() => executeDeckAction.mockClear());
+  beforeEach(() => {
+    executeDeckAction.mockClear();
+    mockUseDeckInstance.mockReset();
+    mockUseRecentApps.mockReset();
+    mockUseRecentApps.mockReturnValue({ apps: [], focusedProcessKey: undefined, excluded: [], loaded: true, setExcluded: vi.fn(), clear: vi.fn(), activate: vi.fn() });
+  });
 
   it('renders one cell per inner-grid slot for the size', () => {
-    const { container } = render(<DeckWidget widget={widget([{ slots: [] }])} />);
+    mockDeck([{ slots: [] }]);
+    const { container } = render(<DeckWidget widget={widget()} />);
     expect(container.querySelectorAll('[data-deck-slot-index]')).toHaveLength(4); // 2x2
   });
 
   it('renders a 4x4 inner grid as 16 cells', () => {
-    const { container } = render(<DeckWidget widget={widget([{ slots: [] }], '4x4')} />);
+    mockDeck([{ slots: [] }], '4x4');
+    const { container } = render(<DeckWidget widget={widget('4x4')} />);
     expect(container.querySelectorAll('[data-deck-slot-index]')).toHaveLength(16);
   });
 
   it('dispatches the slot action on press in run mode', () => {
     const deck: DeckPage[] = [{ slots: [{ action: { type: 'openUrl', url: 'https://x.com' } }] }];
-    const { container } = render(<DeckWidget widget={widget(deck)} />);
+    mockDeck(deck);
+    const { container } = render(<DeckWidget widget={widget()} />);
     fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'https://x.com' });
   });
 
   it('dispatches a monitoring slot press the same as any other action', () => {
     const deck: DeckPage[] = [{ slots: [{ action: { type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' } }] }];
-    const { container } = render(<DeckWidget widget={widget(deck)} />);
+    mockDeck(deck);
+    const { container } = render(<DeckWidget widget={widget()} />);
     fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(executeDeckAction).toHaveBeenCalledWith({ type: 'monitoring', category: 'cpu', sensor: 'x', style: 'line', press: 'taskManager' });
   });
 
   it('does not dispatch an empty slot', () => {
-    const { container } = render(<DeckWidget widget={widget([{ slots: [] }])} />);
+    mockDeck([{ slots: [] }]);
+    const { container } = render(<DeckWidget widget={widget()} />);
     const cell = container.querySelector('[data-deck-slot-index="0"]')!;
     fireEvent.click(cell);
     expect(executeDeckAction).not.toHaveBeenCalled();
@@ -57,7 +99,8 @@ describe('DeckWidget', () => {
 
   it('navigates into a folder instead of dispatching', () => {
     const deck: DeckPage[] = [{ slots: [{ folder: { slots: [{ action: { type: 'openUrl', url: 'inner' } }] } }] }];
-    const { container } = render(<DeckWidget widget={widget(deck)} />);
+    mockDeck(deck);
+    const { container } = render(<DeckWidget widget={widget()} />);
     fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
     expect(executeDeckAction).not.toHaveBeenCalled();
     // After entering, slot 0 is now the inner action.
@@ -73,7 +116,8 @@ describe('DeckWidget', () => {
         { slots: [{ action: { type: 'page', op: 'next' } }] },
         { slots: [marker('p1')] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).not.toHaveBeenCalled();
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
@@ -86,7 +130,8 @@ describe('DeckWidget', () => {
         { slots: [] },
         { slots: [marker('p2')] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!); // wraps 0 -> 2
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'p2' });
@@ -98,7 +143,8 @@ describe('DeckWidget', () => {
         { slots: [marker('p1')] },
         { slots: [marker('p2')] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!); // goto page 2
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'p2' });
@@ -107,7 +153,8 @@ describe('DeckWidget', () => {
 
     it('pressing a pageIndicator slot does nothing', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'pageIndicator' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).not.toHaveBeenCalled();
     });
@@ -117,7 +164,8 @@ describe('DeckWidget', () => {
         { slots: [{ action: { type: 'page', op: 'next' } }, { action: { type: 'pageIndicator' } }] },
         { slots: [{}, { action: { type: 'pageIndicator' } }] },
       ];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       expect(container.querySelector('[data-deck-slot-index="1"]')?.textContent).toContain('1/2');
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(container.querySelector('[data-deck-slot-index="1"]')?.textContent).toContain('2/2');
@@ -127,7 +175,8 @@ describe('DeckWidget', () => {
   describe('privileged action dispatch', () => {
     it('routes a privileged action through /panel/deck/dispatch when a deviceId is available', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'hotkey', keys: 'ctrl+c' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith(
         { type: 'hotkey', keys: 'ctrl+c' },
@@ -137,14 +186,16 @@ describe('DeckWidget', () => {
 
     it('keeps a non-privileged action on the unchanged single-argument call', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'openUrl', url: 'https://x.com' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'openUrl', url: 'https://x.com' });
     });
 
     it('does not dispatch a privileged action with no deviceId (falls back to the direct route)', () => {
       const deck: DeckPage[] = [{ slots: [{ action: { type: 'hotkey', keys: 'ctrl+c' } }] }];
-      const { container } = render(<DeckWidget widget={widget(deck)} />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledWith({ type: 'hotkey', keys: 'ctrl+c' });
     });
@@ -159,7 +210,8 @@ describe('DeckWidget', () => {
           },
         }],
       }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       // No live state and no prior flip -> toggleOn() defaults to false, so the
       // press turns it on and fires the 'on' branch.
@@ -177,7 +229,8 @@ describe('DeckWidget', () => {
           { folder: { slots: [{}, {}, { action: { type: 'hotkey', keys: 'ctrl+c' } }] } },
         ],
       }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="1"]')!); // enter the folder at outer index 1
       fireEvent.click(container.querySelector('[data-deck-slot-index="2"]')!); // press the folder's inner slot 2
       expect(executeDeckAction).toHaveBeenCalledWith(
@@ -198,7 +251,8 @@ describe('DeckWidget', () => {
           },
         }],
       }];
-      const { container } = render(<DeckWidget widget={widget(deck)} deviceId="dev1" />);
+      mockDeck(deck);
+      const { container } = render(<DeckWidget widget={widget()} deviceId="dev1" />);
       fireEvent.click(container.querySelector('[data-deck-slot-index="0"]')!);
       expect(executeDeckAction).toHaveBeenCalledTimes(1);
       expect(executeDeckAction).toHaveBeenCalledWith(
@@ -211,6 +265,114 @@ describe('DeckWidget', () => {
         },
         { deviceId: 'dev1', widgetId: 'w1', page: 0, folderPath: [], slot: 0 },
       );
+    });
+  });
+
+  describe('Recent Apps mode', () => {
+    function mockRecentAppsInstance() {
+      mockUseDeckInstance.mockReturnValue({
+        instance: { mode: 'recentApps', activePresetId: 'p1' },
+        preset: null,
+        presets: [],
+        target: null,
+        loaded: true,
+        error: false,
+        retry: vi.fn(),
+        setMode: vi.fn(),
+        activate: vi.fn(),
+        createPreset: vi.fn(),
+        renamePreset: vi.fn(),
+        deletePreset: vi.fn(),
+        canUndo: false,
+        canRedo: false,
+        undo: vi.fn(),
+        redo: vi.fn(),
+        reset: vi.fn(),
+        endEditBurst: vi.fn(),
+      });
+    }
+
+    it('renders the live ring instead of the custom/appAware grid', () => {
+      mockRecentAppsInstance();
+      mockUseRecentApps.mockReturnValue({
+        apps: [{ processKey: 'discord', name: 'Discord', lastFocusedUtcMs: 1 }],
+        focusedProcessKey: 'discord',
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate: vi.fn(),
+      });
+      const { getByRole } = render(<DeckWidget widget={widget()} />);
+      expect(getByRole('button', { name: 'Discord' })).toBeInTheDocument();
+      expect(mockUseRecentApps).toHaveBeenCalledWith(true);
+    });
+
+    it('keeps its layout when focus moves to an app already on the visible page', () => {
+      mockRecentAppsInstance();
+      const ring = (focused: string, order: string[]) => ({
+        apps: order.map((k, i) => ({ processKey: k, name: k.toUpperCase(), lastFocusedUtcMs: order.length - i })),
+        focusedProcessKey: focused,
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate: vi.fn(),
+      });
+      mockUseRecentApps.mockReturnValue(ring('chrome', ['chrome', 'discord']));
+      const { rerender, getAllByRole, getByRole } = render(<DeckWidget widget={widget()} />);
+      expect(getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['CHROME', 'DISCORD']);
+
+      // Discord takes focus: the host ring reorders MRU, the widget only re-highlights.
+      mockUseRecentApps.mockReturnValue(ring('discord', ['discord', 'chrome']));
+      rerender(<DeckWidget widget={widget()} />);
+      expect(getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['CHROME', 'DISCORD']);
+      expect(getByRole('button', { name: 'DISCORD' })).toHaveAttribute('aria-pressed', 'true');
+
+      // A newly seen app goes to the front.
+      mockUseRecentApps.mockReturnValue(ring('slack', ['slack', 'discord', 'chrome']));
+      rerender(<DeckWidget widget={widget()} />);
+      expect(getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(['SLACK', 'CHROME', 'DISCORD']);
+    });
+
+    it('pressing an unfocused key activates that process', () => {
+      mockRecentAppsInstance();
+      const activate = vi.fn();
+      mockUseRecentApps.mockReturnValue({
+        apps: [{ processKey: 'chrome', name: 'Chrome', lastFocusedUtcMs: 1 }],
+        focusedProcessKey: undefined,
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate,
+      });
+      const { getByRole } = render(<DeckWidget widget={widget()} />);
+      fireEvent.click(getByRole('button', { name: 'Chrome' }));
+      expect(activate).toHaveBeenCalledWith('chrome');
+    });
+
+    it('does not subscribe to the recent-apps ring outside Recent Apps mode', () => {
+      mockDeck([{ slots: [] }]);
+      render(<DeckWidget widget={widget()} />);
+      expect(mockUseRecentApps).toHaveBeenCalledWith(false);
+    });
+
+    it('does not activate a recent app on tap while arranging the panel (edit mode)', () => {
+      mockRecentAppsInstance();
+      const activate = vi.fn();
+      mockUseRecentApps.mockReturnValue({
+        apps: [{ processKey: 'chrome', name: 'Chrome', lastFocusedUtcMs: 1 }],
+        focusedProcessKey: undefined,
+        excluded: [],
+        loaded: true,
+        setExcluded: vi.fn(),
+        clear: vi.fn(),
+        activate,
+      });
+      const { getByRole } = render(<DeckWidget widget={widget()} onSelectSlot={vi.fn()} />);
+      fireEvent.click(getByRole('button', { name: 'Chrome' }));
+      expect(activate).not.toHaveBeenCalled();
     });
   });
 });

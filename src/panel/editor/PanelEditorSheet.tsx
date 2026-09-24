@@ -6,12 +6,13 @@ import { lookupApp, sizesForSurface } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
+import { SettingsSection, SettingsToggle } from '../widgets/common/SettingsRow/SettingsRow';
 import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
 import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
-import { PanelThemeSettings, type ResolvedPanelThemeMode } from './PanelThemeSettings';
+import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
@@ -36,6 +37,9 @@ export function PanelEditorSheet({
   deviceTouch,
   touchPanelChrome = false,
   editingWidget,
+  immersiveOnLoadAvailable = false,
+  immersiveOnLoad = false,
+  onImmersiveOnLoadChange,
   saveForbidden = false,
   panelTheme,
   gridColumns,
@@ -62,9 +66,12 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview,
   onThemeBackgroundOpacityCommit,
   onThemeBackgroundMediaCommit,
+  onThemeBackgroundSlideshowCommit,
+  onThemeBackgroundMediaOrderCommit,
   onThemeBackgroundFrostPreview,
   onThemeBackgroundFrostCommit,
   showBackdropSelector = false,
+  backgroundHeldBy = null,
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
@@ -76,6 +83,7 @@ export function PanelEditorSheet({
   deviceH,
   machineName,
   showHostName,
+  panelSettingsSection = 'all',
   onMachineNameCommit,
   onAdd,
   onResize,
@@ -96,6 +104,11 @@ export function PanelEditorSheet({
   // the panel content like the Y70 instead of desktop-size chrome.
   touchPanelChrome?: boolean;
   editingWidget: PanelWidget | null;
+  // Whether this widget can be marked immersive-on-load: a first-page widget
+  // with an immersive view in the panel's current orientation.
+  immersiveOnLoadAvailable?: boolean;
+  immersiveOnLoad?: boolean;
+  onImmersiveOnLoadChange?: (on: boolean) => void;
   // True right after the server refused the last layout save with 403
   // deck_action_requires_desktop (a phone session tried to introduce a
   // privileged deck action) - see usePanelLayout.saveForbidden.
@@ -128,10 +141,14 @@ export function PanelEditorSheet({
   onThemeBackgroundOpacityPreview: (opacity: number) => void;
   onThemeBackgroundOpacityCommit: (opacity: number) => void;
   onThemeBackgroundMediaCommit: (mediaId: string | null, type: 'static' | 'animated' | null) => void;
+  onThemeBackgroundSlideshowCommit: (patch: Partial<PanelSlideshowSettings>) => void;
+  onThemeBackgroundMediaOrderCommit: (ids: string[]) => void;
   onThemeBackgroundFrostPreview: (percent: number) => void;
   onThemeBackgroundFrostCommit: (percent: number) => void;
   // Backdrop selector; kiosk-hosted surfaces only.
   showBackdropSelector?: boolean;
+  // Focus mode holding the panel on a plain background right now, if any.
+  backgroundHeldBy?: string | null;
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
@@ -147,6 +164,8 @@ export function PanelEditorSheet({
   // and the field is unusable without a keyboard. Mirrors the connection
   // identity gate that hides the tray's "Connected to <PC>" line.
   showHostName: boolean;
+  // Which part of the panel settings the sheet shows; the tray opens theme and background separately.
+  panelSettingsSection?: PanelThemeSettingsSection;
   onMachineNameCommit: (next: string) => void;
   onAdd: (type: string, size: PanelWidgetSize) => void;
   onResize: (widgetId: string, size: PanelWidgetSize) => void;
@@ -160,7 +179,9 @@ export function PanelEditorSheet({
   const { t, language } = useTranslation();
   const def = editingWidget ? lookupApp(editingWidget.type) : undefined;
   const title = mode === 'panelSettings'
-    ? t('panel.actions.settings')
+    ? t(panelSettingsSection === 'theme' ? 'panel.actions.theme'
+      : panelSettingsSection === 'background' ? 'panel.actions.background'
+      : 'panel.actions.settings')
     : mode === 'pairRemote'
     ? t('phonePair.title')
     : mode === 'pairedPcs'
@@ -204,11 +225,13 @@ export function PanelEditorSheet({
     lockBackground: false,
     restoreFocus: false,
   });
-  // scale(var(--panel-scale, 1)) keeps the monitor-panel chrome scale during
-  // a swipe-dismiss drag; no-op on phone/desktop (var unset → 1).
+  // The offset is a pointer delta in viewport px; where the sheet is zoomed
+  // its own lengths are in that zoomed space, so the delta is converted back.
+  // --sheet-zoom is published only by the rules that apply the zoom, so every
+  // other surface divides by 1 rather than by a scale it never applied.
   const sheetTransform = swipe.state === 'idle' && swipe.offset === 0
     ? undefined
-    : { transform: `translateY(${swipe.offset}px) scale(var(--panel-scale, 1))` };
+    : { transform: `translateY(calc(${swipe.offset}px / var(--sheet-zoom, 1)))` };
   // [data-entered] suppresses the entry keyframe after it plays, so toggling
   // [data-drag] at the end of a snap-back doesn't re-trigger the slide-up. The
   // fallback timer covers the no-interaction case; the effect flips the flag
@@ -370,24 +393,35 @@ export function PanelEditorSheet({
                 editView={usesSlotSelection ? editView : undefined}
                 onEditViewChange={usesSlotSelection ? onEditViewChange : undefined}
               />
-            ) : (
+            ) : immersiveOnLoadAvailable ? null : (
               <div className={styles.settingsEmpty}>
                 <Settings2 size={18} />
                 <span>{t('panel.editor.noSettings')}</span>
               </div>
+            )}
+            {immersiveOnLoadAvailable && onImmersiveOnLoadChange && (
+              <SettingsSection title={t('panel.editor.immersiveOnLoad.title')}>
+                <SettingsToggle
+                  label={t('panel.editor.immersiveOnLoad')}
+                  description={t('panel.editor.immersiveOnLoad.hint')}
+                  checked={immersiveOnLoad}
+                  onChange={onImmersiveOnLoadChange}
+                />
+              </SettingsSection>
             )}
           </div>
         )}
 
         {mode === 'panelSettings' && (
           <div className={`${styles.settingsBody} ${styles.panelSettingsStack}`}>
-            {showHostName && (
+            {showHostName && panelSettingsSection !== 'background' && (
               <PanelHostNameSetting
                 machineName={machineName}
                 onCommit={onMachineNameCommit}
               />
             )}
             <PanelThemeSettings
+              sections={panelSettingsSection}
               theme={panelTheme}
               deviceId={deviceId}
               resolvedThemeMode={resolvedThemeMode}
@@ -401,6 +435,7 @@ export function PanelEditorSheet({
               onBackgroundModeCommit={onThemeBackgroundModeCommit}
               onBackdropCommit={onThemeBackdropCommit}
               showBackdropSelector={showBackdropSelector}
+              backgroundHeldBy={backgroundHeldBy}
               onBackgroundEffectCommit={onThemeBackgroundEffectCommit}
               onBackgroundTemplateCommit={onThemeBackgroundTemplateCommit}
               onBackgroundEffectStatePreview={onThemeBackgroundEffectStatePreview}
@@ -408,6 +443,8 @@ export function PanelEditorSheet({
               onBackgroundOpacityPreview={onThemeBackgroundOpacityPreview}
               onBackgroundOpacityCommit={onThemeBackgroundOpacityCommit}
               onBackgroundMediaCommit={onThemeBackgroundMediaCommit}
+              onBackgroundSlideshowCommit={onThemeBackgroundSlideshowCommit}
+              onBackgroundMediaOrderCommit={onThemeBackgroundMediaOrderCommit}
               onBackgroundFrostPreview={onThemeBackgroundFrostPreview}
               onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
               showMediaTab={showMediaTab}

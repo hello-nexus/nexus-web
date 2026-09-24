@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from 'react';
-import { ExternalLink, Plus } from 'lucide-react';
+import { type ReactNode } from 'react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import classNames from 'classnames';
 import {
-  DndContext, type CollisionDetection, type DragEndEvent, type DragOverEvent,
+  DndContext, type DragEndEvent,
   PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core';
 import {
@@ -51,29 +51,27 @@ interface SidebarProps {
   extraSectionLabel?: string;
   extraActive?: string;
   extraOnChange?: (key: string) => void;
-  // Fires with the next ordering of `items` after a drag-reorder.
-  // When omitted, items are non-sortable.
-  onTailReorder?: (nextTailKeys: string[]) => void;
-  // Optional context-menu hook fired by a right-click on an item row
-  // (pinned tail rows AND the transient running row).
+  // Fires with the whole arrangement after a drop: `pinned` is the order above
+  // the separator, `lower` the order below it; a row dragged across the
+  // separator moves between the two. When omitted, rows are non-sortable.
+  onArrange?: (next: { pinned: string[]; lower: string[] }) => void;
+  // Optional context-menu hook fired by a right-click on a pinned or lower row.
   onItemContextMenu?: (key: string, event: React.MouseEvent) => void;
-  // Recently opened, unpinned apps (open/last-3, not pinned). Rendered after
-  // the tail behind a single hairline separator, inside the same sortable
-  // context so any of them can be dragged above the fold to pin it (macOS
-  // dock semantics). Stable order - not reorderable among themselves.
-  runningItems?: readonly NavItem[];
-  // Fires when one of the running rows is dropped inside the pinned tail;
-  // `key` is the dragged row, `index` is the tail slot it was dropped at.
-  onRunningPinAt?: (key: string, index: number) => void;
+  // Every unpinned app, in display order, below a hairline separator.
+  lowerItems?: readonly NavItem[];
   // Optional content rendered inside the scrollable region after the
   // items. Used by SidebarColumn to slot the DEVICES section below
   // APPS so both share one scroll context.
   afterTail?: ReactNode;
-  // Opens the add-app drawer. When set, a short semi-transparent + strip
-  // renders below the last app row, revealed on sidebar hover / keyboard
-  // focus. One prop rather than two so the label - the icon-only button's
-  // only accessible name - can't be omitted. Undefined -> no strip.
-  addItem?: { label: string; onClick: () => void };
+  // Collapses the lower rows to `collapsedKeys` behind a Show more / Show less
+  // toggle. Undefined -> every lower row shows and no toggle renders.
+  more?: {
+    collapsedKeys: readonly string[];
+    expanded: boolean;
+    onToggle: () => void;
+    showLabel: string;
+    hideLabel: string;
+  };
 }
 
 // Per-row status dot - same logic for sortable & locked rows. Suppressed on
@@ -100,34 +98,41 @@ interface RowProps {
   serviceState: ServiceState;
   onClick: () => void;
   onContextMenu?: (event: React.MouseEvent) => void;
-  // dnd-kit sortable attachments. Undefined for the locked head row.
-  sortableProps?: {
-    setNodeRef: (node: HTMLElement | null) => void;
-    attributes: React.HTMLAttributes<HTMLElement>;
-    listeners: React.DOMAttributes<HTMLElement>;
-    style: React.CSSProperties;
-    isDragging: boolean;
-  };
+  // Collapsed out of the lower list: the shell animates to zero height and
+  // goes inert, leaving the tab order and the accessibility tree.
+  hidden?: boolean;
 }
 
-function SidebarRow({ item, active, compact, serviceState, onClick, onContextMenu, sortableProps }: RowProps) {
+// dnd-kit attachments: the node ref and transform go on the row's shell, the
+// activator attributes and listeners on its button.
+interface SortableAttachments {
+  setNodeRef: (node: HTMLElement | null) => void;
+  setActivatorNodeRef: (node: HTMLElement | null) => void;
+  attributes: React.HTMLAttributes<HTMLElement>;
+  listeners: React.DOMAttributes<HTMLElement>;
+  style: React.CSSProperties;
+  isDragging: boolean;
+}
+
+function SidebarRow({
+  item, active, compact, serviceState, onClick, onContextMenu, hidden = false, sortable,
+}: RowProps & { sortable?: SortableAttachments }) {
   const { show, pulsing } = rowStatus(item, serviceState);
   const button = (
     <button
-      ref={sortableProps?.setNodeRef}
+      ref={sortable?.setActivatorNodeRef}
       type="button"
       className={classNames(styles.item, {
         [styles.active]: active,
         [styles.itemCompact]: compact,
-        [styles.itemDragging]: sortableProps?.isDragging,
+        [styles.itemDragging]: sortable?.isDragging,
       })}
       onClick={onClick}
       onContextMenu={onContextMenu}
       aria-label={compact ? item.label : undefined}
-      style={sortableProps?.style}
       data-sidebar-row-key={item.key}
-      {...sortableProps?.attributes}
-      {...sortableProps?.listeners}
+      {...sortable?.attributes}
+      {...sortable?.listeners}
     >
       <span className={styles.icon}>
         {item.icon}
@@ -139,64 +144,28 @@ function SidebarRow({ item, active, compact, serviceState, onClick, onContextMen
       {!compact && item.offTooltip && <NexusControlOffIcon label={item.offTooltip} />}
     </button>
   );
-  return compact ? (
-    <HoverTooltip body={item.label} side="right">{button}</HoverTooltip>
-  ) : button;
-}
-
-// Standalone nav button reusing the exact item-row chrome (icon + label,
-// hover/active highlight, compact tooltip). Used for one-off entries outside
-// the sortable apps list - e.g. the bottom-pinned Settings button in the
-// sidebar column - so they read identically to the nav rows above.
-export function SidebarNavButton({
-  icon, label, active, compact, disabled = false, disabledReason, toggle = true, onClick,
-}: {
-  icon: ReactNode;
-  label: string;
-  active: boolean;
-  compact: boolean;
-  // Nav rows are a selected-state set, so they carry aria-pressed. A plain
-  // listing (the add-app drawer) passes false: nothing there toggles, and
-  // every row announcing as an unpressed toggle button is worse than none.
-  toggle?: boolean;
-  // Dims the row and blocks activation, keeping the same box (used by the
-  // add-app drawer for apps already in the sidebar). aria-disabled rather than
-  // the native attribute: a disabled button leaves the tab order, so a
-  // keyboard user would skip the dimmed rows entirely and read the list as
-  // missing them.
-  disabled?: boolean;
-  // Why the row is inert, surfaced as the row's description.
-  disabledReason?: string;
-  onClick: () => void;
-}) {
-  const button = (
-    <button
-      type="button"
-      className={classNames(styles.item, {
-        [styles.active]: active,
-        [styles.itemCompact]: compact,
-        [styles.itemDisabled]: disabled,
-      })}
-      onClick={disabled ? undefined : onClick}
-      aria-disabled={disabled || undefined}
-      title={disabled ? disabledReason : undefined}
-      aria-label={compact ? label : undefined}
-      aria-pressed={toggle ? active : undefined}
+  return (
+    <div
+      ref={sortable?.setNodeRef}
+      className={classNames(styles.rowShell, { [styles.rowShellHidden]: hidden })}
+      style={sortable?.style}
+      inert={hidden}
     >
-      <span className={styles.icon}>{icon}</span>
-      {!compact && <span className={styles.label}>{label}</span>}
-    </button>
+      <div className={styles.rowShellInner}>
+        {compact ? <HoverTooltip body={item.label} side="right">{button}</HoverTooltip> : button}
+      </div>
+    </div>
   );
-  return compact ? <HoverTooltip body={label} side="right">{button}</HoverTooltip> : button;
 }
 
-// Must match .tailScroll's flex gap.
+// Must match .tailScroll's --tail-gap.
 const TAIL_GAP_PX = 2;
 
-// verticalListSortingStrategy derives each shifted row's travel from its own
-// rect gap to its neighbor, so the pinned row adjacent to the separator would
-// travel further than its siblings (that gap includes the separator block).
-// Same vertical list behavior, but with one uniform stride for every row.
+// verticalListSortingStrategy derives each shifted item's travel from its own
+// rect gap to its neighbor, so a row next to the separator block or to a
+// collapsed row would travel a different distance from its siblings. One
+// uniform stride - the dragged row's slot - moves every shifted row, and the
+// separator itself, by exactly one slot.
 const uniformVerticalStrategy: SortingStrategy = ({ activeIndex, activeNodeRect, index, rects, overIndex }) => {
   const activeRect = rects[activeIndex] ?? activeNodeRect;
   if (!activeRect) return null;
@@ -211,23 +180,26 @@ const uniformVerticalStrategy: SortingStrategy = ({ activeIndex, activeNodeRect,
   return null;
 };
 
-function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: props.item.key });
+function SortableRow(props: RowProps) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.item.key, disabled: props.hidden });
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    // Translate only: dnd-kit scales the dragged row to the rect it hovers, and
+    // over the one-pixel separator that flattens the row out of sight.
+    transform: CSS.Translate.toString(transform),
     transition,
-    // Render in-place instead of cloning into a DragOverlay - the cursor
-    // stays anchored to the row the user grabbed and the list is short
-    // enough that a second tree mount is unnecessary.
+    // Render in-place instead of cloning into a DragOverlay - every row
+    // shares one parent, so the dragged row never remounts and the cursor
+    // stays anchored to the row the user grabbed.
     zIndex: isDragging ? 1 : undefined,
     opacity: isDragging ? 0.85 : undefined,
   };
   return (
     <SidebarRow
       {...props}
-      sortableProps={{
+      sortable={{
         setNodeRef,
+        setActivatorNodeRef,
         attributes,
         listeners: listeners ?? {},
         style,
@@ -237,24 +209,43 @@ function SortableRow(props: Omit<RowProps, 'sortableProps'>) {
   );
 }
 
+// The separator rides in the sortable list as an undraggable item: a row
+// dropped on it crosses into the slot beside it - the first lower slot from
+// above, the last pinned slot from below.
+const SEPARATOR_ID = '__sidebar-separator__';
+
+function SortableSeparator() {
+  const { setNodeRef, transform, transition } =
+    useSortable({ id: SEPARATOR_ID, disabled: { draggable: true, droppable: false } });
+  return (
+    <div
+      ref={setNodeRef}
+      className={styles.runningSeparator}
+      data-sidebar-running-separator="true"
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      aria-hidden="true"
+    />
+  );
+}
+
 export function Sidebar({
   items, active, onChange, sectionLabel, sectionIcon, onSectionLabelClick, sectionLabelActive,
   serviceState,
   headerSlot, compact = false,
   extraItems, extraSectionLabel, extraActive, extraOnChange,
-  onTailReorder, onItemContextMenu,
-  runningItems, onRunningPinAt,
+  onArrange, onItemContextMenu,
+  lowerItems,
   afterTail,
-  addItem,
+  more,
 }: SidebarProps) {
   const tail = items;
-  const sortable = Boolean(onTailReorder);
+  const lower = lowerItems ?? [];
+  const sortable = Boolean(onArrange);
   const tailKeys = tail.map(i => i.key);
-  const runningKeys = runningItems ? runningItems.map(i => i.key) : [];
-  const runningKeySet = new Set(runningKeys);
-  // The running rows sort as the trailing items so dragging any of them
-  // above the fold projects an insertion slot inside the tail.
-  const sortableKeys = runningKeys.length > 0 ? [...tailKeys, ...runningKeys] : tailKeys;
+  const lowerKeys = lower.map(i => i.key);
+  const sortableKeys = lowerKeys.length > 0 ? [...tailKeys, SEPARATOR_ID, ...lowerKeys] : tailKeys;
+  const isHidden = (key: string) => Boolean(more && !more.expanded && !more.collapsedKeys.includes(key));
+  const hasHidden = Boolean(more && lowerKeys.some(key => !more.collapsedKeys.includes(key)));
 
   // PointerSensor with a 5px activation distance lets a plain click fire
   // navigation; the user has to actually drag to start a sort. KeyboardSensor
@@ -265,74 +256,56 @@ export function Sidebar({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  // Pinned rows never target a running row's slot - only a running row
-  // itself crosses the separator. Filtering the collision candidates (rather
-  // than clamping after the fact) keeps the live preview honest too: the
-  // running rows are never shifted by a pinned drag.
-  const collisionDetection: CollisionDetection = (args) => {
-    const collisions = closestCenter(args);
-    if (!runningKeySet.has(String(args.active.id))) {
-      return collisions.filter(c => !runningKeySet.has(String(c.id)));
-    }
-    return collisions;
+  // One list across the fold: the separator's slot after the move is where it
+  // splits back into pinned and lower. Collapsed rows keep their slots.
+  const handleDragEnd = ({ active: dragged, over }: DragEndEvent) => {
+    if (!over || !onArrange) return;
+    const from = sortableKeys.indexOf(String(dragged.id));
+    const to = sortableKeys.indexOf(String(over.id));
+    if (from < 0 || to < 0 || from === to) return;
+    const next = arrayMove(sortableKeys, from, to);
+    const sep = next.indexOf(SEPARATOR_ID);
+    onArrange(sep < 0
+      ? { pinned: next, lower: [] }
+      : { pinned: next.slice(0, sep), lower: next.slice(sep + 1) });
   };
 
-  // While a running row is projected into the tail, the separator slides
-  // down one slot in step with the rows' uniform stride, so no pinned row
-  // ever renders below the bar - only the dragged running row crosses it.
-  const [sepShift, setSepShift] = useState(0);
-  const handleDragOver = ({ active, over }: DragOverEvent) => {
-    const overId = over ? String(over.id) : null;
-    const activeIsRunning = runningKeySet.has(String(active.id));
-    const overIsTail = overId !== null && !runningKeySet.has(overId);
-    setSepShift(activeIsRunning && overIsTail
-      ? (active.rect.current.initial?.height ?? 0) + TAIL_GAP_PX
-      : 0);
-  };
+  const rowProps = (item: NavItem, hidden = false): RowProps => ({
+    item,
+    active: item.key === active,
+    compact,
+    serviceState,
+    hidden,
+    onClick: () => onChange(item.key),
+    onContextMenu: onItemContextMenu ? (e) => {
+      e.preventDefault();
+      onItemContextMenu(item.key, e);
+    } : undefined,
+  });
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    setSepShift(0);
-    const activeKey = String(event.active.id);
-    const overKey = event.over ? String(event.over.id) : null;
-    if (!overKey || activeKey === overKey) return;
-    // Running row dragged above the fold: pin it at the drop slot. Dropped
-    // over another running row (still below the fold) is a no-op - recents
-    // are not reorderable among themselves.
-    if (runningKeySet.has(activeKey)) {
-      if (runningKeySet.has(overKey)) return;
-      const to = tailKeys.indexOf(overKey);
-      if (to >= 0) onRunningPinAt?.(activeKey, to);
-      return;
-    }
-    if (!onTailReorder) return;
-    const from = tailKeys.indexOf(activeKey);
-    // Pointer drags can't reach a running row (collision filter above), but
-    // keyboard sorting can: clamp a pinned row dropped onto one to the end of
-    // the pinned list - the running rows are a boundary, not a slot.
-    const to = runningKeySet.has(overKey) ? tailKeys.length - 1 : tailKeys.indexOf(overKey);
-    if (from < 0 || to < 0) return;
-    const next = arrayMove(tailKeys, from, to);
-    onTailReorder(next);
-  };
-
-  // Short + strip closing the app list. Hidden until the pointer enters the
-  // sidebar (or it takes keyboard focus) - see .addStrip in the stylesheet -
-  // and deliberately shorter than a nav row so it reads as an affordance
-  // rather than another app.
-  const renderAddStrip = () => {
-    if (!addItem) return null;
-    return (
-      <HoverTooltip body={addItem.label} side="right">
-        <button
-          type="button"
-          className={styles.addStrip}
-          onClick={addItem.onClick}
-          aria-label={addItem.label}
-        >
-          <Plus size={14} aria-hidden />
-        </button>
-      </HoverTooltip>
+  // Sits under the lower rows, so opening them slides the toggle down.
+  const renderToggle = () => {
+    if (!more || !hasHidden) return null;
+    const label = more.expanded ? more.hideLabel : more.showLabel;
+    const toggle = (
+      <button
+        type="button"
+        className={classNames(styles.moreToggle, { [styles.moreToggleLabeled]: !compact })}
+        onClick={more.onToggle}
+        aria-expanded={more.expanded}
+        aria-label={compact ? label : undefined}
+      >
+        <span className={styles.moreToggleGlyph}>
+          <ChevronDown
+            size={14}
+            aria-hidden
+            className={classNames(styles.moreChevron, { [styles.moreChevronUp]: more.expanded })}
+          />
+        </span>
+        {!compact && <span className={styles.moreToggleLabel}>{label}</span>}
+      </button>
     );
+    return compact ? <HoverTooltip body={label} side="right">{toggle}</HoverTooltip> : toggle;
   };
 
   const renderExtra = () => {
@@ -425,101 +398,31 @@ export function Sidebar({
           {headerSlot}
         </div>
       )}
-      {renderSectionHeader()}
-
       {sortable ? (
         <div className={styles.tailScroll} data-sidebar-tail-scroll="true">
+          {renderSectionHeader()}
           <DndContext
             sensors={sensors}
-            collisionDetection={collisionDetection}
+            collisionDetection={closestCenter}
             modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-            onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
-            onDragCancel={() => setSepShift(0)}
           >
             <SortableContext items={sortableKeys} strategy={uniformVerticalStrategy}>
-              {tail.map((item) => (
-                <SortableRow
-                  key={item.key}
-                  item={item}
-                  active={item.key === active}
-                  compact={compact}
-                  serviceState={serviceState}
-                  onClick={() => onChange(item.key)}
-                  onContextMenu={onItemContextMenu ? (e) => {
-                    e.preventDefault();
-                    onItemContextMenu(item.key, e);
-                  } : undefined}
-                />
-              ))}
-              {runningItems && runningItems.length > 0 && (
-                <>
-                  <div
-                    className={styles.runningSeparator}
-                    data-sidebar-running-separator="true"
-                    style={{
-                      transform: sepShift ? `translateY(${sepShift}px)` : undefined,
-                      transition: 'transform 200ms ease',
-                    }}
-                    aria-hidden="true"
-                  />
-                  {runningItems.map(item => (
-                    <SortableRow
-                      key={item.key}
-                      item={item}
-                      active={item.key === active}
-                      compact={compact}
-                      serviceState={serviceState}
-                      onClick={() => onChange(item.key)}
-                      onContextMenu={onItemContextMenu ? (e) => {
-                        e.preventDefault();
-                        onItemContextMenu(item.key, e);
-                      } : undefined}
-                    />
-                  ))}
-                </>
-              )}
+              {tail.map(item => <SortableRow key={item.key} {...rowProps(item)} />)}
+              {lower.length > 0 && <SortableSeparator />}
+              {lower.map(item => <SortableRow key={item.key} {...rowProps(item, isHidden(item.key))} />)}
             </SortableContext>
           </DndContext>
-          {renderAddStrip()}
+          {renderToggle()}
           {afterTail}
         </div>
       ) : (
         <div className={styles.tailScroll}>
-          {tail.map((item) => (
-            <SidebarRow
-              key={item.key}
-              item={item}
-              active={item.key === active}
-              compact={compact}
-              serviceState={serviceState}
-              onClick={() => onChange(item.key)}
-              onContextMenu={onItemContextMenu ? (e) => {
-                e.preventDefault();
-                onItemContextMenu(item.key, e);
-              } : undefined}
-            />
-          ))}
-          {runningItems && runningItems.length > 0 && (
-            <>
-              <div className={styles.runningSeparator} aria-hidden="true" />
-              {runningItems.map(item => (
-                <SidebarRow
-                  key={item.key}
-                  item={item}
-                  active={item.key === active}
-                  compact={compact}
-                  serviceState={serviceState}
-                  onClick={() => onChange(item.key)}
-                  onContextMenu={onItemContextMenu ? (e) => {
-                    e.preventDefault();
-                    onItemContextMenu(item.key, e);
-                  } : undefined}
-                />
-              ))}
-            </>
-          )}
-          {renderAddStrip()}
+          {renderSectionHeader()}
+          {tail.map(item => <SidebarRow key={item.key} {...rowProps(item)} />)}
+          {lower.length > 0 && <div className={styles.runningSeparator} aria-hidden="true" />}
+          {lower.map(item => <SidebarRow key={item.key} {...rowProps(item, isHidden(item.key))} />)}
+          {renderToggle()}
           {afterTail}
         </div>
       )}

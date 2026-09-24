@@ -1,12 +1,14 @@
-import { useRef, useState } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, FolderInput, FolderPlus, FolderMinus, Folder, Unlink, Link2, MoreVertical, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal } from 'lucide-react';
+import { useRef, useState, type ReactNode } from 'react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
 } from '../../../../api/lighting';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
-import { EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
+import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/MenuArrowButton';
+import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
+import { groupMenuItems, stackMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { cardEnabledLedCount, IDENTIFY_MS } from './zoneUtils';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -18,6 +20,7 @@ import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../LightingPage.module.scss';
+import type { StackSlot } from '../../../../lib/stackSlots';
 
 /**
  * True when ZoneCard renders this card non-interactive. A zone with 0 LEDs is
@@ -54,9 +57,196 @@ export interface BulkSelection {
   tunableCount: number;
   controlled: boolean;
   ledsOn: boolean;
+  /** True when every selected card is a zone of the SAME device, so the LED map still has one device to open. */
+  oneDevice: boolean;
   setControlled: (controlled: boolean) => void;
   setPower: (on: boolean) => void;
   identify: () => void;
+  /** Wraps the selection in a new group where it sits. Absent when the cards
+   *  sit in different containers, or the nesting limit or group cap forbids. */
+  group?: () => void;
+  /** Stacks the selection to one frame; present when its rows share a container. */
+  stack?: () => void;
+  /** Takes the selection apart; present when it is exactly one stack. */
+  unstack?: () => void;
+  /** Members a Lock row can hold: unlocked, with a pick of their own. Zero
+   *  outside the Static tab, where nothing can be locked. */
+  lockCount?: number;
+  /** Members currently locked, which an Unlock row releases. */
+  unlockCount?: number;
+  setLocked?: (locked: boolean) => void;
+}
+
+/**
+ * The card's colour lock. A locked card shows the lock beside its LED strip
+ * in every mode, and that badge is also the quick unlock. The menu carries
+ * both rows: Unlock wherever the card is locked, Lock only on the Static tab
+ * (`lockable`) and only when the card has a pick of its own to hold.
+ */
+export interface DeviceLock {
+  locked: boolean;
+  lockable: boolean;
+  hasPick: boolean;
+  setLocked: (locked: boolean) => void;
+  /** Bumped when a pick was aimed at this locked card; the badge flashes so
+   *  the user sees why nothing changed. 0 (or unchanged) flashes nothing. */
+  flashSeq?: number;
+}
+
+/** Where a card sits under a {@link ZoneCardStack} header: every member seams
+ *  to the row above it, only the last rounds the bottom. */
+export type StackPosition = 'inner' | 'last';
+
+/** Device-level actions behind a stack header's kebab; the group header's rows,
+ *  minus the ones only a user group has. */
+export interface StackMenu {
+  /** Flashes every zone that has LEDs; absent when none does. */
+  onIdentify?: () => void;
+  /** Opens the LED map editor on the device, which lists all of its zones. */
+  onOpenSettings?: () => void;
+  /** True iff at least one zone has its LEDs on, so the row offers to turn the device off. */
+  on: boolean;
+  onTogglePower: () => void;
+  /** True iff at least one zone is controlled, so the row offers to release the device. */
+  controlled: boolean;
+  onToggleControlled: () => void;
+  /** Commits a new device name; absent where no stored name could come back. */
+  onRename?: (name: string) => void;
+  /** Present only on a renamed device; puts the header back on the hardware name. */
+  onResetName?: () => void;
+  /** Stacks every zone of the device to one frame. */
+  stack?: () => void;
+  /** Takes the device's zones apart again. */
+  unstack?: () => void;
+}
+
+/**
+ * One device's zones under its name, as a single card. Each member is a full
+ * ZoneCard with its own selection and menu; the stack owns the corners and the
+ * rail drag, so the device moves as one block and its zones can never be split
+ * up - which is why the name is a row inside the card, not a group header.
+ * The header row is the device: clicking it selects every zone, and its kebab
+ * acts on them all.
+ */
+export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount = 0, children }: {
+  /** The device name, shown once above the zones. */
+  name: string;
+  /** True while any zone under the header is selected: the header takes the
+   *  selected fill (no border - that stays on the zone) so the device reads as
+   *  one unit with something selected. */
+  selected?: boolean;
+  /** Optional dnd-kit drag wiring for the whole stack. */
+  drag?: SortableRowArgs;
+  /** Header click, with whether the multi-select modifier was held, the way a
+   *  card's onSelect reports it. Absent leaves the header a plain label. */
+  onSelect?: (additive: boolean) => void;
+  /** Absent on pick-only surfaces, which get no kebab. */
+  menu?: StackMenu;
+  /** Zones under the header, which the stack row counts. */
+  zoneCount?: number;
+  children: ReactNode;
+}) {
+  const { t, language } = useTranslation();
+  // seq remounts the menu on every open; see ZoneCard for the same pattern.
+  const [menuAt, setMenuAt] = useState<{ x: number; y: number; seq: number } | null>(null);
+  const menuSeq = useRef(0);
+  const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
+  const nameRef = useRef<EditableTextHandle>(null);
+
+  // Same order as a card's menu: what the device does first, then its state,
+  // then what it is called.
+  const menuItems = (): DeviceMenuItem[] => {
+    if (!menu) return [];
+    const items: DeviceMenuItem[] = [];
+    if (menu.onIdentify) {
+      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: menu.onIdentify });
+    }
+    if (menu.onOpenSettings) {
+      items.push({ key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'), onSelect: menu.onOpenSettings });
+    }
+    items.push(menu.on
+      ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
+      : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: menu.onTogglePower });
+    items.push(menu.controlled
+      ? { key: 'controlled', icon: <Link2Off size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: menu.onToggleControlled }
+      : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: menu.onToggleControlled });
+    if (menu.onRename) {
+      items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });
+    }
+    if (menu.onResetName) {
+      items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: menu.onResetName });
+    }
+    items.push(...stackMenuItems(t, language, menu, zoneCount));
+    return items;
+  };
+
+  return (
+    <>
+      <div
+        ref={drag?.ref ?? (() => {})}
+        style={drag?.style ?? {}}
+        {...(drag?.attributes ?? {})}
+        {...(drag?.listeners ?? {})}
+        className={`${styles.deviceCardStack}${drag?.isDragging ? ` ${drag.placeholderClassName}` : ''}`}
+      >
+        <div
+          className={[
+            styles.deviceCardStackHeader,
+            onSelect ? styles.deviceCardStackHeaderSelectable : '',
+            selected ? styles.deviceCardStackHeaderSelected : '',
+          ].filter(Boolean).join(' ')}
+          data-menu-arrow-host={menu ? 'true' : undefined}
+          onClick={onSelect ? e => onSelect(isMultiSelectModifier(e)) : undefined}
+          onContextMenu={menu ? e => {
+            e.preventDefault();
+            e.stopPropagation();
+            openMenu(e.clientX, e.clientY);
+          } : undefined}
+        >
+          {menu?.onRename ? (
+            /* Only a click inside the open editor is kept from the header: on
+               the label it must still select the zones, and a press there
+               drags the stack like the rest of the bar. */
+            <span
+              style={{ display: 'contents' }}
+              onClick={e => { if ((e.target as HTMLElement).tagName === 'INPUT') e.stopPropagation(); }}
+            >
+              <EditableText
+                ref={nameRef}
+                value={name}
+                onCommit={menu.onRename}
+                maxLength={DEVICE_NAME_MAX_LENGTH}
+                className={styles.deviceCardStackName}
+                clickToEdit={false}
+              />
+            </span>
+          ) : (
+            <span className={styles.deviceCardStackName}>{name}</span>
+          )}
+          {menu && (
+            <MenuArrowButton
+              variant="card"
+              label={t('lighting.devices.groupActions', { name })}
+              tooltip={t('lighting.devices.moreActions')}
+              open={menuAt != null}
+              onOpen={openMenu}
+              onClose={() => setMenuAt(null)}
+            />
+          )}
+        </div>
+        {children}
+      </div>
+      {menuAt && (
+        <DeviceContextMenu
+          key={menuAt.seq}
+          x={menuAt.x}
+          y={menuAt.y}
+          items={menuItems()}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
+    </>
+  );
 }
 
 /**
@@ -86,11 +276,16 @@ export function ZoneCard({
   firmwareControlled,
   onTakeControl,
   groupMove,
+  inStack,
+  onUnstack,
   notice,
   toggleMode,
   selectOnly,
   onSelectOnly,
   bulk,
+  stacked,
+  stackSlot,
+  lock,
 }: {
   device: LightingDevice;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
@@ -133,18 +328,14 @@ export function ZoneCard({
    *  Nexus (the Lian Li hub's per-LED "custom" mode). Gives a firmware-owned
    *  card its only menu row; absent, such a card stays menu-less. */
   onTakeControl?: () => void;
-  /** Group placement for the rail block this card belongs to, driving the
-   *  "Move to group" flyout. A card inside a hardware group moves the whole
-   *  block, the way dragging one does. */
-  groupMove?: {
-    /** User groups it can move into; the one it already sits in is left out. */
-    targets: readonly { id: string; name: string }[];
-    onMove: (groupId: string) => void;
-    /** Present only while the block sits in a user group; the row names it. */
-    onRemove?: { name: string; run: () => void };
-    /** Absent once the group cap is reached. */
-    onMoveToNew?: () => void;
-  };
+  /** Group placement for this card's rail row: the card, or the stack it is a
+   *  zone of. */
+  groupMove?: GroupMove;
+  /** Set on a card stacked with others (not the zone-card stack below): the
+   *  badge in the name row counts the stack. */
+  inStack?: { count: number };
+  /** Takes this card out of its stack. */
+  onUnstack?: () => void;
   /** Optional advisory shown via an (i) next to the device name. */
   notice?: string;
   /** Onboarding selection mode: the whole card is a controlled/ignored
@@ -161,6 +352,13 @@ export function ZoneCard({
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the device canvas's right-click. */
   bulk?: BulkSelection;
+  /** Set on a member of a {@link ZoneCardStack}: squares the corners, draws
+   *  the seam above it, and rounds the bottom on the last member. */
+  stacked?: StackPosition;
+  /** The part of the shared frame this card's device samples when its stack is laid out; the readout reads the same slot. */
+  stackSlot?: StackSlot | null;
+  /** Colour lock beside the LED strip. Absent on surfaces without one. */
+  lock?: DeviceLock;
 }) {
   const { t, language } = useTranslation();
   const isZone = device.parentDeviceId != null && device.zoneIndex != null;
@@ -206,7 +404,7 @@ export function ZoneCard({
     || (bulk && unavailable && bulk.identifyCount === 0)
     ? null
     : !controlled
-      ? { icon: <Unlink size={11} />, label: t('lighting.devices.stateNotControlled') }
+      ? { icon: <Link2Off size={11} />, label: t('lighting.devices.stateNotControlled') }
       : toggleMode
         // Power is moot where the card only decides what Nexus drives.
         ? null
@@ -222,6 +420,14 @@ export function ZoneCard({
   const clickable = !unavailable && !firmwareControlled
     && (!selectOnly || zoneCardSelectable(device));
   const nameRef = useRef<EditableTextHandle>(null);
+
+  // The badge is keyed on the flash seq, so a bump remounts it and the CSS
+  // animation runs once from the start; no timer to keep in step with it.
+  // The seq the card mounted with is not a pick against THIS mount (the page
+  // keeps the last burst), so it flashes nothing - only a later bump does.
+  const flashSeq = lock?.flashSeq ?? 0;
+  const mountFlashSeq = useRef(flashSeq);
+  const flashing = flashSeq > 0 && flashSeq !== mountFlashSeq.current;
 
   const menuItems = (): DeviceMenuItem[] => {
     const items: DeviceMenuItem[] = [];
@@ -267,9 +473,11 @@ export function ZoneCard({
     } else if (device.ledCount > 0) {
       items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
     }
-    // The LED map edits one device's zones, so a selection has nothing to
-    // open - same rule the canvas menu applies.
-    if (!bulk) {
+    // The LED map edits one device's zones, so it needs the selection to name
+    // exactly one - which a multi-zone device's own zones do (the keeb's keys
+    // plus underglow are one device). A selection spanning devices has nothing
+    // to open; same rule the canvas menu applies.
+    if (!bulk || bulk.oneDevice) {
       items.push({
         key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
         onSelect: () => onOpenSettings?.(),
@@ -297,15 +505,35 @@ export function ZoneCard({
       const setControlled = () => bulk ? bulk.setControlled(!isControlled) : onToggleControlled?.();
       const setPower = () => bulk ? bulk.setPower(!isOn) : onTogglePower?.();
       const label = (single: string, counted: string) => bulkMenuLabel(t, language, bulk, single, counted);
-      // Whichever row un-sticks the card's current state gets the accent. An
-      // un-driven device ignores its power state, so control leads and lights
-      // only light up once control is back on.
-      items.push(isControlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
-        : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
+      // Whichever row un-sticks the card's current state gets the accent, and
+      // only one ever does: an un-driven device ignores its power state, so
+      // lights take the accent only once control is back on.
       items.push(isOn
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
         : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });
+      items.push(isControlled
+        ? { key: 'controlled', icon: <Link2Off size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
+        : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
+    }
+    // The colour lock. Unlock is offered wherever something is locked; Lock
+    // only where a lock can be set (the Static tab) and there is a pick to
+    // hold. In a selection each row counts the members it will reach.
+    if (lock && !unavailable) {
+      const lockCount = bulk ? (bulk.lockCount ?? 0) : (lock.lockable && lock.hasPick && !lock.locked ? 1 : 0);
+      const unlockCount = bulk ? (bulk.unlockCount ?? 0) : (lock.locked ? 1 : 0);
+      const setLocked = (locked: boolean) => bulk ? bulk.setLocked?.(locked) : lock.setLocked(locked);
+      if (lockCount > 0) {
+        items.push({
+          key: 'lock', icon: <Lock size={14} />, onSelect: () => setLocked(true),
+          label: bulkMenuLabel(t, language, bulk && { count: lockCount }, 'lighting.devices.lockLook', 'lighting.devices.lockLookCount'),
+        });
+      }
+      if (unlockCount > 0) {
+        items.push({
+          key: 'unlock', icon: <Unlock size={14} />, onSelect: () => setLocked(false),
+          label: bulkMenuLabel(t, language, bulk && { count: unlockCount }, 'lighting.devices.unlockLook', 'lighting.devices.unlockLookCount'),
+        });
+      }
     }
     // Naming and grouping close the menu, under a rule: they change what the
     // card IS, where everything above acts on what it does.
@@ -328,36 +556,8 @@ export function ZoneCard({
         });
       }
     }
-    const groupRows: DeviceMenuItem[] = [];
-    if (!bulk && groupMove) {
-      for (const target of groupMove.targets) {
-        groupRows.push({
-          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
-          onSelect: () => groupMove.onMove(target.id),
-        });
-      }
-      if (groupMove.onMoveToNew) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:new', icon: <FolderPlus size={14} />,
-          label: t('lighting.devices.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
-        });
-      }
-      if (groupMove.onRemove) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:none', icon: <FolderMinus size={14} />,
-          label: t('lighting.devices.removeFromGroup', { name: groupMove.onRemove.name }),
-          onSelect: groupMove.onRemove.run,
-        });
-      }
-    }
-    if (groupRows.length > 0) {
-      organise.push({
-        key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('lighting.devices.moveToGroup'), submenu: groupRows,
-      });
-    }
+    organise.push(...groupMenuItems(t, language, 'lighting.devices', groupMove, bulk));
+    organise.push(...stackMenuItems(t, language, bulk ? bulk : { unstack: onUnstack }, bulk?.count ?? 1));
     if (organise.length > 0) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push(...organise);
@@ -392,8 +592,11 @@ export function ZoneCard({
         unavailable ? styles.deviceCardUnavailable : '',
         !unavailable && (!device.ledsOn || firmwareControlled || !controlled) ? styles.deviceCardPoweredOff : '',
         indent ? styles.deviceCardZone : '',
+        stacked ? styles.deviceCardStacked : '',
+        stacked === 'last' ? styles.deviceCardStackLast : '',
         drag?.isDragging ? drag.placeholderClassName : '',
       ].filter(Boolean).join(' ')}
+      data-menu-arrow-host={menuEnabled || undefined}
       onClick={e => {
         if (!clickable) return;
         // Toggle mode is how an un-driven device gets turned back on, so it
@@ -412,21 +615,36 @@ export function ZoneCard({
         {renameEnabled ? (
           /* display:contents span carries data-no-dnd onto a real DOM node
              (EditableText doesn't forward unknown props) so a press on the name
-             edits it instead of starting a card drag; no layout change. The
-             click guard is the card's, not the sort list's: ZoneCard selects on
-             any bare-surface click, which would fight the edit. */
-          <span data-no-dnd style={{ display: 'contents' }} onClick={e => e.stopPropagation()}>
+             does not start a card drag while a rename is open; no layout change.
+             Only a click inside the open editor is withheld from the card - on
+             the label it must select, like any other part of the card. */
+          <span
+            data-no-dnd
+            style={{ display: 'contents' }}
+            onClick={e => { if ((e.target as HTMLElement).tagName === 'INPUT') e.stopPropagation(); }}
+          >
+            {/* Rename is a context-menu action: clicking a card's name should
+                select the card, not open a text field under the cursor. */}
             <EditableText
               ref={nameRef}
               value={displayName ?? device.name}
               onCommit={onRename!}
+              maxLength={DEVICE_NAME_MAX_LENGTH}
               className={`${styles.deviceName} ${styles.deviceNameEditable}`}
+              clickToEdit={false}
             />
           </span>
         ) : (
           <span className={styles.deviceName}>{displayName ?? device.name}</span>
         )}
         {notice != null && !unavailable && <DeviceNotice notice={notice} />}
+        {inStack && (
+          <HoverTooltip body={t(pluralKey('lighting.devices.stackedCount', language, inStack.count), { count: inStack.count })} side="top">
+            <span className={styles.deviceStackBadge} aria-label={t(pluralKey('lighting.devices.stackedCount', language, inStack.count), { count: inStack.count })}>
+              <Layers size={12} aria-hidden />
+            </span>
+          </HoverTooltip>
+        )}
       </div>
       <div className={styles.deviceMetaRow}>
         {firmwareControlled ? (
@@ -464,7 +682,24 @@ export function ZoneCard({
         {/* A dark device has nothing to read out, and firmware lighting does not
             come from our canvas, so the bar is absent rather than blank. */}
         {!unavailable && !firmwareControlled && controlled && device.ledsOn && (
-          <DeviceLedStrip device={device} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
+          <DeviceLedStrip device={device} slot={stackSlot} pick={ledPick} fullscreen={ledFullscreen} pickOnly={ledPickOnly} />
+        )}
+        {/* Only a locked card carries the badge: it sits between the strip
+            and the menu, so the strip gives up its width to it, and a press
+            unlocks in any mode. Locking lives in the menu. */}
+        {lock?.locked && !toggleMode && !unavailable && !firmwareControlled && (
+          <HoverTooltip body={t('lighting.devices.unlockLook')} side="top">
+            <button
+              key={flashSeq}
+              type="button"
+              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn} ${flashing ? styles.deviceLockBtnFlash : ''}`}
+              aria-label={t('lighting.devices.unlockLook')}
+              data-no-dnd
+              onClick={e => { e.stopPropagation(); lock.setLocked(false); }}
+            >
+              <Lock />
+            </button>
+          </HoverTooltip>
         )}
         {toggleable && (
           <span
@@ -488,29 +723,18 @@ export function ZoneCard({
             </button>
           </HoverTooltip>
         )}
-        {menuEnabled && (
-          <div className={styles.deviceCardActions} data-no-dnd>
-            <HoverTooltip body={t('lighting.devices.moreActions')} side="top">
-              <button
-                type="button"
-                className={`${styles.deviceSettingsBtn} ${styles.deviceMenuBtn}`}
-                aria-label={t('lighting.devices.moreActions')}
-                onClick={e => {
-                  e.stopPropagation();
-                  // Explicit toggle: the button is its own close affordance,
-                  // and the menu's outside-pointerdown close has already run.
-                  if (menuAt) { setMenuAt(null); return; }
-                  const r = e.currentTarget.getBoundingClientRect();
-                  openMenu(r.right, r.bottom + 4);
-                }}
-              >
-                <MoreVertical />
-              </button>
-            </HoverTooltip>
-          </div>
-        )}
       </div>
       </div>
+      {menuEnabled && (
+        <MenuArrowButton
+          variant="card"
+          label={t('lighting.devices.moreActions')}
+          tooltip={t('lighting.devices.moreActions')}
+          open={menuAt != null}
+          onOpen={openMenu}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
     </div>
   );
   // Only failed/zero-LED zones get an explanatory tooltip; configurable zones

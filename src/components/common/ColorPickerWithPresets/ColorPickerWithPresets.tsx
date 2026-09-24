@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Pipette } from 'lucide-react';
 import { HsvPicker } from '../HsvPicker/HsvPicker';
-import { Popover } from '../Popover/Popover';
+import { Popover, type PopoverPlacement } from '../Popover/Popover';
 import { contrastTextOn } from '../../../lib/settings';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ColorPickerWithPresets.module.scss';
@@ -39,7 +39,24 @@ export interface ColorPickerWithPresetsProps {
   customColor?: string;
   /** Persist the custom slot. Called alongside onCommit, never on preview. */
   onCustomCommit?: (hex: string) => void;
+  /** Greyed out, nothing selected, nothing clickable; the grid keeps its place. */
+  disabled?: boolean;
+  /**
+   * One more swatch, labelled, in a row under the grid's last column, for a
+   * colour the host owns (the app accent). While it is selected no tile reads
+   * as selected; the custom wheel still opens at `value`.
+   */
+  extraSwatch?: ExtraSwatch;
+  /** Where the custom-colour popover opens; hosts near the bottom of a sheet open it upward. */
+  pickerPlacement?: PopoverPlacement;
   className?: string;
+}
+
+export interface ExtraSwatch {
+  color: string;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
 }
 
 export function ColorPickerWithPresets({
@@ -51,6 +68,9 @@ export function ColorPickerWithPresets({
   allowCustom,
   customColor,
   onCustomCommit,
+  disabled = false,
+  extraSwatch,
+  pickerPlacement = 'bottom-end',
   className,
 }: ColorPickerWithPresetsProps) {
   const { t } = useTranslation();
@@ -58,10 +78,13 @@ export function ColorPickerWithPresets({
   const slotRef = useRef<HTMLDivElement>(null);
 
   const normalized = (value || fallback || presets[0] || '#000000').toLowerCase();
-  const isPreset = presets.some(hex => hex.toLowerCase() === normalized);
+  // Disabled shows no selection at all: a highlighted tile would read as a pick.
+  const extraSelected = !disabled && !!extraSwatch?.selected;
+  const selectable = !disabled && !extraSelected;
+  const isPreset = selectable && presets.some(hex => hex.toLowerCase() === normalized);
   // An off-palette value IS the custom color right now, and it lands on preview,
   // a whole gesture before onCustomCommit does.
-  const slotColor = (isPreset ? customColor?.toLowerCase() : normalized) || '';
+  const slotColor = (isPreset || extraSelected ? customColor?.toLowerCase() : normalized) || '';
 
   // Opening applies what the slot already shows, so the slot selects a colour
   // the way a preset tile does instead of only being a door to the picker.
@@ -80,6 +103,8 @@ export function ColorPickerWithPresets({
   return (
     <div
       className={`${styles.root} ${className ?? ''}`}
+      data-disabled={disabled || undefined}
+      aria-disabled={disabled || undefined}
       style={{
         maxWidth: `calc(${columns} * var(--swatch-size-cap) + ${columns - 1} * var(--swatch-gap))`,
       }}
@@ -89,13 +114,14 @@ export function ColorPickerWithPresets({
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
       >
         {presets.map(hex => {
-          const selected = hex.toLowerCase() === normalized;
+          const selected = selectable && hex.toLowerCase() === normalized;
           return (
             <button
               key={hex}
               type="button"
               className={`${styles.swatch} ${selected ? styles.swatchSelected : ''}`}
               style={{ background: hex }}
+              disabled={disabled}
               onClick={() => onCommit(hex)}
               aria-label={hex}
               aria-pressed={selected}
@@ -110,15 +136,16 @@ export function ColorPickerWithPresets({
           >
             <button
               type="button"
-              className={`${styles.swatch} ${styles.customSwatch} ${!isPreset ? styles.swatchSelected : ''}`}
+              className={`${styles.swatch} ${styles.customSwatch} ${selectable && !isPreset ? styles.swatchSelected : ''}`}
               style={slotColor ? { background: slotColor, color: contrastTextOn(slotColor) } : undefined}
+              disabled={disabled}
               onClick={handleSlotClick}
               aria-label={t('common.customColor')}
               aria-haspopup="dialog"
               aria-expanded={pickerOpen}
               // Not aria-pressed: this button opens the picker, it does not
               // toggle the selection a press would announce.
-              aria-current={!isPreset}
+              aria-current={selectable && !isPreset}
             >
               <Pipette
                 className={`${styles.customIcon} ${slotColor ? styles.customIconOnFill : ''}`}
@@ -129,7 +156,7 @@ export function ColorPickerWithPresets({
               open={pickerOpen}
               onClose={() => setPickerOpen(false)}
               anchorRef={slotRef}
-              placement="bottom-end"
+              placement={pickerPlacement}
               ariaLabel={t('common.customColor')}
               className={styles.customPopover}
             >
@@ -140,6 +167,22 @@ export function ColorPickerWithPresets({
               />
             </Popover>
           </div>
+        )}
+        {extraSwatch && (
+          <>
+            <span className={styles.extraLabel} style={{ gridColumn: `1 / ${columns}`, gridRow: presetRows + 1 }}>
+              {extraSwatch.label}
+            </span>
+            <button
+              type="button"
+              className={`${styles.swatch} ${styles.extraSwatch} ${extraSelected ? styles.swatchSelected : ''}`}
+              style={{ background: extraSwatch.color, gridColumn: columns, gridRow: presetRows + 1 }}
+              disabled={disabled}
+              onClick={extraSwatch.onSelect}
+              aria-label={extraSwatch.label}
+              aria-pressed={extraSelected}
+            />
+          </>
         )}
       </div>
     </div>

@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { BenchmarkResult } from '../../../types/benchmark';
 import { Gauge, Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useBenchmark } from '../../../hooks/useBenchmark';
-import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
+import { useBenchmarkHistory, type BenchmarkRun } from '../../../hooks/useBenchmarkHistory';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -17,6 +18,7 @@ import { SectionHeader } from '../../../components/common/SectionHeader/SectionH
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { getDeviceId, getLastSubmissionId, setLastSubmissionId } from '../../../api/nexusApi';
 import { submitCloudBenchmark } from '../../../api/cloud';
+import { fetchTelemetryConsent } from '../../../api/telemetry';
 import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
@@ -26,7 +28,7 @@ import styles from './BenchmarkPage.module.scss';
 
 type BenchmarkTab = 'run' | 'results' | 'leaderboards';
 
-// The rig shown as big blocks before a run: the four scored subsystems plus
+// The rig shown as compact tiles before a run: the four scored subsystems plus
 // the board and OS for context. `get` pulls the model string from /system/specs.
 const SPEC_BLOCKS: Array<{
   key: string;
@@ -34,12 +36,12 @@ const SPEC_BLOCKS: Array<{
   labelKey: string;
   get: (s: SystemSpecs) => string;
 }> = [
-  { key: 'cpu', icon: <Cpu size={28} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
-  { key: 'gpu', icon: <Monitor size={28} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
-  { key: 'mobo', icon: <CircuitBoard size={28} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
-  { key: 'ram', icon: <MemoryStick size={28} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
-  { key: 'storage', icon: <HardDrive size={28} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
-  { key: 'os', icon: <AppWindow size={28} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
+  { key: 'cpu', icon: <Cpu size={14} />, labelKey: 'benchmark.phase.cpu', get: s => s.processor },
+  { key: 'gpu', icon: <Monitor size={14} />, labelKey: 'benchmark.phase.gpu', get: s => s.graphicsCard },
+  { key: 'mobo', icon: <CircuitBoard size={14} />, labelKey: 'benchmark.spec.motherboard', get: s => s.motherboard },
+  { key: 'ram', icon: <MemoryStick size={14} />, labelKey: 'benchmark.phase.ram', get: s => s.memory },
+  { key: 'storage', icon: <HardDrive size={14} />, labelKey: 'benchmark.phase.storage', get: s => s.storage },
+  { key: 'os', icon: <AppWindow size={14} />, labelKey: 'benchmark.leaderboard.os', get: s => s.osBuild },
 ];
 
 interface BenchmarkPageProps {
@@ -52,12 +54,28 @@ interface BenchmarkPageProps {
 export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onTabChange }: BenchmarkPageProps) {
   const { t } = useTranslation();
   const { status, progress, result, error, start, cancel, reset } = useBenchmark(serviceOnline);
-  const { history, addRun } = useBenchmarkHistory();
+  const { history, addRun, updateRunSubmission } = useBenchmarkHistory();
   const { specs } = useSystemSpecs(serviceOnline);
-  const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<{ percentile: number; rank: number; total: number } | null>(null);
   const [submissionId, setSubmissionIdState] = useState<string | null>(() => getLastSubmissionId());
   const [savedResult, setSavedResult] = useState<typeof result>(null);
+  // null only while the first read is in flight; a failed read counts as off,
+  // so a run is always saved and never auto-uploads without confirmed consent.
+  const [telemetryEnabled, setTelemetryEnabled] = useState<boolean | null>(null);
+  // History entry of the run this page just finished, and the entry uploading now.
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [uploadingRunId, setUploadingRunId] = useState<string | null>(null);
+  // useBenchmark can hand over the same run more than once (WS frame + poller).
+  const decidedRunIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    fetchTelemetryConsent()
+      .then(res => { if (!cancelled) setTelemetryEnabled(res?.enabled === true); })
+      .catch(() => { if (!cancelled) setTelemetryEnabled(false); });
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
 
   // The board is hosted; local runs and results are not, so only it drops out.
   const tabs = [
@@ -72,41 +90,52 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   const tab: BenchmarkTab = urlTab && validTabs.includes(urlTab)
     ? urlTab as BenchmarkTab : 'run';
 
+  const upload = useCallback(async (runId: string, r: BenchmarkResult) => {
+    setUploadingRunId(runId);
+    try {
+      // Routed through the local service (not api.hellonexus.com directly):
+      // the benchmark UI only ever runs in-app, so the service can forward
+      // the signed-in cloud account's bearer and link the submission - a
+      // bare browser fetch has no way to attach that token.
+      const res = await submitCloudBenchmark(buildBenchmarkSubmission(r, getDeviceId()));
+      if (res) {
+        const standing = { percentile: res.percentile, rank: res.rank, total: res.totalSubmissions };
+        updateRunSubmission(runId, res.id, standing);
+        setLastSubmissionId(res.id);
+        setSubmission(standing);
+        setSubmissionIdState(res.id);
+      }
+    } catch {
+      // A failed upload leaves the run unsubmitted, so it is offered again.
+    } finally {
+      setUploadingRunId(current => (current === runId ? null : current));
+    }
+  }, [updateRunSubmission]);
+
   useEffect(() => {
     if (!result || result.state !== 'complete') return;
-    let cancelled = false;
     setSavedResult(result);
+    if (telemetryEnabled === null || decidedRunIdRef.current === result.runId) return;
+    decidedRunIdRef.current = result.runId;
+    // Saved before any upload, so the run survives a failed or abandoned submit.
+    const id = addRun(result, null);
+    setActiveRunId(id);
+    onTabChange('results');
+    if (telemetryEnabled) void upload(id, result);
+  }, [result, telemetryEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    (async () => {
-      setSubmitting(true);
-      try {
-        const payload = buildBenchmarkSubmission(result, getDeviceId());
-        // Routed through the local service (not api.hellonexus.com directly):
-        // the benchmark UI only ever runs in-app, so the service can forward
-        // the signed-in cloud account's bearer and link the submission - a
-        // bare browser fetch has no way to attach that token.
-        const res = await submitCloudBenchmark(payload);
-        if (!cancelled && res) {
-          setSubmission({ percentile: res.percentile, rank: res.rank, total: res.totalSubmissions });
-          setLastSubmissionId(res.id);
-          setSubmissionIdState(res.id);
-          addRun(result, res.id);
-          onTabChange('results');
-        } else if (!cancelled) {
-          addRun(result, null);
-          onTabChange('results');
-        }
-      } finally {
-        if (!cancelled) setSubmitting(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Offered only while "Help improve Nexus" is off; failed reads count as off.
+  const uploadHandlerFor = (run: BenchmarkRun | null) =>
+    run && telemetryEnabled === false && !run.submission && uploadingRunId !== run.id
+      ? () => { void upload(run.id, run.result); }
+      : undefined;
+  const activeRun = history.find(run => run.id === activeRunId) ?? null;
 
   const handleRerun = useCallback(async () => {
     setSubmission(null);
     setSavedResult(null);
+    setActiveRunId(null);
+    decidedRunIdRef.current = null;
     await reset();
   }, [reset]);
 
@@ -119,27 +148,53 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     );
   }
 
+  // Shown wherever the page has no run yet: the Run tab you land on and the
+  // Results tab.
+  const renderIntro = (onStart: () => void) => (
+    <EmptyState
+      hero
+      icon={<Gauge />}
+      title={t('benchmark.results.introTitle')}
+      hint={t('benchmark.results.introBody')}
+      points={[
+        { icon: <Cpu />, text: t('benchmark.phase.cpu') },
+        { icon: <Monitor />, text: t('benchmark.phase.gpu') },
+        { icon: <MemoryStick />, text: t('benchmark.phase.ram') },
+        { icon: <HardDrive />, text: t('benchmark.phase.storage') },
+      ]}
+      action={(
+        <Button tone="accent" icon={<Play size={16} />} onClick={onStart}>
+          {t('benchmark.start')}
+        </Button>
+      )}
+    />
+  );
+
   const renderRunTab = () => {
     if (status === 'idle') {
+      const specsSection = specs && (
+        <div className={styles.specsSection}>
+          <SectionHeader>{t('benchmark.run.systemTitle')}</SectionHeader>
+          <div className={styles.specGrid}>
+            <SystemSpecsPanel
+              variant="tiles"
+              iconInline
+              rows={SPEC_BLOCKS.map(b => ({ icon: b.icon, label: t(b.labelKey), value: b.get(specs) }))}
+            />
+          </div>
+        </div>
+      );
+      if (history.length === 0) {
+        return (
+          <div className={styles.firstRun}>
+            {renderIntro(() => { void start(); })}
+            {specsSection}
+          </div>
+        );
+      }
       return (
         <div className={styles.intro}>
-          {specs && (
-            <div className={styles.specsSection}>
-              <SectionHeader>{t('benchmark.run.systemTitle')}</SectionHeader>
-              <div className={styles.specGrid}>
-                <SystemSpecsPanel
-                  variant="tiles"
-                  rows={SPEC_BLOCKS.map(b => ({ icon: b.icon, label: t(b.labelKey), value: b.get(specs) }))}
-                />
-              </div>
-            </div>
-          )}
-          <ul className={styles.whatItMeasures}>
-            <li>{t('benchmark.intro.cpu')}</li>
-            <li>{t('benchmark.intro.ram')}</li>
-            <li>{t('benchmark.intro.storage')}</li>
-            <li>{t('benchmark.intro.gpu')}</li>
-          </ul>
+          {specsSection}
           <div className={styles.controls}>
             <Button tone="accent" icon={<Play size={16} />} onClick={() => start()}>
               {t('benchmark.start')}
@@ -161,8 +216,9 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
           <BenchmarkResults
             result={r}
             submission={submission}
-            submitting={submitting}
+            submitting={uploadingRunId !== null && uploadingRunId === activeRunId}
             submissionId={submissionId}
+            onUpload={uploadHandlerFor(activeRun)}
           />
           <div className={styles.controls}>
             <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={handleRerun}>
@@ -201,21 +257,17 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   const renderResultsTab = () => {
     const latest = history[0] ?? null;
     if (!latest) {
-      return (
-        <EmptyState
-          icon={<Gauge size={32} />}
-          title={t('benchmark.history.empty')}
-        />
-      );
+      return renderIntro(() => { onTabChange('run'); void start(); });
     }
 
     return (
       <div className={styles.resultsTab}>
         <BenchmarkResults
           result={latest.result}
-          submission={null}
-          submitting={false}
+          submission={latest.submission ?? null}
+          submitting={uploadingRunId === latest.id}
           submissionId={latest.submissionId}
+          onUpload={uploadHandlerFor(latest)}
         />
         {history.length > 1 && (
           <div className={styles.historySection}>

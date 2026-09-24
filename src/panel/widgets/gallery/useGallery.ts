@@ -9,6 +9,25 @@ import {
 import { fetchServiceBlob } from '../../../api/service';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import type { PanelWidget } from '../../types';
+
+/** Seconds per slide when a widget instance has not chosen one. */
+export const DEFAULT_GALLERY_INTERVAL = 10;
+
+// Per-instance choice of what the widget draws from the shared library. The
+// library itself is one set for every surface; this only narrows the view.
+export type GalleryMediaFilter = 'both' | 'images' | 'videos';
+
+export function readGalleryMediaFilter(config: PanelWidget['config']): GalleryMediaFilter {
+  const v = config?.media;
+  return v === 'images' || v === 'videos' ? v : 'both';
+}
+
+export function filterGalleryItems(items: GalleryItem[], filter: GalleryMediaFilter): GalleryItem[] {
+  if (filter === 'both') return items;
+  const kind = filter === 'videos' ? 'video' : 'image';
+  return items.filter(i => i.kind === kind);
+}
 
 // Per-widget-instance viewer position, shared between the tile and its
 // immersive view (separate component instances in the same document) so
@@ -67,7 +86,7 @@ const MAX_PIXEL_RATIO = 2;
  *
  * Measured with getBoundingClientRect, NOT clientWidth: panel surfaces render
  * their content at a reduced layout size and scale it up with the
- * `--panel-scale` transform, so clientWidth is the pre-transform box and
+ * `--panel-scale` factor, so clientWidth is the unscaled layout box and
  * under-reports the pixels actually painted - on a panel it would pick a
  * bucket several rungs too small, which is the whole quantity this feature
  * turns on. (The opposite of the layout-math case useGameBoardScale
@@ -99,9 +118,10 @@ export function useGalleryRenderWidth(): { boxRef: (el: HTMLElement | null) => v
 }
 
 /**
- * Blob loader for gallery images at one rendered width. Panel auth is
- * token-based, so <img> can't hit the route directly; images load via
- * fetchServiceBlob → object URL.
+ * Blob loader for gallery stills at one rendered width - the downsized image,
+ * or for a video its poster frame. Panel auth is token-based, so <img> can't
+ * hit the route directly; stills load via fetchServiceBlob → object URL. The
+ * clip itself never comes through here (see galleryItemVideoUrl).
  *
  * Entries are keyed by id AND width, so a resize retains nothing at the old
  * width and those blobs are revoked on the next pass. The cache stays small on

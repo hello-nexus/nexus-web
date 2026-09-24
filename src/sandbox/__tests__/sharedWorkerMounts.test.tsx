@@ -88,6 +88,30 @@ describe('SandboxedWidget shared-worker mounts', () => {
     expect(handle.update).toHaveBeenCalledWith({ size: { width: 380, height: 80 } });
   });
 
+  it('a reused immersive worker exits the overlay that is open now, not the one that spawned it', async () => {
+    const { SandboxedWidget, spawnSpy } = await loadSandbox();
+    const { ImmersiveExitProvider } = await import('../../panel/overlays/immersiveExit');
+    const view = (exit: () => void) => (
+      <ImmersiveExitProvider value={exit}>
+        <div data-view="" data-w={640} data-h={1150}>
+          <SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:e" widgetId="app-x" instanceId="i-x" surface="immersive" />
+        </div>
+      </ImmersiveExitProvider>
+    );
+    const exit1 = vi.fn();
+    const first = render(view(exit1));
+    const api = (spawnSpy.mock.calls[0][2] as { api: { exitImmersive?: () => void } }).api;
+    first.unmount();
+
+    // Re-entered inside the keep-alive window: same worker, a new overlay.
+    const exit2 = vi.fn();
+    render(view(exit2));
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+    api.exitImmersive!();
+    expect(exit1).not.toHaveBeenCalled();
+    expect(exit2).toHaveBeenCalledTimes(1);
+  });
+
   it('disposes once the last mount is gone', async () => {
     const { handles, cell } = await mount('last', { width: 200, height: 200 });
     const handle = handles[0];

@@ -2,13 +2,14 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { GaugeValue } from './GaugeValue';
 import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
+import { gaugeBodyCss } from '../valueColor';
 import styles from './WaterLevelGauge.module.scss';
 
 // The vessel is a fraction of the stage's short side, matching the shared
 // figure edge every other full-circle design draws to (GAUGE_FIGURE_OUTER).
 const FIGURE_FRACTION = GAUGE_FIGURE_OUTER / 50;
 
-export function WaterLevelGauge({ value, formatted, label }: GaugeProps) {
+export function WaterLevelGauge({ value, formatted, label, gradient }: GaugeProps) {
   const fillPercent = Math.max(0, Math.min(100, value));
   const stageRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
@@ -34,7 +35,9 @@ export function WaterLevelGauge({ value, formatted, label }: GaugeProps) {
         <div className={styles.container} style={{ width: size, height: size }}>
           <div
             className={styles.fill}
-            style={{ height: `${fillPercent}%` }}
+            style={gradient
+              ? { height: '100%', background: gaugeBodyCss(gradient, 0), clipPath: `inset(${(100 - fillPercent).toFixed(2)}% 0 0 0)` }
+              : { height: `${fillPercent}%` }}
           />
         </div>
       </div>

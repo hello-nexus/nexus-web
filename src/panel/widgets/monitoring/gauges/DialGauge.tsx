@@ -1,6 +1,7 @@
 import { GaugeValue } from './GaugeValue';
 import { GAUGE_FIGURE_OUTER } from './types';
 import type { GaugeProps } from './types';
+import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
 import styles from './DialGauge.module.scss';
 
 const START = 135;
@@ -20,7 +21,7 @@ function polar(r: number, deg: number): [number, number] {
   return [50 + r * Math.cos(rad), 50 + r * Math.sin(rad)];
 }
 
-export function DialGauge({ value, formatted, label }: GaugeProps) {
+export function DialGauge({ value, formatted, label, gradient }: GaugeProps) {
   const clamped = Math.max(0, Math.min(100, value));
   const [nx, ny] = polar(NEEDLE, START + (clamped / 100) * SWEEP);
   const ticks = Array.from({ length: TICKS }, (_, i) => {
@@ -42,6 +43,7 @@ export function DialGauge({ value, formatted, label }: GaugeProps) {
               x2={t.x2.toFixed(2)}
               y2={t.y2.toFixed(2)}
               className={t.on ? styles.tickOn : styles.tickOff}
+              style={t.on && gradient ? { stroke: gaugeGradientColorAt(gradient.stops, i / (TICKS - 1)) } : undefined}
             />
           ))}
           <line x1="50" y1="50" x2={nx.toFixed(2)} y2={ny.toFixed(2)} className={styles.needle} />

@@ -1,0 +1,69 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+
+// Card supplies the surface; the body inside centres the readouts.
+.hero {
+  align-items: center;
+  text-align: center;
+  padding: 1.5rem 1rem;
+
+  > * {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    @include vgap(0.25rem);
+  }
+}
+
+.location {
+  @include text-heading;
+  color: var(--text);
+}
+
+.temp {
+  @include text-display;
+  font-size: var(--type-hero);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.conditionRow {
+  display: flex;
+  align-items: center;
+  color: var(--text);
+  @include hgap(0.4rem);
+}
+
+.icon {
+  width: 1.5em;
+  height: 1.5em;
+}
+
+.condition {
+  @include text-body;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  color: var(--text-dim);
+  @include text-button;
+  @include hgap(1rem);
+}
+
+.immersive {
+  justify-content: center;
+  padding: 0.75rem 1rem;
+
+  // Card's body gap alone spaces the rows: the vgap above would stack on it.
+  > * { @include vgap(0); }
+
+  // Fixed, not --type-hero: that token is viewport-relative, but the
+  // immersive body renders in a scaled design box, so it would size with the
+  // panel resolution instead of the grid.
+  .temp { font-size: 2.75rem; line-height: 1; }
+  .location { font-size: var(--type-heading); line-height: 1.2; }
+  .condition { font-size: var(--type-body); }
+  .metaRow { font-size: var(--type-small); }
+}

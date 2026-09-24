@@ -5,7 +5,8 @@
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/react';
-import { Layer, Sprite } from '../ui/components';
+import { Sprite } from '../ui/components';
+import { Layer } from '../ui/LayerStage';
 
 afterEach(() => cleanup());
 

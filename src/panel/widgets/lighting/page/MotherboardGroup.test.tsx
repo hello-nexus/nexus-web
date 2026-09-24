@@ -59,13 +59,6 @@ describe('MotherboardGroup actions menu', () => {
     expect(props.onTogglePower).toHaveBeenCalledTimes(1);
   });
 
-  it('omits the lights row while firmware owns the group', () => {
-    renderGroup({ hideLights: true });
-    openMenu();
-    expect(screen.queryByRole('button', { name: /menuLights/ })).toBeNull();
-    expect(screen.getByRole('button', { name: /menuControlOff/ })).toBeTruthy();
-  });
-
   it('leaves the group expanded and its rows reachable after opening the menu', () => {
     const props = renderGroup();
     openMenu();
@@ -76,20 +69,31 @@ describe('MotherboardGroup actions menu', () => {
 });
 
 describe('MotherboardGroup rename', () => {
+  const startRename = () => {
+    openMenu();
+    fireEvent.click(screen.getByText(/devices\.rename/));
+  };
+
   it('commits the trimmed header name on Enter', () => {
     const onRename = vi.fn();
     renderGroup({ onRename });
-    fireEvent.click(screen.getByText('Test Board'));
+    startRename();
     const input = screen.getByDisplayValue('Test Board');
     fireEvent.change(input, { target: { value: '  Motherboard  ' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onRename).toHaveBeenCalledWith('Motherboard');
   });
 
-  it('does not collapse the group when the title is clicked to edit it', () => {
+  it('does not start a rename when the title is clicked', () => {
+    renderGroup({ onRename: vi.fn() });
+    fireEvent.click(screen.getByText('Test Board'));
+    expect(screen.queryByDisplayValue('Test Board')).toBeNull();
+  });
+
+  it('collapses the group when the title is clicked', () => {
     const props = renderGroup({ onRename: vi.fn() });
     fireEvent.click(screen.getByText('Test Board'));
-    expect(props.onToggleCollapsed).not.toHaveBeenCalled();
+    expect(props.onToggleCollapsed).toHaveBeenCalled();
   });
 
   it('keeps the chevron collapsing the group', () => {

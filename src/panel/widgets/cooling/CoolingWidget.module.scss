@@ -81,12 +81,14 @@
 // Fan (lucide) + signal-bars composed side-by-side. Both fixed-size at
 // 56px so 2x2 / 4x2 / 4x4 render identically - the size props on the SVGs
 // set explicit width/height attrs so there's no percent-of-container
-// drift. Inherits text-muted via the group; per-element overrides below.
+// drift. Dimmed by opacity over opaque ink, not --text-dim: an rgba stroke
+// double-paints wherever an icon's own parts overlap.
 .simpleIconGroup {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--text-dim);
+  color: var(--text);
+  opacity: 0.6;
   flex-shrink: 0;
 }
 
@@ -95,8 +97,44 @@
   flex-shrink: 0;
 }
 
+// Max's entrance: the funnel spins up from its own tip. The vortex is sold by
+// flipping scaleX through zero - the glyph turns edge-on and back, the way a
+// spinning ribbon does - and each flip dips the overall scale as it passes
+// edge-on, so the turn reads as depth rather than a width that snaps. Both
+// flips finish while the shape is still growing: once it is at full size it
+// only settles, never spins, which is what made the end look like a stutter.
+// No lean or skew - a wobble on top of the flip is what made it jitter.
+// transform-origin keeps the funnel's tip planted while the head swings.
+// Cleared on animationend like the fan, so a finished fill-mode animation
+// stops holding a compositor layer.
+.simpleMax[data-spinning='true'] {
+  // Duration lives in a custom property, matching .simpleFan's --spin-duration
+  // above: the shorthand then carries a token, not a raw time.
+  --max-spin-duration: calc(var(--ease-slow) * 2);
+  animation: maxSpinUp var(--max-spin-duration) cubic-bezier(0.2, 0.75, 0.3, 1) both;
+  transform-origin: center bottom;
+}
+
+@keyframes maxSpinUp {
+  0%   { opacity: 0; transform: scale(0.35) scaleX(1); }
+  10%  { opacity: 1; }
+  24%  { transform: scale(0.6) scaleX(1); }
+  30%  { transform: scale(0.57) scaleX(0); }
+  36%  { transform: scale(0.68) scaleX(-1); }
+  52%  { transform: scale(0.8) scaleX(-1); }
+  58%  { transform: scale(0.77) scaleX(0); }
+  64%  { transform: scale(0.9) scaleX(1); }
+  82%  { transform: scale(1.06) scaleX(1); }
+  100% { opacity: 1; transform: scale(1) scaleX(1); }
+}
+
+@keyframes maxFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 // Preset-change feedback: coast-to-stop spin scaled to the chosen level -
-// one turn per bar, +0.5s per bar. Custom/off (no level) gets the 1-turn
+// one turn per rung, +0.5s per rung. Custom/off (no level) gets the 1-turn
 // baseline.
 .simpleFan[data-spinning='true'] {
   --spin-turns: 360deg;
@@ -112,6 +150,13 @@
     --spin-turns: 1080deg;
     --spin-duration: 2s;
   }
+
+  // Max has no bar of its own (it renders the checkered flag), but it is
+  // the top rung, so it keeps the progression going.
+  &[data-level='4'] {
+    --spin-turns: 1440deg;
+    --spin-duration: calc(var(--ease-slow) * 8);
+  }
 }
 
 @keyframes fanSpin {
@@ -123,7 +168,7 @@
 // group so the affordance stays visible without implying a fan-speed
 // level. Bars-only would be unreadable in that state.
 .simpleIconMuted {
-  opacity: 0.45;
+  opacity: 0.27;
 }
 
 .simpleLabel {
@@ -133,7 +178,7 @@
   color: var(--text);
   // Full available width - the .simpleCenter padding already keeps the
   // label clear of the arrows. Ellipsis is a safety net for very long
-  // future labels; the four current values (Silent / Balanced / Turbo /
+  // future labels; the current values (Silent / Balanced / Turbo / Max /
   // Custom / Off) all fit comfortably at 16px.
   max-width: 100%;
   overflow: hidden;

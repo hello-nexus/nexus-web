@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import styles from './Sparkline.module.scss';
 
 interface SparklineProps {
@@ -29,6 +29,8 @@ interface SparklineProps {
   /** Silhouette mode: fill only, no stroke line. Bumps fillOpacity to the
    *  seek-bar silhouette weight unless the caller overrides it explicitly. */
   fillOnly?: boolean;
+  /** Injected into this svg's own user space, for a gradient the paths reference. */
+  defs?: ReactNode;
   className?: string;
   style?: CSSProperties;
 }
@@ -53,6 +55,7 @@ export function Sparkline({
   showFill = true,
   fillOpacity,
   fillOnly = false,
+  defs,
   className,
   style,
 }: SparklineProps) {
@@ -114,6 +117,7 @@ export function Sparkline({
       style={style}
       aria-hidden="true"
     >
+      {defs}
       {showFill && <path d={fillPath} fill={color} fillOpacity={resolvedFillOpacity} />}
       {!fillOnly && (
         <path

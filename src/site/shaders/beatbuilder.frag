@@ -17,9 +17,9 @@ uniform float u_highPeak;
 
 // ---- Center spectrum ----
 uniform float u_centerStyle;  // 0 Bars, 1 Smooth, 2 Dots, 3 Radial
-uniform float u_barCount;     // bar / cell density across the half-width
+uniform float u_barCount; // hint_range(8.0, 96.0, 1.0) = 48.0  bar / cell density across the half-width
 uniform float u_barWidth;     // 0..1 fill ratio inside each bar/cell
-uniform float u_centerGain;   // spectrum amplitude
+uniform float u_centerGain; // hint_range(0.3, 3.0, 0.05) = 1.2  spectrum amplitude
 uniform float u_centerFloor;  // noise gate
 uniform float u_centerSize;   // vertical half-height of the center region
 // ---- Top band meters ----
@@ -34,7 +34,7 @@ uniform float u_bottomScale;  // strip height fraction
 uniform float u_colorMode;    // 0 Solid, 1 Rainbow
 uniform float u_beatColor;    // hue jump on beat
 uniform float u_bgLevel;      // background brightness floor
-uniform float u_flash;        // full-frame beat strobe amount (0 = off)
+uniform float u_flash; // hint_range(0.0, 1.5, 0.05) = 0.0  full-frame beat strobe amount (0 = off)
 uniform float u_beatPulse;    // scale-on-beat amount
 
 float boost() { return clamp(u_audioBoost, 0.0, 2.0); }

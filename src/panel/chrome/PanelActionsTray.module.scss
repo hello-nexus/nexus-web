@@ -27,6 +27,9 @@
   background: color-mix(in srgb, black 25%, transparent);
 }
 
+// No bar: the tiles float up from the bottom edge, centred, each on its own
+// frosted surface, so a widescreen shows only the buttons. The container is
+// pointer-transparent so a tap beside the tiles reaches the scrim.
 .tray {
   position: absolute;
   left: 0;
@@ -34,22 +37,17 @@
   bottom: 0;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  @include vgap(8px);
+  align-items: center;
+  @include vgap(10px);
   // Safe-area insets on every side so landscape notched phones don't punch
   // buttons under the notch / rounded corners. max() keeps a gutter on
   // devices with no inset.
   padding:
     10px
     max(16px, env(safe-area-inset-right))
-    max(12px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-bottom))
     max(16px, env(safe-area-inset-left));
-  // The app backdrop (not the near-black card surface) so the tray reads at the
-  // same level as the desktop dashboard and the add-widget/settings sheet, kept
-  // frosted via the 8% transparency + blur.
-  background: color-mix(in srgb, var(--backdrop-base) 92%, transparent);
-  backdrop-filter: blur(var(--blur-backdrop)) saturate(0.95);
-  border-top: 1px solid var(--separator);
+  pointer-events: none;
   transform: translateY(100%);
   transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
   z-index: 60;
@@ -62,10 +60,6 @@
 
 .tray[data-state='dragging'] {
   transition: none;
-}
-
-:global(.panel-root)[data-theme='light'] .tray {
-  border-top-color: color-mix(in srgb, black 8%, transparent);
 }
 
 // Landscape phone: panelRoot is sized to the LARGE viewport (max(100vh,100dvh))
@@ -81,38 +75,24 @@
 }
 
 
-// Monitor-attached panel chrome scaling via transform: scale. The kiosk
-// WebView2 ignores CSS `zoom` (IsZoomControlEnabled = false), so this uses
-// the cellScaler's widget algorithm (transform: scale(cell/90)). Width
-// shrinks to 1/s so post-scale the tray spans 100% of the viewport; the
-// closed-state translateY scales to (100% × s) to push the full visual
-// height off-screen. Phone and desktop skip this (no display-scaling).
+// Monitor-attached panel chrome scaling. zoom, not transform: scale - a
+// transform paints the tray at its layout size and resamples the result, so
+// its labels are stretched from a smaller raster. zoom multiplies into layout
+// and the text is shaped at the size it is shown. No counter-sizing: a
+// percentage resolves in the parent's zoom space, so 100% already spans the
+// viewport, and translateY(100%) is the tray's own height either way. The
+// kiosk's IsZoomControlEnabled = false withholds only the user's zoom
+// GESTURE; it does not govern this property. Phone and desktop skip this
+// (no display-scaling).
 :global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .tray {
   right: auto;
-  width: calc(100% / var(--panel-scale, 1));
-  transform: translateY(calc(100% * var(--panel-scale, 1))) scale(var(--panel-scale, 1));
-  transform-origin: bottom left;
-}
-
-:global(.panel-root):not([data-surface='phone']):not([data-surface='desktop']) .tray[data-state='open'] {
-  transform: translateY(0) scale(var(--panel-scale, 1));
-}
-
-:global(.panel-root)[data-surface='desktop'] .tray {
-  left: 16px;
-  right: 16px;
-  bottom: 0;
-  min-height: var(--panel-desktop-actions-height, 74px);
-  padding: 12px 0;
-  background: transparent;
-  border-top: 1px solid var(--separator);
-  backdrop-filter: none;
-  justify-content: flex-end;
-  transform: translateY(100%);
-}
-
-:global(.panel-root)[data-surface='desktop'] .actionRow {
-  justify-content: flex-end;
+  width: 100%;
+  zoom: var(--panel-scale, 1);
+  // Published only where the zoom is, so the swipe-drag transform the
+  // component sets inline knows whether to convert its pointer delta. It must
+  // NOT read --panel-scale for that: phone carries a live value of that var
+  // while taking no zoom here, and would convert an offset it never scaled.
+  --tray-zoom: var(--panel-scale, 1);
 }
 
 // Desktop sidebar already shows the host PC; hide the in-tray label.
@@ -120,26 +100,22 @@
   display: none;
 }
 
-:global(.panel-root)[data-surface='desktop'] .tray[data-state='open'] {
-  transform: translateY(0);
-}
-
-:global(.panel-root)[data-surface='desktop'] .trayButton {
-  flex: 0 0 auto;
-  min-width: 148px;
-}
-
-// "Connected to <PC>" header above the action row.
+// "Connected to <PC>" pill above the tiles, on the tiles' surface so it reads over any wallpaper.
 .connectedTo {
   display: flex;
   flex-direction: row;
   align-items: baseline;
   justify-content: center;
   @include hgap(6px);
+  max-width: 100%;
+  padding: 6px 14px;
+  border: 1px solid var(--separator);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--backdrop-base) 92%, transparent);
   color: var(--text);
   line-height: 1.2;
-  padding: 2px 4px 4px;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .connectedLabel {
@@ -168,23 +144,76 @@
   color: var(--text-dim);
 }
 
+// The gap is a token the component reads back to size the full row; it must
+// not change with the compact state, or the measurement chases itself.
 .actionRow {
+  --tray-tile-width: 140px;
+  --tray-tile-gap: 10px;
   display: flex;
   flex-direction: row;
   align-items: stretch;
   justify-content: center;
-  @include hgap(8px);
+  max-width: 100%;
+
+  > *:not(:last-child) {
+    margin-right: var(--tray-tile-gap);
+  }
 }
 
-// Tray buttons are the shared desktop <Button> (neutral tone); these classes
-// own only layout - the row fills equally on touch surfaces, while the pairing
-// button stays a fixed-width icon square. Desktop keeps them compact (above).
-.trayButton {
-  flex: 1 1 0;
+// Shared IconLabelButton sized as a floating tile. Fixed width by default;
+// shrinks (never grows) when the row does not fit, as on the Y70's portrait
+// strip, and the row flags itself compact so the type steps down with it.
+// The tokens live on the button element, so this needs the extra specificity.
+:global(.panel-root) .tile {
+  --icon-label-button-height: 92px;
+  --icon-label-button-min-width: 0;
+  --icon-label-button-padding-x: 6px;
+  --icon-label-button-padding-y: 12px;
+  --icon-label-button-gap: 10px;
+  --icon-label-button-radius: var(--radius);
+  --icon-label-button-border: var(--separator);
+  --icon-label-button-bg: color-mix(in srgb, var(--backdrop-base) 92%, transparent);
+  --icon-label-button-bg-hover: color-mix(in srgb, var(--backdrop-base) 84%, var(--text));
+  --icon-label-button-text: var(--text);
+  --icon-label-button-text-hover: var(--text);
+  --icon-label-icon-size: 32px;
+  --icon-label-label-size: var(--type-mini);
+  // A definite width, not a flex-basis: the row's own size (what centres it
+  // on a wide screen) comes from the tiles' intrinsic widths, and Chromium
+  // sizes that from width, not basis. Shrinks when the row is clamped.
+  flex: 0 1 auto;
+  width: var(--tray-tile-width);
+  min-width: 64px;
+  pointer-events: auto;
+  backdrop-filter: blur(var(--blur-backdrop)) saturate(0.95);
+  box-shadow: var(--shadow-md);
+
+  svg {
+    stroke-width: 1.75;
+  }
+
+  // The shared label breaks anywhere; a tile label breaks between words only.
+  > span:last-child {
+    overflow-wrap: normal;
+    font-weight: var(--weight-strong);
+  }
 }
 
-.trayButtonCompact {
-  flex: 0 0 auto;
+// Compact: smaller type, and a single long word may break rather than clip.
+.actionRow[data-compact='true'] .tile {
+  --icon-label-button-height: 84px;
+  --icon-label-button-padding-x: 2px;
+  --icon-label-button-gap: 8px;
+  --icon-label-icon-size: 28px;
+  --icon-label-label-size: var(--type-tiny);
+
+  > span:last-child {
+    overflow-wrap: anywhere;
+  }
+}
+
+:global(.panel-root) .tile:active:not(:disabled) {
+  background: color-mix(in srgb, var(--backdrop-base) 80%, var(--text));
 }
 
 .scrim {

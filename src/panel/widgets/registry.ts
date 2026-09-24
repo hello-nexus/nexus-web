@@ -1,6 +1,6 @@
 import { Boxes } from 'lucide-react';
 import { appIconComponent } from '../../components/icons/AppIconImage';
-import { MarketplaceWidget } from './marketplace/MarketplaceWidget';
+import { MarketplaceTouch, MarketplaceWidget } from './marketplace/MarketplaceWidget';
 import { MarketplaceWidgetSettings } from './marketplace/MarketplaceWidgetSettings';
 import { SdkMarketplacePage } from './marketplace/SdkMarketplacePage';
 import {
@@ -14,6 +14,7 @@ import {
 import { makeWidgetTouchView } from './common/WidgetTouchView';
 import type { AppManifest } from './types';
 import {
+  PANEL_SURFACES,
   SINGLE_WIDGET_SIZES,
   singleWidgetSurfaceSize,
   surfaceSupportsTouch,
@@ -32,7 +33,6 @@ import { mixerApp } from './mixer';
 import { weatherApp } from './weather';
 import { stocksApp } from './stocks';
 import { screentimeApp } from './screentime';
-import { framesApp } from './frames';
 import { lightingApp } from './lighting';
 import { smartLightsApp } from './smart-lights';
 import { obsApp } from './obs';
@@ -69,7 +69,6 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   weather:    weatherApp,
   stocks:     stocksApp,
   screentime: screentimeApp,
-  frames:     framesApp,
   lighting:   lightingApp,
   'smart-lights': smartLightsApp,
   'home-assistant': homeAssistantApp,
@@ -97,18 +96,19 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
 // Whether an app can appear on a given surface. The decision is
 // capability-based: the app's `touch` requirement vs the surface's
 // input modality, the app's `sizes` vs the surface's accepted sizes,
-// and the reach flags (`localOnly`/`remoteOnly`/`panelOnly`) an app
-// opts into. There is no per-app surface allowlist beyond those flags:
-// desktop (mouse), Y70 (touch), and phone (touch) all expose a pointer
-// and accept every app whose sizes match. Single-widget surfaces (Q60)
-// lock to one size and additionally exclude touch-required apps since
-// they have no pointer.
+// the reach flags (`localOnly`/`remoteOnly`/`panelOnly`) an app opts
+// into, and the `surfaces` allowlist an SDK manifest may declare. Desktop
+// (mouse), Y70 (touch), and phone (touch) all expose a pointer and accept
+// every app whose sizes match. Single-widget surfaces (Q60) lock to one
+// size and additionally exclude touch-required apps since they have no
+// pointer.
 export function appAvailableForSurface(
   meta: AppManifest['meta'],
   surface: PanelSurface,
   opts?: { remote?: boolean; deviceTouch?: boolean },
 ): boolean {
   if (meta.touch && !surfaceSupportsTouch(surface, opts?.deviceTouch)) return false;
+  if (meta.surfaces && !meta.surfaces.includes(surface)) return false;
   // The phone surface only exists on remotely-connected panels, so it doubles
   // as the remote default for callers that don't carry the flag (layout
   // reconcile, PanelApp's render filter).
@@ -137,7 +137,7 @@ export function lookupApp(type: string): AppManifest | undefined {
     if (!listing) return undefined;
     return makeMarketplaceAppManifest(
       id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
-      !!listing.immersive, !!listing.singleInstance,
+      !!listing.immersive, !!listing.singleInstance, listing.surfaces,
     );
   }
   return APP_REGISTRY[type];
@@ -156,7 +156,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
     typeForMarketplace(listing.id),
     makeMarketplaceAppManifest(
       listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
-      !!listing.immersive, !!listing.singleInstance,
+      !!listing.immersive, !!listing.singleInstance, listing.surfaces,
     ),
   ]);
   return [...builtIns, ...marketplace];
@@ -165,12 +165,14 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // Panel-engine sizes the marketplace synthetic AppManifest accepts.
 // The manifest may declare any string here; anything outside this set
 // falls through the filter so a typo can't crash the picker.
-const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '4x2', '4x4'];
+const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '2x4', '4x2', '4x4'];
 
 // One shared immersive adapter for every SDK app: makeWidgetTouchView returns a
 // new component per call, so building it inline would remount the sandbox on
-// each render.
-const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceWidget);
+// each render. The Touch facet spawns the app's own immersive-surface worker
+// (useImmersive() reads true there); wrapping the cell widget would share the
+// tile's worker and render its tile face fullscreen.
+const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceTouch);
 
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real
@@ -191,7 +193,12 @@ function makeMarketplaceAppManifest(
   iconUrl: string | null | undefined,
   immersive = false,
   singleInstance = false,
+  manifestSurfaces?: string[],
 ): AppManifest {
+  // A manifest that names panel surfaces ("y70") is limited to them; the
+  // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
+  const surfaces = (manifestSurfaces ?? [])
+    .filter((s): s is PanelSurface => (PANEL_SURFACES as readonly string[]).includes(s));
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
   const safeSizes: PanelWidgetSize[] = sizes.length > 0 ? sizes : ['2x2'];
@@ -215,6 +222,7 @@ function makeMarketplaceAppManifest(
       singleInstance,
       hasConfig: true,
       touch: false,
+      surfaces: surfaces.length > 0 ? surfaces : undefined,
       // Marketplace curation runs through the same flag as built-ins: only
       // allowlisted SDK apps are listed in the picker; an installed-but-unlisted
       // one stays resolvable (placed instances render) but is delisted.

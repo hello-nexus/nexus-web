@@ -12,6 +12,9 @@ export interface DevicePick {
   key: string;
   slot: number;
   hex: string;
+  /** Held in every mode; every pick function below leaves a locked device
+   *  alone, mirroring the service, which refuses the write. */
+  locked?: boolean;
 }
 
 /** Every surface's record of what each device wears, keyed by device id. */
@@ -30,9 +33,26 @@ export const SELECTED_DEVICES_STORAGE_KEY = 'nexus.lighting.selectedDevices';
 /** The selection's anchor device, read by the page's scoped editor. */
 export const PRIMARY_DEVICE_STORAGE_KEY = 'nexus.lighting.primaryDevice';
 
+/** The ids a pick may land on: the locked ones keep what they hold. */
+export function unlockedIds(picks: DevicePicks, ids: readonly string[]): string[] {
+  return ids.filter(id => !picks[id]?.locked);
+}
+
+/** Records the lock on the local copy; the service is told separately. A device
+ *  with no pick has nothing to hold, so the record is left as it was. */
+export function setPickLocked(prev: DevicePicks, id: string, locked: boolean): DevicePicks {
+  const pick = prev[id];
+  if (!pick) return prev;
+  return { ...prev, [id]: { ...pick, locked } };
+}
+
 function withPick(prev: DevicePicks, ids: string[], pick: DevicePick): DevicePicks {
+  const targets = unlockedIds(prev, ids);
+  // Nothing to record (every target locked): the same object, so no store
+  // write and no re-render behind a pick that changed nothing.
+  if (targets.length === 0) return prev;
   const next = { ...prev };
-  for (const id of ids) next[id] = pick;
+  for (const id of targets) next[id] = pick;
   return next;
 }
 
@@ -52,7 +72,8 @@ export function pickLookForDevices(
 ): DevicePicks {
   const hue = Math.min(1, Math.max(0, state.hue));
   const sat = Math.min(1, Math.max(0, state.saturation));
-  const next = withPick(prev, ids, { key, slot, hex: hsvToHex(hue * 360, sat * 100, 100) });
+  const targets = unlockedIds(prev, ids);
+  const next = withPick(prev, targets, { key, slot, hex: hsvToHex(hue * 360, sat * 100, 100) });
   if (!push) return next;
   const look = {
     effect: key,
@@ -62,7 +83,7 @@ export function pickLookForDevices(
     params: state.params,
     slot,
   };
-  for (const id of ids) {
+  for (const id of targets) {
     setLightingDeviceColor(id, hue, sat, look).catch(() => { /* best-effort */ });
   }
   return next;
@@ -78,7 +99,7 @@ export function pickPaletteForDevices(
   ids: string[],
 ): DevicePicks {
   const next = withPick(prev, ids, { key: paletteKey(color.id), slot: 0, hex: color.hex });
-  pushPalettePick(color, ids);
+  pushPalettePick(color, unlockedIds(prev, ids));
   return next;
 }
 
@@ -104,7 +125,7 @@ export function pickCustomForDevices(
   push = true,
 ): DevicePicks {
   const next = withPick(prev, ids, { key: paletteKey(nearestPaletteId(hex)), slot: 0, hex });
-  if (push) pushCustomPick(hex, ids);
+  if (push) pushCustomPick(hex, unlockedIds(prev, ids));
   return next;
 }
 
@@ -129,6 +150,39 @@ export function devicePicksFromLooks(looks: Record<string, StaticDeviceLookDto>)
       // A palette pick stores only its hex, so the id resolves back from that.
       ? { key: paletteKey(nearestPaletteId(look.color)), slot: 0, hex: look.color }
       : { key: look.effect, slot: look.slot, hex: hsvToHex(look.hue * 360, look.saturation * 100, 100) };
+    if (look.locked) out[id].locked = true;
   }
+  return out;
+}
+
+/**
+ * Takes only the lock flags from the service's looks: a lock set from another
+ * client lands, while every pick record (a colour write still queued here)
+ * stays as it is. A locked look this client has never seen is added whole, so
+ * the card can show what the hardware holds.
+ */
+export function mergeLocksFromLooks(prev: DevicePicks, looks: Record<string, StaticDeviceLookDto>): DevicePicks {
+  let next: DevicePicks | null = null;
+  const fromLooks = devicePicksFromLooks(looks);
+  for (const id of new Set([...Object.keys(prev), ...Object.keys(fromLooks)])) {
+    const locked = !!looks[id]?.locked;
+    const pick = prev[id];
+    if (pick) {
+      if (!!pick.locked === locked) continue;
+      next ??= { ...prev };
+      next[id] = { ...pick, locked };
+    } else if (locked) {
+      next ??= { ...prev };
+      next[id] = fromLooks[id];
+    }
+  }
+  return next ?? prev;
+}
+
+/** The picks a mode other than Static still shows: only the locked ones, since
+ *  the service paints exactly those while an animation drives the rest. */
+export function lockedPicks(picks: DevicePicks): DevicePicks {
+  const out: DevicePicks = {};
+  for (const [id, pick] of Object.entries(picks)) if (pick.locked) out[id] = pick;
   return out;
 }

@@ -29,7 +29,7 @@ export const UI_ELEMENTS = {
     properties: ['columns', 'rows', 'gap', 'padding', 'align', 'justify', 'grow'],
   },
   'ui-frame': {
-    properties: ['padding', 'gap', 'direction', 'align', 'justify', 'tone', 'radius', 'border', 'grow'],
+    properties: ['padding', 'gap', 'direction', 'align', 'justify', 'tone', 'radius', 'border', 'grow', 'image'],
   },
   'ui-spacer': { properties: ['size'] },
   'ui-divider': { properties: ['tone'] },
@@ -56,8 +56,10 @@ export const UI_ELEMENTS = {
     properties: ['value', 'min', 'max', 'step', 'tone', 'label', 'disabled', 'trackFill', 'orientation'],
     events: ['input', 'change'],
   },
+  // `href` is an https URL the host opens in the system browser on press
+  // (press still fires); anything else is ignored.
   'ui-button': {
-    properties: ['label', 'tone', 'variant', 'disabled', 'icon', 'size'],
+    properties: ['label', 'tone', 'variant', 'disabled', 'icon', 'size', 'href'],
     events: ['press', 'longpress'],
   },
   'ui-stepper': {
@@ -68,6 +70,9 @@ export const UI_ELEMENTS = {
   // worker supplies a URL string; the host owns sizing/fit/radius via tokens.
   // `pixelated` switches to nearest-neighbour scaling, so pixel art authored at
   // its native grid stays crisp instead of being smoothed when it is scaled up.
+  // `src` is https, data:image, blob, or the app's own asset route
+  // (/apps-api/installed/<id>/asset/...); the host attaches the session token
+  // to the latter.
   'ui-image': { properties: ['src', 'alt', 'fit', 'radius', 'width', 'height', 'aspect', 'tone', 'pixelated'] },
   // A positioned stage: `position: relative` + clipping, so `ui-sprite` children
   // can overlap and move freely. The ONLY place the closed layout set allows
@@ -76,9 +81,24 @@ export const UI_ELEMENTS = {
   // `press` reports the tap position as { x, y } in layer-local pixels, so an
   // author can react where the user actually touched (the closed event set has
   // no other way to learn a coordinate).
+  // `gestures` turns the layer into a manipulation stage: a drag, pinch or
+  // twist that starts on a `ui-manipulable` child edits that child (a second
+  // finger anywhere on the layer joins), and the child reports the result.
   'ui-layer': {
-    properties: ['grow', 'padding', 'aspect', 'tone', 'radius', 'interactive'],
+    properties: ['grow', 'padding', 'aspect', 'tone', 'radius', 'interactive', 'gestures'],
     events: ['press'],
+  },
+  // A freely placed, transformable child of a `ui-layer`: centre `x`/`y` as
+  // 0..1 of the layer box, `size` as a fraction of the layer's shorter side,
+  // `scale` multiplier and `rotation` in degrees. With the layer's `gestures`
+  // on and `editable` set, the host drags / pinches / twists it and fires
+  // `change` with the settled transform; a tap fires `press`. While `selected`
+  // and a `remove` listener is set, the host draws a remove handle at the
+  // top-right corner that fires it. Wraps any blessed content (an image, a
+  // sprite, text).
+  'ui-manipulable': {
+    properties: ['id', 'x', 'y', 'scale', 'rotation', 'size', 'z', 'minScale', 'maxScale', 'editable', 'selected', 'alt'],
+    events: ['press', 'change', 'remove'],
   },
   // One cell of a sprite atlas, absolutely placed inside a `ui-layer`. The
   // worker ships the atlas ONCE as a data URL and then animates by sending a
@@ -95,6 +115,10 @@ export const UI_ELEMENTS = {
   // A looping muted video from a same-origin (/...), https, or blob URL (the host
   // validates the scheme). Autoplays muted+inline for a live preview tile.
   'ui-video': { properties: ['src', 'fit', 'radius', 'width', 'height', 'aspect', 'tone', 'loop'] },
+  // A YouTube embed player by video id (the host builds the privacy-enhanced
+  // embed URL; nothing else can be framed). Fills its width at 16:9; muted
+  // autoplay by default, the only autoplay a browser allows without a tap.
+  'ui-youtube': { properties: ['videoId', 'autoplay', 'title', 'radius'] },
   // A scrollable container - the missing primitive for long lists (steam, emoji).
   'ui-scroll': { properties: ['direction', 'gap', 'padding', 'grow'] },
   // Text/number input. `value` is for programmatic sets (reset/compute); typing is
@@ -156,6 +180,24 @@ export const UI_ELEMENTS = {
   'ui-worldclock': { properties: ['highlightTz'] },
   'ui-clockface': {
     properties: ['nowMs', 'design', 'tz', 'showSeconds', 'showDate', 'hour12', 'useAccentColor', 'size'],
+  },
+  // First-party 3D avatar (three.js), rendered host-side and driven by
+  // signals: `dance`/`listening`/`energy` map to the pack's NexusBridge
+  // signals (media:playing / discord:talking-silent / system:energy);
+  // `reaction` is a one-shot "TriggerName#seq" (seq increments so a repeat
+  // re-fires) played directly on the animator; `intro` plays the walk-in +
+  // camera push-in once on mount (default false); `interactive` toggles
+  // pointer orbit/zoom (default true), applied only inside the panel's
+  // fullscreen immersive overlay - in a tile the canvas is always inert so a
+  // tap falls through to tap-to-immersive. `pack` is a URL to a pack
+  // directory or an encrypted .nxpack container. `zoom` sets the camera
+  // depth as 0..1 of the deepest closeup; `zoom` fires with the depth after
+  // a wheel or pinch on the canvas so an app control can track it, and
+  // `interaction` fires (throttled) on any pointer or wheel activity on the
+  // stage, for idle timers.
+  'ui-avatar': {
+    properties: ['pack', 'dance', 'listening', 'energy', 'reaction', 'intro', 'interactive', 'demo', 'zoom'],
+    events: ['zoom', 'interaction'],
   },
   // Standard page header - gives SDK pages the same title/tab chrome native pages
   // use. `tabs` is [{ key, label, disabled? }]; the host fires `change` with the key.

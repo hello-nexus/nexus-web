@@ -18,8 +18,8 @@ export interface DeviceSpecsCardProps {
 }
 
 /**
- * Shared device card body: hostname title + spec rows, used by the public
- * profile page (/u/<username>) and the account devices editor so both
+ * Shared device card body: hostname title + spec rows, used by the Build
+ * portal's public profile page and the account devices editor so both
  * surfaces render a device identically. Reuses publicSpecRows for the same
  * canonical spec fields and devices.specs.row.* labels everywhere else in
  * the app already uses.

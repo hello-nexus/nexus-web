@@ -162,10 +162,10 @@ function FansSection({ cooling, liveChannels }: {
   }
 
   const blocks: ReactNode[] = [];
-  // Motherboard / GPU fans first, flat (same shape as CoolingPage).
+  // Motherboard headers first, flat - this surface has no group header for them.
   const mobo = groups.get(null);
   if (mobo) for (const ch of mobo) blocks.push(renderFan(ch));
-  // Then one collapsible group per external hub, in stable order.
+  // Then one collapsible group per device, in stable order.
   const deviceKeys = Array.from(groups.keys()).filter((k): k is string => !!k).sort();
   for (const key of deviceKeys) {
     const list = groups.get(key)!;

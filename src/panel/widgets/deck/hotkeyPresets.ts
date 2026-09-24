@@ -36,6 +36,7 @@ export const HOTKEY_PRESET_CATEGORIES: HotkeyPresetCategory[] = [
     presets: [
       { labelKey: 'panel.settings.deck.hotkeyPreset.openFileExplorer', keys: 'meta+e' },
       { labelKey: 'panel.settings.deck.hotkeyPreset.openSettings', keys: 'meta+i' },
+      { labelKey: 'panel.settings.deck.hotkeyPreset.preferences', keys: 'ctrl+,' },
       { labelKey: 'panel.settings.deck.hotkeyPreset.openRunDialog', keys: 'meta+r' },
       { labelKey: 'panel.settings.deck.hotkeyPreset.openTaskManager', keys: 'ctrl+shift+escape' },
       { labelKey: 'panel.settings.deck.hotkeyPreset.lock', keys: 'meta+l' },

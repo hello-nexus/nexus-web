@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, DownloadCloud } from 'lucide-react';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
@@ -14,6 +14,10 @@ import styles from './ImportOnboardingScreen.module.scss';
 type ApplyPhase = 'idle' | 'applying' | 'failed';
 
 const HERO_ICON_SIZE = 40;
+// Upper bound on waiting for a still-loading preview before acting on the
+// selection as it stands; the preview is a local read, so this is only hit
+// when the service has gone away.
+const SELECTION_SETTLE_TIMEOUT_MS = 10_000;
 
 export interface ImportOnboardingScreenProps {
   /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
@@ -41,7 +45,22 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
   const [dismissing, setDismissing] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [importHasSelection, setImportHasSelection] = useState(false);
+  // Mirror for the action, which reads the selection after an await; the
+  // state above is for rendering. `settled` is false while an included
+  // source's preview is still loading, and a press in that window waits for
+  // the answer rather than reading "nothing ticked".
+  const selectionRef = useRef({ has: false, settled: false });
+  const settledWaiters = useRef<Array<() => void>>([]);
   const importHandle = useRef<ImportCenterHandle | null>(null);
+  const noteSelection = useCallback((has: boolean, settled: boolean) => {
+    selectionRef.current = { has, settled };
+    setImportHasSelection(has);
+    if (settled) {
+      const waiters = settledWaiters.current;
+      settledWaiters.current = [];
+      for (const resolve of waiters) resolve();
+    }
+  }, []);
 
   // Listed when the app holds data to import.
   const nexus2Here = nexus2?.importAvailable === true;
@@ -98,8 +117,14 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
 
     setApplyPhase('applying');
 
+    if (runImport && !selectionRef.current.settled) {
+      await new Promise<void>(resolve => {
+        settledWaiters.current.push(resolve);
+        setTimeout(resolve, SELECTION_SETTLE_TIMEOUT_MS);
+      });
+    }
     let importFailed = false;
-    if (runImport && importHasSelection && importHandle.current) {
+    if (runImport && selectionRef.current.has && importHandle.current) {
       importFailed = await importHandle.current.runImport() === 'failed';
     }
 
@@ -154,18 +179,18 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
           disabled={applyPhase !== 'idle'}
           onBusyChange={setImportBusy}
           showAction={false}
-          onSelectionChange={setImportHasSelection}
+          onSelectionChange={noteSelection}
           handleRef={importHandle}
         />
       </div>
 
       <div className={styles.footerRow}>
-        {applyPhase !== 'failed' && sources.length > 0 && (
+        {applyPhase !== 'failed' && importHasSelection && (
           <Button
             tone="neutral"
             size="lg"
             onClick={() => handleContinue(false)}
-            disabled={busy || importBusy}
+            disabled={busy}
             className={styles.continueButton}
           >
             {t('importOnboarding.skip')}
@@ -177,12 +202,11 @@ export function ImportOnboardingScreen({ open, fanControl, nexus2, offeredFor, o
           onClick={() => handleContinue(true)}
           loading={busy}
           loadingHidesLabel
-          disabled={importBusy || (applyPhase !== 'failed' && sources.length > 0 && !importHasSelection)}
           className={styles.continueButton}
         >
           {applyPhase === 'failed'
             ? t('importOnboarding.continueAnyway')
-            : sources.length > 0
+            : importHasSelection
               ? t('importOnboarding.importAndContinue')
               : t('importOnboarding.continue')}
         </Button>

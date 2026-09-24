@@ -71,11 +71,14 @@
   text-transform: uppercase;
 }
 
+// Shared with layouts that reserve a fixed number of caption lines.
+$caption-line-height: 1.3;
+
 @mixin text-caption {
   font-family: var(--font-sans);
   font-size: var(--type-tiny);
   font-weight: var(--weight-caption, 600);
-  line-height: 1.3;
+  line-height: $caption-line-height;
   letter-spacing: 0.02em;
 }
 

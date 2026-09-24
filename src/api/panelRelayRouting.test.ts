@@ -23,6 +23,7 @@ vi.mock('./service', () => ({
   // The "stays on LAN" case flips this false (service-served origin) so the
   // remote-origin fail-closed guard in panel.ts doesn't short-circuit it.
   isRemoteOrigin: false,
+  isLocalhostUnreachable: () => false,
   relayRequestWithStatus: (...args: unknown[]) =>
     relayWithStatusMock(...(args as [string, string, unknown?, { timeoutMs?: number }?])),
   // The boot-path bound panel.ts passes through on every device call.

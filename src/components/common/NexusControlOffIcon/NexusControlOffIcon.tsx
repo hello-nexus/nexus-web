@@ -1,4 +1,4 @@
-import { Unlink } from 'lucide-react';
+import { Link2Off } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import styles from './NexusControlOffIcon.module.scss';
@@ -13,7 +13,7 @@ export function NexusControlOffIcon({ className, label: labelOverride }: { class
   return (
     <HoverTooltip body={label} side="top">
       <span className={`${styles.icon} ${className ?? ''}`} role="img" aria-label={label}>
-        <Unlink size={14} aria-hidden />
+        <Link2Off size={14} aria-hidden />
       </span>
     </HoverTooltip>
   );

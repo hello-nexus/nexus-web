@@ -4,7 +4,7 @@ import { GalleryPage } from './GalleryPage';
 
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
-  items: [] as { id: string; name: string; sourceId: string }[],
+  items: [] as { id: string; name: string; sourceId: string; kind?: 'image' | 'video' }[],
   bridgeAvailable: false,
 }));
 
@@ -62,10 +62,10 @@ beforeEach(() => {
 });
 
 describe('GalleryPage', () => {
-  it('shows the no-sources empty state', async () => {
+  it('shows the feature intro when there are no sources', async () => {
     render(<GalleryPage />);
 
-    expect(await screen.findByText('gallery.page.noSources')).toBeTruthy();
+    expect(await screen.findByText('gallery.intro.title')).toBeTruthy();
   });
 
   it('lists sources with derived item counts', async () => {
@@ -82,10 +82,43 @@ describe('GalleryPage', () => {
     expect(screen.getByText('gallery.page.itemCount:count=2')).toBeTruthy();
   });
 
+  it('marks clips in the grid', async () => {
+    mockState.sources = [folderSource('Pictures'), fileSource('solo')];
+    mockState.items = [
+      { id: 'i1', name: 'a.png', sourceId: 'Pictures', kind: 'image' },
+      { id: 'i2', name: 'b.mp4', sourceId: 'Pictures', kind: 'video' },
+      { id: 'i3', name: 'solo.mp4', sourceId: 'solo', kind: 'video' },
+    ];
+    render(<GalleryPage />);
+    await screen.findByText('Pictures');
+
+    // One badge per clip, none on the image.
+    expect(screen.getAllByLabelText('gallery.page.video')).toHaveLength(2);
+  });
+
+  it('names a tile through the in-house tooltip, not the native title', async () => {
+    mockState.sources = [folderSource('Pictures')];
+    mockState.items = [
+      { id: 'i1', name: 'a-very-long-photo-name.png', sourceId: 'Pictures', kind: 'image' },
+      { id: 'i2', name: 'b.mp4', sourceId: 'Pictures', kind: 'video' },
+    ];
+    const { container } = render(<GalleryPage />);
+    await screen.findByText('Pictures');
+
+    expect(container.querySelectorAll('[title]')).toHaveLength(0);
+    const tiles = container.querySelectorAll('figure');
+    // Focus opens the shared tooltip without the pointer-rest delay.
+    fireEvent.focus(tiles[1]);
+    // Clip tooltip carries the kind as its title line above the file name.
+    const tip = await screen.findByRole('tooltip');
+    expect(tip.textContent).toContain('gallery.page.video');
+    expect(tip.textContent).toContain('b.mp4');
+  });
+
   it('add-folder opens the native picker and adds the chosen path', async () => {
     const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFolder'));
     await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalledWith(true));
@@ -127,7 +160,7 @@ describe('GalleryPage', () => {
     vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: ['/home/user/Pictures'] });
     vi.mocked(addGallerySource).mockResolvedValueOnce({ source: null, error: true, code: 'duplicate' });
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFolder'));
 
@@ -139,7 +172,7 @@ describe('GalleryPage', () => {
     const { addGallerySource, pickGalleryPaths } = await import('../../../../api/gallery');
     vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: [], cancelled: true });
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFile'));
     await waitFor(() => expect(vi.mocked(pickGalleryPaths)).toHaveBeenCalled());
@@ -152,7 +185,7 @@ describe('GalleryPage', () => {
     const { pickGalleryPaths } = await import('../../../../api/gallery');
     vi.mocked(pickGalleryPaths).mockResolvedValueOnce({ paths: [], error: true, msg: '' });
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     fireEvent.click(screen.getByText('gallery.page.addFile'));
 
@@ -161,7 +194,7 @@ describe('GalleryPage', () => {
 
   it('a drop without the shell bridge shows the desktop-app hint', async () => {
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     const drop = document.querySelector('[class*=dropZone]')!;
     fireEvent.drop(drop, { dataTransfer: { files: [new File(['x'], 'a.png')] } });
@@ -173,7 +206,7 @@ describe('GalleryPage', () => {
     const { postGalleryDrop } = await import('../../../../app/windowActions');
     mockState.bridgeAvailable = true;
     render(<GalleryPage />);
-    await screen.findByText('gallery.page.noSources');
+    await screen.findByText('gallery.intro.title');
 
     const drop = document.querySelector('[class*=dropZone]')!;
     fireEvent.drop(drop, { dataTransfer: { files: [new File(['x'], 'a.png')] } });

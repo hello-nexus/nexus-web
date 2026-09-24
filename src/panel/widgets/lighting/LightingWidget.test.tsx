@@ -76,7 +76,6 @@ vi.mock('../../../lib/i18n', () => ({
       'lighting.panel.prev': 'Previous',
       'lighting.panel.next': 'Next',
       'lighting.panel.screenActive': 'Mirror is active',
-      'lighting.panel.selectMode': 'Select a mode',
       'lighting.controls.noMedia': 'No media available',
       'lighting.controls.rainbow': 'Rainbow',
       'lighting.filter.passthrough': 'Pass-Through',
@@ -127,7 +126,7 @@ describe('LightingWidget', () => {
     expect(fetchMediaLibrary).not.toHaveBeenCalled();
   });
 
-  it('renders 4x2 with all five icon mode buttons (Off / Animation / Media / Mirror / Game Sync) + L/R arrows', async () => {
+  it('renders 4x2 with all five icon mode buttons (Off / Animation / Media / Mirror / Game Sync) and no arrows', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
@@ -138,8 +137,8 @@ describe('LightingWidget', () => {
     // Game Sync appears once the ping resolves platform=windows.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Game Sync' })).toBeInTheDocument());
 
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
 
     // Icon-only buttons: the label lives in the aria-label, not as text.
     expect(screen.queryByText('Animation')).not.toBeInTheDocument();
@@ -225,6 +224,18 @@ describe('LightingWidget', () => {
     });
   });
 
+  it.each([
+    ['none', 'lucide-lightbulb', 'Off'],
+    ['gif', 'lucide-film', 'Media'],
+    ['screen', 'lucide-monitor-play', 'Pass-Through'],
+  ])('shows %s as the %s icon and its caption', async (sync, iconClass, caption) => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync });
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+    await waitFor(() => expect(screen.getByText(caption)).toBeInTheDocument());
+    expect(document.querySelector(`[class*="thumbIconWrap"] .${iconClass}`)).toBeInTheDocument();
+  });
+
   // Static colours are assigned per device, so there is no one effect to
   // picture - the mode icon and the lit-device count are the whole tile.
   it('shows Static as an icon and a device count, with no effect thumbnail', async () => {
@@ -241,6 +252,23 @@ describe('LightingWidget', () => {
     // thumbnail is ever requested, because none is rendered.
     const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
     expect(paths.some(p => p.includes('simplewhite'))).toBe(false);
+  });
+
+  // A simple-mode sweep drives the LEDs without a catalogue entry: the tile
+  // has to picture that, not fall back to the last catalogue effect.
+  it('names and pictures a running simple-mode sweep', async () => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync: 'sweepcycle' });
+    vi.mocked(fetchServiceBlob).mockClear();
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+    await waitFor(() => expect(screen.getByText('lighting.simple.anim.colorCycle')).toBeInTheDocument());
+    // The thumbnail fetch is a second round trip, so it can still be in flight
+    // when the name lands.
+    await waitFor(() => {
+      const paths = vi.mocked(fetchServiceBlob).mock.calls.map(c => String(c[0]));
+      expect(paths.some(p => p.includes('sweepcycle'))).toBe(true);
+    });
+    expect(screen.queryByText('lighting.controls.rainbow')).not.toBeInTheDocument();
   });
 
   // Static assigns per device, so no single preview can state what it is doing:

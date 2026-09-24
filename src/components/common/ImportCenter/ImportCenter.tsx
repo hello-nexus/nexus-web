@@ -50,8 +50,8 @@ export interface ImportCenterProps {
   disabled?: boolean;
   /** Fires on every busy-state transition, so a host can gate its own actions. */
   onBusyChange?: (busy: boolean) => void;
-  /** Reports whether anything would be imported, so a host can label its own action. */
-  onSelectionChange?: (hasSelection: boolean) => void;
+  /** Reports whether anything would be imported, so a host can label its own action. `settled` is false while an included source's preview is still loading, when the answer is not yet known. */
+  onSelectionChange?: (hasSelection: boolean, settled: boolean) => void;
   /** False hides the built-in action for hosts that drive the import from their own footer. */
   showAction?: boolean;
   /** Receives the apply runner for hosts with showAction=false. */
@@ -157,13 +157,14 @@ export function ImportCenter({
   const sourcesKey = sources.join(',');
   const runnable = (id: ImportSourceId) => isIncluded(id) && available[id] && sourceHasSelection[id] === true;
   const anyRunnable = sources.some(runnable);
+  const settled = !sources.some(id => isIncluded(id) && available[id] && sourceHasSelection[id] === undefined);
 
   // `open` is a dependency so a host that resets its copy of this when a late
   // detection lands is told the current value again, not only on a change.
   useEffect(() => {
     if (!open) return;
-    onSelectionChange?.(anyRunnable);
-  }, [open, anyRunnable, sourcesKey, onSelectionChange]);
+    onSelectionChange?.(anyRunnable, settled);
+  }, [open, anyRunnable, settled, sourcesKey, onSelectionChange]);
 
   // Guards on its own in-flight state only, never the host's `disabled`: a host
   // driving this from its own button sets that flag in the same tick, and

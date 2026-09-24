@@ -12,12 +12,30 @@ vi.mock('../../../lib/i18n', () => ({
 }));
 
 const mockKill = vi.fn();
+const mockDisableAutostart = vi.fn();
+const mockFetchAutostart = vi.fn();
 vi.mock('../../../api/conflicts', () => ({
   killConflict: (...args: any[]) => mockKill(...args),
+  fetchConflictAutostart: (...args: any[]) => mockFetchAutostart(...args),
+  disableConflictAutostart: (...args: any[]) => mockDisableAutostart(...args),
+}));
+
+const mockUninstall = vi.fn();
+vi.mock('../../../api/migration', () => ({
+  uninstallNexus2: (...args: any[]) => mockUninstall(...args),
 }));
 
 beforeEach(() => {
   mockKill.mockReset();
+  mockKill.mockResolvedValue({ error: false, msg: 'Ok', killed: true });
+  mockDisableAutostart.mockReset();
+  mockDisableAutostart.mockResolvedValue({ error: false, msg: 'Ok', disabled: 1 });
+  // The boot-entry read has its own tests; here it only has to resolve so the
+  // screen renders without an unhandled rejection.
+  mockFetchAutostart.mockReset();
+  mockFetchAutostart.mockResolvedValue([]);
+  mockUninstall.mockReset();
+  mockUninstall.mockResolvedValue({ error: false, msg: 'Ok' });
 });
 
 const icue = { id: 'icue', displayName: 'Corsair iCUE', category: 'lighting', processName: 'iCUE', pid: 396 };
@@ -40,24 +58,57 @@ describe('ConflictOnboardingScreen', () => {
   });
 
 
-  it('ends nothing on mount or on continue', async () => {
+  it('ends nothing on mount or on skip', async () => {
     const onComplete = vi.fn();
-    render(<ConflictOnboardingScreen open ready conflicts={[icue, cam]} onComplete={onComplete} />);
+    render(<ConflictOnboardingScreen open ready conflicts={[icue, cam]} onComplete={onComplete} nexus2Installed />);
     expect(mockKill).not.toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'conflicts.onboarding.done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.onboarding.skip' }));
     });
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(mockKill).not.toHaveBeenCalled();
+    expect(mockUninstall).not.toHaveBeenCalled();
   });
 
-  it('shows the all-clear state and a Continue label when nothing is detected', () => {
-    render(<ConflictOnboardingScreen open ready conflicts={[]} onComplete={() => {}} />);
+  it('resolve all ends every app, turns off every boot entry, uninstalls Nexus 2, then completes', async () => {
+    mockFetchAutostart.mockResolvedValue([{ id: 'icue', entries: [{ kind: 'service', entryName: 'CorsairService' }] }]);
+    const onComplete = vi.fn();
+    render(<ConflictOnboardingScreen open ready conflicts={[icue, cam]} onComplete={onComplete} nexus2Installed />);
+    await act(async () => { await Promise.resolve(); });
+    expect(screen.getByText('conflicts.onboarding.uninstallNexus2')).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+    });
+
+    expect(mockKill.mock.calls.map(c => c[0]).sort()).toEqual(['icue', 'nzxt-cam']);
+    expect(mockDisableAutostart).toHaveBeenCalledWith('icue');
+    expect(mockUninstall).toHaveBeenCalledTimes(1);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolve all leaves Nexus 2 alone unless it is installed', async () => {
+    const onComplete = vi.fn();
+    render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={onComplete} />);
+    expect(screen.queryByText('conflicts.onboarding.uninstallNexus2')).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+    });
+
+    expect(mockUninstall).not.toHaveBeenCalled();
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the all-clear state with the uninstall card for an installed, idle Nexus 2', () => {
+    render(<ConflictOnboardingScreen open ready conflicts={[]} onComplete={() => {}} nexus2Installed />);
 
     expect(screen.getByText('conflicts.modal.empty')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'conflicts.onboarding.continue' })).toBeInTheDocument();
+    expect(screen.getByText('conflicts.onboarding.uninstallNexus2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'conflicts.onboarding.skip' })).toBeInTheDocument();
   });
 
   it('renders Back and Skip only when their handlers are given', () => {

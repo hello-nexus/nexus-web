@@ -5,6 +5,12 @@
   composes: affordance from '../../../styles/editable.module.scss';
 }
 
+/* A name renamed from a menu only. No affordance: it reads as the static text
+   around it and takes its cursor from whatever it sits on. */
+.displayStatic {
+  cursor: inherit;
+}
+
 .input {
   background: var(--bg);
   border: 1px solid var(--accent);

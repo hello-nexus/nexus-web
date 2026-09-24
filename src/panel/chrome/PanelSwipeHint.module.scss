@@ -1,0 +1,66 @@
+// Runs once over the whole cycles x cycle window; the lift below repeats.
+@keyframes swipeHintFade {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+// Dissolves at the top so each repeat reads as a fresh flick.
+@keyframes swipeHintLift {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.92);
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-34px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-46px) scale(1);
+  }
+}
+
+@keyframes swipeHintChevron {
+  0%, 30% { opacity: 0.35; transform: translateY(0); }
+  70% { opacity: 1; transform: translateY(-6px); }
+  100% { opacity: 0.35; transform: translateY(0); }
+}
+
+.hint {
+  position: absolute;
+  left: 50%;
+  // Clear of the iOS home-indicator band the tray gesture ignores.
+  bottom: max(48px, calc(env(safe-area-inset-bottom) + 36px));
+  z-index: 52;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text);
+  filter: drop-shadow(0 2px 10px rgb(0 0 0 / var(--alpha-strong, 0.5)));
+  pointer-events: none;
+  // Tracks the surface's content scale so the hand is not tiny on a dense Y70 strip.
+  transform: translateX(-50%) scale(var(--panel-scale, 1));
+  transform-origin: bottom center;
+  animation: swipeHintFade calc(var(--swipe-hint-cycle) * var(--swipe-hint-cycles)) ease both;
+}
+
+.chevron {
+  width: 44px;
+  height: 44px;
+  stroke-width: 2.5;
+  animation: swipeHintChevron var(--swipe-hint-cycle) ease-in-out var(--swipe-hint-cycles);
+}
+
+.hand {
+  width: 88px;
+  height: 88px;
+  stroke-width: 1.75;
+  // Room for the full lift: the fingertip reaches the chevron, never crosses it.
+  margin-top: 36px;
+  animation: swipeHintLift var(--swipe-hint-cycle) cubic-bezier(0.32, 0.72, 0, 1) var(--swipe-hint-cycles);
+}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, MonitorSmartphone, Unplug } from 'lucide-react';
+import { Fan, Lightbulb, MonitorSmartphone, RadioReceiver, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { getLianLiWirelessState, type LianLiWirelessLinkStatus, type LianLiWirelessState } from '../../../api/lianli-wireless';
@@ -7,14 +7,19 @@ import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { L_CONNECT_CONFLICT_ID } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
-import { LianLiWirelessFansTab } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, fanTypeKey, isFanDevice } from './LianLiWirelessFansTab';
+import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
+import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
 
-type LianLiWirelessTab = 'fans' | 'screen';
+type LianLiWirelessTab = 'fans' | 'lighting' | 'cooling' | 'screen';
+
+// Strimer Wireless dev_types with a known LED layout; the service lists only these.
+const isStrimerDevType = (devType: number) => devType >= 1 && devType <= 4;
 
 // One hint line under the disconnected title. 'none' has none: the title
 // already says nothing is connected.
@@ -95,18 +100,27 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   const { conflicts } = useConflictApps(disconnected && linkStatus === 'busy');
   const blockingApp = conflicts.find(c => c.id === L_CONNECT_CONFLICT_ID);
 
+  const hasStrimer = !!state?.fans.some(f => f.boundToUs && isStrimerDevType(f.devType));
+  const hasFans = !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType));
+  // Fan families the service can upload animations to; CL and unclassified chains stream only.
+  const hasLighting = hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
+    && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
   const tabs = [
-    { key: 'fans', label: t('devices.lianli-wireless.tab.fans'), icon: <Fan size={14} /> },
+    { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <RadioReceiver size={14} /> },
+    ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
+    ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> }] : []),
     { key: 'screen', label: t('devices.lianli-wireless.tab.screen'), icon: <MonitorSmartphone size={14} /> },
   ];
+  // A tab that disappears (its chain unbound or out of range) falls back to Devices.
+  const tab: LianLiWirelessTab = tabs.some(x => x.key === activeTab) ? activeTab : 'fans';
 
   return (
     <div className={styles.page}>
       <ViewHeader
         // eslint-disable-next-line i18next/no-literal-string -- brand + model name
-        title="Lian Li Uni Fan Wireless"
+        title="Lian Li L-Wireless Controller"
         tabs={disconnected ? undefined : tabs}
-        activeTab={activeTab}
+        activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
       />
       <div className={`${styles.pageBody} pageBody`}>
@@ -121,10 +135,12 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         {/* Tab body stays mounted across a transient disconnect so a fan's
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>
-          {activeTab === 'fans' && (
-            <LianLiWirelessFansTab state={state} refresh={refresh} onSectionNavigate={onSectionNavigate} />
+          {tab === 'fans' && (
+            <LianLiWirelessFansTab state={state} refresh={refresh} />
           )}
-          {activeTab === 'screen' && <LianLiWirelessScreenTab />}
+          {tab === 'lighting' && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
+          {tab === 'cooling' && <LianLiWirelessCoolingTab state={state} onSectionNavigate={onSectionNavigate} />}
+          {tab === 'screen' && <LianLiWirelessScreenTab />}
         </div>
       </div>
     </div>

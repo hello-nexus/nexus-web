@@ -165,8 +165,8 @@ export function repackToFit(widgets: readonly PanelWidget[], cols: number, rows:
  * fit the current grid (`repackToFit`, long-axis flow) so nothing
  * overlaps or clips; a page that clamps cleanly keeps its positions and
  * any intentional gaps. Returns the same layout reference when nothing
- * changes so consumers can `===`-check (load-bearing: the persist effect
- * re-fires otherwise).
+ * changes so consumers can `===`-check (PanelDevicePage's conform effect
+ * would otherwise setLayout every render).
  */
 export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCapacity): PanelLayout {
   const cols = Math.max(1, Math.floor(capacity.gridCols));
@@ -184,9 +184,9 @@ export function repaginatePanelLayout(layout: PanelLayout, capacity: PaginateCap
     // Repack from the original (pre-clamp) positions to keep reading order,
     // but only adopt it if it actually fits. An over-capacity page (more
     // widget area than the grid holds) can't be packed clean and isn't a
-    // fixed point under re-clamp, which would loop the persist effect - so
-    // keep the clamped result there (clamp IS idempotent). Pagination, not
-    // packing, owns genuine overflow.
+    // fixed point under re-clamp, which would loop the editor's conform
+    // effect - so keep the clamped result there (clamp IS idempotent).
+    // Pagination, not packing, owns real overflow.
     let widgets = clamped;
     if (pageHasOverlap(clamped, cols)) {
       const repacked = repackToFit(page.widgets, cols, rows);

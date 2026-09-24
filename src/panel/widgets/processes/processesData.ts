@@ -39,9 +39,17 @@ export function resolveRefreshSeconds(raw: unknown): number {
   return (REFRESH_SECONDS as readonly number[]).includes(n) ? n : DEFAULT_REFRESH_SECONDS;
 }
 
-// Which column a freshly-rendered list ranks by. Not persisted: the header
-// press is a run-mode interaction and onUpdate is only wired while editing.
+// Which column a list with no saved sort ranks by.
 export const DEFAULT_COLUMN: ProcessColumn = 'cpu';
+
+// Saved per widget instance as config.sortColumn / sortDirection (persistsFromTile).
+export function resolveSortColumn(raw: unknown): ProcessColumn {
+  return (PROCESS_COLUMNS as readonly unknown[]).includes(raw) ? raw as ProcessColumn : DEFAULT_COLUMN;
+}
+
+export function resolveSortDirection(raw: unknown, column: ProcessColumn): SortDirection {
+  return raw === 'asc' || raw === 'desc' ? raw : defaultDirectionFor(column);
+}
 
 /**
  * Maps a column onto one of processRanking's sort modes. 'usage' compares

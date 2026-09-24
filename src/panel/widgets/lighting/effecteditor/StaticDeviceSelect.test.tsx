@@ -106,6 +106,92 @@ describe('StaticDeviceSelect grouping', () => {
     expect(screen.getByText('Port 2')).toBeInTheDocument();
   });
 
+  it('stacks one device\'s zones under its name with no group header, each pickable on its own', () => {
+    const onSetSelection = vi.fn();
+    const keebZone = (suffix: string, name: string, index: number): LightingDevice => ({
+      ...zone(`keeb:tkl-1:${suffix}`, 'keeb:tkl-1', name, index), deviceId: 'keeb:tkl-1',
+    });
+    render(
+      <StaticDeviceSelect
+        devices={[keebZone('keys', 'HYTE Keeb TKL - Keys', 0), keebZone('underglow', 'HYTE Keeb TKL - Underglow', 1)]}
+        selectedIds={new Set()}
+        onSetSelection={onSetSelection}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /motherboardHeader/ })).toBeNull();
+    expect(screen.getByText('HYTE Keeb TKL')).toBeInTheDocument();
+    expect(screen.getAllByText('10')).toHaveLength(2);
+    expect(screen.getByText('Keys')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Underglow'));
+    expect([...onSetSelection.mock.calls[0][0]]).toEqual(['keeb:tkl-1:underglow']);
+  });
+
+  it('toggles every pickable zone of a device from its header, as one tap', () => {
+    const onSetSelection = vi.fn();
+    const keebZone = (suffix: string, name: string, index: number): LightingDevice => ({
+      ...zone(`keeb:tkl-1:${suffix}`, 'keeb:tkl-1', name, index), deviceId: 'keeb:tkl-1',
+    });
+    const zones = [keebZone('keys', 'HYTE Keeb TKL - Keys', 0), keebZone('underglow', 'HYTE Keeb TKL - Underglow', 1)];
+    const { rerender } = render(
+      <StaticDeviceSelect devices={zones} selectedIds={new Set()} onSetSelection={onSetSelection} />,
+    );
+    fireEvent.click(screen.getByText('HYTE Keeb TKL'));
+    expect([...onSetSelection.mock.calls[0][0]]).toEqual(['keeb:tkl-1:keys', 'keeb:tkl-1:underglow']);
+    expect(onSetSelection.mock.calls[0][1]).toBe('keeb:tkl-1:keys');
+    expect(screen.queryByDisplayValue('HYTE Keeb TKL')).toBeNull();
+
+    rerender(
+      <StaticDeviceSelect devices={zones} selectedIds={new Set(['keeb:tkl-1:keys', 'keeb:tkl-1:underglow'])} onSetSelection={onSetSelection} />,
+    );
+    fireEvent.click(screen.getByText('HYTE Keeb TKL'));
+    expect([...onSetSelection.mock.calls[1][0]]).toEqual([]);
+    expect(onSetSelection.mock.calls[1][1]).toBeNull();
+  });
+
+  it('tints the stack header while one of its zones is picked', () => {
+    const keebZone = (suffix: string, name: string, index: number): LightingDevice => ({
+      ...zone(`keeb:tkl-1:${suffix}`, 'keeb:tkl-1', name, index), deviceId: 'keeb:tkl-1',
+    });
+    const zones = [keebZone('keys', 'HYTE Keeb TKL - Keys', 0), keebZone('underglow', 'HYTE Keeb TKL - Underglow', 1)];
+    const { rerender } = render(<StaticDeviceSelect devices={zones} selectedIds={new Set()} onSetSelection={vi.fn()} />);
+    const header = () => document.querySelector('[class*="deviceCardStackHeader"]')!;
+    expect(header().className).not.toContain('deviceCardStackHeaderSelected');
+    rerender(<StaticDeviceSelect devices={zones} selectedIds={new Set(['keeb:tkl-1:keys'])} onSetSelection={vi.fn()} />);
+    expect(header().className).toContain('deviceCardStackHeaderSelected');
+  });
+
+  it('gives a pick-only stack no kebab', () => {
+    const keebZone = (suffix: string, name: string, index: number): LightingDevice => ({
+      ...zone(`keeb:tkl-1:${suffix}`, 'keeb:tkl-1', name, index), deviceId: 'keeb:tkl-1',
+    });
+    render(
+      <StaticDeviceSelect
+        devices={[keebZone('keys', 'HYTE Keeb TKL - Keys', 0), keebZone('underglow', 'HYTE Keeb TKL - Underglow', 1)]}
+        selectedIds={new Set()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /groupActions/ })).toBeNull();
+  });
+
+  it('nests a chained port as a split inside the board group', () => {
+    const port = (suffix: string, deviceSuffix: string, name: string): LightingDevice => ({
+      ...zone(`mb-1-${suffix}`, 'mb-1', `B850I - ${name}`, 0), deviceId: `mb-1-${deviceSuffix}`,
+    });
+    render(
+      <StaticDeviceSelect
+        devices={[port('0', '0', 'ARGB_V2_1'), port('1:z0', '1', 'ARGB_V2_2 - QX Fan 1'), port('1:z1', '1', 'ARGB_V2_2 - QL Fan 2')]}
+        selectedIds={new Set()}
+        onSetSelection={vi.fn()}
+      />,
+    );
+    expect(screen.getByText('B850I')).toBeInTheDocument();
+    expect(screen.getByText('ARGB_V2_1')).toBeInTheDocument();
+    expect(screen.getByText('ARGB_V2_2')).toBeInTheDocument();
+    expect(screen.getByText('QX Fan 1')).toBeInTheDocument();
+    expect(screen.getByText('QL Fan 2')).toBeInTheDocument();
+  });
+
   it('heads a smart-light brand with its own group', () => {
     render(
       <StaticDeviceSelect

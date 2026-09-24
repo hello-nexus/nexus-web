@@ -1,7 +1,9 @@
-import { type ReactNode } from 'react';
+import { useImperativeHandle, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { type SortableRowArgs } from '../SortableList/SortableList';
-import { EditableText, type EditableTextHandle } from '../Editable/EditableText';
+import { DEVICE_NAME_MAX_LENGTH, type EditableTextHandle } from '../Editable/EditableText';
+import { useEditable } from '../Editable/useEditable';
+import editableStyles from '../Editable/Editable.module.scss';
 import styles from './CollapsibleSection.module.scss';
 
 /**
@@ -20,6 +22,7 @@ import styles from './CollapsibleSection.module.scss';
  */
 export function CollapsibleSection({
   title,
+  titleBefore,
   titleAfter,
   open,
   onToggle,
@@ -37,6 +40,9 @@ export function CollapsibleSection({
   children,
 }: {
   title: ReactNode;
+  /** Node rendered between the chevron and the title (a device glyph). Must
+   *  not contain interactive elements - it nests in the toggle button. */
+  titleBefore?: ReactNode;
   /** Node rendered immediately after the title text, inside the toggle. Sits
    *  outside the title's ellipsis so a trailing badge/icon stays visible when
    *  the title truncates. Must not contain interactive elements - it nests in
@@ -65,15 +71,15 @@ export function CollapsibleSection({
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
   sectionId?: string;
   /** When set, the whole section becomes reorderable among its siblings via
-   *  dnd-kit. The header bar is the drag handle, minus the title and any
+   *  dnd-kit. The header bar is the drag handle, title included, minus any
    *  interactive `right` control. */
   drag?: SortableRowArgs;
-  /** Makes the header title click-to-edit. Requires a string `title`; the title
-   *  then leaves the toggle button (a text field cannot nest in one), so the
-   *  chevron and the bar's empty run toggle the section and the title alone
-   *  edits. */
+  /** Lets the section's own menu rename the title, through `titleRenameRef`.
+   *  Requires a string `title`; the title then leaves the toggle button (a
+   *  text field cannot nest in one), so the chevron, the bar's empty run and
+   *  the title itself each toggle the section. */
   onTitleRename?: (name: string) => void;
-  /** Opens the title editor from outside, for a Rename row in the section's own menu. */
+  /** Opens the title editor, for a Rename row in the section's own menu. */
   titleRenameRef?: React.Ref<EditableTextHandle>;
   /** Right-click on the header bar, for sections that carry their own menu. Not
    *  fired from inside the title editor, which keeps the browser's own menu. */
@@ -82,6 +88,17 @@ export function CollapsibleSection({
 }) {
   const Chevron = open ? ChevronDown : ChevronRight;
   const editableTitle = onTitleRename !== undefined && typeof title === 'string';
+  // The rename state lives here so the resting title is one plain element and
+  // the editor exists only while a rename is open.
+  const rename = useEditable<string>({
+    value: editableTitle ? title : '',
+    onCommit: name => onTitleRename?.(name),
+    parse: draft => {
+      const trimmed = draft.trim().slice(0, DEVICE_NAME_MAX_LENGTH);
+      return trimmed ? trimmed : null;
+    },
+  });
+  useImperativeHandle(titleRenameRef, () => ({ startEditing: () => rename.start() }));
 
   const classNames = [
     styles.section,
@@ -102,6 +119,7 @@ export function CollapsibleSection({
         className={styles.header}
         data-compact={compact ? 'true' : undefined}
         data-collapsed={open ? undefined : 'true'}
+        data-menu-arrow-host={onHeaderContextMenu ? 'true' : undefined}
         onContextMenu={onHeaderContextMenu && (e => {
           if ((e.target as HTMLElement).closest('input, textarea, [contenteditable]')) return;
           onHeaderContextMenu(e);
@@ -124,14 +142,28 @@ export function CollapsibleSection({
               {...(drag?.listeners ?? {})}
             >
               <Chevron className={styles.chevron} aria-hidden />
+              {titleBefore}
             </button>
-            <EditableText
-              ref={titleRenameRef}
-              value={title as string}
-              onCommit={onTitleRename!}
-              className={styles.title}
-            />
-            {titleAfter}
+            {rename.editing ? (
+              <input
+                className={`${editableStyles.input} ${styles.title}`}
+                maxLength={DEVICE_NAME_MAX_LENGTH}
+                aria-label={ariaLabel}
+                {...rename.inputProps}
+              />
+            ) : (
+              /* The strip between the chevron and the fill toggles and drags
+                 like the rest of the bar, so it is not dead and shows the hand. */
+              <span
+                className={`${styles.title} ${styles.titleSlot}`}
+                data-drag-handle={drag ? 'true' : undefined}
+                onClick={onToggle}
+                {...(drag?.listeners ?? {})}
+              >
+                {title}
+              </span>
+            )}
+            {titleAfter !== undefined && <span className={styles.titleAfterSlot}>{titleAfter}</span>}
             {/* Keeps the bar's empty run a toggle target now that the title owns
                 its own clicks. Hidden from a11y: the chevron is the control. */}
             <button
@@ -157,6 +189,7 @@ export function CollapsibleSection({
               {...(drag?.listeners ?? {})}
             >
               <Chevron className={styles.chevron} aria-hidden />
+              {titleBefore}
               <span className={styles.title}>{title}</span>
               {titleAfter}
               {right !== undefined && !rightInteractive && <span className={styles.right}>{right}</span>}

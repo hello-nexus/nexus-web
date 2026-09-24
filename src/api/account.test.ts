@@ -152,7 +152,59 @@ describe('completeRecovery', () => {
     const fetchMock = vi.fn(async () => jsonResponse(500, {}));
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await completeRecovery('tok')).toEqual({ ok: false });
+    expect(await completeRecovery('tok')).toEqual({ ok: false, reason: 'invalid' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up on a request that never settles, rather than hanging the page', async () => {
+    vi.useFakeTimers();
+    try {
+      // A fetch that never resolves and only rejects when the signal aborts,
+      // which is the shape of the hang this deadline exists for.
+      const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }));
+      vi.stubGlobal('fetch', fetchMock);
+
+      const pending = completeRecovery('tok', 'ABCDEF');
+      await vi.advanceTimersByTimeAsync(20_000);
+
+      expect(await pending).toEqual({ ok: false, reason: 'invalid' });
+      // One attempt, not three: retrying an aborted request re-hangs it.
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports a code-required 400 as its own reason, not a dead link', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(400, { code: 'code_required' })));
+    expect(await completeRecovery('tok')).toEqual({ ok: false, reason: 'code-required' });
+  });
+
+  it('carries the remaining attempts back from a wrong code', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(400, { code: 'code_mismatch', attemptsLeft: 2 })),
+    );
+    expect(await completeRecovery('tok')).toEqual({
+      ok: false,
+      reason: 'code-mismatch',
+      attemptsLeft: 2,
+    });
+  });
+
+  it('sends the code only when one was supplied', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { ok: true, username: 'Nova' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await completeRecovery('tok');
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ token: 'tok' });
+
+    await completeRecovery('tok', 'ABCDEF');
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toEqual({
+      token: 'tok',
+      code: 'ABCDEF',
+    });
   });
 });

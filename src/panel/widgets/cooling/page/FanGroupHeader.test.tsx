@@ -70,17 +70,19 @@ describe('FanGroupHeader title', () => {
   it('commits a trimmed rename on Enter', () => {
     const onRename = vi.fn();
     renderHeader({ onRename });
-    fireEvent.click(screen.getByText('Radiator'));
+    openMenu();
+    fireEvent.click(screen.getByText('cooling.fan.rename'));
     const input = screen.getByDisplayValue('Radiator');
     fireEvent.change(input, { target: { value: '  Top rad  ' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onRename).toHaveBeenCalledWith('Top rad');
   });
 
-  it('does not collapse the group when the title is clicked', () => {
+  it('collapses the group when the title is clicked, and starts no rename', () => {
     const props = renderHeader({ onRename: vi.fn() });
     fireEvent.click(screen.getByText('Radiator'));
-    expect(props.onToggleCollapsed).not.toHaveBeenCalled();
+    expect(screen.queryByDisplayValue('Radiator')).toBeNull();
+    expect(props.onToggleCollapsed).toHaveBeenCalled();
   });
 
   it('shows the member count', () => {

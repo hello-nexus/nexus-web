@@ -6,6 +6,11 @@
   --swatch-size-cap: 38px;
   --swatch-gap: 0.3rem;
 
+  &[data-disabled] {
+    opacity: var(--alpha-medium);
+    pointer-events: none;
+  }
+
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -83,4 +88,22 @@
   /* The HsvPicker's SV square needs real width; the slot itself is one swatch. */
   width: 220px;
   padding: 0.6rem;
+}
+
+/* The extra row sits a step further from the grid than the rows sit from
+   each other, so it reads as its own choice. */
+.extraLabel,
+.extraSwatch {
+  margin-top: 0.45rem;
+}
+
+.extraLabel {
+  align-self: center;
+  padding-right: 0.35rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

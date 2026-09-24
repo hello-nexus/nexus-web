@@ -13,9 +13,9 @@ import { GAUGE_DESIGN_LABELS } from '../monitoring/gauges';
 import { DESIGN_ICONS } from '../monitoring/gauges/DesignIcons';
 import type { GaugeDesignKey } from '../monitoring/gauges';
 import {
-  DEFAULT_DESIGN,
   DEFAULT_MICRO_DESIGN,
   DEFAULT_SLOTS,
+  defaultSlotDesign,
   designKeysForSlot,
   isMicroLayout,
   MICRO_DESIGN_KEYS,
@@ -26,16 +26,48 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsRange, staticMaxForDevice, type ScaleMode } from '../monitoring/perfDomain';
+import { designSupportsValueColor, sensorSupportsValueColor } from '../monitoring/valueColor';
+import { usePanelGaugeGradient } from '../common/PanelGaugeGradientContext';
+import { GradientStopsEditor } from '../../../components/common/GradientStopsEditor/GradientStopsEditor';
+import {
+  DEFAULT_GAUGE_GRADIENT, gaugeGradientEquals, MAX_GAUGE_GRADIENT_STOPS, MIN_GAUGE_GRADIENT_STOPS,
+} from '../../theme/gaugeGradient';
 import { RotateCcw } from 'lucide-react';
 import { labelForDevice, resolveSensor } from '../monitoring/MonitoringWidget';
 import { bottomLabelForDevice } from '../monitoring/MicroMonitoringWidget';
 import {
   CATEGORY_LABEL_KEYS, DEVICE_OPTION_KEYS, selectedSensorValue, sensorsForDevice, visibleDeviceKeys,
 } from '../monitoring/sensorPicker';
-import { SettingsSection, SettingsRow } from '../common/SettingsRow/SettingsRow';
+import { SettingsSection, SettingsRow, SettingsToggle, SettingsButton } from '../common/SettingsRow/SettingsRow';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import styles from './MonitoringSettings.module.scss';
+
+// The panel-wide gauge gradient, edited from whichever monitoring widget has
+// value colouring on. One list per panel, so this edits the same stops every
+// other monitoring widget on the panel paints with.
+function GaugeGradientSection() {
+  const { t } = useTranslation();
+  const { source, accent, preview, commit } = usePanelGaugeGradient();
+  const isDefault = gaugeGradientEquals(source, DEFAULT_GAUGE_GRADIENT);
+  return (
+    <div className={styles.gradientBlock}>
+      <GradientStopsEditor
+        stops={source}
+        accent={accent}
+        onPreview={preview}
+        onCommit={commit}
+        minStops={MIN_GAUGE_GRADIENT_STOPS}
+        maxStops={MAX_GAUGE_GRADIENT_STOPS}
+      />
+      <div className={styles.gradientFooter}>
+        <SettingsButton variant="muted" disabled={isDefault} onClick={() => commit([...DEFAULT_GAUGE_GRADIENT])}>
+          {t('monitoring.settings.gradientReset')}
+        </SettingsButton>
+      </div>
+    </div>
+  );
+}
 
 // A blank field commits the fallback (0 for min, the sensor's default ceiling
 // for max) rather than parsing "" to 0 via Number().
@@ -246,7 +278,7 @@ export function LabelControls({
   );
 }
 
-export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot = 0 }: WidgetSettingsProps) {
+export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, selectedSlot = 0, onSelectedSlotChange }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const sensors = useSensors(true);
   const layout = resolvedSlotLayout(widget.size, widget.config);
@@ -264,7 +296,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? DEFAULT_SLOTS[i]?.design ?? DEFAULT_DESIGN),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i)),
     );
     const scale = ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE);
     const fixedMin = widget.config?.[`slot${i}_min`] as number | undefined;
@@ -362,6 +394,12 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       const parsed = parseFixedRangeInput(raw, microFixedDefaultMax);
       if (parsed !== microFixedMax) onUpdate({ micro_max: parsed });
     };
+    // One toggle for every bar, so it shows when any of them is a percent or
+    // temperature sensor; the rest keep the plain accent.
+    const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
+    const microSupportsValueColor = microSensorNames.some(name => sensorSupportsValueColor(
+      resolveSensor(sensors, [], networkSensors, microDevice, name, undefined, extras)?.type,
+    ));
 
     return (
       <div className={styles.settingsRoot}>
@@ -402,7 +440,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               const sOverride = (widget.config?.[`micro_sensor${i}_label`] as string | undefined) ?? '';
               const sAuto = microAutoLabel(microDevice, name, sensors, networkSensors, extras);
               return (
-                <div key={i} className={styles.microSensorRow}>
+                <div
+                  key={i}
+                  className={styles.microSensorRow}
+                  // Selects the sensor so the live tile marks the bar being edited.
+                  onFocusCapture={() => onSelectedSlotChange?.(i)}
+                  onPointerDownCapture={() => onSelectedSlotChange?.(i)}
+                >
                   <Select
                     className={styles.selectWide}
                     value={selectedSensorValue(microSensorOptions, name)}
@@ -443,17 +487,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
         </SettingsSection>
 
         <SettingsSection title={t('monitoring.settings.range')}>
-          <div className={styles.scaleRow}>
-            {SCALE_OPTIONS.map(opt => (
-              <IconLabelButton
-                key={opt.value}
-                className={styles.scaleBtn}
-                active={opt.value === microScale}
-                label={t(opt.labelKey)}
-                onPress={() => onUpdate({ micro_scale: opt.value })}
-              />
-            ))}
-          </div>
+          <ChipGroup
+            fullWidth
+            ariaLabel={t('monitoring.settings.range')}
+            activeKey={microScale}
+            onChange={v => onUpdate({ micro_scale: v })}
+            options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+          />
           {microScale === 'fixed' && microCanType && (
             <div className={styles.rangeRow}>
               <div className={styles.rangeField}>
@@ -481,10 +521,23 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
             </div>
           )}
         </SettingsSection>
+
+        {microSupportsValueColor && (
+          <SettingsSection title={t('monitoring.settings.colors')}>
+            <SettingsToggle
+              label={t('monitoring.settings.valueColor')}
+              description={t('monitoring.settings.valueColorHint')}
+              checked={microValueColor}
+              onChange={next => onUpdate({ micro_valueColor: next })}
+            />
+            {microValueColor && <GaugeGradientSection />}
+          </SettingsSection>
+        )}
       </div>
     );
   }
 
+  const slotValueColor = (widget.config?.[`slot${activeSlot}_valueColor`] as boolean | undefined) ?? false;
   const slotLabelMode = (widget.config?.[`slot${activeSlot}_labelMode`] as string | undefined) ?? 'auto';
   const slotLabelOverride = (widget.config?.[`slot${activeSlot}_label`] as string | undefined) ?? '';
   const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : '';
@@ -553,17 +606,13 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
 
           {designSupportsRange(activeConfig.design) && (
             <SettingsSection title={t('monitoring.settings.range')}>
-              <div className={styles.scaleRow}>
-                {SCALE_OPTIONS.map(opt => (
-                  <IconLabelButton
-                    key={opt.value}
-                    className={styles.scaleBtn}
-                    active={opt.value === activeConfig.scale}
-                    label={t(opt.labelKey)}
-                    onPress={() => onUpdate({ [`slot${activeSlot}_scale`]: opt.value })}
-                  />
-                ))}
-              </div>
+              <ChipGroup
+                fullWidth
+                ariaLabel={t('monitoring.settings.range')}
+                activeKey={activeConfig.scale}
+                onChange={v => onUpdate({ [`slot${activeSlot}_scale`]: v })}
+                options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+              />
               {activeConfig.scale === 'fixed' && canEditFreeText(surface, desktopEditor) && (
                 <div className={styles.rangeRow}>
                   <div className={styles.rangeField}>
@@ -590,6 +639,18 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                   </div>
                 </div>
               )}
+            </SettingsSection>
+          )}
+
+          {sensorSupportsValueColor(activeSensor?.type) && designSupportsValueColor(activeConfig.design) && (
+            <SettingsSection title={t('monitoring.settings.colors')}>
+              <SettingsToggle
+                label={t('monitoring.settings.valueColor')}
+                description={t('monitoring.settings.valueColorHint')}
+                checked={slotValueColor}
+                onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
+              />
+              {slotValueColor && <GaugeGradientSection />}
             </SettingsSection>
           )}
         </>

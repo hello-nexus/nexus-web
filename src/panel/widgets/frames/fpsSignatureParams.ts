@@ -23,12 +23,16 @@ function parseMonitorResolution(monitor: string): { width: number; height: numbe
 }
 
 /**
- * SystemSpecsCollector.cs's GraphicsCard joins every GPU with " + ", dGPU
- * first (NVIDIA/AMD are enumerated before the Intel iGPU on every dual-GPU
- * rig this checks against) - the first segment is the card that renders.
+ * SystemSpecsCollector.cs picks primaryGpu with the provider's integrated
+ * flag (first discrete adapter, else the first). GraphicsCard joins every
+ * adapter with " + " in enumeration order, which puts the iGPU first on
+ * AMD-iGPU rigs, so its first segment is only a fallback for a service that
+ * predates primaryGpu.
  */
-function primaryGpuModel(graphicsCard: string): string | undefined {
-  const first = graphicsCard.split(' + ')[0]?.trim();
+export function primaryGpuModel(specs: SystemSpecs): string | undefined {
+  const primary = specs.primaryGpu?.trim();
+  if (primary) return primary;
+  const first = specs.graphicsCard.split(' + ')[0]?.trim();
   return first || undefined;
 }
 
@@ -51,19 +55,22 @@ function parseRamBytes(memory: string): number | undefined {
 
 /**
  * Builds the /fps/signature query from a rig snapshot, or null when the
- * display resolution can't be parsed - `res` is the only field the cloud
- * route hard-requires, so an unparseable monitor string means the rig can't
- * be signed at all rather than a partial, looser-ladder request.
+ * display resolution can't be parsed and no `res` override ("WxH") is given -
+ * `res` is the only field the cloud route hard-requires, so an unparseable
+ * monitor string means the rig can't be signed at all rather than a partial,
+ * looser-ladder request. The rig's refresh rate rides along either way: it
+ * only enters the exact-config ladder level.
  */
-export function buildFpsSignatureParams(specs: SystemSpecs): FpsSignatureParams | null {
+export function buildFpsSignatureParams(specs: SystemSpecs, res?: string): FpsSignatureParams | null {
   const resolution = parseMonitorResolution(specs.monitor);
-  if (!resolution) return null;
+  const resClass = res ?? (resolution ? `${resolution.width}x${resolution.height}` : null);
+  if (!resClass) return null;
   return {
-    gpu: primaryGpuModel(specs.graphicsCard),
+    gpu: primaryGpuModel(specs),
     cpu: specs.processor || undefined,
     mobo: specs.motherboard || undefined,
     ramBytes: parseRamBytes(specs.memory),
-    res: `${resolution.width}x${resolution.height}`,
-    hz: resolution.hz ?? undefined,
+    res: resClass,
+    hz: resolution?.hz ?? undefined,
   };
 }

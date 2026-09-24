@@ -41,7 +41,7 @@ export function SystemTab({
         onHoursChange={onIncidentHoursChange} onDateChange={onIncidentDateChange}
         platform={platform}
       />
-      <div className={styles.diagSplit}>
+      <div className={`${styles.diagSplit} ${styles.diagSplitWide}`}>
         {platform === 'windows' && <IncidentCounts counts30d={system.data?.counts30d ?? null} />}
         <SystemSection data={system.data} loading={system.loading} error={system.error} onRefresh={system.refresh} />
       </div>

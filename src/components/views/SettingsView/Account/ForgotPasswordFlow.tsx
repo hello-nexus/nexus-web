@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../../../common/Button/Button';
 import { Spinner } from '../../../common/Spinner/Spinner';
 import { TextInput } from '../../../common/TextInput/TextInput';
@@ -26,6 +26,26 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   const [phase, setPhase] = useState<ForgotPhase>('email');
   const [email, setEmail] = useState('');
   const [failed, setFailed] = useState(false);
+  // Shown only here, never mailed: the user types it into the page the link
+  // opens, which is what proves the sign-in waiting for approval is this one.
+  const [code, setCode] = useState('');
+  const [copied, setCopied] = useState(false);
+  const copiedTimer = useRef<number | null>(null);
+
+  useEffect(() => () => { if (copiedTimer.current) window.clearTimeout(copiedTimer.current); }, []);
+
+  // The code is copied as the page the link opens takes it: characters only,
+  // no grouping dash.
+  const copyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(code.replace(/[^A-Za-z0-9]/g, ''));
+    } catch {
+      return;
+    }
+    setCopied(true);
+    if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
+    copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
+  };
 
   useEffect(() => {
     if (phase !== 'pending') return;
@@ -55,11 +75,14 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
     // A refused start (throttled, offline) sent no link, so advancing to the
     // pending phase would poll for a grant that does not exist and report it as
     // an expired link.
+    // No code means an older service or api answered: the page the link opens
+    // demands one, so advancing would strand the user with nothing to type.
     const started = await backend.recoveryStart(email.trim());
-    if (!started) {
+    if (!started?.code) {
       setFailed(true);
       return;
     }
+    setCode(started.code);
     setPhase('pending');
   };
 
@@ -96,14 +119,28 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   if (phase === 'pending') {
     return (
       <div className={styles.wrap}>
-        <h1 className={styles.title}>{t('account.recovery.pendingTitle')}</h1>
+        <h1 className={`${styles.title} ${styles.pendingTitle}`}>{t('account.recovery.pendingTitle')}</h1>
         <div className={styles.pendingBlock}>
           <p className={styles.pendingMessage}>{t('account.recovery.pendingMessage', { email })}</p>
+          <div className={styles.recoveryCodeBlock}>
+            <div className={styles.recoveryCodeHeader}>
+              <span className={styles.fieldLabel}>{t('account.recovery.codeTitle')}</span>
+              <button type="button" className={styles.recoveryCodeCopy} onClick={() => void copyCode()}>
+                {copied ? t('devices.specs.copied') : t('devices.specs.copy')}
+              </button>
+            </div>
+            <span className={styles.recoveryCode}>{code}</span>
+            <span className={styles.hint}>{t('account.recovery.codeHint')}</span>
+          </div>
           <div className={styles.pendingRow}>
             <Spinner size={16} />
             <span className={styles.hint}>{t('account.recovery.pendingWaiting')}</span>
           </div>
-          <button type="button" className={styles.linkBtn} onClick={() => { backend.recoveryCancel?.(); setPhase('email'); }}>
+          <button
+            type="button"
+            className={`${styles.linkBtn} ${styles.pendingCancel}`}
+            onClick={() => { backend.recoveryCancel?.(); setPhase('email'); }}
+          >
             {t('account.recovery.cancel')}
           </button>
         </div>

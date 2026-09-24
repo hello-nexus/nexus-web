@@ -16,9 +16,10 @@ import {
   PROCESS_COLUMNS,
   rankableFor,
   resolveRefreshSeconds,
+  resolveSortColumn,
+  resolveSortDirection,
   sortModeForColumn,
   type ProcessColumn,
-  type SortDirection,
 } from './processesData';
 import { useProcessRows } from './useProcessRows';
 import { useResourceHistoryFeed } from './useResourceHistoryFeed';
@@ -50,7 +51,7 @@ const COLUMN_LABEL_KEYS: Record<ProcessColumn, string> = {
  * The tile shows only the rows that fit whole and never scrolls; the immersive
  * view is the scrollable one, and mounts every row.
  */
-export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive?: boolean }) {
+export function ProcessesWidget({ widget, immersive, onUpdate }: WidgetProps & { immersive?: boolean }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const preferredGpu = usePreferredGpuId();
@@ -81,18 +82,30 @@ export function ProcessesWidget({ widget, immersive }: WidgetProps & { immersive
   // their own keys).
   useResourceHistoryFeed(!preview && !immersive, preferredGpu);
 
-  const [column, setColumn] = useState<ProcessColumn>(DEFAULT_COLUMN);
-  const [direction, setDirection] = useState<SortDirection>(() => defaultDirectionFor(DEFAULT_COLUMN));
+  // Local state so a press still sorts where nothing persists it (catalog
+  // preview); the config copy wins when it moves underneath (tile + immersive).
+  const savedColumn = resolveSortColumn(widget.config?.sortColumn);
+  const savedDirection = resolveSortDirection(widget.config?.sortDirection, savedColumn);
+  const [sortColumn, setColumn] = useState(savedColumn);
+  const [sortDirection, setDirection] = useState(savedDirection);
+  useEffect(() => {
+    setColumn(savedColumn);
+    setDirection(savedDirection);
+  }, [savedColumn, savedDirection]);
+  // A GPU sort saved where the column is hidden would rank every row at 0 with
+  // no header marked; it reads as the default until the column is back.
+  const column = sortColumn === 'gpu' && !showGpu ? DEFAULT_COLUMN : sortColumn;
+  const direction = column === sortColumn ? sortDirection : defaultDirectionFor(column);
 
   // Tapping the active column flips its direction; tapping another switches to
   // it at that column's own natural direction.
   function pressColumn(next: ProcessColumn) {
-    if (next === column) {
-      setDirection(d => (d === 'desc' ? 'asc' : 'desc'));
-      return;
-    }
+    const nextDirection = next === column
+      ? (direction === 'desc' ? 'asc' : 'desc')
+      : defaultDirectionFor(next);
     setColumn(next);
-    setDirection(defaultDirectionFor(next));
+    setDirection(nextDirection);
+    onUpdate?.({ sortColumn: next, sortDirection: nextDirection });
   }
 
   // Sorted fresh every frame rather than through the Monitoring page's
@@ -183,9 +196,10 @@ interface RowsMetrics {
 
 /**
  * Measures the row area. Measured rather than derived from the widget size:
- * the same 4x4 tile is a different pixel height per surface. Takes the element
- * rather than a ref because the row container only mounts once rows exist, so
- * a ref would still read null on the effect's single run.
+ * the same tile is a different pixel height per surface, and 4x2 is just a
+ * shorter one. Takes the element rather than a ref because the row container
+ * only mounts once rows exist, so a ref would still read null on the effect's
+ * single run.
  */
 function useRowsMetrics(el: HTMLDivElement | null, immersive?: boolean): RowsMetrics {
   const [metrics, setMetrics] = useState<RowsMetrics>({

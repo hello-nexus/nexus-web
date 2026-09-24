@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { LedMapEditor } from './LedMapEditor';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -19,6 +19,9 @@ vi.mock('../../../../components/common/Toast/Toast', () => ({
 const api = vi.hoisted(() => ({
   fetchDeviceStructure: vi.fn(),
   fetchDeviceMap: vi.fn(),
+  setDeviceChain: vi.fn(),
+  previewDeviceChain: vi.fn(),
+  fetchMappingCatalog: vi.fn(),
 }));
 vi.mock('../../../../api/lighting', async importOriginal => {
   const actual = await importOriginal<typeof import('../../../../api/lighting')>();
@@ -26,6 +29,9 @@ vi.mock('../../../../api/lighting', async importOriginal => {
     ...actual,
     fetchDeviceStructure: api.fetchDeviceStructure,
     fetchDeviceMap: api.fetchDeviceMap,
+    setDeviceChain: api.setDeviceChain,
+    previewDeviceChain: api.previewDeviceChain,
+    fetchMappingCatalog: api.fetchMappingCatalog,
     highlightLeds: vi.fn(),
     testLedPattern: vi.fn(),
     clearLedEditor: vi.fn(),
@@ -65,6 +71,10 @@ beforeEach(() => {
   toast.push.mockClear();
   api.fetchDeviceStructure.mockReset();
   api.fetchDeviceMap.mockReset();
+  api.setDeviceChain.mockReset();
+  api.previewDeviceChain.mockReset();
+  api.fetchMappingCatalog.mockReset();
+  api.fetchMappingCatalog.mockResolvedValue({ error: false, msg: '', items: [], total: 0 });
 });
 
 describe('LedMapEditor load()', () => {
@@ -86,7 +96,7 @@ describe('LedMapEditor load()', () => {
 
     await waitFor(() => expect(toast.push).toHaveBeenCalled());
     await waitFor(() => {
-      const readout = document.querySelector('[class*="ledCountReadonly"]');
+      const readout = document.querySelector('[class*="zoneCount"]');
       expect(readout?.textContent).toBe('46');
     });
   });
@@ -110,7 +120,7 @@ describe('LedMapEditor load()', () => {
     renderEditor();
 
     await waitFor(() => {
-      const readout = document.querySelector('[class*="ledCountReadonly"]');
+      const readout = document.querySelector('[class*="zoneCount"]');
       expect(readout?.textContent).toBe('46');
     });
     expect(toast.push).not.toHaveBeenCalled();
@@ -143,26 +153,21 @@ describe('LedMapEditor header on a renamed device', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Top intake' })).toBeTruthy());
   });
 
-  it('keeps the hardware name visible under it', async () => {
-    renderRenamed({ ...q60, name: 'Top intake', originalName: 'HYTE Q60' });
-    await waitFor(() => expect(screen.getByText('HYTE Q60')).toBeTruthy());
-  });
-
   it('titles with the device name alone, without the LED map suffix', async () => {
     renderRenamed(q60);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Q60' })).toBeTruthy());
   });
 
-  it('shows no second name when the device was never renamed', async () => {
-    renderRenamed(q60);
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Q60' })).toBeTruthy());
-    expect(screen.queryAllByText('HYTE Q60')).toHaveLength(1);
+  it('drops the hardware name rather than repeating it under the rename', async () => {
+    renderRenamed({ ...q60, name: 'Top intake', originalName: 'HYTE Q60' });
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Top intake' })).toBeTruthy());
+    expect(screen.queryByText('HYTE Q60')).toBeNull();
   });
 });
 
 // A keeb-shaped device: two zones whose ids ARE the device-rail card ids, so a
-// card renamed on the rail has to name its chip here too.
-describe('LedMapEditor zone chips on a renamed zone card', () => {
+// card renamed on the rail has to name its row here too.
+describe('LedMapEditor zone rows on a renamed zone card', () => {
   const parent = 'keeb:tkl-1';
   const keys = { ...q60, id: `${parent}:keys`, name: 'HYTE Keeb TKL - Keys', parentDeviceId: parent, zoneIndex: 0, deviceId: parent };
   const under = { ...q60, id: `${parent}:underglow`, name: 'HYTE Keeb TKL - Underglow', parentDeviceId: parent, zoneIndex: 1, deviceId: parent };
@@ -191,7 +196,7 @@ describe('LedMapEditor zone chips on a renamed zone card', () => {
     );
   };
 
-  it('names the chip with the card rename, not the zones API name', async () => {
+  it('names the row with the card rename, not the zones API name', async () => {
     renderKeeb([keys, { ...under, name: 'Desk glow', originalName: 'HYTE Keeb TKL - Underglow' }]);
     await waitFor(() => expect(screen.getByText('Desk glow')).toBeTruthy());
     expect(screen.queryByText('Underglow')).toBeNull();
@@ -206,5 +211,104 @@ describe('LedMapEditor zone chips on a renamed zone card', () => {
     renderKeeb([keys, { ...under, name: 'Desk glow', originalName: 'HYTE Keeb TKL - Underglow' }]);
     await waitFor(() => expect(screen.getByRole('heading', { name: 'HYTE Keeb TKL' })).toBeTruthy());
     expect(screen.queryByText('HYTE Keeb TKL - Underglow')).toBeNull();
+  });
+});
+
+// The T1 board's chained port: the zone list is what is wired to it.
+describe('LedMapEditor on a chainable port', () => {
+  const portId = 'openrgb-C000-1';
+  const zones = [
+    { id: `${portId}:z0`, name: 'B850I - ARGB_V2_2 - QX Fan 1', slices: [{ segment: 0, start: 0, count: 34 }] },
+    { id: `${portId}:z1`, name: 'B850I - ARGB_V2_2 - Generic Strip', slices: [{ segment: 0, start: 34, count: 20 }] },
+  ];
+  const cards: LightingDevice[] = zones.map((z, i) => ({
+    ...q60, id: z.id, name: z.name, ledCount: i === 0 ? 34 : 20, parentDeviceId: 'openrgb-C000', zoneIndex: i, deviceId: portId,
+  }));
+
+  const portStructure = () => ({
+    id: portId, name: 'ARGB_V2_2', deviceKey: 'k', isDefaultPartition: false,
+    segments: [{ index: 0, name: 'ARGB_V2_2', ledCount: 54, resizable: true, zoneType: 'linear' }],
+    zones,
+    chainable: true,
+    chain: [
+      { key: 'product:corsair-qx-fan', name: 'Corsair QX Fan', ledCount: 34, editableCount: false },
+      { key: 'generic:strip', name: 'Generic Strip', ledCount: 20, editableCount: true },
+    ],
+  });
+  const portMap = () => ({ id: portId, aspectRatio: 0, segments: [] });
+
+  const renderPort = () => {
+    api.fetchDeviceStructure.mockResolvedValue(portStructure());
+    api.fetchDeviceMap.mockResolvedValue(portMap());
+    api.setDeviceChain.mockResolvedValue({ error: false, msg: '', ledCount: 54, zoneIds: zones.map(z => z.id) });
+    // A chain edit previews; only Save posts it.
+    api.previewDeviceChain.mockResolvedValue({ error: false, msg: '', structure: portStructure(), map: portMap() });
+    return render(
+      <LedMapEditor
+        deviceId={portId}
+        initialZoneId={zones[0].id}
+        devices={cards}
+        zoneCustomizable
+        onClose={() => {}}
+      />,
+    );
+  };
+
+  it('names the rows by their products, types the generic\'s count, and shows the total', async () => {
+    renderPort();
+    await waitFor(() => expect(screen.getByText('Corsair QX Fan')).toBeTruthy());
+    expect(screen.getByText('Generic Strip')).toBeTruthy();
+    expect(screen.queryByText('B850I - ARGB_V2_2 - QX Fan 1')).toBeNull();
+    const input = document.querySelector<HTMLInputElement>('[class*="zoneCountInput"]');
+    expect(input?.value).toBe('20');
+    expect(document.querySelector('[class*="totalCount"]')?.textContent).toBe('54');
+    expect(screen.getByRole('button', { name: 'lighting.ledMap.chainAdd' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'lighting.ledMap.zoneMerge' })).toBeNull();
+  });
+
+  it('previews a retyped generic count without committing it', async () => {
+    renderPort();
+    const input = await waitFor(() => {
+      const el = document.querySelector<HTMLInputElement>('[class*="zoneCountInput"]');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    fireEvent.change(input, { target: { value: '24' } });
+    fireEvent.blur(input);
+    // fromOrdinal names the slot each link holds on disk, so a rename follows
+    // its device rather than its position; a retyped count keeps the device.
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [
+      { key: 'product:corsair-qx-fan', fromOrdinal: 0 },
+      { key: 'generic:strip', ledCount: 24, fromOrdinal: 1 },
+    ]));
+    // Nothing is on disk until Save, so an abandoned edit leaves no trace.
+    expect(api.setDeviceChain).not.toHaveBeenCalled();
+  });
+
+  it('previews a removed zone without committing it', async () => {
+    renderPort();
+    const remove = await screen.findAllByRole('button', { name: 'lighting.ledMap.chainRemove' });
+    fireEvent.click(remove[0]);
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20, fromOrdinal: 1 }]));
+    expect(api.setDeviceChain).not.toHaveBeenCalled();
+  });
+
+  it('posts the staged chain when the editor is saved', async () => {
+    renderPort();
+    const remove = await screen.findAllByRole('button', { name: 'lighting.ledMap.chainRemove' });
+    fireEvent.click(remove[0]);
+    await waitFor(() => expect(api.previewDeviceChain).toHaveBeenCalled());
+    fireEvent.click(await screen.findByRole('button', { name: 'lighting.ledMap.save' }));
+    await waitFor(() => expect(api.setDeviceChain).toHaveBeenCalledWith(portId, [{ key: 'generic:strip', ledCount: 20, fromOrdinal: 1 }]));
+  });
+
+  it('reports a rejected chain instead of showing it', async () => {
+    renderPort();
+    api.previewDeviceChain.mockResolvedValue({ error: true, msg: 'unknown mapping' });
+    const remove = await screen.findAllByRole('button', { name: 'lighting.ledMap.chainRemove' });
+    fireEvent.click(remove[0]);
+    await waitFor(() => expect(toast.push).toHaveBeenCalled());
+    expect(toast.push.mock.calls[0][0].title).toContain('assignFailed');
+    expect(api.setDeviceChain).not.toHaveBeenCalled();
   });
 });

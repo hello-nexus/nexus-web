@@ -12,15 +12,32 @@ export interface DeckPageStripProps {
   pageCount: number;
   currentPage: number;
   onSelectPage: (page: number) => void;
-  onAddPage: () => void;
-  onRemoveCurrentPage: () => void;
+  onAddPage?: () => void;
+  onRemoveCurrentPage?: () => void;
   /** Whether the current page already holds configured buttons - gates a confirm before deleting it. */
-  currentPageHasContent: boolean;
+  currentPageHasContent?: boolean;
+  /** Bound-key count of the AUTHORED page removal would delete - on an
+   *  overflow-chunked page this can exceed what's visible on the current
+   *  (fitted) page, so the confirm text names it explicitly. */
+  removeCount?: number;
   className?: string;
   /** Renders plain page-number chips (matching the Keeb device page's layer
    *  chips) instead of "Page N" tabs. Used by the Stream Deck device page's
    *  pagination row; the touch widget keeps the default Tabs treatment. */
   numbered?: boolean;
+  /** Hides the add/remove-page controls entirely: pages are computed
+   *  automatically (Recent Apps' auto pagination), not authored, so there is
+   *  nothing for those controls to do. */
+  readOnly?: boolean;
+  /**
+   * Whether the current page can be removed. Defaults to `pageCount > 1` for
+   * a caller with no authored/fitted distinction; a caller whose `pageCount`
+   * is the FITTED (chunked) count must pass this explicitly - one authored
+   * page spanning several fitted chunks would otherwise enable removal, and
+   * removing any of its chunks no-ops (deckLayout.ts's removePage refuses to
+   * drop a deck's last authored page).
+   */
+  canRemove?: boolean;
 }
 
 /**
@@ -32,14 +49,15 @@ export interface DeckPageStripProps {
  * deck's Customize tab (StreamDeckDevicePage).
  */
 export function DeckPageStrip({
-  pageCount, currentPage, onSelectPage, onAddPage, onRemoveCurrentPage, currentPageHasContent, className, numbered,
+  pageCount, currentPage, onSelectPage, onAddPage, onRemoveCurrentPage, currentPageHasContent, removeCount, className, numbered, readOnly,
+  canRemove: canRemoveProp,
 }: DeckPageStripProps) {
   const { t } = useTranslation();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const canRemove = pageCount > 1;
+  const canRemove = canRemoveProp ?? pageCount > 1;
 
   const requestRemove = () => {
-    if (!canRemove) return;
+    if (!canRemove || !onRemoveCurrentPage) return;
     if (currentPageHasContent) setConfirmOpen(true);
     else onRemoveCurrentPage();
   };
@@ -74,28 +92,30 @@ export function DeckPageStrip({
       <div className={styles.tabsScroll}>
         {pageNav}
       </div>
-      <div className={styles.controls}>
-        <button type="button" className={styles.iconBtn} aria-label={t('panel.settings.deck.page.add')} disabled={pageCount >= MAX_DECK_PAGES} onClick={onAddPage}>
-          {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
-          <Plus size={14} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className={styles.iconBtn}
-          aria-label={t('panel.settings.deck.page.remove')}
-          disabled={!canRemove}
-          onClick={requestRemove}
-        >
-          {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
-          <Trash2 size={14} aria-hidden="true" />
-        </button>
-      </div>
+      {!readOnly && (
+        <div className={styles.controls}>
+          <button type="button" className={styles.iconBtn} aria-label={t('panel.settings.deck.page.add')} disabled={pageCount >= MAX_DECK_PAGES} onClick={onAddPage}>
+            {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
+            <Plus size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={styles.iconBtn}
+            aria-label={t('panel.settings.deck.page.remove')}
+            disabled={!canRemove}
+            onClick={requestRemove}
+          >
+            {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
+            <Trash2 size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
       <ConfirmModal
         open={confirmOpen}
         title={t('panel.settings.deck.page.removeConfirmTitle')}
-        message={t('panel.settings.deck.page.removeConfirmBody')}
+        message={t('panel.settings.deck.page.removeConfirmBody', { count: removeCount ?? 0 })}
         destructive
-        onConfirm={() => { setConfirmOpen(false); onRemoveCurrentPage(); }}
+        onConfirm={() => { setConfirmOpen(false); onRemoveCurrentPage?.(); }}
         onCancel={() => setConfirmOpen(false)}
       />
     </div>

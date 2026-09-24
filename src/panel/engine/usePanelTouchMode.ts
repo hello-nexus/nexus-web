@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLongPress } from './useLongPress';
+import { LONG_PRESS_MOVE_THRESHOLD, useLongPress } from './useLongPress';
 import { triggerHaptic } from '../device/panelNativeBridge';
 import type { PanelWidget } from '../types';
 
 const PRESS_MOVE_THRESHOLD = 12;
-const LONG_PRESS_MS = 500;
-// Lengthening PRESS_SHRINK_MS automatically pulls PRESS_FEEDBACK_MS forward, so
-// the shrink starts sooner and decelerates smoothly into the haptic at
-// CONTEXT_MENU_TRIGGER_MS. Keep PRESS_SHRINK_MS in sync with --panel-press-duration.
-const PRESS_SHRINK_MS = 400;
-const CONTEXT_MENU_IN_MS = 140;
-const PRESS_FEEDBACK_MS = LONG_PRESS_MS - PRESS_SHRINK_MS;
-const CONTEXT_MENU_TRIGGER_MS = LONG_PRESS_MS - CONTEXT_MENU_IN_MS;
+// Press feedback: PRESS_FEEDBACK_MS of dead time, then the cell shrinks over
+// PRESS_SHRINK_MS and lands exactly as the context menu opens. Keep
+// PRESS_SHRINK_MS in sync with .cellPressHint's --panel-press-duration.
+export const PRESS_FEEDBACK_MS = 100;
+const PRESS_SHRINK_MS = 300;
+const CONTEXT_MENU_TRIGGER_MS = PRESS_FEEDBACK_MS + PRESS_SHRINK_MS;
 // Time at which the context menu opens. Exported so the host's
 // dnd-kit PointerSensor can match its delay activation to the same
 // instant - drag arms the moment the menu appears, never sooner.
@@ -31,6 +29,11 @@ export interface ContextMenuState {
   widget: PanelWidget;
   x: number;
   y: number;
+  // Bumped on every open. PanelApp keys the menu on it so a right-click
+  // on another widget while a menu is up remounts a fresh menu instead of
+  // re-rendering the one whose outside-pointerdown close timer is already
+  // running (which would dismiss the new menu).
+  seq: number;
 }
 
 interface PanelTouchModeOpts {
@@ -39,6 +42,10 @@ interface PanelTouchModeOpts {
   // with it - the panel runtime opens immersive mode for widgets that
   // ship an ImmersiveComponent.
   onCellTap?: (widget: PanelWidget) => void;
+  // Let a mouse pointer arm the long-press context menu. Pass the
+  // surface's touch support: on a touch surface the hold is the gesture
+  // regardless of what the OS calls the pointer.
+  mouseLongPress?: boolean;
 }
 
 /**
@@ -48,7 +55,7 @@ interface PanelTouchModeOpts {
  * single flat-list path. This hook only disambiguates tap / long-press
  * / drag and tracks rearrange visuals.
  */
-export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
+export function usePanelTouchMode({ onCellTap, mouseLongPress = false }: PanelTouchModeOpts) {
   const [rearranging, setRearranging] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
   const [pressedWidgetId, setPressedWidgetId] = useState<string | null>(null);
@@ -56,6 +63,7 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
   const pressOriginRef = useRef({ x: 0, y: 0 });
   const pressFeedbackTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const movedDuringDragRef = useRef(false);
+  const ctxSeqRef = useRef(0);
 
   const clearPressFeedback = useCallback(() => {
     if (pressFeedbackTimerRef.current) {
@@ -79,26 +87,22 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
 
   const handleLongPress = useCallback((x: number, y: number) => {
     const w = longPressWidgetRef.current;
+    // The shrink lands as the menu opens; snap the cell back so the menu is
+    // what reads as "happened".
+    clearPressFeedback();
     if (w) {
-      if (pressFeedbackTimerRef.current) {
-        window.clearTimeout(pressFeedbackTimerRef.current);
-        pressFeedbackTimerRef.current = null;
-        setPressedWidgetId(w.id);
-      }
       triggerHaptic('medium');
-      setCtxMenu({ widget: w, x, y });
-    } else {
-      clearPressFeedback();
+      setCtxMenu({ widget: w, x, y, seq: ++ctxSeqRef.current });
     }
   }, [clearPressFeedback]);
 
-  const longPress = useLongPress(handleLongPress, CONTEXT_MENU_TRIGGER_MS);
+  const longPress = useLongPress(handleLongPress, CONTEXT_MENU_TRIGGER_MS, { allowMouse: mouseLongPress });
 
   const handleContextMenu = useCallback((e: React.MouseEvent, widget: PanelWidget) => {
     e.preventDefault();
     e.stopPropagation();
     clearPressFeedback();
-    setCtxMenu({ widget, x: e.clientX, y: e.clientY });
+    setCtxMenu({ widget, x: e.clientX, y: e.clientY, seq: ++ctxSeqRef.current });
   }, [clearPressFeedback]);
 
   const closeCtxMenu = useCallback(() => {
@@ -163,8 +167,11 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
       // and interactive controls so the user's scroll / button tap
       // doesn't feel like the whole cell is being pressed. The
       // long-press timer + tap detection still arm normally - movement
-      // past PRESS_MOVE_THRESHOLD cancels both.
-      if (!onScrollable && !pressOnInteractiveRef.current) {
+      // past PRESS_MOVE_THRESHOLD cancels both. Like the long-press it
+      // leads into, the shrink is a touch affordance: a mouse only gets
+      // it where the mouse is the finger (mouseLongPress).
+      const touchPointer = e.pointerType !== 'mouse' || mouseLongPress;
+      if (touchPointer && !onScrollable && !pressOnInteractiveRef.current) {
         pressFeedbackTimerRef.current = window.setTimeout(() => {
           pressFeedbackTimerRef.current = null;
           setPressedWidgetId(widget.id);
@@ -176,10 +183,11 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
       longPress.onPointerMove(e);
       const dx = e.clientX - pressOriginRef.current.x;
       const dy = e.clientY - pressOriginRef.current.y;
-      if (dx * dx + dy * dy > PRESS_MOVE_THRESHOLD * PRESS_MOVE_THRESHOLD) {
-        clearPressFeedback();
-        pressMovedRef.current = true;
-      }
+      const dist2 = dx * dx + dy * dy;
+      // The shrink follows the long-press: the drift that cancels the menu
+      // must release it too, or the cell sits shrunk with nothing coming.
+      if (dist2 > LONG_PRESS_MOVE_THRESHOLD * LONG_PRESS_MOVE_THRESHOLD) clearPressFeedback();
+      if (dist2 > PRESS_MOVE_THRESHOLD * PRESS_MOVE_THRESHOLD) pressMovedRef.current = true;
     },
     onPointerUp: (e: React.PointerEvent) => {
       if (isNonPrimaryMouseButton(e)) {
@@ -219,7 +227,7 @@ export function usePanelTouchMode({ onCellTap }: PanelTouchModeOpts) {
       // press's "touch landed on a button" verdict.
       pressOnInteractiveRef.current = false;
     },
-  }), [clearPressFeedback, longPress, onCellTap, rearranging, ctxMenu]);
+  }), [clearPressFeedback, longPress, onCellTap, rearranging, ctxMenu, mouseLongPress]);
 
   return {
     rearranging,

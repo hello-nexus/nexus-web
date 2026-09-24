@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Eye, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
+import { Eye, Layers, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -8,17 +8,17 @@ import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
+import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
 import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
+import { stackMenuItems, type StackActions } from './groupMenuItems';
+import { sliceStackSlot, stackSlotOf, type DeviceStack } from '../../../lib/stackSlots';
 import styles from './DeviceCanvas.module.scss';
 
 interface DeviceCanvasProps {
   devices: LightingDevice[];
-  canvasPixels: Uint8Array | null;
-  canvasW: number;
-  canvasH: number;
   /** Ids of the focused device frames. The canvas draws every device in
    *  `devices` whether focused or not, and this set can name one it is not
    *  drawing (a frame hidden by `hiddenFrameIds`, or one the caller dropped),
@@ -47,8 +47,8 @@ interface DeviceCanvasProps {
   /** Device ids whose rectangle outline should be hidden on the canvas. View-only flag -
    *  the device still samples its rect for lighting; only the visual overlay is skipped. */
   hiddenFrameIds?: Set<string>;
-  /** Active (non-disabled) LEDs for the primary device, used to show position dots on the frame. */
-  selectedDeviceLeds?: LedMapEntry[] | null;
+  /** LED positions by device id; every selected frame draws the dots of each shown member it stands for. */
+  selectedDeviceLeds?: Record<string, LedMapEntry[]> | null;
   /** Called when the user clicks the settings button on a device frame. */
   onOpenSettings?: (id: string) => void;
   /** Notifies parent when a drag starts or ends, so it can pause state updates. */
@@ -64,22 +64,30 @@ interface DeviceCanvasProps {
   gpuState?: GpuState;
   /** Absent when the box has no second card to fall back to. */
   onPickRenderGpu?: () => void;
+  /** Cards stacked to one frame: the first member drawn stands for the set,
+   *  every layout edit on that frame lands on all of them, and each member's
+   *  LED dots sit in the slot its stack layout gives it. */
+  stacks?: DeviceStack[];
+  /** The stack rows the frame menu offers over its targets. */
+  stackActionsFor?: (ids: string[]) => StackActions;
 }
 
 const CW = 1000;
 const CH = 600;
 const PAD = 0;
 
-/** The minimize preset's rect. MIN_BOX_H is at the height floor LightingPage
- *  applies to every incoming device rect, so a minimized frame survives a reload
- *  unchanged (at 30 it silently came back doubled). */
-const MIN_BOX_W = 240;
-const MIN_BOX_H = 60;
+/** The default card's shape, which the minimize preset also lands on. Roughly
+ *  square so a grid or ring LED map is not letterboxed in it, and taller than
+ *  the height floor LightingPage applies to every incoming device rect, so a
+ *  minimized frame survives a reload unchanged (at 30 it silently came back
+ *  doubled). */
+const MIN_BOX_W = 140;
+const MIN_BOX_H = 120;
 /** Inset of the default grid. Distinct from PAD, which is the drag clamp. */
 const GRID_PAD = 12;
 /** Half the vertical offset between neighbouring grid columns. A name is drawn
- *  at its card's center, so a row of cards sharing one center line stacks every
- *  name on that line. */
+ *  under its card, so a row of cards sharing one bottom edge stacks every name
+ *  on that line. */
 const COLUMN_STAGGER_Y = 24;
 
 /** The slot a layout reset would give this device: a square-ish grid scaled to
@@ -97,8 +105,11 @@ function defaultSlot(index: number, totalCount: number): { x: number; y: number;
   const rows = Math.max(1, Math.ceil(n / cols));
   const cellW = availW / cols;
   const cellH = availH / rows;
-  const w = Math.min(MIN_BOX_W, cellW * 0.92);
-  const h = Math.min(MIN_BOX_H, cellH * 0.7);
+  // Held to the MIN_BOX aspect at every density: clamping each axis on its own
+  // turns the card wide and short in a wide cell.
+  const fit = Math.min(Math.min(MIN_BOX_W, cellW * 0.92) / MIN_BOX_W, Math.min(MIN_BOX_H, cellH * 0.7) / MIN_BOX_H);
+  const w = MIN_BOX_W * fit;
+  const h = MIN_BOX_H * fit;
   const total = cols * rows;
   const s = ((index % total) + total) % total;
   const col = s % cols;
@@ -111,8 +122,8 @@ function defaultSlot(index: number, totalCount: number): { x: number; y: number;
   const stagger = Math.min(COLUMN_STAGGER_Y, slack);
   let x = GRID_PAD + col * cellW + (cellW - w) * 0.5;
   let y = GRID_PAD + row * cellH + slack + (col % 2 === 0 ? -stagger : stagger);
-  if (x + w > CW - GRID_PAD) x = CW - GRID_PAD - w;
-  if (y + h > CH - GRID_PAD) y = CH - GRID_PAD - h;
+  if (x > CW - GRID_PAD - w) x = CW - GRID_PAD - w;
+  if (y > CH - GRID_PAD - h) y = CH - GRID_PAD - h;
   if (x < GRID_PAD) x = GRID_PAD;
   if (y < GRID_PAD) y = GRID_PAD;
   return { x, y, w, h };
@@ -136,7 +147,64 @@ function minimizeInto(targets: LightingDevice[], all: LightingDevice[]): void {
   }
 }
 
-type DragMode = 'move' | 'resize-br';
+type DragMode = 'move' | 'resize-br' | 'rotate';
+
+type FrameRect = Pick<LightingDevice, 'canvasX' | 'canvasY' | 'canvasW' | 'canvasH' | 'canvasRotation'>;
+
+const normDeg = (deg: number): number => ((deg % 360) + 360) % 360;
+const radOf = (d: FrameRect): number => normDeg(d.canvasRotation ?? 0) * Math.PI / 180;
+
+/** The rect is the frame before it turns; the frame turns about the rect's
+ *  centre by canvasRotation degrees clockwise, in canvas units. This is the
+ *  turned frame's axis-aligned bounding box. */
+function footprintOf(d: FrameRect): { x: number; y: number; w: number; h: number } {
+  const rad = radOf(d);
+  const c = Math.abs(Math.cos(rad)), sn = Math.abs(Math.sin(rad));
+  const w = d.canvasW * c + d.canvasH * sn;
+  const h = d.canvasW * sn + d.canvasH * c;
+  return { x: d.canvasX + d.canvasW / 2 - w / 2, y: d.canvasY + d.canvasH / 2 - h / 2, w, h };
+}
+
+/** Whether the canvas point lies inside the turned frame. */
+function frameContains(d: FrameRect, px: number, py: number): boolean {
+  const rad = radOf(d);
+  const c = Math.cos(rad), sn = Math.sin(rad);
+  const cx = d.canvasX + d.canvasW / 2, cy = d.canvasY + d.canvasH / 2;
+  const dx = px - cx, dy = py - cy;
+  const lx = dx * c + dy * sn, ly = -dx * sn + dy * c;
+  return Math.abs(lx) <= d.canvasW / 2 && Math.abs(ly) <= d.canvasH / 2;
+}
+
+/** Shrinks the frame about its centre until its footprint fits the padded canvas. */
+function fitInside(d: FrameRect): void {
+  const fp = footprintOf(d);
+  const fit = Math.min(1, (CW - 2 * PAD) / fp.w, (CH - 2 * PAD) / fp.h);
+  if (fit >= 1) return;
+  const cx = d.canvasX + d.canvasW / 2, cy = d.canvasY + d.canvasH / 2;
+  d.canvasW *= fit;
+  d.canvasH *= fit;
+  d.canvasX = cx - d.canvasW / 2;
+  d.canvasY = cy - d.canvasH / 2;
+}
+
+/** Moves the frame the least distance that puts its footprint inside the padded canvas; a footprint wider than the canvas stays put on that axis. */
+function clampInside(d: FrameRect): void {
+  const fp = footprintOf(d);
+  if (fp.w <= CW - 2 * PAD) d.canvasX += fp.x < PAD ? PAD - fp.x : Math.min(0, CW - PAD - (fp.x + fp.w));
+  if (fp.h <= CH - 2 * PAD) d.canvasY += fp.y < PAD ? PAD - fp.y : Math.min(0, CH - PAD - (fp.y + fp.h));
+}
+
+/** How far off a quarter turn the rotate grip still lands on one. */
+const ROTATE_SNAP_DEG = 4;
+/** The step the grip moves in while Shift is held. */
+const ROTATE_STEP_DEG = 5;
+
+function snapRotation(deg: number, stepped: boolean): number {
+  const n = normDeg(deg);
+  if (stepped) return normDeg(Math.round(n / ROTATE_STEP_DEG) * ROTATE_STEP_DEG);
+  const quarter = Math.round(n / 90) * 90;
+  return Math.abs(n - quarter) <= ROTATE_SNAP_DEG ? normDeg(quarter) : Math.round(n);
+}
 
 /** Label bounding box in canvas units. */
 type LabelSize = { w: number; h: number };
@@ -144,14 +212,28 @@ type LabelSize = { w: number; h: number };
 /** Resolved label center in canvas units. */
 type LabelPos = { cx: number; cy: number };
 
+/** Gap between a frame's bottom edge and its name, and between stacked name rows. */
 const LABEL_GAP = 5;
 
-/** Resolves each label's center so no two labels overlap. A label keeps its
- *  frame's center X and steps up/down in alternating whole-row increments until
- *  its box is clear, so labels that are far apart horizontally never move.
- *  Smallest frames place first: a large frame's label yields to the small
- *  frames stacked on top of it, and stays inside its own box either way.
- *  `pinned` ids place before everything: they hold their frame's center and the
+/** The name a frame wears: the card's own part of a hardware name built as
+ *  "{device} - {zone}" (or "{board} - {port} - {product}" on a chained port),
+ *  which is the context the rail needs and the canvas cannot fit. A renamed
+ *  card (originalName set) shows its name verbatim: a human typed it, dashes
+ *  and all. */
+export function canvasLabelName(dev: Pick<LightingDevice, 'name' | 'originalName'>): string {
+  if (dev.originalName != null) return dev.name;
+  const last = dev.name.lastIndexOf(' - ');
+  if (last < 0) return dev.name;
+  const own = dev.name.slice(last + 3).trim();
+  return own || dev.name;
+}
+
+/** Resolves each label's center so no two labels overlap. A label sits just
+ *  under its frame, centred on it, and steps down/up in alternating whole-row
+ *  increments until its box is clear, so labels that are far apart
+ *  horizontally never move. Smallest frames place first: a large frame's label
+ *  yields to the small frames stacked on top of it.
+ *  `pinned` ids place before everything: they hold their home row and the
  *  rest yield, so the name on the card the user is dragging or has selected
  *  tracks its frame instead of hopping rows as other labels come and go.
  *  Returns id -> center in canvas units; ids with no measured size are absent. */
@@ -176,11 +258,14 @@ function layoutLabels(
     const halfH = size.h / 2;
     // The canvas clips overflow and the label is no longer nested in its frame,
     // so an edge-parked frame's name would lose text without this.
-    const cx = Math.max(halfW, Math.min(CW - halfW, dev.canvasX + dev.canvasW / 2));
+    const fp = footprintOf(dev);
+    const cx = Math.max(halfW, Math.min(CW - halfW, fp.x + fp.w / 2));
     const x1 = cx - halfW;
     const x2 = cx + halfW;
     const step = size.h + LABEL_GAP;
-    const home = Math.max(halfH, Math.min(CH - halfH, dev.canvasY + dev.canvasH / 2));
+    // Clamped so a bottom-edge frame keeps its name, over its own bottom band,
+    // rather than losing it to the overflow clip.
+    const home = Math.max(halfH, Math.min(CH - halfH, fp.y + fp.h + LABEL_GAP + halfH));
     let best = home;
     // The alternating sequence spends half its steps on the side the home row is
     // nearest, so the budget must span the canvas twice over to reach the far
@@ -207,35 +292,51 @@ function layoutLabels(
   return out;
 }
 
-const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW, canvasH }: {
-  canvasPixels: Uint8Array | null; canvasW: number; canvasH: number;
-}) {
+// Paints from ledFrameStore: a pixels prop would re-render the lighting page per frame.
+const CanvasBackground = memo(function CanvasBackground() {
   const bgRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
+  useEffect(() => subscribeLedFrame(f => {
     const el = bgRef.current;
-    if (!el) return;
-    paintLedFrame(el, canvasPixels, canvasW, canvasH);
-  }, [canvasPixels, canvasW, canvasH]);
+    if (el) paintLedFrame(el, f.pixels, f.w, f.h);
+  }), []);
 
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower }: {
+const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, stacks, stackActionsFor }: {
+  /** Every device, hidden frames included: a hidden stack member still moves with its frame. */
   devices: LightingDevice[];
+  /** Frames the eye is hiding: never drawn, never hit, but stacked ones follow their frame. */
+  hiddenIds: Set<string>;
   selectedIds: Set<string>;
   primaryDeviceId: string | null;
   onSelectDevice: (id: string | null) => void;
   onSetSelection: (ids: Set<string>, primary: string | null) => void;
   containerRef: React.RefObject<HTMLDivElement | null>;
-  selectedDeviceLeds?: LedMapEntry[] | null;
+  selectedDeviceLeds?: Record<string, LedMapEntry[]> | null;
   onOpenSettings?: (id: string) => void;
   onDragActiveChange?: (active: boolean) => void;
   onBeforeLayoutSave?: () => void;
   onLayoutCommit?: () => void;
   onSetDevicesPower?: (ids: string[], on: boolean) => void;
+  stacks?: DeviceStack[];
+  stackActionsFor?: (ids: string[]) => StackActions;
 }) {
   const { t, language } = useTranslation();
+  // Stack members, self included; the first shown one owns the frame.
+  const stackedWith = useCallback((id: string): string[] => stacks?.find(s => s.members.includes(id))?.members ?? [id], [stacks]);
+  const frameOwner = useCallback((id: string): string => {
+    const members = stackedWith(id);
+    return members.length > 1 ? devices.find(d => members.includes(d.id) && !hiddenIds.has(d.id))?.id ?? id : id;
+  }, [devices, hiddenIds, stackedWith]);
+  const drawn = devices.filter(d => !hiddenIds.has(d.id) && frameOwner(d.id) === d.id);
+  // `ids` with every stack filled in, over the devices the canvas holds.
+  const withStacks = useCallback((ids: Iterable<string>): LightingDevice[] => {
+    const all = new Set<string>();
+    for (const id of ids) for (const m of stackedWith(id)) all.add(m);
+    return devices.filter(d => all.has(d.id));
+  }, [devices, stackedWith]);
   const onBeforeLayoutSaveRef = useRef(onBeforeLayoutSave);
   onBeforeLayoutSaveRef.current = onBeforeLayoutSave;
   const onLayoutCommitRef = useRef(onLayoutCommit);
@@ -248,9 +349,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     id: string; mode: DragMode;
     startX: number; startY: number;
     origX: number; origY: number; origW: number; origH: number;
-    /** Set iff this is a group drag. Maps id -> orig top-left rect. The dragged
-     *  frame is included so the iteration is uniform. */
-    groupOrigs?: Map<string, { x: number; y: number; w: number; h: number }>;
+    /** Set iff this is a group drag. Maps id -> orig top-left rect and its
+     *  turned footprint. The dragged frame is included so the iteration is uniform. */
+    groupOrigs?: Map<string, { x: number; y: number; w: number; h: number; fp: { x: number; y: number; w: number; h: number } }>;
+    /** The group is one stack, not a multi-selection: a tap still cycles through the frames under it. */
+    stackOnly?: boolean;
   } | null>(null);
   // Marquee state. preIds + additive let a Cmd/Ctrl-drag merge with the previous
   // selection so the user can refine a multi-select instead of starting over.
@@ -279,7 +382,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // the first measure. The layer is inset:0 on the canvas, so the rect matches.
   const labelLayerRef = useRef<HTMLDivElement>(null);
   const [labelSizes, setLabelSizes] = useState<Map<string, LabelSize>>(new Map());
-  const containerSizeRef = useRef({ w: 675, h: 380 });
+  const containerSizeRef = useRef({ w: 733, h: 440 });
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -299,6 +402,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   // Captures primary at pointer-down so pointer-up can cycle through the stack
   // relative to what was selected before the tap, not after startDrag overwrites it.
   const tapRef = useRef<{ prevPrimary: string | null; moved: boolean; viaLabel: boolean } | null>(null);
+  // A rotate drag's running state, in canvas units, the space the rotation is
+  // defined in: the frame centre the angle is read about, the last pointer
+  // angle, the unwrapped sweep so far, and the rotation the drag started from.
+  const rotateRef = useRef<{ cx: number; cy: number; lastAngle: number; turned: number; startRot: number } | null>(null);
 
   // Latest-ref so the document-level Escape handler sees the current set
   // without re-binding the listener on every selection change.
@@ -325,6 +432,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     return { x: ((cx - r.left) / r.width) * CW, y: ((cy - r.top) / r.height) * CH };
   }, [containerRef]);
 
+  // Mutates dev in place; no save/render side effects so group rotation can
+  // apply it to every target before a single batched save.
+  const setRotation = useCallback((dev: LightingDevice, deg: number) => {
+    dev.canvasRotation = normDeg(deg);
+    fitInside(dev);
+    clampInside(dev);
+  }, []);
+  const rotateDevice = useCallback((dev: LightingDevice, dir: 1 | -1) => {
+    setRotation(dev, (dev.canvasRotation ?? 0) + dir * 90);
+  }, [setRotation]);
+
   const startDrag = useCallback((e: React.PointerEvent, dev: LightingDevice, mode: DragMode, viaLabel = false) => {
     if (e.button !== 0) return; // right/middle click never starts a drag
     e.preventDefault(); e.stopPropagation();
@@ -332,34 +450,40 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     tapRef.current = { prevPrimary: primaryDeviceIdRef.current, moved: false, viaLabel };
     onDragActiveChange?.(true);
     const p = toCanvas(e.clientX, e.clientY);
+    if (mode === 'rotate') {
+      const cx = dev.canvasX + dev.canvasW / 2, cy = dev.canvasY + dev.canvasH / 2;
+      rotateRef.current = { cx, cy, lastAngle: Math.atan2(p.y - cy, p.x - cx), turned: 0, startRot: dev.canvasRotation ?? 0 };
+    }
     // Group drag triggers when the user grabs a frame that's already part of a
-    // multi-selection (size >= 2). Otherwise we collapse the selection to just
-    // the grabbed frame (matches "click an unselected thing → select only it").
-    const isGroup = mode === 'move' && selectedIds.has(dev.id) && selectedIds.size >= 2;
-    if (!isGroup) {
+    // multi-selection (size >= 2), and always carries the frame's stack.
+    // Otherwise we collapse the selection to just the grabbed frame (matches
+    // "click an unselected thing → select only it").
+    const shownSelection = [...selectedIds].filter(id => !hiddenIds.has(id));
+    const inSelection = selectedIds.has(dev.id) && shownSelection.length >= 2;
+    if (!inSelection) {
       onSelectDevice(dev.id);
     }
+    const dragged = withStacks(inSelection ? shownSelection : [dev.id]);
+    const isGroup = mode === 'move' && dragged.length >= 2;
     const groupOrigs = isGroup
-      ? new Map<string, { x: number; y: number; w: number; h: number }>(
-          devices.filter(d => selectedIds.has(d.id))
-            .map(d => [d.id, { x: d.canvasX, y: d.canvasY, w: d.canvasW, h: d.canvasH }])
+      ? new Map<string, { x: number; y: number; w: number; h: number; fp: { x: number; y: number; w: number; h: number } }>(
+          dragged.map(d => [d.id, { x: d.canvasX, y: d.canvasY, w: d.canvasW, h: d.canvasH, fp: footprintOf(d) }])
         )
       : undefined;
-    setDrag({ id: dev.id, mode, startX: p.x, startY: p.y, origX: dev.canvasX, origY: dev.canvasY, origW: dev.canvasW, origH: dev.canvasH, groupOrigs });
-  }, [toCanvas, onSelectDevice, onDragActiveChange, selectedIds, devices]);
+    setDrag({ id: dev.id, mode, startX: p.x, startY: p.y, origX: dev.canvasX, origY: dev.canvasY, origW: dev.canvasW, origH: dev.canvasH, groupOrigs, stackOnly: isGroup && !inSelection });
+  }, [toCanvas, onSelectDevice, onDragActiveChange, selectedIds, hiddenIds, withStacks]);
 
   // Cmd/Ctrl+click on a frame: toggle membership without starting a drag. Plain
-  // click on a frame still falls through to startDrag.
+  // click on a frame still falls through to startDrag. A stack toggles whole.
   const handleFramePointerDown = useCallback((e: React.PointerEvent, dev: LightingDevice, viaLabel = false) => {
     if (e.button !== 0) return; // right-click is handled by onContextMenu, not selection
     if (isMultiSelectModifier(e)) {
       e.preventDefault(); e.stopPropagation();
       const next = new Set(selectedIds);
       if (next.has(dev.id)) {
-        next.delete(dev.id);
+        for (const m of stackedWith(dev.id)) next.delete(m);
         // Removed primary: pick any remaining id as the new primary, prefer
-        // the topmost (last in devices array) so LED dots track to a visible
-        // frame. Empty set → primary null.
+        // the topmost (last in devices array). Empty set → primary null.
         let nextPrimary = primaryDeviceId;
         if (dev.id === primaryDeviceId) {
           nextPrimary = null;
@@ -369,7 +493,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         }
         onSetSelection(next, nextPrimary);
       } else {
-        next.add(dev.id);
+        for (const m of stackedWith(dev.id)) next.add(m);
         // Newly-toggled-in id becomes primary so the side panel + LED dots
         // follow the user's latest interaction.
         onSetSelection(next, dev.id);
@@ -377,7 +501,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       return;
     }
     startDrag(e, dev, 'move', viaLabel);
-  }, [selectedIds, primaryDeviceId, devices, onSetSelection, startDrag]);
+  }, [selectedIds, primaryDeviceId, devices, onSetSelection, startDrag, stackedWith]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (marquee) {
@@ -390,22 +514,51 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       const x2 = Math.max(marquee.startX, p.x);
       const y2 = Math.max(marquee.startY, p.y);
       const hits = new Set<string>();
-      for (const dev of devices) {
-        if (!(dev.canvasX + dev.canvasW < x1 || dev.canvasX > x2 || dev.canvasY + dev.canvasH < y1 || dev.canvasY > y2)) {
+      for (const dev of drawn) {
+        const fp = footprintOf(dev);
+        if (!(fp.x + fp.w < x1 || fp.x > x2 || fp.y + fp.h < y1 || fp.y > y2)) {
           hits.add(dev.id);
         }
       }
       setMarquee({ ...marquee, curX: p.x, curY: p.y, moved, hits });
       // Push the live preview to the parent so the frames light up as the rect
-      // crosses them. Primary stays pinned to whatever it was pre-drag so LED
-      // dots don't flicker and the LED-map fetch effect (deps include
-      // primaryDeviceId but not the focus set) stays quiet during the drag.
+      // crosses them. Primary stays pinned to whatever it was pre-drag so the
+      // side panel does not flip with every frame the rect crosses.
       const effective = marquee.additive ? new Set([...marquee.preIds, ...hits]) : hits;
       onSetSelection(effective, primaryDeviceIdRef.current);
       return;
     }
     if (!drag) return;
     const p = toCanvas(e.clientX, e.clientY);
+    if (drag.mode === 'rotate') {
+      // The frame follows the pointer's sweep about its centre, landing on a
+      // quarter turn when within ROTATE_SNAP_DEG of one, or in ROTATE_STEP_DEG
+      // steps while Shift is held; the whole stack turns with it, since its
+      // members share the rect.
+      const r = rotateRef.current;
+      if (!r) return;
+      const angle = Math.atan2(p.y - r.cy, p.x - r.cx);
+      let d = angle - r.lastAngle;
+      if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+      r.lastAngle = angle;
+      r.turned += d;
+      const dev = devices.find(x => x.id === drag.id);
+      if (!dev) return;
+      const deg = snapRotation(r.startRot + r.turned * 180 / Math.PI, e.shiftKey);
+      if (deg === normDeg(dev.canvasRotation ?? 0)) return;
+      if (tapRef.current && !tapRef.current.moved) {
+        tapRef.current.moved = true;
+        onBeforeLayoutSaveRef.current?.();
+      }
+      // From the size the drag started at, not the running one: a sweep
+      // through the diagonal fits the frame down and must grow it back.
+      withStacks([dev.id]).forEach(m => {
+        m.canvasX = drag.origX; m.canvasY = drag.origY; m.canvasW = drag.origW; m.canvasH = drag.origH;
+        setRotation(m, deg);
+      });
+      forceRender(n => n + 1);
+      return;
+    }
     const dx = p.x - drag.startX, dy = p.y - drag.startY;
     if (tapRef.current && !tapRef.current.moved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) {
       tapRef.current.moved = true;
@@ -430,10 +583,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       for (const sd of devices) {
         const orig = drag.groupOrigs.get(sd.id);
         if (!orig) continue;
-        dxMin = Math.max(dxMin, PAD - orig.x);
-        dxMax = Math.min(dxMax, CW - PAD - orig.w - orig.x);
-        dyMin = Math.max(dyMin, PAD - orig.y);
-        dyMax = Math.min(dyMax, CH - PAD - orig.h - orig.y);
+        dxMin = Math.max(dxMin, PAD - orig.fp.x);
+        dxMax = Math.min(dxMax, CW - PAD - orig.fp.w - orig.fp.x);
+        dyMin = Math.max(dyMin, PAD - orig.fp.y);
+        dyMax = Math.min(dyMax, CH - PAD - orig.fp.h - orig.fp.y);
       }
       const cdx = Math.max(dxMin, Math.min(dxMax, dx));
       const cdy = Math.max(dyMin, Math.min(dyMax, dy));
@@ -449,14 +602,41 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     const dev = devices.find(d => d.id === drag.id);
     if (!dev) return;
     if (drag.mode === 'move') {
-      dev.canvasX = Math.max(PAD, Math.min(CW - PAD - dev.canvasW, drag.origX + dx));
-      dev.canvasY = Math.max(PAD, Math.min(CH - PAD - dev.canvasH, drag.origY + dy));
+      dev.canvasX = drag.origX + dx;
+      dev.canvasY = drag.origY + dy;
+      clampInside(dev);
     } else {
-      dev.canvasW = Math.max(60, Math.min(CW - PAD - dev.canvasX, drag.origW + dx));
-      dev.canvasH = Math.max(60, Math.min(CH - PAD - dev.canvasY, drag.origH + dy));
+      const rad = radOf(dev);
+      if (rad === 0) {
+        dev.canvasW = Math.max(60, Math.min(CW - PAD - dev.canvasX, drag.origW + dx));
+        dev.canvasH = Math.max(60, Math.min(CH - PAD - dev.canvasY, drag.origH + dy));
+      } else {
+        // The grip drags the frame's own bottom-right corner: the pointer delta
+        // is read along the frame's axes and the opposite corner stays put, so
+        // the centre the frame turns about moves with the resize.
+        const c = Math.cos(rad), sn = Math.sin(rad);
+        const w = Math.max(60, drag.origW + dx * c + dy * sn);
+        const h = Math.max(60, drag.origH - dx * sn + dy * c);
+        const ocx = drag.origX + drag.origW / 2, ocy = drag.origY + drag.origH / 2;
+        const cornerX = ocx - (drag.origW / 2) * c + (drag.origH / 2) * sn;
+        const cornerY = ocy - (drag.origW / 2) * sn - (drag.origH / 2) * c;
+        dev.canvasW = w;
+        dev.canvasH = h;
+        dev.canvasX = cornerX + (w / 2) * c - (h / 2) * sn - w / 2;
+        dev.canvasY = cornerY + (w / 2) * sn + (h / 2) * c - h / 2;
+        fitInside(dev);
+        clampInside(dev);
+      }
+      for (const m of stackedWith(dev.id)) {
+        const stacked = devices.find(d => d.id === m);
+        if (stacked && stacked !== dev) {
+          stacked.canvasX = dev.canvasX; stacked.canvasY = dev.canvasY;
+          stacked.canvasW = dev.canvasW; stacked.canvasH = dev.canvasH;
+        }
+      }
     }
     forceRender(n => n + 1);
-  }, [drag, marquee, devices, toCanvas, onSetSelection]);
+  }, [drag, marquee, devices, drawn, toCanvas, onSetSelection, stackedWith, withStacks, setRotation]);
 
   const handlePointerUp = useCallback(async () => {
     if (marquee) {
@@ -471,8 +651,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       // Reuse the live preview set from the last pointer-move. Merge with
       // preIds when additive so prior selections stay alongside new hits.
       const hits = marquee.additive ? new Set([...marquee.preIds, ...marquee.hits]) : marquee.hits;
-      // Primary = topmost (last in devices array) hit so LED dots land on a
-      // visible frame. Empty hit set → null primary.
+      // Primary = topmost (last in devices array) hit. Empty hit set → null primary.
       let primary: string | null = null;
       for (let i = devices.length - 1; i >= 0; i--) {
         if (hits.has(devices[i].id)) { primary = devices[i].id; break; }
@@ -493,7 +672,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     } else {
       const dev = devices.find(d => d.id === drag.id);
       if (dev) {
-        await saveDeviceLayout(dev.id, dev.canvasX, dev.canvasY, dev.canvasW, dev.canvasH, dev.canvasRotation ?? 0);
+        const members = stackedWith(dev.id);
+        await Promise.all(devices.filter(d => members.includes(d.id)).map(d =>
+          saveDeviceLayout(d.id, d.canvasX, d.canvasY, d.canvasW, d.canvasH, d.canvasRotation ?? 0),
+        ));
         if (tap?.moved) onLayoutCommitRef.current?.();
       }
     }
@@ -502,45 +684,18 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     // A group is what a DRAG acts on; a tap that never moved narrows the focus
     // to the one frame it landed on. Without this the default "every frame
     // focused" state swallows the click that is meant to single one out.
-    if (drag.groupOrigs && tap && !tap.moved) { onSelectDevice(drag.id); return; }
-    // Tap-cycle (no drag, no group): step through the stack at the click point.
+    if (drag.groupOrigs && !drag.stackOnly && tap && !tap.moved) { onSelectDevice(drag.id); return; }
+    // Tap-cycle (no drag, no group): step through the frames under the click
+    // point, top first.
     // A tap on a name names its device outright, so it must not cycle - the
     // label is the escape hatch from having to guess the stacking order.
-    if (!tap || tap.moved || tap.viaLabel || drag.groupOrigs) return;
-    const stack = [...devices].reverse().filter(d =>
-      drag.startX >= d.canvasX && drag.startX <= d.canvasX + d.canvasW &&
-      drag.startY >= d.canvasY && drag.startY <= d.canvasY + d.canvasH
-    );
-    const idx = stack.findIndex(d => d.id === tap.prevPrimary);
+    if (!tap || tap.moved || tap.viaLabel || drag.mode !== 'move' || (drag.groupOrigs && !drag.stackOnly)) return;
+    const underPointer = [...drawn].reverse().filter(d => frameContains(d, drag.startX, drag.startY));
+    const idx = underPointer.findIndex(d => d.id === tap.prevPrimary);
     if (idx === -1) return; // fresh selection: topmost already selected via startDrag
-    if (idx === stack.length - 1) { onSelectDevice(null); return; } // bottom of stack: deselect
-    onSelectDevice(stack[idx + 1].id); // step one level deeper
-  }, [drag, marquee, devices, onSelectDevice, onSetSelection, onDragActiveChange]);
-
-  // Mutates dev's rect in place by one 90° step; no save/render side effects so
-  // group rotation can apply it to every target before a single batched save.
-  const rotateDevice = useCallback((dev: LightingDevice, dir: 1 | -1) => {
-    dev.canvasRotation = ((((dev.canvasRotation ?? 0) + dir * 90) % 360) + 360) % 360;
-
-    // Rotate the whole box footprint, not just the label: each 90° step swaps
-    // width and height about the frame's center (two steps = 180° swaps back to
-    // the original footprint, which is correct). The LED dots remap off
-    // canvasRotation below, so they follow the reoriented box.
-    const cx = dev.canvasX + dev.canvasW / 2;
-    const cy = dev.canvasY + dev.canvasH / 2;
-    let w = dev.canvasH;
-    let h = dev.canvasW;
-    // If the reoriented box no longer fits the padded canvas, scale it down
-    // uniformly so it does (preserves the rotated footprint's aspect ratio).
-    const fit = Math.min(1, (CW - 2 * PAD) / w, (CH - 2 * PAD) / h);
-    w *= fit;
-    h *= fit;
-    dev.canvasW = w;
-    dev.canvasH = h;
-    // Keep the same center, then clamp fully inside the padded canvas.
-    dev.canvasX = Math.max(PAD, Math.min(CW - PAD - w, cx - w / 2));
-    dev.canvasY = Math.max(PAD, Math.min(CH - PAD - h, cy - h / 2));
-  }, []);
+    if (idx === underPointer.length - 1) { onSelectDevice(null); return; } // bottom-most already: deselect
+    onSelectDevice(underPointer[idx + 1].id); // step one level deeper
+  }, [drag, marquee, devices, drawn, stackedWith, onSelectDevice, onSetSelection, onDragActiveChange]);
 
   const handleRotate = useCallback((dev: LightingDevice, dir: 1 | -1) => {
     onBeforeLayoutSaveRef.current?.();
@@ -572,6 +727,9 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       dev.canvasY = PAD;
       dev.canvasW = CW - 2 * PAD;
       dev.canvasH = CH - 2 * PAD;
+      // A turned frame's footprint overhangs the canvas at full size.
+      fitInside(dev);
+      clampInside(dev);
     } else {
       minimizeInto([dev], devices);
     }
@@ -640,12 +798,30 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     return () => { alive = false; };
   }, []);
 
-  // A label's box only changes when its text, rotation, the font, or the
-  // container scale does - never when a frame moves. Keying the measure on that
+  // How many cards the frame stands for, beside the stack glyph, with the
+  // full sentence for the label's accessible name.
+  const stackLabel = (dev: LightingDevice): { text: string; aria: string } | null => {
+    const n = stackedWith(dev.id).length;
+    return n > 1 ? { text: String(n), aria: t(pluralKey('lighting.devices.stackedCount', language, n), { count: n }) } : null;
+  };
+  // A stacked frame names the selected member - the primary, when that is one
+  // of the stack. At rest, a stack made from a header carries
+  // that header's name and one made from a selection wears its owner's.
+  const frameName = (dev: LightingDevice): string => {
+    const members = stackedWith(dev.id);
+    if (members.length > 1 && primaryDeviceId && members.includes(primaryDeviceId)) {
+      const primary = devices.find(d => d.id === primaryDeviceId);
+      if (primary) return canvasLabelName(primary);
+    }
+    return stacks?.find(s => s.members.includes(dev.id))?.name || canvasLabelName(dev);
+  };
+
+  // A label's box only changes when its text, the font, or the container
+  // scale does - never when a frame moves or turns. Keying the measure on that
   // signature keeps a drag (which re-renders at pointer rate) off the
   // layout-thrash path. JSON encodes the fields unambiguously without needing
   // a delimiter no device name can contain.
-  const labelSig = JSON.stringify(devices.map(d => [d.id, d.name, d.canvasRotation ?? 0]));
+  const labelSig = JSON.stringify(drawn.map(d => [d.id, frameName(d), stackLabel(d)?.text ?? null]));
   const { w: contW, h: contH } = containerSizeRef.current;
   useLayoutEffect(() => {
     const el = labelLayerRef.current;
@@ -654,8 +830,6 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     if (r.width === 0 || r.height === 0) return;
     const next = new Map<string, LabelSize>();
     for (const [id, span] of labelElsRef.current) {
-      // getBoundingClientRect is the post-transform box, so a rotated label
-      // reports the swapped extents the AABB de-collision needs.
       const b = span.getBoundingClientRect();
       next.set(id, { w: (b.width / r.width) * CW, h: (b.height / r.height) * CH });
     }
@@ -677,7 +851,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
     drag ? (drag.groupOrigs ? [...drag.groupOrigs.keys()] : [drag.id]) : [],
   );
   if (primaryDeviceId) pinnedIds.add(primaryDeviceId);
-  const labelLayout = layoutLabels(devices, labelSizes, pinnedIds);
+  const labelLayout = layoutLabels(drawn, labelSizes, pinnedIds);
 
   // Marquee rect in % units so it scales with the container without a
   // separate transform. Math.min/max so the rect renders regardless of
@@ -694,39 +868,41 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       onPointerMove={handlePointerMove} onPointerUp={handlePointerUpWithMarquee}
       onPointerDown={handleOverlayPointerDown}
       onContextMenu={e => e.preventDefault()}>
-      {devices.map(dev => {
+      {drawn.map(dev => {
         // selectedIds is kept in sync with the live marquee preview by
         // handlePointerMove, so no marquee-specific branch is needed here.
         const selected = selectedIds.has(dev.id);
         // Unfocused frames stay drawn and recede. An empty focus set recedes
         // every one of them - that is the "clicked empty canvas" state.
         const deemphasized = !selected;
-        const isPrimary = dev.id === primaryDeviceId;
-        const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
-        const { w, h } = containerSizeRef.current;
-        const bgX = -(dev.canvasX / CW) * w;
-        const bgY = -(dev.canvasY / CH) * h;
+        // The canvas is held at the unit space's 5:3, so a turn in units is a
+        // plain rotation on screen.
+        const rot = normDeg(dev.canvasRotation ?? 0);
         return (
           <div key={dev.id}
             className={`${styles.device} ${drag?.id === dev.id ? styles.dragging : ''} ${selected ? styles.selected : ''} ${deemphasized ? styles.deemphasized : ''} ${hoveredLabelId === dev.id ? styles.labelHover : ''}`}
             style={{
               left: `${(dev.canvasX / CW) * 100}%`, top: `${(dev.canvasY / CH) * 100}%`,
               width: `${(dev.canvasW / CW) * 100}%`, height: `${(dev.canvasH / CH) * 100}%`,
-              backgroundPosition: `${bgX}px ${bgY}px`,
+              transform: rot === 0 ? undefined : `rotate(${rot}deg)`,
             }}
             onPointerDown={e => handleFramePointerDown(e, dev)}
             onContextMenu={e => handleFrameContextMenu(e, dev)}>
             <div className={styles.resizeHandle} onPointerDown={e => startDrag(e, dev, 'resize-br')} />
-            {isPrimary && selectedDeviceLeds && selectedDeviceLeds
-              .filter(l => !l.disabled)
-              .map(led => {
-                let ur = led.u, vr = led.v;
-                if (rot === 90)       { ur = 1 - led.v; vr = led.u; }
-                else if (rot === 180) { ur = 1 - led.u; vr = 1 - led.v; }
-                else if (rot === 270) { ur = led.v; vr = 1 - led.u; }
-                return (
-                  <div key={led.index} className={styles.ledDot} style={{ left: `${ur * 100}%`, top: `${vr * 100}%` }} />
-                );
+            <div className={styles.rotateHandle} title={t('lighting.devices.rotateHandle')} onPointerDown={e => startDrag(e, dev, 'rotate')}>
+              <RotateCw size={10} aria-hidden />
+            </div>
+            {selected && selectedDeviceLeds && stackedWith(dev.id)
+              .filter(id => !hiddenIds.has(id))
+              .flatMap(id => {
+                // Stack members share one rect and turn with the frame, each
+                // inside the slot the stack layout cuts for it - the engine
+                // samples the same slot.
+                const slot = stackSlotOf(stacks, id);
+                const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
+                return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => (
+                  <div key={`${id}:${led.index}`} className={styles.ledDot} style={{ left: `${(part.x + led.u * part.w) * 100}%`, top: `${(part.y + led.v * part.h) * 100}%` }} />
+                ));
               })
             }
           </div>
@@ -734,30 +910,40 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
       })}
       {/* Labels live above every frame so a name is always readable and always
           hittable, whatever the frame stacking is. The layer itself is
-          click-through; only the names take pointer events. */}
+          click-through; only the names take pointer events. A name sits under
+          its frame and stays horizontal: rotation already shows in the turned
+          frame and its LED dots. */}
       <div ref={labelLayerRef} className={styles.labelLayer}>
-        {devices.map(dev => {
+        {drawn.map(dev => {
           const selected = selectedIds.has(dev.id);
           const deemphasized = !selected;
-          const rot = ((dev.canvasRotation ?? 0) % 360 + 360) % 360;
-          // Pre-measure fallback keeps the label at its frame's center, which is
-          // where the un-decollided layout already puts it.
+          // Pre-measure fallback sits on the frame's bottom edge; the layout
+          // effect measures before paint, so it is never drawn.
           const pos = labelLayout.get(dev.id);
-          const cx = pos?.cx ?? dev.canvasX + dev.canvasW / 2;
-          const cy = pos?.cy ?? dev.canvasY + dev.canvasH / 2;
+          const fp = footprintOf(dev);
+          const cx = pos?.cx ?? fp.x + fp.w / 2;
+          const cy = pos?.cy ?? fp.y + fp.h + LABEL_GAP;
           return (
             <span key={dev.id}
               ref={el => { if (el) labelElsRef.current.set(dev.id, el); else labelElsRef.current.delete(dev.id); }}
               className={`${styles.deviceLabel} ${deemphasized ? styles.deemphasized : ''}`}
               style={{
                 left: `${(cx / CW) * 100}%`, top: `${(cy / CH) * 100}%`,
-                transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+                transform: 'translate(-50%, -50%)',
               }}
               onPointerDown={e => handleFramePointerDown(e, dev, true)}
               onContextMenu={e => handleFrameContextMenu(e, dev)}
               onPointerEnter={() => setHoveredLabelId(dev.id)}
               onPointerLeave={() => setHoveredLabelId(cur => (cur === dev.id ? null : cur))}>
-              {dev.name}
+              {frameName(dev)}
+              {(() => {
+                const stack = stackLabel(dev);
+                return stack && (
+                  <span className={styles.deviceLabelStacked} role="img" aria-label={stack.aria}>
+                    <Layers size={11} aria-hidden />{stack.text}
+                  </span>
+                );
+              })()}
             </span>
           );
         })}
@@ -773,7 +959,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         // frames and yield "(1 devices)" labels / partial application. A
         // right-click outside the selection (or a single visible target) stays
         // single-device and keeps LED settings.
-        const targets = selectedIds.has(dev.id) ? devices.filter(d => selectedIds.has(d.id)) : [dev];
+        // A stacked frame's targets are its whole stack, hidden members included,
+        // so every row keeps the stack on one rect.
+        const picked = selectedIds.has(dev.id) ? drawn.filter(d => selectedIds.has(d.id)) : [dev];
+        const targets = withStacks(picked.map(d => d.id));
         const group = targets.length >= 2;
         const count = targets.length;
         const items: DeviceMenuItem[] = [];
@@ -792,7 +981,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
         // LED-map editor is single-device only (it edits one device's zones), so
         // it is hidden for a group selection. For a single device it opens even
         // at 0 LEDs (positional mapping is always available).
-        if (onOpenSettings && !group) {
+        if (onOpenSettings && picked.length === 1) {
           items.push({
             key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
             onSelect: () => onOpenSettings(dev.id),
@@ -828,6 +1017,11 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
             : t(anyOn ? 'lighting.devices.menuLightsOff' : 'lighting.devices.menuLightsOn'),
           onSelect: () => onSetDevicesPower?.(targets.map(d => d.id), !anyOn),
         });
+        const stackRows = stackMenuItems(t, language, stackActionsFor?.(targets.map(d => d.id)), count);
+        if (stackRows.length > 0) {
+          items[items.length - 1].separatorAfter = true;
+          items.push(...stackRows);
+        }
         return (
           <DeviceContextMenu
             key={`${ctxMenu.id}:${ctxMenu.x}:${ctxMenu.y}`}
@@ -841,7 +1035,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, selectedIds, prim
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu, stacks, stackActionsFor }: DeviceCanvasProps) {
   const notice = gpuNotice(gpuState, gpuAvailable);
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -853,14 +1047,12 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
 
   shaderStateRef.current = shaderState ?? null;
   const { ready } = useShaderRenderer(glCanvasRef, shaderEffect ?? null, shaderStateRef, audioRef, undefined, shaderPaused);
-  const visibleDevices = hiddenFrameIds && hiddenFrameIds.size > 0
-    ? devices.filter(d => !hiddenFrameIds.has(d.id))
-    : devices;
+  const hiddenIds = hiddenFrameIds ?? new Set<string>();
   return (
     <div ref={containerRef} className={styles.canvas}>
-      <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
+      <CanvasBackground />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={visibleDevices} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} />
+      <DeviceOverlays devices={devices} hiddenIds={hiddenIds} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} stacks={stacks} stackActionsFor={stackActionsFor} />
       <CanvasNoticeBar
         visible={notice != null && shaderEffect != null}
         message={notice ? t(notice.key) : ''}

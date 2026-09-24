@@ -15,6 +15,7 @@ import { broadcastLayoutChanged } from './panelSync';
 import {
   getMarketplaceListing,
   hasMarketplaceLoadedOnce,
+  isMarketplaceRegistryExpired,
   isMarketplaceType,
   marketplaceIdFromType,
   normalizeAppType,
@@ -83,8 +84,8 @@ function reconcileAppsAgainstRegistry(
       //   1. App-start: the marketplace registry hasn't loaded yet, so
       //      every app:* type is "unknown" transiently. Preserve
       //      the rect so a slow first fetch doesn't silently delete the
-      //      user's widgets; MarketplaceWidget renders a Loading…
-      //      placeholder until the listing lands.
+      //      user's widgets; the cell renders empty at its span until the
+      //      listing lands, since lookupApp resolves no component for it.
       //   2. Post-load: the registry HAS loaded but the listing for this
       //      id is missing - the widget was uninstalled (or renamed, e.g.
       //      com.nexus.* → com.hellonexus.*). Drop it from the layout so the
@@ -93,8 +94,13 @@ function reconcileAppsAgainstRegistry(
         if (!hasMarketplaceLoadedOnce()) return [widget];
         const id = marketplaceIdFromType(widget.type);
         if (id && getMarketplaceListing(id)) return [widget];
-        // Stale id - purge silently. The layout writer will persist the
-        // cleaned shape on the next debounced flush.
+        // A read past the freshness window cannot tell an uninstalled app from
+        // one installed since it; useMarketplaceRegistryRefresh reloads and a
+        // later pass decides.
+        if (isMarketplaceRegistryExpired()) return [widget];
+        // An uninstall purges the placement service-side, so a miss against a
+        // current registry is an app the listing hides (OEM gating) or one whose
+        // files went missing.
          
         console.info(`[panel-layout] dropping orphaned marketplace widget: ${widget.type}`);
         return [];
@@ -127,10 +133,9 @@ interface UsePanelLayoutResult {
   saveForbidden: boolean;
   /**
    * `layout` is derived from the record's STORED layout, not from the local
-   * seed. Auto-persisting callers (PanelApp's repagination effect) must wait
-   * for this: `loaded` only says the record fetch settled, and the effect
-   * that swaps the seed out for the stored layout lands one render later.
-   * Persisting in that gap writes the seed over the user's saved layout.
+   * seed. Anything acting on the user's placement (PanelApp's
+   * immersive-on-load latch) waits for this: `loaded` only says the record
+   * fetch settled, and the swap lands one render later.
    */
   hydrated: boolean;
   setLayout: (next: PanelLayout) => void;
@@ -166,10 +171,23 @@ export function normalizePanelLayout(layout: PanelLayout, surface: PanelSurface,
     }];
   }
 
+  // Drop a mark whose widget is gone from the layout entirely; anything else is
+  // left alone. resolveImmersiveOnLoadWidget already ignores a mark that is not
+  // on the first page, so a widget dragged to page 2 keeps it (inert) and gets
+  // it back on the way home - clearing on placement instead would destroy the
+  // setting on a resize cascade, and clearing on surface capability would
+  // destroy it in the window before a monitor's `deviceTouch` has loaded.
+  const immersiveOnLoadWidgetId =
+    layout.immersiveOnLoadWidgetId !== undefined
+    && finalPages.some(page => page.widgets.some(w => w.id === layout.immersiveOnLoadWidgetId))
+      ? layout.immersiveOnLoadWidgetId
+      : undefined;
+
   return {
     ...layout,
     surface,
     pages: finalPages,
+    immersiveOnLoadWidgetId,
   };
 }
 
@@ -188,9 +206,7 @@ export function usePanelLayout(
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForSurface(surface));
   // Starts false even when the record is already in hand: the effect below is
   // what puts the stored layout into `layout`, and both must flip in the same
-  // commit. Seeding this from the record instead would let the auto-persist
-  // effect run in the MOUNT commit, where the runtime grid is still the
-  // window-derived estimate rather than the measured one.
+  // commit.
   const [hydrated, setHydrated] = useState(false);
   const [saveForbidden, setSaveForbidden] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -206,8 +222,6 @@ export function usePanelLayout(
 
   useEffect(() => {
     setLayoutState(normalizePanelLayout(storedLayout ?? defaultLayoutForSurface(surface), surface, deviceTouch));
-    // State, not a ref: the auto-persist effect reads this in the SAME commit
-    // that queues the swap above, and must still see the pre-swap value.
     setHydrated(storedLayout !== null);
   }, [storedLayout, surface, deviceTouch]);
 

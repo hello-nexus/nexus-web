@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ConflictWarningBadge } from './ConflictWarning';
 import type { DetectedConflict } from '../../../api/conflicts';
@@ -34,11 +34,11 @@ describe('ConflictWarningModal', () => {
       <ConflictWarningBadge
         conflicts={conflicts}
         ready
-        pulsing={false}
         suppressed={false}
         open
         onOpenChange={vi.fn()}
         onSuppressedChange={vi.fn()}
+        onManageApps={vi.fn()}
       />,
     );
 
@@ -54,15 +54,35 @@ describe('ConflictWarningModal', () => {
       <ConflictWarningBadge
         conflicts={[]}
         ready
-        pulsing={false}
         suppressed={false}
         open
         onOpenChange={vi.fn()}
         onSuppressedChange={vi.fn()}
+        onManageApps={vi.fn()}
       />,
     );
 
     expect(screen.getByText('conflicts.modal.empty')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'conflicts.modal.endTask' })).not.toBeInTheDocument();
+  });
+
+  it('Manage apps closes the modal and opens the settings manager', () => {
+    const onOpenChange = vi.fn();
+    const onManageApps = vi.fn();
+    render(
+      <ConflictWarningBadge
+        conflicts={conflicts}
+        ready
+        suppressed={false}
+        open
+        onOpenChange={onOpenChange}
+        onSuppressedChange={vi.fn()}
+        onManageApps={onManageApps}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.manageApps' }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onManageApps).toHaveBeenCalledTimes(1);
   });
 });

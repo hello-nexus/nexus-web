@@ -1,35 +1,77 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import type { WidgetProps } from '../types';
 import { DeckGrid } from './DeckGrid';
-import { innerGridForSize, readDeckConfig, resolveViewSlots, padSlots, swapSlots, deckConfigPatch } from './deckLayout';
+import { innerGridForSize, fitToGrid, resolveViewSlots, padSlots, emptyDeck } from './deckLayout';
+import { useDeckInstance } from './useDeckInstance';
 import { executeDeckAction, isPrivilegedDeckAction } from './deckExecutor';
 import { useDeckLiveState } from './useDeckState';
 import { toggleBranchSlot, withPageIndicatorDisplay } from './deckIcons';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { DECK_PREVIEW_CONFIG } from './deckPreviewData';
-import type { DeckAction, DeckSlot } from './types';
+import { useRecentApps } from './useRecentApps';
+import { paginateRecentApps, stableRecentAppsOrder } from './recentAppsView';
+import { RecentAppsGrid } from './RecentAppsGrid';
+import type { DeckAction, DeckConfig, DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
-export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editView, onEditViewChange, onUpdate }: WidgetProps) {
+export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editView, onEditViewChange }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
-  const parsed = readDeckConfig(widget);
-  const deck = preview && parsed.pages.length === 1 && parsed.pages[0].slots.length === 0 ? DECK_PREVIEW_CONFIG : parsed;
   const { cols, rows, count } = innerGridForSize(widget.size);
   const editing = typeof onSelectSlot === 'function';
-  const live = useDeckLiveState(deck, !editing && !preview);
+  const instanceId = preview ? null : `widget:${widget.id}`;
+  const instance = useDeckInstance(instanceId, 'widget', { cols, rows }, false);
+  const preset = instance.preset;
+  const target = instance.target;
+
+  // Recent Apps has no per-key content to fit/edit - every key is the live
+  // ring, rendered by RecentAppsGrid instead of the fitToGrid/DndContext path
+  // below. Hooks stay unconditional; only the render branches on mode.
+  const showRecentApps = !preview && instance.instance?.mode === 'recentApps';
+  const recentApps = useRecentApps(showRecentApps);
+  // This widget's own display order (stableRecentAppsOrder): a focus change
+  // only reorders when the focused app is not on the page being shown, so
+  // the page index has to be known here rather than inside RecentAppsGrid.
+  const [recentPage, setRecentPage] = useState(0);
+  const recentOrderRef = useRef<{ order: string[]; focused: string | null | undefined } | null>(null);
+  const recentPages = useMemo(() => {
+    const previous = recentOrderRef.current;
+    const ordered = stableRecentAppsOrder(
+      recentApps.apps, previous?.order ?? null, previous?.focused, recentApps.focusedProcessKey, cols, rows, recentPage);
+    // The empty pre-load ring must not count as a first build, or the real
+    // one would skip the focused-first seeding.
+    if (recentApps.loaded) recentOrderRef.current = { order: ordered.map(a => a.processKey), focused: recentApps.focusedProcessKey };
+    return paginateRecentApps(ordered, recentApps.focusedProcessKey, cols, rows);
+  }, [recentApps.apps, recentApps.focusedProcessKey, recentApps.loaded, cols, rows, recentPage]);
+
+  // target.cols/rows/keyCount always equal this widget's own inner grid
+  // (useDeckInstance is given the same {cols, rows} as instanceGrid), so
+  // editing and run mode render the identical fitted size - never the
+  // authored grid crammed into this tile. Preview (add-widget catalog) skips
+  // the live instance entirely.
+  const gridCols = cols;
+  const gridRows = rows;
+  const gridCount = count;
+  const deck: DeckConfig | null = useMemo(() => {
+    if (preview) return DECK_PREVIEW_CONFIG;
+    if (editing) return target?.config ?? null;
+    if (!preset) return null;
+    return fitToGrid({ cols: preset.cols, rows: preset.rows, deck: preset.deck }, { cols, rows, kind: 'widget' });
+  }, [preview, editing, target, preset, cols, rows]);
+
+  const live = useDeckLiveState(deck ?? emptyDeck(), !editing && !preview);
   const [internalFolder, setInternalFolder] = useState<number[]>([]);
   const [internalPage, setInternalPage] = useState(0);
   const [flips, setFlips] = useState<Record<string, boolean>>({});
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const controlled = editing && !!editView && !!onEditViewChange;
-  const maxPage = Math.max(0, deck.pages.length - 1);
+  const maxPage = Math.max(0, (deck?.pages.length ?? 1) - 1);
   const page = clamp(controlled ? editView!.page : internalPage, 0, maxPage);
   const folderPath = controlled ? editView!.folderPath : internalFolder;
   const setFolderPath = (fp: number[]) => (controlled ? onEditViewChange!({ page, folderPath: fp }) : setInternalFolder(fp));
@@ -41,14 +83,14 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
     else { setInternalPage(next); setInternalFolder([]); }
   };
 
-  const resolved = resolveViewSlots(deck, page, folderPath, count);
+  const resolved = deck ? resolveViewSlots(deck, page, folderPath, gridCount) : null;
   const inFolder = resolved != null && folderPath.length > 0;
-  const slots = resolved ?? resolveViewSlots(deck, page, [], count) ?? padSlots([], count);
+  const slots = resolved ?? (deck ? resolveViewSlots(deck, page, [], gridCount) : null) ?? padSlots([], gridCount);
 
   // Reset a stale folder path (folder removed by a resize) in run mode.
   useEffect(() => {
-    if (!controlled && resolved == null && folderPath.length > 0) setInternalFolder([]);
-  }, [controlled, resolved, folderPath.length]);
+    if (!controlled && deck && resolved == null && folderPath.length > 0) setInternalFolder([]);
+  }, [controlled, deck, resolved, folderPath.length]);
 
   const keyFor = (i: number) => `${page}:${folderPath.join('.')}:${i}`;
 
@@ -60,7 +102,7 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   // Reflect the current page count/index (pageIndicator) and a toggle's live
   // state (run mode only) in glyph/color/label when no explicit icon is set.
   const displaySlots: DeckSlot[] = useMemo(() => {
-    const withIndicator = withPageIndicatorDisplay(slots, page, deck.pages.length);
+    const withIndicator = withPageIndicatorDisplay(slots, page, deck?.pages.length ?? 1);
     if (editing) return withIndicator;
     return withIndicator.map((s, i) => {
       if (s.action?.type !== 'toggle') return s;
@@ -68,7 +110,7 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
       return toggleBranchSlot(s, s.action, on);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slots, flips, live, page, deck.pages.length, editing]);
+  }, [slots, flips, live, page, deck, editing]);
 
   // A privileged action routes through /panel/deck/dispatch so the service
   // executes the STORED slot server-side instead of taking its parameters
@@ -87,6 +129,7 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
 
   const onCell = (i: number) => {
     if (editing) { onSelectSlot?.(i); return; }
+    if (!deck) return;
     const slot = slots[i];
     if (slot.folder) { setFolderPath([...folderPath, i]); return; }
     const a = slot.action;
@@ -110,24 +153,43 @@ export function DeckWidget({ widget, deviceId, selectedSlot, onSelectSlot, editV
   };
 
   const onDragEnd = (e: DragEndEvent) => {
-    if (!onUpdate) return;
+    if (!target) return;
     const from = Number(e.active.id);
     const to = e.over ? Number(e.over.id) : NaN;
     if (!Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
-    onUpdate(deckConfigPatch(swapSlots(deck, page, folderPath, from, to, count)));
+    target.swapSlots(page, folderPath, from, to);
   };
 
   const grid = (
     <DeckGrid
       slots={displaySlots}
-      cols={cols}
-      rows={rows}
+      cols={gridCols}
+      rows={gridRows}
       selectable={editing}
       dragEnabled={editing}
       selectedIndex={selectedSlot}
       onCell={onCell}
     />
   );
+
+  if (showRecentApps) {
+    return (
+      <div className={styles.root}>
+        <RecentAppsGrid
+          pages={recentPages}
+          cols={cols}
+          rows={rows}
+          page={recentPage}
+          onPageChange={setRecentPage}
+          // Recent Apps has nothing to edit per key (the layout is dynamic,
+          // not authored), so a tap while arranging the panel must not
+          // switch to or launch an app.
+          onPress={editing ? () => {} : processKey => void recentApps.activate(processKey)}
+          ariaLabel={t('panel.settings.deck.mode.recentApps')}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.root}>

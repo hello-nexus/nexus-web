@@ -73,7 +73,7 @@
 .pendingBlock {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--space-md);
 }
 
@@ -86,6 +86,7 @@
 .pendingRow {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-sm);
 }
 
@@ -214,4 +215,52 @@
   flex-direction: column;
   gap: var(--space-xs);
   margin-top: var(--space-md);
+}
+
+// Modal-title spacing: the pending screen leads with a heading, so it needs
+// more air under it than the inline section titles this class also serves.
+.pendingTitle {
+  margin-bottom: var(--space-md);
+}
+
+
+.pendingCancel {
+  margin-top: var(--space-sm);
+  text-align: center;
+}
+
+.recoveryCodeBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--space-md);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.recoveryCodeHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.recoveryCodeCopy {
+  @include text-label;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.recoveryCode {
+  font-family: var(--font-mono);
+  font-size: var(--type-display);
+  letter-spacing: 0.18em;
+  color: var(--text);
 }

@@ -1,11 +1,12 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import type { UseDeckInstanceResult } from '../../../panel/widgets/deck/useDeckInstance';
 
 // /streamdeck/* is .LocalhostOnly(); a remote-paired session reaching the
 // dashboard must see a desktop-only notice, never sit forever on a blank
 // page waiting for useStreamDecks (which itself refuses to fetch there).
-vi.mock('../../../api/service', () => ({ isRemoteOrigin: true }));
+vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => true }));
 vi.mock('../../../hooks/useStreamDecks', () => ({
   useStreamDecks: () => ({
     decks: [], loaded: false, rename: vi.fn(), setBrightness: vi.fn(), setOrientation: vi.fn(), setSleepAfterSeconds: vi.fn(),
@@ -14,13 +15,26 @@ vi.mock('../../../hooks/useStreamDecks', () => ({
 vi.mock('../../../hooks/useConflictApps', () => ({
   useConflictApps: () => ({ conflicts: [], ready: true }),
 }));
-vi.mock('../../../panel/widgets/deck/usePhysicalDeckTarget', () => ({
-  usePhysicalDeckTarget: () => ({ target: null, loaded: false, error: false, retry: vi.fn() }),
-}));
-vi.mock('../../../panel/widgets/deck/useDeckPresets', () => ({
-  useDeckPresets: () => ({
-    presets: [], activeId: null, presetCount: 0, available: false,
-    loadPresets: vi.fn(), handleCreate: vi.fn(), handleRename: vi.fn(), handleDelete: vi.fn(), handleLoad: vi.fn(),
+vi.mock('../../../panel/widgets/deck/useDeckInstance', () => ({
+  useDeckInstance: (): UseDeckInstanceResult => ({
+    instance: null,
+    preset: null,
+    presets: [],
+    target: null,
+    loaded: false,
+    error: false,
+    retry: vi.fn(),
+    setMode: vi.fn(),
+    activate: vi.fn(),
+    createPreset: vi.fn(),
+    renamePreset: vi.fn(),
+    deletePreset: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    undo: vi.fn(),
+    redo: vi.fn(),
+    reset: vi.fn(),
+    endEditBurst: vi.fn(),
   }),
 }));
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({

@@ -25,6 +25,8 @@ const COMMON_EXCLUSIONS: Record<string, string> = {
 // panel/widgets/common modules that are not components.
 const PANEL_KIT_EXCLUSIONS: Record<string, string> = {
   PanelPreviewContext: 'context provider for catalog preview mode, nothing to preview',
+  PanelImmersiveContext: 'context provider for the fullscreen immersive view, nothing to preview',
+  PanelGaugeGradientContext: 'context provider for the panel gauge gradient, nothing to preview',
 };
 
 // First path segment under the prefix, .tsx stripped - so a dir entry

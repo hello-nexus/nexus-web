@@ -1,7 +1,8 @@
 // Context-dependent sidebar nav section (used inside the sidebar column)
+@use '../../../styles/text' as *;
 
 .nav {
-  // The add-strip measures its x position from this, so the two padding
+  // The more toggle measures its x position from this, so the two padding
   // declarations below and that calc stay locked to one value.
   --nav-side-pad: 0.5rem;
   display: flex;
@@ -110,31 +111,48 @@
   }
 }
 
-// Rows the add-app drawer lists for apps already in the sidebar: same box,
-// dimmed, not activatable. Keyed off a class, not :disabled - these rows carry
-// aria-disabled so they stay reachable by keyboard.
-.itemDisabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-
-  &:hover {
-    color: var(--text-dim);
-  }
+// Every nav row's box: the sortable node, and the collapse animation for a
+// lower row hidden behind Show more. Animating the grid track from 1fr to 0fr
+// folds the row to zero height without measuring it.
+.rowShell {
+  display: grid;
+  grid-template-rows: 1fr;
+  flex-shrink: 0;
+  transition: grid-template-rows var(--ease) ease, margin-top var(--ease) ease;
 }
 
-// The + affordance closing the app list. Shorter than a nav row and inside a
-// row's highlight on every side, so it reads as an affordance rather than
-// another app. Height is reserved at all times: fading opacity rather than
-// mounting on hover keeps the rows below from shifting under the pointer.
-.addStrip {
+.rowShellHidden {
+  grid-template-rows: 0fr;
+  // Cancels .tailScroll's flex gap, so a hidden row takes no space at all.
+  margin-top: calc(-1 * var(--tail-gap));
+}
+
+// Clips only while the row is hidden or opening: the discrete overflow flips
+// back to visible once the open transition ends, so a settled row's focus
+// ring is never cut off.
+.rowShellInner {
+  min-height: 0;
+  overflow: visible;
+  transition: overflow 0s linear var(--ease);
+  transition-behavior: allow-discrete;
+}
+
+.rowShellHidden .rowShellInner {
+  overflow: hidden;
+  transition-delay: 0s;
+}
+
+// The Show more / Show less toggle under the lower rows. Shorter than a nav row
+// and inside a row's highlight on every side, so it reads as a control rather
+// than another app.
+.moreToggle {
   // The rail's row width (--rail-width less .nav's side padding) pulled in
   // further, so the box always sits inside a row's highlight.
-  --add-strip-width: calc(var(--rail-width) - 28px);
+  --more-toggle-width: calc(var(--rail-width) - 28px);
   display: flex;
   align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  width: var(--add-strip-width);
+  width: var(--more-toggle-width);
   height: 28px;
   // padding:0 (not just a reset of one side) because a button's UA default
   // padding-right otherwise narrows the box this centers the glyph in.
@@ -147,32 +165,52 @@
   align-self: flex-start;
   margin-left: calc(
     var(--rail-width) / 2 + var(--border-width)
-    - var(--nav-side-pad) - var(--add-strip-width) / 2
+    - var(--nav-side-pad) - var(--more-toggle-width) / 2
   );
   margin-top: 2px;
   border: none;
-  // Same pill + faint fill as the APPS / DEVICES section chips (this file's
-  // .headerChip and SidebarDevicesSection's, both reading --sidebar-chip-bg).
+  // Same pill as the APPS / DEVICES section chips, but unfilled at rest so it
+  // reads lighter than the headings.
   border-radius: var(--radius-pill);
-  background: var(--sidebar-chip-bg);
+  background: transparent;
   color: var(--text-dim);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--ease-fast), background var(--ease-fast), color var(--ease-fast);
+  transition: background var(--ease-fast), color var(--ease-fast);
 
-  // The chips are static headings, so they carry no hover; this one is a
-  // button, so it deepens the same fill rather than switching treatment.
   &:hover {
     background: color-mix(in srgb, var(--text) 12%, transparent);
     color: var(--text);
   }
 }
 
-// Revealed by a pointer anywhere over the sidebar nav, and whenever it takes
-// keyboard focus (which a hover-only reveal would strand off-screen).
-.nav:hover .addStrip,
-.addStrip:focus-visible {
-  opacity: 1;
+// The glyph keeps the toggle's collapsed box, so the arrow holds the icon
+// column whether or not a label follows it.
+.moreToggleGlyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--more-toggle-width);
+  flex-shrink: 0;
+}
+
+.moreChevron {
+  transition: transform var(--ease) ease;
+}
+
+.moreChevronUp {
+  transform: rotate(180deg);
+}
+
+// Expanded: the pill grows to fit the label. With no gap after the glyph box
+// the label's left edge lands on the row labels' (icon box + .item gap).
+.moreToggleLabeled {
+  width: auto;
+  padding-right: 12px;
+}
+
+.moreToggleLabel {
+  @include text-label;
+  white-space: nowrap;
 }
 
 .icon {
@@ -228,10 +266,10 @@
 // claims the remaining vertical room between the locked head and the
 // extra group (portal / pair phone / conflict slot below .nav). The
 // hidden scrollbar styling matches the panel's body scroll surfaces.
-// Hairline between the pinned tail and the transient running-app row
-// (taskbar semantics). A sibling of the rows - not a wrapper - so every
-// sortable row shares one parent for dnd-kit's restrictToParentElement.
-// Inset so it reads as a short divider, not a full-width rule.
+// Hairline between the pinned rows and the lower rows. A sortable sibling of
+// the rows - not a wrapper - so every sortable row shares one parent for
+// dnd-kit's restrictToParentElement. Inset so it reads as a short divider,
+// not a full-width rule.
 .runningSeparator {
   flex-shrink: 0;
   margin: 4px 14px;
@@ -239,9 +277,11 @@
 }
 
 .tailScroll {
+  // TAIL_GAP_PX in Sidebar.tsx must match.
+  --tail-gap: 2px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--tail-gap);
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;

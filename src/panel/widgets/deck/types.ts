@@ -1,6 +1,7 @@
-// Deck widget data model. Every shape here is a subtype of PanelConfigValue
-// (string | number | boolean | null | arrays | plain objects) so the whole tree
-// persists directly under `widget.config.deck`.
+// Deck data model: a DeckConfig lives on a host-wide preset (api/deck.ts's
+// DeckPresetFull.deck), never on a widget's own config - a deck instance
+// (a physical Stream Deck or a Deck widget) only stores which preset it
+// points at (useDeckInstance).
 import type { ScaleMode } from '../monitoring/perfDomain';
 
 export type DeckIconKind = 'lucide' | 'emoji' | 'app' | 'image';
@@ -43,7 +44,7 @@ export interface DeckNexusAction {
   mode?: DeckLightingMode; // rgbEffect; absent = 'animate'
   effect?: string;        // rgbEffect, mode 'animate'
   presetId?: string;      // lightingPreset, coolingPreset
-  profile?: string;       // fanProfile: off | silent | balanced | turbo | custom
+  profile?: string;       // fanProfile: off | silent | balanced | turbo | max | custom
   value?: number;         // lightingBrightness (0..1), y70Brightness (0..100)
   on?: boolean;           // y70Power
   orientation?: string;   // y70Rotation
@@ -66,8 +67,9 @@ export interface DeckPageAction {
 
 // ── Live monitoring tile ──
 // Every category the monitoring widget's own picker offers, in that picker's
-// order (sensorPicker.ts' DEVICE_OPTION_KEYS). The one DeviceKey left out is
-// the legacy 'fan', which neither picker offers. 'network' resolves to the
+// order (sensorPicker.ts' DEVICE_OPTION_KEYS). Left out: the legacy 'fan',
+// which neither picker offers, and 'gpu2' / 'igpu', which the service-side
+// key render cannot resolve (see deckMonitoring.ts). 'network' resolves to the
 // NIC-summed aggregate (networkSensors.ts' buildNicNetworkSensors), not the
 // widget's per-process sums - that is the only network source nexus-service
 // can reproduce for the physical-deck render.
@@ -172,6 +174,10 @@ export interface DeckSlot {
   title?: DeckTitleStyle; // styling for `label`; unset → deckTitleStyle.ts defaults
   action?: DeckAction; // a slot is an action OR a folder OR empty
   folder?: DeckFolder;
+  // Set only on a page-nav key synthesized by fitToGrid to chunk an authored
+  // page across a smaller target grid; never present on an authored preset
+  // (the editor always edits the pre-fit config), so it is never persisted.
+  auto?: boolean;
 }
 
 export interface DeckFolder {

@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 /* Centered empty-state stack: icon + title + optional hint + action. */
 
 .root {
@@ -47,4 +49,113 @@
   .icon > svg { width: 22px; height: 22px; }
   .title { font-size: var(--type-small); }
   .hint { font-size: var(--type-mini, 0.7rem); }
+}
+
+// Feature intro for an empty page: haloed icon, heading, optional points.
+// Docked at the top of whatever holds it, never centered, so content that
+// follows (a setup form, specs) sits right below it.
+.hero {
+  flex: none;
+  align-self: stretch;
+  height: auto;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 3rem 1rem 2rem;
+
+  .icon {
+    position: relative;
+    width: 112px;
+    height: 112px;
+    margin-bottom: 1.1rem;
+    border-radius: var(--radius-pill);
+    color: var(--accent-glow);
+    background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      border-radius: inherit;
+      border: var(--border-width) solid var(--accent-glow-shadow);
+      opacity: 0.35;
+    }
+
+    > svg {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      stroke-width: 1.5;
+    }
+  }
+
+  .title {
+    @include text-heading;
+    margin-bottom: 0.5rem;
+    text-wrap: balance;
+  }
+
+  .hint {
+    @include text-body;
+    max-width: 46ch;
+  }
+
+  // Wide enough for a toggle card to read as a control row; a button stays
+  // its own width, centered.
+  .action {
+    margin-top: 1.25rem;
+    width: 100%;
+    max-width: 22rem;
+  }
+}
+
+.iconDisc {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  border: var(--border-width) solid var(--accent-glow-shadow);
+  box-shadow: 0 0 28px -6px var(--accent-glow-shadow);
+}
+
+.points {
+  list-style: none;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  display: grid;
+  // A narrow column wraps the points instead of squeezing them.
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  max-width: var(--intro-max);
+}
+
+.point {
+  @include text-button;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.pointIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-glow);
+
+  > svg { width: 16px; height: 16px; }
 }

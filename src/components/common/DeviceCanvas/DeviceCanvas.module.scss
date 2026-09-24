@@ -8,11 +8,14 @@
   --frame-halo: rgb(0 0 0 / var(--alpha-strong));
   --frame-scrim: rgb(0 0 0 / var(--alpha-strong));
   position: relative;
-  height: 380px;
-  // Fit the container, capped at 21:9. No min-width floor: a floor makes the
-  // canvas overflow a narrower container, and the parent's overflow:hidden
-  // clips the side rounded corners. Fitting keeps all four corners visible.
-  width: min(100%, calc(380px * 21 / 9));
+  // Always the unit canvas's own aspect, so a unit is the same length on both
+  // screen axes: a turned frame is then a plain rotation of the div and its
+  // dots and grips keep their shape. Fit the container up to the height cap.
+  // No min-width floor: a floor makes the canvas overflow a narrower
+  // container, and the parent's overflow:hidden clips the side rounded
+  // corners. Fitting keeps all four corners visible.
+  width: min(100%, calc(440px * 5 / 3));
+  aspect-ratio: 5 / 3;
   flex-shrink: 0;
   background: #080808;
   border: 1px solid transparent;
@@ -52,8 +55,9 @@
 
 .marquee {
   position: absolute;
-  border: 1px dashed var(--accent);
-  background: var(--accent-soft);
+  // White, not accent: the accent tint vanishes over a lit LED canvas.
+  border: 1px dashed rgb(255 255 255);
+  background: rgb(255 255 255 / 0.12);
   pointer-events: none;
   z-index: 9;
 }
@@ -72,14 +76,14 @@
 
   &:hover {
     border-color: #fff;
-    .resizeHandle { opacity: 1; }
+    .resizeHandle, .rotateHandle { opacity: 1; }
   }
 
   // A focused frame keeps the full white outline; the accent is left to the
   // states that need to stand out.
   &.selected {
     z-index: 8;
-    .resizeHandle { opacity: 1; }
+    .resizeHandle, .rotateHandle { opacity: 1; }
   }
 
   &.dragging {
@@ -87,8 +91,9 @@
     border-color: var(--accent-glow);
     box-shadow: 0 0 12px var(--accent-glow-shadow);
     z-index: 10;
-    .resizeHandle { opacity: 1; }
-    .resizeHandle::before { background: var(--accent); }
+    .resizeHandle, .rotateHandle { opacity: 1; }
+    .resizeHandle::before, .rotateHandle { background: var(--accent); }
+    .rotateHandle { color: #fff; }
   }
 
   // Unfocused frames recede so the focused one reads as the subject: a faint
@@ -102,7 +107,7 @@
 
     &:hover {
       border-color: var(--frame-line);
-      .resizeHandle { opacity: 0; }
+      .resizeHandle, .rotateHandle { opacity: 0; }
     }
   }
 
@@ -116,7 +121,7 @@
   &.labelHover:not(.selected):not(.dragging) {
     border-color: #fff;
 
-    .resizeHandle { opacity: 1; }
+    .resizeHandle, .rotateHandle { opacity: 1; }
   }
 }
 
@@ -126,6 +131,16 @@
   // Clears every .device tier, so a name is never buried by a frame.
   z-index: 11;
   pointer-events: none;
+}
+
+// Under a stacked frame's name: the stack glyph and how many cards the frame stands for.
+.deviceLabelStacked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  font-size: var(--type-mini);
+  opacity: 0.72;
 }
 
 .deviceLabel {
@@ -141,10 +156,11 @@
   max-width: 40%;
   pointer-events: auto;
   cursor: grab;
-  // Same pill Static's dots wear: a name over a busy shader needs its own
-  // ground, not a shadow.
+  // A name over a busy shader needs its own ground, not a shadow. The radius
+  // is fixed so a two-line label (name plus stack count) keeps the same
+  // corners as a one-line name instead of ballooning into a blob.
   padding: 1px 7px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius);
   background: var(--frame-scrim);
   font-weight: var(--weight-body);
   transition: opacity var(--ease-fast);
@@ -202,5 +218,32 @@
 
   &:active::before {
     background: var(--accent);
+  }
+}
+
+// Sits off the top-right corner, opposite the resize dot, so the two corner
+// grips never share a hit box; dragging it sweeps the frame about its centre.
+.rotateHandle {
+  position: absolute;
+  top: -11px;
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 0 0 1px var(--frame-halo);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--ease-fast), background var(--ease-fast);
+  z-index: 5;
+
+  &:active {
+    cursor: grabbing;
+    background: var(--accent);
+    color: #fff;
   }
 }

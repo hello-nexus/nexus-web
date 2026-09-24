@@ -1,33 +1,38 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowLeft, Film, Trash2, Users } from 'lucide-react';
+import { ArrowLeft, ChartLine, Compass, Film, Gamepad2, History, Trash2, Users, Wrench } from 'lucide-react';
+import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { EpicIcon, SteamIcon } from '../../../components/icons/PlatformIcons';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../components/common/Card/Card';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
+import { NexusControlCard } from '../../../components/common/NexusControlCard/NexusControlCard';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
+import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
+import { formatResolution, STANDARD_RESOLUTIONS } from '../../../lib/resolutionLabel';
+import { Spinner } from '../../../components/common/Spinner/Spinner';
 import { StatTile } from '../../../components/common/StatTile/StatTile';
-import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { TimeSeriesChart } from '../../../components/common/TimeSeriesChart/TimeSeriesChart';
 import { fpsGameArtUrl,
   deleteFpsGame,
   deleteFpsSession,
   fetchFpsGameSessions,
   getFpsTrackingStatus,
+  setFpsTrackingEnabled,
   type FpsGameSummary,
   type FpsSession,
 } from '../../../api/fps';
 import { fetchMonitoringHistory } from '../../../api/monitoringHistory';
 import { useFpsEstimates } from '../../../hooks/useFpsEstimates';
 import { useFpsGames } from '../../../hooks/useFpsGames';
-import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { hour12OptionFor, localizeNumbers, type NumberFormat, type TimeFormat } from '../../../lib/units';
-import type { FpsTableGameItem } from '../../../types/fps-estimates';
+import type { FpsEstimateConfidence, FpsTableGameItem } from '../../../types/fps-estimates';
 import styles from './FramesPage.module.scss';
 
 const SESSIONS_LIMIT = 50;
@@ -46,7 +51,7 @@ interface FramesPageProps {
  * Frames: the local FPS history browser. A History tab (every game with
  * sessions) leading into a per-game detail (stats, sessions, the selected
  * session's own timeline), plus a Discover tab for community FPS estimates
- * on this rig. Page-only - see panel/widgets/frames/index.ts.
+ * on this rig. Page-only: registered in app/pageOnlyApps.ts, no panel tile.
  */
 export function FramesPage({ tab, onTabChange }: FramesPageProps) {
   const { t } = useTranslation();
@@ -65,9 +70,14 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
     return () => { cancelled = true; };
   }, []);
 
+  const enableTracking = async () => {
+    const resp = await setFpsTrackingEnabled(true);
+    if (resp) setTrackingEnabled(resp.enabled);
+  };
+
   const tabs = [
-    { key: 'history', label: t('frames.tab.history') },
-    { key: 'discover', label: t('frames.tab.discover') },
+    { key: 'history', label: t('frames.tab.history'), icon: <Film size={14} /> },
+    { key: 'discover', label: t('frames.tab.discover'), icon: <Compass size={14} /> },
   ];
 
   return (
@@ -88,6 +98,7 @@ export function FramesPage({ tab, onTabChange }: FramesPageProps) {
             games={games}
             supported={supported}
             trackingEnabled={trackingEnabled}
+            onEnableTracking={enableTracking}
             onOpenGame={onTabChange}
           />
         )}
@@ -109,16 +120,19 @@ function HistoryTab({
   games,
   supported,
   trackingEnabled,
+  onEnableTracking,
   onOpenGame,
 }: {
   games: FpsGameSummary[];
   supported: boolean;
   trackingEnabled: boolean | null;
+  onEnableTracking: () => Promise<void>;
   onOpenGame: (gameKey: string) => void;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [search, setSearch] = useState('');
+  const [enabling, setEnabling] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -134,22 +148,33 @@ function HistoryTab({
     );
   }
 
-  if (trackingEnabled === false) {
+  if (trackingEnabled === false || games.length === 0) {
+    const handleEnable = async () => {
+      setEnabling(true);
+      try { await onEnableTracking(); } finally { setEnabling(false); }
+    };
     return (
       <div className={styles.emptyWrap}>
         <EmptyState
-          icon={<Film size={28} />}
-          title={t('frames.trackingOff.title')}
-          hint={t('frames.trackingOff.hint')}
+          hero
+          icon={<Film />}
+          title={t('frames.intro.title')}
+          hint={t('frames.intro.body')}
+          points={[
+            { icon: <History />, text: t('frames.intro.pointStats') },
+            { icon: <ChartLine />, text: t('frames.intro.pointTimeline') },
+            { icon: <Compass />, text: t('frames.intro.pointDiscover') },
+          ]}
+          action={trackingEnabled === false && (
+            <NexusControlCard
+              checked={enabling}
+              disabled={enabling}
+              icon={<Film size={13} aria-hidden />}
+              label={t('settings.localDataStore.fps.label')}
+              onChange={handleEnable}
+            />
+          )}
         />
-      </div>
-    );
-  }
-
-  if (games.length === 0) {
-    return (
-      <div className={styles.emptyWrap}>
-        <EmptyState icon={<Film size={28} />} title={t('frames.empty.title')} hint={t('frames.empty.hint')} />
       </div>
     );
   }
@@ -202,11 +227,7 @@ function GameCard({
           gameKey={game.gameKey}
           imgClass={styles.gameCardImg}
           iconClass={styles.gameCardIcon}
-          placeholder={(
-            <div className={styles.gameCardPlaceholder}>
-              <Badge label={game.store} />
-            </div>
-          )}
+          placeholder={<ArtPlaceholder />}
         />
       </div>
       <div className={styles.gameCardBody}>
@@ -293,6 +314,16 @@ function GameDetail({
           {t('steam.action.back')}
         </Button>
         <h2 className={styles.detailTitle}>{title}</h2>
+        {DEV_TOOLS && (
+          <Button
+            size="sm"
+            tone="neutral"
+            icon={<Wrench size={14} />}
+            onClick={() => requestOpenBuild(`/upgrade?game=${encodeURIComponent(gameKey)}`)}
+          >
+            {t('frames.findUpgrades')}
+          </Button>
+        )}
         <Button
           size="sm"
           tone="danger"
@@ -335,7 +366,7 @@ function GameDetail({
                     <span className={styles.sessionMain}>
                       <span>{formatSessionDate(s.startedUtcMs, timeFormat)}</span>
                       <span className={styles.sessionMeta}>
-                        {`${s.dispW}×${s.dispH} @ ${s.refreshHz} Hz · ${formatDurationMinutes(s.focusedSec)}`}
+                        {`${formatResolution(`${s.dispW}x${s.dispH}`)} @ ${s.refreshHz} Hz · ${formatDurationMinutes(s.focusedSec)}`}
                       </span>
                     </span>
                     <span className={styles.sessionStats}>
@@ -447,23 +478,50 @@ function SessionTimeline({
 
 function DiscoverTab() {
   const { t } = useTranslation();
-  const { specs } = useSystemSpecs(true);
-  const { status, games, resClass } = useFpsEstimates();
+  const [res, setRes] = useState<string>(STANDARD_RESOLUTIONS[0]);
+  const [search, setSearch] = useState('');
+  const { status, games } = useFpsEstimates(res);
 
-  const rows = specs
-    ? [
-        { label: t('devices.specs.row.processor'), value: specs.processor },
-        { label: t('devices.specs.row.graphicsCard'), value: specs.graphicsCard },
-        { label: t('devices.specs.row.memory'), value: specs.memory },
-        { label: t('devices.specs.row.monitor'), value: specs.monitor },
-      ]
-    : [];
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return q ? games.filter(g => g.title.toLowerCase().includes(q)) : games;
+  }, [games, search]);
+
+  const resolutionChips = STANDARD_RESOLUTIONS.map(r => ({ key: r, label: formatResolution(r) }));
 
   return (
-    <div className={styles.rig}>
-      <Card title={t('frames.rig.title')}>
-        <SystemSpecsPanel rows={rows} loading={!specs} />
-      </Card>
+    <div className={styles.discover}>
+      <div className={styles.toolbar}>
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder={t('frames.discover.searchPlaceholder')}
+          className={styles.searchInput}
+        />
+        <ChipGroup
+          options={resolutionChips}
+          activeKey={res}
+          onChange={setRes}
+          ariaLabel={t('frames.discover.resolution')}
+        />
+        {status === 'ready' && (
+          <div className={styles.count}>
+            {filtered.length === games.length
+              ? t('steam.library.count', { count: filtered.length })
+              : t('steam.library.countFiltered', { count: filtered.length, total: games.length })}
+          </div>
+        )}
+      </div>
+      {status === 'loading' && (
+        <div className={styles.emptyWrap}>
+          <Spinner size={28} />
+        </div>
+      )}
+      {status === 'unresolved' && (
+        <div className={styles.emptyWrap}>
+          <EmptyState icon={<Users size={28} />} title={t('frames.discover.unavailable')} />
+        </div>
+      )}
       {status === 'empty' && (
         <div className={styles.emptyWrap}>
           <EmptyState
@@ -473,16 +531,17 @@ function DiscoverTab() {
           />
         </div>
       )}
-      {status === 'ready' && (
-        <div className={styles.discover}>
-          <SectionHeader>{t('frames.discover.title')}</SectionHeader>
-          <div className={styles.cardGrid}>
-            {games.map(game => (
-              <DiscoverGameCard key={game.gameKey} game={game} ownResClass={resClass} />
-            ))}
-          </div>
+      {status === 'ready' && (filtered.length === 0 ? (
+        <div className={styles.emptyWrap}>
+          <EmptyState compact title={t('steam.library.noMatch', { query: search })} />
         </div>
-      )}
+      ) : (
+        <div className={styles.cardGrid}>
+          {filtered.map(game => (
+            <DiscoverGameCard key={game.gameKey} game={game} requestedRes={res} />
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
@@ -539,13 +598,41 @@ function GameArt({ gameKey, imgClass, iconClass, placeholder }: {
   );
 }
 
-function formatResClass(resClass: string): string {
-  return resClass.replace(/^(\d+)x(\d+)$/, '$1×$2');
+/** A game with no art at all: the controller glyph on the same ground the icon fallback uses. */
+function ArtPlaceholder() {
+  return (
+    <div className={styles.gameCardPlaceholder} aria-hidden="true">
+      <Gamepad2 size={48} strokeWidth={1.5} />
+    </div>
+  );
 }
 
-function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownResClass: string | null }) {
+const CONFIDENCE_BARS: Record<FpsEstimateConfidence, number> = { low: 1, medium: 2, high: 3 };
+
+/** Three signal bars, filled to the confidence tier and coloured with it; the tier name is the accessible label. */
+function ConfidenceMark({ confidence }: { confidence: FpsEstimateConfidence }) {
   const { t } = useTranslation();
-  const showResBasis = !!game.resBasis && game.resBasis !== ownResClass;
+  const filled = CONFIDENCE_BARS[confidence] ?? 1;
+  return (
+    <span
+      className={`${styles.confidence} ${styles[`confidence_${confidence}`] ?? ''}`}
+      role="img"
+      aria-label={t(`frames.discover.confidence.${confidence}`)}
+      title={t(`frames.discover.confidence.${confidence}`)}
+    >
+      {[1, 2, 3].map(bar => (
+        <span key={bar} className={bar <= filled ? styles.confidenceBarOn : styles.confidenceBar} />
+      ))}
+    </span>
+  );
+}
+
+function DiscoverGameCard({ game, requestedRes }: { game: FpsTableGameItem; requestedRes: string }) {
+  const { t } = useTranslation();
+  // The resolution the figure was measured at: the chip's own unless the
+  // cloud fell back to the nearest class with data.
+  const measuredRes = game.resBasis ?? requestedRes;
+  const fellBack = measuredRes !== requestedRes;
 
   return (
     <Card compact className={styles.gameCard}>
@@ -554,18 +641,15 @@ function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownRe
           gameKey={game.gameKey}
           imgClass={styles.gameCardImg}
           iconClass={styles.gameCardIcon}
-          placeholder={(
-            <div className={styles.gameCardPlaceholder} aria-hidden="true">
-              <Film size={20} />
-            </div>
-          )}
+          placeholder={<ArtPlaceholder />}
         />
       </div>
       <div className={styles.gameCardBody}>
-        <div className={styles.gameCardName}>{game.title}</div>
+        <div className={styles.gameCardName} title={game.title}>{game.title}</div>
         <div className={styles.gameCardAvg}>
           <span className={styles.gameCardAvgValue}>{Math.round(game.avg)}</span>
           <span className={styles.gameCardAvgUnit}>{t('frames.card.fpsUnit')}</span>
+          <span className={styles.gameCardAvgRes}>{`@ ${formatResolution(measuredRes)}`}</span>
         </div>
         <div className={styles.gameCardSecondary}>
           <span className={styles.gameCardSecondaryValue}>{Math.round(game.p1)}</span>
@@ -573,13 +657,12 @@ function DiscoverGameCard({ game, ownResClass }: { game: FpsTableGameItem; ownRe
           <span className={styles.gameCardSecondaryValue}>{Math.round(game.p99)}</span>
           <span className={styles.gameCardSecondaryLabel}>{t('steam.stat.fps99th')}</span>
         </div>
-        <div className={styles.discoverMeta}>
-          <Badge label={t(`frames.discover.confidence.${game.confidence}`)} />
-          <span className={styles.discoverLevel}>{t(`frames.discover.level.${game.level}`)}</span>
-        </div>
-        <div className={styles.discoverBasedOn}>
-          {t('frames.discover.basedOn', { count: game.installs })}
-          {showResBasis && ` · ${t('frames.discover.resBasis', { res: formatResClass(game.resBasis as string) })}`}
+        <div className={styles.discoverBasis}>
+          <ConfidenceMark confidence={game.confidence} />
+          <span className={styles.discoverBasisText}>
+            {t(`frames.discover.level.${game.level}`)}
+            {fellBack && ` · ${t('frames.discover.resBasis', { res: formatResolution(requestedRes) })}`}
+          </span>
         </div>
       </div>
     </Card>

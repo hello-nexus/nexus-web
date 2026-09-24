@@ -50,7 +50,7 @@ export function ImmersiveLayout({
   // Length of one fixed 4x4 cell as a FRACTION of the immersive page: 4 grid
   // rows tall in portrait, 4 grid columns wide in landscape. A row-count ratio
   // (not a px size from the grid) is deliberate - the immersive render area
-  // lives in a --panel-scale-transformed space where the grid's device-px cell
+  // lives in a --panel-scale-zoomed space where the grid's device-px cell
   // sizes don't map 1:1, but `4 / rows` of the page is a true 4x4 at any zoom.
   // The last cell flex-grows into whatever is left over.
   const fixedBasis = orientation === 'portrait'

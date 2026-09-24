@@ -1,7 +1,10 @@
+import { normalizeSlideshowInterval } from '../slideshow/slideshow';
 import {
   EFFECTS,
   TEMPLATE_COUNT,
+  categoryOf,
   defaultStateFor,
+  type EffectCategory,
   type EffectDef,
   type EffectState,
   type EffectTemplateBundle,
@@ -9,6 +12,7 @@ import {
 import { defaultTemplatesFor } from '../../types/lightingTemplates';
 import { cachedAnimateDefaults } from '../../api/lighting';
 import { getInstallDefaults } from '../../api/installDefaultsCache';
+import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT } from '../engine/grid';
 
 export type PanelBackgroundMode = 'solid' | 'shader' | 'media';
 
@@ -17,17 +21,17 @@ export const DEFAULT_PANEL_BACKGROUND_FROST = 0;
 // Granularity of the whole control, not just the drag: EditableNumber snaps a
 // typed value to it too.
 export const PANEL_BACKGROUND_FROST_STEP = 10;
+export const PANEL_WIDGET_PADDING_STEP = 25;
 export type PanelResolvedTheme = 'dark' | 'light';
 
-export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'aurora';
+export const DEFAULT_PANEL_BACKGROUND_EFFECT = 'plasma';
 export const DEFAULT_PANEL_BACKGROUND_TEMPLATE = 0;
-// Background opacity defaults are mode-aware: a solid colour reads as the full
-// backdrop (opaque), while a shader/media overlay sits half-strength over the
-// theme background so widgets stay legible. Applied at record-read time when a
-// panel has no stored opacity; normalizePanelBackgroundOpacity only clamps an
-// already-stored concrete value.
+// A panel with no stored opacity shows its background at full strength in
+// every mode - a new panel is meant to look like the background the user
+// picked, not a dimmed one. Applied at record-read time;
+// normalizePanelBackgroundOpacity only clamps an already-stored concrete value.
 export const DEFAULT_SOLID_BACKGROUND_OPACITY = 1;
-export const DEFAULT_OVERLAY_BACKGROUND_OPACITY = 0.5;
+export const DEFAULT_OVERLAY_BACKGROUND_OPACITY = 1;
 
 export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): number {
   return mode === 'solid' ? DEFAULT_SOLID_BACKGROUND_OPACITY : DEFAULT_OVERLAY_BACKGROUND_OPACITY;
@@ -37,21 +41,38 @@ export function defaultBackgroundOpacityForMode(mode: PanelBackgroundMode): numb
 // the install-defaults cache. Read through the cache for one source of truth
 // (as defaultLayout.ts does). The literals below are only the bootstrap-race
 // fallback before the cache fills, and must match the JSON.
-const WIDGET_OPACITY_FALLBACK = 0.5;
+const WIDGET_OPACITY_FALLBACK = 0.7;
 const WIDGET_LABELS_FALLBACK = false;
-// Not read from install-defaults: install-defaults.json has no widgetPadding
-// entry (the service DTO stores it as a nullable percent, defaulting to this
-// constant client-side, same as a null WidgetOpacity would if it had no
-// install-defaults entry either).
-const WIDGET_PADDING_DEFAULT_PERCENT = 50;
 
 export const defaultPanelWidgetOpacity = (): number =>
   getInstallDefaults()?.panel.widgetOpacity ?? WIDGET_OPACITY_FALLBACK;
 export const defaultPanelWidgetLabels = (): boolean =>
   getInstallDefaults()?.panel.widgetLabels ?? WIDGET_LABELS_FALLBACK;
-export const defaultPanelWidgetPadding = (): number => WIDGET_PADDING_DEFAULT_PERCENT;
+// Not read from install-defaults: install-defaults.json has no widgetPadding
+// entry (the service DTO stores it as a nullable percent, defaulting to this
+// constant client-side, same as a null WidgetOpacity would if it had no
+// install-defaults entry either).
+export const defaultPanelWidgetPadding = (): number => PANEL_WIDGET_PADDING_DEFAULT_PERCENT;
 
-export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(effect => !effect.audio);
+// Categories the background picker leaves out. Flat fills, 2-tone patterns and
+// spectrum ramps are LED looks - behind widgets they read as a solid or a
+// hard-edged graphic, which is what the Solid background mode is for.
+const PANEL_BACKGROUND_HIDDEN_CATEGORIES: ReadonlySet<EffectCategory> =
+  new Set<EffectCategory>(['simple', 'twotone', 'spectrum']);
+
+/** Browse pool for the background Animations tab: gradients plus every
+ *  animated category. Audio-reactive effects are gated on the flag rather than
+ *  the category so an effect with no category entry cannot slip into the pool
+ *  and then be rejected as unrenderable. */
+export const PANEL_BACKGROUND_EFFECTS: EffectDef[] = EFFECTS.filter(
+  effect => !effect.audio && !PANEL_BACKGROUND_HIDDEN_CATEGORIES.has(categoryOf(effect.key)),
+);
+
+// Renderable is wider than browsable: a panel that already stores a hidden
+// effect keeps rendering it rather than jumping to the default behind the
+// user's back. Only the audio set is genuinely unrenderable here.
+const PANEL_BACKGROUND_RENDERABLE: ReadonlySet<string> =
+  new Set(EFFECTS.filter(effect => !effect.audio).map(effect => effect.key));
 
 // Paired preset sets: index i in DARK is the dark counterpart of index i in
 // LIGHT. Two rows of ten hue families (violet, purple, pink, red, orange,
@@ -163,8 +184,8 @@ export function normalizePanelBackgroundMode(value: string | null | undefined): 
 }
 
 export function normalizePanelBackgroundEffect(value: string | null | undefined): string {
-  return PANEL_BACKGROUND_EFFECTS.some(effect => effect.key === value)
-    ? value as string
+  return value != null && PANEL_BACKGROUND_RENDERABLE.has(value)
+    ? value
     : DEFAULT_PANEL_BACKGROUND_EFFECT;
 }
 
@@ -205,9 +226,21 @@ export function normalizePanelBackgroundFrost(value: number | null | undefined):
   return Math.min(Math.max(snapped, 0), 100);
 }
 
+export const DEFAULT_PANEL_SLIDESHOW_INTERVAL = 30;
+
+export function normalizePanelSlideshowInterval(value: number | null | undefined): number {
+  return normalizeSlideshowInterval(value, DEFAULT_PANEL_SLIDESHOW_INTERVAL);
+}
+
+export function normalizePanelBackgroundMediaOrder(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [];
+}
+
+// Snapped for the same reason as the frost above.
 export function normalizePanelWidgetPadding(value: number | null | undefined): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) return defaultPanelWidgetPadding();
-  return Math.min(Math.max(value, 0), 100);
+  const snapped = Math.round(value / PANEL_WIDGET_PADDING_STEP) * PANEL_WIDGET_PADDING_STEP;
+  return Math.min(Math.max(snapped, 0), 100);
 }
 
 // The background's render state for a (effect, slot) selection. Presets are

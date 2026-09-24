@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { fireEvent, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CurveCard } from './CurveEditor';
+import { CurveCard, sourceCategoryLabel } from './CurveEditor';
 import { I18nProvider } from '../../../../lib/i18n';
 import { newCurve } from '../../../../types/cooling';
 import type { CurveDef } from '../../../../types/cooling';
@@ -217,3 +217,21 @@ function nudge45(curve: CurveDef): CurveDef {
     },
   };
 }
+
+describe('sourceCategoryLabel', () => {
+  const src = (id: string, category = 'GPU'): TemperatureSource => ({ id, name: 'GPU Core', category, value: 40 });
+  const temp = (id: string) => ({ id, name: 'GPU Core', type: 'Temperature', value: 0, units: '°C', formatted: '', parent: { id: '', name: '' } });
+  const igpu = { id: '/gpu-amd/0', name: 'AMD Radeon(TM) Graphics', integrated: true, sensors: [temp('/gpu-amd/0/temperature/0')] };
+  const dgpu = { id: '/gpu-nvidia/0', name: 'NVIDIA GeForce RTX 5080', integrated: false, sensors: [temp('/gpu-nvidia/0/temperature/0')] };
+
+  it('names the card for a GPU source once two GPUs make "GPU - GPU Core" ambiguous', () => {
+    expect(sourceCategoryLabel(src('/gpu-amd/0/temperature/0'), [igpu, dgpu])).toBe('iGPU');
+    expect(sourceCategoryLabel(src('/gpu-nvidia/0/temperature/0'), [igpu, dgpu])).toBe('GPU');
+  });
+
+  it('leaves the plain category for non-GPU sources, single-GPU boxes and unmatched ids', () => {
+    expect(sourceCategoryLabel(src('/lpc/nct6798d/0/temperature/0', 'Motherboard'), [igpu, dgpu])).toBe('Motherboard');
+    expect(sourceCategoryLabel(src('/gpu-nvidia/0/temperature/0'), [dgpu])).toBe('GPU');
+    expect(sourceCategoryLabel(src('hwmon/hwmon4/temp1'), [igpu, dgpu])).toBe('GPU');
+  });
+});

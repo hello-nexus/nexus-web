@@ -27,10 +27,13 @@ export const DEFAULT_PANEL_GRID_SHORT_SIDE_JUMP_INCHES = 4;
 // are both solved as a fraction of the resolved cell size (resolvePanelSpacing),
 // so the inset reads as the same proportion of a widget on every device
 // instead of a flat px value that reads thicker on a small cell and thinner
-// on a large one. 50% (the default) reproduces the panel's original y70
-// look; this constant is the ratio at 100%, tune it to change the slider's
-// entire range proportionally.
+// on a large one. This constant is the ratio at 100%; tune it to change the
+// slider's entire range proportionally.
 export const PANEL_WIDGET_PADDING_MAX_RATIO = 0.09;
+// The slider's stock value. Widget content and the touch chrome render at the
+// scale the STOCK padding gives whatever the slider says: moving it changes
+// the gaps and page inset only, never text size (see panelGridCapacityForCanvas).
+export const PANEL_WIDGET_PADDING_DEFAULT_PERCENT = 100;
 
 export function panelWidgetPaddingRatio(percent: number): number {
   const safePercent = Math.min(100, Math.max(0, percent));
@@ -45,6 +48,14 @@ export interface PanelGridCapacity {
   contentScale: number;
   gap: number;
   padding: number;
+  // The gap and the column/row counts at the STOCK padding, the spacing
+  // contentScale was solved at. The immersive overlay renders from these so
+  // immersive views read identically at every slider value: the live counts
+  // can cross an even boundary on a free axis (the long axis of a phone or
+  // monitor) when the gap changes.
+  contentGap: number;
+  contentColumns: number;
+  contentRows: number;
 }
 
 export interface GridSpan { cols: number; rows: number; }
@@ -58,6 +69,9 @@ export interface PanelSpacing {
   padding: number;
   cellSize: number;
 }
+
+type PanelInset = Pick<PanelSpacing, 'gap' | 'padding'>;
+type PanelGridGeometry = Pick<PanelGridCapacity, 'columns' | 'rows' | 'cellSize' | 'rowSize' | 'gap' | 'padding'>;
 
 // Solves gap = padding = ratio * cellSize directly from the extent and cell
 // count, avoiding the circular CSS dependency a var()-chain formula would hit
@@ -170,75 +184,71 @@ export function panelGridCapacityForCanvas(
   const isPhoneLandscape = (surface === 'phone' || surface === 'monitor')
     && canvasW > canvasH && columns === undefined && fixedRows == null;
 
-  let safeGap: number;
-  let safePadding: number;
-  if (resolvedPaddingRatio === undefined) {
-    safeGap = Math.max(0, gap);
-    safePadding = Math.max(0, padding);
-  } else {
-    // Landscape reflows solve spacing against the short (vertical) axis with
-    // the short-axis slot count, so the gap matches the portrait solve of the
-    // same physical panel and survives a rotation unchanged.
-    const spacing = isPhoneLandscape
-      ? resolvePanelSpacing(canvasH, toEvenRound(defaultColumns), resolvedPaddingRatio)
-      : y70Landscape
-        ? resolvePanelSpacing(canvasH, toEvenRound(shortAxisSlots), resolvedPaddingRatio)
-        : resolvePanelSpacing(canvasW, toEvenRound(columns ?? defaultColumns), resolvedPaddingRatio);
-    safeGap = spacing.gap;
-    safePadding = spacing.padding;
-  }
+  // Landscape reflows solve spacing against the short (vertical) axis with
+  // the short-axis slot count, so the gap matches the portrait solve of the
+  // same physical panel and survives a rotation unchanged.
+  const solveSpacing = (ratio: number): PanelSpacing => isPhoneLandscape
+    ? resolvePanelSpacing(canvasH, toEvenRound(defaultColumns), ratio)
+    : y70Landscape
+      ? resolvePanelSpacing(canvasH, toEvenRound(shortAxisSlots), ratio)
+      : resolvePanelSpacing(canvasW, toEvenRound(columns ?? defaultColumns), ratio);
+  const spacing: PanelInset = resolvedPaddingRatio === undefined
+    ? { gap: Math.max(0, gap), padding: Math.max(0, padding) }
+    : solveSpacing(resolvedPaddingRatio);
+  // The spacing the render scale is solved at: the stock slider value, so the
+  // slider moves gaps while widget content keeps its size (the cells grow or
+  // shrink around it). A single-widget surface has no slider and keeps its own.
+  const contentSpacing: PanelInset = resolvedPaddingRatio === undefined || isSingleWidgetSurface(surface)
+    ? spacing
+    : solveSpacing(panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT));
 
   if (isPhoneLandscape) {
-    return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, defaultColumns, safeGap, safePadding);
+    return phoneLandscapeGridCapacityForCanvas(canvasW, canvasH, defaultColumns, spacing, contentSpacing);
   }
 
   const safeColumns = toEvenRound(columns ?? defaultColumns);
-  const contentW = Math.max(1, canvasW - safePadding * 2 - safeGap * (safeColumns - 1));
-  const cellSize = contentW / safeColumns;
-  const contentH = Math.max(1, canvasH - safePadding * 2);
-  const safeRows = fixedRows == null
-    ? toEvenFloor((contentH + safeGap) / (cellSize + safeGap))
-    : toEvenRound(fixedRows);
-  const rowSize = fixedRows == null
-    ? cellSize
-    : Math.max(1, (contentH - safeGap * (safeRows - 1)) / safeRows);
-
-  return {
-    columns: safeColumns,
-    rows: safeRows,
-    cellSize,
-    rowSize,
-    // contentScale drives --panel-scale (the widget render scale ratio). Use
-    // cellSize rather than min(cell, row) so fixed-row surfaces (y70, q60) with
-    // short rows don't shrink widget content; the cellScaler CSS override handles
-    // the non-square card height per-surface.
-    contentScale: cellSize,
-    gap: safeGap,
-    padding: safePadding,
+  const solve = (s: PanelInset): PanelGridGeometry => {
+    const cellSize = Math.max(1, canvasW - s.padding * 2 - s.gap * (safeColumns - 1)) / safeColumns;
+    const contentH = Math.max(1, canvasH - s.padding * 2);
+    const rows = fixedRows == null
+      ? toEvenFloor((contentH + s.gap) / (cellSize + s.gap))
+      : toEvenRound(fixedRows);
+    const rowSize = fixedRows == null
+      ? cellSize
+      : Math.max(1, (contentH - s.gap * (rows - 1)) / rows);
+    return { columns: safeColumns, rows, cellSize, rowSize, gap: s.gap, padding: s.padding };
   };
+  return withContentGeometry(solve(spacing), solve(contentSpacing));
 }
 
 function phoneLandscapeGridCapacityForCanvas(
   canvasW: number,
   canvasH: number,
   shortAxisSlots: number,
-  safeGap: number,
-  safePadding: number,
+  spacing: PanelInset,
+  contentSpacing: PanelInset,
 ): PanelGridCapacity {
   const safeRows = toEvenRound(shortAxisSlots);
-  const contentH = Math.max(1, canvasH - safePadding * 2);
-  const rowSize = Math.max(1, (contentH - safeGap * (safeRows - 1)) / safeRows);
-  const contentW = Math.max(1, canvasW - safePadding * 2);
-  const safeColumns = toEvenFloor((contentW + safeGap) / (rowSize + safeGap));
+  const solve = (s: PanelInset): PanelGridGeometry => {
+    const rowSize = Math.max(1, (Math.max(1, canvasH - s.padding * 2) - s.gap * (safeRows - 1)) / safeRows);
+    const columns = toEvenFloor((Math.max(1, canvasW - s.padding * 2) + s.gap) / (rowSize + s.gap));
+    return { columns, rows: safeRows, cellSize: rowSize, rowSize, gap: s.gap, padding: s.padding };
+  };
+  return withContentGeometry(solve(spacing), solve(contentSpacing));
+}
 
+// The live solve renders the grid; the stock solve sizes widget content and the immersive overlay.
+function withContentGeometry(live: PanelGridGeometry, stock: PanelGridGeometry): PanelGridCapacity {
   return {
-    columns: safeColumns,
-    rows: safeRows,
-    cellSize: rowSize,
-    rowSize,
-    contentScale: rowSize,
-    gap: safeGap,
-    padding: safePadding,
+    ...live,
+    // contentScale drives --panel-scale (the widget render scale ratio). Use
+    // the cell width rather than min(cell, row) so fixed-row surfaces (y70,
+    // q60) with short rows don't shrink widget content; the cellScaler CSS
+    // override handles the non-square card height per-surface.
+    contentScale: stock.cellSize,
+    contentGap: stock.gap,
+    contentColumns: stock.columns,
+    contentRows: stock.rows,
   };
 }
 

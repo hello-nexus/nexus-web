@@ -26,7 +26,7 @@ import {
 } from '../lib/units';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
-import { sanitizePinnedTail, sanitizeRecents } from '../app/sidebarApps';
+import { sanitizeAppOrder, sanitizePinnedTail } from '../app/sidebarApps';
 
 /**
  * Unified user-settings hook.
@@ -93,11 +93,12 @@ export interface UiSettingsValue {
   // but nexus-service has no matching field yet - see UiPrefs.pinnedSidebarApps
   // in api/profiles.ts for the durability gap this leaves.
   pinnedSidebarApps: string[];
-  // Recently opened unpinned apps, oldest first - the sidebar's below-separator
-  // "recently opened" rows (macOS dock semantics). Posted under
-  // ui.recentSidebarApps; same durability gap as pinnedSidebarApps above (see
-  // UiPrefs.recentSidebarApps in api/profiles.ts).
-  recentSidebarApps: string[];
+  // User-dragged order of the unpinned sidebar apps below the separator;
+  // empty = sorted by name. Posted under ui.sidebarAppOrder.
+  sidebarAppOrder: string[];
+  // True while the user has collapsed the dashboard sidebar by hand. Posted
+  // under ui.sidebarCollapsed.
+  sidebarCollapsed: boolean;
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile (see useOemAppSeed). Server-only,
   // like the update block below - not mirrored to localStorage.
@@ -111,6 +112,10 @@ export interface UiSettingsValue {
   // seeds pre-existing installs to 'advanced'.
   lightingDashboardMode: DashboardMode;
   coolingDashboardMode: DashboardMode;
+  // False hides Nexus-Control-off devices from that page's rail; the two
+  // pages keep separate answers.
+  showUncontrolledLightingDevices: boolean;
+  showUncontrolledCoolingDevices: boolean;
   // Display-unit choices, server-mirrored under the preferences `units` block.
   // monitoringTempUnit governs in-app hardware temps only (default 'c');
   // outdoor weather keeps its own per-widget unit. See lib/units.ts.
@@ -153,6 +158,7 @@ export interface UiSettingsValue {
   diagnosticsComponentRam: boolean;
   diagnosticsComponentCooling: boolean;
   diagnosticsComponentSystem: boolean;
+  diagnosticsIgnoredComponents: string[];
 }
 
 /** preferences.diagnostics contract defaults - kept in sync with the service's
@@ -181,6 +187,7 @@ export const DIAGNOSTICS_SETTINGS_DEFAULTS = {
   componentRam: true,
   componentCooling: true,
   componentSystem: true,
+  ignoredComponents: [] as string[],
 } as const;
 
 type Patch = Partial<UiSettingsValue>;
@@ -228,11 +235,14 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     preferredGpuTempSensorId: '',
     preferredGpuId: '',
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
-    recentSidebarApps: sanitizeRecents(src.general.recentSidebarApps),
+    sidebarAppOrder: sanitizeAppOrder(src.general.sidebarAppOrder),
+    sidebarCollapsed: src.general.sidebarCollapsed,
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     lightingDashboardMode: src.general.lightingDashboardMode,
     coolingDashboardMode: src.general.coolingDashboardMode,
+    showUncontrolledLightingDevices: src.general.showUncontrolledLightingDevices,
+    showUncontrolledCoolingDevices: src.general.showUncontrolledCoolingDevices,
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
@@ -263,6 +273,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     diagnosticsComponentRam: DIAGNOSTICS_SETTINGS_DEFAULTS.componentRam,
     diagnosticsComponentCooling: DIAGNOSTICS_SETTINGS_DEFAULTS.componentCooling,
     diagnosticsComponentSystem: DIAGNOSTICS_SETTINGS_DEFAULTS.componentSystem,
+    diagnosticsIgnoredComponents: DIAGNOSTICS_SETTINGS_DEFAULTS.ignoredComponents,
   };
 }
 
@@ -290,10 +301,13 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       showWindowsTrayIcon: src.showWindowsTrayIcon,
       rememberLastPage: src.rememberLastPage,
       pinnedSidebarApps: src.pinnedSidebarApps,
-      recentSidebarApps: src.recentSidebarApps,
+      sidebarAppOrder: src.sidebarAppOrder,
+      sidebarCollapsed: src.sidebarCollapsed,
       widgetAdvancedMode: src.widgetAdvancedMode,
       lightingDashboardMode: src.lightingDashboardMode,
       coolingDashboardMode: src.coolingDashboardMode,
+      showUncontrolledLightingDevices: src.showUncontrolledLightingDevices,
+      showUncontrolledCoolingDevices: src.showUncontrolledCoolingDevices,
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
@@ -338,15 +352,18 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; recentSidebarApps: string[]; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
-  if (patch.recentSidebarApps !== undefined) ui.recentSidebarApps = patch.recentSidebarApps;
+  if (patch.sidebarAppOrder !== undefined) ui.sidebarAppOrder = patch.sidebarAppOrder;
+  if (patch.sidebarCollapsed !== undefined) ui.sidebarCollapsed = patch.sidebarCollapsed;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (patch.lightingDashboardMode !== undefined) ui.lightingDashboardMode = patch.lightingDashboardMode;
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
+  if (patch.showUncontrolledLightingDevices !== undefined) ui.showUncontrolledLightingDevices = patch.showUncontrolledLightingDevices;
+  if (patch.showUncontrolledCoolingDevices !== undefined) ui.showUncontrolledCoolingDevices = patch.showUncontrolledCoolingDevices;
   if (Object.keys(ui).length > 0) out.ui = ui;
   // update block
   const update: Partial<{ updateMode: UpdateMode; updateChannel: UpdateChannel; lastDismissedUpdateVersion: string }> = {};
@@ -396,6 +413,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.diagnosticsWarningLingerMinutes !== undefined) diagnostics.warningLingerMinutes = patch.diagnosticsWarningLingerMinutes;
   if (Object.keys(notifications).length > 0) diagnostics.notifications = notifications;
   if (Object.keys(components).length > 0) diagnostics.components = components;
+  if (patch.diagnosticsIgnoredComponents !== undefined) diagnostics.ignoredComponents = patch.diagnosticsIgnoredComponents;
   if (Object.keys(diagnostics).length > 0) out.diagnostics = diagnostics;
   return out;
 }
@@ -443,6 +461,12 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     coolingDashboardMode: server.ui?.coolingDashboardMode === 'simple' || server.ui?.coolingDashboardMode === 'advanced'
       ? server.ui.coolingDashboardMode
       : base.coolingDashboardMode,
+    // Each page falls back to the single pre-split flag, so an install that
+    // had them hidden keeps them hidden on both until the user splits them.
+    showUncontrolledLightingDevices: server.ui?.showUncontrolledLightingDevices
+      ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledLightingDevices,
+    showUncontrolledCoolingDevices: server.ui?.showUncontrolledCoolingDevices
+      ?? server.ui?.showUncontrolledDevices ?? base.showUncontrolledCoolingDevices,
     monitoringDetailedCollapsed: server.monitoring?.detailedCollapsed ?? base.monitoringDetailedCollapsed,
     monitoringEventsEnabled: server.monitoring?.eventsEnabled ?? base.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: server.monitoring?.fpsOverlayEnabled ?? base.monitoringFpsOverlayEnabled,
@@ -463,12 +487,10 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     pinnedSidebarApps: server.ui?.pinnedSidebarApps !== undefined
       ? sanitizePinnedTail(server.ui.pinnedSidebarApps)
       : base.pinnedSidebarApps,
-    // server.ui.recentSidebarApps is always undefined today (no service
-    // support - see the field comment above), so this always keeps `base`,
-    // same load-bearing fallback as pinnedSidebarApps.
-    recentSidebarApps: server.ui?.recentSidebarApps !== undefined
-      ? sanitizeRecents(server.ui.recentSidebarApps)
-      : base.recentSidebarApps,
+    sidebarAppOrder: server.ui?.sidebarAppOrder != null
+      ? sanitizeAppOrder(server.ui.sidebarAppOrder)
+      : base.sidebarAppOrder,
+    sidebarCollapsed: server.ui?.sidebarCollapsed ?? base.sidebarCollapsed,
     oemAppSeeded: server.ui?.oemAppSeeded ?? base.oemAppSeeded,
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,
@@ -500,6 +522,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     diagnosticsComponentRam: server.diagnostics?.components?.ram ?? base.diagnosticsComponentRam,
     diagnosticsComponentCooling: server.diagnostics?.components?.cooling ?? base.diagnosticsComponentCooling,
     diagnosticsComponentSystem: server.diagnostics?.components?.system ?? base.diagnosticsComponentSystem,
+    diagnosticsIgnoredComponents: server.diagnostics?.ignoredComponents ?? base.diagnosticsIgnoredComponents,
   };
 }
 
@@ -535,6 +558,10 @@ export function UiSettingsProvider({
 
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingWriteRef = useRef<PreferencesPatch | null>(null);
+  // The same write in the hook's flat shape, held until its POST settles. A
+  // fetch that resolves before then still carries the old values, so reload
+  // keeps these fields.
+  const pendingLocalRef = useRef<Patch | null>(null);
   // backgroundMode/accentSource moved from localStorage-only to the server
   // Theme block. A window that already had saved settings before this change
   // seeds the server once so an upgrade keeps the user's choice; a fresh window
@@ -570,12 +597,19 @@ export function UiSettingsProvider({
     pendingWriteRef.current = pendingWriteRef.current
       ? mergeServerPatch(pendingWriteRef.current as Record<string, unknown>, serverPatch as Record<string, unknown>) as PreferencesPatch
       : serverPatch;
+    pendingLocalRef.current = { ...pendingLocalRef.current, ...patch };
     // 250ms debounce collapses rapid slider-style updates into one POST.
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
       const toSend = pendingWriteRef.current;
+      const sentLocal = pendingLocalRef.current;
       pendingWriteRef.current = null;
-      if (toSend) savePreferences(toSend).catch(() => { /* best-effort */ });
+      if (toSend) {
+        savePreferences(toSend).catch(() => { /* best-effort */ }).finally(() => {
+          // A newer update() replaced the object; its own write clears it.
+          if (pendingLocalRef.current === sentLocal) pendingLocalRef.current = null;
+        });
+      }
     }, 250);
   }, [serviceOnline]);
 
@@ -614,7 +648,7 @@ export function UiSettingsProvider({
     fetchPreferences().then(prefs => {
       if (!prefs) return;
       setSettings(prev => {
-        const next = applyServerToLocal(prefs, prev);
+        const next = { ...applyServerToLocal(prefs, prev), ...pendingLocalRef.current };
         persistLocal(next);
         // Re-apply theme/accent when server state differs (profile-switch
         // path). Same `manageDom` guard as update().
@@ -653,7 +687,7 @@ export function UiSettingsProvider({
         showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
         showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
         pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
-        recentSidebarApps: prefs.ui?.recentSidebarApps,
+        sidebarAppOrder: prefs.ui?.sidebarAppOrder,
       });
     }).catch(() => { /* best-effort */ });
   }, [serviceOnline, persistLocal, setLanguage, manageDom, scheduleServerWrite]);
@@ -774,6 +808,29 @@ export function useUnitPrefs(): {
 export function useDiagnosticsWarningLingerMinutes(): number {
   const ctx = useContext(UiSettingsContext);
   return ctx ? ctx.settings.diagnosticsWarningLingerMinutes : DIAGNOSTICS_SETTINGS_DEFAULTS.warningLingerMinutes;
+}
+
+const NO_IGNORED_COMPONENTS: string[] = [];
+
+/**
+ * Per-device diagnostics ignore list (preferences.diagnostics.ignoredComponents),
+ * keyed by the health component ids the service emits ("storage:<serial>",
+ * "cooling:<deviceId>", "gpu:<n>"). Providerless: nothing ignored, toggle is
+ * a no-op - same pattern as {@link useUnitPrefs}.
+ */
+export function useIgnoredComponents(): { isIgnored: (id: string) => boolean; toggle: (id: string) => void } {
+  const ctx = useContext(UiSettingsContext);
+  const ignored = ctx ? ctx.settings.diagnosticsIgnoredComponents : NO_IGNORED_COMPONENTS;
+  const update = ctx?.update;
+  const isIgnored = useCallback((id: string) => ignored.includes(id), [ignored]);
+  const toggle = useCallback((id: string) => {
+    update?.({
+      diagnosticsIgnoredComponents: ignored.includes(id)
+        ? ignored.filter(x => x !== id)
+        : [...ignored, id],
+    });
+  }, [ignored, update]);
+  return { isIgnored, toggle };
 }
 
 /** One of the four global feature switches (Lighting, Cooling, Monitoring, Diagnostics). */

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import, AppWindow } from 'lucide-react';
+import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import, AppWindow, Download, Upload } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { isApplePlatform } from '../../../lib/platform';
 import { isNameTaken } from '../../../lib/nameCollision';
@@ -39,6 +39,13 @@ interface PresetToolbarProps {
   /** Greys the import option out while the caller cannot accept one (the
    *  cooling page during a fan calibration), on top of the cap rule. */
   importDisabled?: boolean;
+  /** Appends an "Export..." option next to Rename/Apps/Delete, for the
+   *  active preset. Omit to hide the option entirely (every existing caller). */
+  onExport?: (id: string) => void;
+  /** Appends an "Import file..." option after "New preset..."/"Import...",
+   *  for a local package distinct from onImport's own source (e.g. Elgato).
+   *  Omit to hide the option entirely (every existing caller). */
+  onImportFile?: () => void;
   /** Undo/Redo controls, plus Reset when `onReset` is supplied. Off for
    *  callers with no editable history to undo; on (default) matches the
    *  original lighting-canvas toolbar. */
@@ -68,15 +75,22 @@ interface PresetToolbarProps {
    *  unusable on a keyboardless surface. Switching and deleting stay
    *  available. Defaults to true (every existing caller keeps typing). */
   allowCreateRename?: boolean;
+  /** Hides the delete option - for a caller whose delete route is
+   *  LocalhostOnly (a paired panel's own request would just fail there).
+   *  Defaults to true (every existing caller's delete route accepts a
+   *  panel). */
+  allowDelete?: boolean;
 }
 
 export function PresetToolbar({
   presets, activeId, presetCount, cap = PRESET_CAP,
   onLoad, onCreate, onRename, onDelete, onImport, importLabelKey, importDisabled, onManageApps,
+  onExport, onImportFile,
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
   resetLabelKey, resetConfirmKey,
   allowCreateRename = true,
+  allowDelete = true,
   rail,
 }: PresetToolbarProps) {
   const { t } = useTranslation();
@@ -104,10 +118,12 @@ export function PresetToolbar({
       { value: '__sep__', label: '', divider: true },
       ...(allowCreateRename ? [{ value: '__rename__', label: t(key('rename')), className: styles.actionOption, icon: <Pencil size={14} /> }] : []),
       ...(onManageApps ? [{ value: '__apps__', label: t(key('apps')), className: styles.actionOption, icon: <AppWindow size={14} /> }] : []),
-      { value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> },
+      ...(onExport ? [{ value: '__export__', label: t(key('export')), className: styles.actionOption, icon: <Download size={14} /> }] : []),
+      ...(allowDelete ? [{ value: '__delete__', label: t(key('delete')), className: styles.actionOption, icon: <Trash2 size={14} /> }] : []),
     ] : []),
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
     ...(onImport ? [{ value: '__import__', label: t(importKey), className: styles.createOption, disabled: atCap || !!importDisabled, icon: <Import size={14} /> }] : []),
+    ...(onImportFile ? [{ value: '__importFile__', label: t(key('importFileOption')), className: styles.createOption, disabled: atCap, icon: <Upload size={14} /> }] : []),
   ];
 
   const handleSelectChange = (value: string) => {
@@ -121,7 +137,9 @@ export function PresetToolbar({
     }
     if (value === '__rename__') { setPromptMode('rename'); setPromptOpen(true); return; }
     if (value === '__apps__') { onManageApps?.(); return; }
+    if (value === '__export__') { if (activeId) onExport?.(activeId); return; }
     if (value === '__delete__') { setDeleteConfirmOpen(true); return; }
+    if (value === '__importFile__') { onImportFile?.(); return; }
   };
 
   const createValidate = (v: string): string | null => {

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { GaugeValue } from './GaugeValue';
 import type { GaugeProps } from './types';
+import { gaugeGradientColorAt } from '../../../theme/gaugeGradient';
 import styles from './DotGridGauge.module.scss';
 
 const DOT = 10;
@@ -11,7 +12,7 @@ const CELL = DOT + GAP;
 const BASE_COLS = 9;
 const BASE_ROWS = 5;
 
-export function DotGridGauge({ value, formatted, label }: GaugeProps) {
+export function DotGridGauge({ value, formatted, label, gradient }: GaugeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [grid, setGrid] = useState({ cols: BASE_COLS, rows: BASE_ROWS });
 
@@ -58,6 +59,7 @@ export function DotGridGauge({ value, formatted, label }: GaugeProps) {
               <div
                 key={i}
                 className={filled ? styles.dotFilled : styles.dotEmpty}
+                style={filled && gradient ? { background: gaugeGradientColorAt(gradient.stops, (fromBottom + 0.5) / total) } : undefined}
               />
             );
           })}

@@ -59,12 +59,12 @@ describe('media visualizer catalog', () => {
     const state = visualizerState('spectrumaurora', bundle);
     expect(state.speed).toBe(80);
     expect(state.params.u_glow).toBe(1.9);
-    // Carried from the effect's base params, not the slot.
-    expect(state.params.u_curtains).toBeDefined();
   });
 
   it('uses the effect base when no bundle has hydrated', () => {
+    // Empty params: the renderer fills each declared uniform's default from
+    // the shader itself (useShaderRenderer), so the base state carries none.
     const state = visualizerState('spectrumaurora', undefined);
-    expect(state.params.u_curtains).toBeDefined();
+    expect(state.params).toEqual({});
   });
 });

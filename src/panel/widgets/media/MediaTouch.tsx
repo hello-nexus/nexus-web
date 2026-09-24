@@ -7,7 +7,7 @@ import {
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { StableDigits } from '../common/StableDigits';
 import { useMedia, controlMedia, seekMedia, type MediaSession } from '../../../hooks/useMedia';
-import { useSystemVolume } from '../../../hooks/useSystemVolume';
+import { useSystemVolume, type VolumeTargetQuery } from '../../../hooks/useSystemVolume';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
@@ -15,6 +15,7 @@ import { surfaceSupportsTouch } from '../../types';
 import type { WidgetProps } from '../types';
 import { mediaArtSignature } from './mediaArt';
 import { formatTrackTime, useLivePositionMs } from './mediaTime';
+import { mediaVolumeTarget } from './mediaVolumeTarget';
 import { MediaVisualizer } from './MediaVisualizer';
 import { nextVisualizerEffect, normalizeVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
 import styles from './MediaTouch.module.scss';
@@ -186,6 +187,7 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
     <MediaPlayerCell
       session={active.session}
       sourceKey={active.key}
+      volumeTarget={mediaVolumeTarget(widget, active.key)}
       t={t}
       visualizer={visualizerOn}
       controlsRevealed={controlsRevealed}
@@ -270,6 +272,7 @@ function MediaArtCell({ artUrl }: { artUrl: string }) {
 function MediaPlayerCell({
   session,
   sourceKey,
+  volumeTarget,
   t,
   visualizer,
   controlsRevealed,
@@ -278,6 +281,7 @@ function MediaPlayerCell({
 }: {
   session: MediaSession;
   sourceKey: string;
+  volumeTarget: VolumeTargetQuery;
   t: (k: string, params?: Record<string, string | number>) => string;
   visualizer: boolean;
   controlsRevealed: boolean;
@@ -290,7 +294,7 @@ function MediaPlayerCell({
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
   const RepeatIcon = repeatMode === 'Track' ? Repeat1 : Repeat;
 
-  const volumeBridge = useSystemVolume(true);
+  const volumeBridge = useSystemVolume(true, volumeTarget);
   const { state: volume, previewVolume, commitVolume, setMuted } = volumeBridge;
 
   return (
@@ -387,11 +391,11 @@ function MediaPlayerCell({
   );
 }
 
-// /api/media polls on a 2s cadence and the seek endpoint is fire-and-forget,
-// so there is no completion signal to await. After a release the bar therefore
-// HOLDS the requested position until a poll reports a position near it -
-// dropping straight back to the last polled value is what made a seek snap
-// back to where it started for up to a poll interval.
+// The seek endpoint is fire-and-forget and the session state arrives as
+// pushed frames, so there is no completion signal to await. After a release
+// the bar therefore HOLDS the requested position until a frame reports a
+// position near it - dropping straight back to the last known value is what
+// made a seek snap back to where it started until the next frame.
 const SEEK_CONFIRM_WINDOW_MS = 3_000;
 // A player that silently refuses the seek would otherwise pin the bar to a
 // position it never reaches; release to server truth after this.

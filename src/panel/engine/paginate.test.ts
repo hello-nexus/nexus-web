@@ -179,7 +179,7 @@ describe('repaginatePanelLayout', () => {
   });
 
   it('is a no-op (same reference) once a layout already fits the grid', () => {
-    // Idempotence guards the persist effect against a render loop.
+    // Idempotence guards the editor's conform effect against a render loop.
     const layout = layoutWith([widget('4x2', 0, 0, 'mon'), widget('2x2', 0, 2, 'clock'),
       widget('2x2', 2, 2, 'media'), widget('4x4', 0, 4, 'lighting')]);
     const landscape = repaginatePanelLayout(layout, { gridCols: 8, pageRows: 4 });
@@ -267,5 +267,24 @@ describe('repaginatePanelLayout', () => {
     expect(backToPortrait.pages).toHaveLength(1);
     expect(backToPortrait.pages[0].widgets).toHaveLength(cells.length);
     assertNoClip(backToPortrait.pages[0].widgets, 4, 16);
+  });
+
+  it('does not round-trip a Y70 rotation: a 4x2 between 4x4s sinks to the bottom', () => {
+    // The transposed shape is render-only for this reason: were the 16x4
+    // repack written to the record, the portrait re-fit orders by the
+    // landscape rows and demotes the calendar from row 2 to row 14 (a
+    // support-bundle settings.json, verbatim). PanelApp never writes a
+    // repagination back; this pins the property that rule rests on.
+    const portrait = layoutWith([
+      widget('4x2', 0, 0, 'clock'), widget('4x4', 0, 12, 'cooling'), widget('4x4', 0, 8, 'monitoring'),
+      widget('4x2', 0, 2, 'calendar'), widget('4x4', 0, 4, 'weather'),
+    ]);
+    const landscape = repaginatePanelLayout(portrait, { gridCols: 16, pageRows: 4 });
+    const backToPortrait = repaginatePanelLayout(landscape, { gridCols: 4, pageRows: 16 });
+    const rowOf = (layout: PanelLayout, id: string) => layout.pages[0].widgets.find(w => w.id === id)?.row;
+    expect(rowOf(portrait, 'calendar')).toBe(2);
+    expect(rowOf(backToPortrait, 'calendar')).toBe(14);
+    expect(flattenPages(backToPortrait.pages).map(w => w.id))
+      .toEqual(['clock', 'weather', 'monitoring', 'cooling', 'calendar']);
   });
 });

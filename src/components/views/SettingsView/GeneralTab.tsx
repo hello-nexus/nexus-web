@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Compass, Eraser, ExternalLink, FolderOpen, GitBranch, History, Languages, Megaphone, PanelBottom, Power, PowerOff, RefreshCw, ScrollText, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
+import { Compass, Eraser, FolderOpen, GitBranch, History, Languages, Megaphone, PackageOpen, PanelBottom, Power, PowerOff, RefreshCw, SlidersHorizontal, SquareMenu, Timer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingToggle, SettingSelect, SettingSlider, SettingRow } from '../../common/SettingRow/SettingRow';
@@ -7,6 +7,9 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { postService } from '../../../api/service';
+import { downloadSupportBundle } from '../../../api/diagnostics';
+import { saveLastRoute } from '../../../api/session';
+import { useToastSafe } from '../../common/Toast/Toast';
 import { resetOnboarding } from '../../../api/onboarding';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
@@ -17,6 +20,8 @@ import {
 } from '../../../lib/settings';
 import type { UpdateChannel, UpdateMode } from '../../../api/update';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
+import { DISCORD_INVITE_URL } from '../../../lib/externalLinks';
+import { DiscordGlyph } from '../../icons/NexusBrand';
 import friuliFlag from '../../../assets/flags/friuli.png';
 import styles from './SettingsView.module.scss';
 
@@ -107,11 +112,19 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     window.close();
   };
 
-  // Reveal the logs folder (nexus-service.log, plus desktop-host.log on Windows) in
-  // the OS file manager so testers can grab them for a bug report. Loopback-only
+  // Reveal the Nexus data folder in the OS file manager. Loopback-only
   // endpoint - acts on the local machine.
-  const openLogs = async () => {
+  const openDataFolder = async () => {
     await postService('/diagnostics/open-logs', {});
+  };
+
+  const { push } = useToastSafe();
+  const [exportingSupport, setExportingSupport] = useState(false);
+  const exportSupportBundle = async () => {
+    setExportingSupport(true);
+    const ok = await downloadSupportBundle();
+    setExportingSupport(false);
+    if (!ok) push({ title: t('settings.diagnostics.supportBundleFailed') });
   };
 
   return (
@@ -204,7 +217,12 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             anchorId="set-remember-page"
             description={t('settings.rememberLastPage.description')}
             checked={settings.general.rememberLastPage}
-            onChange={() => updateGeneral({ rememberLastPage: !settings.general.rememberLastPage })}
+            onChange={() => {
+              const next = !settings.general.rememberLastPage;
+              updateGeneral({ rememberLastPage: next });
+              // The macOS service opens a closed window on the stored route.
+              if (!next) void saveLastRoute('');
+            }}
           />
         </SettingsSection>
       )}
@@ -272,20 +290,39 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
       <SettingsSection title={t('settings.diagnostics.title')}>
         <SettingRow
-          label={t('settings.diagnostics.logsLabel')}
-          icon={<ScrollText />}
+          label={t('settings.diagnostics.supportBundleLabel')}
+          icon={<PackageOpen />}
           iconLeading="subtle"
-          description={t('settings.diagnostics.logsDescription')}
+          description={t('settings.diagnostics.supportBundleDescription')}
+        >
+          <Button
+            type="button"
+            tone="neutral"
+            size="sm"
+            icon={<PackageOpen size={14} aria-hidden />}
+            onClick={exportSupportBundle}
+            loading={exportingSupport}
+            disabled={!serviceOnline}
+          >
+            {t('settings.diagnostics.supportBundleButton')}
+          </Button>
+        </SettingRow>
+
+        <SettingRow
+          label={t('settings.diagnostics.dataFolderLabel')}
+          icon={<FolderOpen />}
+          iconLeading="subtle"
+          description={t('settings.diagnostics.dataFolderDescription')}
         >
           <Button
             type="button"
             tone="neutral"
             size="sm"
             icon={<FolderOpen size={14} aria-hidden />}
-            onClick={openLogs}
+            onClick={openDataFolder}
             disabled={!serviceOnline}
           >
-            {t('settings.diagnostics.openLogsButton')}
+            {t('settings.diagnostics.openDataFolderButton')}
           </Button>
         </SettingRow>
 
@@ -300,16 +337,21 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
           </Button>
         </SettingRow>
 
-        <SettingRow label={t('settings.feedback')} icon={<Megaphone />} iconLeading="subtle">
+        <SettingRow
+          label={t('settings.feedback')}
+          description={t('settings.feedback.description')}
+          icon={<Megaphone />}
+          iconLeading="subtle"
+        >
           <Button
             tone="neutral"
             size="sm"
-            iconTrailing={<ExternalLink size={14} aria-hidden />}
-            href="https://github.com/hello-nexus/nexus-service/issues"
+            icon={<DiscordGlyph size={14} />}
+            href={DISCORD_INVITE_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t('settings.feedback.report')}
+            {t('settings.feedback.join')}
           </Button>
         </SettingRow>
       </SettingsSection>

@@ -1,18 +1,20 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { isMultiSelectModifier } from '../../../../lib/platform';
-import { CircleSlash, Cpu, Fan, Folder, FolderInput, FolderMinus, FolderPlus, Gpu, Link2, Lock, LockOpen, MoreVertical, MousePointerClick, Pencil, Plus, RotateCcw, Unlink, Unplug } from 'lucide-react';
+import { CircleSlash, Cpu, Fan, GaugeCircle, Gpu, Link2, Link2Off, Lock, LockOpen, MousePointerClick, Pencil, Plus, RotateCcw, Unplug } from 'lucide-react';
 import { type FanChannel, type FanRole, isFanDisconnected } from '../../../../api/cooling';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { useTranslation } from '../../../../lib/i18n';
 import { Badge } from '../../../../components/common/Badge/Badge';
 import { formatNumber } from '../../../../lib/units';
 import type { CurveDef, FanState } from '../../../../types/cooling';
-import { EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
+import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/MenuArrowButton';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
+import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import styles from '../CoolingPage.module.scss';
 
@@ -36,7 +38,7 @@ import styles from '../CoolingPage.module.scss';
  *   - 'firmware'   : NP50 and Q-series. Hub plays its firmware speed setpoint.
  *      Reads as a new "FW Control" option on every NP50 and Q-series fan.
  *   - 'software'   : Nexus drives. Fall through to per-fan state.
- * Motherboard fans (no deviceId) leave this undefined.
+ * Undefined on anything that is not one of those hubs, GPU fans included.
  */
 export type FanCardHubMode = 'software' | 'motherboard' | 'firmware';
 
@@ -49,6 +51,9 @@ export interface FanBulkSelection {
   controlled: boolean;
   setLocked: (locked: boolean) => void;
   setControlled: (controlled: boolean) => void;
+  /** Wraps the selection in a new group where it sits. Absent when the fans
+   *  sit in different containers, or the nesting limit or group cap forbids. */
+  group?: () => void;
 }
 
 export const FanCard = memo(function FanCard({
@@ -110,18 +115,8 @@ export const FanCard = memo(function FanCard({
   /** Narrow the selection to this card alone. Offered on every menu except a
    *  card that cannot be selected at all. */
   onSelectOnly?: () => void;
-  /** Group placement for the rail block this card belongs to, driving the
-   *  "Move to group" flyout. A fan on a hub moves with its whole block, the
-   *  way dragging one does. */
-  groupMove?: {
-    /** User groups it can move into; the one it already sits in is left out. */
-    targets: readonly { id: string; name: string }[];
-    onMove: (groupId: string) => void;
-    /** Present only while the block sits in a user group; the row names it. */
-    onRemove?: { name: string; run: () => void };
-    /** Absent once the group cap is reached. */
-    onMoveToNew?: () => void;
-  };
+  /** Group placement for this fan, among the groups inside its hub or board block. */
+  groupMove?: GroupMove;
   /** Present only when this card is part of a multi-selection. The menu then
    *  acts on the whole selection, matching the lighting device card. */
   bulk?: FanBulkSelection;
@@ -178,7 +173,7 @@ export const FanCard = memo(function FanCard({
   const stateBadge = isHwDisconnected
     ? { icon: <Unplug size={11} />, label: t('cooling.fan.disconnected') }
     : isFixed ? { icon: <CircleSlash size={11} />, label: t('cooling.fan.fixed') }
-    : !controlled ? { icon: <Unlink size={11} />, label: t('cooling.fan.notControlled') }
+    : !controlled ? { icon: <Link2Off size={11} />, label: t('cooling.fan.notControlled') }
     : null;
   const locked = channel.locked ?? false;
   // An offset shifts this fan off whatever drives it, so it says so on the
@@ -369,7 +364,7 @@ export const FanCard = memo(function FanCard({
       // above rather than the Nexus Control row itself.
       if (items.length > 0) items[items.length - 1] = { ...items[items.length - 1], separatorAfter: true };
       items.push(isControlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, label: label('cooling.fan.menuControlOff', 'cooling.fan.menuControlOffCount'), onSelect: () => setControlled(false) }
+        ? { key: 'controlled', icon: <Link2Off size={14} />, label: label('cooling.fan.menuControlOff', 'cooling.fan.menuControlOffCount'), onSelect: () => setControlled(false) }
         // Highlighted for the same reason the lighting card highlights it: it
         // is the row that un-sticks the card's current state.
         : { key: 'controlled', icon: <Link2 size={14} />, label: label('cooling.fan.menuControlOn', 'cooling.fan.menuControlOnCount'), onSelect: () => setControlled(true), highlighted: true });
@@ -395,36 +390,7 @@ export const FanCard = memo(function FanCard({
         });
       }
     }
-    const groupRows: DeviceMenuItem[] = [];
-    if (!bulk && groupMove) {
-      for (const target of groupMove.targets) {
-        groupRows.push({
-          key: `group:${target.id}`, icon: <Folder size={14} />, label: target.name,
-          onSelect: () => groupMove.onMove(target.id),
-        });
-      }
-      if (groupMove.onMoveToNew) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:new', icon: <FolderPlus size={14} />,
-          label: t('cooling.fan.moveToNewGroup'), onSelect: groupMove.onMoveToNew,
-        });
-      }
-      if (groupMove.onRemove) {
-        if (groupRows.length > 0) groupRows[groupRows.length - 1].separatorAfter = true;
-        groupRows.push({
-          key: 'group:none', icon: <FolderMinus size={14} />,
-          label: t('cooling.fan.removeFromGroup', { name: groupMove.onRemove.name }),
-          onSelect: groupMove.onRemove.run,
-        });
-      }
-    }
-    if (groupRows.length > 0) {
-      organise.push({
-        key: 'moveToGroup', icon: <FolderInput size={14} />,
-        label: t('cooling.fan.moveToGroup'), submenu: groupRows,
-      });
-    }
+    organise.push(...groupMenuItems(t, language, 'cooling.fan', groupMove, bulk));
     if (organise.length > 0) {
       if (items.length > 0) items[items.length - 1].separatorAfter = true;
       items.push(...organise);
@@ -441,38 +407,14 @@ export const FanCard = memo(function FanCard({
   // beside the state badge in those rows instead.
   const lockGlyph = locked ? <Lock size={12} className={styles.fanLockGlyph} aria-hidden="true" /> : null;
 
-  // Shares the mode control's row rather than the card's full height, so the
-  // space it takes comes out of the dropdown's width and the card keeps its
-  // original height.
-  const menuButton = menuEnabled ? (
-    <div className={styles.fanCardActions} data-no-dnd>
-      <HoverTooltip body={t('cooling.fan.moreActions')} side="top">
-        <button
-          type="button"
-          className={styles.fanMenuBtn}
-          aria-label={t('cooling.fan.moreActions')}
-          onClick={e => {
-            e.stopPropagation();
-            // Explicit toggle: the button is its own close affordance, and the
-            // menu's outside-pointerdown close has already run.
-            if (menuAt) { setMenuAt(null); return; }
-            const r = e.currentTarget.getBoundingClientRect();
-            openMenu(r.right, r.bottom + 4);
-          }}
-        >
-          <MoreVertical />
-        </button>
-      </HoverTooltip>
-    </div>
-  ) : null;
-
   return (
     <div
       ref={setCardEl}
       style={drag?.style ?? {}}
       {...(drag?.attributes ?? {})}
       {...(drag?.listeners ?? {})}
-      className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${dragClasses}`}
+      data-menu-arrow-host={menuEnabled || undefined}
+      className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${roleMenuOpen ? styles.fanCardMenuOpen : ''} ${dragClasses}`}
       onClick={onSelect ? e => {
         // Controls inside the card own their own clicks; only bare card
         // surface toggles selection. Matched via the same [data-no-dnd] marker
@@ -557,12 +499,22 @@ export const FanCard = memo(function FanCard({
             (EditableText doesn't forward unknown props) so a press on the name
             edits it instead of starting a card drag; no layout change. */}
         <span data-no-dnd style={{ display: 'contents' }}>
-          <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} />
+          {/* Rename lives on the context menu; a click on the name belongs to the card. */}
+          <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} maxLength={DEVICE_NAME_MAX_LENGTH} />
         </span>
-        <span className={styles.fanRpmReadout}>
-          <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>
-          <span className={styles.fanRpmLabel}>RPM</span>
-        </span>
+        {channel.rpmUnavailable ? (
+          <HoverTooltip body={t('cooling.fan.rpmUnavailableHint')}>
+            <span className={styles.fanRpmReadout}>
+              <GaugeCircle size={12} aria-hidden="true" />
+              <span className={styles.fanRpmLabel}>{t('cooling.fan.rpmUnavailable')}</span>
+            </span>
+          </HoverTooltip>
+        ) : (
+          <span className={styles.fanRpmReadout}>
+            <span className={styles.fanRpm}>{formatNumber(channel.rpm, numberFormat)}</span>
+            <span className={styles.fanRpmLabel}>RPM</span>
+          </span>
+        )}
       </div>
 
       {offset !== 0 && (
@@ -584,7 +536,6 @@ export const FanCard = memo(function FanCard({
             <Badge label={stateBadge!.label} icon={stateBadge!.icon} compact uppercase color="var(--text-dim)" />
           </div>
           {lockGlyph}
-          {menuButton}
         </div>
       ) : isReadOnly ? null : isFixed ? (
         // Fixed speed: the RPM readout stays in the header and the duty bar
@@ -597,7 +548,6 @@ export const FanCard = memo(function FanCard({
             </div>
           </HoverTooltip>
           {lockGlyph}
-          {menuButton}
         </div>
       ) : (
         <>
@@ -650,11 +600,20 @@ export const FanCard = memo(function FanCard({
               options={modeOptions}
             />
             </span>
-            {menuButton}
           </div>
         </>
       )}
       </div>
+      {menuEnabled && (
+        <MenuArrowButton
+          variant="card"
+          label={t('cooling.fan.moreActions')}
+          tooltip={t('cooling.fan.moreActions')}
+          open={menuAt != null}
+          onOpen={openMenu}
+          onClose={() => setMenuAt(null)}
+        />
+      )}
       {menuAt && (
         <DeviceContextMenu
           key={menuAt.seq}

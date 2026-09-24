@@ -104,16 +104,6 @@
   @media (max-width: 560px) { display: none; }
 }
 
-.headerLogin {
-  @include text-label;
-  color: var(--text-dim);
-  text-decoration: none;
-
-  &:hover { color: var(--text); }
-
-  @media (max-width: 560px) { display: none; }
-}
-
 // Emphasis mirrors the hero CTAs: Download filled, My System outlined.
 .headerDownload {
   @include text-button;
@@ -578,7 +568,6 @@
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 
-  @media (prefers-reduced-motion: reduce) { animation: none; }
 }
 
 @keyframes siteFanSpin {
@@ -991,9 +980,4 @@
     transform: none;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
 }

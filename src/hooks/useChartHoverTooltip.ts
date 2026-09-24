@@ -61,7 +61,8 @@ export function useChartHoverTooltip(
     const wrap = wrapRef.current;
     if (!wrap || wrap.offsetWidth === 0) return;
     const rect = wrap.getBoundingClientRect();
-    // Ancestor transforms (the panel's --panel-scale) scale the rect but not
+    // An ancestor scale (the panel's --panel-scale, applied as a transform
+    // or a zoom depending on the surface) scales the rect but not
     // client/offset sizes; divide back to layout px so the written left/top
     // land where the cursor visually is.
     const scale = rect.width / wrap.offsetWidth;

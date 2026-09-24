@@ -9,14 +9,16 @@ import type { HostProps } from './ui/components';
 import {
   Stack, Grid, Frame, Spacer, Divider, Text, Icon,
   Ring, Bar, Range, Gauge, Sparkline, Slider, Button, Stepper,
-  Image, Video, Layer, Sprite, Scroll, Input, Chart, Badge, Spinner, CopyButton,
+  Image, Video, Sprite, Scroll, Input, Chart, Badge, Spinner, CopyButton,
 } from './ui/components';
+import { Layer, Manipulable, YouTube } from './ui/LayerStage';
 import {
   WorldClock, ClockFace, ViewHeaderHost,
   ToggleHost, Segmented, SelectHost, ChipGroupHost, CardHost, EmptyHost, Section, ColorHost,
   MediaImportHost, MediaGridHost, ConfirmHost, CollapsibleHost, TooltipHost,
 } from './ui/richComponents';
 import { CurveHost } from './ui/CurveHost';
+import { AvatarComposite } from './ui/AvatarComposite';
 
 export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-stack': Stack,
@@ -37,7 +39,9 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-stepper': Stepper,
   'ui-image': Image,
   'ui-video': Video,
+  'ui-youtube': YouTube,
   'ui-layer': Layer,
+  'ui-manipulable': Manipulable,
   'ui-sprite': Sprite,
   'ui-scroll': Scroll,
   'ui-input': Input,
@@ -54,6 +58,7 @@ export const ELEMENT_COMPONENTS: Record<UiElementName, FC<HostProps>> = {
   'ui-section': Section,
   'ui-worldclock': WorldClock,
   'ui-clockface': ClockFace,
+  'ui-avatar': AvatarComposite,
   'ui-viewheader': ViewHeaderHost,
   'ui-mediaimport': MediaImportHost,
   'ui-mediagrid': MediaGridHost,

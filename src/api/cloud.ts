@@ -40,6 +40,8 @@ export interface CloudUsernameResponse extends CloudEnvelope {
 
 export interface RecoveryStartResponse {
   grantId: string;
+  /** Verification code, shown here and typed into the page the emailed link opens. */
+  code?: string;
 }
 
 export type RecoveryStatusValue = 'idle' | 'pending' | 'approved' | 'expired';

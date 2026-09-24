@@ -1,5 +1,5 @@
 // Runtime half of the app-wide "a click clears the hover" rule. The build
-// rewrites every :hover rule to stand down while <html> carries this mark
+// rewrites every bare :hover rule to stand down while <html> carries this mark
 // (scripts/hover-guard-postcss.ts); all this has to do is put it there on a
 // mouse press and take it off once the pointer actually moves again. It is an
 // attribute rather than a class because CSS modules would scope a class into

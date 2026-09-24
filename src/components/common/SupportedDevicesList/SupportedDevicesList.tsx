@@ -84,7 +84,11 @@ function DeviceRow({ device, detected }: { device: SupportedDeviceRow; detected:
       </td>
       <td className={styles.model}>{device.model}</td>
       <td className={styles.type}>{device.category}</td>
-      <td className={styles.mono}>{device.vendorId}:{device.productId.replace(/^0x/, '')}</td>
+      {/* Keyless rows (OpenRGB detectors with no USB id, the EDID-identified
+          Y70 GW / Ina panels) carry "-" in both fields. */}
+      <td className={styles.mono}>
+        {device.vendorId.startsWith('0x') ? `${device.vendorId}:${device.productId.replace(/^0x/, '')}` : '-'}
+      </td>
       <td className={styles.caps}>{device.capabilities.join(' · ')}</td>
     </tr>
   );

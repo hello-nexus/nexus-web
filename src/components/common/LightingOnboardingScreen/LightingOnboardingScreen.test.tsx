@@ -4,12 +4,13 @@ import { LightingOnboardingScreen } from './LightingOnboardingScreen';
 import {
   fetchLightingDevices,
   fetchLightingStatus,
+  setLightingDeviceColor,
   setLightingDeviceControlled,
+  startAnimate,
   startStatic,
-  stopLighting,
-  cachedAnimateDefaults,
   type LightingDevice,
 } from '../../../api/lighting';
+import { paletteColor } from '../../../types/lightingPalette';
 import { completeLightingOnboarding } from '../../../api/onboarding';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 
@@ -17,12 +18,11 @@ vi.mock('../../../api/lighting', () => ({
   fetchLightingDevices: vi.fn(),
   fetchLightingStatus: vi.fn(),
   setLightingDeviceControlled: vi.fn(),
-  stopLighting: vi.fn(),
   // ZoneCard's identify affordance; unused in toggleMode but imported.
   identifyLightingDevice: vi.fn(),
+  startAnimate: vi.fn(),
   startStatic: vi.fn(),
-  fetchAnimateDefaults: vi.fn(),
-  cachedAnimateDefaults: vi.fn(),
+  setLightingDeviceColor: vi.fn(),
 }));
 
 // The strip paints on a canvas, which jsdom does not implement; echoing the
@@ -78,7 +78,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
   vi.mocked(setLightingDeviceControlled).mockResolvedValue(null);
-  vi.mocked(stopLighting).mockResolvedValue(null);
+  vi.mocked(setLightingDeviceColor).mockResolvedValue(null as never);
 });
 
 describe('LightingOnboardingScreen - device grid', () => {
@@ -239,7 +239,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
 
     chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(completeLightingOnboarding).toHaveBeenCalled();
@@ -252,7 +252,7 @@ describe('LightingOnboardingScreen - continue flow', () => {
 
     chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
     expect(await screen.findByText('welcome.error')).toBeInTheDocument();
     expect(onComplete).not.toHaveBeenCalled();
@@ -285,49 +285,90 @@ describe('LightingOnboardingScreen - continue flow', () => {
 });
 
 describe('LightingOnboardingScreen colour test strip', () => {
-  it('offers a swatch per test fill, and running one does not persist it', async () => {
+  it('opens on the rainbow, which a fresh install already runs, and starts nothing', async () => {
     seed([strip]);
     renderScreen();
-    chooseAdvanced();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    const swatches = screen.getByRole('group', { name: 'lightingOnboarding.testColors' }).querySelectorAll('button');
+    expect(swatches[0]).toHaveAccessibleName('lighting.simple.anim.rainbow');
+    expect(swatches[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(startAnimate).not.toHaveBeenCalled();
+    expect(startStatic).not.toHaveBeenCalled();
+  });
+
+  it('keeps a picked colour the way the simple palette does: Static, then a pick per device', async () => {
+    seed([strip, hub]);
+    renderScreen();
     await screen.findByRole('switch', { name: 'Test Strip' });
 
     const red = screen.getByRole('button', { name: 'lighting.controls.simplered' });
     fireEvent.click(red);
 
-    await waitFor(() => expect(startStatic).toHaveBeenCalledTimes(1));
-    const call = vi.mocked(startStatic).mock.calls[0];
-    expect(call[0]).toBe('simplered');
-    // Last argument is `persist`: a test look must not overwrite the saved one.
-    expect(call[7]).toBe(false);
+    const color = paletteColor('red-3')!;
+    await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalledTimes(2));
+    // Saved, not previewed: no persist=false.
+    expect(vi.mocked(startStatic).mock.calls[0]).toEqual(['gradientlinear']);
+    // Simple drives every device, including the one stored as ignored.
+    for (const id of ['openrgb-0', 'openrgb-1']) {
+      expect(setLightingDeviceColor).toHaveBeenCalledWith(id, color.h, color.s, expect.objectContaining({ effect: 'flat', color: color.hex }));
+    }
     expect(red).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('sends each fill its own colour, so a second pick actually changes', async () => {
-    // The fills share one parameter set; only the template slot differs.
-    vi.mocked(cachedAnimateDefaults).mockReturnValue({
-      simplered: { selected: 0, slots: [{ intensity: 1, hue: 0.02, colorize: 1, saturation: 1, contrast: 1, params: { u_warmth: 0 } }] },
-      simpleblue: { selected: 0, slots: [{ intensity: 1, hue: 0.62, colorize: 1, saturation: 1, contrast: 1, params: { u_warmth: 0 } }] },
-    } as never);
-    seed([strip]);
+  it('colours only the driven devices in advanced', async () => {
+    seed([strip, hub]);
     renderScreen();
     chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
-    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simpleblue' }));
 
-    await waitFor(() => expect(startStatic).toHaveBeenCalledTimes(2));
-    const [first, second] = vi.mocked(startStatic).mock.calls;
-    expect(first[2]).toBe(0.02);
-    expect(second[2]).toBe(0.62);
+    await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(setLightingDeviceColor).mock.calls[0][0]).toBe('openrgb-0');
   });
 
-  it('does not run a fill until a swatch is pressed', async () => {
+  it('goes back to the simple rainbow when its dot is pressed again', async () => {
     seed([strip]);
     renderScreen();
-    chooseAdvanced();
     await screen.findByRole('switch', { name: 'Test Strip' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simpleblue' }));
+    const rainbow = screen.getByRole('button', { name: 'lighting.simple.anim.rainbow' });
+    fireEvent.click(rainbow);
+
+    await waitFor(() => expect(startAnimate).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(startAnimate).mock.calls[0].slice(0, 2)).toEqual(['sweeprainbow', 50]);
+    expect(rainbow).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('runs only the latest of several quick picks', async () => {
+    seed([strip]);
+    renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simpleblue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.simple.anim.rainbow' }));
+
+    await waitFor(() => expect(startAnimate).toHaveBeenCalledTimes(1));
+    // The superseded colours never reach the lights, so none can land late.
     expect(startStatic).not.toHaveBeenCalled();
+    expect(setLightingDeviceColor).not.toHaveBeenCalled();
+  });
+
+  it('re-applies the colour on Finish, so a device found after the pick wears it too', async () => {
+    seed([strip]);
+    vi.mocked(completeLightingOnboarding).mockResolvedValue({ completed: true, lightingCompleted: true });
+    const onComplete = renderScreen();
+    await screen.findByRole('switch', { name: 'Test Strip' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
+    await waitFor(() => expect(setLightingDeviceColor).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalled());
+    expect(setLightingDeviceColor).toHaveBeenCalledTimes(2);
   });
 
   it('keeps the scanning note and the strip out of the device scroller', async () => {
@@ -356,7 +397,7 @@ describe('LightingOnboardingScreen colour test strip', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.simplered' }));
 
-    await waitFor(() => expect(screen.getAllByTestId('led-strip')[0]).toHaveAttribute('data-hex', '#ff2d2d'));
+    await waitFor(() => expect(screen.getAllByTestId('led-strip')[0]).toHaveAttribute('data-hex', paletteColor('red-3')!.hex));
   });
 
   it('stops polling once a scan has settled with devices', async () => {
@@ -431,35 +472,30 @@ describe('LightingOnboardingScreen mode choice', () => {
     renderScreen();
     await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
     expect(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.simple/ })).toHaveAttribute('aria-checked', 'true');
-    // The bulk actions stay on the screen, with nothing to act on.
-    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
+    // The bulk actions stay on the screen, with nothing to act on. The mode
+    // radios render before the device list lands.
+    expect(await screen.findByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
   });
 
   it('Simple drives every device, putting back any the user had switched off', async () => {
     seed([{ ...strip, controlled: false }]);
     const onComplete = renderScreen();
-    await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
+    // Continue reads the device list, which lands after the mode radios.
+    await screen.findByRole('switch', { name: 'Test Strip' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'onboarding.finish' }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalled());
     expect(setLightingDeviceControlled).toHaveBeenCalledWith('openrgb-0', true);
-    expect(stopLighting).not.toHaveBeenCalled();
   });
 
-  it('No lighting stops the engine and leaves the picker out of it', async () => {
+  it('offers only Simple and Advanced', async () => {
     seed([strip]);
-    const onComplete = renderScreen();
+    renderScreen();
     await screen.findByRole('radio', { name: /lightingOnboarding\.mode\.simple/ });
 
-    fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
-    // The devices still list, they just cannot be chosen between.
-    expect(screen.getByRole('switch', { name: 'Test Strip' })).toBeInTheDocument();
-    expect(document.querySelector('[class*=deviceGridLocked]')).not.toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'lightingOnboarding.continue' }));
-    await waitFor(() => expect(onComplete).toHaveBeenCalled());
-    expect(stopLighting).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.queryByRole('radio', { name: /lightingOnboarding\.mode\.off/ })).not.toBeInTheDocument();
   });
 
   it('keeps the bulk actions visible in every mode, live only in Advanced', async () => {
@@ -470,9 +506,6 @@ describe('LightingOnboardingScreen mode choice', () => {
     // Simple: present, but there is nothing for them to choose between.
     expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'lightingOnboarding.selectNone' })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole('radio', { name: /lightingOnboarding\.mode\.off/ }));
-    expect(screen.getByRole('button', { name: 'lighting.ledMap.selectAll' })).toBeDisabled();
 
     chooseAdvanced();
     // One device is ignored, so both actions have work to do.

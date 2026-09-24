@@ -62,6 +62,8 @@ export interface FrameProps extends WithChildren {
   padding?: number; gap?: number; direction?: 'row' | 'column';
   align?: Align; justify?: Justify; tone?: UiTone; radius?: number;
   border?: boolean; grow?: boolean;
+  /** https:, data:image/, blob: or app-asset URL painted cover-fit under the children, over the tone. */
+  image?: string;
 }
 export interface SpacerProps { size?: number }
 export interface DividerProps { tone?: UiTone }
@@ -97,6 +99,8 @@ export interface SliderProps {
 export interface ButtonProps extends WithChildren {
   label?: string; tone?: UiTone; variant?: 'solid' | 'soft' | 'ghost';
   disabled?: boolean; icon?: string; size?: 'sm' | 'md' | 'lg';
+  /** https URL the host opens in the system browser on press (press still fires). */
+  href?: string;
   onPress?: () => void;
   /** Fires on a press held past the long-press threshold (touch + mouse). */
   onLongPress?: () => void;
@@ -123,7 +127,45 @@ export interface LayerProps extends WithChildren {
   tone?: UiTone; radius?: number;
   /** Make the stage tappable; onPress reports layer-local { x, y }. */
   interactive?: boolean;
+  /**
+   * Manipulation stage: a drag, pinch or twist that starts on an editable
+   * `Manipulable` child edits it, and a second finger anywhere on the layer
+   * joins the gesture. Implies `interactive` (a tap on empty stage still
+   * fires onPress, the usual "deselect").
+   */
+  gestures?: boolean;
   onPress?: (at: { x: number; y: number }) => void;
+}
+/** The transform of a `Manipulable`: centre as 0..1 of the layer box, scale
+ *  multiplier, rotation in degrees. */
+export interface ManipulableTransform { x: number; y: number; scale: number; rotation: number }
+export interface ManipulableProps extends WithChildren, ManipulableTransform {
+  /** Stable id, echoed in events. */
+  id: string;
+  /** Unscaled size as a fraction of the layer's shorter side (default 0.24). */
+  size?: number;
+  z?: number;
+  minScale?: number; maxScale?: number;
+  /** Lets the layer's gestures move it (the layer needs `gestures` too). */
+  editable?: boolean;
+  /** Draws the selection outline. */
+  selected?: boolean;
+  alt?: string;
+  /** A tap on it (editable or not). */
+  onPress?: () => void;
+  /** The settled transform after a drag, pinch or twist. */
+  onChange?: (t: ManipulableTransform) => void;
+  /** Set it and the host draws a remove handle at the top-right corner while `selected`; fires on tap. */
+  onRemove?: () => void;
+}
+/** A YouTube embed player by video id; 16:9, full width of its parent. */
+export interface YouTubeProps {
+  videoId: string;
+  /** Muted autoplay (default true). */
+  autoplay?: boolean;
+  /** Accessible frame title. */
+  title?: string;
+  radius?: number;
 }
 export interface SpriteProps {
   /** The atlas, shipped once as an https/data/blob URL. */
@@ -171,6 +213,33 @@ export interface ClockFaceProps {
   // 'stacked' puts each unit on its own line; ignored by a design that cannot
   // split the time into lines (analog). Defaults to 'horizontal'.
   layout?: 'horizontal' | 'stacked';
+}
+/** First-party 3D avatar (three.js), rendered host-side. */
+export interface AvatarProps {
+  /** URL to a pack directory or an encrypted .nxpack container. */
+  pack: string;
+  dance?: boolean;
+  listening?: boolean;
+  /** 0..1. */
+  energy?: number;
+  /** One-shot "TriggerName#seq"; increment seq so a repeat re-fires. */
+  reaction?: string;
+  /** Plays the walk-in + camera push-in once on mount. Default false. */
+  intro?: boolean;
+  /**
+   * Pointer orbit/zoom (the wheel rides full body to head closeup). Default
+   * true. Applies only in the panel's fullscreen immersive view; a widget
+   * tile is always inert (tapping it opens fullscreen).
+   */
+  interactive?: boolean;
+  /** Loops the authored reaction showcase (wave/cheer/dance/...). Default false. */
+  demo?: boolean;
+  /** Camera depth as 0..1 of the deepest closeup. Omit to leave the camera to its own gestures. */
+  zoom?: number;
+  /** Fires with the depth after a wheel or pinch on the canvas, so a control can track it. */
+  onZoom?: (fraction: number) => void;
+  /** Fires, throttled, on any pointer or wheel activity on the stage. */
+  onInteraction?: () => void;
 }
 export interface ViewHeaderTab { key: string; label: string; disabled?: boolean; icon?: string }
 export interface ViewHeaderProps {
@@ -312,12 +381,15 @@ export const Stepper = eventComponent<StepperProps>('ui-stepper', ELEMENT_CTORS[
 export const Image = createRemoteComponent('ui-image' as any, ELEMENT_CTORS['ui-image']) as unknown as React.FC<ImageProps>;
 export const Video = createRemoteComponent('ui-video' as any, ELEMENT_CTORS['ui-video']) as unknown as React.FC<VideoProps>;
 export const Layer = eventComponent<LayerProps>('ui-layer', ELEMENT_CTORS['ui-layer'], [['onPress', 'press']]);
+export const Manipulable = eventComponent<ManipulableProps>('ui-manipulable', ELEMENT_CTORS['ui-manipulable'], [['onPress', 'press'], ['onChange', 'change'], ['onRemove', 'remove']]);
+export const YouTube = createRemoteComponent('ui-youtube' as any, ELEMENT_CTORS['ui-youtube']) as unknown as React.FC<YouTubeProps>;
 export const Sprite = createRemoteComponent('ui-sprite' as any, ELEMENT_CTORS['ui-sprite']) as unknown as React.FC<SpriteProps>;
 export const Scroll = createRemoteComponent('ui-scroll' as any, ELEMENT_CTORS['ui-scroll']) as unknown as React.FC<ScrollProps>;
 export const Input = eventComponent<InputProps>('ui-input', ELEMENT_CTORS['ui-input'], [['onValueChange', 'input'], ['onEnter', 'submit'], ['onLeave', 'blur']]);
 export const Chart = createRemoteComponent('ui-chart' as any, ELEMENT_CTORS['ui-chart']) as unknown as React.FC<ChartProps>;
 export const WorldClock = createRemoteComponent('ui-worldclock' as any, ELEMENT_CTORS['ui-worldclock']) as unknown as React.FC<WorldClockProps>;
 export const ClockFace = createRemoteComponent('ui-clockface' as any, ELEMENT_CTORS['ui-clockface']) as unknown as React.FC<ClockFaceProps>;
+export const Avatar = eventComponent<AvatarProps>('ui-avatar', ELEMENT_CTORS['ui-avatar'], [['onZoom', 'zoom'], ['onInteraction', 'interaction']]);
 export const ViewHeader = eventComponent<ViewHeaderProps>('ui-viewheader', ELEMENT_CTORS['ui-viewheader'], [['onChange', 'change']]);
 export const Toggle = eventComponent<ToggleProps>('ui-toggle', ELEMENT_CTORS['ui-toggle'], [['onChange', 'change']]);
 export const Segmented = eventComponent<SegmentedProps>('ui-segmented', ELEMENT_CTORS['ui-segmented'], [['onChange', 'change']]);

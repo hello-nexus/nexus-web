@@ -1,4 +1,4 @@
-import { authFetchWithStatus, deleteService, fetchService, postService } from './service';
+import { authFetchWithStatus, deleteService, fetchService, postService, putService } from './service';
 import type { PanelDeviceRecord } from './panel';
 
 export interface DisplayCapabilities {
@@ -177,4 +177,19 @@ export async function repairTouchMapping(): Promise<TouchMappingRepairResponse |
 export async function launchTouchSetupWizard(): Promise<boolean> {
   const { status } = await authFetchWithStatus('/displays/touch-mapping/setup-wizard', { method: 'POST', body: {} });
   return status === 202;
+}
+
+/** Dev-tools stand-in for the attached DDC-only Y70 variant ("" = none). */
+export interface DevPanelVariant {
+  variant: string;
+  options: string[];
+}
+
+export function getDevPanelVariant(): Promise<DevPanelVariant | null> {
+  return fetchService<DevPanelVariant>('/displays/dev/panel-variant');
+}
+
+export async function setDevPanelVariant(variant: string): Promise<boolean> {
+  const r = await putService<{ error?: string }>('/displays/dev/panel-variant', { variant });
+  return !!r && !r.error;
 }

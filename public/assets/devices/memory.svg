@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="currentColor">
+  <!-- DIMM: flat landscape module silhouette. fill-rule evenodd punches the
+       four chips out of the board as holes; the contact edge below is split
+       off by a slit and keyed by the off-center notch. Rendered as a CSS
+       mask, so the holes read as background. -->
+  <path fill-rule="evenodd"
+        d="M5 14 H43 A2 2 0 0 1 45 16 V26 H3 V16 A2 2 0 0 1 5 14 Z
+           M7 17.5 H12.5 V23 H7 Z
+           M16.5 17.5 H22 V23 H16.5 Z
+           M26 17.5 H31.5 V23 H26 Z
+           M35.5 17.5 H41 V23 H35.5 Z" />
+  <rect x="3" y="27.5" width="22.5" height="4.5" />
+  <rect x="28.5" y="27.5" width="16.5" height="4.5" />
+</svg>

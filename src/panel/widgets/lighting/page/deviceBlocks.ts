@@ -23,8 +23,27 @@ function brandLabel(prefix: string): string {
   return SMART_BRANDS.find(([p]) => p === prefix)?.[1] ?? prefix;
 }
 
-export type DeviceBlock =
+/** One rail row: a card, or one device's zones stacked under its name. */
+export type ZoneBlock =
   | { kind: 'single'; device: LightingDevice }
+  | {
+      kind: 'split';
+      /** 'mb:<deviceId>'. For a device whose zones are its whole parent run
+       *  (the keeb) this is the key its group form carried, so a user group
+       *  holding it keeps it. */
+      groupKey: string;
+      /** The device the zones name: the keeb hub, or a board port. */
+      deviceId: string;
+      /** Header text: the device's custom name once renamed, else its shared
+       *  name prefix past the enclosing group's label. */
+      label: string;
+      /** The zones' shared hardware-name prefix, stripped off each zone. */
+      stripLabel: string;
+      devices: LightingDevice[];
+    };
+
+export type DeviceBlock =
+  | ZoneBlock
   | {
       kind: 'group';
       groupKey: string;
@@ -36,11 +55,21 @@ export type DeviceBlock =
       parentDeviceId?: string;
       isBrand: boolean;
       isSmartHub: boolean;
+      /** Every card, in row order. */
       devices: LightingDevice[];
+      /** The group's rows: a port with one product on it is a card, a port
+       *  with a chain on it is a split. */
+      blocks: ZoneBlock[];
     };
 
+/** The id a block goes by in a sortable list and in a user group's member list. */
+export function blockKey(b: DeviceBlock): string {
+  return b.kind === 'single' ? b.device.id : b.groupKey;
+}
+
 /**
- * One ordered list of blocks: a single card, a motherboard group, or a
+ * One ordered list of blocks: a single card, a split card (one device's zones),
+ * a parent-device group (a motherboard's ports, a hub's ports), or a
  * smart-light brand group. Each block is positioned by the first occurrence of
  * one of its members in the incoming device order, so groups and singles
  * interleave in that order and any block reorders the same way a card does.
@@ -65,7 +94,7 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
     if (brand) {
       const key = 'brand:' + brand;
       const brandName = brandLabel(brand);
-      addToGroup(key, () => ({ kind: 'group', groupKey: key, label: brandName, stripLabel: brandName, isBrand: true, isSmartHub: false, devices: [d] }), d);
+      addToGroup(key, () => ({ kind: 'group', groupKey: key, label: brandName, stripLabel: brandName, isBrand: true, isSmartHub: false, devices: [d], blocks: [] }), d);
     } else if (d.parentDeviceId && d.zoneIndex != null) {
       const parentId = d.parentDeviceId;
       const key = 'mb:' + parentId;
@@ -78,23 +107,72 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
         isBrand: false,
         isSmartHub: parentId.startsWith('smarthub:'),
         devices: [d],
+        blocks: [],
       }), d);
     } else {
       blocks.push({ kind: 'single', device: d });
     }
   }
 
-  // A parent-device group that collapsed to a single zone (e.g. a keeb whose
-  // keys + underglow were merged into one) renders as a standalone card, not a
-  // one-child category. Brand and smart-hub groups keep their header even at one
-  // member: it carries the brand/firmware-control affordances a card can't.
+  // A group's rows are its devices, each a card or a split. A parent-device
+  // group with a single row (a keeb: keys + underglow are one device) is that
+  // row on its own, not a one-child category. Brand and smart-hub groups keep
+  // their header even at one member: it carries the brand name, or the hub's
+  // own name and whole-hub power / Nexus Control, which a card can't.
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
-    if (b.kind === 'group' && !b.isBrand && !b.isSmartHub && b.devices.length === 1) {
-      blocks[i] = { kind: 'single', device: b.devices[0] };
+    if (b.kind !== 'group') continue;
+    b.blocks = zoneBlocksOf(b.devices);
+    b.devices = b.blocks.flatMap(z => z.kind === 'single' ? [z.device] : z.devices);
+    // A device rename lands as deviceName; a service before that field names a
+    // standalone device (the keeb) through its parent rename instead.
+    if (!b.isBrand && !b.isSmartHub && b.blocks.length === 1) {
+      const only = b.blocks[0];
+      blocks[i] = only.kind === 'split'
+        ? { ...only, label: only.devices[0].deviceName ?? only.devices[0].parentName ?? only.stripLabel }
+        : only;
+    } else {
+      for (const z of b.blocks) {
+        if (z.kind === 'split') z.label = z.devices[0].deviceName ?? stripParentPrefix(z.stripLabel, b.stripLabel);
+      }
     }
   }
   return blocks;
+}
+
+// Cards that name the same device (deviceId) are its zones and stack; a card
+// alone on its device stays a card. That is what tells a board port with a
+// fan chain on it from a port with one product: both hang off the board.
+// A service that sends no deviceId gets one card per row, as before.
+function zoneBlocksOf(devices: LightingDevice[]): ZoneBlock[] {
+  const byDevice = new Map<string, LightingDevice[]>();
+  for (const d of devices) {
+    const key = d.deviceId || d.id;
+    const bucket = byDevice.get(key);
+    if (bucket) bucket.push(d);
+    else byDevice.set(key, [d]);
+  }
+  return [...byDevice].map(([deviceId, members]) => {
+    if (members.length === 1) return { kind: 'single', device: members[0] };
+    const stripLabel = commonNamePrefix(members) || deriveParentName(members[0]);
+    return { kind: 'split', groupKey: 'mb:' + deviceId, deviceId, label: stripLabel, stripLabel, devices: members };
+  });
+}
+
+// The " - "-delimited prefix every zone's hardware name shares ("B850I - ARGB_V2_2"
+// under "B850I - ARGB_V2_2 - QX Fan 1"), capped so each zone keeps at least its
+// own last segment. Hardware names, not shown ones: a renamed zone would break
+// the run.
+function commonNamePrefix(zones: LightingDevice[]): string {
+  const parts = zones.map(z => (z.originalName ?? z.name).split(' - '));
+  const max = Math.min(...parts.map(p => p.length)) - 1;
+  const shared: string[] = [];
+  for (let i = 0; i < max; i++) {
+    const seg = parts[0][i];
+    if (!parts.every(p => p[i] === seg)) break;
+    shared.push(seg);
+  }
+  return shared.join(' - ');
 }
 
 // Zone names come in as "{Motherboard Name} - {Zone Name}". The parent header
@@ -122,4 +200,42 @@ export function stripParentPrefix(name: string, parentName: string): string {
     }
   }
   return name;
+}
+
+/**
+ * Keep the zones of one device adjacent and in the order that device reports
+ * them, without disturbing where devices sit relative to each other.
+ *
+ * The saved drag order is a flat list of card ids, so once a chain's zones are
+ * in it they stay pinned to those positions - reordering the chain in the LED
+ * map editor moves the products between zone ids and the page would not
+ * follow. A device's own zone order is not the user's to drag on this page;
+ * it is the chain.
+ */
+export function sortZonesWithinDevice(devices: LightingDevice[]): LightingDevice[] {
+  const owner = (d: LightingDevice) => d.deviceId || d.id;
+  const members = new Map<string, LightingDevice[]>();
+  for (const d of devices) {
+    const key = owner(d);
+    const list = members.get(key);
+    if (list) list.push(d);
+    else members.set(key, [d]);
+  }
+  // Only a device with several cards has an internal order to restore.
+  let reordered = false;
+  for (const list of members.values()) {
+    if (list.length < 2) continue;
+    reordered = true;
+    list.sort((a, b) => (a.zoneIndex ?? 0) - (b.zoneIndex ?? 0));
+  }
+  if (!reordered) return devices;
+  const out: LightingDevice[] = [];
+  const emitted = new Set<string>();
+  for (const d of devices) {
+    const key = owner(d);
+    if (emitted.has(key)) continue;
+    emitted.add(key);
+    out.push(...(members.get(key) ?? []));
+  }
+  return out;
 }

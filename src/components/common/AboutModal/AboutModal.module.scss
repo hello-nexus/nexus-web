@@ -34,10 +34,6 @@
   50% { transform: scale(1.05); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .logo { animation: none; }
-}
-
 .version {
   font-family: var(--font-mono);
   font-size: var(--type-small);

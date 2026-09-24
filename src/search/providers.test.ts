@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildEntries } from './providers';
+import { scoreEntry } from './match';
+import enLocale from '../locales/en.json';
 import type { CommandContext } from './types';
 import { EMPTY_LIVE_STATE, type SearchLiveState } from './useSearchLiveState';
 import type { LightingDevice } from '../api/lighting';
@@ -130,11 +132,11 @@ describe('buildEntries', () => {
     const entries = buildEntries(ctx(true));
     const find = (id: string) => entries.find((e) => e.id === id);
     // Page-bearing apps not already covered by a curated NAV row.
-    for (const type of ['clock', 'gallery', 'steam', 'smart-lights']) {
+    for (const type of ['clock', 'gallery', 'steam', 'smart-lights', 'weather']) {
       expect(find(`app:${type}`)?.kind).toBe('navigate');
     }
     // Page-less apps get an add-widget entry instead of a page open.
-    for (const type of ['calculator', 'emoji', 'timer', 'weather', 'stocks', 'calendar']) {
+    for (const type of ['calculator', 'emoji', 'timer', 'stocks', 'calendar']) {
       expect(find(`app:${type}`)).toBeUndefined();
       expect(find(`widget:${type}`)?.kind).toBe('navigate');
     }
@@ -269,10 +271,35 @@ describe('buildEntries', () => {
     expect(kind('settings:general')).toBe('navigate');
   });
 
+  it('ranks the support bundle first for "logs" and keeps the data folder off that query', () => {
+    // The support ask is "type /logs, press Enter": with real English titles
+    // and keywords, nothing may outrank the bundle for that query.
+    const en = enLocale as Record<string, string>;
+    const entries = buildEntries(ctx(true, { t: (k) => en[k] ?? k }));
+    const ranked = entries
+      .map((e) => ({ e, s: scoreEntry('logs', e) }))
+      .filter((x): x is { e: (typeof entries)[number]; s: number } => x.s != null)
+      .sort((a, b) => b.s - a.s);
+    expect(ranked[0]?.e.id).toBe('diag:support-bundle');
+    const bundle = entries.find((e) => e.id === 'diag:support-bundle')!;
+    expect(scoreEntry('/logs', bundle)).toBe(scoreEntry('logs', bundle));
+    expect(ranked.some((x) => x.e.id === 'diag:open-data-folder')).toBe(false);
+    expect(scoreEntry('folder', entries.find((e) => e.id === 'diag:open-data-folder')!)).not.toBeNull();
+  });
+
   it('indexes background modes as appearance actions', () => {
     const entries = buildEntries(ctx(true));
     const flat = entries.find((e) => e.id === 'appearance:background-flat');
     expect(flat?.kind).toBe('action');
     expect(flat?.hint).toBe('search.hint.active'); // settings.backgroundMode = flat
+  });
+
+  it('accent actions switch accentSource to custom so the pick is not clobbered by the OS accent', () => {
+    const patches: Array<Record<string, unknown>> = [];
+    const entries = buildEntries(ctx(true, { updateSettings: (p) => { patches.push(p); } }));
+    const green = entries.find((e) => e.id === 'appearance:accent-#16c963');
+    expect(green?.kind).toBe('action');
+    green?.run();
+    expect(patches).toEqual([{ accentColor: '#16c963', accentSource: 'custom' }]);
   });
 });

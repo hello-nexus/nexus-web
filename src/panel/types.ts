@@ -11,9 +11,11 @@ export type PanelWidgetSize = typeof PANEL_WIDGET_SIZES[number];
 // 'kraken' these are not one model's resolution: the panel record carries the real pixel
 // size, so a 480x480 Galahad II LCD and a 240x240 ID-Cooling FX-LCD share 'lcd-round'.
 // The three differ only in the shape of the one tile they carry, which the surface picks.
-export type PanelSurface =
-  | 'y70' | 'q60' | 'phone' | 'desktop' | 'monitor' | 'kraken'
-  | 'lcd-round' | 'lcd-square' | 'lcd-wide';
+export const PANEL_SURFACES = [
+  'y70', 'q60', 'phone', 'desktop', 'monitor', 'kraken',
+  'lcd-round', 'lcd-square', 'lcd-wide',
+] as const;
+export type PanelSurface = typeof PANEL_SURFACES[number];
 
 // Whether a surface accepts direct pointer input. Q60 is display-only;
 // desktop, phone, Y70 support interactive widget controls (desktop via mouse).
@@ -170,4 +172,9 @@ export interface PanelLayout {
   // Keyed by widget type. Unused (undefined) on multi-widget surfaces, where
   // every widget's config already lives on its own PanelWidget in `pages`.
   singleWidgetConfigs?: Record<string, Record<string, PanelConfigValue>>;
+  // Widget the panel opens straight into immersive view on load, skipping the
+  // dashboard. At most one, and it must be on the first page - the toggle that
+  // sets it is only reachable there, so normalizePanelLayout drops an id that
+  // names no first-page widget rather than stranding it.
+  immersiveOnLoadWidgetId?: string;
 }

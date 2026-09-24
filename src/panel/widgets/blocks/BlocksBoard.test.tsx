@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { BlocksBoard } from './BlocksBoard';
 import { computeLandingPreview, createEmptyBoard, SHAPES, type BlockCell } from './blocksLogic';
@@ -85,18 +85,6 @@ describe('BlocksBoard landing preview rendering', () => {
 describe('BlocksBoard row-clear particle burst', () => {
   const fallingBlocks: BlockCell[] = SHAPES.yellow;
 
-  // The suite-wide matchMedia stub (setup.ts) answers `matches: true` for any
-  // non-"light" query, so prefers-reduced-motion would suppress the burst in
-  // every test unless overridden here (mirrors useBlocksHardDrop.test.ts).
-  const stubbedMatchMedia = window.matchMedia;
-  beforeEach(() => {
-    window.matchMedia = (query: string) =>
-      ({ ...stubbedMatchMedia(query), matches: false }) as MediaQueryList;
-  });
-  afterEach(() => {
-    window.matchMedia = stubbedMatchMedia;
-  });
-
   it('fires no burst on mount, even when mounted directly with a positive score', () => {
     const { container } = render(boardElement(fallingBlocks, { score: 200, clearedRowIndices: [5] }));
     expect(container.querySelectorAll(`.${styles.particle}`)).toHaveLength(0);
@@ -133,13 +121,6 @@ describe('BlocksBoard row-clear particle burst', () => {
     // back to listening for the vendor-prefixed native event instead of the
     // standard "animationend" - firing that standard name here is a no-op.
     container.querySelectorAll(`.${styles.particle}`).forEach(el => fireEvent(el, new Event('webkitAnimationEnd', { bubbles: true })));
-    expect(container.querySelectorAll(`.${styles.particle}`)).toHaveLength(0);
-  });
-
-  it('suppresses the burst under prefers-reduced-motion', () => {
-    window.matchMedia = stubbedMatchMedia; // restore the suite-wide "reduced motion on" stub
-    const { container, rerender } = render(boardElement(fallingBlocks));
-    rerender(boardElement(fallingBlocks, { score: 200, clearedRowIndices: [5] }));
     expect(container.querySelectorAll(`.${styles.particle}`)).toHaveLength(0);
   });
 });

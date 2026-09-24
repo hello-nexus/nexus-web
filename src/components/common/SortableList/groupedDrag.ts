@@ -50,6 +50,55 @@ export function dropContainer(arr: Arrangement, overId: string): string | null {
   return containerOf(arr, overId);
 }
 
+/**
+ * How a list treats a group dragged over another group. Off, a group only ever
+ * reorders among its siblings; on, it can enter a group that sits at the top
+ * level, so the tree stays two groups deep. `groupBlock` names a block that is
+ * a group in its own right (a hardware group), which the depth rule treats as
+ * one; `holdsGroup` names a block with a group already inside it.
+ */
+export interface NestingRules {
+  nestGroups?: boolean;
+  groupBlock?: (id: string) => boolean;
+  holdsGroup?: (id: string) => boolean;
+}
+
+// True when `container` is somewhere `activeId` may land. A plain block goes
+// anywhere. A group never enters itself, its own child, or any container below
+// the top level, and only enters a group at all when it has no group of its
+// own - two levels, counted from either end.
+function allowed(arr: Arrangement, activeId: string, container: string, rules: NestingRules): boolean {
+  if (container === ROOT) return true;
+  const isGroup = (id: string) => id in arr.groupMembers || rules.groupBlock?.(id) === true;
+  if (!isGroup(activeId)) return true;
+  if (!rules.nestGroups) return false;
+  if (container === activeId || containerOf(arr, container) !== ROOT) return false;
+  if (rules.holdsGroup?.(activeId)) return false;
+  return !(arr.groupMembers[activeId] ?? []).some(m => isGroup(m) || rules.holdsGroup?.(m) === true);
+}
+
+/**
+ * Where a drop over `overIdRaw` actually lands for `activeId`: the target
+ * container and the row whose slot it takes. A container the depth rule
+ * forbids is climbed out of - the drop takes THAT group's own slot in its
+ * container instead - so a group dragged over a card two levels down settles
+ * beside the group that holds it. Null for an unknown target.
+ */
+export function resolveDrop(
+  arr: Arrangement,
+  activeId: string,
+  overIdRaw: string,
+  rules: NestingRules = {},
+): { overId: string; target: string } | null {
+  let overId = overIdRaw;
+  let target = dropContainer(arr, overId);
+  while (target !== null && !allowed(arr, activeId, target, rules)) {
+    overId = target;
+    target = containerOf(arr, target);
+  }
+  return target === null ? null : { overId, target };
+}
+
 function withoutId(arr: Arrangement, id: string): Arrangement {
   const groupMembers: Record<string, string[]> = {};
   for (const [groupId, members] of Object.entries(arr.groupMembers)) {
@@ -65,27 +114,22 @@ function insert(list: string[], id: string, index: number): string[] {
 }
 
 /**
- * Places `activeId` into `container` at the slot `overId` occupies. A group id
- * never enters another group: nesting is one level deep, so a group dragged
- * over another group just reorders at the top level.
+ * Places `activeId` into the container `overIdRaw` resolves to, at the slot
+ * that row occupies. Where a group may go is {@link resolveDrop}'s call: with
+ * nesting off it only reorders among its siblings, with it on it enters a
+ * top-level group and stops there.
  */
-export function moveTo(arr: Arrangement, activeId: string, overIdRaw: string): Arrangement {
-  const isGroup = activeId in arr.groupMembers;
-  // A group only ever lands among the top-level rows, so a drop on a card
-  // inside some group means that group's row. Left as the member id it is
-  // absent from the top-level list, and taking "no slot" appends to the end.
-  const overId = isGroup && !arr.rowIds.includes(overIdRaw) && overIdRaw !== TAIL
-    ? dropContainer(arr, overIdRaw) ?? overIdRaw
-    : overIdRaw;
-  let target = dropContainer(arr, overId);
-  if (target === null) return arr;
+export function moveTo(arr: Arrangement, activeId: string, overIdRaw: string, rules: NestingRules = {}): Arrangement {
+  const drop = resolveDrop(arr, activeId, overIdRaw, rules);
+  if (drop === null) return arr;
+  const { overId, target } = drop;
   // Releasing on a group's own header or body while the row already lives there
   // is not a reorder: no preview ever moved it, and taking the container's slot
-  // would send it to the end. Checked before a dragged GROUP is coerced to the
-  // top level, where the group under the pointer is a sibling, not a container.
-  const overIsGroupChrome = overId in arr.groupMembers || overId.endsWith(BODY_SUFFIX);
-  if (overIsGroupChrome && !isGroup && containerOf(arr, activeId) === target) return arr;
-  if (isGroup && target !== ROOT) target = ROOT;
+  // would send it to the end. A group climbed out of by the depth rule is a
+  // sibling under the pointer, not a container, so it takes that group's slot.
+  const overIsGroupChrome = (overId in arr.groupMembers || overId.endsWith(BODY_SUFFIX))
+    && dropContainer(arr, overId) === target;
+  if (overIsGroupChrome && containerOf(arr, activeId) === target) return arr;
   if (activeId === overId && containerOf(arr, activeId) === target) return arr;
 
   const before = target === ROOT ? arr.rowIds : arr.groupMembers[target] ?? [];

@@ -1,7 +1,7 @@
 import {
   BASE_DEFAULTS,
   TEMPLATE_COUNT,
-  defaultParamsFor,
+  defaultStateFor,
   type EffectState,
   type EffectTemplateBundle,
 } from './lighting';
@@ -23,12 +23,13 @@ import {
  */
 
 /** Fallback bundle when the canonical defaults are unavailable: the effect's
- *  base state (rainbow feel, stock params) in all four slots. */
+ *  base state in all four slots, with empty params - the renderer fills each
+ *  declared, annotated uniform's default from the shader itself. */
 export function baselineTemplates(effectKey: string): EffectTemplateBundle {
-  const params = defaultParamsFor(effectKey);
+  const base = defaultStateFor(effectKey);
   const slots: EffectState[] = Array.from({ length: TEMPLATE_COUNT }, () => ({
-    ...BASE_DEFAULTS,
-    params: { ...params },
+    ...base,
+    params: {},
   }));
   return { selected: 0, slots };
 }

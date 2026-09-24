@@ -133,6 +133,15 @@ describe('buildPanelDevices streamed panels', () => {
     expect(device.capabilities.touch).toBe(false);
   });
 
+  it('brands a Lian Li cooler LCD by its family', () => {
+    const device = firstDevice({
+      ...krakenRecord(),
+      capabilities: { surface: 'lcd-square', family: 'lianli-hydroshift-lcd', touch: false, cssWidth: 480, cssHeight: 480, dpr: 1 },
+    });
+
+    expect(device.iconSrc).toBe('/assets/devices/lianli.svg');
+  });
+
   it('hides a record whose stream session is gone', () => {
     const record = { ...krakenRecord(), streamed: false };
 

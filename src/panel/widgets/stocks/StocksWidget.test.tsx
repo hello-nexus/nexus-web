@@ -15,7 +15,7 @@ vi.mock('../../../api/stocks', async (importOriginal) => {
 vi.mock('../../../lib/i18n', () => {
   const dict: Record<string, string> = {
     'common.loading': 'Loading...',
-    'panel.widget.stocks.noData': 'No data',
+    'panel.widget.offline': 'No connection',
   };
   const t = (key: string) => dict[key] ?? key;
   return { useTranslation: () => ({ t }) };
@@ -85,7 +85,7 @@ describe('StocksWidget', () => {
   it('shows the no-data state when the service never returns quotes', async () => {
     fetchStockQuotesMock.mockResolvedValue(null);
     render(<StocksWidget widget={stocksWidget('4x2')} />);
-    expect(await screen.findByText('No data')).toBeInTheDocument();
+    expect(await screen.findByText('No connection')).toBeInTheDocument();
   });
 
   it('applies the accent override class only when useAccentColor is set', async () => {

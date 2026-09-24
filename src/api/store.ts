@@ -108,3 +108,18 @@ export interface StoreLibrary {
 export async function fetchStoreLibrary(): Promise<StoreLibrary | null> {
   return fetchService<StoreLibrary>('/apps-api/store/library');
 }
+
+/** An app the service installed on its own because its hardware is attached. */
+export const APP_AUTO_INSTALLED_TOPIC = 'apps/auto-installed';
+
+/** Every install and uninstall. Reload the app registry before re-reading a
+ *  layout: an app id the registry cannot resolve reads as uninstalled. */
+export const APPS_CHANGED_TOPIC = 'apps/changed';
+
+export interface AppAutoInstalledFrame {
+  revision: number;
+  appId: string;
+  appName: string;
+  /** The widget was also placed on the Y70 panel. */
+  placed: boolean;
+}

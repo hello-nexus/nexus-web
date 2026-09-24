@@ -8,7 +8,7 @@ vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../hooks/useLightingSync')>()),
   useLightingSync: () => ({ mode: 'static', setMode: vi.fn(), rawSync: '', setRawSync: vi.fn(), synced: true, paused: false }),
 }));
-vi.mock('../../../hooks/useLightingFrames', () => ({ useLightingFrames: () => ({ canvasPixels: null, canvasW: 160, canvasH: 90 }) }));
+vi.mock('../../../hooks/useLightingFrames', () => ({ useLightingFrames: () => ({ connected: false, live: false }) }));
 vi.mock('../../../hooks/useUsbDevices', () => ({ useUsbDevices: () => ({ devices: [] }) }));
 vi.mock('../../../hooks/useAudioState', () => ({ useAudioState: () => ({ current: null }) }));
 vi.mock('../../../hooks/useMultiplexSocket', () => ({ useTopicCallback: vi.fn(), useTopic: vi.fn(() => null) }));

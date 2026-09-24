@@ -275,33 +275,6 @@ describe('PanelImmersiveOverlay', () => {
       }
     });
 
-    it('fades and reveals correctly under the suite-default prefers-reduced-motion stub', () => {
-      vi.useFakeTimers();
-      try {
-        // setup.ts stubs matchMedia to answer true for any non-'light' query, so
-        // prefers-reduced-motion is already 'reduce' here with no override. The
-        // fade/reveal state machine does not branch on it - only the CSS
-        // transition duration does - so the same timing must still hold.
-        expect(window.matchMedia('(prefers-reduced-motion: reduce)').matches).toBe(true);
-        const onExit = vi.fn();
-        render(
-          <PanelImmersiveOverlay open onExit={onExit}>
-            <div>content</div>
-          </PanelImmersiveOverlay>,
-        );
-        const notch = screen.getByLabelText(CLOSE);
-        expect(notch).toHaveAttribute('data-revealed', 'true');
-        act(() => { vi.advanceTimersByTime(NOTCH_FADE_DELAY_MS); });
-        expect(notch).toHaveAttribute('data-revealed', 'false');
-
-        fireEvent.click(notch);
-        expect(onExit).not.toHaveBeenCalled();
-        expect(notch).toHaveAttribute('data-revealed', 'true');
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
     it('cleans up the fade timer on unmount, leaving no pending timers', () => {
       vi.useFakeTimers();
       try {

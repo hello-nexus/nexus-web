@@ -341,6 +341,7 @@ export const directApiBackend: AuthBackend = {
   recoveryStart: async (email) => {
     const grantId = crypto.randomUUID();
     const deviceSecret = generateDeviceSecret();
+    let code: string | undefined;
     try {
       const res = await fetch(`${BASE}/auth/recovery/start`, {
         method: 'POST',
@@ -348,11 +349,12 @@ export const directApiBackend: AuthBackend = {
         body: JSON.stringify({ email, grantId, deviceSecret }),
       });
       if (!res.ok) return null;
+      code = (await tryParseJson<{ code?: string }>(res))?.code;
     } catch {
       return null;
     }
     sessionStorage.setItem(RECOVERY_GRANT_STORAGE_KEY, JSON.stringify({ grantId, deviceSecret }));
-    return { grantId };
+    return { grantId, code };
   },
 
   recoveryCancel: () => clearStoredRecoveryGrant(),

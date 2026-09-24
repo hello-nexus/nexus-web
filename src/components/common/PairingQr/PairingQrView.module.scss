@@ -94,13 +94,6 @@
   to   { opacity: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    animation: none;
-    opacity: 0;
-  }
-}
-
 // Dark theme: invert the SVG to white-on-black, then screen the #000 ground out
 // so the white modules sit on the container surface (the darkened card / black
 // tile) with no black box.

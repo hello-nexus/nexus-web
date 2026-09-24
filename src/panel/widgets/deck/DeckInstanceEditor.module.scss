@@ -1,0 +1,30 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fitNote {
+  margin: 0;
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.loadError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-dim);
+}
+
+.importError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--type-mini);
+  color: var(--bad);
+}
+
+.loading {
+  color: var(--text-dim);
+}

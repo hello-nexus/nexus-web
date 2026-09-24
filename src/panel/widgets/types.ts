@@ -132,9 +132,11 @@ export interface AppMetadata {
   // means it's hidden on display-only surfaces (currently Q60). false means
   // it's available on every surface that can fit one of its `sizes` - desktop
   // (mouse), Y70 (touch), and phone (touch) all qualify, since they have a
-  // pointer. Availability is computed from `touch` + `sizes` alone; there is
-  // no per-widget surface allowlist.
+  // pointer.
   touch: boolean;
+  // Panel surfaces the widget is limited to (an SDK manifest's `surfaces`
+  // when it names panel surfaces). Unset: every surface its sizes fit.
+  surfaces?: PanelSurface[];
   // Whether the widget only makes sense on a panel hard-wired to this host:
   // hidden on remotely-connected panels (paired phone/browser/app sessions),
   // since a remote panel is itself the thing being paired. Defaults to false.

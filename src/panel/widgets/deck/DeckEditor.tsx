@@ -37,12 +37,16 @@ export interface DeckEditorProps {
  * places DeckGrid and DeckKeyInspector in separate panes instead of using
  * this component directly - see StreamDeckDevicePage.
  */
-export function DeckEditor({ target, page, onPageChange, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor }: DeckEditorProps) {
+export function DeckEditor({ target, page: pageProp, onPageChange, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor }: DeckEditorProps) {
   const { t } = useTranslation();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const inFolder = folderPath.length > 0;
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const pageCount = target.config.pages.length;
+  // A preset switch can land on a page index the newly fitted config no
+  // longer has (fewer pages than the previous preset) - clamp here so the
+  // grid never renders an out-of-range blank page.
+  const page = clamp(pageProp, 0, Math.max(0, pageCount - 1));
   const viewSlots = withPageIndicatorDisplay(
     resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount),
     page,
@@ -85,8 +89,10 @@ export function DeckEditor({ target, page, onPageChange, folderPath, onFolderPat
         currentPage={page}
         onSelectPage={onSelectPage}
         onAddPage={() => { if (pageCount >= MAX_DECK_PAGES) return; target.addPage(); onSelectPage(pageCount); }}
-        onRemoveCurrentPage={() => { target.removePage(page); onSelectPage(Math.max(0, page - 1)); }}
+        onRemoveCurrentPage={() => onSelectPage(target.removePage(page))}
         currentPageHasContent={pageHasContent(target.config.pages[page] ?? { slots: [] })}
+        removeCount={target.removePageKeyCount(page)}
+        canRemove={target.authoredPageCount > 1}
       />
 
       {inFolder && (

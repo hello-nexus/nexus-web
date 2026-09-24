@@ -40,6 +40,7 @@ const cache = new Map<string, AppInstalledListing>();
 const listeners = new Set<() => void>();
 let loadInFlight: Promise<void> | null = null;
 let lastLoadAt = 0;
+let lastLoadError = '';
 const STALE_AFTER_MS = 30_000;
 
 export function getMarketplaceListing(id: string): AppInstalledListing | undefined {
@@ -87,8 +88,18 @@ export function subscribeMarketplaceRegistry(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
+export function marketplaceLoadError(): string { return lastLoadError; }
+
 export function isMarketplaceRegistryStale(): boolean {
   return cache.size === 0 || Date.now() - lastLoadAt > STALE_AFTER_MS;
+}
+
+/** Whether the last successful read is older than the freshness window. Unlike
+ *  isMarketplaceRegistryStale, an empty cache is an answer ("nothing installed")
+ *  rather than a permanent unknown, so a caller deciding whether the registry
+ *  may be trusted about a missing id does not wait forever on an empty machine. */
+export function isMarketplaceRegistryExpired(): boolean {
+  return Date.now() - lastLoadAt > STALE_AFTER_MS;
 }
 
 /**
@@ -115,9 +126,16 @@ export async function loadMarketplaceApps(): Promise<void> {
       cache.clear();
       for (const widget of list) cache.set(widget.id, widget);
       lastLoadAt = Date.now();
+      lastLoadError = '';
       for (const fn of listeners) {
         try { fn(); } catch { /* listener bug, swallow */ }
       }
+    } catch (e) {
+      // TEMP EXPERIMENT: previously this threw out of a `void` call, so a single
+      // failed boot-time load left the cache empty and lastLoadAt at 0 forever -
+      // a kiosk panel then resolved every app:<id> to undefined and rendered a
+      // blank cell. Record it and stay stale so a caller can retry.
+      lastLoadError = String((e as Error)?.message ?? e).slice(0, 60);
     } finally {
       loadInFlight = null;
     }
@@ -125,12 +143,32 @@ export async function loadMarketplaceApps(): Promise<void> {
   return loadInFlight;
 }
 
+let reloadInFlight: Promise<boolean> | null = null;
+
+/**
+ * Refresh from a change that has already happened, reporting whether the cache
+ * actually reloaded. An in-flight load may have issued its request before that
+ * change, so joining it (what loadMarketplaceApps does) can settle on a listing
+ * that predates the install; reloads prompted by the same change do share one.
+ */
+export function reloadMarketplaceApps(): Promise<boolean> {
+  if (reloadInFlight) return reloadInFlight;
+  reloadInFlight = (async () => {
+    if (loadInFlight) await loadInFlight;
+    await loadMarketplaceApps();
+    return lastLoadError === '';
+  })().finally(() => { reloadInFlight = null; });
+  return reloadInFlight;
+}
+
 /** Test seam: drop the cache + listener set. */
 export function _resetMarketplaceRegistryForTests(): void {
   cache.clear();
   listeners.clear();
   loadInFlight = null;
+  reloadInFlight = null;
   lastLoadAt = 0;
+  lastLoadError = '';
 }
 
 /** Test seam: mark the registry as loaded with a custom set. */

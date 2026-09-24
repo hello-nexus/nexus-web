@@ -5,6 +5,7 @@ import type { PanelLayout } from '../types';
 import { defaultLayoutForDashboard } from './defaultLayout';
 import { broadcastLayoutChanged, onLayoutChanged } from './panelSync';
 import { normalizePanelLayout } from './usePanelLayout';
+import { useAppsChangedSync } from './useAppsChangedSync';
 
 // Dashboard is single-page by design: keep page 0, drop everything after.
 // Applied on read so the renderer never sees a multi-page layout, and on
@@ -44,6 +45,9 @@ export function useDashboardLayout(): UseDashboardLayoutResult {
   }, [fetchLayout]);
 
   useTopicCallback('prefs', true, fetchLayout);
+  // The dashboard holds app:<id> placements too (useOemAppSeed puts the OEM
+  // bake-in app here), and setLayout persists whatever normalize returned.
+  useAppsChangedSync(fetchLayout);
 
   const setLayout = useCallback((next: PanelLayout) => {
     const normalized = collapseToSinglePage(normalizePanelLayout(next, 'desktop'));

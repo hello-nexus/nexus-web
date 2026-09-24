@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { PanelWidget } from '../../types';
 import type { ProcessRow } from './processesData';
 
@@ -97,6 +97,16 @@ describe('ProcessesTouch', () => {
     expect(gpuCard.length).toBe(1);
     // The card is still there - only its process list is dropped.
     expect(cardLabels()).toContain('panel.processes.col.gpu');
+  });
+
+  it('persists a header press in the list through onUpdate', async () => {
+    const onUpdate = vi.fn();
+    // Tall enough that the list shares the first page; a paged-out cell is
+    // aria-hidden and its headers are unreachable.
+    render(<ProcessesTouch widget={widget()} immersiveGrid={{ columns: 4, rows: 20 }} onUpdate={onUpdate} />);
+    await act(async () => {});
+    fireEvent.click(screen.getByRole('button', { name: /col\.ram/ }));
+    expect(onUpdate).toHaveBeenCalledWith({ sortColumn: 'ram', sortDirection: 'desc' });
   });
 
   it('drops the I/O card entirely against a service that sends no per-process I/O', async () => {

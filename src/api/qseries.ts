@@ -139,3 +139,25 @@ export const setQSeriesDisplay = (
 /** Reboots the panel's Android side; a cold qshell bootstrap follows, ~2 min over USB-FFS. */
 export const rebootQSeriesPanel = (): Promise<unknown | null> =>
   postService('/devices/qseries/reboot', {});
+
+// ── USB/adb link state ──
+//
+// USB enumeration and the adb link are independent: a Q-series device can show
+// up fine on the bus (composite device, ADB Interface, WPD function all
+// Status: OK) while its adb transport is wedged offline, which the old single
+// "disconnected" empty state reported as an unplugged cable.
+
+export interface QSeriesLinkState {
+  usbPresent: boolean;
+  adbOnline: boolean;
+  offlineSeconds: number;
+  hostRebootPending: boolean;
+  serial: string | null;
+}
+
+export const getQSeriesLinkState = (): Promise<QSeriesLinkState | null> =>
+  fetchService<QSeriesLinkState>('/qseries/link');
+
+/** Fire-and-forget: queues an immediate USB-reset pass on the service tick thread. Poll getQSeriesLinkState for the outcome. */
+export const repairQSeriesLink = (): Promise<ApiOk | null> =>
+  postService<ApiOk>('/qseries/link/repair', {});

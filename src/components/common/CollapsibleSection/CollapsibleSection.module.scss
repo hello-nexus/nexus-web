@@ -24,10 +24,11 @@
 
 // Hover bar over the whole row; no borders. Title (with chevron) on the left,
 // values/buttons on the right.
+// No flex gap: a gap is dead space nothing owns, so each piece carries its
+// own spacing as padding and every pixel of the bar toggles.
 .header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   padding: 0.35rem 0.5rem;
   border-radius: var(--radius-sm);
   transition: background var(--ease-fast);
@@ -37,13 +38,13 @@
     background: color-mix(in srgb, var(--surface) 50%, transparent);
   }
 
-  // A collapsed section keeps a fainter version of that fill so it reads as
-  // closed at a glance; hover still lifts it to the full fill.
+  // A collapsed section wears the hover fill so it reads as closed at a
+  // glance; hover lifts it to the full surface.
   &[data-collapsed='true'] {
-    background: color-mix(in srgb, var(--surface) 25%, transparent);
+    background: color-mix(in srgb, var(--surface) 50%, transparent);
 
     &:hover {
-      background: color-mix(in srgb, var(--surface) 50%, transparent);
+      background: var(--surface);
     }
   }
 }
@@ -75,7 +76,8 @@
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  padding: 0;
+  gap: 0.4rem;
+  padding: 0 0.4rem 0 0;
   border: 0;
   background: none;
   color: var(--text-dim);
@@ -118,10 +120,18 @@
   // Pin to the far end whether it rides inside the toggle button (the default,
   // whole-bar-clickable case) or sits beside it (rightInteractive).
   margin-left: auto;
+  padding-left: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   color: var(--text-dim);
+}
+
+// The badge after an editable title: spaced by padding, so the bar stays whole.
+.titleAfterSlot {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 0.4rem;
 }
 
 // Body wrapper; consumers supply their own inner layout, this just lets it
@@ -130,9 +140,11 @@
   min-width: 0;
 }
 
-// Smaller uppercase header for lighting / cooling device groups.
+// Smaller uppercase header for lighting / cooling device groups. Its right
+// inset is the device card's (padding plus border), so the header's menu
+// button and count stand in the same column as the cards' below it.
 .header[data-compact='true'] {
-  padding: 0.3rem 0.4rem;
+  padding: 0.3rem calc(0.75rem + var(--border-width)) 0.3rem 0.4rem;
 
   .title {
     font-size: 0.7rem;
@@ -145,4 +157,10 @@
     width: 14px;
     height: 14px;
   }
+}
+
+// A title whose rename lives on the context menu: it toggles like the rest of
+// the bar, so it shows the hand. The editor replaces it while a rename is open.
+.titleSlot {
+  cursor: pointer;
 }

@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { WeatherWidget } from './WeatherWidget';
+import { resetWeatherSnapshotCache } from './useWeatherSnapshot';
 
 // Hourly forecast times are relative to Date.now() so the widget's
 // stale-hour filter (WeatherWidget's 1-hour lookback) never drops them
@@ -57,6 +58,7 @@ function weatherWidget(size: PanelWidget['size']): PanelWidget {
 }
 
 describe('WeatherWidget', () => {
+  beforeEach(() => resetWeatherSnapshotCache());
   afterEach(() => vi.clearAllMocks());
 
   it('renders the compact (2x2) layout with live data', async () => {

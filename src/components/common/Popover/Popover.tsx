@@ -8,6 +8,7 @@ export type PopoverPlacement =
   | 'right-start'
   | 'right-end'
   | 'top-start'
+  | 'top-end'
   | 'left-start';
 
 export interface PopoverProps {

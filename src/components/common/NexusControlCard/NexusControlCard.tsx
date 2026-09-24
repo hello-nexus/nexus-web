@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Link } from 'lucide-react';
+import { Link2 } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Toggle } from '../Toggle/Toggle';
 import styles from './NexusControlCard.module.scss';
@@ -8,7 +8,7 @@ interface NexusControlCardProps {
   checked: boolean;
   disabled?: boolean;
   onChange: () => void;
-  /** Leading icon; defaults to the Link glyph (Nexus Control's own icon). */
+  /** Leading icon; defaults to the Link2 glyph (Nexus Control's own icon). */
   icon?: ReactNode;
   /** Row label; defaults to `devices.nexusControl`. */
   label?: string;
@@ -26,7 +26,7 @@ export function NexusControlCard({ checked, disabled, onChange, icon, label }: N
   const resolvedLabel = label ?? t('devices.nexusControl');
   return (
     <div className={styles.controlCard}>
-      <span className={styles.controlLabel}>{icon ?? <Link size={13} aria-hidden />}{resolvedLabel}</span>
+      <span className={styles.controlLabel}>{icon ?? <Link2 size={13} aria-hidden />}{resolvedLabel}</span>
       <Toggle checked={checked} disabled={disabled} onChange={onChange} ariaLabel={resolvedLabel} />
     </div>
   );

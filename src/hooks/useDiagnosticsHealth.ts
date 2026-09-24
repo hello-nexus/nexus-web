@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchDiagnosticsHealth, type DiagnosticsFetchOptions, type DiagnosticsHealth } from '../api/diagnostics';
+import { useTopicCallback } from './useMultiplexSocket';
 
 const POLL_MS = 15_000;
 
@@ -12,9 +13,12 @@ export interface UseDiagnosticsHealth {
 }
 
 /**
- * Polls GET /diagnostics/health at the POLL_MS cadence while `enabled`.
- * Shared by the DiagnosticsView header/overview and the panel widget so both
- * read the same poll from one hook instead of two independent pollers.
+ * Polls GET /diagnostics/health at the POLL_MS cadence while `enabled`, and
+ * refetches on the 'prefs' topic so a per-device Ignore / Include (which is a
+ * preference write the service applies immediately) shows without waiting
+ * out the poll. Shared by the DiagnosticsView header/overview and the panel
+ * widget so both read the same poll from one hook instead of two independent
+ * pollers.
  */
 export function useDiagnosticsHealth(enabled: boolean): UseDiagnosticsHealth {
   const [health, setHealth] = useState<DiagnosticsHealth | null>(null);
@@ -57,6 +61,8 @@ export function useDiagnosticsHealth(enabled: boolean): UseDiagnosticsHealth {
       window.clearInterval(timer);
     };
   }, [enabled, load]);
+
+  useTopicCallback('prefs', enabled, () => load());
 
   return { health, loading, error, mocked, refresh: load };
 }

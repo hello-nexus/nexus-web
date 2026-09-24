@@ -3,9 +3,7 @@
 // computation, partition POST bodies, and save-body construction. Kept free
 // of React/DOM so they are unit-testable.
 
-import type {
-  DeviceMapOverride, DeviceMapResponse, DeviceSegment, DeviceZone, DeviceZoneDef, ZoneSlice,
-} from '../../../../api/lighting';
+import type { ChainEntryBody, DeviceMapOverride, DeviceMapResponse, DeviceSegment, DeviceStructureResponse, DeviceZone, DeviceZoneDef, ZoneSlice } from '../../../../api/lighting';
 
 /** One LED of the flattened device map, addressable three ways: by segment-local index (the override key), by device-space index (canvas identity), and by zone membership. */
 export interface EditorLed {
@@ -73,6 +71,18 @@ export function zoneEnabledCounts(leds: { zoneId: string; disabled: boolean }[])
 /** Zone chip count label: "enabled/total" while some of the zone's LEDs are parked, collapsing to just the total when none are. */
 export function formatZoneChipCount(enabled: number, total: number): string {
   return enabled === total ? String(total) : `${enabled}/${total}`;
+}
+
+/**
+ * Reorders `entries` (the chain POST body, in wire order) to match a new zone
+ * id order, given the order the entries currently correspond to. Null when
+ * the id sets don't match one-to-one, so the caller can no-op rather than
+ * post a corrupt chain.
+ */
+export function reorderChainEntries<T>(entries: T[], order: string[], zoneIds: string[]): T[] | null {
+  if (zoneIds.length !== entries.length) return null;
+  const reordered = zoneIds.map(id => entries[order.indexOf(id)]);
+  return reordered.every(e => e !== undefined) ? reordered : null;
 }
 
 /** Enabled LED count of a device card, falling back to the total for services that predate the field. */
@@ -409,7 +419,7 @@ export function partitionSaveBody(zones: DeviceZone[], offsets: Map<number, numb
 }
 
 // Tolerance below which two normalized coordinates count as the same spot.
-const SAME_POSITION_EPSILON = 0.0001;
+export const SAME_POSITION_EPSILON = 0.0001;
 // Tolerance below which two aspect ratios count as unchanged.
 const SAME_RATIO_EPSILON = 0.0001;
 
@@ -529,7 +539,23 @@ export interface EditorSnapshot {
   leds: EditorLed[];
   rectRatio: number;
   partition: StagedPartition | null;
+  /** Chain staged but not saved, or null when the port still holds what was loaded. */
+  chain: ChainEntryBody[] | null;
+  /**
+   * Zone list the chain above resolved to. Held so undo restores it directly:
+   * re-deriving it means a service round trip, and reloading from disk throws
+   * away unsaved LED work and the history along with it.
+   */
+  structure: DeviceStructureResponse | null;
+  /**
+   * The map as it last arrived from the service when the snapshot was taken.
+   * A chain edit prompts when the LEDs diverge from it, so undoing a chain
+   * edit has to bring the earlier arrival back too or the prompt misfires.
+   */
+  received: Map<number, ReceivedLed>;
 }
+
+export interface ReceivedLed { u: number; v: number; disabled: boolean }
 
 export interface EditorHistory {
   undo: EditorSnapshot[];
@@ -573,3 +599,68 @@ export function redoHistory(
 
 /** How long an identify blink runs, on the hardware and on the card readout. */
 export const IDENTIFY_MS = 2000;
+
+// ── LED snap grid ───────────────────────────────────────────────────────────
+
+/**
+ * Snap grid for the LED map canvas. The column/row ratio matches the canvas
+ * aspect ratio so a cell is square on screen, and both counts are even so the
+ * canvas centre is a grid point: with snapping on, the old centre snap is just
+ * the middle cell.
+ */
+export const GRID_COLS = 32;
+export const GRID_ROWS = 18;
+
+/** Distance in UV within which a dragged LED is pulled onto the canvas centre when the grid is off. */
+export const CENTER_SNAP_EPSILON = 0.02;
+
+export function snapToGrid(u: number, v: number): { u: number; v: number } {
+  return {
+    u: Math.round(u * GRID_COLS) / GRID_COLS,
+    v: Math.round(v * GRID_ROWS) / GRID_ROWS,
+  };
+}
+
+/**
+ * Centre of a selection's bounding box. A multi-LED drag snaps THIS point to
+ * the grid and moves every member by the same delta, so the shape the user
+ * arranged survives the snap - snapping each LED on its own would collapse
+ * neighbours onto one cell and quantise the spacing between them.
+ */
+export function selectionCenter(points: ReadonlyArray<{ u: number; v: number }>): { u: number; v: number } | null {
+  if (points.length === 0) return null;
+  let minU = points[0].u, maxU = points[0].u;
+  let minV = points[0].v, maxV = points[0].v;
+  for (const p of points) {
+    if (p.u < minU) minU = p.u;
+    if (p.u > maxU) maxU = p.u;
+    if (p.v < minV) minV = p.v;
+    if (p.v > maxV) maxV = p.v;
+  }
+  return { u: (minU + maxU) / 2, v: (minV + maxV) / 2 };
+}
+
+/**
+ * The offset to add to every member of a dragged selection so its centre lands
+ * on the grid. Zero when snapping is off or there is nothing selected.
+ */
+export function selectionSnapAdjust(
+  points: ReadonlyArray<{ u: number; v: number }>,
+  snap: boolean,
+): { du: number; dv: number } {
+  const center = snap ? selectionCenter(points) : null;
+  if (!center) return { du: 0, dv: 0 };
+  const snapped = snapToGrid(center.u, center.v);
+  return { du: snapped.u - center.u, dv: snapped.v - center.v };
+}
+
+/**
+ * Where a dragged LED lands. Snapping to the grid subsumes the centre snap;
+ * with it off only the centre still pulls, which is the pre-grid behaviour.
+ */
+export function settleLed(u: number, v: number, snap: boolean): { u: number; v: number } {
+  if (snap) return snapToGrid(u, v);
+  const du = u - 0.5;
+  const dv = v - 0.5;
+  return Math.sqrt(du * du + dv * dv) < CENTER_SNAP_EPSILON ? { u: 0.5, v: 0.5 } : { u, v };
+}

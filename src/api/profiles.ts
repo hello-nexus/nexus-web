@@ -1,6 +1,7 @@
 import { fetchService, postService, putService, deleteService, loopbackFetchInit, resolveHttp, authFetchWithStatus } from './service';
 import { getToken } from './auth';
 import type { PanelLayout } from '../panel/types';
+import type { PanelGaugeGradientStopDto } from './panel';
 import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
 import type { TempUnit, TimeFormat, NumberFormat } from '../lib/units';
@@ -74,6 +75,8 @@ export interface PanelSettings {
   // Profile-scoped desktop dashboard layout. Absent / null when the SPA's
   // built-in default seed applies on first load.
   dashboardLayout?: PanelLayout;
+  /** The desktop dashboard's gauge colour stops; absent = the client default. */
+  dashboardGaugeGradient?: PanelGaugeGradientStopDto[] | null;
 }
 
 export interface OverlaySettings {
@@ -121,6 +124,10 @@ export interface DiagnosticsPrefs {
   warningLingerMinutes: number;
   notifications: DiagnosticsNotificationPrefs;
   components: DiagnosticsComponentPrefs;
+  // Health component ids ("storage:<serial>", "cooling:<deviceId>", "gpu:<n>")
+  // the user ignores. The service drops them from /diagnostics/health; an
+  // older service omits the field.
+  ignoredComponents?: string[];
 }
 
 export interface DiagnosticsPrefsPatch {
@@ -128,6 +135,8 @@ export interface DiagnosticsPrefsPatch {
   warningLingerMinutes?: number;
   notifications?: Partial<DiagnosticsNotificationPrefs>;
   components?: Partial<DiagnosticsComponentPrefs>;
+  // Replaces the whole list when present.
+  ignoredComponents?: string[];
 }
 
 export interface CoolingPrefs {
@@ -157,12 +166,12 @@ export interface UiPrefs {
   // local cache for the current profile/window context, not across it. The
   // client falls back to DEFAULT_PINNED_TAIL when absent.
   pinnedSidebarApps?: string[];
-  // Recently opened unpinned apps, oldest first (macOS dock "recent items"
-  // semantics). Same "service does not implement" durability gap as
-  // pinnedSidebarApps above: GET /preferences never returns it and POST
-  // /preferences silently drops it, so this is durable only within the
-  // browser's own local cache for the current profile/window context.
-  recentSidebarApps?: string[];
+  // User-dragged order of the unpinned sidebar apps. Absent until the user
+  // reorders, or from a service that predates the field.
+  sidebarAppOrder?: string[];
+  // True while the user has collapsed the dashboard sidebar by hand. Absent
+  // from a service that predates the field.
+  sidebarCollapsed?: boolean;
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile. Optional - older services
   // return Preferences without this field, which the client treats as false.
@@ -172,6 +181,10 @@ export interface UiPrefs {
   // client keeps its local values.
   lightingDashboardMode?: string;
   coolingDashboardMode?: string;
+  /** Pre-split flag, still sent so an older service keeps working; each page's own flag falls back to it. */
+  showUncontrolledDevices?: boolean;
+  showUncontrolledLightingDevices?: boolean;
+  showUncontrolledCoolingDevices?: boolean;
 }
 
 export interface UpdatePrefs {

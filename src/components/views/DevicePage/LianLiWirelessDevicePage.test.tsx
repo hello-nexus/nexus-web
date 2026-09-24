@@ -33,6 +33,12 @@ vi.mock('../../../api/lianli-wireless', () => ({
   identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
 }));
 
+vi.mock('../../../api/cooling', () => ({
+  fetchFanChannels: () => Promise.resolve({ channels: [] }),
+  setFanSpeed: () => Promise.resolve(null),
+  releaseFanAuto: () => Promise.resolve(null),
+}));
+
 const connectedState = {
   isConnected: true,
   masterMac: '8A0EEF6232DC',
@@ -89,10 +95,12 @@ describe('fanTypeKey', () => {
     expect(fanTypeKey(99)).toBe('fanTypeGeneric');
   });
 
-  it('maps 27-35 to TL-V2', () => {
-    expect(fanTypeKey(27)).toBe('fanTypeTlv2');
+  it('maps 27-35 to TL Wireless and TL LCD Wireless, 40-42 to CL Wireless', () => {
+    expect(fanTypeKey(27)).toBe('fanTypeTlLcd');
     expect(fanTypeKey(28)).toBe('fanTypeTlv2');
-    expect(fanTypeKey(35)).toBe('fanTypeTlv2');
+    expect(fanTypeKey(31)).toBe('fanTypeTlv2');
+    expect(fanTypeKey(35)).toBe('fanTypeTlLcd');
+    expect(fanTypeKey(41)).toBe('fanTypeCl');
   });
 });
 
@@ -103,8 +111,8 @@ describe('deviceTypeKey', () => {
   });
 
   it('names a Water Block from dev_type 10/11', () => {
-    expect(deviceTypeKey(10, 0)).toBe('deviceWaterBlock');
-    expect(deviceTypeKey(11, 0)).toBe('deviceWaterBlock');
+    expect(deviceTypeKey(10, 0)).toBe('deviceHydroShift');
+    expect(deviceTypeKey(11, 0)).toBe('deviceHydroShift');
   });
 
   it('names a fan chain by its sub-family (dev_type 0, sub-family in fanType)', () => {
@@ -128,24 +136,22 @@ describe('deviceTypeKey', () => {
 });
 
 describe('LianLiWirelessDevicePage', () => {
-  it('renders connection info and the fan chain with live RPM', async () => {
+  it('renders connection info and the fan chain, with a Cooling tab for its fans', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
     expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
     expect(screen.getByText('8A0EEF6232DC')).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.fanTypeSlv3Lcd')).toBeInTheDocument();
-    expect(screen.getByText('devices.lianli-wireless.fanN:{"n":1}')).toBeInTheDocument();
-    expect(screen.getByText('1,918 RPM')).toBeInTheDocument();
-    // Only the first fanCount (3) rpm entries render, not the trailing 0.
-    expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":4}')).not.toBeInTheDocument();
+    expect(screen.queryByText('1,918 RPM')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
   });
 
   it('shows the bound badge for a fan bound to us', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
-    expect(screen.getByText('devices.lianli-wireless.bound')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.bound - devices.lianli-wireless.slot:{"n":1}')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.unbound')).not.toBeInTheDocument();
   });
 
@@ -227,7 +233,7 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
-    expect(screen.getByText('devices.lianli-wireless.noFansPaired')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.noDevicesPaired')).toBeInTheDocument();
   });
 
   it('names a non-fan device (Strimer) and shows no fan rows', async () => {
@@ -251,6 +257,35 @@ describe('LianLiWirelessDevicePage', () => {
     });
     expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":1}')).not.toBeInTheDocument();
+  });
+
+  it('falls back to Devices when the selected Cooling tab disappears', async () => {
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
+    });
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], boundToUs: false, slot: 0 }],
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(screen.queryByRole('tab', { name: /cooling\.title/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.devices/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('offers the Lighting tab once a Strimer is bound', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], mac: '112233445566', devType: 2, fanType: 0, fanCount: 0 }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByRole('tab', { name: /lighting\.title/ })).toBeInTheDocument();
   });
 });
 
@@ -368,15 +403,15 @@ describe('LianLiWirelessDevicePage - bind/unbind/identify', () => {
 });
 
 describe('LianLiWirelessDevicePage - tabs', () => {
-  it('renders both tabs with Fans active by default', async () => {
+  it('renders Devices, Lighting, Cooling and Screens tabs for a bound fan chain, Devices active', async () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
 
-    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.fans/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.devices/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.cooling/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: /devices\.lianli-wireless\.tab\.lighting/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /lighting\.title/ })).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.connectionSection')).toBeInTheDocument();
   });
 

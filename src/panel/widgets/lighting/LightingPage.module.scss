@@ -16,13 +16,35 @@
   min-height: 2.6rem;
 }
 
+// The schedule (i) beside the master slider's label: the same round info
+// affordance the per-device slider stacks over its master marker, but one
+// that also opens the schedule.
+.scheduleMarker {
+  display: inline-flex;
+  margin-left: 0.15rem;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast) ease;
+
+  &:hover:not([aria-disabled]) { color: var(--text); }
+  &:focus-visible { @include focus-ring; }
+  &[aria-disabled] { cursor: default; }
+}
+
 .body {
   display: grid;
   // Device rail | tabs + content | effect dock. Both side columns match
   // CoolingPage's sidebar width.
   grid-template-columns: 300px minmax(0, 1fr) 300px;
   // Gutter between the rail and the centre column, as on the cooling page.
-  column-gap: 1.5rem;
+  // The device rail reaches across it; see .devicePane.
+  --rail-gap: 1.5rem;
+  column-gap: var(--rail-gap);
   // Row 1: mode tabs across the left + centre, layout presets at their right.
   // Row 2: the three pane titles, so they share one baseline. Row 3: content.
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -98,6 +120,23 @@
   min-width: 0;
 }
 
+// Member count on a device group header, matching the cooling rail.
+.deviceGroupCount {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+// Sits beside the count: this group holds Nexus-Control-off devices, which the
+// eye may be hiding from the rail.
+.deviceGroupUncontrolled {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-dim);
+  flex: 0 0 auto;
+}
+
 .deviceHeaderActions {
   display: flex;
   align-items: center;
@@ -117,6 +156,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  // Reaches across the .body column gap so .devicePanel's card menu arrows are
+  // not clipped here.
+  margin-right: calc(-1 * var(--rail-gap));
 }
 
 // Effect and Effect Editor each sit on their own card surface, matching the
@@ -337,22 +379,65 @@
   overflow-y: auto;
 }
 
+// Each simple-mode block is its own labelled section, tighter than the gap
+// simpleBody puts between them.
+.simpleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+// Aligned with the grids below it, which inset themselves off the page edge.
+.simpleSectionHeader {
+  padding: 0 0.2rem;
+}
+
+// The animation row under the palette. Half the palette's column count, so
+// every tile spans exactly two swatches and the gap between them.
+.simpleAnimations {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.2rem;
+}
+
+.simpleAnimationGrid {
+  // Same ring width the swatches use, and narrow enough that the row's inset
+  // does not clip the first and last tile's ring.
+  --effect-card-ring: 3px;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.simpleAnimationDirection {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}
+
 .simpleFooter {
   flex: 0 0 auto;
   padding: 0.75rem 0 1rem;
 }
 
 .paletteSwatch {
+  // The grid gap absorbs the ring, so a ring never moves or shrinks a swatch.
+  --palette-swatch-ring: 3px;
   aspect-ratio: 1;
   min-width: 0;
   border: var(--border-width) solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
   padding: 0;
-  transition: transform var(--ease-fast) ease, box-shadow var(--ease-fast) ease;
+  transition: box-shadow var(--ease-fast);
 
+  // Muted neutral hover ring, the same quiet hint the effect cards give; the
+  // text-colour ring is reserved for the selection below.
   &:hover {
-    transform: scale(1.08);
+    box-shadow: 0 0 0 var(--palette-swatch-ring) var(--border-strong);
   }
 }
 
@@ -360,10 +445,10 @@
 // the ring is the text colour, because a coloured one misreads against
 // colourful content - and here the content IS a colour.
 .paletteSwatchActive {
-  border-color: var(--text);
-  box-shadow: 0 0 0 1px var(--text);
+  border-color: transparent;
+  box-shadow: 0 0 0 var(--palette-swatch-ring) var(--text);
 
-  &:hover { border-color: var(--text); }
+  &:hover { box-shadow: 0 0 0 var(--palette-swatch-ring) var(--text); }
 }
 
 
@@ -758,6 +843,12 @@
 // Takes the space the media grid would occupy so the notice centres in it.
 .mediaEmpty { flex: 1; min-height: 0; }
 .mediaError { color: var(--bad); font-size: var(--type-small); margin: 0; }
+// Drag-to-reorder. touch-action: none so a held touch drag is not handed to
+// the grid's own scroll (pan-y fires pointercancel and kills the drag).
+.mediaSortable { touch-action: none; }
+// The source card fades to mark the drop slot; the clone under the pointer lifts.
+.mediaCardDragging { opacity: 0.35; }
+.mediaDragOverlay { cursor: grabbing; border-radius: var(--radius); box-shadow: var(--shadow-md); }
 
 .mediaGrid {
   display: grid;
@@ -907,6 +998,9 @@
   // matches the canvas beside them and their left matches the cooling rail.
   // Bottom gap matches .animateGrid, so a scrolled-to-end list is not flush.
   padding: 0 0 1rem;
+  // Holds the MenuArrowButton hanging off each card's right edge, in the
+  // column gap .devicePane reaches into.
+  padding-right: var(--rail-gap);
   overflow-y: auto;
   flex: 1 1 auto;
   min-height: 0;
@@ -1037,6 +1131,60 @@
   }
 }
 
+// One device's zones under its name, stacked into a single card
+// (ZoneCardStack). No gap: the header rounds the top, the last zone rounds the
+// bottom, and each zone's seam is its own top border, so a hover or selection
+// outline still traces exactly one zone.
+.deviceCardStack {
+  display: flex;
+  flex-direction: column;
+}
+
+// Same border + padding inset as .deviceCard so the name lines up with the
+// zone names under it; the seam below is the first zone's border.
+.deviceCardStackHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.75rem 0.3rem;
+  border: var(--border-width) solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--surface);
+  font-size: var(--type-small);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+  line-height: var(--leading-tight);
+}
+
+.deviceCardStackHeaderSelectable {
+  cursor: pointer;
+}
+
+// Any zone under the header selected: the fill only, so the selected zone's
+// own accent border stays the one outline in the card.
+.deviceCardStackHeaderSelected {
+  background: var(--accent-soft);
+}
+
+.deviceCardStackName {
+  flex: 0 1 auto;
+  min-width: 0;
+  word-break: break-word;
+}
+
+// One class deep on purpose: .deviceCard's hover and selected rules are two
+// deep and must keep recolouring the seam along with the rest of the outline.
+.deviceCardStacked {
+  border-radius: 0;
+  border-top-color: var(--border);
+
+  &.deviceCardStackLast {
+    border-bottom-left-radius: var(--radius);
+    border-bottom-right-radius: var(--radius);
+  }
+}
+
 // Second line of the device card: LED count on the left, action icons
 // flush right, sharing one row to trim card height.
 .deviceMetaRow {
@@ -1058,10 +1206,8 @@
   background: var(--gauge-track);
   image-rendering: pixelated;
   align-self: center;
-  // Breathing room from the LED count on its left and the overflow menu on
-  // its right; the left gap is wider because the count sits right against it.
+  // Breathing room from the LED count, which sits right against it.
   margin-left: 0.65rem;
-  margin-right: 0.35rem;
 }
 
 // Card body: the name and meta rows, stacked beside the selection checkbox.
@@ -1071,13 +1217,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-}
-
-.deviceCardActions {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
 }
 
 .deviceSettingsBtn {
@@ -1106,10 +1245,25 @@
   svg { width: 13px; height: 13px; }
 }
 
-// The actions menu carries the only route to the ignore/power state, so it
-// stays visible on every card - hover and pointers are not preconditions.
-.deviceMenuBtn {
+// Colour lock after the LED strip, only on a locked card.
+// Always visible: a lock the user has to hover to find is a lock they will
+// not know is set. Same dim ink as the stack badge, so it reads as card
+// chrome rather than a state light.
+.deviceLockBtn {
   opacity: 1;
+  flex-shrink: 0;
+}
+
+// A pick aimed at the locked card: off, on, off, on - hard steps, no fade.
+// Runs once per mount; ZoneCard remounts the badge per flash.
+.deviceLockBtnFlash {
+  // Two off/on cycles of 1.5x the slow ease each: ~225 ms per phase.
+  animation: lockBadgeFlash calc(var(--ease-slow) * 1.5) step-end 2;
+}
+
+@keyframes lockBadgeFlash {
+  0% { opacity: 0; }
+  50%, 100% { opacity: 1; }
 }
 
 // Stays visible (overrides .deviceSettingsBtn's opacity:0) when the
@@ -1175,6 +1329,23 @@
   word-break: break-word;
 }
 
+// The stack badge on a card stacked with others; sits in the name row's
+// corner, as wide as the menu button below it so the two glyphs share a column.
+.deviceStackBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  margin-top: 0.15rem;
+  margin-left: auto;
+  color: var(--text-dim);
+  transition: color var(--ease-fast);
+
+  // Lit on a selected card, so the reason the whole stack lit up is in view.
+  .deviceCardSelected & { color: var(--text); }
+}
+
 // The (i) notice icon at the end of a device label or group title. Bare icon
 // (no button) so it can nest inside the group-header toggle; HoverTooltip owns
 // the hover reveal.
@@ -1223,18 +1394,6 @@
 .deviceMetaBadge {
   display: inline-flex;
   align-items: center;
-}
-
-// Active state for the FW Control toggle button in the group header.
-.deviceFwControlBtnOn {
-  opacity: 1;
-  color: var(--accent-text);
-  background: var(--accent);
-
-  &:hover {
-    background: var(--accent-glow);
-    color: var(--accent-text);
-  }
 }
 
 // Community-layouts pill on a device card: shown when the registry has
@@ -1352,37 +1511,14 @@
 
 // ── Game Sync games panel ─────────────────────────────────────────────────────
 
-// Header row: section title on the left, Scan button flush right.
+// The section's action slot owns the right edge; Rescan just trails the title.
 .gameSyncGamesHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
+  gap: 0.4rem;
 }
 
-.gameSyncGamesRescanBtn {
-  padding: 0.15rem 0.6rem;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid transparent;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-  font-size: var(--type-small);
-  cursor: pointer;
-  transition: color var(--ease-fast), border-color var(--ease-fast), background var(--ease-fast);
 
-  &:hover:not(:disabled),
-  &:focus-visible {
-    color: var(--accent);
-    border-color: var(--accent);
-    background: var(--bg-card-hover);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-}
 
 .gameSyncGamesList {
   list-style: none;
@@ -1461,16 +1597,28 @@
   padding: 0.75rem 0.5rem 1rem 0;
 }
 
-// Docs link directly under the activity frame. Same shape as Smart Lights'
-// own "How to connect" link (SmartLightsPage.module.scss .guideLink), down to
-// the type step, so the app's two docs links read identically.
-// `.main` is the page's flex column, so align-self places the link the way
-// Smart Lights' own guide link does; `margin: auto` could not, since Button
-// renders an inline-flex box.
+// Width-fitted so the frame's whole bottom strip is not a click target.
 .gameSyncGuideLink {
-  align-self: center;
-  margin-top: 0.4rem;
+  position: absolute;
+  bottom: 0.55rem;
+  left: 0;
+  right: 0;
+  width: fit-content;
+  margin-inline: auto;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
   font-size: var(--type-small);
+  color: rgb(255 255 255 / var(--alpha-strong));
+  text-decoration: none;
+  transition: color var(--ease-fast);
+
+  &:hover,
+  &:focus-visible {
+    color: #fff;
+  }
 }
 
 .gameSyncActivity {
@@ -1479,9 +1627,11 @@
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  // Matches DeviceCanvas dark frame dimensions; 21:9-capped width.
-  height: 190px;
-  width: min(100%, calc(380px * 21 / 9));
+  // Matches DeviceCanvas dark frame dimensions; same capped width, plus the
+  // height and pad that seat the guide link below the centred group.
+  height: 230px;
+  padding-bottom: 1.9rem;
+  width: min(100%, calc(440px * 5 / 3));
   background: #080808;
   border: 1px solid transparent;
   border-radius: var(--radius);
@@ -1490,7 +1640,7 @@
 }
 
 .gameSyncActivityIcon {
-  color: var(--text-dim);
+  color: #fff;
   opacity: 0.35;
   transition: color var(--ease-fast), opacity var(--ease-fast);
 }
@@ -1512,11 +1662,24 @@
   z-index: 1;
 }
 
+// The frame keeps its dark fill in both themes, so its contents are pinned
+// light: a themed token is unreadable on it in light mode.
 .gameSyncActivityLabel {
   font-size: var(--type-body);
-  color: var(--text-dim);
+  color: #fff;
   text-align: center;
   padding: 0 0.5rem;
+  z-index: 2;
+}
+
+// Pinned for the same reason as the label: the dark-theme --warn amber, not
+// the token, so light mode does not swap in a colour tuned for a pale fill.
+.gameSyncActivityNote {
+  font-size: var(--type-small);
+  color: #f59e0b;
+  text-align: center;
+  max-width: 34rem;
+  padding: 0 1rem;
   z-index: 2;
 }
 
@@ -1524,7 +1687,7 @@
 // without it (icon state) the label flows directly beneath the icon.
 .gameSyncActivityLabelOverArt {
   position: absolute;
-  bottom: 0.6rem;
+  bottom: 2.5rem;
   left: 0;
   right: 0;
 }
@@ -1627,8 +1790,8 @@
 .staticField {
   position: relative;
   // Matches DeviceCanvas .canvas, so Static's frame is Animation's frame.
-  height: 380px;
-  width: min(100%, calc(380px * 21 / 9));
+  width: min(100%, calc(440px * 5 / 3));
+  aspect-ratio: 5 / 3;
   flex-shrink: 0;
   border-radius: var(--radius);
   overflow: hidden;

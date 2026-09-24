@@ -1,5 +1,5 @@
 import { useEffect, useState, type RefObject } from 'react';
-import { panelGridCapacityForCanvas, type PanelGridCapacity } from './grid';
+import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT, panelGridCapacityForCanvas, panelWidgetPaddingRatio, type PanelGridCapacity } from './grid';
 import type { PanelSurface } from '../types';
 import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../../lib/panelSimulation';
 
@@ -165,6 +165,9 @@ export function readRuntimePanelGrid(
       contentScale: DESKTOP_GRID_REFERENCE_CELL,
       gap: widgetPaddingRatio * DESKTOP_GRID_REFERENCE_CELL,
       padding: 0,
+      contentGap: panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT) * DESKTOP_GRID_REFERENCE_CELL,
+      contentColumns: DESKTOP_GRID_COLUMNS,
+      contentRows: DESKTOP_GRID_ROWS,
     };
   }
 
@@ -188,17 +191,20 @@ export function readRuntimePanelGrid(
     sizing: getPanelGridSizingSettings(),
     paddingRatio: widgetPaddingRatio,
   });
-  // Column/row counts are decided in physical px (density), but contentScale
-  // (and gap/padding, injected as CSS custom properties) drive CSS lengths,
-  // so they must be CSS px. At >100% Windows scaling the CSS viewport shrinks
-  // while physical px stays, so a physical-based value renders ~dpr times too
-  // large. No-op at 100% (dpr 1) and for the simulator (dpr forced to 1
-  // above).
+  // Column/row counts are decided in physical px (density), but every length
+  // returned drives CSS (contentScale, gap and padding as injected custom
+  // properties; cellSize as contentScale's base), so they must be CSS px. At
+  // >100% Windows scaling the CSS viewport shrinks while physical px stays, so
+  // a physical-based value renders ~dpr times too large. No-op at 100% (dpr 1)
+  // and for the simulator (dpr forced to 1 above).
   return {
     ...capacity,
+    cellSize: capacity.cellSize / dpr,
+    rowSize: capacity.rowSize / dpr,
     contentScale: capacity.contentScale / dpr,
     gap: capacity.gap / dpr,
     padding: capacity.padding / dpr,
+    contentGap: capacity.contentGap / dpr,
   };
 }
 

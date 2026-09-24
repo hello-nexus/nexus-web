@@ -85,7 +85,7 @@ vi.mock('../../../panel/engine/panelSync', () => ({
 }));
 vi.mock('../../../panel/theme/panelTheme', () => ({
   usePanelTheme: () => ({
-    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark' },
+    theme: { themeSyncWithDesktop: false, themeMode: 'dark', appThemeMode: 'dark', appResolvedThemeMode: 'dark', gaugeGradient: [] },
     commitThemeSync: vi.fn(), commitThemeMode: vi.fn(), commitAccentSync: vi.fn(),
     previewAccent: vi.fn(), commitAccent: vi.fn(), previewBackground: vi.fn(),
     commitBackground: vi.fn(), commitBackgroundMode: vi.fn(), commitBackgroundEffect: vi.fn(),
@@ -94,6 +94,7 @@ vi.mock('../../../panel/theme/panelTheme', () => ({
     commitWidgetOpacity: vi.fn(), commitWidgetLabels: vi.fn(), commitBackgroundFrost: vi.fn(),
   }),
   buildPanelThemeVars: () => ({}),
+  panelAccentColor: () => '#2563eb',
   useResolvedPanelThemeMode: () => 'dark',
 }));
 vi.mock('../../../panel/editor/PanelWidgetCatalog', () => ({
@@ -186,6 +187,73 @@ describe('PanelDevicePage Q-series panel lifecycle', () => {
 
     expect(await screen.findByRole('button', { name: REBOOT_BUTTON })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: RESET_BUTTON })).toBeInTheDocument();
+  });
+
+  it('shows the danger zone on a connected Q60 before its panel record exists', async () => {
+    // The record is created by the panel page's first successful load, so a
+    // Q60 whose page never loaded has none. Reboot panel takes no record id
+    // and stays live; the record-bound resets disable rather than vanish.
+    fetchPanelDevicesMock.mockResolvedValue({ devices: [] });
+    render(<PanelDevicePage device={{ ...Q60_DEVICE, panelRecordId: undefined } as PanelDevice} />);
+    await openSettingsTab();
+
+    expect(await screen.findByRole('button', { name: REBOOT_BUTTON })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: RESET_BUTTON })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.panels.resetHardware.button' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.panels.resetPersonalization.button' })).toBeDisabled();
+  });
+
+  it('binds the record the rebooted panel creates and completes the reboot', async () => {
+    // With no record bound, the topic handler cannot key on a deviceId; the
+    // frame announcing the new record must bind it, which both arms the
+    // record-bound resets and ends the reboot once lastSeenAt is past the
+    // request. Otherwise the only exit is the completion timeout's toast.
+    fetchPanelDevicesMock.mockResolvedValue({ devices: [] });
+    render(<PanelDevicePage device={{ ...Q60_DEVICE, panelRecordId: undefined } as PanelDevice} />);
+    await openSettingsTab();
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_BUTTON }));
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_CONFIRM }));
+    await waitFor(() => expect(screen.getByRole('button', { name: REBOOT_BUSY })).toBeDisabled());
+
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{ id: 'q1', lastSeenAt: Date.now() + 60_000, capabilities: { surface: 'q60', touch: true } }],
+    });
+    topicHandler?.({ deviceId: 'q1' });
+
+    await waitFor(() => expect(screen.getByRole('button', { name: REBOOT_BUTTON })).not.toBeDisabled());
+    expect(screen.getByRole('button', { name: RESET_BUTTON })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'devices.panels.resetHardware.button' })).not.toBeDisabled();
+  });
+
+  it('keeps the reboot busy when the record it binds predates the request', async () => {
+    // Binding alone proves nothing: a record last seen before the request is
+    // the panel's pre-reboot state (or another client's write).
+    fetchPanelDevicesMock.mockResolvedValue({ devices: [] });
+    render(<PanelDevicePage device={{ ...Q60_DEVICE, panelRecordId: undefined } as PanelDevice} />);
+    await openSettingsTab();
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_BUTTON }));
+    fireEvent.click(await screen.findByRole('button', { name: REBOOT_CONFIRM }));
+    await waitFor(() => expect(screen.getByRole('button', { name: REBOOT_BUSY })).toBeDisabled());
+
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{ id: 'q1', lastSeenAt: 1, capabilities: { surface: 'q60', touch: true } }],
+    });
+    topicHandler?.({ deviceId: 'q1' });
+
+    // The bind itself lands (the resets arm) while the reboot stays pending.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'devices.panels.resetHardware.button' })).not.toBeDisabled());
+    expect(screen.getByRole('button', { name: REBOOT_BUSY })).toBeDisabled();
+  });
+
+  it('hides the danger zone on a simulated panel', async () => {
+    // A simulator carries no panelRecordId and binds the real panel's record
+    // through the surface scan, so its resets would wipe the physical device.
+    render(<PanelDevicePage device={{ ...Q60_DEVICE, id: 'simulated-q60', connectionKind: 'simulated', panelRecordId: undefined } as PanelDevice} />);
+    await openSettingsTab();
+    await screen.findByTestId('cooler-settings');
+
+    expect(screen.queryByRole('button', { name: REBOOT_BUTTON })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.panels.resetHardware.button' })).not.toBeInTheDocument();
   });
 
   it('offers neither on a non-Q-series panel', async () => {

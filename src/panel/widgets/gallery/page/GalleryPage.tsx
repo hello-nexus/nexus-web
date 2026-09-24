@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileImage, Folder, FolderPlus, ImageIcon, ImagePlus, Trash2, Undo2, X } from 'lucide-react';
+import { FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, Play, Trash2, Undo2, X } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import { useTranslation } from '../../../../lib/i18n';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
@@ -31,13 +32,19 @@ const KIND_ICONS = {
   folder: Folder,
 } as const;
 
+// A single-file source is one item; its icon follows that item's kind.
+function sourceIcon(source: GallerySource, items: GalleryItem[]) {
+  if (source.kind === 'file' && items.some(i => i.sourceId === source.id && i.kind === 'video')) return FileVideo;
+  return KIND_ICONS[source.kind] ?? FileImage;
+}
+
 /**
  * Gallery management page. The source set is per-system shared (every panel
  * surface of this PC draws from it) and is pure REFERENCES - Nexus never
- * copies or deletes image bytes. Sources come from the OS-native picker or
+ * copies or deletes media bytes. Sources come from the OS-native picker or
  * from drag-n-drop (desktop app only: the shell bridge resolves dropped
  * files' real paths; browser tabs can't see them). Removing a folder's
- * image puts it on that source's exclusion list, restorable in one click.
+ * item puts it on that source's exclusion list, restorable in one click.
  */
 export function GalleryPage() {
   const { t } = useTranslation();
@@ -70,8 +77,9 @@ export function GalleryPage() {
   // Preview blob cache (panel auth is token-based, <img> can't hit the route
   // directly). Grid-sized derivatives, not originals: a folder source can hold
   // hundreds of photos and this cache never evicts, so full-resolution bytes
-  // here cost gigabytes. null marks an unreadable file so the grid shows a
-  // placeholder, never retried.
+  // here cost gigabytes. For a video the derivative is its poster frame (the
+  // service 404s rather than send the clip when it cannot make one). null
+  // marks an unreadable file so the grid shows a placeholder, never retried.
   const [thumbs, setThumbs] = useState<Record<string, string | null>>({});
   const thumbsRef = useRef<Record<string, string | null>>({});
   useEffect(() => {
@@ -165,7 +173,7 @@ export function GalleryPage() {
     await refresh();
   };
 
-  // Removing an image never touches the disk: a folder's image goes on the
+  // Removing an item never touches the disk: a folder's item goes on the
   // source's exclusion list (restorable), a single-file source is dropped.
   const removeItem = async (item: GalleryItem) => {
     const source = sources.find(s => s.id === item.sourceId);
@@ -238,17 +246,10 @@ export function GalleryPage() {
             </Button>
           </div>
           {actionError && <p className={styles.uploadError}>{actionError}</p>}
-          {sources.length === 0 ? (
-            <EmptyState
-              compact
-              icon={<ImageIcon size={22} />}
-              title={t('gallery.page.noSources')}
-              hint={t('gallery.page.noSourcesHint')}
-            />
-          ) : (
+          {sources.length > 0 && (
             <ul className={styles.sourceList}>
               {sources.map(source => {
-                const Icon = KIND_ICONS[source.kind] ?? FileImage;
+                const Icon = sourceIcon(source, items);
                 return (
                   <li
                     key={source.id}
@@ -297,7 +298,19 @@ export function GalleryPage() {
             <span className={styles.libraryCount}>{t('gallery.page.itemCount', { count: items.length })}</span>
           </SectionHeader>
           <Card className={styles.libraryCard}>
-            {items.length === 0 ? (
+            {sources.length === 0 ? (
+              <EmptyState
+                hero
+                icon={<ImageIcon />}
+                title={t('gallery.intro.title')}
+                hint={t('gallery.intro.body')}
+                points={[
+                  { icon: <ImagePlus />, text: t('gallery.intro.pointDrop') },
+                  { icon: <Images />, text: t('gallery.intro.pointFormats') },
+                  { icon: <LayoutDashboard />, text: t('gallery.intro.pointWidget') },
+                ]}
+              />
+            ) : items.length === 0 ? (
               <EmptyState
                 compact
                 icon={<ImageIcon size={22} />}
@@ -307,28 +320,37 @@ export function GalleryPage() {
             ) : (
               <div className={styles.grid}>
                 {items.map(item => (
-                  <figure
+                  <HoverTooltip
                     key={item.id}
-                    className={`${styles.tile} ${hoverSourceId === item.sourceId ? styles.tileHighlight : ''}`}
-                    title={item.name}
+                    title={item.kind === 'video' ? t('gallery.page.video') : undefined}
+                    body={item.name}
                   >
-                    {thumbs[item.id] ? (
-                      <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
-                    ) : (
-                      <span className={styles.tilePlaceholder}>
-                        <ImageIcon size={20} aria-hidden="true" />
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.tileRemove}
-                      aria-label={t('gallery.page.removeImage')}
-                      onClick={() => removeItem(item)}
-                    >
-                      <X size={12} aria-hidden="true" />
-                    </button>
-                    <figcaption className={styles.tileName}>{item.name}</figcaption>
-                  </figure>
+                    <figure className={`${styles.tile} ${hoverSourceId === item.sourceId ? styles.tileHighlight : ''}`}>
+                      {thumbs[item.id] ? (
+                        <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
+                      ) : (
+                        <span className={styles.tilePlaceholder}>
+                          {item.kind === 'video'
+                            ? <FileVideo size={20} aria-hidden="true" />
+                            : <ImageIcon size={20} aria-hidden="true" />}
+                        </span>
+                      )}
+                      {item.kind === 'video' && (
+                        <span className={styles.tileVideoBadge} aria-label={t('gallery.page.video')} role="img">
+                          <Play size={10} aria-hidden="true" />
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        className={styles.tileRemove}
+                        aria-label={t('gallery.page.removeImage')}
+                        onClick={() => removeItem(item)}
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                      <figcaption className={styles.tileName}>{item.name}</figcaption>
+                    </figure>
+                  </HoverTooltip>
                 ))}
               </div>
             )}

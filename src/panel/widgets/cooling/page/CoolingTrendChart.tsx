@@ -57,7 +57,7 @@ export function CoolingTrendChart({ cpuTempValue, gpuTempValue, channels, height
     return () => ro.disconnect();
   }, []);
 
-  const fanValues = channels.map(c => c.rpm).filter(Number.isFinite);
+  const fanValues = channels.filter(c => !c.rpmUnavailable).map(c => c.rpm).filter(Number.isFinite);
   const hasFans = fanValues.length > 0;
   const fanValue = averageFanRpm(fanValues);
 

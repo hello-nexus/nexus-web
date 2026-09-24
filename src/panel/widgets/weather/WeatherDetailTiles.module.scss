@@ -1,0 +1,225 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 0.75rem;
+}
+
+// Immersive: two columns taking the whole cell, rows sharing the height.
+.cellGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 0.5rem;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+// Landscape pages are short and wide: four columns, two rows.
+:global([data-orientation='landscape']) .cellGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.slot {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.tile {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 9.5rem;
+  overflow: hidden;
+}
+
+.cellGrid .tile {
+  min-height: 0;
+  padding: 0.4rem 0.6rem;
+  // Card's own header/body gap, tightened; the tile never renders on the Q60.
+  /* c83:allow */ gap: 0.15rem;
+
+  // Card's body wrapper sits between the tile and .tileBody; both must be
+  // shrinkable for the graphics below to give up height.
+  > :last-child { flex: 1 1 auto; min-height: 0; }
+  .tileBody { @include vgap(0.1rem); }
+  .scale { margin-top: 0.25rem; }
+
+  .tileTitle { font-size: var(--type-tiny); }
+  .big { font-size: var(--type-heading); }
+  .sub { font-size: var(--type-mini); }
+  // Graphics take whatever height the readouts leave.
+  .sunArc, .dial { flex: 1 1 0; min-height: 0; height: 100%; }
+  .compass { width: 4rem; height: 4rem; }
+}
+
+// Each immersive slot is a size container: a short row (a phone, a Y70 page
+// holding three cells) keeps one readout line per tile and drops the
+// drawings; a tall one shows everything.
+.cellGrid .slot {
+  container-type: size;
+}
+
+@container (max-height: 7.5rem) {
+  .tile .sub:nth-of-type(n+3),
+  .tile .sunArc,
+  .tile .dial,
+  .tile .compass { display: none; }
+}
+
+.tileTitle {
+  @include text-label;
+  color: var(--text-dim);
+}
+
+.tileBody {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  color: var(--text);
+  @include vgap(0.35rem);
+}
+
+.big {
+  @include text-display;
+  font-variant-numeric: tabular-nums;
+}
+
+.bigUnit {
+  @include text-body;
+  color: var(--text-dim);
+}
+
+.sub {
+  @include text-button;
+  color: var(--text-dim);
+}
+
+// UV / AQI scale: gradient track with a marker.
+.scale {
+  position: relative;
+  height: 6px;
+  margin-top: auto;
+  border-radius: var(--radius-pill);
+}
+
+.scaleUv {
+  background: linear-gradient(90deg, #3ddc84, #ffd166, #ff8c42, #ff4d6d, #b56bff);
+}
+
+.scaleAqi {
+  background: linear-gradient(90deg, #3ddc84, #ffd166, #ff8c42, #ff4d6d, #8f3f97, #7e0023);
+}
+
+.scaleMarker {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  border: 2px solid var(--surface);
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.sunArc {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  max-height: 4.5rem;
+}
+
+.sunArcTrack {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
+.sunHorizon {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.sunDot {
+  fill: #ffd166;
+}
+
+.windRow {
+  display: flex;
+  align-items: center;
+  @include hgap(0.75rem);
+}
+
+.windMeta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  @include vgap(0.25rem);
+}
+
+.compass {
+  flex: 0 0 auto;
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+.compassRing {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+}
+
+.compassTick {
+  stroke: var(--text-dim);
+  stroke-width: 2;
+}
+
+.compassNeedle {
+  fill: var(--accent);
+}
+
+.compassShaft {
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 0.5;
+}
+
+.compassValue {
+  @include text-heading;
+  fill: var(--text);
+}
+
+.compassUnit {
+  @include text-caption;
+  fill: var(--text-dim);
+}
+
+.dial {
+  flex: 0 0 auto;
+  width: 100%;
+  height: auto;
+  max-height: 4.5rem;
+}
+
+.dialTrack {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.dialNeedle {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.dialHub {
+  fill: var(--text);
+}

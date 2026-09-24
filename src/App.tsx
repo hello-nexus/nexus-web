@@ -13,33 +13,18 @@ import { Dashboard } from './app/Dashboard';
 import { isRemoteOrigin, setForceLanMode } from './api/service';
 import { isWindowsAppShell, isMacAppShell } from './app/windowActions';
 
-// The public account pages (/u/<username>, /auth/verify, /auth/recover) are
+// The emailed account landings (/auth/verify, /auth/recover) are
 // browser-only - `npm run build:service` must dead-code-eliminate their route
 // chunks from the desktop/app bundle. The import() is guarded by the raw
 // build define (NOT a wrapped const): esbuild folds `!false` to `true` /
 // `!true` to `false` during transform, and Rollup then tree-shakes the dead
 // branch's dynamic import so the chunk is never emitted - same technique as
 // the DEV_TOOLS-gated StorybookModal in ToolsView.tsx.
-const PublicProfilePage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/PublicProfilePage').then(m => ({ default: m.PublicProfilePage })))
-  : null;
 const VerifyEmailPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })))
   : null;
 const RecoverPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/RecoverPage').then(m => ({ default: m.RecoverPage })))
-  : null;
-const LoginPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/LoginPage').then(m => ({ default: m.LoginPage })))
-  : null;
-const RegisterPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/RegisterPage').then(m => ({ default: m.RegisterPage })))
-  : null;
-const ForgotPasswordPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })))
-  : null;
-const AccountPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/AccountPage').then(m => ({ default: m.AccountPage })))
   : null;
 
 // The public web at hellonexus.com: an ordinary browser origin that is NOT the
@@ -144,8 +129,12 @@ export default function App() {
     consumeUrlToken(params);
     // Simulator iframe entrypoint: PanelDeviceModal loads /panel?simulator=1
     // and feeds layout + theme over postMessage. Skip the device-allocation
-    // pairing flow entirely - the simulator has no deviceId.
+    // pairing flow entirely - the simulator has no deviceId. forceLanMode is
+    // per-document, so the iframe must repeat the public-website decision made
+    // below for the embedding dashboard, or the parent's loopback token in the
+    // shared localStorage sends the simulator's widget data over the relay.
     if (params.get(SIMULATOR_QUERY_FLAG) === '1') {
+      if (isPublicWebsite()) setForceLanMode(true);
       return (
         <I18nProvider>
           <PanelSimulatorWrapper />
@@ -167,21 +156,6 @@ export default function App() {
         />
       </I18nProvider>
     );
-  }
-
-  // /u/<username> - public account profile. Absent (PublicProfilePage is
-  // null) in the service/app bundle - see the lazy() guards above.
-  if (PublicProfilePage && (path === '/u' || path.startsWith('/u/'))) {
-    const username = path.split('/').filter(Boolean)[1] ?? '';
-    if (username) {
-      return (
-        <I18nProvider>
-          <Suspense fallback={null}>
-            <PublicProfilePage username={username} />
-          </Suspense>
-        </I18nProvider>
-      );
-    }
   }
 
   // /auth/verify?token=... - email verification landing (magic link from the
@@ -211,47 +185,6 @@ export default function App() {
     );
   }
 
-  // /login, /register, /recover, /account - public auth pages (browser-only,
-  // same components as the in-app Settings > Account view, wired to
-  // DirectApiBackend instead of the local service). Absent in the
-  // service/app bundle.
-  if (LoginPage && path === '/login') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <LoginPage />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-  if (RegisterPage && path === '/register') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <RegisterPage />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-  if (ForgotPasswordPage && path === '/recover') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <ForgotPasswordPage />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-  if (AccountPage && path === '/account') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <AccountPage />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-
   // Public web entry. Sits AFTER every pairing / panel / overlay / reference
   // route above, so those (and the installed app on localhost) are untouched.
   // On hellonexus.com a local Nexus drives the dashboard over localhost
@@ -260,7 +193,8 @@ export default function App() {
   // INVARIANT: the /panel|/touch|/r/pair returns above MUST stay ordered before
   // this branch. forceLanMode is a process-global; a phone that reached here
   // would flip to localhost and never use the relay, breaking phone pairing.
-  // The phone panel returns earlier, so it never sets it.
+  // The phone panel returns earlier, so it never sets it; only the simulator
+  // iframe branch above repeats this same decision.
   if (isPublicWebsite()) {
     setForceLanMode(true);
   }

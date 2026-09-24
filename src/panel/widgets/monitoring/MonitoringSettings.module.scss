@@ -1,3 +1,4 @@
+@use '../../styles/flexGap' as *;
 @use '../../../styles/text' as *;
 
 .settingsRoot {
@@ -13,8 +14,8 @@
   --icon-label-button-text: var(--text-dim);
   --icon-label-button-text-hover: var(--text);
   --icon-label-button-active-border: var(--panel-accent);
-  --icon-label-button-active-bg: var(--panel-accent-soft);
-  --icon-label-button-active-text: var(--panel-accent-glow);
+  --icon-label-button-active-bg: var(--panel-accent, var(--accent));
+  --icon-label-button-active-text: var(--panel-accent-text, var(--accent-text));
   --icon-label-icon-size: 18px;
   --icon-label-label-size: 9.5px;
 
@@ -52,18 +53,6 @@
   --icon-label-button-height: 46px;
 }
 
-.scaleRow {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-}
-
-.scaleBtn {
-  width: 100%;
-  min-width: 0;
-  --icon-label-button-height: 36px;
-}
-
 .rangeRow {
   display: flex;
   gap: 8px;
@@ -92,19 +81,22 @@
 .microSensorList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
 }
 
-// Each micro row stacks its sensor select above its label controls; a divider
-// keeps the per-sensor groups visually distinct in the taller list.
+// Each micro row stacks its sensor select above its label controls. Zebra
+// striping (same tint as the Monitoring > Detailed rows) separates the
+// per-sensor groups; the negative inset matches SettingsSection's box padding
+// so the stripe spans the card while the controls stay aligned with the
+// sections above.
 .microSensorRow {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-bottom: 8px;
+  padding: 10px 1.1rem;
+  margin: 0 -1.1rem;
 
-  &:not(:last-child) {
-    border-bottom: 1px solid var(--border);
+  &:nth-child(odd) {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
   }
 }
 
@@ -151,4 +143,17 @@
   --select-bg: var(--surface);
 
   &:hover { --select-bg: var(--bg-card-hover); }
+}
+
+.gradientBlock {
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+
+  @include vgap(10px);
+}
+
+.gradientFooter {
+  display: flex;
+  justify-content: flex-end;
 }

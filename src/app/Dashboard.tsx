@@ -22,12 +22,14 @@ const SmartLightsPage = lazy(() => import('../panel/widgets/smart-lights/SmartLi
 const HomeAssistantPage = lazy(() => import('../panel/widgets/home-assistant/HomeAssistantPage').then(m => ({ default: m.HomeAssistantPage })));
 const StorePage = lazy(() => import('../components/views/StorePage/StorePage').then(m => ({ default: m.StorePage })));
 const ClockPage = lazy(() => import('../panel/widgets/clock/ClockPage').then(m => ({ default: m.ClockPage })));
+const WeatherPage = lazy(() => import('../panel/widgets/weather/WeatherPage').then(m => ({ default: m.WeatherPage })));
 const SteamPage = lazy(() => import('../panel/widgets/steam/SteamPage').then(m => ({ default: m.SteamPage })));
 const GalleryPage = lazy(() => import('../panel/widgets/gallery/page/GalleryPage').then(m => ({ default: m.GalleryPage })));
 const ScreentimePage = lazy(() => import('../panel/widgets/screentime/ScreentimePage').then(m => ({ default: m.ScreentimePage })));
 const BenchmarkPage = lazy(() => import('../panel/widgets/benchmark/BenchmarkPage').then(m => ({ default: m.BenchmarkPage })));
 const DiagnosticsPage = lazy(() => import('../panel/widgets/diagnostics/DiagnosticsPage').then(m => ({ default: m.DiagnosticsPage })));
 const FramesPage = lazy(() => import('../panel/widgets/frames/FramesPage').then(m => ({ default: m.FramesPage })));
+const BuildPage = lazy(() => import('../components/views/BuildPage/BuildPage').then(m => ({ default: m.BuildPage })));
 import { getMarketplaceListing, isMarketplaceType, loadMarketplaceApps, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
 import { lookupApp } from '../panel/widgets/registry';
 import { useServiceStatus, DESKTOP_OFFLINE_GRACE_MS } from '../hooks/useServiceStatus';
@@ -47,15 +49,16 @@ import { useRoute, type Section } from '../hooks/useRoute';
 import { useLastRoute } from '../hooks/useLastRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
 import { onOpenFramesGame } from '../panel/widgets/frames/framesNav';
+import { onOpenBuild } from '../components/views/BuildPage/buildNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
 import { fetchPanelRemoteControlState } from '../api/panel';
-import { isRemoteOrigin } from '../api/service';
+import { isLocalhostUnreachable, isRemoteOrigin } from '../api/service';
 import { MultiplexContext, useMultiplexConnection, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { UiSettingsProvider } from '../hooks/useUiSettings';
 import { useTranslation } from '../lib/i18n';
-import { applyThemeMode, applyAccentColor, cachePreferencesLocally } from '../lib/settings';
+import { applyThemeMode, applyAccentColor, cachePreferencesLocally, loadSettings } from '../lib/settings';
 import type { Preferences } from '../api/profiles';
 import type { Language, ThemeMode } from '../lib/settings';
 import { FULLSCREEN_CAPABLE_VIEWS, NAV_ICONS, PORTAL_NAV_KEYS } from './sidebarNav';
@@ -65,6 +68,7 @@ import { PageChromeProvider } from './PageChrome';
 import { AppBackdrop } from './AppBackdrop';
 import { BackgroundEffects } from './BackgroundEffects';
 import { SystemAccentSync } from './SystemAccentSync';
+import { SidebarCollapsedSync } from './SidebarCollapsedSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
 import { ServiceGatePage } from './ServiceGatePage';
 import { getSidebarAppMeta } from './sidebarApps';
@@ -87,6 +91,7 @@ import { IncomingPairModal } from './IncomingPairModal';
 import { ToastProvider } from '../components/common/Toast/Toast';
 import { TransferToasts } from './TransferToasts';
 import { MappingAppliedToasts } from './MappingAppliedToasts';
+import { AppAutoInstalledToasts } from './AppAutoInstalledToasts';
 import { SyncConflictGate } from './SyncConflictGate';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
@@ -104,6 +109,8 @@ const OPEN_UPDATE_PARAM = 'openUpdate';
 // The conflict-shutdown toast's "Open Settings" button opens the dashboard
 // here; a query param is the only way a click reaches an already-open window.
 const MANAGE_CONFLICTS_PARAM = 'manageConflicts';
+// Longer than useConflictApps' REST seed on a healthy service by a wide margin.
+const CONFLICT_SNAPSHOT_TIMEOUT_MS = 5000;
 
 // True only the first time it sees a given version. The service holds
 // justUpdatedTo for a fixed window after an update, so a window close+reopen
@@ -181,7 +188,7 @@ function DeckEditAutoOpener({ online, onOpen }: {
     if (markDeckEditShown(edit.token)) onOpen(edit);
   }, [onOpen]);
 
-  useTopicCallback('streamdeck', online && !isRemoteOrigin, useCallback((data: unknown) => {
+  useTopicCallback('streamdeck', online && !isLocalhostUnreachable(), useCallback((data: unknown) => {
     const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[]; keyIndex?: number; token?: number };
     if (f.kind !== 'editRequest' || !f.serial || typeof f.token !== 'number') return;
     fire({
@@ -200,7 +207,7 @@ function DeckEditAutoOpener({ online, onOpen }: {
   // re-fetches instead of dropping the cold-start edit.
   const firedRef = useRef(false);
   useEffect(() => {
-    if (!online || isRemoteOrigin || firedRef.current) return;
+    if (!online || isLocalhostUnreachable() || firedRef.current) return;
     let cancelled = false;
     getPendingDeckEdit().then(edit => {
       if (cancelled || firedRef.current || !edit) return;
@@ -260,11 +267,12 @@ function ResizeStrip({ className, edge }: { className: string; edge: NexusResize
  * the one-shot REST seed returned.
  */
 function ConflictOnboardingGate({
-  enabled, armed, done, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
+  enabled, armed, done, nexus2Installed, onArm, onSpend, onComplete, onSkipOnboarding, onBack,
 }: {
   enabled: boolean;
   armed: boolean;
   done: boolean;
+  nexus2Installed: boolean;
   onArm: () => void;
   onSpend: () => void;
   onComplete: () => void;
@@ -275,16 +283,27 @@ function ConflictOnboardingGate({
 
   useEffect(() => {
     if (armed || done || !enabled || !ready) return;
-    // Nothing to show: spend the step rather than leaving it armed.
-    if (conflicts.length === 0) onSpend();
+    // An installed Nexus 2 is offered here even when it is not running: its
+    // uninstall is this step's action. Otherwise nothing to show spends the
+    // step rather than leaving it armed.
+    if (conflicts.length === 0 && !nexus2Installed) onSpend();
     else onArm();
-  }, [armed, done, enabled, ready, conflicts.length, onArm, onSpend]);
+  }, [armed, done, enabled, ready, conflicts.length, nexus2Installed, onArm, onSpend]);
+
+  // The gates behind this one wait on its decision, so a snapshot that never
+  // resolves (conflicts read failed) must spend it rather than hold them.
+  useEffect(() => {
+    if (armed || done || !enabled || ready) return;
+    const timer = setTimeout(onSpend, CONFLICT_SNAPSHOT_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [armed, done, enabled, ready, onSpend]);
 
   return (
     <ConflictOnboardingScreen
       open={armed && !done}
       conflicts={conflicts}
       ready={ready}
+      nexus2Installed={nexus2Installed}
       onComplete={onComplete}
       onSkipOnboarding={onSkipOnboarding}
       onBack={onBack}
@@ -306,7 +325,18 @@ export function Dashboard() {
     navigate,
     online,
   );
-  const { status: onboardingStatus, lightingStatus, featuresStatus } = useOnboardingStatus();
+  // Re-read on every reconnect: a factory reset restarts the service and puts
+  // all three flags back to pending under this same page. Counted, not keyed on
+  // `online` itself: a read issued while the service is down exhausts its
+  // retries and fails open to "completed" over a user who is mid-onboarding.
+  const [reconnects, setReconnects] = useState(0);
+  const wasOnline = useRef(online);
+  useEffect(() => {
+    if (online && !wasOnline.current) setReconnects(n => n + 1);
+    wasOnline.current = online;
+  }, [online]);
+  const { status: onboardingStatus, lightingStatus, featuresStatus, generation: onboardingGeneration, readAt }
+    = useOnboardingStatus(reconnects);
   // Flips true once WelcomeScreen posts /onboarding/complete, so a later
   // reconnect (which re-derives onboardingStatus) can't reopen it mid-session.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
@@ -317,6 +347,23 @@ export function Dashboard() {
   // (it renders the provider), so this is the only way the skip decision
   // reaches the lighting gate below.
   const [lightingFeatureOff, setLightingFeatureOff] = useState(false);
+  // A dismissal latch is per-session, so a reset that puts the server flag back
+  // to pending has to clear it. Keyed on a NEW read, never on the value: the
+  // latch is set the moment a screen completes, while the status this render
+  // still holds is the stale pending one that set it.
+  const seenOnboardingGeneration = useRef(0);
+  // When the newest latch was set. A read that STARTED before that cannot speak
+  // to it: the answer was already in flight when the screen completed.
+  const latchedAt = useRef(0);
+  useEffect(() => {
+    if (onboardingGeneration === seenOnboardingGeneration.current) return;
+    seenOnboardingGeneration.current = onboardingGeneration;
+    if (readAt < latchedAt.current) return;
+    if (onboardingStatus === 'pending') setOnboardingDismissed(false);
+    if (featuresStatus === 'pending') setFeaturesOnboardingDismissed(false);
+    if (lightingStatus === 'pending') setLightingOnboardingDismissed(false);
+  }, [onboardingGeneration, readAt, onboardingStatus, featuresStatus, lightingStatus]);
+
   // Set by any later gate's Back path that targets the welcome screen.
   // Reopens it even when its server flag already completed (e.g. a reload
   // mid-sequence resolved onboardingStatus to 'completed').
@@ -346,29 +393,37 @@ export function Dashboard() {
     && fanControl.status !== 'unknown'
     && (onboardingStatus === 'completed' || onboardingDismissed)
     && !welcomeOpen && !featuresOpen && importOffered && !importDismissed;
-  // Third gate: device selection runs last, against the fullest device list.
-  // Waits on nexus2.status resolving so it cannot flash open before the
-  // heavier Nexus 2 detection read decides whether that gate comes first.
+  // Third gate: conflicting apps, before device selection - they hold the
+  // hardware that gate enumerates, and this is where they get ended. Opens
+  // only when the sequence actually ran (a returning user with nothing
+  // pending never sees it) and only when something was detected.
+  const [conflictStepDone, setConflictStepDone] = useState(false);
+  // Armed once, at the moment the import gate closes, and never re-armed.
+  // Keying the modal on "conflicts exist right now" instead would leave the
+  // gate live all session: an app launched an hour later would pop it open
+  // and, because showDashboard excludes it, unmount the whole dashboard.
+  // The screen opens on the latch, not on the live list, so ending the last
+  // app from inside it shows the all-clear state instead of vanishing.
+  const [conflictStepArmed, setConflictStepArmed] = useState(false);
+  // Stable: both sit in the gate's effect deps, and a fresh identity per
+  // Dashboard render would restart its snapshot timeout on every push frame.
+  const armConflictStep = useCallback(() => setConflictStepArmed(true), []);
+  const spendConflictStep = useCallback(() => setConflictStepDone(true), []);
+  const ranEarlierGate = onboardingDismissed || featuresOnboardingDismissed || importDismissed;
+  // Live from the moment the gates before it close until the step is spent
+  // or completed; the gates behind it (and the dashboard) wait on it, so the
+  // snapshot read cannot flash them open before the decision.
+  const conflictStepPending = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
+    && fanControl.status !== 'unknown'
+    && ranEarlierGate && !welcomeOpen && !featuresOpen && !importOpen && !conflictStepDone;
+  // Last gate: device selection, against the fullest device list. Waits on
+  // nexus2.status resolving so it cannot flash open before the heavier
+  // Nexus 2 detection read decides whether the import gate comes first.
   // Skipped entirely when the features gate already turned Lighting off.
   const lightingOnboardingOpen = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
-    && !welcomeOpen && !importOpen && !featuresOpen && !lightingFeatureOff
+    && !welcomeOpen && !importOpen && !featuresOpen && !conflictStepPending && !lightingFeatureOff
     && lightingStatus === 'pending' && !lightingOnboardingDismissed;
-  // Final gate: conflicting apps, after every other step, because ending one
-  // is about the running system rather than about setup. Opens only when the
-  // sequence actually ran (a returning user with nothing pending never sees
-  // it) and only when something was detected; its actions are per-app clicks.
-  const [conflictStepDone, setConflictStepDone] = useState(false);
-  // Armed once, at the moment the last gate closes, and never re-armed. Keying
-  // the modal on "conflicts exist right now" instead would leave the gate live
-  // all session: an app launched an hour later would pop it open and, because
-  // showDashboard excludes it, unmount the whole dashboard underneath.
-  const [conflictStepArmed, setConflictStepArmed] = useState(false);
-  const ranOnboarding = onboardingDismissed || featuresOnboardingDismissed || lightingOnboardingDismissed || importDismissed;
-  const gatesSettled = ranOnboarding && !welcomeOpen && !featuresOpen && !importOpen && !lightingOnboardingOpen;
-  // Open depends on the latch, not on the live list, so ending the last app
-  // from inside the modal shows the all-clear state instead of vanishing.
-  const conflictStepOpen = conflictStepArmed && !conflictStepDone;
 
   // Skips every remaining step at once. Marks the same server flags the
   // screens themselves would, so a reload does not reopen them. Leaves all
@@ -379,13 +434,15 @@ export function Dashboard() {
     // onboarding ones - without these it reopens on the next launch. Only the
     // apps this run actually offered: these are persistent server flags, so
     // latching one for an app not yet installed consumes its offer for good.
+    // Latched only once the server has the flags: the latches are per-session,
+    // and a later read that still says pending now reopens the sequence.
     void Promise.allSettled([
       completeOnboarding(),
       completeFeaturesOnboarding(),
       completeLightingOnboarding(),
       ...(nexus2.status === 'pending' ? [dismissNexus2Welcome()] : []),
       ...(fanControl.status === 'pending' ? [dismissFanControlImport()] : []),
-    ]);
+    ]).then(() => { latchedAt.current = Date.now(); });
     setOnboardingDismissed(true);
     setFeaturesOnboardingDismissed(true);
     setImportDismissed(true);
@@ -407,7 +464,7 @@ export function Dashboard() {
   // Nexus2WelcomeScreen pops in on top of it.
   const showDashboard = onboardingStatus !== 'unknown' && nexus2.status !== 'unknown'
     && fanControl.status !== 'unknown'
-    && !welcomeOpen && !featuresOpen && !lightingOnboardingOpen && !importOpen && !conflictStepOpen;
+    && !welcomeOpen && !featuresOpen && !lightingOnboardingOpen && !importOpen && !conflictStepPending;
   const multiplex = useMultiplexConnection(online);
   const serviceState = useServiceState(online, multiplex);
   const profilesHook = useProfiles(online);
@@ -445,7 +502,7 @@ export function Dashboard() {
       showMacStatusBarIcon: prefs.monitoring?.showMacStatusBarIcon,
       showWindowsTrayIcon: prefs.monitoring?.showWindowsTrayIcon,
       pinnedSidebarApps: prefs.ui?.pinnedSidebarApps,
-      recentSidebarApps: prefs.ui?.recentSidebarApps,
+      sidebarAppOrder: prefs.ui?.sidebarAppOrder,
     });
   }, [setLanguage]);
 
@@ -453,10 +510,19 @@ export function Dashboard() {
     navigate('system', 'settings');
   }, [navigate]);
 
+  const handleManageConflictApps = useCallback(() => {
+    navigate('system', 'settings', 'general');
+    // Fired after navigating: the signal is held until General mounts and
+    // subscribes, which is what opens the modal.
+    requestSearchScroll('set-conflict-apps');
+    fireSearchSignal('conflict-apps');
+  }, [navigate]);
+
   // Bridges a monitoring deck tile's `press: 'monitoringPage'` (deckExecutor
   // has no router access) to this surface's in-app Monitoring page.
   useEffect(() => onDeckOpenMonitoring(() => navigate('system', 'monitoring')), [navigate]);
   useEffect(() => onOpenFramesGame(gameKey => navigate('system', 'frames', gameKey)), [navigate]);
+  useEffect(() => onOpenBuild(path => navigate('system', 'build', path)), [navigate]);
 
   // Navigate to the held deck's editor and hand the target to the (possibly
   // about-to-mount) device page, which selects the held key.
@@ -557,6 +623,7 @@ export function Dashboard() {
     // Gated views keep their own title on the Placeholder a release build
     // renders, rather than falling through to the generic "Apps" label.
     if (activeView === 'store') return t('apps.tabs.store');
+    if (activeView === 'build') return t('panel.widget.build');
     // A specific device page shows the device's own name; the all-devices
     // landing keeps the generic "Devices" label.
     if (activeView === 'device') {
@@ -576,8 +643,17 @@ export function Dashboard() {
     const meta = getSidebarAppMeta(activeView);
     return meta ? t(meta.i18nKey) : t('sidebar.section.apps');
   })();
-  // null = auto (follow viewport), true = user-collapsed, false = user-expanded
-  const [manualOverride, setManualOverride] = useState<boolean | null>(null);
+  // null = auto (follow viewport), true = user-collapsed, false = user-expanded.
+  // Seeded from the local settings cache so a reload doesn't flash expanded
+  // before SidebarCollapsedSync restores the server value.
+  const [manualOverride, setManualOverride] = useState<boolean | null>(
+    () => (loadSettings().general.sidebarCollapsed ? true : null),
+  );
+  // A stored false only clears a user-collapse; the transient "expanded while
+  // narrow" override stays.
+  const restoreSidebarCollapsed = useCallback((collapsed: boolean) => {
+    setManualOverride(prev => (collapsed ? true : prev === true ? null : prev));
+  }, []);
   const [pairPhoneOpen, setPairPhoneOpen] = useState(false);
   const [updateModalOpen, setUpdateModalOpen] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null);
@@ -738,12 +814,8 @@ export function Dashboard() {
       url.searchParams.delete(MANAGE_CONFLICTS_PARAM);
       window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
     }
-    navigate('system', 'settings', 'general');
-    // Fired after navigating: the signal is held until General mounts and
-    // subscribes, which is what opens the modal.
-    requestSearchScroll('set-conflict-apps');
-    fireSearchSignal('conflict-apps');
-  }, [manageConflictsRequested, navigate]);
+    handleManageConflictApps();
+  }, [manageConflictsRequested, handleManageConflictApps]);
 
   // Bump on every offline -> online transition so the profile dropdown
   // remounts and replays its fade-in once.
@@ -829,7 +901,9 @@ export function Dashboard() {
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return DEV_TOOLS ? <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} /> : <Placeholder title={activeView} />;
+      case 'build':      return DEV_TOOLS ? <BuildPage path={subtab} /> : <Placeholder title={activeView} />;
       case 'clock':      return <ClockPage />;
+      case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;
       case 'gallery':    return <GalleryPage />;
       case 'settings':   return <SettingsView serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} />;
@@ -882,6 +956,7 @@ export function Dashboard() {
         <AppBackdrop />
         <BackgroundEffects />
         <SystemAccentSync />
+        <SidebarCollapsedSync onChange={restoreSidebarCollapsed} />
         <ResolvedThemeSync />
         <OpenInAppBanner />
         {/* Nexus Windows shell only: window-resize grab strips along each
@@ -931,6 +1006,7 @@ export function Dashboard() {
               onNavigateTools={handleNavigateTools}
               onOpenUpdate={() => handleUpdateOpen()}
               onInstall={handleInstall}
+              onManageConflictApps={handleManageConflictApps}
               onManageProfiles={handleManageProfiles}
               onNavigateAccount={handleNavigateAccount}
               isWindowsApp={isWindowsAppShell()}
@@ -986,7 +1062,7 @@ export function Dashboard() {
         <WelcomeScreen
           open={welcomeOpen}
           platform={status.ping?.platform ?? ''}
-          onComplete={() => setOnboardingDismissed(true)}
+          onComplete={() => { latchedAt.current = Date.now(); setOnboardingDismissed(true); }}
         />
         {/* Feature-pillars gate: lets the user turn off whole functional
             areas up front. Back only steps into first-run onboarding while
@@ -994,6 +1070,7 @@ export function Dashboard() {
         <FeaturesOnboardingScreen
           open={featuresOpen}
           onComplete={(flags) => {
+            latchedAt.current = Date.now();
             setFeaturesOnboardingDismissed(true);
             if (!flags.lighting) setLightingFeatureOff(true);
           }}
@@ -1025,41 +1102,42 @@ export function Dashboard() {
               ? () => { setWelcomeRevisit(true); setOnboardingDismissed(false); }
               : undefined}
         />
-        {/* Lighting device-selection gate, gated by its own server-side flag so
-            a factory reset reopens everything. Back targets whichever earlier
-            gate actually ran this session: import, else features, else
-            welcome. */}
-        <LightingOnboardingScreen
-          open={lightingOnboardingOpen}
-          onComplete={() => setLightingOnboardingDismissed(true)}
+        {/* Conflicting-apps gate. A full screen like the gates before it, not
+            the top-bar modal - that one belongs to the badge and carries its
+            "don't show again" row. Its hook call lives in the child, not in
+            Dashboard's body: useTopic reads MultiplexContext from above its
+            component, and Dashboard is what renders it. */}
+        <ConflictOnboardingGate
+          enabled={conflictStepPending}
+          armed={conflictStepArmed}
+          done={conflictStepDone}
+          nexus2Installed={nexus2.payload?.detected === true}
+          onArm={armConflictStep}
+          onSpend={spendConflictStep}
+          onComplete={spendConflictStep}
           onSkipOnboarding={skipOnboarding}
+          // Disarm as well as reopening the previous gate: `open` here is the
+          // only gate condition that does not exclude an earlier one, so
+          // leaving it armed stacks two full-screen overlays. Back targets
+          // whichever earlier gate ran this session: import, else features,
+          // else welcome.
           onBack={() => {
+            setConflictStepArmed(false);
             if (importOffered) { setImportDismissed(false); return; }
             if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); return; }
             setWelcomeRevisit(true); setOnboardingDismissed(false);
           }}
         />
-        {/* Final onboarding gate: conflicting apps. A full screen like the
-            gates before it, not the top-bar modal - that one belongs to the
-            badge and carries its "don't show again" row. Its hook call lives in
-            the child, not in Dashboard's body: useTopic reads MultiplexContext
-            from above its component, and Dashboard is what renders it. */}
-        <ConflictOnboardingGate
-          enabled={gatesSettled && !conflictStepDone}
-          armed={conflictStepArmed}
-          done={conflictStepDone}
-          onArm={() => setConflictStepArmed(true)}
-          onSpend={() => setConflictStepDone(true)}
-          onComplete={() => setConflictStepDone(true)}
+        {/* Lighting device-selection gate, gated by its own server-side flag so
+            a factory reset reopens everything. Back reopens the conflict step
+            when it showed this session, else whichever earlier gate ran:
+            import, else features, else welcome. */}
+        <LightingOnboardingScreen
+          open={lightingOnboardingOpen}
+          onComplete={() => { latchedAt.current = Date.now(); setLightingOnboardingDismissed(true); }}
           onSkipOnboarding={skipOnboarding}
-          // Disarm as well as reopening the previous gate: `open` here is the
-          // only gate condition that does not exclude an earlier one, so
-          // leaving it armed stacks two full-screen overlays. The lighting
-          // gate never ran this session when it was skipped by the features
-          // gate, so back up past it to whichever gate ran instead.
           onBack={() => {
-            setConflictStepArmed(false);
-            if (!lightingFeatureOff) { setLightingOnboardingDismissed(false); return; }
+            if (conflictStepArmed) { setConflictStepDone(false); return; }
             if (importOffered) { setImportDismissed(false); return; }
             if (featuresStatus === 'pending') { setFeaturesOnboardingDismissed(false); return; }
             setWelcomeRevisit(true); setOnboardingDismissed(false);
@@ -1072,6 +1150,8 @@ export function Dashboard() {
         <TransferToasts />
         {/* Community-layout auto-apply announcements with Undo, active regardless of view. */}
         <MappingAppliedToasts />
+        {/* Announces an app the service installed for attached hardware, active regardless of view. */}
+        <AppAutoInstalledToasts />
         {/* Steam-cloud-style profile sync conflict prompt, active regardless of view. */}
         <SyncConflictGate sync={syncStatus} />
         <PairPhoneModal

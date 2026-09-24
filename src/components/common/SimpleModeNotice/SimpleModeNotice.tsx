@@ -6,8 +6,7 @@ export interface SimpleModeNoticeProps {
   message: string;
 }
 
-/** Shown when the active configuration has no tile on the simple page, which
- *  would otherwise read as nothing running. */
+/** Accent-tinted info line: a simple-page state with no tile, standing help text under a list, or a temporary override of a setting. */
 export function SimpleModeNotice({ message }: SimpleModeNoticeProps) {
   return (
     <p className={styles.notice} role="status">

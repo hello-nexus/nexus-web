@@ -1,11 +1,14 @@
-import { AlertTriangle, ShieldOff } from 'lucide-react';
+import { AlertTriangle, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import type { DetectedConflict } from '../../../api/conflicts';
+import { Button } from '../Button/Button';
 import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
+import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
 import { useConflictDevices } from '../../../hooks/useConflictDevices';
+import { useConflictResolveAll } from '../../../hooks/useConflictResolveAll';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import styles from './ConflictWarning.module.scss';
 
@@ -13,8 +16,6 @@ interface ConflictWarningProps {
   conflicts: readonly DetectedConflict[];
   /** False while the detected-app snapshot is unresolved (service offline); the modal then holds its rows rather than reading the gap as apps exiting. */
   ready: boolean;
-  /** Pulse the badge to flag a conflicting app that just started running. */
-  pulsing: boolean;
   /** Whether conflict alerts are currently suppressed (the persisted setting). */
   suppressed: boolean;
   open: boolean;
@@ -26,6 +27,8 @@ interface ConflictWarningProps {
    * badge stays purely presentational.
    */
   onSuppressedChange: (suppressed: boolean) => void;
+  /** Open Settings' Manage conflicting applications modal. */
+  onManageApps: () => void;
 }
 
 /**
@@ -37,7 +40,7 @@ interface ConflictWarningProps {
  * listed as terminated, and the "all clear" state shows only for a modal
  * opened with nothing detected.
  */
-export function ConflictWarningBadge({ conflicts, ready, pulsing, suppressed, open, onOpenChange, onSuppressedChange }: ConflictWarningProps) {
+export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange, onSuppressedChange, onManageApps }: ConflictWarningProps) {
   const { t } = useTranslation();
   const count = conflicts.length;
   const showButton = count > 0 && !suppressed;
@@ -50,7 +53,7 @@ export function ConflictWarningBadge({ conflicts, ready, pulsing, suppressed, op
       {showButton && (
         <TopBarStatusButton
           tone="warn"
-          pulsing={pulsing}
+          pulsing
           icon={<AlertTriangle size={16} />}
           label={t('conflicts.badge.text')}
           onClick={() => onOpenChange(true)}
@@ -63,6 +66,7 @@ export function ConflictWarningBadge({ conflicts, ready, pulsing, suppressed, op
         suppressed={suppressed}
         onClose={() => onOpenChange(false)}
         onSuppressedChange={onSuppressedChange}
+        onManageApps={() => { onOpenChange(false); onManageApps(); }}
       />
     </>
   );
@@ -75,16 +79,19 @@ interface ConflictWarningModalProps {
   suppressed: boolean;
   onClose: () => void;
   onSuppressedChange: (suppressed: boolean) => void;
+  onManageApps: () => void;
 }
 
 export function ConflictWarningModal({
-  open, conflicts, ready, suppressed, onClose, onSuppressedChange,
+  open, conflicts, ready, suppressed, onClose, onSuppressedChange, onManageApps,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
   // Rows are sticky for as long as the modal stays open: an app ended from
   // here keeps its place, marked terminated, instead of vanishing mid-read.
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
+  const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
+  const { pending, resolving, autostartDisabledIds, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
 
   if (!open) return null;
 
@@ -112,6 +119,9 @@ export function ConflictWarningModal({
                   onSetOwner={owner => setOwner(entry.conflict.id, owner)}
                   terminated={entry.terminated}
                   onTerminated={() => markTerminated(entry.conflict.id)}
+                  autostart={autostartByApp.get(entry.conflict.id)}
+                  onDisableAutostart={() => disableAutostart(entry.conflict.id)}
+                  autostartDisabled={autostartDisabledIds.has(entry.conflict.id)}
                 />
               </li>
             ))}
@@ -120,16 +130,32 @@ export function ConflictWarningModal({
           <ConflictAllClear />
         )}
 
+        <div className={styles.actionRow}>
+          <Button tone="neutral" size="sm" icon={<SlidersHorizontal />} onClick={onManageApps}>
+            {t('conflicts.modal.manageApps')}
+          </Button>
+          {hasConflicts && (
+            <Button
+              tone="neutral"
+              size="sm"
+              icon={<ShieldCheck />}
+              loading={resolving}
+              loadingHidesLabel
+              disabled={!pending}
+              onClick={() => { void resolveAll(); }}
+            >
+              {t('conflicts.modal.resolveAll')}
+            </Button>
+          )}
+        </div>
+
         <label className={styles.dismissRow}>
           <input
             type="checkbox"
             checked={suppressed}
             onChange={() => onSuppressedChange(!suppressed)}
           />
-          <span className={styles.dismissText}>
-            <ShieldOff size={14} className={styles.dismissIcon} />
-            {t('conflicts.modal.dontShowAgain')}
-          </span>
+          <span>{t('conflicts.modal.dontShowAgain')}</span>
         </label>
       </div>
     </DeviceModal>

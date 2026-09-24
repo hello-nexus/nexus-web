@@ -1,0 +1,32 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.chipRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+
+  > :first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.chipLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.previewNote {
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-size: var(--type-small);
+}

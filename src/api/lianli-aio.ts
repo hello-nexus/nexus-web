@@ -20,6 +20,8 @@ export interface Galahad2LightingMode {
 
 export interface Galahad2Lighting {
   mode: string;
+  /** The animation the device plays when the Lighting page is not driving it. Absent on an older service. */
+  effectMode?: string;
   speed: number;
   direction: number;
   brightness: number;

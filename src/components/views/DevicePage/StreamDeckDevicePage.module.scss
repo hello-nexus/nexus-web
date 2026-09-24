@@ -88,8 +88,8 @@
 
 // Customize tab: a two-column split. The left column holds the deck preview
 // pinned at its top (outside the scroll) with the key editor scrolling under
-// it; the right column is the action picker - a fixed 300px scroller matching
-// the lighting page's device-list width.
+// it; the right column is a fixed-width scroller with the mode/preset controls
+// above the action picker, wide enough for an app-profile row's name + buttons.
 .customizeSplit {
   display: flex;
   flex: 1;
@@ -125,9 +125,12 @@
 }
 
 .pickerPane {
-  flex: 0 0 300px;
+  flex: 0 0 360px;
   min-height: 0;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 // Settings tab: a single full-width column, no preview. Standard 1.5rem gap

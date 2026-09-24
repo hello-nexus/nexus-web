@@ -23,6 +23,13 @@ interface ConfirmModalProps {
   destructive?: boolean;
   /** Disables the confirm button, e.g. while a caller-tracked async onConfirm is still in flight. */
   confirmDisabled?: boolean;
+  /**
+   * Optional third action, rendered as the primary button with confirm
+   * demoted beside it. For a prompt where the safe way out is doing the work
+   * rather than abandoning it: "you have unsaved edits" offers Save here and
+   * keeps Discard as the confirm.
+   */
+  primaryAction?: { label: string; onSelect: () => void; disabled?: boolean };
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -47,6 +54,7 @@ export function ConfirmModal({
   cancelLabel,
   destructive = true,
   confirmDisabled = false,
+  primaryAction,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -80,12 +88,23 @@ export function ConfirmModal({
           {cancelLabel ?? t('confirm.cancel')}
         </Button>
         <Button
-          tone={destructive ? 'danger-solid' : 'accent'}
+          // With a primary action present, confirm is the other way out and
+          // never the accent button.
+          tone={destructive ? 'danger-solid' : primaryAction ? 'neutral' : 'accent'}
           size="md"
           onClick={onConfirm}
           disabled={confirmDisabled}>
           {confirmLabel ?? t('confirm.ok')}
         </Button>
+        {primaryAction && (
+          <Button
+            tone="accent"
+            size="md"
+            onClick={primaryAction.onSelect}
+            disabled={primaryAction.disabled}>
+            {primaryAction.label}
+          </Button>
+        )}
       </div>
     </Overlay>
   );

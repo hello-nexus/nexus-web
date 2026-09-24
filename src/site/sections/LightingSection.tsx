@@ -3,7 +3,9 @@ import { Lightbulb } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import { PaletteRing } from '../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../components/common/Slider/Slider';
-import { defaultStateFor, defaultParamsFor, EFFECTS, type EffectState, type EffectParamDef } from '../../types/lighting';
+import { defaultStateFor, EFFECTS, type EffectState } from '../../types/lighting';
+import { useShaderParams } from '../../hooks/useShaderParams';
+import { clampToSpec } from '../../lib/shaderParams';
 import { DEMO_SLOT_ZERO } from '../demoLooks';
 import { useInViewport } from '../hooks/useInViewport';
 import { useAutoRotateHue } from '../hooks/useAutoRotateHue';
@@ -33,9 +35,12 @@ const START_COLORIZE = 0.55;
 
 // Each effect's baseline is its first preset slot (the app's default look),
 // pinned in DEMO_SLOT_ZERO since the static site has no service to fetch from.
+// Params it omits fall back to the shader's own hint_range default, filled in
+// by useShaderRenderer the same way the app fills a preset saved before a
+// param existed.
 function slotZero(key: string): EffectState {
   const slot = DEMO_SLOT_ZERO[key];
-  return { ...defaultStateFor(key), ...slot, params: { ...defaultParamsFor(key), ...slot?.params } };
+  return { ...defaultStateFor(key), ...slot, params: { ...slot?.params } };
 }
 
 // Static per-thumbnail shader state: the effect's first-slot look, slowed so
@@ -85,6 +90,7 @@ export function LightingSection() {
   const [effect, setEffect] = useState<string>('plasma');
   const controls = DEMO_EFFECTS.find(e => e.key === effect)?.controls ?? [];
   const def = useMemo(() => EFFECTS.find(e => e.key === effect), [effect]);
+  const { specs } = useShaderParams(effect);
   const base = useMemo(() => slotZero(effect), [effect]);
   const [speed, setSpeed] = useState(base.speed);
   const [saturation, setSaturation] = useState(base.saturation);
@@ -104,8 +110,12 @@ export function LightingSection() {
     setParams(next.params);
   };
 
-  const paramDef = (name: string): EffectParamDef | undefined =>
-    def?.params.find(p => p.name === name);
+  // Range comes from the fetched shader's spec; label stays on the effect
+  // catalog entry (EffectParamDef keeps only name/label/labelKey/options now).
+  const paramLabel = (name: string): string | undefined => {
+    const p = def?.params.find(pd => pd.name === name);
+    return p ? (p.labelKey ? t(p.labelKey) : p.label) : undefined;
+  };
 
   return (
     <section ref={ref} className={`${styles.section} ${styles.sectionFlipped}`}>
@@ -193,21 +203,23 @@ export function LightingSection() {
                     />
                   );
                 }
-                const p = paramDef(name);
-                if (!p) return null;
+                const spec = specs[name];
+                const label = paramLabel(name);
+                if (!spec || !label) return null;
+                const value = clampToSpec(params[name] ?? spec.defaultValue, spec);
                 return (
                   <Slider
-                    key={`${effect}-${p.name}`}
-                    label={p.labelKey ? t(p.labelKey) : p.label}
-                    value={params[p.name] ?? p.defaultValue}
-                    min={p.min}
-                    max={p.max}
-                    step={p.step}
+                    key={`${effect}-${name}`}
+                    label={label}
+                    value={value}
+                    min={spec.min}
+                    max={spec.max}
+                    step={spec.step}
                     orientation="stacked"
                     editable
                     trackFill
-                    formatValue={v => (p.step >= 1 ? String(Math.round(v)) : v.toFixed(2))}
-                    onChange={v => setParams(prev => ({ ...prev, [p.name]: v }))}
+                    formatValue={v => (spec.step >= 1 ? String(Math.round(v)) : v.toFixed(2))}
+                    onChange={v => setParams(prev => ({ ...prev, [name]: v }))}
                   />
                 );
               })}

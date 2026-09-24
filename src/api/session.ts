@@ -17,3 +17,21 @@ export async function fetchLastRoute(): Promise<string> {
 export function saveLastRoute(path: string): Promise<LastRoute | null> {
   return postService<LastRoute>('/session/last-route', { path });
 }
+
+/**
+ * The sidebar's "recently opened" app keys, oldest first. Same lifetime as
+ * the last route: held in the service's process memory, so closing the window
+ * keeps them and a service start clears them.
+ */
+export interface RecentApps {
+  keys: string[];
+}
+
+export async function fetchRecentApps(): Promise<string[]> {
+  const result = await fetchService<RecentApps>('/session/recent-apps');
+  return result?.keys ?? [];
+}
+
+export function saveRecentApps(keys: string[]): Promise<RecentApps | null> {
+  return postService<RecentApps>('/session/recent-apps', { keys });
+}

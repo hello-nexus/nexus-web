@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchShaderSource } from '../api/lighting';
+import { createDisplayDivider, createFramePacer, panelDisplayHz, streamFrameCap } from '../lib/framePacer';
+import { BASE_UNIFORM_NAMES, clampToSpec, resolveParamUniforms, type ShaderParamSpec } from '../lib/shaderParams';
 import type { EffectState } from '../types/lighting';
 import type { AudioSnapshot } from './useAudioState';
 
@@ -17,7 +19,7 @@ export function useShaderRenderer(
   effect: string | null,
   stateRef: React.RefObject<EffectState | null>,
   audioRef?: React.RefObject<AudioSnapshot | null>,
-  options?: { maxDevicePixelRatio?: number },
+  options?: { maxDevicePixelRatio?: number; maxFps?: number },
   // When true, u_time is held at the value it had the instant this flipped
   // true, so the preview freezes on the same frame the server-side lighting
   // engine freezes at instead of blanking or drifting.
@@ -35,6 +37,9 @@ export function useShaderRenderer(
   const epochRef = useRef(0);
   const uniformsRef = useRef<Record<string, WebGLUniformLocation | null>>({});
   const compiledRef = useRef<string | null>(null);
+  // Built once per compiled source (never re-parsed per frame).
+  const specByNameRef = useRef<Map<string, ShaderParamSpec>>(new Map());
+  const resolvedRef = useRef<{ params: Record<string, number> | undefined; entries: [string, number][] }>({ params: undefined, entries: [] });
   // Beat Builder peak-holds and history ring (reused across frames).
   const levelPeakRef = useRef(0);
   const bassPeakRef = useRef(0);
@@ -138,6 +143,10 @@ export function useShaderRenderer(
       programRef.current = prog;
       compiledRef.current = effect;
 
+      const specByName = new Map(src.params.map(p => [p.name, p]));
+      specByNameRef.current = specByName;
+      resolvedRef.current = { params: undefined, entries: [] };
+
       const names = [
         'u_resolution', 'u_time', 'u_speed', 'u_intensity',
         'u_hue', 'u_colorize', 'u_saturation', 'u_contrast',
@@ -148,19 +157,47 @@ export function useShaderRenderer(
       ];
       const cache: Record<string, WebGLUniformLocation | null> = {};
       for (const n of names) cache[n] = gl.getUniformLocation(prog, n);
+      for (const spec of specByName.values()) {
+        if (!BASE_UNIFORM_NAMES.has(spec.name)) cache[spec.name] = gl.getUniformLocation(prog, spec.name);
+      }
       const s = stateRef.current;
       if (s?.params) {
-        for (const key of Object.keys(s.params)) cache[key] = gl.getUniformLocation(prog, key);
+        for (const key of Object.keys(s.params)) if (!(key in cache)) cache[key] = gl.getUniformLocation(prog, key);
       }
       uniformsRef.current = cache;
 
       setLoading(false);
 
       let firstFrame = true;
+      const cap = options?.maxFps ?? streamFrameCap(window.location.search);
+      const shouldDraw = cap ? createFramePacer(cap) : createDisplayDivider(panelDisplayHz(window.location.search));
 
-      const render = () => {
+      const render = (ts: number) => {
         if (epochRef.current !== myEpoch) return;
         if (!glRef.current || !programRef.current) return;
+        // Audio snapshots are taken every tick, drawn or not, so peak holds and the
+        // spectrum history advance with the audio rather than with the draw rate.
+        const audio = audioRef?.current;
+
+        if (audio !== lastSnapshotRef.current) {
+          lastSnapshotRef.current = audio ?? null;
+          if (audio) {
+            levelPeakRef.current = Math.max(levelPeakRef.current * 0.90, audio.level);
+            bassPeakRef.current  = Math.max(bassPeakRef.current  * 0.90, audio.bass);
+            midPeakRef.current   = Math.max(midPeakRef.current   * 0.90, audio.mid);
+            highPeakRef.current  = Math.max(highPeakRef.current  * 0.90, audio.high);
+            histRingRef.current.copyWithin(16, 0, 240);
+            const sp = audio.spectrum;
+            for (let i = 0; i < 16; i++) histRingRef.current[i] = sp[i] ?? 0;
+          } else {
+            levelPeakRef.current = 0;
+            bassPeakRef.current  = 0;
+            midPeakRef.current   = 0;
+            highPeakRef.current  = 0;
+            histRingRef.current.fill(0);
+          }
+        }
+        if (!shouldDraw(ts)) { rafRef.current = requestAnimationFrame(render); return; }
         const g = glRef.current;
         const c = canvasRef.current!;
         const devicePixelRatio = window.devicePixelRatio || 1;
@@ -188,42 +225,31 @@ export function useShaderRenderer(
           t = (Date.now() % 86_400_000) / 1000;
         }
 
+        const specByName = specByNameRef.current;
         if (u.u_resolution) g.uniform2f(u.u_resolution, w, h);
         if (u.u_time) g.uniform1f(u.u_time, t);
-        if (u.u_speed) g.uniform1f(u.u_speed, st.speed / 50);
-        if (u.u_intensity) g.uniform1f(u.u_intensity, st.intensity);
-        if (u.u_hue) g.uniform1f(u.u_hue, st.hue);
-        if (u.u_colorize) g.uniform1f(u.u_colorize, st.colorize);
-        if (u.u_saturation) g.uniform1f(u.u_saturation, st.saturation);
-        if (u.u_contrast) g.uniform1f(u.u_contrast, st.contrast);
+        if (u.u_speed) g.uniform1f(u.u_speed, clampToSpec(st.speed / 50, specByName.get('u_speed')));
+        if (u.u_intensity) g.uniform1f(u.u_intensity, clampToSpec(st.intensity, specByName.get('u_intensity')));
+        if (u.u_hue) g.uniform1f(u.u_hue, clampToSpec(st.hue, specByName.get('u_hue')));
+        if (u.u_colorize) g.uniform1f(u.u_colorize, clampToSpec(st.colorize, specByName.get('u_colorize')));
+        if (u.u_saturation) g.uniform1f(u.u_saturation, clampToSpec(st.saturation, specByName.get('u_saturation')));
+        if (u.u_contrast) g.uniform1f(u.u_contrast, clampToSpec(st.contrast, specByName.get('u_contrast')));
 
-        const audio = audioRef?.current;
-
-        if (audio !== lastSnapshotRef.current) {
-          lastSnapshotRef.current = audio ?? null;
-          if (audio) {
-            levelPeakRef.current = Math.max(levelPeakRef.current * 0.90, audio.level);
-            bassPeakRef.current  = Math.max(bassPeakRef.current  * 0.90, audio.bass);
-            midPeakRef.current   = Math.max(midPeakRef.current   * 0.90, audio.mid);
-            highPeakRef.current  = Math.max(highPeakRef.current  * 0.90, audio.high);
-            histRingRef.current.copyWithin(16, 0, 240);
-            const sp = audio.spectrum;
-            for (let i = 0; i < 16; i++) histRingRef.current[i] = sp[i] ?? 0;
-          } else {
-            levelPeakRef.current = 0;
-            bassPeakRef.current  = 0;
-            midPeakRef.current   = 0;
-            highPeakRef.current  = 0;
-            histRingRef.current.fill(0);
-          }
-        }
 
         if (u.u_audioLevel) g.uniform1f(u.u_audioLevel, audio?.level ?? 0);
         if (u.u_audioBass) g.uniform1f(u.u_audioBass, audio?.bass ?? 0);
         if (u.u_audioMid) g.uniform1f(u.u_audioMid, audio?.mid ?? 0);
         if (u.u_audioHigh) g.uniform1f(u.u_audioHigh, audio?.high ?? 0);
         if (u.u_audioBeat) g.uniform1f(u.u_audioBeat, audio?.beat ?? 0);
-        if (u.u_audioBoost) g.uniform1f(u.u_audioBoost, audio ? (st.params?.u_audioBoost ?? 1) : 0);
+        // An unannotated u_audioBoost (lightning.frag) has no spec to default
+        // from, so an unset param falls back to full reactivity rather than NaN.
+        const audioBoostSpec = specByName.get('u_audioBoost');
+        if (u.u_audioBoost) {
+          const boost = audioBoostSpec
+            ? clampToSpec(st.params?.u_audioBoost ?? NaN, audioBoostSpec)
+            : (st.params?.u_audioBoost ?? 1);
+          g.uniform1f(u.u_audioBoost, audio ? boost : 0);
+        }
         if (u.u_spectrum) g.uniform1fv(u.u_spectrum, audio?.spectrum ?? new Float32Array(16));
         if (u.u_spectrum64) g.uniform1fv(u.u_spectrum64, audio?.spectrum64 ?? new Float32Array(64));
         if (u.u_specHist) g.uniform4fv(u.u_specHist, histRingRef.current);
@@ -232,15 +258,19 @@ export function useShaderRenderer(
         if (u.u_midPeak)   g.uniform1f(u.u_midPeak,   midPeakRef.current);
         if (u.u_highPeak)  g.uniform1f(u.u_highPeak,  highPeakRef.current);
 
-        if (st.params) {
-          for (const [key, val] of Object.entries(st.params)) {
-            let loc = u[key];
-            if (loc === undefined) {
-              loc = g.getUniformLocation(programRef.current, key);
-              u[key] = loc;
-            }
-            if (loc) g.uniform1f(loc, val);
+        // Resolved once per params identity, not per frame: the panel runs
+        // several of these canvases at 60fps on the Q-series.
+        if (resolvedRef.current.params !== st.params) {
+          resolvedRef.current = { params: st.params, entries: Object.entries(resolveParamUniforms(st.params, specByName)) };
+        }
+        const resolvedParams = resolvedRef.current.entries;
+        for (const [key, val] of resolvedParams) {
+          let loc = u[key];
+          if (loc === undefined) {
+            loc = g.getUniformLocation(programRef.current, key);
+            u[key] = loc;
           }
+          if (loc) g.uniform1f(loc, val);
         }
 
         g.bindVertexArray(vaoRef.current);
@@ -251,7 +281,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, audioRef]);
+  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, audioRef]);
 
   return { ready, loading, error };
 }

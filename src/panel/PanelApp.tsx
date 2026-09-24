@@ -13,6 +13,7 @@ import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './eng
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
+import { useAppsChangedSync } from './engine/useAppsChangedSync';
 import { useFlashWidgets } from './engine/useFlashWidgets';
 import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
 import { useMachineName } from './engine/useMachineName';
@@ -21,6 +22,8 @@ import { usePageSync } from './engine/usePageSync';
 import { useConnectionIntro } from './engine/useConnectionIntro';
 import { useHomeIntro } from './engine/useHomeIntro';
 import { PANEL_CONTEXT_MENU_TRIGGER_MS, usePanelTouchMode } from './engine/usePanelTouchMode';
+import { usePanelDragScroll } from './engine/usePanelDragScroll';
+import { TouchViaPointerContext, useTouchViaPointer } from './engine/touchViaPointer';
 import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
@@ -40,10 +43,24 @@ import { useWidgetResizeMotion } from './engine/useWidgetResizeMotion';
 import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
 import { PanelActionsTray } from './chrome/PanelActionsTray';
+import { PanelSwipeHint } from './chrome/PanelSwipeHint';
+import { usePanelSwipeOnboarding } from './engine/usePanelSwipeOnboarding';
 import { PanelImmersiveOverlay } from './overlays/PanelImmersiveOverlay';
+import {
+  canMarkImmersiveOnLoad,
+  immersiveOnLoadResolvable,
+  immersiveOnLoadTarget,
+  isImmersiveOnLoadWidget,
+  setImmersiveOnLoadWidgetId,
+} from './engine/immersiveOnLoad';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import type { DeckEditView } from './widgets/types';
 import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
+import { useDeckInstance, DeckInstanceProvider } from './widgets/deck/useDeckInstance';
+import { innerGridForSize } from './widgets/deck/deckLayout';
+import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
+import { resolveGaugeGradient } from './theme/gaugeGradient';
+import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
 import { ErrorBoundary } from '../components/common/ErrorBoundary/ErrorBoundary';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
@@ -59,7 +76,7 @@ import { useCrossZoneDrag } from '../app/CrossZoneDrag';
 import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
 import { useTranslation } from '../lib/i18n';
-import { applyHtmlChromeTheme } from '../lib/settings';
+import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
 import { isRemotePaired, isTunnelActive } from '../api/service';
 import { createUuid } from '../lib/uuid';
@@ -76,6 +93,7 @@ import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
+import { PanelBackgroundSlideshow } from './background/PanelBackgroundSlideshow';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
 import { panelBackgroundFrostScale, resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
@@ -114,13 +132,16 @@ import {
 import {
   buildEmbeddedPanelThemeVars,
   buildPanelThemeVars,
+  panelAccentColor,
   resolveEffectivePanelTheme,
   useDocumentResolvedThemeMode,
   usePanelLanguageSync,
   usePanelTheme,
   useResolvedPanelThemeMode,
 } from './theme/panelTheme';
+import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
+import type { PanelThemeSettingsSection } from './editor/PanelThemeSettings';
 import {
   DragTargetHighlight,
   EmptyCellDroppable,
@@ -143,10 +164,10 @@ interface PanelLayoutState {
   // layout sources that can never hit it (the embedded dashboard, the
   // device-page simulator).
   saveForbidden?: boolean;
-  // `layout` reflects the record's STORED layout rather than the local seed.
-  // Undefined on sources that own their own persistence and can never write
-  // a seed over stored bytes (the embedded dashboard, the device-page
-  // simulator); only the kiosk's usePanelLayout reports it.
+  // `layout` reflects the record's STORED layout rather than the local seed;
+  // gates the immersive-on-load latch. Undefined on sources with no seed
+  // phase (the embedded dashboard, the device-page simulator); only the
+  // kiosk's usePanelLayout reports it.
   hydrated?: boolean;
   setLayout: (next: PanelLayout) => void;
 }
@@ -184,6 +205,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
     if (connected && !wasConnected.current) refetch();
     wasConnected.current = connected;
   }, [connected, refetch]);
+  useAppsChangedSync(refetch);
 
   // Keep the record's viewport facts truthful across a display rotation. The
   // Y70 record is not display-bound, so the promoted-monitor topology sync
@@ -302,6 +324,7 @@ export function PanelContent({
   simulatorThemeMode,
   simulatorSelectedWidgetId,
   simulatorFlashSignal,
+  simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
   openCatalogSignal,
@@ -330,6 +353,9 @@ export function PanelContent({
   // Parent-driven one-shot flash (e.g. a resize the editor rejected). The
   // nonce re-fires the flash for repeat rejections of the same widget.
   simulatorFlashSignal?: { widgetId: string; nonce: number } | null;
+  // The parent's iframe fit scale. Preview overlays meant for the desktop
+  // operator divide it out so they do not shrink with the canvas.
+  simulatorPreviewScale?: number;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
   openCatalogSignal?: number;
@@ -354,7 +380,11 @@ export function PanelContent({
   // Render-time per-surface overrides (persisted theme intact); see
   // resolveEffectivePanelTheme for what each surface forces.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
-  const effectiveTheme = useMemo(() => resolveEffectivePanelTheme(baseTheme, surface), [baseTheme, surface]);
+  const focusStaticMode = useFocusStaticBackground(surface, !simulator && !embedded);
+  const effectiveTheme = useMemo(() => {
+    const theme = resolveEffectivePanelTheme(baseTheme, surface);
+    return focusStaticMode ? withStaticBackground(theme) : theme;
+  }, [baseTheme, surface, focusStaticMode]);
   usePanelLanguageSync(kioskBehavior, panelTheme.prefs);
   // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
   // tracking the desktop OS); fall back to appThemeMode when unpublished -
@@ -367,6 +397,21 @@ export function PanelContent({
   const resolvedThemeMode = simulator && simulatorThemeMode
     ? simulatorThemeMode
     : embedded ? desktopResolvedThemeMode : panelResolvedThemeMode;
+  // Embedded in the desktop the panel has no device record: its gradient is
+  // profile-scoped and its accent is the app's (see the theme vars below).
+  const dashboardGradient = useDashboardGaugeGradient(embedded);
+  const gaugeSource = embedded ? dashboardGradient.stops : effectiveTheme.gaugeGradient;
+  const gaugeAccent = embedded ? (appAccentColor || DEFAULT_ACCENT) : panelAccentColor(effectiveTheme);
+  const previewGaugeGradient = embedded ? dashboardGradient.preview : panelTheme.previewGaugeGradient;
+  const commitGaugeGradient = embedded ? dashboardGradient.commit : panelTheme.commitGaugeGradient;
+  const gaugeGradientValue = useMemo<PanelGaugeGradientValue>(() => ({
+    stops: resolveGaugeGradient(gaugeSource, gaugeAccent),
+    source: gaugeSource,
+    accent: gaugeAccent,
+    mode: resolvedThemeMode,
+    preview: previewGaugeGradient,
+    commit: commitGaugeGradient,
+  }), [gaugeSource, gaugeAccent, resolvedThemeMode, previewGaugeGradient, commitGaugeGradient]);
   // Standalone phone/kiosk owns the tab - mirror its resolved theme to <html>
   // so iOS Safari paints chrome (URL bar, overscroll, scrollbars) via the
   // matching color-scheme + <meta theme-color>. Skipped when embedded (the
@@ -434,6 +479,7 @@ export function PanelContent({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [sheetMode, setSheetMode] = useState<SheetMode | null>(null);
+  const [panelSettingsSection, setPanelSettingsSection] = useState<PanelThemeSettingsSection>('all');
   const [sheetClosing, setSheetClosing] = useState(false);
   const [editingWidgetId, setEditingWidgetId] = useState<string | null>(null);
   const [selectedMonitoringSlot, setSelectedMonitoringSlot] = useState(0);
@@ -454,6 +500,12 @@ export function PanelContent({
   // cell when editing a widget on page 2+. Portal into this untransformed
   // panel-root container so the cell anchors to the viewport on any page.
   const [editorDockPortalEl, setEditorDockPortalEl] = useState<HTMLDivElement | null>(null);
+  const [dragOverlaySlot, setDragOverlaySlot] = useState<HTMLElement | null>(null);
+  // A detach only clears its own slot: dnd-kit keeps the previous overlay
+  // mounted past the drop, so it can detach after the next drag's attach.
+  const handleDragOverlaySlot = useCallback((slot: HTMLElement, attached: boolean) => {
+    setDragOverlaySlot(prev => (attached ? slot : prev === slot ? null : prev));
+  }, []);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const { t } = useTranslation();
@@ -463,8 +515,12 @@ export function PanelContent({
   // Bumped on each immersive open so the overlay's React key changes between
   // sessions for the same widget, clearing stale state that blocks re-entry.
   const [immersiveOpenCounter, setImmersiveOpenCounter] = useState(0);
+  // The open came from the immersive-on-load mark, not a tap: the overlay skips
+  // its slide-up, which would otherwise play over a visible dashboard.
+  const [immersiveOpenedOnLoad, setImmersiveOpenedOnLoad] = useState(false);
   const enterImmersive = useCallback((widgetId: string) => {
     setImmersiveOpenCounter(n => n + 1);
+    setImmersiveOpenedOnLoad(false);
     setImmersiveWidgetId(widgetId);
   }, []);
   const handleImmersiveExit = useCallback(() => {
@@ -478,9 +534,11 @@ export function PanelContent({
   // Selection guard runs in simulator too: text-select fights drag gestures
   // inside the iframe like on a real touch surface.
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
-  usePhoneContentScale(surface === 'phone' && loaded, rootRef);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio);
+  // The phone measures its rendered cell; the ratio re-bases that onto the
+  // stock-padding cell the grid solved its render scale at.
+  usePhoneContentScale(surface === 'phone' && loaded, rootRef, runtimeGrid.contentScale / runtimeGrid.cellSize);
   // WebKit (Safari / macOS WKWebView) miscomputes the tokens.scss
   // tan(atan2(cell, 90px)) length-ratio used for --panel-scale, returning a
   // negative number that flips every --panel-scale-driven element 180deg
@@ -568,6 +626,12 @@ export function PanelContent({
   const themeBackdrop = showPanelBackground && !seeThrough
     ? 'var(--backdrop-base)'
     : 'transparent';
+  // Clamped once here: a zero-width preview container makes the parent's fit
+  // scale non-finite, and its reciprocal would collapse every overlay sized by
+  // it to nothing.
+  const previewScale = simulator && Number.isFinite(simulatorPreviewScale) && simulatorPreviewScale > 0
+    ? Math.min(1, Math.max(0.05, simulatorPreviewScale))
+    : 1;
   const panelRootStyle = useMemo(
     () => ({
       ...panelThemeVars,
@@ -580,6 +644,12 @@ export function PanelContent({
       // the CSS-rendered gap/padding always agree - it is a plain px length,
       // never itself derived from --panel-gap, so no cyclic var() chain.
       '--panel-widget-padding': `${runtimeGrid.gap}px`,
+      // The parent's iframe fit scale, and its reciprocal. Preview overlays
+      // multiply by the upscale so a length authored in desktop px survives the
+      // downscale, and by the scale to cap a width against the panel. Both are
+      // 1 everywhere but the device page's canvas preview.
+      '--panel-preview-scale': previewScale,
+      '--panel-preview-upscale': 1 / previewScale,
       ...(webkitSafePanelScale != null ? { '--panel-scale': webkitSafePanelScale } : {}),
       ...(surface === 'desktop' ? {
         '--panel-cell-size': `${runtimeGrid.cellSize}px`,
@@ -595,6 +665,7 @@ export function PanelContent({
       runtimeGrid.cellSize,
       runtimeGrid.columns,
       runtimeGrid.contentScale,
+      previewScale,
       runtimeGrid.gap,
       runtimeGrid.rowSize,
       runtimeGrid.rows,
@@ -605,12 +676,18 @@ export function PanelContent({
   // The immersive overlay paints its own opaque background from
   // --panel-background-solid; an inline `background` beats that rule, and in
   // the see-through backdrop it is transparent, so the live desktop showed
-  // through the overlay.
+  // through the overlay. Gap and counts are the stock-padding ones, not the
+  // live grid's: see PanelGridCapacity.contentGap.
   const immersiveThemeStyle = useMemo<CSSProperties>(() => {
-    const style = { ...panelRootStyle };
+    const style = {
+      ...panelRootStyle,
+      '--panel-columns': runtimeGrid.contentColumns,
+      '--panel-rows': runtimeGrid.contentRows,
+      '--panel-widget-padding': `${runtimeGrid.contentGap}px`,
+    } as CSSProperties;
     delete style.background;
     return style;
-  }, [panelRootStyle]);
+  }, [panelRootStyle, runtimeGrid.contentColumns, runtimeGrid.contentGap, runtimeGrid.contentRows]);
 
   // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's scrim, else
@@ -637,31 +714,14 @@ export function PanelContent({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragExtraPageId, setDragExtraPageId] = useState<string | null>(null);
 
-  // Re-paginate the persisted layout to current capacity, persisting via
-  // setLayout. repaginatePanelLayout returns the SAME reference when pages
-  // already match (byte-equal). That reference equality is load-bearing:
-  // without it the persistence effect below calls setLayout every render,
-  // the next render computes a fresh reference, the effect re-fires, and the
-  // panel render-loops (presents as the WebSocket "loses connection after
-  // one frame" symptom - the React tree never settles).
+  // Render-only: nothing capacity-derived reaches setLayout. The capacity
+  // is transient (a kiosk recreated at landscape bounds, a phone rotation)
+  // and repackToFit does not round-trip a transpose - written back, a 4x2
+  // between 4x4s re-fits to the bottom (PanelApp.layoutWriteback.test.tsx).
   const paginatedLayout = useMemo(
     () => repaginatePanelLayout(layout, capacity),
     [layout, capacity],
   );
-  useEffect(() => {
-    // CRITICAL: only auto-persist once `layout` holds the STORED layout.
-    // `loaded` is the record's fetch flag and `layout` is the local seed for a
-    // render past it, so `hydrated` is the one that gates a write; persisting
-    // a re-paginated seed overwrites the user's saved layout.
-    //
-    // Never auto-persist from the simulator: the parent (PanelDevicePage)
-    // owns the persisted bytes per PanelEmbedFrame's set-layout /
-    // layout-changed contract and conforms them to the editor capacity
-    // itself; the simulator renders the repaginated shape locally and echoes
-    // only user edits (see panelEditorLayoutSync.test.ts).
-    if (!loaded || simulator || hydrated === false) return;
-    if (paginatedLayout !== layout) setLayout(paginatedLayout);
-  }, [paginatedLayout, layout, setLayout, loaded, simulator, hydrated]);
 
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
   // predates the service reporting it - the embedded desktop dashboard is
@@ -780,8 +840,49 @@ export function PanelContent({
     return undefined;
   }, [paginatedLayout]);
 
+  // Immersive-on-load, resolved in the commit the stored layout first lands so
+  // the overlay is up before anything paints. A marked SDK app resolves only
+  // once the marketplace registry lands, so the latch waits rather than burning
+  // on a lookupApp that is merely not ready yet.
+  const immersiveOnLoadLatched = useRef(false);
+  if (!immersiveOnLoadLatched.current
+    && kioskBehavior
+    && loaded
+    && hydrated !== false
+    && immersiveOnLoadResolvable(paginatedLayout)) {
+    immersiveOnLoadLatched.current = true;
+    const target = immersiveOnLoadTarget({
+      layout: paginatedLayout,
+      surface,
+      landscape: isLandscape,
+      deviceTouch,
+    });
+    if (target) {
+      setImmersiveOpenCounter(n => n + 1);
+      setImmersiveOpenedOnLoad(true);
+      setImmersiveWidgetId(target.id);
+    }
+  }
+  const setImmersiveOnLoad = useCallback((widgetId: string, on: boolean) => {
+    setLayout(setImmersiveOnLoadWidgetId(paginatedLayout, on ? widgetId : null));
+  }, [paginatedLayout, setLayout]);
+
   const editingWidget = editingWidgetId ? widgetById(editingWidgetId) ?? null : null;
   const editingWidgetSize = editingWidget?.size;
+  // The edited widget's own grid tile (PanelTouchCell, in the page below) and
+  // PanelEditorSheet's DeckSettings both bind to this same instance while the
+  // sheet is open; sharing one useDeckInstance call through DeckInstanceProvider
+  // keeps a tile drag and an inspector edit from racing each other's
+  // independent auto-saves (see useDeckInstance.ts, mirrors PanelDevicePage's
+  // InlineWidgetSettings).
+  const isEditingDeckWidget = sheetMode === 'settings' && editingWidget?.type === 'deck';
+  const editingDeckInstanceId = isEditingDeckWidget ? `widget:${editingWidget!.id}` : null;
+  const editingDeckInstanceGrid = isEditingDeckWidget ? innerGridForSize(editingWidget!.size) : { cols: 0, rows: 0 };
+  const sharedDeckInstance = useDeckInstance(editingDeckInstanceId, 'widget', editingDeckInstanceGrid, true);
+  const editingImmersiveOnLoadAvailable =
+    canMarkImmersiveOnLoad(paginatedLayout, editingWidget, surface, isLandscape, deviceTouch);
+  const editingImmersiveOnLoad = editingWidget !== null
+    && isImmersiveOnLoadWidget(paginatedLayout, editingWidget.id);
   // QR pairing adds another device to a paired desktop, valid only from the
   // native app or bundled-localhost dashboard. The browser-fallback panel
   // (plain HTTP, non-loopback host) is the "no app installed" path and can't
@@ -816,7 +917,19 @@ export function PanelContent({
     if (!def.meta.supportsImmersive[orientationKey]) return;
     enterImmersive(w.id);
   }, [embedded, enterImmersive, isLandscape, onSectionNavigate, onSimulatorWidgetClicked, simulator, surface]);
-  const touch = usePanelTouchMode({ onCellTap });
+  // macOS delivers touchscreen contacts as mouse pointers (see
+  // engine/touchViaPointer); only under that flag does a mouse get the
+  // touch gesture model.
+  const mouseAsTouch = useTouchViaPointer() && surfaceSupportsTouch(surface, deviceTouch);
+  const touch = usePanelTouchMode({ onCellTap, mouseLongPress: mouseAsTouch });
+  usePanelDragScroll(mouseAsTouch);
+  // On the document, not the root: the editor sheet and immersive overlay
+  // mount outside the root, and the pointer is the finger there too.
+  useEffect(() => {
+    if (!mouseAsTouch) return undefined;
+    document.documentElement.setAttribute('data-touch-via-pointer', 'true');
+    return () => document.documentElement.removeAttribute('data-touch-via-pointer');
+  }, [mouseAsTouch]);
   const contextMenuWidgetId = surface === 'phone' && !sheetMode
     ? touch.ctxMenu?.widget.id ?? null
     : null;
@@ -841,6 +954,12 @@ export function PanelContent({
   // Embedded desktop only mounts once the service is online (DashboardOnline),
   // so layout `loaded` is the readiness signal; serviceStatus is kiosk-only here.
   const homeIntroActive = useHomeIntro(embedded && surface === 'desktop' && loaded);
+  // Same surfaces as the tray; the connection intro blocks it so the two never stack.
+  const swipeOnboarding = usePanelSwipeOnboarding({
+    enabled: kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && loaded && !isOffline,
+    blocked: connectionIntroBlocked || Boolean(connectionIntroHost),
+    trayOpen,
+  });
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
@@ -849,7 +968,9 @@ export function PanelContent({
   // serves the panel through its loopback proxy (origin 127.0.0.1, which
   // isRemotePaired reads as a hardwired-kiosk localhost). Show the "connected
   // to <PC>" identity for it the same as the LAN-IP / relay phone origins.
-  const connectionIdentityVisible = isRemotePaired || surface === 'phone';
+  // The simulator iframe on the public website reads as a remote host too,
+  // yet it previews a hardwired panel, so it never shows the identity.
+  const connectionIdentityVisible = (isRemotePaired && !simulator) || surface === 'phone';
   // The live connection is running over the cloud relay (not the direct LAN
   // /ws socket). Surface a satellite badge so the user knows traffic is going
   // through the relay; LAN connections show nothing extra.
@@ -863,7 +984,7 @@ export function PanelContent({
   // widget long-press-to-menu). Kiosk surfaces only, not while in a sheet /
   // immersive / drag state, and only when the press misses widgets and
   // interactive elements.
-  const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS);
+  const backgroundLongPress = useLongPress(() => setTrayOpen(true), PANEL_CONTEXT_MENU_TRIGGER_MS, { allowMouse: mouseAsTouch });
   const backgroundPressBlocked = !kioskBehavior
     || !surfaceSupportsTouch(surface, deviceTouch)
     || trayOpen
@@ -948,12 +1069,13 @@ export function PanelContent({
   }, [clearCloseTimer, editingWidgetId, editingWidgetSize, editorDockSupported, finishSheetClose, sheetMode, surface]);
    
 
-  const openSheet = useCallback((mode: SheetMode) => {
+  const openSheet = useCallback((mode: SheetMode, section: PanelThemeSettingsSection = 'all') => {
     clearCloseTimer();
     setSheetClosing(false);
     setEditorDockMotion(null);
     setEditingWidgetId(null);
     setSelectedMonitoringSlot(0);
+    setPanelSettingsSection(section);
     setSheetMode(mode);
   }, [clearCloseTimer]);
 
@@ -1375,6 +1497,9 @@ export function PanelContent({
   }, [paginatedLayout, touch, widgetById, embedded, surface, setDraggingPinnableType, pinnedTail]);
 
   return (
+    <TouchViaPointerContext.Provider value={mouseAsTouch}>
+    <PanelGaugeGradientProvider value={gaugeGradientValue}>
+    <DeckInstanceProvider value={editingDeckInstanceId ? { instanceId: editingDeckInstanceId, value: sharedDeckInstance } : null}>
     <DndContext
       sensors={sensors}
       collisionDetection={panelCollisionDetection}
@@ -1415,8 +1540,9 @@ export function PanelContent({
         // React 19 flushes setDraggingPinnableType(null) synchronously here,
         // unmounting SidebarPinDropTarget and detaching its pointerup listener
         // before pointerup reaches it; commit the pin imperatively while the
-        // sidebar state is still live.
-        sidebarDropHandlerRef.current?.();
+        // sidebar state is still live. A drop on the sidebar only pins: the
+        // widget keeps its dashboard cell.
+        const pinnedToSidebar = sidebarDropHandlerRef.current?.() === true;
         currentOverIdRef.current = null;
         setActiveDragId(null);
         // Clear the make-room preview in the same batch as the committed
@@ -1432,7 +1558,7 @@ export function PanelContent({
         dragGestureRef.current = { startX: 0, startY: 0, lastOverId: null };
         touch.handleDragEnd();
         setDraggingPinnableType(null);
-        if (!overId || activeId === overId) return;
+        if (pinnedToSidebar || !overId || activeId === overId) return;
         const activeWidget = widgetById(activeId);
         if (!activeWidget) return;
         const target = parseDragTarget(overId, layoutForDrop, activeWidget);
@@ -1512,14 +1638,26 @@ export function PanelContent({
             fullRes={simulator}
           />
         )}
-        {showBackgroundLayers && effectiveTheme.backgroundMode === 'media' && effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType && deviceId && (
-          <PanelBackgroundMedia
-            id={effectiveTheme.backgroundMediaId}
-            deviceId={deviceId}
-            type={effectiveTheme.backgroundMediaType}
-            alpha={effectiveTheme.backgroundMediaAlpha}
-            opacity={effectiveTheme.backgroundOpacity}
-          />
+        {showBackgroundLayers && effectiveTheme.backgroundMode === 'media' && deviceId && (
+          effectiveTheme.backgroundSlideshow ? (
+            <PanelBackgroundSlideshow
+              deviceId={deviceId}
+              startId={effectiveTheme.backgroundMediaId}
+              intervalSec={effectiveTheme.backgroundSlideshowInterval}
+              shuffle={effectiveTheme.backgroundSlideshowShuffle}
+              finishVideos={effectiveTheme.backgroundSlideshowFinishVideos}
+              order={effectiveTheme.backgroundMediaOrder}
+              opacity={effectiveTheme.backgroundOpacity}
+            />
+          ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
+            <PanelBackgroundMedia
+              id={effectiveTheme.backgroundMediaId}
+              deviceId={deviceId}
+              type={effectiveTheme.backgroundMediaType}
+              alpha={effectiveTheme.backgroundMediaAlpha}
+              opacity={effectiveTheme.backgroundOpacity}
+            />
+          ) : null
         )}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'solid' && (
           <div
@@ -1563,10 +1701,11 @@ export function PanelContent({
                               surface={surface}
                               deviceTouch={deviceTouch}
                               rearranging={touch.rearranging}
-                              pressHint={surface === 'phone' && !sheetMode && (touch.pressedWidgetId === w.id || contextMenuWidgetId === w.id)}
+                              pressHint={!sheetMode && touch.pressedWidgetId === w.id}
                               dimmed={Boolean(contextMenuWidgetId) && contextMenuWidgetId !== w.id}
                               editorDockMotion={editorDockSupported && sheetMode === 'settings' && editorDockMotion?.widgetId === w.id ? editorDockMotion : null}
                               editorDockPortal={editorDockPortalEl}
+                              dragOverlaySlot={dragOverlaySlot}
                               flash={flashedWidgets.has(w.id)}
                               entrance={entranceWidgets.has(w.id)}
                               isDragSource={activeDragId === w.id}
@@ -1590,6 +1729,10 @@ export function PanelContent({
                               // widget in the canvas is click-to-edit (NEX-6),
                               // so hovering one fades in a full-cell notice.
                               editHint={simulator && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
+                              // Device-page preview only: hovering the widget
+                              // marked immersive-on-load frames it and names
+                              // the mark, so the canvas says which one opens.
+                              immersiveOnLoad={simulator && isImmersiveOnLoadWidget(paginatedLayout, w.id)}
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
@@ -1636,7 +1779,8 @@ export function PanelContent({
                 onOpen={() => setTrayOpen(true)}
                 onClose={() => setTrayOpen(false)}
                 onAddWidget={() => openSheet('catalog')}
-                onSettings={() => openSheet('panelSettings')}
+                onTheme={() => openSheet('panelSettings', 'theme')}
+                onBackground={() => openSheet('panelSettings', 'background')}
                 onPair={nativePairingAvailable ? nativeSettings.open : undefined}
                 pairAvailable={nativePairingAvailable}
                 onPairSheet={
@@ -1652,6 +1796,7 @@ export function PanelContent({
                 remotePaired={connectionIdentityVisible}
               />
             )}
+            {swipeOnboarding.hintVisible && <PanelSwipeHint />}
             <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
             {connectionIntroHost && connectionIdentityVisible && (
               <>
@@ -1717,6 +1862,7 @@ export function PanelContent({
         const unpinAvailable = sidebarPinnable && alreadyPinned;
         return (
           <WidgetContextMenu
+            key={touch.ctxMenu.seq}
             x={ctxPoint.x}
             y={ctxPoint.y}
             currentSize={ctxWidget.size}
@@ -1774,6 +1920,7 @@ export function PanelContent({
         return (
           <PanelImmersiveOverlay
             key={`${immersiveWidgetId}-${immersiveOpenCounter}`}
+            instant={immersiveOpenedOnLoad}
             open
             onExit={handleImmersiveExit}
             themeStyle={immersiveThemeStyle}
@@ -1784,7 +1931,7 @@ export function PanelContent({
               widget={w}
               surface={surface}
               deviceTouch={deviceTouch}
-              immersiveGrid={{ columns: runtimeGrid.columns, rows: runtimeGrid.rows }}
+              immersiveGrid={{ columns: runtimeGrid.contentColumns, rows: runtimeGrid.contentRows }}
               // Immersive views own state the user sets from inside them (the
               // media visualizer's on/off + effect), so the persist path has to
               // reach the layout from run mode, not only from the edit sheet.
@@ -1802,6 +1949,9 @@ export function PanelContent({
           deviceTouch={deviceTouch}
           touchPanelChrome={touchPanelChrome}
           editingWidget={sheetMode === 'settings' ? editingWidget : null}
+          immersiveOnLoadAvailable={editingImmersiveOnLoadAvailable}
+          immersiveOnLoad={editingImmersiveOnLoad}
+          onImmersiveOnLoadChange={on => { if (editingWidget) setImmersiveOnLoad(editingWidget.id, on); }}
           saveForbidden={saveForbidden}
           panelTheme={panelTheme.theme}
           gridColumns={runtimeGrid.columns}
@@ -1822,6 +1972,7 @@ export function PanelContent({
           onThemeBackgroundModeCommit={panelTheme.commitBackgroundMode}
           onThemeBackdropCommit={panelTheme.commitBackdrop}
           showBackdropSelector={wallpaperBackgroundAvailable}
+          backgroundHeldBy={focusStaticMode}
           onThemeBackgroundEffectCommit={panelTheme.commitBackgroundEffect}
           onThemeBackgroundTemplateCommit={panelTheme.commitBackgroundTemplate}
           onThemeBackgroundEffectStatePreview={panelTheme.previewBackgroundEffectState}
@@ -1829,6 +1980,8 @@ export function PanelContent({
           onThemeBackgroundOpacityPreview={panelTheme.previewBackgroundOpacity}
           onThemeBackgroundOpacityCommit={panelTheme.commitBackgroundOpacity}
           onThemeBackgroundMediaCommit={panelTheme.commitBackgroundMedia}
+          onThemeBackgroundSlideshowCommit={panelTheme.commitBackgroundSlideshow}
+          onThemeBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
           showMediaTab={surface !== 'desktop' && !isTunnelActive()}
           deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
           deviceW={surface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}
@@ -1842,6 +1995,7 @@ export function PanelContent({
           onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}
           machineName={machineName}
           showHostName={connectionIdentityVisible}
+          panelSettingsSection={panelSettingsSection}
           onMachineNameCommit={onMachineNameCommit}
           onAdd={addWidget}
           onResize={resizeWidget}
@@ -1908,16 +2062,19 @@ export function PanelContent({
             <PanelDragOverlayCell
               widget={w}
               surface={surface}
-              deviceTouch={deviceTouch}
               themeStyle={overlayStyle}
               themeMode={resolvedThemeMode}
               fixedWidth={dragSnapshot.width}
               fixedHeight={dragSnapshot.height}
               showLabels={effectiveTheme.widgetLabels}
+              onSlot={handleDragOverlaySlot}
             />
           );
         })()}
       </DragOverlay>
     </DndContext>
+    </DeckInstanceProvider>
+    </PanelGaugeGradientProvider>
+    </TouchViaPointerContext.Provider>
   );
 }

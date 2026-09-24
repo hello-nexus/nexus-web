@@ -101,6 +101,7 @@ export function FocusChip({ online }: { online: boolean }) {
   if (active?.holdNotifications) held.push(t('focus.effect.notifications'));
   if (active?.holdBackgroundTraffic) held.push(t('focus.effect.traffic'));
   if (active?.turnPanelDisplaysOff) held.push(t('focus.effect.panelsOff'));
+  if (active?.staticPanelBackgrounds) held.push(t('focus.effect.staticBackgrounds'));
 
   const tooltip = active
     ? [

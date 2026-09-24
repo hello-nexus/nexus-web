@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { House, Lightbulb, Zap } from 'lucide-react';
+import { House, LayoutDashboard, Lightbulb, Sun, ToggleRight, Zap } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
 import { Card } from '../../../components/common/Card/Card';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -430,15 +430,31 @@ export function HomeAssistantSetupForm({
   immersive?: boolean;
 }) {
   const { t } = useTranslation();
-  const { url, token, connecting, connectError } = ctrl;
+  const { url, token, connecting, connectError, configured } = ctrl;
+  // The intro is for first-time setup; a configured instance that went offline
+  // keeps the one-line prompt.
+  const showIntro = !immersive && !configured;
   const parsedUrl = (() => { try { return new URL(url.trim()); } catch { return null; } })();
   const tokenPageUrl = parsedUrl && (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:')
     ? `${parsedUrl.origin}/profile/security`
     : null;
   return (
-    <div className={immersive ? styles.bodyImmersive : undefined}>
+    <div className={immersive ? styles.bodyImmersive : styles.setupIntro}>
+      {showIntro && (
+        <EmptyState
+          hero
+          icon={<House />}
+          title={t('homeAssistant.intro.title')}
+          hint={t('homeAssistant.intro.body')}
+          points={[
+            { icon: <ToggleRight />, text: t('homeAssistant.intro.pointToggle') },
+            { icon: <Sun />, text: t('homeAssistant.intro.pointColor') },
+            { icon: <LayoutDashboard />, text: t('homeAssistant.intro.pointWidget') },
+          ]}
+        />
+      )}
       <div className={styles.setupCard}>
-        <p className={styles.setupPrompt}>{t('homeAssistant.setupPrompt')}</p>
+        {!showIntro && <p className={styles.setupPrompt}>{t('homeAssistant.setupPrompt')}</p>}
         <ol className={styles.guideList}>
           <li>{t('homeAssistant.guideStep1')}</li>
           <li>{t('homeAssistant.guideStep2')}</li>
