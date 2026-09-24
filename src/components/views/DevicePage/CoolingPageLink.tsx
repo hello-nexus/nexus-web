@@ -1,4 +1,4 @@
-import { Thermometer } from 'lucide-react';
+import { Fan } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
@@ -20,7 +20,7 @@ export function CoolingPageLink({ hint, onSectionNavigate }: CoolingPageLinkProp
             className={styles.lightingLink}
             size="sm"
             tone="neutral"
-            icon={<Thermometer size={14} />}
+            icon={<Fan size={14} />}
             onClick={() => onSectionNavigate('cooling')}
           >
             {t('devices.coolingPage.go')}

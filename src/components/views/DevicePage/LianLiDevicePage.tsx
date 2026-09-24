@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Lightbulb, Thermometer, Unplug } from 'lucide-react';
+import { Fan, Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
@@ -149,7 +149,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const tab = activeTab;
   const tabs = [
     { key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> },
-    { key: 'cooling', label: t('cooling.title'), icon: <Thermometer size={14} /> },
+    { key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> },
   ];
 
   return (

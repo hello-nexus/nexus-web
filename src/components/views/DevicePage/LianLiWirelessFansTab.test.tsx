@@ -87,6 +87,9 @@ describe('LianLiWirelessFansTab', () => {
     expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.bound')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.fanTypeSlv3Lcd')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.fanTypeSlv3Lcd' })).not.toBeInTheDocument();
   });
 
   it('renders the header and bind/identify actions for a chain with fanCount 0, with no port rows', async () => {
@@ -106,6 +109,7 @@ describe('LianLiWirelessFansTab', () => {
       }],
     });
     expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.unbound')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).not.toBeInTheDocument();

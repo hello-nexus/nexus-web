@@ -681,7 +681,6 @@
   "devices.lianli-wireless.sensorStyleBar": "막대",
   "devices.lianli-wireless.sensorStyleLabel": "스타일",
   "devices.lianli-wireless.sensorStyleRing": "링",
-  "devices.lianli-wireless.slot": "슬롯 {n}",
   "devices.lianli-wireless.strimerLaneN": "레인 {n}",
   "devices.lianli-wireless.strimerModePerLane": "레인별",
   "devices.lianli-wireless.tab.devices": "장치",

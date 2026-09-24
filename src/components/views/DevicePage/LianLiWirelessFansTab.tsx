@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CollapsibleSection } from '../../common/CollapsibleSection/CollapsibleSection';
+import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import {
@@ -157,18 +157,15 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
         title={t('devices.lianli-wireless.connectionSection')}
         boxClassName={styles.sectionBox}
       >
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>{t('devices.lianli-wireless.masterMac')}</span>
+        <SettingRow label={t('devices.lianli-wireless.masterMac')}>
           <span className={styles.rowValueMono}>{state?.masterMac || '-'}</span>
-        </div>
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>{t('devices.lianli-wireless.channel')}</span>
+        </SettingRow>
+        <SettingRow label={t('devices.lianli-wireless.channel')}>
           <span className={styles.rowValueMono}>{loaded ? state.channel : '-'}</span>
-        </div>
-        <div className={styles.row}>
-          <span className={styles.rowLabel}>{t('devices.lianli-wireless.txFirmware')}</span>
+        </SettingRow>
+        <SettingRow label={t('devices.lianli-wireless.txFirmware')}>
           <span className={styles.rowValueMono}>{loaded ? state.txFirmwareVersion : '-'}</span>
-        </div>
+        </SettingRow>
       </SettingsSection>
 
       <SettingsSection
@@ -177,7 +174,7 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
       >
         {loaded && state.fans.length > 0
           ? state.fans.map(fan => (
-            <FanChain
+            <DeviceRow
               key={fan.mac}
               fan={fan}
               pending={pending[fan.mac]}
@@ -202,7 +199,7 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
   );
 }
 
-function FanChain({
+function DeviceRow({
   fan,
   pending,
   identifying,
@@ -218,7 +215,6 @@ function FanChain({
   onIdentify: (mac: string) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(true);
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
   const busy = pending !== undefined || identifying;
 
@@ -228,38 +224,27 @@ function FanChain({
   const unbindLabel = pending === 'unbind'
     ? t('devices.lianli-wireless.unbinding')
     : t('devices.lianli-wireless.unbind');
+  const bindState: SettingState = fan.boundToUs
+    ? { label: t('devices.lianli-wireless.bound'), tone: 'accent' }
+    : { label: t('devices.lianli-wireless.unbound') };
 
   return (
-    <CollapsibleSection
-      compact
-      title={typeLabel}
-      open={open}
-      onToggle={() => setOpen(o => !o)}
-      right={
-        <>
-          <span className={styles.slotBadge}>{t('devices.lianli-wireless.slot', { n: fan.slot })}</span>
-          <span className={fan.boundToUs ? styles.boundBadge : styles.unboundBadge}>
-            {t(fan.boundToUs ? 'devices.lianli-wireless.bound' : 'devices.lianli-wireless.unbound')}
-          </span>
-        </>
-      }
+    <SettingRow
+      label={typeLabel}
+      state={bindState}
     >
-      <div className={styles.chainBody}>
-        <div className={styles.actionsRow}>
-          {fan.boundToUs ? (
-            <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
-              {unbindLabel}
-            </Button>
-          ) : (
-            <Button size="sm" tone="accent" disabled={busy} onClick={() => onBind(fan.mac)}>
-              {bindLabel}
-            </Button>
-          )}
-          <Button size="sm" tone="neutral" disabled={busy} onClick={() => onIdentify(fan.mac)}>
-            {t('devices.lianli-wireless.identify')}
-          </Button>
-        </div>
-      </div>
-    </CollapsibleSection>
+      {fan.boundToUs ? (
+        <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
+          {unbindLabel}
+        </Button>
+      ) : (
+        <Button size="sm" tone="accent" disabled={busy} onClick={() => onBind(fan.mac)}>
+          {bindLabel}
+        </Button>
+      )}
+      <Button size="sm" tone="neutral" disabled={busy} onClick={() => onIdentify(fan.mac)}>
+        {t('devices.lianli-wireless.identify')}
+      </Button>
+    </SettingRow>
   );
 }
