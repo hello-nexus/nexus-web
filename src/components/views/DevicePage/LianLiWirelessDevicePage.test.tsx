@@ -151,7 +151,7 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
-    expect(screen.getByText('devices.lianli-wireless.bound')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.bound - devices.lianli-wireless.slot:{"n":1}')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.unbound')).not.toBeInTheDocument();
   });
 

@@ -417,9 +417,9 @@ describe('FramesPage - Discover tab', () => {
     expect(useFpsEstimatesMock).toHaveBeenLastCalledWith('1920x1080');
     expect(screen.queryByText('Ryzen 9 9950X3D')).not.toBeInTheDocument();
     const chips = within(screen.getByRole('radiogroup', { name: 'frames.discover.resolution' }));
-    expect(chips.getByRole('radio', { name: '1920×1080' })).toBeChecked();
+    expect(chips.getByRole('radio', { name: '1080p' })).toBeChecked();
 
-    fireEvent.click(chips.getByRole('radio', { name: '3840×2160' }));
+    fireEvent.click(chips.getByRole('radio', { name: '2160p' }));
     await flush();
     expect(useFpsEstimatesMock).toHaveBeenLastCalledWith('3840x2160');
   });
@@ -459,7 +459,7 @@ describe('FramesPage - Discover tab', () => {
 
     expect(await screen.findByText('Counter-Strike 2')).toBeInTheDocument();
     expect(screen.getByText('220')).toBeInTheDocument();
-    expect(screen.getByText('@ 1920×1080')).toBeInTheDocument();
+    expect(screen.getByText('@ 1080p')).toBeInTheDocument();
     expect(screen.getByText('frames.discover.level.3')).toBeInTheDocument();
     expect(screen.getByRole('img', { name: 'frames.discover.confidence.medium' })).toBeInTheDocument();
     expect(screen.queryByText(/frames\.discover\.basedOn/)).not.toBeInTheDocument();
@@ -471,8 +471,8 @@ describe('FramesPage - Discover tab', () => {
     renderPage('discover');
     await flush();
 
-    expect(await screen.findByText('@ 3840×2160')).toBeInTheDocument();
-    expect(screen.getByText(/frames\.discover\.resBasis\(res=1920×1080\)/)).toBeInTheDocument();
+    expect(await screen.findByText('@ 2160p')).toBeInTheDocument();
+    expect(screen.getByText(/frames\.discover\.resBasis\(res=1080p\)/)).toBeInTheDocument();
   });
 
   it('omits the fallback note when resBasis matches the picked resolution', async () => {
@@ -480,7 +480,7 @@ describe('FramesPage - Discover tab', () => {
     renderPage('discover');
     await flush();
 
-    expect(await screen.findByText('@ 1920×1080')).toBeInTheDocument();
+    expect(await screen.findByText('@ 1080p')).toBeInTheDocument();
     expect(screen.queryByText(/frames\.discover\.resBasis/)).not.toBeInTheDocument();
   });
 
