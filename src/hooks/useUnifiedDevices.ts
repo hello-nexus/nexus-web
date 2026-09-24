@@ -18,6 +18,7 @@ import {
   subscribeMarketplaceRegistry,
 } from '../widgets/marketplaceRegistry';
 import type { AppInstalledListing } from '../widgets/types';
+import { resolveHttp } from '../api/service';
 
 export type UnifiedDeviceKind = 'panel' | 'curated' | 'app-device';
 
@@ -351,7 +352,7 @@ function buildUnifiedList(
       name: app.name,
       subtitle: 'device',
       category: 'device',
-      iconSrc: app.iconUrl ?? FALLBACK_ICON,
+      iconSrc: app.iconUrl ? resolveHttp(app.iconUrl) : FALLBACK_ICON,
       connected: true,
       kind: 'app-device',
       navigable: true,

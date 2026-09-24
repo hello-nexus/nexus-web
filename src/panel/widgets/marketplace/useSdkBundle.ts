@@ -10,7 +10,7 @@
 // and an app updated on disk resolves to a new URL.
 
 import { useEffect, useReducer, useState, useSyncExternalStore } from 'react';
-import { postService, fetchServiceBlob } from '../../../api/service';
+import { postService, fetchServiceBlob, isRemoteOrigin, isForceLanMode } from '../../../api/service';
 import { getMarketplaceListing, subscribeMarketplaceRegistry } from '../../../widgets/marketplaceRegistry';
 
 interface CodeSession { sessionId: string; baseUrl: string; }
@@ -24,7 +24,11 @@ const RUNTIME_PATH = '/sdk-runtime.mjs';
 let runtimePromise: Promise<string | null> | null = null;
 
 async function resolveRuntime(): Promise<string | null> {
-  const blob = await fetchServiceBlob(RUNTIME_PATH);
+  // The service serves static files without CORS headers, so a desktop page on
+  // the website loads the copy its own origin ships, built with its receiver.
+  const blob = isRemoteOrigin && isForceLanMode()
+    ? await fetch(RUNTIME_PATH).then((r) => (r.ok ? r.blob() : null), () => null)
+    : await fetchServiceBlob(RUNTIME_PATH);
   if (!blob) return null;
   return URL.createObjectURL(new Blob([blob], { type: 'text/javascript' }));
 }

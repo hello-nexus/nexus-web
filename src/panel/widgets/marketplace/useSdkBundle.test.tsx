@@ -9,10 +9,14 @@ const versions = new Map<string, string>();
 const listeners = new Set<() => void>();
 const postService = vi.fn(async (path: string) => ({ sessionId: 's', baseUrl: path.replace('/code-session', '') }));
 const fetchServiceBlob = vi.fn(async () => new Blob(['export default 1;']));
+let remoteOrigin = false;
+let forceLan = false;
 
 vi.mock('../../../api/service', () => ({
   postService: (path: string) => postService(path),
   fetchServiceBlob: () => fetchServiceBlob(),
+  get isRemoteOrigin() { return remoteOrigin; },
+  isForceLanMode: () => forceLan,
 }));
 vi.mock('../../../widgets/marketplaceRegistry', () => ({
   getMarketplaceListing: (id: string) => (versions.has(id) ? { id, version: versions.get(id) } : undefined),
@@ -78,5 +82,36 @@ describe('useSdkBundle', () => {
     await act(async () => { await Promise.resolve(); });
     expect(result.current.entryUrl).toBeNull();
     expect(postService).not.toHaveBeenCalled();
+  });
+});
+
+describe('useSdkRuntime', () => {
+  beforeEach(() => {
+    fetchServiceBlob.mockClear();
+    vi.restoreAllMocks();
+  });
+
+  it('loads the runtime from the page origin on a website desktop', async () => {
+    remoteOrigin = true;
+    forceLan = true;
+    const pageFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('export {};'));
+    vi.resetModules();
+    const { useSdkRuntime } = await import('./useSdkBundle');
+    const { result } = renderHook(() => useSdkRuntime());
+    await waitFor(() => expect(result.current.runtimeUrl).not.toBeNull());
+    expect(pageFetch).toHaveBeenCalledWith('/sdk-runtime.mjs');
+    expect(fetchServiceBlob).not.toHaveBeenCalled();
+  });
+
+  it('loads the runtime through the service client when the page is served by the service', async () => {
+    remoteOrigin = false;
+    forceLan = false;
+    const pageFetch = vi.spyOn(globalThis, 'fetch');
+    vi.resetModules();
+    const { useSdkRuntime } = await import('./useSdkBundle');
+    const { result } = renderHook(() => useSdkRuntime());
+    await waitFor(() => expect(result.current.runtimeUrl).not.toBeNull());
+    expect(fetchServiceBlob).toHaveBeenCalledTimes(1);
+    expect(pageFetch).not.toHaveBeenCalled();
   });
 });
