@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Power, PowerOff, Unlink, Link, MousePointerClick, Pencil, RotateCcw, Trash2 } from 'lucide-react';
+import { Power, PowerOff, Link2Off, Link2, MousePointerClick, Pencil, RotateCcw, Trash2 } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -128,8 +128,8 @@ export function MotherboardGroup({
     }
     if (!empty) {
       items.push(groupControlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: onToggleControlled }
-        : { key: 'controlled', icon: <Link size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: onToggleControlled });
+        ? { key: 'controlled', icon: <Link2Off size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: onToggleControlled }
+        : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: onToggleControlled });
     }
     if (onRename) {
       items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });
@@ -171,7 +171,7 @@ export function MotherboardGroup({
             {hasUncontrolled && (
               <HoverTooltip body={t('devices.hidden.groupHasUncontrolled')} side="top">
                 <span className={styles.deviceGroupUncontrolled} aria-label={t('devices.hidden.groupHasUncontrolled')}>
-                  <Unlink size={11} aria-hidden />
+                  <Link2Off size={11} aria-hidden />
                 </span>
               </HoverTooltip>
             )}

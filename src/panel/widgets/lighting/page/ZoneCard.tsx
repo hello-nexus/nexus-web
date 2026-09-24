@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Unlink, Link, Layers, Lock, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -168,8 +168,8 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount 
       ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
       : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: menu.onTogglePower });
     items.push(menu.controlled
-      ? { key: 'controlled', icon: <Unlink size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: menu.onToggleControlled }
-      : { key: 'controlled', icon: <Link size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: menu.onToggleControlled });
+      ? { key: 'controlled', icon: <Link2Off size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: menu.onToggleControlled }
+      : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: menu.onToggleControlled });
     if (menu.onRename) {
       items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });
     }
@@ -404,7 +404,7 @@ export function ZoneCard({
     || (bulk && unavailable && bulk.identifyCount === 0)
     ? null
     : !controlled
-      ? { icon: <Unlink size={11} />, label: t('lighting.devices.stateNotControlled') }
+      ? { icon: <Link2Off size={11} />, label: t('lighting.devices.stateNotControlled') }
       : toggleMode
         // Power is moot where the card only decides what Nexus drives.
         ? null
@@ -437,7 +437,7 @@ export function ZoneCard({
       if (onTakeControl) {
         items.push({
           key: 'takeControl',
-          icon: <Link size={14} />,
+          icon: <Link2 size={14} />,
           label: t('lighting.devices.menuTakeControl'),
           onSelect: onTakeControl,
           highlighted: true,
@@ -512,8 +512,8 @@ export function ZoneCard({
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
         : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });
       items.push(isControlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
-        : { key: 'controlled', icon: <Link size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
+        ? { key: 'controlled', icon: <Link2Off size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
+        : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
     }
     // The colour lock. Unlock is offered wherever something is locked; Lock
     // only where a lock can be set (the Static tab) and there is a pick to

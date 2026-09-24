@@ -95,14 +95,14 @@ describe('ZoneCard actions menu', () => {
   it('labels both rows with the action they perform, not the state they are in', () => {
     renderCard({ ...baseDevice, controlled: false, ledsOn: true });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    expect(rowIcon(/menuControlOn/)?.split(' ')).toContain('lucide-link');
+    expect(rowIcon(/menuControlOn/)?.split(' ')).toContain('lucide-link-2');
     expect(rowIcon(/menuLightsOff/)).toContain('lucide-power-off');
   });
 
   it('flips both labels and icons when the state flips', () => {
     renderCard({ ...baseDevice, controlled: true, ledsOn: false });
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    expect(rowIcon(/menuControlOff/)).toContain('lucide-unlink');
+    expect(rowIcon(/menuControlOff/)?.split(' ')).toContain('lucide-link-2-off');
     // lucide-power-off also contains "lucide-power", so pin the exact class.
     expect(rowIcon(/menuLightsOn/)?.split(' ')).toContain('lucide-power');
   });

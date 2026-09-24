@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Link, Lock, MousePointerClick, Pencil, RotateCcw, Trash2, Unlink, Unlock } from 'lucide-react';
+import { Link2, Link2Off, Lock, MousePointerClick, Pencil, RotateCcw, Trash2, Unlock } from 'lucide-react';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
@@ -70,8 +70,8 @@ export function FanGroupHeader({
     // the rows would be inert; it lists only what it can actually do.
     const items: DeviceMenuItem[] = count === 0 ? [] : [
       groupControlled
-        ? { key: 'controlled', icon: <Unlink size={14} />, label: t('cooling.fan.menuControlOff'), onSelect: onToggleControlled }
-        : { key: 'controlled', icon: <Link size={14} />, label: t('cooling.fan.menuControlOn'), onSelect: onToggleControlled },
+        ? { key: 'controlled', icon: <Link2Off size={14} />, label: t('cooling.fan.menuControlOff'), onSelect: onToggleControlled }
+        : { key: 'controlled', icon: <Link2 size={14} />, label: t('cooling.fan.menuControlOn'), onSelect: onToggleControlled },
       groupLocked
         ? { key: 'lock', icon: <Unlock size={14} />, label: t('cooling.lock.unlock'), onSelect: onToggleLock }
         : { key: 'lock', icon: <Lock size={14} />, label: t('cooling.lock.lock'), onSelect: onToggleLock },
@@ -121,7 +121,7 @@ export function FanGroupHeader({
             {hasUncontrolled && (
               <HoverTooltip body={t('devices.hidden.groupHasUncontrolled')} side="top">
                 <span className={styles.fanGroupUncontrolled} aria-label={t('devices.hidden.groupHasUncontrolled')}>
-                  <Unlink size={11} aria-hidden />
+                  <Link2Off size={11} aria-hidden />
                 </span>
               </HoverTooltip>
             )}
