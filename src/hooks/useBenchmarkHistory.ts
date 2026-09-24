@@ -44,8 +44,9 @@ export function useBenchmarkHistory() {
     submissionId?: string | null,
     submission?: BenchmarkStanding | null,
   ) => {
+    const id = `${Date.now()}`;
     const run: BenchmarkRun = {
-      id: `${Date.now()}`,
+      id,
       timestamp: Date.now(),
       composite: result.composite,
       cpu: result.cpu.score,
@@ -64,8 +65,23 @@ export function useBenchmarkHistory() {
       try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* quota */ }
       return next;
     });
+    return id;
+  }, []);
+
+  // Fills in a leaderboard submission on a run added earlier without one, for
+  // the telemetry-off deferred-upload flow.
+  const updateRunSubmission = useCallback((
+    id: string,
+    submissionId: string,
+    submission: BenchmarkStanding,
+  ) => {
+    setHistory(prev => {
+      const next = prev.map(run => run.id === id ? { ...run, submissionId, submission } : run);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* quota */ }
+      return next;
+    });
   }, []);
 
   const latest = history[0] ?? null;
-  return { history, latest, addRun };
+  return { history, latest, addRun, updateRunSubmission };
 }

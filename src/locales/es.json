@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±{pct}%",
   "benchmark.result.submitting": "Enviando a la tabla de clasificación...",
   "benchmark.result.trials": "Pruebas",
+  "benchmark.result.uploadCta": "Subir a la clasificación",
+  "benchmark.result.uploadPrompt": "La telemetría está desactivada, así que este resultado no se subió automáticamente.",
   "benchmark.result.viewLeaderboard": "Ver clasificación",
   "benchmark.results.introBody": "Un benchmark ejecuta cargas de trabajo reales en tu CPU, GPU, RAM y almacenamiento en unos 40 segundos, todo en este PC. Cada ejecución se guarda aquí para comparar antes y después de una mejora.",
   "benchmark.results.introTitle": "Descubre la puntuación de tu PC",

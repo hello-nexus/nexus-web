@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±{pct}%",
   "benchmark.result.submitting": "Wysylanie do rankingu...",
   "benchmark.result.trials": "Próby",
+  "benchmark.result.uploadCta": "Prześlij do rankingu",
+  "benchmark.result.uploadPrompt": "Telemetria jest wyłączona, więc ten wynik nie został przesłany automatycznie.",
   "benchmark.result.viewLeaderboard": "Zobacz tablicę wyników",
   "benchmark.results.introBody": "Benchmark uruchamia rzeczywiste obciążenia na CPU, GPU, RAM i dysku przez około 40 sekund, w całości na tym komputerze. Każdy przebieg jest zapisywany tutaj, by porównać wyniki przed i po ulepszeniu.",
   "benchmark.results.introTitle": "Sprawdź wynik swojego komputera",

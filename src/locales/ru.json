@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±{pct}%",
   "benchmark.result.submitting": "Отправка в таблицу лидеров...",
   "benchmark.result.trials": "Попытки",
+  "benchmark.result.uploadCta": "Отправить в таблицу лидеров",
+  "benchmark.result.uploadPrompt": "Телеметрия отключена, поэтому результат не был отправлен автоматически.",
   "benchmark.result.viewLeaderboard": "Таблица лидеров",
   "benchmark.results.introBody": "Бенчмарк нагружает CPU, GPU, ОЗУ и накопитель реальными задачами около 40 секунд, полностью на этом ПК. Каждый запуск сохраняется здесь, чтобы сравнить результаты до и после апгрейда.",
   "benchmark.results.introTitle": "Узнайте оценку своего ПК",

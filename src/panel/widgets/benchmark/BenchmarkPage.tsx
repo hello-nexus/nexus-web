@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Gauge, Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
@@ -17,6 +17,7 @@ import { SectionHeader } from '../../../components/common/SectionHeader/SectionH
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { getDeviceId, getLastSubmissionId, setLastSubmissionId } from '../../../api/nexusApi';
 import { submitCloudBenchmark } from '../../../api/cloud';
+import { fetchTelemetryConsent } from '../../../api/telemetry';
 import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
@@ -52,12 +53,28 @@ interface BenchmarkPageProps {
 export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onTabChange }: BenchmarkPageProps) {
   const { t } = useTranslation();
   const { status, progress, result, error, start, cancel, reset } = useBenchmark(serviceOnline);
-  const { history, addRun } = useBenchmarkHistory();
+  const { history, addRun, updateRunSubmission } = useBenchmarkHistory();
   const { specs } = useSystemSpecs(serviceOnline);
   const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<{ percentile: number; rank: number; total: number } | null>(null);
   const [submissionId, setSubmissionIdState] = useState<string | null>(() => getLastSubmissionId());
   const [savedResult, setSavedResult] = useState<typeof result>(null);
+  // null while unknown (loading, or a surface that can't reach the service);
+  // treated as off so a run never auto-uploads before consent is confirmed.
+  const [telemetryEnabled, setTelemetryEnabled] = useState<boolean | null>(null);
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
+  // Which completed result the submit-decision effect below has already acted
+  // on, so a consent fetch resolving mid-flight can't re-decide the same run.
+  const decidedResultRef = useRef<typeof result>(null);
+
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    fetchTelemetryConsent().then(res => {
+      if (res && !cancelled) setTelemetryEnabled(res.enabled);
+    });
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
 
   // The board is hosted; local runs and results are not, so only it drops out.
   const tabs = [
@@ -74,8 +91,22 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
 
   useEffect(() => {
     if (!result || result.state !== 'complete') return;
-    let cancelled = false;
     setSavedResult(result);
+    // Wait for consent to resolve, and never re-decide the same result once
+    // handled (a consent fetch resolving after a decision was already made
+    // must not trigger a second, duplicate submit or history entry).
+    if (telemetryEnabled === null || decidedResultRef.current === result) return;
+    decidedResultRef.current = result;
+    let cancelled = false;
+
+    // Telemetry off: keep the result local and let the user opt in explicitly
+    // via handleUpload instead of submitting now.
+    if (telemetryEnabled !== true) {
+      const id = addRun(result, null);
+      setPendingRunId(id);
+      onTabChange('results');
+      return;
+    }
 
     (async () => {
       setSubmitting(true);
@@ -103,11 +134,32 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     })();
 
     return () => { cancelled = true; };
-  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [result, telemetryEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleUpload = useCallback(async () => {
+    const r = savedResult;
+    if (!r) return;
+    setSubmitting(true);
+    try {
+      const payload = buildBenchmarkSubmission(r, getDeviceId());
+      const res = await submitCloudBenchmark(payload);
+      if (res) {
+        const standing = { percentile: res.percentile, rank: res.rank, total: res.totalSubmissions };
+        setSubmission(standing);
+        setLastSubmissionId(res.id);
+        setSubmissionIdState(res.id);
+        if (pendingRunId) updateRunSubmission(pendingRunId, res.id, standing);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }, [savedResult, pendingRunId, updateRunSubmission]);
 
   const handleRerun = useCallback(async () => {
     setSubmission(null);
     setSavedResult(null);
+    setPendingRunId(null);
+    decidedResultRef.current = null;
     await reset();
   }, [reset]);
 
@@ -190,6 +242,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
             submission={submission}
             submitting={submitting}
             submissionId={submissionId}
+            onUpload={pendingRunId ? handleUpload : undefined}
           />
           <div className={styles.controls}>
             <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={handleRerun}>
@@ -236,8 +289,9 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
         <BenchmarkResults
           result={latest.result}
           submission={latest.submission ?? null}
-          submitting={false}
+          submitting={pendingRunId === latest.id && submitting}
           submissionId={latest.submissionId}
+          onUpload={pendingRunId && pendingRunId === latest.id ? handleUpload : undefined}
         />
         {history.length > 1 && (
           <div className={styles.historySection}>

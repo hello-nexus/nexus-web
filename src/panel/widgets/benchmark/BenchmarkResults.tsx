@@ -1,4 +1,4 @@
-import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow, Wrench, type LucideIcon } from 'lucide-react';
+import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow, Wrench, Trophy, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -17,6 +17,8 @@ interface Props {
   submission: { percentile: number; rank: number; total: number } | null;
   submitting: boolean;
   submissionId?: string | null;
+  /** Set only when telemetry is off and this result hasn't been uploaded yet. */
+  onUpload?: () => void;
 }
 
 const SUBSYSTEM_ICONS: Record<string, LucideIcon> = {
@@ -65,7 +67,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
   );
 }
 
-export function BenchmarkResults({ result, submission, submitting, submissionId }: Props) {
+export function BenchmarkResults({ result, submission, submitting, submissionId, onUpload }: Props) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const hw = result.hardware;
@@ -102,6 +104,14 @@ export function BenchmarkResults({ result, submission, submitting, submissionId 
                   total: String(submission.total),
                 })}
               </span>
+            </div>
+          )}
+          {onUpload && !submission && !submitting && (
+            <div className={styles.compositeResultLine}>
+              <span className={styles.percentilePending}>{t('benchmark.result.uploadPrompt')}</span>
+              <Button tone="ghost" icon={<Trophy size={14} />} onClick={onUpload}>
+                {t('benchmark.result.uploadCta')}
+              </Button>
             </div>
           )}
         </div>

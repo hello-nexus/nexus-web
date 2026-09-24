@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±%{pct}",
   "benchmark.result.submitting": "Liderlik tablosuna gonderiliyor...",
   "benchmark.result.trials": "Denemeler",
+  "benchmark.result.uploadCta": "Lider tablosuna yükle",
+  "benchmark.result.uploadPrompt": "Telemetri kapalı olduğu için bu sonuç otomatik olarak yüklenmedi.",
   "benchmark.result.viewLeaderboard": "Lider Tablosunu Görüntüle",
   "benchmark.results.introBody": "Benchmark; CPU, GPU, RAM ve depolama biriminizde yaklaşık 40 saniye boyunca gerçek iş yükleri çalıştırır ve tamamen bu bilgisayarda yürütülür. Her çalıştırma, yükseltme öncesi ve sonrasını karşılaştırmak için burada saklanır.",
   "benchmark.results.introTitle": "Bilgisayarınızın puanını görün",
