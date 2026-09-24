@@ -376,7 +376,7 @@
   // The docked cell opts back into pointer events; this wrapper is only an
   // untransformed anchor.
 }
-.editorDockPortal > * {
+.editorDockPortal > .cellHost > * {
   pointer-events: auto;
 }
 // Desktop only: the desktop edit backdrop is z-modal (it must cover the app top
@@ -721,7 +721,7 @@
 
 // When the cell is portaled into the editor-dock layer the wrapper stays in
 // the grid as an empty placeholder; hide its label so no stray title shows.
-.cellWrap[data-cell-state='docked'] > .cellLabelStrip {
+.cellWrap[data-cell-state='docked'] > .cellHost > .cellLabelStrip {
   visibility: hidden;
 }
 
@@ -1786,13 +1786,19 @@
   --panel-card-radius: var(--radius);
 }
 
+// PanelTouchCell's portal targets and their grid anchor: boxless, so the cell
+// and its card lay out as if the host were not there.
+.cellHost {
+  display: contents;
+}
+
 .dragOverlayCell {
   // Lift via shadow only - DO NOT transform the inner cell. The cellScaler
   // already scales by --panel-widget-scale, so a wrapper transform would
   // compound to scale^2 of the in-grid sibling.
   cursor: grabbing;
 
-  > .cell {
+  > .cellHost > .cell {
     box-shadow: var(--shadow-xl), 0 0 0 1px var(--panel-border);
   }
 }
