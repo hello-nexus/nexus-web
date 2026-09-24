@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchShaderSource } from '../api/lighting';
+import { createDisplayDivider, createFramePacer, panelDisplayHz, streamFrameCap } from '../lib/framePacer';
 import { BASE_UNIFORM_NAMES, clampToSpec, resolveParamUniforms, type ShaderParamSpec } from '../lib/shaderParams';
 import type { EffectState } from '../types/lighting';
 import type { AudioSnapshot } from './useAudioState';
@@ -18,7 +19,7 @@ export function useShaderRenderer(
   effect: string | null,
   stateRef: React.RefObject<EffectState | null>,
   audioRef?: React.RefObject<AudioSnapshot | null>,
-  options?: { maxDevicePixelRatio?: number },
+  options?: { maxDevicePixelRatio?: number; maxFps?: number },
   // When true, u_time is held at the value it had the instant this flipped
   // true, so the preview freezes on the same frame the server-side lighting
   // engine freezes at instead of blanking or drifting.
@@ -168,10 +169,35 @@ export function useShaderRenderer(
       setLoading(false);
 
       let firstFrame = true;
+      const cap = options?.maxFps ?? streamFrameCap(window.location.search);
+      const shouldDraw = cap ? createFramePacer(cap) : createDisplayDivider(panelDisplayHz(window.location.search));
 
-      const render = () => {
+      const render = (ts: number) => {
         if (epochRef.current !== myEpoch) return;
         if (!glRef.current || !programRef.current) return;
+        // Audio snapshots are taken every tick, drawn or not, so peak holds and the
+        // spectrum history advance with the audio rather than with the draw rate.
+        const audio = audioRef?.current;
+
+        if (audio !== lastSnapshotRef.current) {
+          lastSnapshotRef.current = audio ?? null;
+          if (audio) {
+            levelPeakRef.current = Math.max(levelPeakRef.current * 0.90, audio.level);
+            bassPeakRef.current  = Math.max(bassPeakRef.current  * 0.90, audio.bass);
+            midPeakRef.current   = Math.max(midPeakRef.current   * 0.90, audio.mid);
+            highPeakRef.current  = Math.max(highPeakRef.current  * 0.90, audio.high);
+            histRingRef.current.copyWithin(16, 0, 240);
+            const sp = audio.spectrum;
+            for (let i = 0; i < 16; i++) histRingRef.current[i] = sp[i] ?? 0;
+          } else {
+            levelPeakRef.current = 0;
+            bassPeakRef.current  = 0;
+            midPeakRef.current   = 0;
+            highPeakRef.current  = 0;
+            histRingRef.current.fill(0);
+          }
+        }
+        if (!shouldDraw(ts)) { rafRef.current = requestAnimationFrame(render); return; }
         const g = glRef.current;
         const c = canvasRef.current!;
         const devicePixelRatio = window.devicePixelRatio || 1;
@@ -209,26 +235,6 @@ export function useShaderRenderer(
         if (u.u_saturation) g.uniform1f(u.u_saturation, clampToSpec(st.saturation, specByName.get('u_saturation')));
         if (u.u_contrast) g.uniform1f(u.u_contrast, clampToSpec(st.contrast, specByName.get('u_contrast')));
 
-        const audio = audioRef?.current;
-
-        if (audio !== lastSnapshotRef.current) {
-          lastSnapshotRef.current = audio ?? null;
-          if (audio) {
-            levelPeakRef.current = Math.max(levelPeakRef.current * 0.90, audio.level);
-            bassPeakRef.current  = Math.max(bassPeakRef.current  * 0.90, audio.bass);
-            midPeakRef.current   = Math.max(midPeakRef.current   * 0.90, audio.mid);
-            highPeakRef.current  = Math.max(highPeakRef.current  * 0.90, audio.high);
-            histRingRef.current.copyWithin(16, 0, 240);
-            const sp = audio.spectrum;
-            for (let i = 0; i < 16; i++) histRingRef.current[i] = sp[i] ?? 0;
-          } else {
-            levelPeakRef.current = 0;
-            bassPeakRef.current  = 0;
-            midPeakRef.current   = 0;
-            highPeakRef.current  = 0;
-            histRingRef.current.fill(0);
-          }
-        }
 
         if (u.u_audioLevel) g.uniform1f(u.u_audioLevel, audio?.level ?? 0);
         if (u.u_audioBass) g.uniform1f(u.u_audioBass, audio?.bass ?? 0);
@@ -275,7 +281,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, audioRef]);
+  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, audioRef]);
 
   return { ready, loading, error };
 }
