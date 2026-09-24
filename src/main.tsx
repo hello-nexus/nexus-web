@@ -48,14 +48,20 @@ createRoot(document.getElementById('root')!).render(
 // web bundle. Only calls location.reload(); never touches adb/USB/the tunnel.
 initBuildReloadWatcher();
 
-// Register the offline service worker. Only runs on HTTPS or localhost contexts
-// (browsers refuse SW registration on plain HTTP for non-loopback origins).
-if (
-  'serviceWorker' in navigator &&
-  (location.protocol === 'https:' ||
-    location.hostname === 'localhost' ||
-    location.hostname.endsWith('.localhost'))
-) {
+// sw.js never intercepts loopback, yet a registered worker starts before every local launch.
+const isLoopbackHost =
+  location.hostname === 'localhost' ||
+  location.hostname === '127.0.0.1' ||
+  location.hostname.endsWith('.localhost');
+if ('serviceWorker' in navigator && isLoopbackHost) {
+  navigator.serviceWorker.getRegistrations()
+    .then((registrations) => registrations.forEach((r) => void r.unregister()))
+    .catch(() => { /* best-effort */ });
+}
+
+// Register the offline service worker. Only runs on HTTPS contexts (browsers
+// refuse SW registration on plain HTTP for non-loopback origins).
+if ('serviceWorker' in navigator && !isLoopbackHost && location.protocol === 'https:') {
   // Per-tab flag (auto-cleared when the tab closes) recording that we've already
   // done the post-update reload once in this tab.
   const SW_RELOADED_KEY = 'nexus_sw_reloaded';
