@@ -2,16 +2,17 @@
 // the full VolumeState, while PanelTopics.BroadcastVolume pushes a valueless
 // change ping ({ revision }). Reading the ping as a state is what dropped the
 // master fader to zero and greyed it out until the next poll.
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { useSystemVolume } from './useSystemVolume';
 
 const fetchService = vi.fn();
+const postService = vi.fn<(path: string, body: unknown) => Promise<null>>(() => Promise.resolve(null));
 let topicFrame: unknown = null;
 
 vi.mock('../api/service', () => ({
   fetchService: (path: string) => fetchService(path),
-  postService: vi.fn(() => Promise.resolve(null)),
+  postService: (path: string, body: unknown) => postService(path, body),
 }));
 
 vi.mock('./useMultiplexSocket', () => ({
@@ -65,5 +66,86 @@ describe('useSystemVolume', () => {
     topicFrame = { supported: true, volume: 0.9, muted: false };
     rerender();
     expect(result.current.state.volume).toBe(0.2);
+  });
+});
+
+describe('useSystemVolume with a target', () => {
+  const target = { mode: 'auto' as const, source: 'Spotify 2', deviceId: '' };
+  const TARGET_PATH = '/system/volume/target?mode=auto&source=Spotify+2&deviceId=';
+
+  beforeEach(() => {
+    fetchService.mockImplementation((path: string) => Promise.resolve(path.startsWith('/system/volume/target')
+      ? { supported: true, volume: 0.4, muted: false, kind: 'app', id: 'spotify', name: 'Spotify' }
+      : { supported: true, volume: 0.8, muted: false }));
+  });
+
+  it('reads what the target resolves to', async () => {
+    const { result } = renderHook(() => useSystemVolume(true, target));
+    await waitFor(() => expect(result.current.state.name).toBe('Spotify'));
+    expect(fetchService).toHaveBeenCalledWith(TARGET_PATH);
+    expect(result.current.state.volume).toBe(0.4);
+    expect(result.current.state.kind).toBe('app');
+  });
+
+  it('writes to the resolved target, remembering only the release', async () => {
+    const { result } = renderHook(() => useSystemVolume(true, target));
+    await waitFor(() => expect(result.current.state.kind).toBe('app'));
+
+    result.current.commitVolume(0.25);
+    await waitFor(() => expect(postService).toHaveBeenCalledWith(
+      '/system/volume/target', { kind: 'app', id: 'spotify', volume: 0.25, commit: false }));
+
+    result.current.commitVolume(0.3, { flush: true });
+    await waitFor(() => expect(postService).toHaveBeenCalledWith(
+      '/system/volume/target', { kind: 'app', id: 'spotify', volume: 0.3, commit: true }));
+    expect(postService).not.toHaveBeenCalledWith('/system/volume', expect.anything());
+  });
+
+  it('mutes the resolved target', async () => {
+    const { result } = renderHook(() => useSystemVolume(true, target));
+    await waitFor(() => expect(result.current.state.kind).toBe('app'));
+    await result.current.setMuted(true);
+    expect(postService).toHaveBeenCalledWith('/system/volume/target/mute', { kind: 'app', id: 'spotify', muted: true });
+  });
+
+  it('refetches on a full default-output frame instead of taking its level', async () => {
+    const { result, rerender } = renderHook(() => useSystemVolume(true, target));
+    await waitFor(() => expect(result.current.state.volume).toBe(0.4));
+    const reads = fetchService.mock.calls.length;
+
+    topicFrame = { supported: true, volume: 0.9, muted: false };
+    rerender();
+    await waitFor(() => expect(fetchService.mock.calls.length).toBeGreaterThan(reads));
+    expect(result.current.state.volume).toBe(0.4);
+  });
+});
+
+describe('useSystemVolume across a target change', () => {
+  afterEach(() => { vi.useRealTimers(); });
+
+  it('drops a read that outlived its target and keeps one poll loop', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    let releaseA: (value: unknown) => void = () => {};
+    fetchService.mockImplementation((path: string) => path.includes('source=A')
+      ? new Promise(resolve => { releaseA = resolve; })
+      : Promise.resolve({ supported: true, volume: 0.6, muted: false, kind: 'app', id: 'b', name: 'B' }));
+    const { result, rerender } = renderHook(
+      ({ source }) => useSystemVolume(true, { mode: 'app', source, deviceId: '' }),
+      { initialProps: { source: 'A' } },
+    );
+
+    rerender({ source: 'B' });
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(result.current.state.name).toBe('B');
+
+    await act(async () => {
+      releaseA({ supported: true, volume: 0.1, muted: false, kind: 'app', id: 'a', name: 'A' });
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.state.name).toBe('B');
+
+    const before = fetchService.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(fetchService.mock.calls.length - before).toBe(1);
   });
 });

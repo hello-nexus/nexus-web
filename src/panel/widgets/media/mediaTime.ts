@@ -15,10 +15,10 @@ export function formatTrackTime(ms: number): string {
 const RESYNC_MS = 1000;
 
 /**
- * Live playback position between polls. The service advances positions to serve
- * time, so each poll delivers a fresh anchor; this holds it against the
- * monotonic clock and re-renders once a second while playing, ticking the
- * readout without extra requests. A paused session stops at the position it
+ * Live playback position between frames. The media topic sends no frame while
+ * playback runs at 1x, so this holds the last anchor against the monotonic
+ * clock and re-renders once a second while playing, ticking the readout
+ * without extra requests. A paused session stops at the position it
  * reached rather than ticking on.
  */
 export function useLivePositionMs(positionMs: number, durationMs: number, playing: boolean): number {

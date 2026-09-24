@@ -15,6 +15,8 @@ import { surfaceSupportsTouch, widgetLayoutSize } from '../../types';
 import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { mediaArtSignature } from './mediaArt';
+import { useLivePositionMs } from './mediaTime';
+import { mediaVolumeTarget } from './mediaVolumeTarget';
 import { MEDIA_PREVIEW } from './mediaPreviewData';
 import styles from './MediaWidget.module.scss';
 
@@ -48,14 +50,23 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const size = widgetLayoutSize(widget.size);
   const compact = size === '2x2';
   const tall = size === '2x4';
-  // Tall (2x4) is a portrait card (art over centered metadata +
-  // controls) with no room for the persistent volume mixer rail.
-  const volumeBridge = useSystemVolume(showControls && !compact && !tall && !preview);
-  const { state: liveVolume, previewVolume, commitVolume, setMuted } = volumeBridge;
-  const volume = preview ? MEDIA_PREVIEW.volume : liveVolume;
-
   const active = preview ? MEDIA_PREVIEW.active : pickActive(sessions);
   const activeKey = active?.key ?? '';
+  // Tall (2x4) is a portrait card (art over centered metadata +
+  // controls) with no room for the persistent volume mixer rail.
+  const volumeBridge = useSystemVolume(
+    showControls && !compact && !tall && !preview,
+    mediaVolumeTarget(widget, activeKey),
+  );
+  const { state: liveVolume, previewVolume, commitVolume, setMuted } = volumeBridge;
+  const volume = preview ? MEDIA_PREVIEW.volume : liveVolume;
+  // The media topic sends no frame while playback runs at 1x, so the bar
+  // ticks locally between frames.
+  const livePositionMs = useLivePositionMs(
+    active?.session.playback.positionMs ?? 0,
+    active?.session.playback.durationMs ?? 0,
+    !preview && !!active?.session.playback.playing && !active.session.playback.stopped,
+  );
   const artSignature = mediaArtSignature(active?.session);
   const showVolume = showControls && !compact && !tall && volume.supported;
   const artUrl = artAsset.key === activeKey && artAsset.signature === artSignature ? artAsset.url : '';
@@ -103,7 +114,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
             <MediaVolumeSlider
               volume={volume.volume}
               muted={volume.muted}
-              sourceLabel={t('panel.widget.media')}
+              sourceLabel={volume.name || t('panel.widget.media')}
               onPreview={previewVolume}
               onCommit={commitVolume}
               onToggleMute={() => setMuted(!volume.muted)}
@@ -125,7 +136,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const s = active.session;
   const playing = s.playback.playing;
   const progress = s.playback.durationMs > 0
-    ? Math.min(100, (s.playback.positionMs / s.playback.durationMs) * 100)
+    ? Math.min(100, (livePositionMs / s.playback.durationMs) * 100)
     : 0;
   const repeatMode = (s.playback.repeatMode || 'None');
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
@@ -248,7 +259,8 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
             <MediaVolumeSlider
               volume={volume.volume}
               muted={volume.muted}
-              sourceLabel={s.sourceAppName || t('panel.widget.media')}
+              // An app strip's name is process-derived; the media source reads better.
+              sourceLabel={(volume.kind === 'app' ? s.sourceAppName : volume.name) || s.sourceAppName || t('panel.widget.media')}
               onPreview={previewVolume}
               onCommit={commitVolume}
               onToggleMute={() => setMuted(!volume.muted)}
