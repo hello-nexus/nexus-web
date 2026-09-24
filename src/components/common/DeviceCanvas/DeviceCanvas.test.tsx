@@ -46,9 +46,6 @@ describe('DeviceCanvas', () => {
     render(
       <DeviceCanvas
         devices={[device]}
-        canvasPixels={null}
-        canvasW={1000}
-        canvasH={500}
         selectedIds={new Set()}
         primaryDeviceId={null}
         onSelectDevice={vi.fn()}
@@ -82,9 +79,6 @@ describe('DeviceCanvas', () => {
     render(
       <DeviceCanvas
         devices={[device]}
-        canvasPixels={null}
-        canvasW={1000}
-        canvasH={500}
         selectedIds={new Set()}
         primaryDeviceId={null}
         onSelectDevice={vi.fn()}
@@ -117,9 +111,6 @@ describe('DeviceCanvas', () => {
     const { rerender } = render(
       <DeviceCanvas
         devices={[device]}
-        canvasPixels={null}
-        canvasW={1000}
-        canvasH={500}
         selectedIds={new Set()}
         primaryDeviceId={null}
         onSelectDevice={vi.fn()}
@@ -147,9 +138,6 @@ describe('DeviceCanvas', () => {
     rerender(
       <DeviceCanvas
         devices={[device]}
-        canvasPixels={null}
-        canvasW={1000}
-        canvasH={500}
         selectedIds={new Set()}
         primaryDeviceId={null}
         onSelectDevice={vi.fn()}
@@ -166,7 +154,7 @@ describe('DeviceCanvas', () => {
     const onBeforeLayoutSave = vi.fn();
     const { container } = render(
       <DeviceCanvas
-        devices={[device]} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={[device]}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} onBeforeLayoutSave={onBeforeLayoutSave}
       />
@@ -186,7 +174,7 @@ describe('DeviceCanvas', () => {
     );
     const { container } = render(
       <DeviceCanvas
-        devices={[device]} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={[device]}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} onBeforeLayoutSave={onBeforeLayoutSave}
       />
@@ -225,7 +213,7 @@ describe('DeviceCanvas', () => {
     render(
       <DeviceCanvas
         devices={[stackedDevice('a', 'Alpha'), stackedDevice('b', 'Bravo')]}
-        canvasPixels={null} canvasW={1000} canvasH={500}
+       
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -247,7 +235,7 @@ describe('DeviceCanvas', () => {
     render(
       <DeviceCanvas
         devices={[stackedDevice('a', 'Alpha'), far]}
-        canvasPixels={null} canvasW={1000} canvasH={500}
+       
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -281,7 +269,7 @@ describe('DeviceCanvas', () => {
       render(
         <DeviceCanvas
           devices={[named('B850I AORUS PRO - ARGB_V2_1 - Asiahorse Matrix 360')]}
-          canvasPixels={null} canvasW={1000} canvasH={500}
+         
           selectedIds={new Set()} primaryDeviceId={null}
           onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
         />
@@ -297,7 +285,7 @@ describe('DeviceCanvas', () => {
     d.canvasX = 100; d.canvasY = 100; d.canvasW = 200; d.canvasH = 100;
     render(
       <DeviceCanvas
-        devices={[d]} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={[d]}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -314,7 +302,7 @@ describe('DeviceCanvas', () => {
     low.canvasY = 560; low.canvasH = 40; // bottom edge on the canvas edge
     render(
       <DeviceCanvas
-        devices={[low]} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={[low]}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -339,7 +327,7 @@ describe('DeviceCanvas', () => {
     ];
     render(
       <DeviceCanvas
-        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={devices}
         selectedIds={new Set(['a', 'b', 'c'])} primaryDeviceId="a"
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -368,7 +356,7 @@ describe('DeviceCanvas', () => {
     ];
     render(
       <DeviceCanvas
-        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={devices}
         selectedIds={new Set(['a', 'b', 'c', 'd'])} primaryDeviceId="a"
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -401,7 +389,7 @@ describe('DeviceCanvas', () => {
     big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 210;
     const { container } = render(
       <DeviceCanvas
-        devices={[small, big]} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={[small, big]}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -429,7 +417,7 @@ describe('DeviceCanvas', () => {
     big.canvasX = 100; big.canvasY = 100; big.canvasW = 800; big.canvasH = 210;
     render(
       <DeviceCanvas
-        devices={[small, big]} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={[small, big]}
         selectedIds={new Set(['b'])} primaryDeviceId="b"
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -445,7 +433,7 @@ describe('DeviceCanvas', () => {
     edge.canvasX = 0; edge.canvasW = 60; // center 30, but the label is 100 wide
     render(
       <DeviceCanvas
-        devices={[edge]} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={[edge]}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -465,7 +453,7 @@ describe('DeviceCanvas', () => {
     render(
       <DeviceCanvas
         devices={[stackedDevice('a', 'Alpha'), stackedDevice('b', 'Bravo'), stackedDevice('c', 'Charlie')]}
-        canvasPixels={null} canvasW={1000} canvasH={500}
+       
         selectedIds={new Set(['c'])} primaryDeviceId="c"
         onSelectDevice={onSelectDevice} onSetSelection={vi.fn()}
       />
@@ -489,7 +477,7 @@ describe('DeviceCanvas', () => {
     const { container } = render(
       <DeviceCanvas
         devices={[stackedDevice('a', 'Alpha'), stackedDevice('b', 'Bravo'), stackedDevice('c', 'Charlie')]}
-        canvasPixels={null} canvasW={1000} canvasH={500}
+       
         selectedIds={new Set(['c'])} primaryDeviceId="c"
         onSelectDevice={onSelectDevice} onSetSelection={vi.fn()}
       />
@@ -516,7 +504,7 @@ describe('DeviceCanvas', () => {
     });
     render(
       <DeviceCanvas
-        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={devices}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
       />
@@ -535,7 +523,7 @@ describe('DeviceCanvas stacks', () => {
   it('draws one frame and one label for a stack, with the count under the name', () => {
     const { container } = render(
       <DeviceCanvas
-        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={pair()}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
       />
@@ -550,7 +538,7 @@ describe('DeviceCanvas stacks', () => {
   it('names the frame after the member whose LEDs it shows', () => {
     render(
       <DeviceCanvas
-        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={pair()}
         selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-b"
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
       />
@@ -562,7 +550,7 @@ describe('DeviceCanvas stacks', () => {
   it('keeps a named stack\'s header name while the primary is outside it', () => {
     render(
       <DeviceCanvas
-        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={pair()}
         selectedIds={new Set(['dev-c'])} primaryDeviceId="dev-c"
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={[{ id: 's1', name: 'Keeb', members: ['dev-a', 'dev-b'] }]}
       />
@@ -579,7 +567,7 @@ describe('DeviceCanvas stacks', () => {
     );
     const { container } = render(
       <DeviceCanvas
-        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={devices}
         selectedIds={new Set()} primaryDeviceId={null}
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
       />
@@ -599,7 +587,7 @@ describe('DeviceCanvas stacks', () => {
     const devices = pair();
     render(
       <DeviceCanvas
-        devices={devices} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={devices}
         selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a"
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks}
       />
@@ -617,7 +605,7 @@ describe('DeviceCanvas stacks', () => {
     const stackActionsFor = (ids: string[]) => ids.includes('dev-c') ? { stack } : { unstack };
     render(
       <DeviceCanvas
-        devices={pair()} canvasPixels={null} canvasW={1000} canvasH={500}
+        devices={pair()}
         selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a"
         onSelectDevice={vi.fn()} onSetSelection={vi.fn()} stacks={stacks} stackActionsFor={stackActionsFor}
       />

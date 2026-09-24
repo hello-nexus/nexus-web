@@ -1,24 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { lightingOutputUrl } from '../api/lighting';
 import { publishLedFrame, clearLedFrame } from '../lib/ledFrameStore';
 
 export interface LightingFrameState {
-  deviceColors: Map<number, string[]>;
-  canvasPixels: Uint8Array | null;
-  canvasW: number;
-  canvasH: number;
-  framesReceived: number;
   connected: boolean;
+  /** At least one frame carrying canvas pixels arrived on this connection. */
+  live: boolean;
 }
 
-const EMPTY: LightingFrameState = { deviceColors: new Map(), canvasPixels: null, canvasW: 0, canvasH: 0, framesReceived: 0, connected: false };
+const EMPTY: LightingFrameState = { connected: false, live: false };
 
+/** Keeps the lighting output socket open; frames go to ledFrameStore, not React state. */
 export function useLightingFrames(enabled = true): LightingFrameState {
   const [state, setState] = useState<LightingFrameState>(EMPTY);
-  const latest = useRef<{ deviceColors: Map<number, string[]>; canvasPixels: Uint8Array | null; canvasW: number; canvasH: number; frames: number }>(
-    { deviceColors: new Map(), canvasPixels: null, canvasW: 0, canvasH: 0, frames: 0 }
-  );
-  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Gated off (e.g. when connected via relay - the binary output stream is
@@ -28,38 +22,24 @@ export function useLightingFrames(enabled = true): LightingFrameState {
     let cancelled = false;
     let socket: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const tick = () => {
-      if (cancelled) return;
-      setState(prev => {
-        const l = latest.current;
-        if (l.frames === prev.framesReceived) return prev;
-        return { deviceColors: l.deviceColors, canvasPixels: l.canvasPixels, canvasW: l.canvasW, canvasH: l.canvasH, framesReceived: l.frames, connected: true };
-      });
-      rafRef.current = requestAnimationFrame(tick);
-    };
+    let live = false;
 
     const connect = async () => {
       const url = await lightingOutputUrl();
       socket = new WebSocket(url);
       socket.binaryType = 'arraybuffer';
-      socket.onopen = () => { if (!cancelled) { setState(p => ({ ...p, connected: true })); rafRef.current = requestAnimationFrame(tick); } };
+      socket.onopen = () => { if (!cancelled) setState(p => (p.connected ? p : { ...p, connected: true })); };
       socket.onmessage = (event) => {
         if (!(event.data instanceof ArrayBuffer)) return;
-        const bytes = new Uint8Array(event.data);
-        const parsed = parseFrame(bytes);
-        // Mutate the ref in place instead of allocating a wrapper object every
-        // frame -- at 30 fps this halves the onmessage allocation count.
-        const l = latest.current;
-        l.deviceColors = parsed.deviceColors;
-        l.canvasPixels = parsed.canvasPixels;
-        l.canvasW = parsed.canvasW;
-        l.canvasH = parsed.canvasH;
-        l.frames++;
-        // Device cards paint from this outside React (see ledFrameStore).
+        const parsed = parseFrame(new Uint8Array(event.data));
         publishLedFrame(parsed.canvasPixels, parsed.canvasW, parsed.canvasH);
+        const nowLive = !!parsed.canvasPixels && parsed.canvasW > 0;
+        if (nowLive !== live && !cancelled) {
+          live = nowLive;
+          setState({ connected: true, live });
+        }
       };
-      socket.onclose = () => { if (!cancelled) { setState(p => ({ ...p, connected: false })); clearLedFrame(); if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } reconnectTimer = setTimeout(connect, 2000); } };
+      socket.onclose = () => { if (!cancelled) { live = false; setState(EMPTY); clearLedFrame(); reconnectTimer = setTimeout(connect, 2000); } };
       socket.onerror = () => { try { socket?.close(); } catch { /* socket already closed/torn down */ } };
     };
 
@@ -67,59 +47,23 @@ export function useLightingFrames(enabled = true): LightingFrameState {
     // clearLedFrame here as well as in onclose: cancelled short-circuits that
     // handler, so without this the last frame stays in the module-scope store
     // and every card that subscribes afterwards paints it, frozen, forever.
-    return () => { cancelled = true; try { socket?.close(); } catch { /* socket already closed/torn down */ } if (reconnectTimer !== null) clearTimeout(reconnectTimer); if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); clearLedFrame(); };
+    return () => { cancelled = true; try { socket?.close(); } catch { /* socket already closed/torn down */ } if (reconnectTimer !== null) clearTimeout(reconnectTimer); clearLedFrame(); };
   }, [enabled]);
 
   return state;
 }
 
-function parseFrame(bytes: Uint8Array): { deviceColors: Map<number, string[]>; canvasPixels: Uint8Array | null; canvasW: number; canvasH: number } {
-  const map = new Map<number, string[]>();
-
+function parseFrame(bytes: Uint8Array): { canvasPixels: Uint8Array | null; canvasW: number; canvasH: number } {
+  // v3: canvas pixels, then per-device data (unused here - device cards sample
+  // the canvas). v2 frames carry no canvas.
   if (bytes.length >= 5 && bytes[0] === 0x03) {
-    // v3: canvas pixels + per-device data
-    let pos = 1;
-    const canvasW = bytes[pos] | (bytes[pos + 1] << 8); pos += 2;
-    const canvasH = bytes[pos] | (bytes[pos + 1] << 8); pos += 2;
-    const canvasSize = canvasW * canvasH * 3;
+    const canvasW = bytes[1] | (bytes[2] << 8);
+    const canvasH = bytes[3] | (bytes[4] << 8);
     // subarray is a zero-copy view over the WS ArrayBuffer (which is already a
     // fresh allocation per message). slice() would copy ~43 KB per frame at
     // 30 fps on top of that; the consumer only reads the pixels, never mutates.
-    const canvasPixels = bytes.subarray(pos, pos + canvasSize);
-    pos += canvasSize;
-
-    if (pos < bytes.length) {
-      const deviceCount = bytes[pos++];
-      for (let d = 0; d < deviceCount && pos + 3 <= bytes.length; d++) {
-        const deviceIndex = bytes[pos++];
-        const ledCount = bytes[pos] | (bytes[pos + 1] << 8); pos += 2;
-        const colors: string[] = [];
-        for (let i = 0; i < ledCount && pos + 2 < bytes.length; i++) {
-          colors.push(`rgb(${bytes[pos]},${bytes[pos + 1]},${bytes[pos + 2]})`);
-          pos += 3;
-        }
-        map.set(deviceIndex, colors);
-      }
-    }
-
-    return { deviceColors: map, canvasPixels, canvasW, canvasH };
+    const canvasPixels = bytes.subarray(5, 5 + canvasW * canvasH * 3);
+    return { canvasPixels, canvasW, canvasH };
   }
-
-  if (bytes.length >= 2 && bytes[0] === 0x02) {
-    // v2 fallback
-    let pos = 2;
-    const deviceCount = bytes[1];
-    for (let d = 0; d < deviceCount && pos + 3 <= bytes.length; d++) {
-      const deviceIndex = bytes[pos++];
-      const ledCount = bytes[pos] | (bytes[pos + 1] << 8); pos += 2;
-      const colors: string[] = [];
-      for (let i = 0; i < ledCount && pos + 2 < bytes.length; i++) {
-        colors.push(`rgb(${bytes[pos]},${bytes[pos + 1]},${bytes[pos + 2]})`);
-        pos += 3;
-      }
-      map.set(deviceIndex, colors);
-    }
-  }
-
-  return { deviceColors: map, canvasPixels: null, canvasW: 0, canvasH: 0 };
+  return { canvasPixels: null, canvasW: 0, canvasH: 0 };
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { paintLedFrame } from '../../../lib/ledFrame';
+import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import { isTunnelActive } from '../../../api/service';
 import styles from './LightingWidget.module.scss';
 
@@ -13,15 +14,17 @@ import styles from './LightingWidget.module.scss';
  * renders nothing, and the caller's static thumbnail shows instead.
  */
 export function LightingLivePreview() {
-  const frames = useLightingFrames(!isTunnelActive());
+  const { live } = useLightingFrames(!isTunnelActive());
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const el = canvasRef.current;
-    if (el) paintLedFrame(el, frames.canvasPixels, frames.canvasW, frames.canvasH);
-  }, [frames.canvasPixels, frames.canvasW, frames.canvasH]);
+    if (!live) return undefined;
+    return subscribeLedFrame(f => {
+      const el = canvasRef.current;
+      if (el) paintLedFrame(el, f.pixels, f.w, f.h);
+    });
+  }, [live]);
 
-  const hasLive = frames.connected && !!frames.canvasPixels && frames.canvasW > 0;
-  if (!hasLive) return null;
+  if (!live) return null;
   return <canvas ref={canvasRef} className={styles.livePreview} aria-hidden="true" />;
 }

@@ -8,6 +8,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { pluralKey } from '../../../lib/pluralKey';
 import { isMultiSelectModifier } from '../../../lib/platform';
 import { paintLedFrame } from '../../../lib/ledFrame';
+import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
@@ -18,9 +19,6 @@ import styles from './DeviceCanvas.module.scss';
 
 interface DeviceCanvasProps {
   devices: LightingDevice[];
-  canvasPixels: Uint8Array | null;
-  canvasW: number;
-  canvasH: number;
   /** Ids of the focused device frames. The canvas draws every device in
    *  `devices` whether focused or not, and this set can name one it is not
    *  drawing (a frame hidden by `hiddenFrameIds`, or one the caller dropped),
@@ -294,16 +292,14 @@ function layoutLabels(
   return out;
 }
 
-const CanvasBackground = memo(function CanvasBackground({ canvasPixels, canvasW, canvasH }: {
-  canvasPixels: Uint8Array | null; canvasW: number; canvasH: number;
-}) {
+// Paints from ledFrameStore: a pixels prop would re-render the lighting page per frame.
+const CanvasBackground = memo(function CanvasBackground() {
   const bgRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
+  useEffect(() => subscribeLedFrame(f => {
     const el = bgRef.current;
-    if (!el) return;
-    paintLedFrame(el, canvasPixels, canvasW, canvasH);
-  }, [canvasPixels, canvasW, canvasH]);
+    if (el) paintLedFrame(el, f.pixels, f.w, f.h);
+  }), []);
 
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
@@ -1039,7 +1035,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   );
 });
 
-export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu, stacks, stackActionsFor }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu, stacks, stackActionsFor }: DeviceCanvasProps) {
   const notice = gpuNotice(gpuState, gpuAvailable);
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1054,7 +1050,7 @@ export function DeviceCanvas({ devices, canvasPixels, canvasW, canvasH, selected
   const hiddenIds = hiddenFrameIds ?? new Set<string>();
   return (
     <div ref={containerRef} className={styles.canvas}>
-      <CanvasBackground canvasPixels={canvasPixels} canvasW={canvasW} canvasH={canvasH} />
+      <CanvasBackground />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
       <DeviceOverlays devices={devices} hiddenIds={hiddenIds} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} stacks={stacks} stackActionsFor={stackActionsFor} />
       <CanvasNoticeBar

@@ -27,7 +27,7 @@ vi.mock('../../../hooks/useLightingSync', async (importOriginal) => ({
 }));
 
 vi.mock('../../../hooks/useLightingFrames', () => ({
-  useLightingFrames: () => ({ canvasPixels: null, canvasW: 160, canvasH: 90 }),
+  useLightingFrames: () => ({ connected: false, live: false }),
 }));
 
 vi.mock('../../../hooks/useUsbDevices', () => ({

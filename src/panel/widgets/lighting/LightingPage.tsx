@@ -193,7 +193,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const setDashboardMode = useCallback((next: 'simple' | 'advanced') => {
     updateUiSettings({ lightingDashboardMode: next });
   }, [updateUiSettings]);
-  const frames = useLightingFrames();
+  // Keeps the output socket open; the canvas paints its frames from ledFrameStore.
+  useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
   // to the lighting topic for the sidebar pip) so a topic push doesn't
   // trigger a duplicate GET. `running` is the openrgb-headless
@@ -2401,7 +2402,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               )}
               {showCanvas && (
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={canvasDevices} canvasPixels={frames.canvasPixels} canvasW={frames.canvasW} canvasH={frames.canvasH} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} stacks={deviceStacks} stackActionsFor={stackActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
+                <DeviceCanvas devices={canvasDevices} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} stacks={deviceStacks} stackActionsFor={stackActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
                   <>
