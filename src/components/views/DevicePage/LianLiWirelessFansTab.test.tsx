@@ -88,6 +88,7 @@ describe('LianLiWirelessFansTab', () => {
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.bound')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.slot:{"n":1}')).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.fanTypeSlv3Lcd')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.fanTypeSlv3Lcd' })).not.toBeInTheDocument();
   });
@@ -110,6 +111,7 @@ describe('LianLiWirelessFansTab', () => {
     });
     expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.unbound')).toBeInTheDocument();
+    expect(screen.queryByText(/devices\.lianli-wireless\.slot/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).not.toBeInTheDocument();

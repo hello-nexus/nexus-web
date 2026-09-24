@@ -681,6 +681,7 @@
   "devices.lianli-wireless.sensorStyleBar": "Bar",
   "devices.lianli-wireless.sensorStyleLabel": "Style",
   "devices.lianli-wireless.sensorStyleRing": "Ring",
+  "devices.lianli-wireless.slot": "Slot {n}",
   "devices.lianli-wireless.strimerLaneN": "Lane {n}",
   "devices.lianli-wireless.strimerModePerLane": "Per lane",
   "devices.lianli-wireless.tab.devices": "Devices",

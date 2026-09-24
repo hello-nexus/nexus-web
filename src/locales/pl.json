@@ -688,6 +688,7 @@
   "devices.lianli-wireless.sensorStyleBar": "Pasek",
   "devices.lianli-wireless.sensorStyleLabel": "Styl",
   "devices.lianli-wireless.sensorStyleRing": "Pierścień",
+  "devices.lianli-wireless.slot": "Slot {n}",
   "devices.lianli-wireless.strimerLaneN": "Pasmo {n}",
   "devices.lianli-wireless.strimerModePerLane": "Na pasmo",
   "devices.lianli-wireless.tab.devices": "Urządzenia",

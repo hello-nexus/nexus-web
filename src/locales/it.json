@@ -681,6 +681,7 @@
   "devices.lianli-wireless.sensorStyleBar": "Barra",
   "devices.lianli-wireless.sensorStyleLabel": "Stile",
   "devices.lianli-wireless.sensorStyleRing": "Anello",
+  "devices.lianli-wireless.slot": "Slot {n}",
   "devices.lianli-wireless.strimerLaneN": "Corsia {n}",
   "devices.lianli-wireless.strimerModePerLane": "Per corsia",
   "devices.lianli-wireless.tab.devices": "Dispositivi",

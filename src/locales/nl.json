@@ -681,6 +681,7 @@
   "devices.lianli-wireless.sensorStyleBar": "Balk",
   "devices.lianli-wireless.sensorStyleLabel": "Stijl",
   "devices.lianli-wireless.sensorStyleRing": "Ring",
+  "devices.lianli-wireless.slot": "Slot {n}",
   "devices.lianli-wireless.strimerLaneN": "Baan {n}",
   "devices.lianli-wireless.strimerModePerLane": "Per baan",
   "devices.lianli-wireless.tab.devices": "Apparaten",

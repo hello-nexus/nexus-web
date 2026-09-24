@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
+import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import {
@@ -233,6 +234,7 @@ function DeviceRow({
       label={typeLabel}
       state={bindState}
     >
+      {fan.boundToUs && <Badge label={t('devices.lianli-wireless.slot', { n: fan.slot })} color="var(--text-dim)" />}
       {fan.boundToUs ? (
         <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}

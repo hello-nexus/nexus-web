@@ -688,6 +688,7 @@
   "devices.lianli-wireless.sensorStyleBar": "Полоса",
   "devices.lianli-wireless.sensorStyleLabel": "Стиль",
   "devices.lianli-wireless.sensorStyleRing": "Кольцо",
+  "devices.lianli-wireless.slot": "Слот {n}",
   "devices.lianli-wireless.strimerLaneN": "Линия {n}",
   "devices.lianli-wireless.strimerModePerLane": "По линиям",
   "devices.lianli-wireless.tab.devices": "Устройства",
