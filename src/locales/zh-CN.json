@@ -2514,7 +2514,6 @@
   "lighting.panel.next": "下一个",
   "lighting.panel.prev": "上一个",
   "lighting.panel.screenActive": "镜像已激活",
-  "lighting.panel.selectMode": "选择任意模式以开启灯光",
   "lighting.pause": "暂停",
   "lighting.renderGpu.auto": "自动",
   "lighting.renderGpu.confirmButton": "立即重启",

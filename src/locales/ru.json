@@ -2546,7 +2546,6 @@
   "lighting.panel.next": "Далее",
   "lighting.panel.prev": "Назад",
   "lighting.panel.screenActive": "Зеркало активно",
-  "lighting.panel.selectMode": "Выберите режим, чтобы включить подсветку",
   "lighting.pause": "Пауза",
   "lighting.renderGpu.auto": "Автоматически",
   "lighting.renderGpu.confirmButton": "Перезапустить",

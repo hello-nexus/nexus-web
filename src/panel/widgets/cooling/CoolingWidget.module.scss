@@ -81,12 +81,14 @@
 // Fan (lucide) + signal-bars composed side-by-side. Both fixed-size at
 // 56px so 2x2 / 4x2 / 4x4 render identically - the size props on the SVGs
 // set explicit width/height attrs so there's no percent-of-container
-// drift. Inherits text-muted via the group; per-element overrides below.
+// drift. Dimmed by opacity over opaque ink, not --text-dim: an rgba stroke
+// double-paints wherever an icon's own parts overlap.
 .simpleIconGroup {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--text-dim);
+  color: var(--text);
+  opacity: 0.6;
   flex-shrink: 0;
 }
 
@@ -166,7 +168,7 @@
 // group so the affordance stays visible without implying a fan-speed
 // level. Bars-only would be unreadable in that state.
 .simpleIconMuted {
-  opacity: 0.45;
+  opacity: 0.27;
 }
 
 .simpleLabel {

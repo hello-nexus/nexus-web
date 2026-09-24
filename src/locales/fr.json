@@ -2514,7 +2514,6 @@
   "lighting.panel.next": "Suivant",
   "lighting.panel.prev": "Précédent",
   "lighting.panel.screenActive": "Le miroir est actif",
-  "lighting.panel.selectMode": "Sélectionnez un mode pour démarrer l'éclairage",
   "lighting.pause": "Pause",
   "lighting.renderGpu.auto": "Automatique",
   "lighting.renderGpu.confirmButton": "Redémarrer maintenant",

@@ -29,7 +29,7 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { CoolingResponseChart } from './CoolingResponseChart';
 import styles from './CoolingWidget.module.scss';
 
-const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['silent', 'balanced', 'turbo', 'max'];
+const WIDGET_PRESET_KEYS: CoolingModeKey[] = ['off', 'silent', 'balanced', 'turbo', 'max'];
 const TEMP_MAX = 100;
 // Catalog preview shows a deterministic preset (label via the existing
 // cooling.mode.balanced key). Keep in sync with the simple-mode render;
@@ -219,16 +219,15 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
     applyProfile(key).catch(() => { /* best-effort */ });
   }, []);
 
-  // Simple mode handlers: arrows cycle ONLY silent/balanced/turbo/max.
-  // Center always shows the current `active` state - could be one of
-  // those four, or 'custom' / 'off'. First press from a non-cycle
-  // state jumps to the first item in the cycle direction: right →
-  // silent, left → max (per user spec).
+  // Simple mode handlers: arrows cycle off/silent/balanced/turbo/max.
+  // Center always shows the current `active` state, which can also be
+  // 'custom'. First press from Custom jumps to the first fan-driving
+  // step in the cycle direction: right → silent, left → max (per user spec).
   const cyclePreset = useCallback((delta: number) => {
     const idx = WIDGET_PRESET_KEYS.indexOf(active as CoolingModeKey);
     let nextIdx: number;
     if (idx < 0) {
-      nextIdx = delta > 0 ? 0 : WIDGET_PRESET_KEYS.length - 1;
+      nextIdx = delta > 0 ? WIDGET_PRESET_KEYS.indexOf('silent') : WIDGET_PRESET_KEYS.length - 1;
     } else {
       nextIdx = (idx + delta + WIDGET_PRESET_KEYS.length) % WIDGET_PRESET_KEYS.length;
     }
@@ -258,6 +257,7 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
     // Max renders the tornado instead of bars, so it sits outside
     // the 1/2/3 scale but still drives the fan's spin as the top rung.
     const isMax = active === 'max';
+    const isOff = active === 'off';
     const level: 1 | 2 | 3 | null =
       active === 'silent' ? 1
       : active === 'balanced' ? 2
@@ -291,8 +291,9 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
                 key={`fan-${spinPulse}`}
                 size={56}
                 aria-hidden
+                // Off hands the fans to hardware control; Nexus no longer drives them, so no spin.
                 // eslint-disable-next-line i18next/no-literal-string -- data attribute boolean
-                data-spinning={spinPulse > spinDoneAt ? 'true' : undefined}
+                data-spinning={spinPulse > spinDoneAt && !isOff ? 'true' : undefined}
                 data-level={spinLevel ?? undefined}
                 className={styles.simpleFan}
                 onAnimationEnd={() => setSpinDoneAt(spinPulse)}
@@ -310,7 +311,7 @@ export function CoolingWidget({ widget, onSectionNavigate }: WidgetProps) {
                     onAnimationEnd={() => setMaxDoneAt(spinPulse)}
                   />
                 )
-                : <SignalBarsIcon level={barsFillIn ? 0 : level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />}
+                : <SignalBarsIcon level={barsFillIn || isOff ? 0 : level ?? 1} size={56} className={styles.simpleBars} animate={barsAnimate} />}
             </div>
             {showLabel && <span className={styles.simpleLabel}>{t(labelKey)}</span>}
           </div>

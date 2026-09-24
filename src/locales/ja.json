@@ -2514,7 +2514,6 @@
   "lighting.panel.next": "次へ",
   "lighting.panel.prev": "前へ",
   "lighting.panel.screenActive": "ミラーが有効です",
-  "lighting.panel.selectMode": "モードを選択してライティングを開始",
   "lighting.pause": "一時停止",
   "lighting.renderGpu.auto": "自動",
   "lighting.renderGpu.confirmButton": "今すぐ再起動",

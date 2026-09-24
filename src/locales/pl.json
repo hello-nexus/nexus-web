@@ -2546,7 +2546,6 @@
   "lighting.panel.next": "Następny",
   "lighting.panel.prev": "Poprzedni",
   "lighting.panel.screenActive": "Lustro jest aktywne",
-  "lighting.panel.selectMode": "Wybierz tryb, aby uruchomić oświetlenie",
   "lighting.pause": "Pauza",
   "lighting.renderGpu.auto": "Automatycznie",
   "lighting.renderGpu.confirmButton": "Uruchom ponownie",

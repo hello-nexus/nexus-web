@@ -2514,7 +2514,6 @@
   "lighting.panel.next": "Weiter",
   "lighting.panel.prev": "Zurück",
   "lighting.panel.screenActive": "Spiegel ist aktiv",
-  "lighting.panel.selectMode": "Wähle einen Modus, um die Beleuchtung zu starten",
   "lighting.pause": "Pause",
   "lighting.renderGpu.auto": "Automatisch",
   "lighting.renderGpu.confirmButton": "Jetzt neu starten",

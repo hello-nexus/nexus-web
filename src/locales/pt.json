@@ -2514,7 +2514,6 @@
   "lighting.panel.next": "Seguinte",
   "lighting.panel.prev": "Anterior",
   "lighting.panel.screenActive": "O espelho está ativo",
-  "lighting.panel.selectMode": "Seleciona um modo para iniciar a iluminação",
   "lighting.pause": "Pausar",
   "lighting.renderGpu.auto": "Automático",
   "lighting.renderGpu.confirmButton": "Reiniciar agora",

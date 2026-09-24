@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Lightbulb, Monitor } from 'lucide-react';
+import { Lightbulb, MonitorPlay, Zap } from 'lucide-react';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -455,7 +455,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     if (mode === 'screen') {
       return {
         kind: 'icon',
-        icon: Monitor,
+        // Same glyphs as the lighting page's Pass-Through / Reactive buttons.
+        icon: reactive ? Zap : MonitorPlay,
         label: t(reactive ? 'lighting.filter.reactive' : 'lighting.filter.passthrough'),
         onPrev: prev,
         onNext: next,
@@ -473,7 +474,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
     if (mode === 'gif') {
       const item = mediaItems.find(m => m.id === activeMediaId) ?? mediaItems[0];
       if (!item) {
-        return { kind: 'message', message: t('lighting.controls.noMedia'), label: t('lighting.mode.gif'), onPrev: prev, onNext: next };
+        return { kind: 'icon', icon: LIGHTING_MODE_ICONS.gif, label: t('lighting.mode.gif'), onPrev: prev, onNext: next };
       }
       return {
         kind: 'thumb',
@@ -484,12 +485,12 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
       };
     }
     // mode === 'none' (off).
-    return { kind: 'message', message: t('lighting.panel.selectMode'), label: t('lighting.mode.off'), onPrev: prev, onNext: next };
+    return { kind: 'icon', icon: Lightbulb, muted: true, label: t('lighting.mode.off'), onPrev: prev, onNext: next };
   }, [mode, activeEffect, activeDeviceCount, language, thumbs, t, reactive, mediaItems, activeMediaId, mediaThumbs, cycleMode]);
 
   // The flash stands in for a thumbnail that has not painted yet, so the tile
-  // only flashes where a thumbnail renders. Off, Static, Mirror and Game Sync
-  // show an icon or a message, so they stay still here.
+  // only flashes where a thumbnail renders. Off, Static, Mirror, Game Sync and
+  // an empty media library show an icon, so they stay still here.
   const thumbFlash = view.kind === 'thumb' ? flash : null;
 
   // Active Animate effect state for the immersive on-device preview: the shader
@@ -609,7 +610,8 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
   return (
     <div className={styles.lighting} data-size={widget.size} data-mode={mode}>
-      <SingleItemView view={view} t={t} showArrows overlay={thumbFlash} framed />
+      {/* The mode buttons below pick the mode, so no arrows here. */}
+      <SingleItemView view={view} t={t} showArrows={false} overlay={thumbFlash} framed />
       <div className={styles.modeGrid}>
         {modeButtons.map(m => {
           const Icon = LIGHTING_MODE_ICONS[m.key];
@@ -633,41 +635,10 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
 
 type SingleView =
   | { kind: 'thumb'; thumbUrl: string | null; label: string; onPrev?: () => void; onNext?: () => void }
-  | { kind: 'icon';  icon: LucideIcon;       label: string; onPrev?: () => void; onNext?: () => void }
-  | { kind: 'message'; message: string;      label: string; onPrev?: () => void; onNext?: () => void };
+  | { kind: 'icon';  icon: LucideIcon; muted?: boolean; label: string; onPrev?: () => void; onNext?: () => void };
 
 function SingleItemView({ view, t, showArrows, overlay, framed }: { view: SingleView; t: (key: string) => string; showArrows: boolean; overlay?: ReactNode; framed?: boolean }) {
   const arrowsRendered = showArrows && !!view.onPrev && !!view.onNext;
-  if (view.kind === 'message') {
-    return (
-      <div className={styles.thumbBox}>
-        <span className={styles.thumb}>
-          <span className={styles.thumbIconWrap}>
-            {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-            <Lightbulb className={styles.thumbIcon} aria-hidden="true" />
-            <span className={styles.thumbCaption}>{view.label}</span>
-          </span>
-        </span>
-        {overlay}
-        {arrowsRendered && (
-          <>
-            <PanelArrowButton
-              side="prev"
-              className={styles.arrowBtn}
-              onClick={view.onPrev!}
-              ariaLabel={t('lighting.panel.prev')}
-            />
-            <PanelArrowButton
-              side="next"
-              className={styles.arrowBtn}
-              onClick={view.onNext!}
-              ariaLabel={t('lighting.panel.next')}
-            />
-          </>
-        )}
-      </div>
-    );
-  }
   return (
     <div className={styles.thumbBox}>
       {view.kind === 'thumb' && framed ? (
@@ -684,7 +655,7 @@ function SingleItemView({ view, t, showArrows, overlay, framed }: { view: Single
           {view.kind === 'icon' && (
             <span className={styles.thumbIconWrap}>
               {/* eslint-disable-next-line i18next/no-literal-string -- aria boolean */}
-              <view.icon className={styles.thumbIcon} aria-hidden="true" />
+              <view.icon className={`${styles.thumbIcon} ${view.muted ? styles.thumbIconMuted : ''}`} aria-hidden="true" />
               <span className={styles.thumbCaption}>{view.label}</span>
             </span>
           )}

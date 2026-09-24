@@ -2514,7 +2514,6 @@
   "lighting.panel.next": "Avanti",
   "lighting.panel.prev": "Indietro",
   "lighting.panel.screenActive": "Il mirror è attivo",
-  "lighting.panel.selectMode": "Seleziona una modalità per avviare l'illuminazione",
   "lighting.pause": "Pausa",
   "lighting.renderGpu.auto": "Automatico",
   "lighting.renderGpu.confirmButton": "Riavvia ora",

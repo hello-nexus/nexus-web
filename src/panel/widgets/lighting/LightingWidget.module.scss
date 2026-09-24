@@ -27,9 +27,10 @@
 // Framed thumb (non-immersive): the same EffectCard the animation browser
 // uses, centered at the browser's 16/9 card aspect and inset from the widget
 // edges. container-type gives the fit rule the box height in cq units.
-// The horizontal inset clears the arrow gutter (chevron offset + width + gap) so
-// the prev/next arrows sit beside the card, never on it - except 2x2, whose
-// override below keeps the card wide and lets the arrows overlap it.
+// In simple mode the horizontal inset clears the arrow gutter (chevron offset +
+// width + gap) so the prev/next arrows sit beside the card, never on it - except
+// 2x2, whose override below keeps the card wide and lets the arrows overlap it.
+// Advanced mode has no arrows and drops the gutter (rule further down).
 .thumbCardBox {
   position: absolute;
   inset: 12px 54px;
@@ -67,8 +68,8 @@
   display: block;
   overflow: hidden;
   // No fill: the image / skeleton / live canvas always covers this box; the
-  // icon and message views (off / static / mirror / game sync / no-media) are
-  // the only states where the box itself shows, and it reads the card's base
+  // icon views (off / static / mirror / game sync / no-media) are the only
+  // states where the box itself shows, and it reads the card's base
   // background to match CoolingWidget.
 
   img {
@@ -182,17 +183,20 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
 }
 
+// Kept in step with CoolingWidget's .simpleIconGroup / .simpleIconMuted / .simpleLabel.
 .thumbIcon {
-  width: 42%;
-  height: 42%;
-  max-width: 96px;
-  max-height: 96px;
-  color: var(--text-dim);
-  stroke-width: 1.5;
+  width: 56px;
+  height: 56px;
+  color: var(--text);
+  opacity: 0.6;
   flex-shrink: 0;
+}
+
+.thumbIconMuted {
+  opacity: 0.27;
 }
 
 .thumbCaption {
@@ -202,8 +206,8 @@
   white-space: nowrap;
   // 1.25 = Lexend's content box; the caption ellipsizes, so a tighter line
   // box clips its own descenders (see styles/_text.scss).
-  font: 600 11px/1.25 var(--panel-font);
-  color: var(--text-dim);
+  font: 700 16px/1.25 var(--panel-font);
+  color: var(--text);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -266,7 +270,8 @@
 }
 
 // 4x4: roomier arrows (same geometry as the cooling widget's 4x4 arrows -
-// base offsets, larger hit area), wider card gutter, larger mode buttons.
+// base offsets, larger hit area), wider simple-mode card gutter, larger mode
+// buttons.
 .lighting[data-size='4x4'] {
   .arrowBtn {
     width: 56px;
@@ -278,7 +283,7 @@
     }
   }
 
-  // Matches this size's larger arrow gutter (offset + width + gap).
+  // Simple mode: matches this size's larger arrow gutter (offset + width + gap).
   .thumbCardBox {
     inset: 12px 66px;
   }
@@ -295,6 +300,11 @@
 // the preview owns every pixel including the bottom edge.
 .lighting[data-simple='true'] .thumbBox {
   margin: -12px;
+}
+
+// Advanced mode has no arrows, so its card drops the arrow gutter.
+.lighting:not([data-simple='true']) .thumbCardBox {
+  inset: 12px;
 }
 
 // 2x2: the preview area spans the whole widget, same chrome as 4x2 but

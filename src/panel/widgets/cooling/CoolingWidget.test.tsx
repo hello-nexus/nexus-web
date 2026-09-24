@@ -228,15 +228,15 @@ describe('CoolingWidget', () => {
       render(<CoolingWidget widget={coolingWidget('4x2')} />);
       await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
 
-      // balanced -> turbo -> max -> wraps to silent.
+      // balanced -> turbo -> max -> back to turbo.
       fireEvent.click(screen.getByLabelText('Next fan profile'));
       fireEvent.click(screen.getByLabelText('Next fan profile'));
       await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
       // Max unmounts the bars entirely, which is what breaks the fill.
       expect(document.querySelector('[data-bar-highlight="1"]')).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByLabelText('Next fan profile'));
-      await waitFor(() => expect(screen.getByText('Silent')).toBeInTheDocument());
+      fireEvent.click(screen.getByLabelText('Previous fan profile'));
+      await waitFor(() => expect(screen.getByText('Turbo')).toBeInTheDocument());
 
       // Mounted empty first, so the transition has somewhere to fill from...
       const bar1 = document.querySelector('[data-bar-highlight="1"]');
@@ -245,6 +245,30 @@ describe('CoolingWidget', () => {
       await waitFor(() => {
         expect(document.querySelector('[data-bar-highlight="1"]')).toHaveStyle({ transform: 'scaleY(1)' });
       });
+    });
+
+    it('cycles through Off between Max and Silent, with empty bars and no spin', async () => {
+      render(<CoolingWidget widget={coolingWidget('4x2')} />);
+      await waitFor(() => expect(screen.getByText('Balanced')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByLabelText('Previous fan profile'));
+      await waitFor(() => expect(screen.getByText('Silent')).toBeInTheDocument());
+      fireEvent.click(screen.getByLabelText('Previous fan profile'));
+
+      await waitFor(() => expect(screen.getByText('Off')).toBeInTheDocument());
+      expect(applyProfile).toHaveBeenLastCalledWith('off');
+      expect(document.querySelector('[data-spinning="true"]')).not.toBeInTheDocument();
+      for (const bar of document.querySelectorAll('[data-bar-highlight]')) {
+        expect(bar).toHaveStyle({ transform: 'scaleY(0)' });
+      }
+
+      // Off wraps backwards to Max.
+      fireEvent.click(screen.getByLabelText('Previous fan profile'));
+      await waitFor(() => expect(screen.getByText('Max')).toBeInTheDocument());
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Off')).toBeInTheDocument());
+      fireEvent.click(screen.getByLabelText('Next fan profile'));
+      await waitFor(() => expect(screen.getByText('Silent')).toBeInTheDocument());
     });
 
     it('per-widget config.advancedMode=true overrides the global default and shows the rich UI', async () => {

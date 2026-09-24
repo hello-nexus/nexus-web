@@ -76,7 +76,6 @@ vi.mock('../../../lib/i18n', () => ({
       'lighting.panel.prev': 'Previous',
       'lighting.panel.next': 'Next',
       'lighting.panel.screenActive': 'Mirror is active',
-      'lighting.panel.selectMode': 'Select a mode',
       'lighting.controls.noMedia': 'No media available',
       'lighting.controls.rainbow': 'Rainbow',
       'lighting.filter.passthrough': 'Pass-Through',
@@ -127,7 +126,7 @@ describe('LightingWidget', () => {
     expect(fetchMediaLibrary).not.toHaveBeenCalled();
   });
 
-  it('renders 4x2 with all five icon mode buttons (Off / Animation / Media / Mirror / Game Sync) + L/R arrows', async () => {
+  it('renders 4x2 with all five icon mode buttons (Off / Animation / Media / Mirror / Game Sync) and no arrows', async () => {
     render(<LightingWidget widget={lightingWidget('4x2')} />);
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Animation' })).toBeInTheDocument());
@@ -138,8 +137,8 @@ describe('LightingWidget', () => {
     // Game Sync appears once the ping resolves platform=windows.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Game Sync' })).toBeInTheDocument());
 
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Previous' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Next' })).not.toBeInTheDocument();
 
     // Icon-only buttons: the label lives in the aria-label, not as text.
     expect(screen.queryByText('Animation')).not.toBeInTheDocument();
@@ -223,6 +222,18 @@ describe('LightingWidget', () => {
     await waitFor(() => {
       expect(document.querySelector('[data-state-flash]')).toBeInTheDocument();
     });
+  });
+
+  it.each([
+    ['none', 'lucide-lightbulb', 'Off'],
+    ['gif', 'lucide-film', 'Media'],
+    ['screen', 'lucide-monitor-play', 'Pass-Through'],
+  ])('shows %s as the %s icon and its caption', async (sync, iconClass, caption) => {
+    vi.mocked(fetchCurrentSync).mockResolvedValueOnce({ sync });
+    render(<LightingWidget widget={lightingWidget('4x2')} />);
+
+    await waitFor(() => expect(screen.getByText(caption)).toBeInTheDocument());
+    expect(document.querySelector(`[class*="thumbIconWrap"] .${iconClass}`)).toBeInTheDocument();
   });
 
   // Static colours are assigned per device, so there is no one effect to

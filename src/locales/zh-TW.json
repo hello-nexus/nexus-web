@@ -2514,7 +2514,6 @@
   "lighting.panel.next": "下一個",
   "lighting.panel.prev": "上一個",
   "lighting.panel.screenActive": "鏡射已啟用",
-  "lighting.panel.selectMode": "選擇任一模式以開啟燈光",
   "lighting.pause": "暫停",
   "lighting.renderGpu.auto": "自動",
   "lighting.renderGpu.confirmButton": "立即重新啟動",
