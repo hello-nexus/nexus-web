@@ -500,6 +500,12 @@ export function PanelContent({
   // cell when editing a widget on page 2+. Portal into this untransformed
   // panel-root container so the cell anchors to the viewport on any page.
   const [editorDockPortalEl, setEditorDockPortalEl] = useState<HTMLDivElement | null>(null);
+  const [dragOverlaySlot, setDragOverlaySlot] = useState<HTMLElement | null>(null);
+  // A detach only clears its own slot: dnd-kit keeps the previous overlay
+  // mounted past the drop, so it can detach after the next drag's attach.
+  const handleDragOverlaySlot = useCallback((slot: HTMLElement, attached: boolean) => {
+    setDragOverlaySlot(prev => (attached ? slot : prev === slot ? null : prev));
+  }, []);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
   const { t } = useTranslation();
@@ -1699,6 +1705,7 @@ export function PanelContent({
                               dimmed={Boolean(contextMenuWidgetId) && contextMenuWidgetId !== w.id}
                               editorDockMotion={editorDockSupported && sheetMode === 'settings' && editorDockMotion?.widgetId === w.id ? editorDockMotion : null}
                               editorDockPortal={editorDockPortalEl}
+                              dragOverlaySlot={dragOverlaySlot}
                               flash={flashedWidgets.has(w.id)}
                               entrance={entranceWidgets.has(w.id)}
                               isDragSource={activeDragId === w.id}
@@ -2054,12 +2061,12 @@ export function PanelContent({
             <PanelDragOverlayCell
               widget={w}
               surface={surface}
-              deviceTouch={deviceTouch}
               themeStyle={overlayStyle}
               themeMode={resolvedThemeMode}
               fixedWidth={dragSnapshot.width}
               fixedHeight={dragSnapshot.height}
               showLabels={effectiveTheme.widgetLabels}
+              onSlot={handleDragOverlaySlot}
             />
           );
         })()}

@@ -5,7 +5,7 @@
 // instead of becoming a silent error tile. The content table doubles as the
 // fixture-sync gate: when a widget's UI changes, its preview fixture and this
 // table must be re-verified.
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { APP_REGISTRY, pickerSizeFor } from './registry';
 import { PanelPreviewProvider } from './common/PanelPreviewContext';
@@ -204,4 +204,66 @@ describe('widget preview mode', () => {
     const img = container.querySelector('img');
     expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
   });
+});
+
+// The panel keeps a widget mounted through drag and edit, so a size change must
+// render exactly what a fresh mount at the new size renders.
+describe('widget size change without a remount', () => {
+  const t0 = new Date('2026-09-24T12:00:00Z');
+  const normalize = (html: string) => html.replace(/«[^»]*»|:r[0-9a-z]+:/g, 'ID');
+  const tree = (type: string, size: PanelWidgetSize, preview: boolean) => {
+    const Comp = APP_REGISTRY[type].Widget;
+    return (
+      <MultiplexContext.Provider value={multiplexStub}>
+        <PanelPreviewProvider value={preview}>
+          <Comp widget={{ id: `resize-${type}`, type, size, col: 0, row: 0 }} />
+        </PanelPreviewProvider>
+      </MultiplexContext.Provider>
+    );
+  };
+  const settle = () => act(async () => {
+    vi.advanceTimersByTime(60);
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'Date', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+    vi.spyOn(Math, 'random').mockReturnValue(0.42);
+    vi.stubGlobal('fetch', fetchSpy);
+    vi.stubGlobal('WebSocket', WebSocketStub);
+    vi.stubGlobal('Worker', WorkerStub);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  for (const preview of [true, false]) {
+    for (const [type, def] of Object.entries(APP_REGISTRY)) {
+      for (const from of def.meta.sizes) {
+        for (const to of def.meta.sizes) {
+          if (from === to) continue;
+          it(`${type} ${preview ? 'preview' : 'live'} ${from} -> ${to}`, async () => {
+            vi.setSystemTime(t0);
+            const resized = render(tree(type, from, preview));
+            await settle();
+            resized.rerender(tree(type, to, preview));
+            await settle();
+            const updated = normalize(resized.container.innerHTML);
+            resized.unmount();
+
+            vi.setSystemTime(t0);
+            const fresh = render(tree(type, to, preview));
+            await settle();
+            await settle();
+            expect(updated).toBe(normalize(fresh.container.innerHTML));
+            fresh.unmount();
+          });
+        }
+      }
+    }
+  }
 });
