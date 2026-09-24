@@ -13,9 +13,9 @@ export function NotAvailableNote() {
   );
 }
 
-/** A section's fetch failed with no prior data to fall back to. Same
- *  EmptyState-with-a-retry-action idiom as PublicProfilePage's error state,
- *  so every section's error state reads identically. */
+/** A section's fetch failed with no prior data to fall back to: an
+ *  EmptyState with a retry action, so every section's error state reads
+ *  identically. */
 export function SectionLoadError({ onRetry, loading }: { onRetry: () => void; loading?: boolean }) {
   const { t } = useTranslation();
   return (

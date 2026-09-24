@@ -26,10 +26,11 @@ test.describe('marketing site host routing', () => {
     expect(html).toContain('manifest');
   });
 
-  test('/login serves the SPA shell on both hosts', async ({ request }) => {
-    for (const base of [SITE, MY]) {
-      const html = await (await request.get(`${base}/login`)).text();
-      expect(html).not.toContain(MARKETING_TITLE);
+  test('account paths redirect to the Build portal with their query', async ({ request }) => {
+    for (const path of ['/login', '/account', '/u/someuser', '/login?return=%2Fbench']) {
+      const res = await request.get(`${SITE}${path}`, { maxRedirects: 0 });
+      expect(res.status(), path).toBe(302);
+      expect(res.headers()['location'], path).toBe(`https://build.hellonexus.com${path}`);
     }
   });
 

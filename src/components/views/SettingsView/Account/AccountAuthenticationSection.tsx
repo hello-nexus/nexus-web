@@ -15,6 +15,7 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 import { authErrorMessage } from './accountErrors';
 import { cropToSourceRect } from './avatarCrop';
 import { isValidUsername } from './accountValidation';
+import { publicProfileUrl } from '../../../../lib/publicProfile';
 import styles from './Account.module.scss';
 
 interface AccountAuthenticationSectionProps {
@@ -30,12 +31,6 @@ interface AccountAuthenticationSectionProps {
 }
 
 const AVATAR_OUTPUT_SIZE = 512;
-
-// Absolute (not relative) so the link works from every origin this section
-// renders on: hellonexus.com itself, the in-app desktop dashboard, and
-// my.hellonexus.com - none of which should resolve /u/<username> against
-// their own origin.
-const PUBLIC_PROFILE_ORIGIN = 'https://hellonexus.com';
 
 async function cropToAvatarBlob(objectUrl: string, crop: NormalizedCrop): Promise<Blob | null> {
   const image = new Image();
@@ -263,7 +258,7 @@ export function AccountAuthenticationSection({
           <span className={styles.accountEmail}>{account.email}</span>
           <a
             className={styles.publicProfileLink}
-            href={`${PUBLIC_PROFILE_ORIGIN}/u/${encodeURIComponent(account.username)}`}
+            href={publicProfileUrl(account.username)}
             target="_blank"
             rel="noopener noreferrer"
           >
