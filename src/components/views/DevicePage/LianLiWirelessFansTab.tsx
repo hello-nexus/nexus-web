@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
-import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import {
@@ -226,7 +225,7 @@ function DeviceRow({
     ? t('devices.lianli-wireless.unbinding')
     : t('devices.lianli-wireless.unbind');
   const bindState: SettingState = fan.boundToUs
-    ? { label: t('devices.lianli-wireless.bound'), tone: 'accent' }
+    ? { label: `${t('devices.lianli-wireless.bound')} - ${t('devices.lianli-wireless.slot', { n: fan.slot })}`, tone: 'accent' }
     : { label: t('devices.lianli-wireless.unbound') };
 
   return (
@@ -234,7 +233,6 @@ function DeviceRow({
       label={typeLabel}
       state={bindState}
     >
-      {fan.boundToUs && <Badge label={t('devices.lianli-wireless.slot', { n: fan.slot })} color="var(--text-dim)" />}
       {fan.boundToUs ? (
         <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
