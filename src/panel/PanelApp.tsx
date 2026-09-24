@@ -139,6 +139,7 @@ import {
   usePanelTheme,
   useResolvedPanelThemeMode,
 } from './theme/panelTheme';
+import { useFocusStaticBackground, withStaticBackground } from './background/focusStaticBackground';
 import { PanelEditorSheet, type SheetMode } from './editor/PanelEditorSheet';
 import type { PanelThemeSettingsSection } from './editor/PanelThemeSettings';
 import {
@@ -379,7 +380,11 @@ export function PanelContent({
   // Render-time per-surface overrides (persisted theme intact); see
   // resolveEffectivePanelTheme for what each surface forces.
   const baseTheme = simulator && simulatorTheme ? simulatorTheme : panelTheme.theme;
-  const effectiveTheme = useMemo(() => resolveEffectivePanelTheme(baseTheme, surface), [baseTheme, surface]);
+  const focusStaticBackground = useFocusStaticBackground(surface, !simulator && !embedded);
+  const effectiveTheme = useMemo(() => {
+    const theme = resolveEffectivePanelTheme(baseTheme, surface);
+    return focusStaticBackground ? withStaticBackground(theme) : theme;
+  }, [baseTheme, surface, focusStaticBackground]);
   usePanelLanguageSync(kioskBehavior, panelTheme.prefs);
   // In sync mode prefer the desktop's *resolved* theme (concrete dark/light,
   // tracking the desktop OS); fall back to appThemeMode when unpublished -

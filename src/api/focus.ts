@@ -23,6 +23,7 @@ export interface FocusMode {
   holdNotifications: boolean;
   holdBackgroundTraffic: boolean;
   turnPanelDisplaysOff: boolean;
+  staticPanelBackgrounds: boolean;
   exitGraceSeconds: number;
 }
 
