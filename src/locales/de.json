@@ -200,7 +200,7 @@
   "benchmark.result.submitting": "Wird zur Rangliste hochgeladen...",
   "benchmark.result.trials": "Durchläufe",
   "benchmark.result.uploadCta": "Zur Rangliste hochladen",
-  "benchmark.result.uploadPrompt": "Telemetrie ist deaktiviert, daher wurde dieses Ergebnis nicht automatisch hochgeladen.",
+  "benchmark.result.uploadPrompt": "Dieses Ergebnis wurde nicht hochgeladen, weil die Option „{setting}“ deaktiviert ist.",
   "benchmark.result.viewLeaderboard": "Rangliste anzeigen",
   "benchmark.results.introBody": "Ein Benchmark testet CPU, GPU, RAM und Speicher in etwa 40 Sekunden mit realen Workloads, vollständig auf diesem PC. Jeder Durchlauf wird hier gespeichert, damit Sie vor und nach einem Upgrade vergleichen können.",
   "benchmark.results.introTitle": "So schneidet Ihr PC ab",

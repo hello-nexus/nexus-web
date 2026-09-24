@@ -200,7 +200,7 @@
   "benchmark.result.submitting": "리더보드 제출 중...",
   "benchmark.result.trials": "시도",
   "benchmark.result.uploadCta": "리더보드에 업로드",
-  "benchmark.result.uploadPrompt": "원격 측정이 꺼져 있어 이 결과가 자동으로 업로드되지 않았습니다.",
+  "benchmark.result.uploadPrompt": "‘{setting}’ 옵션이 꺼져 있어 이 결과가 업로드되지 않았습니다.",
   "benchmark.result.viewLeaderboard": "리더보드 보기",
   "benchmark.results.introBody": "벤치마크는 실제 워크로드로 CPU, GPU, RAM, 저장소를 약 40초 동안 측정하며, 모두 이 PC에서 실행됩니다. 실행 결과는 여기에 저장되어 업그레이드 전후를 비교할 수 있습니다.",
   "benchmark.results.introTitle": "내 PC의 점수를 확인하세요",

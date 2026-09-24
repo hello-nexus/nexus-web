@@ -200,7 +200,7 @@
   "benchmark.result.submitting": "提交至排行榜中...",
   "benchmark.result.trials": "測試輪次",
   "benchmark.result.uploadCta": "上傳至排行榜",
-  "benchmark.result.uploadPrompt": "遙測已關閉，因此此結果未自動上傳。",
+  "benchmark.result.uploadPrompt": "由於「{setting}」選項已關閉，此結果未上傳。",
   "benchmark.result.viewLeaderboard": "查看排行榜",
   "benchmark.results.introBody": "基準測試會以真實工作負載測試 CPU、GPU、記憶體與儲存，約需 40 秒，全部在本機執行。每次執行都會儲存在這裡，方便比較升級前後的表現。",
   "benchmark.results.introTitle": "看看你的 PC 得分",

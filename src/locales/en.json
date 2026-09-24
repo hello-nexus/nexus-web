@@ -200,7 +200,7 @@
   "benchmark.result.submitting": "Submitting to leaderboard...",
   "benchmark.result.trials": "Trials",
   "benchmark.result.uploadCta": "Upload to leaderboard",
-  "benchmark.result.uploadPrompt": "Telemetry is off, so this result wasn't uploaded automatically.",
+  "benchmark.result.uploadPrompt": "This result wasn’t uploaded because “{setting}” is off.",
   "benchmark.result.viewLeaderboard": "View Leaderboard",
   "benchmark.results.introBody": "A benchmark runs real workloads on your CPU, GPU, RAM and storage in about 40 seconds, entirely on this PC. Every run is saved here to compare before and after an upgrade.",
   "benchmark.results.introTitle": "See how your PC scores",

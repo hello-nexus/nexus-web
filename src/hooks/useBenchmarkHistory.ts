@@ -68,18 +68,24 @@ export function useBenchmarkHistory() {
     return id;
   }, []);
 
-  // Fills in a leaderboard submission on a run added earlier without one, for
-  // the telemetry-off deferred-upload flow.
+  // Persists outside the state updater so an upload that finishes after the
+  // page unmounted still records its standing.
   const updateRunSubmission = useCallback((
     id: string,
     submissionId: string,
     submission: BenchmarkStanding,
   ) => {
-    setHistory(prev => {
-      const next = prev.map(run => run.id === id ? { ...run, submissionId, submission } : run);
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* quota */ }
-      return next;
-    });
+    const fill = (runs: BenchmarkRun[]) =>
+      runs.map(run => run.id === id ? { ...run, submissionId, submission } : run);
+    const stored = loadHistory();
+    // addRun swallows quota errors, so the run may exist only in state.
+    if (!stored.some(run => run.id === id)) {
+      setHistory(fill);
+      return;
+    }
+    const next = fill(stored);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* quota */ }
+    setHistory(next);
   }, []);
 
   const latest = history[0] ?? null;

@@ -17,7 +17,7 @@ interface Props {
   submission: { percentile: number; rank: number; total: number } | null;
   submitting: boolean;
   submissionId?: string | null;
-  /** Set only when telemetry is off and this result hasn't been uploaded yet. */
+  /** Set only while "Help improve Nexus" is off and this result is not uploaded yet. */
   onUpload?: () => void;
 }
 
@@ -108,7 +108,7 @@ export function BenchmarkResults({ result, submission, submitting, submissionId,
           )}
           {onUpload && !submission && !submitting && (
             <div className={styles.compositeResultLine}>
-              <span className={styles.percentilePending}>{t('benchmark.result.uploadPrompt')}</span>
+              <span className={styles.percentilePending}>{t('benchmark.result.uploadPrompt', { setting: t('settings.telemetry.label') })}</span>
               <Button tone="ghost" icon={<Trophy size={14} />} onClick={onUpload}>
                 {t('benchmark.result.uploadCta')}
               </Button>

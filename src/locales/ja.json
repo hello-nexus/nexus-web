@@ -200,7 +200,7 @@
   "benchmark.result.submitting": "リーダーボードへ送信中...",
   "benchmark.result.trials": "試行",
   "benchmark.result.uploadCta": "リーダーボードにアップロード",
-  "benchmark.result.uploadPrompt": "テレメトリーがオフのため、この結果は自動的にアップロードされませんでした。",
+  "benchmark.result.uploadPrompt": "「{setting}」がオフのため、この結果はアップロードされませんでした。",
   "benchmark.result.viewLeaderboard": "リーダーボードを表示",
   "benchmark.results.introBody": "ベンチマークは実際のワークロードでCPU・GPU・RAM・ストレージを約40秒で計測し、すべてこのPC上で実行されます。実行結果はここに保存され、アップグレード前後を比較できます。",
   "benchmark.results.introTitle": "PCのスコアを確認",

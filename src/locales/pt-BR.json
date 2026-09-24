@@ -200,7 +200,7 @@
   "benchmark.result.submitting": "Enviando para o ranking...",
   "benchmark.result.trials": "Tentativas",
   "benchmark.result.uploadCta": "Enviar para o ranking",
-  "benchmark.result.uploadPrompt": "A telemetria está desativada, então este resultado não foi enviado automaticamente.",
+  "benchmark.result.uploadPrompt": "Este resultado não foi enviado porque a opção “{setting}” está desativada.",
   "benchmark.result.viewLeaderboard": "Ver placar",
   "benchmark.results.introBody": "Um benchmark roda cargas de trabalho reais na sua CPU, GPU, RAM e armazenamento em cerca de 40 segundos, tudo neste PC. Cada execução fica salva aqui para comparar antes e depois de um upgrade.",
   "benchmark.results.introTitle": "Veja a pontuação do seu PC",

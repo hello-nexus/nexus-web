@@ -95,8 +95,16 @@ describe('BenchmarkPage telemetry-gated submission', () => {
     h.result = null;
     h.telemetryEnabled = true;
     h.history = [];
-    h.addRun.mockClear();
-    h.updateRunSubmission.mockClear();
+    h.addRun.mockReset();
+    h.addRun.mockImplementation(((result: BenchmarkResult, submissionId?: string | null) => {
+      const id = `hist-${h.history.length + 1}`;
+      h.history = [{ id, result, submissionId, submission: null }, ...h.history];
+      return id;
+    }) as any);
+    h.updateRunSubmission.mockReset();
+    h.updateRunSubmission.mockImplementation(((id: string, submissionId: string, submission: unknown) => {
+      h.history = h.history.map(run => (run.id === id ? { ...run, submissionId, submission } : run));
+    }) as any);
     mockSubmitCloudBenchmark.mockReset();
   });
 
@@ -129,5 +137,65 @@ describe('BenchmarkPage telemetry-gated submission', () => {
 
     await waitFor(() => expect(mockSubmitCloudBenchmark).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByText(/benchmark\.result\.percentile/)).toBeInTheDocument());
+  });
+
+  it('records a run handed over twice (same runId, new object) only once', async () => {
+    h.telemetryEnabled = false;
+    h.result = mkResult();
+    const { rerender } = render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    await waitFor(() => expect(h.addRun).toHaveBeenCalledTimes(1));
+
+    h.result = mkResult();
+    rerender(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    await waitFor(() => expect(screen.getByText('benchmark.result.uploadCta')).toBeInTheDocument());
+    expect(h.addRun).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps offering the upload after a failed one', async () => {
+    h.telemetryEnabled = false;
+    mockSubmitCloudBenchmark.mockRejectedValueOnce(new Error('offline'));
+    h.result = mkResult();
+    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+
+    const button = await screen.findByText('benchmark.result.uploadCta');
+    await act(async () => { button.closest('button')!.click(); });
+
+    await waitFor(() => expect(mockSubmitCloudBenchmark).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('benchmark.result.uploadCta')).toBeInTheDocument();
+    expect(h.updateRunSubmission).not.toHaveBeenCalled();
+  });
+
+  it('keeps offering the upload when the submit returns nothing', async () => {
+    h.telemetryEnabled = false;
+    mockSubmitCloudBenchmark.mockResolvedValueOnce(null);
+    h.result = mkResult();
+    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+
+    const button = await screen.findByText('benchmark.result.uploadCta');
+    await act(async () => { button.closest('button')!.click(); });
+
+    await waitFor(() => expect(mockSubmitCloudBenchmark).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('benchmark.result.uploadCta')).toBeInTheDocument();
+    expect(h.updateRunSubmission).not.toHaveBeenCalled();
+  });
+
+  it('offers the upload for an unsubmitted saved run after returning to the page', async () => {
+    h.telemetryEnabled = false;
+    h.history = [{ id: 'hist-9', result: mkResult(), submissionId: null, submission: null }];
+
+    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+
+    expect(await screen.findByText('benchmark.result.uploadCta')).toBeInTheDocument();
+  });
+
+  it('saves the run and offers the upload when the consent read fails', async () => {
+    h.telemetryEnabled = null;
+    h.result = mkResult();
+
+    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+
+    await waitFor(() => expect(h.addRun).toHaveBeenCalledWith(expect.objectContaining({ runId: 'run-1' }), null));
+    expect(await screen.findByText('benchmark.result.uploadCta')).toBeInTheDocument();
+    expect(mockSubmitCloudBenchmark).not.toHaveBeenCalled();
   });
 });
