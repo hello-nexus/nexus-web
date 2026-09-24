@@ -13,6 +13,9 @@ function benchUrl(id: string): string {
 }
 
 /**
+ * Consumed through @app by the Build portal's profile page; nothing inside
+ * this repo imports it.
+ *
  * Public profile "Benchmarks" section: best score headline + recent runs,
  * each linking out to its full result on build.hellonexus.com. `benchmarks`
  * is always present on a public profile, but `best` is null for an account

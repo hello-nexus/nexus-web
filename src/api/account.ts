@@ -52,6 +52,9 @@ export type PublicAccountResult =
   | { status: 'error' };
 
 /**
+ * Consumed through @app by the Build portal's profile page; nothing inside
+ * this repo calls it.
+ *
  * GET /u/:username. Retries transient failures (network error / 5xx / 429)
  * with backoff - the cloud API can cold-start on Railway, same as
  * getLeaderboard() in nexusApi.ts. A non-transient 404 resolves immediately.

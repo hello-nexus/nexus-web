@@ -4,9 +4,9 @@ import { useTranslation } from '../../lib/i18n';
 import styles from './PublicPageFrame.module.scss';
 
 /**
- * Shared outer shell for the browser-only public account pages
- * (/u/<username>, /auth/verify, /auth/recover): dark centered column with
- * the Nexus mark linking home.
+ * Shared outer shell for the browser-only emailed account landings
+ * (/auth/verify, /auth/recover): dark centered column with the Nexus mark
+ * linking home.
  */
 export function PublicPageFrame({ children, maxWidth = 420 }: { children: ReactNode; maxWidth?: number }) {
   const { t } = useTranslation();

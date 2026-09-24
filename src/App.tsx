@@ -13,33 +13,18 @@ import { Dashboard } from './app/Dashboard';
 import { isRemoteOrigin, setForceLanMode } from './api/service';
 import { isWindowsAppShell, isMacAppShell } from './app/windowActions';
 
-// The public account pages (/u/<username>, /auth/verify, /auth/recover) are
+// The emailed account landings (/auth/verify, /auth/recover) are
 // browser-only - `npm run build:service` must dead-code-eliminate their route
 // chunks from the desktop/app bundle. The import() is guarded by the raw
 // build define (NOT a wrapped const): esbuild folds `!false` to `true` /
 // `!true` to `false` during transform, and Rollup then tree-shakes the dead
 // branch's dynamic import so the chunk is never emitted - same technique as
 // the DEV_TOOLS-gated StorybookModal in ToolsView.tsx.
-const PublicProfilePage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/PublicProfilePage').then(m => ({ default: m.PublicProfilePage })))
-  : null;
 const VerifyEmailPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })))
   : null;
 const RecoverPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/RecoverPage').then(m => ({ default: m.RecoverPage })))
-  : null;
-const LoginPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/LoginPage').then(m => ({ default: m.LoginPage })))
-  : null;
-const RegisterPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/RegisterPage').then(m => ({ default: m.RegisterPage })))
-  : null;
-const ForgotPasswordPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/ForgotPasswordPage').then(m => ({ default: m.ForgotPasswordPage })))
-  : null;
-const AccountPage = !__SERVICE_BUILD__
-  ? lazy(() => import('./app/public/AccountPage').then(m => ({ default: m.AccountPage })))
   : null;
 
 // The public web at hellonexus.com: an ordinary browser origin that is NOT the
@@ -173,21 +158,6 @@ export default function App() {
     );
   }
 
-  // /u/<username> - public account profile. Absent (PublicProfilePage is
-  // null) in the service/app bundle - see the lazy() guards above.
-  if (PublicProfilePage && (path === '/u' || path.startsWith('/u/'))) {
-    const username = path.split('/').filter(Boolean)[1] ?? '';
-    if (username) {
-      return (
-        <I18nProvider>
-          <Suspense fallback={null}>
-            <PublicProfilePage username={username} />
-          </Suspense>
-        </I18nProvider>
-      );
-    }
-  }
-
   // /auth/verify?token=... - email verification landing (magic link from the
   // registration email). Absent in the service/app bundle.
   if (VerifyEmailPage && path === '/auth/verify') {
@@ -210,47 +180,6 @@ export default function App() {
       <I18nProvider>
         <Suspense fallback={null}>
           <RecoverPage token={token} />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-
-  // /login, /register, /recover, /account - public auth pages (browser-only,
-  // same components as the in-app Settings > Account view, wired to
-  // DirectApiBackend instead of the local service). Absent in the
-  // service/app bundle.
-  if (LoginPage && path === '/login') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <LoginPage />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-  if (RegisterPage && path === '/register') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <RegisterPage />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-  if (ForgotPasswordPage && path === '/recover') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <ForgotPasswordPage />
-        </Suspense>
-      </I18nProvider>
-    );
-  }
-  if (AccountPage && path === '/account') {
-    return (
-      <I18nProvider>
-        <Suspense fallback={null}>
-          <AccountPage />
         </Suspense>
       </I18nProvider>
     );

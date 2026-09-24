@@ -8,11 +8,8 @@ import type { BenchmarkVersionInfo, LeaderboardEntry, LeaderboardResponse } from
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
+import { publicProfileUrl } from '../../../lib/publicProfile';
 import styles from './LeaderboardView.module.scss';
-
-// Absolute so the link works from every surface the leaderboard renders on
-// (desktop dashboard, panel widget) - none of which are hellonexus.com itself.
-const PUBLIC_PROFILE_ORIGIN = 'https://hellonexus.com';
 
 export function LeaderboardView() {
   const { t } = useTranslation();
@@ -146,7 +143,7 @@ export function LeaderboardView() {
                             ? (
                               <a
                                 className={styles.hwNameLink}
-                                href={`${PUBLIC_PROFILE_ORIGIN}/u/${encodeURIComponent(entry.displayName)}`}
+                                href={publicProfileUrl(entry.displayName)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={e => e.stopPropagation()}

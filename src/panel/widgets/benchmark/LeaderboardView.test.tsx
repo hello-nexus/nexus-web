@@ -93,7 +93,7 @@ describe('LeaderboardView', () => {
     render(<LeaderboardView />);
 
     const link = await screen.findByRole('link', { name: /Nova/ });
-    expect(link).toHaveAttribute('href', 'https://hellonexus.com/u/Nova');
+    expect(link).toHaveAttribute('href', 'https://build.hellonexus.com/u/Nova');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   });

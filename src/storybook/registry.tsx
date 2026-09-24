@@ -2713,7 +2713,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Avatar', category: 'status',
     filePath: 'src/components/common/Avatar/Avatar.tsx',
-    description: 'Circular avatar. Renders the src image when present; falls back to the first letter of name over an accent-filled circle when src is absent or fails to load. size is a px diameter (default 36, matching the control-avatar size token). Used by the public account profile page (/u/<username>).',
+    description: 'Circular avatar. Renders the src image when present; falls back to the first letter of name over an accent-filled circle when src is absent or fails to load. size is a px diameter (default 36, matching the control-avatar size token). Used by the account header and the public profile page on the Build portal.',
     Preview: PreviewAvatar,
   },
   {

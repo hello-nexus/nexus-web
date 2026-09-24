@@ -62,13 +62,9 @@ The app routes a small set of top-level surfaces from the URL path:
 | `/panel/phone` | Mobile remote surface (paired via QR). |
 | `/overlay` | Per-monitor overlay hosted by `nexus-overlay.exe`. |
 | `/r/pair` | iOS Universal Link landing page (App Store / browser fallback). |
-| `/u/:username` | Public account profile page. Browser-only. |
 | `/auth/verify` | Email verification landing page. Browser-only. |
 | `/auth/recover` | Lost-password magic-link landing page. Browser-only. |
-| `/login` | Public sign-in page. Browser-only. |
-| `/register` | Public account creation page. Browser-only. |
-| `/recover` | Public lost-password request+poll flow. Browser-only. |
-| `/account` | Public signed-in account page (profile management, no sync). Browser-only. |
+| `/login`, `/register`, `/recover`, `/account`, `/u/:username` | `server.js` 302-redirects these to the same path on `https://build.hellonexus.com`, which hosts sign-in, the account page and public profiles. |
 | `/telemetry-reference` | Dev reference view listing the analytics events the app emits. |
 
 `/touch` and `/panel/q60` are legacy aliases that land in the panel
@@ -86,21 +82,19 @@ resolved server-side via the GitHub releases API (latest stable, or the
 newest prerelease while no stable exists - GitHub's static `latest/download`
 alias 404s until then).
 
-`/u/:username`, `/auth/verify`, `/auth/recover`, `/login`, `/register`,
-`/recover`, and `/account` are dead-code-eliminated from `npm run
+`/auth/verify` and `/auth/recover` are dead-code-eliminated from `npm run
 build:service` (same `__SERVICE_BUILD__` build-define technique as the
 `__DEV_TOOLS__` gate) - they only ever ship in the standalone build served at
-hellonexus.com. `server.js` additionally injects og:title/og:image/
-description meta tags into `/u/:username` responses for link previews, backed
-by a short-lived in-memory cache of the nexus-api lookup (`NEXUS_API_BASE`,
-below).
+hellonexus.com.
 
-`/login`, `/register`, `/recover`, and `/account` render the same
-sign-in/register/recovery/account-management components as the in-app
-Settings > Account view, swapped onto an `AuthBackend` adapter that talks to
-`api.hellonexus.com` directly (`api/directApiBackend.ts`) instead of the
-in-app adapter that proxies through the local service
-(`api/localServiceBackend.ts`).
+The Build portal (build.hellonexus.com) renders its sign-in, account and
+profile pages from the same components as the in-app Settings > Account view
+(`components/views/SettingsView/Account/`, `app/public/DeviceSpecsCard.tsx`,
+`app/public/PublicProfileBenchmarks.tsx`, `app/public/usePublicAccount.ts`),
+swapped onto an `AuthBackend` adapter that talks to `api.hellonexus.com`
+directly (`api/directApiBackend.ts`) instead of the in-app adapter that
+proxies through the local service (`api/localServiceBackend.ts`). In-app
+profile links go through `lib/publicProfile.ts`.
 
 Cloud profiles are not part of the account surface: their backup status and
 the cross-machine import live under Settings > Profiles
@@ -117,7 +111,7 @@ Everything ships from `src/`. Top-level folders:
 | Folder | Contents |
 |---|---|
 | `api/` | Typed REST/WS clients for `nexus-service` + the cloud API - one file per domain (`cooling`, `lighting`, `displays`, `keeb`, `gallery`, `panel`, `internetPairing`…). Host resolution lives in `api/service.ts`. |
-| `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. `app/public/` holds the browser-only public account pages (see Surfaces above). |
+| `app/` | Desktop **dashboard shell**: `Dashboard.tsx`, sidebar, pairing modals, panel entrypoint + routing, window caption buttons. `app/public/` holds the emailed account landings and the account pieces the Build portal reuses (see Surfaces above). |
 | `assets/` | Static image assets bundled into the app (e.g. `flags/` for locale flags). |
 | `components/` | Shared React components - `common/` (design-system primitives), `views/` (full dashboard sections), `icons/`. |
 | `diag/` | Renderer diagnostics - the memory/health probe that reports JS-heap, DOM-node, and reconnect samples to the service log (`/diagnostics/client-mem`) on significant change. |
@@ -185,9 +179,6 @@ file, so avoid writing it in a fixture or a doc comment.
 - `VITE_RELAY_URL` - relay origin override for local relay testing.
 - `VITE_LAN_SEALED` - set to `1` to force the LAN-sealed transport (also
   toggleable at runtime via `localStorage['nexus.lanSealed']`). Debug flag.
-- `NEXUS_API_BASE` - `server.js`-only (not a Vite define): the nexus-api
-  origin `/u/:username` OG injection fetches against. Defaults to
-  `https://api.hellonexus.com`.
 
 Host resolution logic lives in `src/api/service.ts`.
 

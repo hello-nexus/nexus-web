@@ -104,16 +104,6 @@
   @media (max-width: 560px) { display: none; }
 }
 
-.headerLogin {
-  @include text-label;
-  color: var(--text-dim);
-  text-decoration: none;
-
-  &:hover { color: var(--text); }
-
-  @media (max-width: 560px) { display: none; }
-}
-
 // Emphasis mirrors the hero CTAs: Download filled, My System outlined.
 .headerDownload {
   @include text-button;

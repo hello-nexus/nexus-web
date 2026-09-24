@@ -30,9 +30,6 @@ export function SiteHeader() {
           >
             <GithubGlyph size={18} />
           </a>
-          <a href={mySystemHref('/login')} className={styles.headerLogin}>
-            {t('site.nav.login')}
-          </a>
           <a href="/#download" className={styles.headerDownload}>
             {t('site.nav.download')}
           </a>
