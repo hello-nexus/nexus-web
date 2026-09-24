@@ -13,6 +13,7 @@ import { SectionHeader } from '../../../components/common/SectionHeader/SectionH
 import { Badge } from '../../../components/common/Badge/Badge';
 import { Button } from '../../../components/common/Button/Button';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
+import { formatResolution, STANDARD_RESOLUTIONS } from '../../../lib/resolutionLabel';
 import { Spinner } from '../../../components/common/Spinner/Spinner';
 import { StatTile } from '../../../components/common/StatTile/StatTile';
 import { TimeSeriesChart } from '../../../components/common/TimeSeriesChart/TimeSeriesChart';
@@ -38,9 +39,6 @@ const SESSIONS_LIMIT = 50;
 // The service's own fps scalar series retention (see the FPS benchmarks
 // plan) - a session ending before this has no timeline left to fetch.
 const HISTORY_RETENTION_DAYS = 7;
-// Discover's resolution chips, in the cloud's resClass form; the first is
-// the default, being the fleet's most common class.
-const DISCOVER_RESOLUTIONS = ['1920x1080', '2560x1440', '3440x1440', '3840x2160'] as const;
 
 type FramesTab = 'history' | 'discover';
 
@@ -368,7 +366,7 @@ function GameDetail({
                     <span className={styles.sessionMain}>
                       <span>{formatSessionDate(s.startedUtcMs, timeFormat)}</span>
                       <span className={styles.sessionMeta}>
-                        {`${s.dispW}×${s.dispH} @ ${s.refreshHz} Hz · ${formatDurationMinutes(s.focusedSec)}`}
+                        {`${formatResolution(`${s.dispW}x${s.dispH}`)} @ ${s.refreshHz} Hz · ${formatDurationMinutes(s.focusedSec)}`}
                       </span>
                     </span>
                     <span className={styles.sessionStats}>
@@ -480,7 +478,7 @@ function SessionTimeline({
 
 function DiscoverTab() {
   const { t } = useTranslation();
-  const [res, setRes] = useState<string>(DISCOVER_RESOLUTIONS[0]);
+  const [res, setRes] = useState<string>(STANDARD_RESOLUTIONS[0]);
   const [search, setSearch] = useState('');
   const { status, games } = useFpsEstimates(res);
 
@@ -489,7 +487,7 @@ function DiscoverTab() {
     return q ? games.filter(g => g.title.toLowerCase().includes(q)) : games;
   }, [games, search]);
 
-  const resolutionChips = DISCOVER_RESOLUTIONS.map(r => ({ key: r, label: formatResClass(r) }));
+  const resolutionChips = STANDARD_RESOLUTIONS.map(r => ({ key: r, label: formatResolution(r) }));
 
   return (
     <div className={styles.discover}>
@@ -600,10 +598,6 @@ function GameArt({ gameKey, imgClass, iconClass, placeholder }: {
   );
 }
 
-function formatResClass(resClass: string): string {
-  return resClass.replace(/^(\d+)x(\d+)$/, '$1×$2');
-}
-
 /** A game with no art at all: the controller glyph on the same ground the icon fallback uses. */
 function ArtPlaceholder() {
   return (
@@ -655,7 +649,7 @@ function DiscoverGameCard({ game, requestedRes }: { game: FpsTableGameItem; requ
         <div className={styles.gameCardAvg}>
           <span className={styles.gameCardAvgValue}>{Math.round(game.avg)}</span>
           <span className={styles.gameCardAvgUnit}>{t('frames.card.fpsUnit')}</span>
-          <span className={styles.gameCardAvgRes}>{`@ ${formatResClass(measuredRes)}`}</span>
+          <span className={styles.gameCardAvgRes}>{`@ ${formatResolution(measuredRes)}`}</span>
         </div>
         <div className={styles.gameCardSecondary}>
           <span className={styles.gameCardSecondaryValue}>{Math.round(game.p1)}</span>
@@ -667,7 +661,7 @@ function DiscoverGameCard({ game, requestedRes }: { game: FpsTableGameItem; requ
           <ConfidenceMark confidence={game.confidence} />
           <span className={styles.discoverBasisText}>
             {t(`frames.discover.level.${game.level}`)}
-            {fellBack && ` · ${t('frames.discover.resBasis', { res: formatResClass(requestedRes) })}`}
+            {fellBack && ` · ${t('frames.discover.resBasis', { res: formatResolution(requestedRes) })}`}
           </span>
         </div>
       </div>
