@@ -91,9 +91,9 @@
   --backdrop-tint-c: color-mix(in srgb, var(--accent-deep) 30%, transparent);
 
   // Text - two ink tiers. rgba, NOT color-mix(): Q60 WebView is Chromium 83.
-  // Keep the rgb triplet in sync with --text.
+  // The dim tier is neutral white, deliberately not the --text triplet.
   --text: #f5f5f5;
-  --text-dim: rgba(245, 245, 245, 0.5);
+  --text-dim: rgba(255, 255, 255, 0.6);
   // Separator/divider lines - the text hue at low alpha. The single source for
   // every dividing rule (app + panel). Keep the triplet synced with --text.
   // Same alpha rung as --control-border (the faint tier).
@@ -278,8 +278,8 @@
   --backdrop-tint-c: color-mix(in srgb, var(--accent-glow) 22%, transparent);
 
   --text: #1a1a2e;
-  // Two ink tiers; keep the rgb triplet in sync with --text above.
-  --text-dim: rgba(26, 26, 46, 0.5);
+  // Two ink tiers; the dim tier is neutral black, deliberately not the --text triplet.
+  --text-dim: rgba(0, 0, 0, 0.6);
   --separator: rgba(26, 26, 46, 0.12);
 
   --accent: #2563eb;

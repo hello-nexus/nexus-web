@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±{pct}%",
   "benchmark.result.submitting": "Indienen bij klassement...",
   "benchmark.result.trials": "Pogingen",
+  "benchmark.result.uploadCta": "Uploaden naar klassement",
+  "benchmark.result.uploadPrompt": "Dit resultaat is niet geüpload omdat de optie ‘{setting}’ uit staat.",
   "benchmark.result.viewLeaderboard": "Klassement bekijken",
   "benchmark.results.introBody": "Een benchmark draait echte workloads op je CPU, GPU, RAM en opslag in ongeveer 40 seconden, volledig op deze pc. Elke run wordt hier bewaard, zodat je voor en na een upgrade kunt vergelijken.",
   "benchmark.results.introTitle": "Zie hoe je pc scoort",

@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±{pct}%",
   "benchmark.result.submitting": "Envoi au classement...",
   "benchmark.result.trials": "Essais",
+  "benchmark.result.uploadCta": "Envoyer au classement",
+  "benchmark.result.uploadPrompt": "Ce résultat n’a pas été envoyé, car l’option « {setting} » est désactivée.",
   "benchmark.result.viewLeaderboard": "Voir le classement",
   "benchmark.results.introBody": "Un benchmark soumet votre CPU, votre GPU, votre RAM et votre stockage à des charges de travail réelles pendant environ 40 secondes, entièrement sur ce PC. Chaque exécution est enregistrée ici pour comparer avant et après une mise à niveau.",
   "benchmark.results.introTitle": "Découvrez le score de votre PC",

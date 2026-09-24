@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±{pct}%",
   "benchmark.result.submitting": "Invio alla classifica...",
   "benchmark.result.trials": "Prove",
+  "benchmark.result.uploadCta": "Carica in classifica",
+  "benchmark.result.uploadPrompt": "Questo risultato non è stato caricato perché l’opzione «{setting}» è disattivata.",
   "benchmark.result.viewLeaderboard": "Vedi classifica",
   "benchmark.results.introBody": "Un benchmark esegue carichi di lavoro reali su CPU, GPU, RAM e archiviazione in circa 40 secondi, tutto su questo PC. Ogni esecuzione viene salvata qui per confrontare prima e dopo un upgrade.",
   "benchmark.results.introTitle": "Scopri il punteggio del tuo PC",

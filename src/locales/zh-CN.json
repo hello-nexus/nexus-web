@@ -199,6 +199,8 @@
   "benchmark.result.spread": "±{pct}%",
   "benchmark.result.submitting": "正在提交到排行榜...",
   "benchmark.result.trials": "测试轮次",
+  "benchmark.result.uploadCta": "上传到排行榜",
+  "benchmark.result.uploadPrompt": "由于“{setting}”选项已关闭，该结果未上传。",
   "benchmark.result.viewLeaderboard": "查看排行榜",
   "benchmark.results.introBody": "基准测试会用真实工作负载测试 CPU、GPU、内存和存储，约需 40 秒，全部在本机运行。每次运行都会保存在这里，方便对比升级前后的表现。",
   "benchmark.results.introTitle": "看看你的 PC 得分",

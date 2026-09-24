@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../lib/i18n', () => ({
@@ -58,5 +58,35 @@ describe('BenchmarkResults', () => {
     />);
 
     expect(screen.getByText('benchmark.result.spread pct=2.3')).toBeInTheDocument();
+  });
+
+  it('shows the upload prompt only when onUpload is set and there is no submission yet', () => {
+    render(<BenchmarkResults result={mkResult()} submission={null} submitting={false} />);
+    expect(screen.queryByText('benchmark.result.uploadCta')).not.toBeInTheDocument();
+  });
+
+  it('calls onUpload when the upload button is clicked, and hides it once submitting', () => {
+    const onUpload = vi.fn();
+    const { rerender } = render(
+      <BenchmarkResults result={mkResult()} submission={null} submitting={false} onUpload={onUpload} />,
+    );
+
+    fireEvent.click(screen.getByText('benchmark.result.uploadCta'));
+    expect(onUpload).toHaveBeenCalledTimes(1);
+
+    rerender(<BenchmarkResults result={mkResult()} submission={null} submitting onUpload={onUpload} />);
+    expect(screen.queryByText('benchmark.result.uploadCta')).not.toBeInTheDocument();
+  });
+
+  it('hides the upload prompt once a submission exists', () => {
+    render(
+      <BenchmarkResults
+        result={mkResult()}
+        submission={{ percentile: 50, rank: 10, total: 20 }}
+        submitting={false}
+        onUpload={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('benchmark.result.uploadCta')).not.toBeInTheDocument();
   });
 });

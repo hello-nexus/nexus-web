@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { BenchmarkResult } from '../../../types/benchmark';
 import { Gauge, Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useBenchmark } from '../../../hooks/useBenchmark';
-import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
+import { useBenchmarkHistory, type BenchmarkRun } from '../../../hooks/useBenchmarkHistory';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
@@ -17,6 +18,7 @@ import { SectionHeader } from '../../../components/common/SectionHeader/SectionH
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { getDeviceId, getLastSubmissionId, setLastSubmissionId } from '../../../api/nexusApi';
 import { submitCloudBenchmark } from '../../../api/cloud';
+import { fetchTelemetryConsent } from '../../../api/telemetry';
 import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
@@ -52,12 +54,28 @@ interface BenchmarkPageProps {
 export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onTabChange }: BenchmarkPageProps) {
   const { t } = useTranslation();
   const { status, progress, result, error, start, cancel, reset } = useBenchmark(serviceOnline);
-  const { history, addRun } = useBenchmarkHistory();
+  const { history, addRun, updateRunSubmission } = useBenchmarkHistory();
   const { specs } = useSystemSpecs(serviceOnline);
-  const [submitting, setSubmitting] = useState(false);
   const [submission, setSubmission] = useState<{ percentile: number; rank: number; total: number } | null>(null);
   const [submissionId, setSubmissionIdState] = useState<string | null>(() => getLastSubmissionId());
   const [savedResult, setSavedResult] = useState<typeof result>(null);
+  // null only while the first read is in flight; a failed read counts as off,
+  // so a run is always saved and never auto-uploads without confirmed consent.
+  const [telemetryEnabled, setTelemetryEnabled] = useState<boolean | null>(null);
+  // History entry of the run this page just finished, and the entry uploading now.
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [uploadingRunId, setUploadingRunId] = useState<string | null>(null);
+  // useBenchmark can hand over the same run more than once (WS frame + poller).
+  const decidedRunIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!serviceOnline) return;
+    let cancelled = false;
+    fetchTelemetryConsent()
+      .then(res => { if (!cancelled) setTelemetryEnabled(res?.enabled === true); })
+      .catch(() => { if (!cancelled) setTelemetryEnabled(false); });
+    return () => { cancelled = true; };
+  }, [serviceOnline]);
 
   // The board is hosted; local runs and results are not, so only it drops out.
   const tabs = [
@@ -72,42 +90,52 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   const tab: BenchmarkTab = urlTab && validTabs.includes(urlTab)
     ? urlTab as BenchmarkTab : 'run';
 
+  const upload = useCallback(async (runId: string, r: BenchmarkResult) => {
+    setUploadingRunId(runId);
+    try {
+      // Routed through the local service (not api.hellonexus.com directly):
+      // the benchmark UI only ever runs in-app, so the service can forward
+      // the signed-in cloud account's bearer and link the submission - a
+      // bare browser fetch has no way to attach that token.
+      const res = await submitCloudBenchmark(buildBenchmarkSubmission(r, getDeviceId()));
+      if (res) {
+        const standing = { percentile: res.percentile, rank: res.rank, total: res.totalSubmissions };
+        updateRunSubmission(runId, res.id, standing);
+        setLastSubmissionId(res.id);
+        setSubmission(standing);
+        setSubmissionIdState(res.id);
+      }
+    } catch {
+      // A failed upload leaves the run unsubmitted, so it is offered again.
+    } finally {
+      setUploadingRunId(current => (current === runId ? null : current));
+    }
+  }, [updateRunSubmission]);
+
   useEffect(() => {
     if (!result || result.state !== 'complete') return;
-    let cancelled = false;
     setSavedResult(result);
+    if (telemetryEnabled === null || decidedRunIdRef.current === result.runId) return;
+    decidedRunIdRef.current = result.runId;
+    // Saved before any upload, so the run survives a failed or abandoned submit.
+    const id = addRun(result, null);
+    setActiveRunId(id);
+    onTabChange('results');
+    if (telemetryEnabled) void upload(id, result);
+  }, [result, telemetryEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    (async () => {
-      setSubmitting(true);
-      try {
-        const payload = buildBenchmarkSubmission(result, getDeviceId());
-        // Routed through the local service (not api.hellonexus.com directly):
-        // the benchmark UI only ever runs in-app, so the service can forward
-        // the signed-in cloud account's bearer and link the submission - a
-        // bare browser fetch has no way to attach that token.
-        const res = await submitCloudBenchmark(payload);
-        if (!cancelled && res) {
-          const standing = { percentile: res.percentile, rank: res.rank, total: res.totalSubmissions };
-          setSubmission(standing);
-          setLastSubmissionId(res.id);
-          setSubmissionIdState(res.id);
-          addRun(result, res.id, standing);
-          onTabChange('results');
-        } else if (!cancelled) {
-          addRun(result, null);
-          onTabChange('results');
-        }
-      } finally {
-        if (!cancelled) setSubmitting(false);
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [result]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Offered only while "Help improve Nexus" is off; failed reads count as off.
+  const uploadHandlerFor = (run: BenchmarkRun | null) =>
+    run && telemetryEnabled === false && !run.submission && uploadingRunId !== run.id
+      ? () => { void upload(run.id, run.result); }
+      : undefined;
+  const activeRun = history.find(run => run.id === activeRunId) ?? null;
 
   const handleRerun = useCallback(async () => {
     setSubmission(null);
     setSavedResult(null);
+    setActiveRunId(null);
+    decidedRunIdRef.current = null;
     await reset();
   }, [reset]);
 
@@ -188,8 +216,9 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
           <BenchmarkResults
             result={r}
             submission={submission}
-            submitting={submitting}
+            submitting={uploadingRunId !== null && uploadingRunId === activeRunId}
             submissionId={submissionId}
+            onUpload={uploadHandlerFor(activeRun)}
           />
           <div className={styles.controls}>
             <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={handleRerun}>
@@ -236,8 +265,9 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
         <BenchmarkResults
           result={latest.result}
           submission={latest.submission ?? null}
-          submitting={false}
+          submitting={uploadingRunId === latest.id}
           submissionId={latest.submissionId}
+          onUpload={uploadHandlerFor(latest)}
         />
         {history.length > 1 && (
           <div className={styles.historySection}>
