@@ -105,6 +105,29 @@ describe('PanelEntrypoint allocate-or-recover', () => {
     );
   });
 
+  it('carries the kiosk frame-pacing hint into the device URL', async () => {
+    window.history.pushState(null, '', '/panel?displayHz=60&backdrop=desktop');
+    try {
+      allocateMock.mockResolvedValueOnce({ ok: true, record: { id: FRESH_ID } });
+      render(
+        <PanelEntrypoint
+          initialDeviceId={null}
+          isPhonePair={false}
+          pairToken={null}
+          pairDeviceId={null}
+          pairSpki={null}
+        />,
+      );
+      await waitFor(() => expect(window.history.replaceState).toHaveBeenCalledWith(
+        null,
+        '',
+        expect.stringMatching(new RegExp(`/panel/${FRESH_ID}\\?displayHz=60$`)),
+      ));
+    } finally {
+      window.history.pushState(null, '', '/');
+    }
+  });
+
   it('keeps the cached device id when the patch verify succeeds', async () => {
     localStorage.setItem(PANEL_DEVICE_ID_KEY, STALE_ID);
     patchMock.mockResolvedValueOnce({

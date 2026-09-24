@@ -21,6 +21,7 @@ import { useTranslation } from '../lib/i18n';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { PANEL_DEVICE_ID_KEY, PHONE_PANEL_PWA_KEY } from './panelRouting';
 import styles from '../App.module.scss';
+import { framePacingQuery } from '../lib/framePacer';
 
 type PanelFailureKind = 'auth' | 'network' | 'pair-expired';
 type PanelEntrypointState = 'claiming' | 'allocating' | 'ready' | 'failed';
@@ -156,7 +157,8 @@ export function PanelEntrypoint({ initialDeviceId, isPhonePair, pairToken, pairD
       if (cancelled) return;
       localStorage.setItem(PANEL_DEVICE_ID_KEY, id);
       setDeviceId(id);
-      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}`;
+      // The kiosk host's frame-pacing hint must survive the move to the device URL.
+      const target = `${window.location.origin}/panel/${encodeURIComponent(id)}${framePacingQuery(window.location.search)}`;
       window.history.replaceState(null, '', target);
       setState('ready');
     };
