@@ -1,0 +1,5 @@
+// Windows-shell caption buttons (CaptionButtons.module.scss). Variables only, so
+// @use'ing it from a .module.scss emits no CSS. The window-resize strips
+// (App.module.scss) leave the bar's width to the buttons.
+$caption-button-width: 46px;
+$caption-bar-width: 3 * $caption-button-width;

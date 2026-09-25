@@ -1,3 +1,5 @@
+@use '../styles/caption' as *;
+
 // Win11-styled caption buttons. Renders 3 x 46x32 buttons stacked
 // horizontally in the top-right corner of the layout. The DWM-painted
 // system buttons are unavailable inside a WebView2 host because the child
@@ -10,8 +12,8 @@
   // the whole bar, matching native Windows caption buttons.
   align-self: stretch;
   align-items: stretch;
-  // Sits in the top bar's right cluster. Stays above the window-resize corner
-  // strips so the caption buttons remain live, including over a modal.
+  // Sits in the top bar's right cluster. The window-resize strips leave this
+  // area to the buttons except the top pixel row (App.module.scss).
   position: relative;
   z-index: 2003;
   // Each button is interactive - exempt the bar from the top bar's
@@ -22,7 +24,7 @@
 }
 
 .btn {
-  width: 46px;
+  width: $caption-button-width;
   height: 100%;
   display: grid;
   place-items: center;

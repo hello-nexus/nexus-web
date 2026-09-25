@@ -95,6 +95,7 @@ import { AppAutoInstalledToasts } from './AppAutoInstalledToasts';
 import { SyncConflictGate } from './SyncConflictGate';
 import { useMonitoringStoreBridge } from './monitoringBridge';
 import { isWindowsAppShell, isMacAppShell, postResizeStart, NEXUS_RESIZE_EDGES, type NexusResizeEdge } from './windowActions';
+import { useWindowMaximized } from './useWindowMaximized';
 import { DEV_TOOLS } from '../lib/devTools';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import styles from '../App.module.scss';
@@ -256,6 +257,27 @@ function ResizeStrip({ className, edge }: { className: string; edge: NexusResize
         postResizeStart(edge);
       }}
     />
+  );
+}
+
+// Nexus Windows shell only: the top-edge resize strips. The host keeps a native
+// invisible resize frame outside the left / right / bottom edges, but the page
+// runs to the top edge, so the top band IPCs nexus-overlay to start the native
+// resize loop. Portaled to <body> (position: fixed, z-index above --z-modal) so
+// they escape .layout's isolated stacking context and stay grabbable above
+// modal backdrops. None while maximized: the window cannot resize and the top
+// pixel row belongs to the caption buttons, as on native windows.
+function WindowResizeStrips() {
+  const maximized = useWindowMaximized();
+  if (maximized) return null;
+  return createPortal(
+    <>
+      <ResizeStrip className={styles.windowResizeStripTop} edge={NEXUS_RESIZE_EDGES.top} />
+      <ResizeStrip className={styles.windowResizeStripTopEdge} edge={NEXUS_RESIZE_EDGES.top} />
+      <ResizeStrip className={styles.windowResizeCornerTopLeft} edge={NEXUS_RESIZE_EDGES.topLeft} />
+      <ResizeStrip className={styles.windowResizeCornerTopRight} edge={NEXUS_RESIZE_EDGES.topRight} />
+    </>,
+    document.body,
   );
 }
 
@@ -959,27 +981,7 @@ export function Dashboard() {
         <SidebarCollapsedSync onChange={restoreSidebarCollapsed} />
         <ResolvedThemeSync />
         <OpenInAppBanner />
-        {/* Nexus Windows shell only: window-resize grab strips along each
-            edge. The drag region + caption buttons now live in the top bar
-            below; these strips IPC nexus-overlay to start the native resize
-            loop. Portaled to <body> (position: fixed, z-index above
-            --z-modal) so they escape .layout's isolated stacking context
-            and stay grabbable above modal backdrops - resizing the window
-            must keep working while a dialog is open. */}
-        {isWindowsAppShell() && createPortal(
-          <>
-            <ResizeStrip className={styles.windowResizeStripLeft} edge={NEXUS_RESIZE_EDGES.left} />
-            <ResizeStrip className={styles.windowResizeStripRight} edge={NEXUS_RESIZE_EDGES.right} />
-            <ResizeStrip className={styles.windowResizeStripTop} edge={NEXUS_RESIZE_EDGES.top} />
-            <ResizeStrip className={styles.windowResizeStripBottom} edge={NEXUS_RESIZE_EDGES.bottom} />
-            <ResizeStrip className={styles.windowResizeCornerTopLeft} edge={NEXUS_RESIZE_EDGES.topLeft} />
-            {/* No top-right corner strip: it would overlap the close button.
-                Resize via the top or right edge instead. */}
-            <ResizeStrip className={styles.windowResizeCornerBottomLeft} edge={NEXUS_RESIZE_EDGES.bottomLeft} />
-            <ResizeStrip className={styles.windowResizeCornerBottomRight} edge={NEXUS_RESIZE_EDGES.bottomRight} />
-          </>,
-          document.body,
-        )}
+        {isWindowsAppShell() && <WindowResizeStrips />}
         {/* Dashboard chrome renders only once onboarding status is resolved
             (never on 'unknown') and only when neither onboarding gate is open -
             hidden entirely, not just covered, so nothing behind the gates

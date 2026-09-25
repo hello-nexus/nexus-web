@@ -1,4 +1,5 @@
 @use './styles/text' as *;
+@use './styles/caption' as *;
 
 .layout {
   position: relative;
@@ -67,98 +68,57 @@
   --page-max: none;
   --page-content-max: none;
   // Without the width cap, page content can exceed a small window and give the
-  // DOCUMENT a scrollbar. A scrollbar gutter is not hit-testable by page
-  // elements, so its bottom-right corner swallows the window-resize strip
-  // underneath and the window can no longer be resized from that corner.
-  // Content that needs to scroll does so in the page body (pageBodyFill).
+  // DOCUMENT a scrollbar. Content that needs to scroll does so in the page
+  // body (pageBodyFill).
   overflow: hidden;
 }
 
-// Resize strips - one along each edge of the window. They catch
-// mousedown and IPC the host (nexus-overlay's DashboardWindow.cs), which
-// posts WM_NCLBUTTONDOWN(hit, lParam) to its own HWND so the OS takes
-// over the resize loop natively (no per-frame JS work).
+// Top-edge resize strips, laid out like a standard Windows caption. The host
+// (nexus-overlay's DashboardWindow.cs) keeps a native invisible resize frame
+// outside the left / right / bottom edges, which also carries the outer
+// corner zones; the page runs to the top edge, so these catch mousedown there
+// and IPC the host, which posts WM_NCLBUTTONDOWN(hit, lParam) to its own HWND
+// so the OS runs the resize loop.
 //
 // app-region: drag is intentionally NOT used here - IsNonClientRegionSupportEnabled
 // forwards app-region regions to WM_NCHITTEST but only honours HTCAPTION
-// (drag) on the response; resize HT codes are dropped. The mousedown +
-// PostMessage path is the canonical workaround Microsoft Store / Edge use.
+// (drag) on the response; resize HT codes are dropped.
 //
-// The strips are portaled to <body> (Dashboard.tsx) and position: fixed so
-// they live in the root stacking context, above the modal backdrop (which
-// also portals to <body> at --z-modal). Keeping them hit-testable while a
-// modal is open is what lets the user resize the window with a dialog up;
-// the backdrop still owns every pixel inside the edge bands, so modals
-// keep blocking the page behind them.
-//
-// The strip is an invisible band wide enough for an unambiguous cursor
-// target; page UI has its own padding well outside it.
-.windowResizeStripLeft {
-  position: fixed;
-  z-index: 2001;
-  background: transparent;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-}
-
-// The right + top strips cover the FULL edge of the window - no
-// exclusion for caption buttons or drag strip. Native Windows lets you
-// grab the very top 4-6 px of a window even over the title bar, and
-// the very right edge from y:0 down. Bumped to z-index 2004 (above the
-// caption buttons' 2003) so the outermost few pixels are resize even
-// where chrome would otherwise win the hit-test. Increased thickness
-// to 8px for easier grabbing on high-DPI displays.
-.windowResizeStripRight {
-  position: fixed;
-  z-index: 2004;
-  background: transparent;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 8px;
-  cursor: ew-resize;
-}
-
+// Portaled to <body> (Dashboard.tsx) and position: fixed, so they paint above
+// all of .layout (an isolated stacking context) and the modal backdrop
+// (--z-modal): the window stays resizable with a dialog up. Over the caption
+// buttons only the top pixel row resizes, as on native windows.
 .windowResizeStripTop {
   position: fixed;
   z-index: 2004;
   background: transparent;
   top: 0;
   left: 0;
-  right: 0;
+  // Stops at the caption buttons.
+  right: $caption-bar-width;
   height: 8px;
   cursor: ns-resize;
 }
 
-.windowResizeStripBottom {
+.windowResizeStripTopEdge {
   position: fixed;
-  z-index: 2001;
+  z-index: 2004;
   background: transparent;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  height: 8px;
+  height: 1px;
   cursor: ns-resize;
 }
 
-// Corner strips: diagonal-resize grab targets. Native Windows corners are
-// ~10px but the smaller targets felt unreliable, so these run wider. Top
-// corners sit
-// above the caption buttons (z-index 2005 > 2003) so the very
-// corner of the window is always a diagonal resize even when the
-// OS-close button visually occupies the same pixels. The very edge
-// always wins on native Windows - we mirror that.
 .windowResizeCornerTopLeft {
   position: fixed;
   z-index: 2005;
   background: transparent;
   top: 0;
   left: 0;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 6px;
   cursor: nwse-resize;
 }
 
@@ -168,31 +128,9 @@
   background: transparent;
   top: 0;
   right: 0;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 1px;
   cursor: nesw-resize;
-}
-
-.windowResizeCornerBottomLeft {
-  position: fixed;
-  z-index: 2005;
-  background: transparent;
-  bottom: 0;
-  left: 0;
-  width: 14px;
-  height: 14px;
-  cursor: nesw-resize;
-}
-
-.windowResizeCornerBottomRight {
-  position: fixed;
-  z-index: 2005;
-  background: transparent;
-  bottom: 0;
-  right: 0;
-  width: 14px;
-  height: 14px;
-  cursor: nwse-resize;
 }
 
 // ── Body row: sidebar + content side by side ────────────────────────────
