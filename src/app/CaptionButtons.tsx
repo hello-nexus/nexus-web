@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { useTranslation } from '../lib/i18n';
 import { NEXUS_WINDOW_ACTIONS, postWindowAction } from './windowActions';
+import { useWindowMaximized } from './useWindowMaximized';
 import styles from './CaptionButtons.module.scss';
 
 // SVG glyphs sized to a 10x10 viewBox, centered inside each 46x32 button.
@@ -38,23 +38,7 @@ const Close = () => (
 export function CaptionButtons() {
   const { t } = useTranslation();
   // The maximize <-> restore icon swap tracks the window's zoomed state.
-  // We don't get a WebView2-side maximize event, so we infer from the
-  // outerHeight delta: a maximized window matches the screen working area
-  // (no caption + no taskbar gap), within a 4px tolerance for DPI rounding.
-  const [maximized, setMaximized] = useState(false);
-  useEffect(() => {
-    const measure = () => {
-      if (typeof window === 'undefined') return;
-      const aw = window.screen.availWidth;
-      const ah = window.screen.availHeight;
-      const w = window.outerWidth;
-      const h = window.outerHeight;
-      setMaximized(Math.abs(w - aw) <= 4 && Math.abs(h - ah) <= 4);
-    };
-    measure();
-    window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
-  }, []);
+  const maximized = useWindowMaximized();
 
   const maxLabel = maximized ? t('app.window.restore') : t('app.window.maximize');
   return (
