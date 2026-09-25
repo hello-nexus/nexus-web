@@ -3,6 +3,10 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  // Bleed through the page column's side padding (App.module.scss .content):
+  // the portal pads its own content by the same amount, so it lines up with
+  // every other page instead of sitting a second gutter further in.
+  margin-inline: -1.25rem;
 }
 
 .body {
