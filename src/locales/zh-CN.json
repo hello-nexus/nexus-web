@@ -4302,6 +4302,7 @@
   "store.back": "返回",
   "store.banner.body": "这里将汇集社区应用。常来看看有什么新内容。",
   "store.banner.title": "Marketplace 即将上线",
+  "store.comingSoon": "{date} 上线",
   "store.empty": "暂无应用",
   "store.incompatible": "不兼容",
   "store.install": "安装",

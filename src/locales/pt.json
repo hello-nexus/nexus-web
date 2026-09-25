@@ -4302,6 +4302,7 @@
   "store.back": "Voltar",
   "store.banner.body": "É aqui que vão viver as apps da comunidade. Volta com frequência para veres as novidades.",
   "store.banner.title": "O Marketplace está a chegar",
+  "store.comingSoon": "Disponível a {date}",
   "store.empty": "Ainda sem apps",
   "store.incompatible": "Não compatível",
   "store.install": "Instalar",

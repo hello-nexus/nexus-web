@@ -4342,6 +4342,7 @@
   "store.back": "Назад",
   "store.banner.body": "Здесь появятся приложения сообщества. Заглядывайте почаще, чтобы увидеть новинки.",
   "store.banner.title": "Marketplace уже на подходе",
+  "store.comingSoon": "Доступно {date}",
   "store.empty": "Приложений пока нет",
   "store.incompatible": "Несовместимо",
   "store.install": "Установить",

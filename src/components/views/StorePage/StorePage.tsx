@@ -6,6 +6,8 @@ import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import {
   fetchStoreApp, fetchStoreApps, installStoreApp,
   type StoreApp, type StoreAppDetail, type StoreVersion,
@@ -52,12 +54,43 @@ function shortDescription(app: { tagline?: string; description?: string }): stri
   return raw.split(/(?<=[.!?])\s/)[0].replace(/[.]$/, '');
 }
 
+/**
+ * The launch day while it is still ahead of us. A past date is simply
+ * "available", which is also what an app that never set one is.
+ */
+function upcomingRelease(app: { releaseDate?: string | null }): Date | null {
+  if (!app.releaseDate) return null;
+  const at = new Date(app.releaseDate);
+  if (Number.isNaN(at.getTime()) || at.getTime() <= Date.now()) return null;
+  return at;
+}
+
+/** The viewer's local date and time of the launch; the year only when it is not this one. */
+function formatLaunch(at: Date, language: string, timeFormat: TimeFormat): string {
+  const year = at.getFullYear() === new Date().getFullYear() ? undefined : 'numeric';
+  return at.toLocaleString(language, {
+    month: 'long', day: 'numeric', year, hour: 'numeric', minute: '2-digit',
+    hour12: hour12OptionFor(timeFormat),
+  });
+}
+
 function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   app: StoreApp; installedVersion?: string; onNeedsSignIn: (retry: () => void) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const [state, setState] = useState<InstallState>('idle');
   const latest = app.latest;
+  const launch = upcomingRelease(app);
+  const launchAt = launch?.getTime();
+  const [tick, rerender] = useState(0);
+
+  // Re-armed each tick until launch, so an open page swaps in Install even past setTimeout's maximum delay.
+  useEffect(() => {
+    if (launchAt === undefined) return;
+    const id = window.setTimeout(() => rerender((n) => n + 1), Math.min(launchAt - Date.now(), 2 ** 31 - 1));
+    return () => window.clearTimeout(id);
+  }, [launchAt, tick]);
 
   const install = useCallback(async () => {
     if (!latest) return;
@@ -78,6 +111,15 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
     setState('failed');
   }, [app.id, latest, onNeedsSignIn]);
 
+  // Ahead of compatibility: an app that is not out yet has nothing to say about
+  // whether this build could run it, and the service refuses the install anyway.
+  if (launch) {
+    return (
+      <span className={styles.comingSoon}>
+        {t('store.comingSoon', { date: formatLaunch(launch, language, timeFormat) })}
+      </span>
+    );
+  }
   if (!latest) return <span className={styles.incompatible}>{t('store.incompatible')}</span>;
 
   const upToDate = installedVersion === latest.version;
