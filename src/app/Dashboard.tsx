@@ -341,12 +341,6 @@ export function Dashboard() {
   } = useRoute();
   const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
   const online = status.state === 'online';
-  // Reopening the window lands where it was left; a service start clears it.
-  useLastRoute(
-    view ? `/${section}/${view}${subtab ? `/${subtab}` : ''}` : '',
-    navigate,
-    online,
-  );
   // Re-read on every reconnect: a factory reset restarts the service and puts
   // all three flags back to pending under this same page. Counted, not keyed on
   // `online` itself: a read issued while the service is down exhausts its
@@ -631,6 +625,16 @@ export function Dashboard() {
     if (!fullscreenCapable && fullscreen) setFullscreen(false);
   }, [fullscreenCapable, fullscreen]);
   const toggleFocusMode = useCallback(() => setFullscreen(f => !f), []);
+  const restoreFullscreen = useCallback(() => setFullscreen(true), []);
+  // Reopening the window lands where it was left, fullscreen included; a
+  // service start clears it.
+  useLastRoute(
+    view ? `/${section}/${view}${subtab ? `/${subtab}` : ''}` : '',
+    navigate,
+    online,
+    fullscreenActive,
+    restoreFullscreen,
+  );
 
   // Page name shown in the top-bar search pill. Portal sections use their
   // nav.section label; inside /system the active view resolves through the

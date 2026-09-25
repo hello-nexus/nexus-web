@@ -7,15 +7,17 @@ import { fetchService, postService } from './service';
  */
 export interface LastRoute {
   path: string;
+  /** The page was in fullscreen (focus) mode. */
+  fullscreen: boolean;
 }
 
-export async function fetchLastRoute(): Promise<string> {
-  const result = await fetchService<LastRoute>('/session/last-route');
-  return result?.path ?? '';
+export async function fetchLastRoute(): Promise<LastRoute> {
+  const result = await fetchService<Partial<LastRoute>>('/session/last-route');
+  return { path: result?.path ?? '', fullscreen: result?.fullscreen === true };
 }
 
-export function saveLastRoute(path: string): Promise<LastRoute | null> {
-  return postService<LastRoute>('/session/last-route', { path });
+export function saveLastRoute(path: string, fullscreen = false): Promise<LastRoute | null> {
+  return postService<LastRoute>('/session/last-route', { path, fullscreen });
 }
 
 /**
