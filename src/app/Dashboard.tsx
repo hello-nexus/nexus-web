@@ -49,7 +49,7 @@ import { useRoute, type Section } from '../hooks/useRoute';
 import { useLastRoute } from '../hooks/useLastRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
 import { onOpenFramesGame } from '../panel/widgets/frames/framesNav';
-import { onOpenBuild } from '../components/views/BuildPage/buildNav';
+import { onOpenBuild, useBuildFrameHistory } from '../components/views/BuildPage/buildNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
@@ -337,8 +337,20 @@ export function Dashboard() {
   const {
     section, view, subtab,
     navigate, setView, setSubtab,
-    canGoBack, canGoForward, goBack, goForward,
+    canGoBack: routeCanGoBack, canGoForward: routeCanGoForward, goBack: routeGoBack, goForward: routeGoForward,
   } = useRoute();
+  // While the Build frame can move, the arrows step it: its entries share this session history.
+  const buildFrame = useBuildFrameHistory();
+  const canGoBack = routeCanGoBack || buildFrame.canGoBack;
+  const canGoForward = routeCanGoForward || buildFrame.canGoForward;
+  const goBack = useCallback(() => {
+    if (buildFrame.canGoBack) window.history.back();
+    else routeGoBack();
+  }, [buildFrame.canGoBack, routeGoBack]);
+  const goForward = useCallback(() => {
+    if (buildFrame.canGoForward) window.history.forward();
+    else routeGoForward();
+  }, [buildFrame.canGoForward, routeGoForward]);
   const status = useServiceStatus(true, DESKTOP_OFFLINE_GRACE_MS);
   const online = status.state === 'online';
   // Re-read on every reconnect: a factory reset restarts the service and puts

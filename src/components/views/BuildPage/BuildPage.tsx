@@ -10,6 +10,7 @@ import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { isRemoteOrigin } from '../../../api/service';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
+import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
@@ -186,12 +187,18 @@ export function BuildPage({ path }: BuildPageProps) {
           if (url) void openExternalUrl(url);
           break;
         }
+        case 'nexus-build:history':
+          setBuildFrameHistory({ canGoBack: data.canGoBack === true, canGoForward: data.canGoForward === true });
+          break;
         default:
           break;
       }
     };
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      clearBuildFrameHistory();
+    };
   }, []);
 
   const machine: BuildMachine | undefined = specs ? (() => {

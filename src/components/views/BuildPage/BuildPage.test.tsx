@@ -1,6 +1,7 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, render, renderHook, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BuildPage, BUILD_ORIGIN, sanitizeBuildPath } from './BuildPage';
+import { useBuildFrameHistory } from './buildNav';
 import type { SystemSpecs } from '../../../hooks/useSystemSpecs';
 import type { FpsGameSummary } from '../../../api/fps';
 
@@ -131,6 +132,20 @@ describe('BuildPage', () => {
 
     act(() => postFromFrame(iframe, { type: 'nexus-build:open-external', url: 'https://build.hellonexus.com/products/rtx-5080' }));
     expect(h.openExternalUrl).toHaveBeenCalledWith('https://build.hellonexus.com/products/rtx-5080');
+  });
+
+  it('shares the frame\'s back/forward reach with the top bar, and drops it when the page unmounts', () => {
+    const { unmount } = render(<BuildPage path="/builder" />);
+    const history = renderHook(() => useBuildFrameHistory());
+    const iframe = getIframe();
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(history.result.current).toEqual({ canGoBack: false, canGoForward: false });
+
+    act(() => postFromFrame(iframe, { type: 'nexus-build:history', canGoBack: true, canGoForward: false }));
+    expect(history.result.current).toEqual({ canGoBack: true, canGoForward: false });
+
+    unmount();
+    expect(history.result.current).toEqual({ canGoBack: false, canGoForward: false });
   });
 
   it('posts a route message (not a reload) when the path prop changes after ready', () => {
