@@ -17,7 +17,7 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import { useModalA11y } from '../../../components/common/Overlay/useModalA11y';
 import {
   slotLayoutOptionsForSize,
-  resolvedSlotCountForSize,
+  heroLabelKey,
   resolvedSlotLayout,
   slotLayoutKey,
   type SlotLayout,
@@ -236,7 +236,7 @@ export function WidgetEditSheet({
 
   const handleResize = useCallback((size: PanelWidgetSize) => {
     if (isMonitoringWidget) {
-      const nextSlotCount = resolvedSlotCountForSize(size, widget.config?.slotCount as number | undefined);
+      const nextSlotCount = resolvedSlotLayout(size, widget.config).count;
       setSelectedMonitoringSlot(prev => Math.min(prev, nextSlotCount - 1));
     }
     onResize(widget.id, size);
@@ -308,7 +308,7 @@ export function WidgetEditSheet({
             <WidgetControlGroup title={t('panel.widget.editSheet.slots')}>
               {slotLayoutOptions.map(option => {
                 const slotLabel = option.hero
-                  ? t('panel.editor.slotHero')
+                  ? t(`panel.editor.${heroLabelKey(widget.size)}`)
                   : t(pluralKey('panel.editor.slotCount', language, option.count), { count: option.count });
                 return (
                   <IconLabelButton

@@ -361,3 +361,56 @@ describe('MonitoringSettings - Micro shared range', () => {
     expect(updates[updates.length - 1]).toEqual({ micro_max: 90 });
   });
 });
+
+describe('MonitoringSettings - Micro multi-device', () => {
+  it('defaults to one device; turning multi-device on seeds each row with it and adds a device picker per row', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    render(<MicroHarness initial={microWidget(3)} onUpdate={cfg => updates.push(cfg)} />);
+    const toggle = screen.getByRole('switch', { name: 'monitoring.settings.multiDevice' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('combobox', { name: 'monitoring.settings.device' })).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'monitoring.settings.range' })).toBeInTheDocument();
+
+    act(() => { fireEvent.click(toggle); });
+
+    const merged = mergedPatch(updates);
+    expect(merged.micro_multiDevice).toBe(true);
+    expect([merged.micro_device0, merged.micro_device1, merged.micro_device2]).toEqual(['cpu', 'cpu', 'cpu']);
+    expect(screen.queryByRole('combobox', { name: 'monitoring.settings.device' })).not.toBeInTheDocument();
+    // Rows can mix units, so the shared Fixed range is not offered.
+    expect(screen.queryByRole('radiogroup', { name: 'monitoring.settings.range' })).not.toBeInTheDocument();
+    for (const n of [1, 2, 3]) {
+      expect(screen.getByRole('combobox', { name: `monitoring.settings.device ${n}` })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: `Sensor ${n}` })).toBeInTheDocument();
+    }
+  });
+
+  it('a row device change writes only that row, with a sensor of the new device', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    const initial = microWidget(3);
+    initial.config = { ...initial.config, micro_device: 'cpu', micro_multiDevice: true };
+    render(<MicroHarness initial={initial} onUpdate={cfg => updates.push(cfg)} />);
+
+    act(() => {
+      fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device 2' }), { target: { value: 'gpu' } });
+    });
+
+    expect(updates[updates.length - 1]).toEqual({ micro_device1: 'gpu', micro_sensor1: 'gpu-load' });
+    const row2Sensor = screen.getByRole('combobox', { name: 'Sensor 2' }) as HTMLSelectElement;
+    expect(Array.from(row2Sensor.options).map(o => o.value)).toContain('gpu-temp');
+  });
+
+  it('normalizes a row whose stored sensor is not on its device', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    const initial = microWidget(3);
+    initial.config = {
+      ...initial.config, micro_device: 'cpu', micro_multiDevice: true,
+      micro_device0: 'cpu', micro_sensor0: 'cpu-temp',
+      micro_device1: 'gpu', micro_sensor1: 'cpu-total',
+      micro_device2: 'gpu', micro_sensor2: 'gpu-pwr',
+    };
+    render(<MicroHarness initial={initial} onUpdate={cfg => updates.push(cfg)} />);
+
+    expect(mergedPatch(updates)).toEqual({ micro_sensor1: 'gpu-load' });
+  });
+});

@@ -40,6 +40,8 @@ export interface WidgetProps {
   // content into the same number of 4x4 cells per page as the panel
   // grid does. Undefined when rendered as a tile.
   immersiveGrid?: { columns: number; rows: number };
+  // Visible widgets on the immersive widget's page, row-major; immersive only.
+  pageWidgets?: PanelWidget[];
   // Only populated when the widget is rendered inside the embedded
   // desktop dashboard; widgets can call this to deep-link into a section.
   onSectionNavigate?: DashboardSectionNavigate;

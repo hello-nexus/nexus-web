@@ -789,6 +789,39 @@ describe('MicroMonitoringWidget - label / category modes', () => {
   });
 });
 
+describe('MicroMonitoringWidget - multi-device', () => {
+  function multiWidget(config: Record<string, PanelConfigValue> = {}): PanelWidget {
+    return {
+      id: 'mm', type: 'monitoring', size: '4x2', col: 0, row: 0,
+      config: {
+        slotCount: 3, micro_device: 'cpu', micro_multiDevice: true,
+        micro_device0: 'cpu', micro_sensor0: 'cpu-total',
+        micro_device1: 'gpu', micro_sensor1: 'gpu-core',
+        micro_device2: 'memory', micro_sensor2: 'mem-usage',
+        ...config,
+      },
+    };
+  }
+
+  it('reads each row from its own device and names the device on the row', () => {
+    render(<MonitoringWidget widget={multiWidget()} />);
+    expect(screen.getByText('CPU Total')).toBeInTheDocument();
+    expect(screen.getByText('GPU Core')).toBeInTheDocument();
+    expect(screen.getByText('Memory Usage')).toBeInTheDocument();
+  });
+
+  it('drops the bottom device caption, even when one is set', () => {
+    render(<MonitoringWidget widget={multiWidget({ micro_categoryMode: 'custom', micro_category: 'My Rig' })} />);
+    expect(screen.queryByText('My Rig')).not.toBeInTheDocument();
+  });
+
+  it('ignores the per-row devices while multi-device is off', () => {
+    render(<MonitoringWidget widget={multiWidget({ micro_multiDevice: false, micro_sensor1: 'cpu-total' })} />);
+    expect(screen.queryByText('GPU Core')).not.toBeInTheDocument();
+    expect(screen.getAllByText('CPU').length).toBeGreaterThanOrEqual(1);
+  });
+});
+
 describe('MicroMonitoringWidget - column layout by size', () => {
   function microWidget(size: PanelWidgetSize, count: number): PanelWidget {
     return { id: 'mm', type: 'monitoring', size, col: 0, row: 0, config: { slotCount: count, micro_device: 'cpu' } };

@@ -166,13 +166,45 @@ export function HeroSlotsIcon(props: IconProps) {
   );
 }
 
+// Wide hero (4x2): two large slots over three small ones.
+export function HeroWideSlotsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="5" width="8" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="12.5" y="5" width="8" height="7" rx="2" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="3.5" y="13.5" width="5" height="5.5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="9.5" y="13.5" width="5" height="5.5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="15.5" y="13.5" width="5" height="5.5" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+// Grid hero (4x4): four large slots in a 2x2 block over three small ones.
+export function HeroGridSlotsIcon(props: IconProps) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <rect x="3.5" y="3" width="8" height="5.5" rx="1.8" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="12.5" y="3" width="8" height="5.5" rx="1.8" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="3.5" y="9.5" width="8" height="5.5" rx="1.8" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="12.5" y="9.5" width="8" height="5.5" rx="1.8" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="3.5" y="16.5" width="5" height="4.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="9.5" y="16.5" width="5" height="4.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="15.5" y="16.5" width="5" height="4.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 export function SlotLayoutIcon({
   layout,
   size,
   ...props
 }: IconProps & { layout: SlotLayout; size: PanelWidgetSize }) {
   const { count } = layout;
-  if (layout.hero) return <HeroSlotsIcon {...props} />;
+  if (layout.hero) {
+    if (size === '4x2') return <HeroWideSlotsIcon {...props} />;
+    if (size === '4x4') return <HeroGridSlotsIcon {...props} />;
+    return <HeroSlotsIcon {...props} />;
+  }
   // 6/8 split into two columns only on the wide 4x2; the tall 2x4 stacks them
   // in one column (single-column rows icons).
   if (count >= 8) return isTwoColumnMicro(size, count) ? <EightSlotsIcon {...props} /> : <EightRowsIcon {...props} />;

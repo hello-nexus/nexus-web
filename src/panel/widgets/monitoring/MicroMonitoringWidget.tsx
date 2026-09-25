@@ -12,10 +12,11 @@ import {
   networkMaxValue,
   NETWORK_SENSOR_TOTAL,
 } from './networkSensors';
-import { DEFAULT_MICRO_DESIGN, isExtrasBackedDevice, isTwoColumnMicro, type DeviceKey } from './perfSlots';
+import { DEFAULT_MICRO_DESIGN, isExtrasBackedDevice, isMicroMultiDevice, isTwoColumnMicro, microRowDevice, type DeviceKey } from './perfSlots';
 import type { GaugeDesignKey } from './gauges/types';
 import {
   displayLabel,
+  labelForDevice,
   percentForSensor,
   resolveSensor,
   staticMaxForDevice,
@@ -41,13 +42,9 @@ interface MicroMonitoringWidgetProps {
   onSelectSlot?: (slot: number) => void;
 }
 
-// Micro mode persists in its own keyspace (`micro_device`, `micro_sensorN`)
+// Micro mode persists in its own keyspace (`micro_device*`, `micro_sensorN`)
 // so toggling between Micro and multi-sensor modes never mutates the other
 // mode's per-slot configuration.
-function readMicroDevice(widget: PanelWidget): DeviceKey {
-  return ((widget.config?.micro_device as DeviceKey | undefined) ?? 'cpu');
-}
-
 function readMicroSensorName(widget: PanelWidget, index: number): string {
   return ((widget.config?.[`micro_sensor${index}`] as string | undefined) ?? '');
 }
@@ -89,12 +86,14 @@ export function bottomLabelForDevice(
 
 export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlot }: MicroMonitoringWidgetProps) {
   const { t } = useTranslation();
-  const device = readMicroDevice(widget);
+  const multiDevice = isMicroMultiDevice(widget.config);
+  const device = microRowDevice(widget.config, 0);
+  const rowDevices = Array.from({ length: count }, (_, i) => microRowDevice(widget.config, i));
   const sensorNames = Array.from({ length: count }, (_, i) => readMicroSensorName(widget, i));
 
-  const usesFps = device === 'fps';
-  const usesNetwork = device === 'network';
-  const usesExtras = isExtrasBackedDevice(device);
+  const usesFps = rowDevices.includes('fps');
+  const usesNetwork = rowDevices.includes('network');
+  const usesExtras = rowDevices.some(isExtrasBackedDevice);
   const sensors = useSensors(true);
   const fpsSensors = useFpsSensors(usesFps);
   const network = useNetworkMonitor(usesNetwork);
@@ -110,11 +109,12 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
   // same auto/hide/custom model as a sensor caption: 'hide' drops the whole row
   // and lets the bars fill the freed height, 'custom' shows micro_category.
   const categoryMode = widget.config?.micro_categoryMode as string | undefined;
-  const categoryHidden = categoryMode === 'hide';
+  const categoryHidden = multiDevice || categoryMode === 'hide';
   const bottomLabel = displayLabel(categoryMode, widget.config?.micro_category as string | undefined, bottomLabelForDevice(device, sensors, t));
 
   // One Fixed range shared by every bar (Micro has no per-slot scale).
-  const microScale = (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
+  // Multi-device rows can mix units, so no one Fixed window fits them all.
+  const microScale = multiDevice ? DEFAULT_SCALE_MODE : (widget.config?.micro_scale as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE;
   const microMin = widget.config?.micro_min as number | undefined;
   const microMax = widget.config?.micro_max as number | undefined;
   // Row style shared by every bar; a 6/8-slot Micro on the wide 4x2 splits the
@@ -130,7 +130,8 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
   const growsRow = microDesign === 'fill' || microDesign === 'backdrop';
 
   const rowEls = sensorNames.map((rawName, i) => {
-    const key = `${i}-${device}-${rawName}`;
+    const rowDevice = rowDevices[i];
+    const key = `${i}-${rowDevice}-${rawName}`;
     const row = (
       <MicroRow
         key={key}
@@ -138,7 +139,8 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
         fpsSensors={fpsSensors}
         networkSensors={networkSensors}
         extras={extras}
-        device={device}
+        device={rowDevice}
+        prefixed={multiDevice}
         sensorName={rawName}
         labelOverride={widget.config?.[`micro_sensor${i}_label`] as string | undefined}
         labelMode={widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined}
@@ -205,6 +207,8 @@ interface MicroRowProps {
   networkSensors: ReturnType<typeof buildNetworkSensors>;
   extras: ReturnType<typeof useSensorExtras>;
   device: DeviceKey;
+  // Multi-device rows name their device, as there is no bottom caption.
+  prefixed: boolean;
   sensorName: string;
   labelOverride?: string;
   labelMode?: string;
@@ -219,13 +223,15 @@ interface MicroRowProps {
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, valueColor, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, valueColor, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
   const formatted = sensor ? formatSensorValue(sensor.value, sensor.units, sensor.formatted, monitoringTempUnit, numberFormat) : '-';
   const sensorDisplayName = sensor?.name ?? '';
-  const autoLabel = bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
+  const autoLabel = prefixed
+    ? labelForDevice(device, sensorDisplayName || effectiveSensorName)
+    : bareSensorLabel(device, sensorDisplayName) || sensorDisplayName || effectiveSensorName;
   const label = displayLabel(labelMode, labelOverride, autoLabel);
   const sensorKey = `${device}::${effectiveSensorName || 'default'}`;
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];

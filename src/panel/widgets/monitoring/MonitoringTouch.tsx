@@ -1,6 +1,7 @@
 import { PerfSlot } from './MonitoringWidget';
-import { DEFAULT_SLOTS, defaultSlotDesign, isExtrasBackedDevice, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
-import type { DeviceKey } from './perfSlots';
+import { DEFAULT_SLOTS, defaultSlotDesign, isExtrasBackedDevice, isMicroLayout, microRowDevice, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
+import type { DeviceKey, SlotLayout } from './perfSlots';
+import type { PanelWidget } from '../../types';
 import type { GaugeDesignKey } from './gauges';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { useSensors } from '../../../hooks/useSensors';
@@ -14,22 +15,25 @@ import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { usePanelGaugeGradient } from '../common/PanelGaugeGradientContext';
 import styles from './MonitoringTouch.module.scss';
 
-/**
- * One immersive cell per configured monitoring slot, each showing a single
- * sensor at full size. Reads sensors via the same useSensors hook the tile
- * uses, so state is shared across views (no reset on tap-to-immersive).
- *
- * 1 slot   -> 1 cell, centered on the page.
- * 2 slots  -> 2 cells, stacked portrait / side-by-side landscape, centered.
- * 4 slots  -> all on one page where the panel is tall enough (Y70), else
- *             paginates (2 cells per page on phone).
- */
-export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
-  const layout = resolvedSlotLayout(widget.size, widget.config);
-  const slotCount = layout.count;
-  const isMicro = isMicroLayout(widget.size, slotCount, layout.hero);
+interface ImmersiveSlot {
+  device: DeviceKey;
+  sensorName: string;
+  design: GaugeDesignKey;
+  scale: ScaleMode;
+  fixedMin?: number;
+  fixedMax?: number;
+  valueColor: boolean;
+}
 
-  const slotConfigs = Array.from({ length: slotCount }, (_, i) => ({
+const IMMERSIVE_TILE = { cols: 4, rows: 2 };
+
+// A Micro widget renders its bars as one widget, so it stays a single cell.
+type ImmersiveEntry =
+  | { kind: 'slot'; slot: ImmersiveSlot }
+  | { kind: 'micro'; widget: PanelWidget; count: number; devices: DeviceKey[] };
+
+function slotsOf(widget: PanelWidget, layout: SlotLayout): ImmersiveSlot[] {
+  return Array.from({ length: layout.count }, (_, i) => ({
     device: ((widget.config?.[`slot${i}_device`] as DeviceKey | undefined) ?? DEFAULT_SLOTS[i]?.device ?? 'cpu'),
     sensorName: ((widget.config?.[`slot${i}_sensor`] as string | undefined) ?? DEFAULT_SLOTS[i]?.sensor ?? ''),
     design: resolveSlotDesign(
@@ -45,17 +49,39 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
     valueColor: (widget.config?.[`slot${i}_valueColor`] as boolean | undefined) ?? false,
   }));
+}
 
-  const microDevice = widget.config?.micro_device as DeviceKey | undefined;
-  const usesFps = isMicro
-    ? microDevice === 'fps'
-    : slotConfigs.some(s => s.device === 'fps');
-  const usesNetwork = isMicro
-    ? microDevice === 'network'
-    : slotConfigs.some(s => s.device === 'network');
-  const usesExtras = isMicro
-    ? isExtrasBackedDevice(microDevice ?? 'cpu')
-    : slotConfigs.some(s => isExtrasBackedDevice(s.device));
+// The opened widget first, then every other monitoring widget on its page in
+// reading order. A sensor shown twice gets one cell, keeping the first design.
+export function immersiveEntries(widget: PanelWidget, pageWidgets: PanelWidget[] | undefined): ImmersiveEntry[] {
+  const sources = [widget, ...(pageWidgets ?? []).filter(w => w.type === widget.type && w.id !== widget.id)];
+  const entries: ImmersiveEntry[] = [];
+  const seen = new Set<string>();
+  for (const w of sources) {
+    const layout = resolvedSlotLayout(w.size, w.config);
+    if (isMicroLayout(w.size, layout.count, layout.hero)) {
+      const devices = Array.from({ length: layout.count }, (_, i) => microRowDevice(w.config, i));
+      entries.push({ kind: 'micro', widget: w, count: layout.count, devices });
+      continue;
+    }
+    for (const slot of slotsOf(w, layout)) {
+      const key = `${slot.device}::${slot.sensorName}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      entries.push({ kind: 'slot', slot });
+    }
+  }
+  return entries;
+}
+
+// One tile per entry from immersiveEntries; shares useSensors state with the
+// panel tiles, so history does not reset on tap-to-immersive.
+export function MonitoringTouch({ widget, pageWidgets, immersiveGrid }: WidgetProps) {
+  const entries = immersiveEntries(widget, pageWidgets);
+  const devices = entries.flatMap(e => (e.kind === 'slot' ? [e.slot.device] : e.devices));
+  const usesFps = devices.includes('fps');
+  const usesNetwork = devices.includes('network');
+  const usesExtras = devices.some(isExtrasBackedDevice);
   // Hooks must run on every render regardless of mode (see MonitoringWidget).
   const sensors = useSensors(true);
   const fpsSensors = useFpsSensors(usesFps);
@@ -64,49 +90,41 @@ export function MonitoringTouch({ widget, immersiveGrid }: WidgetProps) {
   const extras = useSensorExtras(usesExtras);
   const gaugeGradient = usePanelGaugeGradient();
 
-  if (isMicro) {
+  const cells = entries.map((entry, i) => {
+    if (entry.kind === 'micro') {
+      return (
+        <div className={styles.slotCell} key={`micro-${entry.widget.id}`}>
+          <MicroMonitoringWidget widget={entry.widget} count={entry.count} />
+        </div>
+      );
+    }
+    const { device, sensorName, design, scale, fixedMin, fixedMax, valueColor } = entry.slot;
     return (
-      <ImmersiveLayout
-        cells={[<div className={styles.slotCell} key="micro"><MicroMonitoringWidget widget={widget} count={slotCount} /></div>]}
-        gridColumns={immersiveGrid?.columns ?? 4}
-        gridRows={immersiveGrid?.rows ?? 8}
-      />
+      <div className={styles.slotCell} key={`${i}-${device}-${sensorName}`}>
+        <PerfSlot
+          sensors={sensors}
+          fpsSensors={fpsSensors}
+          networkSensors={networkSensors}
+          extras={extras}
+          device={device}
+          sensorName={sensorName}
+          design={design}
+          scale={scale}
+          fixedMin={fixedMin}
+          fixedMax={fixedMax}
+          valueColor={valueColor}
+          gaugeGradient={gaugeGradient}
+        />
+      </div>
     );
-  }
-
-  const cells = slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor }, i) => (
-    <div className={styles.slotCell} key={`${i}-${device}-${sensorName}`}>
-      <PerfSlot
-        sensors={sensors}
-        fpsSensors={fpsSensors}
-        networkSensors={networkSensors}
-        extras={extras}
-        device={device}
-        sensorName={sensorName}
-        design={design}
-        scale={scale}
-        fixedMin={fixedMin}
-        fixedMax={fixedMax}
-        valueColor={valueColor}
-        gaugeGradient={gaugeGradient}
-      />
-    </div>
-  ));
-
-  // Each tile prefers a 4x4 footprint but may compress to a 3-unit floor (see
-  // ImmersiveLayout's flex-shrink) so a tall panel fits the whole set on one
-  // page: Y70 portrait (12 rows) -> 4 tiles/page = the full set; a phone
-  // (~8 rows) -> 2/page and paginates the rest.
-  const longAxis = Math.max(immersiveGrid?.columns ?? 4, immersiveGrid?.rows ?? 8);
-  const cellsPerPage = Math.max(1, Math.floor(longAxis / 3));
+  });
 
   return (
     <ImmersiveLayout
       cells={cells}
       gridColumns={immersiveGrid?.columns ?? 4}
       gridRows={immersiveGrid?.rows ?? 8}
-      fillLast={false}
-      cellsPerPage={cellsPerPage}
+      tile={IMMERSIVE_TILE}
     />
   );
 }

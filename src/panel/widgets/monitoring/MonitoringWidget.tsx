@@ -16,7 +16,7 @@ import type { WidgetProps } from '../types';
 import { useSharedSensorHistory } from '../common/useSharedSensorHistory';
 import { GAUGE_DESIGNS } from './gauges';
 import type { GaugeDesignKey, GaugeProps } from './gauges';
-import { DEFAULT_SLOTS, defaultSlotDesign, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
+import { DEFAULT_SLOTS, defaultSlotDesign, heroSpecForSize, isExtrasBackedDevice, isFullBleedRound, isHeroLayout, isMicroLayout, resolvedSlotLayout, resolveSlotDesign } from './perfSlots';
 import type { DeviceKey } from './perfSlots';
 import { prefixedSensorLabel } from './sensorNames';
 import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, smartStorageSensors } from './sensorCategories';
@@ -253,7 +253,9 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     ? 0
     : Math.max(0, Math.min(selectedSlot, count - 1));
 
-  const layoutClass = isHeroLayout(widget.size, count, layout.hero) ? styles.gridHero
+  const heroLarge = heroSpecForSize(widget.size)?.large;
+  const layoutClass = isHeroLayout(widget.size, count, layout.hero)
+    ? (heroLarge === 2 ? styles.gridHeroWide : heroLarge === 4 ? styles.gridHeroGrid : styles.gridHero)
     : count >= 4 ? styles.grid2x2
     : count === 2 && (widget.size === '4x4' || widget.size === '2x4') ? styles.grid2row
     : count === 2 ? styles.grid2col

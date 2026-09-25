@@ -8,7 +8,7 @@ import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
 import { SettingsSection, SettingsToggle } from '../widgets/common/SettingsRow/SettingsRow';
 import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
-import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
+import { heroLabelKey, slotLayoutOptionsForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
@@ -261,7 +261,7 @@ export function PanelEditorSheet({
     // Monitoring clamps the selected slot to the resized layout's slot count.
     // Other slot-selection widgets (deck) clamp themselves on read.
     if (isMonitoringWidget) {
-      const nextSlotCount = resolvedSlotCountForSize(size, editingWidget.config?.slotCount as number | undefined);
+      const nextSlotCount = resolvedSlotLayout(size, editingWidget.config).count;
       onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, nextSlotCount - 1));
     }
     onResize(editingWidget.id, size);
@@ -363,7 +363,7 @@ export function PanelEditorSheet({
                     <WidgetControlGroup title={t('panel.editor.slots')}>
                       {slotLayoutOptions.map(option => {
                         const slotLabel = option.hero
-                          ? t('panel.editor.slotHero')
+                          ? t(`panel.editor.${heroLabelKey(editingWidget.size)}`)
                           : t(pluralKey('panel.editor.slotCount', language, option.count), { count: option.count });
                         return (
                           <IconLabelButton

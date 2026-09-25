@@ -7,8 +7,8 @@ import styles from './DotGridGauge.module.scss';
 const DOT = 10;
 const GAP = 4;
 const CELL = DOT + GAP;
-// Baseline grid; columns/rows expand to fill wider or taller tiles
-// (4x2 / 4x4), never fewer than the baseline.
+// Grid before the first measure; after it, columns/rows are however many dots
+// the tile fits, so a short cell gets fewer rows instead of cropping them.
 const BASE_COLS = 9;
 const BASE_ROWS = 5;
 
@@ -23,8 +23,8 @@ export function DotGridGauge({ value, formatted, label, gradient }: GaugeProps) 
       const w = el.clientWidth;
       const h = el.clientHeight;
       if (w <= 0 || h <= 0) return;
-      const cols = Math.max(BASE_COLS, Math.floor((w + GAP) / CELL));
-      const rows = Math.max(BASE_ROWS, Math.floor((h + GAP) / CELL));
+      const cols = Math.max(1, Math.floor((w + GAP) / CELL));
+      const rows = Math.max(1, Math.floor((h + GAP) / CELL));
       setGrid(prev => (prev.cols === cols && prev.rows === rows ? prev : { cols, rows }));
     };
     measure();

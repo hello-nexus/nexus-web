@@ -31,6 +31,43 @@
   }
 }
 
+// 4x2/4x4 hero: six columns, so the large slots span halves and the small row thirds.
+.gridHeroWide,
+.gridHeroGrid {
+  grid-template-columns: repeat(6, 1fr);
+
+  > * {
+    grid-column: span 2;
+  }
+}
+
+// The small row takes only what its reading needs; the large slots get the rest.
+.gridHeroWide {
+  grid-template-rows: 1fr auto;
+
+  > *:nth-child(-n + 2) {
+    grid-column: span 3;
+  }
+
+  > *:nth-child(n + 3) {
+    --gauge-value-size: 1.45em;
+    --type-gauge-caption: calc(var(--type-tiny) * 0.85);
+  }
+}
+
+.gridHeroGrid {
+  grid-template-rows: 1.3fr 1.3fr 1fr;
+
+  > *:nth-child(-n + 4) {
+    grid-column: span 3;
+  }
+
+  > *:nth-child(n + 5) {
+    --gauge-value-size: 1.7em;
+    --type-gauge-caption: calc(var(--type-tiny) * 0.85);
+  }
+}
+
 // Round glass: the bottom row sits where the arc is already cutting in, so the
 // grid gives up height at the bottom and both rows ride up clear of it.
 :global(.panel-card[data-size='2x2round']) .gridHero {

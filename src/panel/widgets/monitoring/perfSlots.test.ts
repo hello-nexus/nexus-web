@@ -13,9 +13,9 @@ import {
   microSupportsSize,
   resolvedSlotCountForSize,
   slotCountOptionsForSize,
-  HERO_SLOT_COUNT,
   HERO_SMALL_DESIGN_KEYS,
   designKeysForSlot,
+  heroSpecForSize,
   heroSupportsSize,
   isFullBleedRound,
   isHeroLayout,
@@ -171,19 +171,26 @@ describe('perfSlots', () => {
     });
   });
   describe('hero layout', () => {
-    it('is offered on the tall and square tiles only', () => {
+    it('is offered on every multi-slot tile', () => {
       expect(heroSupportsSize('2x4')).toBe(true);
       expect(heroSupportsSize('2x2')).toBe(true);
       // The round glass lays out as 2x2.
       expect(heroSupportsSize('2x2round')).toBe(true);
-      expect(heroSupportsSize('4x2')).toBe(false);
-      expect(heroSupportsSize('4x4')).toBe(false);
+      expect(heroSupportsSize('4x2')).toBe(true);
+      expect(heroSupportsSize('4x4')).toBe(true);
+    });
+
+    it('sizes the hero per tile: 1+2 tall, 2+3 wide, 4+3 on 4x4', () => {
+      expect(heroSpecForSize('2x4')).toEqual({ count: 3, large: 1 });
+      expect(heroSpecForSize('2x2')).toEqual({ count: 3, large: 0 });
+      expect(heroSpecForSize('4x2')).toEqual({ count: 5, large: 2 });
+      expect(heroSpecForSize('4x4')).toEqual({ count: 7, large: 4 });
     });
 
     it('places one hero entry after the multi-sensor counts, before the Micro ones', () => {
       expect(slotLayoutOptionsForSize('2x4')).toEqual([
         { count: 2, hero: false },
-        { count: HERO_SLOT_COUNT, hero: true },
+        { count: 3, hero: true },
         { count: MICRO_MIN_COUNT, hero: false },
         { count: MICRO_MAX_COUNT, hero: false },
         { count: MICRO_WIDE_COUNTS[0], hero: false },
@@ -191,12 +198,24 @@ describe('perfSlots', () => {
       ]);
       expect(slotLayoutOptionsForSize('2x2')).toEqual([
         { count: 1, hero: false },
-        { count: HERO_SLOT_COUNT, hero: true },
+        { count: 3, hero: true },
         { count: MICRO_MIN_COUNT, hero: false },
         { count: MICRO_MAX_COUNT, hero: false },
       ]);
-      expect(slotLayoutOptionsForSize('4x2').some(o => o.hero)).toBe(false);
-      expect(slotLayoutOptionsForSize('4x4').some(o => o.hero)).toBe(false);
+      expect(slotLayoutOptionsForSize('4x2')).toEqual([
+        { count: 1, hero: false },
+        { count: 2, hero: false },
+        { count: 5, hero: true },
+        { count: MICRO_MIN_COUNT, hero: false },
+        { count: MICRO_MAX_COUNT, hero: false },
+        { count: MICRO_WIDE_COUNTS[0], hero: false },
+        { count: MICRO_WIDE_COUNTS[1], hero: false },
+      ]);
+      expect(slotLayoutOptionsForSize('4x4')).toEqual([
+        { count: 2, hero: false },
+        { count: 4, hero: false },
+        { count: 7, hero: true },
+      ]);
     });
 
     it('keys the picker entries apart at the shared count', () => {
@@ -211,6 +230,9 @@ describe('perfSlots', () => {
       // The flag alone is not enough: the count and the size both have to fit.
       expect(isHeroLayout('2x4', 4, true)).toBe(false);
       expect(isHeroLayout('4x2', 3, true)).toBe(false);
+      expect(isHeroLayout('4x2', 5, true)).toBe(true);
+      expect(isHeroLayout('4x4', 7, true)).toBe(true);
+      expect(isHeroLayout('4x4', 5, true)).toBe(false);
     });
 
     it('drops the hero flag when the size cannot hold the layout', () => {
@@ -221,18 +243,38 @@ describe('perfSlots', () => {
       expect(resolvedSlotLayout('4x4', { slotCount: 3, slotHero: true })).toEqual({ count: 4, hero: false });
       expect(resolvedSlotLayout('4x2', { slotCount: 3, slotHero: true })).toEqual({ count: 3, hero: false });
     });
+
+    it('resolves the wide and grid hero counts only with the flag', () => {
+      expect(resolvedSlotLayout('4x2', { slotCount: 5, slotHero: true })).toEqual({ count: 5, hero: true });
+      expect(resolvedSlotLayout('4x4', { slotCount: 7, slotHero: true })).toEqual({ count: 7, hero: true });
+      expect(resolvedSlotLayout('4x2', { slotCount: 5 })).toEqual({ count: 2, hero: false });
+      // A resize carries the stored pair to a size whose hero count differs.
+      expect(resolvedSlotLayout('2x4', { slotCount: 5, slotHero: true })).toEqual({ count: 2, hero: false });
+      expect(resolvedSlotLayout('4x4', { slotCount: 5, slotHero: true })).toEqual({ count: 4, hero: false });
+    });
   });
 
   describe('designKeysForSlot', () => {
     it('narrows the hero small cells to the value-first designs', () => {
-      const hero = { count: HERO_SLOT_COUNT, hero: true };
+      const hero = { count: 3, hero: true };
       expect(designKeysForSlot('2x4', hero, 0)).toEqual(GAUGE_DESIGN_KEYS);
       expect(designKeysForSlot('2x4', hero, 1)).toEqual(HERO_SMALL_DESIGN_KEYS);
       expect(designKeysForSlot('2x4', hero, 2)).toEqual(HERO_SMALL_DESIGN_KEYS);
     });
 
+    it('keeps every design on the wide and grid hero large slots', () => {
+      const wide = { count: 5, hero: true };
+      expect(designKeysForSlot('4x2', wide, 1)).toEqual(GAUGE_DESIGN_KEYS);
+      expect(designKeysForSlot('4x2', wide, 2)).toEqual(HERO_SMALL_DESIGN_KEYS);
+      expect(designKeysForSlot('4x2', wide, 4)).toEqual(HERO_SMALL_DESIGN_KEYS);
+      const grid = { count: 7, hero: true };
+      expect(designKeysForSlot('4x4', grid, 3)).toEqual(GAUGE_DESIGN_KEYS);
+      expect(designKeysForSlot('4x4', grid, 4)).toEqual(HERO_SMALL_DESIGN_KEYS);
+      expect(designKeysForSlot('4x4', grid, 6)).toEqual(HERO_SMALL_DESIGN_KEYS);
+    });
+
     it('narrows every 2x2 hero cell, the top one included', () => {
-      const hero = { count: HERO_SLOT_COUNT, hero: true };
+      const hero = { count: 3, hero: true };
       expect(designKeysForSlot('2x2', hero, 0)).toEqual(HERO_SMALL_DESIGN_KEYS);
       expect(designKeysForSlot('2x2', hero, 1)).toEqual(HERO_SMALL_DESIGN_KEYS);
     });
@@ -250,7 +292,7 @@ describe('perfSlots', () => {
 
   describe('resolveSlotDesign', () => {
     it('clamps a design the slot no longer offers to the first allowed one', () => {
-      const hero = { count: HERO_SLOT_COUNT, hero: true };
+      const hero = { count: 3, hero: true };
       expect(resolveSlotDesign('2x4', hero, 1, 'sparkline')).toBe(HERO_SMALL_DESIGN_KEYS[0]);
       expect(resolveSlotDesign('2x4', hero, 1, 'numberfill')).toBe('numberfill');
     });

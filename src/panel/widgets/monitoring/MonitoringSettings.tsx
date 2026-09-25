@@ -18,7 +18,9 @@ import {
   defaultSlotDesign,
   designKeysForSlot,
   isMicroLayout,
+  isMicroMultiDevice,
   MICRO_DESIGN_KEYS,
+  microRowDevice,
   resolvedSlotLayout,
   resolveSlotDesign,
 } from '../monitoring/perfSlots';
@@ -145,6 +147,9 @@ function microNormalizationPatch(
   extras: ReturnType<typeof useSensorExtras>,
   count: number,
 ): Record<string, PanelConfigValue> {
+  if (isMicroMultiDevice(widget.config)) {
+    return microMultiDeviceNormalizationPatch(widget, sensors, networkSensors, extras, count);
+  }
   const currentDevice = ((widget.config?.micro_device as DeviceKey | undefined) ?? 'cpu');
   const targetDevice = deviceHasEnoughSensorsForMicro(sensors, networkSensors, extras, currentDevice, count)
     ? currentDevice
@@ -171,6 +176,28 @@ function microNormalizationPatch(
   return patch;
 }
 
+// Multi-device rows need no device-wide sensor budget: each row only has to
+// hold a sensor of its own device. A device with no sensors listed yet (early
+// boot, fps without a stream) keeps its stored pick.
+function microMultiDeviceNormalizationPatch(
+  widget: { config?: Record<string, PanelConfigValue> },
+  sensors: ReturnType<typeof useSensors>,
+  networkSensors: ReturnType<typeof buildNetworkSensors>,
+  extras: ReturnType<typeof useSensorExtras>,
+  count: number,
+): Record<string, PanelConfigValue> {
+  const patch: Record<string, PanelConfigValue> = {};
+  for (let i = 0; i < count; i++) {
+    const sensorList = sensorsForDevice(sensors, networkSensors, extras, microRowDevice(widget.config, i));
+    if (sensorList.length === 0) continue;
+    const stored = ((widget.config?.[`micro_sensor${i}`] as string | undefined) ?? '');
+    if (stored && sensorList.some(opt => opt.value === stored)) continue;
+    const byLegacyName = stored ? sensorList.find(opt => opt.sensorName === stored) : undefined;
+    patch[`micro_sensor${i}`] = byLegacyName?.value ?? sensorList[0].value;
+  }
+  return patch;
+}
+
 // Derived label a micro sensor row would show, used as the override field's
 // placeholder. Mirrors MicroRow: strip the device prefix, fall back to the raw
 // sensor name. fps sensors don't resolve here (settings has no fps stream), so
@@ -181,10 +208,12 @@ function microAutoLabel(
   sensors: ReturnType<typeof useSensors>,
   networkSensors: ReturnType<typeof buildNetworkSensors>,
   extras: ReturnType<typeof useSensorExtras>,
+  prefixed: boolean,
 ): string {
   const effectiveName = device === 'network' && !rawName ? NETWORK_SENSOR_TOTAL : rawName;
   const sensor = resolveSensor(sensors, [], networkSensors, device, effectiveName, undefined, extras);
   const name = sensor?.name ?? '';
+  if (prefixed) return labelForDevice(device, name || effectiveName);
   return bareSensorLabel(device, name) || name || effectiveName;
 }
 
@@ -370,6 +399,8 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
   };
 
   if (isMicro) {
+    const multiDevice = isMicroMultiDevice(widget.config);
+    const rowDevices = microSensorNames.map((_, i) => microRowDevice(widget.config, i));
     const microSensorOptions = sensorsForDevice(sensors, networkSensors, extras, microDevice);
     const microDeviceOptions = visibleDeviceKeys(DEVICE_OPTION_KEYS, microDevice, sensors, networkSensors, extras).map(category => ({
       value: category,
@@ -397,76 +428,12 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
     // One toggle for every bar, so it shows when any of them is a percent or
     // temperature sensor; the rest keep the plain accent.
     const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
-    const microSupportsValueColor = microSensorNames.some(name => sensorSupportsValueColor(
-      resolveSensor(sensors, [], networkSensors, microDevice, name, undefined, extras)?.type,
+    const microSupportsValueColor = microSensorNames.some((name, i) => sensorSupportsValueColor(
+      resolveSensor(sensors, [], networkSensors, rowDevices[i], name, undefined, extras)?.type,
     ));
 
     return (
       <div className={styles.settingsRoot}>
-        <SettingsSection title={t('monitoring.settings.device')}>
-          <Select
-            className={styles.selectWide}
-            value={microDevice}
-            onChange={v => {
-              const next = v as DeviceKey;
-              const list = sensorsForDevice(sensors, networkSensors, extras, next);
-              const patch: Record<string, PanelConfigValue> = { micro_device: next };
-              for (let i = 0; i < count; i++) {
-                patch[`micro_sensor${i}`] = list[i]?.value ?? list[0]?.value ?? '';
-              }
-              onUpdate(patch);
-            }}
-            options={microDeviceOptions}
-            ariaLabel={t('monitoring.settings.device')}
-          />
-          {(() => {
-            const catOverride = (widget.config?.micro_category as string | undefined) ?? '';
-            const catAuto = bottomLabelForDevice(microDevice, sensors, t);
-            return (
-              <LabelControls
-                mode={(widget.config?.micro_categoryMode as string | undefined) ?? 'auto'}
-                override={catOverride}
-                autoLabel={catAuto}
-                canType={microCanType}
-                {...labelControlHandlers(onUpdate, 'micro_categoryMode', 'micro_category', catOverride, catAuto)}
-              />
-            );
-          })()}
-        </SettingsSection>
-
-        <SettingsSection title={t('monitoring.settings.sensors')}>
-          <div className={styles.microSensorList}>
-            {microSensorNames.map((name, i) => {
-              const sOverride = (widget.config?.[`micro_sensor${i}_label`] as string | undefined) ?? '';
-              const sAuto = microAutoLabel(microDevice, name, sensors, networkSensors, extras);
-              return (
-                <div
-                  key={i}
-                  className={styles.microSensorRow}
-                  // Selects the sensor so the live tile marks the bar being edited.
-                  onFocusCapture={() => onSelectedSlotChange?.(i)}
-                  onPointerDownCapture={() => onSelectedSlotChange?.(i)}
-                >
-                  <Select
-                    className={styles.selectWide}
-                    value={selectedSensorValue(microSensorOptions, name)}
-                    onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
-                    options={microSensorOptions}
-                    ariaLabel={`Sensor ${i + 1}`}
-                  />
-                  <LabelControls
-                    mode={(widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined) ?? 'auto'}
-                    override={sOverride}
-                    autoLabel={sAuto}
-                    canType={microCanType}
-                    {...labelControlHandlers(onUpdate, `micro_sensor${i}_labelMode`, `micro_sensor${i}_label`, sOverride, sAuto)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </SettingsSection>
-
         <SettingsSection title={t('monitoring.settings.design')}>
           <div className={styles.microDesignRow}>
             {MICRO_DESIGN_KEYS.map(k => {
@@ -486,41 +453,140 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
           </div>
         </SettingsSection>
 
-        <SettingsSection title={t('monitoring.settings.range')}>
-          <ChipGroup
-            fullWidth
-            ariaLabel={t('monitoring.settings.range')}
-            activeKey={microScale}
-            onChange={v => onUpdate({ micro_scale: v })}
-            options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+        <SettingsSection title={t('monitoring.settings.device')}>
+          <SettingsToggle
+            label={t('monitoring.settings.multiDevice')}
+            description={t('monitoring.settings.multiDeviceHint')}
+            checked={multiDevice}
+            onChange={next => {
+              const patch: Record<string, PanelConfigValue> = { micro_multiDevice: next };
+              // Rows start on the shared device, so their current picks carry over.
+              if (next) for (let i = 0; i < count; i++) patch[`micro_device${i}`] = microDevice;
+              onUpdate(patch);
+            }}
           />
-          {microScale === 'fixed' && microCanType && (
-            <div className={styles.rangeRow}>
-              <div className={styles.rangeField}>
-                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMin')}</span>
-                <TextInput
-                  type="number"
-                  size="sm"
-                  value={String(microFixedMin)}
-                  ariaLabel={t('monitoring.settings.rangeMin')}
-                  invalid={microFixedRangeInvalid}
-                  onBlur={commitMicroMin}
-                />
-              </div>
-              <div className={styles.rangeField}>
-                <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMax')}</span>
-                <TextInput
-                  type="number"
-                  size="sm"
-                  value={String(microFixedMax)}
-                  ariaLabel={t('monitoring.settings.rangeMax')}
-                  invalid={microFixedRangeInvalid}
-                  onBlur={commitMicroMax}
-                />
-              </div>
-            </div>
-          )}
+          {!multiDevice && <Select
+            className={styles.selectWide}
+            value={microDevice}
+            onChange={v => {
+              const next = v as DeviceKey;
+              const list = sensorsForDevice(sensors, networkSensors, extras, next);
+              const patch: Record<string, PanelConfigValue> = { micro_device: next };
+              for (let i = 0; i < count; i++) {
+                patch[`micro_sensor${i}`] = list[i]?.value ?? list[0]?.value ?? '';
+              }
+              onUpdate(patch);
+            }}
+            options={microDeviceOptions}
+            ariaLabel={t('monitoring.settings.device')}
+          />}
+          {!multiDevice && (() => {
+            const catOverride = (widget.config?.micro_category as string | undefined) ?? '';
+            const catAuto = bottomLabelForDevice(microDevice, sensors, t);
+            return (
+              <LabelControls
+                mode={(widget.config?.micro_categoryMode as string | undefined) ?? 'auto'}
+                override={catOverride}
+                autoLabel={catAuto}
+                canType={microCanType}
+                {...labelControlHandlers(onUpdate, 'micro_categoryMode', 'micro_category', catOverride, catAuto)}
+              />
+            );
+          })()}
         </SettingsSection>
+
+        <SettingsSection title={t('monitoring.settings.sensors')}>
+          <div className={styles.microSensorList}>
+            {microSensorNames.map((name, i) => {
+              const rowDevice = rowDevices[i];
+              const rowSensorOptions = multiDevice
+                ? sensorsForDevice(sensors, networkSensors, extras, rowDevice)
+                : microSensorOptions;
+              const sOverride = (widget.config?.[`micro_sensor${i}_label`] as string | undefined) ?? '';
+              const sAuto = microAutoLabel(rowDevice, name, sensors, networkSensors, extras, multiDevice);
+              const sensorSelect = (
+                <Select
+                  className={styles.selectWide}
+                  value={selectedSensorValue(rowSensorOptions, name)}
+                  onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
+                  options={rowSensorOptions}
+                  ariaLabel={`Sensor ${i + 1}`}
+                />
+              );
+              return (
+                <div
+                  key={i}
+                  className={styles.microSensorRow}
+                  // Selects the sensor so the live tile marks the bar being edited.
+                  onFocusCapture={() => onSelectedSlotChange?.(i)}
+                  onPointerDownCapture={() => onSelectedSlotChange?.(i)}
+                >
+                  {multiDevice ? (
+                    <div className={styles.sensorRow}>
+                      <Select
+                        className={styles.selectSmall}
+                        value={rowDevice}
+                        onChange={v => onUpdate({
+                          [`micro_device${i}`]: v,
+                          [`micro_sensor${i}`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors, extras),
+                        })}
+                        options={visibleDeviceKeys(DEVICE_OPTION_KEYS, rowDevice, sensors, networkSensors, extras)
+                          .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }))}
+                        ariaLabel={`${t('monitoring.settings.device')} ${i + 1}`}
+                      />
+                      {sensorSelect}
+                    </div>
+                  ) : sensorSelect}
+                  <LabelControls
+                    mode={(widget.config?.[`micro_sensor${i}_labelMode`] as string | undefined) ?? 'auto'}
+                    override={sOverride}
+                    autoLabel={sAuto}
+                    canType={microCanType}
+                    {...labelControlHandlers(onUpdate, `micro_sensor${i}_labelMode`, `micro_sensor${i}_label`, sOverride, sAuto)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </SettingsSection>
+
+        {!multiDevice && (
+          <SettingsSection title={t('monitoring.settings.range')}>
+            <ChipGroup
+              fullWidth
+              ariaLabel={t('monitoring.settings.range')}
+              activeKey={microScale}
+              onChange={v => onUpdate({ micro_scale: v })}
+              options={SCALE_OPTIONS.map(o => ({ key: o.value, label: t(o.labelKey) }))}
+            />
+            {microScale === 'fixed' && microCanType && (
+              <div className={styles.rangeRow}>
+                <div className={styles.rangeField}>
+                  <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMin')}</span>
+                  <TextInput
+                    type="number"
+                    size="sm"
+                    value={String(microFixedMin)}
+                    ariaLabel={t('monitoring.settings.rangeMin')}
+                    invalid={microFixedRangeInvalid}
+                    onBlur={commitMicroMin}
+                  />
+                </div>
+                <div className={styles.rangeField}>
+                  <span className={styles.rangeFieldLabel}>{t('monitoring.settings.rangeMax')}</span>
+                  <TextInput
+                    type="number"
+                    size="sm"
+                    value={String(microFixedMax)}
+                    ariaLabel={t('monitoring.settings.rangeMax')}
+                    invalid={microFixedRangeInvalid}
+                    onBlur={commitMicroMax}
+                  />
+                </div>
+              </div>
+            )}
+          </SettingsSection>
+        )}
 
         {microSupportsValueColor && (
           <SettingsSection title={t('monitoring.settings.colors')}>
@@ -546,6 +612,26 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
     <div className={styles.settingsRoot}>
       {activeConfig && (
         <>
+          <SettingsSection title={t('monitoring.settings.design')}>
+            <div className={styles.designRow}>
+              {designKeysForSlot(widget.size, layout, activeSlot).map(k => {
+                const Icon = DESIGN_ICONS[k];
+                const active = k === activeConfig.design;
+                return (
+                  <IconLabelButton
+                    key={k}
+                    className={styles.designBtn}
+                    active={active}
+                    icon={Icon ? <Icon aria-hidden="true" /> : undefined}
+                    title={GAUGE_DESIGN_LABELS[k]}
+                    ariaLabel={GAUGE_DESIGN_LABELS[k]}
+                    onPress={() => onUpdate({ [`slot${activeSlot}_design`]: k })}
+                  />
+                );
+              })}
+            </div>
+          </SettingsSection>
+
           <SettingsSection title={t('monitoring.settings.sensor')}>
             <div className={styles.sensorRow}>
               <Select
@@ -582,26 +668,6 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               canType={canEditFreeText(surface, desktopEditor)}
               {...labelControlHandlers(onUpdate, `slot${activeSlot}_labelMode`, `slot${activeSlot}_label`, slotLabelOverride, slotAutoLabel)}
             />
-          </SettingsSection>
-
-          <SettingsSection title={t('monitoring.settings.design')}>
-            <div className={styles.designRow}>
-              {designKeysForSlot(widget.size, layout, activeSlot).map(k => {
-                const Icon = DESIGN_ICONS[k];
-                const active = k === activeConfig.design;
-                return (
-                  <IconLabelButton
-                    key={k}
-                    className={styles.designBtn}
-                    active={active}
-                    icon={Icon ? <Icon aria-hidden="true" /> : undefined}
-                    title={GAUGE_DESIGN_LABELS[k]}
-                    ariaLabel={GAUGE_DESIGN_LABELS[k]}
-                    onPress={() => onUpdate({ [`slot${activeSlot}_design`]: k })}
-                  />
-                );
-              })}
-            </div>
           </SettingsSection>
 
           {designSupportsRange(activeConfig.design) && (

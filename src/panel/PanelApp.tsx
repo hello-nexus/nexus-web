@@ -1932,6 +1932,7 @@ export function PanelContent({
               surface={surface}
               deviceTouch={deviceTouch}
               immersiveGrid={{ columns: runtimeGrid.contentColumns, rows: runtimeGrid.contentRows }}
+              pageWidgets={allFiltered.find(p => p.widgets.some(x => x.id === w.id))?.widgets}
               // Immersive views own state the user sets from inside them (the
               // media visualizer's on/off + effect), so the persist path has to
               // reach the layout from run mode, not only from the edit sheet.

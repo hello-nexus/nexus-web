@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { PanelPager } from '../../chrome/PanelPager';
 import { PanelPageIndicator } from '../../chrome/PanelPageIndicator';
 import styles from './ImmersiveLayout.module.scss';
@@ -23,6 +23,9 @@ interface ImmersiveLayoutProps {
   //   4 cols x 12 rows -> 3 (Y70 portrait)
   //   4 cols x 6 rows  -> 2 (phone portrait with the browser URL bar visible)
   cellsPerPage?: number;
+  // Fixed tile footprint in panel-grid units. When set, cells tile the page as
+  // a grid of as many tiles as fit, and fillLast / cellsPerPage are ignored.
+  tile?: { cols: number; rows: number };
 }
 
 export function ImmersiveLayout({
@@ -31,6 +34,7 @@ export function ImmersiveLayout({
   gridRows,
   fillLast = true,
   cellsPerPage,
+  tile,
 }: ImmersiveLayoutProps) {
   const orientation: 'portrait' | 'landscape' =
     gridRows >= gridColumns ? 'portrait' : 'landscape';
@@ -44,8 +48,12 @@ export function ImmersiveLayout({
   // stays at 1 per page). The all-fixed case (fillLast=false) needs a full 4x4
   // per cell, so it floors.
   const longAxis = Math.max(gridColumns, gridRows);
-  const fitPerPage = cellsPerPage
-    ?? Math.max(1, fillLast ? Math.ceil(longAxis / 4) : Math.floor(longAxis / 4));
+  const tiles = tile
+    ? { across: Math.max(1, Math.floor(gridColumns / tile.cols)), down: Math.max(1, Math.floor(gridRows / tile.rows)) }
+    : undefined;
+  const fitPerPage = tiles
+    ? tiles.across * tiles.down
+    : cellsPerPage ?? Math.max(1, fillLast ? Math.ceil(longAxis / 4) : Math.floor(longAxis / 4));
 
   // Length of one fixed 4x4 cell as a FRACTION of the immersive page: 4 grid
   // rows tall in portrait, 4 grid columns wide in landscape. A row-count ratio
@@ -69,7 +77,7 @@ export function ImmersiveLayout({
 
   // Single page: no pager chrome.
   if (pages.length <= 1) {
-    return <ImmersivePage cells={pages[0].cells} orientation={orientation} fixedBasis={fixedBasis} fillLast={fillLast} />;
+    return <ImmersivePage cells={pages[0].cells} orientation={orientation} fixedBasis={fixedBasis} fillLast={fillLast} tiles={tiles} />;
   }
 
   // Multi-page: horizontal swipe between pages, dot indicator at bottom.
@@ -81,7 +89,7 @@ export function ImmersiveLayout({
         activeIndex={Math.min(activeIndex, pages.length - 1)}
         onActiveChange={setActiveIndex}
         renderPage={(page) => (
-          <ImmersivePage cells={page.cells} orientation={orientation} fixedBasis={fixedBasis} fillLast={fillLast} />
+          <ImmersivePage cells={page.cells} orientation={orientation} fixedBasis={fixedBasis} fillLast={fillLast} tiles={tiles} />
         )}
       />
       <div className={styles.indicator}>
@@ -96,12 +104,22 @@ function ImmersivePage({
   orientation,
   fixedBasis,
   fillLast,
+  tiles,
 }: {
   cells: ReactNode[];
   orientation: 'portrait' | 'landscape';
   fixedBasis: string;
   fillLast: boolean;
+  tiles?: { across: number; down: number };
 }) {
+  if (tiles) {
+    const style = { '--tiles-across': tiles.across, '--tiles-down': tiles.down } as CSSProperties;
+    return (
+      <div className={styles.layout} data-tiled="true" data-cells={cells.length} style={style}>
+        {cells.map((cell, idx) => <div key={idx} className={styles.tile}>{cell}</div>)}
+      </div>
+    );
+  }
   return (
     <div
       className={styles.layout}

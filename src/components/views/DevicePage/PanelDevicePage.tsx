@@ -5,7 +5,7 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from '../../../panel/widgets/common/PanelGaugeGradientContext';
-import { slotLayoutOptionsForSize, resolvedSlotCountForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../../../panel/widgets/monitoring/perfSlots';
+import { heroLabelKey, slotLayoutOptionsForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../../../panel/widgets/monitoring/perfSlots';
 import { SlotLayoutIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
 import {
   appendWidget,
@@ -1846,7 +1846,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
   };
 
   const handleResize = (size: PanelWidgetSize) => {
-    setSelectedMonitoringSlot(slot => Math.min(slot, resolvedSlotCountForSize(size, widget.config?.slotCount as number | undefined) - 1));
+    setSelectedMonitoringSlot(slot => Math.min(slot, resolvedSlotLayout(size, widget.config).count - 1));
     onResize(widget.id, size);
   };
 
@@ -1947,7 +1947,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
               <WidgetControlGroup title={t('devices.panels.widgetSettings.slots')}>
                 {slotLayoutOptions.map(option => {
                   const slotLabel = option.hero
-                    ? t('devices.panels.widgetSettings.slotHero')
+                    ? t(`devices.panels.widgetSettings.${heroLabelKey(widget.size)}`)
                     : t('devices.panels.widgetSettings.slotCount', { count: option.count });
                   return (
                     <IconLabelButton
