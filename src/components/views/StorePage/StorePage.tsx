@@ -6,6 +6,8 @@ import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
+import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import {
   fetchStoreApp, fetchStoreApps, installStoreApp,
   type StoreApp, type StoreAppDetail, type StoreVersion,
@@ -63,19 +65,32 @@ function upcomingRelease(app: { releaseDate?: string | null }): Date | null {
   return at;
 }
 
-/** The year is carried only when it is not this one, so a normal launch reads "October 13". */
-function formatLaunchDay(at: Date, language: string): string {
+/** The viewer's local date and time of the launch; the year only when it is not this one. */
+function formatLaunch(at: Date, language: string, timeFormat: TimeFormat): string {
   const year = at.getFullYear() === new Date().getFullYear() ? undefined : 'numeric';
-  return at.toLocaleDateString(language, { month: 'long', day: 'numeric', year });
+  return at.toLocaleString(language, {
+    month: 'long', day: 'numeric', year, hour: 'numeric', minute: '2-digit',
+    hour12: hour12OptionFor(timeFormat),
+  });
 }
 
 function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   app: StoreApp; installedVersion?: string; onNeedsSignIn: (retry: () => void) => void;
 }) {
   const { t, language } = useTranslation();
+  const { timeFormat } = useUnitPrefs();
   const [state, setState] = useState<InstallState>('idle');
   const latest = app.latest;
   const launch = upcomingRelease(app);
+  const launchAt = launch?.getTime();
+  const [, rerender] = useState(0);
+
+  // Re-renders at the launch moment so an open page swaps in Install; setTimeout caps at 2^31-1 ms.
+  useEffect(() => {
+    if (launchAt === undefined) return;
+    const id = window.setTimeout(() => rerender((n) => n + 1), Math.min(launchAt - Date.now(), 2 ** 31 - 1));
+    return () => window.clearTimeout(id);
+  }, [launchAt]);
 
   const install = useCallback(async () => {
     if (!latest) return;
@@ -101,7 +116,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   if (launch) {
     return (
       <span className={styles.comingSoon}>
-        {t('store.comingSoon', { date: formatLaunchDay(launch, language) })}
+        {t('store.comingSoon', { date: formatLaunch(launch, language, timeFormat) })}
       </span>
     );
   }

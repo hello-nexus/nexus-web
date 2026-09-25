@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { StorePage } from './StorePage';
 import type { StoreApp, StoreAppDetail } from '../../../api/store';
@@ -246,13 +246,18 @@ describe('StorePage sign-in', () => {
 
 describe('StorePage launch day', () => {
   const inDays = (days: number) => new Date(Date.now() + days * 86400_000).toISOString();
+  const launchText = (iso: string) => {
+    const at = new Date(iso);
+    const year = at.getFullYear() === new Date().getFullYear() ? undefined : 'numeric';
+    return at.toLocaleString('en', { month: 'long', day: 'numeric', year, hour: 'numeric', minute: '2-digit' });
+  };
 
   it('replaces Install with the launch day for an app that is not out yet', async () => {
     const at = inDays(30);
     fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: at }]);
     render(<StorePage />);
 
-    const day = new Date(at).toLocaleDateString('en', { month: 'long', day: 'numeric' });
+    const day = launchText(at);
     expect(await screen.findByText(`store.comingSoon date=${day}`)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
   });
@@ -262,13 +267,35 @@ describe('StorePage launch day', () => {
     fetchStoreApp.mockResolvedValue({ ...detail, releaseDate: at });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    const day = new Date(at).toLocaleDateString('en', { month: 'long', day: 'numeric' });
+    const day = launchText(at);
     expect(await screen.findByText(`store.comingSoon date=${day}`)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
   });
 
   it('offers Install again once the launch day has passed', async () => {
     fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: inDays(-1) }]);
+    render(<StorePage />);
+
+    expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+  });
+
+  it('swaps in Install at the launch moment on a page left open', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: inDays(1) }]);
+      render(<StorePage />);
+      expect(await screen.findByText(/^store\.comingSoon/)).toBeInTheDocument();
+
+      await act(async () => { vi.advanceTimersByTime(86400_000 + 1000); });
+
+      expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('offers Install for an app that never set a launch day', async () => {
+    fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: null }]);
     render(<StorePage />);
 
     expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
