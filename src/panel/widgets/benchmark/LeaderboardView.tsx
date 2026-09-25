@@ -1,18 +1,33 @@
-import { Fragment, useEffect, useState } from 'react';
-import { Trophy, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Trophy, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { localizeNumbers } from '../../../lib/units';
 import { getBenchmarkVersions, getLeaderboard, getLastSubmissionId } from '../../../api/nexusApi';
 import type { BenchmarkVersionInfo, LeaderboardEntry, LeaderboardResponse } from '../../../types/benchmark';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
+import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
 import { publicProfileUrl } from '../../../lib/publicProfile';
+import { DEV_TOOLS } from '../../../lib/devTools';
+import { LeaderboardList } from './LeaderboardList';
+import { BenchmarkEntryDetail } from './BenchmarkEntryDetail';
 import styles from './LeaderboardView.module.scss';
+
+function pageScroller(): HTMLElement {
+  return (document.scrollingElement ?? document.documentElement) as HTMLElement;
+}
+
+function scrollParent(el: HTMLElement): HTMLElement {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    if (/auto|scroll/.test(getComputedStyle(p).overflowY)) return p;
+  }
+  return pageScroller();
+}
 
 export function LeaderboardView() {
   const { t } = useTranslation();
+  const { numberFormat } = useUnitPrefs();
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -20,9 +35,37 @@ export function LeaderboardView() {
   // null = not loaded yet or the versions endpoint errored - either way the
   // filter stays hidden rather than showing an empty/broken dropdown.
   const [versions, setVersions] = useState<BenchmarkVersionInfo[] | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<LeaderboardEntry | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const sectionRef = useRef<HTMLElement>(null);
+  const listScrollTop = useRef<number | null>(null);
+  const lastOpenedId = useRef<string | null>(null);
   const myId = getLastSubmissionId();
+
+  const openEntry = (entry: LeaderboardEntry) => {
+    if (sectionRef.current) listScrollTop.current = scrollParent(sectionRef.current).scrollTop;
+    setSelected(entry);
+  };
+
+  // The list is far taller than an entry page: opening a low row would leave
+  // the scroller clamped past the headline, and Back would lose the row. The
+  // focused element unmounts on each swap, so focus moves with the view.
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const scroller = scrollParent(section);
+    if (selected) {
+      lastOpenedId.current = selected.id;
+      const scrollerTop = scroller === pageScroller() ? 0 : scroller.getBoundingClientRect().top;
+      const offset = section.getBoundingClientRect().top - scrollerTop;
+      if (offset < 0) scroller.scrollTop += offset;
+      section.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
+    } else if (listScrollTop.current !== null) {
+      scroller.scrollTop = listScrollTop.current;
+      listScrollTop.current = null;
+      section.querySelector<HTMLElement>(`[data-entry-id="${CSS.escape(lastOpenedId.current ?? '')}"]`)?.focus({ preventScroll: true });
+    }
+  }, [selected]);
 
   useEffect(() => {
     void getBenchmarkVersions().then(res => setVersions(res ?? null));
@@ -47,18 +90,42 @@ export function LeaderboardView() {
     return () => { cancelled = true; };
   }, [scoringVersion, reloadKey]);
 
-  const toggleRow = (id: string) => {
-    setExpandedId(prev => (prev === id ? null : id));
-  };
-
   const showVersionSelector = versions !== null && versions.length > 0;
   const versionOptions = [
     { value: '', label: t('benchmark.leaderboard.version') },
     ...(versions ?? []).map(v => ({ value: v.scoringVersion, label: v.scoringVersion })),
   ];
 
+  if (selected) {
+    return (
+      <section className={styles.leaderboard} ref={sectionRef}>
+        <div className={styles.backBar}>
+          <Button tone="ghost" icon={<ArrowLeft size={16} />} onClick={() => setSelected(null)}>
+            {t('benchmark.detail.back')}
+          </Button>
+        </div>
+        <BenchmarkEntryDetail
+          entry={selected}
+          numberFormat={numberFormat}
+          ownerHref={selected.displayName ? publicProfileUrl(selected.displayName) : undefined}
+          ownerNewTab
+          actions={DEV_TOOLS ? (
+            <>
+              <Button tone="accent" onClick={() => requestOpenBuild(`/upgrade?bench=${encodeURIComponent(selected.id)}`)}>
+                {t('benchmark.detail.findUpgrades')}
+              </Button>
+              <Button tone="ghost" onClick={() => requestOpenBuild('/builder')}>
+                {t('benchmark.detail.planUpgrade')}
+              </Button>
+            </>
+          ) : undefined}
+        />
+      </section>
+    );
+  }
+
   return (
-    <section className={styles.leaderboard}>
+    <section className={styles.leaderboard} ref={sectionRef}>
       {showVersionSelector && (
         <div className={styles.filters}>
           <label className={styles.filterLabel}>
@@ -98,139 +165,9 @@ export function LeaderboardView() {
         )}
 
         {!loading && !error && data && data.entries.length > 0 && (
-          <table className={styles.table} aria-label={t('benchmark.leaderboard.title')}>
-            <thead>
-              <tr>
-                <th className={styles.thRank}>{t('benchmark.leaderboard.rank')}</th>
-                <th className={styles.thScore}>{t('benchmark.leaderboard.score')}</th>
-                <th className={styles.thHardware}>{t('benchmark.leaderboard.hardware')}</th>
-                <th className={styles.thDate}>{t('benchmark.leaderboard.date')}</th>
-                <th className={styles.thExpand} aria-hidden />
-              </tr>
-            </thead>
-            <tbody>
-              {data.entries.map(entry => {
-                const isOwn = entry.id === myId;
-                const isExpanded = expandedId === entry.id;
-                return (
-                  <Fragment key={entry.id}>
-                    <tr
-                      className={`${styles.row} ${isOwn ? styles.rowOwn : ''}`}
-                      role="button"
-                      tabIndex={0}
-                      aria-expanded={isExpanded}
-                      onClick={() => toggleRow(entry.id)}
-                      onKeyDown={e => {
-                        // Key events from a focused child anchor/button must
-                        // activate the child, not the row.
-                        if (e.target !== e.currentTarget) return;
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          toggleRow(entry.id);
-                        }
-                      }}
-                    >
-                      <td className={styles.tdRank}>
-                        <span className={styles.rankNum}>#{entry.rank}</span>
-                        {isOwn && (
-                          <span className={styles.ownBadge}>{t('benchmark.leaderboard.yourEntry')}</span>
-                        )}
-                      </td>
-                      <td className={styles.tdScore}>{Math.round(entry.composite)}</td>
-                      <td className={styles.tdHardware}>
-                        <div className={styles.hwName}>
-                          {entry.displayName
-                            ? (
-                              <a
-                                className={styles.hwNameLink}
-                                href={publicProfileUrl(entry.displayName)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={e => e.stopPropagation()}
-                              >
-                                {entry.displayName}
-                                <ExternalLink size={11} aria-hidden />
-                              </a>
-                            )
-                            : t('benchmark.leaderboard.anonymous')}
-                        </div>
-                        <div className={styles.hwPrimary}>{entry.hardware.cpuModel}</div>
-                        {entry.hardware.gpuModels.length > 0 && (
-                          <div className={styles.hwSecondary}>{entry.hardware.gpuModels[0]}</div>
-                        )}
-                      </td>
-                      <td className={styles.tdDate}>
-                        {new Date(entry.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className={styles.tdExpand} aria-hidden>
-                        {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr className={styles.detailRow}>
-                        <td colSpan={5}>
-                          <EntryDetail entry={entry} />
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+          <LeaderboardList entries={data.entries} ownId={myId} onOpen={openEntry} />
         )}
       </div>
     </section>
-  );
-}
-
-function EntryDetail({ entry }: { entry: LeaderboardEntry }) {
-  const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
-
-  const axes: Array<{ key: keyof Pick<LeaderboardEntry, 'cpu' | 'gpu' | 'ram' | 'storage'>; label: string }> = [
-    { key: 'cpu', label: 'CPU' },
-    { key: 'gpu', label: 'GPU' },
-    { key: 'ram', label: 'RAM' },
-    { key: 'storage', label: 'Storage' },
-  ];
-
-  return (
-    <div className={styles.detail}>
-      <div className={styles.detailSection}>
-        <div className={styles.detailTitle}>{t('benchmark.leaderboard.hardware')}</div>
-        <ul className={styles.detailList}>
-          <li><span className={styles.detailKey}>CPU</span> {entry.hardware.cpuModel}</li>
-          {entry.hardware.gpuModels.map((g, i) => (
-            <li key={i}><span className={styles.detailKey}>GPU</span> {g}</li>
-          ))}
-          <li><span className={styles.detailKey}>RAM</span> {entry.hardware.ramModel}</li>
-          {/* eslint-disable-next-line i18next/no-literal-string -- Storage is a hardware category proper noun */}
-          <li><span className={styles.detailKey}>Storage</span> {entry.hardware.storageModel}</li>
-          <li><span className={styles.detailKey}>{t('benchmark.leaderboard.os')}</span> {entry.hardware.os}</li>
-        </ul>
-      </div>
-
-      <div className={styles.detailSection}>
-        <div className={styles.detailTitle}>{t('benchmark.leaderboard.score')}</div>
-        <ul className={styles.detailList}>
-          {axes.map(({ key, label }) => {
-            const axis = entry[key];
-            return (
-              <li key={key}>
-                <span className={styles.detailKey}>{label}</span>
-                {' '}{localizeNumbers(axis.raw.toFixed(1), numberFormat)} {axis.unit}
-                <span className={styles.axisScore}> ({Math.round(axis.score)})</span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div className={styles.detailSection}>
-        <div className={styles.detailTitle}>{t('benchmark.leaderboard.version')}</div>
-        <div className={styles.detailValue}>{entry.scoringVersion}</div>
-      </div>
-    </div>
   );
 }

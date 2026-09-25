@@ -86,16 +86,35 @@ describe('LeaderboardView', () => {
     expect(screen.getByRole('option', { name: 'v2.1-2026.06' })).toBeInTheDocument();
   });
 
-  it('renders a linked display name for an entry tied to a public account', async () => {
+  it('opens the entry page on click, with the owner linked to their public profile', async () => {
     getBenchmarkVersionsMock.mockResolvedValue(null);
     getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry({ displayName: 'Nova' })] });
 
     render(<LeaderboardView />);
 
-    const link = await screen.findByRole('link', { name: /Nova/ });
+    // The row itself carries no nested links: the whole card opens the entry.
+    const row = await screen.findByRole('button', { name: /Nova/ });
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    fireEvent.click(row);
+
+    expect(await screen.findByText('DDR5')).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Nova' });
     expect(link).toHaveAttribute('href', 'https://build.hellonexus.com/u/Nova');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('returns to the list from the entry page', async () => {
+    getBenchmarkVersionsMock.mockResolvedValue(null);
+    getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry()] });
+
+    render(<LeaderboardView />);
+    fireEvent.click(await screen.findByRole('button', { name: /Ryzen 9/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'benchmark.detail.back' }));
+
+    expect(await screen.findByRole('button', { name: /Ryzen 9/ })).toBeInTheDocument();
+    expect(screen.queryByText('DDR5')).not.toBeInTheDocument();
+    expect(getLeaderboardMock).toHaveBeenCalledTimes(1);
   });
 
   it('renders the anonymous label when an entry has no display name', async () => {
@@ -105,45 +124,8 @@ describe('LeaderboardView', () => {
     render(<LeaderboardView />);
 
     await waitFor(() => expect(screen.getByText('benchmark.leaderboard.anonymous')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Ryzen 9/ }));
+    expect(await screen.findByText('DDR5')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
-  });
-
-  describe('row keyboard activation', () => {
-    it('toggles the detail row on Enter when the row itself is focused', async () => {
-      getBenchmarkVersionsMock.mockResolvedValue(null);
-      getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry()] });
-
-      render(<LeaderboardView />);
-      const row = (await screen.findByText('Ryzen 9')).closest('tr');
-      expect(row).not.toBeNull();
-
-      fireEvent.keyDown(row!, { key: 'Enter' });
-
-      expect(await screen.findByText('DDR5')).toBeInTheDocument();
-    });
-
-    it('toggles the detail row on Space when the row itself is focused', async () => {
-      getBenchmarkVersionsMock.mockResolvedValue(null);
-      getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry()] });
-
-      render(<LeaderboardView />);
-      const row = (await screen.findByText('Ryzen 9')).closest('tr');
-
-      fireEvent.keyDown(row!, { key: ' ' });
-
-      expect(await screen.findByText('DDR5')).toBeInTheDocument();
-    });
-
-    it('leaves the row collapsed when Enter is pressed on a focused nested link, letting the link activate itself', async () => {
-      getBenchmarkVersionsMock.mockResolvedValue(null);
-      getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry({ displayName: 'Nova' })] });
-
-      render(<LeaderboardView />);
-      const link = await screen.findByRole('link', { name: /Nova/ });
-
-      fireEvent.keyDown(link, { key: 'Enter' });
-
-      expect(screen.queryByText('DDR5')).not.toBeInTheDocument();
-    });
   });
 });

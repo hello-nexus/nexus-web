@@ -1,0 +1,117 @@
+@use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
+
+// Grid rather than flex gap: the Q60 panel WebView (Chromium 83) has no flex gap.
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-sm);
+}
+
+// Card chrome from Card.module.scss .root/.interactive, on a link or button.
+.row {
+  display: grid;
+  grid-template-columns: 3rem 4.5rem minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--space-lg);
+  width: 100%;
+  margin: 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--surface);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--ease-fast), background var(--ease-fast);
+
+  // Also beats the global a:hover accent tint when the row is a link.
+  &:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--bg-card-hover);
+  }
+
+  &:focus-visible {
+    @include focus-glow-card;
+  }
+}
+
+.own,
+.own:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.rank {
+  @include text-numeric;
+  font-weight: var(--weight-heading);
+  color: var(--text);
+}
+
+.score {
+  @include text-numeric;
+  font-size: var(--type-heading);
+  font-weight: var(--weight-heading);
+  color: var(--accent-glow);
+  text-align: right;
+}
+
+.hardware {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  @include text-button;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--text);
+}
+
+.ownBadge {
+  @include text-label;
+  margin-left: var(--space-sm);
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--accent-text);
+  white-space: nowrap;
+}
+
+.cpu,
+.gpu {
+  @include text-button;
+  font-weight: var(--weight-small);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cpu { color: var(--text); }
+.gpu { color: var(--text-dim); }
+
+.date {
+  @include text-numeric;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.chevron {
+  color: var(--text-dim);
+}
+
+// Phone widths: the date moves to the entry page.
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    column-gap: var(--space-md);
+  }
+
+  .date { display: none; }
+}
