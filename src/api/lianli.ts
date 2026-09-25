@@ -22,6 +22,8 @@ export interface LianLiLightingMode {
   hasBrightness: boolean;
   colorsMin: number;
   colorsMax: number;
+  /** Has an across-every-port variant on the attached hub. Absent on an older service. */
+  mergeable?: boolean;
 }
 
 export interface LianLiLighting {
@@ -32,10 +34,12 @@ export interface LianLiLighting {
   direction: number;
   brightness: number;
   colors: string[];
+  /** Mergeable modes run as one animation across every port. Absent on an older service. */
+  merge?: boolean;
   modes: LianLiLightingMode[];
 }
 
-export type LianLiLightingPatch = Partial<Pick<LianLiLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors'>>;
+export type LianLiLightingPatch = Partial<Pick<LianLiLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge'>>;
 
 export function getLianLiLighting(): Promise<LianLiLighting | null> {
   return fetchService<LianLiLighting>('/devices/lianli/lighting');

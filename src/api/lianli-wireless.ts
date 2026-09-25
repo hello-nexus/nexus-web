@@ -69,6 +69,8 @@ export interface LianLiWirelessLightingEffect {
   hasDirection: boolean;
   colorsMin: number;
   colorsMax: number;
+  /** Has a variant that runs across every fan of the chain. Absent on an older service. */
+  mergeable?: boolean;
 }
 
 export interface LianLiWirelessLane {
@@ -102,6 +104,8 @@ export interface LianLiWirelessChainLighting {
   /** 0 off .. 4 full */
   brightness: number;
   colors: string[];
+  /** A mergeable effect runs across every fan of the chain. Absent on an older service. */
+  merge?: boolean;
   laneSettings: LianLiWirelessLane[];
 }
 
@@ -111,7 +115,7 @@ export interface LianLiWirelessLighting {
 }
 
 export type LianLiWirelessChainPatch = Partial<Pick<LianLiWirelessChainLighting,
-  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'laneSettings'>>;
+  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings'>>;
 
 export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | null> {
   return fetchService<LianLiWirelessLighting>('/devices/lianli-wireless/lighting');
