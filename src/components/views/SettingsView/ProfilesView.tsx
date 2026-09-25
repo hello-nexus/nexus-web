@@ -8,6 +8,7 @@ import { RefreshCw } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { ProfilesTab } from './ProfilesTab';
 import { CloudProfilesSection } from './CloudProfilesSection';
@@ -22,14 +23,15 @@ interface ProfilesViewProps {
   onTabChange: (tab: string) => void;
 }
 
-const TAB_KEYS = ['local', 'cloud'] as const;
+// Cloud profiles stay dev-only until they launch.
+const TAB_KEYS: readonly string[] = DEV_TOOLS ? ['local', 'cloud'] : ['local'];
 
 // Standalone Profiles page (was the Settings > Profiles tab). Reached from the
 // top-bar profile menu's "Manage profiles" link. Reuses the settings page
 // chrome so it reads identically to the rest of /system.
 export function ProfilesView({ serviceOnline, connectionState, profiles, tab, onTabChange }: ProfilesViewProps) {
   const { t } = useTranslation();
-  const active = TAB_KEYS.includes(tab as typeof TAB_KEYS[number]) ? tab! : 'local';
+  const active = tab && TAB_KEYS.includes(tab) ? tab : 'local';
   // Bumped by the tab's own refresh control; CloudProfilesSection reloads the
   // library when it changes. The cloud list is fetched, not pushed, so there
   // has to be a way to re-read it without leaving the page.
@@ -37,7 +39,7 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
   const [cloudLoading, setCloudLoading] = useState(false);
   // The refresh control is meaningless signed out: there is no library to
   // re-read, only the sign-in prompt.
-  const accounts = useCloudAccounts(true);
+  const accounts = useCloudAccounts(DEV_TOOLS);
   const showRefresh = active === 'cloud' && accounts.activeAccountId !== null;
   const tabs: TabDef[] = useMemo(() => [
     { key: 'local', label: t('profile.tab.local') },
@@ -75,9 +77,9 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
 
   return (
     <div className={styles.settings}>
-      <ViewHeader title={t('profile.manageTitle')} tabs={tabs} activeTab={active} onTabChange={onTabChange} />
+      <ViewHeader title={t('profile.manageTitle')} tabs={DEV_TOOLS ? tabs : undefined} activeTab={active} onTabChange={onTabChange} />
       <div className={`${styles.tabContent} pageBody`}>
-        {active === 'cloud'
+        {DEV_TOOLS && active === 'cloud'
           ? <CloudProfilesSection profiles={profiles} reloadToken={cloudReload} onLoadingChange={setCloudLoading} />
           : <ProfilesTab profiles={profiles} onPreferencesChanged={onPreferencesChanged} />}
       </div>

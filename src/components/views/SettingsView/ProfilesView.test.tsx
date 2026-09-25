@@ -70,6 +70,21 @@ describe('ProfilesView tabs', () => {
 
     expect(screen.getByText('LOCAL_PROFILES')).toBeInTheDocument();
   });
+
+  it('hides the cloud tab and its route outside dev-tools builds', async () => {
+    vi.resetModules();
+    vi.doMock('../../../lib/devTools', () => ({ DEV_TOOLS: false }));
+    try {
+      const { ProfilesView: ReleaseProfilesView } = await import('./ProfilesView');
+      render(<ReleaseProfilesView serviceOnline profiles={PROFILES} tab="cloud" onTabChange={vi.fn()} />);
+
+      expect(screen.getByText('LOCAL_PROFILES')).toBeInTheDocument();
+      expect(screen.queryByText(/CLOUD_PROFILES/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    } finally {
+      vi.doUnmock('../../../lib/devTools');
+    }
+  });
 });
 
 describe('ProfilesView cloud refresh', () => {
