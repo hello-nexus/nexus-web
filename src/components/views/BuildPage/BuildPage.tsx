@@ -47,6 +47,14 @@ interface FrameMessage {
   [key: string]: unknown;
 }
 
+// Glass: the native shell paints the frosted backdrop behind a transparent web
+// view (Dashboard.tsx, App.module.scss). The portal clears its own canvas on
+// this flag so the frame shows the same glass instead of a solid page.
+function isGlassBackdrop(): boolean {
+  const root = document.documentElement;
+  return root.classList.contains('nexus-shell-native-glass') && root.getAttribute('data-bg') === 'glass';
+}
+
 function isFrameMessage(data: unknown): data is FrameMessage {
   return typeof data === 'object' && data !== null && typeof (data as { type?: unknown }).type === 'string';
 }
@@ -222,6 +230,7 @@ export function BuildPage({ path }: BuildPageProps) {
       v: 1,
       theme: resolvedTheme,
       accent: currentAccentColor(),
+      glass: isGlassBackdrop(),
       locale: language,
       host: isRemoteOrigin ? 'web' : 'app',
       ...(machine ? { machine } : {}),
@@ -240,24 +249,29 @@ export function BuildPage({ path }: BuildPageProps) {
   useEffect(() => {
     if (!ready || resolvedTheme === prevThemeRef.current) return;
     prevThemeRef.current = resolvedTheme;
-    post({ type: 'nexus-build:theme', v: 1, theme: resolvedTheme, accent: currentAccentColor() });
+    post({ type: 'nexus-build:theme', v: 1, theme: resolvedTheme, accent: currentAccentColor(), glass: isGlassBackdrop() });
   }, [resolvedTheme, ready, post]);
 
-  // The accent is applied as inline custom properties on <html>, so a style
-  // mutation there is the moment a new accent (user pick or OS push) exists.
+  // The accent is applied as inline custom properties on <html> and the
+  // backdrop mode as its class + data-bg, so a mutation there is the moment a
+  // new accent (user pick or OS push) or backdrop exists.
   const prevAccentRef = useRef(currentAccentColor());
+  const prevGlassRef = useRef(isGlassBackdrop());
   useEffect(() => {
     if (!ready) return undefined;
-    // The hello that opened this ready window carried the accent of that
-    // moment; changes made before it must not be mistaken for the baseline.
+    // The hello that opened this ready window carried the accent and backdrop
+    // of that moment; changes made before it must not be mistaken for the baseline.
     prevAccentRef.current = currentAccentColor();
+    prevGlassRef.current = isGlassBackdrop();
     const observer = new MutationObserver(() => {
       const accent = currentAccentColor();
-      if (accent === prevAccentRef.current) return;
+      const glass = isGlassBackdrop();
+      if (accent === prevAccentRef.current && glass === prevGlassRef.current) return;
       prevAccentRef.current = accent;
-      post({ type: 'nexus-build:theme', v: 1, theme: prevThemeRef.current, accent });
+      prevGlassRef.current = glass;
+      post({ type: 'nexus-build:theme', v: 1, theme: prevThemeRef.current, accent, glass });
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class', 'data-bg'] });
     return () => observer.disconnect();
   }, [ready, post]);
 
