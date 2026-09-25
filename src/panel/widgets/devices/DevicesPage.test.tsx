@@ -302,3 +302,18 @@ describe('DevicesPage Available tab bus sections', () => {
     expect(screen.getByText('devices.section.smbus')).toBeTruthy();
   });
 });
+
+describe('DevicesPage device order', () => {
+  it('lists cards alphabetically by name, whatever the connection or page state', () => {
+    mockUnified = [
+      curatedRow({ key: 'c-z', name: 'Zeta Hub', shortName: 'Zeta Hub' }),
+      curatedRow({ key: 'c-a', name: 'alpha fan', shortName: 'alpha fan', connected: false }),
+      curatedRow({ key: 'c-m', name: 'Mid Strip', shortName: 'Mid Strip', navigable: false }),
+    ];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    const names = ['alpha fan', 'Mid Strip', 'Zeta Hub'].map(n => screen.getByText(n));
+    expect(names[0].compareDocumentPosition(names[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(names[1].compareDocumentPosition(names[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});

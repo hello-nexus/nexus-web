@@ -81,9 +81,8 @@ export function SidebarDevicesSection({
     return curatedId ? () => void controlDevice(curatedId, next) : undefined;
   }, [controlDevice, push, t]);
 
-  // Stable, deterministic order: connected first, then by category, then by
-  // short name. Avoids reshuffles on transient disconnects within the
-  // /devices polling cadence. Only navigable devices (those with their own
+  // Alphabetical by the row label, key breaking ties, so a disconnect never
+  // moves a row. Only navigable devices (those with their own
   // settings page) get a sidebar row - e.g. the MiniHub is controlled from
   // Cooling/Lighting, so it has no page and shouldn't deep-link to an empty one.
   // (Paired phone remotes are already excluded upstream in useUnifiedDevices -
@@ -91,11 +90,9 @@ export function SidebarDevicesSection({
   const sorted = useMemo(() => {
     return unified
       .filter(d => d.navigable)
-      .sort((a, b) => {
-        if (a.connected !== b.connected) return a.connected ? -1 : 1;
-        if (a.category !== b.category) return a.category.localeCompare(b.category);
-        return a.shortName.localeCompare(b.shortName);
-      });
+      .sort((a, b) =>
+        a.shortName.localeCompare(b.shortName, undefined, { sensitivity: 'base', numeric: true })
+        || a.key.localeCompare(b.key));
   }, [unified]);
 
   const label = t('sidebar.section.devices');

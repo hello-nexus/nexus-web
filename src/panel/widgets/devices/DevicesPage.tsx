@@ -85,12 +85,11 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
     return set;
   }, [allUsb.devices]);
 
-  // Devices whose controls live on shared pages (MiniHub fans on Cooling,
-  // its ARGB on Lighting) have no settings page of their own, so they sort
-  // to the bottom and the list leads with the cards you can open. sort() is
-  // stable, so each group keeps the order useUnifiedDevices emitted.
+  // Alphabetical by the card label, key breaking ties so the order holds across polls.
   const orderedDevices = useMemo(
-    () => [...unified].sort((a, b) => Number(b.navigable) - Number(a.navigable)),
+    () => [...unified].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })
+      || a.key.localeCompare(b.key)),
     [unified],
   );
 

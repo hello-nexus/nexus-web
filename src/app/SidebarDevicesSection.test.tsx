@@ -367,3 +367,18 @@ describe('SidebarDevicesSection SMBus pseudo-device exclusion', () => {
     expect(screen.getByText('sidebar.devices.empty')).toBeInTheDocument();
   });
 });
+
+describe('SidebarDevicesSection order', () => {
+  it('lists rows alphabetically by label, a disconnected device keeping its place', () => {
+    mockUnified = [
+      monitorDevice({ key: 'd-z', shortName: 'Zeta Hub' }),
+      monitorDevice({ key: 'd-a', shortName: 'alpha fan', connected: false, category: 'fan' }),
+      monitorDevice({ key: 'd-m', shortName: 'Mid Strip', category: 'ledstrip' }),
+    ];
+    renderSidebar();
+
+    const labels = ['alpha fan', 'Mid Strip', 'Zeta Hub'].map(n => screen.getByText(n));
+    expect(labels[0].compareDocumentPosition(labels[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(labels[1].compareDocumentPosition(labels[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
