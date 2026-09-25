@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Check, CloudOff, CloudUpload, DownloadCloud, Trash2 } from 'lucide-react';
+import { Check, Cloud, CloudUpload, DownloadCloud, Monitor, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -7,6 +7,7 @@ import { SettingRow } from '../../common/SettingRow/SettingRow';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { SyncConflictModal } from '../../common/SyncConflictModal/SyncConflictModal';
+import { AccountSignInModal } from './Account/AccountSignInModal';
 import { deleteCloudProfile, fetchCloudLibrary, importCloudProfile, type CloudLibrary } from '../../../api/cloud';
 import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { useSyncStatus } from '../../../hooks/useSyncStatus';
@@ -46,6 +47,7 @@ export function CloudProfilesSection(
   // The 25s background poll can land a pre-click status in the same window, so
   // the spinner only settles on state observed after this click's own round trip.
   const [ownRefreshLanded, setOwnRefreshLanded] = useState(false);
+  const [signInOpen, setSignInOpen] = useState(false);
 
   const loadLibrary = useCallback(() => {
     if (!signedIn) return;
@@ -76,14 +78,29 @@ export function CloudProfilesSection(
     return (
       <div className={styles.tabPanel}>
         <EmptyState
-          icon={<CloudOff />}
+          hero
+          icon={<Cloud />}
           title={t('profile.cloud.signedOut.title')}
           hint={t('profile.cloud.signedOut.hint')}
+          points={[
+            { icon: <CloudUpload />, text: t('profile.cloud.signedOut.pointBackup') },
+            { icon: <RotateCcw />, text: t('profile.cloud.signedOut.pointRestore') },
+            { icon: <Monitor />, text: t('profile.cloud.signedOut.pointOtherComputers') },
+          ]}
           action={(
-            <Button type="button" tone="accent" href="/system/account">
+            <Button type="button" tone="accent" onClick={() => setSignInOpen(true)}>
               {t('profile.cloud.signedOut.signIn')}
             </Button>
           )}
+        />
+        <AccountSignInModal
+          open={signInOpen}
+          onClose={() => setSignInOpen(false)}
+          onSignedIn={() => {
+            setSignInOpen(false);
+            void accounts.refresh();
+          }}
+          ariaLabel={t('account.signIn.title')}
         />
       </div>
     );

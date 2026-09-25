@@ -31,6 +31,11 @@ vi.mock('../../../api/cloud', () => ({
   importCloudProfile: vi.fn(),
   deleteCloudProfile: vi.fn(),
 }));
+vi.mock('./Account/AccountSignInModal', () => ({
+  AccountSignInModal: ({ open, onSignedIn }: { open: boolean; onSignedIn: () => void }) => (
+    open ? <button type="button" onClick={onSignedIn}>mock-sign-in-modal</button> : null
+  ),
+}));
 
 const SIGNED_OUT: UseCloudAccountsResult = { activeAccountId: null, activeAccount: null, refresh: vi.fn() };
 const SIGNED_IN: UseCloudAccountsResult = {
@@ -92,6 +97,18 @@ describe('CloudProfilesSection signed-out state', () => {
     // The prompt stands alone: no section title describing a list that cannot
     // exist while signed out.
     expect(screen.queryByText('profile.cloud.title')).not.toBeInTheDocument();
+  });
+
+  it('opens the sign-in dialog in place and re-reads the account once signed in', () => {
+    accountsResult.mockReturnValue(SIGNED_OUT);
+    renderSection();
+
+    expect(screen.queryByText('mock-sign-in-modal')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.signedOut.signIn' }));
+    fireEvent.click(screen.getByText('mock-sign-in-modal'));
+
+    expect(SIGNED_OUT.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('mock-sign-in-modal')).not.toBeInTheDocument();
   });
 });
 
