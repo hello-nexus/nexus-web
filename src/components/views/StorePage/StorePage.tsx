@@ -83,14 +83,14 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   const latest = app.latest;
   const launch = upcomingRelease(app);
   const launchAt = launch?.getTime();
-  const [, rerender] = useState(0);
+  const [tick, rerender] = useState(0);
 
-  // Re-renders at the launch moment so an open page swaps in Install; setTimeout caps at 2^31-1 ms.
+  // Re-armed each tick until launch, so an open page swaps in Install even past setTimeout's maximum delay.
   useEffect(() => {
     if (launchAt === undefined) return;
     const id = window.setTimeout(() => rerender((n) => n + 1), Math.min(launchAt - Date.now(), 2 ** 31 - 1));
     return () => window.clearTimeout(id);
-  }, [launchAt]);
+  }, [launchAt, tick]);
 
   const install = useCallback(async () => {
     if (!latest) return;

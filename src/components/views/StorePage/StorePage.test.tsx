@@ -294,6 +294,23 @@ describe('StorePage launch day', () => {
     }
   });
 
+  it('keeps waiting for a launch beyond the longest single timeout', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: inDays(30) }]);
+      render(<StorePage />);
+      expect(await screen.findByText(/^store\.comingSoon/)).toBeInTheDocument();
+
+      await act(async () => { vi.advanceTimersByTime(25 * 86400_000); });
+      expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(5 * 86400_000 + 1000); });
+
+      expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('offers Install for an app that never set a launch day', async () => {
     fetchStoreApps.mockResolvedValue([{ ...app, releaseDate: null }]);
     render(<StorePage />);
