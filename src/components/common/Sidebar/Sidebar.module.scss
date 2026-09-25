@@ -1,4 +1,5 @@
 // Context-dependent sidebar nav section (used inside the sidebar column)
+@use '../../../styles/scrollbar' as *;
 @use '../../../styles/text' as *;
 
 .nav {
@@ -286,16 +287,9 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  // Hide the scrollbar by default; revealed on hover so it doesn't
-  // create a permanent visual gutter when the list isn't long enough.
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  &:hover {
-    scrollbar-color: var(--scrollbar-thumb, rgba(255,255,255,0.18)) transparent;
-  }
-  &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-thumb { background: transparent; border-radius: var(--radius-sm); }
-  &:hover::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, rgba(255,255,255,0.18)); }
+  // Any scrollbar, even a transparent one, takes a gutter that narrows the
+  // full-width rows and clips their right edge.
+  @include scrollbar-hidden;
 }
 
 // Slight elevation cue while a row is being dragged for reorder. The
