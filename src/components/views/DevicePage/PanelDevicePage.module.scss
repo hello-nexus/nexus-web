@@ -210,6 +210,15 @@
 
 // --- Widget Catalog (Widgets tab) ---
 
+// Carries the bounded height through to the catalog; without it the catalog
+// grows to its content and .tabContentCatalog clips the grid.
+.catalogHost {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .catalog {
   flex: 1;
   min-height: 0;

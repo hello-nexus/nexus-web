@@ -1257,7 +1257,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         </div>
                       )}
                       <div
-                        className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
+                        className={`${styles.catalogHost}${recordSecondaryMonitor ? ` ${styles.tabDisabled}` : ''}`}
                         aria-disabled={recordSecondaryMonitor || undefined}
                         inert={recordSecondaryMonitor || undefined}
                       >
