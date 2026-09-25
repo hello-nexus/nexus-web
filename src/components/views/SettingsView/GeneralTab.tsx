@@ -8,6 +8,7 @@ import { ManageConflictAppsModal } from './ManageConflictAppsModal';
 import { fetchAutoStart, setAutoStart as postAutoStart } from '../../../api/autoStart';
 import { postService } from '../../../api/service';
 import { downloadSupportBundle } from '../../../api/diagnostics';
+import { saveLastRoute } from '../../../api/session';
 import { useToastSafe } from '../../common/Toast/Toast';
 import { resetOnboarding } from '../../../api/onboarding';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
@@ -216,7 +217,12 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             anchorId="set-remember-page"
             description={t('settings.rememberLastPage.description')}
             checked={settings.general.rememberLastPage}
-            onChange={() => updateGeneral({ rememberLastPage: !settings.general.rememberLastPage })}
+            onChange={() => {
+              const next = !settings.general.rememberLastPage;
+              updateGeneral({ rememberLastPage: next });
+              // The macOS service opens a closed window on the stored route.
+              if (!next) void saveLastRoute('');
+            }}
           />
         </SettingsSection>
       )}
