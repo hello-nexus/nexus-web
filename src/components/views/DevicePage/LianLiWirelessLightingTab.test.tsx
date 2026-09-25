@@ -160,6 +160,18 @@ describe('LianLiWirelessLightingTab', () => {
     expect(screen.getAllByLabelText('common.hexColor')).toHaveLength(6);
   });
 
+  it('offers Merge only for a mergeable fan effect and sends the toggle', async () => {
+    const runway = { key: 'runway', hasSpeed: true, hasDirection: false, colorsMin: 0, colorsMax: 1, mergeable: true };
+    await renderTab({ ...catalog, chains: [{ ...fanChain, modes: [...fanChain.modes, runway] }] });
+    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.merge' })).not.toBeInTheDocument();
+
+    await renderTab({ ...catalog, chains: [{ ...fanChain, modes: [...fanChain.modes, runway], mode: 'runway', merge: false }] });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-wireless.merge' }));
+    });
+    expect(mockSetStrimer).toHaveBeenCalledWith('998D1DE566E1', { merge: true });
+  });
+
   it('picking a mode sends it for that cable', async () => {
     await renderTab();
     fireEvent.click(screen.getByLabelText('devices.lianli.lightingMode'));

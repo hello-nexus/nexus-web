@@ -123,6 +123,33 @@ describe('LianLiDevicePage', () => {
     expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'rainbowWave' });
   });
 
+  it('offers Merge only for a mergeable mode and commits the toggle', async () => {
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    expect(screen.queryByRole('switch', { name: 'devices.lianli.merge' })).not.toBeInTheDocument();
+
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      mode: 'runway',
+      merge: false,
+      modes: [
+        ...defaultLighting.modes,
+        { key: 'runway', label: 'Runway', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 2, mergeable: true },
+      ],
+    });
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    const toggle = screen.getByRole('switch', { name: 'devices.lianli.merge' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ merge: true });
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+
   it('turning the switch on hands the hub to the Lighting page', async () => {
     await act(async () => {
       render(<LianLiDevicePage />);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { LightingPageSwitch } from './LightingPageSwitch';
@@ -156,6 +156,16 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
         options={modeOptions}
         disabled={lightingPage}
       />
+
+      {effect?.mergeable && (
+        <SettingToggle
+          label={t('devices.lianli-wireless.merge')}
+          description={t('devices.lianli-wireless.mergeHint')}
+          checked={chain.merge ?? false}
+          onChange={on => onCommit({ merge: on })}
+          disabled={lightingPage}
+        />
+      )}
 
       <SettingSlider
         editable

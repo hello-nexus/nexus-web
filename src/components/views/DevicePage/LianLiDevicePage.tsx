@@ -3,7 +3,7 @@ import { Fan, Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
-import { SettingRow, SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -220,6 +220,20 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
               options={effectModes.map(m => ({ value: m.key, label: m.label }))}
               disabled={!lightingLoaded || isCustomMode}
             />
+
+            {selectedMode?.mergeable && (
+              <SettingToggle
+                label={t('devices.lianli.merge')}
+                description={t('devices.lianli.mergeHint')}
+                checked={lighting?.merge ?? false}
+                onChange={on => {
+                  if (!lighting) return;
+                  setLighting({ ...lighting, merge: on });
+                  void commitLighting({ merge: on });
+                }}
+                disabled={!lightingLoaded || isCustomMode}
+              />
+            )}
 
             {selectedMode?.hasBrightness && (
               <SettingSlider
