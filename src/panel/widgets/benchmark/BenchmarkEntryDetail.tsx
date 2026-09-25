@@ -21,6 +21,8 @@ interface BenchmarkEntryDetailProps {
   /** The owner's public profile; the name renders as plain text without it. */
   ownerHref?: string;
   ownerNewTab?: boolean;
+  /** The owner name is the page's h1 (the Build portal's /bench/:id); otherwise an h2 under the app's page title. */
+  ownerIsPageTitle?: boolean;
   /** Passed in, not read via useUnitPrefs: that hook's module drags the app's widget graph into the Build portal. */
   numberFormat?: NumberFormat;
 }
@@ -30,10 +32,11 @@ interface BenchmarkEntryDetailProps {
  * tools and scoring version. Shared with the Build portal through @app.
  */
 export function BenchmarkEntryDetail({
-  entry, actions, ownerHref, ownerNewTab, numberFormat = DEFAULT_NUMBER_FORMAT,
+  entry, actions, ownerHref, ownerNewTab, ownerIsPageTitle, numberFormat = DEFAULT_NUMBER_FORMAT,
 }: BenchmarkEntryDetailProps) {
   const { t, language } = useTranslation();
   const owner = entry.displayName ?? t('benchmark.leaderboard.anonymous');
+  const OwnerHeading = ownerIsPageTitle ? 'h1' : 'h2';
   const tools = Object.entries(entry.tools);
 
   return (
@@ -44,7 +47,7 @@ export function BenchmarkEntryDetail({
           <span className={styles.compositeLabel}>{t('benchmark.detail.nexusScore')}</span>
         </div>
         <div className={styles.meta}>
-          <h2 className={styles.owner}>
+          <OwnerHeading className={styles.owner}>
             {entry.displayName && ownerHref
               ? (
                 <a
@@ -57,7 +60,7 @@ export function BenchmarkEntryDetail({
                 </a>
               )
               : owner}
-          </h2>
+          </OwnerHeading>
           <div className={styles.badges}>
             <span className={styles.badge}>{t('benchmark.leaderboard.rank')} #{entry.rank}</span>
             {entry.percentile != null && (
