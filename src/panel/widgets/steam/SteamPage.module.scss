@@ -212,8 +212,12 @@ $dot-offline: var(--text-dim);
 .gameTile {
   display: flex;
   flex-direction: column;
-  background: var(--panel-card-bg);
-  border: 1px solid var(--panel-card-border);
+  // Fallbacks: the desktop dashboard mounts this page outside .panel-root,
+  // where the --panel-* tokens are undefined.
+  background: var(--panel-card-bg, var(--surface));
+  // Keeps the fill off the transparent border so the art sits flush with it.
+  background-clip: padding-box;
+  border: 1px solid var(--panel-card-border, transparent);
   border-radius: var(--radius);
   cursor: pointer;
   padding: 0;
@@ -225,7 +229,7 @@ $dot-offline: var(--text-dim);
 
   &:hover {
     transform: translateY(-2px);
-    border-color: var(--panel-accent);
+    border-color: var(--panel-accent, var(--accent));
   }
 }
 
@@ -240,8 +244,9 @@ $dot-offline: var(--text-dim);
   // the common case; it only defends against a hair-off capsule.
   aspect-ratio: 231 / 87;
   object-fit: cover;
-  background: var(--panel-element-bg);
-  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--panel-element-bg, var(--bg-card-hover));
+  // Inside the tile's 1px border: the padding box's corner is 1px tighter.
+  border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
 }
 
 // Overlaid on the art, not stacked into .gameTileMeta: a per-tile line would
