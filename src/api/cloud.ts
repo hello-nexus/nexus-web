@@ -264,8 +264,9 @@ export const submitGameScore = (payload: CloudGameScoreSubmitBody) =>
 export const fetchCloudSyncStatus = () =>
   fetchService<SyncStatus>('/cloud/sync/status');
 
-export const syncCloudNow = () =>
-  postService('/cloud/sync/now', {});
+/** Resolves once the backup finishes; without a profileId it backs up every profile. */
+export const syncCloudNow = (profileId?: string) =>
+  postService('/cloud/sync/now', { profileId });
 
 export const resolveCloudSyncConflict = (profileId: string, choice: 'local' | 'cloud') =>
   postService('/cloud/sync/resolve', { profileId, choice });

@@ -13,7 +13,6 @@ import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { useSyncStatus } from '../../../hooks/useSyncStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import { useTranslation } from '../../../lib/i18n';
-import { isSyncPassSettled } from './Account/syncProfileRows';
 import styles from './SettingsView.module.scss';
 
 interface ConflictPrompt {
@@ -43,10 +42,7 @@ export function CloudProfilesSection(
   const [pendingDelete, setPendingDelete] = useState<{ installId: string; profileId: string; key: string } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [conflictOpen, setConflictOpen] = useState(false);
-  const [syncBusy, setSyncBusy] = useState(false);
-  // The 25s background poll can land a pre-click status in the same window, so
-  // the spinner only settles on state observed after this click's own round trip.
-  const [ownRefreshLanded, setOwnRefreshLanded] = useState(false);
+  const [backingUp, setBackingUp] = useState<string[]>([]);
   const [signInOpen, setSignInOpen] = useState(false);
 
   const loadLibrary = useCallback(() => {
@@ -65,11 +61,6 @@ export function CloudProfilesSection(
     if (reloadToken > 0) void sync.refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync is rebuilt each render; only the token should retrigger
   }, [loadLibrary, sync.lastSyncAt, reloadToken]);
-
-  useEffect(() => {
-    if (!syncBusy || !ownRefreshLanded) return;
-    if (isSyncPassSettled(sync.state)) setSyncBusy(false);
-  }, [sync.state, syncBusy, ownRefreshLanded]);
 
   // Signed out there is nothing to head up: the sign-in prompt IS the page, so
   // it stands alone rather than under a "this computer's cloud profiles" title
@@ -106,11 +97,11 @@ export function CloudProfilesSection(
     );
   }
 
-  const handleSyncNow = () => {
-    if (syncBusy) return;
-    setOwnRefreshLanded(false);
-    setSyncBusy(true);
-    void sync.syncNow().finally(() => setOwnRefreshLanded(true));
+  // The service runs one backup at a time, so a second row's click queues behind the first.
+  const handleBackUp = (profileId: string) => {
+    if (backingUp.includes(profileId)) return;
+    setBackingUp(prev => [...prev, profileId]);
+    void sync.syncNow(profileId).finally(() => setBackingUp(prev => prev.filter(id => id !== profileId)));
   };
 
   const runImport = async (installId: string, profileId: string, key: string, replaceExisting: boolean, name: string) => {
@@ -220,8 +211,8 @@ export function CloudProfilesSection(
               tone="neutral"
               size="sm"
               icon={<CloudUpload />}
-              loading={syncBusy}
-              onClick={handleSyncNow}
+              loading={backingUp.includes(row.profileId)}
+              onClick={() => handleBackUp(row.profileId)}
             >
               {t('profile.cloud.backup.syncNow')}
             </Button>

@@ -11,7 +11,7 @@ export interface UseSyncStatusResult {
   lastSyncAt: string | null;
   conflicts: SyncConflict[];
   profiles: SyncProfileStatus[];
-  syncNow: () => Promise<void>;
+  syncNow: (profileId?: string) => Promise<void>;
   resolve: (profileId: string, choice: 'local' | 'cloud') => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -55,8 +55,8 @@ export function useSyncStatus(enabled: boolean): UseSyncStatusResult {
     };
   }, [enabled, refresh]);
 
-  const syncNow = useCallback(async () => {
-    await syncCloudNow();
+  const syncNow = useCallback(async (profileId?: string) => {
+    await syncCloudNow(profileId);
     await refresh();
   }, [refresh]);
 

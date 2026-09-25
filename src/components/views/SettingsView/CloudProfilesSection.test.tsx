@@ -117,26 +117,31 @@ describe('CloudProfilesSection backup control', () => {
     return screen.getByRole('button', { name: 'profile.cloud.backup.syncNow' });
   }
 
-  it('spins from click until the triggered pass leaves the syncing state', async () => {
-    const syncNow = vi.fn().mockResolvedValue(undefined);
+  it('backs up only the clicked profile and leaves the other rows clickable', async () => {
+    const pending = new Map<string, () => void>();
+    const syncNow = vi.fn((profileId?: string) => new Promise<void>(res => { pending.set(profileId!, res); }));
     syncResult.mockReturnValue({ ...BASE_SYNC, syncNow });
-    const { rerender } = renderSection();
-    await waitFor(() => expect(syncNowButton()).toBeInTheDocument());
+    const twoProfiles = {
+      ...PROFILES,
+      profiles: [...PROFILES.profiles, { id: 'p2', name: 'Second', createdAt: '', updatedAt: '' }],
+    } as unknown as UseProfilesResult;
+    render(<CloudProfilesSection profiles={twoProfiles} />);
+    const buttons = () => screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' });
+    await waitFor(() => expect(buttons()).toHaveLength(2));
 
-    fireEvent.click(syncNowButton());
-    expect(syncNow).toHaveBeenCalledTimes(1);
-    expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
+    fireEvent.click(buttons()[1]);
+    expect(syncNow).toHaveBeenLastCalledWith('p2');
+    expect(buttons()[1]).toHaveAttribute('data-loading', 'true');
+    expect(buttons()[0]).not.toHaveAttribute('data-loading');
+    expect(buttons()[0]).not.toBeDisabled();
 
-    syncResult.mockReturnValue({ ...BASE_SYNC, state: 'syncing', syncNow });
-    rerender(<CloudProfilesSection profiles={PROFILES} />);
-    await act(async () => { await Promise.resolve(); });
-    expect(syncNowButton()).toHaveAttribute('data-loading', 'true');
+    fireEvent.click(buttons()[0]);
+    expect(syncNow).toHaveBeenLastCalledWith('p1');
+    expect(buttons()[0]).toHaveAttribute('data-loading', 'true');
 
-    syncResult.mockReturnValue({ ...BASE_SYNC, state: 'idle', syncNow });
-    rerender(<CloudProfilesSection profiles={PROFILES} />);
-    await waitFor(() => {
-      expect(syncNowButton()).not.toHaveAttribute('data-loading', 'true');
-    });
+    await act(async () => { pending.get('p2')?.(); await Promise.resolve(); });
+    await waitFor(() => expect(buttons()[1]).not.toHaveAttribute('data-loading'));
+    expect(buttons()[0]).toHaveAttribute('data-loading', 'true');
   });
 
   it('regression: a status poll landing before the click resolves does not clear the spinner', async () => {
