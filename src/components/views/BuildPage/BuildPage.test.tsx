@@ -89,6 +89,27 @@ describe('BuildPage', () => {
     );
   });
 
+  it('tells the frame about the glass backdrop in hello and when it toggles', async () => {
+    const root = document.documentElement;
+    root.classList.add('nexus-shell-native-glass');
+    root.setAttribute('data-bg', 'glass');
+    try {
+      render(<BuildPage path="/upgrade" />);
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+      expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', glass: true }), BUILD_ORIGIN);
+
+      postSpy.mockClear();
+      await act(async () => { root.setAttribute('data-bg', 'flat'); });
+      expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:theme', glass: false }), BUILD_ORIGIN);
+    } finally {
+      root.classList.remove('nexus-shell-native-glass');
+      root.removeAttribute('data-bg');
+    }
+  });
+
   it('ignores a ready message from a wrong source window', () => {
     render(<BuildPage path="/upgrade" />);
     const iframe = getIframe();
