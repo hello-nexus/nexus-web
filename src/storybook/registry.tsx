@@ -47,6 +47,7 @@ import { SupportedDevicesList, type SupportedDeviceRow } from '../components/com
 import { Overlay } from '../components/common/Overlay/Overlay';
 import { ColorPickerWithPresets } from '../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { SearchInput } from '../components/common/SearchInput/SearchInput';
+import { Pager } from '../components/common/Pager/Pager';
 import { Toggle } from '../components/common/Toggle/Toggle';
 import { EmptyState } from '../components/common/EmptyState/EmptyState';
 import { Select } from '../components/common/Select/Select';
@@ -1075,6 +1076,11 @@ function PreviewColorPickerWithPresets() {
       onCustomCommit={setCustom}
     />
   );
+}
+
+function PreviewPager() {
+  const [page, setPage] = useState(0);
+  return <Pager page={page} pageCount={5} onPageChange={setPage} />;
 }
 
 function PreviewSearchInput() {
@@ -2696,6 +2702,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/ProfileDropdown/ProfileDropdown.tsx',
     description: 'Profile picker grouped into an Account section (log in / signed-in account) and a Profiles section (switch list + create + manage). sidebar and avatar variants; compact mode collapses to the avatar disc. Import/export live on the Profiles settings page.',
     notes: 'No live preview - bound to the profiles store and save API.',
+  },
+  {
+    name: 'Pager', category: 'navigation',
+    filePath: 'src/components/common/Pager/Pager.tsx',
+    description: 'Previous / "Page N of M" / Next for a server-paged list. Zero-based page; renders nothing for a single page. Used by the benchmark leaderboard.',
+    Preview: PreviewPager,
   },
   {
     name: 'MenuDivider', category: 'navigation',

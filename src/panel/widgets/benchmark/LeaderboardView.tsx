@@ -7,12 +7,15 @@ import type { BenchmarkVersionInfo, LeaderboardEntry, LeaderboardResponse } from
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { Button } from '../../../components/common/Button/Button';
 import { Select } from '../../../components/common/Select/Select';
+import { Pager } from '../../../components/common/Pager/Pager';
 import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
 import { publicProfileUrl } from '../../../lib/publicProfile';
 import { DEV_TOOLS } from '../../../lib/devTools';
 import { LeaderboardList } from './LeaderboardList';
 import { BenchmarkEntryDetail } from './BenchmarkEntryDetail';
 import styles from './LeaderboardView.module.scss';
+
+const PAGE_SIZE = 50;
 
 function pageScroller(): HTMLElement {
   return (document.scrollingElement ?? document.documentElement) as HTMLElement;
@@ -25,6 +28,12 @@ function scrollParent(el: HTMLElement): HTMLElement {
   return pageScroller();
 }
 
+function revealTop(section: HTMLElement, scroller: HTMLElement) {
+  const scrollerTop = scroller === pageScroller() ? 0 : scroller.getBoundingClientRect().top;
+  const offset = section.getBoundingClientRect().top - scrollerTop;
+  if (offset < 0) scroller.scrollTop += offset;
+}
+
 export function LeaderboardView() {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -32,6 +41,7 @@ export function LeaderboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [scoringVersion, setScoringVersion] = useState('');
+  const [page, setPage] = useState(0);
   // null = not loaded yet or the versions endpoint errored - either way the
   // filter stays hidden rather than showing an empty/broken dropdown.
   const [versions, setVersions] = useState<BenchmarkVersionInfo[] | null>(null);
@@ -47,6 +57,16 @@ export function LeaderboardView() {
     setSelected(entry);
   };
 
+  const changePage = (next: number) => {
+    setPage(next);
+    if (sectionRef.current) revealTop(sectionRef.current, scrollParent(sectionRef.current));
+  };
+
+  const changeVersion = (version: string) => {
+    setScoringVersion(version);
+    setPage(0);
+  };
+
   // The list is far taller than an entry page: opening a low row would leave
   // the scroller clamped past the headline, and Back would lose the row. The
   // focused element unmounts on each swap, so focus moves with the view.
@@ -56,9 +76,7 @@ export function LeaderboardView() {
     const scroller = scrollParent(section);
     if (selected) {
       lastOpenedId.current = selected.id;
-      const scrollerTop = scroller === pageScroller() ? 0 : scroller.getBoundingClientRect().top;
-      const offset = section.getBoundingClientRect().top - scrollerTop;
-      if (offset < 0) scroller.scrollTop += offset;
+      revealTop(section, scroller);
       section.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
     } else if (listScrollTop.current !== null) {
       scroller.scrollTop = listScrollTop.current;
@@ -75,12 +93,15 @@ export function LeaderboardView() {
     let cancelled = false;
     setLoading(true);
     setError(false);
-    const params = scoringVersion ? { scoringVersion } : {};
-    void getLeaderboard(params).then(res => {
+    void getLeaderboard({ scoringVersion, limit: PAGE_SIZE, offset: page * PAGE_SIZE }).then(res => {
       if (cancelled) return;
+      const lastPage = res ? Math.max(0, Math.ceil(res.total / PAGE_SIZE) - 1) : 0;
       if (res === null) {
         setError(true);
         setData(null);
+      } else if (page > lastPage) {
+        setPage(lastPage);
+        return;
       } else {
         setData(res);
         setError(false);
@@ -88,7 +109,7 @@ export function LeaderboardView() {
       setLoading(false);
     });
     return () => { cancelled = true; };
-  }, [scoringVersion, reloadKey]);
+  }, [scoringVersion, page, reloadKey]);
 
   const showVersionSelector = versions !== null && versions.length > 0;
   const versionOptions = [
@@ -133,7 +154,7 @@ export function LeaderboardView() {
           </label>
           <Select
             value={scoringVersion}
-            onChange={setScoringVersion}
+            onChange={changeVersion}
             options={versionOptions}
             ariaLabel={t('benchmark.leaderboard.filterVersion')}
           />
@@ -168,6 +189,10 @@ export function LeaderboardView() {
           <LeaderboardList entries={data.entries} ownId={myId} onOpen={openEntry} />
         )}
       </div>
+
+      {!error && data && (
+        <Pager page={page} pageCount={Math.ceil(data.total / PAGE_SIZE)} onPageChange={changePage} />
+      )}
     </section>
   );
 }

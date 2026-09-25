@@ -117,6 +117,65 @@ describe('LeaderboardView', () => {
     expect(getLeaderboardMock).toHaveBeenCalledTimes(1);
   });
 
+  it('requests one page at a time and pages through the total', async () => {
+    getBenchmarkVersionsMock.mockResolvedValue(null);
+    getLeaderboardMock.mockResolvedValue({ total: 120, entries: [mkEntry()] });
+
+    render(<LeaderboardView />);
+
+    await waitFor(() => expect(screen.getByText('common.pager.pageOf n=1 total=3')).toBeInTheDocument());
+    expect(getLeaderboardMock).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 50, offset: 0 }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'common.pager.next' }));
+
+    await waitFor(() => expect(screen.getByText('common.pager.pageOf n=2 total=3')).toBeInTheDocument());
+    expect(getLeaderboardMock).toHaveBeenLastCalledWith(expect.objectContaining({ limit: 50, offset: 50 }));
+  });
+
+  it('returns to the first page when the version filter changes', async () => {
+    getBenchmarkVersionsMock.mockResolvedValue([{ scoringVersion: 'v2.2-2026.07', count: 120 }]);
+    getLeaderboardMock.mockResolvedValue({ total: 120, entries: [mkEntry()] });
+
+    render(<LeaderboardView />);
+    fireEvent.click(await screen.findByRole('button', { name: 'common.pager.next' }));
+    await waitFor(() => expect(getLeaderboardMock).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 50 })));
+
+    fireEvent.click(screen.getByRole('button', { name: 'benchmark.leaderboard.filterVersion' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'v2.2-2026.07' }));
+
+    await waitFor(() => expect(getLeaderboardMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ scoringVersion: 'v2.2-2026.07', offset: 0 }),
+    ));
+  });
+
+  it('steps back to the last page when the board shrinks under the current one', async () => {
+    getBenchmarkVersionsMock.mockResolvedValue(null);
+    getLeaderboardMock.mockResolvedValue({ total: 120, entries: [mkEntry()] });
+
+    render(<LeaderboardView />);
+    fireEvent.click(await screen.findByRole('button', { name: 'common.pager.next' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'common.pager.next' }));
+    await waitFor(() => expect(screen.getByText('common.pager.pageOf n=3 total=3')).toBeInTheDocument());
+
+    getLeaderboardMock.mockImplementation(({ offset }: { offset: number }) =>
+      Promise.resolve({ total: 60, entries: offset < 60 ? [mkEntry()] : [] }));
+    fireEvent.click(screen.getByRole('button', { name: 'common.pager.prev' }));
+    fireEvent.click(screen.getByRole('button', { name: 'common.pager.next' }));
+
+    await waitFor(() => expect(screen.getByText('common.pager.pageOf n=2 total=2')).toBeInTheDocument());
+    expect(screen.queryByText('benchmark.leaderboard.empty')).not.toBeInTheDocument();
+  });
+
+  it('hides the pager when every entry fits on one page', async () => {
+    getBenchmarkVersionsMock.mockResolvedValue(null);
+    getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry()] });
+
+    render(<LeaderboardView />);
+
+    await waitFor(() => expect(screen.getByText('Ryzen 9')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'common.pager.next' })).not.toBeInTheDocument();
+  });
+
   it('renders the anonymous label when an entry has no display name', async () => {
     getBenchmarkVersionsMock.mockResolvedValue(null);
     getLeaderboardMock.mockResolvedValue({ total: 1, entries: [mkEntry({ displayName: null })] });
