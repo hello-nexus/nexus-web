@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "競合するアプリケーションを管理",
   "settings.conflictApps.modal.title": "競合するアプリケーションを管理",
   "settings.conflictApps.noMatches": "検索に一致するアプリはありません。",
+  "settings.conflictApps.notifyLaunch.description": "Nexus の実行中に下でオンにしたアプリが起動すると、終了ボタン付きの Windows 通知を表示します",
+  "settings.conflictApps.notifyLaunch.label": "競合するアプリが起動したら通知する",
   "settings.conflictApps.runningNow": "この PC で実行中",
   "settings.conflictApps.searchPlaceholder": "アプリを検索",
   "settings.conflictApps.title": "競合するアプリ",

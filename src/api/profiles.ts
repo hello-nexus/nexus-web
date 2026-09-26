@@ -158,6 +158,10 @@ export interface UiPrefs {
   // exclusions rather than an allow-list so an app added to the service's
   // catalog later is covered without the client rewriting the list.
   conflictAutoKillExclusions?: string[];
+  // Windows notification with an "End task" button when a conflicting app
+  // launches while Nexus is running. On by default; a server that predates
+  // the field omits it.
+  notifyConflictLaunches?: boolean;
   // Order of the user's pinnable sidebar apps after the locked Dashboard
   // row. Optional because nexus-service does not implement this field yet:
   // GET /preferences never returns it and POST /preferences silently drops

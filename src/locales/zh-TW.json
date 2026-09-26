@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "管理衝突的應用程式",
   "settings.conflictApps.modal.title": "管理衝突的應用程式",
   "settings.conflictApps.noMatches": "沒有符合搜尋的應用程式。",
+  "settings.conflictApps.notifyLaunch.description": "Nexus 執行期間，下方已開啟的應用程式啟動時，顯示附有結束按鈕的 Windows 通知",
+  "settings.conflictApps.notifyLaunch.label": "衝突應用程式啟動時通知",
   "settings.conflictApps.runningNow": "正在此電腦上執行",
   "settings.conflictApps.searchPlaceholder": "搜尋應用程式",
   "settings.conflictApps.title": "衝突的應用程式",

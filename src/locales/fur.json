@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "Gjestìs lis aplicazions in conflit",
   "settings.conflictApps.modal.title": "Gjestìs lis aplicazions in conflit",
   "settings.conflictApps.noMatches": "Nissune aplicazion e corispuint ae ricercje.",
+  "settings.conflictApps.notifyLaunch.description": "Mostre une notifiche di Windows cuntun boton par sierâ la aplicazion cuant che une des aplicazions ativadis chi sot e invie intant che Nexus al è in vore",
+  "settings.conflictApps.notifyLaunch.label": "Notificâ cuant che une aplicazion in conflit e vierç",
   "settings.conflictApps.runningNow": "In esecuzion su chest PC",
   "settings.conflictApps.searchPlaceholder": "Cîr aplicazions",
   "settings.conflictApps.title": "Aplicazions in conflit",

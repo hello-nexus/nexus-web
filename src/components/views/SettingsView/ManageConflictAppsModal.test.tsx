@@ -37,6 +37,8 @@ function renderModal(overrides: Partial<Parameters<typeof ManageConflictAppsModa
     onAutoShutdownChange: vi.fn(),
     exclusions: [] as string[],
     onExclusionsChange: vi.fn(),
+    notifyLaunches: true,
+    onNotifyLaunchesChange: vi.fn(),
     ...overrides,
   };
   render(<ManageConflictAppsModal {...props} />);
@@ -106,6 +108,19 @@ describe('ManageConflictAppsModal', () => {
     // The running app is listed once - in that group, not again under its category.
     expect(screen.getAllByLabelText('MSI Afterburner')).toHaveLength(1);
     expect(headings).not.toContain('settings.conflictApps.category.monitoring');
+  });
+
+  it('reflects the notify-launches checked state and calls the change handler', async () => {
+    vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
+    vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+    const props = renderModal({ notifyLaunches: false });
+
+    await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
+    const toggle = screen.getByLabelText('settings.conflictApps.notifyLaunch.label');
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+
+    fireEvent.click(toggle);
+    expect(props.onNotifyLaunchesChange).toHaveBeenCalledWith(true);
   });
 
   it('hides the Dynamic Lighting switch when the service cannot read it', async () => {

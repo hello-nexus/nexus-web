@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "Çakışan uygulamaları yönet",
   "settings.conflictApps.modal.title": "Çakışan uygulamaları yönet",
   "settings.conflictApps.noMatches": "Aramanızla eşleşen uygulama yok.",
+  "settings.conflictApps.notifyLaunch.description": "Nexus çalışırken aşağıda etkinleştirilen uygulamalardan biri başladığında, uygulamayı kapatmak için düğme içeren bir Windows bildirimi göster",
+  "settings.conflictApps.notifyLaunch.label": "Çakışan bir uygulama açıldığında bildir",
   "settings.conflictApps.runningNow": "Bu bilgisayarda çalışıyor",
   "settings.conflictApps.searchPlaceholder": "Uygulama ara",
   "settings.conflictApps.title": "Çakışan uygulamalar",

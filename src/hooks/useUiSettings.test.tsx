@@ -534,3 +534,43 @@ describe('UiSettingsProvider - features patch', () => {
     expect(captured.ctx!.settings.featureDiagnosticsEnabled).toBe(true);
   });
 });
+
+describe('notifyConflictLaunches', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+
+  it('a server that omits the field maps to true', async () => {
+    h.fetchPreferences.mockResolvedValue(prefs('dark'));
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    expect(captured.ctx!.settings.notifyConflictLaunches).toBe(true);
+  });
+
+  it('hydrates false from the server and posts a change under ui', async () => {
+    h.fetchPreferences.mockResolvedValue({
+      ...prefs('dark'),
+      ui: { notifyConflictLaunches: false },
+    });
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    expect(captured.ctx!.settings.notifyConflictLaunches).toBe(false);
+
+    await act(async () => { captured.ctx!.update({ notifyConflictLaunches: true }); });
+    await act(async () => { await new Promise(r => setTimeout(r, 300)); });
+    expect(h.savePreferences).toHaveBeenCalledWith({ ui: { notifyConflictLaunches: true } });
+  });
+});

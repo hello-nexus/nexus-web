@@ -404,6 +404,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         onAutoShutdownChange={v => updateGeneral({ autoKillConflictsAtStartup: v })}
         exclusions={settings.general.conflictAutoKillExclusions}
         onExclusionsChange={ids => updateGeneral({ conflictAutoKillExclusions: ids })}
+        notifyLaunches={settings.general.notifyConflictLaunches}
+        onNotifyLaunchesChange={v => updateGeneral({ notifyConflictLaunches: v })}
       />
 
       <ConfirmModal

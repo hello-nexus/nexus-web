@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "충돌하는 응용 프로그램 관리",
   "settings.conflictApps.modal.title": "충돌하는 응용 프로그램 관리",
   "settings.conflictApps.noMatches": "검색과 일치하는 앱이 없습니다.",
+  "settings.conflictApps.notifyLaunch.description": "Nexus가 실행되는 동안 아래에서 켜둔 앱이 시작되면 종료 버튼이 있는 Windows 알림을 표시합니다",
+  "settings.conflictApps.notifyLaunch.label": "충돌하는 앱이 열리면 알림 표시",
   "settings.conflictApps.runningNow": "이 PC에서 실행 중",
   "settings.conflictApps.searchPlaceholder": "앱 검색",
   "settings.conflictApps.title": "충돌하는 앱",

@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "管理冲突的应用程序",
   "settings.conflictApps.modal.title": "管理冲突的应用程序",
   "settings.conflictApps.noMatches": "没有与搜索匹配的应用。",
+  "settings.conflictApps.notifyLaunch.description": "Nexus 运行期间，下方已开启的应用启动时，显示带有结束按钮的 Windows 通知",
+  "settings.conflictApps.notifyLaunch.label": "冲突应用启动时通知",
   "settings.conflictApps.runningNow": "正在此电脑上运行",
   "settings.conflictApps.searchPlaceholder": "搜索应用",
   "settings.conflictApps.title": "冲突应用",

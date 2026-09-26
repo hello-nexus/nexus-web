@@ -3940,6 +3940,8 @@
   "settings.conflictApps.manage.label": "Zarządzaj aplikacjami powodującymi konflikt",
   "settings.conflictApps.modal.title": "Zarządzaj aplikacjami powodującymi konflikt",
   "settings.conflictApps.noMatches": "Żadna aplikacja nie pasuje do wyszukiwania.",
+  "settings.conflictApps.notifyLaunch.description": "Pokaż powiadomienie Windows z przyciskiem do zamknięcia aplikacji, gdy jedna z włączonych poniżej aplikacji uruchomi się podczas działania Nexusa",
+  "settings.conflictApps.notifyLaunch.label": "Powiadamiaj, gdy zostanie uruchomiona konfliktująca aplikacja",
   "settings.conflictApps.runningNow": "Uruchomione na tym komputerze",
   "settings.conflictApps.searchPlaceholder": "Szukaj aplikacji",
   "settings.conflictApps.title": "Aplikacje powodujące konflikt",

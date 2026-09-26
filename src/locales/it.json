@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "Gestisci le applicazioni in conflitto",
   "settings.conflictApps.modal.title": "Gestisci le applicazioni in conflitto",
   "settings.conflictApps.noMatches": "Nessuna app corrisponde alla ricerca.",
+  "settings.conflictApps.notifyLaunch.description": "Mostra una notifica di Windows con un pulsante per chiudere l'app quando una delle app attivate qui sotto si avvia mentre Nexus è in esecuzione",
+  "settings.conflictApps.notifyLaunch.label": "Notifica quando si apre un'app in conflitto",
   "settings.conflictApps.runningNow": "In esecuzione su questo PC",
   "settings.conflictApps.searchPlaceholder": "Cerca app",
   "settings.conflictApps.title": "App in conflitto",

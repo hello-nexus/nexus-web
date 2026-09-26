@@ -3904,6 +3904,8 @@
   "settings.conflictApps.manage.label": "Conflicterende toepassingen beheren",
   "settings.conflictApps.modal.title": "Conflicterende toepassingen beheren",
   "settings.conflictApps.noMatches": "Geen apps komen overeen met je zoekopdracht.",
+  "settings.conflictApps.notifyLaunch.description": "Toon een Windows-melding met een knop om de app te beëindigen wanneer een van de hieronder ingeschakelde apps start terwijl Nexus actief is",
+  "settings.conflictApps.notifyLaunch.label": "Melden wanneer een conflicterende app wordt geopend",
   "settings.conflictApps.runningNow": "Actief op deze pc",
   "settings.conflictApps.searchPlaceholder": "Apps zoeken",
   "settings.conflictApps.title": "Conflicterende apps",
