@@ -67,6 +67,7 @@ export interface UiSettingsValue {
   autoKillConflictsAtStartup: boolean;
   /** Catalog ids excluded from the startup shutdown; every other known app is included. */
   conflictAutoKillExclusions: string[];
+  notifyConflictLaunches: boolean;
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
   monitoringFpsOverlayEnabled: boolean;
@@ -221,6 +222,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     showConflictAlerts: src.general.showConflictAlerts,
     autoKillConflictsAtStartup: src.general.autoKillConflictsAtStartup,
     conflictAutoKillExclusions: src.general.conflictAutoKillExclusions,
+    notifyConflictLaunches: src.general.notifyConflictLaunches,
     monitoringDetailedCollapsed: src.general.monitoringDetailedCollapsed,
     monitoringEventsEnabled: src.general.monitoringEventsEnabled,
     monitoringFpsOverlayEnabled: src.general.monitoringFpsOverlayEnabled,
@@ -292,6 +294,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       showConflictAlerts: src.showConflictAlerts,
       autoKillConflictsAtStartup: src.autoKillConflictsAtStartup,
       conflictAutoKillExclusions: src.conflictAutoKillExclusions,
+      notifyConflictLaunches: src.notifyConflictLaunches,
       monitoringDetailedCollapsed: src.monitoringDetailedCollapsed,
       monitoringEventsEnabled: src.monitoringEventsEnabled,
       monitoringFpsOverlayEnabled: src.monitoringFpsOverlayEnabled,
@@ -355,10 +358,11 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
+  if (patch.notifyConflictLaunches !== undefined) ui.notifyConflictLaunches = patch.notifyConflictLaunches;
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (patch.sidebarAppOrder !== undefined) ui.sidebarAppOrder = patch.sidebarAppOrder;
   if (patch.sidebarCollapsed !== undefined) ui.sidebarCollapsed = patch.sidebarCollapsed;
@@ -458,6 +462,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     showConflictAlerts: server.ui?.showConflictAlerts ?? base.showConflictAlerts,
     autoKillConflictsAtStartup: server.ui?.autoKillConflictsAtStartup ?? base.autoKillConflictsAtStartup,
     conflictAutoKillExclusions: server.ui?.conflictAutoKillExclusions ?? base.conflictAutoKillExclusions,
+    notifyConflictLaunches: server.ui?.notifyConflictLaunches ?? base.notifyConflictLaunches,
     // Unknown/absent values keep the local value (older services omit them).
     lightingDashboardMode: server.ui?.lightingDashboardMode === 'simple' || server.ui?.lightingDashboardMode === 'advanced'
       ? server.ui.lightingDashboardMode

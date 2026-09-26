@@ -33,6 +33,9 @@ interface ManageConflictAppsModalProps {
   /** Catalog ids opted OUT. Every app not listed here is shut down. */
   exclusions: string[];
   onExclusionsChange: (ids: string[]) => void;
+  /** Windows notification with an "End task" button when a conflicting app launches. */
+  notifyLaunches: boolean;
+  onNotifyLaunchesChange: (enabled: boolean) => void;
 }
 
 /**
@@ -51,6 +54,7 @@ interface ManageConflictAppsModalProps {
  */
 export function ManageConflictAppsModal({
   open, onClose, autoShutdown, onAutoShutdownChange, exclusions, onExclusionsChange,
+  notifyLaunches, onNotifyLaunchesChange,
 }: ManageConflictAppsModalProps) {
   const { t } = useTranslation();
   const [catalog, setCatalog] = useState<ConflictCatalogApp[] | null>(null);
@@ -150,6 +154,14 @@ export function ManageConflictAppsModal({
           description={t('settings.conflictApps.autoShutdown.description')}
           checked={autoShutdown}
           onChange={onAutoShutdownChange}
+          stackOnNarrow
+        />
+
+        <SettingToggle
+          label={t('settings.conflictApps.notifyLaunch.label')}
+          description={t('settings.conflictApps.notifyLaunch.description')}
+          checked={notifyLaunches}
+          onChange={onNotifyLaunchesChange}
           stackOnNarrow
         />
 

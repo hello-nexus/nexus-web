@@ -65,6 +65,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       showConflictAlerts: ui.showConflictAlerts,
       autoKillConflictsAtStartup: ui.autoKillConflictsAtStartup,
       conflictAutoKillExclusions: ui.conflictAutoKillExclusions,
+      notifyConflictLaunches: ui.notifyConflictLaunches,
       monitoringDetailedCollapsed: ui.monitoringDetailedCollapsed,
       monitoringEventsEnabled: ui.monitoringEventsEnabled,
       monitoringFpsOverlayEnabled: ui.monitoringFpsOverlayEnabled,
