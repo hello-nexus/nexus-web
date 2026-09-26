@@ -77,7 +77,7 @@ export function IncidentsSection({
   data, loading, error, onRefresh, onLogsCleared, hours, date, onHoursChange, onDateChange, platform,
 }: IncidentsSectionProps) {
   const { t, language } = useTranslation();
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   const { push } = useToast();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { setNow(Date.now()); }, [data]);
@@ -180,7 +180,7 @@ export function IncidentsSection({
             lanes={lanes}
             events={events}
             domain={domain}
-            xTickFormat={incidentXTickFormat(query, timeFormat)}
+            xTickFormat={incidentXTickFormat(query, timeFormat, dateFormat)}
             ariaLabel={t('diagnostics.incidents.title')}
             selectedKey={selected?.key ?? null}
             onSelect={cluster => {
@@ -245,7 +245,7 @@ function IncidentClusterTooltip({ laneId, events, nowMs, language }: {
   language: string;
 }) {
   const { t } = useTranslation();
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   const MAX_ROWS = 6;
   const shown = events.slice(0, MAX_ROWS);
   const extra = events.length - shown.length;
@@ -260,7 +260,7 @@ function IncidentClusterTooltip({ laneId, events, nowMs, language }: {
               <Icon size={13} aria-hidden />
             </span>
             <span className={styles.incidentTooltipTitle}>{ev.incident.title}</span>
-            <span className={styles.incidentTooltipTime}>{formatTooltipTimestamp(ev.t, nowMs, timeFormat, language)}</span>
+            <span className={styles.incidentTooltipTime}>{formatTooltipTimestamp(ev.t, nowMs, timeFormat, dateFormat, language)}</span>
           </div>
         );
       })}

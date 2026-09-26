@@ -47,10 +47,10 @@ describe('temperatureSeriesColor', () => {
 describe('xTickFormatForRange', () => {
   it('returns a working formatter for every range bucket', () => {
     const t = new Date('2026-07-08T14:30:00Z').getTime();
-    expect(xTickFormatForRange(24, 'system')(t)).toEqual(expect.any(String));
-    expect(xTickFormatForRange(72, 'system')(t)).toEqual(expect.any(String));
-    expect(xTickFormatForRange(168, 'system')(t)).toEqual(expect.any(String));
-    expect(xTickFormatForRange(336, 'system')(t)).toEqual(expect.any(String));
+    expect(xTickFormatForRange(24, 'system', 'system')(t)).toEqual(expect.any(String));
+    expect(xTickFormatForRange(72, 'system', 'system')(t)).toEqual(expect.any(String));
+    expect(xTickFormatForRange(168, 'system', 'system')(t)).toEqual(expect.any(String));
+    expect(xTickFormatForRange(336, 'system', 'system')(t)).toEqual(expect.any(String));
   });
 });
 

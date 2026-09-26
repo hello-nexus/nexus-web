@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
-import { DEFAULT_NUMBER_FORMAT, localizeNumbers, type NumberFormat } from '../../../lib/units';
+import {
+  DEFAULT_DATE_FORMAT, DEFAULT_NUMBER_FORMAT, formatDate, localizeNumbers,
+  type DateFormat, type NumberFormat,
+} from '../../../lib/units';
 import type { LeaderboardEntry } from '../../../types/benchmark';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import styles from './BenchmarkEntryDetail.module.scss';
@@ -25,6 +28,7 @@ interface BenchmarkEntryDetailProps {
   ownerIsPageTitle?: boolean;
   /** Passed in, not read via useUnitPrefs: that hook's module drags the app's widget graph into the Build portal. */
   numberFormat?: NumberFormat;
+  dateFormat?: DateFormat;
 }
 
 /**
@@ -32,7 +36,7 @@ interface BenchmarkEntryDetailProps {
  * tools and scoring version. Shared with the Build portal through @app.
  */
 export function BenchmarkEntryDetail({
-  entry, actions, ownerHref, ownerNewTab, ownerIsPageTitle, numberFormat = DEFAULT_NUMBER_FORMAT,
+  entry, actions, ownerHref, ownerNewTab, ownerIsPageTitle, numberFormat = DEFAULT_NUMBER_FORMAT, dateFormat = DEFAULT_DATE_FORMAT,
 }: BenchmarkEntryDetailProps) {
   const { t, language } = useTranslation();
   const owner = entry.displayName ?? t('benchmark.leaderboard.anonymous');
@@ -70,7 +74,7 @@ export function BenchmarkEntryDetail({
             )}
           </div>
           <span className={styles.submitted}>
-            {t('benchmark.detail.submitted', { date: new Date(entry.createdAt).toLocaleDateString(language) })}
+            {t('benchmark.detail.submitted', { date: formatDate(new Date(entry.createdAt), dateFormat, { variant: 'year', locale: language, system: {} }) })}
           </span>
         </div>
         {actions && <div className={styles.actions}>{actions}</div>}

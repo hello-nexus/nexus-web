@@ -31,7 +31,10 @@ import { useFpsEstimates } from '../../../hooks/useFpsEstimates';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { hour12OptionFor, localizeNumbers, type NumberFormat, type TimeFormat } from '../../../lib/units';
+import {
+  formatDate, hour12OptionFor, localizeNumbers,
+  type DateFormat, type NumberFormat, type TimeFormat,
+} from '../../../lib/units';
 import type { FpsEstimateConfidence, FpsTableGameItem } from '../../../types/fps-estimates';
 import styles from './FramesPage.module.scss';
 
@@ -112,8 +115,8 @@ function formatHours(focusedSec: number, numberFormat: NumberFormat): string {
   return localizeNumbers(`${hours.toFixed(hours < 10 ? 1 : 0)}h`, numberFormat);
 }
 
-function formatLastPlayed(unixMs: number): string {
-  return new Date(unixMs).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+function formatLastPlayed(unixMs: number, dateFormat: DateFormat): string {
+  return formatDate(new Date(unixMs), dateFormat, { variant: 'short', system: { month: 'short', day: 'numeric' } });
 }
 
 function HistoryTab({
@@ -130,7 +133,7 @@ function HistoryTab({
   onOpenGame: (gameKey: string) => void;
 }) {
   const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const { numberFormat, dateFormat } = useUnitPrefs();
   const [search, setSearch] = useState('');
   const [enabling, setEnabling] = useState(false);
 
@@ -201,7 +204,7 @@ function HistoryTab({
       ) : (
         <div className={styles.cardGrid}>
           {filtered.map(g => (
-            <GameCard key={g.gameKey} game={g} numberFormat={numberFormat} onOpen={() => onOpenGame(g.gameKey)} />
+            <GameCard key={g.gameKey} game={g} numberFormat={numberFormat} dateFormat={dateFormat} onOpen={() => onOpenGame(g.gameKey)} />
           ))}
         </div>
       )}
@@ -212,10 +215,12 @@ function HistoryTab({
 function GameCard({
   game,
   numberFormat,
+  dateFormat,
   onOpen,
 }: {
   game: FpsGameSummary;
   numberFormat: NumberFormat;
+  dateFormat: DateFormat;
   onOpen: () => void;
 }) {
   const { t } = useTranslation();
@@ -243,7 +248,7 @@ function GameCard({
         </div>
         <div className={styles.gameCardMeta}>
           <span>{formatHours(game.focusedSec, numberFormat)}</span>
-          <span>{formatLastPlayed(game.lastPlayedUtcMs)}</span>
+          <span>{formatLastPlayed(game.lastPlayedUtcMs, dateFormat)}</span>
         </div>
       </div>
     </Card>
@@ -262,7 +267,7 @@ function GameDetail({
   onGamesChanged: () => void;
 }) {
   const { t } = useTranslation();
-  const { numberFormat, timeFormat } = useUnitPrefs();
+  const { numberFormat, timeFormat, dateFormat } = useUnitPrefs();
   const [sessions, setSessions] = useState<FpsSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [pendingDeleteSessionId, setPendingDeleteSessionId] = useState<string | null>(null);
@@ -359,12 +364,12 @@ function GameDetail({
                   onClick={() => setSelectedSessionId(s.id)}
                   // Pins the card's own accessible name so it can't absorb
                   // the nested delete button's aria-label.
-                  ariaLabel={formatSessionDate(s.startedUtcMs, timeFormat)}
+                  ariaLabel={formatSessionDate(s.startedUtcMs, dateFormat, timeFormat)}
                   className={s.id === selectedSessionId ? `${styles.sessionCard} ${styles.sessionCardActive}` : styles.sessionCard}
                 >
                   <div className={styles.sessionRow}>
                     <span className={styles.sessionMain}>
-                      <span>{formatSessionDate(s.startedUtcMs, timeFormat)}</span>
+                      <span>{formatSessionDate(s.startedUtcMs, dateFormat, timeFormat)}</span>
                       <span className={styles.sessionMeta}>
                         {`${formatResolution(`${s.dispW}x${s.dispH}`)} @ ${s.refreshHz} Hz · ${formatDurationMinutes(s.focusedSec)}`}
                       </span>
@@ -677,9 +682,9 @@ function formatDurationMinutes(focusedSec: number): string {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-function formatSessionDate(unixMs: number, timeFormat: TimeFormat): string {
+function formatSessionDate(unixMs: number, dateFormat: DateFormat, timeFormat: TimeFormat): string {
   const d = new Date(unixMs);
-  const datePart = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const datePart = formatDate(d, dateFormat, { variant: 'short', system: { month: 'short', day: 'numeric' } });
   const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: hour12OptionFor(timeFormat) });
   return `${datePart}, ${timePart}`;
 }

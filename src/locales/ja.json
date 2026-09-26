@@ -4079,7 +4079,7 @@
   "settings.theme.light": "ライト",
   "settings.theme.system": "システム",
   "settings.title": "設定",
-  "settings.units.date.description": "時計ウィジェットでの日付の表示方法。",
+  "settings.units.custom": "カスタム",
   "settings.units.date.label": "日付形式",
   "settings.units.number.label": "数値形式",
   "settings.units.system": "システム",

@@ -4079,7 +4079,7 @@
   "settings.theme.light": "Acik",
   "settings.theme.system": "Sistem",
   "settings.title": "Ayarlar",
-  "settings.units.date.description": "Saat widget'larının tarihi nasıl gösterdiği.",
+  "settings.units.custom": "Özel",
   "settings.units.date.label": "Tarih biçimi",
   "settings.units.number.label": "Sayı biçimi",
   "settings.units.system": "Sistem",

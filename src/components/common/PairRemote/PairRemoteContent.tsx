@@ -33,7 +33,7 @@ import {
 } from '../../../api/panel';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
+import { formatDateTime as formatDateTimeIn, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../lib/units';
 import appStyles from '../../../App.module.scss';
 import local from './PairRemoteContent.module.scss';
 
@@ -56,15 +56,15 @@ function formatRelativeTime(value: number, now: number, t: TranslateFn) {
   return t('phonePair.timeDaysAgo', { count: Math.floor(diff / day) });
 }
 
-function formatDateTime(value: number, t: TranslateFn, timeFormat: TimeFormat) {
+function formatDateTime(value: number, t: TranslateFn, dateFormat: DateFormat, timeFormat: TimeFormat) {
   if (!value) return t('phonePair.unknown');
-  return new Intl.DateTimeFormat(undefined, {
+  return formatDateTimeIn(new Date(value), dateFormat, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
     hour12: hour12OptionFor(timeFormat),
-  }).format(new Date(value));
+  }, { variant: 'short' });
 }
 
 export interface PairRemoteContentProps {
@@ -92,7 +92,7 @@ export function PairRemoteContent({
   onRemoteEnabledChange,
 }: PairRemoteContentProps) {
   const { t } = useTranslation();
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   const controlled = remoteEnabled !== undefined;
   const [remoteEnabledOwn, setRemoteEnabledOwn] = useState(false);
   const effRemoteEnabled = controlled ? remoteEnabled : remoteEnabledOwn;
@@ -592,7 +592,7 @@ export function PairRemoteContent({
                   {showDeviceType && <span>{deviceType}</span>}
                   <span>{t('phonePair.lastSeen', { time: formatRelativeTime(session.lastSeenAt, sessionNow, t) })}</span>
                   {!compactMeta && (
-                    <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t, timeFormat) })}</span>
+                    <span>{t('phonePair.pairedAt', { time: formatDateTime(session.createdAt, t, dateFormat, timeFormat) })}</span>
                   )}
                   {!compactMeta && session.remoteAddress && <span>{session.remoteAddress}</span>}
                 </>

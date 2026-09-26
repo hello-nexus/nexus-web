@@ -6,7 +6,7 @@ import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
-import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
+import { formatDateTime, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import {
   fetchStoreApp, fetchStoreApps, installStoreApp,
@@ -66,19 +66,19 @@ function upcomingRelease(app: { releaseDate?: string | null }): Date | null {
 }
 
 /** The viewer's local date and time of the launch; the year only when it is not this one. */
-function formatLaunch(at: Date, language: string, timeFormat: TimeFormat): string {
+function formatLaunch(at: Date, language: string, dateFormat: DateFormat, timeFormat: TimeFormat): string {
   const year = at.getFullYear() === new Date().getFullYear() ? undefined : 'numeric';
-  return at.toLocaleString(language, {
+  return formatDateTime(at, dateFormat, {
     month: 'long', day: 'numeric', year, hour: 'numeric', minute: '2-digit',
     hour12: hour12OptionFor(timeFormat),
-  });
+  }, { variant: year ? 'year' : 'short', locale: language });
 }
 
 function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   app: StoreApp; installedVersion?: string; onNeedsSignIn: (retry: () => void) => void;
 }) {
   const { t, language } = useTranslation();
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   const [state, setState] = useState<InstallState>('idle');
   const latest = app.latest;
   const launch = upcomingRelease(app);
@@ -116,7 +116,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   if (launch) {
     return (
       <span className={styles.comingSoon}>
-        {t('store.comingSoon', { date: formatLaunch(launch, language, timeFormat) })}
+        {t('store.comingSoon', { date: formatLaunch(launch, language, dateFormat, timeFormat) })}
       </span>
     );
   }

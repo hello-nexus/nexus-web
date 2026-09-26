@@ -4079,7 +4079,7 @@
   "settings.theme.light": "浅色",
   "settings.theme.system": "系统",
   "settings.title": "设置",
-  "settings.units.date.description": "时钟小组件显示日期的方式。",
+  "settings.units.custom": "自定义",
   "settings.units.date.label": "日期格式",
   "settings.units.number.label": "数字格式",
   "settings.units.system": "系统",

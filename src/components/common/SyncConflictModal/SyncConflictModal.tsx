@@ -3,7 +3,7 @@ import { InfoList, InfoRow } from '../InfoList/InfoList';
 import { Button } from '../Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
+import { formatDateTime, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../lib/units';
 import type { SyncConflict } from '../../../api/cloud';
 import styles from './SyncConflictModal.module.scss';
 
@@ -14,16 +14,21 @@ interface SyncConflictModalProps {
   onClose: () => void;
 }
 
-function formatUpdated(iso: string, timeFormat: TimeFormat): string {
+function formatUpdated(iso: string, dateFormat: DateFormat, timeFormat: TimeFormat): string {
   const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString(undefined, { hour12: hour12OptionFor(timeFormat) });
+  if (Number.isNaN(date.getTime())) return iso;
+  // toLocaleString's own defaults, spelled out so a custom pattern keeps the time fields.
+  return formatDateTime(date, dateFormat, {
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
+    hour12: hour12OptionFor(timeFormat),
+  }, { variant: 'year' });
 }
 
 // Steam-cloud-style keep-local/take-cloud prompt for profiles that changed on
 // this machine AND moved on the cloud since the same base revision.
 export function SyncConflictModal({ open, conflicts, onResolve, onClose }: SyncConflictModalProps) {
   const { t } = useTranslation();
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   if (!open || conflicts.length === 0) return null;
 
   return (
@@ -37,14 +42,14 @@ export function SyncConflictModal({ open, conflicts, onResolve, onClose }: SyncC
                 <div className={styles.columnHeader}>{t('account.sync.conflict.thisMachine')}</div>
                 <InfoList>
                   <InfoRow label={t('account.sync.conflict.name')} value={conflict.name} />
-                  <InfoRow label={t('account.sync.conflict.updated')} value={formatUpdated(conflict.localUpdatedAt, timeFormat)} />
+                  <InfoRow label={t('account.sync.conflict.updated')} value={formatUpdated(conflict.localUpdatedAt, dateFormat, timeFormat)} />
                 </InfoList>
               </div>
               <div className={styles.column}>
                 <div className={styles.columnHeader}>{t('account.sync.conflict.cloud')}</div>
                 <InfoList>
                   <InfoRow label={t('account.sync.conflict.name')} value={conflict.cloudName} />
-                  <InfoRow label={t('account.sync.conflict.updated')} value={formatUpdated(conflict.cloudUpdatedAt, timeFormat)} />
+                  <InfoRow label={t('account.sync.conflict.updated')} value={formatUpdated(conflict.cloudUpdatedAt, dateFormat, timeFormat)} />
                 </InfoList>
               </div>
             </div>

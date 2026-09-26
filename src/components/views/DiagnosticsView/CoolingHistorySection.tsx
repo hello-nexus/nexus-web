@@ -41,7 +41,7 @@ const CHART_HEIGHT = 246;
  */
 export function CoolingHistorySection({ history, episodes }: CoolingHistorySectionProps) {
   const { t, language } = useTranslation();
-  const { monitoringTempUnit, numberFormat, timeFormat } = useUnitPrefs();
+  const { monitoringTempUnit, numberFormat, timeFormat, dateFormat } = useUnitPrefs();
 
   const chartSeries = useMemo(() => toCoolingTempChartSeries(history.series), [history.series]);
   const silhouettePoints = useMemo(() => coolingSilhouettePoints(history.silhouette), [history.silhouette]);
@@ -49,11 +49,11 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
 
   const windowEnd = history.domain[1];
   const windowMs = windowEnd - history.domain[0];
-  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs, timeFormat), [windowMs, timeFormat]);
+  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs, timeFormat, dateFormat), [windowMs, timeFormat, dateFormat]);
   // No per-frame click-to-pin here (unlike the monitoring page) - detaching
   // via the seek bar leaves the viewed window's right edge as the frame of
   // record, so that is what the chip shows once following goes false.
-  const detachedLabel = useMemo(() => formatSelectedFrameTime(windowEnd, windowMs, timeFormat), [windowEnd, windowMs, timeFormat]);
+  const detachedLabel = useMemo(() => formatSelectedFrameTime(windowEnd, windowMs, timeFormat, dateFormat), [windowEnd, windowMs, timeFormat, dateFormat]);
   const valueFormat = useMemo(
     () => (v: number) => formatTemperatureCelsius(v, monitoringTempUnit, numberFormat),
     [monitoringTempUnit, numberFormat],
@@ -179,7 +179,7 @@ export function CoolingHistorySection({ history, episodes }: CoolingHistorySecti
               silhouette={silhouettePoints.map(p => ({ t: p.t, v: p.avg }))}
               ariaLabel={t('monitoring.history.brushAriaLabel')}
               ariaValueText={ariaValueText}
-              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, timeFormat, language)}
+              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, timeFormat, dateFormat, language)}
             />
           </div>
         </>

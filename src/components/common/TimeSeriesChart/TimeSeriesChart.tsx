@@ -236,7 +236,7 @@ export function TimeSeriesChart({
   yAxisSide = 'left', ribbons, selectedT, onPointClick, singleValueTooltip = false,
 }: TimeSeriesChartProps) {
   const { t, language } = useTranslation();
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   const basePad = yAxisSide === 'right' ? CHART_PAD_RIGHT_AXIS : CHART_PAD;
   // `events` passed at all (even []) reserves the lane's space, so the
   // layout doesn't jump as events come and go while panning/zooming - only
@@ -544,7 +544,7 @@ export function TimeSeriesChart({
   }
 
   const hoverX = tooltip && !isDragging ? xFor(tooltip.t) : null;
-  const tooltipStamp = tooltip && !isDragging ? formatTooltipTimestampParts(tooltip.t, nowMs, timeFormat, language, stepSeconds) : null;
+  const tooltipStamp = tooltip && !isDragging ? formatTooltipTimestampParts(tooltip.t, nowMs, timeFormat, dateFormat, language, stepSeconds) : null;
   const baselineY = yFor(minV);
   const selectionX0 = dragStartT !== null && dragCurT !== null ? Math.min(xFor(dragStartT), xFor(dragCurT)) : null;
   const selectionX1 = dragStartT !== null && dragCurT !== null ? Math.max(xFor(dragStartT), xFor(dragCurT)) : null;

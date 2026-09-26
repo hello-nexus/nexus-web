@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { DEFAULT_DATE_FORMAT, formatDate, type DateFormat } from '../../../lib/units';
 import type { LeaderboardEntry } from '../../../types/benchmark';
 import styles from './LeaderboardList.module.scss';
 
@@ -11,13 +12,15 @@ interface LeaderboardListProps {
   entryHref?: (entry: LeaderboardEntry) => string;
   /** Rows render as buttons: the app opens the entry in place. */
   onOpen?: (entry: LeaderboardEntry) => void;
+  /** Passed in, not read via useUnitPrefs: that hook's module drags the app's widget graph into the Build portal. */
+  dateFormat?: DateFormat;
 }
 
 /**
  * Benchmark leaderboard rows as cards, each opening the entry's detail page.
  * Shared with the Build portal through @app so both surfaces show the same view.
  */
-export function LeaderboardList({ entries, ownId, entryHref, onOpen }: LeaderboardListProps) {
+export function LeaderboardList({ entries, ownId, entryHref, onOpen, dateFormat = DEFAULT_DATE_FORMAT }: LeaderboardListProps) {
   const { t, language } = useTranslation();
 
   return (
@@ -39,7 +42,7 @@ export function LeaderboardList({ entries, ownId, entryHref, onOpen }: Leaderboa
                 <span className={styles.gpu}>{entry.hardware.gpuModels[0]}</span>
               )}
             </span>
-            <span className={styles.date}>{new Date(entry.createdAt).toLocaleDateString(language)}</span>
+            <span className={styles.date}>{formatDate(new Date(entry.createdAt), dateFormat, { variant: 'year', locale: language, system: {} })}</span>
             <ChevronRight size={16} className={styles.chevron} aria-hidden />
           </>
         );

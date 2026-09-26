@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
-import { resolveHour12, type TimeFormat } from '../../../lib/units';
+import { formatDate, resolveHour12, type DateFormat, type TimeFormat } from '../../../lib/units';
 import { formatDuration } from '../../../lib/formatDuration';
 import * as monitoringStore from '../../../lib/monitoringStore';
 import { useScreenTime } from '../../../hooks/useScreenTime';
@@ -341,7 +341,8 @@ function DateNav({ date, setDate }: { date: string; setDate: (d: string) => void
   const { t } = useTranslation();
   const today = todayIso();
   const isToday = date === today;
-  const labelDate = formatLongDate(date);
+  const { dateFormat } = useUnitPrefs();
+  const labelDate = formatLongDate(date, dateFormat);
 
   return (
     <div className={styles.dateNav}>
@@ -490,10 +491,10 @@ function addDays(iso: string, n: number) {
 
 function pad2(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 
-function formatLongDate(iso: string) {
+function formatLongDate(iso: string, dateFormat: DateFormat) {
   const [y, m, d] = iso.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
-  return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDate(dt, dateFormat, { variant: 'year', system: { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' } });
 }
 
 function shortDayLabel(iso: string) {

@@ -4079,7 +4079,7 @@
   "settings.theme.light": "Light",
   "settings.theme.system": "System",
   "settings.title": "Settings",
-  "settings.units.date.description": "How Clock widgets show the date.",
+  "settings.units.custom": "Custom",
   "settings.units.date.label": "Date format",
   "settings.units.number.label": "Number format",
   "settings.units.system": "System",

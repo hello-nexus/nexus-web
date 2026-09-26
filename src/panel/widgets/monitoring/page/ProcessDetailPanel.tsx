@@ -14,7 +14,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { formatMemoryMb } from '../../../../lib/formatMemory';
-import { hour12OptionFor, localizeNumbers, type TimeFormat } from '../../../../lib/units';
+import { formatDateTime, hour12OptionFor, localizeNumbers, type DateFormat, type TimeFormat } from '../../../../lib/units';
 import { relativeTimeLabel } from '../../../../components/views/DiagnosticsView/diagnosticsHelpers';
 import { useMonitoringProcessInfo } from '../../../../hooks/useMonitoringProcessInfo';
 import { useProcessDetailUsage } from '../../../../hooks/useProcessDetailUsage';
@@ -59,11 +59,11 @@ export interface ProcessDetailPanelProps {
 
 const PATH_TRUNCATE_CHARS = 46;
 
-function formatAbsolute(ms: number, timeFormat: TimeFormat): string {
-  return new Date(ms).toLocaleString(undefined, {
+function formatAbsolute(ms: number, dateFormat: DateFormat, timeFormat: TimeFormat): string {
+  return formatDateTime(new Date(ms), dateFormat, {
     year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
     hour12: hour12OptionFor(timeFormat),
-  });
+  }, { variant: 'year' });
 }
 
 function CopyableValue({ value, fieldLabel, mono, truncate }: { value: string; fieldLabel: string; mono?: boolean; truncate?: boolean }) {
@@ -116,7 +116,7 @@ export function ProcessDetailPanel({
   selectedFrameMs, following, historyFrom, historyTo,
 }: ProcessDetailPanelProps) {
   const { t, language } = useTranslation();
-  const { numberFormat, timeFormat } = useUnitPrefs();
+  const { numberFormat, timeFormat, dateFormat } = useUnitPrefs();
   const toast = useToastSafe();
   const info = useMonitoringProcessInfo(true, name);
 
@@ -235,7 +235,7 @@ export function ProcessDetailPanel({
   const sessions = sessionsForProcess(privacySessions, name);
   const showPrivacy = privacySupported && sessions.length > 0;
 
-  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} · ${formatAbsolute(ms, timeFormat)}`;
+  const relativeAndAbsolute = (ms: number) => `${relativeTimeLabel(new Date(ms).toISOString(), nowMs, t)} · ${formatAbsolute(ms, dateFormat, timeFormat)}`;
 
   const headerMeta = (instanceCount !== undefined || data?.publisher) ? (
     <span className={styles.headerMeta}>
@@ -278,7 +278,7 @@ export function ProcessDetailPanel({
         <div className={styles.timeframeRow}>
           {isLive
             ? <Badge label={t('monitoring.history.live')} color="var(--good)" />
-            : <span>{t('monitoring.processDetail.timeframe.asOf', { time: formatAbsolute(selectedFrameMs, timeFormat) })}</span>}
+            : <span>{t('monitoring.processDetail.timeframe.asOf', { time: formatAbsolute(selectedFrameMs, dateFormat, timeFormat) })}</span>}
         </div>
 
         {usageTiles.length > 0 ? (
@@ -339,10 +339,10 @@ export function ProcessDetailPanel({
                 />
               )}
               {data.createdAtMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.created')} value={formatAbsolute(data.createdAtMs, timeFormat)} />
+                <InfoRow label={t('monitoring.processDetail.info.created')} value={formatAbsolute(data.createdAtMs, dateFormat, timeFormat)} />
               )}
               {data.modifiedAtMs !== undefined && (
-                <InfoRow label={t('monitoring.processDetail.info.modified')} value={formatAbsolute(data.modifiedAtMs, timeFormat)} />
+                <InfoRow label={t('monitoring.processDetail.info.modified')} value={formatAbsolute(data.modifiedAtMs, dateFormat, timeFormat)} />
               )}
               {data.startedAtMs !== undefined && (
                 <InfoRow label={t('monitoring.processDetail.info.started')} value={relativeAndAbsolute(data.startedAtMs)} />

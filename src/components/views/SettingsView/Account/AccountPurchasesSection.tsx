@@ -5,6 +5,7 @@ import { SettingsSection } from '../../../common/SettingsSection/SettingsSection
 import { useTranslation } from '../../../../lib/i18n';
 import { fetchStoreLibrary, type StorePurchase } from '../../../../api/store';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
+import { formatDate, type DateFormat } from '../../../../lib/units';
 import { formatBytes } from '../../DiagnosticsView/diagnosticsHelpers';
 import { RemoveAppButton } from '../../StorePage/RemoveAppButton';
 import styles from './AccountPurchases.module.scss';
@@ -14,12 +15,12 @@ interface AccountPurchasesSectionProps {
   onOpenStoreApp?: (appId: string) => void;
 }
 
-function formatDate(iso: string | null): string {
+function formatAcquired(iso: string | null, dateFormat: DateFormat): string {
   if (!iso) return '';
   const date = new Date(iso);
   return Number.isNaN(date.getTime())
     ? ''
-    : date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    : formatDate(date, dateFormat, { variant: 'year', system: { year: 'numeric', month: 'short', day: 'numeric' } });
 }
 
 /**
@@ -29,7 +30,7 @@ function formatDate(iso: string | null): string {
  */
 export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSectionProps) {
   const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const { numberFormat, dateFormat } = useUnitPrefs();
   const [purchases, setPurchases] = useState<StorePurchase[] | null>(null);
 
   const load = useCallback(async () => {
@@ -61,7 +62,7 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
               {purchase.acquiredAt && (
                 <>
                   <dt>{t('account.purchases.acquired')}</dt>
-                  <dd>{formatDate(purchase.acquiredAt)}</dd>
+                  <dd>{formatAcquired(purchase.acquiredAt, dateFormat)}</dd>
                 </>
               )}
               <dt>{t('account.purchases.price')}</dt>

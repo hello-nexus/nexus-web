@@ -35,7 +35,7 @@ import { useFpsEstimates } from '../../../hooks/useFpsEstimates';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { formatNumber, localizeNumbers, type NumberFormat } from '../../../lib/units';
+import { formatDate, formatNumber, localizeNumbers, type DateFormat, type NumberFormat } from '../../../lib/units';
 import type { FpsTableGameItem } from '../../../types/fps-estimates';
 import { SteamLogo } from './SteamLogo';
 import { SteamSettings } from './SteamSettings';
@@ -275,6 +275,7 @@ function EntryView({
   communityByKey: ReadonlyMap<string, FpsTableGameItem>;
 }) {
   const { t } = useTranslation();
+  const { dateFormat } = useUnitPrefs();
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const base = q ? ownedGames.filter(g => g.name.toLowerCase().includes(q)) : ownedGames;
@@ -383,7 +384,7 @@ function EntryView({
                 <li key={item.gid} className={styles.newsRow}>
                   <a className={styles.newsLink} href={item.url} target="_blank" rel="noopener noreferrer">
                     <div className={styles.newsTitle}>{item.title}</div>
-                    <div className={styles.newsMeta}>{item.feedLabel || item.feedName} · {formatDate(item.date)}</div>
+                    <div className={styles.newsMeta}>{item.feedLabel || item.feedName} · {formatSteamDate(item.date, dateFormat)}</div>
                   </a>
                 </li>
               ))}
@@ -659,7 +660,7 @@ function DrillView({
   onBack: () => void;
 }) {
   const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const { numberFormat, dateFormat } = useUnitPrefs();
   const [details, setDetails] = useState<SteamAppDetails | null>(null);
   const [achievements, setAchievements] = useState<SteamAchievement[]>([]);
   const [globalRarity, setGlobalRarity] = useState<Map<string, number>>(new Map());
@@ -830,7 +831,7 @@ function DrillView({
                         </HoverTooltip>
                       )}
                       {a.achieved === 1 && a.unlockTime > 0 && (
-                        <span className={styles.unlockTime}>{formatDate(a.unlockTime)}</span>
+                        <span className={styles.unlockTime}>{formatSteamDate(a.unlockTime, dateFormat)}</span>
                       )}
                     </div>
                   </li>
@@ -864,7 +865,7 @@ function DrillView({
                   <li key={item.gid}>
                     <a className={styles.drillNewsItem} href={item.url} target="_blank" rel="noopener noreferrer">
                       <div className={styles.drillNewsTitle}>{item.title}</div>
-                      <div className={styles.drillNewsMeta}>{item.feedLabel || item.feedName} · {formatDate(item.date)}</div>
+                      <div className={styles.drillNewsMeta}>{item.feedLabel || item.feedName} · {formatSteamDate(item.date, dateFormat)}</div>
                     </a>
                   </li>
                 ))}
@@ -938,11 +939,11 @@ function formatMinutes(minutes: number) {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-function formatDate(unixSeconds: number) {
+function formatSteamDate(unixSeconds: number, dateFormat: DateFormat) {
   if (!unixSeconds) return '';
   const d = new Date(unixSeconds * 1000);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDate(d, dateFormat, { variant: 'year', system: { month: 'short', day: 'numeric', year: 'numeric' } });
 }
 
 function normalizeGameName(name: string): string {

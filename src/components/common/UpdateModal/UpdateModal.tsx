@@ -7,6 +7,8 @@ import { GithubGlyph } from '../../icons/NexusBrand';
 import { checkForUpdate, getUpdateProgress, getUpdateStatus, startUpdate, type UpdateStatus, type UpdateProgress, type UpdatePhase } from '../../../api/update';
 import { pingService } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { formatDate, type DateFormat } from '../../../lib/units';
 import styles from './UpdateModal.module.scss';
 
 const NEVER_ACTIVE_TIMEOUT_MS = 12_000;
@@ -127,12 +129,13 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
 const RECONNECT_TIMEOUT_MS = 120_000;
 
-function formatReleaseDate(unixSeconds: number, locale: string): string {
-  return new Date(unixSeconds * 1000).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
+function formatReleaseDate(unixSeconds: number, locale: string, dateFormat: DateFormat): string {
+  return formatDate(new Date(unixSeconds * 1000), dateFormat, { variant: 'year', locale, system: { year: 'numeric', month: 'short', day: 'numeric' } });
 }
 
 export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true }: UpdateModalProps) {
   const { t, language } = useTranslation();
+  const { dateFormat } = useUnitPrefs();
   const [view, setView] = useState<ModalView>('notes');
   const [progress, setProgress] = useState<UpdateProgress | null>(null);
   const [starting, setStarting] = useState(false);
@@ -390,7 +393,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
                 </div>
                 {publishedUnix > 0 && (
                   <div className={styles.releaseDate}>
-                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language) })}
+                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language, dateFormat) })}
                   </div>
                 )}
               </div>
@@ -402,7 +405,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
                 </div>
                 {publishedUnix > 0 && (
                   <div className={styles.releaseDate}>
-                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language) })}
+                    {t('update.modal.released', { date: formatReleaseDate(publishedUnix, language, dateFormat) })}
                   </div>
                 )}
               </div>

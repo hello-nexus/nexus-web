@@ -14,17 +14,19 @@ export const DEFAULT_TIME_FORMAT: TimeFormat = 'system';
 export const DEFAULT_NUMBER_FORMAT: NumberFormat = 'system';
 
 // Date patterns: ddd = short weekday name, d/dd = day, mmm = short month name,
-// mm = 2-digit month, yy/yyyy = year. 'system' is the locale's own weekday,
+// m/mm = month number, yy/yyyy = year. 'system' is the locale's own weekday,
 // day and month.
 export const DATE_FORMATS = [
   'system',
   'ddd, d mmm', 'ddd d mmm', 'ddd, mmm d', 'd mmm', 'mmm d',
   'ddd, d mmm yyyy', 'd mmm yyyy', 'mmm d, yyyy',
-  'dd/mm/yy', 'dd/mm/yyyy', 'mm/dd/yy', 'mm/dd/yyyy', 'dd-mm-yy', 'dd.mm.yyyy',
-  'yyyy-mm-dd', 'yyyy/mm/dd',
+  'dd/mm/yy', 'dd/mm/yyyy', 'mm/dd/yy', 'mm/dd/yyyy', 'dd-mm-yy', 'dd-mm-yyyy', 'dd.mm.yy', 'dd.mm.yyyy',
+  'yyyy-mm-dd', 'yyyy/mm/dd', 'yyyy. m. d.', 'yyyy年m月d日',
 ] as const;
 export type DateFormat = typeof DATE_FORMATS[number];
 export const DEFAULT_DATE_FORMAT: DateFormat = 'system';
+// What the Custom chip starts from.
+export const DEFAULT_CUSTOM_DATE_FORMAT: DateFormat = 'ddd, d mmm';
 
 // ── Temperature ──────────────────────────────────────────────────────────────
 
@@ -105,27 +107,76 @@ export function localizeNumbers(display: string, fmt: NumberFormat): string {
 
 // ── Date ────────────────────────────────────────────────────────────────────
 
-// Names come from the runtime locale; digits stay Latin. An unknown pattern
-// (a value written by a newer build) renders as 'system'.
-export function formatDate(date: Date, fmt: DateFormat, tz?: string): string {
-  const timeZone = tz || undefined;
-  const names = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone });
-  if (fmt === 'system' || !DATE_FORMATS.includes(fmt)) return names.format(date);
-  const nameParts = names.formatToParts(date);
+// How much of the chosen pattern a surface shows: 'full' is the pattern as
+// picked (the clock), 'year' drops the weekday and guarantees a year (absolute
+// dates), 'short' keeps only day and month (chart ticks, compact stamps).
+export type DateVariant = 'full' | 'year' | 'short';
+
+export interface DateOptions {
+  variant?: DateVariant;
+  tz?: string;
+  locale?: string;
+  // What the surface renders on 'system': its own Intl options, so that
+  // choice leaves every surface exactly as it was.
+  system?: Intl.DateTimeFormatOptions;
+}
+
+const SYSTEM_DATE_OPTIONS: Record<DateVariant, Intl.DateTimeFormatOptions> = {
+  full: { weekday: 'short', day: 'numeric', month: 'short' },
+  year: { year: 'numeric', month: 'short', day: 'numeric' },
+  short: { month: 'short', day: 'numeric' },
+};
+
+function patternFor(fmt: DateFormat, variant: DateVariant): string {
+  if (variant === 'full') return fmt;
+  const noWeekday = fmt.replace(/^ddd,? /, '');
+  if (variant === 'short') return noWeekday.replace(/,? yyyy$|[/.-]yy(yy)?$|^yyyy(?:[/-]|\. |年)/, '');
+  if (noWeekday.includes('yy')) return noWeekday;
+  return noWeekday.startsWith('mmm') ? `${noWeekday}, yyyy` : `${noWeekday} yyyy`;
+}
+
+// Names come from the locale; digits stay Latin. An unknown pattern (a value
+// written by a newer build) renders as 'system'.
+export function formatDate(date: Date, fmt: DateFormat, opts: DateOptions = {}): string {
+  const { variant = 'full', locale } = opts;
+  const timeZone = opts.tz || undefined;
+  if (fmt === 'system' || !DATE_FORMATS.includes(fmt)) {
+    return new Intl.DateTimeFormat(locale, { ...(opts.system ?? SYSTEM_DATE_OPTIONS[variant]), timeZone }).format(date);
+  }
+  const nameParts = new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone }).formatToParts(date);
   const numParts = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).formatToParts(date);
   const part = (parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value ?? '';
   const year = part(numParts, 'year');
+  const month = part(numParts, 'month');
   const day = part(numParts, 'day');
   const tokens: Record<string, string> = {
     yyyy: year,
     yy: year.slice(-2),
     mmm: part(nameParts, 'month'),
-    mm: part(numParts, 'month'),
+    mm: month,
+    m: String(Number(month)),
     ddd: part(nameParts, 'weekday'),
     dd: day,
     d: String(Number(day)),
   };
-  return fmt.replace(/yyyy|yy|mmm|mm|ddd|dd|d/g, token => tokens[token]);
+  return patternFor(fmt, variant).replace(/yyyy|yy|mmm|mm|m|ddd|dd|d/g, token => tokens[token]);
+}
+
+// A date plus a clock time. `system` carries the surface's full Intl options
+// (date and time fields); a custom pattern keeps only their time fields.
+export function formatDateTime(
+  date: Date,
+  fmt: DateFormat,
+  system: Intl.DateTimeFormatOptions,
+  opts: Omit<DateOptions, 'system'> = {},
+): string {
+  if (fmt === 'system' || !DATE_FORMATS.includes(fmt)) {
+    return new Intl.DateTimeFormat(opts.locale, { ...system, timeZone: opts.tz || system.timeZone }).format(date);
+  }
+  const { hour, minute, second, hour12, hourCycle } = system;
+  const tz = opts.tz || system.timeZone;
+  const time = new Intl.DateTimeFormat(opts.locale, { hour, minute, second, hour12, hourCycle, timeZone: tz }).format(date);
+  return `${formatDate(date, fmt, { ...opts, tz })} ${time}`;
 }
 
 // ── Time ────────────────────────────────────────────────────────────────────

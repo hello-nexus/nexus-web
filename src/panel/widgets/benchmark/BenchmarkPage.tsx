@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import type { BenchmarkResult } from '../../../types/benchmark';
 import { Gauge, Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { formatDate } from '../../../lib/units';
 import { useBenchmark } from '../../../hooks/useBenchmark';
 import { useBenchmarkHistory, type BenchmarkRun } from '../../../hooks/useBenchmarkHistory';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
@@ -53,6 +55,7 @@ interface BenchmarkPageProps {
 
 export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onTabChange }: BenchmarkPageProps) {
   const { t } = useTranslation();
+  const { dateFormat } = useUnitPrefs();
   const { status, progress, result, error, start, cancel, reset } = useBenchmark(serviceOnline);
   const { history, addRun, updateRunSubmission } = useBenchmarkHistory();
   const { specs } = useSystemSpecs(serviceOnline);
@@ -276,7 +279,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
               {history.slice(1).map(run => (
                 <li key={run.id} className={styles.historyItem}>
                   <span className={styles.historyDate}>
-                    {new Date(run.timestamp).toLocaleDateString()}
+                    {formatDate(new Date(run.timestamp), dateFormat, { variant: 'year', system: {} })}
                   </span>
                   <span className={styles.historyScore}>{Math.round(run.composite)}</span>
                   <span className={styles.historyCpu}>{run.cpuModel}</span>

@@ -37,7 +37,7 @@ export function formatMetaLine(
   dateFormat: DateFormat,
 ): string {
   const parts: string[] = [];
-  if (showDate) parts.push(formatDate(now, dateFormat, tz));
+  if (showDate) parts.push(formatDate(now, dateFormat, { tz }));
   if (showTimezone) {
     const zone = new Intl.DateTimeFormat(undefined, {
       timeZoneName: 'short',

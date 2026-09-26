@@ -30,7 +30,7 @@ interface PrivacyHistoryModalProps {
  */
 export function PrivacyHistoryModal({ open, onClose }: PrivacyHistoryModalProps) {
   const { t } = useTranslation();
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   const [query, setQuery] = useState('');
   const { sessions, retentionDays, loading, error, mocked, supported, reload } = usePrivacyHistory(open);
   // Re-snapshot on every open (not a one-time mount snapshot): MonitoringPage
@@ -100,8 +100,8 @@ export function PrivacyHistoryModal({ open, onClose }: PrivacyHistoryModalProps)
                     </div>
                     <div className={styles.rowTime}>
                       {s.end === null
-                        ? <Badge label={t('monitoring.privacy.since', { time: formatPrivacyDateTime(s.start, timeFormat) })} color="var(--good)" />
-                        : <span>{t('monitoring.privacy.until', { time: formatPrivacyDateTime(s.end, timeFormat) })}</span>}
+                        ? <Badge label={t('monitoring.privacy.since', { time: formatPrivacyDateTime(s.start, dateFormat, timeFormat) })} color="var(--good)" />
+                        : <span>{t('monitoring.privacy.until', { time: formatPrivacyDateTime(s.end, dateFormat, timeFormat) })}</span>}
                       <span className={styles.duration}>{durationLabel(durationMs * 1000, t)}</span>
                     </div>
                   </div>

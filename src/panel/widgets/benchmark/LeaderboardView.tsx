@@ -36,7 +36,7 @@ function revealTop(section: HTMLElement, scroller: HTMLElement) {
 
 export function LeaderboardView() {
   const { t } = useTranslation();
-  const { numberFormat } = useUnitPrefs();
+  const { numberFormat, dateFormat } = useUnitPrefs();
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -128,6 +128,7 @@ export function LeaderboardView() {
         <BenchmarkEntryDetail
           entry={selected}
           numberFormat={numberFormat}
+          dateFormat={dateFormat}
           ownerHref={selected.displayName ? publicProfileUrl(selected.displayName) : undefined}
           ownerNewTab
           actions={DEV_TOOLS ? (
@@ -186,7 +187,7 @@ export function LeaderboardView() {
         )}
 
         {!loading && !error && data && data.entries.length > 0 && (
-          <LeaderboardList entries={data.entries} ownId={myId} onOpen={openEntry} />
+          <LeaderboardList entries={data.entries} ownId={myId} onOpen={openEntry} dateFormat={dateFormat} />
         )}
       </div>
 

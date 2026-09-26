@@ -6,7 +6,7 @@
 import type { ComponentType } from 'react';
 import { MapPin, Mic, ScreenShare, Webcam } from 'lucide-react';
 import type { PrivacyCapability, PrivacySession } from '../../../../api/monitoringPrivacy';
-import { hour12OptionFor, type TimeFormat } from '../../../../lib/units';
+import { formatDateTime, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../../lib/units';
 
 /** Both graphicsCapture* capabilities collapse onto one 'screen' icon - the
  *  distinction still shows up per-session in a tooltip via the capability
@@ -41,11 +41,11 @@ export function formatPrivacyTime(ms: number, timeFormat: TimeFormat): string {
 /** Same as formatPrivacyTime but with the calendar date too - PrivacyHistoryModal
  *  spans many days, where a bare time (as the live indicators show) would be
  *  ambiguous about which day it refers to. */
-export function formatPrivacyDateTime(ms: number, timeFormat: TimeFormat): string {
-  return new Date(ms).toLocaleString(undefined, {
+export function formatPrivacyDateTime(ms: number, dateFormat: DateFormat, timeFormat: TimeFormat): string {
+  return formatDateTime(new Date(ms), dateFormat, {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
     hour12: hour12OptionFor(timeFormat),
-  });
+  }, { variant: 'short' });
 }
 
 /** A session ended within this long ago still shows on the row, dimmed. */

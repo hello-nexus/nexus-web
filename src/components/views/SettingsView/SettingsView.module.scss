@@ -40,15 +40,17 @@
 // Groups the accent SettingRow with its conditional swatch reveal as one
 // SettingsSection box child, so the box's row divider lands before this
 // group (not between the accent row and its own swatches).
-.accentGroup {
+.accentGroup,
+.dateFormatGroup {
   display: flex;
   flex-direction: column;
 }
 
-// Swatch picker revealed below the accent row when Custom is selected. A
-// separate row (not inside the SettingRow) so picking Custom doesn't re-center
-// the "Accent color" label. Right-aligned to sit under the segmented control.
-.accentPickerRow {
+// Swatch picker (or date pattern list) revealed below its row when Custom is
+// selected. A separate row (not inside the SettingRow) so picking Custom doesn't
+// re-center the row label. Right-aligned to sit under the segmented control.
+.accentPickerRow,
+.dateFormatRow {
   display: flex;
   justify-content: flex-end;
   margin-top: -0.25rem;

@@ -4079,7 +4079,7 @@
   "settings.theme.light": "Claro",
   "settings.theme.system": "Sistema",
   "settings.title": "Ajustes",
-  "settings.units.date.description": "Cómo muestran la fecha los widgets de Reloj.",
+  "settings.units.custom": "Personalizado",
   "settings.units.date.label": "Formato de fecha",
   "settings.units.number.label": "Formato numérico",
   "settings.units.system": "Sistema",

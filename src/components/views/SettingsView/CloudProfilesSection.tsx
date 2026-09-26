@@ -13,6 +13,8 @@ import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { useSyncStatus } from '../../../hooks/useSyncStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { formatDateTime, hour12OptionFor } from '../../../lib/units';
 import styles from './SettingsView.module.scss';
 
 interface ConflictPrompt {
@@ -32,6 +34,7 @@ export function CloudProfilesSection(
   },
 ) {
   const { t } = useTranslation();
+  const { timeFormat, dateFormat } = useUnitPrefs();
   const accounts = useCloudAccounts(true);
   const signedIn = accounts.activeAccountId !== null;
   const sync = useSyncStatus(signedIn);
@@ -186,7 +189,12 @@ export function CloudProfilesSection(
 
   const backedUpAt = (profileId: string) => {
     const status = sync.profiles.find(p => p.profileId === profileId);
-    return status?.lastSyncedAt ? new Date(status.lastSyncedAt).toLocaleString() : null;
+    if (!status?.lastSyncedAt) return null;
+    // toLocaleString's own defaults, spelled out so a custom pattern keeps the time fields.
+    return formatDateTime(new Date(status.lastSyncedAt), dateFormat, {
+      year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
+      hour12: hour12OptionFor(timeFormat),
+    }, { variant: 'year' });
   };
 
   const ownRow = (row: typeof mine[number]) => {

@@ -3,7 +3,10 @@
 // Kept side-effect-free (no i18n context, no fetch) so they're covered
 // directly by temperatureHelpers.test.ts instead of through component
 // rendering.
-import { convertTemperature, localizeNumbers, resolveHour12, tempUnitSymbol, type NumberFormat, type TempUnit, type TimeFormat } from '../../../lib/units';
+import {
+  convertTemperature, formatDate, localizeNumbers, resolveHour12, tempUnitSymbol,
+  type DateFormat, type NumberFormat, type TempUnit, type TimeFormat,
+} from '../../../lib/units';
 import type { DiagnosticsTemperatureEpisode, DiagnosticsTemperatureKind } from '../../../api/diagnostics';
 
 export type TemperatureRangeHours = 24 | 72 | 168 | 336;
@@ -63,11 +66,11 @@ export function temperatureSeriesColor(kind: DiagnosticsTemperatureKind, rank: n
 }
 
 /** X-axis tick label granularity appropriate to the selected range. */
-export function xTickFormatForRange(hours: TemperatureRangeHours, timeFormat: TimeFormat): (t: number) => string {
+export function xTickFormatForRange(hours: TemperatureRangeHours, timeFormat: TimeFormat, dateFormat: DateFormat): (t: number) => string {
   const hour12 = resolveHour12(timeFormat);
   if (hours <= 24) return (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12 });
   if (hours <= 168) return (t: number) => new Date(t).toLocaleDateString(undefined, { weekday: 'short', hour: 'numeric', hour12 });
-  return (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return (t: number) => formatDate(new Date(t), dateFormat, { variant: 'short', system: { month: 'short', day: 'numeric' } });
 }
 
 /** Converts a raw Celsius value to the user's preferred unit and formats it with its symbol. */

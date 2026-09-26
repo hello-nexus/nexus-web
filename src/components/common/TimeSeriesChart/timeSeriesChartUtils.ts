@@ -2,7 +2,7 @@
 // React, no i18n) so they're covered directly by timeSeriesChartUtils.test.ts
 // instead of through component rendering.
 
-import { hour12OptionFor, type TimeFormat } from '../../../lib/units';
+import { formatDate, formatDateTime, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../lib/units';
 
 export interface TimeSeriesPoint {
   t: number;
@@ -288,18 +288,22 @@ function tooltipStampFlags(at: Date, nowMs: number, stepSeconds?: number | null)
   };
 }
 
-export function formatTooltipTimestamp(t: number, nowMs: number, timeFormat: TimeFormat, locale?: string, stepSeconds?: number | null): string {
+export function formatTooltipTimestamp(t: number, nowMs: number, timeFormat: TimeFormat, dateFormat: DateFormat, locale?: string, stepSeconds?: number | null): string {
   const at = new Date(t);
   const { sameDay, sameYear, showSeconds } = tooltipStampFlags(at, nowMs, stepSeconds);
-  return at.toLocaleString(locale, {
-    year: sameYear ? undefined : 'numeric',
-    month: sameDay ? undefined : 'short',
-    day: sameDay ? undefined : 'numeric',
+  const timeOpts: Intl.DateTimeFormatOptions = {
     hour: 'numeric',
     minute: '2-digit',
     second: showSeconds ? '2-digit' : undefined,
     hour12: hour12OptionFor(timeFormat),
-  });
+  };
+  if (sameDay) return at.toLocaleString(locale, timeOpts);
+  return formatDateTime(at, dateFormat, {
+    year: sameYear ? undefined : 'numeric',
+    month: 'short',
+    day: 'numeric',
+    ...timeOpts,
+  }, { variant: sameYear ? 'short' : 'year', locale });
 }
 
 export interface TooltipTimestampParts {
@@ -313,7 +317,7 @@ export interface TooltipTimestampParts {
 /** formatTooltipTimestamp split into its time and (non-today) day, for a
  *  header that stacks the day under the time as a badge instead of running
  *  the two together in one line. */
-export function formatTooltipTimestampParts(t: number, nowMs: number, timeFormat: TimeFormat, locale?: string, stepSeconds?: number | null): TooltipTimestampParts {
+export function formatTooltipTimestampParts(t: number, nowMs: number, timeFormat: TimeFormat, dateFormat: DateFormat, locale?: string, stepSeconds?: number | null): TooltipTimestampParts {
   const at = new Date(t);
   const { sameDay, sameYear, showSeconds } = tooltipStampFlags(at, nowMs, stepSeconds);
   const time = at.toLocaleString(locale, {
@@ -322,10 +326,10 @@ export function formatTooltipTimestampParts(t: number, nowMs: number, timeFormat
     second: showSeconds ? '2-digit' : undefined,
     hour12: hour12OptionFor(timeFormat),
   });
-  const day = sameDay ? null : at.toLocaleString(locale, {
-    year: sameYear ? undefined : 'numeric',
-    month: 'short',
-    day: 'numeric',
+  const day = sameDay ? null : formatDate(at, dateFormat, {
+    variant: sameYear ? 'short' : 'year',
+    locale,
+    system: { year: sameYear ? undefined : 'numeric', month: 'short', day: 'numeric' },
   });
   return { time, day };
 }

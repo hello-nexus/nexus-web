@@ -10,7 +10,7 @@ import type { MetricHistoryPoint, MetricHistorySeries } from '../../../../api/mo
 import type { AppWindowSeries } from '../../../../api/monitoringHistoryApps';
 import type { FanRole } from '../../../../api/cooling';
 import type { FpsRangeSession } from '../../../../api/fps';
-import { hour12OptionFor, resolveHour12, type TimeFormat } from '../../../../lib/units';
+import { formatDate, hour12OptionFor, resolveHour12, type DateFormat, type TimeFormat } from '../../../../lib/units';
 
 export type HistoryMetric = 'cpu' | 'memory' | 'storage' | 'network' | 'gpu';
 
@@ -306,22 +306,22 @@ export function viewportReducer(state: ViewportState, action: ViewportAction): V
 }
 
 /** X-axis tick label granularity appropriate to the visible window width. */
-export function xTickFormatForWindow(windowMs: number, timeFormat: TimeFormat): (t: number) => string {
+export function xTickFormatForWindow(windowMs: number, timeFormat: TimeFormat, dateFormat: DateFormat): (t: number) => string {
   const hour12 = resolveHour12(timeFormat);
   if (windowMs <= DAY_MS) return (t: number) => new Date(t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12 });
   if (windowMs < 7 * DAY_MS) return (t: number) => new Date(t).toLocaleDateString(undefined, { weekday: 'short', hour: 'numeric', hour12 });
-  return (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return (t: number) => formatDate(new Date(t), dateFormat, { variant: 'short', system: { month: 'short', day: 'numeric' } });
 }
 
 /** Clock time for the paused (detached) selection chip. The selected frame is a
  *  specific instant, so it always carries seconds - finer than the x-axis ticks.
  *  A window wider than a day prepends the date so the viewed moment stays
  *  unambiguous across days. */
-export function formatSelectedFrameTime(t: number, windowMs: number, timeFormat: TimeFormat): string {
+export function formatSelectedFrameTime(t: number, windowMs: number, timeFormat: TimeFormat, dateFormat: DateFormat): string {
   const d = new Date(t);
   const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: hour12OptionFor(timeFormat) });
   if (windowMs > DAY_MS) {
-    return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ${time}`;
+    return `${formatDate(d, dateFormat, { variant: 'short', system: { month: 'short', day: 'numeric' } })} ${time}`;
   }
   return time;
 }
@@ -608,7 +608,7 @@ const BRUSH_LABEL_DAY_OPTS: Intl.DateTimeFormatOptions = { month: 'short', day: 
  * same-looking times with no way to tell them apart) - TimelineBrush renders
  * it as a badge stacked above the time.
  */
-export function formatBrushEdgeLabels(startMs: number, endMs: number, timeFormat: TimeFormat, locale?: string): [TimelineBrushEdgeLabel, TimelineBrushEdgeLabel] {
+export function formatBrushEdgeLabels(startMs: number, endMs: number, timeFormat: TimeFormat, dateFormat: DateFormat, locale?: string): [TimelineBrushEdgeLabel, TimelineBrushEdgeLabel] {
   const start = new Date(startMs);
   const end = new Date(endMs);
   const sameDay = start.getFullYear() === end.getFullYear()
@@ -616,7 +616,7 @@ export function formatBrushEdgeLabels(startMs: number, endMs: number, timeFormat
     && start.getDate() === end.getDate();
   const label = (d: Date): TimelineBrushEdgeLabel => ({
     time: d.toLocaleString(locale, { ...BRUSH_LABEL_TIME_OPTS, hour12: hour12OptionFor(timeFormat) }),
-    ...(sameDay ? {} : { day: d.toLocaleString(locale, BRUSH_LABEL_DAY_OPTS) }),
+    ...(sameDay ? {} : { day: formatDate(d, dateFormat, { variant: 'short', locale, system: BRUSH_LABEL_DAY_OPTS }) }),
   });
   return [label(start), label(end)];
 }

@@ -133,7 +133,7 @@ export function MetricHistorySection({
   fpsOverlayEnabled, fpsSessions,
 }: MetricHistorySectionProps) {
   const { t, language } = useTranslation();
-  const { monitoringTempUnit, numberFormat, timeFormat } = useUnitPrefs();
+  const { monitoringTempUnit, numberFormat, timeFormat, dateFormat } = useUnitPrefs();
 
   const primaryGpu = metric === 'gpu' ? resolvePrimaryGpu(gpuComponents, preferredGpuId) : undefined;
 
@@ -287,7 +287,7 @@ export function MetricHistorySection({
   );
 
   const windowMs = history.domain[1] - history.domain[0];
-  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs, timeFormat), [windowMs, timeFormat]);
+  const xTickFormat = useMemo(() => xTickFormatForWindow(windowMs, timeFormat, dateFormat), [windowMs, timeFormat, dateFormat]);
 
   // The temp ribbon's own right-side readout - the value at the selected
   // frame (the window's own right edge / real "now" while following, or a
@@ -546,7 +546,7 @@ export function MetricHistorySection({
               silhouette={silhouettePoints.map(p => ({ t: p.t, v: p.avg }))}
               ariaLabel={t('monitoring.history.brushAriaLabel')}
               ariaValueText={ariaValueText}
-              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, timeFormat, language)}
+              formatEdgeLabels={(start, end) => formatBrushEdgeLabels(start, end, timeFormat, dateFormat, language)}
             />
           </div>
         </>

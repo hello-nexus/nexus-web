@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
+import { useUnitPrefs } from '../../../hooks/useUiSettings';
+import { formatDate, type DateFormat } from '../../../lib/units';
 import styles from './DatePicker.module.scss';
 
 const POPUP_MIN_WIDTH = 260;
@@ -74,7 +76,8 @@ export function DatePicker({ value, max, min, onChange, ariaLabel }: DatePickerP
     setOpen(false);
   };
 
-  const displayLabel = useMemo(() => formatDisplay(value), [value]);
+  const { dateFormat } = useUnitPrefs();
+  const displayLabel = useMemo(() => formatDisplay(value, dateFormat), [value, dateFormat]);
   const monthLabel = useMemo(() => formatMonth(viewMonth), [viewMonth]);
   const weekdays = useMemo(() => getWeekdayLabels(), []);
 
@@ -207,11 +210,11 @@ function isoToday() {
 
 function pad2(n: number) { return n < 10 ? `0${n}` : `${n}`; }
 
-function formatDisplay(iso: string) {
+function formatDisplay(iso: string, dateFormat: DateFormat) {
   if (!iso) return '';
   const [y, m, d] = iso.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
-  return dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  return formatDate(dt, dateFormat, { variant: 'year', system: { year: 'numeric', month: 'short', day: 'numeric' } });
 }
 
 function formatMonth(ym: string) {
