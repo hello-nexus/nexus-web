@@ -136,7 +136,7 @@ export function ConflictWarningModal({
           </Button>
           {hasConflicts && (
             <Button
-              tone="neutral"
+              tone="accent"
               size="sm"
               icon={<ShieldCheck />}
               loading={resolving}
