@@ -121,6 +121,57 @@ describe('useAppData - bridged (appData capability granted)', () => {
     expect(appDataPut).toHaveBeenCalledTimes(5);
   });
 
+  it('backs off before retrying a rejected put, then succeeds', async () => {
+    const appDataGet = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { coins: 1 } });
+    const appDataPut = vi.fn()
+      .mockRejectedValueOnce(Object.assign(new Error('offline'), { status: 0 }))
+      .mockResolvedValueOnce({ ok: true, revision: 2, updatedAt: 't2' } satisfies AppDataPutResult);
+    const { result } = renderHook(() => useAppData('save', { coins: 0 }), {
+      wrapper: wrapperFor(makeInit({ appDataGet, appDataPut })).Wrapper,
+    });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    vi.useFakeTimers();
+    try {
+      let updatePromise!: Promise<boolean>;
+      act(() => { updatePromise = result.current.update((c) => ({ coins: c.coins + 1 })); });
+      await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); });
+      expect(appDataPut).toHaveBeenCalledTimes(1);
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+      const ok = await updatePromise;
+
+      expect(ok).toBe(true);
+      expect(appDataPut).toHaveBeenCalledTimes(2);
+      expect(result.current.value).toEqual({ coins: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('gives up and returns false after repeated put rejections', async () => {
+    const appDataGet = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { coins: 1 } });
+    const appDataPut = vi.fn().mockRejectedValue(Object.assign(new Error('offline'), { status: 0 }));
+    const { result } = renderHook(() => useAppData('save', { coins: 0 }), {
+      wrapper: wrapperFor(makeInit({ appDataGet, appDataPut })).Wrapper,
+    });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    vi.useFakeTimers();
+    try {
+      let updatePromise!: Promise<boolean>;
+      act(() => { updatePromise = result.current.update((c) => ({ coins: c.coins + 1 })); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(20000); });
+      const ok = await updatePromise;
+
+      expect(ok).toBe(false);
+      // The initial attempt plus every backed-off retry the delay table allows.
+      expect(appDataPut).toHaveBeenCalledTimes(6);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('put() is a single CAS attempt: a stale base returns the conflict without retrying', async () => {
     const appDataGet = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { coins: 1 } });
     const appDataPut = vi.fn().mockResolvedValue(
@@ -173,9 +224,26 @@ describe('useAppData - bridged (appData capability granted)', () => {
     expect(result.current.revision).toBe(2);
   });
 
-  it('a transient network failure during put() does not adopt a bogus document', async () => {
+  it('put() rejects (never resolves a synthetic conflict) on anything but a real 409', async () => {
     const appDataGet = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { coins: 1 } });
-    const appDataPut = vi.fn().mockRejectedValue(new Error('offline'));
+    const offline = Object.assign(new Error('offline'), { status: 0 });
+    const appDataPut = vi.fn().mockRejectedValue(offline);
+    const { result } = renderHook(() => useAppData('save', { coins: 0 }), {
+      wrapper: wrapperFor(makeInit({ appDataGet, appDataPut })).Wrapper,
+    });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    await expect(act(async () => { await result.current.put(1, { coins: 5 }); })).rejects.toBe(offline);
+    // The doc is untouched: a rejected put is not evidence of anyone else's write.
+    expect(result.current.value).toEqual({ coins: 1 });
+    expect(result.current.revision).toBe(1);
+  });
+
+  it('put() resolves ok:false only for a real 409, applying the conflicting doc', async () => {
+    const appDataGet = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { coins: 1 } });
+    const appDataPut = vi.fn().mockResolvedValue(
+      { ok: false, revision: 3, updatedAt: 't3', data: { coins: 3 } } satisfies AppDataPutResult,
+    );
     const { result } = renderHook(() => useAppData('save', { coins: 0 }), {
       wrapper: wrapperFor(makeInit({ appDataGet, appDataPut })).Wrapper,
     });
@@ -184,8 +252,8 @@ describe('useAppData - bridged (appData capability granted)', () => {
     let outcome;
     await act(async () => { outcome = await result.current.put(1, { coins: 5 }); });
 
-    expect(outcome).toEqual({ ok: false, revision: 1, data: { coins: 1 } });
-    expect(result.current.value).toEqual({ coins: 1 });
+    expect(outcome).toEqual({ ok: false, revision: 3, data: { coins: 3 } });
+    expect(result.current.value).toEqual({ coins: 3 });
   });
 });
 
@@ -214,6 +282,45 @@ describe('useAppData - initial GET retry with backoff', () => {
       expect(appDataGet).toHaveBeenCalledTimes(3);
       expect(result.current.ready).toBe(true);
       expect(result.current.value).toEqual({ coins: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops retrying on a permanent error (400/403/404) and stays not-ready', async () => {
+    vi.useFakeTimers();
+    try {
+      const appDataGet = vi.fn().mockRejectedValue(Object.assign(new Error('forbidden'), { status: 403 }));
+      const { result } = renderHook(() => useAppData('save', { coins: 0 }), {
+        wrapper: wrapperFor(makeInit({ appDataGet, appDataPut: vi.fn() })).Wrapper,
+      });
+      await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+      expect(appDataGet).toHaveBeenCalledTimes(1);
+      expect(result.current.ready).toBe(false);
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(20000); });
+      expect(appDataGet).toHaveBeenCalledTimes(1);
+      expect(result.current.ready).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps retrying a 429/5xx status', async () => {
+    vi.useFakeTimers();
+    try {
+      const appDataGet = vi.fn()
+        .mockRejectedValueOnce(Object.assign(new Error('rate limited'), { status: 429 }))
+        .mockResolvedValueOnce({ revision: 1, updatedAt: 't1', data: { coins: 1 } });
+      const { result } = renderHook(() => useAppData('save', { coins: 0 }), {
+        wrapper: wrapperFor(makeInit({ appDataGet, appDataPut: vi.fn() })).Wrapper,
+      });
+      await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+      expect(result.current.ready).toBe(false);
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+      expect(appDataGet).toHaveBeenCalledTimes(2);
+      expect(result.current.ready).toBe(true);
     } finally {
       vi.useRealTimers();
     }
@@ -262,5 +369,38 @@ describe('useAppData - no bridge (preview or missing appData capability)', () =>
     let stale;
     await act(async () => { stale = await result.current.put(1, { coins: 999 }); });
     expect(stale).toEqual({ ok: false, revision: 2, data: { coins: 10 } });
+  });
+});
+
+describe('useAppData - value identity while no doc exists', () => {
+  it('keeps the same value reference across re-renders with a fresh initial literal', async () => {
+    const appDataGet = vi.fn().mockResolvedValue({ revision: 0, updatedAt: '' });
+    const { Wrapper } = wrapperFor(makeInit({ appDataGet, appDataPut: vi.fn() }));
+    const { result, rerender } = renderHook(
+      ({ n }: { n: number }) => useAppData('save', { coins: 0, tag: n }),
+      { wrapper: Wrapper, initialProps: { n: 0 } },
+    );
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    const firstValue = result.current.value;
+
+    rerender({ n: 1 });
+    expect(result.current.value).toBe(firstValue);
+
+    rerender({ n: 2 });
+    expect(result.current.value).toBe(firstValue);
+  });
+
+  it('adopts the new initial when the key changes', async () => {
+    const appDataGet = vi.fn().mockResolvedValue({ revision: 0, updatedAt: '' });
+    const { Wrapper } = wrapperFor(makeInit({ appDataGet, appDataPut: vi.fn() }));
+    const { result, rerender } = renderHook(
+      ({ key, init }: { key: string; init: { coins: number } }) => useAppData(key, init),
+      { wrapper: Wrapper, initialProps: { key: 'save', init: { coins: 0 } } },
+    );
+    await waitFor(() => expect(result.current.ready).toBe(true));
+
+    const otherInitial = { coins: 999 };
+    rerender({ key: 'other', init: otherInitial });
+    expect(result.current.value).toBe(otherInitial);
   });
 });

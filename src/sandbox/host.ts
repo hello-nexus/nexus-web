@@ -64,6 +64,7 @@ export interface SandboxPatch {
   settings?: Record<string, unknown>;
   size?: { width: number; height: number };
   appData?: { key: string } & AppDataDoc;
+  display?: WidgetDisplay;
 }
 
 export interface SandboxHandle {

@@ -12,7 +12,13 @@ import { MediaImportProvider } from './mediaImportContext';
 import { useImmersiveExit } from '../panel/overlays/immersiveExit';
 import { useMultiplex, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { getAppData, putAppData, appDataTopic } from './appDataClient';
-import type { AppDataDoc } from '../../sdk/runtime/context';
+import type { AppDataDoc, WidgetDisplay } from '../../sdk/runtime/context';
+
+// Mirrors the service's key contract (`^[a-z0-9][a-z0-9._-]{0,63}$`) and its
+// per-app key cap - checked here too so a bad or excess key never reaches the
+// network at all.
+const APP_DATA_KEY_PATTERN = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+const APP_DATA_MAX_KEYS_PER_APP = 16;
 
 /** Forwards one app-data topic's pushes into the worker's store; rendered once
  *  per key the worker has actually read or written this mount. Also re-reads
@@ -98,10 +104,29 @@ interface LiveWidget {
   // drive this one worker, which holds one size. Newest mount last: it owns the
   // size, and when it leaves the one below re-asserts its own, else the cell
   // stays drawn at fullscreen scale. Disposal waits for the last mount.
-  mounts: Array<{ pushSize: () => void; exitImmersive: () => void }>;
+  mounts: Array<{ pushSize: () => void; exitImmersive: () => void; wakeAppData: () => void }>;
+  // Keys the worker has read or written, for the life of the WORKER (not the
+  // mount): a remount that adopts this cached worker must keep subscribing
+  // the same topics, or a push landing during the keep-alive window is lost.
+  appDataKeys: Set<string>;
 }
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
+
+/** Validates and records a key the worker just read or wrote, then wakes the
+ *  newest mount so it (re)renders that key's topic bridge. Throws (before any
+ *  network call) on a malformed key or once the per-app key cap is reached. */
+function noteAppDataKey(entry: LiveWidget, key: string): void {
+  if (typeof key !== 'string' || !APP_DATA_KEY_PATTERN.test(key)) {
+    throw new Error(`invalid app-data key: ${JSON.stringify(key)}`);
+  }
+  if (entry.appDataKeys.has(key)) return;
+  if (entry.appDataKeys.size >= APP_DATA_MAX_KEYS_PER_APP) {
+    throw new Error(`app-data key limit reached (${APP_DATA_MAX_KEYS_PER_APP})`);
+  }
+  entry.appDataKeys.add(key);
+  entry.mounts[entry.mounts.length - 1]?.wakeAppData();
+}
 
 export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, displayShape, displayInput }: SandboxedWidgetProps) {
   // The overlay's animated close, for the immersive worker's useImmersive().
@@ -133,20 +158,25 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     const height = Math.round(el.clientHeight);
     if (width > 0 && height > 0) h.update({ size: { width, height } });
   }, []);
+  // Forces a re-render to pick up the cache entry's appDataKeys (see
+  // noteAppDataKey) - only the newest mount is ever woken, so only it renders
+  // the topic bridges below.
+  const [, bumpAppDataTick] = useState(0);
   // This mount's identity inside the cache entry's stack; stable for its life.
   const mountRef = useRef<LiveWidget["mounts"][number] | null>(null);
-  if (mountRef.current === null) mountRef.current = { pushSize: () => pushOwnSize(), exitImmersive: () => exitImmersiveRef.current?.() };
+  if (mountRef.current === null) {
+    mountRef.current = {
+      pushSize: () => pushOwnSize(),
+      exitImmersive: () => exitImmersiveRef.current?.(),
+      wakeAppData: () => bumpAppDataTick((t) => t + 1),
+    };
+  }
 
-  // Keys the worker has actually read or written this mount - each gets one
-  // topic subscription so a push from another instance reaches this one.
   const appDataEnabled = !!appData && !preview;
-  const seenAppDataKeysRef = useRef<Set<string>>(new Set());
-  const [appDataKeys, setAppDataKeys] = useState<string[]>([]);
-  const noteAppDataKey = useCallback((key: string) => {
-    if (seenAppDataKeysRef.current.has(key)) return;
-    seenAppDataKeysRef.current.add(key);
-    setAppDataKeys((prev) => [...prev, key]);
-  }, []);
+  const display: WidgetDisplay = preview
+    ? { shape: 'rect', input: 'pointer' }
+    : { shape: displayShape ?? 'rect', input: displayInput ?? 'pointer' };
+  const displayKey = `${display.shape}:${display.input}`;
 
   useEffect(() => {
     const key = cacheKey;
@@ -171,9 +201,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         // worker renders the cell face.
         surface: surface === 'page' ? 'page' : 'cell',
         immersive: surface === 'immersive',
-        display: preview
-          ? { shape: 'rect', input: 'pointer' }
-          : { shape: displayShape ?? 'rect', input: displayInput ?? 'pointer' },
+        display,
         preview: !!preview,
         devTools: DEV_TOOLS,
         size,
@@ -196,20 +224,30 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
             ? () => { const e = liveWidgets.get(key); e?.mounts[e.mounts.length - 1]?.exitImmersive(); }
             : undefined,
           appDataGet: appDataEnabled
-            ? (dataKey) => { noteAppDataKey(dataKey); return getAppData(widgetId, dataKey); }
+            ? (dataKey) => {
+                try { noteAppDataKey(entry!, dataKey); } catch (err) { return Promise.reject(err); }
+                return getAppData(widgetId, dataKey);
+              }
             : undefined,
           appDataPut: appDataEnabled
-            ? (dataKey, baseRevision, data) => { noteAppDataKey(dataKey); return putAppData(widgetId, dataKey, baseRevision, data); }
+            ? (dataKey, baseRevision, data) => {
+                try { noteAppDataKey(entry!, dataKey); } catch (err) { return Promise.reject(err); }
+                return putAppData(widgetId, dataKey, baseRevision, data);
+              }
             : undefined,
         },
       };
-      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [] };
+      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], appDataKeys: new Set() };
       liveWidgets.set(key, entry);
     }
 
     handleRef.current = entry.handle;
     entry.mounts.push(mount);
     setHandle(entry.handle);
+    // On the reuse path `entry.handle` is unchanged, so the setHandle above is
+    // a no-op render-wise; force one anyway so isNewestMount (read at render
+    // time) picks up this mount just having become the newest.
+    mount.wakeAppData();
     pushOwnSize();
 
     return () => {
@@ -220,7 +258,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       const at = e.mounts.indexOf(mount);
       if (at >= 0) e.mounts.splice(at, 1);
       const below = e.mounts[e.mounts.length - 1];
-      if (below) { below.pushSize(); return; }
+      if (below) { below.pushSize(); below.wakeAppData(); return; }
       if (!e.disposeTimer) {
         e.disposeTimer = setTimeout(() => {
           e.handle.dispose();
@@ -239,6 +277,11 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   }, [settingsKey, handle]);
 
   useEffect(() => {
+    handle?.update({ display });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayKey, handle]);
+
+  useEffect(() => {
     const el = wrapRef.current;
     if (!el || typeof ResizeObserver === 'undefined' || !handle) return;
     const ro = new ResizeObserver((entries) => {
@@ -254,6 +297,13 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     return () => ro.disconnect();
   }, [handle, cacheKey]);
 
+  // The cache entry may already carry keys another (earlier) mount of this
+  // same worker noted - e.g. a remount inside the keep-alive window. Only the
+  // newest mount renders bridges; a demoted mount is woken (see
+  // wakeAppData) once it becomes newest again.
+  const liveEntry = liveWidgets.get(cacheKey);
+  const isNewestMount = !!liveEntry && liveEntry.mounts[liveEntry.mounts.length - 1] === mountRef.current;
+
   return (
     <div ref={wrapRef} style={{ width: '100%', height: '100%', display: 'flex', minWidth: 0, minHeight: 0 }}>
       {handle ? (
@@ -263,7 +313,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           </MediaImportProvider>
         </SdkErrorBoundary>
       ) : null}
-      {appDataEnabled && handle && appDataKeys.map((key) => (
+      {appDataEnabled && handle && isNewestMount && liveEntry && [...liveEntry.appDataKeys].map((key) => (
         <AppDataTopicBridge
           key={key}
           appId={widgetId}

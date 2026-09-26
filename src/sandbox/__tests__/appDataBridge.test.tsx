@@ -171,7 +171,78 @@ describe('SandboxedWidget appData bridge', () => {
     expect(handle.update).toHaveBeenCalledWith({ appData: { key: 'save', revision: 9, updatedAt: 't9', data: { coins: 42 } } });
   });
 
-  it('binds displayShape/displayInput from the props into the static context', async () => {
+  it('rejects a malformed app-data key before touching the service', async () => {
+    const { SandboxedWidget, spawnSpy, getAppData, putAppData } = await loadSandbox();
+    render(
+      <SandboxedWidget
+        runtimeUrl="blob:rt" entryUrl="blob:v1"
+        widgetId="com.hellonexus.aquarium" instanceId="inst-1"
+        appData
+      />,
+    );
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+
+    await expect(context.api.appDataGet!('Bad Key!')).rejects.toThrow(/invalid app-data key/);
+    await expect(context.api.appDataPut!('..', 0, {})).rejects.toThrow(/invalid app-data key/);
+    await expect(context.api.appDataGet!('')).rejects.toThrow(/invalid app-data key/);
+    expect(getAppData).not.toHaveBeenCalled();
+    expect(putAppData).not.toHaveBeenCalled();
+  });
+
+  it('rejects a key past the per-app cap, but keeps serving already-open keys', async () => {
+    const { SandboxedWidget, spawnSpy, getAppData } = await loadSandbox();
+    render(
+      <SandboxedWidget
+        runtimeUrl="blob:rt" entryUrl="blob:v1"
+        widgetId="com.hellonexus.aquarium" instanceId="inst-1"
+        appData
+      />,
+    );
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+
+    for (let i = 0; i < 16; i++) {
+      await act(async () => { await context.api.appDataGet!(`key${i}`); });
+    }
+    expect(getAppData).toHaveBeenCalledTimes(16);
+
+    await expect(context.api.appDataGet!('key16')).rejects.toThrow(/key limit reached/);
+    expect(getAppData).toHaveBeenCalledTimes(16);
+
+    // Re-reading an already-open key is never blocked by the cap.
+    await act(async () => { await context.api.appDataGet!('key0'); });
+    expect(getAppData).toHaveBeenCalledTimes(17);
+  });
+
+  it('a remount within the keep-alive window keeps receiving pushes for a key the earlier mount noted', async () => {
+    const { SandboxedWidget, spawnSpy, topicCallbacks } = await loadSandbox();
+    const widget = (
+      <SandboxedWidget
+        runtimeUrl="blob:rt" entryUrl="blob:v1"
+        widgetId="com.hellonexus.aquarium" instanceId="inst-1"
+        appData
+      />
+    );
+    const first = render(widget);
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+    await act(async () => { await context.api.appDataGet!('save'); });
+    expect(topicCallbacks).toHaveLength(1);
+
+    // Edit-sheet re-parent: this mount unmounts and a fresh one takes over
+    // inside the keep-alive window, reusing the same worker (no respawn).
+    first.unmount();
+    topicCallbacks.length = 0;
+    render(widget);
+
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+    expect(topicCallbacks).toHaveLength(1);
+    expect(topicCallbacks[0].topic).toBe('app-data/com.hellonexus.aquarium/save');
+
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    topicCallbacks[0].onFrame({ revision: 5, updatedAt: 't5', data: { coins: 50 } });
+    expect(handle.update).toHaveBeenCalledWith({ appData: { key: 'save', revision: 5, updatedAt: 't5', data: { coins: 50 } } });
+  });
+
+  it('binds displayShape/displayInput from the props into the initial context', async () => {
     const { SandboxedWidget, spawnSpy } = await loadSandbox();
     render(
       <SandboxedWidget
@@ -182,5 +253,30 @@ describe('SandboxedWidget appData bridge', () => {
     );
     const context = spawnSpy.mock.calls[0][2] as SandboxContext;
     expect(context.display).toEqual({ shape: 'round', input: 'none' });
+  });
+
+  it('pushes a later displayInput change through update() rather than respawning', async () => {
+    const { SandboxedWidget, spawnSpy } = await loadSandbox();
+    const { rerender } = render(
+      <SandboxedWidget
+        runtimeUrl="blob:rt" entryUrl="blob:v1"
+        widgetId="com.hellonexus.aquarium" instanceId="inst-1"
+        displayShape="rect" displayInput="none"
+      />,
+    );
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    handle.update.mockClear();
+
+    // A promoted monitor's touch digitizer detected after the worker spawned.
+    rerender(
+      <SandboxedWidget
+        runtimeUrl="blob:rt" entryUrl="blob:v1"
+        widgetId="com.hellonexus.aquarium" instanceId="inst-1"
+        displayShape="rect" displayInput="touch"
+      />,
+    );
+
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+    expect(handle.update).toHaveBeenCalledWith({ display: { shape: 'rect', input: 'touch' } });
   });
 });

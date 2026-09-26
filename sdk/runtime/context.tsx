@@ -80,9 +80,14 @@ export interface WidgetState {
    *  yet (useAppData's `ready` stays false); a present key holds the last
    *  known document, including the `{ revision: 0, data: null }` absent doc. */
   appData: Record<string, AppDataDoc>;
+  /** Reactive, unlike surface/preview/devTools/immersive: a promoted
+   *  monitor's touch digitizer can be detected after the worker spawns, so
+   *  the host pushes a later change through `update` rather than baking it
+   *  in once at spawn. */
+  display: WidgetDisplay;
 }
 
-export interface WidgetStorePatch extends Partial<Pick<WidgetState, 'settings' | 'size'>> {
+export interface WidgetStorePatch extends Partial<Pick<WidgetState, 'settings' | 'size' | 'display'>> {
   /** A pushed or freshly-read app-data document for one key. */
   appData?: { key: string } & AppDataDoc;
 }
@@ -94,7 +99,6 @@ export interface WidgetStore {
   readonly preview: boolean;
   readonly devTools: boolean;
   readonly immersive: boolean;
-  readonly display: WidgetDisplay;
   readonly api: WidgetHostApi;
   getSnapshot(): WidgetState;
   subscribe(cb: () => void): () => void;
@@ -111,6 +115,7 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     size: init.size ?? { width: 0, height: 0 },
     local: init.local ?? {},
     appData: {},
+    display: init.display ?? { shape: 'rect', input: 'pointer' },
   };
   const subs = new Set<() => void>();
   const emit = () => { for (const cb of subs) cb(); };
@@ -127,7 +132,6 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     preview: init.preview ?? false,
     devTools: init.devTools ?? false,
     immersive: init.immersive ?? false,
-    display: init.display ?? { shape: 'rect', input: 'pointer' },
     api: init.api,
     getSnapshot: () => state,
     subscribe: (cb) => { subs.add(cb); return () => { subs.delete(cb); }; },
