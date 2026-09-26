@@ -6,9 +6,9 @@ import { type LightingDevice } from '../../../../api/lighting';
  * the device has none. Add a case when a device needs a hover notice.
  */
 export function lightingDeviceNoticeKey(device: LightingDevice): string | null {
-  // The Lian Li Uni Hub commits streamed (software) lighting once per second.
-  if (device.id.startsWith('lianli:')) return 'lighting.devices.lianliStreamRate';
+  // Every streamed frame crosses the radio, which cannot carry the full engine rate.
+  if (device.id.startsWith('lianli-wireless:')) return 'lighting.devices.partialStreaming';
   // The Kraken shares one HID pipe between its LEDs, its telemetry and its LCD.
-  if (device.id.startsWith('nzxt-kraken:')) return 'lighting.devices.krakenStreamRate';
+  if (device.id.startsWith('nzxt-kraken:')) return 'lighting.devices.partialStreaming';
   return null;
 }
