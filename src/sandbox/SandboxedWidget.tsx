@@ -10,6 +10,21 @@ import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 import { MediaImportProvider } from './mediaImportContext';
 import { useImmersiveExit } from '../panel/overlays/immersiveExit';
+import { useTopicCallback } from '../hooks/useMultiplexSocket';
+import { getAppData, putAppData, appDataTopic } from './appDataClient';
+import type { AppDataDoc } from '../../sdk/runtime/context';
+
+/** Forwards one app-data topic's pushes into the worker's store; rendered once
+ *  per key the worker has actually read or written this mount. */
+function AppDataTopicBridge({ topic, onFrame }: { topic: string; onFrame: (doc: AppDataDoc) => void }) {
+  useTopicCallback(topic, true, (raw) => {
+    const frame = raw as Partial<AppDataDoc> | null;
+    if (frame && typeof frame.revision === 'number' && typeof frame.updatedAt === 'string') {
+      onFrame({ revision: frame.revision, updatedAt: frame.updatedAt, data: frame.data });
+    }
+  });
+  return null;
+}
 
 export interface SandboxedWidgetProps {
   /** Blob URL of the host-shared SDK runtime; the worker imports it before the
@@ -39,6 +54,15 @@ export interface SandboxedWidgetProps {
   /** Cert/manifest mediaImport path allowlist (e.g. ["/tryx/media"]). The host
    *  checks this before opening a file picker or uploading on the widget's behalf. */
   mediaImport?: string[];
+  /** Manifest `capabilities.appData`. Gates useAppData's host bridge; the
+   *  appId bound into every call is always this widget's own listing id. */
+  appData?: boolean;
+  /** This tile's actual shape - 'round' only for the masked Kraken glass.
+   *  Default 'rect'. Ignored (forced 'rect') in preview. */
+  displayShape?: 'rect' | 'round';
+  /** The panel surface's input method (see surfaceInputMode). Default
+   *  'pointer'. Ignored (forced 'pointer') in preview. */
+  displayInput?: 'touch' | 'pointer' | 'none';
 }
 
 const localKey = (widgetId: string, instanceId: string) => `nexus.sdk.local.${widgetId}.${instanceId}`;
@@ -68,7 +92,7 @@ interface LiveWidget {
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 
-export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, displayShape, displayInput }: SandboxedWidgetProps) {
   // The overlay's animated close, for the immersive worker's useImmersive().
   // The worker's api object is created once, so a reused worker resolves it
   // through the cache entry's newest mount, not the mount that spawned it.
@@ -102,6 +126,17 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   const mountRef = useRef<LiveWidget["mounts"][number] | null>(null);
   if (mountRef.current === null) mountRef.current = { pushSize: () => pushOwnSize(), exitImmersive: () => exitImmersiveRef.current?.() };
 
+  // Keys the worker has actually read or written this mount - each gets one
+  // topic subscription so a push from another instance reaches this one.
+  const appDataEnabled = !!appData && !preview;
+  const seenAppDataKeysRef = useRef<Set<string>>(new Set());
+  const [appDataKeys, setAppDataKeys] = useState<string[]>([]);
+  const noteAppDataKey = useCallback((key: string) => {
+    if (seenAppDataKeysRef.current.has(key)) return;
+    seenAppDataKeysRef.current.add(key);
+    setAppDataKeys((prev) => [...prev, key]);
+  }, []);
+
   useEffect(() => {
     const key = cacheKey;
     const mount = mountRef.current!;
@@ -125,6 +160,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         // worker renders the cell face.
         surface: surface === 'page' ? 'page' : 'cell',
         immersive: surface === 'immersive',
+        display: preview
+          ? { shape: 'rect', input: 'pointer' }
+          : { shape: displayShape ?? 'rect', input: displayInput ?? 'pointer' },
         preview: !!preview,
         devTools: DEV_TOOLS,
         size,
@@ -145,6 +183,12 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
             : (action, args) => onDispatch?.(action, args) ?? Promise.resolve(null),
           exitImmersive: surface === 'immersive'
             ? () => { const e = liveWidgets.get(key); e?.mounts[e.mounts.length - 1]?.exitImmersive(); }
+            : undefined,
+          appDataGet: appDataEnabled
+            ? (dataKey) => { noteAppDataKey(dataKey); return getAppData(widgetId, dataKey); }
+            : undefined,
+          appDataPut: appDataEnabled
+            ? (dataKey, baseRevision, data) => { noteAppDataKey(dataKey); return putAppData(widgetId, dataKey, baseRevision, data); }
             : undefined,
         },
       };
@@ -208,6 +252,13 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           </MediaImportProvider>
         </SdkErrorBoundary>
       ) : null}
+      {appDataEnabled && handle && appDataKeys.map((key) => (
+        <AppDataTopicBridge
+          key={key}
+          topic={appDataTopic(widgetId, key)}
+          onFrame={(doc) => handle.update({ appData: { key, ...doc } })}
+        />
+      ))}
     </div>
   );
 }

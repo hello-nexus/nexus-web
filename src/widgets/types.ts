@@ -32,6 +32,10 @@ export interface AppManifestCapabilities {
    *  component. The host enforces this allowlist; the worker cannot upload to a
    *  path not listed here. */
   mediaImport?: string[];
+  /** Grants the app one persistent JSON document per key
+   *  (/apps-api/data/{appId}/{key}), shared by every running instance of this
+   *  app on the install. Default false. */
+  appData?: boolean;
 }
 
 export type AppManifestSettingType =

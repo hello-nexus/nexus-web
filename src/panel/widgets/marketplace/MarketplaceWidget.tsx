@@ -15,7 +15,7 @@ import styles from './MarketplaceWidget.module.scss';
  * an SDK (sandboxed remote-component) widget; this bridges the panel layout's
  * `WidgetProps` to the SDK host.
  */
-export function MarketplaceWidget({ widget, sandboxSurface }: WidgetProps & { sandboxSurface?: 'cell' | 'immersive' }) {
+export function MarketplaceWidget({ widget, sandboxSurface, surface, deviceTouch }: WidgetProps & { sandboxSurface?: 'cell' | 'immersive' }) {
   const { t } = useTranslation();
   const id = marketplaceIdFromType(widget.type) ?? '';
   const [listing, setListing] = useState(() => (id ? getMarketplaceListing(id) : undefined));
@@ -38,7 +38,16 @@ export function MarketplaceWidget({ widget, sandboxSurface }: WidgetProps & { sa
     return <div className={styles.empty}>{id ? t('marketplace.loading', { name: id }) : t('marketplace.missingId')}</div>;
   }
 
-  return <SdkMarketplaceWidget listing={listing} size={widget.size} instanceId={widget.id} sandboxSurface={sandboxSurface} />;
+  return (
+    <SdkMarketplaceWidget
+      listing={listing}
+      size={widget.size}
+      instanceId={widget.id}
+      sandboxSurface={sandboxSurface}
+      surface={surface}
+      deviceTouch={deviceTouch}
+    />
+  );
 }
 
 /** Touch facet for immersive-allowlisted SDK apps: the same widget rendered

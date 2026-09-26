@@ -29,6 +29,24 @@ export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolea
     && surface !== 'lcd-round' && surface !== 'lcd-square' && surface !== 'lcd-wide';
 }
 
+export type SurfaceInputMode = 'touch' | 'pointer' | 'none';
+
+// The operator's input method at this surface, for SDK widgets branching on
+// touch vs mouse vs no input at all. Desktop is mouse ('pointer'), Y70/phone
+// are direct touch, cooler glass and the Q-series are display-only ('none').
+// 'monitor' follows the same per-device digitizer rule as surfaceSupportsTouch.
+export function surfaceInputMode(surface: PanelSurface, deviceTouch?: boolean): SurfaceInputMode {
+  if (surface === 'desktop') return 'pointer';
+  if (surface === 'monitor') return deviceTouch === true ? 'touch' : 'none';
+  return surfaceSupportsTouch(surface) ? 'touch' : 'none';
+}
+
+// The tile shape an SDK widget is actually rendered into. Only '2x2round'
+// (round glass: the Kraken LCD) masks to a circle; every other size is rect.
+export function widgetDisplayShape(size: PanelWidgetSize): 'rect' | 'round' {
+  return size === '2x2round' ? 'round' : 'rect';
+}
+
 // Whether the operator at this surface has a usable text-entry method: desktop
 // (physical keyboard) and phone/tablet (on-screen keyboard). The Y70 kiosk is
 // touch-only with no keyboard and the Q-series is display-only, so neither

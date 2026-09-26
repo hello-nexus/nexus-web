@@ -119,4 +119,45 @@ describe('importProfileFile', () => {
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain('/profiles/import?replace=true');
   });
+
+  it('sends a .nexusprofile file as raw zip bytes with an application/zip content type', async () => {
+    const profile = { id: 'p3', name: 'Archived', createdAt: '', updatedAt: '' };
+    const fetchMock = vi.fn(async () => jsonResponse(200, { error: false, msg: 'Ok', profile }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const zipBytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2, 3]);
+    const file = new File([zipBytes], 'nexus-Gaming.nexusprofile');
+    const result = await importProfileFile(file);
+
+    expect(result).toEqual({ status: 200, body: { error: false, msg: 'Ok', profile } });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/profiles/import');
+    expect(url).not.toContain('replace');
+    expect(init.method).toBe('POST');
+    expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/zip');
+    expect(new Uint8Array(init.body as ArrayBuffer)).toEqual(zipBytes);
+  });
+
+  it('appends replace=true for a .nexusprofile import too', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { error: false, msg: 'Ok' }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const file = new File([new Uint8Array([0x50, 0x4b])], 'nexus-Gaming.nexusprofile');
+    await importProfileFile(file, true);
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/profiles/import?replace=true');
+  });
+
+  it('resolves status 0 without a network call when a .nexusprofile read throws', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const file = new File([new Uint8Array([0x50, 0x4b])], 'nexus-Gaming.nexusprofile');
+    vi.spyOn(file, 'arrayBuffer').mockRejectedValue(new Error('read failed'));
+
+    const result = await importProfileFile(file);
+    expect(result).toEqual({ status: 0, body: null });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

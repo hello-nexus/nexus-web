@@ -16,19 +16,26 @@ import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
+import { surfaceInputMode, widgetDisplayShape, type PanelSurface, type PanelWidgetSize } from '../../types';
 import styles from './MarketplaceWidget.module.scss';
 
 export interface SdkMarketplaceWidgetProps {
   listing: AppInstalledListing;
-  size: string;
+  size: PanelWidgetSize;
   instanceId: string;
   /** Worker render surface. 'immersive' spawns a SEPARATE worker (own
    *  keep-alive cache key) so closing the fullscreen overlay never disposes
    *  the tile's live worker. Default 'cell'. */
   sandboxSurface?: 'cell' | 'immersive';
+  /** The panel this tile is placed on; feeds the SDK's useDisplay(). Absent
+   *  on the desktop-embedded "My Computer" preview, which has no device
+   *  record - treated as the desktop dashboard (pointer input). */
+  surface?: PanelSurface;
+  /** Companion to `surface` for a promoted monitor's per-device digitizer. */
+  deviceTouch?: boolean;
 }
 
-export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface }: SdkMarketplaceWidgetProps) {
+export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size, surface, deviceTouch }: SdkMarketplaceWidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
@@ -49,6 +56,9 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface }: Sd
   const netFetch = useMemo(() => listing.capabilities['net.fetch'] ?? [], [listing]);
   const sensorsRead = useMemo(() => listing.capabilities['sensors.read'] ?? [], [listing]);
   const mediaImport = useMemo(() => listing.capabilities.mediaImport ?? [], [listing]);
+  const appData = !!listing.capabilities.appData;
+  const displayShape = widgetDisplayShape(size);
+  const displayInput = surfaceInputMode(surface ?? 'desktop', deviceTouch);
 
   // Gated host action: POST /apps-api/dispatch (relay-aware). Returns the
   // { ok, result } envelope so the worker's useDispatch / useHostAction work.
@@ -72,6 +82,9 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface }: Sd
       netFetch={netFetch}
       sensorsRead={sensorsRead}
       mediaImport={mediaImport}
+      appData={appData}
+      displayShape={displayShape}
+      displayInput={displayInput}
       preview={preview}
       onDispatch={onDispatch}
     />

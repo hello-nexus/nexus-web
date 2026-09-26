@@ -42,6 +42,14 @@ export function usePreview(): boolean {
   return useStore().preview;
 }
 
+/** This tile's shape and the operator's input method at this panel surface.
+ *  Static for the render. A widget uses this to skip drag/hover affordances
+ *  on a touch-only or no-input (display-only) surface, or to lay out inside
+ *  a round mask. Preview always reports rect/pointer. */
+export function useDisplay(): { shape: 'rect' | 'round'; input: 'touch' | 'pointer' | 'none' } {
+  return useStore().display;
+}
+
 /** True when the host is an internal DEV_TOOLS build. Static for the render.
  *  Use it to relax a ship-time availability gate on an internal machine; never
  *  to unlock something a shipped build must refuse. */
@@ -178,4 +186,101 @@ export function useLatest<T>(value: T): { current: T } {
   const ref = useRef(value);
   ref.current = value;
   return ref;
+}
+
+// A stale base is adopted from the 409 body and fn is re-applied this many
+// times before update() gives up; a live app-data doc rarely races more than
+// once or twice across instances.
+const APP_DATA_MAX_ATTEMPTS = 5;
+
+export type AppDataCasResult<T> =
+  | { ok: true; revision: number }
+  | { ok: false; revision: number; data: T };
+
+/** Generic per-app JSON document, shared by every running instance of this
+ *  app on the install (see the nexus.app/1 `appData` capability). `value` is
+ *  `initial` until the first read arrives (`ready` false); a push from
+ *  another instance replaces `value`/`revision` live. `put` is the primitive:
+ *  exactly one compare-and-swap attempt, its result applied to `value`/
+ *  `revision` immediately whether it lands or hits a stale-base conflict.
+ *  `update(fn)` is the convenience layer: applies `fn` to the latest known
+ *  value and retries through `put` on a conflict, a few times, adopting the
+ *  server's current document as the next base each time. Preview mode never
+ *  touches the host: state lives only in this render. */
+export function useAppData<T>(
+  key: string,
+  initial: T,
+): {
+  value: T;
+  ready: boolean;
+  revision: number;
+  update: (fn: (current: T) => T) => Promise<boolean>;
+  put: (baseRevision: number, data: T) => Promise<AppDataCasResult<T>>;
+} {
+  const store = useStore();
+  const initialRef = useLatest(initial);
+  const doc = useSyncExternalStore(store.subscribe, () => store.getSnapshot().appData[key]);
+  const bridged = !!(store.api.appDataGet && store.api.appDataPut);
+
+  useEffect(() => {
+    if (!bridged) return;
+    let alive = true;
+    store.api.appDataGet!(key)
+      .then((fresh) => { if (alive) store.applyAppData(key, fresh); })
+      .catch(() => { /* transient fetch failure: stays not-ready, retried on next mount */ });
+    return () => { alive = false; };
+  }, [store, bridged, key]);
+
+  const value = doc && doc.data !== null ? (doc.data as T) : initialRef.current;
+  const ready = bridged ? doc !== undefined : true;
+  const revision = doc?.revision ?? 0;
+
+  const readCurrent = useCallback((): { revision: number; value: T } => {
+    const current = store.getSnapshot().appData[key];
+    return {
+      revision: current?.revision ?? 0,
+      value: current && current.data !== null ? (current.data as T) : initialRef.current,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, key]);
+
+  const put = useCallback(async (baseRevision: number, data: T): Promise<AppDataCasResult<T>> => {
+    if (!bridged) {
+      const current = readCurrent();
+      if (baseRevision !== current.revision) return { ok: false, revision: current.revision, data: current.value };
+      const nextRevision = current.revision + 1;
+      store.applyAppData(key, { revision: nextRevision, updatedAt: new Date().toISOString(), data });
+      return { ok: true, revision: nextRevision };
+    }
+    let result;
+    try {
+      result = await store.api.appDataPut!(key, baseRevision, data);
+    } catch {
+      // Transient failure (offline/unreachable), not a real conflict - surface
+      // it at the last-known revision so a caller never mistakes it for an
+      // accepted write.
+      const current = readCurrent();
+      return { ok: false, revision: current.revision, data: current.value };
+    }
+    if (result.ok) {
+      store.applyAppData(key, { revision: result.revision, updatedAt: result.updatedAt, data });
+      return { ok: true, revision: result.revision };
+    }
+    store.applyAppData(key, { revision: result.revision, updatedAt: result.updatedAt, data: result.data });
+    return { ok: false, revision: result.revision, data: result.data as T };
+  }, [store, bridged, key, readCurrent]);
+
+  const update = useCallback(async (fn: (current: T) => T): Promise<boolean> => {
+    let base = readCurrent();
+    for (let attempt = 0; attempt < APP_DATA_MAX_ATTEMPTS; attempt++) {
+      const result = await put(base.revision, fn(base.value));
+      if (result.ok) return true;
+      // put() already applied the server's current document to the store;
+      // retry fn against that adopted base.
+      base = { revision: result.revision, value: result.data };
+    }
+    return false;
+  }, [put, readCurrent]);
+
+  return { value, ready, revision, update, put };
 }
