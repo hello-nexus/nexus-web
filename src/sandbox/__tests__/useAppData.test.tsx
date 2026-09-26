@@ -55,6 +55,16 @@ describe('useAppData - bridged (appData capability granted)', () => {
     expect(result.current.revision).toBe(0);
   });
 
+  it('an absent doc with the data field omitted (the service drops nulls) keeps the initial value', async () => {
+    const appDataGet = vi.fn().mockResolvedValue({ revision: 0, updatedAt: '' });
+    const { Wrapper } = wrapperFor(makeInit({ appDataGet, appDataPut: vi.fn() }));
+
+    const { result } = renderHook(() => useAppData('save', { coins: 0 }), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(result.current.value).toEqual({ coins: 0 });
+    expect(result.current.revision).toBe(0);
+  });
+
   it('update(fn) writes with the current revision as baseRevision and applies the result', async () => {
     const appDataGet = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { coins: 1 } });
     const appDataPut = vi.fn().mockResolvedValue({ ok: true, revision: 2, updatedAt: 't2' } satisfies AppDataPutResult);
@@ -176,6 +186,55 @@ describe('useAppData - bridged (appData capability granted)', () => {
 
     expect(outcome).toEqual({ ok: false, revision: 1, data: { coins: 1 } });
     expect(result.current.value).toEqual({ coins: 1 });
+  });
+});
+
+describe('useAppData - initial GET retry with backoff', () => {
+  it('retries a failing initial read with backoff and becomes ready once it lands', async () => {
+    vi.useFakeTimers();
+    try {
+      const appDataGet = vi.fn()
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValueOnce({ revision: 2, updatedAt: 't2', data: { coins: 2 } });
+      const { result } = renderHook(() => useAppData('save', { coins: 0 }), {
+        wrapper: wrapperFor(makeInit({ appDataGet, appDataPut: vi.fn() })).Wrapper,
+      });
+
+      // The first attempt fires on mount; flush its rejection.
+      await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+      expect(appDataGet).toHaveBeenCalledTimes(1);
+      expect(result.current.ready).toBe(false);
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+      expect(appDataGet).toHaveBeenCalledTimes(2);
+      expect(result.current.ready).toBe(false);
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+      expect(appDataGet).toHaveBeenCalledTimes(3);
+      expect(result.current.ready).toBe(true);
+      expect(result.current.value).toEqual({ coins: 2 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops retrying once the widget unmounts', async () => {
+    vi.useFakeTimers();
+    try {
+      const appDataGet = vi.fn().mockRejectedValue(new Error('offline'));
+      const { unmount } = renderHook(() => useAppData('save', { coins: 0 }), {
+        wrapper: wrapperFor(makeInit({ appDataGet, appDataPut: vi.fn() })).Wrapper,
+      });
+      await act(async () => { await Promise.resolve(); });
+      expect(appDataGet).toHaveBeenCalledTimes(1);
+
+      unmount();
+      await act(async () => { await vi.advanceTimersByTimeAsync(20000); });
+      expect(appDataGet).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

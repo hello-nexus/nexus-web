@@ -73,6 +73,10 @@ The TS shape lives in `src/widgets/types.ts`.
     // touching the network.
     "mediaImport": ["/tryx/media"],
 
+    // Grants one persistent JSON document per key via useAppData, shared by
+    // every running instance of this app on the install. Default false.
+    "appData": true,
+
     // Whether the app exposes a settings schema.
     "config": true,
 
@@ -123,6 +127,16 @@ upload files to via `<MediaImport uploadPath="...">`. The host validates the
 `uploadPath` prop against this list before opening the native file picker. The
 upload uses `postServiceForm` (LAN/desktop only - it fails closed over the
 relay tunnel). Omit this field if the app does not import media.
+
+#### `capabilities.appData`
+
+A `boolean` (default `false`). Grants `useAppData` a host bridge to one
+persistent JSON document per key, shared by every running instance of this
+app on this install (a Q-series tank and a Y70 tank see the same save file),
+and synced into profile export/import and the cloud account when signed in.
+Without this capability `useAppData` still renders (so a widget never crashes
+for lacking it) but never reaches the host: it behaves exactly like preview
+mode, holding state only in that one render. See `useAppData` below.
 
 ---
 
@@ -302,6 +316,60 @@ handlers that close over changing props:
 const latestSettings = useLatest(settings);
 // inside an event handler: latestSettings.current
 ```
+
+### `useAppData<T>(key, initial)`
+
+Generic per-app JSON document, shared by every running instance of this app on
+the install - the "save file" primitive. Requires `capabilities.appData`.
+
+```tsx
+const save = useAppData<TankState>('save', { coins: 0, fish: [] });
+if (!save.ready) return <Spinner />;
+save.value.coins; // live: replaced immediately by a push from another instance
+await save.update((s) => ({ ...s, coins: s.coins + 10 }));
+```
+
+Returns `{ value, ready, revision, update, put }`:
+
+- `value` - the document's `data`, or `initial` until the first read arrives
+  (`ready` false), or when the document doesn't exist yet (revision `0`).
+- `ready` - `false` only before the first read resolves. A failed initial read
+  retries with backoff in the background rather than leaving the tile stuck;
+  no author action needed.
+- `revision` - the document's revision number (`0` = never written).
+- `update(fn)` - applies `fn` to the latest known value and writes with
+  compare-and-swap, retrying automatically (adopting the current document) on
+  a conflict from another instance writing concurrently. Resolves `true` on
+  success, `false` if it never lands.
+- `put(baseRevision, data)` - the lower-level primitive: exactly one
+  compare-and-swap attempt, no retry. Use it when the app already tracks its
+  own base revision (e.g. batching several local changes before one write).
+  Resolves `{ ok: true, revision }` or `{ ok: false, revision, data }` (the
+  document's current state, so the app can inspect the conflict itself).
+
+A push from another running instance of the same app updates `value`/
+`revision` live, with no action needed. In preview, or without
+`capabilities.appData`, state lives only in that render (never touches the
+host) and `ready` is `true` immediately.
+
+### `useDisplay()`
+
+The tile's actual shape and the panel surface's input method. Static for the
+render.
+
+```tsx
+const { shape, input } = useDisplay();
+if (shape === 'round') return <RoundLayout />;
+if (input === 'none') return <GlanceableLayout />; // no pointer/touch at all
+```
+
+- `shape`: `'rect'` or `'round'` - `'round'` only on round glass (the Kraken
+  LCD tile), masked to a circle.
+- `input`: `'touch'` (Y70, phone), `'pointer'` (the desktop dashboard, mouse),
+  or `'none'` (the Q-series and cooler LCD surfaces - display-only, no
+  interactive affordances should render).
+
+Preview always reports `{ shape: 'rect', input: 'pointer' }`.
 
 ---
 

@@ -368,6 +368,27 @@ describe('marketplace listing derives from the preinstalled + page signal', () =
     expect(appAvailableForSurface(meta, 'y70')).toBe(true);
   });
 
+  it('accepts 2x2round (round glass) and offers it only on the surfaces that use it', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.aquarium', name: 'Aquarium', source: 'user', sizes: ['2x2round'] }),
+    ]);
+    const meta = lookupApp(typeForMarketplace('com.hellonexus.aquarium'))!.meta;
+    expect(meta.sizes).toEqual(['2x2round']);
+    // kraken and lcd-round both lock to the round tile.
+    expect(appAvailableForSurface(meta, 'kraken')).toBe(true);
+    expect(sizesForSurface(meta, 'kraken')).toEqual(['2x2round']);
+    expect(appAvailableForSurface(meta, 'lcd-round')).toBe(true);
+    expect(sizesForSurface(meta, 'lcd-round')).toEqual(['2x2round']);
+    // 2x2round is reserved off every multi-widget surface, same as q60's 2x4.
+    expect(appAvailableForSurface(meta, 'y70')).toBe(false);
+    expect(appAvailableForSurface(meta, 'desktop')).toBe(false);
+    expect(appAvailableForSurface(meta, 'phone')).toBe(false);
+    expect(sizesForSurface(meta, 'y70')).toEqual([]);
+    // A locked single-widget surface that doesn't use the round tile (q60)
+    // still excludes it - its own lock is '2x4', not '2x2round'.
+    expect(appAvailableForSurface(meta, 'q60')).toBe(false);
+  });
+
   it('lists the OEM bake-in app on the machine it was bundled for', () => {
     _seedMarketplaceRegistryForTests([
       listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true }),

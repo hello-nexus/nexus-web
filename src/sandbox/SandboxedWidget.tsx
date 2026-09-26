@@ -10,14 +10,25 @@ import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 import { MediaImportProvider } from './mediaImportContext';
 import { useImmersiveExit } from '../panel/overlays/immersiveExit';
-import { useTopicCallback } from '../hooks/useMultiplexSocket';
+import { useMultiplex, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { getAppData, putAppData, appDataTopic } from './appDataClient';
 import type { AppDataDoc } from '../../sdk/runtime/context';
 
 /** Forwards one app-data topic's pushes into the worker's store; rendered once
- *  per key the worker has actually read or written this mount. */
-function AppDataTopicBridge({ topic, onFrame }: { topic: string; onFrame: (doc: AppDataDoc) => void }) {
-  useTopicCallback(topic, true, (raw) => {
+ *  per key the worker has actually read or written this mount. Also re-reads
+ *  the doc on a socket reconnect (a push that landed while disconnected is
+ *  otherwise lost - the topic resubscribes but the server doesn't replay). */
+function AppDataTopicBridge({ appId, dataKey, onFrame }: { appId: string; dataKey: string; onFrame: (doc: AppDataDoc) => void }) {
+  const connected = useMultiplex()?.connected ?? false;
+  const wasConnected = useRef(connected);
+  useEffect(() => {
+    if (connected && !wasConnected.current) {
+      void getAppData(appId, dataKey).then(onFrame).catch(() => { /* next reconnect retries */ });
+    }
+    wasConnected.current = connected;
+  }, [connected, appId, dataKey, onFrame]);
+
+  useTopicCallback(appDataTopic(appId, dataKey), true, (raw) => {
     const frame = raw as Partial<AppDataDoc> | null;
     if (frame && typeof frame.revision === 'number' && typeof frame.updatedAt === 'string') {
       onFrame({ revision: frame.revision, updatedAt: frame.updatedAt, data: frame.data });
@@ -255,7 +266,8 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       {appDataEnabled && handle && appDataKeys.map((key) => (
         <AppDataTopicBridge
           key={key}
-          topic={appDataTopic(widgetId, key)}
+          appId={widgetId}
+          dataKey={key}
           onFrame={(doc) => handle.update({ appData: { key, ...doc } })}
         />
       ))}

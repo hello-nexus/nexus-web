@@ -6,11 +6,12 @@
 
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, cleanup, act } from '@testing-library/react';
+import { useEffect, useState } from 'react';
 import type { SandboxContext } from '../host';
 
 interface FakeHandle { receiver: unknown; update: ReturnType<typeof vi.fn>; dispose: ReturnType<typeof vi.fn> }
 
-async function loadSandbox() {
+async function loadSandbox(opts: { initialConnected?: boolean } = {}) {
   vi.resetModules();
   const handles: FakeHandle[] = [];
   const spawnSpy = vi.fn(() => {
@@ -25,6 +26,12 @@ async function loadSandbox() {
   const getAppData = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { ok: true } });
   const putAppData = vi.fn().mockResolvedValue({ ok: true, revision: 2, updatedAt: 't2' });
   const topicCallbacks: Array<{ topic: string; onFrame: (raw: unknown) => void }> = [];
+  let connected = opts.initialConnected ?? true;
+  const connectionListeners = new Set<() => void>();
+  const setConnected = (next: boolean) => {
+    connected = next;
+    for (const cb of connectionListeners) cb();
+  };
   vi.doMock('../host', () => ({ spawnSandboxedWidget: spawnSpy }));
   vi.doMock('../RemoteTree', () => ({ RemoteTree: () => null }));
   vi.doMock('../appDataClient', () => ({
@@ -36,9 +43,20 @@ async function loadSandbox() {
     useTopicCallback: (topic: string, _enabled: boolean, onFrame: (raw: unknown) => void) => {
       topicCallbacks.push({ topic, onFrame });
     },
+    // A minimal reactive stand-in for the real multiplex context: re-renders
+    // subscribers when the test flips `connected` via setConnected.
+    useMultiplex: () => {
+      const [, setTick] = useState(0);
+      useEffect(() => {
+        const cb = () => setTick((t) => t + 1);
+        connectionListeners.add(cb);
+        return () => { connectionListeners.delete(cb); };
+      }, []);
+      return { connected };
+    },
   }));
   const { SandboxedWidget } = await import('../SandboxedWidget');
-  return { SandboxedWidget, spawnSpy, handles, getAppData, putAppData, topicCallbacks };
+  return { SandboxedWidget, spawnSpy, handles, getAppData, putAppData, topicCallbacks, setConnected };
 }
 
 describe('SandboxedWidget appData bridge', () => {
@@ -65,10 +83,10 @@ describe('SandboxedWidget appData bridge', () => {
     expect(context.api.appDataGet).toBeTypeOf('function');
     expect(context.api.appDataPut).toBeTypeOf('function');
 
-    await context.api.appDataGet!('save');
+    await act(async () => { await context.api.appDataGet!('save'); });
     expect(getAppData).toHaveBeenCalledWith('com.hellonexus.aquarium', 'save');
 
-    await context.api.appDataPut!('save', 1, { coins: 5 });
+    await act(async () => { await context.api.appDataPut!('save', 1, { coins: 5 }); });
     expect(putAppData).toHaveBeenCalledWith('com.hellonexus.aquarium', 'save', 1, { coins: 5 });
   });
 
@@ -122,6 +140,35 @@ describe('SandboxedWidget appData bridge', () => {
     const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
     topicCallbacks[0].onFrame({ revision: 3, updatedAt: 't3', data: { coins: 9 } });
     expect(handle.update).toHaveBeenCalledWith({ appData: { key: 'save', revision: 3, updatedAt: 't3', data: { coins: 9 } } });
+  });
+
+  it('re-reads a subscribed key on a socket reconnect and forwards the fresh doc', async () => {
+    const { SandboxedWidget, spawnSpy, getAppData, setConnected } = await loadSandbox({ initialConnected: true });
+    render(
+      <SandboxedWidget
+        runtimeUrl="blob:rt" entryUrl="blob:v1"
+        widgetId="com.hellonexus.aquarium" instanceId="inst-1"
+        appData
+      />,
+    );
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+    await act(async () => { await context.api.appDataGet!('save'); });
+    getAppData.mockClear();
+
+    // No transition yet (still connected): no re-read.
+    await act(async () => { setConnected(true); });
+    expect(getAppData).not.toHaveBeenCalled();
+
+    // Disconnect, then reconnect: exactly one re-read on the false->true edge.
+    getAppData.mockResolvedValueOnce({ revision: 9, updatedAt: 't9', data: { coins: 42 } });
+    await act(async () => { setConnected(false); });
+    expect(getAppData).not.toHaveBeenCalled();
+    await act(async () => { setConnected(true); });
+
+    expect(getAppData).toHaveBeenCalledTimes(1);
+    expect(getAppData).toHaveBeenCalledWith('com.hellonexus.aquarium', 'save');
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    expect(handle.update).toHaveBeenCalledWith({ appData: { key: 'save', revision: 9, updatedAt: 't9', data: { coins: 42 } } });
   });
 
   it('binds displayShape/displayInput from the props into the static context', async () => {

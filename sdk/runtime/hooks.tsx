@@ -193,6 +193,12 @@ export function useLatest<T>(value: T): { current: T } {
 // once or twice across instances.
 const APP_DATA_MAX_ATTEMPTS = 5;
 
+// Backoff between retries of the initial appDataGet: a failed read (offline,
+// service restarting) must not strand the tile at ready:false until the
+// widget happens to remount. Capped rather than growing forever - the widget
+// may sit on screen for hours.
+const APP_DATA_GET_RETRY_DELAYS_MS = [500, 1000, 2000, 4000, 8000];
+
 export type AppDataCasResult<T> =
   | { ok: true; revision: number }
   | { ok: false; revision: number; data: T };
@@ -225,13 +231,23 @@ export function useAppData<T>(
   useEffect(() => {
     if (!bridged) return;
     let alive = true;
-    store.api.appDataGet!(key)
-      .then((fresh) => { if (alive) store.applyAppData(key, fresh); })
-      .catch(() => { /* transient fetch failure: stays not-ready, retried on next mount */ });
-    return () => { alive = false; };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
+    const tryFetch = () => {
+      store.api.appDataGet!(key)
+        .then((fresh) => { if (alive) store.applyAppData(key, fresh); })
+        .catch(() => {
+          if (!alive) return;
+          const delay = APP_DATA_GET_RETRY_DELAYS_MS[Math.min(attempt, APP_DATA_GET_RETRY_DELAYS_MS.length - 1)];
+          attempt += 1;
+          timer = setTimeout(tryFetch, delay);
+        });
+    };
+    tryFetch();
+    return () => { alive = false; clearTimeout(timer); };
   }, [store, bridged, key]);
 
-  const value = doc && doc.data !== null ? (doc.data as T) : initialRef.current;
+  const value = doc && doc.data != null ? (doc.data as T) : initialRef.current;
   const ready = bridged ? doc !== undefined : true;
   const revision = doc?.revision ?? 0;
 
@@ -239,7 +255,7 @@ export function useAppData<T>(
     const current = store.getSnapshot().appData[key];
     return {
       revision: current?.revision ?? 0,
-      value: current && current.data !== null ? (current.data as T) : initialRef.current,
+      value: current && current.data != null ? (current.data as T) : initialRef.current,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store, key]);
