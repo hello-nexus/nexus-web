@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "App-Konflikt",
   "conflicts.devices.appControls": "{app} steuert diese",
-  "conflicts.devices.endFailed": "{app} läuft noch. Beende es mit „Task beenden“.",
   "conflicts.devices.heading": "Geräte, um die sie konkurriert",
   "conflicts.devices.mixed": "Gemischt",
   "conflicts.devices.nexusControls": "Nexus steuert diese",

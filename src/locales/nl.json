@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "App-conflict",
   "conflicts.devices.appControls": "{app} bestuurt deze",
-  "conflicts.devices.endFailed": "{app} draait nog. Gebruik 'Taak beëindigen' om het te sluiten.",
   "conflicts.devices.heading": "Apparaten waar het om concurreert",
   "conflicts.devices.mixed": "Gemengd",
   "conflicts.devices.nexusControls": "Nexus bestuurt deze",

@@ -86,6 +86,7 @@ const mockFetchService = vi.fn();
 const mockSetDeviceControl = vi.fn();
 const mockFetchLightingDevices = vi.fn();
 const mockSetLightingDeviceControlled = vi.fn();
+const mockSetConflictWhitelisted = vi.fn();
 
 vi.mock('../api/service', () => ({
   fetchService: (...args: unknown[]) => mockFetchService(...args),
@@ -96,6 +97,9 @@ vi.mock('../api/devices', () => ({
 vi.mock('../api/lighting', () => ({
   fetchLightingDevices: (...args: unknown[]) => mockFetchLightingDevices(...args),
   setLightingDeviceControlled: (...args: unknown[]) => mockSetLightingDeviceControlled(...args),
+}));
+vi.mock('../api/conflicts', () => ({
+  setConflictWhitelisted: (...args: unknown[]) => mockSetConflictWhitelisted(...args),
 }));
 
 describe('useConflictDevices.setOwner', () => {
@@ -110,9 +114,10 @@ describe('useConflictDevices.setOwner', () => {
     mockSetDeviceControl.mockReset().mockResolvedValue([hubOn]);
     mockFetchLightingDevices.mockReset().mockResolvedValue({ isInit: true, devices: [...hubCards, ram] });
     mockSetLightingDeviceControlled.mockReset().mockResolvedValue(null);
+    mockSetConflictWhitelisted.mockReset().mockResolvedValue({ error: false, msg: 'Ok' });
   });
 
-  it('handing to Nexus turns the hub gate on and re-controls every card, hub channels included', async () => {
+  it('handing to Nexus turns the hub gate on and re-controls every card, hub channels included, and clears the whitelist', async () => {
     const { result } = renderHook(() => useConflictDevices([icue], true));
     await waitFor(() => expect(result.current.devicesByApp.get('icue')).toHaveLength(2));
 
@@ -121,9 +126,10 @@ describe('useConflictDevices.setOwner', () => {
     expect(mockSetDeviceControl).toHaveBeenCalledWith('corsair', true);
     expect(mockSetLightingDeviceControlled.mock.calls.map(c => c[0]).sort()).toEqual(['corsair:ch1', 'openrgb-s-RAM1']);
     expect(mockSetLightingDeviceControlled).toHaveBeenCalledWith('corsair:ch1', true);
+    expect(mockSetConflictWhitelisted).toHaveBeenCalledWith('icue', false);
   });
 
-  it('handing to the app turns the hub gate off but leaves its channels alone', async () => {
+  it('handing to the app turns the hub gate off but leaves its channels alone, and whitelists the app', async () => {
     const { result } = renderHook(() => useConflictDevices([icue], true));
     await waitFor(() => expect(result.current.devicesByApp.get('icue')).toHaveLength(2));
 
@@ -132,6 +138,21 @@ describe('useConflictDevices.setOwner', () => {
     expect(mockSetDeviceControl).toHaveBeenCalledWith('corsair', false);
     // Only the OpenRGB card is ignored; the hub's channel is not written.
     expect(mockSetLightingDeviceControlled.mock.calls).toEqual([['openrgb-s-RAM1', false]]);
+    expect(mockSetConflictWhitelisted).toHaveBeenCalledWith('icue', true);
+  });
+
+  it('reports a whitelist write the service rejected or never answered', async () => {
+    const { result } = renderHook(() => useConflictDevices([icue], true));
+    await waitFor(() => expect(result.current.devicesByApp.get('icue')).toHaveLength(2));
+
+    mockSetConflictWhitelisted.mockResolvedValueOnce({ error: true, msg: 'unknown conflict id' });
+    let recorded = true;
+    await act(async () => { recorded = await result.current.setOwner('icue', 'app'); });
+    expect(recorded).toBe(false);
+
+    mockSetConflictWhitelisted.mockResolvedValueOnce(null);
+    await act(async () => { recorded = await result.current.setOwner('icue', 'nexus'); });
+    expect(recorded).toBe(false);
   });
 
   it('does nothing while disabled', async () => {

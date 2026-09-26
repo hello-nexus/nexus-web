@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "Konflikt aplikacji",
   "conflicts.devices.appControls": "{app} steruje tymi",
-  "conflicts.devices.endFailed": "{app} nadal działa. Użyj „Zakończ zadanie”, aby go zamknąć.",
   "conflicts.devices.heading": "Urządzenia, o które rywalizuje",
   "conflicts.devices.mixed": "Mieszane",
   "conflicts.devices.nexusControls": "Nexus steruje tymi",

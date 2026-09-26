@@ -259,7 +259,6 @@
   "confirm.ok": "ОК",
   "conflicts.badge.text": "Конфликт приложений",
   "conflicts.devices.appControls": "Управляет {app}",
-  "conflicts.devices.endFailed": "{app} всё ещё запущен. Закройте его через «Завершить задачу».",
   "conflicts.devices.heading": "Устройства, за которые идёт борьба",
   "conflicts.devices.mixed": "Смешанно",
   "conflicts.devices.nexusControls": "Управляет Nexus",

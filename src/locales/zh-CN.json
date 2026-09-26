@@ -259,7 +259,6 @@
   "confirm.ok": "确定",
   "conflicts.badge.text": "应用冲突",
   "conflicts.devices.appControls": "由 {app} 控制",
-  "conflicts.devices.endFailed": "{app} 仍在运行。请使用“结束任务”将其关闭。",
   "conflicts.devices.heading": "争夺的设备",
   "conflicts.devices.mixed": "混合",
   "conflicts.devices.nexusControls": "由 Nexus 控制",

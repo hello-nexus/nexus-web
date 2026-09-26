@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DetectedConflict } from '../api/conflicts';
+import { setConflictWhitelisted, type DetectedConflict } from '../api/conflicts';
 import { fetchLightingDevices, setLightingDeviceControlled, type LightingDevice } from '../api/lighting';
 import { useDevices, type DeviceListItem } from './useDevices';
 
@@ -93,8 +93,12 @@ export function deriveConflictDevices(
 
 export interface ConflictDevicesState {
   devicesByApp: ReadonlyMap<string, readonly ConflictDevice[]>;
-  /** Flips every device listed under the app to the chosen owner. Resolves once every write settled. */
-  setOwner: (conflictId: string, owner: 'nexus' | 'app') => Promise<void>;
+  /**
+   * Flips every device listed under the app to the chosen owner and, alongside,
+   * writes the app's whitelist state ('app' owner whitelists it, 'nexus' clears it).
+   * Resolves once every write settled: true when the whitelist write landed.
+   */
+  setOwner: (conflictId: string, owner: 'nexus' | 'app') => Promise<boolean>;
 }
 
 /**
@@ -140,11 +144,14 @@ export function useConflictDevices(conflicts: readonly DetectedConflict[], enabl
     const lightingIds = groups.flatMap(g => (g.handlerId && !controlled ? [] : g.lightingIds));
     const lightingSet = new Set(lightingIds);
     setLighting(prev => prev.map(d => (lightingSet.has(d.id) ? { ...d, controlled } : d)));
+    const whitelist = setConflictWhitelisted(conflictId, !controlled).catch(() => null);
     await Promise.allSettled([
       ...handlerIds.map(id => controlDevice(id, controlled)),
       ...lightingIds.map(id => setLightingDeviceControlled(id, controlled)),
     ]);
     await refreshLighting();
+    const res = await whitelist;
+    return !!res && !res.error;
   }, [byApp, controlDevice, refreshLighting]);
 
   return { devicesByApp: byApp, setOwner };
