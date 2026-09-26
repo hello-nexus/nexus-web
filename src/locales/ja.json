@@ -3490,6 +3490,7 @@
   "panel.widget.transfer": "PCに送信",
   "panel.widget.twitch": "Twitch チャット",
   "panel.widget.twitch.channelNotFound": "Twitch にそのチャンネルが見つかりません",
+  "panel.widget.twitch.clear": "チャットをクリア",
   "panel.widget.twitch.connecting": "チャットに接続中...",
   "panel.widget.twitch.invalidChannel": "チャンネル名に使えるのは半角英数字とアンダースコアのみです",
   "panel.widget.twitch.setChannel": "設定でチャンネルを指定してください",

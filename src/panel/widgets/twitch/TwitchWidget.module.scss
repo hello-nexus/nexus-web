@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/interactions' as *;
 @use '../../styles/flexGap' as *;
 
 .twitch {
@@ -37,6 +38,24 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.clear {
+  // Pulled into the header's own padding so the button never makes the row taller.
+  width: 26px;
+  height: 26px;
+  margin: -5px 0;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim);
+  padding: 0;
+  cursor: pointer;
+
+  @include widget-button-hover;
 }
 
 .placeholder {
