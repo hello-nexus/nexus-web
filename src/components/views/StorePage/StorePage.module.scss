@@ -317,3 +317,11 @@ $card-gap: 0.6rem;
   color: var(--text-dim);
   white-space: pre-line;
 }
+
+.descriptionLink {
+  color: var(--accent-glow);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover { text-decoration: underline; }
+}

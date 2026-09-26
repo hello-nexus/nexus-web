@@ -18,6 +18,7 @@ import {
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import { resolveHttp } from '../../../api/service';
+import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import styles from './StorePage.module.scss';
 
 type InstallState = 'idle' | 'working' | 'failed';
@@ -269,6 +270,30 @@ function Highlights({ latest }: { latest: StoreVersion }) {
   );
 }
 
+// Trailing sentence punctuation stays text, so "see https://x.com." links without the period.
+const DESCRIPTION_URL = /(https:\/\/\S+?)(?=[.,;:!?)]*(?:\s|$))/;
+
+/** The description with each https URL as a link that opens in the system browser. */
+function Description({ text }: { text: string }) {
+  return (
+    <p className={styles.description}>
+      {text.split(DESCRIPTION_URL).map((part, i) => (i % 2 === 1 ? (
+        <a
+          key={i}
+          className={styles.descriptionLink}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={e => { e.preventDefault(); void openExternalUrl(part); }}
+          onAuxClick={e => { if (e.button === 1) { e.preventDefault(); void openExternalUrl(part); } }}
+        >
+          {part}
+        </a>
+      ) : part))}
+    </p>
+  );
+}
+
 function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
   appId: string; onBack: () => void; installed?: InstalledInfo;
   onNeedsSignIn: (retry: () => void) => void;
@@ -331,7 +356,7 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
         </div>
       )}
 
-      {app.description && <p className={styles.description}>{app.description}</p>}
+      {app.description && <Description text={app.description} />}
     </div>
   );
 }

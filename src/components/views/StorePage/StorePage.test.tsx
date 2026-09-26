@@ -24,6 +24,12 @@ vi.mock('../../../api/store', () => ({
   installStoreApp: (...args: unknown[]) => installStoreApp(...args),
 }));
 
+const openExternalUrl = vi.fn();
+
+vi.mock('../../../sandbox/ui/openExternal', () => ({
+  openExternalUrl: (...args: unknown[]) => openExternalUrl(...args),
+}));
+
 const installed: Array<{ id: string; version: string; iconUrl: string | null }> = [];
 
 vi.mock('../SettingsView/Account/AccountSignInModal', () => ({
@@ -192,6 +198,25 @@ describe('StorePage app page layout', () => {
     expect(screen.queryByText('store.section.preview')).not.toBeInTheDocument();
     expect(screen.queryByText('store.section.about')).not.toBeInTheDocument();
     expect(screen.queryByText('store.section.details')).not.toBeInTheDocument();
+  });
+
+  it('links a URL in the description, without its trailing period, through the system browser', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      description: 'Feed the fish.\n\nGet the tank at https://example.com/tank.',
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    const link = await screen.findByRole('link', { name: 'https://example.com/tank' });
+    expect(link).toHaveAttribute('href', 'https://example.com/tank');
+    fireEvent.click(link);
+    expect(openExternalUrl).toHaveBeenCalledWith('https://example.com/tank');
+
+    openExternalUrl.mockClear();
+    const middle = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 });
+    fireEvent(link, middle);
+    expect(middle.defaultPrevented).toBe(true);
+    expect(openExternalUrl).toHaveBeenCalledWith('https://example.com/tank');
   });
 });
 
