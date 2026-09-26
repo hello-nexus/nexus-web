@@ -3490,6 +3490,7 @@
   "panel.widget.transfer": "Enviar para o PC",
   "panel.widget.twitch": "Chat do Twitch",
   "panel.widget.twitch.channelNotFound": "Canal nao encontrado na Twitch",
+  "panel.widget.twitch.clear": "Limpar o chat",
   "panel.widget.twitch.connecting": "Conectando ao chat...",
   "panel.widget.twitch.invalidChannel": "Nomes de canal aceitam apenas letras, números e sublinhados",
   "panel.widget.twitch.setChannel": "Defina um canal nas configurações",

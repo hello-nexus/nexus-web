@@ -3490,6 +3490,7 @@
   "panel.widget.transfer": "Invie al PC",
   "panel.widget.twitch": "Chat Twitch",
   "panel.widget.twitch.channelNotFound": "Canâl no cjatât su Twitch",
+  "panel.widget.twitch.clear": "Nete la chat",
   "panel.widget.twitch.connecting": "Daûr a coneti al chat...",
   "panel.widget.twitch.invalidChannel": "I nons dai canâi a acetin dome letaris, numars e tratuts bas",
   "panel.widget.twitch.setChannel": "Stabilìs un canâl tes impostazions",

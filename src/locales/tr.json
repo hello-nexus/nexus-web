@@ -3490,6 +3490,7 @@
   "panel.widget.transfer": "PC'ye gönder",
   "panel.widget.twitch": "Twitch Sohbeti",
   "panel.widget.twitch.channelNotFound": "Kanal Twitch üzerinde bulunamadi",
+  "panel.widget.twitch.clear": "Sohbeti temizle",
   "panel.widget.twitch.connecting": "Sohbete bağlanılıyor...",
   "panel.widget.twitch.invalidChannel": "Kanal adları yalnızca harf, rakam ve alt çizgi içerebilir",
   "panel.widget.twitch.setChannel": "Ayarlardan bir kanal belirleyin",

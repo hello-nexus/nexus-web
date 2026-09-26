@@ -3490,6 +3490,7 @@
   "panel.widget.transfer": "Naar pc sturen",
   "panel.widget.twitch": "Twitch-chat",
   "panel.widget.twitch.channelNotFound": "Kanaal niet gevonden op Twitch",
+  "panel.widget.twitch.clear": "Chat wissen",
   "panel.widget.twitch.connecting": "Verbinden met chat...",
   "panel.widget.twitch.invalidChannel": "Kanaalnamen mogen alleen letters, cijfers en liggende streepjes bevatten",
   "panel.widget.twitch.setChannel": "Stel een kanaal in bij de instellingen",

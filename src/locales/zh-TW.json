@@ -3490,6 +3490,7 @@
   "panel.widget.transfer": "傳送到電腦",
   "panel.widget.twitch": "Twitch 聊天室",
   "panel.widget.twitch.channelNotFound": "在 Twitch 上找不到該頻道",
+  "panel.widget.twitch.clear": "清除聊天訊息",
   "panel.widget.twitch.connecting": "正在連線至聊天室...",
   "panel.widget.twitch.invalidChannel": "頻道名稱僅能包含英文字母、數字與底線",
   "panel.widget.twitch.setChannel": "請在設定中指定頻道",

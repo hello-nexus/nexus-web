@@ -11,6 +11,7 @@ export const TWITCH_PREVIEW: TwitchChatFrame = {
   channel: TWITCH_PREVIEW_CHANNEL,
   connected: true,
   exists: true,
+  clearedThrough: 0,
   messages: [
     {
       seq: 1,

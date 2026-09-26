@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { BrushCleaning } from 'lucide-react';
 import {
+  clearTwitchChat,
   normalizeTwitchChannel,
   twitchChatTopic,
   twitchEmoteUrl,
@@ -8,6 +10,7 @@ import {
 } from '../../../api/twitch';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
+import { surfaceSupportsTouch } from '../../types';
 import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewEmoteUri } from '../common/previewAssets';
@@ -25,19 +28,22 @@ const MESSAGE_CAP = 120;
  * here is what tells the service to join, and unsubscribing is what makes it
  * part, so no connection is held for a widget nobody is looking at.
  */
-export function TwitchWidget({ widget }: WidgetProps) {
+export function TwitchWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const channel = normalizeTwitchChannel(widget.config?.channel as string | undefined);
   const configured = ((widget.config?.channel as string | undefined) ?? '').trim().length > 0;
+  const canClear = surface ? surfaceSupportsTouch(surface, deviceTouch) : true;
 
   const [messages, setMessages] = useState<TwitchChatMessage[]>(preview ? TWITCH_PREVIEW.messages : []);
   const [connected, setConnected] = useState(preview);
   const [exists, setExists] = useState<boolean | null>(preview ? true : null);
+  const clearedThrough = useRef(0);
 
   // A channel change makes every retained message stale.
   useEffect(() => {
     if (preview) return;
+    clearedThrough.current = 0;
     setMessages([]);
     setConnected(false);
     setExists(null);
@@ -48,13 +54,19 @@ export function TwitchWidget({ widget }: WidgetProps) {
     if (!frame) return;
     setConnected(frame.connected);
     setExists(frame.exists ?? null);
-    if (!frame.messages?.length) return;
+    // An append flushed just before a clear can arrive after it, so the
+    // watermark filters every frame rather than only the clear itself.
+    if (frame.clearedThrough > clearedThrough.current) clearedThrough.current = frame.clearedThrough;
+    if (!frame.messages?.length && !frame.clearedThrough) return;
+    const floor = clearedThrough.current;
     setMessages(prev => {
       // Frames carry appends and the subscribe snapshot carries the whole
       // buffer, and the two can arrive in either order - merging on seq makes
       // that harmless instead of duplicating or reordering the tail.
-      const bySeq = new Map(prev.map(m => [m.seq, m]));
-      for (const message of frame.messages) bySeq.set(message.seq, message);
+      const bySeq = new Map(prev.filter(m => m.seq > floor).map(m => [m.seq, m]));
+      for (const message of frame.messages ?? []) {
+        if (message.seq > floor) bySeq.set(message.seq, message);
+      }
       const merged = Array.from(bySeq.values()).sort((a, b) => a.seq - b.seq);
       return merged.length > MESSAGE_CAP ? merged.slice(merged.length - MESSAGE_CAP) : merged;
     });
@@ -64,11 +76,27 @@ export function TwitchWidget({ widget }: WidgetProps) {
 
   const displayChannel = preview ? TWITCH_PREVIEW_CHANNEL : channel ?? '';
 
+  function clear() {
+    setMessages([]);
+    if (channel && !preview) void clearTwitchChat(channel);
+  }
+
   return (
     <div className={styles.twitch} data-size={widget.size}>
       <header className={styles.header}>
         <TwitchLogo size={16} aria-hidden />
         <span className={styles.channel}>{displayChannel || t('panel.widget.twitch')}</span>
+        {canClear && messages.length > 0 && (
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={clear}
+            aria-label={t('panel.widget.twitch.clear')}
+            title={t('panel.widget.twitch.clear')}
+          >
+            <BrushCleaning size={15} />
+          </button>
+        )}
       </header>
       {renderBody()}
     </div>

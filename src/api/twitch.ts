@@ -4,7 +4,7 @@
 // fans it out, which is what makes the widget work on a Q-series panel - that
 // panel reaches the service over a USB reverse tunnel and has no internet
 // route of its own to dial Twitch or its emote CDN with.
-import { resolveHttp, tokenParam } from './service';
+import { postService, resolveHttp, tokenParam } from './service';
 
 /** One run inside a message: a text run, or an emote when `emoteId` is set. */
 export interface TwitchChatFragment {
@@ -32,6 +32,8 @@ export interface TwitchChatFrame {
    * nothing about the stream being live: an offline channel answers the same.
    */
   exists: boolean | null;
+  /** On the frame a clear sends, the last seq it removed; drop every message at or below it. 0 otherwise. */
+  clearedThrough: number;
   /** Empty when the frame only reports a connection-state change. */
   messages: TwitchChatMessage[];
 }
@@ -51,6 +53,11 @@ export function normalizeTwitchChannel(raw: string | undefined): string | null {
 
 export function twitchChatTopic(channel: string): string {
   return `twitch/chat/${channel}`;
+}
+
+/** Drops the channel's retained chat service-side, for every viewer. */
+export async function clearTwitchChat(channel: string): Promise<void> {
+  await postService(`/api/twitch/chat/${encodeURIComponent(channel)}/clear`, {});
 }
 
 /** Service-proxied emote image; the CDN is not reachable from every panel. */
