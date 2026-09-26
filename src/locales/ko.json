@@ -4340,6 +4340,8 @@
   "store.retry": "다시 시도",
   "store.screenshotAlt": "{name} 스크린샷 {index}",
   "store.section.apps": "앱",
+  "store.section.description": "설명",
+  "store.section.preview": "미리보기",
   "store.signIn.body": "Nexus 계정에 로그인하거나 무료로 계정을 만들어 계속하세요.",
   "store.signIn.title": "앱을 받으려면 로그인하세요",
   "store.spec.requires": "필요한 Nexus",

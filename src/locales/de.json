@@ -4340,6 +4340,8 @@
   "store.retry": "Wiederholen",
   "store.screenshotAlt": "Screenshot {index} von {name}",
   "store.section.apps": "Apps",
+  "store.section.description": "Beschreibung",
+  "store.section.preview": "Vorschau",
   "store.signIn.body": "Melde dich bei deinem Nexus-Konto an oder erstelle eines kostenlos, um fortzufahren.",
   "store.signIn.title": "Zum Laden von Apps anmelden",
   "store.spec.requires": "Erfordert Nexus",

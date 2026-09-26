@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  Boxes, ChevronLeft, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Tag,
+  Boxes, ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
@@ -294,6 +294,83 @@ function Description({ text }: { text: string }) {
   );
 }
 
+/** The screenshot row; an arrow shows only while more screenshots lie past that edge. */
+function Screenshots({ app }: { app: StoreAppDetail }) {
+  const { t } = useTranslation();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLButtonElement>(null);
+  const rightRef = useRef<HTMLButtonElement>(null);
+  const pressed = useRef<-1 | 1 | null>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+
+  // The arrow that reached its end unmounts with focus on it; hand focus to the opposite one,
+  // and only when focus fell to the body, so focus the user placed elsewhere stays put.
+  useLayoutEffect(() => {
+    const reachedEnd = (pressed.current === 1 && !more.right) || (pressed.current === -1 && !more.left);
+    if (!reachedEnd) return;
+    const lost = document.activeElement === null || document.activeElement === document.body;
+    if (lost) (pressed.current === 1 ? leftRef : rightRef).current?.focus();
+    pressed.current = null;
+  }, [more]);
+
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const update = () => {
+      const left = row.scrollLeft > 1;
+      const right = row.scrollLeft + row.clientWidth < row.scrollWidth - 1;
+      setMore(prev => (prev.left === left && prev.right === right ? prev : { left, right }));
+    };
+    update();
+    row.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(row);
+    return () => { row.removeEventListener('scroll', update); observer.disconnect(); };
+  }, []);
+
+  const scrollPage = (direction: -1 | 1) => {
+    pressed.current = direction;
+    const row = rowRef.current;
+    row?.scrollBy({ left: direction * row.clientWidth * 0.9, behavior: 'smooth' });
+  };
+
+  return (
+    <div className={styles.shotsRail}>
+      <div ref={rowRef} className={styles.shots}>
+        {app.screenshots.map((url, i) => (
+          <img
+            key={url}
+            src={url}
+            alt={t('store.screenshotAlt', { name: app.name, index: i + 1 })}
+            className={styles.shot}
+            loading="lazy"
+          />
+        ))}
+      </div>
+      {more.left && (
+        <Button
+          ref={leftRef}
+          className={`${styles.shotsArrow} ${styles.shotsArrowLeft}`}
+          size="lg"
+          icon={<ChevronLeft size={22} />}
+          aria-label={t('common.pager.prev')}
+          onClick={() => scrollPage(-1)}
+        />
+      )}
+      {more.right && (
+        <Button
+          ref={rightRef}
+          className={`${styles.shotsArrow} ${styles.shotsArrowRight}`}
+          size="lg"
+          icon={<ChevronRight size={22} />}
+          aria-label={t('common.pager.next')}
+          onClick={() => scrollPage(1)}
+        />
+      )}
+    </div>
+  );
+}
+
 function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
   appId: string; onBack: () => void; installed?: InstalledInfo;
   onNeedsSignIn: (retry: () => void) => void;
@@ -343,20 +420,18 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
 
       {/* Media rides the service's store proxy, never the bundle: it must be readable before the app is installed. */}
       {app.screenshots.length > 0 && (
-        <div className={styles.shots}>
-          {app.screenshots.map((url, i) => (
-            <img
-              key={url}
-              src={url}
-              alt={t('store.screenshotAlt', { name: app.name, index: i + 1 })}
-              className={styles.shot}
-              loading="lazy"
-            />
-          ))}
-        </div>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>{t('store.section.preview')}</h2>
+          <Screenshots key={app.id} app={app} />
+        </section>
       )}
 
-      {app.description && <Description text={app.description} />}
+      {app.description && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>{t('store.section.description')}</h2>
+          <Description text={app.description} />
+        </section>
+      )}
     </div>
   );
 }

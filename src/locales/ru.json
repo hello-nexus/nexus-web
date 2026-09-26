@@ -4380,6 +4380,8 @@
   "store.retry": "Повторить",
   "store.screenshotAlt": "Скриншот {index} приложения {name}",
   "store.section.apps": "Приложения",
+  "store.section.description": "Описание",
+  "store.section.preview": "Предпросмотр",
   "store.signIn.body": "Войдите в свой аккаунт Nexus или создайте его бесплатно, чтобы продолжить.",
   "store.signIn.title": "Войдите, чтобы загружать приложения",
   "store.spec.requires": "Требуется Nexus",

@@ -4340,6 +4340,8 @@
   "store.retry": "Tentar de novo",
   "store.screenshotAlt": "Captura de tela {index} de {name}",
   "store.section.apps": "Apps",
+  "store.section.description": "Descrição",
+  "store.section.preview": "Visualização",
   "store.signIn.body": "Entre na sua conta Nexus ou crie uma grátis para continuar.",
   "store.signIn.title": "Entre para baixar apps",
   "store.spec.requires": "Requer Nexus",
