@@ -44,7 +44,7 @@ import { PanelPager } from './chrome/PanelPager';
 import { PanelPageIndicator } from './chrome/PanelPageIndicator';
 import { PanelActionsTray } from './chrome/PanelActionsTray';
 import { PanelSwipeHint } from './chrome/PanelSwipeHint';
-import { usePanelSwipeOnboarding } from './engine/usePanelSwipeOnboarding';
+import { hasTouchInput, usePanelSwipeOnboarding } from './engine/usePanelSwipeOnboarding';
 import { PanelImmersiveOverlay } from './overlays/PanelImmersiveOverlay';
 import {
   canMarkImmersiveOnLoad,
@@ -956,7 +956,7 @@ export function PanelContent({
   const homeIntroActive = useHomeIntro(embedded && surface === 'desktop' && loaded);
   // Same surfaces as the tray; the connection intro blocks it so the two never stack.
   const swipeOnboarding = usePanelSwipeOnboarding({
-    enabled: kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && loaded && !isOffline,
+    enabled: kioskBehavior && surfaceSupportsTouch(surface, deviceTouch) && hasTouchInput(mouseAsTouch) && loaded && !isOffline,
     blocked: connectionIntroBlocked || Boolean(connectionIntroHost),
     trayOpen,
   });
