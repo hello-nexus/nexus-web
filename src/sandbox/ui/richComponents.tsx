@@ -25,6 +25,7 @@ import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
 import { ClockWorldView } from '../../panel/widgets/clock/ClockWorldView';
 import { CLOCK_DESIGNS } from '../../panel/widgets/clock/designs';
+import { useUnitPrefs } from '../../hooks/useUiSettings';
 import { MediaCropper } from '../../components/common/MediaCropper/MediaCropper';
 import type { NormalizedCrop } from '../../components/common/MediaCropper/MediaCropper';
 import { serializeCrop } from '../../components/common/MediaCropper/mediaCrop';
@@ -75,6 +76,7 @@ export function ViewHeaderHost(p: HostProps) {
 }
 
 export function ClockFace(p: HostProps) {
+  const { dateFormat } = useUnitPrefs();
   const ms = num(p.nowMs);
   if (ms === undefined) return null;
   const entry = CLOCK_DESIGNS[str(p.design) ?? 'digital'] ?? CLOCK_DESIGNS['digital'];
@@ -87,6 +89,7 @@ export function ClockFace(p: HostProps) {
         showSeconds={!!p.showSeconds}
         showDate={p.showDate !== false}
         showTimezone={!!p.showTimezone}
+        dateFormat={dateFormat}
         size={str(p.size) ?? '4x2'}
         hour12={!!p.hour12}
         useAccentColor={!!p.useAccentColor}

@@ -4116,6 +4116,8 @@
   "settings.theme.light": "Светлая",
   "settings.theme.system": "Системная",
   "settings.title": "Настройки",
+  "settings.units.date.description": "Как виджеты часов показывают дату.",
+  "settings.units.date.label": "Формат даты",
   "settings.units.number.label": "Формат чисел",
   "settings.units.system": "Системная",
   "settings.units.temperature.celsius": "Цельсий (°C)",

@@ -4,7 +4,7 @@ import { ClockDate, ClockLine, useClockFit } from './layout';
 import { StableDigits } from '../../common/StableDigits';
 import styles from './DigitalClock.module.scss';
 
-function DigitalClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
+function DigitalClock({ now, tz, showSeconds, showDate, showTimezone, dateFormat, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const stacked = layout === 'stacked';
   const { boxRef, contentRef, scale } = useClockFit(stacked);
   const parts = new Intl.DateTimeFormat(undefined, {
@@ -23,7 +23,7 @@ function DigitalClock({ now, tz, showSeconds, showDate, showTimezone, size, hour
     ? parts.filter(p => p.type === 'hour' || p.type === 'minute' || p.type === 'second').map(p => p.value)
     : [parts.filter(p => p.type !== 'dayPeriod').map(p => p.value).join('').trim()];
 
-  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone, dateFormat);
 
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
 

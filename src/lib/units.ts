@@ -13,6 +13,19 @@ export const DEFAULT_TEMP_UNIT: TempUnit = 'c';
 export const DEFAULT_TIME_FORMAT: TimeFormat = 'system';
 export const DEFAULT_NUMBER_FORMAT: NumberFormat = 'system';
 
+// Date patterns: ddd = short weekday name, d/dd = day, mmm = short month name,
+// mm = 2-digit month, yy/yyyy = year. 'system' is the locale's own weekday,
+// day and month.
+export const DATE_FORMATS = [
+  'system',
+  'ddd, d mmm', 'ddd d mmm', 'ddd, mmm d', 'd mmm', 'mmm d',
+  'ddd, d mmm yyyy', 'd mmm yyyy', 'mmm d, yyyy',
+  'dd/mm/yy', 'dd/mm/yyyy', 'mm/dd/yy', 'mm/dd/yyyy', 'dd-mm-yy', 'dd.mm.yyyy',
+  'yyyy-mm-dd', 'yyyy/mm/dd',
+] as const;
+export type DateFormat = typeof DATE_FORMATS[number];
+export const DEFAULT_DATE_FORMAT: DateFormat = 'system';
+
 // ── Temperature ──────────────────────────────────────────────────────────────
 
 // Service temperature sensors report units as "°C"; match leniently in case a
@@ -88,6 +101,31 @@ export function localizeNumbers(display: string, fmt: NumberFormat): string {
     const newInt = intPart.replace(/,/g, group);
     return frac ? `${newInt}${decimal}${frac}` : newInt;
   });
+}
+
+// ── Date ────────────────────────────────────────────────────────────────────
+
+// Names come from the runtime locale; digits stay Latin. An unknown pattern
+// (a value written by a newer build) renders as 'system'.
+export function formatDate(date: Date, fmt: DateFormat, tz?: string): string {
+  const timeZone = tz || undefined;
+  const names = new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone });
+  if (fmt === 'system' || !DATE_FORMATS.includes(fmt)) return names.format(date);
+  const nameParts = names.formatToParts(date);
+  const numParts = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).formatToParts(date);
+  const part = (parts: Intl.DateTimeFormatPart[], type: Intl.DateTimeFormatPartTypes) => parts.find(p => p.type === type)?.value ?? '';
+  const year = part(numParts, 'year');
+  const day = part(numParts, 'day');
+  const tokens: Record<string, string> = {
+    yyyy: year,
+    yy: year.slice(-2),
+    mmm: part(nameParts, 'month'),
+    mm: part(numParts, 'month'),
+    ddd: part(nameParts, 'weekday'),
+    dd: day,
+    d: String(Number(day)),
+  };
+  return fmt.replace(/yyyy|yy|mmm|mm|ddd|dd|d/g, token => tokens[token]);
 }
 
 // ── Time ────────────────────────────────────────────────────────────────────

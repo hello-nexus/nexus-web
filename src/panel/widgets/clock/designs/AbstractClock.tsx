@@ -3,9 +3,9 @@ import { formatMetaLine, getClockAngles } from './timeFormat';
 import { ClockDate } from './layout';
 import styles from './AbstractClock.module.scss';
 
-function AbstractClock({ now, tz, showSeconds, showDate, showTimezone, size }: ClockDesignProps) {
+function AbstractClock({ now, tz, showSeconds, showDate, showTimezone, dateFormat, size }: ClockDesignProps) {
   const { hourDeg, minuteDeg, secondDeg } = getClockAngles(now, tz);
-  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone, dateFormat);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
 
   return (

@@ -63,7 +63,7 @@ function ScrambleChar({ char }: { char: string }) {
   );
 }
 
-function MatrixClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
+function MatrixClock({ now, tz, showSeconds, showDate, showTimezone, dateFormat, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const stacked = layout === 'stacked';
@@ -71,7 +71,7 @@ function MatrixClock({ now, tz, showSeconds, showDate, showTimezone, size, hour1
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
   const { boxRef, contentRef, scale } = useClockFit(stacked);
 
-  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone, dateFormat);
 
   return (
     <div className={`${styles.container} ${sizeClass} ${stacked ? styles.stacked : ''} ${useAccentColor ? styles.accent : ''}`}>

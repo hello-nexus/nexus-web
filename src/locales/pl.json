@@ -4116,6 +4116,8 @@
   "settings.theme.light": "Jasny",
   "settings.theme.system": "Systemowy",
   "settings.title": "Ustawienia",
+  "settings.units.date.description": "Sposób wyświetlania daty w widżetach Zegara.",
+  "settings.units.date.label": "Format daty",
   "settings.units.number.label": "Format liczb",
   "settings.units.system": "Systemowy",
   "settings.units.temperature.celsius": "Celsjusz (°C)",

@@ -4079,6 +4079,8 @@
   "settings.theme.light": "淺色",
   "settings.theme.system": "系統",
   "settings.title": "設定",
+  "settings.units.date.description": "時鐘小工具顯示日期的方式。",
+  "settings.units.date.label": "日期格式",
   "settings.units.number.label": "數字格式",
   "settings.units.system": "系統",
   "settings.units.temperature.celsius": "攝氏（°C）",

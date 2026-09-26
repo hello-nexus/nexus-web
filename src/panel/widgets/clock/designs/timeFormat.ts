@@ -1,3 +1,5 @@
+import { formatDate, type DateFormat } from '../../../../lib/units';
+
 // Shared time-format helpers for clock designs: "HH:MM[:SS]" string,
 // an "AM"/"PM" suffix in 12-hour mode, and the dim date/timezone meta line.
 
@@ -32,16 +34,10 @@ export function formatMetaLine(
   tz: string | undefined,
   showDate: boolean,
   showTimezone: boolean,
+  dateFormat: DateFormat,
 ): string {
   const parts: string[] = [];
-  if (showDate) {
-    parts.push(new Intl.DateTimeFormat(undefined, {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      timeZone: tz || undefined,
-    }).format(now));
-  }
+  if (showDate) parts.push(formatDate(now, dateFormat, tz));
   if (showTimezone) {
     const zone = new Intl.DateTimeFormat(undefined, {
       timeZoneName: 'short',

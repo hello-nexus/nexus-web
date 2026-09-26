@@ -4079,6 +4079,8 @@
   "settings.theme.light": "Claro",
   "settings.theme.system": "Sistema",
   "settings.title": "Configuracoes",
+  "settings.units.date.description": "Como os widgets de Relógio mostram a data.",
+  "settings.units.date.label": "Formato de data",
   "settings.units.number.label": "Formato numérico",
   "settings.units.system": "Sistema",
   "settings.units.temperature.celsius": "Celsius (°C)",

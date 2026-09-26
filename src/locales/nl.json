@@ -4079,6 +4079,8 @@
   "settings.theme.light": "Licht",
   "settings.theme.system": "Systeem",
   "settings.title": "Instellingen",
+  "settings.units.date.description": "Hoe Klok-widgets de datum tonen.",
+  "settings.units.date.label": "Datumnotatie",
   "settings.units.number.label": "Getalnotatie",
   "settings.units.system": "Systeem",
   "settings.units.temperature.celsius": "Celsius (°C)",

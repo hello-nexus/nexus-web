@@ -3,8 +3,8 @@
 import type { UpdateChannel, UpdateMode } from '../api/update';
 import { DEFAULT_SMART_POLL_SECONDS } from '../api/smartPoll';
 import {
-  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT,
-  type TempUnit, type TimeFormat, type NumberFormat,
+  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT, DEFAULT_DATE_FORMAT,
+  type TempUnit, type TimeFormat, type NumberFormat, type DateFormat,
 } from './units';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -184,6 +184,7 @@ export interface GeneralSettings {
   monitoringTempUnit: TempUnit;
   timeFormat: TimeFormat;
   numberFormat: NumberFormat;
+  dateFormat: DateFormat;
   updateMode?: UpdateMode;
   updateChannel?: UpdateChannel;
   lastDismissedUpdateVersion?: string;
@@ -245,6 +246,7 @@ export function getDefaultSettings(): NexusSettings {
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
+      dateFormat: DEFAULT_DATE_FORMAT,
       startupDelaySeconds: 0,
       featureLightingEnabled: true,
       featureCoolingEnabled: true,

@@ -20,7 +20,7 @@ function RollingDigit({ digit }: { digit: number }) {
   );
 }
 
-function RollingClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
+function RollingClock({ now, tz, showSeconds, showDate, showTimezone, dateFormat, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const stacked = layout === 'stacked';
@@ -28,7 +28,7 @@ function RollingClock({ now, tz, showSeconds, showDate, showTimezone, size, hour
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
   const { boxRef, contentRef, scale } = useClockFit(stacked);
 
-  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone, dateFormat);
 
   // Parse a line into segments: digit groups separated by colons. A stacked
   // line carries no colon, so it yields a single digit group.

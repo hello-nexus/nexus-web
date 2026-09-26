@@ -83,6 +83,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       monitoringTempUnit: ui.monitoringTempUnit,
       timeFormat: ui.timeFormat,
       numberFormat: ui.numberFormat,
+      dateFormat: ui.dateFormat,
       startupDelaySeconds: ui.startupDelaySeconds,
       featureLightingEnabled: ui.featureLightingEnabled,
       featureCoolingEnabled: ui.featureCoolingEnabled,

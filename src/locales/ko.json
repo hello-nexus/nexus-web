@@ -4079,6 +4079,8 @@
   "settings.theme.light": "라이트",
   "settings.theme.system": "시스템",
   "settings.title": "설정",
+  "settings.units.date.description": "시계 위젯에 날짜를 표시하는 방식입니다.",
+  "settings.units.date.label": "날짜 형식",
   "settings.units.number.label": "숫자 형식",
   "settings.units.system": "시스템",
   "settings.units.temperature.celsius": "섭씨 (°C)",

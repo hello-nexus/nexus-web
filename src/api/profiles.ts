@@ -4,7 +4,7 @@ import type { PanelLayout } from '../panel/types';
 import type { PanelGaugeGradientStopDto } from './panel';
 import type { OverlayWidgetDto } from './overlay';
 import type { UpdateChannel, UpdateMode } from './update';
-import type { TempUnit, TimeFormat, NumberFormat } from '../lib/units';
+import type { TempUnit, TimeFormat, NumberFormat, DateFormat } from '../lib/units';
 
 export const PROFILE_CATEGORIES = ['lighting', 'cooling', 'theme', 'dashboard', 'device'] as const;
 export type ProfileCategory = typeof PROFILE_CATEGORIES[number];
@@ -201,6 +201,7 @@ export interface UnitsPrefs {
   monitoringTempUnit?: TempUnit;
   timeFormat?: TimeFormat;
   numberFormat?: NumberFormat;
+  dateFormat?: DateFormat;
 }
 
 // preferences.features - the four global feature switches (Lighting, Cooling,

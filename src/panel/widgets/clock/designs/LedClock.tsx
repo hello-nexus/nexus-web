@@ -50,7 +50,7 @@ function LedColon({ pulse }: { pulse: boolean }) {
   );
 }
 
-function LedClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
+function LedClock({ now, tz, showSeconds, showDate, showTimezone, dateFormat, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const colonVisible = now.getSeconds() % 2 === 0;
@@ -59,7 +59,7 @@ function LedClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, 
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
   const { boxRef, contentRef, scale } = useClockFit(stacked);
 
-  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone, dateFormat);
 
   const lineCells = (line: string): ReactElement[] => {
     const elements: ReactElement[] = [];

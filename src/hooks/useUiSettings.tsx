@@ -21,8 +21,8 @@ import {
 } from '../api/profiles';
 import type { UpdateChannel, UpdateMode } from '../api/update';
 import {
-  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT,
-  type TempUnit, type TimeFormat, type NumberFormat,
+  DEFAULT_TEMP_UNIT, DEFAULT_TIME_FORMAT, DEFAULT_NUMBER_FORMAT, DEFAULT_DATE_FORMAT, DATE_FORMATS,
+  type TempUnit, type TimeFormat, type NumberFormat, type DateFormat,
 } from '../lib/units';
 import { useTopicCallback } from './useMultiplexSocket';
 import { useTranslation } from '../lib/i18n';
@@ -122,6 +122,7 @@ export interface UiSettingsValue {
   monitoringTempUnit: TempUnit;
   timeFormat: TimeFormat;
   numberFormat: NumberFormat;
+  dateFormat: DateFormat;
   // Windows-only: seconds to wait before starting Nexus at system startup.
   // Server-mirrored under the preferences top-level startupDelaySeconds field.
   startupDelaySeconds: number;
@@ -246,6 +247,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     monitoringTempUnit: src.general.monitoringTempUnit,
     timeFormat: src.general.timeFormat,
     numberFormat: src.general.numberFormat,
+    dateFormat: src.general.dateFormat,
     startupDelaySeconds: src.general.startupDelaySeconds,
     featureLightingEnabled: src.general.featureLightingEnabled,
     featureCoolingEnabled: src.general.featureCoolingEnabled,
@@ -311,6 +313,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       monitoringTempUnit: src.monitoringTempUnit,
       timeFormat: src.timeFormat,
       numberFormat: src.numberFormat,
+      dateFormat: src.dateFormat,
       startupDelaySeconds: src.startupDelaySeconds,
       featureLightingEnabled: src.featureLightingEnabled,
       featureCoolingEnabled: src.featureCoolingEnabled,
@@ -372,10 +375,11 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.lastDismissedUpdateVersion !== undefined) update.lastDismissedUpdateVersion = patch.lastDismissedUpdateVersion;
   if (Object.keys(update).length > 0) out.update = update;
   // units block
-  const units: Partial<{ monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat }> = {};
+  const units: Partial<{ monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat; dateFormat: DateFormat }> = {};
   if (patch.monitoringTempUnit !== undefined) units.monitoringTempUnit = patch.monitoringTempUnit;
   if (patch.timeFormat !== undefined) units.timeFormat = patch.timeFormat;
   if (patch.numberFormat !== undefined) units.numberFormat = patch.numberFormat;
+  if (patch.dateFormat !== undefined) units.dateFormat = patch.dateFormat;
   if (Object.keys(units).length > 0) out.units = units;
   // Top-level field (not nested under a domain block), per the wire contract.
   if (patch.startupDelaySeconds !== undefined) out.startupDelaySeconds = patch.startupDelaySeconds;
@@ -498,6 +502,9 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
     monitoringTempUnit: (server.units?.monitoringTempUnit as TempUnit) ?? base.monitoringTempUnit,
     timeFormat: (server.units?.timeFormat as TimeFormat) ?? base.timeFormat,
     numberFormat: (server.units?.numberFormat as NumberFormat) ?? base.numberFormat,
+    // An open list: a pattern from a newer build would match no Settings option.
+    dateFormat: server.units?.dateFormat === undefined ? base.dateFormat
+      : DATE_FORMATS.includes(server.units.dateFormat) ? server.units.dateFormat : DEFAULT_DATE_FORMAT,
     startupDelaySeconds: server.startupDelaySeconds ?? base.startupDelaySeconds,
     featureLightingEnabled: server.features?.lighting ?? base.featureLightingEnabled,
     featureCoolingEnabled: server.features?.cooling ?? base.featureCoolingEnabled,
@@ -782,7 +789,7 @@ export function usePreferredGpuId(): string {
  * instead of crashing - same pattern as {@link useTempSensorPrefs}.
  */
 export function useUnitPrefs(): {
-  monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat;
+  monitoringTempUnit: TempUnit; timeFormat: TimeFormat; numberFormat: NumberFormat; dateFormat: DateFormat;
 } {
   const ctx = useContext(UiSettingsContext);
   if (!ctx) {
@@ -790,12 +797,14 @@ export function useUnitPrefs(): {
       monitoringTempUnit: DEFAULT_TEMP_UNIT,
       timeFormat: DEFAULT_TIME_FORMAT,
       numberFormat: DEFAULT_NUMBER_FORMAT,
+      dateFormat: DEFAULT_DATE_FORMAT,
     };
   }
   return {
     monitoringTempUnit: ctx.settings.monitoringTempUnit,
     timeFormat: ctx.settings.timeFormat,
     numberFormat: ctx.settings.numberFormat,
+    dateFormat: ctx.settings.dateFormat,
   };
 }
 

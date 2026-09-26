@@ -4079,6 +4079,8 @@
   "settings.theme.light": "Clair",
   "settings.theme.system": "Système",
   "settings.title": "Paramètres",
+  "settings.units.date.description": "Comment les widgets Horloge affichent la date.",
+  "settings.units.date.label": "Format de date",
   "settings.units.number.label": "Format numérique",
   "settings.units.system": "Système",
   "settings.units.temperature.celsius": "Celsius (°C)",

@@ -14,7 +14,7 @@ import { safeTimeZone } from './timezones';
  */
 export function ClockWidget({ widget }: WidgetProps) {
   const [now, setNow] = useState(() => new Date());
-  const { timeFormat } = useUnitPrefs();
+  const { timeFormat, dateFormat } = useUnitPrefs();
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -50,6 +50,7 @@ export function ClockWidget({ widget }: WidgetProps) {
       showSeconds={showSeconds}
       showDate={showDate}
       showTimezone={showTimezone}
+      dateFormat={dateFormat}
       // The round tile lays out as a 2x2 and the scaler shrinks the result, so the
       // designs read the layout size; a round-specific rung would shrink it twice.
       size={widgetLayoutSize(widget.size)}

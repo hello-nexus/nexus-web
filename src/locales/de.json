@@ -4079,6 +4079,8 @@
   "settings.theme.light": "Hell",
   "settings.theme.system": "System",
   "settings.title": "Einstellungen",
+  "settings.units.date.description": "Wie Uhr-Widgets das Datum anzeigen.",
+  "settings.units.date.label": "Datumsformat",
   "settings.units.number.label": "Zahlenformat",
   "settings.units.system": "System",
   "settings.units.temperature.celsius": "Celsius (°C)",

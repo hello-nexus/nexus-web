@@ -83,7 +83,7 @@ function FlapCard({ char, badge }: { char: string; badge?: ReactNode }) {
   );
 }
 
-function SplitFlapClock({ now, tz, showSeconds, showDate, showTimezone, size, hour12, useAccentColor, layout }: ClockDesignProps) {
+function SplitFlapClock({ now, tz, showSeconds, showDate, showTimezone, dateFormat, size, hour12, useAccentColor, layout }: ClockDesignProps) {
   const time = formatTime(now, tz, showSeconds, hour12);
   const ampm = getAmPm(now, tz, hour12);
   const stacked = layout === 'stacked';
@@ -91,7 +91,7 @@ function SplitFlapClock({ now, tz, showSeconds, showDate, showTimezone, size, ho
   const { boxRef, contentRef, scale } = useClockFit(stacked);
   const sizeClass = styles[`size-${size}`] ?? styles['size-4x2'];
 
-  const dateStr = formatMetaLine(now, tz, showDate, showTimezone);
+  const dateStr = formatMetaLine(now, tz, showDate, showTimezone, dateFormat);
 
   // AM/PM rides the last hour digit: the char before the first colon on a
   // horizontal line, the last char of the hour line when stacked.
