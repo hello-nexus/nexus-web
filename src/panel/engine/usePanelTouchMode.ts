@@ -19,7 +19,8 @@ const PANEL_SCROLLABLE_SELECTOR = '[data-panel-scrollable="true"]';
 // Elements that handle their own click (a widget's mode button, slider,
 // etc.) - tapping one of these should fire its own action, not bubble
 // up to "tap-to-immersive".
-const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"]';
+// `data-panel-interactive` marks an SDK app's tappable stage (an interactive Layer): its taps belong to the app.
+const INTERACTIVE_SELECTOR = 'button, input, select, textarea, a, [role="button"], [role="slider"], [role="switch"], [role="checkbox"], [role="tab"], [role="menuitem"], [role="option"], [data-panel-interactive="true"]';
 
 function isNonPrimaryMouseButton(e: React.PointerEvent): boolean {
   return e.pointerType === 'mouse' && e.button !== 0;

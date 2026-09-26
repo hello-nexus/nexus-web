@@ -184,8 +184,13 @@ export function Layer(p: HostProps) {
   const onClick = interactive
     ? (e: ReactMouseEvent<HTMLDivElement>) => {
         if ((e.target as Element | null)?.closest?.('[data-manipulable-id]')) return;
-        const r = e.currentTarget.getBoundingClientRect();
-        p.__events?.press?.({ x: e.clientX - r.left, y: e.clientY - r.top });
+        const el = e.currentTarget;
+        const r = el.getBoundingClientRect();
+        // A scaled panel renders the layer smaller or larger than its layout box;
+        // the worker lays out in layout px, so map the screen offset back into them.
+        const sx = el.offsetWidth > 0 && r.width > 0 ? r.width / el.offsetWidth : 1;
+        const sy = el.offsetHeight > 0 && r.height > 0 ? r.height / el.offsetHeight : 1;
+        p.__events?.press?.({ x: (e.clientX - r.left) / sx, y: (e.clientY - r.top) / sy });
       }
     : undefined;
   return (
@@ -194,6 +199,7 @@ export function Layer(p: HostProps) {
         ref={rootRef}
         style={style}
         onClick={onClick}
+        data-panel-interactive={interactive ? 'true' : undefined}
         data-layer-gestures={gestures ? 'true' : undefined}
         data-panel-no-sheet-swipe={gestures ? 'true' : undefined}
         onPointerDown={gestures ? onPointerDown : undefined}
