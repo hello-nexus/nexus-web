@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "Conflitto app",
   "conflicts.devices.appControls": "Li controlla {app}",
-  "conflicts.devices.endFailed": "{app} è ancora in esecuzione. Usa «Termina processo» per chiuderlo.",
   "conflicts.devices.heading": "Dispositivi contesi",
   "conflicts.devices.mixed": "Misto",
   "conflicts.devices.nexusControls": "Li controlla Nexus",

@@ -259,7 +259,6 @@
   "confirm.ok": "Aceptar",
   "conflicts.badge.text": "Conflicto de aplicación",
   "conflicts.devices.appControls": "{app} controla estos",
-  "conflicts.devices.endFailed": "{app} sigue en ejecución. Usa «Finalizar tarea» para cerrarlo.",
   "conflicts.devices.heading": "Dispositivos por los que compite",
   "conflicts.devices.mixed": "Mixto",
   "conflicts.devices.nexusControls": "Nexus controla estos",

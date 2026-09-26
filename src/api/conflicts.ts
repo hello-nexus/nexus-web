@@ -52,6 +52,20 @@ export function killConflict(id: string): Promise<KillConflictResponse | null> {
   return postService<KillConflictResponse>('/conflicts/kill', { id });
 }
 
+export interface SetConflictWhitelistedResponse {
+  error: boolean;
+  msg: string;
+}
+
+/**
+ * Adds or removes a catalog app from `Ui.ConflictAutoKillExclusions`. The
+ * service updates the list atomically and republishes `prefs`, which
+ * `useUiSettings` already reloads on.
+ */
+export function setConflictWhitelisted(id: string, whitelisted: boolean): Promise<SetConflictWhitelistedResponse | null> {
+  return postService<SetConflictWhitelistedResponse>('/conflicts/whitelist', { id, whitelisted });
+}
+
 /**
  * One entry of the service's static conflict catalog - every app Nexus knows
  * how to shut down, running or not. Shape mirrors

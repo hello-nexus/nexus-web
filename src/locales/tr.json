@@ -259,7 +259,6 @@
   "confirm.ok": "Tamam",
   "conflicts.badge.text": "Uygulama çakışması",
   "conflicts.devices.appControls": "Bunları {app} denetler",
-  "conflicts.devices.endFailed": "{app} hâlâ çalışıyor. Kapatmak için \"Görevi sonlandır\"ı kullanın.",
   "conflicts.devices.heading": "Rekabet ettiği cihazlar",
   "conflicts.devices.mixed": "Karışık",
   "conflicts.devices.nexusControls": "Bunları Nexus denetler",

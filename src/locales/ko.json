@@ -259,7 +259,6 @@
   "confirm.ok": "확인",
   "conflicts.badge.text": "앱 충돌",
   "conflicts.devices.appControls": "{app}이(가) 제어",
-  "conflicts.devices.endFailed": "{app}이(가) 아직 실행 중입니다. '작업 끝내기'로 종료하세요.",
   "conflicts.devices.heading": "경합하는 장치",
   "conflicts.devices.mixed": "혼합",
   "conflicts.devices.nexusControls": "Nexus가 제어",

@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "App conflict",
   "conflicts.devices.appControls": "{app} controls these",
-  "conflicts.devices.endFailed": "{app} is still running. Use End task to close it.",
   "conflicts.devices.heading": "Devices it competes for",
   "conflicts.devices.mixed": "Mixed",
   "conflicts.devices.nexusControls": "Nexus controls these",

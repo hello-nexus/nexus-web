@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "Conflit d'application",
   "conflicts.devices.appControls": "{app} contrôle ceux-ci",
-  "conflicts.devices.endFailed": "{app} est toujours en cours d'exécution. Utilisez « Terminer la tâche » pour le fermer.",
   "conflicts.devices.heading": "Appareils en concurrence",
   "conflicts.devices.mixed": "Mixte",
   "conflicts.devices.nexusControls": "Nexus contrôle ceux-ci",

@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "Conflito de aplicação",
   "conflicts.devices.appControls": "{app} controla estes",
-  "conflicts.devices.endFailed": "{app} ainda está em execução. Use \"Terminar tarefa\" para o fechar.",
   "conflicts.devices.heading": "Dispositivos em disputa",
   "conflicts.devices.mixed": "Misto",
   "conflicts.devices.nexusControls": "O Nexus controla estes",

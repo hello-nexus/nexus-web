@@ -1162,7 +1162,7 @@ function PreviewConflictAppCard() {
           { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'app' },
           { key: 'lighting:openrgb-s-RAM1', name: 'Vengeance RGB', owner: 'mixed' },
         ]}
-        onSetOwner={async () => {}}
+        onSetOwner={async () => true}
       />
       <ConflictAppCard
         conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }}
@@ -1170,7 +1170,7 @@ function PreviewConflictAppCard() {
           { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'nexus' },
           { key: 'lighting:openrgb-s-RAM1', name: 'Vengeance RGB', owner: 'nexus' },
         ]}
-        onSetOwner={async () => {}}
+        onSetOwner={async () => true}
         terminated
       />
       <ConflictAppCard

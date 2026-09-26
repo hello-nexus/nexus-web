@@ -259,7 +259,6 @@
   "confirm.ok": "OK",
   "conflicts.badge.text": "アプリの競合",
   "conflicts.devices.appControls": "{app} が制御",
-  "conflicts.devices.endFailed": "{app} はまだ実行中です。「タスクを終了」で閉じてください。",
   "conflicts.devices.heading": "競合するデバイス",
   "conflicts.devices.mixed": "混在",
   "conflicts.devices.nexusControls": "Nexus が制御",
