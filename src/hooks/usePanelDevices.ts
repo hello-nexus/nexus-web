@@ -306,7 +306,12 @@ export function buildPanelDevices({
     const cssWidth = record.capabilities?.cssWidth ?? 0;
     const cssHeight = record.capabilities?.cssHeight ?? 0;
     const surface = record.capabilities?.surface as PanelSurface | undefined;
-    const claimed = surface ? STREAMED_PANEL_SOURCE[surface] : undefined;
+    // Cooler LCDs share surfaces, so the surface alone cannot name their device; the
+    // service stamps capabilities.family with the handler id, which is also the id of
+    // the curated device row that model reports (Galahad II LCD, HydroShift, ...).
+    const family = record.capabilities?.family;
+    const claimed = (family && curatedDevices.some(d => d.id === family) ? family : undefined)
+      ?? (surface ? STREAMED_PANEL_SOURCE[surface] : undefined);
     // A claimed panel IS the device's row, so it carries the device's name; the
     // record's own name describes only the glass ("NZXT Kraken LCD").
     const claimedName = claimed ? curatedDevices.find(d => d.id === claimed)?.name : undefined;
