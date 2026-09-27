@@ -175,7 +175,7 @@ describe('StorePage row card', () => {
     fireEvent.click(await screen.findByText('A clock for your panel'));
 
     expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
-    expect(fetchStoreApp).toHaveBeenLastCalledWith('com.example.clock');
+    expect(fetchStoreApp).toHaveBeenLastCalledWith('com.example.clock', { locale: 'en' });
   });
 
   it('leaves a keyboard route to the app page: the row title is a real control', async () => {
