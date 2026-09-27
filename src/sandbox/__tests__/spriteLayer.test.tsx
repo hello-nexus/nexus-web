@@ -4,7 +4,7 @@
 // security-relevant case here, alongside the frame -> background-position math.
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { Sprite } from '../ui/components';
 import { Layer } from '../ui/LayerStage';
 
@@ -32,10 +32,59 @@ describe('ui-sprite', () => {
     expect(el?.style.backgroundPosition).toBe('0px -16px');
   });
 
-  it('places and scales with a transform, and flips on the x axis only', () => {
+  it('paints at its final size, where a cell scaled about its centre would sit, and flips on the x axis only', () => {
     const el = sprite({ x: 40, y: 12, scale: 2, flip: true });
-    expect(el?.style.transform).toBe('translate3d(40px, 12px, 0) scale(-2, 2)');
+    // The default cell scaled about its centre grows by half its size on each side.
+    expect(el?.style.transform).toBe('translate3d(24px, -4px, 0) scaleX(-1)');
+    expect([el?.style.width, el?.style.height]).toEqual(['64px', '64px']);
     expect(el?.style.position).toBe('absolute');
+  });
+
+  it('scales the atlas with the cell, so the browser draws its pixels nearest-neighbour at full size', () => {
+    const el = sprite({ frame: 14, cols: 12, cw: 16, ch: 16, scale: 3 });
+    expect(el?.style.backgroundSize).toMatch(/^576px( auto)?$/);
+    expect(el?.style.backgroundPosition).toBe('-96px -48px');
+  });
+
+  it('keeps showing its old image while a new one decodes, so a redrawn bitmap never blinks', async () => {
+    let finish = () => {};
+    // jsdom has no decode(); stand one in that resolves when the test says so.
+    Object.defineProperty(HTMLImageElement.prototype, 'decode', {
+      configurable: true, value: () => new Promise<void>((r) => { finish = r; }),
+    });
+    try {
+      const next = 'data:image/png;base64,iVBORw0KGgo';
+      const { container, rerender } = render(<Sprite src={ATLAS} x={0} y={0} cw={16} ch={16} cols={4} frame={1} scale={2} />);
+      rerender(<Sprite src={next} x={0} y={0} cw={24} ch={24} cols={2} frame={0} scale={2} />);
+      const el = () => container.firstElementChild as HTMLElement;
+      // The old image keeps the whole cell it was drawn with: box, atlas size and offset.
+      expect(el().style.backgroundImage).toContain(ATLAS);
+      expect([el().style.width, el().style.backgroundSize, el().style.backgroundPosition]).toEqual(['32px', '128px', '-32px 0px']);
+      await act(async () => { finish(); });
+      expect(el().style.backgroundImage).toContain(next);
+      expect(el().style.width).toBe('48px');
+    } finally {
+      delete (HTMLImageElement.prototype as { decode?: unknown }).decode;
+    }
+  });
+
+  it('gives up holding on time even when the source keeps changing before any decodes', () => {
+    vi.useFakeTimers();
+    Object.defineProperty(HTMLImageElement.prototype, 'decode', {
+      configurable: true, value: () => new Promise<void>(() => {}),
+    });
+    try {
+      const { container, rerender } = render(<Sprite src={ATLAS} x={0} y={0} />);
+      const el = () => container.firstElementChild as HTMLElement;
+      for (let i = 0; i < 10; i++) {
+        rerender(<Sprite src={`data:image/png;base64,QUFB${i}`} x={0} y={0} />);
+        act(() => { vi.advanceTimersByTime(100); });
+      }
+      expect(el().style.backgroundImage).not.toContain(ATLAS);
+    } finally {
+      delete (HTMLImageElement.prototype as { decode?: unknown }).decode;
+      vi.useRealTimers();
+    }
   });
 
   it('defaults to nearest-neighbour scaling so pixel art stays crisp', () => {
@@ -56,7 +105,7 @@ describe('ui-sprite', () => {
   it('paints at the origin when the origin is what the author asked for', () => {
     const { container } = render(<Sprite src={ATLAS} x={0} y={0} />);
     const el = container.firstElementChild as HTMLElement;
-    expect(el.style.transform).toBe('translate3d(0px, 0px, 0) scale(1, 1)');
+    expect(el.style.transform).toBe('translate3d(0px, 0px, 0)');
   });
 
   it('rejects a src that could break out of the CSS url() token', () => {

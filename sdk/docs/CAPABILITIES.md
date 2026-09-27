@@ -525,8 +525,10 @@ can learn a coordinate.
 #### `Sprite`
 One cell of a sprite atlas, absolutely placed inside a `Layer`. Ship the atlas
 once as a `data:` URL and animate by changing `frame`, so a frame costs three
-numbers over the worker port instead of a fresh image. Scaling is a compositor
-transform, and `pixelated` is on by default.
+numbers over the worker port instead of a fresh image. The cell is painted at its
+final size, so the atlas must be exactly `cols` cells of `cw` wide with no padding,
+and `pixelated` is on by default. A new `src` shows once it has decoded; until
+then, for a moment at most, the previous image stays.
 
 | Prop | Type |
 |---|---|

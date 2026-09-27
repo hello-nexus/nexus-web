@@ -424,33 +424,68 @@ function safeAtlasUrl(src: string | undefined): string | undefined {
   return src;
 }
 
-// One cell of a sprite atlas. Drawn as a background-position offset into the
-// atlas so animating a frame costs one number, and moved with a transform so
-// the compositor handles motion without a layout pass.
+/** A changed image source may paint blank until the browser decodes it; a sprite keeps its last image this long at most. */
+const DECODE_HOLD_MS = 300;
+
+// The last source this sprite can paint without a blank frame: a new source is decoded first.
+function useDecodedSrc(src: string | undefined): string | undefined {
+  const [ready, setReady] = useState(src);
+  // When the current hold began, so a source replaced faster than it decodes still gives up on time.
+  const since = useRef<number | null>(null);
+  useEffect(() => {
+    if (!src || src === ready) {
+      since.current = null;
+      return;
+    }
+    if (since.current === null) since.current = Date.now();
+    let live = true;
+    const done = () => { if (live) setReady(src); };
+    // window.Image: this module's own Image component shadows the DOM constructor.
+    const img = new window.Image();
+    img.src = src;
+    const timer = window.setTimeout(done, Math.max(0, DECODE_HOLD_MS - (Date.now() - since.current)));
+    if (typeof img.decode === 'function') img.decode().then(done, done);
+    else img.onload = img.onerror = done;
+    return () => {
+      live = false;
+      window.clearTimeout(timer);
+    };
+  }, [src, ready]);
+  return src && !ready ? src : ready;
+}
+
+// One atlas cell painted at its final size (a scale transform lets the compositor smooth it), scaled about its centre.
 export function Sprite(p: HostProps) {
-  const src = safeAtlasUrl(str(p.src));
-  if (!src) return null;
+  const want = safeAtlasUrl(str(p.src));
+  const shown = useDecodedSrc(want);
+  const cw = num(p.cw) ?? 32;
+  const ch = num(p.ch) ?? 32;
+  const cols = Math.max(1, Math.trunc(num(p.cols) ?? 1));
+  const frame = Math.max(0, Math.trunc(num(p.frame) ?? 0));
+  // While a new source decodes, the old one keeps the cell it was drawn with.
+  const held = useRef({ cw, ch, cols, frame });
+  if (shown === want) held.current = { cw, ch, cols, frame };
+  if (!want || !shown) return null;
   // A sprite is placed by transform, so one that has not received a position
   // yet would paint at the layer's origin for a frame - a visible flash in the
   // top-left corner whenever the worker inserts a new sprite. Draw nothing
   // until it is positioned; an intentional (0,0) still passes, since those
   // arrive as real numbers.
   if (num(p.x) === undefined && num(p.y) === undefined) return null;
-  const cw = num(p.cw) ?? 32;
-  const ch = num(p.ch) ?? 32;
-  const cols = Math.max(1, Math.trunc(num(p.cols) ?? 1));
-  const frame = Math.max(0, Math.trunc(num(p.frame) ?? 0));
   const scale = num(p.scale) ?? 1;
-  const transform =
-    `translate3d(${num(p.x) ?? 0}px, ${num(p.y) ?? 0}px, 0)` +
-    ` scale(${p.flip ? -scale : scale}, ${scale})`;
+  const g = held.current;
+  const w = g.cw * scale;
+  const h = g.ch * scale;
+  const x = (num(p.x) ?? 0) - (w - g.cw) / 2;
+  const y = (num(p.y) ?? 0) - (h - g.ch) / 2;
   const style: CSSProperties = {
     position: 'absolute', left: 0, top: 0,
-    width: cw, height: ch,
-    transform,
+    width: w, height: h,
+    transform: `translate3d(${x}px, ${y}px, 0)${p.flip ? ' scaleX(-1)' : ''}`,
     transformOrigin: 'center center',
-    backgroundImage: `url("${src}")`,
-    backgroundPosition: `${-(frame % cols) * cw}px ${-Math.floor(frame / cols) * ch}px`,
+    backgroundImage: `url("${shown}")`,
+    backgroundSize: `${g.cols * w}px auto`,
+    backgroundPosition: `${-(g.frame % g.cols) * w}px ${-Math.floor(g.frame / g.cols) * h}px`,
     backgroundRepeat: 'no-repeat',
     imageRendering: p.pixelated === false ? undefined : 'pixelated',
     opacity: num(p.opacity),
