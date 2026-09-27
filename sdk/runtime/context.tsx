@@ -72,6 +72,8 @@ export interface WidgetContextInit {
   /** Static for the render; host-computed from the panel surface + widget
    *  size. Defaults to rect/pointer when the host omits it. */
   display?: WidgetDisplay;
+  /** Nexus's UI language as a BCP 47 tag; 'en' from a host that omits it. */
+  locale?: string;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -91,9 +93,11 @@ export interface WidgetState {
    *  the host pushes a later change through `update` rather than baking it
    *  in once at spawn. */
   display: WidgetDisplay;
+  /** Reactive: the user can switch Nexus's language while the widget runs. */
+  locale: string;
 }
 
-export interface WidgetStorePatch extends Partial<Pick<WidgetState, 'settings' | 'size' | 'display'>> {
+export interface WidgetStorePatch extends Partial<Pick<WidgetState, 'settings' | 'size' | 'display' | 'locale'>> {
   /** A pushed or freshly-read app-data document for one key. */
   appData?: { key: string } & AppDataDoc;
 }
@@ -122,6 +126,7 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     local: init.local ?? {},
     appData: {},
     display: init.display ?? { shape: 'rect', input: 'pointer' },
+    locale: init.locale ?? 'en',
   };
   const subs = new Set<() => void>();
   const emit = () => { for (const cb of subs) cb(); };

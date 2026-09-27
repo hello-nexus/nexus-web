@@ -60,6 +60,12 @@ export function useDevTools(): boolean {
   return useStore().devTools;
 }
 
+/** Nexus's UI language as a BCP 47 tag ('en', 'de', 'pt-BR', 'zh-CN', ...), updated when the user switches it. */
+export function useLocale(): string {
+  const store = useStore();
+  return useSyncExternalStore(store.subscribe, () => store.getSnapshot().locale);
+}
+
 /** Whether this render is the panel's fullscreen immersive view (its own
  *  worker, so `active` is static for the render), and the host's animated way
  *  out of it. `exit` is a no-op anywhere else. `enter` opens this widget's own

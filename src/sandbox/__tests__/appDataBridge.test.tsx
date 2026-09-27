@@ -292,4 +292,25 @@ describe('SandboxedWidget appData bridge', () => {
     render(<SandboxedWidget {...props} instanceId="inst-3" preview displayCells={{ cols: 4, rows: 4 }} />);
     expect((spawnSpy.mock.calls[1][2] as SandboxContext).display).toEqual({ shape: 'rect', input: 'pointer' });
   });
+
+  it('hands the worker Nexus\'s UI language for useLocale and pushes a switch to the live worker', async () => {
+    const { SandboxedWidget, spawnSpy } = await loadSandbox();
+    const { I18nProvider, useTranslation } = await import('../../lib/i18n');
+    type SetLanguage = ReturnType<typeof useTranslation>['setLanguage'];
+    const grabbed: SetLanguage[] = [];
+    function Grab({ onReady }: { onReady: (set: SetLanguage) => void }) {
+      const { setLanguage } = useTranslation();
+      useEffect(() => { onReady(setLanguage); }, [onReady, setLanguage]);
+      return null;
+    }
+    const props = { runtimeUrl: 'blob:rt', entryUrl: 'blob:v1', widgetId: 'com.hellonexus.aquarium', instanceId: 'inst-4' };
+    render(<I18nProvider initialLanguage="de"><Grab onReady={(set) => grabbed.push(set)} /><SandboxedWidget {...props} /></I18nProvider>);
+    const setLanguage = grabbed[grabbed.length - 1]!;
+    expect((spawnSpy.mock.calls[0][2] as SandboxContext).locale).toBe('de');
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    handle.update.mockClear();
+    act(() => setLanguage('ja'));
+    expect(handle.update).toHaveBeenCalledWith({ locale: 'ja' });
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+  });
 });

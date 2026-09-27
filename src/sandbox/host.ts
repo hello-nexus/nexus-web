@@ -35,6 +35,8 @@ export interface SandboxContext {
   /** This tile's shape + the panel surface's input method. Static for the
    *  render; the worker reads it via the SDK's useDisplay(). */
   display: WidgetDisplay;
+  /** Nexus's UI language; the worker reads it via the SDK's useLocale(). */
+  locale: string;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -68,6 +70,7 @@ export interface SandboxPatch {
   size?: { width: number; height: number };
   appData?: { key: string } & AppDataDoc;
   display?: WidgetDisplay;
+  locale?: string;
 }
 
 export interface SandboxHandle {

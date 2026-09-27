@@ -65,7 +65,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`, `useImmersive`,
-  `useDisplay`, `useAppData`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
+  `useDisplay`, `useLocale`, `useAppData`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
 - **`Slider` additions**: `trackFill` controls the accent fill (auto from value, or pass a
   `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,

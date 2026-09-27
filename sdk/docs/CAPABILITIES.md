@@ -385,6 +385,25 @@ if (input === 'none') return <GlanceableLayout />; // no pointer/touch at all
 
 Preview always reports `{ shape: 'rect', input: 'pointer' }`.
 
+### `useLocale()`
+
+The language Nexus's UI is set to, as a BCP 47 tag, one of the languages in
+Nexus's settings (for example `'en'`, `'de'`, `'pt-BR'`, `'zh-CN'`). The
+component re-renders when the user switches the language.
+
+A host older than this hook has no `useLocale` in its shared runtime, and the
+app's import of it is `undefined` there. Guard the call; the guard is fixed for
+the worker's lifetime, so hook order stays stable:
+
+```tsx
+const locale = typeof useLocale === 'function' ? useLocale() : 'en';
+const strings = TABLES[locale] ?? TABLES[locale.split('-')[0]] ?? TABLES.en;
+```
+
+An app ships its own string tables and picks one; Nexus's own translations are
+not exposed. The store listing's name, tagline and description are localized
+separately, through the manifest's `locales` field.
+
 ---
 
 ## UI Components (`@hellonexus/sdk/ui`)

@@ -4,6 +4,7 @@
 // flex-fill container, like DeclarativeWidget, since the panel cell sizes it.
 
 import { DEV_TOOLS } from '../lib/devTools';
+import { useTranslation } from '../lib/i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
@@ -187,6 +188,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     };
   }
 
+  const { language } = useTranslation();
   const appDataEnabled = !!appData && !preview;
   const display: WidgetDisplay = preview
     ? { shape: 'rect', input: 'pointer' }
@@ -217,6 +219,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         surface: surface === 'page' ? 'page' : 'cell',
         immersive: surface === 'immersive',
         display,
+        locale: language,
         preview: !!preview,
         devTools: DEV_TOOLS,
         size,
@@ -304,6 +307,10 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     handle?.update({ display });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayKey, handle]);
+
+  useEffect(() => {
+    handle?.update({ locale: language });
+  }, [language, handle]);
 
   useEffect(() => {
     const el = wrapRef.current;
