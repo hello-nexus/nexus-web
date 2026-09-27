@@ -368,6 +368,7 @@ export function buildPanelDevices({
       capabilities: { ...HOSTED_MONITOR_CAPABILITIES, touch: record.capabilities?.touch ?? false },
       modalKind: 'panel-editor',
       linkEnabled,
+      warning: record.warning ?? undefined,
     });
   }
 

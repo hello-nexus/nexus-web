@@ -42,6 +42,7 @@ import {
   fetchDisplayTopology,
   fetchXeneonEdgeSettings,
   launchTouchSetupWizard,
+  openTouchPermissionSettings,
   repairTouchMapping,
   rotateDisplay,
   setDisplayBrightness,
@@ -1382,6 +1383,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       onXeneonChange={previewXeneonControl}
                       onXeneonCommit={commitXeneonControl}
                       hardwareResetBusy={resettingHardware}
+                      touchPermissionNeeded={device?.warning === 'touch-permission'}
+                      onOpenTouchPermission={() => { void openTouchPermissionSettings().catch(() => {}); }}
                     />
                   )}
                   {activeTab === 'settings' && (supportsDisplayControls || supportsAutoLaunch) && (
@@ -2066,6 +2069,9 @@ interface MonitorSettingsPanelProps {
   onXeneonCommit: (key: XeneonEdgeControlKey, value: number) => void;
   // True while the danger-zone hardware reset is rewriting the controls.
   hardwareResetBusy: boolean;
+  // macOS has not granted the touch router: touches land on the main display.
+  touchPermissionNeeded?: boolean;
+  onOpenTouchPermission?: () => void;
 }
 
 function MonitorSettingsPanel({
@@ -2078,11 +2084,23 @@ function MonitorSettingsPanel({
   reserveMonitor, onReserveMonitorToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
   hardwareResetBusy,
+  touchPermissionNeeded, onOpenTouchPermission,
 }: MonitorSettingsPanelProps) {
   const { t } = useTranslation();
   return (
     <div className={styles.settingsContent}>
       <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
+      {touchPermissionNeeded && (
+        <div className={styles.usbNotice}>
+          <AlertTriangle size={14} aria-hidden />
+          <span className={styles.noticeText}>{t('devices.panels.touchPermission.notice')}</span>
+          {onOpenTouchPermission && (
+            <Button type="button" size="sm" onClick={onOpenTouchPermission}>
+              {t('devices.panels.touchPermission.button')}
+            </Button>
+          )}
+        </div>
+      )}
       {brightness !== null && (
         <SettingSlider
           editable

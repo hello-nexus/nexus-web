@@ -473,6 +473,11 @@
   }
 }
 
+// Lets a notice's text wrap while an action button keeps its width.
+.noticeText {
+  flex: 1;
+}
+
 // Widgets/Theme/Background tab body while the panel is set up as a
 // secondary monitor: read-only preview under the usbNotice above.
 .tabDisabled {

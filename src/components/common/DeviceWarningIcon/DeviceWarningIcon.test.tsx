@@ -11,6 +11,11 @@ describe('DeviceWarningIcon', () => {
     expect(screen.getByRole('img', { name: 'devices.warning.usbDisconnected' })).toBeInTheDocument();
   });
 
+  it('maps the macOS touch-permission code', () => {
+    render(<DeviceWarningIcon code="touch-permission" />);
+    expect(screen.getByRole('img', { name: 'devices.warning.touchPermission' })).toBeInTheDocument();
+  });
+
   it('falls back to the raw code for an unmapped code', () => {
     render(<DeviceWarningIcon code="some-future-code" />);
     expect(screen.getByRole('img', { name: 'some-future-code' })).toBeInTheDocument();
