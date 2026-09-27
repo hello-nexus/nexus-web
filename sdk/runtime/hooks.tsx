@@ -62,10 +62,14 @@ export function useDevTools(): boolean {
 
 /** Whether this render is the panel's fullscreen immersive view (its own
  *  worker, so `active` is static for the render), and the host's animated way
- *  out of it. `exit` is a no-op anywhere else. */
-export function useImmersive(): { active: boolean; exit: () => void } {
+ *  out of it. `exit` is a no-op anywhere else. `enter` opens this widget's own
+ *  immersive view from its tile; it is `undefined` when the host cannot open
+ *  one for this render (not on a panel, already immersive, the app manifest
+ *  lacks `immersive: true`, or a preview) - feature-detect with `enter !==
+ *  undefined` before offering an "expand" affordance. */
+export function useImmersive(): { active: boolean; exit: () => void; enter: (() => void) | undefined } {
   const store = useStore();
-  return { active: store.immersive, exit: () => { store.api.exitImmersive?.(); } };
+  return { active: store.immersive, exit: () => { store.api.exitImmersive?.(); }, enter: store.api.enterImmersive };
 }
 
 /** Per-instance local state bag. Persisted by the host across reloads; the

@@ -52,6 +52,8 @@ import {
   immersiveOnLoadTarget,
   isImmersiveOnLoadWidget,
   setImmersiveOnLoadWidgetId,
+  surfaceSupportsImmersiveOnLoad,
+  widgetSupportsImmersiveOnLoad,
 } from './engine/immersiveOnLoad';
 import { lookupApp, sizesForSurface, appAvailableForSurface } from './widgets/registry';
 import type { DeckEditView } from './widgets/types';
@@ -921,6 +923,8 @@ export function PanelContent({
   // engine/touchViaPointer); only under that flag does a mouse get the
   // touch gesture model.
   const mouseAsTouch = useTouchViaPointer() && surfaceSupportsTouch(surface, deviceTouch);
+  // An app may open its own immersive view only where a person could by touch, never from a preview.
+  const canEnterImmersive = !embedded && !simulator && surfaceSupportsImmersiveOnLoad(surface, deviceTouch);
   const touch = usePanelTouchMode({ onCellTap, mouseLongPress: mouseAsTouch });
   usePanelDragScroll(mouseAsTouch);
   // On the document, not the root: the editor sheet and immersive overlay
@@ -1736,6 +1740,8 @@ export function PanelContent({
                               previewLayout={previewLayout}
                               onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
                               onConfigureWidget={openWidgetSettings}
+                              onEnterImmersiveWidget={canEnterImmersive && widgetSupportsImmersiveOnLoad(w.type, isLandscape)
+                                ? (widget) => enterImmersive(widget.id) : undefined}
                             />
                           </ErrorBoundary>
                         ))}

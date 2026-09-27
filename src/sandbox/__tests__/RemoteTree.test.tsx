@@ -68,6 +68,22 @@ describe('RemoteTree host renderer', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  it('tells the host about a press before the worker hears it, and about nothing else', () => {
+    const receiver = new RemoteReceiver();
+    const order: string[] = [];
+    const onGesture = vi.fn(() => { order.push('gesture'); });
+    render(<RemoteTree receiver={receiver} onGesture={onGesture} />);
+    act(() => {
+      receiver.connection.mutate([
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('b2', 'ui-button', { label: 'Go' }, [], { press: () => order.push('press') }), 0],
+        [MUTATION_TYPE_INSERT_CHILD, ROOT_ID, el('c2', 'ui-color', { value: '#112233' }, [], { change: () => order.push('change') }), 1],
+      ] as never);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+    expect(order).toEqual(['gesture', 'press']);
+    expect(onGesture).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the spinner as an SVG loading indicator', () => {
     const receiver = new RemoteReceiver();
     render(<RemoteTree receiver={receiver} />);

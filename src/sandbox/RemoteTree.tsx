@@ -15,8 +15,26 @@ import type {
 } from '@remote-dom/core/receivers';
 import { ELEMENT_COMPONENTS } from './elementMap';
 
-export function RemoteTree({ receiver }: { receiver: RemoteReceiver }) {
-  return <RemoteChildren receiver={receiver} parent={receiver.root} />;
+/** The events a person fires by pressing; `onGesture` hears each one just before the worker does. */
+const GESTURE_EVENTS = new Set(['press', 'longpress']);
+
+type Listeners = RemoteReceiverElement['eventListeners'];
+
+function withGesture(listeners: Listeners, onGesture: () => void): Listeners {
+  return new Proxy(listeners, {
+    get(target, key) {
+      const f: unknown = Reflect.get(target, key);
+      if (typeof key !== 'string' || !GESTURE_EVENTS.has(key) || typeof f !== 'function') return f;
+      return (...args: unknown[]) => {
+        onGesture();
+        return (f as (...a: unknown[]) => unknown)(...args);
+      };
+    },
+  });
+}
+
+export function RemoteTree({ receiver, onGesture }: { receiver: RemoteReceiver; onGesture?: () => void }) {
+  return <RemoteChildren receiver={receiver} parent={receiver.root} onGesture={onGesture} />;
 }
 
 function useReceiverNode<T extends RemoteReceiverParent | RemoteReceiverNode>(
@@ -38,18 +56,18 @@ function useReceiverNode<T extends RemoteReceiverParent | RemoteReceiverNode>(
   return (receiver.get(node) as T | undefined) ?? node;
 }
 
-function RemoteChildren({ receiver, parent }: { receiver: RemoteReceiver; parent: RemoteReceiverParent }) {
+function RemoteChildren({ receiver, parent, onGesture }: { receiver: RemoteReceiver; parent: RemoteReceiverParent; onGesture?: () => void }) {
   const current = useReceiverNode(receiver, parent);
   return (
     <>
       {current.children.map((child) => (
-        <RemoteChild key={child.id} receiver={receiver} node={child} />
+        <RemoteChild key={child.id} receiver={receiver} node={child} onGesture={onGesture} />
       ))}
     </>
   );
 }
 
-function RemoteChild({ receiver, node }: { receiver: RemoteReceiver; node: RemoteReceiverNode }): ReactNode {
+function RemoteChild({ receiver, node, onGesture }: { receiver: RemoteReceiver; node: RemoteReceiverNode; onGesture?: () => void }): ReactNode {
   const current = useReceiverNode(receiver, node);
 
   if (current.type === NODE_TYPE_TEXT) {
@@ -62,11 +80,11 @@ function RemoteChild({ receiver, node }: { receiver: RemoteReceiver; node: Remot
   if (!Component) return null; // unknown element -> nothing reaches the DOM
 
   const children = el.children.length
-    ? el.children.map((child) => <RemoteChild key={child.id} receiver={receiver} node={child} />)
+    ? el.children.map((child) => <RemoteChild key={child.id} receiver={receiver} node={child} onGesture={onGesture} />)
     : null;
 
   return (
-    <Component {...el.properties} __events={el.eventListeners}>
+    <Component {...el.properties} __events={onGesture ? withGesture(el.eventListeners, onGesture) : el.eventListeners}>
       {children}
     </Component>
   );

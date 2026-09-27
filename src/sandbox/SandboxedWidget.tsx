@@ -68,6 +68,8 @@ export interface SandboxedWidgetProps {
   preview?: boolean;
   /** Host dispatch for gated control/host actions; returns the dispatch envelope. */
   onDispatch?: (action: string, args?: Record<string, unknown>) => Promise<unknown>;
+  /** Opens this widget's own immersive view; absent, the worker's useImmersive().enter is undefined. */
+  onEnterImmersive?: () => void;
   /** Cert/manifest mediaImport path allowlist (e.g. ["/tryx/media"]). The host
    *  checks this before opening a file picker or uploading on the widget's behalf. */
   mediaImport?: string[];
@@ -104,14 +106,18 @@ interface LiveWidget {
   // drive this one worker, which holds one size. Newest mount last: it owns the
   // size, and when it leaves the one below re-asserts its own, else the cell
   // stays drawn at fullscreen scale. Disposal waits for the last mount.
-  mounts: Array<{ pushSize: () => void; exitImmersive: () => void; wakeAppData: () => void }>;
+  mounts: Array<{ pushSize: () => void; exitImmersive: () => void; enterImmersive: () => void; wakeAppData: () => void }>;
   // Keys the worker has read or written, for the life of the WORKER (not the
   // mount): a remount that adopts this cached worker must keep subscribing
   // the same topics, or a push landing during the keep-alive window is lost.
   appDataKeys: Set<string>;
+  // When a press last reached the worker from any of its mounts; spent by the first enterImmersive after it.
+  pressedAt: number;
 }
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
+/** How long after a press the host passed to a widget it may still open its immersive view, so only a tap opens it. */
+const ENTER_AFTER_PRESS_MS = 1500;
 
 /** Validates and records a key the worker just read or wrote, then wakes the
  *  newest mount so it (re)renders that key's topic bridge. Throws (before any
@@ -128,19 +134,25 @@ function noteAppDataKey(entry: LiveWidget, key: string): void {
   entry.mounts[entry.mounts.length - 1]?.wakeAppData();
 }
 
-export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, displayShape, displayInput }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, displayShape, displayInput, onEnterImmersive }: SandboxedWidgetProps) {
   // The overlay's animated close, for the immersive worker's useImmersive().
   // The worker's api object is created once, so a reused worker resolves it
   // through the cache entry's newest mount, not the mount that spawned it.
   const exitImmersive = useImmersiveExit();
   const exitImmersiveRef = useRef(exitImmersive);
   exitImmersiveRef.current = exitImmersive;
+  const enterImmersiveRef = useRef(onEnterImmersive);
+  enterImmersiveRef.current = onEnterImmersive;
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide; ':preview' keeps a preview worker
   // from ever being reused for a live mount. The bundle URL is part of it:
   // useSdkBundle mints one per app version, so a new URL means updated code.
   const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}:${entryUrl}`;
+  const notePress = useCallback(() => {
+    const e = liveWidgets.get(cacheKey);
+    if (e) e.pressedAt = performance.now();
+  }, [cacheKey]);
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
   // render shows the tree - no blank frame / flicker.
@@ -168,6 +180,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     mountRef.current = {
       pushSize: () => pushOwnSize(),
       exitImmersive: () => exitImmersiveRef.current?.(),
+      enterImmersive: () => enterImmersiveRef.current?.(),
       wakeAppData: () => bumpAppDataTick((t) => t + 1),
     };
   }
@@ -223,6 +236,15 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           exitImmersive: surface === 'immersive'
             ? () => { const e = liveWidgets.get(key); e?.mounts[e.mounts.length - 1]?.exitImmersive(); }
             : undefined,
+          // Only a live tile's worker may open its immersive view, through the newest mount's current gate like exitImmersive.
+          enterImmersive: ((surface ?? 'cell') === 'cell' && !preview && onEnterImmersive)
+            ? () => {
+                const e = liveWidgets.get(key);
+                if (!e || performance.now() - e.pressedAt > ENTER_AFTER_PRESS_MS) return;
+                e.pressedAt = -Infinity;
+                e.mounts[e.mounts.length - 1]?.enterImmersive();
+              }
+            : undefined,
           appDataGet: appDataEnabled
             ? (dataKey) => {
                 try { noteAppDataKey(entry!, dataKey); } catch (err) { return Promise.reject(err); }
@@ -237,7 +259,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
             : undefined,
         },
       };
-      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], appDataKeys: new Set() };
+      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], appDataKeys: new Set(), pressedAt: -Infinity };
       liveWidgets.set(key, entry);
     }
 
@@ -309,7 +331,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       {handle ? (
         <SdkErrorBoundary widgetId={widgetId} resetKey={handle.receiver}>
           <MediaImportProvider allowed={mediaImport ?? []}>
-            <RemoteTree receiver={handle.receiver} />
+            <RemoteTree receiver={handle.receiver} onGesture={notePress} />
           </MediaImportProvider>
         </SdkErrorBoundary>
       ) : null}

@@ -53,6 +53,9 @@ export interface SandboxContext {
     dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
     /** The overlay's animated exit; only wired for the immersive worker. */
     exitImmersive?(): void;
+    /** Opens this widget's own fullscreen immersive view; only wired for the
+     *  tile's cell-surface worker, never the immersive worker or a preview. */
+    enterImmersive?(): void;
     /** Bound to this widget's own appId; absent when the manifest lacks
      *  `capabilities.appData` or this is a preview render. */
     appDataGet?(key: string): Promise<AppDataDoc>;

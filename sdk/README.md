@@ -73,7 +73,8 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
 - **`Manipulable`** inside a `Layer` with `gestures`: a host-driven drag / pinch / twist on a
   placed child (any blessed content), reported back as a normalized transform. **`YouTube`**:
   an embed player by video id. **`useImmersive()`**: whether the render is the fullscreen
-  immersive view, plus its exit.
+  immersive view, plus its exit, plus `enter` (undefined when the host can't open one) to open
+  it from the tile.
 - **`Layer` + `Sprite`**: the one escape from the closed layout set. `Layer` is a clipped,
   positioned stage whose `Sprite` children carry `x`/`y`/`z`/`scale`/`flip` and may overlap;
   `Layer`'s `onPress` reports a layer-local `{ x, y }`, the only coordinate an author can

@@ -49,6 +49,8 @@ export interface WidgetProps {
   // it from setup states ("Add API key…") so the user has a direct path
   // to config without going through the right-click context menu.
   onConfigure?: () => void;
+  // Opens this widget's immersive view; absent where the panel would not open it by touch.
+  onEnterImmersive?: () => void;
   // Deck-style widgets with pages/folders: the shared edit-mode view (which
   // page / folder the editor is on) so the live tile mirrors the edit sheet and
   // slot selection hit-tests the right grid. Undefined outside editing - run

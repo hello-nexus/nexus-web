@@ -218,13 +218,22 @@ if (preview) return <Text value="42 °C" />;
 
 ### `useImmersive()`
 
-Returns `{ active, exit }`: whether this render is the panel's fullscreen
-immersive view (its own worker, so `active` is static for the render) and the
-host's animated way out of it. `exit` is a no-op anywhere else.
+Returns `{ active, exit, enter }`: whether this render is the panel's
+fullscreen immersive view (its own worker, so `active` is static for the
+render), the host's animated way out of it, and `enter` to open it from the
+tile. `exit` is a no-op anywhere else; `enter` is `undefined` when the host
+can't open one for this render (not on a panel, already immersive, the app
+manifest lacks `immersive: true`, or a preview) - feature-detect with
+`enter !== undefined` before showing an expand affordance. Whether `enter` is
+defined is settled when the widget starts. It opens the view only when called
+right after a press the host passed to this widget (a `Button`, `Card` or
+`Layer` press, keyboard included), once per press, so call it from that
+handler; a call from a timer or any other event does nothing.
 
 ```tsx
-const { active, exit } = useImmersive();
+const { active, exit, enter } = useImmersive();
 if (active) return <Stage onClose={exit} />;
+return <Button onPress={enter} disabled={!enter}>Expand</Button>;
 ```
 
 ### `useLocalState<T>(defaults)`

@@ -154,6 +154,7 @@ export function PanelTouchCell({
   previewLayout = null,
   onSectionNavigate,
   onConfigureWidget,
+  onEnterImmersiveWidget,
 }: {
   widget: PanelWidget;
   deviceId?: string;
@@ -191,6 +192,7 @@ export function PanelTouchCell({
   previewLayout?: PanelLayout | null;
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
+  onEnterImmersiveWidget?: (widget: PanelWidget) => void;
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
@@ -431,6 +433,7 @@ export function PanelTouchCell({
                 editorPreview={editorPreview}
                 onSectionNavigate={onSectionNavigate}
                 onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
+                onEnterImmersive={onEnterImmersiveWidget ? () => onEnterImmersiveWidget(widget) : undefined}
               />
             </div>
             {editHint && (

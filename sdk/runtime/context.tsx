@@ -26,6 +26,10 @@ export interface WidgetHostApi {
   /** Closes the panel's fullscreen immersive view this worker renders into
    *  (animated, host-owned). Absent outside the immersive view. */
   exitImmersive?(): void;
+  /** Opens this widget's own fullscreen immersive view (host-owned). Absent
+   *  when the host can't open one for this render: not on a panel, already
+   *  immersive, the app manifest lacks `immersive: true`, or a preview. */
+  enterImmersive?(): void;
   /** Reads the app's shared `{appId}/{key}` document (host -> GET
    *  /apps-api/data/{appId}/{key}). The host binds appId; absent when the
    *  manifest lacks `capabilities.appData` or this render is a preview. */

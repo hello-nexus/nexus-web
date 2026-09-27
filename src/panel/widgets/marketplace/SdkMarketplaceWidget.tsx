@@ -33,9 +33,12 @@ export interface SdkMarketplaceWidgetProps {
   surface?: PanelSurface;
   /** Companion to `surface` for a promoted monitor's per-device digitizer. */
   deviceTouch?: boolean;
+  /** Opens this widget's fullscreen immersive view. Only meaningful on the
+   *  'cell' surface; backs the SDK's useImmersive().enter. */
+  onEnterImmersive?: () => void;
 }
 
-export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size, surface, deviceTouch }: SdkMarketplaceWidgetProps) {
+export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size, surface, deviceTouch, onEnterImmersive }: SdkMarketplaceWidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
   const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
@@ -87,6 +90,7 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
       displayInput={displayInput}
       preview={preview}
       onDispatch={onDispatch}
+      onEnterImmersive={onEnterImmersive}
     />
   );
 }
