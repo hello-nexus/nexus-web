@@ -147,11 +147,14 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
 function AppIcon({ app, installed, size = 'row' }: {
   app: { id: string; iconUrl: string | null }; installed?: InstalledInfo; size?: 'row' | 'hero';
 }) {
-  const icon = iconFor(app, installed);
+  const src = iconFor(app, installed);
+  // An icon that fails to load falls back to the placeholder tile rather than a blank box.
+  const [failed, setFailed] = useState<string | null>(null);
+  const icon = src && src !== failed ? src : null;
   return (
-    <span className={`${styles.iconBox} ${size === 'hero' ? styles.iconBoxHero : ''}`}>
+    <span className={`${styles.iconBox} ${size === 'hero' ? styles.iconBoxHero : ''} ${icon ? '' : styles.iconBoxEmpty}`}>
       {icon
-        ? <img src={icon} alt="" className={styles.icon} />
+        ? <img src={icon} alt="" className={styles.icon} onError={() => setFailed(icon)} />
         : <Boxes className={styles.iconFallback} aria-hidden={true} />}
     </span>
   );

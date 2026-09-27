@@ -92,6 +92,33 @@ describe('StorePage storefront', () => {
     expect(screen.queryByText('store.section.apps')).not.toBeInTheDocument();
   });
 
+  it('lets an app icon fill its box and draws a tile only behind the placeholder', async () => {
+    const iconUrl = 'https://assets.example/icon.svg';
+    fetchStoreApps.mockResolvedValue([{ ...app, iconUrl }, { ...app, id: 'com.example.bare', name: 'Bare' }]);
+    const { container } = render(<StorePage />);
+
+    await screen.findByText('Bare');
+    const icons = container.querySelectorAll(`img[src="${iconUrl}"]`);
+    expect(icons.length).toBeGreaterThan(0);
+    for (const img of icons) expect(img.parentElement?.className).not.toMatch(/iconBoxEmpty/);
+    const empty = container.querySelectorAll('[class*="iconBoxEmpty"]');
+    expect(empty).toHaveLength(1);
+    expect(empty[0].querySelector('img')).toBeNull();
+  });
+
+  it('falls back to the placeholder tile when an icon fails to load', async () => {
+    const iconUrl = 'https://assets.example/missing.svg';
+    fetchStoreApps.mockResolvedValue([{ ...app, iconUrl }]);
+    const { container } = render(<StorePage />);
+
+    await screen.findByText('store.featured');
+    const img = container.querySelector(`img[src="${iconUrl}"]`);
+    expect(img).not.toBeNull();
+    fireEvent.error(img!);
+    expect(container.querySelector(`img[src="${iconUrl}"]`)).toBeNull();
+    expect(container.querySelectorAll('[class*="iconBoxEmpty"]').length).toBeGreaterThan(0);
+  });
+
   it('gives the featured app its whole tagline and the opening paragraph of its description', async () => {
     fetchStoreApps.mockResolvedValue([{ ...app, tagline: 'Fish. Eggs. Mild obsession.', description: 'First paragraph.\n\nSecond paragraph.' }]);
     render(<StorePage />);
