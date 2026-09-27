@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  Boxes, ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Tag,
+  Boxes, ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Sparkles, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
@@ -181,6 +181,64 @@ function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
         <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
       </div>
     </Card>
+  );
+}
+
+/**
+ * The first app in the catalog, shown large with its screenshots. The
+ * catalog lists no media, so the card fetches the app page's own detail.
+ */
+function FeaturedApp({ app, installed, onOpen, onNeedsSignIn }: {
+  app: StoreApp; installed?: InstalledInfo; onOpen: () => void;
+  onNeedsSignIn: (retry: () => void) => void;
+}) {
+  const { t } = useTranslation();
+  const [shots, setShots] = useState<string[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    void fetchStoreApp(app.id).then(res => { if (alive && res) setShots(res.screenshots.slice(0, 3)); });
+    return () => { alive = false; };
+  }, [app.id]);
+
+  return (
+    // The title button is the keyboard route; the section only widens the click target.
+    <section className={styles.featured} onClick={onOpen}>
+      {shots[0] && <img src={shots[0]} alt="" className={styles.featuredGlow} aria-hidden={true} />}
+      <div className={styles.featuredMain}>
+        <span className={styles.featuredEyebrow}>
+          <Sparkles size={14} aria-hidden={true} />
+          {t('store.featured')}
+        </span>
+        <AppIcon app={app} installed={installed} size="hero" />
+        <button type="button" className={styles.featuredTitle} onClick={e => { e.stopPropagation(); onOpen(); }}>
+          {app.name}
+        </button>
+        {/* A tagline is written whole, so it is never cut to its first sentence; the description's
+            opening paragraph follows it, and only then, so the card never says the same thing twice. */}
+        {(app.tagline.trim() || shortDescription(app)) && (
+          <p className={styles.featuredLine}>{app.tagline.trim() || shortDescription(app)}</p>
+        )}
+        {app.tagline.trim() && app.description?.trim() && (
+          <p className={styles.featuredBlurb}>{app.description.trim().split(/\n\s*\n/)[0]}</p>
+        )}
+        <div className={styles.featuredActions}>
+          <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
+        </div>
+      </div>
+      {shots.length > 0 && (
+        <div className={styles.featuredShots}>
+          {shots.map((url, i) => (
+            <img
+              key={url}
+              src={url}
+              alt={t('store.screenshotAlt', { name: app.name, index: i + 1 })}
+              className={styles.featuredShot}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -497,7 +555,6 @@ export function StorePage({ tab, onTabChange, accounts }: {
       ) : (
         <div className={styles.body}>
           <StoreBanner />
-          <h2 className={styles.sectionTitle}>{t('store.section.apps')}</h2>
           {failed ? (
             <div className={styles.notice}>{t('store.unavailable')}</div>
           ) : !apps ? (
@@ -505,17 +562,31 @@ export function StorePage({ tab, onTabChange, accounts }: {
           ) : apps.length === 0 ? (
             <div className={styles.notice}>{t('store.empty')}</div>
           ) : (
-            <div className={styles.grid}>
-              {apps.map(app => (
-                <AppRow
-                  key={app.id}
-                  app={app}
-                  installed={installed.get(app.id)}
-                  onOpen={() => open(app.id)}
-                  onNeedsSignIn={handleNeedsSignIn}
-                />
-              ))}
-            </div>
+            <>
+              <FeaturedApp
+                key={apps[0].id}
+                app={apps[0]}
+                installed={installed.get(apps[0].id)}
+                onOpen={() => open(apps[0].id)}
+                onNeedsSignIn={handleNeedsSignIn}
+              />
+              {apps.length > 1 && (
+                <>
+                  <h2 className={styles.sectionTitle}>{t('store.section.apps')}</h2>
+                  <div className={styles.grid}>
+                    {apps.slice(1).map(app => (
+                      <AppRow
+                        key={app.id}
+                        app={app}
+                        installed={installed.get(app.id)}
+                        onOpen={() => open(app.id)}
+                        onNeedsSignIn={handleNeedsSignIn}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
       )}

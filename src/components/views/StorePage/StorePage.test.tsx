@@ -84,11 +84,38 @@ beforeEach(() => {
 });
 
 describe('StorePage storefront', () => {
-  it('leads with the coming-soon banner and an Apps heading', async () => {
+  it('leads with the banner and features the first app, with no Apps heading for a one-app catalog', async () => {
     render(<StorePage />);
 
     expect(await screen.findByText('store.banner.title')).toBeInTheDocument();
-    expect(screen.getByText('store.section.apps')).toBeInTheDocument();
+    expect(screen.getByText('store.featured')).toBeInTheDocument();
+    expect(screen.queryByText('store.section.apps')).not.toBeInTheDocument();
+  });
+
+  it('gives the featured app its whole tagline and the opening paragraph of its description', async () => {
+    fetchStoreApps.mockResolvedValue([{ ...app, tagline: 'Fish. Eggs. Mild obsession.', description: 'First paragraph.\n\nSecond paragraph.' }]);
+    render(<StorePage />);
+
+    expect(await screen.findByText('Fish. Eggs. Mild obsession.')).toBeInTheDocument();
+    expect(screen.getByText('First paragraph.')).toBeInTheDocument();
+    expect(screen.queryByText(/Second paragraph/)).not.toBeInTheDocument();
+  });
+
+  it('lists the apps after the featured one under an Apps heading', async () => {
+    fetchStoreApps.mockResolvedValue([app, { ...app, id: 'com.example.clock', name: 'Clock' }]);
+    render(<StorePage />);
+
+    expect(await screen.findByText('store.section.apps')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Aquarium' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Clock' })).toBeInTheDocument();
+  });
+
+  it('fans the featured app\'s screenshots, at most three', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, screenshots: ['/a.png', '/b.png', '/c.png', '/d.png'] });
+    render(<StorePage />);
+
+    expect(await screen.findByAltText('store.screenshotAlt name=Aquarium index=3')).toBeInTheDocument();
+    expect(screen.queryByAltText('store.screenshotAlt name=Aquarium index=4')).not.toBeInTheDocument();
   });
 
   it('gives a row a short line from the app, never the publisher, and its own Install button', async () => {
@@ -103,7 +130,7 @@ describe('StorePage storefront', () => {
   });
 });
 
-describe('StorePage row card', () => {
+describe('StorePage featured card', () => {
   it('opens the app page from anywhere on the card', async () => {
     render(<StorePage />);
 
@@ -117,8 +144,7 @@ describe('StorePage row card', () => {
   it('leaves a keyboard route to the app page: the title is a real control', async () => {
     render(<StorePage />);
 
-    // The card's own onClick is mouse-only (disableInteractiveRole), so the
-    // title has to carry the keyboard path.
+    // The card's own onClick is mouse-only, so the title has to carry the keyboard path.
     fireEvent.click(await screen.findByRole('button', { name: 'Aquarium' }));
 
     expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
@@ -131,8 +157,45 @@ describe('StorePage row card', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
 
     // Still the storefront: the click must not bubble to the card.
-    expect(screen.getByText('store.section.apps')).toBeInTheDocument();
+    expect(screen.getByText('store.banner.title')).toBeInTheDocument();
     await waitFor(() => expect(installStoreApp).toHaveBeenCalled());
+  });
+});
+
+describe('StorePage row card', () => {
+  const clock = { ...app, id: 'com.example.clock', name: 'Clock', description: 'A clock for your panel. It ticks.' };
+
+  beforeEach(() => {
+    fetchStoreApps.mockResolvedValue([app, clock]);
+  });
+
+  it('opens the app page from anywhere on a row past the featured app', async () => {
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByText('A clock for your panel'));
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+    expect(fetchStoreApp).toHaveBeenLastCalledWith('com.example.clock');
+  });
+
+  it('leaves a keyboard route to the app page: the row title is a real control', async () => {
+    render(<StorePage />);
+
+    // The row card uses disableInteractiveRole, so its onClick is mouse-only.
+    fireEvent.click(await screen.findByRole('button', { name: 'Clock' }));
+
+    expect(await screen.findByText('store.spec.widget')).toBeInTheDocument();
+  });
+
+  it('keeps a row\'s Install from opening the page it sits on', async () => {
+    installStoreApp.mockResolvedValue({ appId: clock.id, version: '1.0.2', ok: true });
+    render(<StorePage />);
+
+    const installs = await screen.findAllByRole('button', { name: 'store.install' });
+    fireEvent.click(installs[1]);
+
+    expect(screen.getByText('store.banner.title')).toBeInTheDocument();
+    await waitFor(() => expect(installStoreApp).toHaveBeenCalledWith(expect.objectContaining({ id: clock.id })));
   });
 });
 
