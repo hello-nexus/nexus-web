@@ -4340,6 +4340,8 @@
   "store.retry": "重试",
   "store.screenshotAlt": "{name} 屏幕截图 {index}",
   "store.section.apps": "应用",
+  "store.section.description": "描述",
+  "store.section.preview": "预览",
   "store.signIn.body": "登录你的 Nexus 帐户，或免费创建一个以继续。",
   "store.signIn.title": "登录后获取应用",
   "store.spec.requires": "需要 Nexus",

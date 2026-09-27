@@ -293,8 +293,22 @@ $card-gap: 0.6rem;
   text-align: center;
 }
 
-// A horizontal rail: screenshots are panel-shaped, so a wrapped grid would
-// leave most of each row empty.
+.shotsRail {
+  position: relative;
+}
+
+// Two classes so the round shape beats Button's own radius regardless of stylesheet order.
+.shotsRail .shotsArrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+}
+
+.shotsArrowLeft { left: 0.5rem; }
+.shotsArrowRight { right: 0.5rem; }
+
 .shots {
   display: flex;
   gap: 0.75rem;
@@ -302,8 +316,17 @@ $card-gap: 0.6rem;
   padding-bottom: 0.25rem;
 }
 
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+// Store screenshots are a square standard; cover keeps an off-standard image in the same frame.
 .shot {
-  height: 16rem;
+  width: 22rem;
+  height: 22rem;
+  object-fit: cover;
   border-radius: var(--radius-lg);
   border: 1px solid var(--separator);
   flex-shrink: 0;
@@ -316,4 +339,12 @@ $card-gap: 0.6rem;
   font-size: var(--type-small);
   color: var(--text-dim);
   white-space: pre-line;
+}
+
+.descriptionLink {
+  color: var(--accent-glow);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+
+  &:hover { text-decoration: underline; }
 }

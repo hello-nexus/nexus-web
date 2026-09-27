@@ -4340,6 +4340,8 @@
   "store.retry": "Yeniden dene",
   "store.screenshotAlt": "{name} ekran görüntüsü {index}",
   "store.section.apps": "Uygulamalar",
+  "store.section.description": "Açıklama",
+  "store.section.preview": "Önizleme",
   "store.signIn.body": "Devam etmek için Nexus hesabına giriş yap veya ücretsiz bir hesap oluştur.",
   "store.signIn.title": "Uygulama almak için oturum aç",
   "store.spec.requires": "Nexus gerekli",

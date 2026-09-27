@@ -365,7 +365,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   }, [ddcDisplayId]);
   const ddcSupported = ddcDisplayId !== null && ddcBrightness !== null;
   // Rotation and the monitor-reserve guard exist only on hosts that
-  // implement them (Windows); macOS/Linux monitor panels hide those rows.
+  // implement them (rotation: Windows, macOS; reserve: Windows).
   const [hostCaps, setHostCaps] = useState<{ rotation: boolean; reserve: boolean } | null>(null);
   useEffect(() => {
     if (!isMonitorPanel) return;

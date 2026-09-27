@@ -4340,6 +4340,8 @@
   "store.retry": "Riprova",
   "store.screenshotAlt": "Schermata {index} di {name}",
   "store.section.apps": "App",
+  "store.section.description": "Descrizione",
+  "store.section.preview": "Anteprima",
   "store.signIn.body": "Accedi al tuo account Nexus o creane uno gratis per continuare.",
   "store.signIn.title": "Accedi per ottenere le app",
   "store.spec.requires": "Richiede Nexus",

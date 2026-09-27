@@ -4340,6 +4340,8 @@
   "store.retry": "Opnieuw",
   "store.screenshotAlt": "Schermafbeelding {index} van {name}",
   "store.section.apps": "Apps",
+  "store.section.description": "Beschrijving",
+  "store.section.preview": "Voorbeeld",
   "store.signIn.body": "Meld je aan bij je Nexus-account of maak er gratis een aan om verder te gaan.",
   "store.signIn.title": "Meld je aan om apps te halen",
   "store.spec.requires": "Vereist Nexus",

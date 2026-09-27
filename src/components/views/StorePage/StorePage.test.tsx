@@ -24,6 +24,12 @@ vi.mock('../../../api/store', () => ({
   installStoreApp: (...args: unknown[]) => installStoreApp(...args),
 }));
 
+const openExternalUrl = vi.fn();
+
+vi.mock('../../../sandbox/ui/openExternal', () => ({
+  openExternalUrl: (...args: unknown[]) => openExternalUrl(...args),
+}));
+
 const installed: Array<{ id: string; version: string; iconUrl: string | null }> = [];
 
 vi.mock('../SettingsView/Account/AccountSignInModal', () => ({
@@ -180,7 +186,7 @@ describe('StorePage app page layout', () => {
     expect(screen.getAllByText(/A pixel-art fish you can feed/)).toHaveLength(1);
   });
 
-  it('names each screenshot and puts the full description below them, with no section headings', async () => {
+  it('names each screenshot and puts the full description below them, each under its heading', async () => {
     fetchStoreApp.mockResolvedValue({
       ...detail,
       screenshots: ['/apps-api/store/media/com.hellonexus.aquarium/media/one.png'],
@@ -189,9 +195,71 @@ describe('StorePage app page layout', () => {
 
     expect(await screen.findByAltText('store.screenshotAlt name=Aquarium index=1')).toBeInTheDocument();
     expect(screen.getByText(/Tap the water/)).toBeInTheDocument();
+    const headings = screen.getAllByRole('heading', { level: 2 }).map(h => h.textContent);
+    expect(headings).toEqual(['store.section.preview', 'store.section.description']);
+  });
+
+  it('shows a screenshot arrow only toward screenshots past that edge', async () => {
+    const proto = HTMLElement.prototype;
+    const saved = ['clientWidth', 'scrollWidth'].map(k => [k, Object.getOwnPropertyDescriptor(proto, k)] as const);
+    Object.defineProperty(proto, 'clientWidth', { configurable: true, get: () => 800 });
+    Object.defineProperty(proto, 'scrollWidth', { configurable: true, get: () => 1600 });
+    const scrollBy = vi.fn();
+    proto.scrollBy = scrollBy;
+    try {
+      fetchStoreApp.mockResolvedValue({ ...detail, screenshots: ['/a.png', '/b.png', '/c.png', '/d.png'] });
+      render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'common.pager.next' }));
+      expect(scrollBy).toHaveBeenCalledWith({ left: 720, behavior: 'smooth' });
+      expect(screen.queryByRole('button', { name: 'common.pager.prev' })).not.toBeInTheDocument();
+
+      const row = screen.getByAltText('store.screenshotAlt name=Aquarium index=1').parentElement!;
+      row.scrollLeft = 800;
+      fireEvent.scroll(row);
+      const prev = await screen.findByRole('button', { name: 'common.pager.prev' });
+      expect(screen.queryByRole('button', { name: 'common.pager.next' })).not.toBeInTheDocument();
+      // The pressed arrow unmounted at the end, so focus lands on the other one instead of the body.
+      expect(document.activeElement).toBe(prev);
+
+      // Later scrolling never pulls focus back from wherever the user moved it.
+      const install = screen.getByRole('button', { name: 'store.install' });
+      install.focus();
+      row.scrollLeft = 790;
+      fireEvent.scroll(row);
+      row.scrollLeft = 800;
+      fireEvent.scroll(row);
+      expect(document.activeElement).toBe(install);
+    } finally {
+      for (const [k, d] of saved) if (d) Object.defineProperty(proto, k, d); else delete (proto as unknown as Record<string, unknown>)[k];
+      delete (proto as Partial<HTMLElement>).scrollBy;
+    }
+  });
+
+  it('shows no Preview heading for an app without screenshots', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.section.description')).toBeInTheDocument();
     expect(screen.queryByText('store.section.preview')).not.toBeInTheDocument();
-    expect(screen.queryByText('store.section.about')).not.toBeInTheDocument();
-    expect(screen.queryByText('store.section.details')).not.toBeInTheDocument();
+  });
+
+  it('links a URL in the description, without its trailing period, through the system browser', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      description: 'Feed the fish.\n\nGet the tank at https://example.com/tank.',
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    const link = await screen.findByRole('link', { name: 'https://example.com/tank' });
+    expect(link).toHaveAttribute('href', 'https://example.com/tank');
+    fireEvent.click(link);
+    expect(openExternalUrl).toHaveBeenCalledWith('https://example.com/tank');
+
+    openExternalUrl.mockClear();
+    const middle = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 });
+    fireEvent(link, middle);
+    expect(middle.defaultPrevented).toBe(true);
+    expect(openExternalUrl).toHaveBeenCalledWith('https://example.com/tank');
   });
 });
 

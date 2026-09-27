@@ -4340,6 +4340,8 @@
   "store.retry": "再試行",
   "store.screenshotAlt": "{name} のスクリーンショット {index}",
   "store.section.apps": "アプリ",
+  "store.section.description": "説明",
+  "store.section.preview": "プレビュー",
   "store.signIn.body": "Nexus アカウントにサインインするか、無料でアカウントを作成して続行してください。",
   "store.signIn.title": "アプリを入手するにはサインイン",
   "store.spec.requires": "必要な Nexus",
