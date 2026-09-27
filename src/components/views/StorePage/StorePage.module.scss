@@ -298,10 +298,14 @@ $card-gap: 0.6rem;
 }
 
 // Two classes so the round shape beats Button's own radius regardless of stylesheet order.
+// Centered with auto margins, not a transform: the press scale would replace it and drop the arrow.
 .shotsRail .shotsArrow {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  height: var(--size-lg);
+  margin-top: auto;
+  margin-bottom: auto;
   border-radius: 50%;
   box-shadow: var(--shadow-md);
 }
