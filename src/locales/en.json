@@ -4331,6 +4331,7 @@
   "store.banner.title": "The Marketplace is coming",
   "store.comingSoon": "Available {date}",
   "store.empty": "No apps yet",
+  "store.featured": "Featured",
   "store.incompatible": "Not compatible",
   "store.install": "Install",
   "store.installed": "Installed",
