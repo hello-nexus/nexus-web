@@ -345,6 +345,8 @@ $card-gap: 0.6rem;
   color: var(--accent-glow);
   text-decoration: none;
   overflow-wrap: anywhere;
+  // The selectable description turns the long-press menu back on; its Open would skip openExternalUrl.
+  -webkit-touch-callout: none;
 
   &:hover { text-decoration: underline; }
 }

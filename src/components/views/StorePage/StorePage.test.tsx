@@ -199,6 +199,13 @@ describe('StorePage app page layout', () => {
     expect(headings).toEqual(['store.section.preview', 'store.section.description']);
   });
 
+  it('lets the reader select the app name and the description, which the app chrome otherwise blocks', async () => {
+    fetchStoreApp.mockResolvedValue(detail);
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+    expect(await screen.findByRole('heading', { level: 1, name: 'Aquarium' })).toHaveClass('selectable');
+    expect(screen.getByText(/Tap the water/)).toHaveClass('selectable');
+  });
+
   it('shows a screenshot arrow only toward screenshots past that edge', async () => {
     const proto = HTMLElement.prototype;
     const saved = ['clientWidth', 'scrollWidth'].map(k => [k, Object.getOwnPropertyDescriptor(proto, k)] as const);

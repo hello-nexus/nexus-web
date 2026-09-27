@@ -261,7 +261,7 @@ function Highlights({ latest }: { latest: StoreVersion }) {
             <dt className={styles.highlightLabel}>{h.label}</dt>
             <dd className={styles.highlightBody}>
               <span className={styles.highlightIcon}>{h.icon}</span>
-              <span className={styles.highlightValue}>{h.value}</span>
+              <span className={`${styles.highlightValue} selectable`}>{h.value}</span>
             </dd>
           </div>
         ))}
@@ -276,7 +276,7 @@ const DESCRIPTION_URL = /(https:\/\/\S+?)(?=[.,;:!?)]*(?:\s|$))/;
 /** The description with each https URL as a link that opens in the system browser. */
 function Description({ text }: { text: string }) {
   return (
-    <p className={styles.description}>
+    <p className={`${styles.description} selectable`}>
       {text.split(DESCRIPTION_URL).map((part, i) => (i % 2 === 1 ? (
         <a
           key={i}
@@ -403,13 +403,13 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
       <header className={styles.hero}>
         <AppIcon app={app} installed={installed} size="hero" />
         <div className={styles.heroMain}>
-          <h1 className={styles.heroTitle}>{app.name}</h1>
-          {app.tagline.trim() && <p className={styles.heroSubtitle}>{app.tagline.trim()}</p>}
+          <h1 className={`${styles.heroTitle} selectable`}>{app.name}</h1>
+          {app.tagline.trim() && <p className={`${styles.heroSubtitle} selectable`}>{app.tagline.trim()}</p>}
           <div className={styles.heroActions}>
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
           </div>
           {installed && (
-            <span className={styles.installedVersion}>
+            <span className={`${styles.installedVersion} selectable`}>
               {t('store.installedVersion', { version: installed.version })}
             </span>
           )}
