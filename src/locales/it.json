@@ -4130,7 +4130,7 @@
   "site.cooling.tempLabel": "Temperatura CPU",
   "site.cooling.title": "Silenzioso a riposo. Feroce sotto carico.",
   "site.download.detected": "La tua piattaforma",
-  "site.download.free": "Gratuito e open source. Niente pubblicità, nessun account richiesto.",
+  "site.download.free": "Gratuito e open source. Niente pubblicità.",
   "site.download.lead": "Gratuito, open source e pronto in meno di un minuto.",
   "site.download.meta": "{version} · {size} MB",
   "site.download.releases": "Vedi le release su GitHub",

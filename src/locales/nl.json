@@ -4130,7 +4130,7 @@
   "site.cooling.tempLabel": "CPU-temperatuur",
   "site.cooling.title": "Stil bij inactiviteit. Fel onder belasting.",
   "site.download.detected": "Jouw platform",
-  "site.download.free": "Gratis en open source. Geen advertenties, geen account nodig.",
+  "site.download.free": "Gratis en open source. Geen advertenties.",
   "site.download.lead": "Gratis, open source en binnen een minuut klaar.",
   "site.download.meta": "{version} · {size} MB",
   "site.download.releases": "Bekijk releases op GitHub",

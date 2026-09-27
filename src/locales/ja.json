@@ -4130,7 +4130,7 @@
   "site.cooling.tempLabel": "CPU温度",
   "site.cooling.title": "アイドル時は静かに。負荷時は猛烈に。",
   "site.download.detected": "お使いのプラットフォーム",
-  "site.download.free": "無料でオープンソース。広告なし、アカウント不要。",
+  "site.download.free": "無料でオープンソース。広告なし。",
   "site.download.lead": "無料でオープンソース、1分もかからず準備完了です。",
   "site.download.meta": "{version} · {size} MB",
   "site.download.releases": "GitHub でリリースを見る",
