@@ -167,6 +167,17 @@ describe('StorePage app page layout', () => {
     expect(screen.getByText('1.0.2')).toBeInTheDocument();
   });
 
+  it('lists the round tile as the 2x2 every 2x2 widget already covers', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      latest: { ...version, sizes: ['2x2', '4x2', '2x2round'] },
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('2x2 · 4x2')).toBeInTheDocument();
+    expect(screen.queryByText(/2x2round/)).not.toBeInTheDocument();
+  });
+
   it('omits the sizes cell for an app that declares no widget', async () => {
     fetchStoreApp.mockResolvedValue({
       ...detail,
