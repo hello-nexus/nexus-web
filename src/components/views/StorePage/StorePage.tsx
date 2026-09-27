@@ -376,18 +376,18 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
   appId: string; onBack: () => void; installed?: InstalledInfo;
   onNeedsSignIn: (retry: () => void) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [app, setApp] = useState<StoreAppDetail | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    void fetchStoreApp(appId).then(res => {
+    void fetchStoreApp(appId, { locale: language }).then(res => {
       if (!alive) return;
       if (res) setApp(res); else setMissing(true);
     });
     return () => { alive = false; };
-  }, [appId]);
+  }, [appId, language]);
 
   if (missing) return <div className={styles.notice}>{t('store.unavailable')}</div>;
   if (!app) return <div className={styles.notice}>{t('store.loading')}</div>;
@@ -449,7 +449,7 @@ export function StorePage({ tab, onTabChange, accounts }: {
   /** The app's shared account state: signing in from the store dialog signs the whole app in, so the top bar and account page have to hear about it. */
   accounts?: UseCloudAccountsResult;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const installed = useInstalled();
   const [apps, setApps] = useState<StoreApp[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -466,12 +466,12 @@ export function StorePage({ tab, onTabChange, accounts }: {
 
   useEffect(() => {
     let alive = true;
-    void fetchStoreApps().then(res => {
+    void fetchStoreApps({ locale: language }).then(res => {
       if (!alive) return;
       if (res) setApps(res); else setFailed(true);
     });
     return () => { alive = false; };
-  }, []);
+  }, [language]);
 
   const handleNeedsSignIn = useCallback((retry: () => void) => {
     setPendingInstall(() => retry);

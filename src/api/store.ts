@@ -53,18 +53,27 @@ export interface StoreInstallResult {
   reason?: string;
 }
 
-/** The catalog answers per client, so it never offers a release this build cannot run. */
-function clientQuery(nexusVersion?: string): string {
-  return nexusVersion ? `?nexusVersion=${encodeURIComponent(nexusVersion)}` : '';
+/** What the catalog tailors its answer to: releases this build can run, listing copy in the UI language. */
+export interface StoreClient {
+  nexusVersion?: string;
+  locale?: string;
 }
 
-export async function fetchStoreApps(nexusVersion?: string): Promise<StoreApp[] | null> {
-  const res = await fetchService<{ apps: StoreApp[] }>(`/apps-api/store/apps${clientQuery(nexusVersion)}`);
+function clientQuery({ nexusVersion, locale }: StoreClient): string {
+  const q = new URLSearchParams();
+  if (nexusVersion) q.set('nexusVersion', nexusVersion);
+  if (locale) q.set('locale', locale);
+  const s = q.toString();
+  return s ? `?${s}` : '';
+}
+
+export async function fetchStoreApps(client: StoreClient = {}): Promise<StoreApp[] | null> {
+  const res = await fetchService<{ apps: StoreApp[] }>(`/apps-api/store/apps${clientQuery(client)}`);
   return res?.apps ?? null;
 }
 
-export async function fetchStoreApp(appId: string, nexusVersion?: string): Promise<StoreAppDetail | null> {
-  return fetchService<StoreAppDetail>(`/apps-api/store/apps/${appId}${clientQuery(nexusVersion)}`);
+export async function fetchStoreApp(appId: string, client: StoreClient = {}): Promise<StoreAppDetail | null> {
+  return fetchService<StoreAppDetail>(`/apps-api/store/apps/${appId}${clientQuery(client)}`);
 }
 
 /**

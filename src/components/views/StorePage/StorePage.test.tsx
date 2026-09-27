@@ -3,9 +3,11 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { StorePage } from './StorePage';
 import type { StoreApp, StoreAppDetail } from '../../../api/store';
 
+const i18n = vi.hoisted(() => ({ language: 'en' }));
+
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
-    language: 'en',
+    language: i18n.language,
     t: (key: string, params?: Record<string, string | number>) => {
       let text = key;
       if (params) for (const [k, v] of Object.entries(params)) text += ` ${k}=${v}`;
@@ -409,5 +411,24 @@ describe('StorePage launch day', () => {
     render(<StorePage />);
 
     expect(await screen.findByRole('button', { name: 'store.install' })).toBeInTheDocument();
+  });
+});
+
+describe('StorePage language', () => {
+  it('asks the catalog for listing copy in the UI language, on the storefront and on an app page', async () => {
+    i18n.language = 'it';
+    try {
+      const { rerender } = render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+      await screen.findByText('store.spec.widget');
+      expect(fetchStoreApps).toHaveBeenCalledWith({ locale: 'it' });
+      expect(fetchStoreApp).toHaveBeenCalledWith(app.id, { locale: 'it' });
+      // A language switch asks again, in the new language.
+      i18n.language = 'de';
+      rerender(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+      await waitFor(() => expect(fetchStoreApp).toHaveBeenLastCalledWith(app.id, { locale: 'de' }));
+      expect(fetchStoreApps).toHaveBeenLastCalledWith({ locale: 'de' });
+    } finally {
+      i18n.language = 'en';
+    }
   });
 });
