@@ -4,7 +4,7 @@
 // instead of importing app stores directly.
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useStore } from './context';
+import { useStore, type WidgetDisplay } from './context';
 
 declare global {
   // The boot script installs this; sensor/net access for SDK widgets reuses it.
