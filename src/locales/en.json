@@ -4127,7 +4127,7 @@
   "site.cooling.tempLabel": "CPU temperature",
   "site.cooling.title": "Quiet when idle. Fierce under load.",
   "site.download.detected": "Your platform",
-  "site.download.free": "Free and open source. No ads, no account required.",
+  "site.download.free": "Free and open source. No ads.",
   "site.download.lead": "Free, open source, and ready in under a minute.",
   "site.download.meta": "{version} · {size} MB",
   "site.download.releases": "View releases on GitHub",

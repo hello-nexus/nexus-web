@@ -4127,7 +4127,7 @@
   "site.cooling.tempLabel": "CPU sıcaklığı",
   "site.cooling.title": "Boştayken sessiz. Yük altında güçlü.",
   "site.download.detected": "Platformunuz",
-  "site.download.free": "Ücretsiz ve açık kaynak. Reklam yok, hesap gerekmez.",
+  "site.download.free": "Ücretsiz ve açık kaynak. Reklam yok.",
   "site.download.lead": "Ücretsiz, açık kaynaklı ve bir dakikadan kısa sürede hazır.",
   "site.download.meta": "{version} · {size} MB",
   "site.download.releases": "GitHub'daki sürümleri görüntüle",
