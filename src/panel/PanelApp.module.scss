@@ -757,6 +757,14 @@
     border-color: var(--panel-accent);
   }
 
+  // An SDK card has no border to colour (tokens.scss), so its ring sits just outside it.
+  &:not(.catalogCellDisabled):hover .cell[data-widget-type^='app:'],
+  &:not(.catalogCellDisabled):focus-visible .cell[data-widget-type^='app:'],
+  &:not(.catalogCellDisabled):hover .cell[data-widget-type^='marketplace:'],
+  &:not(.catalogCellDisabled):focus-visible .cell[data-widget-type^='marketplace:'] {
+    box-shadow: 0 0 0 1px var(--panel-accent);
+  }
+
   &:not(.catalogCellDisabled):active {
     transform: scale(0.98);
   }
