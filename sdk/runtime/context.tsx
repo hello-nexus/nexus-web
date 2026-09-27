@@ -53,6 +53,8 @@ export type WidgetDisplayInput = 'touch' | 'pointer' | 'none';
 export interface WidgetDisplay {
   shape: WidgetDisplayShape;
   input: WidgetDisplayInput;
+  /** The panel grid cells a tile spans; absent in the immersive view, the page view, a preview and from an older host. */
+  cells?: { cols: number; rows: number };
 }
 
 export interface WidgetContextInit {

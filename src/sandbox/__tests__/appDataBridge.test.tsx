@@ -279,4 +279,17 @@ describe('SandboxedWidget appData bridge', () => {
     expect(spawnSpy).toHaveBeenCalledTimes(1);
     expect(handle.update).toHaveBeenCalledWith({ display: { shape: 'rect', input: 'touch' } });
   });
+
+  it('carries the tile\'s grid span into useDisplay and pushes a resize, but never into a preview', async () => {
+    const { SandboxedWidget, spawnSpy } = await loadSandbox();
+    const props = { runtimeUrl: 'blob:rt', entryUrl: 'blob:v1', widgetId: 'com.hellonexus.aquarium', instanceId: 'inst-2' };
+    const { rerender } = render(<SandboxedWidget {...props} displayShape="rect" displayInput="touch" displayCells={{ cols: 4, rows: 4 }} />);
+    expect((spawnSpy.mock.calls[0][2] as SandboxContext).display).toEqual({ shape: 'rect', input: 'touch', cells: { cols: 4, rows: 4 } });
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    handle.update.mockClear();
+    rerender(<SandboxedWidget {...props} displayShape="rect" displayInput="touch" displayCells={{ cols: 4, rows: 2 }} />);
+    expect(handle.update).toHaveBeenCalledWith({ display: { shape: 'rect', input: 'touch', cells: { cols: 4, rows: 2 } } });
+    render(<SandboxedWidget {...props} instanceId="inst-3" preview displayCells={{ cols: 4, rows: 4 }} />);
+    expect((spawnSpy.mock.calls[1][2] as SandboxContext).display).toEqual({ shape: 'rect', input: 'pointer' });
+  });
 });

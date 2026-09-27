@@ -377,6 +377,11 @@ if (input === 'none') return <GlanceableLayout />; // no pointer/touch at all
 - `input`: `'touch'` (Y70, phone), `'pointer'` (the desktop dashboard, mouse),
   or `'none'` (the Q-series and cooler LCD surfaces - display-only, no
   interactive affordances should render).
+- `cells`: `{ cols, rows }`, the panel grid cells the tile spans (a 4x2 tile is
+  `{ cols: 4, rows: 2 }`). Panels lay widgets out at a fixed design size and
+  scale them to fit, so `useSize()` is about the same for a tile on any panel
+  and cannot tell a big tile from a small one; `cells` can. Absent in the
+  immersive view, the page view, a preview, and from an older host.
 
 Preview always reports `{ shape: 'rect', input: 'pointer' }`.
 

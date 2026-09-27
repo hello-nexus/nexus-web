@@ -82,6 +82,8 @@ export interface SandboxedWidgetProps {
   /** The panel surface's input method (see surfaceInputMode). Default
    *  'pointer'. Ignored (forced 'pointer') in preview. */
   displayInput?: 'touch' | 'pointer' | 'none';
+  /** The panel grid cells the tile spans, for the worker's useDisplay(). */
+  displayCells?: { cols: number; rows: number };
 }
 
 const localKey = (widgetId: string, instanceId: string) => `nexus.sdk.local.${widgetId}.${instanceId}`;
@@ -134,7 +136,7 @@ function noteAppDataKey(entry: LiveWidget, key: string): void {
   entry.mounts[entry.mounts.length - 1]?.wakeAppData();
 }
 
-export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, displayShape, displayInput, onEnterImmersive }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, displayShape, displayInput, displayCells, onEnterImmersive }: SandboxedWidgetProps) {
   // The overlay's animated close, for the immersive worker's useImmersive().
   // The worker's api object is created once, so a reused worker resolves it
   // through the cache entry's newest mount, not the mount that spawned it.
@@ -188,8 +190,8 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   const appDataEnabled = !!appData && !preview;
   const display: WidgetDisplay = preview
     ? { shape: 'rect', input: 'pointer' }
-    : { shape: displayShape ?? 'rect', input: displayInput ?? 'pointer' };
-  const displayKey = `${display.shape}:${display.input}`;
+    : { shape: displayShape ?? 'rect', input: displayInput ?? 'pointer', ...(displayCells ? { cells: displayCells } : {}) };
+  const displayKey = `${display.shape}:${display.input}:${display.cells ? `${display.cells.cols}x${display.cells.rows}` : ''}`;
 
   useEffect(() => {
     const key = cacheKey;

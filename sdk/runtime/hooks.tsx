@@ -48,7 +48,7 @@ export function usePreview(): boolean {
  *  skip drag/hover affordances on a touch-only or no-input (display-only)
  *  surface, or to lay out inside a round mask. Preview always reports
  *  rect/pointer. */
-export function useDisplay(): { shape: 'rect' | 'round'; input: 'touch' | 'pointer' | 'none' } {
+export function useDisplay(): WidgetDisplay {
   const store = useStore();
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().display);
 }

@@ -17,6 +17,7 @@ import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import { surfaceInputMode, widgetDisplayShape, type PanelSurface, type PanelWidgetSize } from '../../types';
+import { sizeToSpan } from '../../engine/grid';
 import styles from './MarketplaceWidget.module.scss';
 
 export interface SdkMarketplaceWidgetProps {
@@ -62,6 +63,8 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
   const appData = !!listing.capabilities.appData;
   const displayShape = widgetDisplayShape(size);
   const displayInput = surfaceInputMode(surface ?? 'desktop', deviceTouch);
+  // The fullscreen view has no grid span.
+  const displayCells = useMemo(() => (sandboxSurface === 'immersive' ? undefined : sizeToSpan(size)), [sandboxSurface, size]);
 
   // Gated host action: POST /apps-api/dispatch (relay-aware). Returns the
   // { ok, result } envelope so the worker's useDispatch / useHostAction work.
@@ -88,6 +91,7 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
       appData={appData}
       displayShape={displayShape}
       displayInput={displayInput}
+      displayCells={displayCells}
       preview={preview}
       onDispatch={onDispatch}
       onEnterImmersive={onEnterImmersive}
