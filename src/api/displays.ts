@@ -119,6 +119,11 @@ export async function rotateDisplay(id: string, orientation: string): Promise<{ 
   return postService<{ error?: boolean }>(`/displays/${encodeURIComponent(id)}/rotation`, { orientation });
 }
 
+/** Opens the macOS Privacy page that grants touch routing (macOS hosts only). */
+export async function openTouchPermissionSettings(): Promise<{ error?: boolean } | null> {
+  return postService<{ error?: boolean }>('/displays/touch-permission/open', {});
+}
+
 /**
  * Turn DDC/CI brightness control on or off for one display. Off means the
  * service sends that monitor nothing at all, capability probe included - the
