@@ -2739,7 +2739,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'AppIconTile', category: 'status',
     filePath: 'src/components/common/AppIconTile/AppIconTile.tsx',
-    description: 'A Marketplace app icon at any px size: no border, corners rounded in proportion to the edge. An app without an icon, or whose image fails to load, gets a placeholder glyph on a surface tile. Used by the Marketplace page and Account > Purchases.',
+    description: 'A Marketplace app icon at any px size: no border, corners rounded in proportion to the edge. An app without an icon, or whose image fails to load, gets a placeholder glyph on a surface tile. Used by the Marketplace page and Account > Purchased apps.',
     Preview: PreviewAppIconTile,
   },
   {

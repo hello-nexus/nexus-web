@@ -238,7 +238,7 @@ describe('StorePage app page', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'signed-in' })).toBeInTheDocument());
   });
 
-  it('names the installed version, and never offers Delete here (that lives under Manage purchases)', async () => {
+  it('names the installed version, and never offers Delete here (that lives under Manage purchased apps)', async () => {
     installed.push({ id: app.id, version: '1.0.1', iconUrl: null });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 

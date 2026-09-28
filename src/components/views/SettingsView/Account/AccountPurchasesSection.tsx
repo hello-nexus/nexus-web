@@ -51,7 +51,7 @@ function formatAcquired(iso: string | null, dateFormat: DateFormat): string {
 }
 
 /**
- * Manage purchases: every app the account has acquired, free or paid, with what
+ * Manage purchased apps: every app the account has acquired, free or paid, with what
  * this machine has of it. Free today, so a row is a claim rather than a receipt -
  * priceCents is on the wire for when that changes.
  */

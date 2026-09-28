@@ -99,7 +99,7 @@ export function AccountDevicesSection({ backend, prefillFromLocalSpecs }: Accoun
             specs={device.specs}
             manual={device.manual}
             lastSeenAt={device.lastSeenAt}
-            badge={<Badge label={t(device.manual ? 'account.devices.manual.badge' : 'account.devices.auto.badge')} />}
+            badge={<Badge label={t(device.manual ? 'account.devices.manual.badge' : 'account.devices.auto.badge')} size="small" />}
             actions={(
               <>
                 {device.manual && (

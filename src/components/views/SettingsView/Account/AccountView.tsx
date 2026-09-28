@@ -18,7 +18,7 @@ interface AccountViewProps {
   /** The route's subtab segment (/system/account/<tab>) - drives the signed-out flow. */
   tab: string | null;
   onTabChange: (tab: string) => void;
-  /** Opens an app's store page from Manage purchases. */
+  /** Opens an app's store page from Manage purchased apps. */
   onOpenStoreApp?: (appId: string) => void;
 }
 
