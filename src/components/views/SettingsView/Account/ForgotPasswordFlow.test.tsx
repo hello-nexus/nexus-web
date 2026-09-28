@@ -119,6 +119,45 @@ describe('ForgotPasswordFlow code entry', () => {
     expect(screen.queryByText('account.recovery.codeWrong')).not.toBeInTheDocument();
   });
 
+  it('sends the link again on request and clears the half-typed code', async () => {
+    const recoveryStart = vi.fn().mockResolvedValue(true);
+    await startPending(makeBackend({ recoveryStart }));
+    fireEvent.input(screen.getByLabelText('account.recovery.codeTitle'), { target: { value: '482' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'account.recovery.resend' }));
+
+    await waitFor(() => expect(screen.getByText('account.recovery.resent')).toBeInTheDocument());
+    expect(recoveryStart).toHaveBeenCalledTimes(2);
+    expect(recoveryStart).toHaveBeenLastCalledWith('user@example.com');
+    expect((screen.getByLabelText('account.recovery.codeTitle') as HTMLInputElement).value).toBe('');
+  });
+
+  it('sends one email for a double click on resend', async () => {
+    let finish: (ok: boolean) => void = () => {};
+    const recoveryStart = vi.fn()
+      .mockResolvedValueOnce(true)
+      .mockReturnValueOnce(new Promise<boolean>((resolve) => { finish = resolve; }));
+    await startPending(makeBackend({ recoveryStart }));
+    const resendBtn = screen.getByRole('button', { name: 'account.recovery.resend' });
+
+    fireEvent.click(resendBtn);
+    fireEvent.click(resendBtn);
+    finish(true);
+
+    await waitFor(() => expect(screen.getByText('account.recovery.resent')).toBeInTheDocument());
+    expect(recoveryStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('says so when a resend is refused, and keeps waiting on the link already sent', async () => {
+    const recoveryStart = vi.fn().mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    await startPending(makeBackend({ recoveryStart }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'account.recovery.resend' }));
+
+    await waitFor(() => expect(screen.getByText('account.recovery.startFailed')).toBeInTheDocument());
+    expect(screen.getByLabelText('account.recovery.codeTitle')).toBeInTheDocument();
+  });
+
   it('sends the user back to start over once the guesses are spent', async () => {
     const recoverySubmitCode = vi.fn().mockResolvedValue('exhausted');
     await startPending(makeBackend({ recoverySubmitCode }));

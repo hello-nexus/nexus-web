@@ -32,6 +32,8 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   const [phase, setPhase] = useState<ForgotPhase>('email');
   const [email, setEmail] = useState('');
   const [failed, setFailed] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [resending, setResending] = useState(false);
   // Typed here from the page the emailed link opens on another device; the
   // link opened on this computer signs in with no code at all.
   const [code, setCode] = useState('');
@@ -97,7 +99,26 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
     setCode('');
     setCodeError(null);
     posted.current = null;
+    setResent(false);
     setPhase('pending');
+  };
+
+  // A new start replaces the grant, so only the newest email's link works.
+  const resend = async () => {
+    if (resending || submitting) return;
+    setResending(true);
+    setFailed(false);
+    setResent(false);
+    const started = await backend.recoveryStart(email.trim());
+    setResending(false);
+    if (!started) {
+      setFailed(true);
+      return;
+    }
+    setCode('');
+    setCodeError(null);
+    posted.current = null;
+    setResent(true);
   };
 
   if (phase === 'email') {
@@ -136,6 +157,14 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
         <h1 className={`${styles.title} ${styles.pendingTitle}`}>{t('account.recovery.pendingTitle')}</h1>
         <div className={styles.pendingBlock}>
           <p className={styles.pendingMessage}>{t('account.recovery.pendingMessage', { email })}</p>
+          <p className={styles.hint}>
+            {t('account.recovery.resendPrompt')}{' '}
+            <button type="button" className={styles.linkBtn} disabled={resending || submitting} onClick={() => void resend()}>
+              {t('account.recovery.resend')}
+            </button>
+          </p>
+          {resent && <p className={styles.hint} role="status">{t('account.recovery.resent')}</p>}
+          {failed && <p className={styles.error} role="alert">{t('account.recovery.startFailed')}</p>}
           <p className={styles.hint}>{t('account.recovery.pendingHowTo')}</p>
           <label className={`${styles.field} ${styles.recoveryCodeField} ${codeError === 'wrong' ? styles.recoveryCodeWrong : ''}`}>
             <span className={styles.fieldLabel}>{t('account.recovery.codeTitle')}</span>
