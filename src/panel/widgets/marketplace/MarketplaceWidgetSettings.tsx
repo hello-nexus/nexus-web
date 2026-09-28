@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetSettingsProps } from '../types';
 import {
@@ -15,10 +15,9 @@ import {
   subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
-import { resolveHttp } from '../../../api/service';
 import {
   Hash, Clock3, ScanLine, RotateCw, CircleDot, FlipHorizontal, Binary,
-  LayoutGrid, Sun, Palette, Boxes, type LucideIcon,
+  LayoutGrid, Sun, Palette, type LucideIcon,
 } from 'lucide-react';
 import styles from './MarketplaceWidgetSettings.module.scss';
 
@@ -129,7 +128,7 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
 
   if (!id) return <div className={styles.empty}>{t('marketplace.settings.missingId')}</div>;
   if (!listing) return <div className={styles.empty}>{t('marketplace.settings.loading')}</div>;
-  if (schema.length === 0) return <NoSettings iconUrl={listing.iconUrl} />;
+  if (schema.length === 0) return <NoSettings />;
 
   return (
     <SettingsSection title={listing.name}>
@@ -145,16 +144,26 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
   );
 }
 
-/** An app with no settings shows its own icon large, so the sheet is not a lone line of text. */
-function NoSettings({ iconUrl }: { iconUrl?: string | null }) {
+// lucide's sliders-horizontal, whose paths a mask has to reach to cut the gap its "-off" icons leave around the slash.
+const SLIDERS = ['M10 5H3', 'M12 19H3', 'M14 3v4', 'M16 17v4', 'M21 12h-9', 'M21 19h-5', 'M21 5h-7', 'M8 10v4', 'M8 12H3'];
+const SLASH = 'm2 2 20 20';
+
+/** No settings: a large struck-through sliders glyph above the sentence. */
+function NoSettings() {
   const { t } = useTranslation();
-  const src = iconUrl ? resolveHttp(iconUrl) : null;
-  const [failed, setFailed] = useState<string | null>(null);
+  // useId's punctuation is not safe inside a url() reference.
+  const mask = `no-settings-${useId().replace(/[^\w-]/g, '')}`;
   return (
     <div className={styles.noSettings}>
-      {src && src !== failed
-        ? <img src={src} alt="" className={styles.noSettingsIcon} onError={() => setFailed(src)} />
-        : <Boxes className={styles.noSettingsGlyph} aria-hidden={true} />}
+      <svg className={styles.noSettingsGlyph} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden={true}>
+        <mask id={mask}>
+          <rect width={24} height={24} fill="white" stroke="none" />
+          <path d={SLASH} stroke="black" strokeWidth={6} />
+        </mask>
+        <g mask={`url(#${mask})`}>{SLIDERS.map((d) => <path key={d} d={d} />)}</g>
+        <path d={SLASH} />
+      </svg>
       <span>{t('marketplace.settings.noSettings')}</span>
     </div>
   );

@@ -1,8 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MarketplaceWidgetSettings } from './MarketplaceWidgetSettings';
 import { _resetMarketplaceRegistryForTests, _seedMarketplaceRegistryForTests } from '../../../widgets/marketplaceRegistry';
-import { resolveHttp } from '../../../api/service';
 import type { AppInstalledListing } from '../../../widgets/types';
 import type { PanelWidget } from '../../types';
 
@@ -28,25 +27,14 @@ const widget = { id: 'w1', type: 'app:com.example.bare', size: '2x2', config: {}
 afterEach(() => _resetMarketplaceRegistryForTests());
 
 describe('MarketplaceWidgetSettings with no settings', () => {
-  it('shows the app icon above the message', () => {
+  it('shows a struck-through settings glyph above the message, not the app\'s icon', () => {
     seed(ICON);
     const { container } = render(<MarketplaceWidgetSettings widget={widget} />);
 
     expect(screen.getByText('marketplace.settings.noSettings')).toBeTruthy();
-    expect(container.querySelector('img')?.getAttribute('src')).toBe(resolveHttp(ICON));
-  });
-
-  it('falls back to a drawn glyph when the app has no icon or it fails to load', () => {
-    seed(ICON);
-    const { container } = render(<MarketplaceWidgetSettings widget={widget} />);
-    fireEvent.error(container.querySelector('img')!);
     expect(container.querySelector('img')).toBeNull();
-    expect(container.querySelector('svg')).toBeTruthy();
-
-    _resetMarketplaceRegistryForTests();
-    seed(null);
-    const bare = render(<MarketplaceWidgetSettings widget={widget} />);
-    expect(bare.container.querySelector('img')).toBeNull();
-    expect(bare.container.querySelector('svg')).toBeTruthy();
+    const glyph = container.querySelector('svg')!;
+    expect(glyph.getAttribute('aria-hidden')).toBe('true');
+    expect(glyph.querySelector('path[d="m2 2 20 20"]')).toBeTruthy();
   });
 });
