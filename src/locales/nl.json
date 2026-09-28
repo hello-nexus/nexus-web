@@ -62,7 +62,7 @@
   "account.password.change": "Wachtwoord wijzigen",
   "account.password.confirm": "Nieuw wachtwoord bevestigen",
   "account.password.confirmHint": "We mailen je een link. Je wachtwoord verandert pas als je het daar bevestigt.",
-  "account.password.confirmSent": "Controleer je e-mail om je nieuwe wachtwoord te bevestigen",
+  "account.password.confirmSent": "We hebben je een e-mail gestuurd om deze wijziging te bevestigen. Klik op de link erin om je nieuwe wachtwoord in te stellen. Tot die tijd blijft je huidige wachtwoord gelden.",
   "account.password.current": "Huidig wachtwoord",
   "account.password.description": "Als je je wachtwoord wijzigt, word je overal elders afgemeld.",
   "account.password.new": "Nieuw wachtwoord",

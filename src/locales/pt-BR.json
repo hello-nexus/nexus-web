@@ -62,7 +62,7 @@
   "account.password.change": "Alterar senha",
   "account.password.confirm": "Confirmar nova senha",
   "account.password.confirmHint": "Enviaremos um link por e-mail. Sua senha só muda quando você confirmar por lá.",
-  "account.password.confirmSent": "Confira seu e-mail para confirmar sua nova senha",
+  "account.password.confirmSent": "Enviamos um e-mail para confirmar esta alteração. Clique no link dele para definir sua nova senha. Até lá, sua senha atual continua a mesma.",
   "account.password.current": "Senha atual",
   "account.password.description": "Ao alterar sua senha, você sairá de todas as outras sessões.",
   "account.password.new": "Nova senha",

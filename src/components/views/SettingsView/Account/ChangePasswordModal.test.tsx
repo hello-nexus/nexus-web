@@ -58,16 +58,44 @@ describe('ChangePasswordModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'account.save' }));
   }
 
-  it('on 202, sends no current password, toasts the email notice, and closes', async () => {
+  it('on 202, stays open and tells the user to click the emailed link', async () => {
     const { changePassword, onClose, onRecoveryFreshConsumed } = renderModal({ recoveryFresh: false });
     changePassword.mockResolvedValue({ status: 202, body: { error: false } });
 
     submitNewPassword();
 
-    await waitFor(() => expect(changePassword).toHaveBeenCalledWith(undefined, 'NewPass1'));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(screen.getByText('account.password.confirmSent')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('account.password.confirmSent')).toBeInTheDocument());
+    expect(changePassword).toHaveBeenCalledWith(undefined, 'NewPass1');
     expect(onRecoveryFreshConsumed).toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.queryByLabelText('account.password.new')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('shows the empty form again when reopened after an email was sent', async () => {
+    const { changePassword, onClose, onRecoveryFreshConsumed, rerender } = renderModal({ recoveryFresh: false });
+    changePassword.mockResolvedValue({ status: 202, body: { error: false } });
+    submitNewPassword();
+    await waitFor(() => expect(screen.getByText('account.password.confirmSent')).toBeInTheDocument());
+
+    const modal = (open: boolean) => (
+      <ToastProvider>
+        <ChangePasswordModal
+          open={open}
+          onClose={onClose}
+          recoveryFresh={false}
+          onRecoveryFreshConsumed={onRecoveryFreshConsumed}
+          changePassword={changePassword}
+        />
+      </ToastProvider>
+    );
+    rerender(modal(false));
+    rerender(modal(true));
+
+    expect(screen.queryByText('account.password.confirmSent')).toBeNull();
+    expect(screen.getByLabelText('account.password.new')).toHaveValue('');
   });
 
   it('on an applied change, toasts the updated notice', async () => {

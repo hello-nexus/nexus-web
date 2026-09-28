@@ -62,7 +62,7 @@
   "account.password.change": "更改密码",
   "account.password.confirm": "确认新密码",
   "account.password.confirmHint": "我们会通过邮件发送链接。只有在你通过该链接确认后，密码才会更改。",
-  "account.password.confirmSent": "请查收邮件以确认新密码",
+  "account.password.confirmSent": "我们已向你发送一封确认此更改的邮件。点击其中的链接即可设置新密码。在此之前，当前密码保持不变。",
   "account.password.current": "当前密码",
   "account.password.description": "更改密码会将你从其他所有会话中登出。",
   "account.password.new": "新密码",

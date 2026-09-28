@@ -62,7 +62,7 @@
   "account.password.change": "パスワードを変更",
   "account.password.confirm": "新しいパスワードの確認",
   "account.password.confirmHint": "確認用のリンクをメールでお送りします。そこで確定するまでパスワードは変わりません。",
-  "account.password.confirmSent": "メールを確認して新しいパスワードを確定してください",
+  "account.password.confirmSent": "この変更を確認するためのメールを送信しました。メール内のリンクをクリックすると、新しいパスワードが設定されます。それまでは現在のパスワードのままです。",
   "account.password.current": "現在のパスワード",
   "account.password.description": "パスワードを変更すると、他のすべてのセッションからサインアウトされます。",
   "account.password.new": "新しいパスワード",

@@ -41,6 +41,12 @@
   margin: 0;
 }
 
+.notice {
+  @include text-body;
+  color: var(--text);
+  margin: 0;
+}
+
 .hint {
   font-size: var(--type-small);
   font-weight: var(--weight-body);

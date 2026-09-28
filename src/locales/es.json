@@ -62,7 +62,7 @@
   "account.password.change": "Cambiar contraseña",
   "account.password.confirm": "Confirmar nueva contraseña",
   "account.password.confirmHint": "Le enviaremos un enlace por correo. Su contraseña solo cambia cuando lo confirme allí.",
-  "account.password.confirmSent": "Revise su correo para confirmar su nueva contraseña",
+  "account.password.confirmSent": "Le enviamos un correo para confirmar este cambio. Haga clic en el enlace que contiene para establecer su nueva contraseña. Hasta entonces, su contraseña actual no cambia.",
   "account.password.current": "Contraseña actual",
   "account.password.description": "Cambiar su contraseña cerrará su sesión en el resto de equipos.",
   "account.password.new": "Nueva contraseña",

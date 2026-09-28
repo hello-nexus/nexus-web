@@ -62,7 +62,7 @@
   "account.password.change": "Passwort ändern",
   "account.password.confirm": "Neues Passwort bestätigen",
   "account.password.confirmHint": "Wir senden Ihnen einen Link per E-Mail. Ihr Passwort ändert sich erst, wenn Sie dort bestätigen.",
-  "account.password.confirmSent": "Prüfen Sie Ihre E-Mails, um Ihr neues Passwort zu bestätigen",
+  "account.password.confirmSent": "Wir haben Ihnen eine E-Mail zur Bestätigung dieser Änderung gesendet. Klicken Sie auf den Link darin, um Ihr neues Passwort festzulegen. Bis dahin bleibt Ihr aktuelles Passwort gültig.",
   "account.password.current": "Aktuelles Passwort",
   "account.password.description": "Wenn Sie Ihr Passwort ändern, werden Sie überall sonst abgemeldet.",
   "account.password.new": "Neues Passwort",

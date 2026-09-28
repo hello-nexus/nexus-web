@@ -62,7 +62,7 @@
   "account.password.change": "Zmień hasło",
   "account.password.confirm": "Potwierdź nowe hasło",
   "account.password.confirmHint": "Wyślemy Ci link e-mailem. Hasło zmieni się dopiero po potwierdzeniu go tam.",
-  "account.password.confirmSent": "Sprawdź pocztę, aby potwierdzić nowe hasło",
+  "account.password.confirmSent": "Wysłaliśmy Ci e-mail z potwierdzeniem tej zmiany. Kliknij link w wiadomości, aby ustawić nowe hasło. Do tego czasu obowiązuje obecne hasło.",
   "account.password.current": "Obecne hasło",
   "account.password.description": "Zmiana hasła wyloguje Cię ze wszystkich innych sesji.",
   "account.password.new": "Nowe hasło",

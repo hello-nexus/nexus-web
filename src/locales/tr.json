@@ -62,7 +62,7 @@
   "account.password.change": "Parolayı değiştir",
   "account.password.confirm": "Yeni parolayı onaylayın",
   "account.password.confirmHint": "Size e-postayla bir bağlantı göndereceğiz. Parolanız yalnızca oradan onayladığınızda değişir.",
-  "account.password.confirmSent": "Yeni parolanızı onaylamak için e-postanızı kontrol edin",
+  "account.password.confirmSent": "Bu değişikliği onaylamanız için size bir e-posta gönderdik. Yeni parolanızı ayarlamak için içindeki bağlantıya tıklayın. O zamana kadar mevcut parolanız geçerli kalır.",
   "account.password.current": "Mevcut parola",
   "account.password.description": "Parolanızı değiştirdiğinizde diğer tüm oturumlardan çıkış yaparsınız.",
   "account.password.new": "Yeni parola",

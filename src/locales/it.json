@@ -62,7 +62,7 @@
   "account.password.change": "Cambia password",
   "account.password.confirm": "Conferma nuova password",
   "account.password.confirmHint": "Ti invieremo un link via e-mail. La password cambia solo quando confermi da lì.",
-  "account.password.confirmSent": "Controlla la tua e-mail per confermare la nuova password",
+  "account.password.confirmSent": "Ti abbiamo inviato un'e-mail per confermare questa modifica. Fai clic sul link che contiene per impostare la nuova password. Fino ad allora, la password attuale resta invariata.",
   "account.password.current": "Password attuale",
   "account.password.description": "Cambiando la password verrai disconnesso da ogni altra sessione.",
   "account.password.new": "Nuova password",

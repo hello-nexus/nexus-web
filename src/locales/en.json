@@ -62,7 +62,7 @@
   "account.password.change": "Change password",
   "account.password.confirm": "Confirm new password",
   "account.password.confirmHint": "We'll email you a link. Your password changes only when you confirm it there.",
-  "account.password.confirmSent": "Check your email to confirm your new password",
+  "account.password.confirmSent": "We sent you an email to confirm this change. Click the link in it to set your new password. Until then, your current password stays the same.",
   "account.password.current": "Current password",
   "account.password.description": "Changing your password signs you out everywhere else.",
   "account.password.new": "New password",

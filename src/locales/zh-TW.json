@@ -62,7 +62,7 @@
   "account.password.change": "變更密碼",
   "account.password.confirm": "確認新密碼",
   "account.password.confirmHint": "我們會以電子郵件寄送連結。只有在你透過該連結確認後，密碼才會變更。",
-  "account.password.confirmSent": "請查看電子郵件以確認新密碼",
+  "account.password.confirmSent": "我們已寄送一封確認此變更的電子郵件給你。點擊其中的連結即可設定新密碼。在此之前，目前的密碼維持不變。",
   "account.password.current": "目前的密碼",
   "account.password.description": "變更密碼會將你從所有其他工作階段登出。",
   "account.password.new": "新密碼",

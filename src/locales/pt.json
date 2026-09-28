@@ -62,7 +62,7 @@
   "account.password.change": "Alterar palavra-passe",
   "account.password.confirm": "Confirmar nova palavra-passe",
   "account.password.confirmHint": "Vamos enviar-lhe um link por e-mail. A sua palavra-passe só muda quando confirmar a partir dele.",
-  "account.password.confirmSent": "Verifique o seu e-mail para confirmar a nova palavra-passe",
+  "account.password.confirmSent": "Enviámos-lhe um e-mail para confirmar esta alteração. Clique na ligação que contém para definir a nova palavra-passe. Até lá, a sua palavra-passe atual mantém-se.",
   "account.password.current": "Palavra-passe atual",
   "account.password.description": "Ao alterar a palavra-passe, a sua sessão será terminada em todos os outros locais.",
   "account.password.new": "Nova palavra-passe",
