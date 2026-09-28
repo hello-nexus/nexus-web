@@ -21,13 +21,20 @@ interface PanelImmersiveOverlayProps {
   themeStyle?: CSSProperties;
   themeMode?: 'dark' | 'light';
   surface?: string;
+  // Opt-in per app (meta.immersiveDoubleSwipe): a first swipe or hint tap only
+  // reveals the close hint, and only a second one before the hint fades again
+  // closes. Default: any swipe closes.
+  confirmClose?: boolean;
 }
 
 const EXIT_MS = 200;
 // Idle delay before the drawer's close notch fades away.
 export const NOTCH_FADE_DELAY_MS = 1500;
+// The least time a confirmClose reveal keeps the next swipe or hint tap armed
+// to close; it stays armed for as long as the hint keeps showing.
+export const CONFIRM_WINDOW_MS = 3000;
 
-export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false }: PanelImmersiveOverlayProps) {
+export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -74,27 +81,46 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     if (exitTimer.current) clearTimeout(exitTimer.current);
   }, []);
 
-  // Swipe DOWN to dismiss, mirroring the editor sheet. Bottom-edge swipe-up is
-  // the iOS home indicator, so never close from there.
-  const swipe = usePanelSheetSwipe({
-    enabled: mountState === 'mounted',
-    sheetRef: overlayRef,
-    onDismiss: beginExit,
-  });
-
   // The close notch starts visible, then fades out after an idle delay so it
   // stops competing with the content; a tap while faded reveals it again
   // instead of closing, and only a tap while it is already visible closes.
   const [notchVisible, setNotchVisible] = useState(true);
   const notchFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Set by a confirmClose reveal swipe or hint tap and cleared when the notch
+  // fades: the notch alone is no proof of intent, since it shows on open and
+  // after any drag or pointer move.
+  const closeArmed = useRef(false);
+
   const scheduleNotchFade = useCallback(() => {
     if (notchFadeTimer.current) clearTimeout(notchFadeTimer.current);
     notchFadeTimer.current = setTimeout(() => {
       notchFadeTimer.current = null;
+      closeArmed.current = false;
       setNotchVisible(false);
-    }, NOTCH_FADE_DELAY_MS);
+    }, closeArmed.current ? CONFIRM_WINDOW_MS : NOTCH_FADE_DELAY_MS);
   }, []);
+
+  // Refusing the dismiss (confirmClose reveal-only swipe) tells the hook to
+  // snap the sheet back to rest instead of gliding it off-screen.
+  const handleSwipeDismiss = useCallback((): boolean => {
+    if (confirmClose && !closeArmed.current) {
+      closeArmed.current = true;
+      setNotchVisible(true);
+      scheduleNotchFade();
+      return false;
+    }
+    beginExit();
+    return true;
+  }, [confirmClose, beginExit, scheduleNotchFade]);
+
+  // Swipe DOWN to dismiss, mirroring the editor sheet. Bottom-edge swipe-up is
+  // the iOS home indicator, so never close from there.
+  const swipe = usePanelSheetSwipe({
+    enabled: mountState === 'mounted',
+    sheetRef: overlayRef,
+    onDismiss: handleSwipeDismiss,
+  });
 
   // Reveals on open and re-arms the fade timer whenever a drag settles back
   // to idle (a dismissing drag unmounts before the timer would matter). A
@@ -120,13 +146,14 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
   }, [mountState, swipe.state, scheduleNotchFade]);
 
   const handleNotchTap = useCallback(() => {
-    if (notchVisible) {
+    if (confirmClose ? closeArmed.current : notchVisible) {
       beginExit();
       return;
     }
+    if (confirmClose) closeArmed.current = true;
     setNotchVisible(true);
     scheduleNotchFade();
-  }, [notchVisible, beginExit, scheduleNotchFade]);
+  }, [confirmClose, notchVisible, beginExit, scheduleNotchFade]);
 
   // Touch reveals the hint by dragging, which a mouse cannot do - without this
   // a pointer-driven surface (the simulator) is left with no visible exit once

@@ -13,18 +13,22 @@ import { Dashboard } from './app/Dashboard';
 import { isRemoteOrigin, setForceLanMode } from './api/service';
 import { isWindowsAppShell, isMacAppShell } from './app/windowActions';
 
-// The emailed account landings (/auth/verify, /auth/recover) are
-// browser-only - `npm run build:service` must dead-code-eliminate their route
-// chunks from the desktop/app bundle. The import() is guarded by the raw
-// build define (NOT a wrapped const): esbuild folds `!false` to `true` /
-// `!true` to `false` during transform, and Rollup then tree-shakes the dead
-// branch's dynamic import so the chunk is never emitted - same technique as
-// the DEV_TOOLS-gated StorybookModal in ToolsView.tsx.
+// The emailed account landings (/auth/verify, /auth/recover,
+// /auth/confirm-password) are browser-only - `npm run build:service` must
+// dead-code-eliminate their route chunks from the desktop/app bundle. The
+// import() is guarded by the raw build define (NOT a wrapped const): esbuild
+// folds `!false` to `true` / `!true` to `false` during transform, and Rollup
+// then tree-shakes the dead branch's dynamic import so the chunk is never
+// emitted - same technique as the DEV_TOOLS-gated StorybookModal in
+// ToolsView.tsx.
 const VerifyEmailPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/VerifyEmailPage').then(m => ({ default: m.VerifyEmailPage })))
   : null;
 const RecoverPage = !__SERVICE_BUILD__
   ? lazy(() => import('./app/public/RecoverPage').then(m => ({ default: m.RecoverPage })))
+  : null;
+const ConfirmPasswordPage = !__SERVICE_BUILD__
+  ? lazy(() => import('./app/public/ConfirmPasswordPage').then(m => ({ default: m.ConfirmPasswordPage })))
   : null;
 
 // The public web at hellonexus.com: an ordinary browser origin that is NOT the
@@ -180,6 +184,19 @@ export default function App() {
       <I18nProvider>
         <Suspense fallback={null}>
           <RecoverPage token={token} />
+        </Suspense>
+      </I18nProvider>
+    );
+  }
+
+  // /auth/confirm-password?token=... - applies a password change made without
+  // the current password. Absent in the service/app bundle.
+  if (ConfirmPasswordPage && path === '/auth/confirm-password') {
+    const token = readAndStripUrlToken();
+    return (
+      <I18nProvider>
+        <Suspense fallback={null}>
+          <ConfirmPasswordPage token={token} />
         </Suspense>
       </I18nProvider>
     );

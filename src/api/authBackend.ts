@@ -35,14 +35,8 @@ export interface AuthUsernameResponse extends AuthEnvelope {
   retryAt?: string;
 }
 
-export interface AuthRecoveryStartResponse {
-  grantId: string;
-  /**
-   * Short verification code, shown on THIS device and typed into the page the
-   * emailed link opens. Absent when the backend predates the code.
-   */
-  code?: string;
-}
+/** A code typed here from the emailed link's page: ok signs in; exhausted means a new reset is needed. */
+export type AuthRecoveryCodeResult = 'ok' | 'mismatch' | 'exhausted' | 'failed';
 
 export type AuthRecoveryStatusValue = 'idle' | 'pending' | 'approved' | 'expired';
 
@@ -73,8 +67,10 @@ export interface AuthBackend {
   register(email: string, password: string, username: string): Promise<AuthFetchResult<AuthRegisterResponse>>;
   logout(): Promise<void>;
   getAccount(): Promise<AuthAccount | null>;
-  recoveryStart(email: string): Promise<AuthRecoveryStartResponse | null>;
+  /** False when no link was sent (throttled, offline). */
+  recoveryStart(email: string): Promise<boolean>;
   recoveryStatus(): Promise<AuthRecoveryStatusResponse | null>;
+  recoverySubmitCode(code: string): Promise<AuthRecoveryCodeResult>;
   // Discards any client-held recovery grant when the user backs out of the
   // pending phase - only DirectApiBackend holds one (sessionStorage); the
   // in-app backend leaves grant custody to the service.

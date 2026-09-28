@@ -121,9 +121,9 @@ describe('AccountSignedIn password modal', () => {
     expect(screen.queryByLabelText('account.password.current')).toBeNull();
   });
 
-  it('opens on the button asking for the current password otherwise', () => {
+  it('opens on the button with the email-confirmation hint otherwise', () => {
     renderSignedIn();
     fireEvent.click(screen.getByRole('button', { name: 'account.password.change' }));
-    expect(screen.getByLabelText('account.password.current')).toBeInTheDocument();
+    expect(screen.getByText('account.password.confirmHint')).toBeInTheDocument();
   });
 });

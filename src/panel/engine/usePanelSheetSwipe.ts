@@ -11,7 +11,10 @@ import { findScroller } from './scrollers';
 interface SwipeOptions {
   enabled: boolean;
   sheetRef: RefObject<HTMLElement | null>;
-  onDismiss: () => void;
+  // Returning false refuses the dismiss: the sheet snaps back to rest through
+  // the same path as a release that never crossed the threshold. Any other
+  // return value accepts it.
+  onDismiss: () => boolean | void;
   // Fraction of the sheet's measured offsetHeight at which a release dismisses
   // instead of snapping back.
   dismissDistanceFraction?: number;
@@ -136,15 +139,15 @@ export function usePanelSheetSwipe({
 
       setState('settling');
       clearSettle();
-      if (dismissed) {
-        // Glide off-screen via the CSS transition AND fire onDismiss right
-        // away so the host's close path (widget dock-out, scrim fade) runs
-        // in parallel rather than as a second animation after the sheet is
-        // already gone. The host's unmount timer (EDITOR_EXIT_MS) is set to
+      const accepted = dismissed && onDismiss() !== false;
+      if (accepted) {
+        // Glide off-screen via the CSS transition; onDismiss has already
+        // fired above, so the host's close path (widget dock-out, scrim fade)
+        // runs in parallel rather than as a second animation after the sheet
+        // is already gone. The host's unmount timer (EDITOR_EXIT_MS) is set to
         // match SETTLE_MS so the sheet finishes its glide before the tree
         // is removed.
         setOffset(sheetHeight + 32);
-        onDismiss();
       } else {
         setOffset(0);
         settleTimer.current = setTimeout(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import { SdkMarketplaceWidget } from './SdkMarketplaceWidget';
@@ -53,8 +53,16 @@ export function MarketplaceWidget({ widget, sandboxSurface, surface, deviceTouch
 
 /** Touch facet for immersive-allowlisted SDK apps: the same widget rendered
  *  fullscreen by PanelImmersiveOverlay, on its own 'immersive' worker so the
- *  overlay's unmount disposes only that worker, never the tile's. */
+ *  overlay's unmount disposes only that worker, never the tile's. It fills the
+ *  overlay edge to edge, without the host's padded immersive-cell wrapper: the
+ *  sandbox already lays out from the box it's given, so the app draws its own
+ *  margins rather than the host imposing them from outside. */
 export function MarketplaceTouch(props: WidgetProps) {
-  // eslint-disable-next-line i18next/no-literal-string -- render surface id
-  return <MarketplaceWidget {...props} sandboxSurface="immersive" />;
+  const widget = useMemo(() => ({ ...props.widget, size: '4x4' as const }), [props.widget]);
+  return (
+    <div className={styles.fullBleed}>
+      {/* eslint-disable-next-line i18next/no-literal-string -- render surface id */}
+      <MarketplaceWidget {...props} widget={widget} sandboxSurface="immersive" />
+    </div>
+  );
 }

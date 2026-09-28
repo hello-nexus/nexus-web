@@ -158,7 +158,7 @@ describe('AccountView recovery-fresh session', () => {
     expect(screen.queryByLabelText('account.password.current')).toBeNull();
   });
 
-  it('asks for the current password when the window is not fresh', async () => {
+  it('shows the email-confirmation hint when the window is not fresh', async () => {
     const { localServiceBackend } = await import('../../../../api/localServiceBackend');
     vi.mocked(localServiceBackend.recoveryStatus).mockResolvedValue({ status: 'idle', recoveryFresh: false });
 
@@ -167,6 +167,6 @@ describe('AccountView recovery-fresh session', () => {
     expect(screen.getAllByText('account.password.change')).toHaveLength(1);
 
     openModal();
-    expect(screen.getByLabelText('account.password.current')).toBeInTheDocument();
+    expect(screen.getByText('account.password.confirmHint')).toBeInTheDocument();
   });
 });

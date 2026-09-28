@@ -131,6 +131,37 @@ function clearStoredRecoveryGrant(): void {
   }
 }
 
+function readStoredRecoveryGrant(): { grantId: string; deviceSecret: string } | null {
+  const stored = sessionStorage.getItem(RECOVERY_GRANT_STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored) as { grantId: string; deviceSecret: string };
+  } catch {
+    sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
+    return null;
+  }
+}
+
+interface RecoveryPollBody {
+  status: 'pending' | 'expired' | 'approved';
+  accessToken?: string;
+  refreshToken?: string;
+  account?: ApiPublicAccount;
+}
+
+// A cookie-mode (web-flagged) approval omits refreshToken - the cookie
+// carries it instead, same as login/refresh; the body flow still requires
+// one, so a malformed body-flow response doesn't report a signed-in state
+// with nothing durable behind it.
+function applyApprovedRecovery(data: RecoveryPollBody, cookieMode: boolean): boolean {
+  if (data.status !== 'approved' || !data.accessToken || !data.account || (!cookieMode && !data.refreshToken)) {
+    return false;
+  }
+  applySession({ accessToken: data.accessToken, refreshToken: data.refreshToken, account: data.account }, cookieMode);
+  sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
+  return true;
+}
+
 // The refresh token is written before the access token is cached: a crash
 // between the two lines must never leave the session with neither a usable
 // access token nor the (now server-rotated) refresh token. cookieMode gates
@@ -341,34 +372,57 @@ export const directApiBackend: AuthBackend = {
   recoveryStart: async (email) => {
     const grantId = crypto.randomUUID();
     const deviceSecret = generateDeviceSecret();
-    let code: string | undefined;
+    // In cookie mode the api answers with a recovery cookie, which is how the
+    // link opened later in this same browser signs in without a code.
+    const cookieMode = isWebCookieMode();
     try {
       const res = await fetch(`${BASE}/auth/recovery/start`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
+        credentials: fetchCredentials(cookieMode),
         body: JSON.stringify({ email, grantId, deviceSecret }),
       });
-      if (!res.ok) return null;
-      code = (await tryParseJson<{ code?: string }>(res))?.code;
+      if (!res.ok) return false;
     } catch {
-      return null;
+      return false;
     }
     sessionStorage.setItem(RECOVERY_GRANT_STORAGE_KEY, JSON.stringify({ grantId, deviceSecret }));
-    return { grantId, code };
+    return true;
+  },
+
+  recoverySubmitCode: async (code) => {
+    const grant = readStoredRecoveryGrant();
+    if (!grant) return 'failed';
+    const cookieMode = isWebCookieMode();
+    let res: Response;
+    try {
+      res = await fetch(`${BASE}/auth/recovery/poll`, {
+        method: 'POST',
+        headers: authHeaders(cookieMode, { 'Content-Type': 'application/json' }),
+        credentials: fetchCredentials(cookieMode),
+        body: JSON.stringify({ ...grant, code }),
+      });
+    } catch {
+      return 'failed';
+    }
+    if (!res.ok) {
+      const err = await tryParseJson<{ code?: string }>(res);
+      if (err?.code === 'code_mismatch') return 'mismatch';
+      // Only spent guesses end the grant; a throttle or server error leaves it
+      // for the next try and for the status poll.
+      if (err?.code !== 'code_attempts_exhausted') return 'failed';
+      sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
+      return 'exhausted';
+    }
+    const data = await tryParseJson<RecoveryPollBody>(res);
+    return data && applyApprovedRecovery(data, cookieMode) ? 'ok' : 'failed';
   },
 
   recoveryCancel: () => clearStoredRecoveryGrant(),
 
   recoveryStatus: async () => {
-    const stored = sessionStorage.getItem(RECOVERY_GRANT_STORAGE_KEY);
-    if (!stored) return null;
-    let grant: { grantId: string; deviceSecret: string };
-    try {
-      grant = JSON.parse(stored) as { grantId: string; deviceSecret: string };
-    } catch {
-      sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
-      return null;
-    }
+    const grant = readStoredRecoveryGrant();
+    if (!grant) return null;
     const cookieMode = isWebCookieMode();
     let res: Response;
     try {
@@ -382,25 +436,15 @@ export const directApiBackend: AuthBackend = {
       return null;
     }
     if (!res.ok) {
+      // Only a refused grant (wrong device secret, disabled account) ends the
+      // flow; a throttle or server error is retried on the next tick.
+      if (res.status !== 401 && res.status !== 403) return null;
       sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
       return { status: 'expired' };
     }
-    const data = await tryParseJson<{
-      status: 'pending' | 'expired' | 'approved';
-      accessToken?: string;
-      refreshToken?: string;
-      account?: ApiPublicAccount;
-    }>(res);
+    const data = await tryParseJson<RecoveryPollBody>(res);
     if (!data) return null;
-    // A cookie-mode (web-flagged) approval omits refreshToken - the cookie
-    // carries it instead, same as login/refresh; the body flow still
-    // requires one, so a malformed body-flow response doesn't report a
-    // signed-in state with nothing durable behind it.
-    if (data.status === 'approved' && data.accessToken && data.account && (cookieMode || data.refreshToken)) {
-      applySession({ accessToken: data.accessToken, refreshToken: data.refreshToken, account: data.account }, cookieMode);
-      sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
-      return { status: 'approved' };
-    }
+    if (applyApprovedRecovery(data, cookieMode)) return { status: 'approved' };
     if (data.status === 'expired') sessionStorage.removeItem(RECOVERY_GRANT_STORAGE_KEY);
     return { status: data.status };
   },

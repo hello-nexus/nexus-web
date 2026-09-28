@@ -1935,6 +1935,7 @@ export function PanelContent({
             themeStyle={immersiveThemeStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
+            confirmClose={def.meta.immersiveDoubleSwipe}
           >
             <Comp
               widget={w}
