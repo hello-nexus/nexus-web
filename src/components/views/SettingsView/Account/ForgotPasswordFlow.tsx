@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '../../../common/Button/Button';
 import { Spinner } from '../../../common/Spinner/Spinner';
 import { TextInput } from '../../../common/TextInput/TextInput';
 import { useTranslation } from '../../../../lib/i18n';
 import type { AuthBackend } from '../../../../api/authBackend';
+import {
+  formatRecoveryCode,
+  normalizeRecoveryCode,
+  RECOVERY_CODE_DISPLAY_LENGTH,
+  RECOVERY_CODE_LENGTH,
+} from './recoveryCode';
 import styles from './Account.module.scss';
 
-type ForgotPhase = 'email' | 'pending' | 'reset' | 'expired';
+type ForgotPhase = 'email' | 'pending' | 'reset' | 'expired' | 'exhausted';
 
 interface ForgotPasswordFlowProps {
   backend: AuthBackend;
@@ -26,26 +32,36 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
   const [phase, setPhase] = useState<ForgotPhase>('email');
   const [email, setEmail] = useState('');
   const [failed, setFailed] = useState(false);
-  // Shown only here, never mailed: the user types it into the page the link
-  // opens, which is what proves the sign-in waiting for approval is this one.
+  // Typed here from the page the emailed link opens on another device; the
+  // link opened on this computer signs in with no code at all.
   const [code, setCode] = useState('');
-  const [copied, setCopied] = useState(false);
-  const copiedTimer = useRef<number | null>(null);
+  const [codeError, setCodeError] = useState<'wrong' | 'failed' | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // The field holds a complete code until the next keystroke, so the submit
+  // effect below would post it again on every render without this.
+  const posted = useRef<string | null>(null);
 
-  useEffect(() => () => { if (copiedTimer.current) window.clearTimeout(copiedTimer.current); }, []);
+  const approve = useCallback(() => {
+    setPhase('reset');
+    onRecoveryApproved();
+  }, [onRecoveryApproved]);
 
-  // The code is copied as the page the link opens takes it: characters only,
-  // no grouping dash.
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(code.replace(/[^A-Za-z0-9]/g, ''));
-    } catch {
-      return;
+  const submitCode = useCallback(async (value: string) => {
+    setSubmitting(true);
+    setCodeError(null);
+    const result = await backend.recoverySubmitCode(value);
+    setSubmitting(false);
+    if (result === 'ok') approve();
+    else if (result === 'exhausted') setPhase('exhausted');
+    else setCodeError(result === 'mismatch' ? 'wrong' : 'failed');
+  }, [backend, approve]);
+
+  useEffect(() => {
+    if (phase === 'pending' && code.length === RECOVERY_CODE_LENGTH && code !== posted.current) {
+      posted.current = code;
+      void submitCode(code);
     }
-    setCopied(true);
-    if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
-    copiedTimer.current = window.setTimeout(() => setCopied(false), 1500);
-  };
+  }, [phase, code, submitCode]);
 
   useEffect(() => {
     if (phase !== 'pending') return;
@@ -54,8 +70,7 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
       const status = await backend.recoveryStatus();
       if (cancelled || !status) return;
       if (status.status === 'approved') {
-        setPhase('reset');
-        onRecoveryApproved();
+        approve();
       } else if (status.status === 'expired') {
         setPhase('expired');
       }
@@ -66,7 +81,7 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [phase, backend, onRecoveryApproved]);
+  }, [phase, backend, approve]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -75,14 +90,13 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
     // A refused start (throttled, offline) sent no link, so advancing to the
     // pending phase would poll for a grant that does not exist and report it as
     // an expired link.
-    // No code means an older service or api answered: the page the link opens
-    // demands one, so advancing would strand the user with nothing to type.
-    const started = await backend.recoveryStart(email.trim());
-    if (!started?.code) {
+    if (!(await backend.recoveryStart(email.trim()))) {
       setFailed(true);
       return;
     }
-    setCode(started.code);
+    setCode('');
+    setCodeError(null);
+    posted.current = null;
     setPhase('pending');
   };
 
@@ -122,16 +136,28 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
         <h1 className={`${styles.title} ${styles.pendingTitle}`}>{t('account.recovery.pendingTitle')}</h1>
         <div className={styles.pendingBlock}>
           <p className={styles.pendingMessage}>{t('account.recovery.pendingMessage', { email })}</p>
-          <div className={styles.recoveryCodeBlock}>
-            <div className={styles.recoveryCodeHeader}>
-              <span className={styles.fieldLabel}>{t('account.recovery.codeTitle')}</span>
-              <button type="button" className={styles.recoveryCodeCopy} onClick={() => void copyCode()}>
-                {copied ? t('devices.specs.copied') : t('devices.specs.copy')}
-              </button>
-            </div>
-            <span className={styles.recoveryCode}>{code}</span>
-            <span className={styles.hint}>{t('account.recovery.codeHint')}</span>
-          </div>
+          <p className={styles.hint}>{t('account.recovery.pendingHowTo')}</p>
+          <label className={`${styles.field} ${styles.recoveryCodeField} ${codeError === 'wrong' ? styles.recoveryCodeWrong : ''}`}>
+            <span className={styles.fieldLabel}>{t('account.recovery.codeTitle')}</span>
+            <TextInput
+              value={formatRecoveryCode(code)}
+              sanitize={v => formatRecoveryCode(normalizeRecoveryCode(v))}
+              onInput={v => { setCodeError(null); setCode(normalizeRecoveryCode(v)); }}
+              name="code"
+              autoComplete="one-time-code"
+              align="center"
+              mono
+              maxLength={RECOVERY_CODE_DISPLAY_LENGTH}
+              disabled={submitting}
+              invalid={codeError === 'wrong'}
+              ariaLabel={t('account.recovery.codeTitle')}
+            />
+          </label>
+          {codeError && (
+            <p className={styles.error} role="alert">
+              {t(codeError === 'wrong' ? 'account.recovery.codeWrong' : 'account.error.generic')}
+            </p>
+          )}
           <div className={styles.pendingRow}>
             <Spinner size={16} />
             <span className={styles.hint}>{t('account.recovery.pendingWaiting')}</span>
@@ -148,11 +174,12 @@ export function ForgotPasswordFlow({ backend, onBackToSignIn, onRecoveryApproved
     );
   }
 
-  if (phase === 'expired') {
+  if (phase === 'expired' || phase === 'exhausted') {
+    const exhausted = phase === 'exhausted';
     return (
       <div className={styles.wrap}>
-        <h1 className={styles.title}>{t('account.recovery.expiredTitle')}</h1>
-        <p className={styles.subtitle}>{t('account.recovery.expiredMessage')}</p>
+        <h1 className={styles.title}>{t(exhausted ? 'account.recovery.exhaustedTitle' : 'account.recovery.expiredTitle')}</h1>
+        <p className={styles.subtitle}>{t(exhausted ? 'account.recovery.exhaustedMessage' : 'account.recovery.expiredMessage')}</p>
         <Button type="button" tone="accent" onClick={() => setPhase('email')}>
           {t('account.recovery.tryAgain')}
         </Button>

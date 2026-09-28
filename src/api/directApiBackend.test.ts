@@ -242,8 +242,8 @@ describe('directApiBackend', () => {
 
       const result = await backend.recoveryStart('alpha@example.com');
 
-      expect(result?.grantId).toBe('11111111-1111-4111-8111-111111111111');
-      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).toContain(result!.grantId);
+      expect(result).toBe(true);
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).toContain('11111111-1111-4111-8111-111111111111');
       expect(localStorage.getItem(RECOVERY_GRANT_KEY)).toBeNull();
       const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       const body = JSON.parse(init.body as string) as { deviceSecret: string };
@@ -271,6 +271,50 @@ describe('directApiBackend', () => {
       expect(status).toEqual({ status: 'approved' });
       expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).toBeNull();
       expect(localStorage.getItem(REFRESH_KEY)).toBe('refresh-1');
+    });
+
+    it('a matching code signs in on the spot and clears the grant', async () => {
+      sessionStorage.setItem(RECOVERY_GRANT_KEY, JSON.stringify({ grantId: 'g1', deviceSecret: 'x'.repeat(32) }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(200, {
+        status: 'approved', accessToken: 'access-1', refreshToken: 'refresh-1', account: mkApiAccount(),
+      }));
+      const backend = await freshBackend();
+
+      expect(await backend.recoverySubmitCode('482915')).toBe('ok');
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(`${BASE}/auth/recovery/poll`);
+      expect(JSON.parse(init.body as string)).toEqual({ grantId: 'g1', deviceSecret: 'x'.repeat(32), code: '482915' });
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).toBeNull();
+    });
+
+    it('a wrong code keeps the grant; spent guesses drop it', async () => {
+      sessionStorage.setItem(RECOVERY_GRANT_KEY, JSON.stringify({ grantId: 'g1', deviceSecret: 'x'.repeat(32) }));
+      fetchMock.mockResolvedValueOnce(jsonResponse(400, { code: 'code_mismatch', attemptsLeft: 4 }));
+      const backend = await freshBackend();
+
+      expect(await backend.recoverySubmitCode('000000')).toBe('mismatch');
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).not.toBeNull();
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(429, { message: 'ThrottlerException: Too Many Requests' }));
+      expect(await backend.recoverySubmitCode('000000')).toBe('failed');
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).not.toBeNull();
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(400, { code: 'code_attempts_exhausted', attemptsLeft: 0 }));
+      expect(await backend.recoverySubmitCode('000000')).toBe('exhausted');
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).toBeNull();
+    });
+
+    it('a throttled or failed poll keeps the grant; a refused grant ends it', async () => {
+      sessionStorage.setItem(RECOVERY_GRANT_KEY, JSON.stringify({ grantId: 'g1', deviceSecret: 'x'.repeat(32) }));
+      const backend = await freshBackend();
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(429, { message: 'ThrottlerException: Too Many Requests' }));
+      expect(await backend.recoveryStatus()).toBeNull();
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).not.toBeNull();
+
+      fetchMock.mockResolvedValueOnce(jsonResponse(401, { message: 'device secret mismatch' }));
+      expect(await backend.recoveryStatus()).toEqual({ status: 'expired' });
+      expect(sessionStorage.getItem(RECOVERY_GRANT_KEY)).toBeNull();
     });
 
     it('a pending poll leaves the grant in place for the next tick', async () => {
@@ -460,6 +504,16 @@ describe('directApiBackend', () => {
       expect(result.body).toMatchObject({ error: false, username: 'alpha' });
       expect(localStorage.getItem(REFRESH_KEY)).toBeNull();
       expect(getCachedAccount()?.username).toBe('alpha');
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(init.headers).toMatchObject({ 'X-Nexus-Auth': 'web' });
+      expect(init.credentials).toBe('include');
+    });
+
+    it('recoveryStart sends the web header + credentials, so the api can set the recovery cookie', async () => {
+      fetchMock.mockResolvedValueOnce(jsonResponse(201, { ok: true }));
+      const { directApiBackend: backend } = await freshModule();
+
+      expect(await backend.recoveryStart('alpha@example.com')).toBe(true);
       const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
       expect(init.headers).toMatchObject({ 'X-Nexus-Auth': 'web' });
       expect(init.credentials).toBe('include');

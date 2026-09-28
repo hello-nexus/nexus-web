@@ -6,9 +6,17 @@
 import {
   changeCloudPassword, changeCloudUsername, cloudLogin, cloudLogout, cloudRegister,
   deleteCloudAccount, deleteCloudDevice, fetchCloudAccounts, fetchCloudDevices, fetchCloudRecoveryStatus,
-  setCloudAccountPrivate, startCloudRecovery, upsertCloudDevice, uploadCloudAvatar,
+  setCloudAccountPrivate, startCloudRecovery, submitCloudRecoveryCode, upsertCloudDevice, uploadCloudAvatar,
 } from './cloud';
-import type { AuthAccount, AuthBackend } from './authBackend';
+import type { AuthAccount, AuthBackend, AuthRecoveryCodeResult } from './authBackend';
+
+/** The service relays the api's error code as the envelope's msg. */
+function recoveryCodeResult(status: number, msg: string | undefined): AuthRecoveryCodeResult {
+  if (status >= 200 && status < 300) return 'ok';
+  if (msg === 'code_mismatch') return 'mismatch';
+  if (msg === 'code_attempts_exhausted') return 'exhausted';
+  return 'failed';
+}
 
 export const localServiceBackend: AuthBackend = {
   login: (identifier, password) => cloudLogin(identifier, password),
@@ -27,9 +35,14 @@ export const localServiceBackend: AuthBackend = {
     return active ? toAuthAccount(active) : null;
   },
 
-  recoveryStart: (email) => startCloudRecovery(email),
+  recoveryStart: async (email) => (await startCloudRecovery(email)) !== null,
 
   recoveryStatus: () => fetchCloudRecoveryStatus(),
+
+  recoverySubmitCode: async (code) => {
+    const res = await submitCloudRecoveryCode(code);
+    return recoveryCodeResult(res.status, res.body?.msg);
+  },
 
   changePassword: (currentPassword, newPassword) => changeCloudPassword(currentPassword, newPassword),
 

@@ -38,11 +38,6 @@ export interface CloudUsernameResponse extends CloudEnvelope {
   retryAt?: string;
 }
 
-export interface RecoveryStartResponse {
-  grantId: string;
-  /** Verification code, shown here and typed into the page the emailed link opens. */
-  code?: string;
-}
 
 export type RecoveryStatusValue = 'idle' | 'pending' | 'approved' | 'expired';
 
@@ -148,7 +143,10 @@ export const cloudLogout = (accountId: string) =>
   postService('/cloud/logout', { accountId });
 
 export const startCloudRecovery = (email: string) =>
-  postService<RecoveryStartResponse>('/cloud/recovery/start', { email });
+  postService<CloudEnvelope>('/cloud/recovery/start', { email });
+
+export const submitCloudRecoveryCode = (code: string) =>
+  cloudFetch<CloudEnvelope>('/cloud/recovery/code', 'POST', { code });
 
 export const fetchCloudRecoveryStatus = () =>
   fetchService<RecoveryStatusResponse>('/cloud/recovery/status');

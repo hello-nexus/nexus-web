@@ -21,42 +21,27 @@
   font-size: var(--type-small);
 }
 
-.error {
-  margin: 0;
-  color: var(--bad);
-  font-size: var(--type-small);
-  font-weight: var(--weight-body);
-}
-
-// The code reads back as it is shown on the other device: one large grouped
-// field, so a six-character secret is checked at a glance before submitting.
-.codeField {
+// Read off this screen and typed on the device that asked, so it is large,
+// monospaced and grouped the way the app's field groups it.
+.codeBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
   width: 100%;
   max-width: 320px;
-
-  input {
-    padding: var(--space-md);
-    font-family: var(--font-mono);
-    font-size: var(--type-display);
-    letter-spacing: 0.18em;
-    // Letter-spacing trails the last glyph, which pulls centred text left.
-    text-indent: 0.18em;
-  }
+  box-sizing: border-box;
+  padding: var(--space-md);
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
-// The rejected code stays on screen for a beat before the field clears, so
-// the shake and the red border are what mark it wrong rather than the value
-// vanishing under the cursor.
-.codeFieldWrong {
-  animation: code-wrong var(--ease-slow) ease-in-out;
-}
-
-@keyframes code-wrong {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(6px); }
-  60% { transform: translateX(-4px); }
-  80% { transform: translateX(4px); }
+.code {
+  font-family: var(--font-mono);
+  font-size: var(--type-display);
+  letter-spacing: 0.18em;
+  color: var(--text);
 }
 
 .approved {

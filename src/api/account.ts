@@ -76,12 +76,11 @@ export async function getPublicAccount(username: string, signal?: AbortSignal): 
   return { status: 'error' };
 }
 
-// Retry budget shared by verifyEmail/completeRecovery below.
+// Retry budget for verifyEmail below.
 const TOKEN_POST_RETRY_ATTEMPTS = 3;
 const TOKEN_POST_RETRY_DELAY_MS = 400;
-// A ceiling on the whole attempt, retries included. The recovery page has no
-// button to press once the code is in, so a request that never settles would
-// leave it spinning with no way out.
+// A ceiling on the whole attempt, retries included, so a request that never
+// settles cannot leave a landing page spinning with no way out.
 const TOKEN_POST_DEADLINE_MS = 12_000;
 
 /**
@@ -93,7 +92,7 @@ const TOKEN_POST_DEADLINE_MS = 12_000;
  * transit (misreporting a real success as "already used"). Returns null once
  * every attempt has thrown.
  */
-async function postTokenWithNetworkRetry(url: string, token: string, code?: string): Promise<Response | null> {
+async function postTokenWithNetworkRetry(url: string, token: string): Promise<Response | null> {
   const abort = new AbortController();
   const deadline = setTimeout(() => abort.abort(), TOKEN_POST_DEADLINE_MS);
   try {
@@ -102,7 +101,7 @@ async function postTokenWithNetworkRetry(url: string, token: string, code?: stri
         return await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(code ? { token, code } : { token }),
+          body: JSON.stringify({ token }),
           signal: abort.signal,
         });
       } catch {
@@ -171,52 +170,40 @@ export async function confirmPasswordChange(token: string): Promise<'ok' | 'inva
   }
 }
 
-export type RecoveryCompleteFailure =
-  /** No code reached /complete; the form guards against it, other callers may not. */
-  | 'code-required'
-  /** Wrong code, grant still alive - attemptsLeft says how many remain. */
-  | 'code-mismatch'
-  /** Guesses spent: the grant is destroyed and a new link is needed. */
-  | 'code-exhausted'
-  /** Bad or expired link, or any failure the page cannot act on. */
-  | 'invalid';
+export type RecoveryOpenResult =
+  /** Opened in the browser that asked for the reset: approved outright. */
+  | { status: 'approved' }
+  /** Opened anywhere else: the code to type on the device that asked. */
+  | { status: 'code'; code: string }
+  | { status: 'invalid' }
+  | { status: 'error' };
 
-export interface RecoveryCompleteResult {
-  ok: boolean;
-  username?: string;
-  reason?: RecoveryCompleteFailure;
-  attemptsLeft?: number;
-}
-
-/** Maps the api's error body onto what the page can actually do about it. */
-function recoveryFailure(body: unknown): { reason: RecoveryCompleteFailure; attemptsLeft?: number } {
-  const err = body as { code?: string; attemptsLeft?: number } | null;
-  switch (err?.code) {
-    case 'code_required':
-      return { reason: 'code-required' };
-    case 'code_mismatch':
-      return { reason: 'code-mismatch', attemptsLeft: err.attemptsLeft };
-    case 'code_attempts_exhausted':
-      return { reason: 'code-exhausted' };
-    default:
-      return { reason: 'invalid' };
-  }
-}
-
-export async function completeRecovery(token: string, code?: string): Promise<RecoveryCompleteResult> {
+/**
+ * POST /auth/recovery/open. Sent once, never retried: a lost response on the
+ * approving path would make a retry report a spent link as invalid.
+ */
+export async function openRecovery(token: string): Promise<RecoveryOpenResult> {
+  const abort = new AbortController();
+  const deadline = setTimeout(() => abort.abort(), TOKEN_POST_DEADLINE_MS);
   try {
-    const res = await postTokenWithNetworkRetry(`${BASE}/auth/recovery/complete`, token, code);
-    if (!res) return { ok: false, reason: 'invalid' };
-    if (!res.ok) {
-      // A 400 here is usually the code step, not a dead link, and the page
-      // renders a very different thing for each.
-      const body = await res.json().catch(() => null);
-      // Nest serializes a BadRequestException built from an object as that
-      // object, so the discriminator is at the top level.
-      return { ok: false, ...recoveryFailure(body) };
-    }
-    return (await res.json()) as RecoveryCompleteResult;
+    const res = await fetch(`${BASE}/auth/recovery/open`, {
+      method: 'POST',
+      // The web header plus credentials carry the recovery cookie, which is
+      // what tells the api this is the browser that asked.
+      headers: { 'Content-Type': 'application/json', 'X-Nexus-Auth': 'web' },
+      credentials: 'include',
+      body: JSON.stringify({ token }),
+      signal: abort.signal,
+    });
+    if (res.status === 400) return { status: 'invalid' };
+    if (!res.ok) return { status: 'error' };
+    const data = (await res.json()) as { status?: string; code?: string };
+    if (data.status === 'approved') return { status: 'approved' };
+    if (data.status === 'code' && data.code) return { status: 'code', code: data.code };
+    return { status: 'error' };
   } catch {
-    return { ok: false, reason: 'invalid' };
+    return { status: 'error' };
+  } finally {
+    clearTimeout(deadline);
   }
 }

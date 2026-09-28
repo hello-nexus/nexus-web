@@ -19,8 +19,9 @@ function makeBackend(overrides: Partial<AuthBackend> = {}): AuthBackend {
     register: vi.fn(),
     logout: vi.fn(),
     getAccount: vi.fn(),
-    recoveryStart: vi.fn().mockResolvedValue({ grantId: 'grant-1', code: 'ABC-DEF' }),
+    recoveryStart: vi.fn().mockResolvedValue(true),
     recoveryStatus: vi.fn().mockResolvedValue({ status: 'pending' }),
+    recoverySubmitCode: vi.fn().mockResolvedValue('ok'),
     changePassword: vi.fn(),
     changeUsername: vi.fn(),
     setPrivate: vi.fn(),
@@ -68,56 +69,64 @@ describe('ForgotPasswordFlow cancel', () => {
   });
 });
 
-describe('ForgotPasswordFlow code display', () => {
-  it('copies the code without its grouping dash', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { clipboard: { writeText } });
-    render(
-      <ForgotPasswordFlow
-        backend={makeBackend()}
-        onBackToSignIn={vi.fn()}
-        onRecoveryApproved={vi.fn()}
-      />,
-    );
-
+describe('ForgotPasswordFlow code entry', () => {
+  async function startPending(backend: AuthBackend, onRecoveryApproved = vi.fn()) {
+    render(<ForgotPasswordFlow backend={backend} onBackToSignIn={vi.fn()} onRecoveryApproved={onRecoveryApproved} />);
     fireEvent.input(screen.getByLabelText('account.recovery.email'), { target: { value: 'user@example.com' } });
     fireEvent.click(screen.getByRole('button', { name: 'account.recovery.submit' }));
-    await waitFor(() => expect(screen.getByText('ABC-DEF')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('account.recovery.codeTitle')).toBeInTheDocument());
+    return onRecoveryApproved;
+  }
 
-    fireEvent.click(screen.getByRole('button', { name: 'devices.specs.copy' }));
-    expect(writeText).toHaveBeenCalledWith('ABCDEF');
-    await waitFor(() => expect(screen.getByText('devices.specs.copied')).toBeInTheDocument());
+  it('shows no code of its own, only the field for the one the link shows', async () => {
+    await startPending(makeBackend());
+    expect(screen.getByText('account.recovery.pendingHowTo')).toBeInTheDocument();
+    expect(screen.queryByText('devices.specs.copy')).not.toBeInTheDocument();
   });
 
-  it('shows the code the start returned, which is what the link page will ask for', async () => {
-    render(
-      <ForgotPasswordFlow
-        backend={makeBackend()}
-        onBackToSignIn={vi.fn()}
-        onRecoveryApproved={vi.fn()}
-      />,
-    );
+  it('keeps digits only, groups them, and submits on the sixth', async () => {
+    const recoverySubmitCode = vi.fn().mockResolvedValue('ok');
+    const approved = await startPending(makeBackend({ recoverySubmitCode }));
+    const field = screen.getByLabelText('account.recovery.codeTitle') as HTMLInputElement;
 
-    fireEvent.input(screen.getByLabelText('account.recovery.email'), { target: { value: 'user@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'account.recovery.submit' }));
+    fireEvent.input(field, { target: { value: '48a 2' } });
+    expect(field.value).toBe('482');
+    expect(recoverySubmitCode).not.toHaveBeenCalled();
 
-    await waitFor(() => expect(screen.getByText('ABC-DEF')).toBeInTheDocument());
+    fireEvent.input(field, { target: { value: '482915' } });
+    await waitFor(() => expect(recoverySubmitCode).toHaveBeenCalledWith('482915'));
+    await waitFor(() => expect(approved).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('account.recovery.signingIn')).toBeInTheDocument();
   });
 
-  it('treats a start that returned no code as a failure, not a pending flow', async () => {
-    render(
-      <ForgotPasswordFlow
-        backend={makeBackend({ recoveryStart: vi.fn().mockResolvedValue({ grantId: 'grant-1' }) })}
-        onBackToSignIn={vi.fn()}
-        onRecoveryApproved={vi.fn()}
-      />,
-    );
+  it('marks a wrong code and waits for another', async () => {
+    const recoverySubmitCode = vi.fn().mockResolvedValue('mismatch');
+    await startPending(makeBackend({ recoverySubmitCode }));
 
-    fireEvent.input(screen.getByLabelText('account.recovery.email'), { target: { value: 'user@example.com' } });
-    fireEvent.click(screen.getByRole('button', { name: 'account.recovery.submit' }));
+    fireEvent.input(screen.getByLabelText('account.recovery.codeTitle'), { target: { value: '000000' } });
 
-    await waitFor(() => expect(screen.getByText('account.recovery.startFailed')).toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: 'account.recovery.cancel' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('account.recovery.codeWrong')).toBeInTheDocument());
+    expect(screen.getByLabelText('account.recovery.codeTitle')).toBeInTheDocument();
+  });
+
+  it('does not blame the code when the request itself failed', async () => {
+    const recoverySubmitCode = vi.fn().mockResolvedValue('failed');
+    await startPending(makeBackend({ recoverySubmitCode }));
+
+    fireEvent.input(screen.getByLabelText('account.recovery.codeTitle'), { target: { value: '000000' } });
+
+    await waitFor(() => expect(screen.getByText('account.error.generic')).toBeInTheDocument());
+    expect(screen.queryByText('account.recovery.codeWrong')).not.toBeInTheDocument();
+  });
+
+  it('sends the user back to start over once the guesses are spent', async () => {
+    const recoverySubmitCode = vi.fn().mockResolvedValue('exhausted');
+    await startPending(makeBackend({ recoverySubmitCode }));
+
+    fireEvent.input(screen.getByLabelText('account.recovery.codeTitle'), { target: { value: '000000' } });
+
+    await waitFor(() => expect(screen.getByText('account.recovery.exhaustedTitle')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'account.recovery.tryAgain' })).toBeInTheDocument();
   });
 });
 
@@ -125,7 +134,7 @@ describe('ForgotPasswordFlow refused start', () => {
   it('keeps the email form and reports the failure instead of polling for a link that was never sent', async () => {
     render(
       <ForgotPasswordFlow
-        backend={makeBackend({ recoveryStart: vi.fn().mockResolvedValue(null) })}
+        backend={makeBackend({ recoveryStart: vi.fn().mockResolvedValue(false) })}
         onBackToSignIn={vi.fn()}
         onRecoveryApproved={vi.fn()}
       />,

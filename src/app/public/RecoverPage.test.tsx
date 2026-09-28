@@ -1,29 +1,26 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const completeRecoveryMock = vi.fn();
+const openRecoveryMock = vi.fn();
+const linkRecoveryLocallyMock = vi.fn();
 vi.mock('../../api/account', () => ({
-  completeRecovery: (...args: unknown[]) => completeRecoveryMock(...args),
+  openRecovery: (...args: unknown[]) => openRecoveryMock(...args),
+}));
+vi.mock('./linkRecoveryLocally', () => ({
+  linkRecoveryLocally: (...args: unknown[]) => linkRecoveryLocallyMock(...args),
 }));
 
 vi.mock('../../lib/i18n', () => ({
-  useTranslation: () => ({
-    t: (key: string, params?: Record<string, string | number>) => {
-      let text = key;
-      if (params) for (const [k, v] of Object.entries(params)) text += ` ${k}=${v}`;
-      return text;
-    },
-  }),
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
 import { RecoverPage } from './RecoverPage';
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  completeRecoveryMock.mockReset();
-  // The field submits itself, so every test that fills it makes a call -
-  // including the ones only asserting what the field holds.
-  completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'invalid' });
+  openRecoveryMock.mockReset();
+  linkRecoveryLocallyMock.mockReset();
+  linkRecoveryLocallyMock.mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -31,107 +28,77 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const field = () => screen.getByLabelText('auth.recover.code.label') as HTMLInputElement;
-const type = (value: string) => fireEvent.input(field(), { target: { value } });
+async function expectSignedIn() {
+  await waitFor(() => expect(screen.getByText('auth.recover.success.title')).toBeInTheDocument());
+  await act(async () => { vi.advanceTimersByTime(1200); });
+  expect(screen.getByText('auth.recover.success.body')).toBeInTheDocument();
+}
 
 describe('RecoverPage', () => {
   it('shows the invalid state immediately when no token is present, without calling the API', () => {
     render(<RecoverPage token="" />);
-
     expect(screen.getByText('auth.recover.invalid.title')).toBeInTheDocument();
-    expect(completeRecoveryMock).not.toHaveBeenCalled();
+    expect(openRecoveryMock).not.toHaveBeenCalled();
+    expect(linkRecoveryLocallyMock).not.toHaveBeenCalled();
   });
 
-  it('opens on the code field and posts nothing on its own', () => {
+  it('shows the code to type on the device that asked', async () => {
+    openRecoveryMock.mockResolvedValue({ status: 'code', code: '482-915' });
     render(<RecoverPage token="tok" />);
 
-    expect(screen.getByText('auth.recover.code.title')).toBeInTheDocument();
-    expect(completeRecoveryMock).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByText('482-915')).toBeInTheDocument());
+    expect(screen.getByText('auth.recover.code.body')).toBeInTheDocument();
+    expect(openRecoveryMock).toHaveBeenCalledWith('tok');
+    await waitFor(() => expect(linkRecoveryLocallyMock).toHaveBeenCalledWith('tok'));
   });
 
-  it('groups the code as it is typed, and submits on the last character', async () => {
-    completeRecoveryMock.mockResolvedValue({ ok: true, username: 'Nova' });
+  it('signs in with no code in the browser that asked', async () => {
+    openRecoveryMock.mockResolvedValue({ status: 'approved' });
     render(<RecoverPage token="tok" />);
-
-    type('abc');
-    expect(field().value).toBe('ABC');
-    type('abcd');
-    expect(field().value).toBe('ABC-D');
-    expect(completeRecoveryMock).not.toHaveBeenCalled();
-
-    type('abcdef');
-    expect(field().value).toBe('ABC-DEF');
-    // The api is handed the code as minted; the dash is display only.
-    await waitFor(() => expect(completeRecoveryMock).toHaveBeenCalledWith('tok', 'ABCDEF'));
-    await waitFor(() => expect(screen.getByText('auth.recover.success.title')).toBeInTheDocument());
-    // The mark holds before the card with the username replaces it.
-    expect(screen.queryByText('auth.recover.success.body username=Nova')).not.toBeInTheDocument();
-    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
-    expect(screen.getByText('auth.recover.success.body username=Nova')).toBeInTheDocument();
+    await expectSignedIn();
   });
 
-  it('drops anything a code is not made of, wherever it is typed or pasted', async () => {
+  it('switches from the code to signed in once the Nexus on this computer takes the link', async () => {
+    openRecoveryMock.mockResolvedValue({ status: 'code', code: '482-915' });
+    let finishLink: (ok: boolean) => void = () => {};
+    linkRecoveryLocallyMock.mockReturnValue(new Promise<boolean>((resolve) => { finishLink = resolve; }));
     render(<RecoverPage token="tok" />);
+    await waitFor(() => expect(screen.getByText('482-915')).toBeInTheDocument());
 
-    type('a b!c');
-    expect(field().value).toBe('ABC');
+    await act(async () => { finishLink(true); });
 
-    // A rejected character leaves the state as it was, so nothing re-renders;
-    // the field still must not be left showing it.
-    type('ABC!');
-    expect(field().value).toBe('ABC');
-    type('ABC  ');
-    expect(field().value).toBe('ABC');
-    // A code pasted with the dash the other device shows lands whole.
-    type('pdf-rz4');
-    expect(field().value).toBe('PDF-RZ4');
-    await waitFor(() => expect(completeRecoveryMock).toHaveBeenCalledWith('tok', 'PDFRZ4'));
+    await expectSignedIn();
   });
 
-  it('never holds more than a whole code', () => {
+  it('never reaches for the local service unless the page ended on a code', async () => {
+    openRecoveryMock.mockResolvedValue({ status: 'approved' });
     render(<RecoverPage token="tok" />);
-    type('abcdefghij');
-    expect(field().value).toBe('ABC-DEF');
+    await expectSignedIn();
+    expect(linkRecoveryLocallyMock).not.toHaveBeenCalled();
   });
 
-  it('marks a wrong code before it clears, rather than emptying under the cursor', async () => {
-    completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'code-mismatch', attemptsLeft: 3 });
+  it('does not try the local service from a phone', async () => {
+    const ua = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) Mobile/15E148');
+    openRecoveryMock.mockResolvedValue({ status: 'code', code: '482-915' });
     render(<RecoverPage token="tok" />);
-
-    type('zzzzzz');
-
-    await waitFor(() => expect(screen.getByText('auth.recover.code.wrong count=3')).toBeInTheDocument());
-    // Still readable, and not typeable over, through the beat.
-    expect(field().value).toBe('ZZZ-ZZZ');
-    expect(field()).toBeDisabled();
-
-    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
-    expect(field().value).toBe('');
-    expect(field()).not.toBeDisabled();
-    expect(screen.getByText('auth.recover.code.title')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('482-915')).toBeInTheDocument());
+    expect(linkRecoveryLocallyMock).not.toHaveBeenCalled();
+    ua.mockRestore();
   });
 
-  it('offers a way back to the field when the link is refused', async () => {
-    completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'invalid' });
+  it('shows the invalid card for a dead link', async () => {
+    openRecoveryMock.mockResolvedValue({ status: 'invalid' });
     render(<RecoverPage token="tok" />);
-
-    type('abcdef');
-    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
     await waitFor(() => expect(screen.getByText('auth.recover.invalid.title')).toBeInTheDocument());
+  });
+
+  it('offers a retry when the request itself failed', async () => {
+    openRecoveryMock.mockResolvedValueOnce({ status: 'error' }).mockResolvedValueOnce({ status: 'code', code: '111-222' });
+    render(<RecoverPage token="tok" />);
+    await waitFor(() => expect(screen.getByText('auth.recover.error.title')).toBeInTheDocument());
 
     fireEvent.click(screen.getByText('account.recovery.tryAgain'));
-    expect(screen.getByText('auth.recover.code.title')).toBeInTheDocument();
-    expect(field().value).toBe('');
-  });
 
-  it('shows the exhausted card once the guesses are spent', async () => {
-    completeRecoveryMock.mockResolvedValue({ ok: false, reason: 'code-exhausted' });
-    render(<RecoverPage token="tok" />);
-
-    type('abcdef');
-    await act(async () => { await vi.advanceTimersByTimeAsync(1200); });
-    await waitFor(() =>
-      expect(screen.getByText('auth.recover.code.exhaustedTitle')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('111-222')).toBeInTheDocument());
   });
 });
