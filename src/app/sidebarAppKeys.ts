@@ -36,11 +36,13 @@ export const DEFAULT_PINNED_TAIL: string[] = ['monitoring', 'lighting', 'cooling
 // preinstalled set is registry-derived, so it's empty until the marketplace
 // registry loads and only non-empty on a build that bundles such an app; the
 // sidebar re-renders on registry load (same path as user-pinned SDK apps).
+// The store is the default tail's bottom row, below any preinstalled app.
 function defaultPinnedTail(): string[] {
   const out = [...DEFAULT_PINNED_TAIL];
   for (const type of getPreinstalledPageAppTypes()) {
     if (!out.includes(type) && isPinnableAppKey(type)) out.push(type);
   }
+  out.push('store');
   return out;
 }
 

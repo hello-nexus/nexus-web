@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  Boxes, ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Sparkles, Tag,
+  Boxes, ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Store, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
@@ -249,7 +249,7 @@ function StoreBanner() {
   const { t } = useTranslation();
   return (
     <div className={styles.banner}>
-      <ShoppingBag className={styles.bannerIcon} size={22} aria-hidden={true} />
+      <Store className={styles.bannerIcon} size={22} aria-hidden={true} />
       <div className={styles.bannerText}>
         <h2 className={styles.bannerTitle}>{t('store.banner.title')}</h2>
         <p className={styles.bannerBody}>{t('store.banner.body')}</p>

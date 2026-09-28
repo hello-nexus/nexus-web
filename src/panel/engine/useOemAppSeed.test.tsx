@@ -82,6 +82,29 @@ describe('useOemAppSeed', () => {
     });
   });
 
+  it('pins the OEM app above a store that is the bottom row', async () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true }),
+    ]);
+    const updateUiSettings = vi.fn();
+
+    renderHook(() => useOemAppSeed({
+      enabled: true,
+      layoutLoaded: true,
+      layout: emptyLayout(),
+      setLayout: vi.fn(),
+      capacity: { gridCols: 8, pageRows: 6 },
+      uiHydrated: true,
+      uiSettings: uiSettings({ pinnedSidebarApps: ['monitoring', 'store'] }),
+      updateUiSettings,
+    }));
+
+    await waitFor(() => expect(updateUiSettings).toHaveBeenCalledWith({
+      oemAppSeeded: true,
+      pinnedSidebarApps: ['monitoring', 'app:com.ibuypower.control', 'store'],
+    }));
+  });
+
   it('does nothing once ui.oemAppSeeded is already true', () => {
     _seedMarketplaceRegistryForTests([
       listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true }),
