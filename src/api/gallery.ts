@@ -1,4 +1,4 @@
-import { deleteService, fetchService, postService, resolveHttp, tokenParam } from './service';
+import { deleteService, fetchService, postService, putService, resolveHttp, tokenParam } from './service';
 
 // Per-system shared gallery: every panel surface of one PC reads the same
 // source set, and sources are pure path references - Nexus never stores or
@@ -30,6 +30,67 @@ export interface GalleryItem {
   kind: GalleryItemKind;
 }
 
+// A named cut of the library one widget instance plays instead of all of it.
+// Membership is resolved live (galleryPlaylistItems): a whole-included source
+// keeps picking up the folder's new files.
+export interface GalleryPlaylist {
+  id: string;
+  name: string;
+  createdAtUnixMs: number;
+  // Sources included whole.
+  sourceIds: string[];
+  // Items picked one by one, from sources not included whole.
+  itemIds: string[];
+  // Items of a whole-included source left out of this playlist.
+  excludedIds: string[];
+}
+
+// Keep in lockstep with GalleryLibrary.MaxPlaylistNameLength / MaxPlaylists
+// in nexus-service Gallery/GalleryLibrary.cs.
+export const GALLERY_PLAYLIST_NAME_MAX = 48;
+export const GALLERY_PLAYLISTS_MAX = 50;
+
+export function isGalleryPlaylistMember(playlist: GalleryPlaylist, item: GalleryItem): boolean {
+  if (playlist.sourceIds.includes(item.sourceId)) return !playlist.excludedIds.includes(item.id);
+  return playlist.itemIds.includes(item.id);
+}
+
+/** The playlist's items, in library order. */
+export function galleryPlaylistItems(items: GalleryItem[], playlist: GalleryPlaylist): GalleryItem[] {
+  const sources = new Set(playlist.sourceIds);
+  const picked = new Set(playlist.itemIds);
+  const excluded = new Set(playlist.excludedIds);
+  return items.filter(i => (sources.has(i.sourceId) ? !excluded.has(i.id) : picked.has(i.id)));
+}
+
+/**
+ * The playlist with one item switched in or out. An item of a whole-included
+ * source toggles on the playlist's exclusions, so the folder keeps following
+ * its new files; any other item toggles as a single pick.
+ */
+export function toggleGalleryPlaylistItem(playlist: GalleryPlaylist, item: GalleryItem): GalleryPlaylist {
+  const flip = (ids: string[]) => (ids.includes(item.id) ? ids.filter(id => id !== item.id) : [...ids, item.id]);
+  return playlist.sourceIds.includes(item.sourceId)
+    ? { ...playlist, excludedIds: flip(playlist.excludedIds) }
+    : { ...playlist, itemIds: flip(playlist.itemIds) };
+}
+
+/**
+ * The playlist with a whole source switched in or out. Either way the
+ * source's single picks and exclusions are cleared: including it covers the
+ * picks, and dropping it has to leave none of its items behind.
+ */
+export function toggleGalleryPlaylistSource(playlist: GalleryPlaylist, sourceId: string, items: GalleryItem[]): GalleryPlaylist {
+  const ofSource = new Set(items.filter(i => i.sourceId === sourceId).map(i => i.id));
+  const included = playlist.sourceIds.includes(sourceId);
+  return {
+    ...playlist,
+    sourceIds: included ? playlist.sourceIds.filter(id => id !== sourceId) : [...playlist.sourceIds, sourceId],
+    itemIds: playlist.itemIds.filter(id => !ofSource.has(id)),
+    excludedIds: playlist.excludedIds.filter(id => !ofSource.has(id)),
+  };
+}
+
 export interface GalleryPickResponse {
   paths: string[];
   cancelled?: boolean;
@@ -40,6 +101,7 @@ export interface GalleryPickResponse {
 // Stable error code on source mutations. Keep in lockstep with
 // GalleryErrorCodes in nexus-service Models/Gallery/GalleryModels.cs.
 export const GALLERY_ERROR_DUPLICATE = 'duplicate';
+export const GALLERY_ERROR_LIMIT = 'limit';
 
 export interface GallerySourceMutation {
   source: GallerySource | null;
@@ -51,8 +113,60 @@ export interface GallerySourceMutation {
 export const fetchGallerySources = () =>
   fetchService<{ sources: GallerySource[] }>('/gallery/sources');
 
+// Playlists ride on the items read so every surface (a relayed phone too)
+// resolves a widget's playlist without a second request.
 export const fetchGalleryItems = () =>
-  fetchService<{ items: GalleryItem[] }>('/gallery/items');
+  fetchService<{ items: GalleryItem[]; playlists?: GalleryPlaylist[] }>('/gallery/items');
+
+export interface GalleryPlaylistMutation {
+  playlist: GalleryPlaylist | null;
+  error?: boolean;
+  msg?: string;
+  code?: string;
+}
+
+// A 404 carries no body; reading it as JSON throws, and callers only need to
+// know the change did not land.
+async function playlistMutation(run: () => Promise<GalleryPlaylistMutation | null>): Promise<GalleryPlaylistMutation | null> {
+  try {
+    return await run();
+  } catch {
+    return null;
+  }
+}
+
+export const createGalleryPlaylist = (name: string) =>
+  playlistMutation(() => postService<GalleryPlaylistMutation>('/gallery/playlists', { name }));
+
+export const updateGalleryPlaylist = (
+  id: string,
+  patch: Partial<Pick<GalleryPlaylist, 'name' | 'sourceIds' | 'itemIds' | 'excludedIds'>>,
+) => playlistMutation(() => putService<GalleryPlaylistMutation>(`/gallery/playlists/${encodeURIComponent(id)}`, patch));
+
+// Gallery widgets that play a playlist, per surface. Keep the surface values
+// in lockstep with GalleryPlaylistUseSurfaces in nexus-service
+// Models/Gallery/GalleryModels.cs.
+export interface GalleryPlaylistUse {
+  surface: 'dashboard' | 'panel' | 'desktop';
+  // The panel device's name; empty for the dashboard and desktop widgets.
+  name: string;
+  count: number;
+}
+
+/** Null when the lookup failed, which callers treat as "unknown", not "unused". */
+export async function fetchGalleryPlaylistUsage(id: string): Promise<GalleryPlaylistUse[] | null> {
+  try {
+    const res = await fetchService<{ uses: GalleryPlaylistUse[] }>(`/gallery/playlists/${encodeURIComponent(id)}/usage`);
+    return res?.uses ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteGalleryPlaylist(id: string): Promise<boolean> {
+  const resp = await playlistMutation(() => deleteService<GalleryPlaylistMutation>(`/gallery/playlists/${encodeURIComponent(id)}`));
+  return !!resp && resp.error !== true;
+}
 
 // 'auto' lets the service stat the path (drag-n-drop sends bare paths).
 export const addGallerySource = (path: string, kind: 'file' | 'folder' | 'auto') =>

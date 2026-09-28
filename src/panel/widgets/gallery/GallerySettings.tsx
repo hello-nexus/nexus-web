@@ -3,12 +3,13 @@ import type { WidgetSettingsProps } from '../types';
 import { SettingsRow, SettingsSelect, SettingsSection, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
-import { DEFAULT_GALLERY_INTERVAL, filterGalleryItems, readGalleryMediaFilter, useGalleryItems } from './useGallery';
+import { DEFAULT_GALLERY_INTERVAL, galleryWidgetItems, readGalleryMediaFilter, readGalleryPlaylist, useGalleryItems } from './useGallery';
 import { SLIDESHOW_INTERVALS, normalizeSlideshowInterval, slideshowIntervalLabel } from '../../slideshow/slideshow';
 import styles from './GallerySettings.module.scss';
 
-// Per-instance display settings only. The media sources are per-system
-// shared and managed on the gallery page, never from the edit sheet.
+// Per-instance display settings only. The media sources and playlists are
+// per-system shared and managed on the gallery page, never from the edit
+// sheet; a widget only picks which playlist it plays.
 export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetSettingsProps) {
   const { t, language } = useTranslation();
   const mode = ((widget.config?.mode as string | undefined) ?? 'single');
@@ -20,9 +21,12 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
   // Same config field the tile's nav arrows write, so a pick here and a pick
   // on the canvas or the device are the same edit.
   const pickedId = widget.config?.imageId as string | undefined;
-  const { items: allItems } = useGalleryItems();
+  const { items: allItems, playlists } = useGalleryItems();
+  // A stale id (playlist deleted) shows as the whole library, which is what
+  // the tile falls back to.
+  const playlist = readGalleryPlaylist(widget.config, playlists);
   // The picker steps through what the tile will actually show.
-  const items = filterGalleryItems(allItems, mediaFilter);
+  const items = galleryWidgetItems(allItems, playlists, widget.config);
   const pickedIndex = pickedId ? items.findIndex(i => i.id === pickedId) : -1;
   const current = pickedIndex >= 0 ? pickedIndex : 0;
   const step = (delta: 1 | -1) => {
@@ -34,6 +38,21 @@ export function GallerySettings({ widget, onUpdate, onSectionNavigate }: WidgetS
   return (
     <div className={styles.settings}>
       <SettingsSection title={t('gallery.settings.title')}>
+        {/* Offered only once a playlist exists; until then every widget
+            plays the whole library and there is nothing to choose. */}
+        {playlists.length > 0 && (
+          <SettingsSelect
+            label={t('gallery.settings.playlist')}
+            value={playlist?.id ?? ''}
+            options={[
+              { value: '', label: t('gallery.playlist.all') },
+              ...playlists.map(p => ({ value: p.id, label: p.name })),
+            ]}
+            // The picked item may not be in the new playlist; the tile
+            // starts from its first item instead of hunting for it.
+            onChange={v => onUpdate({ playlistId: v || null, imageId: null })}
+          />
+        )}
         <SettingsSelect
           label={t('gallery.settings.media')}
           value={mediaFilter}
