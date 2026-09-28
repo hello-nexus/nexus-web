@@ -196,10 +196,13 @@ export function ManageConflictAppsModal({
                 key={group.key}
                 className={group.running ? `${styles.group} ${styles.groupRunning}` : styles.group}
               >
-                <h4 className={group.running ? `${styles.groupTitle} ${styles.groupTitleRunning}` : styles.groupTitle}>
-                  {group.running && <AlertTriangle size={13} aria-hidden="true" />}
-                  {group.label}
-                </h4>
+                <div className={styles.groupHeader}>
+                  <h4 className={group.running ? `${styles.groupTitle} ${styles.groupTitleRunning}` : styles.groupTitle}>
+                    {group.running && <AlertTriangle size={13} aria-hidden="true" />}
+                    {group.label}
+                  </h4>
+                  <span className={styles.toggleColumn}>{t('settings.conflictApps.toggleColumn')}</span>
+                </div>
                 <ul className={styles.list}>
                   {group.apps.map(app => (
                     <li

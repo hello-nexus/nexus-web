@@ -64,6 +64,7 @@ The app routes a small set of top-level surfaces from the URL path:
 | `/r/pair` | iOS Universal Link landing page (App Store / browser fallback). |
 | `/auth/verify` | Email verification landing page. Browser-only. |
 | `/auth/recover` | Lost-password magic-link landing page. Browser-only. |
+| `/auth/confirm-password` | Confirms a password change made without the current password (emailed link). Browser-only. |
 | `/login`, `/register`, `/recover`, `/account`, `/u/:username` | `server.js` 302-redirects these to the same path on `https://build.hellonexus.com`, which hosts sign-in, the account page and public profiles. |
 | `/telemetry-reference` | Dev reference view listing the analytics events the app emits. |
 
@@ -82,8 +83,8 @@ resolved server-side via the GitHub releases API (latest stable, or the
 newest prerelease while no stable exists - GitHub's static `latest/download`
 alias 404s until then).
 
-`/auth/verify` and `/auth/recover` are dead-code-eliminated from `npm run
-build:service` (same `__SERVICE_BUILD__` build-define technique as the
+`/auth/verify`, `/auth/recover` and `/auth/confirm-password` are
+dead-code-eliminated from `npm run build:service` (same `__SERVICE_BUILD__` build-define technique as the
 `__DEV_TOOLS__` gate) - they only ever ship in the standalone build served at
 hellonexus.com.
 

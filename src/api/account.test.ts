@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { completeRecovery, getPublicAccount, verifyEmail } from './account';
+import { getPublicAccount, openRecovery, verifyEmail } from './account';
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -137,74 +137,43 @@ describe('verifyEmail', () => {
   });
 });
 
-describe('completeRecovery', () => {
-  it('resolves ok + username on {ok: true, username}', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { ok: true, username: 'Nova' })));
-    expect(await completeRecovery('tok')).toEqual({ ok: true, username: 'Nova' });
-  });
-
-  it('resolves ok: false on the enumeration-resistant 200-shaped failure', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { ok: false })));
-    expect(await completeRecovery('tok')).toEqual({ ok: false });
-  });
-
-  it('resolves ok: false on a non-2xx transport failure without retrying', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(500, {}));
+describe('openRecovery', () => {
+  it('sends the web header and credentials so the api can read the recovery cookie', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(200, { status: 'approved', username: 'Nova' }));
     vi.stubGlobal('fetch', fetchMock);
 
-    expect(await completeRecovery('tok')).toEqual({ ok: false, reason: 'invalid' });
+    expect(await openRecovery('tok')).toEqual({ status: 'approved' });
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.credentials).toBe('include');
+    expect((init.headers as Record<string, string>)['X-Nexus-Auth']).toBe('web');
+    expect(JSON.parse(String(init.body))).toEqual({ token: 'tok' });
+  });
+
+  it('hands back the code for another device', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, { status: 'code', code: '482-915' })));
+    expect(await openRecovery('tok')).toEqual({ status: 'code', code: '482-915' });
+  });
+
+  it('reports a 400 as a dead link and anything else as a retryable error, without retrying', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(400, { message: 'invalid or expired link' })));
+    expect(await openRecovery('tok')).toEqual({ status: 'invalid' });
+
+    const fetchMock = vi.fn(async () => jsonResponse(500, {}));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await openRecovery('tok')).toEqual({ status: 'error' });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('gives up on a request that never settles, rather than hanging the page', async () => {
-    vi.useFakeTimers();
-    try {
-      // A fetch that never resolves and only rejects when the signal aborts,
-      // which is the shape of the hang this deadline exists for.
-      const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
-        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
-      }));
-      vi.stubGlobal('fetch', fetchMock);
-
-      const pending = completeRecovery('tok', 'ABCDEF');
-      await vi.advanceTimersByTimeAsync(20_000);
-
-      expect(await pending).toEqual({ ok: false, reason: 'invalid' });
-      // One attempt, not three: retrying an aborted request re-hangs it.
-      expect(fetchMock).toHaveBeenCalledTimes(1);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('reports a code-required 400 as its own reason, not a dead link', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(400, { code: 'code_required' })));
-    expect(await completeRecovery('tok')).toEqual({ ok: false, reason: 'code-required' });
-  });
-
-  it('carries the remaining attempts back from a wrong code', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => jsonResponse(400, { code: 'code_mismatch', attemptsLeft: 2 })),
-    );
-    expect(await completeRecovery('tok')).toEqual({
-      ok: false,
-      reason: 'code-mismatch',
-      attemptsLeft: 2,
-    });
-  });
-
-  it('sends the code only when one was supplied', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse(200, { ok: true, username: 'Nova' }));
+    const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise((_resolve, reject) => {
+      init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+    }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await completeRecovery('tok');
-    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ token: 'tok' });
+    const pending = openRecovery('tok');
+    await vi.advanceTimersByTimeAsync(20_000);
 
-    await completeRecovery('tok', 'ABCDEF');
-    expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toEqual({
-      token: 'tok',
-      code: 'ABCDEF',
-    });
+    expect(await pending).toEqual({ status: 'error' });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
