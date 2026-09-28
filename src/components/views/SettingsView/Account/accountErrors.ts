@@ -7,6 +7,7 @@ import { DEVICE_MAX_PER_ACCOUNT } from './deviceUtils';
 
 const AUTH_ERROR_KEYS: Record<string, string> = {
   invalid_credentials: 'account.error.invalidCredentials',
+  login_locked: 'account.error.loginLocked',
   email_unverified: 'account.error.emailUnverified',
   username_taken: 'account.error.usernameTaken',
 };

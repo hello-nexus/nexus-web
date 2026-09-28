@@ -271,7 +271,7 @@ const standalonePages: SearchSource = (ctx) => [
     keywords: ['developer', 'dev tools', 'debug', 'advanced', 'storybook', 'diagnostics'],
     to: () => ctx.host.goView('tools'),
   })] : []),
-  ...(DEV_TOOLS && OFFICIAL_BUILD ? [go('page:account', {
+  ...(OFFICIAL_BUILD ? [go('page:account', {
     title: ctx.t('account.title'), icon: <UserRound size={18} />,
     keywords: ['account', 'sign in', 'login', 'log in', 'register', 'cloud', 'sync', 'password', 'sign out', 'log out'],
     to: () => ctx.host.goView('account'),
@@ -790,10 +790,10 @@ const systemMedia: SearchSource = (ctx) => {
   return out;
 };
 
-// Cloud account one-shots, dev-gated like the Account page. Sign-out opens
+// Cloud account one-shots, gated like the Account page. Sign-out opens
 // the page (its flow also clears local tokens); sync-now is safe directly.
 const accountExtra: SearchSource = (ctx) => {
-  if (!DEV_TOOLS || !OFFICIAL_BUILD || !ctx.live.cloud?.activeAccountId) return [];
+  if (!OFFICIAL_BUILD || !ctx.live.cloud?.activeAccountId) return [];
   return [
     act('account:sync-now', {
       title: ctx.t('account.sync.syncNow'), subtitle: ctx.t('account.title'),

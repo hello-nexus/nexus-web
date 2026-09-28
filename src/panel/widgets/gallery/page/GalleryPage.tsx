@@ -1,28 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, Play, Trash2, Undo2, X } from 'lucide-react';
+import { Check, FileImage, FileVideo, Folder, FolderPlus, ImageIcon, ImagePlus, Images, LayoutDashboard, ListPlus, ListVideo, Pencil, Play, Plus, Trash2, Undo2, X } from 'lucide-react';
 import { ViewHeader } from '../../../../components/common/ViewHeader/ViewHeader';
 import { Card } from '../../../../components/common/Card/Card';
 import { Button } from '../../../../components/common/Button/Button';
+import { ChipGroup } from '../../../../components/common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../../../../components/common/ConfirmModal/ConfirmModal';
+import { PromptModal } from '../../../../components/common/PromptModal/PromptModal';
+import { Toggle } from '../../../../components/common/Toggle/Toggle';
 import { EmptyState } from '../../../../components/common/EmptyState/EmptyState';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { SectionHeader } from '../../../../components/common/SectionHeader/SectionHeader';
 import { useTranslation } from '../../../../lib/i18n';
+import { pluralKey } from '../../../../lib/pluralKey';
 import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
 import { fetchServiceBlob, isDirectActive, isRelayActive } from '../../../../api/service';
 import { postGalleryDrop, subscribeGalleryDropPaths } from '../../../../app/windowActions';
 import {
   addGallerySource,
+  createGalleryPlaylist,
   GALLERY_ERROR_DUPLICATE,
+  GALLERY_ERROR_LIMIT,
+  GALLERY_PLAYLIST_NAME_MAX,
+  GALLERY_PLAYLISTS_MAX,
+  deleteGalleryPlaylist,
   deleteGallerySource,
   excludeGalleryItem,
   fetchGalleryItems,
+  fetchGalleryPlaylistUsage,
   fetchGallerySources,
+  galleryPlaylistItems,
   galleryThumbWidth,
   galleryItemFileUrl,
   pickGalleryPaths,
   restoreGalleryExclusions,
+  toggleGalleryPlaylistItem,
+  toggleGalleryPlaylistSource,
+  updateGalleryPlaylist,
   type GalleryItem,
+  type GalleryPlaylist,
+  type GalleryPlaylistMutation,
+  type GalleryPlaylistUse,
   type GallerySource,
 } from '../../../../api/gallery';
 import styles from './GalleryPage.module.scss';
@@ -45,9 +62,14 @@ function sourceIcon(source: GallerySource, items: GalleryItem[]) {
  * from drag-n-drop (desktop app only: the shell bridge resolves dropped
  * files' real paths; browser tabs can't see them). Removing a folder's
  * item puts it on that source's exclusion list, restorable in one click.
+ *
+ * Playlists sit above the sources, master-detail style: "All media" is the
+ * library itself, and picking a playlist turns the grid into its editor -
+ * a click switches an item in or out, and a folder switched on whole keeps
+ * bringing its new files along. Widgets pick a playlist in their edit sheet.
  */
 export function GalleryPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [sources, setSources] = useState<GallerySource[]>([]);
   const [items, setItems] = useState<GalleryItem[]>([]);
   // Which native dialog is open on the PC right now ('file' | 'folder').
@@ -59,12 +81,46 @@ export function GalleryPage() {
   // Hovering a source card highlights its images in the grid (one-way only -
   // image hover deliberately lights nothing up).
   const [hoverSourceId, setHoverSourceId] = useState<string | null>(null);
+  const [playlists, setPlaylists] = useState<GalleryPlaylist[]>([]);
+  // null is "All media" - the library itself.
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  // Playlist view only: the whole library to pick from, or just its members.
+  const [playlistView, setPlaylistView] = useState<'all' | 'members'>('all');
+  const [creatingPlaylist, setCreatingPlaylist] = useState(false);
+  const [renamingPlaylist, setRenamingPlaylist] = useState(false);
+  const [pendingPlaylistDelete, setPendingPlaylistDelete] = useState<GalleryPlaylist | null>(null);
+  // Widgets playing the playlist up for deletion; null = the lookup failed.
+  const [pendingPlaylistUses, setPendingPlaylistUses] = useState<GalleryPlaylistUse[] | null>(null);
+  // Playlist edits (membership saves and deletes) run one after another on
+  // this chain. A refetch that started before the latest edit may answer
+  // with older playlists, so its playlists are taken only when no edit is in
+  // flight AND none began since the request went out.
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingSavesRef = useRef(0);
+  const editGenerationRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const generation = editGenerationRef.current;
     const [src, itm] = await Promise.all([fetchGallerySources(), fetchGalleryItems()]);
     if (src?.sources) setSources(src.sources);
     if (itm?.items) setItems(itm.items);
+    if (itm?.items && pendingSavesRef.current === 0 && generation === editGenerationRef.current) {
+      setPlaylists(itm.playlists ?? []);
+    }
   }, []);
+
+  // Queues one playlist edit behind any in flight; the last one to settle
+  // brings the page back in line with what the service stored.
+  const queuePlaylistEdit = useCallback((edit: () => Promise<void>) => {
+    editGenerationRef.current++;
+    pendingSavesRef.current++;
+    const run = saveChainRef.current.then(edit).finally(() => {
+      pendingSavesRef.current--;
+      if (pendingSavesRef.current === 0) void refresh();
+    });
+    saveChainRef.current = run;
+    return run;
+  }, [refresh]);
 
   useEffect(() => {
     // refresh()'s setState calls run after the fetches resolve, not in the
@@ -191,6 +247,94 @@ export function GalleryPage() {
     await refresh();
   };
 
+  // A playlist deleted elsewhere drops the page back to the library.
+  const selectedPlaylist = playlists.find(p => p.id === selectedPlaylistId) ?? null;
+  const members = selectedPlaylist ? galleryPlaylistItems(items, selectedPlaylist) : items;
+  const memberIds = new Set(members.map(i => i.id));
+  const gridItems = selectedPlaylist && playlistView === 'members' ? members : items;
+
+  const selectPlaylist = (playlist: GalleryPlaylist | null) => {
+    setSelectedPlaylistId(playlist?.id ?? null);
+    // An empty playlist opens on the whole library, ready to pick from; one
+    // with content opens on what it already plays.
+    setPlaylistView(playlist && galleryPlaylistItems(items, playlist).length > 0 ? 'members' : 'all');
+  };
+
+  const savePlaylist = (next: GalleryPlaylist) => {
+    setPlaylists(ps => ps.map(p => (p.id === next.id ? next : p)));
+    void queuePlaylistEdit(async () => {
+      const saved = await updateGalleryPlaylist(next.id, {
+        sourceIds: next.sourceIds,
+        itemIds: next.itemIds,
+        excludedIds: next.excludedIds,
+      });
+      if (!saved || saved.error) setActionError(t('gallery.page.playlistSaveFailed'));
+    });
+  };
+
+  // The shared name rules (unique, capped) live in the service; its refusal
+  // comes back as the prompt's field error.
+  const playlistError = (res: GalleryPlaylistMutation | null) => {
+    if (res?.code === GALLERY_ERROR_DUPLICATE) return t('gallery.page.playlistNameTaken');
+    if (res?.code === GALLERY_ERROR_LIMIT) return t('gallery.page.playlistLimit');
+    return t('gallery.page.playlistSaveFailed');
+  };
+
+  const createPlaylist = async (name: string) => {
+    const res = await createGalleryPlaylist(name);
+    if (!res?.playlist || res.error) return playlistError(res);
+    setCreatingPlaylist(false);
+    setPlaylists(ps => [...ps, res.playlist!]);
+    setSelectedPlaylistId(res.playlist.id);
+    setPlaylistView('all');
+    await refresh();
+    return undefined;
+  };
+
+  const renamePlaylist = async (name: string) => {
+    if (!selectedPlaylist) return undefined;
+    const res = await updateGalleryPlaylist(selectedPlaylist.id, { name });
+    if (!res?.playlist || res.error) return playlistError(res);
+    setRenamingPlaylist(false);
+    await refresh();
+    return undefined;
+  };
+
+  // The confirmation names every widget that would fall back to All media,
+  // so the lookup runs before the dialog opens rather than inside it.
+  const askPlaylistDelete = async (playlist: GalleryPlaylist) => {
+    setPendingPlaylistUses(await fetchGalleryPlaylistUsage(playlist.id));
+    setPendingPlaylistDelete(playlist);
+  };
+
+  const playlistUseLabel = (use: GalleryPlaylistUse) => {
+    const where = use.surface === 'dashboard' ? t('gallery.page.usage.dashboard')
+      : use.surface === 'desktop' ? t('gallery.page.usage.desktop')
+      : use.name || t('gallery.page.usage.panel');
+    return use.count > 1 ? t(pluralKey('gallery.page.usage.count', language, use.count), { name: where, count: use.count }) : where;
+  };
+  const pendingInUse = (pendingPlaylistUses?.length ?? 0) > 0;
+
+  const confirmPlaylistDelete = async () => {
+    if (!pendingPlaylistDelete) return;
+    const id = pendingPlaylistDelete.id;
+    setPendingPlaylistDelete(null);
+    if (id === selectedPlaylistId) setSelectedPlaylistId(null);
+    setPlaylists(ps => ps.filter(p => p.id !== id));
+    // Behind any queued membership save, so none of them lands on the
+    // deleted playlist and reports a failure the user did not cause.
+    await queuePlaylistEdit(async () => {
+      // The final refresh brings a playlist that failed to delete back; say why.
+      if (!(await deleteGalleryPlaylist(id))) setActionError(t('gallery.page.playlistDeleteFailed'));
+    });
+  };
+
+  // First member's thumbnail as the playlist card's cover.
+  const coverFor = (playlistItems: GalleryItem[]) => {
+    const first = playlistItems.find(i => thumbs[i.id]);
+    return first ? thumbs[first.id] : null;
+  };
+
   // Whole-page drop target. dragenter/leave fire for every child crossed,
   // so a depth counter (not a boolean) decides when the pointer truly left.
   const dragDepth = useRef(0);
@@ -221,6 +365,33 @@ export function GalleryPage() {
   };
 
   const countFor = (sourceId: string) => items.filter(i => i.sourceId === sourceId).length;
+  const memberCountFor = (sourceId: string) => members.filter(i => i.sourceId === sourceId).length;
+
+  const playlistCard = (playlist: GalleryPlaylist | null) => {
+    const playlistItems = playlist ? galleryPlaylistItems(items, playlist) : items;
+    const cover = coverFor(playlistItems);
+    const active = (playlist?.id ?? null) === (selectedPlaylist?.id ?? null);
+    return (
+      <li key={playlist?.id ?? ''}>
+        <button
+          type="button"
+          className={`${styles.sourceCard} ${styles.playlistCard} ${active ? styles.sourceCardHighlight : ''}`}
+          aria-pressed={active}
+          onClick={() => selectPlaylist(playlist)}
+        >
+          <span className={styles.playlistCover} aria-hidden="true">
+            {cover
+              ? <img src={cover} alt="" draggable={false} />
+              : playlist ? <ListVideo size={16} /> : <Images size={16} />}
+          </span>
+          <span className={styles.playlistText}>
+            <span className={styles.sourceName}>{playlist ? playlist.name : t('gallery.playlist.all')}</span>
+            <span className={styles.sourceCount}>{t('gallery.page.itemCount', { count: playlistItems.length })}</span>
+          </span>
+        </button>
+      </li>
+    );
+  };
 
   return (
     <div
@@ -236,6 +407,23 @@ export function GalleryPage() {
             Cooling device-column width); the library fills the rest. No
             bounding box - each source is its own card, cooling-page style. */}
         <div className={styles.sourcesColumn}>
+          {(sources.length > 0 || playlists.length > 0) && (
+            <div className={styles.playlistsBlock}>
+              <SectionHeader className={styles.sourcesHeader}>{t('gallery.page.playlists')}</SectionHeader>
+              <ul className={styles.sourceList}>
+                {playlistCard(null)}
+                {playlists.map(p => playlistCard(p))}
+              </ul>
+              {/* The dashed full-width add row the Lighting / Cooling
+                  "New group" entries use; gone at the cap, like theirs. */}
+              {playlists.length < GALLERY_PLAYLISTS_MAX && (
+                <button type="button" className={styles.newPlaylist} onClick={() => setCreatingPlaylist(true)}>
+                  <ListPlus size={18} aria-hidden />
+                  <span>{t('gallery.page.newPlaylist')}</span>
+                </button>
+              )}
+            </div>
+          )}
           <SectionHeader className={styles.sourcesHeader}>{t('gallery.page.sources')}</SectionHeader>
           <div className={styles.sourceActions}>
             <Button icon={<ImagePlus size={16} />} disabled={pickingDisabled} onClick={() => pickAndAdd('file')}>
@@ -264,7 +452,9 @@ export function GalleryPage() {
                     <span className={styles.sourcePath}>{source.path}</span>
                     <div className={styles.sourceMeta}>
                       <span className={styles.sourceCount}>
-                        {t('gallery.page.itemCount', { count: countFor(source.id) })}
+                        {selectedPlaylist
+                          ? t('gallery.page.inPlaylistCount', { count: memberCountFor(source.id), total: countFor(source.id) })
+                          : t('gallery.page.itemCount', { count: countFor(source.id) })}
                       </span>
                       <Button
                         size="sm"
@@ -274,6 +464,33 @@ export function GalleryPage() {
                         onClick={() => setPendingDelete(source)}
                       />
                     </div>
+                    {selectedPlaylist && source.kind === 'folder' && (
+                      // Whole-folder membership follows the folder: files
+                      // added to it later join the playlist on their own.
+                      <label className={styles.wholeFolder}>
+                        <span>{t('gallery.page.wholeFolder')}</span>
+                        <Toggle
+                          checked={selectedPlaylist.sourceIds.includes(source.id)}
+                          ariaLabel={t('gallery.page.wholeFolder')}
+                          onChange={() => savePlaylist(toggleGalleryPlaylistSource(selectedPlaylist, source.id, items))}
+                        />
+                      </label>
+                    )}
+                    {selectedPlaylist && source.kind === 'file' && (() => {
+                      // A single-file source is one item: its switch is the
+                      // same toggle as clicking its tile.
+                      const item = items.find(i => i.sourceId === source.id);
+                      return item ? (
+                        <label className={styles.wholeFolder}>
+                          <span>{t('gallery.page.inPlaylistToggle')}</span>
+                          <Toggle
+                            checked={memberIds.has(item.id)}
+                            ariaLabel={t('gallery.page.inPlaylistToggle')}
+                            onChange={() => savePlaylist(toggleGalleryPlaylistItem(selectedPlaylist, item))}
+                          />
+                        </label>
+                      ) : null;
+                    })()}
                     {(source.excluded?.length ?? 0) > 0 && (
                       <button
                         type="button"
@@ -294,9 +511,47 @@ export function GalleryPage() {
 
         <div className={styles.dropZone}>
           <SectionHeader className={styles.libraryHeader}>
-            {t('gallery.page.library')}
-            <span className={styles.libraryCount}>{t('gallery.page.itemCount', { count: items.length })}</span>
+            {selectedPlaylist ? selectedPlaylist.name : t('gallery.page.library')}
+            <span className={styles.libraryCount}>
+              {selectedPlaylist
+                ? t('gallery.page.playlistCount', { count: members.length, total: items.length })
+                : t('gallery.page.itemCount', { count: items.length })}
+            </span>
+            {selectedPlaylist && (
+              <span className={styles.playlistActions}>
+                <Button
+                  size="sm"
+                  tone="ghost"
+                  icon={<Pencil size={14} />}
+                  aria-label={t('gallery.page.renamePlaylist')}
+                  onClick={() => setRenamingPlaylist(true)}
+                />
+                <Button
+                  size="sm"
+                  tone="ghost"
+                  icon={<Trash2 size={14} />}
+                  aria-label={t('gallery.page.deletePlaylist')}
+                  onClick={() => askPlaylistDelete(selectedPlaylist)}
+                />
+              </span>
+            )}
           </SectionHeader>
+          {selectedPlaylist && items.length > 0 && (
+            <div className={styles.playlistToolbar}>
+              <ChipGroup
+                ariaLabel={t('gallery.page.playlistView')}
+                activeKey={playlistView}
+                onChange={key => setPlaylistView(key === 'members' ? 'members' : 'all')}
+                options={[
+                  // eslint-disable-next-line i18next/no-literal-string -- view key
+                  { key: 'members', label: t('gallery.page.showMembers') },
+                  // eslint-disable-next-line i18next/no-literal-string -- view key
+                  { key: 'all', label: t('gallery.playlist.all') },
+                ]}
+              />
+              <span className={styles.playlistHint}>{t('gallery.page.playlistHint')}</span>
+            </div>
+          )}
           <Card className={styles.libraryCard}>
             {sources.length === 0 ? (
               <EmptyState
@@ -317,15 +572,30 @@ export function GalleryPage() {
                 title={t('gallery.page.empty')}
                 hint={t('gallery.page.dropHint')}
               />
+            ) : gridItems.length === 0 ? (
+              <EmptyState
+                compact
+                icon={<ListVideo size={22} />}
+                title={t('gallery.page.playlistEmpty')}
+                hint={t('gallery.page.playlistEmptyHint')}
+              />
             ) : (
               <div className={styles.grid}>
-                {items.map(item => (
+                {gridItems.map(item => {
+                  const member = memberIds.has(item.id);
+                  return (
                   <HoverTooltip
                     key={item.id}
                     title={item.kind === 'video' ? t('gallery.page.video') : undefined}
                     body={item.name}
                   >
-                    <figure className={`${styles.tile} ${hoverSourceId === item.sourceId ? styles.tileHighlight : ''}`}>
+                    <figure
+                      className={[
+                        styles.tile,
+                        hoverSourceId === item.sourceId ? styles.tileHighlight : '',
+                        selectedPlaylist && !member ? styles.tileOut : '',
+                      ].join(' ')}
+                    >
                       {thumbs[item.id] ? (
                         <img src={thumbs[item.id]!} alt={item.name} loading="lazy" draggable={false} />
                       ) : (
@@ -340,18 +610,35 @@ export function GalleryPage() {
                           <Play size={10} aria-hidden="true" />
                         </span>
                       )}
-                      <button
-                        type="button"
-                        className={styles.tileRemove}
-                        aria-label={t('gallery.page.removeImage')}
-                        onClick={() => removeItem(item)}
-                      >
-                        <X size={12} aria-hidden="true" />
-                      </button>
+                      {selectedPlaylist ? (
+                        // The whole tile is the switch; the badge only shows
+                        // which way it is set.
+                        <button
+                          type="button"
+                          className={styles.tileToggle}
+                          aria-pressed={member}
+                          aria-label={member ? t('gallery.page.removeFromPlaylist') : t('gallery.page.addToPlaylist')}
+                          onClick={() => savePlaylist(toggleGalleryPlaylistItem(selectedPlaylist, item))}
+                        >
+                          <span className={styles.tileMember} data-member={member ? 'true' : 'false'} aria-hidden="true">
+                            {member ? <Check size={12} /> : <Plus size={12} />}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.tileRemove}
+                          aria-label={t('gallery.page.removeImage')}
+                          onClick={() => removeItem(item)}
+                        >
+                          <X size={12} aria-hidden="true" />
+                        </button>
+                      )}
                       <figcaption className={styles.tileName}>{item.name}</figcaption>
                     </figure>
                   </HoverTooltip>
-                ))}
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -368,6 +655,43 @@ export function GalleryPage() {
         confirmLabel={t('gallery.page.remove')}
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
+      />
+
+      <PromptModal
+        open={creatingPlaylist}
+        title={t('gallery.page.newPlaylist')}
+        placeholder={t('gallery.page.playlistName')}
+        maxLength={GALLERY_PLAYLIST_NAME_MAX}
+        confirmLabel={t('gallery.page.create')}
+        validate={v => (v.trim() ? null : t('gallery.page.playlistNameRequired'))}
+        onConfirm={createPlaylist}
+        onCancel={() => setCreatingPlaylist(false)}
+      />
+
+      <PromptModal
+        open={renamingPlaylist}
+        title={t('gallery.page.renamePlaylist')}
+        placeholder={t('gallery.page.playlistName')}
+        initialValue={selectedPlaylist?.name ?? ''}
+        maxLength={GALLERY_PLAYLIST_NAME_MAX}
+        validate={v => (v.trim() ? null : t('gallery.page.playlistNameRequired'))}
+        onConfirm={renamePlaylist}
+        onCancel={() => setRenamingPlaylist(false)}
+      />
+
+      <ConfirmModal
+        open={pendingPlaylistDelete !== null}
+        title={t('gallery.page.deletePlaylist')}
+        message={t(pendingInUse ? 'gallery.page.deletePlaylistInUse' : 'gallery.page.deletePlaylistMessage', { name: pendingPlaylistDelete?.name ?? '' })}
+        bullets={pendingInUse ? pendingPlaylistUses!.map(playlistUseLabel) : undefined}
+        // The in-use message already says the widgets fall back; a known-empty
+        // list says nothing plays it; a failed lookup keeps the neutral note.
+        note={t(pendingInUse ? 'gallery.page.deletePlaylistFilesNote'
+          : pendingPlaylistUses?.length === 0 ? 'gallery.page.deletePlaylistUnused'
+          : 'gallery.page.deletePlaylistNote')}
+        confirmLabel={t('common.delete')}
+        onCancel={() => setPendingPlaylistDelete(null)}
+        onConfirm={confirmPlaylistDelete}
       />
     </div>
   );

@@ -29,7 +29,7 @@ const profiles: UseProfilesResult = {
 };
 
 describe('ProfileDropdown without dev tools', () => {
-  it('hides the Account group even when onNavigateAccount is provided', () => {
+  it('shows the Account group on an official build', () => {
     render(
       <ProfileDropdown
         profiles={profiles}
@@ -43,9 +43,8 @@ describe('ProfileDropdown without dev tools', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /profile.label/ }));
 
-    expect(screen.queryByText('account.title')).not.toBeInTheDocument();
-    expect(screen.queryByText('account.dropdown.logIn')).not.toBeInTheDocument();
-    expect(screen.queryByText('nicola')).not.toBeInTheDocument();
+    expect(screen.getByText('account.title')).toBeInTheDocument();
+    expect(screen.getByText('nicola')).toBeInTheDocument();
     expect(screen.getByText('profile.header')).toBeInTheDocument();
   });
 });

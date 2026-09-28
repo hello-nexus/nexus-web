@@ -4,6 +4,7 @@ import { usePanelSheetSwipe } from '../engine/usePanelSheetSwipe';
 import { sizeToSpan } from '../engine/grid';
 import { lookupApp, sizesForSurface } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
+import type { DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
 import { SettingsSection, SettingsToggle } from '../widgets/common/SettingsRow/SettingsRow';
@@ -50,6 +51,7 @@ export function PanelEditorSheet({
   panelThemeStyle,
   closing,
   onClose,
+  onSectionNavigate,
   onThemeSyncCommit,
   onThemeModeCommit,
   onThemeAccentSyncCommit,
@@ -125,6 +127,9 @@ export function PanelEditorSheet({
   panelThemeStyle: CSSProperties;
   closing: boolean;
   onClose: () => void;
+  // Desktop Apps dashboard only: lets a widget's settings link to its app
+  // page (e.g. Manage gallery). Absent on a device, where there is no page.
+  onSectionNavigate?: DashboardSectionNavigate;
   onThemeSyncCommit: (synced: boolean) => void;
   onThemeModeCommit: (mode: ThemeMode) => void;
   onThemeAccentSyncCommit: (synced: boolean) => void;
@@ -392,6 +397,7 @@ export function PanelEditorSheet({
                 onSelectedSlotChange={usesSlotSelection ? onSelectedMonitoringSlotChange : undefined}
                 editView={usesSlotSelection ? editView : undefined}
                 onEditViewChange={usesSlotSelection ? onEditViewChange : undefined}
+                onSectionNavigate={onSectionNavigate}
               />
             ) : immersiveOnLoadAvailable ? null : (
               <div className={styles.settingsEmpty}>

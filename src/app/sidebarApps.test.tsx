@@ -79,8 +79,9 @@ describe('page-only apps (Store)', () => {
     expect(sanitizePinnedTail(['store'])).toEqual(['store']);
   });
 
-  it('is not in the default pinned tail', () => {
+  it('is the bottom row of a fresh profile, below the curated tail', () => {
     expect(DEFAULT_PINNED_TAIL).not.toContain('store');
+    expect(sanitizePinnedTail(undefined)).toEqual([...DEFAULT_PINNED_TAIL, 'store']);
   });
 });
 

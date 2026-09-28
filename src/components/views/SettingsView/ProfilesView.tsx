@@ -8,7 +8,7 @@ import { RefreshCw } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
-import { DEV_TOOLS } from '../../../lib/devTools';
+import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import { useCloudAccounts } from '../../../hooks/useCloudAccounts';
 import { ProfilesTab } from './ProfilesTab';
 import { CloudProfilesSection } from './CloudProfilesSection';
@@ -23,8 +23,8 @@ interface ProfilesViewProps {
   onTabChange: (tab: string) => void;
 }
 
-// Cloud profiles stay dev-only until they launch.
-const TAB_KEYS: readonly string[] = DEV_TOOLS ? ['local', 'cloud'] : ['local'];
+// Cloud profiles need an account, which only an official build can sign in to.
+const TAB_KEYS: readonly string[] = OFFICIAL_BUILD ? ['local', 'cloud'] : ['local'];
 
 // Standalone Profiles page (was the Settings > Profiles tab). Reached from the
 // top-bar profile menu's "Manage profiles" link. Reuses the settings page
@@ -39,7 +39,7 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
   const [cloudLoading, setCloudLoading] = useState(false);
   // The refresh control is meaningless signed out: there is no library to
   // re-read, only the sign-in prompt.
-  const accounts = useCloudAccounts(DEV_TOOLS);
+  const accounts = useCloudAccounts(OFFICIAL_BUILD);
   const showRefresh = active === 'cloud' && accounts.activeAccountId !== null;
   const tabs: TabDef[] = useMemo(() => [
     { key: 'local', label: t('profile.tab.local') },
@@ -77,9 +77,9 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
 
   return (
     <div className={styles.settings}>
-      <ViewHeader title={t('profile.manageTitle')} tabs={DEV_TOOLS ? tabs : undefined} activeTab={active} onTabChange={onTabChange} />
+      <ViewHeader title={t('profile.manageTitle')} tabs={OFFICIAL_BUILD ? tabs : undefined} activeTab={active} onTabChange={onTabChange} />
       <div className={`${styles.tabContent} pageBody`}>
-        {DEV_TOOLS && active === 'cloud'
+        {OFFICIAL_BUILD && active === 'cloud'
           ? <CloudProfilesSection profiles={profiles} reloadToken={cloudReload} onLoadingChange={setCloudLoading} />
           : <ProfilesTab profiles={profiles} onPreferencesChanged={onPreferencesChanged} />}
       </div>
