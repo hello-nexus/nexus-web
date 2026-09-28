@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  Boxes, ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Store, Tag,
+  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Store, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
@@ -17,6 +17,7 @@ import {
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
+import { AppIconTile } from '../../common/AppIconTile/AppIconTile';
 import { resolveHttp } from '../../../api/service';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { widgetLayoutSize, type PanelWidgetSize } from '../../../panel/types';
@@ -144,20 +145,13 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   );
 }
 
+// Row and hero edges in px; the row edge matches $row-icon in the stylesheet.
+const ICON_SIZE = { row: 56, hero: 112 } as const;
+
 function AppIcon({ app, installed, size = 'row' }: {
   app: { id: string; iconUrl: string | null }; installed?: InstalledInfo; size?: 'row' | 'hero';
 }) {
-  const src = iconFor(app, installed);
-  // An icon that fails to load falls back to the placeholder tile rather than a blank box.
-  const [failed, setFailed] = useState<string | null>(null);
-  const icon = src && src !== failed ? src : null;
-  return (
-    <span className={`${styles.iconBox} ${size === 'hero' ? styles.iconBoxHero : ''} ${icon ? '' : styles.iconBoxEmpty}`}>
-      {icon
-        ? <img src={icon} alt="" className={styles.icon} onError={() => setFailed(icon)} />
-        : <Boxes className={styles.iconFallback} aria-hidden={true} />}
-    </span>
-  );
+  return <AppIconTile src={iconFor(app, installed)} size={ICON_SIZE[size]} />;
 }
 
 // disableInteractiveRole: the Install button inside is the focusable control;

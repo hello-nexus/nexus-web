@@ -186,7 +186,8 @@
 }
 
 .accountEmail {
-  @include text-caption;
+  @include text-body;
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 

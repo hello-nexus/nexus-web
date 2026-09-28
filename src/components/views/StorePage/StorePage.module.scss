@@ -117,53 +117,14 @@ $card-gap: 0.6rem;
   }
 }
 
-// The icon sits in a fixed box: app icons arrive as SVGs of any aspect and
-// PNGs of any size, and without one the row heights disagree per app.
-// An app icon is its own tile, so it fills the box and the box only rounds its corners.
-.iconBox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: $row-icon;
-  height: $row-icon;
-  flex-shrink: 0;
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.iconBoxHero {
-  width: 7rem;
-  height: 7rem;
-  border-radius: var(--radius-lg);
-}
-
-// Only an app without an icon gets a drawn tile behind the placeholder glyph.
-.iconBoxEmpty {
-  border: 1px solid var(--separator);
-  background: var(--bg-elevated);
-}
-
-.icon {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.iconFallback {
-  width: 60%;
-  height: 60%;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
 .installedVersion {
-  font-size: var(--type-tiny);
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
 .incompatible {
   flex-shrink: 0;
-  font-size: var(--type-tiny);
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
@@ -171,7 +132,7 @@ $card-gap: 0.6rem;
    dim: it is an announcement, not the "not compatible" dead end above. */
 .comingSoon {
   flex-shrink: 0;
-  font-size: var(--type-tiny);
+  font-size: var(--type-small);
   font-weight: var(--weight-strong);
   color: var(--accent);
 }

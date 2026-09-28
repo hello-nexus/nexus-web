@@ -3,81 +3,79 @@
 .empty {
   margin: 0;
   @include text-body;
-  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
 .row {
   display: flex;
-  align-items: flex-start;
-  gap: 0.85rem;
-  padding: 0.75rem 0;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
 
   & + & {
     border-top: var(--border-width) solid var(--separator);
   }
 }
 
-// Fixed box: app icons arrive as SVGs of any aspect and PNGs of any size.
-.iconBox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex-shrink: 0;
-  padding: 0.3rem;
-  border: var(--border-width) solid var(--separator);
-  border-radius: var(--radius-small);
-  background: var(--bg-elevated);
-  overflow: hidden;
-}
-
-.icon {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.iconFallback {
-  width: 1.75rem;
-  height: 1.75rem;
-  color: var(--text-dim);
-}
-
 .info {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.2rem;
   flex: 1;
   min-width: 0;
 }
 
 .name {
-  @include text-body;
+  @include text-heading;
   color: var(--text);
 }
 
-.facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.15rem 0.75rem;
-  margin: 0;
-  font-size: var(--type-tiny);
+.tagline {
+  @include text-body;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-  dt {
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  list-style: none;
+  @include text-body;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+
+  // After, not before: a wrapped line then never starts with a dot.
+  li:not(:last-child)::after {
+    content: '·';
+    margin: 0 0.5rem;
     color: var(--text-dim);
   }
+}
 
-  dd {
-    margin: 0;
-    color: var(--text);
-  }
+.value {
+  color: var(--text);
+}
+
+.available {
+  margin-left: 0.5rem;
+  color: var(--accent);
+  font-weight: var(--weight-strong);
+}
+
+.current {
+  margin-left: 0.5rem;
+  color: var(--text-dim);
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   flex-shrink: 0;
 }
