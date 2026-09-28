@@ -39,83 +39,64 @@ describe('ChangePasswordModal', () => {
     expect(screen.queryByText('account.password.change')).toBeNull();
   });
 
-  it('shows the current-password field when the session is not recovery-fresh', () => {
+  it('asks for no current password, and says an email will confirm when not recovery-fresh', () => {
     renderModal({ recoveryFresh: false });
-    expect(screen.getByLabelText('account.password.current')).toBeInTheDocument();
+    expect(screen.queryByLabelText('account.password.current')).toBeNull();
+    expect(screen.getByText('account.password.confirmHint')).toBeInTheDocument();
     expect(screen.getByLabelText('account.password.new')).toBeInTheDocument();
     expect(screen.getByLabelText('account.password.confirm')).toBeInTheDocument();
   });
 
-  it('hides the current-password field on a recovery-fresh session', () => {
+  it('omits the email hint on a recovery-fresh session', () => {
     renderModal({ recoveryFresh: true });
-    expect(screen.queryByLabelText('account.password.current')).toBeNull();
-    expect(screen.getByLabelText('account.password.new')).toBeInTheDocument();
+    expect(screen.queryByText('account.password.confirmHint')).toBeNull();
   });
 
-  it('submits current + new password and closes on success', async () => {
+  function submitNewPassword(value = 'NewPass1') {
+    fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value } });
+    fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value } });
+    fireEvent.click(screen.getByRole('button', { name: 'account.save' }));
+  }
+
+  it('on 202, sends no current password, toasts the email notice, and closes', async () => {
     const { changePassword, onClose, onRecoveryFreshConsumed } = renderModal({ recoveryFresh: false });
-    changePassword.mockResolvedValue({ status: 200, body: { error: false } });
+    changePassword.mockResolvedValue({ status: 202, body: { error: false } });
 
-    fireEvent.input(screen.getByLabelText('account.password.current'), { target: { value: 'oldPass1' } });
-    fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value: 'NewPass1' } });
-    fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'NewPass1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'account.save' }));
-
-    await waitFor(() => expect(changePassword).toHaveBeenCalledWith('oldPass1', 'NewPass1'));
-    await waitFor(() => expect(onClose).toHaveBeenCalled());
-    expect(onRecoveryFreshConsumed).toHaveBeenCalled();
-  });
-
-  it('sends no current password on a recovery-fresh submit', async () => {
-    const { changePassword } = renderModal({ recoveryFresh: true });
-    changePassword.mockResolvedValue({ status: 200, body: { error: false } });
-
-    fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value: 'NewPass1' } });
-    fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'NewPass1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'account.save' }));
+    submitNewPassword();
 
     await waitFor(() => expect(changePassword).toHaveBeenCalledWith(undefined, 'NewPass1'));
-  });
-
-  it('on a failed recovery-fresh submit, drops the flag, shows the expired error, and stays open', async () => {
-    const { changePassword, onClose, onRecoveryFreshConsumed, rerender } = renderModal({ recoveryFresh: true });
-    changePassword.mockResolvedValue({ status: 401, body: { error: true, msg: 'unauthorized' } });
-
-    fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value: 'NewPass1' } });
-    fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'NewPass1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'account.save' }));
-
-    await waitFor(() => expect(screen.getByText('account.error.recoverySessionExpired')).toBeInTheDocument());
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(screen.getByText('account.password.confirmSent')).toBeInTheDocument();
     expect(onRecoveryFreshConsumed).toHaveBeenCalled();
-    expect(onClose).not.toHaveBeenCalled();
-
-    // The parent flips recoveryFresh to false in response to onRecoveryFreshConsumed;
-    // the current-password field must reappear in this still-open modal.
-    rerender(
-      <ToastProvider>
-        <ChangePasswordModal
-          open
-          onClose={onClose}
-          recoveryFresh={false}
-          onRecoveryFreshConsumed={onRecoveryFreshConsumed}
-          changePassword={changePassword}
-        />
-      </ToastProvider>,
-    );
-    expect(screen.getByLabelText('account.password.current')).toBeInTheDocument();
   });
 
-  it('on a wrong current password, shows the wrong-password error without touching recoveryFresh', async () => {
-    const { changePassword, onRecoveryFreshConsumed } = renderModal({ recoveryFresh: false });
-    changePassword.mockResolvedValue({ status: 401, body: { error: true, msg: 'unauthorized' } });
+  it('on an applied change, toasts the updated notice', async () => {
+    const { changePassword, onClose } = renderModal({ recoveryFresh: true });
+    changePassword.mockResolvedValue({ status: 200, body: { error: false } });
 
-    fireEvent.input(screen.getByLabelText('account.password.current'), { target: { value: 'wrongPass1' } });
-    fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value: 'NewPass1' } });
-    fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'NewPass1' } });
-    fireEvent.click(screen.getByRole('button', { name: 'account.save' }));
+    submitNewPassword();
 
-    await waitFor(() => expect(screen.getByText('account.error.wrongPassword')).toBeInTheDocument());
-    expect(onRecoveryFreshConsumed).not.toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(screen.getByText('account.password.updated')).toBeInTheDocument();
+  });
+
+  it('on 429, says a confirmation was just sent and stays open', async () => {
+    const { changePassword, onClose } = renderModal();
+    changePassword.mockResolvedValue({ status: 429, body: { error: true, msg: 'password_change_too_soon' } });
+
+    submitNewPassword();
+
+    await waitFor(() => expect(screen.getByText('account.error.passwordChangeTooSoon')).toBeInTheDocument());
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('on any other failure, shows the generic error', async () => {
+    const { changePassword } = renderModal();
+    changePassword.mockResolvedValue({ status: 0, body: null });
+
+    submitNewPassword();
+
+    await waitFor(() => expect(screen.getByText('account.error.generic')).toBeInTheDocument());
   });
 
   it('disables submit until the new password is valid and confirmed', () => {
@@ -123,7 +104,6 @@ describe('ChangePasswordModal', () => {
     const submit = screen.getByRole('button', { name: 'account.save' });
     expect(submit).toBeDisabled();
 
-    fireEvent.input(screen.getByLabelText('account.password.current'), { target: { value: 'oldPass1' } });
     fireEvent.input(screen.getByLabelText('account.password.new'), { target: { value: 'weak' } });
     fireEvent.input(screen.getByLabelText('account.password.confirm'), { target: { value: 'weak' } });
     expect(submit).toBeDisabled();

@@ -147,6 +147,30 @@ export async function verifyEmail(token: string): Promise<VerifyEmailResult> {
   }
 }
 
+/**
+ * POST /auth/password/confirm: applies a password change held behind the
+ * emailed link. Sent once, never retried: a retry after a lost response would
+ * find the token spent and report a change that did apply as invalid.
+ */
+export async function confirmPasswordChange(token: string): Promise<'ok' | 'invalid' | 'error'> {
+  const abort = new AbortController();
+  const deadline = setTimeout(() => abort.abort(), TOKEN_POST_DEADLINE_MS);
+  try {
+    const res = await fetch(`${BASE}/auth/password/confirm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+      signal: abort.signal,
+    });
+    if (res.ok) return 'ok';
+    return res.status === 400 ? 'invalid' : 'error';
+  } catch {
+    return 'error';
+  } finally {
+    clearTimeout(deadline);
+  }
+}
+
 export type RecoveryCompleteFailure =
   /** No code reached /complete; the form guards against it, other callers may not. */
   | 'code-required'
