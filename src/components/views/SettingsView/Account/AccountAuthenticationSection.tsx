@@ -252,7 +252,7 @@ export function AccountAuthenticationSection({
           <div className={styles.accountNameRow}>
             <span className={styles.accountName}>{account.username}</span>
             {account.emailVerified && (
-              <Badge label={t('account.verifiedBadge')} color="var(--good, #22c55e)" icon={<BadgeCheck size={12} />} />
+              <Badge label={t('account.verifiedBadge')} color="var(--good, #22c55e)" icon={<BadgeCheck size={12} />} size="small" />
             )}
           </div>
           <span className={styles.accountEmail}>{account.email}</span>

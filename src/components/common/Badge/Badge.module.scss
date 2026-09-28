@@ -16,6 +16,10 @@
   &.compact {
     padding: 2px 5px;
   }
+
+  &.small {
+    font-size: var(--type-small);
+  }
 }
 
 .uppercase {
