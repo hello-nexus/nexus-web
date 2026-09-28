@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Monitor, Plus } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -9,6 +9,7 @@ import { useSearchSignal } from '../../../search/signals';
 import { ServiceRequired } from '../ServiceRequired';
 import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
+import { DashboardBanner } from './DashboardBanner';
 import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import styles from './AppsView.module.scss';
@@ -32,6 +33,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
   const [desktopModalOpen, setDesktopModalOpen] = useState(false);
   const [desktopWidgetCount, setDesktopWidgetCount] = useState(0);
+  const panelHostRef = useRef<HTMLDivElement>(null);
 
   const refreshDesktopWidgetCount = useCallback(async () => {
     const list = await listOverlayWidgets();
@@ -77,7 +79,8 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
             )}
           </button>
         </div>
-        <div className={styles.panelHost}>
+        <DashboardBanner gridHostRef={panelHostRef} onOpen={() => onSectionNavigate?.('store')} />
+        <div ref={panelHostRef} className={styles.panelHost}>
           <PanelEmbeddedContent openCatalogSignal={addWidgetSignal} appAccentColor={settings.accentColor} onSectionNavigate={onSectionNavigate} />
         </div>
       </div>

@@ -41,3 +41,16 @@ export async function completePanelSwipeOnboarding() {
 export async function resetOnboarding() {
   return postService<OnboardingStatusResponse>('/onboarding/reset', {});
 }
+
+export interface DashboardBannerResponse {
+  dismissedKey: string;
+}
+
+/** Key of the home-dashboard banner the user last closed or opened. */
+export async function fetchDashboardBanner() {
+  return fetchService<DashboardBannerResponse>('/onboarding/banner');
+}
+
+export async function dismissDashboardBanner(key: string) {
+  return postService<DashboardBannerResponse>(`/onboarding/banner/dismiss/${encodeURIComponent(key)}`, {});
+}
