@@ -130,6 +130,10 @@ export interface AppMetadata {
   // Per-orientation flag for whether the touch fullscreen view is
   // available. The menu entry is gated on (Touch != null) && this.
   supportsImmersive: { portrait: boolean; landscape: boolean };
+  // Opt-in on top of supportsImmersive: the first swipe down on the fullscreen
+  // view only reveals the close hint, a second swipe while it's visible closes.
+  // Default (undefined/false) closes on the first swipe, like every built-in.
+  immersiveDoubleSwipe?: boolean;
   // Only one instance per panel. Default (undefined/false) allows many, each
   // with its own config - the long-standing behaviour for every built-in.
   singleInstance?: boolean;

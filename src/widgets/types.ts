@@ -89,6 +89,8 @@ export interface AppInstalledListing {
   preinstalled?: boolean;
   /** App opts its widget into the panel's fullscreen immersive view. */
   immersive?: boolean;
+  /** Immersive view requires a second swipe to close; the first only reveals the close hint. */
+  immersiveDoubleSwipe?: boolean;
   /** Only one instance of this app may sit on a panel. Default: many allowed. */
   singleInstance?: boolean;
   /** Apps with category "device" appear under DEVICES in the sidebar nav
