@@ -100,8 +100,8 @@ describe('StorePage storefront', () => {
     await screen.findByText('Bare');
     const icons = container.querySelectorAll(`img[src="${iconUrl}"]`);
     expect(icons.length).toBeGreaterThan(0);
-    for (const img of icons) expect(img.parentElement?.className).not.toMatch(/iconBoxEmpty/);
-    const empty = container.querySelectorAll('[class*="iconBoxEmpty"]');
+    for (const img of icons) expect(img.parentElement?.hasAttribute('data-placeholder')).toBe(false);
+    const empty = container.querySelectorAll('[data-placeholder]');
     expect(empty).toHaveLength(1);
     expect(empty[0].querySelector('img')).toBeNull();
   });
@@ -116,7 +116,7 @@ describe('StorePage storefront', () => {
     expect(img).not.toBeNull();
     fireEvent.error(img!);
     expect(container.querySelector(`img[src="${iconUrl}"]`)).toBeNull();
-    expect(container.querySelectorAll('[class*="iconBoxEmpty"]').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('[data-placeholder]').length).toBeGreaterThan(0);
   });
 
   it('gives the featured app its whole tagline and the opening paragraph of its description', async () => {
