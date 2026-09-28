@@ -15,9 +15,10 @@ import {
   subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
+import { resolveHttp } from '../../../api/service';
 import {
   Hash, Clock3, ScanLine, RotateCw, CircleDot, FlipHorizontal, Binary,
-  LayoutGrid, Sun, Palette, type LucideIcon,
+  LayoutGrid, Sun, Palette, Boxes, type LucideIcon,
 } from 'lucide-react';
 import styles from './MarketplaceWidgetSettings.module.scss';
 
@@ -128,7 +129,7 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
 
   if (!id) return <div className={styles.empty}>{t('marketplace.settings.missingId')}</div>;
   if (!listing) return <div className={styles.empty}>{t('marketplace.settings.loading')}</div>;
-  if (schema.length === 0) return <div className={styles.empty}>{t('marketplace.settings.noSettings')}</div>;
+  if (schema.length === 0) return <NoSettings iconUrl={listing.iconUrl} />;
 
   return (
     <SettingsSection title={listing.name}>
@@ -141,6 +142,21 @@ export function MarketplaceWidgetSettings({ widget }: WidgetSettingsProps) {
         />
       ))}
     </SettingsSection>
+  );
+}
+
+/** An app with no settings shows its own icon large, so the sheet is not a lone line of text. */
+function NoSettings({ iconUrl }: { iconUrl?: string | null }) {
+  const { t } = useTranslation();
+  const src = iconUrl ? resolveHttp(iconUrl) : null;
+  const [failed, setFailed] = useState<string | null>(null);
+  return (
+    <div className={styles.noSettings}>
+      {src && src !== failed
+        ? <img src={src} alt="" className={styles.noSettingsIcon} onError={() => setFailed(src)} />
+        : <Boxes className={styles.noSettingsGlyph} aria-hidden={true} />}
+      <span>{t('marketplace.settings.noSettings')}</span>
+    </div>
   );
 }
 
