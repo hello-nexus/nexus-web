@@ -11,7 +11,6 @@ import {
   marketplaceIdFromType,
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
-import { makeWidgetTouchView } from './common/WidgetTouchView';
 import type { AppManifest } from './types';
 import {
   PANEL_SURFACES,
@@ -138,6 +137,7 @@ export function lookupApp(type: string): AppManifest | undefined {
     return makeMarketplaceAppManifest(
       id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
       !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
+      !!listing.immersiveDoubleSwipe,
     );
   }
   return APP_REGISTRY[type];
@@ -157,6 +157,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
     makeMarketplaceAppManifest(
       listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
       !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
+      !!listing.immersiveDoubleSwipe,
     ),
   ]);
   return [...builtIns, ...marketplace];
@@ -166,13 +167,6 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // The manifest may declare any string here; anything outside this set
 // falls through the filter so a typo can't crash the picker.
 const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round'];
-
-// One shared immersive adapter for every SDK app: makeWidgetTouchView returns a
-// new component per call, so building it inline would remount the sandbox on
-// each render. The Touch facet spawns the app's own immersive-surface worker
-// (useImmersive() reads true there); wrapping the cell widget would share the
-// tile's worker and render its tile face fullscreen.
-const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceTouch);
 
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real
@@ -195,6 +189,7 @@ function makeMarketplaceAppManifest(
   singleInstance = false,
   manifestSurfaces?: string[],
   manifestGridSizes?: string[],
+  immersiveDoubleSwipe = false,
 ): AppManifest {
   // A manifest that names panel surfaces ("y70") is limited to them; the
   // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
@@ -224,6 +219,10 @@ function makeMarketplaceAppManifest(
       // Opt-in per app: the immersive view re-renders the same widget at the
       // panel's full size, which only suits an app that lays out from useSize().
       supportsImmersive: { portrait: immersive, landscape: immersive },
+      // Opt-in on top of immersive: the first swipe down only reveals the
+      // close hint, a second swipe while it's visible closes. Default is the
+      // host's usual single-swipe close.
+      immersiveDoubleSwipe,
       singleInstance,
       hasConfig: true,
       touch: false,
@@ -238,7 +237,7 @@ function makeMarketplaceAppManifest(
     // lays out from useSize(), so it needs nothing of its own. Gated on the
     // manifest flag, since a widget that ignores its size reads as a stretched
     // cell rather than a fullscreen view.
-    Touch: immersive ? MARKETPLACE_TOUCH : undefined,
+    Touch: immersive ? MarketplaceTouch : undefined,
     Preview: MARKETPLACE_PREVIEWS[id],
     // A page-capable SDK widget becomes click-through into a desktop section
     // view (Dashboard.renderSystemView). The wrapper reads the marketplace type

@@ -146,6 +146,17 @@ Without this capability `useAppData` still renders (so a widget never crashes
 for lacking it) but never reaches the host: it behaves exactly like preview
 mode, holding state only in that one render. See `useAppData` below.
 
+#### `capabilities.audio`
+
+A `boolean` (default `false`). Grants `useAudio` a host-side WebAudio sampler:
+the worker has no `AudioContext`, so an app synthesizes its own PCM (instrument
+samples, sound effects) and hands it to the host, which plays it through the
+panel document. Without this capability, or wherever the host cannot or must
+not play sound (preview, a streamed/headless panel render such as the Kraken
+LCD or the Q-series, or a document with no WebAudio support), `useAudio` still
+renders - every method on the returned object is a no-op and `available` is
+`false`. See `useAudio` below.
+
 ---
 
 ## Surfaces
@@ -368,6 +379,68 @@ A push from another running instance of the same app updates `value`/
 `revision` live, with no action needed. In preview, or without
 `capabilities.appData`, state lives only in that render (never touches the
 host) and `ready` is `true` immediately.
+
+### `useAudio()`
+
+A generic PCM sampler backed by the host's WebAudio document. Requires
+`capabilities.audio`. The worker has no `AudioContext`, so an app synthesizes
+its own instrument/sfx PCM (as `Float32Array` per channel, -1..1) and loads it
+once; playback, clocks and the reverb send all happen host-side.
+
+```tsx
+const audio = useAudio();
+useEffect(() => {
+  if (!audio.available) return;
+  audio.load('kick', kickChannels, 44100);
+}, [audio]);
+
+const onBeat = () => {
+  if (!audio.available) return;
+  audio.clock('bar'); // anchors 'bar' a short lead ahead of the host's audio time
+  audio.play('kick', { clock: 'bar', at: 0, gain: 0.8 });
+};
+```
+
+Returns `{ available, load, play, clock, solo, stop, reverb, volume }`:
+
+- `available` - `false` wherever the host cannot or must not play sound (see
+  `capabilities.audio` above); every other method is then a no-op, so a widget
+  never has to guard each call.
+- `load(id, channels, sampleRate, loop?)` - registers PCM under `id`,
+  replacing any earlier one. `loop` (`{ start, end }`, in seconds) marks the
+  sound as loopable; a looping sound played without `dur` plays until `stop()`.
+  A malformed load (an out-of-range sample rate, too many channels, or
+  channels of unequal length) is dropped silently rather than throwing.
+- `play(id, opts?)` - schedules a voice. `opts.clock` + `opts.at` schedule
+  against a named clock (seconds since that clock's `clock()` call); otherwise
+  `at` is seconds from now. `rate` (pitch/speed), `gain`, `pan` (-1..1),
+  `send` (0..1, into the reverb bus), `dur`, `release` and `tag` (a name
+  `stop()` can target) are all optional. `dur` is how long the voice holds at
+  full gain; `release` is the fade AFTER that - the voice stays audible from
+  `dur` to `dur + release`, not just `dur`.
+- `clock(name, lead?)` - starts, or restarts, a named clock `lead` seconds
+  (a short default lead) ahead of the host's audio time. Send a batch of `play`
+  calls against one clock call to sequence music without per-note network/
+  worker round trips; a voice that arrives too late to hit its scheduled time
+  is dropped rather than played late.
+- `solo(name)` - makes a started clock the page's one solo clock, for
+  background music. Whichever other instance's solo clock held it fades out,
+  and plays on a solo clock that no longer holds it are dropped until its
+  instance calls `solo()` for it again; when the holder's view closes, the
+  solo passes back to the one it took over from. The host honours it only
+  shortly after the user pressed this widget, so calling it when music starts
+  and on each touch hands the music to the tile being used. Clocks never
+  passed to `solo()` are unaffected.
+- `stop(opts?)` - stops this instance's voices with a short fade: all of them,
+  or only those with `opts.tag`, or only those scheduled against `opts.clock`.
+- `reverb(id, wet?)` - uses a loaded sound as this instance's reverb bus
+  impulse response (`null` turns the bus off); `wet` is the bus's return level.
+- `volume(level, fade?)` - this instance's master level, ramped over `fade`
+  seconds.
+
+The host caps loaded PCM and concurrent voices per widget instance, and clamps
+every numeric option to a sane range - a malformed or excessive call degrades
+rather than crashing the sampler for every widget sharing the document.
 
 ### `useDisplay()`
 

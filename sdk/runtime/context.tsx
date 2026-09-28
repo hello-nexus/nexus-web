@@ -16,6 +16,29 @@ export type AppDataPutResult =
   | { ok: true; revision: number; updatedAt: string }
   | { ok: false; revision: number; updatedAt: string; data: unknown };
 
+/** One host-scheduled playback of a loaded sound. Every field is optional and
+ *  the host clamps each to a sane range, so a widget never has to guard its
+ *  own math against an absurd value reaching the sampler. */
+export interface AudioPlay {
+  /** Seconds after the named clock's start when `clock` is given, else after now. Default 0. */
+  at?: number;
+  clock?: string;
+  /** Playback rate, pitch and speed together. Default 1. */
+  rate?: number;
+  /** Linear gain. Default 1. */
+  gain?: number;
+  /** Stereo position, -1 left to 1 right. Default 0. */
+  pan?: number;
+  /** Level sent into the reverb bus, 0..1. Default 0. */
+  send?: number;
+  /** Seconds before the release starts. Default: the sound's own length. A looping sound without `dur` plays until stop(). */
+  dur?: number;
+  /** Release fade in seconds at the end of `dur`. Default a few ms, enough to avoid a click. */
+  release?: number;
+  /** A tag that stop() can target. */
+  tag?: string;
+}
+
 export interface WidgetHostApi {
   /** Persist the widget's per-instance local-state bag (host -> localStorage). */
   persistLocal(next: Record<string, unknown>): void | Promise<void>;
@@ -38,6 +61,20 @@ export interface WidgetHostApi {
    *  /apps-api/data/{appId}/{key}). Absent under the same conditions as
    *  appDataGet. */
   appDataPut?(key: string, baseRevision: number, data: unknown): Promise<AppDataPutResult>;
+  /** Registers PCM (one Float32Array per channel, -1..1) under `id` with the
+   *  per-instance WebAudio sampler, replacing any earlier one under that id.
+   *  Absent under the same conditions as the rest of the audio.* methods -
+   *  see useAudio's `available`. */
+  audioLoad?(id: string, channels: Float32Array[], sampleRate: number, loop?: { start: number; end: number }): void;
+  audioPlay?(id: string, opts?: AudioPlay): void;
+  /** Starts, or restarts, a named clock `lead` seconds ahead of the host's audio time. */
+  audioClock?(name: string, lead?: number): void;
+  /** Makes the named clock the page's one solo clock, silencing any other instance's. */
+  audioSolo?(name: string): void;
+  audioStop?(opts?: { tag?: string; clock?: string; fade?: number }): void;
+  /** Uses a loaded sound as this instance's reverb bus impulse response (null turns the bus off). */
+  audioReverb?(id: string | null, wet?: number): void;
+  audioVolume?(level: number, fade?: number): void;
 }
 
 export type WidgetSurface = 'cell' | 'page';

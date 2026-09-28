@@ -29,6 +29,7 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
   const sensorsRead = useMemo(() => listing?.capabilities['sensors.read'] ?? [], [listing]);
   const mediaImport = useMemo(() => listing?.capabilities.mediaImport ?? [], [listing]);
   const appData = !!listing?.capabilities.appData;
+  const audio = !!listing?.capabilities.audio;
   const onDispatch = useCallback(
     (action: string, args?: Record<string, unknown>) =>
       postService<unknown>('/apps-api/dispatch', { appId: id, action, args: args ?? {} }),
@@ -56,6 +57,7 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
           sensorsRead={sensorsRead}
           mediaImport={mediaImport}
           appData={appData}
+          audio={audio}
           // eslint-disable-next-line i18next/no-literal-string -- render surface id
           displayShape="rect"
           // eslint-disable-next-line i18next/no-literal-string -- render surface id
