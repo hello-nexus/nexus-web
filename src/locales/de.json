@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Bitte bestätigen Sie Ihre E-Mail-Adresse, bevor Sie sich anmelden",
   "account.error.generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   "account.error.invalidCredentials": "E-Mail/Benutzername oder Passwort ist falsch",
+  "account.error.loginLocked": "Zu viele Anmeldeversuche. Warten Sie einige Minuten oder setzen Sie Ihr Passwort zurück.",
   "account.error.passwordChangeTooSoon": "Eine Bestätigungs-E-Mail wurde gerade gesendet. Prüfen Sie Ihren Posteingang oder versuchen Sie es später erneut.",
   "account.error.recoverySessionExpired": "Ihre Wiederherstellungssitzung ist abgelaufen. Geben Sie Ihr aktuelles Passwort ein, um fortzufahren.",
   "account.error.usernameTaken": "Dieser Benutzername wird bereits verwendet.",

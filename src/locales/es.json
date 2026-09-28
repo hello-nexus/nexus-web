@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Verifique su correo electrónico antes de iniciar sesión",
   "account.error.generic": "Algo ha salido mal. Inténtelo de nuevo.",
   "account.error.invalidCredentials": "Correo electrónico/usuario o contraseña incorrectos",
+  "account.error.loginLocked": "Demasiados intentos de inicio de sesión. Espere unos minutos o restablezca su contraseña.",
   "account.error.passwordChangeTooSoon": "Acabamos de enviar un correo de confirmación. Revise su bandeja de entrada o vuelva a intentarlo más tarde.",
   "account.error.recoverySessionExpired": "Su sesión de recuperación ha caducado. Introduzca su contraseña actual para continuar.",
   "account.error.usernameTaken": "Ese nombre de usuario ya está en uso.",

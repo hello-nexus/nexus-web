@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Veuillez vérifier votre e-mail avant de vous connecter",
   "account.error.generic": "Une erreur s'est produite. Veuillez réessayer.",
   "account.error.invalidCredentials": "E-mail/nom d'utilisateur ou mot de passe incorrect",
+  "account.error.loginLocked": "Trop de tentatives de connexion. Patientez quelques minutes ou réinitialisez votre mot de passe.",
   "account.error.passwordChangeTooSoon": "Un e-mail de confirmation vient d'être envoyé. Consultez votre boîte de réception ou réessayez plus tard.",
   "account.error.recoverySessionExpired": "Votre session de récupération a expiré. Saisissez votre mot de passe actuel pour continuer.",
   "account.error.usernameTaken": "Ce nom d'utilisateur est déjà utilisé.",
