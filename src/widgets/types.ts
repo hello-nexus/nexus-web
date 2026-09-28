@@ -36,6 +36,12 @@ export interface AppManifestCapabilities {
    *  (/apps-api/data/{appId}/{key}), shared by every running instance of this
    *  app on the install. Default false. */
   appData?: boolean;
+  /** Grants the app a host-side WebAudio sampler via useAudio - PCM the app
+   *  synthesizes in its worker, played through the host's document. Default
+   *  false. The host still refuses playback (useAudio().available stays
+   *  false) in preview, on a streamed/headless panel render, or where the
+   *  host document has no WebAudio support. */
+  audio?: boolean;
 }
 
 export type AppManifestSettingType =

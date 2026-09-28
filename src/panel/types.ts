@@ -47,6 +47,23 @@ export function widgetDisplayShape(size: PanelWidgetSize): 'rect' | 'round' {
   return size === '2x2round' ? 'round' : 'rect';
 }
 
+// Whether this surface is rendered off-screen by the streamed-panels engine
+// and pushed to the device as encoded video (the Kraken LCD, the round/square/
+// wide cooler glass, the Q-series ArtInChip pipeline) rather than shown in a
+// real, user-facing browser window on this PC. An SDK widget's audio must stay
+// silent on these surfaces - the render runs on the host machine's speakers,
+// not the device the operator is looking at.
+//
+// 'monitor' is ambiguous by surface id alone: a promoted OS display and the
+// ArtInChip D213's streamed capture both use it (D213PanelDiscovery.cs in
+// nexus-service). `displayBound` (PanelDeviceRecord.displayId set) tells them
+// apart - PanelDisplayBoundContext supplies the real per-device value.
+export function isStreamedPanelSurface(surface: PanelSurface, displayBound = true): boolean {
+  if (surface === 'kraken' || surface === 'lcd-round' || surface === 'lcd-square'
+    || surface === 'lcd-wide' || surface === 'q60') return true;
+  return surface === 'monitor' && !displayBound;
+}
+
 // Whether the operator at this surface has a usable text-entry method: desktop
 // (physical keyboard) and phone/tablet (on-screen keyboard). The Y70 kiosk is
 // touch-only with no keyboard and the Q-series is display-only, so neither

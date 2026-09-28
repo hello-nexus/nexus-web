@@ -9,6 +9,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, type SortingStrategy } from '@dnd-kit/sortable';
 import { backdropHintFromUrl } from './background/panelBackground';
+import { PanelDisplayBoundProvider } from './widgets/common/PanelDisplayBoundContext';
 import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
 import { useDashboardLayout } from './engine/useDashboardLayout';
@@ -307,7 +308,9 @@ function PanelKioskContent({ recordState, deviceId, surface, deviceTouch, device
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
       label="Panel"
     >
-      <PanelContent recordState={recordState} surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
+      <PanelDisplayBoundProvider value={!!displayBound}>
+        <PanelContent recordState={recordState} surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
+      </PanelDisplayBoundProvider>
     </ErrorBoundary>
   );
 }

@@ -3,8 +3,8 @@
 // from a built-in widget is that data/host access goes through these hooks
 // instead of importing app stores directly.
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { useStore, type WidgetDisplay } from './context';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useStore, type AudioPlay, type WidgetDisplay } from './context';
 
 declare global {
   // The boot script installs this; sensor/net access for SDK widgets reuses it.
@@ -352,4 +352,58 @@ export function useAppData<T>(
   }, [put, readCurrent]);
 
   return { value, ready, revision, update, put };
+}
+
+export interface AppAudio {
+  /** False where this host cannot or must not play sound; every other method is then a no-op. */
+  readonly available: boolean;
+  /** Registers PCM (one Float32Array per channel, -1..1) under `id`, replacing any earlier one. The optional loop points are in seconds. */
+  load(id: string, channels: Float32Array[], sampleRate: number, loop?: { start: number; end: number }): void;
+  play(id: string, opts?: AudioPlay): void;
+  /** Starts, or restarts, a named clock `lead` seconds ahead of the host's audio time (a short default lead). Later `at` values on that clock count from its start. */
+  clock(name: string, lead?: number): void;
+  /** Makes the named clock, once started, the page's one solo clock: another instance's solo clock fades out and stays silent until that instance calls solo() again or this one goes away. Honoured only shortly after the user pressed this widget. For background music, so only one plays at a time. */
+  solo(name: string): void;
+  /** Stops voices with a fade: all of this instance's, or only those with the tag, or only those on the clock. */
+  stop(opts?: { tag?: string; clock?: string; fade?: number }): void;
+  /** Uses a loaded sound as the impulse response of this instance's reverb bus (null turns the bus off); `wet` is the bus's return level. */
+  reverb(id: string | null, wet?: number): void;
+  /** This instance's master level, ramped over `fade` seconds. */
+  volume(level: number, fade?: number): void;
+}
+
+const AUDIO_NOOP: AppAudio = {
+  available: false,
+  load: () => {},
+  play: () => {},
+  clock: () => {},
+  solo: () => {},
+  stop: () => {},
+  reverb: () => {},
+  volume: () => {},
+};
+
+/** Generic PCM sampler for a Tier 2 app: synthesize instrument/sfx samples as
+ *  Float32Array PCM in the worker, load them once, then schedule playback
+ *  through the host's WebAudio document (workers have no AudioContext). See
+ *  the nexus.app/1 `audio` capability for when `available` is false - the
+ *  widget never has to special-case that itself, since every method is a
+ *  no-op in that case. The returned object is stable for the life of the mount. */
+export function useAudio(): AppAudio {
+  const store = useStore();
+  const api = store.api;
+  const bridged = !!(api.audioLoad && api.audioPlay && api.audioClock && api.audioSolo && api.audioStop && api.audioReverb && api.audioVolume);
+  return useMemo<AppAudio>(() => {
+    if (!bridged) return AUDIO_NOOP;
+    return {
+      available: true,
+      load: (id, channels, sampleRate, loop) => api.audioLoad!(id, channels, sampleRate, loop),
+      play: (id, opts) => api.audioPlay!(id, opts),
+      clock: (name, lead) => api.audioClock!(name, lead),
+      solo: (name) => api.audioSolo!(name),
+      stop: (opts) => api.audioStop!(opts),
+      reverb: (id, wet) => api.audioReverb!(id, wet),
+      volume: (level, fade) => api.audioVolume!(level, fade),
+    };
+  }, [api, bridged]);
 }

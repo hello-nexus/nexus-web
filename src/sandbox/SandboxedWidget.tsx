@@ -13,6 +13,7 @@ import { MediaImportProvider } from './mediaImportContext';
 import { useImmersiveExit } from '../panel/overlays/immersiveExit';
 import { useMultiplex, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { getAppData, putAppData, appDataTopic } from './appDataClient';
+import { AudioInstanceEngine, isWebAudioSupported } from './audioEngine';
 import type { AppDataDoc, WidgetDisplay } from '../../sdk/runtime/context';
 
 // Mirrors the service's key contract (`^[a-z0-9][a-z0-9._-]{0,63}$`) and its
@@ -77,6 +78,14 @@ export interface SandboxedWidgetProps {
   /** Manifest `capabilities.appData`. Gates useAppData's host bridge; the
    *  appId bound into every call is always this widget's own listing id. */
   appData?: boolean;
+  /** Manifest `capabilities.audio`. Gates useAudio's host bridge; also needs
+   *  WebAudio support and is refused in preview and on a streamed render. */
+  audio?: boolean;
+  /** True when this render is captured by the streamed-panels engine (device
+   *  video encoded from an off-screen page, not a real window on this PC) -
+   *  see isStreamedPanelSurface. Forces useAudio().available false so a
+   *  widget never plays sound through the host machine's own speakers. */
+  streamed?: boolean;
   /** This tile's actual shape - 'round' only for the masked Kraken glass.
    *  Default 'rect'. Ignored (forced 'rect') in preview. */
   displayShape?: 'rect' | 'round';
@@ -104,6 +113,8 @@ function readLocal(widgetId: string, instanceId: string): Record<string, unknown
 interface LiveWidget {
   handle: SandboxHandle;
   disposeTimer: ReturnType<typeof setTimeout> | null;
+  // The last mount left: its audio parks on the next tick, unless a remount reuses the worker first.
+  parkTimer: ReturnType<typeof setTimeout> | null;
   // A widget can be on screen twice at once - the panel cell keeps rendering
   // behind the fullscreen (immersive) view of the same instance - and both
   // drive this one worker, which holds one size. Newest mount last: it owns the
@@ -114,13 +125,20 @@ interface LiveWidget {
   // mount): a remount that adopts this cached worker must keep subscribing
   // the same topics, or a push landing during the keep-alive window is lost.
   appDataKeys: Set<string>;
+  // This instance's WebAudio sampler; null when audio is unavailable. Lives
+  // for the life of the WORKER, disposed alongside it.
+  audioEngine: AudioInstanceEngine | null;
   // When a press last reached the worker from any of its mounts; spent by the first enterImmersive after it.
   pressedAt: number;
+  // The same press time, never spent: audio solo claims are honoured only shortly after one.
+  touchedAt: number;
 }
 const liveWidgets = new Map<string, LiveWidget>();
 const KEEP_ALIVE_MS = 2500;
 /** How long after a press the host passed to a widget it may still open its immersive view, so only a tap opens it. */
 const ENTER_AFTER_PRESS_MS = 1500;
+/** How long after a press a widget may claim the page's solo audio clock, so only the tile being used takes the music. */
+const SOLO_AFTER_PRESS_MS = 10_000;
 
 /** Validates and records a key the worker just read or wrote, then wakes the
  *  newest mount so it (re)renders that key's topic bridge. Throws (before any
@@ -137,7 +155,7 @@ function noteAppDataKey(entry: LiveWidget, key: string): void {
   entry.mounts[entry.mounts.length - 1]?.wakeAppData();
 }
 
-export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, displayShape, displayInput, displayCells, onEnterImmersive }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, audio, streamed, displayShape, displayInput, displayCells, onEnterImmersive }: SandboxedWidgetProps) {
   // The overlay's animated close, for the immersive worker's useImmersive().
   // The worker's api object is created once, so a reused worker resolves it
   // through the cache entry's newest mount, not the mount that spawned it.
@@ -154,7 +172,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}:${entryUrl}`;
   const notePress = useCallback(() => {
     const e = liveWidgets.get(cacheKey);
-    if (e) e.pressedAt = performance.now();
+    if (e) e.pressedAt = e.touchedAt = performance.now();
   }, [cacheKey]);
   // Seed from the keep-alive cache synchronously: on a remount (edit-sheet open/
   // close re-parents the cell) the live worker already exists, so the FIRST
@@ -190,6 +208,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
 
   const { language } = useTranslation();
   const appDataEnabled = !!appData && !preview;
+  const audioEnabled = !!audio && !preview && !streamed && isWebAudioSupported();
   const display: WidgetDisplay = preview
     ? { shape: 'rect', input: 'pointer' }
     : { shape: displayShape ?? 'rect', input: displayInput ?? 'pointer', ...(displayCells ? { cells: displayCells } : {}) };
@@ -203,6 +222,8 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     if (entry) {
       // Reuse across a transient remount; cancel any pending disposal.
       if (entry.disposeTimer) { clearTimeout(entry.disposeTimer); entry.disposeTimer = null; }
+      if (entry.parkTimer) { clearTimeout(entry.parkTimer); entry.parkTimer = null; }
+      entry.audioEngine?.unpark();
       entry.handle.update({ settings: settings ?? {} });
     } else {
       const el = wrapRef.current;
@@ -210,6 +231,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         ? { width: Math.round(el.clientWidth), height: Math.round(el.clientHeight) }
         : { width: 0, height: 0 };
 
+      const audioEngine = audioEnabled ? new AudioInstanceEngine() : null;
       const context: SandboxContext = {
         instanceId,
         widgetId,
@@ -262,9 +284,22 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
                 return putAppData(widgetId, dataKey, baseRevision, data);
               }
             : undefined,
+          audioLoad: audioEngine ? (id, channels, sampleRate, loop) => audioEngine.load(id, channels, sampleRate, loop) : undefined,
+          audioPlay: audioEngine ? (id, opts) => audioEngine.play(id, opts) : undefined,
+          audioClock: audioEngine ? (name, lead) => audioEngine.clock(name, lead) : undefined,
+          audioSolo: audioEngine
+            ? (name) => {
+                const e = liveWidgets.get(key);
+                if (!e || performance.now() - e.touchedAt > SOLO_AFTER_PRESS_MS) return;
+                audioEngine.solo(name);
+              }
+            : undefined,
+          audioStop: audioEngine ? (opts) => audioEngine.stop(opts) : undefined,
+          audioReverb: audioEngine ? (id, wet) => audioEngine.reverb(id, wet) : undefined,
+          audioVolume: audioEngine ? (level, fade) => audioEngine.volume(level, fade) : undefined,
         },
       };
-      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], appDataKeys: new Set(), pressedAt: -Infinity };
+      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], appDataKeys: new Set(), pressedAt: -Infinity, touchedAt: -Infinity, audioEngine, parkTimer: null };
       liveWidgets.set(key, entry);
     }
 
@@ -286,9 +321,18 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       if (at >= 0) e.mounts.splice(at, 1);
       const below = e.mounts[e.mounts.length - 1];
       if (below) { below.pushSize(); below.wakeAppData(); return; }
+      // The last mount of this worker is gone (e.g. closing the immersive
+      // view) - stop any music on the next tick rather than waiting out the
+      // keep-alive window, and hand its solo clock back to the tile below.
+      // A remount in the same commit (an edit sheet re-parenting the cell)
+      // cancels it, so the tile keeps its music and its solo.
+      if (e.audioEngine && !e.parkTimer) {
+        e.parkTimer = setTimeout(() => { e.parkTimer = null; e.audioEngine?.park(); }, 0);
+      }
       if (!e.disposeTimer) {
         e.disposeTimer = setTimeout(() => {
           e.handle.dispose();
+          e.audioEngine?.dispose();
           liveWidgets.delete(key);
         }, KEEP_ALIVE_MS);
       }

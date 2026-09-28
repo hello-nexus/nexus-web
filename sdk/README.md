@@ -65,7 +65,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`, `useImmersive`,
-  `useDisplay`, `useLocale`, `useAppData`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
+  `useDisplay`, `useLocale`, `useAppData`, `useAudio`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
 - **`Slider` additions**: `trackFill` controls the accent fill (auto from value, or pass a
   `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
@@ -96,6 +96,11 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   profile export/import and the cloud account. Requires `capabilities.appData`. Returns
   `{ value, ready, revision, update, put }` - `update(fn)` retries through the lower-level
   `put(baseRevision, data)` compare-and-swap on a conflict from another instance.
+- **`useAudio()`**: a generic PCM sampler for a worker that has no `AudioContext` - synthesize
+  instrument/sfx samples as `Float32Array` PCM, `load` them once, then `play`/`clock`/`solo`/
+  `stop`/`reverb`/`volume` through the host's WebAudio document. Requires `capabilities.audio`;
+  `available` is `false` (every method a no-op) in preview, on a streamed/headless panel
+  render, or without WebAudio support.
 - **`useDisplay()`**: `{ shape, input }` - the tile's actual shape (`'round'` only on round
   glass) and the panel surface's input method (`'touch'` / `'pointer'` / `'none'`).
 - **`category:"device"`** manifest field: marks the app as a device app. It appears under

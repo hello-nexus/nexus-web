@@ -15,8 +15,9 @@ import { WidgetSettingsBridge } from '../../../widgets/settingsBridge';
 import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import { usePanelDisplayBound } from '../common/PanelDisplayBoundContext';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
-import { surfaceInputMode, widgetDisplayShape, type PanelSurface, type PanelWidgetSize } from '../../types';
+import { isStreamedPanelSurface, surfaceInputMode, widgetDisplayShape, type PanelSurface, type PanelWidgetSize } from '../../types';
 import { sizeToSpan } from '../../engine/grid';
 import styles from './MarketplaceWidget.module.scss';
 
@@ -42,6 +43,7 @@ export interface SdkMarketplaceWidgetProps {
 export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size, surface, deviceTouch, onEnterImmersive }: SdkMarketplaceWidgetProps) {
   const { t } = useTranslation();
   const preview = usePanelPreview();
+  const displayBound = usePanelDisplayBound();
   const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
   const { runtimeUrl, failed: runtimeFailed } = useSdkRuntime();
   const failed = bundleFailed || runtimeFailed;
@@ -61,6 +63,8 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
   const sensorsRead = useMemo(() => listing.capabilities['sensors.read'] ?? [], [listing]);
   const mediaImport = useMemo(() => listing.capabilities.mediaImport ?? [], [listing]);
   const appData = !!listing.capabilities.appData;
+  const audio = !!listing.capabilities.audio;
+  const streamed = surface != null && isStreamedPanelSurface(surface, displayBound);
   const displayShape = widgetDisplayShape(size);
   const displayInput = surfaceInputMode(surface ?? 'desktop', deviceTouch);
   // The fullscreen view has no grid span.
@@ -89,6 +93,8 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
       sensorsRead={sensorsRead}
       mediaImport={mediaImport}
       appData={appData}
+      audio={audio}
+      streamed={streamed}
       displayShape={displayShape}
       displayInput={displayInput}
       displayCells={displayCells}
