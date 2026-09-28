@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Подтвердите email перед входом",
   "account.error.generic": "Что-то пошло не так. Попробуйте ещё раз.",
   "account.error.invalidCredentials": "Неверный email/имя пользователя или пароль",
+  "account.error.loginLocked": "Слишком много попыток входа. Подождите несколько минут или сбросьте пароль.",
   "account.error.passwordChangeTooSoon": "Письмо с подтверждением только что отправлено. Проверьте почту или повторите попытку позже.",
   "account.error.recoverySessionExpired": "Срок действия сессии восстановления истёк. Введите текущий пароль, чтобы продолжить.",
   "account.error.usernameTaken": "Это имя пользователя уже занято.",

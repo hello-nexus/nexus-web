@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Please verify your email before signing in",
   "account.error.generic": "Something went wrong. Please try again.",
   "account.error.invalidCredentials": "Incorrect email/username or password",
+  "account.error.loginLocked": "Too many sign-in attempts. Wait a few minutes or reset your password.",
   "account.error.passwordChangeTooSoon": "A confirmation email was just sent. Check your inbox, or try again later.",
   "account.error.recoverySessionExpired": "Your recovery session expired. Enter your current password to continue.",
   "account.error.usernameTaken": "That username is already taken.",

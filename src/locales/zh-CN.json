@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "请先验证邮箱后再登录",
   "account.error.generic": "出现问题，请重试。",
   "account.error.invalidCredentials": "邮箱/用户名或密码错误",
+  "account.error.loginLocked": "登录尝试次数过多。请等待几分钟，或重置密码。",
   "account.error.passwordChangeTooSoon": "刚刚已发送确认邮件。请查看收件箱，或稍后再试。",
   "account.error.recoverySessionExpired": "找回密码的会话已过期。请输入当前密码以继续。",
   "account.error.usernameTaken": "该用户名已被使用。",

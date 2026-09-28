@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Verifieer je e-mail voordat je je aanmeldt",
   "account.error.generic": "Er is iets misgegaan. Probeer het opnieuw.",
   "account.error.invalidCredentials": "Onjuist e-mailadres/gebruikersnaam of wachtwoord",
+  "account.error.loginLocked": "Te veel aanmeldpogingen. Wacht een paar minuten of reset je wachtwoord.",
   "account.error.passwordChangeTooSoon": "Er is net een bevestigingsmail verstuurd. Kijk in je inbox of probeer het later opnieuw.",
   "account.error.recoverySessionExpired": "Je herstelsessie is verlopen. Voer je huidige wachtwoord in om door te gaan.",
   "account.error.usernameTaken": "Die gebruikersnaam is al in gebruik.",

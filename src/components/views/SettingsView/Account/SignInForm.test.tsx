@@ -43,3 +43,14 @@ describe('SignInForm password manager handoff', () => {
     expect(storeLoginCredential).not.toHaveBeenCalled();
   });
 });
+
+describe('SignInForm errors', () => {
+  it('says the account is locked when the api reports too many sign-in attempts', async () => {
+    const login = vi.fn().mockResolvedValue({ status: 429, body: { error: true, msg: 'login_locked' } });
+    render(<SignInForm backend={{ login } as never} onSuccess={vi.fn()} />);
+
+    fillAndSubmit('alice', 'wrong');
+
+    expect(await screen.findByText('account.error.loginLocked')).toBeTruthy();
+  });
+});

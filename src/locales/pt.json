@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Verifique o seu e-mail antes de iniciar sessão",
   "account.error.generic": "Algo correu mal. Tente novamente.",
   "account.error.invalidCredentials": "E-mail/nome de utilizador ou palavra-passe incorretos",
+  "account.error.loginLocked": "Demasiadas tentativas de início de sessão. Aguarde alguns minutos ou reponha a palavra-passe.",
   "account.error.passwordChangeTooSoon": "Acabámos de enviar um e-mail de confirmação. Verifique a sua caixa de entrada ou tente novamente mais tarde.",
   "account.error.recoverySessionExpired": "A sua sessão de recuperação expirou. Introduza a sua palavra-passe atual para continuar.",
   "account.error.usernameTaken": "Esse nome de utilizador já está em uso.",

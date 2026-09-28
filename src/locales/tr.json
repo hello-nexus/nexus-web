@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Oturum açmadan önce lütfen e-postanızı doğrulayın",
   "account.error.generic": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
   "account.error.invalidCredentials": "E-posta/kullanıcı adı veya parola hatalı",
+  "account.error.loginLocked": "Çok fazla oturum açma denemesi. Birkaç dakika bekleyin veya parolanızı sıfırlayın.",
   "account.error.passwordChangeTooSoon": "Az önce bir onay e-postası gönderildi. Gelen kutunuzu kontrol edin veya daha sonra tekrar deneyin.",
   "account.error.recoverySessionExpired": "Kurtarma oturumunuzun süresi doldu. Devam etmek için mevcut parolanızı girin.",
   "account.error.usernameTaken": "Bu kullanıcı adı zaten kullanımda.",

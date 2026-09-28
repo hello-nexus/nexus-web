@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "サインインする前にメールアドレスを確認してください",
   "account.error.generic": "問題が発生しました。もう一度お試しください。",
   "account.error.invalidCredentials": "メールアドレス/ユーザー名またはパスワードが違います",
+  "account.error.loginLocked": "サインインの試行回数が多すぎます。数分待つか、パスワードをリセットしてください。",
   "account.error.passwordChangeTooSoon": "確認メールを送信したばかりです。受信トレイを確認するか、しばらくしてからもう一度お試しください。",
   "account.error.recoverySessionExpired": "パスワード再設定セッションの有効期限が切れました。続けるには現在のパスワードを入力してください。",
   "account.error.usernameTaken": "このユーザー名はすでに使用されています。",

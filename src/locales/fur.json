@@ -51,6 +51,7 @@
   "account.error.emailUnverified": "Verifiche la tô email prime di jentrâ",
   "account.error.generic": "Alc al è lât mâl. Torne prove.",
   "account.error.invalidCredentials": "Email/non utent o password sbaliâts",
+  "account.error.loginLocked": "Masse tentatîfs di jentrâ. Spiete cualchi minût o ripristine la password.",
   "account.error.passwordChangeTooSoon": "O vin apene mandât une e-mail di conferme. Controle la tô pueste o torne a provâ plui indenant.",
   "account.error.recoverySessionExpired": "La session di azerament e je scjadude. Scrîf la tô password atuâl par continuâ.",
   "account.error.usernameTaken": "Chest non utent al è za doprât.",
