@@ -3926,6 +3926,7 @@
   "settings.conflictApps.runningNow": "이 PC에서 실행 중",
   "settings.conflictApps.searchPlaceholder": "앱 검색",
   "settings.conflictApps.title": "충돌하는 앱",
+  "settings.conflictApps.toggleColumn": "종료",
   "settings.dangerZone": "위험 구역",
   "settings.diagnostics.dataFolderDescription": "Nexus가 파일을 저장하는 폴더를 엽니다",
   "settings.diagnostics.dataFolderLabel": "데이터 폴더",

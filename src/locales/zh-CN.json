@@ -3926,6 +3926,7 @@
   "settings.conflictApps.runningNow": "正在此电脑上运行",
   "settings.conflictApps.searchPlaceholder": "搜索应用",
   "settings.conflictApps.title": "冲突应用",
+  "settings.conflictApps.toggleColumn": "结束运行",
   "settings.dangerZone": "危险区域",
   "settings.diagnostics.dataFolderDescription": "打开 Nexus 存储文件的文件夹",
   "settings.diagnostics.dataFolderLabel": "数据文件夹",

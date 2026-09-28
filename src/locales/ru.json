@@ -3962,6 +3962,7 @@
   "settings.conflictApps.runningNow": "Запущены на этом ПК",
   "settings.conflictApps.searchPlaceholder": "Поиск приложений",
   "settings.conflictApps.title": "Конфликтующие приложения",
+  "settings.conflictApps.toggleColumn": "Закрыть",
   "settings.dangerZone": "Опасная зона",
   "settings.diagnostics.dataFolderDescription": "Открывает папку, в которой Nexus хранит свои файлы",
   "settings.diagnostics.dataFolderLabel": "Папка данных",

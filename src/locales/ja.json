@@ -3926,6 +3926,7 @@
   "settings.conflictApps.runningNow": "この PC で実行中",
   "settings.conflictApps.searchPlaceholder": "アプリを検索",
   "settings.conflictApps.title": "競合するアプリ",
+  "settings.conflictApps.toggleColumn": "終了",
   "settings.dangerZone": "危険ゾーン",
   "settings.diagnostics.dataFolderDescription": "Nexus がファイルを保存しているフォルダーを開きます",
   "settings.diagnostics.dataFolderLabel": "データフォルダー",

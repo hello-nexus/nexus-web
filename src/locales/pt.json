@@ -3926,6 +3926,7 @@
   "settings.conflictApps.runningNow": "Em execução neste PC",
   "settings.conflictApps.searchPlaceholder": "Procurar aplicações",
   "settings.conflictApps.title": "Aplicações em conflito",
+  "settings.conflictApps.toggleColumn": "Encerrar",
   "settings.dangerZone": "Zona de perigo",
   "settings.diagnostics.dataFolderDescription": "Abre a pasta onde o Nexus guarda os seus ficheiros",
   "settings.diagnostics.dataFolderLabel": "Pasta de dados",

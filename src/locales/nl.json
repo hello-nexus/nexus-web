@@ -3926,6 +3926,7 @@
   "settings.conflictApps.runningNow": "Actief op deze pc",
   "settings.conflictApps.searchPlaceholder": "Apps zoeken",
   "settings.conflictApps.title": "Conflicterende apps",
+  "settings.conflictApps.toggleColumn": "Afsluiten",
   "settings.dangerZone": "Gevarenzone",
   "settings.diagnostics.dataFolderDescription": "Opent de map waarin Nexus zijn bestanden bewaart",
   "settings.diagnostics.dataFolderLabel": "Gegevensmap",

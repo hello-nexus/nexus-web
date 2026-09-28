@@ -3926,6 +3926,7 @@
   "settings.conflictApps.runningNow": "Bu bilgisayarda çalışıyor",
   "settings.conflictApps.searchPlaceholder": "Uygulama ara",
   "settings.conflictApps.title": "Çakışan uygulamalar",
+  "settings.conflictApps.toggleColumn": "Sonlandır",
   "settings.dangerZone": "Tehlike bölgesi",
   "settings.diagnostics.dataFolderDescription": "Nexus'un dosyalarını sakladığı klasörü açar",
   "settings.diagnostics.dataFolderLabel": "Veri klasörü",

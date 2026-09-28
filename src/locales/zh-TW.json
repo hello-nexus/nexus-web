@@ -3926,6 +3926,7 @@
   "settings.conflictApps.runningNow": "正在此電腦上執行",
   "settings.conflictApps.searchPlaceholder": "搜尋應用程式",
   "settings.conflictApps.title": "衝突的應用程式",
+  "settings.conflictApps.toggleColumn": "結束執行",
   "settings.dangerZone": "危險區域",
   "settings.diagnostics.dataFolderDescription": "開啟 Nexus 儲存檔案的資料夾",
   "settings.diagnostics.dataFolderLabel": "Nexus 資料夾",
