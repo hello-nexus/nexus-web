@@ -81,6 +81,8 @@ export interface AppInstalledListing {
   settings?: AppManifestSettingEntry[];
   sizes?: string[];
   defaultSize?: string;
+  /** The sizes offered on panels that hold several widgets, when fewer than `sizes`; unset offers them all. */
+  gridSizes?: string[];
   source: 'user' | 'bundled' | string;
   /** OEM bake-in: a bundled app to treat as active at first boot (its page
    *  section is auto-pinned), no user "add" required. */

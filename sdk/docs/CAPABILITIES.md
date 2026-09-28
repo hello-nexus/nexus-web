@@ -38,6 +38,14 @@ The TS shape lives in `src/widgets/types.ts`.
   "sizes": ["1x1", "2x2", "4x2", "4x4"],
   "default_size": "2x2",
 
+  // Optional: the sizes offered on panels that hold several widgets (the
+  // dashboard, a phone, a Y70, a monitor), when fewer than "sizes". A panel
+  // that holds one widget (a Q60, cooler glass) keeps its own size from
+  // "sizes". Unset, or naming only single-widget sizes, offers every size
+  // everywhere. A tile already placed at a size no longer offered moves to
+  // the nearest one that is when its layout next loads with the app known.
+  "grid_sizes": ["4x4"],
+
   // OEM bake-in: treat this app as active on a fresh profile (sidebar auto-pins
   // its page, no user "add" step needed).
   "preinstalled": false,

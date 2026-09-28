@@ -120,6 +120,8 @@ export interface AppMetadata {
   icon: AppIcon;
   sizes: PanelWidgetSize[];
   defaultSize: PanelWidgetSize;
+  /** The sizes offered on panels that hold several widgets, when fewer than `sizes`; a single-widget panel keeps its own. */
+  gridSizes?: PanelWidgetSize[];
   // When false, the app is hidden from the Add-a-Widget picker: it can't be
   // newly added, but already-placed instances keep rendering (lookupApp and the
   // layout reconciler ignore this flag). Defaults to listed. SDK apps derive it

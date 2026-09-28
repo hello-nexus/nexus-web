@@ -137,7 +137,7 @@ export function lookupApp(type: string): AppManifest | undefined {
     if (!listing) return undefined;
     return makeMarketplaceAppManifest(
       id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
-      !!listing.immersive, !!listing.singleInstance, listing.surfaces,
+      !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
     );
   }
   return APP_REGISTRY[type];
@@ -156,7 +156,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
     typeForMarketplace(listing.id),
     makeMarketplaceAppManifest(
       listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
-      !!listing.immersive, !!listing.singleInstance, listing.surfaces,
+      !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
     ),
   ]);
   return [...builtIns, ...marketplace];
@@ -194,6 +194,7 @@ function makeMarketplaceAppManifest(
   immersive = false,
   singleInstance = false,
   manifestSurfaces?: string[],
+  manifestGridSizes?: string[],
 ): AppManifest {
   // A manifest that names panel surfaces ("y70") is limited to them; the
   // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
@@ -202,6 +203,9 @@ function makeMarketplaceAppManifest(
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
   const safeSizes: PanelWidgetSize[] = sizes.length > 0 ? sizes : ['2x2'];
+  // Sizes reserved for single-widget panels never count, so a list of only those offers every size.
+  const gridSizes = (manifestGridSizes ?? []).filter((s): s is PanelWidgetSize =>
+    (safeSizes as readonly string[]).includes(s) && !SINGLE_WIDGET_SIZES.has(s as PanelWidgetSize));
   const defaultSize: PanelWidgetSize =
     (manifestDefault && (safeSizes as readonly string[]).includes(manifestDefault))
       ? (manifestDefault as PanelWidgetSize)
@@ -216,6 +220,7 @@ function makeMarketplaceAppManifest(
       icon: iconUrl ? appIconComponent(iconUrl) : Boxes,
       sizes: safeSizes,
       defaultSize,
+      gridSizes: gridSizes.length > 0 ? gridSizes : undefined,
       // Opt-in per app: the immersive view re-renders the same widget at the
       // panel's full size, which only suits an app that lays out from useSize().
       supportsImmersive: { portrait: immersive, landscape: immersive },
@@ -249,7 +254,8 @@ function makeMarketplaceAppManifest(
 // app supports it (and is input-compatible), else [].
 //
 // Multi-widget surfaces hide any size reserved by a single-widget
-// surface (e.g. 2x4 belongs to q60; everywhere else doesn't see it).
+// surface (e.g. 2x4 belongs to q60; everywhere else doesn't see it), and
+// offer only an app's grid sizes when it declares them.
 // The reconciler snaps existing widgets at a hidden size to the nearest
 // non-reserved size on load.
 export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize[] {
@@ -260,7 +266,7 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
   if (single !== undefined) {
     return meta.sizes.includes(single) ? [single] : [];
   }
-  return meta.sizes.filter(s => !SINGLE_WIDGET_SIZES.has(s));
+  return (meta.gridSizes ?? meta.sizes).filter(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
 // Fallback size for the add-widget picker (preview + insertion size), used

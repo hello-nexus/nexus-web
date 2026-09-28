@@ -177,6 +177,12 @@ function cmdValidate(appDir) {
       if (m.default_size != null && Array.isArray(m.sizes) && !m.sizes.includes(m.default_size)) {
         errors.push(`manifest.default_size "${m.default_size}" is not one of manifest.sizes`);
       }
+      if (m.grid_sizes != null) {
+        if (!Array.isArray(m.grid_sizes)) errors.push('manifest.grid_sizes must be an array');
+        else if (Array.isArray(m.sizes)) for (const x of m.grid_sizes) {
+          if (!m.sizes.includes(x)) errors.push(`manifest.grid_sizes entry "${x}" is not one of manifest.sizes`);
+        }
+      }
       if (m.settings != null) {
         if (!Array.isArray(m.settings)) errors.push('manifest.settings must be an array');
         else m.settings.forEach((entry, i) => {
