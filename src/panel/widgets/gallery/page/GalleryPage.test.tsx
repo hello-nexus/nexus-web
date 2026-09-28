@@ -5,6 +5,8 @@ import { GalleryPage } from './GalleryPage';
 const mockState = vi.hoisted(() => ({
   sources: [] as { id: string; kind: string; path: string; name: string; addedAtUnixMs: number; excluded: string[] }[],
   items: [] as { id: string; name: string; sourceId: string; kind?: 'image' | 'video' }[],
+  playlists: [] as { id: string; name: string; createdAtUnixMs: number; sourceIds: string[]; itemIds: string[]; excludedIds: string[] }[],
+  uses: [] as { surface: 'dashboard' | 'panel' | 'desktop'; name: string; count: number }[] | null,
   bridgeAvailable: false,
 }));
 
@@ -12,7 +14,20 @@ vi.mock('../../../../api/gallery', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../../api/gallery')>()),
   GALLERY_ERROR_DUPLICATE: 'duplicate',
   fetchGallerySources: vi.fn(() => Promise.resolve({ sources: mockState.sources })),
-  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items })),
+  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockState.items, playlists: mockState.playlists })),
+  createGalleryPlaylist: vi.fn((name: string) => {
+    const playlist = { id: 'pl-new', name, createdAtUnixMs: 1, sourceIds: [], itemIds: [], excludedIds: [] };
+    mockState.playlists = [...mockState.playlists, playlist];
+    return Promise.resolve({ playlist });
+  }),
+  // Stores what it is given, as the service would, so the refetch after a
+  // save reads the saved state back.
+  updateGalleryPlaylist: vi.fn((id: string, patch: object) => {
+    mockState.playlists = mockState.playlists.map(p => (p.id === id ? { ...p, ...patch } : p));
+    return Promise.resolve({ playlist: mockState.playlists.find(p => p.id === id) ?? null });
+  }),
+  deleteGalleryPlaylist: vi.fn(() => Promise.resolve(true)),
+  fetchGalleryPlaylistUsage: vi.fn(() => Promise.resolve(mockState.uses)),
   addGallerySource: vi.fn(() => Promise.resolve({ source: null })),
   deleteGallerySource: vi.fn(() => Promise.resolve(true)),
   excludeGalleryItem: vi.fn(() => Promise.resolve(true)),
@@ -57,6 +72,8 @@ function fileSource(id: string) {
 beforeEach(() => {
   mockState.sources = [];
   mockState.items = [];
+  mockState.playlists = [];
+  mockState.uses = [];
   mockState.bridgeAvailable = false;
   vi.clearAllMocks();
 });
@@ -229,5 +246,169 @@ describe('GalleryPage', () => {
       b.textContent === 'gallery.page.remove' && !b.getAttribute('aria-label'));
     fireEvent.click(confirmBtn!);
     await waitFor(() => expect(vi.mocked(deleteGallerySource)).toHaveBeenCalledWith('a'));
+  });
+
+  describe('playlists', () => {
+    const playlist = (id: string, name: string, patch: { sourceIds?: string[]; itemIds?: string[]; excludedIds?: string[] } = {}) => ({
+      id, name, createdAtUnixMs: 1, sourceIds: [], itemIds: [], excludedIds: [], ...patch,
+    });
+
+    beforeEach(() => {
+      mockState.sources = [folderSource('Pictures'), fileSource('solo')];
+      mockState.items = [
+        { id: 'i1', name: 'a.png', sourceId: 'Pictures' },
+        { id: 'i2', name: 'b.png', sourceId: 'Pictures' },
+        { id: 'i3', name: 'solo.png', sourceId: 'solo' },
+      ];
+    });
+
+    it('opens on All media, the library itself, with the remove buttons', async () => {
+      mockState.playlists = [playlist('pl-1', 'Desk')];
+      render(<GalleryPage />);
+      await screen.findByText('Desk');
+
+      expect(screen.getByRole('button', { name: /gallery\.playlist\.all/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getAllByLabelText('gallery.page.removeImage')).toHaveLength(3);
+      expect(screen.queryByLabelText('gallery.page.addToPlaylist')).toBeNull();
+    });
+
+    it('creates a playlist through the name prompt and opens it on the library', async () => {
+      const { createGalleryPlaylist } = await import('../../../../api/gallery');
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: 'gallery.page.newPlaylist' }));
+      fireEvent.change(screen.getByPlaceholderText('gallery.page.playlistName'), { target: { value: 'Desk' } });
+      fireEvent.click(screen.getByRole('button', { name: 'gallery.page.create' }));
+
+      await waitFor(() => expect(createGalleryPlaylist).toHaveBeenCalledWith('Desk'));
+      // Empty, so every library item is on offer to add.
+      await waitFor(() => expect(screen.getAllByLabelText('gallery.page.addToPlaylist')).toHaveLength(3));
+    });
+
+    it('shows a taken name as the prompt error and keeps it open', async () => {
+      const { createGalleryPlaylist } = await import('../../../../api/gallery');
+      vi.mocked(createGalleryPlaylist).mockResolvedValueOnce({ playlist: null, error: true, code: 'duplicate' });
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: 'gallery.page.newPlaylist' }));
+      fireEvent.change(screen.getByPlaceholderText('gallery.page.playlistName'), { target: { value: 'Desk' } });
+      fireEvent.click(screen.getByRole('button', { name: 'gallery.page.create' }));
+
+      expect(await screen.findByText('gallery.page.playlistNameTaken')).toBeTruthy();
+    });
+
+    it('a click on a tile switches that item in or out', async () => {
+      const { updateGalleryPlaylist } = await import('../../../../api/gallery');
+      mockState.playlists = [playlist('pl-1', 'Desk', { itemIds: ['i3'] })];
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+
+      // Opens on its members; switch to the whole library to pick more.
+      expect(screen.getAllByRole('button', { pressed: true, name: 'gallery.page.removeFromPlaylist' })).toHaveLength(1);
+      fireEvent.click(screen.getByRole('radio', { name: 'gallery.playlist.all' }));
+      fireEvent.click(screen.getAllByLabelText('gallery.page.addToPlaylist')[0]);
+
+      await waitFor(() => expect(updateGalleryPlaylist).toHaveBeenCalledWith('pl-1', {
+        sourceIds: [], itemIds: ['i3', 'i1'], excludedIds: [],
+      }));
+      expect(screen.getAllByLabelText('gallery.page.removeFromPlaylist')).toHaveLength(2);
+    });
+
+    it('whole folder puts the folder in, and a click then leaves one of its items out', async () => {
+      const { updateGalleryPlaylist } = await import('../../../../api/gallery');
+      mockState.playlists = [playlist('pl-1', 'Desk')];
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+
+      // Only the folder source offers it; a single file is one tile click.
+      const wholeFolder = screen.getAllByRole('switch', { name: 'gallery.page.wholeFolder' });
+      expect(wholeFolder).toHaveLength(1);
+      fireEvent.click(wholeFolder[0]);
+      await waitFor(() => expect(updateGalleryPlaylist).toHaveBeenLastCalledWith('pl-1', {
+        sourceIds: ['Pictures'], itemIds: [], excludedIds: [],
+      }));
+      expect(screen.getByText('gallery.page.inPlaylistCount:count=2:total=2')).toBeTruthy();
+
+      fireEvent.click(screen.getAllByLabelText('gallery.page.removeFromPlaylist')[0]);
+      await waitFor(() => expect(updateGalleryPlaylist).toHaveBeenLastCalledWith('pl-1', {
+        sourceIds: ['Pictures'], itemIds: [], excludedIds: ['i1'],
+      }));
+    });
+
+    it('a single-file source gets an on/off switch that toggles its one item', async () => {
+      const { updateGalleryPlaylist } = await import('../../../../api/gallery');
+      mockState.playlists = [playlist('pl-1', 'Desk')];
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+
+      const inPlaylist = screen.getByRole('switch', { name: 'gallery.page.inPlaylistToggle' });
+      expect(inPlaylist).toHaveAttribute('aria-checked', 'false');
+      fireEvent.click(inPlaylist);
+      await waitFor(() => expect(updateGalleryPlaylist).toHaveBeenLastCalledWith('pl-1', {
+        sourceIds: [], itemIds: ['i3'], excludedIds: [],
+      }));
+      expect(screen.getByRole('switch', { name: 'gallery.page.inPlaylistToggle' })).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('deleting the open playlist returns to All media', async () => {
+      const { deleteGalleryPlaylist } = await import('../../../../api/gallery');
+      mockState.playlists = [playlist('pl-1', 'Desk', { itemIds: ['i1'] })];
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+      fireEvent.click(screen.getByLabelText('gallery.page.deletePlaylist'));
+      mockState.playlists = [];
+      // The dialog opens once the usage lookup has answered.
+      fireEvent.click(await screen.findByRole('button', { name: 'common.delete' }));
+
+      await waitFor(() => expect(deleteGalleryPlaylist).toHaveBeenCalledWith('pl-1'));
+      await waitFor(() => expect(screen.getAllByLabelText('gallery.page.removeImage')).toHaveLength(3));
+    });
+
+    it('a delete waits behind queued membership saves', async () => {
+      const { deleteGalleryPlaylist, updateGalleryPlaylist } = await import('../../../../api/gallery');
+      mockState.playlists = [playlist('pl-1', 'Desk', { itemIds: ['i1'] })];
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+      fireEvent.click(screen.getAllByLabelText('gallery.page.removeFromPlaylist')[0]);
+      fireEvent.click(screen.getByLabelText('gallery.page.deletePlaylist'));
+      fireEvent.click(await screen.findByRole('button', { name: 'common.delete' }));
+
+      await waitFor(() => expect(deleteGalleryPlaylist).toHaveBeenCalledWith('pl-1'));
+      expect(vi.mocked(updateGalleryPlaylist).mock.invocationCallOrder[0])
+        .toBeLessThan(vi.mocked(deleteGalleryPlaylist).mock.invocationCallOrder[0]);
+      expect(screen.queryByText('gallery.page.playlistSaveFailed')).toBeNull();
+    });
+
+    it('names every widget still playing the playlist before it is deleted', async () => {
+      const { deleteGalleryPlaylist } = await import('../../../../api/gallery');
+      mockState.playlists = [playlist('pl-1', 'Desk', { itemIds: ['i1'] })];
+      mockState.uses = [
+        { surface: 'dashboard', name: '', count: 2 },
+        { surface: 'panel', name: 'Y70 Touch', count: 1 },
+        { surface: 'desktop', name: '', count: 1 },
+      ];
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+      fireEvent.click(screen.getByLabelText('gallery.page.deletePlaylist'));
+
+      expect(await screen.findByText('gallery.page.deletePlaylistInUse:name=Desk')).toBeTruthy();
+      expect(screen.getByText('gallery.page.usage.count.other:name=gallery.page.usage.dashboard:count=2')).toBeTruthy();
+      expect(screen.getByText('Y70 Touch')).toBeTruthy();
+      expect(screen.getByText('gallery.page.usage.desktop')).toBeTruthy();
+      // Nothing is deleted until the user confirms.
+      expect(deleteGalleryPlaylist).not.toHaveBeenCalled();
+    });
+
+    it('says nothing plays an unused playlist, and stays neutral when the lookup fails', async () => {
+      mockState.playlists = [playlist('pl-1', 'Desk', { itemIds: ['i1'] })];
+      render(<GalleryPage />);
+      fireEvent.click(await screen.findByRole('button', { name: /Desk/ }));
+      fireEvent.click(screen.getByLabelText('gallery.page.deletePlaylist'));
+      expect(await screen.findByText('gallery.page.deletePlaylistUnused')).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+
+      mockState.uses = null;
+      fireEvent.click(screen.getByLabelText('gallery.page.deletePlaylist'));
+      expect(await screen.findByText('gallery.page.deletePlaylistNote')).toBeTruthy();
+      expect(screen.getByText('gallery.page.deletePlaylistMessage:name=Desk')).toBeTruthy();
+    });
   });
 });

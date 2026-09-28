@@ -3,8 +3,10 @@ import {
   GALLERY_DEFAULT_WIDTH,
   fetchGalleryItems,
   galleryItemFileUrl,
+  galleryPlaylistItems,
   snapGalleryWidth,
   type GalleryItem,
+  type GalleryPlaylist,
 } from '../../../api/gallery';
 import { fetchServiceBlob } from '../../../api/service';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -29,6 +31,28 @@ export function filterGalleryItems(items: GalleryItem[], filter: GalleryMediaFil
   return items.filter(i => i.kind === kind);
 }
 
+/**
+ * The playlist a widget instance plays, or null for the whole library. An id
+ * naming a deleted playlist reads as null too, so the widget falls back to
+ * everything rather than going blank.
+ */
+export function readGalleryPlaylist(config: PanelWidget['config'], playlists: GalleryPlaylist[]): GalleryPlaylist | null {
+  const id = config?.playlistId;
+  if (typeof id !== 'string' || !id) return null;
+  return playlists.find(p => p.id === id) ?? null;
+}
+
+/** What one widget instance shows: its playlist (or everything), then its media filter. */
+export function galleryWidgetItems(
+  items: GalleryItem[],
+  playlists: GalleryPlaylist[],
+  config: PanelWidget['config'],
+): GalleryItem[] {
+  const playlist = readGalleryPlaylist(config, playlists);
+  const scoped = playlist ? galleryPlaylistItems(items, playlist) : items;
+  return filterGalleryItems(scoped, readGalleryMediaFilter(config));
+}
+
 // Per-widget-instance viewer position, shared between the tile and its
 // immersive view (separate component instances in the same document) so
 // fullscreen opens on the photo the tile is showing, and a remounted tile
@@ -45,13 +69,19 @@ export function recallGalleryPosition(widgetId: string): string | undefined {
 }
 
 /**
- * Shared per-system gallery item list. Fetches once on mount and refetches on
- * the 'gallery' multiplex topic (source added/removed, upload). Preview mode
- * (widget catalog) never touches the network.
+ * Shared per-system gallery item list and playlists. Fetches once on mount
+ * and refetches on the 'gallery' multiplex topic (a source or playlist
+ * changed). Preview mode (widget catalog) never touches the network.
  */
-export function useGalleryItems(): { items: GalleryItem[]; loaded: boolean; refresh: () => Promise<void> } {
+export function useGalleryItems(): {
+  items: GalleryItem[];
+  playlists: GalleryPlaylist[];
+  loaded: boolean;
+  refresh: () => Promise<void>;
+} {
   const preview = usePanelPreview();
   const [items, setItems] = useState<GalleryItem[]>([]);
+  const [playlists, setPlaylists] = useState<GalleryPlaylist[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -60,6 +90,8 @@ export function useGalleryItems(): { items: GalleryItem[]; loaded: boolean; refr
     // the widget doesn't flash the "no images" state over a populated set.
     if (!res?.items) return;
     setItems(res.items);
+    // Absent from a service that predates playlists.
+    setPlaylists(res.playlists ?? []);
     setLoaded(true);
   }, []);
 
@@ -72,7 +104,7 @@ export function useGalleryItems(): { items: GalleryItem[]; loaded: boolean; refr
   }, [preview, refresh]);
   useTopicCallback('gallery', !preview, refresh);
 
-  return { items, loaded, refresh };
+  return { items, playlists, loaded, refresh };
 }
 
 // Blobs are per (image, width): the same photo at two viewer sizes is two

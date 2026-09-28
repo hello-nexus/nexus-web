@@ -6,11 +6,12 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { previewWallpaperUri } from '../common/previewAssets';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
-import { galleryItemVideoUrl } from '../../../api/gallery';
+import { galleryItemVideoUrl, galleryPlaylistItems } from '../../../api/gallery';
 import {
   DEFAULT_GALLERY_INTERVAL,
-  filterGalleryItems,
+  galleryWidgetItems,
   readGalleryMediaFilter,
+  readGalleryPlaylist,
   recallGalleryPosition,
   rememberGalleryPosition,
   useGalleryImageLoader,
@@ -63,8 +64,12 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   const onUpdateRef = useRef(onUpdate);
   onUpdateRef.current = onUpdate;
 
-  const { items: allItems, loaded } = useGalleryItems();
-  const items = useMemo(() => filterGalleryItems(allItems, mediaFilter), [allItems, mediaFilter]);
+  const playlistId = widget.config?.playlistId;
+  const { items: allItems, playlists, loaded } = useGalleryItems();
+  const items = useMemo(
+    () => galleryWidgetItems(allItems, playlists, { media: mediaFilter, playlistId: playlistId ?? null }),
+    [allItems, playlists, mediaFilter, playlistId],
+  );
   // Images are fetched at the size this viewer actually paints, not at the
   // photo's own resolution: a full-resolution phone JPEG is megabytes the
   // panel has to pull over its transport and decode in its WebView.
@@ -302,15 +307,19 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
   if (loaded && count === 0) {
     // Desktop replaces the "add images on the gallery page" text with a button
     // straight to that page; device (no onSectionNavigate) keeps the text since
-    // there is nowhere to navigate to. A library the Show setting has emptied
-    // says so instead of claiming there is nothing to add.
+    // there is nowhere to navigate to. A library the playlist or the Show
+    // setting has emptied says so instead of claiming there is nothing to add.
     const filteredOut = allItems.length > 0;
+    const playlist = readGalleryPlaylist(widget.config, playlists);
+    const playlistEmpty = filteredOut && playlist !== null && galleryPlaylistItems(allItems, playlist).length === 0;
     return (
       <PanelWidgetEmpty
         icon={<ImageIcon size={22} />}
-        title={filteredOut
-          ? t(mediaFilter === 'videos' ? 'gallery.empty.noVideos' : 'gallery.empty.noImages')
-          : t('gallery.empty.title')}
+        title={playlistEmpty
+          ? t('gallery.empty.playlist', { name: playlist?.name ?? '' })
+          : filteredOut
+            ? t(mediaFilter === 'videos' ? 'gallery.empty.noVideos' : 'gallery.empty.noImages')
+            : t('gallery.empty.title')}
         text={onSectionNavigate || filteredOut ? undefined : t('gallery.empty.text')}
         action={onSectionNavigate ? (
           <Button size="sm" icon={<ImageIcon size={14} />} onClick={() => onSectionNavigate('gallery')}>

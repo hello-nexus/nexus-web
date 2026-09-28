@@ -301,3 +301,170 @@
     outline-offset: -2px;
   }
 }
+
+// ── Playlists ────────────────────────────────────────────────────────────
+
+.playlistsBlock {
+  margin-bottom: 1.25rem;
+}
+
+// A source card's look on a button: the same card language, one row with
+// the cover left of the name and count.
+.playlistCard {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.playlistCover {
+  flex: 0 0 auto;
+  width: 44px;
+  aspect-ratio: 16 / 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.playlistText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+// Same dashed add row as LightingPage .addSmartLights / CoolingPage
+// .addFanGroup.
+.newPlaylist {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: var(--border-width) dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--type-small);
+  cursor: pointer;
+  transition: border-color var(--ease-fast), color var(--ease-fast), background var(--ease-fast);
+
+  &:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: var(--surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// "Whole folder" switch on a source card while a playlist is open.
+.wholeFolder {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text);
+  font-size: var(--type-mini);
+  cursor: pointer;
+}
+
+.playlistActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.playlistToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.playlistHint {
+  color: var(--text-dim);
+  font-size: var(--type-mini);
+}
+
+// Library items outside the open playlist recede; hover brings one forward
+// so it reads as pickable.
+.tileOut {
+  img,
+  .tilePlaceholder {
+    opacity: 0.35;
+    filter: grayscale(0.6);
+    transition: opacity var(--ease-fast) ease, filter var(--ease-fast) ease;
+  }
+
+  &:hover img,
+  &:hover .tilePlaceholder {
+    opacity: 0.75;
+    filter: none;
+  }
+}
+
+// The whole tile is the membership switch while a playlist is open.
+.tileToggle {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.tileMember {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  background: color-mix(in srgb, #000 65%, transparent);
+  opacity: 0;
+  transition: opacity var(--ease-fast) ease, background var(--ease-fast) ease;
+
+  &[data-member='true'] {
+    opacity: 1;
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+
+  .tileToggle:hover &,
+  .tileToggle:focus-visible & {
+    opacity: 1;
+  }
+}

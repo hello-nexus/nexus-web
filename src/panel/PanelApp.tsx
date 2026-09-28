@@ -1973,6 +1973,7 @@ export function PanelContent({
           panelThemeStyle={editorSheetThemeStyle}
           closing={sheetClosing}
           onClose={closeSheet}
+          onSectionNavigate={embedded && surface === 'desktop' ? onSectionNavigate : undefined}
           onThemeSyncCommit={panelTheme.commitThemeSync}
           onThemeModeCommit={panelTheme.commitThemeMode}
           onThemeAccentSyncCommit={panelTheme.commitAccentSync}
