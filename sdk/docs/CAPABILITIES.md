@@ -72,8 +72,7 @@ The TS shape lives in `src/widgets/types.ts`.
     // or reads via useHostAction must appear here.
     // Read actions: "screentime.today", "displays.list"
     // Write actions: "displays.setBrightness", "lighting.setColor",
-    //   "cooling.setCurve", "cooling.applyPreset", "cooling.setDuty",
-    //   "lighting.setMode"
+    //   "lighting.setMode". Apps get no cooling writes.
     "dispatch": ["screentime.today", "displays.list", "displays.setBrightness"],
 
     // Service routes the app may POST files to via <MediaImport>.
@@ -119,9 +118,6 @@ action not present in this list. Actions the service currently registers:
 | `displays.list` | read | none | `{ displays: [...] }` |
 | `displays.setBrightness` | write | `{ id, brightness: 0..100 }` | `{ ok }` |
 | `lighting.setColor` | write | `{ hex: string }` | `{ ok }` |
-| `cooling.setCurve` | write | `{ channelId, sourceId, points: [{temp,speed}] }` | `{ ok }` |
-| `cooling.applyPreset` | write | `{ presetId }` | `{ ok }` |
-| `cooling.setDuty` | write | `{ channelId, duty: 0..100 }` | `{ ok }` |
 | `lighting.setMode` | write | `{ mode, ... }` | `{ ok }` |
 
 All dispatch calls return `{ ok: boolean, result?: unknown }`. Rate limit: 20
