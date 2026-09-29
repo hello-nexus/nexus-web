@@ -188,6 +188,7 @@ describe('MonitoringSettings', () => {
       slot1_sensor: 'fan-1',
       slot1_min: null,
       slot1_max: null,
+      slot1_valueColorReverse: null,
     });
   });
 
@@ -202,6 +203,7 @@ describe('MonitoringSettings', () => {
       slot0_sensor: 'Network Total',
       slot0_min: null,
       slot0_max: null,
+      slot0_valueColorReverse: null,
     });
     expect(screen.getByRole('button', { name: /select network total/i })).toBeInTheDocument();
     expect(gaugeReadings()).toContain('1.5 MB/s');
@@ -212,6 +214,7 @@ describe('MonitoringSettings', () => {
       slot0_sensor: 'Network In',
       slot0_min: null,
       slot0_max: null,
+      slot0_valueColorReverse: null,
     });
   });
 
@@ -226,6 +229,7 @@ describe('MonitoringSettings', () => {
       slot0_sensor: 'battery/0/charge',
       slot0_min: null,
       slot0_max: null,
+      slot0_valueColorReverse: null,
     });
     expect(screen.getByRole('button', { name: /select charge level/i })).toBeInTheDocument();
     expect(gaugeReadings()).toContain('80%');
@@ -563,6 +567,37 @@ describe('MonitoringSettings - fixed range fields', () => {
     const resetMaxInput = screen.getByRole('spinbutton', { name: 'monitoring.settings.rangeMax' }) as HTMLInputElement;
     expect(resetMinInput.value).toBe('0');
     expect(resetMaxInput.value).toBe('2500');
+  });
+});
+
+describe('MonitoringSettings - colour by value', () => {
+  it('offers the colouring on an FPS slot, with the reverse scale on by default', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} />);
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'fps' } });
+    expect(screen.queryByRole('switch', { name: 'monitoring.settings.valueColorReverse' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'monitoring.settings.valueColor' }));
+    const reverse = screen.getByRole('switch', { name: 'monitoring.settings.valueColorReverse' });
+    expect(reverse).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(reverse);
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_valueColorReverse: false });
+  });
+
+  it('defaults the reverse scale off on a load sensor and clears a stored choice on a device swap', () => {
+    const onUpdate = vi.fn();
+    render(<MonitoringEditorHarness onUpdate={onUpdate} />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'monitoring.settings.valueColor' }));
+    const reverse = screen.getByRole('switch', { name: 'monitoring.settings.valueColorReverse' });
+    expect(reverse).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(reverse);
+    expect(onUpdate).toHaveBeenLastCalledWith({ slot0_valueColorReverse: true });
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device' }), { target: { value: 'fps' } });
+    expect(onUpdate).toHaveBeenLastCalledWith(expect.objectContaining({ slot0_valueColorReverse: null }));
   });
 });
 

@@ -27,7 +27,7 @@ import { chartDomainForScale, defaultFixedMax, DEFAULT_SCALE_MODE, fixedFillPerc
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { MicroBar } from './MicroBar';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
-import { gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { defaultValueColorReverse, gaugeAccentVars, hasValueColorReading, reverseGaugeGradient, sensorSupportsValueColor } from './valueColor';
 import { accentShadowAlpha } from '../../../lib/settings';
 import { formatSensorValue } from './sensorValueFormat';
 import type { NumberFormat, TempUnit } from '../../../lib/units';
@@ -149,6 +149,7 @@ export function MicroMonitoringWidget({ widget, count, selectedSlot, onSelectSlo
         fixedMin={microMin}
         fixedMax={microMax}
         valueColor={microValueColor}
+        valueColorReverse={widget.config?.[`micro_sensor${i}_valueColorReverse`] as boolean | undefined}
         gaugeGradient={gaugeGradient}
         tempPrefs={tempPrefs}
         monitoringTempUnit={monitoringTempUnit}
@@ -217,13 +218,15 @@ interface MicroRowProps {
   fixedMin?: number;
   fixedMax?: number;
   valueColor: boolean;
+  /** Unset, each row follows defaultValueColorReverse. */
+  valueColorReverse?: boolean;
   gaugeGradient: PanelGaugeGradientValue;
   tempPrefs?: { cpuId: string; gpuId: string };
   monitoringTempUnit: TempUnit;
   numberFormat: NumberFormat;
 }
 
-function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, valueColor, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
+function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixed, sensorName, labelOverride, labelMode, design, scale, fixedMin, fixedMax, valueColor, valueColorReverse, gaugeGradient, tempPrefs, monitoringTempUnit, numberFormat }: MicroRowProps) {
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
   const rawValue = sensor?.value ?? 0;
@@ -246,8 +249,10 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixe
     : percentForSensor(device, sensor, maxValue);
 
   const gradientId = useId();
-  const coloured = valueColor && sensorSupportsValueColor(sensor?.type);
-  const stops = coloured ? gaugeGradient.stops : null;
+  const coloured = valueColor && sensorSupportsValueColor(sensor?.type, device) && hasValueColorReading(device, rawValue);
+  const reverse = valueColorReverse ?? defaultValueColorReverse(device, effectiveSensorName);
+  const panelStops = coloured ? gaugeGradient.stops : null;
+  const stops = useMemo(() => (panelStops && reverse ? reverseGaugeGradient(panelStops) : panelStops), [panelStops, reverse]);
   const mode = gaugeGradient.mode;
   const gradient = useMemo(() => (stops ? { id: gradientId, stops, bodyAlpha: accentShadowAlpha(mode) } : null), [gradientId, stops, mode]);
   return (
@@ -259,7 +264,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixe
       history={history}
       historyDomain={[domainMin, domainMax]}
       gradient={gradient}
-      style={coloured ? gaugeAccentVars(gaugeGradient.stops, fillPercent / 100, gaugeGradient.mode) as CSSProperties : undefined}
+      style={stops ? gaugeAccentVars(stops, fillPercent / 100, mode) as CSSProperties : undefined}
     />
   );
 }

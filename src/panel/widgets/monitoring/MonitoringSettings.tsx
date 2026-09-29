@@ -28,7 +28,7 @@ import type { DeviceKey } from '../monitoring/perfSlots';
 import { buildNetworkSensors, NETWORK_SENSOR_TOTAL } from '../monitoring/networkSensors';
 import { bareSensorLabel } from '../monitoring/sensorNames';
 import { DEFAULT_SCALE_MODE, defaultFixedMax, designSupportsRange, staticMaxForDevice, type ScaleMode } from '../monitoring/perfDomain';
-import { designSupportsValueColor, sensorSupportsValueColor } from '../monitoring/valueColor';
+import { defaultValueColorReverse, designSupportsValueColor, sensorSupportsValueColor } from '../monitoring/valueColor';
 import { usePanelGaugeGradient } from '../common/PanelGaugeGradientContext';
 import { GradientStopsEditor } from '../../../components/common/GradientStopsEditor/GradientStopsEditor';
 import {
@@ -168,6 +168,7 @@ function microNormalizationPatch(
     const byLegacyName = !byId && stored ? sensorList.find(opt => opt.sensorName === stored) : undefined;
     if (!byId && !byLegacyName) {
       patch[`micro_sensor${i}`] = sensorList[i]?.value ?? sensorList[0]?.value ?? '';
+      Object.assign(patch, clearRowReverse(widget, i));
     } else if (byLegacyName) {
       patch[`micro_sensor${i}`] = byLegacyName.value;
     }
@@ -194,8 +195,16 @@ function microMultiDeviceNormalizationPatch(
     if (stored && sensorList.some(opt => opt.value === stored)) continue;
     const byLegacyName = stored ? sensorList.find(opt => opt.sensorName === stored) : undefined;
     patch[`micro_sensor${i}`] = byLegacyName?.value ?? sensorList[0].value;
+    if (!byLegacyName) Object.assign(patch, clearRowReverse(widget, i));
   }
   return patch;
+}
+
+// A replaced sensor gets its own default direction; clearing only a stored
+// choice keeps normalization from writing a no-op patch.
+function clearRowReverse(widget: { config?: Record<string, PanelConfigValue> }, i: number): Record<string, PanelConfigValue> {
+  const key = `micro_sensor${i}_valueColorReverse`;
+  return widget.config?.[key] != null ? { [key]: null } : {};
 }
 
 // Derived label a micro sensor row would show, used as the override field's
@@ -425,12 +434,16 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       const parsed = parseFixedRangeInput(raw, microFixedDefaultMax);
       if (parsed !== microFixedMax) onUpdate({ micro_max: parsed });
     };
-    // One toggle for every bar, so it shows when any of them is a percent or
-    // temperature sensor; the rest keep the plain accent.
+    // One toggle for every bar, so it shows when any of them is a percent,
+    // temperature or FPS sensor; the rest keep the plain accent. Reverse is
+    // per row: an FPS micro pairs FPS (reversed) with Frame Time (not).
     const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
-    const microSupportsValueColor = microSensorNames.some((name, i) => sensorSupportsValueColor(
+    const microRowColorable = microSensorNames.map((name, i) => sensorSupportsValueColor(
       resolveSensor(sensors, [], networkSensors, rowDevices[i], name, undefined, extras)?.type,
+      rowDevices[i],
     ));
+    const microSupportsValueColor = microRowColorable.some(Boolean);
+    const firstColorableRow = microRowColorable.indexOf(true);
 
     return (
       <div className={styles.settingsRoot}>
@@ -474,6 +487,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               const patch: Record<string, PanelConfigValue> = { micro_device: next };
               for (let i = 0; i < count; i++) {
                 patch[`micro_sensor${i}`] = list[i]?.value ?? list[0]?.value ?? '';
+                patch[`micro_sensor${i}_valueColorReverse`] = null;
               }
               onUpdate(patch);
             }}
@@ -508,7 +522,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 <Select
                   className={styles.selectWide}
                   value={selectedSensorValue(rowSensorOptions, name)}
-                  onChange={v => onUpdate({ [`micro_sensor${i}`]: v })}
+                  onChange={v => onUpdate({ [`micro_sensor${i}`]: v, [`micro_sensor${i}_valueColorReverse`]: null })}
                   options={rowSensorOptions}
                   ariaLabel={`Sensor ${i + 1}`}
                 />
@@ -529,6 +543,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                         onChange={v => onUpdate({
                           [`micro_device${i}`]: v,
                           [`micro_sensor${i}`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors, extras),
+                          [`micro_sensor${i}_valueColorReverse`]: null,
                         })}
                         options={visibleDeviceKeys(DEVICE_OPTION_KEYS, rowDevice, sensors, networkSensors, extras)
                           .map(category => ({ value: category, label: t(CATEGORY_LABEL_KEYS[category]) }))}
@@ -596,7 +611,22 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
               checked={microValueColor}
               onChange={next => onUpdate({ micro_valueColor: next })}
             />
-            {microValueColor && <GaugeGradientSection />}
+            {microValueColor && (
+              <>
+                {microSensorNames.map((name, i) => microRowColorable[i] && (
+                  <SettingsToggle
+                    key={i}
+                    label={t('monitoring.settings.valueColorReverseRow', {
+                      sensor: microAutoLabel(rowDevices[i], name, sensors, networkSensors, extras, multiDevice),
+                    })}
+                    description={i === firstColorableRow ? t('monitoring.settings.valueColorReverseHint') : undefined}
+                    checked={(widget.config?.[`micro_sensor${i}_valueColorReverse`] as boolean | undefined) ?? defaultValueColorReverse(rowDevices[i], name)}
+                    onChange={next => onUpdate({ [`micro_sensor${i}_valueColorReverse`]: next })}
+                  />
+                ))}
+                <GaugeGradientSection />
+              </>
+            )}
           </SettingsSection>
         )}
       </div>
@@ -604,6 +634,8 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
   }
 
   const slotValueColor = (widget.config?.[`slot${activeSlot}_valueColor`] as boolean | undefined) ?? false;
+  const slotValueColorReverse = (widget.config?.[`slot${activeSlot}_valueColorReverse`] as boolean | undefined)
+    ?? (activeConfig ? defaultValueColorReverse(activeConfig.device, activeConfig.sensorName) : false);
   const slotLabelMode = (widget.config?.[`slot${activeSlot}_labelMode`] as string | undefined) ?? 'auto';
   const slotLabelOverride = (widget.config?.[`slot${activeSlot}_label`] as string | undefined) ?? '';
   const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : '';
@@ -642,9 +674,11 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                   [`slot${activeSlot}_sensor`]: defaultSensorForDevice(v as DeviceKey, sensors, networkSensors, extras),
                   // A Fixed-range override is scoped to the sensor it was set
                   // on; a device swap invalidates it, so the newly-selected
-                  // sensor falls back to its own default range.
+                  // sensor falls back to its own default range. The colour
+                  // direction is per sensor the same way.
                   [`slot${activeSlot}_min`]: null,
                   [`slot${activeSlot}_max`]: null,
+                  [`slot${activeSlot}_valueColorReverse`]: null,
                 })}
                 options={deviceOptions}
                 ariaLabel={t('monitoring.settings.device')}
@@ -656,6 +690,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                   [`slot${activeSlot}_sensor`]: v,
                   [`slot${activeSlot}_min`]: null,
                   [`slot${activeSlot}_max`]: null,
+                  [`slot${activeSlot}_valueColorReverse`]: null,
                 })}
                 options={sensorOptions}
                 ariaLabel={t('monitoring.settings.sensor')}
@@ -708,7 +743,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
             </SettingsSection>
           )}
 
-          {sensorSupportsValueColor(activeSensor?.type) && designSupportsValueColor(activeConfig.design) && (
+          {sensorSupportsValueColor(activeSensor?.type, activeConfig.device) && designSupportsValueColor(activeConfig.design) && (
             <SettingsSection title={t('monitoring.settings.colors')}>
               <SettingsToggle
                 label={t('monitoring.settings.valueColor')}
@@ -716,7 +751,17 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 checked={slotValueColor}
                 onChange={next => onUpdate({ [`slot${activeSlot}_valueColor`]: next })}
               />
-              {slotValueColor && <GaugeGradientSection />}
+              {slotValueColor && (
+                <>
+                  <SettingsToggle
+                    label={t('monitoring.settings.valueColorReverse')}
+                    description={t('monitoring.settings.valueColorReverseHint')}
+                    checked={slotValueColorReverse}
+                    onChange={next => onUpdate({ [`slot${activeSlot}_valueColorReverse`]: next })}
+                  />
+                  <GaugeGradientSection />
+                </>
+              )}
             </SettingsSection>
           )}
         </>
