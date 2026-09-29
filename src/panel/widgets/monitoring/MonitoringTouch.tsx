@@ -23,6 +23,7 @@ interface ImmersiveSlot {
   fixedMin?: number;
   fixedMax?: number;
   valueColor: boolean;
+  valueColorReverse?: boolean;
 }
 
 const IMMERSIVE_TILE = { cols: 4, rows: 2 };
@@ -48,6 +49,7 @@ function slotsOf(widget: PanelWidget, layout: SlotLayout): ImmersiveSlot[] {
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
     valueColor: (widget.config?.[`slot${i}_valueColor`] as boolean | undefined) ?? false,
+    valueColorReverse: widget.config?.[`slot${i}_valueColorReverse`] as boolean | undefined,
   }));
 }
 
@@ -98,7 +100,7 @@ export function MonitoringTouch({ widget, pageWidgets, immersiveGrid }: WidgetPr
         </div>
       );
     }
-    const { device, sensorName, design, scale, fixedMin, fixedMax, valueColor } = entry.slot;
+    const { device, sensorName, design, scale, fixedMin, fixedMax, valueColor, valueColorReverse } = entry.slot;
     return (
       <div className={styles.slotCell} key={`${i}-${device}-${sensorName}`}>
         <PerfSlot
@@ -113,6 +115,7 @@ export function MonitoringTouch({ widget, pageWidgets, immersiveGrid }: WidgetPr
           fixedMin={fixedMin}
           fixedMax={fixedMax}
           valueColor={valueColor}
+          valueColorReverse={valueColorReverse}
           gaugeGradient={gaugeGradient}
         />
       </div>

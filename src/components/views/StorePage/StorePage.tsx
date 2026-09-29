@@ -16,6 +16,8 @@ import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
+import { useCapabilityConsent } from './CapabilityConsentModal';
+import { CONSENT_DECLINED, installWithConsent } from './consentInstall';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import { AppIconTile } from '../../common/AppIconTile/AppIconTile';
 import { resolveHttp } from '../../../api/service';
@@ -83,6 +85,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   const { t, language } = useTranslation();
   const { timeFormat, dateFormat } = useUnitPrefs();
   const [state, setState] = useState<InstallState>('idle');
+  const { ask: askConsent, dialog: consentDialog } = useCapabilityConsent();
   const latest = app.latest;
   const launch = upcomingRelease(app);
   const launchAt = launch?.getTime();
@@ -98,7 +101,10 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   const install = useCallback(async () => {
     if (!latest) return;
     setState('working');
-    const res = await installStoreApp({ id: app.id, latest });
+    const res = await installWithConsent(
+      approved => installStoreApp({ id: app.id, latest }, approved),
+      requested => askConsent({ appName: app.name, requested }),
+    );
     if (res?.ok) {
       // The registry is what the panel picker reads; refreshing it is what makes
       // the app appear without a reload.
@@ -111,8 +117,9 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
       onNeedsSignIn(() => { void install(); });
       return;
     }
+    if (res?.reason === CONSENT_DECLINED) return;
     setState('failed');
-  }, [app.id, latest, onNeedsSignIn]);
+  }, [app.id, app.name, latest, onNeedsSignIn, askConsent]);
 
   // Ahead of compatibility: an app that is not out yet has nothing to say about
   // whether this build could run it, and the service refuses the install anyway.
@@ -133,15 +140,18 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
     : t('store.install');
 
   return (
-    <Button
-      type="button"
-      tone={upToDate ? 'neutral' : state === 'failed' ? 'danger' : 'accent'}
-      disabled={state === 'working' || upToDate}
-      // The row's whole card opens the app page; getting the app must not.
-      onClick={e => { e.stopPropagation(); void install(); }}
-    >
-      {label}
-    </Button>
+    <>
+      <Button
+        type="button"
+        tone={upToDate ? 'neutral' : state === 'failed' ? 'danger' : 'accent'}
+        disabled={state === 'working' || upToDate}
+        // The row's whole card opens the app page; getting the app must not.
+        onClick={e => { e.stopPropagation(); void install(); }}
+      >
+        {label}
+      </Button>
+      {consentDialog}
+    </>
   );
 }
 

@@ -395,7 +395,7 @@ describe('MonitoringSettings - Micro multi-device', () => {
       fireEvent.change(screen.getByRole('combobox', { name: 'monitoring.settings.device 2' }), { target: { value: 'gpu' } });
     });
 
-    expect(updates[updates.length - 1]).toEqual({ micro_device1: 'gpu', micro_sensor1: 'gpu-load' });
+    expect(updates[updates.length - 1]).toEqual({ micro_device1: 'gpu', micro_sensor1: 'gpu-load', micro_sensor1_valueColorReverse: null });
     const row2Sensor = screen.getByRole('combobox', { name: 'Sensor 2' }) as HTMLSelectElement;
     expect(Array.from(row2Sensor.options).map(o => o.value)).toContain('gpu-temp');
   });
@@ -412,5 +412,44 @@ describe('MonitoringSettings - Micro multi-device', () => {
     render(<MicroHarness initial={initial} onUpdate={cfg => updates.push(cfg)} />);
 
     expect(mergedPatch(updates)).toEqual({ micro_sensor1: 'gpu-load' });
+  });
+
+  it('clears a stored reverse choice when normalization replaces the row sensor', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    const initial = microWidget(3);
+    initial.config = {
+      ...initial.config, micro_device: 'cpu', micro_multiDevice: true,
+      micro_device0: 'cpu', micro_sensor0: 'cpu-temp', micro_sensor0_valueColorReverse: true,
+      micro_device1: 'gpu', micro_sensor1: 'cpu-total', micro_sensor1_valueColorReverse: true,
+      micro_device2: 'gpu', micro_sensor2: 'gpu-pwr',
+    };
+    render(<MicroHarness initial={initial} onUpdate={cfg => updates.push(cfg)} />);
+
+    expect(mergedPatch(updates)).toEqual({ micro_sensor1: 'gpu-load', micro_sensor1_valueColorReverse: null });
+  });
+});
+
+describe('MonitoringSettings - Micro reverse scale', () => {
+  it('gives each colourable row its own toggle, FPS on and Frame Time off by default', () => {
+    const updates: Record<string, PanelConfigValue>[] = [];
+    const initial = microWidget(3);
+    initial.config = {
+      ...initial.config,
+      micro_multiDevice: true,
+      micro_device: 'cpu',
+      micro_device0: 'fps', micro_sensor0: 'FPS',
+      micro_device1: 'fps', micro_sensor1: 'Frame Time',
+      micro_device2: 'cpu', micro_sensor2: 'cpu-total',
+      micro_valueColor: true,
+    };
+    render(<MicroHarness initial={initial} onUpdate={cfg => updates.push(cfg)} />);
+
+    const toggles = screen.getAllByRole('switch', { name: /monitoring\.settings\.valueColorReverseRow/ });
+    expect(toggles.map(el => el.getAttribute('aria-checked'))).toEqual(['true', 'false', 'false']);
+
+    act(() => {
+      fireEvent.click(toggles[1]);
+    });
+    expect(updates[updates.length - 1]).toEqual({ micro_sensor1_valueColorReverse: true });
   });
 });

@@ -1731,11 +1731,13 @@ export function PanelContent({
                               // Non-touch sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
-                              onSimulatorClick={simulator && !surfaceSupportsTouch(surface, deviceTouch) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
+                              // The blank widget has nothing to edit, so it takes
+                              // neither the click nor the hover notice.
+                              onSimulatorClick={simulator && w.type !== 'blank' && !surfaceSupportsTouch(surface, deviceTouch) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               // Device-page preview only: nothing else says a
                               // widget in the canvas is click-to-edit (NEX-6),
                               // so hovering one fades in a full-cell notice.
-                              editHint={simulator && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
+                              editHint={simulator && w.type !== 'blank' && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
                               // Device-page preview only: hovering the widget
                               // marked immersive-on-load frames it and names
                               // the mark, so the canvas says which one opens.

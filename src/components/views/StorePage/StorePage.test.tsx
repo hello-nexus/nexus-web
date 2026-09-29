@@ -222,7 +222,7 @@ describe('StorePage row card', () => {
     fireEvent.click(installs[1]);
 
     expect(screen.getByText('store.banner.title')).toBeInTheDocument();
-    await waitFor(() => expect(installStoreApp).toHaveBeenCalledWith(expect.objectContaining({ id: clock.id })));
+    await waitFor(() => expect(installStoreApp).toHaveBeenCalledWith(expect.objectContaining({ id: clock.id }), undefined));
   });
 });
 
@@ -520,5 +520,39 @@ describe('StorePage language', () => {
     } finally {
       i18n.language = 'en';
     }
+  });
+});
+
+describe('StorePage capability consent', () => {
+  const consentNeeded = {
+    appId: app.id, version: '1.0.2', ok: false, reason: 'consent_required',
+    requestedCapabilities: ['dispatch:lighting.setMode', 'net.fetch:api.example.com'],
+  };
+
+  it('lists the requested capabilities and resends the approval when the user allows', async () => {
+    installStoreApp.mockResolvedValueOnce(consentNeeded);
+    installStoreApp.mockResolvedValueOnce({ appId: app.id, version: '1.0.2', ok: true });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+    expect(await screen.findByText('store.consent.cap.lighting.setMode')).toBeInTheDocument();
+    expect(screen.getByText('store.consent.cap.netFetch host=api.example.com')).toBeInTheDocument();
+    expect(installStoreApp).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'store.consent.allow' }));
+    await waitFor(() => expect(installStoreApp).toHaveBeenCalledTimes(2));
+    expect(installStoreApp.mock.calls[1][1]).toEqual(consentNeeded.requestedCapabilities);
+  });
+
+  it('installs nothing and leaves the button ready when the user cancels', async () => {
+    installStoreApp.mockResolvedValue(consentNeeded);
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'confirm.cancel' }));
+
+    await waitFor(() => expect(screen.queryByText('store.consent.cap.lighting.setMode')).not.toBeInTheDocument());
+    expect(installStoreApp).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'store.install' })).toBeInTheDocument();
   });
 });

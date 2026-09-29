@@ -39,30 +39,49 @@ if (typeof WeakRef === "undefined") {
 // Strip privileged globals. The worker can still author with vanilla JS
 // (Promises, Math, JSON, setTimeout, structuredClone) but cannot reach
 // the network, persist state, or signal cross-tab except through nexus.*.
+// Chromium hosts several of these on WorkerGlobalScope.prototype, so _lock
+// redefines each name on every object in the prototype chain that owns it.
+function _lock(root, names) {
+  const owners = [root];
+  try {
+    for (let o = Object.getPrototypeOf(root); o; o = Object.getPrototypeOf(o)) owners.push(o);
+  } catch (_) { /* best effort */ }
+  for (const name of names) {
+    for (const o of owners) {
+      try {
+        if (o === root || Object.prototype.hasOwnProperty.call(o, name)) {
+          Object.defineProperty(o, name, { value: undefined, writable: false, configurable: false });
+        }
+      } catch (_) { /* some are non-configurable; best effort */ }
+    }
+  }
+}
 const _killed = [
   // Network primitives.
-  "fetch", "WebSocket", "XMLHttpRequest", "EventSource", "importScripts",
+  "fetch", "WebSocket", "WebSocketStream", "WebTransport", "XMLHttpRequest",
+  "EventSource", "importScripts", "RTCPeerConnection", "webkitRTCPeerConnection",
   // Persistence + cross-context channels - block silent storage and any
   // sideband to other workers/tabs hosting the same origin.
   "BroadcastChannel", "MessageChannel", "indexedDB", "caches",
-  "SharedArrayBuffer", "Notification",
+  "SharedArrayBuffer", "Notification", "webkitRequestFileSystem",
+  "webkitRequestFileSystemSync", "webkitResolveLocalFileSystemURL",
+  "webkitResolveLocalFileSystemSyncURL",
   // Sandbox escape via a nested worker. The child would inherit a clean
   // fetch + WebSocket surface (CSP worker-src self blob: permits it), so
   // disable the constructors here. createImageBitmap is the canvas-shaped
-  // exfil surface; WebAssembly hosts JIT we have no policy on.
+  // exfil surface; WebAssembly hosts JIT we have no policy on. FontFace and
+  // fonts load a remote URL as a font.
   "Worker", "SharedWorker", "ServiceWorker", "createImageBitmap",
-  "WebAssembly",
+  "WebAssembly", "FontFace", "fonts",
 ];
-for (const name of _killed) {
-  try { Object.defineProperty(self, name, { value: undefined, writable: false, configurable: false }); }
-  catch (_) { /* some are non-configurable; best effort */ }
-}
-// navigator.sendBeacon is the other beacon-style egress; null it out.
-try {
-  if (self.navigator && typeof self.navigator.sendBeacon === "function") {
-    Object.defineProperty(self.navigator, "sendBeacon", { value: undefined, configurable: false, writable: false });
-  }
-} catch (_) { /* best effort */ }
+_lock(self, _killed);
+// Navigator-hosted egress, persistence and device APIs; absent names are pre-empted.
+const _killedNavigator = [
+  "sendBeacon", "usb", "hid", "serial", "bluetooth", "gpu", "serviceWorker",
+  "storage", "storageBuckets", "locks", "credentials", "mediaDevices", "clipboard", "wakeLock",
+  "ml", "xr",
+];
+try { if (self.navigator) _lock(self.navigator, _killedNavigator); } catch (_) { /* best effort */ }
 
 let _readyResolve;
 let _ready = new Promise((res) => { _readyResolve = res; });
