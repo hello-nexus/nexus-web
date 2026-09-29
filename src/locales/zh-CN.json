@@ -2853,7 +2853,6 @@
   "monitoring.settings.valueColor": "按数值着色",
   "monitoring.settings.valueColorHint": "将读数着色到仪表上：正常时为冷色，过热时转为红色。",
   "monitoring.settings.valueColorReverse": "反转刻度",
-  "monitoring.settings.valueColorReverseHint": "低读数使用暖色，适合 FPS 这类下降即为警告的数值。",
   "monitoring.settings.valueColorReverseRow": "反转刻度：{sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "详情",

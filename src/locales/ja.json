@@ -2853,7 +2853,6 @@
   "monitoring.settings.valueColor": "値に応じた色",
   "monitoring.settings.valueColorHint": "値をゲージに色付けします。正常なときは寒色、高温になると赤になります。",
   "monitoring.settings.valueColorReverse": "スケールを反転",
-  "monitoring.settings.valueColorReverseHint": "低い値ほど暖色で表示します。FPS のように低下が警告となる値に。",
   "monitoring.settings.valueColorReverseRow": "スケールを反転：{sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "詳細",

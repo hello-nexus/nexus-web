@@ -443,7 +443,6 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       rowDevices[i],
     ));
     const microSupportsValueColor = microRowColorable.some(Boolean);
-    const firstColorableRow = microRowColorable.indexOf(true);
 
     return (
       <div className={styles.settingsRoot}>
@@ -619,7 +618,6 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                     label={t('monitoring.settings.valueColorReverseRow', {
                       sensor: microAutoLabel(rowDevices[i], name, sensors, networkSensors, extras, multiDevice),
                     })}
-                    description={i === firstColorableRow ? t('monitoring.settings.valueColorReverseHint') : undefined}
                     checked={(widget.config?.[`micro_sensor${i}_valueColorReverse`] as boolean | undefined) ?? defaultValueColorReverse(rowDevices[i], name)}
                     onChange={next => onUpdate({ [`micro_sensor${i}_valueColorReverse`]: next })}
                   />
@@ -755,7 +753,6 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                 <>
                   <SettingsToggle
                     label={t('monitoring.settings.valueColorReverse')}
-                    description={t('monitoring.settings.valueColorReverseHint')}
                     checked={slotValueColorReverse}
                     onChange={next => onUpdate({ [`slot${activeSlot}_valueColorReverse`]: next })}
                   />

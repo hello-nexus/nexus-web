@@ -2853,7 +2853,6 @@
   "monitoring.settings.valueColor": "Farbe nach Wert",
   "monitoring.settings.valueColorHint": "Färbt den Messwert in die Anzeige: kühle Farben, solange der Wert im Rahmen bleibt, Rot wenn es heiß wird.",
   "monitoring.settings.valueColorReverse": "Skala umkehren",
-  "monitoring.settings.valueColorReverseHint": "Niedrige Werte bekommen die heißen Farben, für Werte wie FPS, bei denen ein Abfall die Warnung ist.",
   "monitoring.settings.valueColorReverseRow": "Skala umkehren: {sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Details",

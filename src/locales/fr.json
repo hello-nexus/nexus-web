@@ -2853,7 +2853,6 @@
   "monitoring.settings.valueColor": "Couleur selon la valeur",
   "monitoring.settings.valueColorHint": "Colore la mesure dans la jauge : couleurs froides tant qu’elle reste correcte, rouge quand elle grimpe.",
   "monitoring.settings.valueColorReverse": "Inverser l’échelle",
-  "monitoring.settings.valueColorReverseHint": "Les valeurs basses prennent les couleurs chaudes, pour les mesures comme les FPS, où une chute est l’alerte.",
   "monitoring.settings.valueColorReverseRow": "Inverser l’échelle : {sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Détails",

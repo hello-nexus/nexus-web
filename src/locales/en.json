@@ -2853,7 +2853,6 @@
   "monitoring.settings.valueColor": "Color by value",
   "monitoring.settings.valueColorHint": "Paint the reading into the gauge: cool colors while it is in check, red as it runs hot.",
   "monitoring.settings.valueColorReverse": "Reverse scale",
-  "monitoring.settings.valueColorReverseHint": "Low readings take the hot colors instead, for readings like FPS where a drop is the warning.",
   "monitoring.settings.valueColorReverseRow": "Reverse scale: {sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Detailed",

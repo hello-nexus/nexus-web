@@ -2853,7 +2853,6 @@
   "monitoring.settings.valueColor": "Colôr daûr dal valôr",
   "monitoring.settings.valueColorHint": "Colore la misure tal indicadôr: colôrs frescs cuant che e je sot control, ros cuant che si scjalde.",
   "monitoring.settings.valueColorReverse": "Scjale invertide",
-  "monitoring.settings.valueColorReverseHint": "I valôrs bas a cjapin i colôrs cjalts, pes misuris come i FPS, dulà che un calâ al è l'avîs.",
   "monitoring.settings.valueColorReverseRow": "Scjale invertide: {sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Detaiât",

@@ -2888,7 +2888,6 @@
   "monitoring.settings.valueColor": "Цвет по значению",
   "monitoring.settings.valueColorHint": "Окрашивает показание на индикаторе: холодные цвета, пока оно в норме, и красный при перегреве.",
   "monitoring.settings.valueColorReverse": "Обратная шкала",
-  "monitoring.settings.valueColorReverseHint": "Низкие значения получают горячие цвета, для показаний вроде FPS, где падение и есть предупреждение.",
   "monitoring.settings.valueColorReverseRow": "Обратная шкала: {sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Подробно",

@@ -2888,7 +2888,6 @@
   "monitoring.settings.valueColor": "Kolor według wartości",
   "monitoring.settings.valueColorHint": "Koloruje odczyt na wskaźniku: chłodne kolory, gdy jest w normie, czerwony przy przegrzaniu.",
   "monitoring.settings.valueColorReverse": "Odwróć skalę",
-  "monitoring.settings.valueColorReverseHint": "Niskie odczyty dostają gorące kolory, dla wartości takich jak FPS, gdzie spadek jest ostrzeżeniem.",
   "monitoring.settings.valueColorReverseRow": "Odwróć skalę: {sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "Szczegoly",

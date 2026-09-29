@@ -2853,7 +2853,6 @@
   "monitoring.settings.valueColor": "값에 따른 색상",
   "monitoring.settings.valueColorHint": "수치를 게이지에 색으로 표시합니다. 정상이면 차가운 색, 과열되면 빨간색입니다.",
   "monitoring.settings.valueColorReverse": "스케일 반전",
-  "monitoring.settings.valueColorReverseHint": "낮은 값에 뜨거운 색을 사용합니다. FPS처럼 떨어질 때가 경고인 수치에 적합합니다.",
   "monitoring.settings.valueColorReverseRow": "스케일 반전: {sensor}",
   "monitoring.tab.cpu": "CPU",
   "monitoring.tab.detailed": "상세",
