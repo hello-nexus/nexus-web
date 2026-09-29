@@ -1,5 +1,5 @@
 import { render, fireEvent, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DeckGrid } from './DeckGrid';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
@@ -360,6 +360,28 @@ describe('DeckGrid right-click delete', () => {
   });
 });
 
+describe('DeckGrid square widget keys', () => {
+  // jsdom has no layout; give every element a measured wide box (no CSS module padding/gaps apply).
+  beforeEach(() => {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(300);
+  });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  const gridOf = (container: HTMLElement) => container.firstElementChild as HTMLElement;
+
+  it('sizes widget tracks to the largest square that fits the measured box', () => {
+    const { container } = render(<DeckGrid slots={[]} cols={4} rows={4} selectable={false} onCell={() => {}} />);
+    expect(gridOf(container).style.gridTemplateColumns).toBe('repeat(4, 75px)');
+    expect(gridOf(container).style.gridTemplateRows).toBe('repeat(4, 75px)');
+  });
+
+  it('leaves the physical-deck square mode on its own cell size', () => {
+    const { container } = render(<DeckGrid slots={[]} cols={4} rows={4} selectable={false} square onCell={() => {}} />);
+    expect(gridOf(container).style.gridTemplateColumns).toBe('repeat(4, var(--deck-cell))');
+  });
+});
+
 describe('DeckGrid transparent background', () => {
   const slots: DeckSlot[] = [{ action: { type: 'hotkey', keys: '' }, color: 'transparent' }];
 
@@ -433,6 +455,19 @@ describe('DeckGrid icon sources', () => {
     expect(img.className).toBe(styles.appIconFull);
     const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
     expect(cell.style.getPropertyValue('--deck-accent')).toBe('transparent');
+  });
+
+  it('shows a custom image with no accent fill by default, so a transparent PNG shows the tile', () => {
+    const container = renderSlot({ action: { type: 'openUrl', url: 'https://no-icon.example' }, icon: { kind: 'image', value: 'img-1' } });
+    expect(container.querySelector('img[src="blob:mock-image"]')!.className).toBe(styles.customImage);
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('transparent');
+  });
+
+  it('keeps a user-picked color behind a custom image', () => {
+    const container = renderSlot({ action: { type: 'openUrl', url: 'https://no-icon.example' }, icon: { kind: 'image', value: 'img-1' }, color: '#ff0000' });
+    const cell = container.querySelector('[data-deck-slot-index="0"]') as HTMLElement;
+    expect(cell.style.getPropertyValue('--deck-accent')).toBe('#ff0000');
   });
 
   it('falls back to the action icon, not AppWindow, when an exe key has no extractable icon', () => {

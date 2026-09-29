@@ -993,21 +993,17 @@ describe('DeckKeyInspector - openFile/openFolder Browse button', () => {
   });
 });
 
-describe('DeckKeyInspector - Bug 6: Icon Color dims while the Custom image tab is active', () => {
+describe('DeckKeyInspector - Icon Color stays live on the Custom image tab', () => {
   // The Icon Color swatch is the first "Auto" button in DOM order - the Icon
   // section renders above the Title section (see "section order" above),
   // whose own text-color swatch shares the same colorAuto label.
   const iconColorSwatch = () => screen.getAllByRole('button', { name: 'panel.settings.deck.colorAuto' })[0];
 
-  it('starts enabled on Auto, dims on Custom, and re-enables when switching away', () => {
+  it('keeps the swatch row enabled on Custom, since the color shows through a transparent image', () => {
     renderInspector([{ action: { type: 'hotkey', keys: '' } }]);
-    expect(iconColorSwatch()).not.toBeDisabled();
-
     fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.custom' }));
-    expect(iconColorSwatch()).toBeDisabled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'panel.iconPicker.icons' }));
     expect(iconColorSwatch()).not.toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'panel.settings.deck.colorTransparent' })[0]).not.toBeDisabled();
   });
 
   it('does not dim any of the monitoring swatches (no IconPicker there at all)', () => {
