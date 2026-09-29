@@ -3318,6 +3318,7 @@
   "panel.swipeHint.label": "Nach oben wischen",
   "panel.widget.advancedMode": "Erweiterter Modus",
   "panel.widget.benchmark": "Benchmark",
+  "panel.widget.blank": "Leer",
   "panel.widget.blocks": "Blöcke",
   "panel.widget.blocks.boardLabel": "Blöcke-Spielfeld",
   "panel.widget.blocks.combo": "Kombo x{combo}",

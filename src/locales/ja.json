@@ -3318,6 +3318,7 @@
   "panel.swipeHint.label": "上にスワイプ",
   "panel.widget.advancedMode": "詳細モード",
   "panel.widget.benchmark": "ベンチマーク",
+  "panel.widget.blank": "空白",
   "panel.widget.blocks": "ブロック",
   "panel.widget.blocks.boardLabel": "ブロックのゲームボード",
   "panel.widget.blocks.combo": "コンボ x{combo}",

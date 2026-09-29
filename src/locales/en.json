@@ -3318,6 +3318,7 @@
   "panel.swipeHint.label": "Swipe up",
   "panel.widget.advancedMode": "Advanced mode",
   "panel.widget.benchmark": "Benchmark",
+  "panel.widget.blank": "Blank",
   "panel.widget.blocks": "Blocks",
   "panel.widget.blocks.boardLabel": "Blocks game board",
   "panel.widget.blocks.combo": "Combo x{combo}",

@@ -2061,6 +2061,11 @@
   cursor: pointer;
 }
 
+// The blank widget is not a click target (PanelApp drops its click and hint).
+.panelRoot[data-simulator='true'] .cell[data-widget-type='blank'] {
+  cursor: default;
+}
+
 // A preview cell that is not the one being edited is one click target: its
 // widget's own controls (gallery arrows, deck keys, scroll lists) take no
 // pointer input until the widget is opened for editing.

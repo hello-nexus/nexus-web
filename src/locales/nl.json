@@ -3318,6 +3318,7 @@
   "panel.swipeHint.label": "Veeg omhoog",
   "panel.widget.advancedMode": "Geavanceerde modus",
   "panel.widget.benchmark": "Benchmark",
+  "panel.widget.blank": "Leeg",
   "panel.widget.blocks": "Blokken",
   "panel.widget.blocks.boardLabel": "Blokken-speelveld",
   "panel.widget.blocks.combo": "Combo x{combo}",

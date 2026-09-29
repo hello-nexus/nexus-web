@@ -3318,6 +3318,7 @@
   "panel.swipeHint.label": "Scorri verso l'alto",
   "panel.widget.advancedMode": "Modalità avanzata",
   "panel.widget.benchmark": "Benchmark",
+  "panel.widget.blank": "Vuoto",
   "panel.widget.blocks": "Blocchi",
   "panel.widget.blocks.boardLabel": "Campo di gioco Blocchi",
   "panel.widget.blocks.combo": "Combo x{combo}",

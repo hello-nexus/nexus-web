@@ -3318,6 +3318,7 @@
   "panel.swipeHint.label": "Yukarı kaydırın",
   "panel.widget.advancedMode": "Gelişmiş mod",
   "panel.widget.benchmark": "Benchmark",
+  "panel.widget.blank": "Boş",
   "panel.widget.blocks": "Bloklar",
   "panel.widget.blocks.boardLabel": "Bloklar oyun tahtası",
   "panel.widget.blocks.combo": "Kombo x{combo}",

@@ -3355,6 +3355,7 @@
   "panel.swipeHint.label": "Przesuń w górę",
   "panel.widget.advancedMode": "Tryb zaawansowany",
   "panel.widget.benchmark": "Benchmark",
+  "panel.widget.blank": "Pusty",
   "panel.widget.blocks": "Bloki",
   "panel.widget.blocks.boardLabel": "Plansza gry Bloki",
   "panel.widget.blocks.combo": "Combo x{combo}",

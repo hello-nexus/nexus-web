@@ -30,6 +30,13 @@ describe('q60OfflineClockPages', () => {
     expect(q60OfflineClockPages(monitoringLayout, 'q60')[0].widgets[0].config).toBeUndefined();
   });
 
+  it('leaves a blank panel blank', () => {
+    const blank: PanelPage[] = [
+      { id: 'p1', widgets: [{ id: 'b', type: 'blank', size: '2x4', col: 0, row: 0 }] },
+    ];
+    expect(q60OfflineClockPages(blank, 'q60')).toBe(blank);
+  });
+
   it('does not mutate or reference the source pages (render-only)', () => {
     const result = q60OfflineClockPages(monitoringLayout, 'q60');
     expect(result[0]).not.toBe(monitoringLayout[0]);

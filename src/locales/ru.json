@@ -3355,6 +3355,7 @@
   "panel.swipeHint.label": "Проведите вверх",
   "panel.widget.advancedMode": "Расширенный режим",
   "panel.widget.benchmark": "Бенчмарк",
+  "panel.widget.blank": "Пустой",
   "panel.widget.blocks": "Блоки",
   "panel.widget.blocks.boardLabel": "Игровое поле «Блоки»",
   "panel.widget.blocks.combo": "Комбо x{combo}",

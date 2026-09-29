@@ -3318,6 +3318,7 @@
   "panel.swipeHint.label": "위로 스와이프",
   "panel.widget.advancedMode": "고급 모드",
   "panel.widget.benchmark": "벤치마크",
+  "panel.widget.blank": "빈 화면",
   "panel.widget.blocks": "블록",
   "panel.widget.blocks.boardLabel": "블록 게임 보드",
   "panel.widget.blocks.combo": "콤보 x{combo}",
