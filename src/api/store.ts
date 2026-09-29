@@ -49,8 +49,10 @@ export interface StoreInstallResult {
   appId: string;
   version: string;
   ok: boolean;
-  /** 'sign_in_required' is the account gate, 'not_yet_released' the launch-day one; the rest are download/verify failures. */
+  /** 'sign_in_required' is the account gate, 'not_yet_released' the launch-day one, 'consent_required' the capability prompt; the rest are download/verify failures. */
   reason?: string;
+  /** With 'consent_required': every grant the downloaded app asks for. Nothing was installed. */
+  requestedCapabilities?: string[];
 }
 
 /** What the catalog tailors its answer to: releases this build can run, listing copy in the UI language. */
@@ -81,12 +83,41 @@ export async function fetchStoreApp(appId: string, client: StoreClient = {}): Pr
  * verifies the download against it and composes the URL itself, so a page can
  * neither redirect the download nor weaken its verification.
  */
-export async function installStoreApp(app: { id: string; latest: StoreVersion }): Promise<StoreInstallResult | null> {
+export async function installStoreApp(
+  app: { id: string; latest: StoreVersion },
+  approvedCapabilities: string[] = [],
+): Promise<StoreInstallResult | null> {
   return postService<StoreInstallResult>('/apps-api/store/install', {
     appId: app.id,
     version: app.latest.version,
     sha256: app.latest.sha256,
     size: app.latest.size,
+    approvedCapabilities,
+  });
+}
+
+/** A store update the service is holding because it adds capabilities the installed version lacks. */
+export interface PendingStoreUpdate {
+  appId: string;
+  fromVersion: string;
+  version: string;
+  /** Every grant the new version asks for; the approval sent back to install it. */
+  requestedCapabilities: string[];
+  /** The subset the installed version does not hold. */
+  newCapabilities: string[];
+}
+
+export async function fetchPendingStoreUpdates(): Promise<PendingStoreUpdate[] | null> {
+  const res = await fetchService<{ updates: PendingStoreUpdate[] }>('/apps-api/store/pending-updates');
+  return res?.updates ?? null;
+}
+
+/** The service holds the hash and signature for a pending update, so the approval names only the version. */
+export async function approvePendingStoreUpdate(update: PendingStoreUpdate): Promise<StoreInstallResult | null> {
+  return postService<StoreInstallResult>('/apps-api/store/install', {
+    appId: update.appId,
+    version: update.version,
+    approvedCapabilities: update.requestedCapabilities,
   });
 }
 

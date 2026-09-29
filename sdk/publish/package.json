@@ -2,7 +2,7 @@
   "name": "@hello-nexus/sdk",
   "version": "0.5.0",
   "description": "Author-facing SDK for building sandboxed Nexus apps - @hello-nexus/sdk (mount + hooks) and @hello-nexus/sdk/ui (the blessed component set). The host runtime is provided at load; an app bundle externalizes these to it.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": false,
   "type": "module",
   "publishConfig": {
@@ -15,7 +15,7 @@
     "directory": "sdk"
   },
   "homepage": "https://hellonexus.com",
-  "files": ["dist", "cli", "README.md"],
+  "files": ["dist", "cli", "README.md", "LICENSE"],
   "bin": { "nexus-app": "./cli/nexus-app.mjs" },
   "exports": {
     ".": {
