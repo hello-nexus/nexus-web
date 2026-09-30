@@ -23,6 +23,9 @@ export interface LeaderboardEntry {
     storageModel: string;
     os: string;
     logicalCores: number;
+    /** Absent from API builds that predate it; null when the submitting client did not report it. */
+    ramBytes?: number | null;
+    cpuMaxClockMhz?: number | null;
   };
   tools: Record<string, string>;
 }
@@ -45,6 +48,8 @@ export interface HardwareIdentity {
   ramBytes: number;
   storageModel: string;
   logicalCores: number;
+  /** Peak per-core clock during the CPU phase; 0 when unreported, absent from older services. */
+  cpuMaxClockMhz?: number;
   os: string;
   architecture: string;
 }

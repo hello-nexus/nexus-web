@@ -16,6 +16,13 @@ const AXES = [
   { key: 'storage', label: 'Storage' },
 ] as const;
 
+const BYTES_PER_GIB = 1024 ** 3;
+
+function withExtra(model: string, extra: string): string {
+  if (!extra) return model;
+  return model ? `${model} · ${extra}` : extra;
+}
+
 interface BenchmarkEntryDetailProps {
   /** `percentile` comes only from the single-entry endpoint (the Build portal's /bench/:id). */
   entry: LeaderboardEntry & { percentile?: number };
@@ -42,6 +49,9 @@ export function BenchmarkEntryDetail({
   const owner = entry.displayName ?? t('benchmark.leaderboard.anonymous');
   const OwnerHeading = ownerIsPageTitle ? 'h1' : 'h2';
   const tools = Object.entries(entry.tools);
+  const { cpuMaxClockMhz, ramBytes } = entry.hardware;
+  const cpuClock = cpuMaxClockMhz ? localizeNumbers(`${(cpuMaxClockMhz / 1000).toFixed(1)} GHz`, numberFormat) : '';
+  const ramSize = ramBytes ? `${Math.round(ramBytes / BYTES_PER_GIB)} GB` : '';
 
   return (
     <div className={styles.detail}>
@@ -101,15 +111,14 @@ export function BenchmarkEntryDetail({
       <section className={styles.section}>
         <SectionHeader>{t('benchmark.leaderboard.hardware')}</SectionHeader>
         <ul className={`${styles.card} ${styles.hardwareList}`}>
-          <li><span className={styles.hwKey}>CPU</span>{entry.hardware.cpuModel}</li>
+          <li><span className={styles.hwKey}>CPU</span>{withExtra(entry.hardware.cpuModel, cpuClock)}</li>
           {entry.hardware.gpuModels.map((gpu, i) => (
             <li key={i}><span className={styles.hwKey}>GPU</span>{gpu}</li>
           ))}
-          <li><span className={styles.hwKey}>RAM</span>{entry.hardware.ramModel}</li>
+          <li><span className={styles.hwKey}>RAM</span>{withExtra(entry.hardware.ramModel, ramSize)}</li>
           {/* eslint-disable-next-line i18next/no-literal-string -- Storage is a hardware category proper noun */}
           <li><span className={styles.hwKey}>Storage</span>{entry.hardware.storageModel}</li>
           <li><span className={styles.hwKey}>{t('benchmark.leaderboard.os')}</span>{entry.hardware.os}</li>
-          <li>{t('benchmark.leaderboard.cores', { n: String(entry.hardware.logicalCores) })}</li>
         </ul>
       </section>
 

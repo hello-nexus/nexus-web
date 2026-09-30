@@ -186,7 +186,6 @@
   "benchmark.intro.body": "Benchmark, CPU, GPU, RAM ve depolamayı gercek is yukuyle olcer. Yaklasik 40 saniye surer ve yerel calisir.",
   "benchmark.leaderboard.anonymous": "Anonim",
   "benchmark.leaderboard.back": "Benchmark'a Dön",
-  "benchmark.leaderboard.cores": "{n} çekirdek",
   "benchmark.leaderboard.empty": "Henüz giriş yok. İlk benchmark sonucunu gönderen siz olun.",
   "benchmark.leaderboard.error": "Lider tablosu yüklenemedi.",
   "benchmark.leaderboard.filterVersion": "Puanlama versiyonu",

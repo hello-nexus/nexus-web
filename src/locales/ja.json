@@ -186,7 +186,6 @@
   "benchmark.intro.body": "実際のワークロードでCPU・GPU・RAM・ストレージを計測するベンチマークです。ローカルで約40秒かかります。",
   "benchmark.leaderboard.anonymous": "匿名",
   "benchmark.leaderboard.back": "ベンチマークに戻る",
-  "benchmark.leaderboard.cores": "{n}コア",
   "benchmark.leaderboard.empty": "まだエントリーがありません。最初にベンチマーク結果を送信してください。",
   "benchmark.leaderboard.error": "ランキングを読み込めませんでした。",
   "benchmark.leaderboard.filterVersion": "スコアリングバージョン",
