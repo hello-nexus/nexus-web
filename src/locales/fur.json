@@ -3636,6 +3636,8 @@
   "panel.widget.weather.precipitation": "Precipitazions",
   "panel.widget.weather.pressure": "Pression",
   "panel.widget.weather.removeLocation": "Gjave {location}",
+  "panel.widget.weather.settings.animatedSky": "Cîl animât",
+  "panel.widget.weather.settings.animatedSkyDescription": "Al mostre il timp atuâl e la ore dal dì come un cîl in moviment daûr dal widget.",
   "panel.widget.weather.settings.auto": "Automatic",
   "panel.widget.weather.settings.autoLocation": "Rilevâ la posizion in automatic",
   "panel.widget.weather.settings.celsius": "Celsius",

@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
 import { widgetLayoutSize } from '../../types';
 import { Droplet, Wind } from 'lucide-react';
 import { type WeatherLocation } from '../../../api/weather';
@@ -13,12 +13,13 @@ import { formatWeatherHour, weatherConditionKey } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
 import { DAY_LABEL_KEYS, dailyMax, dailyMin, formatTemp, hourlyTemp, resolveUnit, upcomingHours } from './weatherFormat';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
+import { WeatherSky } from './sky/WeatherSky';
 import styles from './WeatherWidget.module.scss';
 
 // Deck cells import the tile's glyph + formatting through here.
 export { WeatherIcon, formatTemp, resolveUnit };
 
-export function WeatherWidget({ widget }: WidgetProps) {
+export function WeatherWidget({ widget, surface }: WidgetProps) {
   const { t } = useTranslation();
   const { timeFormat } = useUnitPrefs();
   const location = (widget.config?.location as WeatherLocation | null | undefined) ?? null;
@@ -41,6 +42,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
   const showCondition = (widget.config?.showCondition as boolean | undefined) ?? true;
   const showLocation = (widget.config?.showLocation as boolean | undefined) ?? true;
   const showDetails = (widget.config?.showDetails as boolean | undefined) ?? true;
+  const animatedSky = widget.config?.animatedSky === true;
   const tempValue = snap ? (unit === 'F' ? snap.temperatureF : snap.temperatureC) : null;
   const conditionKey = weatherConditionKey(snap?.weatherCode);
   const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
@@ -66,6 +68,10 @@ export function WeatherWidget({ widget }: WidgetProps) {
   if (!snap || !snap.asOf) {
     return <WidgetOfflineState compact={size === '1x1'} />;
   }
+
+  const withSky = (content: ReactNode) => (animatedSky
+    ? <WeatherSky snap={snap} surface={surface} round={widget.size === '2x2round'}>{content}</WeatherSky>
+    : content);
 
   const now = referenceNow || 0;
   // With the provider's local reading time the strip starts at the
@@ -178,7 +184,8 @@ export function WeatherWidget({ widget }: WidgetProps) {
     </div>
   );
 
-  const renderCurrentBlock = (sizeClass: string, showStats: boolean) => (
+  // `full` is false on a 1x1, which has room for the glyph and temperature only.
+  const renderCurrentBlock = (sizeClass: string, full: boolean) => (
     <div className={`${styles.compact} ${sizeClass}`}>
       <div className={styles.compactCurrent}>
         <div className={styles.compactIconWrap}>
@@ -188,14 +195,14 @@ export function WeatherWidget({ widget }: WidgetProps) {
           <div className={styles.compactTemp}>{tempText}</div>
         </div>
       </div>
-      {showStats && renderStats(styles.compactStats)}
-      {showCondition && <div className={styles.compactCondition}>{conditionText}</div>}
-      {showLocation && <div className={styles.compactLocation}>{snap?.locationLabel || ''}</div>}
+      {full && renderStats(styles.compactStats)}
+      {full && showCondition && <div className={styles.compactCondition}>{conditionText}</div>}
+      {full && showLocation && <div className={styles.compactLocation}>{snap?.locationLabel || ''}</div>}
     </div>
   );
 
   if (large) {
-    return (
+    return withSky(
       <div className={`${styles.large} ${styles.largeTall}`}>
         <div className={styles.topSection}>
           {renderTop()}
@@ -209,7 +216,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
   }
 
   if (wide) {
-    return (
+    return withSky(
       <div className={`${styles.large} ${styles.largeWide}`}>
         <div className={styles.topSection}>
           {renderTop()}
@@ -220,7 +227,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
   }
 
   if (portrait) {
-    return (
+    return withSky(
       <div className={styles.portrait}>
         {renderCurrentBlock(`${styles.compact2x2} ${styles.portraitCurrent}`, true)}
         <div className={styles.divider} />
@@ -229,7 +236,7 @@ export function WeatherWidget({ widget }: WidgetProps) {
     );
   }
 
-  return renderCurrentBlock(compact ? styles.compact2x2 : styles.compact1x1, compact);
+  return withSky(renderCurrentBlock(compact ? styles.compact2x2 : styles.compact1x1, compact));
 }
 
 export default WeatherWidget;

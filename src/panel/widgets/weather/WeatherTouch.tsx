@@ -9,13 +9,14 @@ import { WeatherHero } from './WeatherHero';
 import { WeatherHourlyStrip } from './WeatherHourlyStrip';
 import { useWallClock } from './useWallClock';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
+import { WeatherSky } from './sky/WeatherSky';
 import { resolveUnit } from './weatherFormat';
 import styles from './WeatherTouch.module.scss';
 
 // The tile's own place, three 4x4 cells: conditions + hourly, the daily list,
 // the detail tiles (feels-like left out, the hero carries it). Nothing scrolls
 // inside a cell: one page on the Y70, two on a phone.
-export function WeatherTouch({ widget, immersiveGrid }: WidgetProps) {
+export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
   const location = (widget.config?.location as WeatherLocation | null | undefined) ?? null;
   const { snap, loaded } = useWeatherSnapshot(location);
@@ -37,13 +38,16 @@ export function WeatherTouch({ widget, immersiveGrid }: WidgetProps) {
     </div>,
   ];
 
-  return (
+  const layout = (
     <ImmersiveLayout
       cells={cells}
       gridColumns={immersiveGrid?.columns ?? 4}
       gridRows={immersiveGrid?.rows ?? 8}
     />
   );
+  return widget.config?.animatedSky === true && snap?.asOf
+    ? <WeatherSky snap={snap} surface={surface}>{layout}</WeatherSky>
+    : layout;
 }
 
 export default WeatherTouch;

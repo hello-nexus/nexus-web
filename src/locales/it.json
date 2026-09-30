@@ -3636,6 +3636,8 @@
   "panel.widget.weather.precipitation": "Precipitazioni",
   "panel.widget.weather.pressure": "Pressione",
   "panel.widget.weather.removeLocation": "Rimuovi {location}",
+  "panel.widget.weather.settings.animatedSky": "Cielo animato",
+  "panel.widget.weather.settings.animatedSkyDescription": "Mostra il meteo attuale e l'ora del giorno come un cielo in movimento dietro il widget.",
   "panel.widget.weather.settings.auto": "Automatico",
   "panel.widget.weather.settings.autoLocation": "Rileva automaticamente la posizione",
   "panel.widget.weather.settings.celsius": "Celsius",

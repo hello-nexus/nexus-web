@@ -3673,6 +3673,8 @@
   "panel.widget.weather.precipitation": "Opady",
   "panel.widget.weather.pressure": "Ciśnienie",
   "panel.widget.weather.removeLocation": "Usuń {location}",
+  "panel.widget.weather.settings.animatedSky": "Animowane niebo",
+  "panel.widget.weather.settings.animatedSkyDescription": "Pokazuje bieżącą pogodę i porę dnia jako ruchome niebo za widżetem.",
   "panel.widget.weather.settings.auto": "Automatycznie",
   "panel.widget.weather.settings.autoLocation": "Wykrywaj lokalizację automatycznie",
   "panel.widget.weather.settings.celsius": "Celsjusz",
