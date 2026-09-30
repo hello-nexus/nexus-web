@@ -81,6 +81,16 @@
     > *:not(:last-child) { margin-right: 0; margin-bottom: 14px; }
   }
 
+  .volumeMixer {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+}
+
+// 2x4 and 4x4 share the stacked playback column; 4x4 keeps the row layout so
+// the volume rail sits to its right, full height.
+.tall.full,
+.square.full {
   .playbackColumn {
     @include vgap(14px);
   }
@@ -143,20 +153,35 @@
   .album {
     max-width: 100%;
   }
+}
 
-  .volumeMixer {
-    flex: 0 0 auto;
+.square.full .volumeMixer {
+  --mixer-track-max: 260px;
+}
+
+// Progress shares the thumbnail's centre and width; the centered column would
+// otherwise shrink the empty track to zero width.
+.tall.full,
+.square.full {
+  .progressTrack {
     align-self: center;
+    width: 100%;
+    max-width: 220px;
   }
 }
 
-// Q-series statusOnly + tall: full-width square album art since there are no
+.square.full .controls {
+  justify-content: center;
+}
+
+// Q-series statusOnly + tall/square: full-width square album art since there are no
 // controls. Reset height to 0 too - the .statusOnly.full rule below otherwise
 // pins a definite height (and, now that it also pins a matching width) at
 // same-specificity as .tall.full's own width - both would tie-break on
 // source order, so width is restated here at the highest specificity to
 // guarantee the full-width square wins regardless of rule order.
-.statusOnly.tall.full {
+.statusOnly.tall.full,
+.statusOnly.square.full {
   .artWrap {
     width: 100%;
     max-width: 100%;
@@ -355,4 +380,62 @@
   --mixer-touch-width: 62px;
   --mixer-pill-width: 46px;
   --mixer-icon-size: 34px;
+}
+
+// Live background: the shader paints under the tile content. The background
+// overruns the widget box (below) so it reaches the card's rounded edge, which
+// does the clipping.
+.live {
+  isolation: isolate;
+  overflow: visible;
+}
+
+// Text and chrome go light-on-dark only once a frame is showing, so a failed
+// renderer never leaves white text on a light card.
+.liveOn {
+  --text: #fff;
+  --text-dim: rgb(255 255 255 / 72%);
+  --panel-border: rgb(255 255 255 / 25%);
+  --panel-element-bg: rgb(0 0 0 / 25%);
+
+  .title,
+  .artist,
+  .album,
+  .compactTitle {
+    text-shadow: 0 1px 8px rgb(0 0 0 / 55%);
+  }
+}
+
+.liveBackground {
+  position: absolute;
+  // The panel's scaled content box need not reach its card's edge.
+  top: -48px;
+  right: -48px;
+  bottom: -48px;
+  left: -48px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--ease-slow) ease;
+
+  &[data-ready='true'] {
+    opacity: 1;
+  }
+
+  // Keeps the metadata legible over the brightest ribbons.
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgb(0 0 0 / 30%);
+  }
+}
+
+.liveCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }

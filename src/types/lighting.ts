@@ -104,12 +104,12 @@ export const EFFECT_CATEGORY: Record<string, EffectCategory> = {
   splitsharp: 'twotone', stripes: 'twotone', checker: 'twotone', border: 'twotone',
   rings: 'twotone', dots: 'twotone', wedges: 'twotone',
   spectrumramp: 'spectrum', spectrumbands: 'spectrum', huewheel: 'spectrum',
-  // Audio-reactive set (13).
+  // Audio-reactive set (15).
   spectrumbars: 'audio', spectrumradial: 'audio', scope: 'audio',
   basspulse: 'audio', beatstrobe: 'audio', harmonicstar: 'audio',
   audiotunnel: 'audio', bassbloom: 'audio', beatbuilder: 'audio',
   spectrumaurora: 'audio', neonwaveform: 'audio', liquidbeat: 'audio',
-  beatburst: 'audio',
+  beatburst: 'audio', lavaribbons: 'audio', lavahaze: 'audio',
   // Cosmic: space, sky, electric (15).
   aurora: 'cosmic', starfield: 'cosmic', nebula: 'cosmic', cosmicdust: 'cosmic',
   caustics: 'cosmic', galaxy: 'cosmic', starpath: 'cosmic', meteor: 'cosmic',
@@ -714,6 +714,18 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_streaks',    label: 'Streaks', labelKey: 'lighting.controls.param.streaks' },
       { name: 'u_trail',      label: 'Trail', labelKey: 'lighting.controls.param.trail' },
       { name: 'u_spread',     label: 'Spread', labelKey: 'lighting.controls.param.spread' },
+      { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity' },
+  ]},
+  { key: 'lavaribbons',    labelKey: 'lighting.controls.lavaribbons',    audio: true, params: [
+      { name: 'u_bands',      label: 'Bands', labelKey: 'lighting.controls.param.bands' },
+      { name: 'u_flow',       label: 'Flow', labelKey: 'lighting.controls.param.flow' },
+      { name: 'u_glow',       label: 'Glow', labelKey: 'lighting.controls.param.glow' },
+      { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity' },
+  ]},
+  { key: 'lavahaze',       labelKey: 'lighting.controls.lavahaze',       audio: true, params: [
+      { name: 'u_scale',      label: 'Scale', labelKey: 'lighting.controls.param.scale' },
+      { name: 'u_melt',       label: 'Melt', labelKey: 'lighting.controls.param.melt' },
+      { name: 'u_glow',       label: 'Glow', labelKey: 'lighting.controls.param.glow' },
       { name: 'u_audioBoost', label: 'Audio Intensity', labelKey: 'lighting.controls.param.audioIntensity' },
   ]},
 ];

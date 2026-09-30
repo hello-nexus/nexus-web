@@ -17,6 +17,8 @@ import { usePanelPreview } from '../common/PanelPreviewContext';
 import { mediaArtSignature } from './mediaArt';
 import { useLivePositionMs } from './mediaTime';
 import { mediaVolumeTarget } from './mediaVolumeTarget';
+import { MediaLiveBackground } from './MediaLiveBackground';
+import { normalizeVisualizerEffect } from './mediaVisualizers';
 import { MEDIA_PREVIEW } from './mediaPreviewData';
 import styles from './MediaWidget.module.scss';
 
@@ -50,6 +52,8 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const size = widgetLayoutSize(widget.size);
   const compact = size === '2x2';
   const tall = size === '2x4';
+  // 4x4 stacks art over centered metadata + controls like 2x4, with the volume rail beside it.
+  const square = size === '4x4';
   const active = preview ? MEDIA_PREVIEW.active : pickActive(sessions);
   const activeKey = active?.key ?? '';
   // Tall (2x4) is a portrait card (art over centered metadata +
@@ -69,7 +73,11 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   );
   const artSignature = mediaArtSignature(active?.session);
   const showVolume = showControls && !compact && !tall && volume.supported;
-  const artUrl = artAsset.key === activeKey && artAsset.signature === artSignature ? artAsset.url : '';
+  const artResolved = artAsset.key === activeKey && artAsset.signature === artSignature;
+  const artUrl = artResolved ? artAsset.url : '';
+  const liveBackground = widget.config?.liveBackground === true;
+  const [liveShowing, setLiveShowing] = useState(false);
+  const liveEffect = normalizeVisualizerEffect(widget.config?.visualizerEffect);
 
   useEffect(() => {
     if (preview) return;
@@ -102,7 +110,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
 
   if (!active) {
     return (
-      <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${showControls ? '' : styles.statusOnly}`}>
+      <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${square ? styles.square : ''} ${showControls ? '' : styles.statusOnly}`}>
         {showVolume ? (
           <div className={styles.fullContent}>
             <EmptyState
@@ -142,7 +150,17 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
 
   return (
-    <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${showControls ? '' : styles.statusOnly}`}>
+    <div className={`${styles.media} ${compact ? styles.compact : styles.full} ${tall ? styles.tall : ''} ${square ? styles.square : ''} ${showControls ? '' : styles.statusOnly} ${liveBackground ? styles.live : ''} ${liveBackground && liveShowing ? styles.liveOn : ''}`}>
+      {liveBackground && (
+        <MediaLiveBackground
+          key={liveEffect}
+          effect={liveEffect}
+          artUrl={artResolved ? artUrl : null}
+          playing={playing && !s.playback.stopped}
+          preview={preview}
+          onShowingChange={setLiveShowing}
+        />
+      )}
       {compact ? (
         <>
           <div className={styles.compactNowPlaying}>

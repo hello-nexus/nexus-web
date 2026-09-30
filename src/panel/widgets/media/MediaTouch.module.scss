@@ -406,7 +406,25 @@
   .immersiveContent {
     pointer-events: none;
   }
+}
 
+// Paints over the art backdrop in DOM order, so the backdrop only shows when
+// WebGL is unavailable and the live layer renders nothing.
+.immersiveRoot .liveLayer {
+  z-index: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  // The player spans the whole frame here, not a corner of a tile.
+  &::after {
+    background: rgb(0 0 0 / 38%);
+  }
+}
+
+.immersiveRoot[data-visualizer='true'],
+.immersiveRoot[data-live='true'] {
   .title,
   .artist,
   .album,
@@ -444,7 +462,9 @@
   .volumeKnob {
     background: #fff;
   }
+}
 
+.immersiveRoot[data-visualizer='true'] {
   // Metadata to the top, transport to the bottom, so the middle of the frame
   // stays the visualizer instead of the title sitting on the busiest part of
   // the shader.

@@ -1,13 +1,13 @@
 import { EFFECTS, defaultStateFor, type EffectState, type EffectTemplateBundle } from '../../../types/lighting';
 
 /**
- * Effects offered by the media immersive visualizer, in cycle order. Drawn
- * from the Animate audio category; the four fullscreen-first ones lead because
- * the bar/spoke effects above them were authored against an LED strip and read
- * coarser blown up to a whole panel.
+ * Effects offered by the media visualizer and live background, in cycle order;
+ * the first is the default. Drawn from the Animate audio category; the
+ * fullscreen-first ones lead because the bar/spoke effects after them were
+ * authored against an LED strip and read coarser blown up to a whole panel.
  */
 export const MEDIA_VISUALIZER_EFFECTS: readonly string[] = [
-  'spectrumaurora', 'neonwaveform', 'liquidbeat', 'beatburst',
+  'lavahaze', 'lavaribbons', 'spectrumaurora', 'neonwaveform', 'liquidbeat', 'beatburst',
   'bassbloom', 'audiotunnel', 'spectrumradial', 'harmonicstar',
   'spectrumbars', 'scope', 'basspulse', 'beatstrobe', 'beatbuilder',
 ];

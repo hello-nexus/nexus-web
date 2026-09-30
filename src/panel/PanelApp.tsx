@@ -69,6 +69,7 @@ import { WidgetContextMenu } from './widgets/common/WidgetContextMenu';
 import { useDeckInstance, DeckInstanceProvider } from './widgets/deck/useDeckInstance';
 import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
+import { PanelImmersiveOpenProvider } from './widgets/common/PanelImmersiveContext';
 import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
@@ -1593,6 +1594,7 @@ export function PanelContent({
 
   return (
     <TouchViaPointerContext.Provider value={mouseAsTouch}>
+    <PanelImmersiveOpenProvider value={immersiveWidgetId !== null}>
     <PanelGaugeGradientProvider value={gaugeGradientValue}>
     <DeckInstanceProvider value={editingDeckInstanceId ? { instanceId: editingDeckInstanceId, value: sharedDeckInstance } : null}>
     <DndContext
@@ -2177,6 +2179,7 @@ export function PanelContent({
     </DndContext>
     </DeckInstanceProvider>
     </PanelGaugeGradientProvider>
+    </PanelImmersiveOpenProvider>
     </TouchViaPointerContext.Provider>
   );
 }

@@ -28,6 +28,11 @@ export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
     <div className={styles.container}>
       <SettingsSection title={t('panel.media.visualizer.label')}>
         <SettingsToggle
+          label={t('panel.media.liveBackground.toggle')}
+          checked={widget.config?.liveBackground === true}
+          onChange={value => onUpdate({ liveBackground: value })}
+        />
+        <SettingsToggle
           label={t('panel.media.visualizer.startOn')}
           checked={visualizer}
           onChange={value => onUpdate({ visualizer: value })}

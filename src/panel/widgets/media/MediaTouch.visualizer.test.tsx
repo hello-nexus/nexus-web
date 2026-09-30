@@ -33,6 +33,17 @@ vi.mock('./MediaVisualizer', () => ({
   MediaVisualizer: ({ effect }: { effect: string }) => <div data-testid="visualizer" data-effect={effect} />,
 }));
 
+// Stands in for a background that has drawn its first frame.
+vi.mock('./MediaLiveBackground', async () => {
+  const { useEffect } = await import('react');
+  return {
+    MediaLiveBackground: ({ onShowingChange }: { onShowingChange?: (showing: boolean) => void }) => {
+      useEffect(() => { onShowingChange?.(true); }, [onShowingChange]);
+      return <div data-testid="live-layer" />;
+    },
+  };
+});
+
 const { MediaTouch } = await import('./MediaTouch');
 const { DEFAULT_MEDIA_VISUALIZER, nextVisualizerEffect } = await import('./mediaVisualizers');
 
@@ -105,6 +116,51 @@ describe('media immersive visualizer', () => {
     fireEvent.click(screen.getByLabelText(NEXT));
     expect(screen.getByTestId('visualizer').dataset.effect).toBe(next);
     expect(onUpdate).toHaveBeenCalledWith({ visualizerEffect: next });
+  });
+
+  it('does not cycle the effect with the click of the tap that turned it on', async () => {
+    const onUpdate = vi.fn();
+    renderTouch({}, onUpdate);
+    fireEvent.pointerUp(await screen.findByLabelText(SHOW));
+    // The same tap's click lands on the surface that just replaced the layout.
+    fireEvent.click(screen.getByLabelText(NEXT), { detail: 1 });
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(DEFAULT_MEDIA_VISUALIZER);
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate).toHaveBeenCalledWith({ visualizer: true });
+  });
+
+  it('cycles on a tap that starts on the surface', async () => {
+    renderTouch({ visualizer: true });
+    await waitFor(() => expect(fadeGroup().dataset.revealed).toBe('true'));
+    const surface = screen.getByLabelText(NEXT);
+    fireEvent.pointerDown(surface);
+    fireEvent.click(surface, { detail: 1 });
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(nextVisualizerEffect(DEFAULT_MEDIA_VISUALIZER));
+  });
+
+  it('does not let a cancelled surface press leak into the next entry tap', async () => {
+    const onUpdate = vi.fn();
+    renderTouch({ visualizer: true }, onUpdate);
+    await waitFor(() => expect(fadeGroup().dataset.revealed).toBe('true'));
+    const surface = screen.getByLabelText(NEXT);
+    fireEvent.pointerDown(surface);
+    fireEvent.pointerCancel(surface);
+
+    fireEvent.pointerUp(screen.getByLabelText(HIDE));
+    fireEvent.pointerUp(await screen.findByLabelText(SHOW));
+    fireEvent.click(screen.getByLabelText(NEXT), { detail: 1 });
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(DEFAULT_MEDIA_VISUALIZER);
+  });
+
+  it('shows the live background behind the player until the visualizer opens', async () => {
+    const { container } = renderTouch({ liveBackground: true });
+    await waitFor(() => expect(screen.getByTestId('live-layer')).toBeTruthy());
+    const root = container.querySelector('[data-live]') as HTMLElement;
+    expect(root.dataset.live).toBe('true');
+
+    fireEvent.click(screen.getByLabelText(SHOW));
+    expect(screen.queryByTestId('live-layer')).toBeNull();
+    expect(container.querySelector('[data-live]')).toBeNull();
   });
 
   it('hides the toggle on a surface with no touch input', async () => {

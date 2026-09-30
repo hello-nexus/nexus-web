@@ -12,3 +12,14 @@ export function usePanelImmersive(): boolean {
 }
 
 export const PanelImmersiveProvider = PanelImmersiveContext.Provider;
+
+// True while an immersive overlay covers the panel's pages (PanelApp provides
+// it), so tiles underneath can stop animating. Content inside the overlay reads
+// usePanelImmersive() to tell itself apart.
+const PanelImmersiveOpenContext = createContext(false);
+
+export function usePanelImmersiveOpen(): boolean {
+  return useContext(PanelImmersiveOpenContext);
+}
+
+export const PanelImmersiveOpenProvider = PanelImmersiveOpenContext.Provider;

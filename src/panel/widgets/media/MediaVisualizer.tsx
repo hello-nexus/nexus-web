@@ -3,11 +3,15 @@ import { useAnimateTemplates } from '../../../hooks/useAnimateTemplates';
 import { useAudioState } from '../../../hooks/useAudioState';
 import { useShaderRenderer } from '../../../hooks/useShaderRenderer';
 import type { PanelSurface } from '../../types';
+import { useArtPaletteStops } from './artPalette';
 import { visualizerState } from './mediaVisualizers';
 import styles from './MediaTouch.module.scss';
 
 interface MediaVisualizerProps {
   effect: string;
+  // Album art whose colours replace the effect's palette, as in the live
+  // background; null while the current track's art loads.
+  artUrl: string | null;
   surface?: PanelSurface;
   // Fired when the shader cannot render (source fetch failed against an older
   // service, no WebGL2). The canvas stays transparent in that case, so the
@@ -21,10 +25,11 @@ interface MediaVisualizerProps {
  * LightingProvider.SetAudioCaptureDemand); with no capture the shaders still
  * render their idle animation, so a silent frame is never a blank one.
  */
-export function MediaVisualizer({ effect, surface, onUnavailable }: MediaVisualizerProps) {
+export function MediaVisualizer({ effect, artUrl, surface, onUnavailable }: MediaVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const audioRef = useAudioState(true);
   const { templates } = useAnimateTemplates(true);
+  const paletteRef = useArtPaletteStops(artUrl);
 
   const state = useMemo(
     () => visualizerState(effect, templates[effect]),
@@ -38,8 +43,8 @@ export function MediaVisualizer({ effect, surface, onUnavailable }: MediaVisuali
   // Same half-DPR cap PanelBackgroundShader applies: the Q-series panel GPU
   // cannot hold frame rate on a heavy shader at native resolution.
   const renderOptions = useMemo(
-    () => ({ maxDevicePixelRatio: surface === 'q60' ? 0.5 : 1 }),
-    [surface],
+    () => ({ maxDevicePixelRatio: surface === 'q60' ? 0.5 : 1, paletteRef, audioTime: true }),
+    [surface, paletteRef],
   );
   const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef, audioRef, renderOptions);
 

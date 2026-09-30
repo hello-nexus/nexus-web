@@ -10,6 +10,17 @@ layout (location = 0) in vec2 a_pos;
 void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
 `;
 
+// audioTime clock: loudness mixes level and bass, each smoothed at its own rate
+// (per second); the clock runs 1x in silence and speeds up with both.
+const LOUDNESS_LEVEL_WEIGHT = 0.7;
+const LOUDNESS_BASS_WEIGHT = 0.5;
+const ENERGY_SMOOTHING = 8;
+const PULSE_DECAY = 4;
+const ENERGY_SPEEDUP = 2;
+const PULSE_SPEEDUP = 1.5;
+// Per-second easing toward a new track's palette stops.
+const PALETTE_EASING = 2;
+
 function adaptGlsl(source: string): string {
   return source.replace('#version 330 core', '#version 300 es\nprecision highp float;');
 }
@@ -22,7 +33,18 @@ export function useShaderRenderer(
   // screenSize sizes the backing store from the on-screen rect, so a canvas
   // under a CSS scale() (a panel cell) renders at the pixels it covers.
   // visibleRef false skips drawing while keeping the compiled program.
-  options?: { maxDevicePixelRatio?: number; maxFps?: number; screenSize?: boolean; visibleRef?: React.RefObject<boolean> },
+  // paletteRef: four flattened RGB stops replacing the effect's rainbow
+  // palette, eased between tracks; null keeps the preset colours.
+  // audioTime: u_time runs faster with loudness and beats, so the effect's own
+  // motion speeds up with the music.
+  options?: {
+    maxDevicePixelRatio?: number;
+    maxFps?: number;
+    screenSize?: boolean;
+    visibleRef?: React.RefObject<boolean>;
+    paletteRef?: React.RefObject<Float32Array | null>;
+    audioTime?: boolean;
+  },
   // When true, u_time is held at the value it had the instant this flipped
   // true, so the preview freezes on the same frame the server-side lighting
   // engine freezes at instead of blanking or drifting.
@@ -157,6 +179,7 @@ export function useShaderRenderer(
         'u_audioBeat', 'u_audioBoost', 'u_spectrum',
         'u_spectrum64', 'u_specHist',
         'u_levelPeak', 'u_bassPeak', 'u_midPeak', 'u_highPeak',
+        'u_palette', 'u_paletteMix',
       ];
       const cache: Record<string, WebGLUniformLocation | null> = {};
       for (const n of names) cache[n] = gl.getUniformLocation(prog, n);
@@ -172,6 +195,14 @@ export function useShaderRenderer(
       setLoading(false);
 
       let firstFrame = true;
+      const paletteRef = options?.paletteRef;
+      const audioTime = options?.audioTime === true;
+      const palette = new Float32Array(12);
+      let paletteSeeded = false;
+      let flowTime = (Date.now() % 86_400_000) / 1000;
+      let energy = 0;
+      let pulse = 0;
+      let lastDrawTs = 0;
       const cap = options?.maxFps ?? streamFrameCap(window.location.search);
       const shouldDraw = cap ? createFramePacer(cap) : createDisplayDivider(panelDisplayHz(window.location.search));
 
@@ -220,8 +251,19 @@ export function useShaderRenderer(
         const u = uniformsRef.current;
         const st = stateRef.current;
         if (!st) { rafRef.current = requestAnimationFrame(render); return; }
+        const dt = lastDrawTs ? Math.min(0.1, (ts - lastDrawTs) / 1000) : 0;
+        lastDrawTs = ts;
         let t: number;
-        if (pausedRef.current) {
+        if (audioTime) {
+          const loudness = audio
+            ? Math.min(1, audio.level * LOUDNESS_LEVEL_WEIGHT + audio.bass * LOUDNESS_BASS_WEIGHT)
+            : 0;
+          energy += (loudness - energy) * (1 - Math.exp(-dt * ENERGY_SMOOTHING));
+          const beat = audio?.beat ?? 0;
+          pulse = beat > pulse ? beat : pulse * Math.exp(-dt * PULSE_DECAY);
+          if (!pausedRef.current) flowTime += dt * (1 + ENERGY_SPEEDUP * energy + PULSE_SPEEDUP * pulse);
+          t = flowTime;
+        } else if (pausedRef.current) {
           frozenTimeRef.current ??= (Date.now() % 86_400_000) / 1000;
           t = frozenTimeRef.current;
         } else {
@@ -229,13 +271,24 @@ export function useShaderRenderer(
           t = (Date.now() % 86_400_000) / 1000;
         }
 
+        const artStops = paletteRef?.current;
+        const art = !!u.u_palette && !!artStops && artStops.length >= 12;
+        if (art) {
+          const ease = paletteSeeded ? 1 - Math.exp(-dt * PALETTE_EASING) : 1;
+          for (let i = 0; i < 12; i++) palette[i] += (artStops[i] - palette[i]) * ease;
+          paletteSeeded = true;
+          g.uniform3fv(u.u_palette, palette);
+        }
+        if (u.u_paletteMix) g.uniform1f(u.u_paletteMix, art ? 1 : 0);
+
         const specByName = specByNameRef.current;
         if (u.u_resolution) g.uniform2f(u.u_resolution, w, h);
         if (u.u_time) g.uniform1f(u.u_time, t);
         if (u.u_speed) g.uniform1f(u.u_speed, clampToSpec(st.speed / 50, specByName.get('u_speed')));
         if (u.u_intensity) g.uniform1f(u.u_intensity, clampToSpec(st.intensity, specByName.get('u_intensity')));
-        if (u.u_hue) g.uniform1f(u.u_hue, clampToSpec(st.hue, specByName.get('u_hue')));
-        if (u.u_colorize) g.uniform1f(u.u_colorize, clampToSpec(st.colorize, specByName.get('u_colorize')));
+        // Album-art stops are the colour; the preset's hue and colorize would tint them.
+        if (u.u_hue) g.uniform1f(u.u_hue, art ? 0 : clampToSpec(st.hue, specByName.get('u_hue')));
+        if (u.u_colorize) g.uniform1f(u.u_colorize, art ? 0 : clampToSpec(st.colorize, specByName.get('u_colorize')));
         if (u.u_saturation) g.uniform1f(u.u_saturation, clampToSpec(st.saturation, specByName.get('u_saturation')));
         if (u.u_contrast) g.uniform1f(u.u_contrast, clampToSpec(st.contrast, specByName.get('u_contrast')));
 
@@ -285,7 +338,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, audioRef]);
+  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, options?.paletteRef, options?.audioTime, audioRef]);
 
   return { ready, loading, error };
 }

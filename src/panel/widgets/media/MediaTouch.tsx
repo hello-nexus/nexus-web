@@ -17,6 +17,7 @@ import { mediaArtSignature } from './mediaArt';
 import { formatTrackTime, useLivePositionMs } from './mediaTime';
 import { mediaVolumeTarget } from './mediaVolumeTarget';
 import { MediaVisualizer } from './MediaVisualizer';
+import { MediaLiveBackground } from './MediaLiveBackground';
 import { nextVisualizerEffect, normalizeVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
 import styles from './MediaTouch.module.scss';
 
@@ -61,7 +62,8 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   const active = pickActive(sessions);
   const activeKey = active?.key ?? '';
   const artSig = mediaArtSignature(active?.session);
-  const artUrl = artAsset.key === activeKey && artAsset.signature === artSig ? artAsset.url : '';
+  const artResolved = artAsset.key === activeKey && artAsset.signature === artSig;
+  const artUrl = artResolved ? artAsset.url : '';
   const hdArtUrl = hdArtAsset.key === activeKey && hdArtAsset.signature === artSig ? hdArtAsset.url : '';
 
   useEffect(() => {
@@ -120,6 +122,12 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   // transparent canvas; the album-art backdrop goes back behind the player so
   // the frame is never plain black.
   const [shaderUnavailable, setShaderUnavailable] = useState(false);
+  const liveBackground = widget?.config?.liveBackground === true && !visualizerOn;
+  const [liveShowing, setLiveShowing] = useState(false);
+  // Set by a press that starts on the visualizer surface. The tap that turns
+  // the visualizer on commits on pointerup, the layout swaps, and its click
+  // then lands on the new surface; without this it cycled the effect.
+  const surfacePressRef = useRef(false);
 
   const revealControls = useCallback(() => {
     setControlsRevealed(true);
@@ -139,6 +147,7 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   }, [effectToast]);
 
   const toggleVisualizer = useCallback(() => {
+    surfacePressRef.current = false;
     setVisualizerOn(on => {
       const next = !on;
       onUpdate?.({ visualizer: next });
@@ -196,7 +205,11 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
     />
   );
   return (
-    <div className={styles.immersiveRoot} data-visualizer={visualizerOn ? 'true' : undefined}>
+    <div
+      className={styles.immersiveRoot}
+      data-visualizer={visualizerOn ? 'true' : undefined}
+      data-live={liveBackground && liveShowing ? 'true' : undefined}
+    >
       {/* Backdrop uses the standard art, not the HD upgrade: it is blurred past
           the point the extra resolution can show, so the bigger decode buys
           nothing. */}
@@ -206,16 +219,34 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
           <div className={styles.backdropTint} />
         </div>
       )}
+      {liveBackground && (
+        <MediaLiveBackground
+          key={effect}
+          effect={effect}
+          artUrl={artResolved ? artUrl : null}
+          playing={active.session.playback.playing && !active.session.playback.stopped}
+          preview={false}
+          className={styles.liveLayer}
+          onShowingChange={setLiveShowing}
+        />
+      )}
       {visualizerOn && (
         <>
-          <MediaVisualizer effect={effect} surface={surface} onUnavailable={setShaderUnavailable} />
+          <MediaVisualizer effect={effect} artUrl={artResolved ? artUrl : null} surface={surface} onUnavailable={setShaderUnavailable} />
           {/* Scrim under the text only: the shader is high-contrast in places
               the title would otherwise sit on. */}
           <div className={styles.visualizerScrim} aria-hidden="true" />
           <button
             type="button"
             className={styles.visualizerSurface}
-            onClick={handleVisualizerTap}
+            onPointerDown={() => { surfacePressRef.current = true; }}
+            onPointerCancel={() => { surfacePressRef.current = false; }}
+            onClick={event => {
+              // detail 0 is a keyboard activation, which has no pointerdown.
+              if (event.detail !== 0 && !surfacePressRef.current) return;
+              surfacePressRef.current = false;
+              handleVisualizerTap();
+            }}
             // The sheet-swipe engine arms a drag on plain touches; without this
             // the tap races the overlay's snap-back and the cycle is dropped.
             data-panel-no-sheet-swipe="true"
