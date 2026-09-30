@@ -1,7 +1,9 @@
 import { normalizeSlideshowInterval, shuffledLap } from '../slideshow/slideshow';
 import { appAvailableForSurface, lookupApp } from '../widgets/registry';
+import { blankApp } from '../widgets/blank';
 import {
   singleWidgetSurfaceSize,
+  type PanelConfigValue,
   type PanelLayout,
   type PanelSurface,
   type PanelWidget,
@@ -59,16 +61,18 @@ export function playingPlaylistTypes(
 
 /**
  * The widget a playlist entry renders as: the shown widget for its own type,
- * else a render-only stand-in carrying the type's remembered config.
+ * else a render-only stand-in carrying the type's remembered config. The
+ * stand-in id `playlist:<deviceId>:<type>` is what the service's widget
+ * settings routes resolve against the device's SingleWidgetConfigs.
  */
-export function playlistWidget(layout: PanelLayout, type: string, surface: PanelSurface): PanelWidget | undefined {
+export function playlistWidget(layout: PanelLayout, type: string, surface: PanelSurface, deviceId = ''): PanelWidget | undefined {
   const shown = layout.pages[0]?.widgets[0];
   if (shown?.type === type) return shown;
   const size = singleWidgetSurfaceSize(surface);
   if (size === undefined) return undefined;
   const config = layout.singleWidgetConfigs?.[type];
   return {
-    id: `${PLAYLIST_WIDGET_ID_PREFIX}${type}`,
+    id: `${PLAYLIST_WIDGET_ID_PREFIX}${deviceId}:${type}`,
     type,
     size,
     col: 0,
@@ -78,7 +82,20 @@ export function playlistWidget(layout: PanelLayout, type: string, surface: Panel
 }
 
 export function playlistTypeOfWidgetId(id: string): string | null {
-  return id.startsWith(PLAYLIST_WIDGET_ID_PREFIX) ? id.slice(PLAYLIST_WIDGET_ID_PREFIX.length) : null;
+  if (!id.startsWith(PLAYLIST_WIDGET_ID_PREFIX)) return null;
+  const rest = id.slice(PLAYLIST_WIDGET_ID_PREFIX.length);
+  const split = rest.indexOf(':');
+  return split === -1 ? null : rest.slice(split + 1) || null;
+}
+
+/** Merges `config` into a stand-in type's remembered config. */
+export function patchPlaylistWidgetConfig(
+  layout: PanelLayout,
+  type: string,
+  config: Record<string, PanelConfigValue>,
+): PanelLayout {
+  const remembered = layout.singleWidgetConfigs ?? {};
+  return { ...layout, singleWidgetConfigs: { ...remembered, [type]: { ...remembered[type], ...config } } };
 }
 
 export function updateWidgetPlaylist(layout: PanelLayout, patch: Partial<PanelWidgetPlaylist>): PanelLayout {
@@ -88,7 +105,7 @@ export function updateWidgetPlaylist(layout: PanelLayout, patch: Partial<PanelWi
 /** The first switch-on enables every widget in `catalogTypes` except the blank one. */
 export function setWidgetPlaylistEnabled(layout: PanelLayout, enabled: boolean, catalogTypes: readonly string[]): PanelLayout {
   if (enabled && layout.widgetPlaylist === undefined) {
-    const types = catalogTypes.filter(type => type !== 'blank');
+    const types = catalogTypes.filter(type => type !== blankApp.meta.type);
     return updateWidgetPlaylist(layout, { enabled, types, order: [...catalogTypes] });
   }
   return updateWidgetPlaylist(layout, { enabled });

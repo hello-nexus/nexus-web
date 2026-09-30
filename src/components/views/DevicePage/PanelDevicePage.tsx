@@ -15,6 +15,7 @@ import {
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
 import {
+  playingPlaylistTypes,
   setWidgetPlaylistEnabled,
   stepPlaylistType,
   updateWidgetPlaylist,
@@ -851,13 +852,20 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const playlistMode = widgetPlaylist?.enabled === true;
   const remotePanel = isRemotePanel(device?.connectionKind);
   // What the preview's rotation shows, reported by the simulator iframe.
-  const [previewPlaylistType, setPreviewPlaylistType] = useState<string | null>(null);
+  const [previewPlaylist, setPreviewPlaylist] = useState<{ type: string | null; at: number }>({ type: null, at: 0 });
+  const handlePlaylistShown = useCallback((type: string | null) => setPreviewPlaylist({ type, at: Date.now() }), []);
+  const playingTypes = useMemo(
+    () => (playlistMode ? playingPlaylistTypes(layout, surface, deviceTouch) ?? [] : []),
+    [deviceTouch, layout, playlistMode, surface],
+  );
   const stepPlaylist = useCallback((delta: 1 | -1) => {
-    const types = widgetPlaylistOf(layout).types;
-    const type = stepPlaylistType(types, previewPlaylistType, delta);
+    // A jump the preview has not reported yet is the newer position.
+    const cursor = widgetPlaylistOf(layout).cursor;
+    const from = cursor && cursor.at > previewPlaylist.at ? cursor.type : previewPlaylist.type;
+    const type = stepPlaylistType(playingTypes, from, delta);
     if (type) updateLayout(updateWidgetPlaylist(layout, { cursor: { type, at: Date.now() } }));
-  }, [layout, previewPlaylistType, updateLayout]);
-  const showPlaylistArrows = playlistMode && !configuringWidget && (widgetPlaylist?.types.length ?? 0) > 1;
+  }, [layout, playingTypes, previewPlaylist, updateLayout]);
+  const showPlaylistArrows = playlistMode && !configuringWidget && playingTypes.length > 1;
 
   // A playlist entry is edited as the shown widget: swapping to it restores
   // its remembered config, so the settings pane edits the entry in place.
@@ -1807,7 +1815,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
                 displayBound={!!device?.displayId}
-                onPlaylistShown={setPreviewPlaylistType}
+                onPlaylistShown={handlePlaylistShown}
               />
               </>
               )}

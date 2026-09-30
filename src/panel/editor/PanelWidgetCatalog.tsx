@@ -310,11 +310,11 @@ export function PanelWidgetCatalog({
     else enabled.add(type);
     commitPlaylist(playlistOrder, enabled);
   };
-  // A drag that ends over its own card still fires that card's click.
+  // The dragged card sits under the pointer at release, so the drag's own
+  // pointerup fires a click on it: consumed there, and cleared by the next
+  // pointerdown in case the release landed elsewhere.
   const suppressClickRef = useRef(false);
   const onPlaylistDragEnd = (event: DragEndEvent) => {
-    // The trailing click is dispatched in the same task as the pointerup that ended the drag.
-    setTimeout(() => { suppressClickRef.current = false; }, 0);
     const over = event.over ? String(event.over.id) : null;
     const active = String(event.active.id);
     if (!playlist || !playlistOrder || !over || over === active) return;
@@ -336,11 +336,13 @@ export function PanelWidgetCatalog({
           deviceTouch={deviceTouch}
           label={def ? t(def.meta.i18nKey) || w.type : w.type}
           selected={playlist ? playlist.enabled.includes(w.type) : selectedWidgetType === w.type}
-          disabled={!addable}
+          // Playlist toggles are not placements, so grid room and single-instance limits do not apply.
+          disabled={!playlist && !addable}
           drag={drag}
           onClick={() => {
             if (playlist) {
-              if (!suppressClickRef.current) togglePlaylistType(w.type);
+              if (suppressClickRef.current) suppressClickRef.current = false;
+              else togglePlaylistType(w.type);
               return;
             }
             const widgetId = onAdd(w.type, w.size);
@@ -431,7 +433,12 @@ export function PanelWidgetCatalog({
               onDragCancel={() => { suppressClickRef.current = false; }}
             >
               <SortableContext items={visible.map(([type]) => type)} strategy={rectSortingStrategy}>
-                <div className={panelStyles.grid}>{renderPacked(visible)}</div>
+                <div
+                  className={panelStyles.grid}
+                  onPointerDownCapture={() => { suppressClickRef.current = false; }}
+                >
+                  {renderPacked(visible)}
+                </div>
               </SortableContext>
             </DndContext>
           ) : (

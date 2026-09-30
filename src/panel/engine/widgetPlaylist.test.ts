@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   nextPlaylistType,
+  patchPlaylistWidgetConfig,
   playingPlaylistTypes,
   playlistDisplayOrder,
   playlistTypeOfWidgetId,
@@ -96,6 +97,18 @@ describe('playlistWidget', () => {
     expect(stand).toMatchObject({ type: 'weather', size: '2x4', config: { units: 'c' } });
     expect(playlistTypeOfWidgetId(stand!.id)).toBe('weather');
     expect(playlistTypeOfWidgetId('a')).toBeNull();
+  });
+
+  it('carries the device id and keeps an app type whole', () => {
+    const stand = playlistWidget(layout(widget('a', 'clock')), 'app:com.x.y', 'q60', 'dev1');
+    expect(stand?.id).toBe('playlist:dev1:app:com.x.y');
+    expect(playlistTypeOfWidgetId(stand!.id)).toBe('app:com.x.y');
+  });
+
+  it('writes a stand-in tile update into its remembered config', () => {
+    const l = layout(widget('a', 'clock'), { singleWidgetConfigs: { gallery: { shuffle: true } } });
+    expect(patchPlaylistWidgetConfig(l, 'gallery', { pickedId: 'p1' }).singleWidgetConfigs)
+      .toEqual({ gallery: { shuffle: true, pickedId: 'p1' } });
   });
 });
 

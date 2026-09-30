@@ -17,7 +17,13 @@ import { useOemAppSeed } from './engine/useOemAppSeed';
 import { useAppsChangedSync } from './engine/useAppsChangedSync';
 import { useFlashWidgets } from './engine/useFlashWidgets';
 import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
-import { playingPlaylistTypes, playlistWidget, widgetPlaylistOf } from './engine/widgetPlaylist';
+import {
+  patchPlaylistWidgetConfig,
+  playingPlaylistTypes,
+  playlistTypeOfWidgetId,
+  playlistWidget,
+  widgetPlaylistOf,
+} from './engine/widgetPlaylist';
 import { useWidgetPlaylistRotation } from './engine/useWidgetPlaylistRotation';
 import { useMachineName } from './engine/useMachineName';
 import { useEdgeAdvance } from './engine/useEdgeAdvance';
@@ -796,8 +802,8 @@ export function PanelContent({
     if (simulator) onSimulatorPlaylistShown?.(playlistType);
   }, [simulator, playlistType, onSimulatorPlaylistShown]);
   const shownPlaylistWidget = useMemo(
-    () => (playlistType ? playlistWidget(dragLayout, playlistType, surface) : undefined),
-    [dragLayout, playlistType, surface],
+    () => (playlistType ? playlistWidget(dragLayout, playlistType, surface, deviceId) : undefined),
+    [dragLayout, playlistType, surface, deviceId],
   );
 
   const allFiltered = useMemo(() => {
@@ -1241,6 +1247,11 @@ export function PanelContent({
   }, [activePageIndex, embedded, paginatedLayout, capacity, surface]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
+    const standInType = playlistTypeOfWidgetId(widgetId);
+    if (standInType) {
+      setLayout(patchPlaylistWidgetConfig(paginatedLayout, standInType, config));
+      return;
+    }
     setLayout(patchWidgetById(
       paginatedLayout,
       widgetId,
