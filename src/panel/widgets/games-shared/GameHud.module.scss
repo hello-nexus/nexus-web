@@ -23,7 +23,7 @@
   font-weight: var(--weight-strong);
 
   svg {
-    color: var(--accent-glow);
+    color: var(--panel-ink-accent, var(--accent-glow));
     flex-shrink: 0;
   }
 }

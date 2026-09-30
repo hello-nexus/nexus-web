@@ -98,7 +98,7 @@ $btn-active-fill: color-mix(in srgb, var(--text) 20%, transparent);
 .btnOp {
   @extend %btn-base;
   background: var(--panel-control-translucent);
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
 
   &:hover { background: var(--panel-accent-soft); }
   &:active { background: $btn-active-fill; }

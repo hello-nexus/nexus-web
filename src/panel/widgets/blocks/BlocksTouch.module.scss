@@ -15,7 +15,7 @@
   padding: 2px var(--space-sm);
   border-radius: var(--radius-pill);
   background: var(--accent-soft);
-  color: var(--accent-glow);
+  color: var(--panel-ink-accent, var(--accent-glow));
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;

@@ -82,7 +82,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 
-  &[data-phase='streaming'] { color: var(--panel-accent-glow); }
+  &[data-phase='streaming'] { color: var(--panel-ink-accent, var(--panel-accent-glow)); }
   &[data-phase='error'] { color: var(--bad); white-space: normal; text-align: center; }
 }
 

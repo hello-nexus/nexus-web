@@ -23,6 +23,12 @@ export function toneVar(tone: UiTone | string | undefined, fallback = 'currentCo
   }
 }
 
+/** Text colour for a tone; accent tones yield to a panel's custom text colour (--panel-ink-accent). */
+export function textToneVar(tone: UiTone | string | undefined, fallback?: string): string {
+  const value = toneVar(tone, fallback);
+  return String(tone ?? '').toLowerCase().startsWith('accent') ? `var(--panel-ink-accent, ${value})` : value;
+}
+
 const ALIGN: Record<string, string> = {
   start: 'flex-start', center: 'center', end: 'flex-end', baseline: 'baseline', stretch: 'stretch',
 };
