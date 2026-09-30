@@ -5,12 +5,8 @@ import { SettingsSection } from '../../../common/SettingsSection/SettingsSection
 import { AppIconTile } from '../../../common/AppIconTile/AppIconTile';
 import { useTranslation } from '../../../../lib/i18n';
 import {
-  APPS_CHANGED_TOPIC, approvePendingStoreUpdate, fetchPendingStoreUpdates, fetchStoreApps, fetchStoreLibrary,
-  installStoreApp, type PendingStoreUpdate, type StorePurchase, type StoreVersion,
+  fetchStoreApps, fetchStoreLibrary, installStoreApp, type StorePurchase, type StoreVersion,
 } from '../../../../api/store';
-import { useTopicCallback } from '../../../../hooks/useMultiplexSocket';
-import { useCapabilityConsent } from '../../StorePage/CapabilityConsentModal';
-import { CONSENT_DECLINED, installWithConsent } from '../../StorePage/consentInstall';
 import { loadMarketplaceApps } from '../../../../widgets/marketplaceRegistry';
 import { useUnitPrefs } from '../../../../hooks/useUiSettings';
 import { formatDate, type DateFormat } from '../../../../lib/units';
@@ -66,81 +62,37 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
   // Newest release this build can run, per app id; the catalog drops releases it can't.
   const [latest, setLatest] = useState<Map<string, StoreVersion>>(new Map());
   const [updates, setUpdates] = useState<Record<string, UpdateState>>({});
-  // Updates the service holds because they add capabilities, by app id.
-  const [pending, setPending] = useState<Map<string, PendingStoreUpdate>>(new Map());
-  const { ask: askConsent, dialog: consentDialog } = useCapabilityConsent();
 
   const load = useCallback(async () => {
-    const [library, catalog, held] = await Promise.all([
-      fetchStoreLibrary(), fetchStoreApps({ locale: language }), fetchPendingStoreUpdates(),
-    ]);
+    const [library, catalog] = await Promise.all([fetchStoreLibrary(), fetchStoreApps({ locale: language })]);
     setPurchases(library?.purchases ?? []);
     setLatest(new Map((catalog ?? []).flatMap(app => (app.latest ? [[app.id, app.latest] as const] : []))));
-    setPending(new Map((held ?? []).map(u => [u.appId, u] as const)));
   }, [language]);
 
   useEffect(() => { void load(); }, [load]);
-  // The service broadcasts when the held set changes; refetch the canonical list.
-  useTopicCallback(APPS_CHANGED_TOPIC, true, () => { void load(); });
 
   const updateFor = (purchase: StorePurchase): StoreVersion | null => {
     const version = latest.get(purchase.appId);
     return purchase.installedVersion && version && isNewer(version.version, purchase.installedVersion) ? version : null;
   };
-  // A held update has its own permission prompt, so Update all leaves it out.
-  const updatable = (purchases ?? []).filter(p => updateFor(p) !== null && !pending.has(p.appId));
+  const updatable = (purchases ?? []).filter(p => updateFor(p) !== null);
   const anyWorking = Object.values(updates).includes('working');
 
-  const runUpdate = useCallback(async (purchase: StorePurchase, version: StoreVersion): Promise<boolean> => {
-    const appId = purchase.appId;
+  const runUpdate = useCallback(async (appId: string, version: StoreVersion): Promise<boolean> => {
     setUpdates(prev => ({ ...prev, [appId]: 'working' }));
-    const res = await installWithConsent(
-      approved => installStoreApp({ id: appId, latest: version }, approved),
-      requested => askConsent({ appName: purchase.name, requested }),
-    );
+    const res = await installStoreApp({ id: appId, latest: version });
     setUpdates(prev => {
       const next = { ...prev };
-      if (res?.ok || res?.reason === CONSENT_DECLINED) delete next[appId]; else next[appId] = 'failed';
+      if (res?.ok) delete next[appId]; else next[appId] = 'failed';
       return next;
     });
     return res?.ok === true;
-  }, [askConsent]);
-
-  const approveHeld = async (purchase: StorePurchase, update: PendingStoreUpdate) => {
-    const allowed = await askConsent({
-      appName: purchase.name, requested: update.requestedCapabilities, added: update.newCapabilities,
-    });
-    if (!allowed) return;
-    setUpdates(prev => ({ ...prev, [purchase.appId]: 'working' }));
-    let res = await approvePendingStoreUpdate(update);
-    // The held list comes from the catalog; the downloaded manifest can ask for more.
-    if (res?.reason === 'consent_required' && res.requestedCapabilities) {
-      const requested = res.requestedCapabilities;
-      const again = await askConsent({
-        appName: purchase.name, requested,
-        added: requested.filter(g => !update.requestedCapabilities.includes(g)),
-      });
-      if (!again) {
-        setUpdates(prev => { const next = { ...prev }; delete next[purchase.appId]; return next; });
-        return;
-      }
-      res = await approvePendingStoreUpdate({ ...update, requestedCapabilities: requested });
-    }
-    setUpdates(prev => {
-      const next = { ...prev };
-      if (res?.ok) delete next[purchase.appId]; else next[purchase.appId] = 'failed';
-      return next;
-    });
-    if (res?.ok) {
-      await loadMarketplaceApps();
-      await load();
-    }
-  };
+  }, []);
 
   const updateOne = async (purchase: StorePurchase) => {
     const version = updateFor(purchase);
     if (!version) return;
-    if (await runUpdate(purchase, version)) {
+    if (await runUpdate(purchase.appId, version)) {
       // The registry is what the dashboard's widget picker reads.
       await loadMarketplaceApps();
       await load();
@@ -151,7 +103,7 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
     let any = false;
     for (const purchase of updatable) {
       const version = updateFor(purchase);
-      if (version && await runUpdate(purchase, version)) any = true;
+      if (version && await runUpdate(purchase.appId, version)) any = true;
     }
     if (any) {
       await loadMarketplaceApps();
@@ -180,8 +132,7 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
         <p className={styles.empty}>{t('account.purchases.empty')}</p>
       )}
       {(purchases ?? []).map(purchase => {
-        const held = pending.get(purchase.appId);
-        const update = held ? null : updateFor(purchase);
+        const update = updateFor(purchase);
         const state = updates[purchase.appId];
         const acquired = formatAcquired(purchase.acquiredAt, dateFormat);
         return (
@@ -195,8 +146,8 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
                 {purchase.installedVersion ? (
                   <li>
                     {t('account.purchases.version')} <span className={styles.value}>{purchase.installedVersion}</span>
-                    {held || update
-                      ? <span className={styles.available}>{t('account.purchases.updateAvailable', { version: held?.version ?? update?.version ?? '' })}</span>
+                    {update
+                      ? <span className={styles.available}>{t('account.purchases.updateAvailable', { version: update.version })}</span>
                       : <span className={styles.current}>{t('account.purchases.upToDate')}</span>}
                   </li>
                 ) : (
@@ -219,19 +170,6 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
             </div>
 
             <div className={styles.actions}>
-              {held && (
-                <Button
-                  type="button"
-                  tone={state === 'failed' ? 'danger' : 'accent'}
-                  size="sm"
-                  disabled={anyWorking}
-                  onClick={() => { void approveHeld(purchase, held); }}
-                >
-                  {state === 'working' ? t('account.purchases.updating')
-                    : state === 'failed' ? t('store.retry')
-                    : t('store.consent.updateNeedsPermission')}
-                </Button>
-              )}
               {update && (
                 <Button
                   type="button"
@@ -271,7 +209,6 @@ export function AccountPurchasesSection({ onOpenStoreApp }: AccountPurchasesSect
           </div>
         );
       })}
-      {consentDialog}
     </SettingsSection>
   );
 }

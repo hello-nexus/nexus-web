@@ -319,6 +319,18 @@ $card-gap: 0.6rem;
   &:hover { text-decoration: underline; }
 }
 
+.permissions {
+  margin: 0;
+  padding-left: 1.2rem;
+  max-width: 48rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  @include text-body;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
 // The storefront's lead app. The first screenshot, blurred behind the card,
 // tints it with the app's own colors; without screenshots it stays on --surface.
 .featured {

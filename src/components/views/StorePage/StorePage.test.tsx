@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { StorePage } from './StorePage';
 import type { StoreApp, StoreAppDetail } from '../../../api/store';
@@ -222,7 +222,7 @@ describe('StorePage row card', () => {
     fireEvent.click(installs[1]);
 
     expect(screen.getByText('store.banner.title')).toBeInTheDocument();
-    await waitFor(() => expect(installStoreApp).toHaveBeenCalledWith(expect.objectContaining({ id: clock.id }), undefined));
+    await waitFor(() => expect(installStoreApp).toHaveBeenCalledWith(expect.objectContaining({ id: clock.id })));
   });
 });
 
@@ -523,36 +523,34 @@ describe('StorePage language', () => {
   });
 });
 
-describe('StorePage capability consent', () => {
-  const consentNeeded = {
-    appId: app.id, version: '1.0.2', ok: false, reason: 'consent_required',
-    requestedCapabilities: ['dispatch:lighting.setMode', 'net.fetch:api.example.com'],
-  };
-
-  it('lists the requested capabilities and resends the approval when the user allows', async () => {
-    installStoreApp.mockResolvedValueOnce(consentNeeded);
-    installStoreApp.mockResolvedValueOnce({ appId: app.id, version: '1.0.2', ok: true });
+describe('StorePage permissions', () => {
+  it('lists each permission the version requests under its heading, leaving out app data and audio', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      latest: {
+        ...version,
+        capabilities: { dispatch: ['lighting.setMode'], 'net.fetch': ['api.example.com'], appData: true, audio: true },
+      },
+    });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
-    expect(await screen.findByText('store.consent.cap.lighting.setMode')).toBeInTheDocument();
-    expect(screen.getByText('store.consent.cap.netFetch host=api.example.com')).toBeInTheDocument();
-    expect(installStoreApp).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole('button', { name: 'store.consent.allow' }));
-    await waitFor(() => expect(installStoreApp).toHaveBeenCalledTimes(2));
-    expect(installStoreApp.mock.calls[1][1]).toEqual(consentNeeded.requestedCapabilities);
+    const section = (await screen.findByText('store.section.permissions')).closest('section')!;
+    const items = within(section).getAllByRole('listitem').map(li => li.textContent);
+    expect(items).toEqual(['store.consent.cap.lighting.setMode', 'store.consent.cap.netFetch host=api.example.com']);
   });
 
-  it('installs nothing and leaves the button ready when the user cancels', async () => {
-    installStoreApp.mockResolvedValue(consentNeeded);
+  it('shows no Permissions section for an app that requests none', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...version, capabilities: { appData: true, audio: true } } });
     render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'confirm.cancel' }));
+    expect(await screen.findByText('store.section.description')).toBeInTheDocument();
+    expect(screen.queryByText('store.section.permissions')).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => expect(screen.queryByText('store.consent.cap.lighting.setMode')).not.toBeInTheDocument());
-    expect(installStoreApp).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'store.install' })).toBeInTheDocument();
+  it('shows no Permissions section when the catalog omits capabilities', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.section.description')).toBeInTheDocument();
+    expect(screen.queryByText('store.section.permissions')).not.toBeInTheDocument();
   });
 });

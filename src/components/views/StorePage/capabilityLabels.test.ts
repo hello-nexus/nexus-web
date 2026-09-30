@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KNOWN_DISPATCH_ACTIONS, capabilityLabel } from './capabilityLabels';
+import { KNOWN_DISPATCH_ACTIONS, capabilityGrants, capabilityLabel } from './capabilityLabels';
 import en from '../../../locales/en.json';
 
 const t = (key: string, params?: Record<string, string | number>) => {
@@ -29,8 +29,6 @@ describe('capabilityLabel', () => {
   });
 
   it('maps the flag grants', () => {
-    expect(capabilityLabel('appData', t)).toBe('store.consent.cap.appData');
-    expect(capabilityLabel('audio', t)).toBe('store.consent.cap.audio');
     expect(capabilityLabel('rgb.read', t)).toBe('store.consent.cap.rgbRead');
     expect(capabilityLabel('rgb.write', t)).toBe('store.consent.cap.rgbWrite');
   });
@@ -43,8 +41,42 @@ describe('capabilityLabel', () => {
   it('has an English label for every known action and flag', () => {
     const keys = new Set(Object.keys(en));
     for (const action of KNOWN_DISPATCH_ACTIONS) expect(keys.has(`store.consent.cap.${action}`), action).toBe(true);
-    for (const grant of ['appData', 'audio', 'rgb.read', 'rgb.write']) {
+    for (const grant of ['rgb.read', 'rgb.write']) {
       expect(keys.has(capabilityLabel(grant, k => k)), grant).toBe(true);
     }
+  });
+});
+
+describe('capabilityGrants', () => {
+  it('flattens every permission kind in listing order', () => {
+    expect(capabilityGrants({
+      'rgb.write': true,
+      mediaImport: ['/apps-api/media'],
+      'sensors.read': ['cpu.*'],
+      'net.fetch': ['API.Example.com'],
+      dispatch: ['lighting.setMode'],
+      'rgb.read': true,
+    })).toEqual([
+      'dispatch:lighting.setMode',
+      'net.fetch:api.example.com',
+      'sensors.read:cpu.*',
+      'mediaImport:/apps-api/media',
+      'rgb.read',
+      'rgb.write',
+    ]);
+  });
+
+  it('never lists appData or audio, which are not permissions', () => {
+    expect(capabilityGrants({ appData: true, audio: true, config: true, code: 'worker' })).toEqual([]);
+  });
+
+  it('ignores malformed author JSON', () => {
+    expect(capabilityGrants(null)).toEqual([]);
+    expect(capabilityGrants('dispatch')).toEqual([]);
+    expect(capabilityGrants({ dispatch: 'lighting.setMode', 'net.fetch': [42, '', ' '], 'rgb.write': 'yes' })).toEqual([]);
+  });
+
+  it('drops duplicates', () => {
+    expect(capabilityGrants({ dispatch: ['system.specs', ' system.specs'] })).toEqual(['dispatch:system.specs']);
   });
 });

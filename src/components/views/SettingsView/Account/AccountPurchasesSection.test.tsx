@@ -16,14 +16,9 @@ vi.mock('../../../../lib/i18n', () => ({
 const fetchStoreLibrary = vi.fn();
 const fetchStoreApps = vi.fn();
 const installStoreApp = vi.fn();
-const fetchPendingStoreUpdates = vi.fn();
-const approvePendingStoreUpdate = vi.fn();
 vi.mock('../../../../api/store', () => ({
-  APPS_CHANGED_TOPIC: 'apps/changed',
   fetchStoreLibrary: () => fetchStoreLibrary(),
   fetchStoreApps: () => fetchStoreApps(),
-  fetchPendingStoreUpdates: () => fetchPendingStoreUpdates(),
-  approvePendingStoreUpdate: (update: unknown) => approvePendingStoreUpdate(update),
   installStoreApp: (app: unknown) => installStoreApp(app),
 }));
 vi.mock('../../../../widgets/marketplaceRegistry', () => ({
@@ -55,8 +50,6 @@ beforeEach(() => {
   fetchStoreLibrary.mockReset();
   fetchStoreApps.mockReset().mockResolvedValue([]);
   installStoreApp.mockReset();
-  fetchPendingStoreUpdates.mockReset().mockResolvedValue([]);
-  approvePendingStoreUpdate.mockReset();
 });
 
 describe('AccountPurchasesSection updates', () => {
@@ -160,52 +153,5 @@ describe('AccountPurchasesSection store link', () => {
 
     await screen.findByText('Aquarium');
     expect(screen.queryByRole('button', { name: 'account.purchases.viewInStore' })).toBeNull();
-  });
-});
-
-describe('AccountPurchasesSection held updates', () => {
-  const held = {
-    appId: 'com.hellonexus.aquarium', fromVersion: '1.0.2', version: '1.1.0',
-    requestedCapabilities: ['appData', 'audio'], newCapabilities: ['audio'],
-  };
-
-  it('offers Update needs permission, shows the new capability marked, and approves the requested set', async () => {
-    fetchStoreLibrary.mockResolvedValue({ signedIn: true, offline: false, purchases: [purchase()] });
-    fetchPendingStoreUpdates.mockResolvedValue([held]);
-    approvePendingStoreUpdate.mockResolvedValue({ appId: held.appId, version: '1.1.0', ok: true });
-    render(<AccountPurchasesSection />);
-
-    fireEvent.click(await screen.findByRole('button', { name: 'store.consent.updateNeedsPermission' }));
-    expect(screen.getByText('store.consent.cap.audio')).toBeInTheDocument();
-    expect(screen.getAllByText('store.consent.new')).toHaveLength(1);
-
-    fireEvent.click(screen.getByRole('button', { name: 'store.consent.allow' }));
-    await waitFor(() => expect(approvePendingStoreUpdate).toHaveBeenCalledWith(held));
-  });
-
-  it('asks again with the service list when the downloaded manifest asks for more than the catalog listed', async () => {
-    fetchStoreLibrary.mockResolvedValue({ signedIn: true, offline: false, purchases: [purchase()] });
-    fetchPendingStoreUpdates.mockResolvedValue([held]);
-    const wider = ['appData', 'audio', 'net.fetch:example.com'];
-    approvePendingStoreUpdate
-      .mockResolvedValueOnce({ appId: held.appId, version: '1.1.0', ok: false, reason: 'consent_required', requestedCapabilities: wider })
-      .mockResolvedValueOnce({ appId: held.appId, version: '1.1.0', ok: true });
-    render(<AccountPurchasesSection />);
-
-    fireEvent.click(await screen.findByRole('button', { name: 'store.consent.updateNeedsPermission' }));
-    fireEvent.click(screen.getByRole('button', { name: 'store.consent.allow' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'store.consent.allow' }));
-
-    await waitFor(() => expect(approvePendingStoreUpdate).toHaveBeenLastCalledWith({ ...held, requestedCapabilities: wider }));
-  });
-
-  it('does not approve when the dialog is cancelled', async () => {
-    fetchStoreLibrary.mockResolvedValue({ signedIn: true, offline: false, purchases: [purchase()] });
-    fetchPendingStoreUpdates.mockResolvedValue([held]);
-    render(<AccountPurchasesSection />);
-
-    fireEvent.click(await screen.findByRole('button', { name: 'store.consent.updateNeedsPermission' }));
-    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
-    expect(approvePendingStoreUpdate).not.toHaveBeenCalled();
   });
 });
