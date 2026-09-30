@@ -1,7 +1,8 @@
 import { getToken, handleUnauthorized } from './auth';
-import { deleteService, fetchService, isForceLanMode, isLocalhostUnreachable, isTunnelActive, isRemoteOrigin, loopbackFetchInit, postService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
+import { authFetchWithStatus, deleteService, fetchService, isForceLanMode, isLocalhostUnreachable, isTunnelActive, isRemoteOrigin, loopbackFetchInit, postService, putService, relayRequestWithStatus, RELAY_BOOT_TIMEOUT_MS, resolveHttp } from './service';
 import { deriveDeviceLabel } from '../lib/platform';
 import type { PanelLayout, PanelSurface } from '../panel/types';
+import type { PresetApp, PresetAppConflict, SetPresetAppsResult } from './lighting';
 
 // Init for the direct localhost fetches below. The phone-session cookie only
 // ever rides a same-origin request; cross-origin from the website the service
@@ -238,6 +239,53 @@ export const patchPanelDevice = (id: string, patch: PanelDevicePatch) =>
 // (defaults reseed on the next read) and deletes its uploaded media.
 export const resetPanelDevice = (id: string) =>
   postService<PanelDeviceRecord>(`/panel/devices/${encodeURIComponent(id)}/reset`, {});
+
+/** A named snapshot of one panel's layout, theme, background and widget
+ *  styling. Loading one first saves the live state into the preset it leaves. */
+export interface PanelPreset {
+  id: string;
+  name: string;
+  apps: PresetApp[];
+}
+
+export interface PanelPresetsResponse {
+  presets: PanelPreset[];
+  activeId: string | null;
+}
+
+const panelPresetsPath = (id: string) => `/panel/devices/${encodeURIComponent(id)}/presets`;
+
+export const fetchPanelPresets = (id: string) =>
+  fetchService<PanelPresetsResponse>(panelPresetsPath(id));
+
+export const createPanelPreset = (id: string, name: string) =>
+  postService<PanelPresetsResponse>(panelPresetsPath(id), { name });
+
+export const renamePanelPreset = (id: string, presetId: string, name: string) =>
+  putService<PanelPresetsResponse>(`${panelPresetsPath(id)}/${encodeURIComponent(presetId)}`, { name });
+
+export const deletePanelPreset = (id: string, presetId: string) =>
+  deleteService<PanelPresetsResponse>(`${panelPresetsPath(id)}/${encodeURIComponent(presetId)}`);
+
+export const activatePanelPreset = (id: string, presetId: string) =>
+  postService<PanelPresetsResponse>(`${panelPresetsPath(id)}/${encodeURIComponent(presetId)}/activate`, {});
+
+/** Same contract as setLayoutPresetApps; an app triggers one preset per panel. */
+export async function setPanelPresetApps(id: string, presetId: string, apps: PresetApp[]): Promise<SetPresetAppsResult> {
+  const { response, status } = await authFetchWithStatus(
+    `${panelPresetsPath(id)}/${encodeURIComponent(presetId)}/apps`,
+    { method: 'PUT', body: { apps } },
+  );
+  if (status === 200) return { kind: 'ok' };
+  if (status === 409 && response) {
+    try {
+      return { kind: 'conflict', conflict: (await response.json()) as PresetAppConflict };
+    } catch {
+      return { kind: 'failed' };
+    }
+  }
+  return { kind: 'failed' };
+}
 
 // Hardware-settings reset: restores the Settings-tab defaults and applies
 // them to the hardware (brightness/orientation/screen, Xeneon DDC picture

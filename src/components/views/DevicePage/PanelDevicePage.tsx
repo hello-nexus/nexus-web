@@ -87,6 +87,7 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { useToast, useToastSafe } from '../../common/Toast/Toast';
 import { PanelEmbedFrame, type PanelEmbedFrameHandle } from './PanelEmbedFrame';
+import { PanelPresetToolbar } from './PanelPresetToolbar';
 import { resolvePanelNativeCanvas } from '../../../panel/embed/panelNativeCanvas';
 import { saveBlobToFile } from '../../../lib/saveFile';
 import { sanitizeFileName } from '../../../panel/widgets/lighting/page/mappingUtils';
@@ -1221,6 +1222,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         // the button could do nothing but report an error.
         tabActions={showFwGate || showDisconnected || recordSecondaryMonitor ? undefined : (
           <>
+            {editingDeviceId && <PanelPresetToolbar key={editingDeviceId} deviceId={editingDeviceId} />}
             <Button
               size="sm"
               tone="ghost"
