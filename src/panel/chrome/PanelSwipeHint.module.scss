@@ -1,3 +1,6 @@
+// Shared by the arrow and the hand so they fade in step.
+$flick-ease: cubic-bezier(0.32, 0.72, 0, 1);
+
 // Runs once over the whole cycles x cycle window; the lift below repeats.
 @keyframes swipeHintFade {
   0% { opacity: 0; }
@@ -25,10 +28,20 @@
   }
 }
 
-@keyframes swipeHintChevron {
-  0%, 30% { opacity: 0.35; transform: translateY(0); }
-  70% { opacity: 1; transform: translateY(-6px); }
-  100% { opacity: 0.35; transform: translateY(0); }
+// Same easing and fade-out as the lift: brightens as the hand rises, fades with it.
+@keyframes swipeHintArrow {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-6px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
 }
 
 .hint {
@@ -49,18 +62,18 @@
   animation: swipeHintFade calc(var(--swipe-hint-cycle) * var(--swipe-hint-cycles)) ease both;
 }
 
-.chevron {
+.arrow {
   width: 44px;
-  height: 44px;
+  height: 99px;
   stroke-width: 2.5;
-  animation: swipeHintChevron var(--swipe-hint-cycle) ease-in-out var(--swipe-hint-cycles);
+  animation: swipeHintArrow var(--swipe-hint-cycle) $flick-ease var(--swipe-hint-cycles);
 }
 
 .hand {
   width: 88px;
   height: 88px;
   stroke-width: 1.75;
-  // Room for the full lift: the fingertip reaches the chevron, never crosses it.
-  margin-top: 36px;
-  animation: swipeHintLift var(--swipe-hint-cycle) cubic-bezier(0.32, 0.72, 0, 1) var(--swipe-hint-cycles);
+  // Room for the full lift: the fingertip reaches the shaft's tail, never crosses it.
+  margin-top: 49px;
+  animation: swipeHintLift var(--swipe-hint-cycle) $flick-ease var(--swipe-hint-cycles);
 }

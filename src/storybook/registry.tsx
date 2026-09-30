@@ -9,6 +9,7 @@ import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
 import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
+import { SpecList } from '../components/common/SpecList/SpecList';
 import { StatTile } from '../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Avatar } from '../components/common/Avatar/Avatar';
@@ -466,6 +467,18 @@ function PreviewSystemSpecsPanel() {
         />
       </div>
     </div>
+  );
+}
+
+function PreviewSpecList() {
+  return (
+    <SpecList
+      rows={[
+        { key: 'cpu', label: 'Processor', value: 'Sample 8-Core Processor' },
+        { key: 'gpu', label: 'Graphics Card', value: 'Sample Graphics 16GB with a model name long enough to wrap onto a second line' },
+        { key: 'ram', label: 'Memory', value: '32 GB DDR5-6000 (2 x 16 GB)' },
+      ]}
+    />
   );
 }
 
@@ -2387,6 +2400,11 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Sensor display: title + optional subtitle + name/value rows. Composes Card for the chrome.', Preview: PreviewSensorCard,
   },
   {
+    name: 'SpecList', category: 'cards',
+    filePath: 'src/components/common/SpecList/SpecList.tsx',
+    description: "A PC's hardware as zebra label/value rows; long values wrap to a second line instead of truncating. The one listing for a machine's parts (profile and account device cards, benchmark entry hardware).", Preview: PreviewSpecList,
+  },
+  {
     name: 'InfoList / InfoRow', category: 'cards',
     filePath: 'src/components/common/InfoList/InfoList.tsx',
     description: 'Bounded widget of label/value rows. Use for compact device meta, status keys, or any vertical key/value listing. Tones: accent / good / warn / bad / dim.', Preview: PreviewInfoList,
@@ -2933,7 +2951,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelSwipeHint', category: 'panel-kit',
     filePath: 'src/panel/chrome/PanelSwipeHint.tsx',
-    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks toward a chevron, then it unmounts. Pointer-transparent.',
+    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks along a long up arrow, then it unmounts. Pointer-transparent.',
     Preview: PreviewPanelSwipeHint,
     notes: 'Click "Replay" to run the cycle again. Period, cycle length and count come from usePanelSwipeOnboarding.',
   },

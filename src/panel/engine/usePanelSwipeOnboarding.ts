@@ -6,7 +6,7 @@ import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 // first open marks the install done (settings.json, cleared by a factory
 // reset or the Settings onboarding reset).
 export const SWIPE_HINT_PERIOD_MS = 10_000;
-export const SWIPE_HINT_CYCLE_MS = 800;
+export const SWIPE_HINT_CYCLE_MS = 1200;
 export const SWIPE_HINT_CYCLES = 3;
 export const SWIPE_HINT_VISIBLE_MS = SWIPE_HINT_CYCLE_MS * SWIPE_HINT_CYCLES;
 
