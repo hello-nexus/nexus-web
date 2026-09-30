@@ -196,6 +196,15 @@ export interface PanelPage {
   widgets: PanelWidget[];
 }
 
+export interface PanelWidgetPlaylist {
+  enabled: boolean;
+  /** Seconds each widget holds; one of SLIDESHOW_INTERVALS. */
+  interval: number;
+  shuffle: boolean;
+  /** Widget types in play order, each at most once. */
+  types: string[];
+}
+
 export interface PanelLayout {
   layoutSchemaVersion: number;
   surface: PanelSurface;
@@ -207,6 +216,9 @@ export interface PanelLayout {
   // Keyed by widget type. Unused (undefined) on multi-widget surfaces, where
   // every widget's config already lives on its own PanelWidget in `pages`.
   singleWidgetConfigs?: Record<string, Record<string, PanelConfigValue>>;
+  // Single-widget surfaces: widget types the panel rotates through. Unused on
+  // multi-widget surfaces.
+  widgetPlaylist?: PanelWidgetPlaylist;
   // Widget the panel opens straight into immersive view on load, skipping the
   // dashboard. At most one, and it must be on the first page - the toggle that
   // sets it is only reachable there, so normalizePanelLayout drops an id that

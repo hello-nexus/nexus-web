@@ -17,6 +17,8 @@ import { useOemAppSeed } from './engine/useOemAppSeed';
 import { useAppsChangedSync } from './engine/useAppsChangedSync';
 import { useFlashWidgets } from './engine/useFlashWidgets';
 import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
+import { playingPlaylistTypes, playlistWidget, widgetPlaylistOf } from './engine/widgetPlaylist';
+import { useWidgetPlaylistRotation } from './engine/useWidgetPlaylistRotation';
 import { useMachineName } from './engine/useMachineName';
 import { useEdgeAdvance } from './engine/useEdgeAdvance';
 import { usePageSync } from './engine/usePageSync';
@@ -772,6 +774,25 @@ export function PanelContent({
     };
   }, [paginatedLayout, activeDragId, dragExtraPageId]);
 
+  // Widget playlist (single-widget surfaces): render-only like the offline
+  // clock below. Held on the edited widget while the device-page editor has
+  // one selected, so its settings preview what they change.
+  const widgetPlaylist = widgetPlaylistOf(layout);
+  const playlistTypes = useMemo(
+    () => playingPlaylistTypes(layout, surface, deviceTouch),
+    [layout, surface, deviceTouch],
+  );
+  const playlistType = useWidgetPlaylistRotation(
+    playlistTypes,
+    widgetPlaylist.interval,
+    widgetPlaylist.shuffle,
+    simulator && Boolean(simulatorSelectedWidgetId),
+  );
+  const shownPlaylistWidget = useMemo(
+    () => (playlistType ? playlistWidget(dragLayout, playlistType, surface) : undefined),
+    [dragLayout, playlistType, surface],
+  );
+
   const allFiltered = useMemo(() => {
     // q60 offline failsafe: keep the panel exactly as-is (background animation,
     // theme, chrome) and swap only the rendered widgets for the clock widget.
@@ -780,7 +801,10 @@ export function PanelContent({
     if (surface === 'q60' && isOffline) {
       return q60OfflineClockPages(dragLayout.pages, surface);
     }
-    return dragLayout.pages.map(page => ({
+    const pages = shownPlaylistWidget
+      ? [{ id: dragLayout.pages[0]?.id ?? '', widgets: [shownPlaylistWidget] }]
+      : dragLayout.pages;
+    return pages.map(page => ({
       id: page.id,
       widgets: page.widgets
         .filter(w => {
@@ -793,7 +817,7 @@ export function PanelContent({
         // visual layout; placement itself is via inline style, not source order.
         .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
     }));
-  }, [dragLayout.pages, surface, deviceTouch, isOffline]);
+  }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget]);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.

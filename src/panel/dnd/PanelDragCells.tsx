@@ -476,6 +476,7 @@ export function PanelCatalogCell({
   addedStage = null,
   onEditAdded,
   onPointerLeave,
+  badge,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
@@ -496,6 +497,8 @@ export function PanelCatalogCell({
   addedStage?: 'added' | 'edit' | null;
   onEditAdded?: () => void;
   onPointerLeave?: () => void;
+  /** Position number pinned to the card's corner (single-widget playlist order). */
+  badge?: number;
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
@@ -575,6 +578,9 @@ export function PanelCatalogCell({
               )}
             </div>
           </div>
+        )}
+        {badge !== undefined && (
+          <span className={styles.catalogCellBadge} aria-hidden="true">{badge}</span>
         )}
       </div>
       {showLabel && (

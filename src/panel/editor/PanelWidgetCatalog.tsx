@@ -88,6 +88,9 @@ export interface PanelWidgetCatalogProps {
   // Highlight the card matching this widget type. Used by single-widget
   // surfaces (q-series) to mark the device's active widget.
   selectedWidgetType?: string;
+  // Single-widget playlist: these types are marked selected and numbered in
+  // this order. Replaces selectedWidgetType when set.
+  orderedTypes?: readonly string[];
   // Per-device touch capability (promoted monitors): touch-requiring widgets
   // are listed only when the device's display actually has a digitizer.
   deviceTouch?: boolean;
@@ -106,6 +109,7 @@ export function PanelWidgetCatalog({
   themeStyle,
   className,
   selectedWidgetType,
+  orderedTypes,
   deviceTouch,
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
@@ -269,6 +273,7 @@ export function PanelWidgetCatalog({
       const def = defByType.get(w.type);
       const alreadyPlaced = !!def?.meta.singleInstance && !!placedTypes?.includes(w.type);
       const addable = fits(w.size) && !alreadyPlaced;
+      const order = orderedTypes ? orderedTypes.indexOf(w.type) : -1;
       return (
         <PanelCatalogCell
           key={w.id}
@@ -276,7 +281,8 @@ export function PanelWidgetCatalog({
           surface={surface}
           deviceTouch={deviceTouch}
           label={def ? t(def.meta.i18nKey) || w.type : w.type}
-          selected={selectedWidgetType === w.type}
+          selected={orderedTypes ? order >= 0 : selectedWidgetType === w.type}
+          badge={order >= 0 ? order + 1 : undefined}
           disabled={!addable}
           onClick={() => {
             const widgetId = onAdd(w.type, w.size);

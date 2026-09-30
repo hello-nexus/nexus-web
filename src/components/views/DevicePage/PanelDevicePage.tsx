@@ -14,6 +14,12 @@ import {
   swapSingleWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
+import {
+  setWidgetPlaylistEnabled,
+  toggleWidgetPlaylistType,
+  updateWidgetPlaylist,
+  widgetPlaylistOf,
+} from '../../../panel/engine/widgetPlaylist';
 import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
@@ -111,9 +117,15 @@ import {
 import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
 import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
+import { WidgetPlaylistEditor } from '../../../panel/editor/WidgetPlaylistEditor';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import '../../../panel/styles/tokens.scss';
 import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
 import styles from './PanelDevicePage.module.scss';
+
+// ChipGroup keys for a single-widget panel's Single / Playlist switch.
+const WIDGET_MODE_SINGLE = 'single';
+const WIDGET_MODE_PLAYLIST = 'playlist';
 
 interface PanelDevicePageProps {
   device: PanelDevice;
@@ -835,10 +847,31 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const currentSingleWidget: PanelWidget | undefined = singleWidget
     ? layout.pages[0]?.widgets[0]
     : undefined;
+  const widgetPlaylist = singleWidget ? widgetPlaylistOf(layout) : null;
+  const playlistMode = widgetPlaylist?.enabled === true;
+
+  // A playlist entry is edited as the shown widget: swapping to it restores
+  // its remembered config, so the settings pane edits the entry in place.
+  const editSingleWidgetType = useCallback((type: string) => {
+    const current = layout.pages[0]?.widgets[0];
+    if (current?.type === type) {
+      setConfiguringWidgetId(current.id);
+      return;
+    }
+    const size = singleWidgetSurfaceSize(surface);
+    if (!size) return;
+    const next: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0 };
+    updateLayout(swapSingleWidget(layout, next));
+    setConfiguringWidgetId(next.id);
+  }, [layout, surface, updateLayout]);
 
   // Returns the id of the widget that landed so the catalog can offer
   // "click to edit" on the card that was just clicked.
   const handleAddWidget = useCallback((type: string, size: PanelWidgetSize): string | undefined => {
+    if (singleWidget && playlistMode) {
+      updateLayout(toggleWidgetPlaylistType(layout, type));
+      return undefined;
+    }
     if (singleWidget) {
       // Single-widget surface (q-series): one widget at a time, fixed 2x4.
       // Clicking the catalog tile already on the device is a no-op.
@@ -872,7 +905,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     updateLayout(landingPage ? { ...appended, activePageId: landingPage.id } : appended);
     // appendWidget refuses a full grid; only report an id the layout kept.
     return landingPage ? next.id : undefined;
-  }, [editorCapacity, layout, singleWidget, updateLayout]);
+  }, [editorCapacity, layout, playlistMode, singleWidget, updateLayout]);
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
     updateLayout(removeWidgetById(layout, widgetId, editorCapacity));
@@ -882,8 +915,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   }, [editorCapacity, layout, updateLayout]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
+    // The preview shows a render-only stand-in for a playlist entry that is
+    // not the stored widget.
+    if (singleWidget && widget.id !== currentSingleWidget?.id) {
+      editSingleWidgetType(widget.type);
+      return;
+    }
     setConfiguringWidgetId(widget.id);
-  }, []);
+  }, [currentSingleWidget?.id, editSingleWidgetType, singleWidget]);
 
   const handleUpdateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
@@ -1262,6 +1301,27 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         aria-disabled={recordSecondaryMonitor || undefined}
                         inert={recordSecondaryMonitor || undefined}
                       >
+                        {widgetPlaylist && (
+                          <div className={styles.playlistPanel}>
+                            <ChipGroup
+                              fullWidth
+                              ariaLabel={t('panel.playlist.mode')}
+                              options={[
+                                { key: WIDGET_MODE_SINGLE, label: t('panel.playlist.single') },
+                                { key: WIDGET_MODE_PLAYLIST, label: t('panel.playlist.playlist') },
+                              ]}
+                              activeKey={playlistMode ? WIDGET_MODE_PLAYLIST : WIDGET_MODE_SINGLE}
+                              onChange={key => updateLayout(setWidgetPlaylistEnabled(layout, key === WIDGET_MODE_PLAYLIST))}
+                            />
+                            {playlistMode && (
+                              <WidgetPlaylistEditor
+                                playlist={widgetPlaylist}
+                                onChange={patch => updateLayout(updateWidgetPlaylist(layout, patch))}
+                                onEdit={editSingleWidgetType}
+                              />
+                            )}
+                          </div>
+                        )}
                         <PanelWidgetCatalog
                           surface={surface}
                           deviceTouch={deviceTouch}
@@ -1272,6 +1332,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           remote={isRemotePanel(device?.connectionKind)}
                           className={styles.catalog}
                           selectedWidgetType={currentSingleWidget?.type}
+                          orderedTypes={playlistMode ? widgetPlaylist?.types : undefined}
                           themeMode={desktopResolvedThemeMode}
                           themeStyle={panelPreviewThemeStyle}
                         />

@@ -18,6 +18,7 @@ import {
 } from '../../../panel/embed/simulatorProtocol';
 import type { PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
 import { simulatedPanelCssViewport } from '../../../panel/embed/simulatedPanelViewport';
+import { playlistTypeOfWidgetId, playlistWidget } from '../../../panel/engine/widgetPlaylist';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './PanelEmbedFrame.module.scss';
 
@@ -319,7 +320,10 @@ export function PanelEmbedFrame({
           break;
         }
         case 'simulator/widget-clicked': {
-          const widget = findWidget(layout, data.widgetId);
+          // A playlist stand-in is not in the layout; its type is enough for the editor.
+          const playlistType = playlistTypeOfWidgetId(data.widgetId);
+          const widget = findWidget(layout, data.widgetId)
+            ?? (playlistType ? playlistWidget(layout, playlistType, surface) : undefined);
           if (widget) onWidgetClicked(widget);
           break;
         }
@@ -333,7 +337,7 @@ export function PanelEmbedFrame({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [layout, onBackgroundClicked, onLayoutChange, onWidgetClicked]);
+  }, [layout, onBackgroundClicked, onLayoutChange, onWidgetClicked, surface]);
 
   // Init handshake: send the full state once the child says it's ready.
   useEffect(() => {

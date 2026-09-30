@@ -1,0 +1,60 @@
+@use '../../styles/text' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.list {
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: var(--bg-card-hover);
+  }
+}
+
+.grip {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  cursor: grab;
+}
+
+.index {
+  @include text-numeric;
+  flex-shrink: 0;
+  min-width: 16px;
+  color: var(--text-dim);
+}
+
+.icon {
+  display: flex;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.name {
+  @include text-body;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hint {
+  @include text-caption;
+  margin: 4px 0 8px;
+  color: var(--text-dim);
+}
