@@ -42,6 +42,7 @@ export interface SimulatorRuntimeState {
   deviceId: string | null;
   onWidgetClicked: (id: string) => void;
   onBackgroundClicked: () => void;
+  onPlaylistShown: (widgetType: string | null) => void;
 }
 
 const SIMULATOR_FALLBACK_LAYOUT: PanelLayout = {
@@ -168,6 +169,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     postToParent({ type: 'simulator/background-clicked' });
   }, []);
 
+  const onPlaylistShown = useCallback((widgetType: string | null) => {
+    postToParent({ type: 'simulator/playlist-shown', widgetType });
+  }, []);
+
   const layoutState: PanelLayoutState = {
     layout,
     loaded: ready,
@@ -192,5 +197,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     deviceId,
     onWidgetClicked,
     onBackgroundClicked,
+    onPlaylistShown,
   };
 }

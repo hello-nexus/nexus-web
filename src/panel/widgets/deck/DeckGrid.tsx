@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
+import { useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react';
 import { Undo2, Plus, Trash2 } from 'lucide-react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
@@ -12,6 +12,7 @@ import { DeckMonitoringCell } from './DeckMonitoringCell';
 import { DeckWeatherCell } from './DeckWeatherCell';
 import { DECK_MONITORING_TILE_BG } from './deckMonitoring';
 import { slotPathAt } from './deckTarget';
+import { useSquareCell } from './useSquareCell';
 import type { DeckSlot } from './types';
 import styles from './DeckGrid.module.scss';
 
@@ -77,20 +78,19 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
   }
 
   let iconEl: ReactNode;
-  let appIconFills = false;
+  // A loaded image or app icon is the key face: no accent unless slot.color (DeckKeyRenderer iconOnBlack).
+  let faceFills = false;
   if (icon?.kind === 'emoji') {
     iconEl = <span className={styles.emoji}>{icon.value}</span>;
   } else if (icon?.kind === 'lucide') {
     iconEl = <span className={styles.icon}>{renderLucide(icon.value)}</span>;
   } else if (icon?.kind === 'image') {
+    faceFills = !!imageIconUrl;
     iconEl = imageIconUrl ? <img src={imageIconUrl} className={styles.customImage} alt="" /> : null;
   } else if (appId) {
     if (appIconUrl) {
-      // A loaded app icon IS the key face: full size, no accent fill behind
-      // it, on the touch widget and the physical preview alike (the service
-      // renders hardware keys the same way). Applies to every /shortcuts/icon
-      // source (launchApp, an explicit app icon, an openFile exe).
-      appIconFills = true;
+      // Every /shortcuts/icon source: launchApp, an explicit app icon, an openFile exe.
+      faceFills = true;
       iconEl = <img src={appIconUrl} className={styles.appIconFull} alt="" />;
     } else {
       // An icon-only app slot has no action to derive a glyph from, so it keeps
@@ -105,7 +105,7 @@ function useCellVisual(slot: DeckSlot, liveSrc?: string): { accent: string; cont
     iconEl = null;
   }
 
-  const accent = slot.color ?? (appIconFills ? 'transparent' : categoryColor(isFolder ? 'folder' : deckCategory(action)));
+  const accent = slot.color ?? (faceFills ? 'transparent' : categoryColor(isFolder ? 'folder' : deckCategory(action)));
   const titleStyle = resolveDeckTitleStyle(slot.title);
   const content = (
     <>
@@ -232,7 +232,7 @@ export interface DeckGridProps {
    * Fixed square keys at a device-like size, centered, instead of stretching
    * cells to fill the container. Used by the physical Stream Deck editor so the
    * grid mirrors the hardware's square-button layout; the touch widget leaves
-   * this off and fills its tile.
+   * this off and sizes square keys to its tile, spacing out the spare room.
    */
   square?: boolean;
   /**
@@ -263,7 +263,9 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
   const { t } = useTranslation();
   const [ctxMenu, setCtxMenu] = useState<{ index: number; x: number; y: number } | null>(null);
   const Cell = dragEnabled ? DraggableCell : StaticCell;
-  const trackSize = square ? 'var(--deck-cell)' : '1fr';
+  const gridRef = useRef<HTMLDivElement>(null);
+  const fillCell = useSquareCell(gridRef, cols, rows, !square);
+  const trackSize = square ? 'var(--deck-cell)' : fillCell ? `${fillCell}px` : '1fr';
   const liveSrcFor = (index: number): string | undefined =>
     liveTiles && page != null && folderPath ? liveTiles.get(`${page}:${slotPathAt(folderPath, index)}`) : undefined;
 
@@ -285,6 +287,7 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
 
   return (
     <div
+      ref={gridRef}
       className={square ? `${styles.grid} ${styles.square}` : styles.grid}
       style={{ gridTemplateColumns: `repeat(${cols}, ${trackSize})`, gridTemplateRows: `repeat(${rows}, ${trackSize})`, '--deck-cols': cols } as CSSProperties}
     >

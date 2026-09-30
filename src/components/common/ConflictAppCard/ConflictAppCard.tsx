@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PowerOff } from 'lucide-react';
-import { killConflict, type ConflictAutostartEntry, type DetectedConflict } from '../../../api/conflicts';
+import type { ConflictAutostartEntry, DetectedConflict } from '../../../api/conflicts';
 import type { ConflictDevice } from '../../../hooks/useConflictDevices';
 import { Button } from '../Button/Button';
 import { ChipGroup } from '../ChipGroup/ChipGroup';
@@ -18,11 +18,13 @@ interface ConflictAppCardProps {
   conflict: DetectedConflict;
   /** Devices Nexus recognizes that this app also drives. Absent or empty renders the plain row. */
   devices?: readonly ConflictDevice[];
-  /** Flips every listed device to the chosen owner. Required for the switch to render. */
-  onSetOwner?: (owner: ConflictOwnerChoice) => Promise<void>;
+  /** Flips every listed device to the chosen owner, and the app's whitelist state. Required for the switch to render. */
+  onSetOwner?: (owner: ConflictOwnerChoice) => Promise<boolean>;
+  /** Whether the app is on `Ui.ConflictAutoKillExclusions` - the switch position this reflects, independent of device ownership. */
+  whitelisted?: boolean;
   /** The app has been ended: the row stays listed with its devices, minus the owner switch. */
   terminated?: boolean;
-  /** Reports a kill that stuck, from either the button or the owner switch. */
+  /** Reports a kill from the End task button that stuck. */
   onTerminated?: () => void;
   /**
    * What still launches this app at boot. Undefined means the service has no
@@ -51,66 +53,58 @@ export function selectedOwner(devices: readonly ConflictDevice[]): ConflictOwner
  * single conflict blocking that device).
  *
  * With `devices`, the card also lists the hardware both apps are after and an
- * all-or-none switch over who drives it. Handing the lot to Nexus ends the app
- * as well, so it cannot keep fighting for handles Nexus is about to claim;
- * handing it to the app leaves the app running.
+ * all-or-none switch over who drives it, driven by `whitelisted` rather than
+ * the devices' own agreement: choosing the app whitelists it (never ended,
+ * never alerted on) and hands the devices back; choosing Nexus clears the
+ * whitelist and claims the devices, without ending the app.
  */
 export function ConflictAppCard({
-  conflict, devices, onSetOwner, terminated, onTerminated, autostart, onDisableAutostart, autostartDisabled,
+  conflict, devices, onSetOwner, whitelisted, terminated, onTerminated, autostart, onDisableAutostart, autostartDisabled,
 }: ConflictAppCardProps) {
   const { t } = useTranslation();
-  // Which owner is being applied, or null when idle. Held as the choice rather
-  // than a flag because only the Nexus path ends the app, and End task must
-  // spin for that one alone.
+  // Which owner is being applied, or null when idle.
   const [applying, setApplying] = useState<ConflictOwnerChoice | null>(null);
-  // Set when handing over to Nexus did not end the app: the devices are now
-  // Nexus-controlled but the app is still up, so the row stays and says so.
-  const [endFailed, setEndFailed] = useState(false);
+  // Shown immediately on click; cleared once `whitelisted` reflects the write,
+  // or at once when the write failed, so the switch never shows an owner the
+  // service did not record.
+  const [optimisticOwner, setOptimisticOwner] = useState<ConflictOwnerChoice | null>(null);
   const [disablingAutostart, setDisablingAutostart] = useState(false);
   // Sticky for the life of the card: the entry list goes empty on success (or
   // the app drops out of the read once it has ended), so without this the
   // confirmation would vanish in the same frame it appeared.
   const [ownAutostartDisabled, setOwnAutostartDisabled] = useState(false);
   const [autostartFailed, setAutostartFailed] = useState(false);
-  // The kill clears this row through the watcher, so the card can unmount
-  // mid-await; only a still-mounted card resets its busy state.
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
 
-  // A row that un-terminates (the app returned under a new pid) must not
-  // resurface the previous attempt's failure alongside a live switch.
   useEffect(() => {
-    if (terminated) setEndFailed(false);
-  }, [terminated]);
+    setOptimisticOwner(null);
+  }, [whitelisted]);
 
   const list = devices ?? [];
-  const selection = selectedOwner(list);
   const showDevices = list.length > 0 && onSetOwner !== undefined;
   // An ended app drives nothing, so the choice is moot; the devices stay
   // listed so the row still says what it was fighting Nexus for.
   const showSwitch = showDevices && terminated !== true;
+  const currentOwner: ConflictOwnerChoice = whitelisted ? APP_OWNER : NEXUS_OWNER;
+  const selection = optimisticOwner ?? currentOwner;
 
   const handleOwner = useCallback(async (key: string) => {
     if (!onSetOwner || applying !== null) return;
     const owner: ConflictOwnerChoice = key === NEXUS_OWNER ? NEXUS_OWNER : APP_OWNER;
     if (owner === selection) return;
     setApplying(owner);
-    setEndFailed(false);
+    setOptimisticOwner(owner);
     try {
-      await onSetOwner(owner);
-      if (owner === NEXUS_OWNER) {
-        const res = await killConflict(conflict.id).catch(() => null);
-        if (!mountedRef.current) return;
-        if (res?.killed) onTerminated?.();
-        else setEndFailed(true);
-      }
+      const recorded = await onSetOwner(owner);
+      if (!recorded && mountedRef.current) setOptimisticOwner(null);
     } finally {
       if (mountedRef.current) setApplying(null);
     }
-  }, [applying, conflict.id, onSetOwner, onTerminated, selection]);
+  }, [applying, onSetOwner, selection]);
 
   const handleDisableAutostart = useCallback(async () => {
     if (!onDisableAutostart || disablingAutostart) return;
@@ -163,7 +157,6 @@ export function ConflictAppCard({
           <EndTaskButton
             conflictId={conflict.id}
             pid={conflict.pid}
-            busy={applying === NEXUS_OWNER}
             terminated={terminated}
             onKilled={onTerminated}
           />
@@ -212,11 +205,6 @@ export function ConflictAppCard({
               </li>
             ))}
           </ul>
-          {endFailed && !terminated && (
-            <p className={styles.endFailed} role="alert">
-              {t('conflicts.devices.endFailed', { app: conflict.displayName })}
-            </p>
-          )}
           {showSwitch && (
             <ChipGroup
               fullWidth

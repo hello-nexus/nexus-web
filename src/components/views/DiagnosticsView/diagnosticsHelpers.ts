@@ -1,6 +1,7 @@
 // Pure mapping/formatting helpers for the diagnostics view + widget. Kept
 // side-effect-free (no i18n context, no fetch) so they're covered directly
 // by diagnosticsHelpers.test.ts instead of through component rendering.
+import { Fan, HardDrive, MemoryStick, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type {
   CoolingDeviceStatus,
   DiagnosticsComponent,
@@ -175,12 +176,6 @@ export function resolveSectionState(opts: {
   return 'content';
 }
 
-/** Client-side display order for health.components, matching the page's
- *  section order (Storage, Memory, GPU, Cooling, System) regardless of what
- *  order the server returns them in. Shared with the panel widget's dots row
- *  so both surfaces agree on one ordering. */
-export const DIAGNOSTICS_KIND_ORDER: DiagnosticsKind[] = ['storage', 'memory', 'gpu', 'cooling', 'system'];
-
 export type DiagnosticsTab = 'summary' | 'storage' | 'memory' | 'cooling' | 'system' | 'settings';
 
 const ALL_DIAGNOSTICS_TABS: readonly DiagnosticsTab[] = ['summary', 'storage', 'memory', 'cooling', 'system', 'settings'];
@@ -222,6 +217,15 @@ const DOMAIN_TILE_KINDS: readonly { domain: DiagnosticsKind; kinds: readonly Dia
   { domain: 'cooling', kinds: ['cooling', 'gpu'] },
   { domain: 'system', kinds: ['system'] },
 ];
+
+// Same glyph the domain's own tab uses, so a tile reads as the tab it opens.
+// Cooling folds GPU in, so it takes the Cooling tab's Fan icon.
+export const DOMAIN_ICON: Partial<Record<DiagnosticsKind, LucideIcon>> = {
+  storage: HardDrive,
+  memory: MemoryStick,
+  cooling: Fan,
+  system: ShieldCheck,
+};
 
 export function aggregateDomainTiles(components: DiagnosticsComponent[]): DomainTile[] {
   return DOMAIN_TILE_KINDS.map(({ domain, kinds }) => {
@@ -276,18 +280,6 @@ export function worstReason(components: DiagnosticsComponent[]): DiagnosticsReas
     for (const reason of component.reasons) {
       if (!worst || STATUS_SEVERITY_RANK[reason.severity] > STATUS_SEVERITY_RANK[worst.severity]) worst = reason;
     }
-  }
-  return worst;
-}
-
-/** The worst status among every component of a given kind; 'unknown' when
- *  the kind has no components at all. Drives the widget's per-kind dots. */
-export function kindStatus(components: DiagnosticsComponent[], kind: DiagnosticsKind): DiagnosticsStatus {
-  const matching = components.filter(c => c.kind === kind);
-  if (matching.length === 0) return 'unknown';
-  let worst: DiagnosticsStatus = 'ok';
-  for (const component of matching) {
-    if (STATUS_SEVERITY_RANK[component.status] > STATUS_SEVERITY_RANK[worst]) worst = component.status;
   }
   return worst;
 }

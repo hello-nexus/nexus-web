@@ -128,8 +128,8 @@ async function cmdDev(appDir, opts) {
 }
 
 // nexus.app/1 capability keys: array allowlists vs boolean flags vs the code model.
-const ARRAY_CAPS = new Set(['net.fetch', 'sensors.read', 'dispatch']);
-const BOOL_CAPS = new Set(['rgb.read', 'rgb.write', 'config']);
+const ARRAY_CAPS = new Set(['net.fetch', 'sensors.read', 'dispatch', 'mediaImport']);
+const BOOL_CAPS = new Set(['rgb.read', 'rgb.write', 'config', 'appData']);
 
 // Mirrors PANEL_SURFACES / PANEL_WIDGET_SIZES in nexus-web/src/panel/types.ts.
 // A surface outside this set only warns, so a manifest naming one this CLI has
@@ -176,6 +176,12 @@ function cmdValidate(appDir) {
       }
       if (m.default_size != null && Array.isArray(m.sizes) && !m.sizes.includes(m.default_size)) {
         errors.push(`manifest.default_size "${m.default_size}" is not one of manifest.sizes`);
+      }
+      if (m.grid_sizes != null) {
+        if (!Array.isArray(m.grid_sizes)) errors.push('manifest.grid_sizes must be an array');
+        else if (Array.isArray(m.sizes)) for (const x of m.grid_sizes) {
+          if (!m.sizes.includes(x)) errors.push(`manifest.grid_sizes entry "${x}" is not one of manifest.sizes`);
+        }
       }
       if (m.settings != null) {
         if (!Array.isArray(m.settings)) errors.push('manifest.settings must be an array');

@@ -38,6 +38,27 @@ function contextMenuEvent(overrides: Partial<React.MouseEvent> = {}): React.Mous
 }
 
 describe('usePanelTouchMode', () => {
+  it('a tap inside an interactive SDK stage belongs to the app and never opens immersive', () => {
+    const onCellTap = vi.fn();
+    const { result } = renderHook(() => usePanelTouchMode({ onCellTap }));
+    const cell = document.createElement('div');
+    const stage = document.createElement('div');
+    stage.setAttribute('data-panel-interactive', 'true');
+    const sprite = document.createElement('div');
+    stage.appendChild(sprite);
+    cell.appendChild(stage);
+    act(() => {
+      result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ target: sprite, currentTarget: cell }));
+      result.current.bindCellPointers(widget).onPointerUp(pointerEvent({ target: sprite, currentTarget: cell }));
+    });
+    expect(onCellTap).not.toHaveBeenCalled();
+    act(() => {
+      result.current.bindCellPointers(widget).onPointerDown(pointerEvent({ target: cell, currentTarget: cell }));
+      result.current.bindCellPointers(widget).onPointerUp(pointerEvent({ target: cell, currentTarget: cell }));
+    });
+    expect(onCellTap).toHaveBeenCalledTimes(1);
+  });
+
   it('keeps a right-click context menu open after the right mouse button is released', () => {
     const { result } = renderHook(() => usePanelTouchMode({}));
 

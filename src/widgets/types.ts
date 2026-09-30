@@ -32,6 +32,16 @@ export interface AppManifestCapabilities {
    *  component. The host enforces this allowlist; the worker cannot upload to a
    *  path not listed here. */
   mediaImport?: string[];
+  /** Grants the app one persistent JSON document per key
+   *  (/apps-api/data/{appId}/{key}), shared by every running instance of this
+   *  app on the install. Default false. */
+  appData?: boolean;
+  /** Grants the app a host-side WebAudio sampler via useAudio - PCM the app
+   *  synthesizes in its worker, played through the host's document. Default
+   *  false. The host still refuses playback (useAudio().available stays
+   *  false) in preview, on a streamed/headless panel render, or where the
+   *  host document has no WebAudio support. */
+  audio?: boolean;
 }
 
 export type AppManifestSettingType =
@@ -77,12 +87,16 @@ export interface AppInstalledListing {
   settings?: AppManifestSettingEntry[];
   sizes?: string[];
   defaultSize?: string;
+  /** The sizes offered on panels that hold several widgets, when fewer than `sizes`; unset offers them all. */
+  gridSizes?: string[];
   source: 'user' | 'bundled' | string;
   /** OEM bake-in: a bundled app to treat as active at first boot (its page
    *  section is auto-pinned), no user "add" required. */
   preinstalled?: boolean;
   /** App opts its widget into the panel's fullscreen immersive view. */
   immersive?: boolean;
+  /** Immersive view requires a second swipe to close; the first only reveals the close hint. */
+  immersiveDoubleSwipe?: boolean;
   /** Only one instance of this app may sit on a panel. Default: many allowed. */
   singleInstance?: boolean;
   /** Apps with category "device" appear under DEVICES in the sidebar nav

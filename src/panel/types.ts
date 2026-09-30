@@ -29,6 +29,41 @@ export function surfaceSupportsTouch(surface: PanelSurface, deviceTouch?: boolea
     && surface !== 'lcd-round' && surface !== 'lcd-square' && surface !== 'lcd-wide';
 }
 
+export type SurfaceInputMode = 'touch' | 'pointer' | 'none';
+
+// The operator's input method at this surface, for SDK widgets branching on
+// touch vs mouse vs no input at all. Desktop is mouse ('pointer'), Y70/phone
+// are direct touch, cooler glass and the Q-series are display-only ('none').
+// 'monitor' follows the same per-device digitizer rule as surfaceSupportsTouch.
+export function surfaceInputMode(surface: PanelSurface, deviceTouch?: boolean): SurfaceInputMode {
+  if (surface === 'desktop') return 'pointer';
+  if (surface === 'monitor') return deviceTouch === true ? 'touch' : 'none';
+  return surfaceSupportsTouch(surface) ? 'touch' : 'none';
+}
+
+// The tile shape an SDK widget is actually rendered into. Only '2x2round'
+// (round glass: the Kraken LCD) masks to a circle; every other size is rect.
+export function widgetDisplayShape(size: PanelWidgetSize): 'rect' | 'round' {
+  return size === '2x2round' ? 'round' : 'rect';
+}
+
+// Whether this surface is rendered off-screen by the streamed-panels engine
+// and pushed to the device as encoded video (the Kraken LCD, the round/square/
+// wide cooler glass, the Q-series ArtInChip pipeline) rather than shown in a
+// real, user-facing browser window on this PC. An SDK widget's audio must stay
+// silent on these surfaces - the render runs on the host machine's speakers,
+// not the device the operator is looking at.
+//
+// 'monitor' is ambiguous by surface id alone: a promoted OS display and the
+// ArtInChip D213's streamed capture both use it (D213PanelDiscovery.cs in
+// nexus-service). `displayBound` (PanelDeviceRecord.displayId set) tells them
+// apart - PanelDisplayBoundContext supplies the real per-device value.
+export function isStreamedPanelSurface(surface: PanelSurface, displayBound = true): boolean {
+  if (surface === 'kraken' || surface === 'lcd-round' || surface === 'lcd-square'
+    || surface === 'lcd-wide' || surface === 'q60') return true;
+  return surface === 'monitor' && !displayBound;
+}
+
 // Whether the operator at this surface has a usable text-entry method: desktop
 // (physical keyboard) and phone/tablet (on-screen keyboard). The Y70 kiosk is
 // touch-only with no keyboard and the Q-series is display-only, so neither
@@ -161,6 +196,19 @@ export interface PanelPage {
   widgets: PanelWidget[];
 }
 
+export interface PanelWidgetPlaylist {
+  enabled: boolean;
+  /** Seconds each widget holds; one of SLIDESHOW_INTERVALS. */
+  interval: number;
+  shuffle: boolean;
+  /** Enabled widget types in play order, each at most once. */
+  types: string[];
+  /** Every arranged widget type, enabled or not, in the editor's library order. */
+  order: string[];
+  /** Manual jump from the editor's arrows; `at` (unix ms) re-fires a jump to the same type. */
+  cursor?: { type: string; at: number };
+}
+
 export interface PanelLayout {
   layoutSchemaVersion: number;
   surface: PanelSurface;
@@ -172,6 +220,9 @@ export interface PanelLayout {
   // Keyed by widget type. Unused (undefined) on multi-widget surfaces, where
   // every widget's config already lives on its own PanelWidget in `pages`.
   singleWidgetConfigs?: Record<string, Record<string, PanelConfigValue>>;
+  // Single-widget surfaces: widget types the panel rotates through. Unused on
+  // multi-widget surfaces.
+  widgetPlaylist?: PanelWidgetPlaylist;
   // Widget the panel opens straight into immersive view on load, skipping the
   // dashboard. At most one, and it must be on the first page - the toggle that
   // sets it is only reachable there, so normalizePanelLayout drops an id that

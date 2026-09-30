@@ -12,6 +12,7 @@ import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
 import { StatTile } from '../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Avatar } from '../components/common/Avatar/Avatar';
+import { AppIconTile } from '../components/common/AppIconTile/AppIconTile';
 import { Slider } from '../components/common/Slider/Slider';
 import { RangeSlider } from '../components/common/Slider/RangeSlider';
 import { EditableText } from '../components/common/Editable/EditableText';
@@ -1162,7 +1163,7 @@ function PreviewConflictAppCard() {
           { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'app' },
           { key: 'lighting:openrgb-s-RAM1', name: 'Vengeance RGB', owner: 'mixed' },
         ]}
-        onSetOwner={async () => {}}
+        onSetOwner={async () => true}
       />
       <ConflictAppCard
         conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }}
@@ -1170,7 +1171,7 @@ function PreviewConflictAppCard() {
           { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'nexus' },
           { key: 'lighting:openrgb-s-RAM1', name: 'Vengeance RGB', owner: 'nexus' },
         ]}
-        onSetOwner={async () => {}}
+        onSetOwner={async () => true}
         terminated
       />
       <ConflictAppCard
@@ -1960,6 +1961,19 @@ function PreviewSpinner() {
   );
 }
 
+const PREVIEW_APP_ICON = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#2f6fb3"/><ellipse cx="34" cy="30" rx="14" ry="8" fill="#f5b52e"/><path d="M20 30l-9-7v14z" fill="#f5b52e"/><rect y="52" width="64" height="12" fill="#8a6a3d"/></svg>')}`;
+
+function PreviewAppIconTile() {
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+      <AppIconTile src={PREVIEW_APP_ICON} size={40} />
+      <AppIconTile src={PREVIEW_APP_ICON} size={64} />
+      <AppIconTile src={PREVIEW_APP_ICON} size={112} />
+      <AppIconTile src={null} size={64} />
+    </div>
+  );
+}
+
 function PreviewAvatar() {
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
@@ -2721,6 +2735,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Spinner/Spinner.tsx',
     description: 'Indeterminate loading spinner: rotating arc over faint track, SMIL-animated. Size (default 20px) and color are props. Host-renderer bridge for the SDK Spinner element.',
     Preview: PreviewSpinner,
+  },
+  {
+    name: 'AppIconTile', category: 'status',
+    filePath: 'src/components/common/AppIconTile/AppIconTile.tsx',
+    description: 'A Marketplace app icon at any px size: no border, corners rounded in proportion to the edge. An app without an icon, or whose image fails to load, gets a placeholder glyph on a surface tile. Used by the Marketplace page and Account > Purchased apps.',
+    Preview: PreviewAppIconTile,
   },
   {
     name: 'Avatar', category: 'status',

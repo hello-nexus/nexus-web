@@ -25,6 +25,11 @@ vi.mock('../../../api/migration', () => ({
   uninstallNexus2: (...args: any[]) => mockUninstall(...args),
 }));
 
+let mockExclusions: string[] = [];
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useConflictAutoKillExclusions: () => mockExclusions,
+}));
+
 beforeEach(() => {
   mockKill.mockReset();
   mockKill.mockResolvedValue({ error: false, msg: 'Ok', killed: true });
@@ -36,6 +41,7 @@ beforeEach(() => {
   mockFetchAutostart.mockResolvedValue([]);
   mockUninstall.mockReset();
   mockUninstall.mockResolvedValue({ error: false, msg: 'Ok' });
+  mockExclusions = [];
 });
 
 const icue = { id: 'icue', displayName: 'Corsair iCUE', category: 'lighting', processName: 'iCUE', pid: 396 };
@@ -109,6 +115,23 @@ describe('ConflictOnboardingScreen', () => {
     expect(screen.getByText('conflicts.onboarding.uninstallNexus2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'conflicts.onboarding.skip' })).toBeInTheDocument();
+  });
+
+  it('resolve all skips a whitelisted app: no kill, no autostart disable', async () => {
+    mockExclusions = ['icue'];
+    mockFetchAutostart.mockResolvedValue([{ id: 'icue', entries: [{ kind: 'service', entryName: 'CorsairService' }] }]);
+    const onComplete = vi.fn();
+    render(<ConflictOnboardingScreen open ready conflicts={[icue, cam]} onComplete={onComplete} />);
+    await act(async () => { await Promise.resolve(); });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+    });
+
+    expect(mockKill).toHaveBeenCalledWith('nzxt-cam');
+    expect(mockKill).not.toHaveBeenCalledWith('icue');
+    expect(mockDisableAutostart).not.toHaveBeenCalledWith('icue');
+    expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
   it('renders Back and Skip only when their handlers are given', () => {

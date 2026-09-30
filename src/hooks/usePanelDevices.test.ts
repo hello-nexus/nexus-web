@@ -105,6 +105,20 @@ describe('buildPanelDevices Nexus Link off state', () => {
     });
     expect(devices).toHaveLength(0);
   });
+
+  it('carries the record warning onto the monitor panel device', () => {
+    const build = (warning: string | null | undefined) => buildPanelDevices({
+      curatedDevices: [],
+      phoneSessions: [],
+      records: [{ ...xeneonRecord('Xeneon Edge'), warning }],
+      status: null,
+      simulatedPanels: [],
+      labels: LABELS,
+    });
+    expect(build('touch-permission')[0].warning).toBe('touch-permission');
+    expect(build(null)[0].warning).toBeUndefined();
+    expect(build(undefined)[0].warning).toBeUndefined();
+  });
 });
 
 describe('buildPanelDevices streamed panels', () => {

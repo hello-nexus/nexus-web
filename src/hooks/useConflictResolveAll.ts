@@ -3,6 +3,8 @@ import { killConflict } from '../api/conflicts';
 import type { ConflictAutostartMap } from './useConflictAutostart';
 import type { ConflictRosterEntry } from './useConflictRoster';
 
+const NO_WHITELIST: ReadonlySet<string> = new Set();
+
 export interface ConflictResolveAllState {
   /** Something is still running or still starts at boot. */
   pending: boolean;
@@ -19,22 +21,30 @@ export interface ConflictResolveAllState {
  * report through the roster (terminated); disables through
  * `autostartDisabledIds`, because a terminated app drops out of the next
  * autostart read and its row would otherwise lose the confirmation.
+ *
+ * A whitelisted app is skipped entirely, by both `pending` and `resolveAll`:
+ * the user chose to let it keep running, so a one-click resolve must not end
+ * it or touch its boot entries.
  */
 export function useConflictResolveAll(
   entries: readonly ConflictRosterEntry[],
   markTerminated: (id: string) => void,
   autostartByApp: ConflictAutostartMap,
   disableAutostart: (id: string) => Promise<boolean>,
+  whitelistedIds: ReadonlySet<string> = NO_WHITELIST,
 ): ConflictResolveAllState {
   const [resolving, setResolving] = useState(false);
   const [autostartDisabledIds, setAutostartDisabledIds] = useState<ReadonlySet<string>>(() => new Set());
   // Guards re-entry across the await; the state flag alone lags a render.
   const resolvingRef = useRef(false);
 
-  const running = useMemo(() => entries.filter(e => !e.terminated), [entries]);
+  const running = useMemo(
+    () => entries.filter(e => !e.terminated && !whitelistedIds.has(e.conflict.id)),
+    [entries, whitelistedIds],
+  );
   const autostarting = useMemo(
-    () => entries.filter(e => (autostartByApp.get(e.conflict.id)?.length ?? 0) > 0),
-    [entries, autostartByApp],
+    () => entries.filter(e => !whitelistedIds.has(e.conflict.id) && (autostartByApp.get(e.conflict.id)?.length ?? 0) > 0),
+    [entries, autostartByApp, whitelistedIds],
   );
   const pending = running.length > 0 || autostarting.length > 0;
 

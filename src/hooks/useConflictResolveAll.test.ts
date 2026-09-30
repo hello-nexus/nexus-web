@@ -62,4 +62,20 @@ describe('useConflictResolveAll', () => {
     const { result } = renderHook(() => useConflictResolveAll(done, vi.fn(), new Map([['icue', []]]), vi.fn()));
     expect(result.current.pending).toBe(false);
   });
+
+  it('skips a whitelisted app entirely, for both pending and resolveAll', async () => {
+    const markTerminated = vi.fn();
+    const disable = vi.fn().mockResolvedValue(true);
+    const whitelisted = new Set(['icue']);
+    const { result } = renderHook(() => useConflictResolveAll(entries, markTerminated, autostart, disable, whitelisted));
+    expect(result.current.pending).toBe(false);
+
+    let ok = false;
+    await act(async () => { ok = await result.current.resolveAll(); });
+
+    expect(ok).toBe(true);
+    expect(mockKill).not.toHaveBeenCalled();
+    expect(disable).not.toHaveBeenCalled();
+    expect(markTerminated).not.toHaveBeenCalled();
+  });
 });

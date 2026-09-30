@@ -250,7 +250,7 @@ describe('UiSettingsProvider - pinnedSidebarApps', () => {
     });
     await flush();
 
-    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(['monitoring', 'lighting', 'cooling', 'diagnostics']);
+    expect(captured.ctx!.settings.pinnedSidebarApps).toEqual(['monitoring', 'lighting', 'cooling', 'diagnostics', 'store']);
   });
 
   // Boot-order race: nothing in reload() may reset pinnedSidebarApps to

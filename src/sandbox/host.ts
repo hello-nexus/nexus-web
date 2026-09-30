@@ -9,6 +9,7 @@ import { composeSdkWorkerSource } from './sandboxBoot';
 import { proxyFetch } from './proxyClient';
 import { flattenFrameForWorker, type FlatReading } from './sensorFlatten';
 import * as monitoringStore from '../lib/monitoringStore';
+import type { AppDataDoc, AppDataPutResult, AudioPlay, WidgetDisplay } from '../../sdk/runtime/context';
 
 function globToRegex(pattern: string): RegExp {
   return new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*') + '$', 'i');
@@ -31,6 +32,11 @@ export interface SandboxContext {
   devTools?: boolean;
   /** This worker renders the panel's fullscreen immersive view. */
   immersive?: boolean;
+  /** This tile's shape + the panel surface's input method. Static for the
+   *  render; the worker reads it via the SDK's useDisplay(). */
+  display: WidgetDisplay;
+  /** Nexus's UI language; the worker reads it via the SDK's useLocale(). */
+  locale: string;
   size: { width: number; height: number };
   settings: Record<string, unknown>;
   local: Record<string, unknown>;
@@ -49,12 +55,33 @@ export interface SandboxContext {
     dispatch(action: string, args?: Record<string, unknown>): Promise<unknown>;
     /** The overlay's animated exit; only wired for the immersive worker. */
     exitImmersive?(): void;
+    /** Opens this widget's own fullscreen immersive view; only wired for the
+     *  tile's cell-surface worker, never the immersive worker or a preview. */
+    enterImmersive?(): void;
+    /** Bound to this widget's own appId; absent when the manifest lacks
+     *  `capabilities.appData` or this is a preview render. */
+    appDataGet?(key: string): Promise<AppDataDoc>;
+    appDataPut?(key: string, baseRevision: number, data: unknown): Promise<AppDataPutResult>;
+    /** Bound to this widget instance's own AudioInstanceEngine; absent when
+     *  the manifest lacks `capabilities.audio`, this is a preview, this
+     *  render is captured by the streamed-panels engine, or the host
+     *  document has no WebAudio support. */
+    audioLoad?(id: string, channels: Float32Array[], sampleRate: number, loop?: { start: number; end: number }): void;
+    audioPlay?(id: string, opts?: AudioPlay): void;
+    audioClock?(name: string, lead?: number): void;
+    audioSolo?(name: string): void;
+    audioStop?(opts?: { tag?: string; clock?: string; fade?: number }): void;
+    audioReverb?(id: string | null, wet?: number): void;
+    audioVolume?(level: number, fade?: number): void;
   };
 }
 
 export interface SandboxPatch {
   settings?: Record<string, unknown>;
   size?: { width: number; height: number };
+  appData?: { key: string } & AppDataDoc;
+  display?: WidgetDisplay;
+  locale?: string;
 }
 
 export interface SandboxHandle {

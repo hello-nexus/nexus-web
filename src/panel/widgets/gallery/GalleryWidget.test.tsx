@@ -6,6 +6,7 @@ import { PanelPreviewProvider } from '../common/PanelPreviewContext';
 
 const mockItems = vi.hoisted(() => ({
   current: [] as { id: string; name: string; sourceId: string; kind: 'image' | 'video' }[],
+  playlists: [] as { id: string; name: string; createdAtUnixMs: number; sourceIds: string[]; itemIds: string[]; excludedIds: string[] }[],
   // Item ids whose poster request must come back empty (no ffmpeg on the PC).
   noPoster: new Set<string>(),
 }));
@@ -14,7 +15,7 @@ const mockItems = vi.hoisted(() => ({
 // drift between them and the service's buckets shows up here.
 vi.mock('../../../api/gallery', async importOriginal => ({
   ...(await importOriginal<typeof import('../../../api/gallery')>()),
-  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockItems.current })),
+  fetchGalleryItems: vi.fn(() => Promise.resolve({ items: mockItems.current, playlists: mockItems.playlists })),
 }));
 
 vi.mock('../../../api/service', () => ({
@@ -45,6 +46,7 @@ vi.mock('../../../lib/i18n', () => {
     'gallery.empty.noImages': 'No images in the gallery',
     'gallery.panel.prev': 'Previous',
     'gallery.panel.next': 'Next',
+    'gallery.empty.playlist': 'Playlist is empty',
   }[key] ?? key);
   return { useTranslation: () => ({ t }) };
 });
@@ -98,6 +100,7 @@ async function flushAsync() {
 beforeEach(() => {
   vi.clearAllMocks();
   mockItems.current = [];
+  mockItems.playlists = [];
   mockItems.noPoster.clear();
   globalThis.URL.createObjectURL = vi.fn((blob: Blob & { tag?: string }) => `blob:${blob.tag ?? 'x'}`);
   globalThis.URL.revokeObjectURL = vi.fn();
@@ -387,6 +390,38 @@ describe('GalleryWidget', () => {
 
     await waitFor(() => expect(shownImage()).toBe('blob:a'));
     expect(document.querySelector('img')!.getAttribute('data-fit')).toBe('contain');
+  });
+
+  describe('playlists', () => {
+    const playlist = (id: string, patch: { sourceIds?: string[]; itemIds?: string[]; excludedIds?: string[] }) => ({
+      id, name: id, createdAtUnixMs: 1, sourceIds: [], itemIds: [], excludedIds: [], ...patch,
+    });
+
+    it('plays only its playlist', async () => {
+      mockItems.current = items('a', 'b', 'c');
+      mockItems.playlists = [playlist('desk', { itemIds: ['b', 'c'] })];
+      render(<GalleryWidget widget={galleryWidget({ playlistId: 'desk' })} />);
+
+      await waitFor(() => expect(shownImage()).toBe('blob:b'));
+      fireEvent.click(screen.getByLabelText('Next'));
+      await waitFor(() => expect(shownImage()).toBe('blob:c'));
+      fireEvent.click(screen.getByLabelText('Next'));
+      await waitFor(() => expect(shownImage()).toBe('blob:b'));
+    });
+
+    it('a deleted playlist falls back to the whole library', async () => {
+      mockItems.current = items('a', 'b');
+      render(<GalleryWidget widget={galleryWidget({ playlistId: 'gone' })} />);
+      await waitFor(() => expect(shownImage()).toBe('blob:a'));
+    });
+
+    it('says the playlist is empty rather than the gallery', async () => {
+      mockItems.current = items('a');
+      mockItems.playlists = [playlist('desk', {})];
+      render(<GalleryWidget widget={galleryWidget({ playlistId: 'desk' })} />);
+      expect(await screen.findByText('Playlist is empty')).toBeTruthy();
+      expect(screen.queryByText('Add images or videos on the Gallery page')).toBeNull();
+    });
   });
 
   describe('videos', () => {

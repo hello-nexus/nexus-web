@@ -16,7 +16,7 @@ interface AccountSignedInProps {
   onRecoveryFreshConsumed: () => void;
   /** Which tab the route names; the caller owns the tab strip. */
   tab: AccountSignedInTab;
-  /** Opens an app's store page from Manage purchases. */
+  /** Opens an app's store page from Manage purchased apps. */
   onOpenStoreApp?: (appId: string) => void;
 }
 

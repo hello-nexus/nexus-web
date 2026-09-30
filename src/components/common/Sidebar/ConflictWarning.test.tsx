@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConflictWarningBadge } from './ConflictWarning';
 import type { DetectedConflict } from '../../../api/conflicts';
 
@@ -10,6 +10,11 @@ vi.mock('../../../lib/i18n', () => ({
     t: (key: string, params?: Record<string, string | number>) =>
       (params ? `${key}:${Object.values(params).join('|')}` : key),
   }),
+}));
+
+let mockExclusions: string[] = [];
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useConflictAutoKillExclusions: () => mockExclusions,
 }));
 
 vi.mock('../../../api/conflicts', async () => {
@@ -29,6 +34,10 @@ const conflicts: DetectedConflict[] = [
 ];
 
 describe('ConflictWarningModal', () => {
+  beforeEach(() => {
+    mockExclusions = [];
+  });
+
   it('renders one ConflictAppCard per detected conflict', () => {
     render(
       <ConflictWarningBadge
@@ -84,5 +93,41 @@ describe('ConflictWarningModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.manageApps' }));
     expect(onOpenChange).toHaveBeenCalledWith(false);
     expect(onManageApps).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the badge once every detected app is whitelisted, but keeps listing it in an open modal', () => {
+    mockExclusions = ['icue', 'lian-li-l-connect'];
+    render(
+      <ConflictWarningBadge
+        conflicts={conflicts}
+        ready
+        suppressed={false}
+        open
+        onOpenChange={vi.fn()}
+        onSuppressedChange={vi.fn()}
+        onManageApps={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'conflicts.badge.text' })).not.toBeInTheDocument();
+    expect(screen.getByText('iCUE')).toBeInTheDocument();
+    expect(screen.getByText('L-Connect')).toBeInTheDocument();
+  });
+
+  it('shows the badge while at least one detected app is not whitelisted', () => {
+    mockExclusions = ['icue'];
+    render(
+      <ConflictWarningBadge
+        conflicts={conflicts}
+        ready
+        suppressed={false}
+        open={false}
+        onOpenChange={vi.fn()}
+        onSuppressedChange={vi.fn()}
+        onManageApps={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'conflicts.badge.text' })).toBeInTheDocument();
   });
 });

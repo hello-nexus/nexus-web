@@ -84,7 +84,11 @@ export function useOemAppSeed({
     // apps from the marketplace registry, which is empty until it loads, so a pin
     // left unpersisted silently drops on a cold reopen. Writing it explicitly,
     // plus the cold-load sanitizer that preserves the app key, keeps it pinned.
-    const nextPinned = [...uiSettings.pinnedSidebarApps, ...pinAdds];
+    // A store left as the bottom row stays there, below the seeded apps.
+    const pinned = uiSettings.pinnedSidebarApps;
+    const nextPinned = pinned[pinned.length - 1] === 'store'
+      ? [...pinned.slice(0, -1), ...pinAdds, 'store']
+      : [...pinned, ...pinAdds];
 
     updateUiSettings({
       oemAppSeeded: true,

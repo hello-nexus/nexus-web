@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { IconLabelButton } from '../../../components/common/IconLabelButton/IconLabelButton';
 import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
 import { Button } from '../../../components/common/Button/Button';
+import { MediaCropper, type NormalizedCrop } from '../../../components/common/MediaCropper/MediaCropper';
 import { canEditFreeText, type PanelSurface } from '../../types';
 import { DECK_ICONS, DECK_ICON_NAMES } from '../deck/deckIcons';
 import { EmojiPicker } from './EmojiPicker';
@@ -31,10 +32,6 @@ interface IconPickerProps {
   // True when rendered in a desktop editor context; keeps the search input
   // visible even when the target surface has no keyboard.
   desktopEditor?: boolean;
-  // Fires whenever the active tab changes, including the tab computed at
-  // mount - a caller uses this to react to the Custom tab being active (e.g.
-  // dimming a tile-color control a full-bleed image would ignore).
-  onTabChange?: (tab: Tab) => void;
 }
 
 export type Tab = 'auto' | 'icons' | 'emoji' | 'custom';
@@ -46,12 +43,15 @@ export function tabForValue(value?: DeckIcon): Tab {
   return 'auto'; // undefined or app icon → Auto
 }
 
-export function IconPicker({ value, onChange, surface, desktopEditor, onTabChange }: IconPickerProps) {
+export function IconPicker({ value, onChange, surface, desktopEditor }: IconPickerProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>(() => tabForValue(value));
   const [query, setQuery] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // Object URL of the picked file while the cropper is open.
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  useEffect(() => (cropSrc ? () => URL.revokeObjectURL(cropSrc) : undefined), [cropSrc]);
   const fileRef = useRef<HTMLInputElement>(null);
   const showSearch = canEditFreeText(surface, desktopEditor);
   const previewUrl = useDeckImage(value?.kind === 'image' ? value.value : undefined);
@@ -61,11 +61,6 @@ export function IconPicker({ value, onChange, surface, desktopEditor, onTabChang
   // doesn't read as "the image was cleared".
   const lastImageId = useRef<string | undefined>(value?.kind === 'image' ? value.value : undefined);
   if (value?.kind === 'image') lastImageId.current = value.value;
-
-  useEffect(() => {
-    onTabChange?.(tab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -81,14 +76,19 @@ export function IconPicker({ value, onChange, surface, desktopEditor, onTabChang
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
     setUploadError(null);
+    setCropSrc(URL.createObjectURL(file));
+  };
+
+  const handleCropConfirm = async (crop: NormalizedCrop, fit: boolean) => {
+    if (!cropSrc) return;
     setUploading(true);
     try {
-      const resized = await resizeDeckImage(file);
+      const resized = await resizeDeckImage(cropSrc, crop, fit);
       const id = await uploadDeckImage(resized);
       if (!id) { setUploadError(t('panel.iconPicker.uploadFailed')); return; }
       onChange({ kind: 'image', value: id });
@@ -96,6 +96,7 @@ export function IconPicker({ value, onChange, surface, desktopEditor, onTabChang
       setUploadError(t('panel.iconPicker.uploadFailed'));
     } finally {
       setUploading(false);
+      setCropSrc(null);
     }
   };
 
@@ -178,6 +179,17 @@ export function IconPicker({ value, onChange, surface, desktopEditor, onTabChang
           {!value && !uploading && <div className={styles.autoHint}>{t('panel.iconPicker.customHint')}</div>}
           {uploadError && <div className={styles.uploadError}>{uploadError}</div>}
         </div>
+      )}
+
+      {cropSrc && (
+        <MediaCropper
+          src={cropSrc}
+          aspect={1}
+          allowFit
+          busy={uploading}
+          onConfirm={(crop, _keepTransparency, fit) => void handleCropConfirm(crop, fit)}
+          onCancel={() => setCropSrc(null)}
+        />
       )}
     </div>
   );

@@ -10,6 +10,16 @@ export const SWIPE_HINT_CYCLE_MS = 800;
 export const SWIPE_HINT_CYCLES = 3;
 export const SWIPE_HINT_VISIBLE_MS = SWIPE_HINT_CYCLE_MS * SWIPE_HINT_CYCLES;
 
+// Chromium on Wayland may report zero touch points for a working touchscreen,
+// so a coarse pointer also counts; macOS WebKit reports neither, so there the
+// helper's pointer flag (set only while a touchscreen is routable) stands in.
+export function hasTouchInput(mouseAsTouch: boolean): boolean {
+  if (mouseAsTouch) return true;
+  if (typeof window === 'undefined') return false;
+  return navigator.maxTouchPoints > 0
+    || (typeof window.matchMedia === 'function' && window.matchMedia('(any-pointer: coarse)').matches);
+}
+
 type Status = 'unknown' | 'pending' | 'completed';
 
 interface Options {

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { AlertTriangle, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import type { DetectedConflict } from '../../../api/conflicts';
 import { Button } from '../Button/Button';
@@ -7,6 +8,7 @@ import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { TopBarStatusButton } from '../TopBarStatusButton/TopBarStatusButton';
 import { useTranslation } from '../../../lib/i18n';
 import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
+import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
 import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import { useConflictResolveAll } from '../../../hooks/useConflictResolveAll';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
@@ -42,8 +44,11 @@ interface ConflictWarningProps {
  */
 export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange, onSuppressedChange, onManageApps }: ConflictWarningProps) {
   const { t } = useTranslation();
-  const count = conflicts.length;
-  const showButton = count > 0 && !suppressed;
+  const exclusions = useConflictAutoKillExclusions();
+  const whitelisted = useMemo(() => new Set(exclusions), [exclusions]);
+  // A whitelisted app never alerts: the button reflects only what the user
+  // has not already told Nexus to leave alone.
+  const showButton = conflicts.some(c => !whitelisted.has(c.id)) && !suppressed;
 
   // No button and no open modal → render nothing.
   if (!showButton && !open) return null;
@@ -64,6 +69,7 @@ export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpe
         conflicts={conflicts}
         ready={ready}
         suppressed={suppressed}
+        whitelisted={whitelisted}
         onClose={() => onOpenChange(false)}
         onSuppressedChange={onSuppressedChange}
         onManageApps={() => { onOpenChange(false); onManageApps(); }}
@@ -77,13 +83,14 @@ interface ConflictWarningModalProps {
   conflicts: readonly DetectedConflict[];
   ready: boolean;
   suppressed: boolean;
+  whitelisted: ReadonlySet<string>;
   onClose: () => void;
   onSuppressedChange: (suppressed: boolean) => void;
   onManageApps: () => void;
 }
 
 export function ConflictWarningModal({
-  open, conflicts, ready, suppressed, onClose, onSuppressedChange, onManageApps,
+  open, conflicts, ready, suppressed, whitelisted, onClose, onSuppressedChange, onManageApps,
 }: ConflictWarningModalProps) {
   const { t } = useTranslation();
   // Rows are sticky for as long as the modal stays open: an app ended from
@@ -91,7 +98,8 @@ export function ConflictWarningModal({
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
   const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
-  const { pending, resolving, autostartDisabledIds, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
+  const { pending, resolving, autostartDisabledIds, resolveAll } =
+    useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart, whitelisted);
 
   if (!open) return null;
 
@@ -117,6 +125,7 @@ export function ConflictWarningModal({
                   conflict={entry.conflict}
                   devices={devicesByApp.get(entry.conflict.id)}
                   onSetOwner={owner => setOwner(entry.conflict.id, owner)}
+                  whitelisted={whitelisted.has(entry.conflict.id)}
                   terminated={entry.terminated}
                   onTerminated={() => markTerminated(entry.conflict.id)}
                   autostart={autostartByApp.get(entry.conflict.id)}

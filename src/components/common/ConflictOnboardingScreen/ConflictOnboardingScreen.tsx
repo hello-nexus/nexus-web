@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ArrowLeft, PackageMinus, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
@@ -7,6 +7,7 @@ import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
 import { useTranslation } from '../../../lib/i18n';
 import { useConflictAutostart } from '../../../hooks/useConflictAutostart';
+import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
 import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import { useConflictResolveAll } from '../../../hooks/useConflictResolveAll';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
@@ -47,7 +48,10 @@ export function ConflictOnboardingScreen({
   const { entries, conflicts: roster, markTerminated } = useConflictRoster(conflicts, open, ready);
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
   const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
-  const { pending, autostartDisabledIds, resolveAll } = useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart);
+  const exclusions = useConflictAutoKillExclusions();
+  const whitelisted = useMemo(() => new Set(exclusions), [exclusions]);
+  const { pending, autostartDisabledIds, resolveAll } =
+    useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart, whitelisted);
   const [busy, setBusy] = useState(false);
   const heading = t('conflicts.onboarding.title');
 
@@ -109,6 +113,7 @@ export function ConflictOnboardingScreen({
                   conflict={entry.conflict}
                   devices={devicesByApp.get(entry.conflict.id)}
                   onSetOwner={owner => setOwner(entry.conflict.id, owner)}
+                  whitelisted={whitelisted.has(entry.conflict.id)}
                   terminated={entry.terminated}
                   onTerminated={() => markTerminated(entry.conflict.id)}
                   autostart={autostartByApp.get(entry.conflict.id)}

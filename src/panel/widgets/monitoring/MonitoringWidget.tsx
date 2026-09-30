@@ -26,7 +26,7 @@ import { formatSensorValue } from './sensorValueFormat';
 import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
 import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
-import { designSupportsValueColor, gaugeAccentVars, sensorSupportsValueColor } from './valueColor';
+import { defaultValueColorReverse, designSupportsValueColor, gaugeAccentVars, hasValueColorReading, reverseGaugeGradient, sensorSupportsValueColor } from './valueColor';
 import { accentShadowAlpha } from '../../../lib/settings';
 import styles from './MonitoringWidget.module.scss';
 
@@ -221,6 +221,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
     fixedMax: widget.config?.[`slot${i}_max`] as number | undefined,
     valueColor: (widget.config?.[`slot${i}_valueColor`] as boolean | undefined) ?? false,
+    valueColorReverse: widget.config?.[`slot${i}_valueColorReverse`] as boolean | undefined,
     labelOverride: widget.config?.[`slot${i}_label`] as string | undefined,
     labelMode: widget.config?.[`slot${i}_labelMode`] as string | undefined,
   }));
@@ -265,7 +266,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
 
   return (
     <div className={`${styles.performance} ${layoutClass}${fullBleed ? ` ${styles.fullBleed}` : ''}`}>
-      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor, labelOverride, labelMode }, i) => {
+      {slotConfigs.map(({ device, sensorName, design, scale, fixedMin, fixedMax, valueColor, valueColorReverse, labelOverride, labelMode }, i) => {
         return (
           <PerfSlot
             key={`${i}-${device}-${sensorName}`}
@@ -281,6 +282,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
             fixedMin={fixedMin}
             fixedMax={fixedMax}
             valueColor={valueColor}
+            valueColorReverse={valueColorReverse}
             gaugeGradient={gaugeGradient}
             labelOverride={labelOverride}
             labelMode={labelMode}
@@ -306,8 +308,10 @@ interface PerfSlotProps {
   scale?: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
-  /** Paint the panel's gauge gradient into this slot (percent / temperature sensors). */
+  /** Paint the panel's gauge gradient into this slot (percent, temperature and FPS sensors). */
   valueColor?: boolean;
+  /** Low readings take the hot end; unset follows defaultValueColorReverse. */
+  valueColorReverse?: boolean;
   gaugeGradient?: PanelGaugeGradientValue;
   labelOverride?: string;
   labelMode?: string;
@@ -316,7 +320,7 @@ interface PerfSlotProps {
   onSelect?: () => void;
 }
 
-export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, valueColor = false, gaugeGradient, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
+export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extras, device, sensorName, design, scale = DEFAULT_SCALE_MODE, fixedMin, fixedMax, valueColor = false, valueColorReverse, gaugeGradient, labelOverride, labelMode, tempPrefs, selected = false, onSelect }: PerfSlotProps) {
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const effectiveSensorName = device === 'network' && !sensorName ? NETWORK_SENSOR_TOTAL : sensorName;
   const sensor = resolveSensor(sensors, fpsSensors, networkSensors, device, effectiveSensorName, tempPrefs, extras);
@@ -355,12 +359,15 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
     ? fixedFillPercent(rawValue, domainMin, domainMax) / 100
     : percentForSensor(device, sensor, maxValue) / 100;
   const gradientId = useId();
-  const coloured = valueColor && !!gaugeGradient && designSupportsValueColor(design) && sensorSupportsValueColor(sensor?.type);
+  const coloured = valueColor && !!gaugeGradient && designSupportsValueColor(design)
+    && sensorSupportsValueColor(sensor?.type, device) && hasValueColorReading(device, rawValue);
+  const reverse = valueColorReverse ?? defaultValueColorReverse(device, effectiveSensorName);
   // Stable identity: the arc gauges memoise their coloured geometry on it, and
   // a fresh object per tick would rebuild forty paths a second. A history
   // chart plots [domainMin, domainMax], so its copy of the stops is re-expressed
   // over that window and only changes when the window does.
-  const stops = coloured ? gaugeGradient.stops : null;
+  const panelStops = coloured ? gaugeGradient.stops : null;
+  const stops = useMemo(() => (panelStops && reverse ? reverseGaugeGradient(panelStops) : panelStops), [panelStops, reverse]);
   const mode = gaugeGradient?.mode ?? 'dark';
   const chart = !designIsFill(design);
   const gradient = useMemo(() => {
@@ -374,8 +381,8 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   }, [gradientId, stops, mode, chart, scale, domainMin, domainMax, naturalMax]);
   // Tints the number and glow to the reading; the figure carries the whole
   // gradient, so the two together read like a tachometer.
-  const gradeStyle = coloured
-    ? gaugeAccentVars(gaugeGradient.stops, scaleFraction, gaugeGradient.mode) as CSSProperties
+  const gradeStyle = stops
+    ? gaugeAccentVars(stops, scaleFraction, mode) as CSSProperties
     : undefined;
 
   const GaugeComponent = GAUGE_DESIGNS[design] ?? GAUGE_DESIGNS.sparkline;

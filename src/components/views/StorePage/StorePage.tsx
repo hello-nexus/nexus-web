@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  Boxes, ChevronLeft, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, ShoppingBag, Tag,
+  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Store, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Card } from '../../common/Card/Card';
@@ -16,8 +16,13 @@ import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
+import { useCapabilityConsent } from './CapabilityConsentModal';
+import { CONSENT_DECLINED, installWithConsent } from './consentInstall';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
+import { AppIconTile } from '../../common/AppIconTile/AppIconTile';
 import { resolveHttp } from '../../../api/service';
+import { openExternalUrl } from '../../../sandbox/ui/openExternal';
+import { widgetLayoutSize, type PanelWidgetSize } from '../../../panel/types';
 import styles from './StorePage.module.scss';
 
 type InstallState = 'idle' | 'working' | 'failed';
@@ -80,6 +85,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   const { t, language } = useTranslation();
   const { timeFormat, dateFormat } = useUnitPrefs();
   const [state, setState] = useState<InstallState>('idle');
+  const { ask: askConsent, dialog: consentDialog } = useCapabilityConsent();
   const latest = app.latest;
   const launch = upcomingRelease(app);
   const launchAt = launch?.getTime();
@@ -95,7 +101,10 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   const install = useCallback(async () => {
     if (!latest) return;
     setState('working');
-    const res = await installStoreApp({ id: app.id, latest });
+    const res = await installWithConsent(
+      approved => installStoreApp({ id: app.id, latest }, approved),
+      requested => askConsent({ appName: app.name, requested }),
+    );
     if (res?.ok) {
       // The registry is what the panel picker reads; refreshing it is what makes
       // the app appear without a reload.
@@ -108,8 +117,9 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
       onNeedsSignIn(() => { void install(); });
       return;
     }
+    if (res?.reason === CONSENT_DECLINED) return;
     setState('failed');
-  }, [app.id, latest, onNeedsSignIn]);
+  }, [app.id, app.name, latest, onNeedsSignIn, askConsent]);
 
   // Ahead of compatibility: an app that is not out yet has nothing to say about
   // whether this build could run it, and the service refuses the install anyway.
@@ -130,29 +140,28 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
     : t('store.install');
 
   return (
-    <Button
-      type="button"
-      tone={upToDate ? 'neutral' : state === 'failed' ? 'danger' : 'accent'}
-      disabled={state === 'working' || upToDate}
-      // The row's whole card opens the app page; getting the app must not.
-      onClick={e => { e.stopPropagation(); void install(); }}
-    >
-      {label}
-    </Button>
+    <>
+      <Button
+        type="button"
+        tone={upToDate ? 'neutral' : state === 'failed' ? 'danger' : 'accent'}
+        disabled={state === 'working' || upToDate}
+        // The row's whole card opens the app page; getting the app must not.
+        onClick={e => { e.stopPropagation(); void install(); }}
+      >
+        {label}
+      </Button>
+      {consentDialog}
+    </>
   );
 }
+
+// Row and hero edges in px; the row edge matches $row-icon in the stylesheet.
+const ICON_SIZE = { row: 56, hero: 112 } as const;
 
 function AppIcon({ app, installed, size = 'row' }: {
   app: { id: string; iconUrl: string | null }; installed?: InstalledInfo; size?: 'row' | 'hero';
 }) {
-  const icon = iconFor(app, installed);
-  return (
-    <span className={`${styles.iconBox} ${size === 'hero' ? styles.iconBoxHero : ''}`}>
-      {icon
-        ? <img src={icon} alt="" className={styles.icon} />
-        : <Boxes className={styles.iconFallback} aria-hidden={true} />}
-    </span>
-  );
+  return <AppIconTile src={iconFor(app, installed)} size={ICON_SIZE[size]} />;
 }
 
 // disableInteractiveRole: the Install button inside is the focusable control;
@@ -182,11 +191,69 @@ function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
   );
 }
 
+/**
+ * The first app in the catalog, shown large with its screenshots. The
+ * catalog lists no media, so the card fetches the app page's own detail.
+ */
+function FeaturedApp({ app, installed, onOpen, onNeedsSignIn }: {
+  app: StoreApp; installed?: InstalledInfo; onOpen: () => void;
+  onNeedsSignIn: (retry: () => void) => void;
+}) {
+  const { t } = useTranslation();
+  const [shots, setShots] = useState<string[]>([]);
+
+  useEffect(() => {
+    let alive = true;
+    void fetchStoreApp(app.id).then(res => { if (alive && res) setShots(res.screenshots.slice(0, 3)); });
+    return () => { alive = false; };
+  }, [app.id]);
+
+  return (
+    // The title button is the keyboard route; the section only widens the click target.
+    <section className={styles.featured} onClick={onOpen}>
+      {shots[0] && <img src={shots[0]} alt="" className={styles.featuredGlow} aria-hidden={true} />}
+      <div className={styles.featuredMain}>
+        <span className={styles.featuredEyebrow}>
+          <Sparkles size={14} aria-hidden={true} />
+          {t('store.featured')}
+        </span>
+        <AppIcon app={app} installed={installed} size="hero" />
+        <button type="button" className={styles.featuredTitle} onClick={e => { e.stopPropagation(); onOpen(); }}>
+          {app.name}
+        </button>
+        {/* A tagline is written whole, so it is never cut to its first sentence; the description's
+            opening paragraph follows it, and only then, so the card never says the same thing twice. */}
+        {(app.tagline.trim() || shortDescription(app)) && (
+          <p className={styles.featuredLine}>{app.tagline.trim() || shortDescription(app)}</p>
+        )}
+        {app.tagline.trim() && app.description?.trim() && (
+          <p className={styles.featuredBlurb}>{app.description.trim().split(/\n\s*\n/)[0]}</p>
+        )}
+        <div className={styles.featuredActions}>
+          <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
+        </div>
+      </div>
+      {shots.length > 0 && (
+        <div className={styles.featuredShots}>
+          {shots.map((url, i) => (
+            <img
+              key={url}
+              src={url}
+              alt={t('store.screenshotAlt', { name: app.name, index: i + 1 })}
+              className={styles.featuredShot}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function StoreBanner() {
   const { t } = useTranslation();
   return (
     <div className={styles.banner}>
-      <ShoppingBag className={styles.bannerIcon} size={22} aria-hidden={true} />
+      <Store className={styles.bannerIcon} size={22} aria-hidden={true} />
       <div className={styles.bannerText}>
         <h2 className={styles.bannerTitle}>{t('store.banner.title')}</h2>
         <p className={styles.bannerBody}>{t('store.banner.body')}</p>
@@ -215,8 +282,8 @@ function useHighlights(latest: StoreVersion): Highlight[] {
       key: 'sizes',
       icon: <Ruler size={HIGHLIGHT_ICON} aria-hidden={true} />,
       label: t('store.spec.widgetSizes'),
-      // Deduped: sizes is wire data and a repeat renders twice.
-      value: [...new Set(latest.sizes)].join(' · '),
+      // Round folds into 2x2, which every 2x2 widget already covers; the Set dedupes the fold and wire repeats.
+      value: [...new Set(latest.sizes.map((s) => widgetLayoutSize(s as PanelWidgetSize)))].join(' · '),
     });
   }
   out.push(
@@ -260,7 +327,7 @@ function Highlights({ latest }: { latest: StoreVersion }) {
             <dt className={styles.highlightLabel}>{h.label}</dt>
             <dd className={styles.highlightBody}>
               <span className={styles.highlightIcon}>{h.icon}</span>
-              <span className={styles.highlightValue}>{h.value}</span>
+              <span className={`${styles.highlightValue} selectable`}>{h.value}</span>
             </dd>
           </div>
         ))}
@@ -269,22 +336,123 @@ function Highlights({ latest }: { latest: StoreVersion }) {
   );
 }
 
+// Trailing sentence punctuation stays text, so "see https://x.com." links without the period.
+const DESCRIPTION_URL = /(https:\/\/\S+?)(?=[.,;:!?)]*(?:\s|$))/;
+
+/** The description with each https URL as a link that opens in the system browser. */
+function Description({ text }: { text: string }) {
+  return (
+    <p className={`${styles.description} selectable`}>
+      {text.split(DESCRIPTION_URL).map((part, i) => (i % 2 === 1 ? (
+        <a
+          key={i}
+          className={styles.descriptionLink}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={e => { e.preventDefault(); void openExternalUrl(part); }}
+          onAuxClick={e => { if (e.button === 1) { e.preventDefault(); void openExternalUrl(part); } }}
+        >
+          {part}
+        </a>
+      ) : part))}
+    </p>
+  );
+}
+
+/** The screenshot row; an arrow shows only while more screenshots lie past that edge. */
+function Screenshots({ app }: { app: StoreAppDetail }) {
+  const { t } = useTranslation();
+  const rowRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLButtonElement>(null);
+  const rightRef = useRef<HTMLButtonElement>(null);
+  const pressed = useRef<-1 | 1 | null>(null);
+  const [more, setMore] = useState({ left: false, right: false });
+
+  // The arrow that reached its end unmounts with focus on it; hand focus to the opposite one,
+  // and only when focus fell to the body, so focus the user placed elsewhere stays put.
+  useLayoutEffect(() => {
+    const reachedEnd = (pressed.current === 1 && !more.right) || (pressed.current === -1 && !more.left);
+    if (!reachedEnd) return;
+    const lost = document.activeElement === null || document.activeElement === document.body;
+    if (lost) (pressed.current === 1 ? leftRef : rightRef).current?.focus();
+    pressed.current = null;
+  }, [more]);
+
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const update = () => {
+      const left = row.scrollLeft > 1;
+      const right = row.scrollLeft + row.clientWidth < row.scrollWidth - 1;
+      setMore(prev => (prev.left === left && prev.right === right ? prev : { left, right }));
+    };
+    update();
+    row.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(row);
+    return () => { row.removeEventListener('scroll', update); observer.disconnect(); };
+  }, []);
+
+  const scrollPage = (direction: -1 | 1) => {
+    pressed.current = direction;
+    const row = rowRef.current;
+    row?.scrollBy({ left: direction * row.clientWidth * 0.9, behavior: 'smooth' });
+  };
+
+  return (
+    <div className={styles.shotsRail}>
+      <div ref={rowRef} className={styles.shots}>
+        {app.screenshots.map((url, i) => (
+          <img
+            key={url}
+            src={url}
+            alt={t('store.screenshotAlt', { name: app.name, index: i + 1 })}
+            className={styles.shot}
+            loading="lazy"
+          />
+        ))}
+      </div>
+      {more.left && (
+        <Button
+          ref={leftRef}
+          className={`${styles.shotsArrow} ${styles.shotsArrowLeft}`}
+          size="lg"
+          icon={<ChevronLeft size={22} />}
+          aria-label={t('common.pager.prev')}
+          onClick={() => scrollPage(-1)}
+        />
+      )}
+      {more.right && (
+        <Button
+          ref={rightRef}
+          className={`${styles.shotsArrow} ${styles.shotsArrowRight}`}
+          size="lg"
+          icon={<ChevronRight size={22} />}
+          aria-label={t('common.pager.next')}
+          onClick={() => scrollPage(1)}
+        />
+      )}
+    </div>
+  );
+}
+
 function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
   appId: string; onBack: () => void; installed?: InstalledInfo;
   onNeedsSignIn: (retry: () => void) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [app, setApp] = useState<StoreAppDetail | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    void fetchStoreApp(appId).then(res => {
+    void fetchStoreApp(appId, { locale: language }).then(res => {
       if (!alive) return;
       if (res) setApp(res); else setMissing(true);
     });
     return () => { alive = false; };
-  }, [appId]);
+  }, [appId, language]);
 
   if (missing) return <div className={styles.notice}>{t('store.unavailable')}</div>;
   if (!app) return <div className={styles.notice}>{t('store.loading')}</div>;
@@ -301,13 +469,13 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
       <header className={styles.hero}>
         <AppIcon app={app} installed={installed} size="hero" />
         <div className={styles.heroMain}>
-          <h1 className={styles.heroTitle}>{app.name}</h1>
-          {app.tagline.trim() && <p className={styles.heroSubtitle}>{app.tagline.trim()}</p>}
+          <h1 className={`${styles.heroTitle} selectable`}>{app.name}</h1>
+          {app.tagline.trim() && <p className={`${styles.heroSubtitle} selectable`}>{app.tagline.trim()}</p>}
           <div className={styles.heroActions}>
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
           </div>
           {installed && (
-            <span className={styles.installedVersion}>
+            <span className={`${styles.installedVersion} selectable`}>
               {t('store.installedVersion', { version: installed.version })}
             </span>
           )}
@@ -318,20 +486,18 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
 
       {/* Media rides the service's store proxy, never the bundle: it must be readable before the app is installed. */}
       {app.screenshots.length > 0 && (
-        <div className={styles.shots}>
-          {app.screenshots.map((url, i) => (
-            <img
-              key={url}
-              src={url}
-              alt={t('store.screenshotAlt', { name: app.name, index: i + 1 })}
-              className={styles.shot}
-              loading="lazy"
-            />
-          ))}
-        </div>
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>{t('store.section.preview')}</h2>
+          <Screenshots key={app.id} app={app} />
+        </section>
       )}
 
-      {app.description && <p className={styles.description}>{app.description}</p>}
+      {app.description && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>{t('store.section.description')}</h2>
+          <Description text={app.description} />
+        </section>
+      )}
     </div>
   );
 }
@@ -348,7 +514,7 @@ export function StorePage({ tab, onTabChange, accounts }: {
   /** The app's shared account state: signing in from the store dialog signs the whole app in, so the top bar and account page have to hear about it. */
   accounts?: UseCloudAccountsResult;
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const installed = useInstalled();
   const [apps, setApps] = useState<StoreApp[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -365,12 +531,12 @@ export function StorePage({ tab, onTabChange, accounts }: {
 
   useEffect(() => {
     let alive = true;
-    void fetchStoreApps().then(res => {
+    void fetchStoreApps({ locale: language }).then(res => {
       if (!alive) return;
       if (res) setApps(res); else setFailed(true);
     });
     return () => { alive = false; };
-  }, []);
+  }, [language]);
 
   const handleNeedsSignIn = useCallback((retry: () => void) => {
     setPendingInstall(() => retry);
@@ -396,7 +562,6 @@ export function StorePage({ tab, onTabChange, accounts }: {
       ) : (
         <div className={styles.body}>
           <StoreBanner />
-          <h2 className={styles.sectionTitle}>{t('store.section.apps')}</h2>
           {failed ? (
             <div className={styles.notice}>{t('store.unavailable')}</div>
           ) : !apps ? (
@@ -404,17 +569,31 @@ export function StorePage({ tab, onTabChange, accounts }: {
           ) : apps.length === 0 ? (
             <div className={styles.notice}>{t('store.empty')}</div>
           ) : (
-            <div className={styles.grid}>
-              {apps.map(app => (
-                <AppRow
-                  key={app.id}
-                  app={app}
-                  installed={installed.get(app.id)}
-                  onOpen={() => open(app.id)}
-                  onNeedsSignIn={handleNeedsSignIn}
-                />
-              ))}
-            </div>
+            <>
+              <FeaturedApp
+                key={apps[0].id}
+                app={apps[0]}
+                installed={installed.get(apps[0].id)}
+                onOpen={() => open(apps[0].id)}
+                onNeedsSignIn={handleNeedsSignIn}
+              />
+              {apps.length > 1 && (
+                <>
+                  <h2 className={styles.sectionTitle}>{t('store.section.apps')}</h2>
+                  <div className={styles.grid}>
+                    {apps.slice(1).map(app => (
+                      <AppRow
+                        key={app.id}
+                        app={app}
+                        installed={installed.get(app.id)}
+                        onOpen={() => open(app.id)}
+                        onNeedsSignIn={handleNeedsSignIn}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
       )}

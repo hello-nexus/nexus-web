@@ -1,0 +1,13 @@
+@use '../../styles/text' as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hint {
+  @include text-caption;
+  margin: 4px 0 8px;
+  color: var(--text-dim);
+}

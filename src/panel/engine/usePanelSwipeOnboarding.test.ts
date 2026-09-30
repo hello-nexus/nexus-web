@@ -15,6 +15,7 @@ vi.mock('../../hooks/useMultiplexSocket', () => ({
 }));
 
 import {
+  hasTouchInput,
   usePanelSwipeOnboarding,
   SWIPE_HINT_PERIOD_MS,
   SWIPE_HINT_VISIBLE_MS,
@@ -118,5 +119,34 @@ describe('usePanelSwipeOnboarding', () => {
   it('does not read the flag while disabled', async () => {
     await setup({ enabled: false });
     expect(api.fetchPanelSwipeOnboarding).not.toHaveBeenCalled();
+  });
+});
+
+describe('hasTouchInput', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  function stubInput(maxTouchPoints: number, coarse: boolean) {
+    vi.stubGlobal('navigator', { maxTouchPoints });
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: coarse && query === '(any-pointer: coarse)' }));
+  }
+
+  it('is false on a panel with no digitizer and no pointer flag', () => {
+    stubInput(0, false);
+    expect(hasTouchInput(false)).toBe(false);
+  });
+
+  it('is true when the OS reports touch points', () => {
+    stubInput(10, false);
+    expect(hasTouchInput(false)).toBe(true);
+  });
+
+  it('is true for a coarse pointer whose touch-point count reads zero', () => {
+    stubInput(0, true);
+    expect(hasTouchInput(false)).toBe(true);
+  });
+
+  it('is true under the macOS pointer flag, where touch points read zero', () => {
+    stubInput(0, false);
+    expect(hasTouchInput(true)).toBe(true);
   });
 });

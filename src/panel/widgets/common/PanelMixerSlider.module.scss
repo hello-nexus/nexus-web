@@ -34,13 +34,16 @@
   @include text-caption;
 
   width: 100%;
-  min-height: 12px;
+  // Always two lines tall, so faders with 1- and 2-line labels stay aligned.
+  min-height: calc(2em * #{$caption-line-height});
   text-transform: uppercase;
   text-align: center;
   color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .hitbox {

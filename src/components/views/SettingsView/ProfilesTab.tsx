@@ -297,7 +297,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
         >
           {t('profile.import')}
         </Button>
-        <input ref={fileRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
+        <input ref={fileRef} type="file" accept=".nexusprofile,.json" style={{ display: 'none' }} onChange={handleImport} />
       </div>
       {atLimit && <p className={styles.note} data-settings-aside="true">{t('profile.maxReached')}</p>}
       {importError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{importError}</p>}

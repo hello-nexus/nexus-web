@@ -71,18 +71,32 @@ describe('ProfilesView tabs', () => {
     expect(screen.getByText('LOCAL_PROFILES')).toBeInTheDocument();
   });
 
-  it('hides the cloud tab and its route outside dev-tools builds', async () => {
+  it('keeps the cloud tab on a release build without dev tools', async () => {
     vi.resetModules();
     vi.doMock('../../../lib/devTools', () => ({ DEV_TOOLS: false }));
     try {
       const { ProfilesView: ReleaseProfilesView } = await import('./ProfilesView');
       render(<ReleaseProfilesView serviceOnline profiles={PROFILES} tab="cloud" onTabChange={vi.fn()} />);
 
+      expect(screen.getByText(/CLOUD_PROFILES/)).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'profile.tab.cloud' })).toBeInTheDocument();
+    } finally {
+      vi.doUnmock('../../../lib/devTools');
+    }
+  });
+
+  it('hides the cloud tab and its route outside official builds', async () => {
+    vi.resetModules();
+    vi.doMock('../../../lib/officialBuild', () => ({ OFFICIAL_BUILD: false }));
+    try {
+      const { ProfilesView: UnofficialProfilesView } = await import('./ProfilesView');
+      render(<UnofficialProfilesView serviceOnline profiles={PROFILES} tab="cloud" onTabChange={vi.fn()} />);
+
       expect(screen.getByText('LOCAL_PROFILES')).toBeInTheDocument();
       expect(screen.queryByText(/CLOUD_PROFILES/)).not.toBeInTheDocument();
       expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     } finally {
-      vi.doUnmock('../../../lib/devTools');
+      vi.doUnmock('../../../lib/officialBuild');
     }
   });
 });

@@ -757,6 +757,14 @@
     border-color: var(--panel-accent);
   }
 
+  // An SDK card has no border to colour (tokens.scss), so its ring sits just outside it.
+  &:not(.catalogCellDisabled):hover .cell[data-widget-type^='app:'],
+  &:not(.catalogCellDisabled):focus-visible .cell[data-widget-type^='app:'],
+  &:not(.catalogCellDisabled):hover .cell[data-widget-type^='marketplace:'],
+  &:not(.catalogCellDisabled):focus-visible .cell[data-widget-type^='marketplace:'] {
+    box-shadow: 0 0 0 1px var(--panel-accent);
+  }
+
   &:not(.catalogCellDisabled):active {
     transform: scale(0.98);
   }
@@ -765,6 +773,12 @@
 .catalogCellSelected .cell {
   border-color: var(--panel-accent);
   box-shadow: 0 0 0 1px var(--panel-accent);
+}
+
+.catalogCellDragging {
+  position: relative;
+  z-index: 3;
+  cursor: grabbing;
 }
 
 // No room on the target grid. Dimmed rather than hidden so the widget stays
@@ -2051,6 +2065,11 @@
 
 .panelRoot[data-simulator='true'] .cellWrap {
   cursor: pointer;
+}
+
+// The blank widget is not a click target (PanelApp drops its click and hint).
+.panelRoot[data-simulator='true'] .cell[data-widget-type='blank'] {
+  cursor: default;
 }
 
 // A preview cell that is not the one being edited is one click target: its

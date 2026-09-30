@@ -20,12 +20,14 @@ export interface BadgeProps {
   /** Renders the label in caps, for badges that read as a label on a heading
    *  rather than as a value. */
   uppercase?: boolean;
+  /** 'small' sets the label one step up from the default caption size. */
+  size?: 'caption' | 'small';
 }
 
-export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact, uppercase }: BadgeProps) {
+export function Badge({ label, color = 'var(--text)', icon, iconPosition = 'start', minWidth, compact, uppercase, size = 'caption' }: BadgeProps) {
   return (
     <span
-      className={classNames(styles.badge, compact && styles.compact, uppercase && styles.uppercase)}
+      className={classNames(styles.badge, compact && styles.compact, uppercase && styles.uppercase, size === 'small' && styles.small)}
       style={{ '--badge-color': color, ...(minWidth ? { '--badge-min-width': minWidth } : {}) } as CSSProperties}
     >
       {iconPosition === 'start' && icon}

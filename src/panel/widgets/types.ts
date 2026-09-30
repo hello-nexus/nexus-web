@@ -49,6 +49,8 @@ export interface WidgetProps {
   // it from setup states ("Add API key…") so the user has a direct path
   // to config without going through the right-click context menu.
   onConfigure?: () => void;
+  // Opens this widget's immersive view; absent where the panel would not open it by touch.
+  onEnterImmersive?: () => void;
   // Deck-style widgets with pages/folders: the shared edit-mode view (which
   // page / folder the editor is on) so the live tile mirrors the edit sheet and
   // slot selection hit-tests the right grid. Undefined outside editing - run
@@ -118,6 +120,8 @@ export interface AppMetadata {
   icon: AppIcon;
   sizes: PanelWidgetSize[];
   defaultSize: PanelWidgetSize;
+  /** The sizes offered on panels that hold several widgets, when fewer than `sizes`; a single-widget panel keeps its own. */
+  gridSizes?: PanelWidgetSize[];
   // When false, the app is hidden from the Add-a-Widget picker: it can't be
   // newly added, but already-placed instances keep rendering (lookupApp and the
   // layout reconciler ignore this flag). Defaults to listed. SDK apps derive it
@@ -126,6 +130,10 @@ export interface AppMetadata {
   // Per-orientation flag for whether the touch fullscreen view is
   // available. The menu entry is gated on (Touch != null) && this.
   supportsImmersive: { portrait: boolean; landscape: boolean };
+  // Opt-in on top of supportsImmersive: the first swipe down on the fullscreen
+  // view only reveals the close hint, a second swipe while it's visible closes.
+  // Default (undefined/false) closes on the first swipe, like every built-in.
+  immersiveDoubleSwipe?: boolean;
   // Only one instance per panel. Default (undefined/false) allows many, each
   // with its own config - the long-standing behaviour for every built-in.
   singleInstance?: boolean;

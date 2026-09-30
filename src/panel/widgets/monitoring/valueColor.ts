@@ -7,12 +7,29 @@
 import { deriveAccentVars } from '../../../lib/settings';
 import { gaugeGradientColorAt, gaugeGradientCss, type GaugeGradientStop } from '../../theme/gaugeGradient';
 import type { GaugeDesignKey } from './gauges/types';
+import type { DeviceKey } from './perfSlots';
 
 /** Sensor types the colouring is offered for: the percent family plus temperature. */
 const COLORABLE_TYPES = new Set(['Load', 'Control', 'Level', 'Temperature']);
 
-export function sensorSupportsValueColor(sensorType: string | undefined): boolean {
-  return sensorType !== undefined && COLORABLE_TYPES.has(sensorType);
+/** FPS slots qualify by device: the settings pane has no fps stream to resolve a type from. */
+export function sensorSupportsValueColor(sensorType: string | undefined, device?: DeviceKey): boolean {
+  return device === 'fps' || (sensorType !== undefined && COLORABLE_TYPES.has(sensorType));
+}
+
+/** FPS reads 0 while no game is presenting: no reading to tint. */
+export function hasValueColorReading(device: DeviceKey, rawValue: number): boolean {
+  return device !== 'fps' || rawValue > 0;
+}
+
+/** Unset, the frame rate runs reversed (a drop is the warning); every other sensor runs hot-high. */
+export function defaultValueColorReverse(device: DeviceKey, sensorName: string): boolean {
+  return device === 'fps' && sensorName !== 'Frame Time';
+}
+
+/** The same gradient read from the full end, so low readings take the hot colours. */
+export function reverseGaugeGradient(stops: readonly GaugeGradientStop[]): GaugeGradientStop[] {
+  return stops.map(s => ({ at: 1 - s.at, color: s.color })).reverse();
 }
 
 /** Every design paints from the accent except the plain number. */

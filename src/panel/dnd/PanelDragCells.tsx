@@ -154,6 +154,7 @@ export function PanelTouchCell({
   previewLayout = null,
   onSectionNavigate,
   onConfigureWidget,
+  onEnterImmersiveWidget,
 }: {
   widget: PanelWidget;
   deviceId?: string;
@@ -191,6 +192,7 @@ export function PanelTouchCell({
   previewLayout?: PanelLayout | null;
   onSectionNavigate?: DashboardSectionNavigate;
   onConfigureWidget?: (widget: PanelWidget) => void;
+  onEnterImmersiveWidget?: (widget: PanelWidget) => void;
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
@@ -431,6 +433,7 @@ export function PanelTouchCell({
                 editorPreview={editorPreview}
                 onSectionNavigate={onSectionNavigate}
                 onConfigure={onConfigureWidget ? () => onConfigureWidget(widget) : undefined}
+                onEnterImmersive={onEnterImmersiveWidget ? () => onEnterImmersiveWidget(widget) : undefined}
               />
             </div>
             {editHint && (
@@ -461,6 +464,14 @@ export function PanelTouchCell({
 // grid placement, card, content scaler, and label-strip the live panel uses,
 // so the catalog inherits the panel's scaling and label sizing instead of a
 // bespoke preview. Placed by (col, row) the catalog packs via appendWidget.
+export interface CatalogCellDrag {
+  ref: (el: HTMLElement | null) => void;
+  transform: string | undefined;
+  transition: string | undefined;
+  listeners: Record<string, unknown> | undefined;
+  dragging: boolean;
+}
+
 export function PanelCatalogCell({
   widget,
   surface,
@@ -473,6 +484,7 @@ export function PanelCatalogCell({
   addedStage = null,
   onEditAdded,
   onPointerLeave,
+  drag,
 }: {
   widget: PanelWidget;
   surface?: PanelSurface;
@@ -493,6 +505,8 @@ export function PanelCatalogCell({
   addedStage?: 'added' | 'edit' | null;
   onEditAdded?: () => void;
   onPointerLeave?: () => void;
+  /** Sortable wiring when the catalog reorders its cards (single-widget playlist). */
+  drag?: CatalogCellDrag;
 }) {
   const { t } = useTranslation();
   const def = lookupApp(widget.type);
@@ -519,18 +533,23 @@ export function PanelCatalogCell({
   };
   return (
     <div
+      ref={drag?.ref}
+      {...drag?.listeners}
       data-panel-widget-id={widget.id}
       className={[
         styles.cellWrap,
         styles.catalogCell,
         selected ? styles.catalogCellSelected : '',
         disabled ? styles.catalogCellDisabled : '',
+        drag?.dragging ? styles.catalogCellDragging : '',
       ].filter(Boolean).join(' ')}
       style={{
         gridColumn: `${widget.col + 1} / span ${span.cols}`,
         gridRow: `${widget.row + 1} / span ${span.rows}`,
         '--panel-span-cols': span.cols,
         '--panel-span-rows': span.rows,
+        transform: drag?.transform,
+        transition: drag?.transition,
       } as CSSProperties}
       // Presentational mounts (no onClick, e.g. the marketing phone mock)
       // must not put a focusable no-op button in the tab order. A disabled

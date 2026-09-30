@@ -45,6 +45,19 @@
   border-color: var(--warn);
 }
 
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+// Heads the toggle column, so what "on" does is stated where it is set.
+.toggleColumn {
+  @include text-label;
+  color: var(--text-dim);
+}
+
 .groupTitle {
   @include text-label;
   display: flex;

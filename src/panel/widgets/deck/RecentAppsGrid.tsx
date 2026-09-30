@@ -1,9 +1,10 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useAppIcon } from '../common/AppPicker';
 import { useProcessIcon } from '../../../hooks/useProcessIcon';
 import { categoryColor } from './deckIcons';
+import { useSquareCell } from './useSquareCell';
 import type { RecentAppKey, RecentAppsViewPage } from './recentAppsView';
 import styles from './DeckGrid.module.scss';
 
@@ -85,11 +86,15 @@ export function RecentAppsGrid({ pages, cols, rows, onPress, ariaLabel, page: co
   const clampedPage = Math.min(page, maxPage);
   useEffect(() => { if (page !== clampedPage) setPage(clampedPage); });
   const keys = pages[clampedPage] ?? [];
+  const gridRef = useRef<HTMLDivElement>(null);
+  const cell = useSquareCell(gridRef, cols, rows);
+  const trackSize = cell ? `${cell}px` : '1fr';
 
   return (
     <div
+      ref={gridRef}
       className={styles.grid}
-      style={{ gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` } as CSSProperties}
+      style={{ gridTemplateColumns: `repeat(${cols}, ${trackSize})`, gridTemplateRows: `repeat(${rows}, ${trackSize})` } as CSSProperties}
       role="group"
       aria-label={ariaLabel}
     >

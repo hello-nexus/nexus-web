@@ -41,6 +41,12 @@
   margin: 0;
 }
 
+.notice {
+  @include text-body;
+  color: var(--text);
+  margin: 0;
+}
+
 .hint {
   font-size: var(--type-small);
   font-weight: var(--weight-body);
@@ -180,7 +186,8 @@
 }
 
 .accountEmail {
-  @include text-caption;
+  @include text-body;
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
@@ -229,38 +236,25 @@
   text-align: center;
 }
 
-.recoveryCodeBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-xs);
-  width: 100%;
-  box-sizing: border-box;
+.recoveryCodeField input {
   padding: var(--space-md);
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.recoveryCodeHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: var(--space-sm);
-}
-
-.recoveryCodeCopy {
-  @include text-label;
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--accent);
-  cursor: pointer;
-}
-
-.recoveryCode {
   font-family: var(--font-mono);
   font-size: var(--type-display);
   letter-spacing: 0.18em;
-  color: var(--text);
+  // Letter-spacing trails the last glyph, which pulls centred text left.
+  text-indent: 0.18em;
+}
+
+// A rejected code stays in the field with a red border and a shake, so the
+// user sees which code was wrong before retyping.
+.recoveryCodeWrong {
+  animation: code-wrong var(--ease-slow) ease-in-out;
+}
+
+@keyframes code-wrong {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
 }

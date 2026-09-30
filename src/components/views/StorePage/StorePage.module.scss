@@ -117,50 +117,14 @@ $card-gap: 0.6rem;
   }
 }
 
-// The icon sits in a fixed box: app icons arrive as SVGs of any aspect and
-// PNGs of any size, and without one the row heights disagree per app.
-.iconBox {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: $row-icon;
-  height: $row-icon;
-  flex-shrink: 0;
-  padding: 0.35rem;
-  border: 1px solid var(--separator);
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  overflow: hidden;
-}
-
-.iconBoxHero {
-  width: 7rem;
-  height: 7rem;
-  border-radius: var(--radius-lg);
-  padding: 0.6rem;
-}
-
-.icon {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.iconFallback {
-  width: 60%;
-  height: 60%;
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
 .installedVersion {
-  font-size: var(--type-tiny);
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
 .incompatible {
   flex-shrink: 0;
-  font-size: var(--type-tiny);
+  font-size: var(--type-small);
   color: var(--text-dim);
 }
 
@@ -168,7 +132,7 @@ $card-gap: 0.6rem;
    dim: it is an announcement, not the "not compatible" dead end above. */
 .comingSoon {
   flex-shrink: 0;
-  font-size: var(--type-tiny);
+  font-size: var(--type-small);
   font-weight: var(--weight-strong);
   color: var(--accent);
 }
@@ -293,8 +257,26 @@ $card-gap: 0.6rem;
   text-align: center;
 }
 
-// A horizontal rail: screenshots are panel-shaped, so a wrapped grid would
-// leave most of each row empty.
+.shotsRail {
+  position: relative;
+}
+
+// Two classes so the round shape beats Button's own radius regardless of stylesheet order.
+// Centered with auto margins, not a transform: the press scale would replace it and drop the arrow.
+.shotsRail .shotsArrow {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: var(--size-lg);
+  margin-top: auto;
+  margin-bottom: auto;
+  border-radius: 50%;
+  box-shadow: var(--shadow-md);
+}
+
+.shotsArrowLeft { left: 0.5rem; }
+.shotsArrowRight { right: 0.5rem; }
+
 .shots {
   display: flex;
   gap: 0.75rem;
@@ -302,8 +284,17 @@ $card-gap: 0.6rem;
   padding-bottom: 0.25rem;
 }
 
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+// Store screenshots are a square standard; cover keeps an off-standard image in the same frame.
 .shot {
-  height: 16rem;
+  width: 22rem;
+  height: 22rem;
+  object-fit: cover;
   border-radius: var(--radius-lg);
   border: 1px solid var(--separator);
   flex-shrink: 0;
@@ -316,4 +307,153 @@ $card-gap: 0.6rem;
   font-size: var(--type-small);
   color: var(--text-dim);
   white-space: pre-line;
+}
+
+.descriptionLink {
+  color: var(--accent-glow);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  // The selectable description turns the long-press menu back on; its Open would skip openExternalUrl.
+  -webkit-touch-callout: none;
+
+  &:hover { text-decoration: underline; }
+}
+
+// The storefront's lead app. The first screenshot, blurred behind the card,
+// tints it with the app's own colors; without screenshots it stays on --surface.
+.featured {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  min-height: 20rem;
+  padding: 2rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.featuredGlow {
+  position: absolute;
+  top: -20%;
+  left: -20%;
+  width: 140%;
+  height: 140%;
+  object-fit: cover;
+  filter: blur(var(--blur-backdrop)) saturate(1.4);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.featuredMain {
+  position: relative;
+  display: flex;
+  flex: 1 1 18rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.featuredEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  @include text-label;
+  color: var(--accent);
+}
+
+.featuredTitle {
+  padding: 0;
+  margin-top: 0.4rem;
+  border: none;
+  background: none;
+  @include text-display;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover { color: var(--accent); }
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+}
+
+.featuredLine {
+  margin: 0;
+  max-width: 32rem;
+  @include text-body;
+  color: var(--text-dim);
+}
+
+// Clamped: the full description is the app page's job.
+.featuredBlurb {
+  display: -webkit-box;
+  margin: 0;
+  max-width: 32rem;
+  @include text-body;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.featuredActions {
+  display: flex;
+  align-items: center;
+  margin-top: 0.4rem;
+
+  button:disabled {
+    pointer-events: none;
+  }
+}
+
+// Fanned like a hand of cards: the first sits on top, the rest tilt out behind it.
+.featuredShots {
+  position: relative;
+  flex: 1 1 26rem;
+  height: 16rem;
+}
+
+.featuredShot {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 16rem;
+  height: 16rem;
+  margin-left: -8rem;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--separator);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.25s ease;
+
+  &:nth-child(1) { z-index: 3; }
+  &:nth-child(2) { z-index: 2; transform: translateX(5.5rem) rotate(8deg) scale(0.88); }
+  &:nth-child(3) { z-index: 1; transform: translateX(-5.5rem) rotate(-8deg) scale(0.88); }
+}
+
+.featured:hover .featuredShot {
+  &:nth-child(1) { transform: translateY(-0.4rem); }
+  &:nth-child(2) { transform: translateX(6.5rem) rotate(11deg) scale(0.88); }
+  &:nth-child(3) { transform: translateX(-6.5rem) rotate(-11deg) scale(0.88); }
+}
+
+@media (max-width: 720px) {
+  .featured {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .featuredShots {
+    flex-basis: 16rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .featuredShot { transition: none; }
 }

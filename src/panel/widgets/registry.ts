@@ -11,7 +11,6 @@ import {
   marketplaceIdFromType,
   typeForMarketplace,
 } from '../../widgets/marketplaceRegistry';
-import { makeWidgetTouchView } from './common/WidgetTouchView';
 import type { AppManifest } from './types';
 import {
   PANEL_SURFACES,
@@ -55,6 +54,7 @@ import { snakeApp } from './snake';
 import { blocksApp } from './blocks';
 import { whiteboardApp } from './whiteboard';
 import { processesApp } from './processes';
+import { blankApp } from './blank';
 
 // Single source of truth for app type -> manifest. "App" is the
 // conceptual unit (one per widget type); the manifest carries up to
@@ -91,6 +91,7 @@ export const APP_REGISTRY: Record<string, AppManifest> = {
   blocks:     blocksApp,
   whiteboard: whiteboardApp,
   processes:  processesApp,
+  blank:      blankApp,
 };
 
 // Whether an app can appear on a given surface. The decision is
@@ -137,7 +138,8 @@ export function lookupApp(type: string): AppManifest | undefined {
     if (!listing) return undefined;
     return makeMarketplaceAppManifest(
       id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
-      !!listing.immersive, !!listing.singleInstance, listing.surfaces,
+      !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
+      !!listing.immersiveDoubleSwipe,
     );
   }
   return APP_REGISTRY[type];
@@ -156,7 +158,8 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
     typeForMarketplace(listing.id),
     makeMarketplaceAppManifest(
       listing.id, listing.name, listing.sizes, listing.defaultSize, !!listing.page, listing.iconUrl,
-      !!listing.immersive, !!listing.singleInstance, listing.surfaces,
+      !!listing.immersive, !!listing.singleInstance, listing.surfaces, listing.gridSizes,
+      !!listing.immersiveDoubleSwipe,
     ),
   ]);
   return [...builtIns, ...marketplace];
@@ -165,14 +168,7 @@ export function getCatalogEntries(): Array<[string, AppManifest]> {
 // Panel-engine sizes the marketplace synthetic AppManifest accepts.
 // The manifest may declare any string here; anything outside this set
 // falls through the filter so a typo can't crash the picker.
-const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '2x4', '4x2', '4x4'];
-
-// One shared immersive adapter for every SDK app: makeWidgetTouchView returns a
-// new component per call, so building it inline would remount the sandbox on
-// each render. The Touch facet spawns the app's own immersive-surface worker
-// (useImmersive() reads true there); wrapping the cell widget would share the
-// tile's worker and render its tile face fullscreen.
-const MARKETPLACE_TOUCH = makeWidgetTouchView(MarketplaceTouch);
+const VALID_MARKETPLACE_SIZES: ReadonlyArray<PanelWidgetSize> = ['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round'];
 
 // Native-style catalog faces for specific SDK apps. The picker renders this in
 // place of the live sandbox load (MarketplaceWidget) so the tile shows a real
@@ -194,6 +190,8 @@ function makeMarketplaceAppManifest(
   immersive = false,
   singleInstance = false,
   manifestSurfaces?: string[],
+  manifestGridSizes?: string[],
+  immersiveDoubleSwipe = false,
 ): AppManifest {
   // A manifest that names panel surfaces ("y70") is limited to them; the
   // legacy vocabulary ("dashboard", "cell", "page") names none and stays open.
@@ -202,6 +200,9 @@ function makeMarketplaceAppManifest(
   const sizes = (manifestSizes ?? [])
     .filter((s): s is PanelWidgetSize => (VALID_MARKETPLACE_SIZES as readonly string[]).includes(s));
   const safeSizes: PanelWidgetSize[] = sizes.length > 0 ? sizes : ['2x2'];
+  // Sizes reserved for single-widget panels never count, so a list of only those offers every size.
+  const gridSizes = (manifestGridSizes ?? []).filter((s): s is PanelWidgetSize =>
+    (safeSizes as readonly string[]).includes(s) && !SINGLE_WIDGET_SIZES.has(s as PanelWidgetSize));
   const defaultSize: PanelWidgetSize =
     (manifestDefault && (safeSizes as readonly string[]).includes(manifestDefault))
       ? (manifestDefault as PanelWidgetSize)
@@ -216,9 +217,14 @@ function makeMarketplaceAppManifest(
       icon: iconUrl ? appIconComponent(iconUrl) : Boxes,
       sizes: safeSizes,
       defaultSize,
+      gridSizes: gridSizes.length > 0 ? gridSizes : undefined,
       // Opt-in per app: the immersive view re-renders the same widget at the
       // panel's full size, which only suits an app that lays out from useSize().
       supportsImmersive: { portrait: immersive, landscape: immersive },
+      // Opt-in on top of immersive: the first swipe down only reveals the
+      // close hint, a second swipe while it's visible closes. Default is the
+      // host's usual single-swipe close.
+      immersiveDoubleSwipe,
       singleInstance,
       hasConfig: true,
       touch: false,
@@ -233,7 +239,7 @@ function makeMarketplaceAppManifest(
     // lays out from useSize(), so it needs nothing of its own. Gated on the
     // manifest flag, since a widget that ignores its size reads as a stretched
     // cell rather than a fullscreen view.
-    Touch: immersive ? MARKETPLACE_TOUCH : undefined,
+    Touch: immersive ? MarketplaceTouch : undefined,
     Preview: MARKETPLACE_PREVIEWS[id],
     // A page-capable SDK widget becomes click-through into a desktop section
     // view (Dashboard.renderSystemView). The wrapper reads the marketplace type
@@ -249,7 +255,8 @@ function makeMarketplaceAppManifest(
 // app supports it (and is input-compatible), else [].
 //
 // Multi-widget surfaces hide any size reserved by a single-widget
-// surface (e.g. 2x4 belongs to q60; everywhere else doesn't see it).
+// surface (e.g. 2x4 belongs to q60; everywhere else doesn't see it), and
+// offer only an app's grid sizes when it declares them.
 // The reconciler snaps existing widgets at a hidden size to the nearest
 // non-reserved size on load.
 export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurface, deviceTouch?: boolean): PanelWidgetSize[] {
@@ -260,7 +267,7 @@ export function sizesForSurface(meta: AppManifest['meta'], surface?: PanelSurfac
   if (single !== undefined) {
     return meta.sizes.includes(single) ? [single] : [];
   }
-  return meta.sizes.filter(s => !SINGLE_WIDGET_SIZES.has(s));
+  return (meta.gridSizes ?? meta.sizes).filter(s => !SINGLE_WIDGET_SIZES.has(s));
 }
 
 // Fallback size for the add-widget picker (preview + insertion size), used

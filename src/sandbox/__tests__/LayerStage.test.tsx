@@ -78,6 +78,17 @@ describe('Layer + Manipulable', () => {
     expect(layerPress).not.toHaveBeenCalled();
   });
 
+  it('reports a tap in layout px when the panel renders the layer scaled', () => {
+    const layerPress = vi.fn();
+    const view = render(<Layer grow interactive __events={{ press: layerPress }}><span>art</span></Layer>);
+    const layer = view.container.firstElementChild as HTMLElement;
+    // The rect is the on-screen size (W x H); the layout box is twice that, as on a panel drawn at half scale.
+    Object.defineProperty(layer, 'offsetWidth', { configurable: true, value: W * 2 });
+    Object.defineProperty(layer, 'offsetHeight', { configurable: true, value: H * 2 });
+    fireEvent.click(layer, { clientX: 30, clientY: 40 });
+    expect(layerPress).toHaveBeenCalledWith({ x: 60, y: 80 });
+  });
+
   it('a second finger anywhere on the layer turns the drag into a pinch and twist', () => {
     const { layer, change, item } = renderStage();
     const el = item();

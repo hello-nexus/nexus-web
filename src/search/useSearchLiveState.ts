@@ -8,7 +8,6 @@ import { fetchCloudAccounts, type GetAccountsResponse } from '../api/cloud';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { fetchSystemVolume, type SystemVolumeState } from '../api/system';
 import { getTrackingStatus } from '../hooks/useScreenTimeBrowse';
-import { DEV_TOOLS } from '../lib/devTools';
 
 /** Live service state behind the palette's stateful entries (toggles that
  *  show their current position, per-device rows). Every field is null until
@@ -62,7 +61,7 @@ export function useSearchLiveState(enabled: boolean): SearchLiveState {
       fetchSmartLights().catch(() => null),
       fetchObsStatus().catch(() => null),
       fetchDiscordStatus().catch(() => null),
-      DEV_TOOLS && OFFICIAL_BUILD ? fetchCloudAccounts().catch(() => null) : Promise.resolve(null),
+      OFFICIAL_BUILD ? fetchCloudAccounts().catch(() => null) : Promise.resolve(null),
       fetchSystemVolume().catch(() => null),
     ]).then(([music, telemetry, tracking, brightness, lightingDevices, smartLights, obs, discord, cloud, volume]) => {
       if (cancelled) return;

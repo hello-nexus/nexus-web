@@ -89,7 +89,7 @@ export interface TopologyDisplay {
 
 export interface DisplayTopology {
   hostingSupported: boolean;
-  /** Promoted-monitor rotation availability on the host OS (Windows only). */
+  /** Promoted-monitor rotation availability on the host OS (Windows, macOS). */
   rotationSupported: boolean;
   /** "Keep panel clear of other windows" availability on the host OS (Windows only). */
   reserveSupported: boolean;
@@ -117,6 +117,11 @@ export async function demoteDisplayPanel(id: string): Promise<{ error?: boolean 
 
 export async function rotateDisplay(id: string, orientation: string): Promise<{ error?: boolean } | null> {
   return postService<{ error?: boolean }>(`/displays/${encodeURIComponent(id)}/rotation`, { orientation });
+}
+
+/** Opens the macOS Privacy page that grants touch routing (macOS hosts only). */
+export async function openTouchPermissionSettings(): Promise<{ error?: boolean } | null> {
+  return postService<{ error?: boolean }>('/displays/touch-permission/open', {});
 }
 
 /**

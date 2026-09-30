@@ -870,3 +870,17 @@ export function useFeatureFlags(): FeatureFlags {
     diagnostics: ctx.settings.featureDiagnosticsEnabled,
   };
 }
+
+const NO_CONFLICT_EXCLUSIONS: string[] = [];
+
+/**
+ * Read-only accessor for `Ui.ConflictAutoKillExclusions` - the app whitelist
+ * the conflict surfaces (badge, onboarding gate) gate their kill/autostart
+ * actions and their owner switch on. Returns an empty list outside a
+ * UiSettingsProvider, same pattern as {@link useFeatureFlags}.
+ */
+export function useConflictAutoKillExclusions(): readonly string[] {
+  const ctx = useContext(UiSettingsContext);
+  if (!ctx) return NO_CONFLICT_EXCLUSIONS;
+  return ctx.settings.conflictAutoKillExclusions;
+}

@@ -209,6 +209,12 @@
   font-family: var(--panel-font);
 }
 
+// The scaler fills the card's outer box, so a border-box border leaves a strip of the card's own background around full-bleed SDK content.
+.panel-card[data-widget-type^='app:'],
+.panel-card[data-widget-type^='marketplace:'] {
+  border-width: 0;
+}
+
 // Round glass (the Kraken LCD). The size is only offered on square surfaces, so
 // a 50% radius is a true circle rather than an ellipse. The padding here is the
 // inset for plain children; the widget scaler ignores it and sizes itself from

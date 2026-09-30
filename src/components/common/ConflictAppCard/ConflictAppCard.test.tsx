@@ -63,12 +63,12 @@ describe('ConflictAppCard', () => {
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
-  it('lists the devices with who drives each and preselects the agreed owner', () => {
+  it('lists the devices with who drives each, and preselects the app when the app is whitelisted', () => {
     const devices: ConflictDevice[] = [
       { key: 'device:corsair', name: 'iCUE LINK Hub', owner: 'app' },
       { key: 'lighting:openrgb-1', name: 'Vengeance RAM', owner: 'app' },
     ];
-    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={vi.fn()} />);
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={vi.fn()} whitelisted />);
 
     expect(screen.getByText('iCUE LINK Hub')).toBeInTheDocument();
     expect(screen.getByText('Vengeance RAM')).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('ConflictAppCard', () => {
     expect(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' })).not.toBeChecked();
   });
 
-  it('preselects nothing while the devices disagree', () => {
+  it('preselects Nexus when the app is not whitelisted, regardless of device agreement', () => {
     const devices: ConflictDevice[] = [
       { key: 'a', name: 'Hub', owner: 'nexus' },
       { key: 'b', name: 'RAM', owner: 'mixed' },
@@ -87,34 +87,21 @@ describe('ConflictAppCard', () => {
 
     expect(screen.getByText('brand')).toBeInTheDocument();
     expect(screen.getByText('conflicts.devices.mixed')).toBeInTheDocument();
-    for (const radio of screen.getAllByRole('radio')) expect(radio).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' })).not.toBeChecked();
   });
 
-  it('hands the devices to Nexus and then ends the app', async () => {
-    const calls: string[] = [];
-    const onSetOwner = vi.fn(async (owner: string) => { calls.push(`owner:${owner}`); });
-    mockKillConflict.mockImplementation(async () => { calls.push('kill'); return { killed: true }; });
+  it('hands the devices to Nexus without ending the app', async () => {
+    const onSetOwner = vi.fn(async () => true);
     const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];
-    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} />);
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted />);
 
     await act(async () => {
       fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
     });
 
-    expect(calls).toEqual(['owner:nexus', 'kill']);
-    expect(mockKillConflict).toHaveBeenCalledWith('icue');
-  });
-
-  it('says so when Nexus took the devices but the app would not end', async () => {
-    mockKillConflict.mockResolvedValue({ killed: false });
-    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];
-    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={vi.fn(async () => {})} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
-    });
-
-    expect(screen.getByRole('alert')).toHaveTextContent('conflicts.devices.endFailed:iCUE');
+    expect(onSetOwner).toHaveBeenCalledWith('nexus');
+    expect(mockKillConflict).not.toHaveBeenCalled();
   });
 
   it('keeps the devices but drops the owner switch once the app is terminated', () => {
@@ -131,29 +118,8 @@ describe('ConflictAppCard', () => {
     expect(screen.getByText('conflicts.modal.terminated')).toBeInTheDocument();
   });
 
-  it('reports the kill from the owner switch so the row can go terminated', async () => {
-    mockKillConflict.mockResolvedValue({ killed: true });
-    const onTerminated = vi.fn();
-    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];
-    render(
-      <ConflictAppCard
-        conflict={conflict}
-        devices={devices}
-        onSetOwner={vi.fn(async () => {})}
-        onTerminated={onTerminated}
-      />,
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
-    });
-
-    expect(onTerminated).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-  });
-
   it('hands the devices to the app without ending it', async () => {
-    const onSetOwner = vi.fn(async () => {});
+    const onSetOwner = vi.fn(async () => true);
     const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
     render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} />);
 
@@ -165,11 +131,11 @@ describe('ConflictAppCard', () => {
     expect(mockKillConflict).not.toHaveBeenCalled();
   });
 
-  it('never spins End task for the app choice, which ends nothing', async () => {
+  it('never spins End task for either owner choice, since neither ends the app any more', async () => {
     const endTask = () => screen.getByRole('button', { name: 'conflicts.modal.endTask' });
     // Held open so the button can be read mid-flight.
     let release = () => {};
-    const onSetOwner = vi.fn(() => new Promise<void>(resolve => { release = resolve; }));
+    const onSetOwner = vi.fn(() => new Promise<boolean>(resolve => { release = () => resolve(true); }));
     const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
     render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} />);
 
@@ -182,23 +148,38 @@ describe('ConflictAppCard', () => {
     expect(endTask()).not.toHaveAttribute('data-loading', 'true');
   });
 
-  it('spins End task while the Nexus choice runs, since that one ends the app', async () => {
+  it('shows the chosen owner immediately, then follows the whitelisted prop once the write settles', async () => {
     let release = () => {};
-    const onSetOwner = vi.fn(() => new Promise<void>(resolve => { release = resolve; }));
-    mockKillConflict.mockResolvedValue({ killed: true });
-    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];
-    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} />);
+    const onSetOwner = vi.fn(() => new Promise<boolean>(resolve => { release = () => resolve(true); }));
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
+    const { rerender } = render(
+      <ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted={false} />,
+    );
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' }));
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' }));
     });
-    expect(screen.getByRole('button', { name: 'conflicts.modal.endTask' })).toHaveAttribute('data-loading', 'true');
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' })).toBeChecked();
 
     await act(async () => { release(); });
+    rerender(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted />);
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' })).toBeChecked();
+  });
+
+  it('drops the optimistic owner when the whitelist write was not recorded', async () => {
+    const onSetOwner = vi.fn(async () => false);
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted={false} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' }));
+    });
+
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' })).toBeChecked();
   });
 
   it('ignores a click on the owner already selected', async () => {
-    const onSetOwner = vi.fn(async () => {});
+    const onSetOwner = vi.fn(async () => true);
     const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
     render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} />);
 

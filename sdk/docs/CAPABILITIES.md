@@ -38,6 +38,14 @@ The TS shape lives in `src/widgets/types.ts`.
   "sizes": ["1x1", "2x2", "4x2", "4x4"],
   "default_size": "2x2",
 
+  // Optional: the sizes offered on panels that hold several widgets (the
+  // dashboard, a phone, a Y70, a monitor), when fewer than "sizes". A panel
+  // that holds one widget (a Q60, cooler glass) keeps its own size from
+  // "sizes". Unset, or naming only single-widget sizes, offers every size
+  // everywhere. A tile already placed at a size no longer offered moves to
+  // the nearest one that is when its layout next loads with the app known.
+  "grid_sizes": ["4x4"],
+
   // OEM bake-in: treat this app as active on a fresh profile (sidebar auto-pins
   // its page, no user "add" step needed).
   "preinstalled": false,
@@ -64,14 +72,17 @@ The TS shape lives in `src/widgets/types.ts`.
     // or reads via useHostAction must appear here.
     // Read actions: "screentime.today", "displays.list"
     // Write actions: "displays.setBrightness", "lighting.setColor",
-    //   "cooling.setCurve", "cooling.applyPreset", "cooling.setDuty",
-    //   "lighting.setMode"
+    //   "lighting.setMode". Apps get no cooling writes.
     "dispatch": ["screentime.today", "displays.list", "displays.setBrightness"],
 
     // Service routes the app may POST files to via <MediaImport>.
     // The host enforces this list before opening the file picker or
     // touching the network.
     "mediaImport": ["/tryx/media"],
+
+    // Grants one persistent JSON document per key via useAppData, shared by
+    // every running instance of this app on the install. Default false.
+    "appData": true,
 
     // Whether the app exposes a settings schema.
     "config": true,
@@ -107,9 +118,6 @@ action not present in this list. Actions the service currently registers:
 | `displays.list` | read | none | `{ displays: [...] }` |
 | `displays.setBrightness` | write | `{ id, brightness: 0..100 }` | `{ ok }` |
 | `lighting.setColor` | write | `{ hex: string }` | `{ ok }` |
-| `cooling.setCurve` | write | `{ channelId, sourceId, points: [{temp,speed}] }` | `{ ok }` |
-| `cooling.applyPreset` | write | `{ presetId }` | `{ ok }` |
-| `cooling.setDuty` | write | `{ channelId, duty: 0..100 }` | `{ ok }` |
 | `lighting.setMode` | write | `{ mode, ... }` | `{ ok }` |
 
 All dispatch calls return `{ ok: boolean, result?: unknown }`. Rate limit: 20
@@ -123,6 +131,27 @@ upload files to via `<MediaImport uploadPath="...">`. The host validates the
 `uploadPath` prop against this list before opening the native file picker. The
 upload uses `postServiceForm` (LAN/desktop only - it fails closed over the
 relay tunnel). Omit this field if the app does not import media.
+
+#### `capabilities.appData`
+
+A `boolean` (default `false`). Grants `useAppData` a host bridge to one
+persistent JSON document per key, shared by every running instance of this
+app on this install (a Q-series tank and a Y70 tank see the same save file),
+and synced into profile export/import and the cloud account when signed in.
+Without this capability `useAppData` still renders (so a widget never crashes
+for lacking it) but never reaches the host: it behaves exactly like preview
+mode, holding state only in that one render. See `useAppData` below.
+
+#### `capabilities.audio`
+
+A `boolean` (default `false`). Grants `useAudio` a host-side WebAudio sampler:
+the worker has no `AudioContext`, so an app synthesizes its own PCM (instrument
+samples, sound effects) and hands it to the host, which plays it through the
+panel document. Without this capability, or wherever the host cannot or must
+not play sound (preview, a streamed/headless panel render such as the Kraken
+LCD or the Q-series, or a document with no WebAudio support), `useAudio` still
+renders - every method on the returned object is a no-op and `available` is
+`false`. See `useAudio` below.
 
 ---
 
@@ -204,13 +233,22 @@ if (preview) return <Text value="42 °C" />;
 
 ### `useImmersive()`
 
-Returns `{ active, exit }`: whether this render is the panel's fullscreen
-immersive view (its own worker, so `active` is static for the render) and the
-host's animated way out of it. `exit` is a no-op anywhere else.
+Returns `{ active, exit, enter }`: whether this render is the panel's
+fullscreen immersive view (its own worker, so `active` is static for the
+render), the host's animated way out of it, and `enter` to open it from the
+tile. `exit` is a no-op anywhere else; `enter` is `undefined` when the host
+can't open one for this render (not on a panel, already immersive, the app
+manifest lacks `immersive: true`, or a preview) - feature-detect with
+`enter !== undefined` before showing an expand affordance. Whether `enter` is
+defined is settled when the widget starts. It opens the view only when called
+right after a press the host passed to this widget (a `Button`, `Card` or
+`Layer` press, keyboard included), once per press, so call it from that
+handler; a call from a timer or any other event does nothing.
 
 ```tsx
-const { active, exit } = useImmersive();
+const { active, exit, enter } = useImmersive();
 if (active) return <Stage onClose={exit} />;
+return <Button onPress={enter} disabled={!enter}>Expand</Button>;
 ```
 
 ### `useLocalState<T>(defaults)`
@@ -302,6 +340,146 @@ handlers that close over changing props:
 const latestSettings = useLatest(settings);
 // inside an event handler: latestSettings.current
 ```
+
+### `useAppData<T>(key, initial)`
+
+Generic per-app JSON document, shared by every running instance of this app on
+the install - the "save file" primitive. Requires `capabilities.appData`.
+
+```tsx
+const save = useAppData<TankState>('save', { coins: 0, fish: [] });
+if (!save.ready) return <Spinner />;
+save.value.coins; // live: replaced immediately by a push from another instance
+await save.update((s) => ({ ...s, coins: s.coins + 10 }));
+```
+
+Returns `{ value, ready, revision, update, put }`:
+
+- `value` - the document's `data`, or `initial` until the first read arrives
+  (`ready` false), or when the document doesn't exist yet (revision `0`).
+- `ready` - `false` only before the first read resolves. A failed initial read
+  retries with backoff in the background rather than leaving the tile stuck;
+  no author action needed.
+- `revision` - the document's revision number (`0` = never written).
+- `update(fn)` - applies `fn` to the latest known value and writes with
+  compare-and-swap, retrying automatically (adopting the current document) on
+  a conflict from another instance writing concurrently. Resolves `true` on
+  success, `false` if it never lands.
+- `put(baseRevision, data)` - the lower-level primitive: exactly one
+  compare-and-swap attempt, no retry. Use it when the app already tracks its
+  own base revision (e.g. batching several local changes before one write).
+  Resolves `{ ok: true, revision }` or `{ ok: false, revision, data }` (the
+  document's current state, so the app can inspect the conflict itself).
+
+A push from another running instance of the same app updates `value`/
+`revision` live, with no action needed. In preview, or without
+`capabilities.appData`, state lives only in that render (never touches the
+host) and `ready` is `true` immediately.
+
+### `useAudio()`
+
+A generic PCM sampler backed by the host's WebAudio document. Requires
+`capabilities.audio`. The worker has no `AudioContext`, so an app synthesizes
+its own instrument/sfx PCM (as `Float32Array` per channel, -1..1) and loads it
+once; playback, clocks and the reverb send all happen host-side.
+
+```tsx
+const audio = useAudio();
+useEffect(() => {
+  if (!audio.available) return;
+  audio.load('kick', kickChannels, 44100);
+}, [audio]);
+
+const onBeat = () => {
+  if (!audio.available) return;
+  audio.clock('bar'); // anchors 'bar' a short lead ahead of the host's audio time
+  audio.play('kick', { clock: 'bar', at: 0, gain: 0.8 });
+};
+```
+
+Returns `{ available, load, play, clock, solo, stop, reverb, volume }`:
+
+- `available` - `false` wherever the host cannot or must not play sound (see
+  `capabilities.audio` above); every other method is then a no-op, so a widget
+  never has to guard each call.
+- `load(id, channels, sampleRate, loop?)` - registers PCM under `id`,
+  replacing any earlier one. `loop` (`{ start, end }`, in seconds) marks the
+  sound as loopable; a looping sound played without `dur` plays until `stop()`.
+  A malformed load (an out-of-range sample rate, too many channels, or
+  channels of unequal length) is dropped silently rather than throwing.
+- `play(id, opts?)` - schedules a voice. `opts.clock` + `opts.at` schedule
+  against a named clock (seconds since that clock's `clock()` call); otherwise
+  `at` is seconds from now. `rate` (pitch/speed), `gain`, `pan` (-1..1),
+  `send` (0..1, into the reverb bus), `dur`, `release` and `tag` (a name
+  `stop()` can target) are all optional. `dur` is how long the voice holds at
+  full gain; `release` is the fade AFTER that - the voice stays audible from
+  `dur` to `dur + release`, not just `dur`.
+- `clock(name, lead?)` - starts, or restarts, a named clock `lead` seconds
+  (a short default lead) ahead of the host's audio time. Send a batch of `play`
+  calls against one clock call to sequence music without per-note network/
+  worker round trips; a voice that arrives too late to hit its scheduled time
+  is dropped rather than played late.
+- `solo(name)` - makes a started clock the page's one solo clock, for
+  background music. Whichever other instance's solo clock held it fades out,
+  and plays on a solo clock that no longer holds it are dropped until its
+  instance calls `solo()` for it again; when the holder's view closes, the
+  solo passes back to the one it took over from. The host honours it only
+  shortly after the user pressed this widget, so calling it when music starts
+  and on each touch hands the music to the tile being used. Clocks never
+  passed to `solo()` are unaffected.
+- `stop(opts?)` - stops this instance's voices with a short fade: all of them,
+  or only those with `opts.tag`, or only those scheduled against `opts.clock`.
+- `reverb(id, wet?)` - uses a loaded sound as this instance's reverb bus
+  impulse response (`null` turns the bus off); `wet` is the bus's return level.
+- `volume(level, fade?)` - this instance's master level, ramped over `fade`
+  seconds.
+
+The host caps loaded PCM and concurrent voices per widget instance, and clamps
+every numeric option to a sane range - a malformed or excessive call degrades
+rather than crashing the sampler for every widget sharing the document.
+
+### `useDisplay()`
+
+The tile's actual shape and the panel surface's input method. Static for the
+render.
+
+```tsx
+const { shape, input } = useDisplay();
+if (shape === 'round') return <RoundLayout />;
+if (input === 'none') return <GlanceableLayout />; // no pointer/touch at all
+```
+
+- `shape`: `'rect'` or `'round'` - `'round'` only on round glass (the Kraken
+  LCD tile), masked to a circle.
+- `input`: `'touch'` (Y70, phone), `'pointer'` (the desktop dashboard, mouse),
+  or `'none'` (the Q-series and cooler LCD surfaces - display-only, no
+  interactive affordances should render).
+- `cells`: `{ cols, rows }`, the panel grid cells the tile spans (a 4x2 tile is
+  `{ cols: 4, rows: 2 }`). Panels lay widgets out at a fixed design size and
+  scale them to fit, so `useSize()` is about the same for a tile on any panel
+  and cannot tell a big tile from a small one; `cells` can. Absent in the
+  immersive view, the page view, a preview, and from an older host.
+
+Preview always reports `{ shape: 'rect', input: 'pointer' }`.
+
+### `useLocale()`
+
+The language Nexus's UI is set to, as a BCP 47 tag, one of the languages in
+Nexus's settings (for example `'en'`, `'de'`, `'pt-BR'`, `'zh-CN'`). The
+component re-renders when the user switches the language.
+
+A host older than this hook has no `useLocale` in its shared runtime, and the
+app's import of it is `undefined` there. Guard the call; the guard is fixed for
+the worker's lifetime, so hook order stays stable:
+
+```tsx
+const locale = typeof useLocale === 'function' ? useLocale() : 'en';
+const strings = TABLES[locale] ?? TABLES[locale.split('-')[0]] ?? TABLES.en;
+```
+
+An app ships its own string tables and picks one; Nexus's own translations are
+not exposed. The store listing's name, tagline and description are localized
+separately, through the manifest's `locales` field.
 
 ---
 
@@ -457,8 +635,10 @@ can learn a coordinate.
 #### `Sprite`
 One cell of a sprite atlas, absolutely placed inside a `Layer`. Ship the atlas
 once as a `data:` URL and animate by changing `frame`, so a frame costs three
-numbers over the worker port instead of a fresh image. Scaling is a compositor
-transform, and `pixelated` is on by default.
+numbers over the worker port instead of a fresh image. The cell is painted at its
+final size, so the atlas must be exactly `cols` cells of `cw` wide with no padding,
+and `pixelated` is on by default. A new `src` shows once it has decoded; until
+then, for a moment at most, the previous image stays.
 
 | Prop | Type |
 |---|---|

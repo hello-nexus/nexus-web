@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { ThreadMessagePort } from '@quilted/threads';
 import type { RemoteConnection } from '@remote-dom/core';
 import { registerElements } from './elements';
-import { ContextProvider, createStore, type WidgetContextInit, type WidgetStore } from './context';
+import { ContextProvider, createStore, type WidgetContextInit, type WidgetStore, type WidgetStorePatch } from './context';
 
 declare global {
   var __nexus_ui_port: MessagePort | undefined;
@@ -59,7 +59,7 @@ export async function mount(app: ComponentType | WidgetSurfaces): Promise<void> 
         createElement(ContextProvider, { store, children: createElement(App) }),
       );
     },
-    update(patch: { settings?: Record<string, unknown>; size?: { width: number; height: number } }) {
+    update(patch: WidgetStorePatch) {
       store?.update(patch);
     },
   });

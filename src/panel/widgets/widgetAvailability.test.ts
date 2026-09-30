@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
-import { isSingleWidgetSurface, surfaceSupportsTouch } from '../types';
+import { isSingleWidgetSurface, PANEL_SURFACES, singleWidgetSurfaceSize, surfaceSupportsTouch } from '../types';
 import {
   sizesForSurface,
   APP_REGISTRY,
@@ -122,21 +122,23 @@ describe('appAvailableForSurface', () => {
 
   it('exposes every widget on the desktop dashboard (pointer + every multi-widget size)', () => {
     // Desktop has a mouse (pointer-capable) and accepts every multi-widget
-    // size. Built-ins declare no `surfaces` allowlist, so every widget in the
-    // registry should be reachable from the desktop add-widget picker.
-    // The reach flags are the exceptions: remote-only widgets are hidden
-    // because desktop is the host's own surface, panel-only widgets because
-    // the desktop never opens the fullscreen view they're played in.
+    // size, so every widget in the registry should be reachable from the
+    // desktop add-widget picker. The reach flags are the exceptions: remote-only
+    // widgets are hidden because desktop is the host's own surface, panel-only
+    // widgets because the desktop never opens the fullscreen view they're
+    // played in, and a `surfaces` allowlist (blank) that leaves desktop out.
     for (const [type, def] of Object.entries(APP_REGISTRY)) {
+      const allowed = !def.meta.surfaces || def.meta.surfaces.includes('desktop');
       expect(appAvailableForSurface(def.meta, 'desktop'),
-        `${type} on desktop`).toBe(!def.meta.remoteOnly && !def.meta.panelOnly);
+        `${type} on desktop`).toBe(!def.meta.remoteOnly && !def.meta.panelOnly && allowed);
     }
   });
 
   it('exposes every widget on Y70 (touch + every multi-widget size)', () => {
     for (const [type, def] of Object.entries(APP_REGISTRY)) {
+      const allowed = !def.meta.surfaces || def.meta.surfaces.includes('y70');
       expect(appAvailableForSurface(def.meta, 'y70'),
-        `${type} on y70`).toBe(!def.meta.remoteOnly);
+        `${type} on y70`).toBe(!def.meta.remoteOnly && allowed);
     }
   });
 
@@ -196,6 +198,17 @@ describe('appAvailableForSurface', () => {
       expect(def, `missing widget type: ${type}`).toBeDefined();
       expect(def.meta.touch, `${type} should require touch`).toBe(true);
       expect(appAvailableForSurface(def.meta, 'q60'), `${type} must be unavailable on q60`).toBe(false);
+    }
+  });
+});
+
+describe('blank widget', () => {
+  it('is offered on every single-widget surface at its locked size, and nowhere else', () => {
+    const blank = APP_REGISTRY.blank;
+    for (const surface of PANEL_SURFACES) {
+      const single = singleWidgetSurfaceSize(surface);
+      expect(appAvailableForSurface(blank.meta, surface), surface).toBe(single !== undefined);
+      if (single) expect(sizesForSurface(blank.meta, surface), surface).toEqual([single]);
     }
   });
 });
@@ -366,6 +379,27 @@ describe('marketplace listing derives from the preinstalled + page signal', () =
     expect(meta.surfaces).toBeUndefined();
     expect(appAvailableForSurface(meta, 'desktop')).toBe(true);
     expect(appAvailableForSurface(meta, 'y70')).toBe(true);
+  });
+
+  it('accepts 2x2round (round glass) and offers it only on the surfaces that use it', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.hellonexus.aquarium', name: 'Aquarium', source: 'user', sizes: ['2x2round'] }),
+    ]);
+    const meta = lookupApp(typeForMarketplace('com.hellonexus.aquarium'))!.meta;
+    expect(meta.sizes).toEqual(['2x2round']);
+    // kraken and lcd-round both lock to the round tile.
+    expect(appAvailableForSurface(meta, 'kraken')).toBe(true);
+    expect(sizesForSurface(meta, 'kraken')).toEqual(['2x2round']);
+    expect(appAvailableForSurface(meta, 'lcd-round')).toBe(true);
+    expect(sizesForSurface(meta, 'lcd-round')).toEqual(['2x2round']);
+    // 2x2round is reserved off every multi-widget surface, same as q60's 2x4.
+    expect(appAvailableForSurface(meta, 'y70')).toBe(false);
+    expect(appAvailableForSurface(meta, 'desktop')).toBe(false);
+    expect(appAvailableForSurface(meta, 'phone')).toBe(false);
+    expect(sizesForSurface(meta, 'y70')).toEqual([]);
+    // A locked single-widget surface that doesn't use the round tile (q60)
+    // still excludes it - its own lock is '2x4', not '2x2round'.
+    expect(appAvailableForSurface(meta, 'q60')).toBe(false);
   });
 
   it('lists the OEM bake-in app on the machine it was bundled for', () => {

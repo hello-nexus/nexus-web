@@ -12,6 +12,8 @@ Closes part of **B** (control the SDK can't do) - the counterparts to the new ui
 - **`cooling.setCurve(channelId, sourceId, points[{temp,speed}])`** - applies a graph fan curve via
   the exact POST /cooling/curves/set flow (CoolingSafety.Sanitize clamps, persists, re-derives the
   active preset, broadcasts). The ui-curve counterpart.
+- **Removed 2026-09-28:** apps get no cooling writes. `cooling.setCurve`, `cooling.applyPreset` and
+  `cooling.setDuty` are no longer registered; `cooling.state` stays.
 - Both are manifest-`dispatch`-gated + rate-limited (20/s). Demo app: `com.hellonexus.appcontrol`.
 - STILL open in B: media transport, system volume, macros/deck, app launch, power; `cooling.applyPreset`
   + `cooling.setDuty` + `lighting.setMode` already existed. Built + locally verified; **not yet proven on

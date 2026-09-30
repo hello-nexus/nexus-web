@@ -65,7 +65,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`, `useImmersive`,
-  `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
+  `useDisplay`, `useLocale`, `useAppData`, `useAudio`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
 - **`Slider` additions**: `trackFill` controls the accent fill (auto from value, or pass a
   `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
@@ -73,7 +73,8 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
 - **`Manipulable`** inside a `Layer` with `gestures`: a host-driven drag / pinch / twist on a
   placed child (any blessed content), reported back as a normalized transform. **`YouTube`**:
   an embed player by video id. **`useImmersive()`**: whether the render is the fullscreen
-  immersive view, plus its exit.
+  immersive view, plus its exit, plus `enter` (undefined when the host can't open one) to open
+  it from the tile.
 - **`Layer` + `Sprite`**: the one escape from the closed layout set. `Layer` is a clipped,
   positioned stage whose `Sprite` children carry `x`/`y`/`z`/`scale`/`flip` and may overlap;
   `Layer`'s `onPress` reports a layer-local `{ x, y }`, the only coordinate an author can
@@ -90,6 +91,18 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   LAN/desktop only (fails closed over the relay tunnel). Props: `uploadPath`, `accept`,
   `aspectRatio`, `minWidth`/`minHeight`/`maxWidth`/`maxHeight`, `targetWidth`/`targetHeight`,
   `label`, `onProgress`, `onComplete`, `onError`.
+- **`useAppData(key, initial)`**: a persistent per-app JSON document per key, shared by
+  every running instance of the app on the install (the save-file primitive), synced into
+  profile export/import and the cloud account. Requires `capabilities.appData`. Returns
+  `{ value, ready, revision, update, put }` - `update(fn)` retries through the lower-level
+  `put(baseRevision, data)` compare-and-swap on a conflict from another instance.
+- **`useAudio()`**: a generic PCM sampler for a worker that has no `AudioContext` - synthesize
+  instrument/sfx samples as `Float32Array` PCM, `load` them once, then `play`/`clock`/`solo`/
+  `stop`/`reverb`/`volume` through the host's WebAudio document. Requires `capabilities.audio`;
+  `available` is `false` (every method a no-op) in preview, on a streamed/headless panel
+  render, or without WebAudio support.
+- **`useDisplay()`**: `{ shape, input }` - the tile's actual shape (`'round'` only on round
+  glass) and the panel surface's input method (`'touch'` / `'pointer'` / `'none'`).
 - **`category:"device"`** manifest field: marks the app as a device app. It appears under
   DEVICES in the sidebar nav and its page renders inside device-page chrome (the same chrome
   as Cooling, Lighting, etc.) rather than the standard widget section route.
