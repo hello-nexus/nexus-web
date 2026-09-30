@@ -111,6 +111,19 @@ describe('WeatherWidget', () => {
     expect(container.querySelector('[data-sky="true"]')).not.toBeNull();
   });
 
+  it('keeps the sky up while a newly picked location loads', async () => {
+    const { container, rerender } = render(<WeatherWidget widget={weatherWidget('4x2', { animatedSky: true })} />);
+    expect(await screen.findByText('72°')).toBeInTheDocument();
+    const canvas = container.querySelector('canvas');
+    expect(canvas).not.toBeNull();
+    const elsewhere = { lat: 48.1, lon: 11.6, label: 'Munich', cc: 'DE' };
+    rerender(<WeatherWidget widget={weatherWidget('4x2', { animatedSky: true, location: elsewhere })} />);
+    expect(screen.queryByText('72°')).toBeNull();
+    expect(container.querySelector('canvas')).toBe(canvas);
+    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(container.querySelector('canvas')).toBe(canvas);
+  });
+
   it('keeps themed text when the sky cannot draw', async () => {
     shader.ready = false;
     shader.error = 'WebGL2 not supported';

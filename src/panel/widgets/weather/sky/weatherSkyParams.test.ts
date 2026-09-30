@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { WeatherSnapshot } from '../../../../api/weather';
-import { moonPhase, skyCondition, skySun, weatherSkyParams } from './weatherSkyParams';
+import { anchorWind, moonPhase, skyCondition, skySun, weatherSkyParams, WIND_ANCHOR_ZERO, type WindAnchor } from './weatherSkyParams';
 
 function snapshot(patch: Partial<WeatherSnapshot> = {}): WeatherSnapshot {
   return {
@@ -111,5 +111,31 @@ describe('moonPhase', () => {
     expect(moonPhase(Date.UTC(2024, 0, 25, 17, 54))).toBeCloseTo(0.5, 1);
     const newMoon = moonPhase(Date.UTC(2024, 1, 9, 22, 59));
     expect(Math.min(newMoon, 1 - newMoon)).toBeLessThan(0.02);
+  });
+});
+
+describe('anchorWind', () => {
+  // The shader's drift at u_time t, which wraps at a day.
+  const drift = (a: WindAnchor, t: number) => {
+    let dt = t - a.t0;
+    if (dt < 0) dt += 86_400;
+    return a.w + a.wind * dt;
+  };
+
+  it('keeps the drift continuous when the wind changes', () => {
+    const before = { ...WIND_ANCHOR_ZERO, wind: 0.8 };
+    const after = anchorWind(before, -0.3, 30_000);
+    expect(drift(after, 30_000)).toBeCloseTo(drift(before, 30_000));
+    expect(drift(after, 30_010)).toBeCloseTo(drift(before, 30_000) - 3);
+  });
+
+  it('carries across the midnight wrap of u_time', () => {
+    const late = anchorWind({ ...WIND_ANCHOR_ZERO, wind: 0.5 }, 0.5, 86_390);
+    const early = anchorWind(late, 0.2, 10);
+    expect(early.w - late.w).toBeCloseTo(10);
+  });
+
+  it('integrates the wind direction for the direction-only drift', () => {
+    expect(anchorWind({ t0: 100, w: 0, s: 0, wind: -0.1 }, 0.4, 160).s).toBeCloseTo(-60);
   });
 });

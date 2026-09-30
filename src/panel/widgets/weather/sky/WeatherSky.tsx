@@ -7,7 +7,7 @@ import type { EffectState } from '../../../../types/lighting';
 import type { PanelSurface } from '../../../types';
 import { useWallClock } from '../useWallClock';
 import skyFrag from './weathersky.frag?raw';
-import { weatherSkyParams, type WeatherSkyParams } from './weatherSkyParams';
+import { anchorWind, weatherSkyParams, WIND_ANCHOR_ZERO, windUniforms, type WeatherSkyParams, type WindAnchor } from './weatherSkyParams';
 import styles from './WeatherSky.module.scss';
 
 // Bundled, never fetched: not a lighting effect, so the service has no such shader.
@@ -20,11 +20,19 @@ function primeSkyShader() {
 }
 
 const SKY_TICK_MS = 60 * 1000;
-const TWEEN_MS = 3000;
+const TWEEN_MS = 2000;
 const MAX_FPS = 30;
-// Sun, moon and phase move continuously except at wraps (midnight, sunrise,
-// new moon), where a tween would sweep them across the sky; they snap.
-const TWEENED = ['u_cloud', 'u_rain', 'u_snow', 'u_fog', 'u_storm', 'u_wind'];
+
+// The renderer's u_time clock: seconds since UTC midnight.
+const shaderNowS = () => (Date.now() % 86_400_000) / 1000;
+
+// Moon phase is cyclic; easing takes the short way round so a new-moon wrap
+// never sweeps through a full lunation.
+function ease(key: string, a: number, b: number, e: number): number {
+  if (key !== 'u_moonPhase') return a + (b - a) * e;
+  const d = ((((b - a) % 1) + 1.5) % 1) - 0.5;
+  return (((a + d * e) % 1) + 1) % 1;
+}
 
 function skyState(params: WeatherSkyParams): EffectState {
   return { speed: 50, intensity: 1, hue: 0, colorize: 0, saturation: 1, contrast: 1, params };
@@ -47,31 +55,49 @@ export function WeatherSky({ snap, surface, round, children }: WeatherSkyProps) 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const now = useWallClock(SKY_TICK_MS);
   const target = useMemo(() => weatherSkyParams(snap, now), [snap, now]);
-  const stateRef = useRef<EffectState>(skyState(target));
+  const stateRef = useRef<EffectState>(skyState({ ...target, ...windUniforms(WIND_ANCHOR_ZERO) }));
+  const anchorRef = useRef<WindAnchor>({ ...WIND_ANCHOR_ZERO, wind: target.u_wind });
+  const lastSnapRef = useRef(snap);
+  const easeEndRef = useRef(0);
 
-  // Eases to each new reading so a condition change morphs instead of cutting.
+  const reducedMotion = useMemo(
+    () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
+    [],
+  );
+
+  // A new reading (location switch, refresh) eases every value over; a clock
+  // tick only nudges the sun and moon and snaps, so the midnight and sunrise
+  // wraps never sweep them across the sky.
   useEffect(() => {
-    const from = stateRef.current.params;
-    if (TWEENED.every(key => from[key] === target[key])) {
-      stateRef.current = skyState(target);
+    const write = (params: WeatherSkyParams) => {
+      if (!reducedMotion && params.u_wind !== anchorRef.current.wind) {
+        anchorRef.current = anchorWind(anchorRef.current, params.u_wind, shaderNowS());
+      }
+      stateRef.current = skyState({ ...params, ...windUniforms(anchorRef.current) });
+    };
+    const start = performance.now();
+    if (lastSnapRef.current !== snap) easeEndRef.current = start + TWEEN_MS;
+    lastSnapRef.current = snap;
+    const span = easeEndRef.current - start;
+    // Reduced motion freezes u_time, so the unanchored drift is wind * that
+    // frozen time: easing the wind would sweep the clouds. It cuts instead.
+    if (span <= 0 || reducedMotion) {
+      write(target);
       return;
     }
-    const start = performance.now();
+    const from = stateRef.current.params;
     let raf = 0;
     const step = (ts: number) => {
-      const k = Math.min(1, Math.max(0, (ts - start) / TWEEN_MS));
+      const k = Math.min(1, Math.max(0, (ts - start) / span));
       const e = k * k * (3 - 2 * k);
-      const params: WeatherSkyParams = { ...target };
-      for (const key of TWEENED) {
-        const a = from[key] ?? target[key];
-        params[key] = a + (target[key] - a) * e;
-      }
-      stateRef.current = skyState(params);
+      const params: WeatherSkyParams = {};
+      for (const key of Object.keys(target)) params[key] = ease(key, from[key] ?? target[key], target[key], e);
+      write(params);
       if (k < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [target]);
+  }, [snap, target, reducedMotion]);
 
   // Pager pages all stay mounted; a tile scrolled off-page stops drawing.
   const rootRef = useRef<HTMLDivElement>(null);
@@ -86,10 +112,6 @@ export function WeatherSky({ snap, surface, round, children }: WeatherSkyProps) 
     return () => io.disconnect();
   }, []);
 
-  const reducedMotion = useMemo(
-    () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches,
-    [],
-  );
   // The Q-series panel GPU cannot hold frame rate at native resolution.
   const lowEnd = surface === 'q60';
   const renderOptions = useMemo(

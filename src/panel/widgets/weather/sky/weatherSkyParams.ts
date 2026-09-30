@@ -124,3 +124,35 @@ export function weatherSkyParams(snap: WeatherSnapshot, nowMs: number): WeatherS
     u_wind: strength * toward,
   };
 }
+
+const DAY_S = 86_400;
+
+// Running integrals of the wind for the shader's drift, anchored at t0 in
+// u_time seconds (which wrap at UTC midnight).
+export interface WindAnchor {
+  t0: number;
+  w: number;
+  s: number;
+  wind: number;
+}
+
+export const WIND_ANCHOR_ZERO: WindAnchor = { t0: 0, w: 0, s: 0, wind: 0 };
+
+// Folds the drift accrued at the old wind into the integrals before the wind
+// changes, so the shader's position is continuous across the change. Wrapping
+// at a day keeps them inside the uniforms' range; the wrap jumps the drift
+// once, as u_time's own midnight wrap does.
+export function anchorWind(a: WindAnchor, wind: number, nowS: number): WindAnchor {
+  let dt = nowS - a.t0;
+  if (dt < 0) dt += DAY_S;
+  return {
+    t0: nowS,
+    w: (a.w + a.wind * dt) % DAY_S,
+    s: (a.s + (a.wind < 0 ? -1 : 1) * dt) % DAY_S,
+    wind,
+  };
+}
+
+export function windUniforms(a: WindAnchor): WeatherSkyParams {
+  return { u_windT0: a.t0, u_windW: a.w, u_windS: a.s };
+}

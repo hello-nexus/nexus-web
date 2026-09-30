@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useState, type CSSProperties, type ReactNode } from 'react';
 import { widgetLayoutSize } from '../../types';
 import { Droplet, Wind } from 'lucide-react';
 import { type WeatherLocation } from '../../../api/weather';
@@ -24,6 +24,10 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
   const { timeFormat } = useUnitPrefs();
   const location = (widget.config?.location as WeatherLocation | null | undefined) ?? null;
   const { snap, loaded, fetchedAt: referenceNow } = useWeatherSnapshot(location);
+  // Last drawable reading: the sky stays up and eases across while a newly
+  // picked location loads, instead of dropping out behind the spinner.
+  const [skySnap, setSkySnap] = useState(snap?.asOf ? snap : null);
+  if (snap?.asOf && snap !== skySnap) setSkySnap(snap);
 
   const hour12 = resolveHour12(timeFormat);
   function hourLabel(time: string) {
@@ -54,11 +58,15 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
   const compact = size === '2x2';
   const portrait = size === '2x4';
 
+  const withSky = (content: ReactNode) => (animatedSky && skySnap
+    ? <WeatherSky snap={skySnap} surface={surface} round={widget.size === '2x2round'}>{content}</WeatherSky>
+    : content);
+
   if (!loaded) {
-    return (
+    return withSky(
       <div className={styles.loading}>
         <Spinner size={widgetSpinnerSize(size)} color="var(--panel-accent-glow)" />
-      </div>
+      </div>,
     );
   }
 
@@ -68,10 +76,6 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
   if (!snap || !snap.asOf) {
     return <WidgetOfflineState compact={size === '1x1'} />;
   }
-
-  const withSky = (content: ReactNode) => (animatedSky
-    ? <WeatherSky snap={snap} surface={surface} round={widget.size === '2x2round'}>{content}</WeatherSky>
-    : content);
 
   const now = referenceNow || 0;
   // With the provider's local reading time the strip starts at the
