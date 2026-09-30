@@ -50,6 +50,8 @@ const lightingApi = vi.hoisted(() => ({
     defaults: [{ hour: 0, brightness: 20 }, { hour: 12, brightness: 100 }],
   }),
   setBrightnessSchedule: vi.fn().mockResolvedValue(null),
+  fetchAudioOutput: vi.fn().mockResolvedValue({ deviceId: '', deviceName: '' }),
+  setAudioOutput: vi.fn().mockResolvedValue({ error: false }),
 }));
 
 vi.mock('../../../api/lighting', () => ({
@@ -62,7 +64,15 @@ vi.mock('../../../api/lighting', () => ({
   setLockBlackout: lightingApi.setLockBlackout,
   fetchBrightnessSchedule: lightingApi.fetchBrightnessSchedule,
   setBrightnessSchedule: lightingApi.setBrightnessSchedule,
+  fetchAudioOutput: lightingApi.fetchAudioOutput,
+  setAudioOutput: lightingApi.setAudioOutput,
 }));
+
+vi.mock('../../../hooks/useAudioDevices', () => {
+  const speakers = { id: 'out-speakers', name: 'Speakers', isDefault: true, direction: 'output' };
+  const headset = { id: 'out-headset', name: 'Arctis Nova Pro', isDefault: false, direction: 'output' };
+  return { useAudioDevices: () => ({ outputs: [speakers, headset], activeOutput: speakers }) };
+});
 
 // The schedule hook subscribes to the lighting topic; no socket in tests.
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
@@ -300,5 +310,51 @@ describe('LightingCoolingSection lock blackout', () => {
 
     await waitFor(() => expect(toggle()).toBeInTheDocument());
     expect(lightingApi.fetchLockBlackout).toHaveBeenCalled();
+  });
+});
+
+describe('LightingCoolingSection audio-reactive output', () => {
+  const trigger = () => screen.getByRole('button', { name: 'lighting.audioOutput.label' });
+
+  beforeEach(() => {
+    lightingApi.fetchAudioOutput.mockReset().mockResolvedValue({ deviceId: '', deviceName: '' });
+    lightingApi.setAudioOutput.mockReset().mockResolvedValue({ error: false });
+  });
+
+  it('persists the picked output with its name', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Arctis Nova Pro'));
+
+    expect(lightingApi.setAudioOutput).toHaveBeenCalledWith({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro' });
+    expect(trigger()).toHaveTextContent('Arctis Nova Pro');
+  });
+
+  it('reverts the pick when the service does not take the write', async () => {
+    lightingApi.setAudioOutput.mockResolvedValue(null);
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+
+    fireEvent.click(trigger());
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Arctis Nova Pro'));
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.systemDefaultNamed'));
+  });
+
+  it('flags an unplugged pick rather than showing it as live', async () => {
+    // Capture falls back to the default while the picked device is gone.
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'out-gone', deviceName: 'USB DAC' });
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.disconnected'));
+  });
+
+  it('is hidden off Windows, where capture takes the whole system mix', () => {
+    render(<LightingCoolingSection serviceOnline platform="macos" />);
+
+    expect(screen.queryByRole('button', { name: 'lighting.audioOutput.label' })).not.toBeInTheDocument();
+    expect(lightingApi.fetchAudioOutput).not.toHaveBeenCalled();
   });
 });

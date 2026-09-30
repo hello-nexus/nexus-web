@@ -310,6 +310,19 @@ export const fetchMusicReactive = () =>
 export const setMusicReactive = (enabled: boolean) =>
   postService('/lighting/music-reactive', { enabled });
 
+/** Output the Windows capture listens to; an empty id follows the system default. */
+export interface AudioOutputPick {
+  deviceId: string;
+  /** Captured with the pick, shown while the device is unplugged. */
+  deviceName: string;
+}
+
+export const fetchAudioOutput = () =>
+  fetchService<AudioOutputPick>('/lighting/audio-output');
+
+export const setAudioOutput = (pick: AudioOutputPick) =>
+  postService('/lighting/audio-output', pick);
+
 // --- Sleep blackout ---
 // Blank every lighting device Nexus drives while the host sleeps. Devices that
 // keep their bus powered across sleep (RAM over SMBus above all) otherwise hold

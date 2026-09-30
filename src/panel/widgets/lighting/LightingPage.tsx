@@ -96,6 +96,8 @@ import { PresetAppsModal } from './page/PresetAppsModal';
 import { EffectTab, type PostProcessState } from './page/EffectTab';
 import { useThrottle } from '../../../hooks/cadence';
 import { useAudioState } from '../../../hooks/useAudioState';
+import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
+import { Select } from '../../../components/common/Select/Select';
 import styles from './LightingPage.module.scss';
 
 /**
@@ -479,6 +481,10 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   const [musicReactive, setMusicReactiveState] = useState(false);
   const audioRef = useAudioState(musicReactive && mode === 'animate');
+  // Windows only: the macOS capture takes the whole system mix, so there is no
+  // output to name or switch.
+  const showAudioOutput = musicReactive && isWindows && mode === 'animate';
+  const audioOutput = useLightingAudioOutput(showAudioOutput);
 
   // Optimistic local mirror of useLightingSync().paused, reconciled whenever
   // the server value changes (multiplex refetch, mode switch resetting it).
@@ -2403,16 +2409,28 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 {shaderMode && activeEffect && currentState && (
                   <>
                     {EFFECTS.find(e => e.key === activeEffect)?.audio && (
-                      <HoverTooltip body={t('lighting.musicReactive')} side="left">
-                        <button
-                          type="button"
-                          className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
-                          onClick={handleMusicReactiveToggle}
-                          aria-label={t('lighting.musicReactive')}
-                        >
-                          <Music size={14} strokeWidth={1.5} />
-                        </button>
-                      </HoverTooltip>
+                      <div className={styles.musicReactive}>
+                        <HoverTooltip body={t('lighting.musicReactive')} side="left">
+                          <button
+                            type="button"
+                            className={`${styles.musicReactiveBtn} ${musicReactive ? styles.musicReactiveBtnOn : ''}`}
+                            onClick={handleMusicReactiveToggle}
+                            aria-label={t('lighting.musicReactive')}
+                          >
+                            <Music size={14} strokeWidth={1.5} />
+                          </button>
+                        </HoverTooltip>
+                        {showAudioOutput && (
+                          <Select
+                            className={styles.musicReactiveOutput}
+                            value={audioOutput.value}
+                            options={audioOutput.options}
+                            onChange={audioOutput.select}
+                            ariaLabel={t('lighting.audioOutput.label')}
+                            height={26}
+                          />
+                        )}
+                      </div>
                     )}
                     <HoverTooltip body={t('lighting.fullscreen')} side="left">
                       <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>

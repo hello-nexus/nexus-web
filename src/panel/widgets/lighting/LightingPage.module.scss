@@ -238,11 +238,27 @@
   }
 }
 
-.musicReactiveBtn {
+.musicReactive {
   position: absolute;
   top: 0.4rem;
   left: 0.4rem;
   z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  // Leaves the fullscreen button its corner on a narrow canvas.
+  max-width: calc(100% - 3rem);
+}
+
+// Output name + chevron beside the toggle; the trigger ellipsizes a long name.
+.musicReactiveOutput {
+  min-width: 0;
+  max-width: 22rem;
+  --select-bg: var(--surface);
+}
+
+.musicReactiveBtn {
+  flex: none;
   width: 26px;
   height: 26px;
   padding: 0;

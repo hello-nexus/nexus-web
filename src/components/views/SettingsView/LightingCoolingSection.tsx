@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
-import { CircuitBoard, Clock, Cpu, Lock, Moon, RotateCcw, Zap } from 'lucide-react';
+import { CircuitBoard, Clock, Cpu, Lock, Moon, RotateCcw, Speaker, Zap } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Select } from '../../common/Select/Select';
@@ -11,6 +11,7 @@ import {
   setRenderGpu, setSleepBlackout,
 } from '../../../api/lighting';
 import { useBrightnessSchedule } from '../../../hooks/useBrightnessSchedule';
+import { useLightingAudioOutput } from '../../../hooks/useLightingAudioOutput';
 import { useSensors, type HardwareSensor } from '../../../hooks/useSensors';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
@@ -59,6 +60,10 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
   // writers rather than in any OS hook.
   const brightnessSchedule = useBrightnessSchedule(serviceOnline);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  // Only the Windows loopback can target one output; macOS captures the whole
+  // system mix.
+  const showAudioOutput = platform === 'windows';
+  const audioOutput = useLightingAudioOutput(showAudioOutput && serviceOnline);
 
   useEffect(() => {
     if (!showGpuPicker || !serviceOnline) return;
@@ -187,6 +192,19 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
             description={t('lighting.lockBlackout.description')}
             checked={lockBlackout}
             onChange={handleLockBlackoutChange}
+            disabled={!serviceOnline}
+          />
+        )}
+        {showAudioOutput && (
+          <SettingSelect
+            label={t('lighting.audioOutput.label')}
+            icon={<Speaker />}
+            iconLeading="subtle"
+            anchorId="set-audio-output"
+            description={t('lighting.audioOutput.description')}
+            value={audioOutput.value}
+            options={audioOutput.options}
+            onChange={audioOutput.select}
             disabled={!serviceOnline}
           />
         )}
