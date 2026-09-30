@@ -686,17 +686,19 @@ export function PairRemoteContent({
   );
 
   const storeLinks = (
-    <p className={appStyles.phonePairStoreLinks}>
-      <span>{t('phonePair.betterWithApp')}</span>
-      <a href={APP_STORE_URL} target="_blank" rel="noreferrer">
-        <AppleIcon size={14} />
-        {t('phonePair.appStore')}
-      </a>
-      <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer">
-        <AndroidIcon size={14} />
-        {t('phonePair.googlePlay')}
-      </a>
-    </p>
+    <div className={appStyles.phonePairStoreLinks}>
+      <p>{t('phonePair.betterWithApp')}</p>
+      <div className={appStyles.phonePairStoreLinkRow}>
+        <a href={APP_STORE_URL} target="_blank" rel="noreferrer">
+          <AppleIcon size={14} />
+          {t('phonePair.appStore')}
+        </a>
+        <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer">
+          <AndroidIcon size={14} />
+          {t('phonePair.googlePlay')}
+        </a>
+      </div>
+    </div>
   );
 
   const confirmModals = (

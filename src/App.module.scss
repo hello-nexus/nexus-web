@@ -542,18 +542,23 @@
 
 .phonePairStoreLinks {
   @include text-button;
+  margin: 0.85rem 0 0;
+  text-align: center;
+  color: var(--text-dim);
+
+  p {
+    margin: 0 0 0.4rem;
+  }
+}
+
+.phonePairStoreLinkRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  margin: 0.85rem 0 0;
-  color: var(--text-dim);
-
-  > * {
-    margin: 0 0.75rem;
-  }
 
   a {
+    margin: 0 0.75rem;
     display: inline-flex;
     align-items: center;
 
