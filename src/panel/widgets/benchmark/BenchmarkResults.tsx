@@ -9,7 +9,6 @@ import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/Sy
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../../components/common/Button/Button';
 import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
-import { DEV_TOOLS } from '../../../lib/devTools';
 import styles from './BenchmarkPage.module.scss';
 
 interface Props {
@@ -115,7 +114,7 @@ export function BenchmarkResults({ result, submission, submitting, submissionId,
             </div>
           )}
         </div>
-        {DEV_TOOLS && submissionId && (
+        {submissionId && (
           <Button
             tone="accent"
             icon={<Wrench size={14} />}

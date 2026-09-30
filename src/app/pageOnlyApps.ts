@@ -8,7 +8,6 @@
 
 import { Film, Hammer, Store } from 'lucide-react';
 import type { AppIcon } from '../panel/widgets/types';
-import { DEV_TOOLS } from '../lib/devTools';
 
 export interface PageOnlyApp {
   i18nKey: string;
@@ -20,9 +19,7 @@ export const PAGE_ONLY_APPS: Record<string, PageOnlyApp> = {
   // directly, so nothing under panel/widgets/frames registers a tile.
   frames: { i18nKey: 'panel.widget.frames', icon: Film },
   store: { i18nKey: 'apps.tabs.store', icon: Store },
-  // Gating this entry is what removes build everywhere: pinning, pin
-  // sanitizing, the Show more list and search all resolve through this record.
-  ...(DEV_TOOLS ? { build: { i18nKey: 'panel.widget.build', icon: Hammer } } : {}),
+  build: { i18nKey: 'panel.widget.build', icon: Hammer },
 };
 
 export function isPageOnlyAppKey(key: string): boolean {
