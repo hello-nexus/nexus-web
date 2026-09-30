@@ -8,7 +8,6 @@ import {
   formatBytes,
   incidentAppFaultLine,
   incidentSeverityColor,
-  kindStatus,
   pnpProblemLabel,
   reasonLabel,
   reasonLabelKey,
@@ -123,7 +122,7 @@ describe('resolveSectionState', () => {
   });
 });
 
-describe('worstReason / kindStatus', () => {
+describe('worstReason', () => {
   const components: DiagnosticsComponent[] = [
     { id: 'storage:a', kind: 'storage', name: 'A', status: 'ok', reasons: [] },
     {
@@ -142,15 +141,6 @@ describe('worstReason / kindStatus', () => {
 
   it('returns null when nothing is flagged', () => {
     expect(worstReason([{ id: 'x', kind: 'system', name: 'X', status: 'ok', reasons: [] }])).toBeNull();
-  });
-
-  it('rolls a kind up to its worst member status', () => {
-    expect(kindStatus(components, 'storage')).toBe('watch');
-    expect(kindStatus(components, 'cooling')).toBe('act');
-  });
-
-  it('reports unknown for a kind with no components', () => {
-    expect(kindStatus(components, 'memory')).toBe('unknown');
   });
 });
 

@@ -13,7 +13,7 @@ import { purgePanelOnlyOverlayWidgets } from './overlayWidgetPurge';
 import type { DeckEditView } from '../panel/widgets/types';
 import { normalizePanelWidgetSize, type PanelConfigValue, type PanelWidget, type PanelWidgetSize } from '../panel/types';
 import { buildEmbeddedPanelThemeVars } from '../panel/theme/panelTheme';
-import { applyAccentColor, applyThemeMode, type ThemeMode } from '../lib/settings';
+import { applyAccentColor, applyThemeMode, resolveTheme, type ThemeMode } from '../lib/settings';
 import { useTranslation } from '../lib/i18n';
 import { WidgetContextMenu } from '../panel/widgets/common/WidgetContextMenu';
 import { WidgetEditSheet } from '../panel/widgets/common/WidgetEditSheet';
@@ -189,6 +189,7 @@ export default function OverlayShell() {
 
   const [accentColor, setAccentColor] = useState<string | null>(null);
   const [themeMode, setThemeModeState] = useState<ThemeMode>('dark');
+  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark');
 
   // Tracks the last monitor index we pushed to the host via webMessage.
   // Initialized to a sentinel that never matches a real index (or -1)
@@ -220,6 +221,7 @@ export default function OverlayShell() {
     if (theme?.themeMode) {
       applyThemeMode(theme.themeMode as ThemeMode);
       setThemeModeState(theme.themeMode as ThemeMode);
+      setResolvedTheme(resolveTheme(theme.themeMode as ThemeMode));
     }
     if (typeof overlay?.monitor === 'number'
         && overlay.monitor !== lastSentMonitorRef.current) {
@@ -264,15 +266,24 @@ export default function OverlayShell() {
   }, []);
 
 
+  // The overlay always runs on the desktop PC, so 'system' follows its own OS
+  // light/dark live; a prefs push alone arrives only when a setting is saved.
+  useEffect(() => {
+    if (themeMode !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => {
+      applyThemeMode('system');
+      setResolvedTheme(resolveTheme('system'));
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [themeMode]);
+
   const themeStyle = useMemo<CSSProperties>(() => {
-    // applyThemeMode resolves "system" -> dark/light and writes data-theme;
-    // re-read after each applyPrefs run so themeStyle picks up the right
-    // resolved mode for the panel-card color tokens.
-    const resolvedMode = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     // --panel-cell-size is vestigial here - no widget content reads it; content
     // sizing is governed entirely by the widget body's zoom (see the tile).
     return {
-      ...buildEmbeddedPanelThemeVars(accentColor ?? undefined, resolvedMode as 'light' | 'dark'),
+      ...buildEmbeddedPanelThemeVars(accentColor ?? undefined, resolvedTheme),
       '--panel-cell-size': `${BASE_CELL_PX}px`,
       '--panel-row-size': `${BASE_CELL_PX}px`,
       // Drives panel-card surface alpha (same token the panel UI uses).
@@ -280,11 +291,7 @@ export default function OverlayShell() {
       // wallpaper, so this takes visible effect immediately.
       '--panel-card-bg-opacity': `${Math.round(widgetOpacity * 100)}%`,
     } as CSSProperties;
-    // themeMode isn't read in the body (we re-read data-theme from the DOM),
-    // but it's the signal that the resolved attribute changed, so the memo
-    // must keep it as a dep or the panel-card tokens stale after a switch.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- themeMode triggers re-read of the DOM data-theme attribute applyThemeMode just wrote
-  }, [accentColor, themeMode, widgetOpacity]);
+  }, [accentColor, resolvedTheme, widgetOpacity]);
 
   // Single-monitor model: render every widget regardless of its legacy
   // `monitor` field. The process runs on one user-chosen monitor, so the

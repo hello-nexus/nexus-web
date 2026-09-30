@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
-import { Fan, HardDrive, MemoryStick, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { Badge } from '../../common/Badge/Badge';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { Card } from '../../common/Card/Card';
 import { DomainGlyph } from '../../common/DomainGlyph/DomainGlyph';
 import type { DiagnosticsComponent, DiagnosticsKind } from '../../../api/diagnostics';
-import { aggregateDomainTiles, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
+import { aggregateDomainTiles, DOMAIN_ICON, reasonLabel, statusColor, statusLabelKey } from './diagnosticsHelpers';
 import styles from './DiagnosticsView.module.scss';
 
 interface ComponentHealthGridProps {
@@ -14,15 +13,6 @@ interface ComponentHealthGridProps {
   /** Jumps to the matching domain tab - a tile's domain is exactly a tab key. */
   onNavigate: (kind: DiagnosticsKind) => void;
 }
-
-// Same glyph the domain's own tab uses, so a tile reads as the tab it opens.
-// Cooling folds GPU in, so it takes the Cooling tab's Fan icon.
-const DOMAIN_ICON: Partial<Record<DiagnosticsKind, LucideIcon>> = {
-  storage: HardDrive,
-  memory: MemoryStick,
-  cooling: Fan,
-  system: ShieldCheck,
-};
 
 /** The at-a-glance overview: a fixed 2x2 of four large domain tiles - Storage,
  *  Memory, Cooling (GPU folded in), System - each aggregating the server's
