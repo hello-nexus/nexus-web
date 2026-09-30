@@ -12,6 +12,7 @@ import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../SettingRow/SettingRow';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import { APP_STORE_URL, PLAY_STORE_URL } from '../../../lib/appStore';
+import { AndroidIcon, AppleIcon } from '../../icons/PlatformIcons';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import {
   fetchPanelPhonePairQr,
@@ -686,9 +687,15 @@ export function PairRemoteContent({
 
   const storeLinks = (
     <p className={appStyles.phonePairStoreLinks}>
-      <span>{t('phonePair.getApp')}</span>
-      <a href={APP_STORE_URL} target="_blank" rel="noreferrer">{t('phonePair.appStore')}</a>
-      <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer">{t('phonePair.googlePlay')}</a>
+      <span>{t('phonePair.betterWithApp')}</span>
+      <a href={APP_STORE_URL} target="_blank" rel="noreferrer">
+        <AppleIcon size={14} />
+        {t('phonePair.appStore')}
+      </a>
+      <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer">
+        <AndroidIcon size={14} />
+        {t('phonePair.googlePlay')}
+      </a>
     </p>
   );
 

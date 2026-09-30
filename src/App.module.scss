@@ -542,12 +542,25 @@
 
 .phonePairStoreLinks {
   @include text-button;
-  margin: 0.5rem 0 0;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  margin: 0.85rem 0 0;
   color: var(--text-dim);
 
+  > * {
+    margin: 0 0.75rem;
+  }
+
   a {
-    margin-left: 0.6rem;
+    display: inline-flex;
+    align-items: center;
+
+    svg {
+      flex: 0 0 auto;
+      margin-right: 0.4rem;
+    }
   }
 }
 
