@@ -2951,7 +2951,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelSwipeHint', category: 'panel-kit',
     filePath: 'src/panel/chrome/PanelSwipeHint.tsx',
-    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks toward a chevron, then it unmounts. Pointer-transparent.',
+    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks along a long up arrow, then it unmounts. Pointer-transparent.',
     Preview: PreviewPanelSwipeHint,
     notes: 'Click "Replay" to run the cycle again. Period, cycle length and count come from usePanelSwipeOnboarding.',
   },
