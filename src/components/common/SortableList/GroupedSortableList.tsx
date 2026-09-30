@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -18,7 +18,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { bodyDroppableId, containerOf, moveTo, resolveDrop, sameArrangement, TAIL, type Arrangement, type NestingRules } from './groupedDrag';
+import { bodyDroppableId, containerOf, moveTo, resolveDrop, ROOT, sameArrangement, TAIL, type Arrangement, type NestingRules } from './groupedDrag';
 import { type SortableRowArgs } from './SortableList';
 import styles from './SortableList.module.scss';
 
@@ -108,12 +108,19 @@ function DropTail() {
  * fake is ever drawn. A member that is itself a group renders through the
  * same row renderer, body and all.
  */
-function GroupBody({ groupId, members, renderRow }: {
+function GroupBody({ groupId, members, renderRow, openBodies }: {
   groupId: string;
   members: string[];
   renderRow: (id: string, args: SortableRowArgs) => ReactNode;
+  openBodies: Set<string>;
 }) {
   const { setNodeRef } = useDroppable({ id: bodyDroppableId(groupId) });
+  // A collapsed group's shell does not mount its body, so presence here is
+  // what tells an open group from a collapsed one.
+  useLayoutEffect(() => {
+    openBodies.add(groupId);
+    return () => { openBodies.delete(groupId); };
+  }, [openBodies, groupId]);
   return (
     <SortableContext items={members} strategy={verticalListSortingStrategy}>
       <div ref={setNodeRef} className={styles.list} role="list">
@@ -132,6 +139,10 @@ export function GroupedSortableList({
   // it; within one container dnd-kit previews the reorder itself.
   const [working, setWorking] = useState<Arrangement | null>(null);
   const live = working ?? arrangement;
+  const openBodies = useRef(new Set<string>()).current;
+  // The collapsed group under the pointer: highlighted as the drop target,
+  // since the row itself never moves into it mid-drag.
+  const [collapsedTarget, setCollapsedTarget] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(GuardedPointerSensor, { activationConstraint: { distance: 6 } }),
@@ -163,12 +174,16 @@ export function GroupedSortableList({
 
   const onDragOver = (e: DragOverEvent) => {
     const { active, over } = e;
-    if (!over) return;
     const movingId = String(active.id);
+    const to = over ? resolveDrop(live, movingId, String(over.id), rules)?.target ?? null : null;
+    // A row moved into a collapsed group unmounts, the list shrinks under the
+    // pointer and the next dragOver moves it back out, forever (React #185).
+    // The collapsed header previews as a sibling; the drop still lands inside.
+    const collapsed = to !== null && to !== ROOT && !openBodies.has(to);
+    setCollapsedTarget(collapsed ? to : null);
+    if (!over || to === null || collapsed) return;
     const overId = String(over.id);
-    const from = containerOf(live, movingId);
-    const to = resolveDrop(live, movingId, overId, rules)?.target ?? null;
-    if (to === null || from === to) return;    // same container: dnd-kit previews it
+    if (containerOf(live, movingId) === to) return;    // same container: dnd-kit previews it
     const next = moveTo(live, movingId, overId, rules);
     if (!sameArrangement(live, next)) setWorking(next);
   };
@@ -178,12 +193,13 @@ export function GroupedSortableList({
     const next = over ? moveTo(live, String(active.id), String(over.id), rules) : live;
     setActiveId(null);
     setWorking(null);
+    setCollapsedTarget(null);
     if (!sameArrangement(arrangement, next)) onArrange(next);
   };
 
   // The group the dragged row is sitting in right now, so its shell can say so.
   const insideGroup = activeId !== null
-    ? (id: string) => containerOf(live, activeId) === id
+    ? (id: string) => containerOf(live, activeId) === id || collapsedTarget === id
     : () => false;
 
   // One renderer for any row: a group gets its shell around a body that renders
@@ -192,7 +208,7 @@ export function GroupedSortableList({
     ? renderGroup(
         id,
         args,
-        <GroupBody groupId={id} members={live.groupMembers[id] ?? []} renderRow={renderRow} />,
+        <GroupBody groupId={id} members={live.groupMembers[id] ?? []} renderRow={renderRow} openBodies={openBodies} />,
         insideGroup(id),
       )
     : renderBlock(id, args);
@@ -206,7 +222,7 @@ export function GroupedSortableList({
       onDragStart={(e: DragStartEvent) => { setActiveId(String(e.active.id)); setWorking(arrangement); }}
       onDragOver={onDragOver}
       onDragEnd={onDragEnd}
-      onDragCancel={() => { setActiveId(null); setWorking(null); }}
+      onDragCancel={() => { setActiveId(null); setWorking(null); setCollapsedTarget(null); }}
     >
       {/* The tail rides in the item list so hovering it previews the row at the
           end; an id dnd-kit cannot index has no transform to give. */}
