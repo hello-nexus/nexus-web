@@ -9,6 +9,7 @@ import { createElement, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ThreadMessagePort } from '@quilted/threads';
 import type { RemoteConnection } from '@remote-dom/core';
+import { BatchingRemoteConnection } from '@remote-dom/core/elements';
 import { registerElements } from './elements';
 import { ContextProvider, createStore, type WidgetContextInit, type WidgetStore, type WidgetStorePatch } from './context';
 
@@ -53,7 +54,17 @@ export async function mount(app: ComponentType | WidgetSurfaces): Promise<void> 
       const rootEl = document.createElement('remote-root') as unknown as {
         connect(c: RemoteConnection): void;
       } & Node;
-      rootEl.connect(connection);
+      // One host message per commit rather than one per changed property. A
+      // batch that fails to send is dropped: the batcher never clears its queue
+      // after a throw, which would freeze the tile.
+      rootEl.connect(new BatchingRemoteConnection({
+        call: (id, method, ...args) => connection.call(id, method, ...args),
+        mutate: (records) => {
+          try { connection.mutate(records); } catch (err) {
+            globalThis.nexus?.log('error', '[sdk] dropped a UI update the host could not receive', String(err));
+          }
+        },
+      }));
       document.body.appendChild(rootEl);
       createRoot(rootEl as unknown as Element).render(
         createElement(ContextProvider, { store, children: createElement(App) }),
