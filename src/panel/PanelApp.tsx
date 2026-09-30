@@ -12,7 +12,6 @@ import { backdropHintFromUrl } from './background/panelBackground';
 import { PanelDisplayBoundProvider } from './widgets/common/PanelDisplayBoundContext';
 import { INERT_PANEL_RECORD, usePanelRecord, type PanelRecordState } from './engine/usePanelRecord';
 import { usePanelLayout } from './engine/usePanelLayout';
-import { useDashboardLayout } from './engine/useDashboardLayout';
 import { useOemAppSeed } from './engine/useOemAppSeed';
 import { useAppsChangedSync } from './engine/useAppsChangedSync';
 import { useFlashWidgets } from './engine/useFlashWidgets';
@@ -37,7 +36,7 @@ import { useLongPress } from './engine/useLongPress';
 import { usePanelTextSelectionGuard } from './engine/usePanelTextSelectionGuard';
 import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { panelWidgetPaddingRatio, sizeToSpan } from './engine/grid';
-import { repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
+import { autoArrangeLayout, layoutRowExtent, repaginatePanelLayout, type PaginateCapacity } from './engine/paginate';
 import {
   allCellsForPage,
   appendWidget,
@@ -124,6 +123,7 @@ import {
   DESKTOP_ACTION_TRAY_HEIGHT,
   MAX_PANEL_PAGES,
   PHONE_WIDGET_REFERENCE_CELL,
+  useDesktopFitColumns,
   useRuntimePanelGrid,
   usePanelPageScrollLock,
 } from './engine/panelGrid';
@@ -166,8 +166,10 @@ import {
 // is removed.
 const EDITOR_EXIT_MS = 240;
 const WIDGET_RESIZE_MOTION_MS = 220;
+// Tallest widget span: room below an auto-arranged grid for any drop or add.
+const AUTO_ARRANGE_SPARE_ROWS = 4;
 
-interface PanelLayoutState {
+export interface PanelLayoutState {
   layout: PanelLayout;
   loaded: boolean;
   // 403 deck_action_requires_desktop from the last save attempt (phone
@@ -285,12 +287,14 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   );
 }
 
-export function PanelEmbeddedContent({ openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
+// The dashboard page owns the layout state (useDashboardLayout): switching
+// auto-arrange off commits the packed layout from there.
+export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAccentColor, onSectionNavigate }: {
+  layoutState: PanelLayoutState;
   openCatalogSignal?: number;
   appAccentColor?: string;
   onSectionNavigate?: DashboardSectionNavigate;
 }) {
-  const layoutState = useDashboardLayout();
   return (
     <ErrorBoundary
       // eslint-disable-next-line i18next/no-literal-string -- crash-boundary diagnostic id
@@ -386,7 +390,7 @@ export function PanelContent({
   usePanelPageScrollLock(kioskBehavior);
   useTopic('panel/phone/presence', kioskBehavior && surface === 'phone');
   usePhonePanelManifest(kioskBehavior && surface === 'phone');
-  const { layout, loaded, saveForbidden, hydrated, setLayout } = layoutState;
+  const { layout, loaded, saveForbidden, hydrated, setLayout: setStoredLayout } = layoutState;
   const panelTheme = usePanelTheme(recordState, deviceId ?? null, kioskBehavior);
   // Simulator gets its theme from the parent via postMessage (local fetch
   // stays disabled), so effectiveTheme uses the parent-supplied state
@@ -551,6 +555,26 @@ export function PanelContent({
   usePanelTextSelectionGuard(rootRef, !embedded || simulator);
   const widgetPaddingRatio = panelWidgetPaddingRatio(effectiveTheme.widgetPadding);
   const runtimeGrid = useRuntimePanelGrid(surface, rootRef, simulator, deviceDpi, widgetPaddingRatio);
+  const desktopEmbedded = embedded && surface === 'desktop';
+  // Gated on hydration: the service value is authoritative, and a stale local
+  // copy must not render packed.
+  const autoArrange = desktopEmbedded && uiHydrated && uiSettings.dashboardAutoArrange;
+  // Whole cells the dashboard shows; null until measured and off the desktop.
+  const fitColumns = useDesktopFitColumns(rootRef, desktopEmbedded, runtimeGrid.gap);
+  const autoArrangeColumns = autoArrange ? fitColumns : null;
+  const gridColumns = autoArrangeColumns ?? runtimeGrid.columns;
+  const arrangedLayout = useMemo(
+    () => (autoArrangeColumns ? autoArrangeLayout(layout, autoArrangeColumns) : layout),
+    [layout, autoArrangeColumns],
+  );
+  // The dashboard grid grows with its content: auto-arrange keeps room below
+  // the last row for the tallest widget, and the manual grid keeps any rows a
+  // switch out of auto-arrange left below its stock height.
+  const pageRows = autoArrangeColumns
+    ? layoutRowExtent(arrangedLayout) + AUTO_ARRANGE_SPARE_ROWS
+    : desktopEmbedded
+      ? Math.max(runtimeGrid.rows, layoutRowExtent(layout))
+      : runtimeGrid.rows;
   // The phone measures its rendered cell; the ratio re-bases that onto the
   // stock-padding cell the grid solved its render scale at.
   usePhoneContentScale(surface === 'phone' && loaded, rootRef, runtimeGrid.contentScale / runtimeGrid.cellSize);
@@ -652,8 +676,9 @@ export function PanelContent({
       ...panelThemeVars,
       background: themeBackdrop,
       '--panel-background-solid': panelSolidColor,
-      '--panel-columns': runtimeGrid.columns,
-      '--panel-rows': runtimeGrid.rows,
+      '--panel-columns': gridColumns,
+      // Drag collision clamps drop rows to this.
+      '--panel-rows': pageRows,
       // Feeds --panel-gap / --panel-page-padding (tokens.scss, per-surface
       // blocks) via var(), so panelGridCapacityForCanvas's resolved value and
       // the CSS-rendered gap/padding always agree - it is a plain px length,
@@ -678,12 +703,12 @@ export function PanelContent({
       themeBackdrop,
       panelThemeVars,
       runtimeGrid.cellSize,
-      runtimeGrid.columns,
+      gridColumns,
       runtimeGrid.contentScale,
       previewScale,
       runtimeGrid.gap,
       runtimeGrid.rowSize,
-      runtimeGrid.rows,
+      pageRows,
       surface,
       webkitSafePanelScale,
     ],
@@ -711,9 +736,20 @@ export function PanelContent({
   const editorDockSupported = surfaceSupportsTouch(surface, deviceTouch);
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(
-    () => ({ gridCols: runtimeGrid.columns, pageRows: runtimeGrid.rows }),
-    [runtimeGrid.columns, runtimeGrid.rows],
+    () => ({ gridCols: gridColumns, pageRows }),
+    [gridColumns, pageRows],
   );
+  // A manual add lands in columns the window shows: the fixed grid clips past
+  // them, and an out-of-sight add reads as lost.
+  const addCapacity = useMemo<PaginateCapacity>(
+    () => ({ gridCols: fitColumns ?? gridColumns, pageRows }),
+    [fitColumns, gridColumns, pageRows],
+  );
+  // Every write while auto-arranging stores the packed positions, so the
+  // stored (row, col) order is the order the user last saw.
+  const setLayout = useCallback((next: PanelLayout) => {
+    setStoredLayout(autoArrangeColumns ? autoArrangeLayout(next, autoArrangeColumns) : next);
+  }, [autoArrangeColumns, setStoredLayout]);
 
   // Two-stage drag state, declared early so dragLayout/allFiltered can fold
   // the phantom page into the rendered shape.
@@ -734,8 +770,8 @@ export function PanelContent({
   // and repackToFit does not round-trip a transpose - written back, a 4x2
   // between 4x4s re-fits to the bottom (PanelApp.layoutWriteback.test.tsx).
   const paginatedLayout = useMemo(
-    () => repaginatePanelLayout(layout, capacity),
-    [layout, capacity],
+    () => (autoArrangeColumns ? arrangedLayout : repaginatePanelLayout(layout, capacity)),
+    [arrangedLayout, autoArrangeColumns, layout, capacity],
   );
 
   // Places the OEM bake-in app's widget + sidebar pin for a profile that
@@ -746,7 +782,7 @@ export function PanelContent({
     layoutLoaded: loaded,
     layout: paginatedLayout,
     setLayout,
-    capacity,
+    capacity: addCapacity,
     uiHydrated,
     uiSettings,
     updateUiSettings,
@@ -1213,7 +1249,7 @@ export function PanelContent({
     // Dashboard is single-page: appendWidget no-ops if page 0 is full
     // instead of spawning a new page. Other surfaces keep multi-page.
     const dashboardSinglePage = embedded && surface === 'desktop';
-    const appended = appendWidget(paginatedLayout, next, capacity, {
+    const appended = appendWidget(paginatedLayout, next, addCapacity, {
       singlePage: dashboardSinglePage,
       // Land on the page the user is looking at when it has room, not the
       // first page with a slot.
@@ -1226,7 +1262,7 @@ export function PanelContent({
     setLayout(appended);
     setPendingScrollId(next.id);
     closeSheet();
-  }, [activePageIndex, closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
+  }, [activePageIndex, closeSheet, embedded, paginatedLayout, addCapacity, setLayout, surface]);
 
   // The dashboard cannot spill onto a new page, so a full grid has no room and
   // the catalog dims what will not fit. Multi-page surfaces always accept a
@@ -1239,12 +1275,12 @@ export function PanelContent({
   );
 
   const canAddSize = useMemo(() => {
-    if (!(embedded && surface === 'desktop')) return undefined;
-    return (size: PanelWidgetSize) => canAppendWidget(paginatedLayout, size, capacity, {
+    if (!(embedded && surface === 'desktop') || autoArrangeColumns) return undefined;
+    return (size: PanelWidgetSize) => canAppendWidget(paginatedLayout, size, addCapacity, {
       singlePage: true,
       preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
     });
-  }, [activePageIndex, embedded, paginatedLayout, capacity, surface]);
+  }, [activePageIndex, autoArrangeColumns, embedded, paginatedLayout, addCapacity, surface]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     const standInType = playlistTypeOfWidgetId(widgetId);
@@ -1267,7 +1303,17 @@ export function PanelContent({
     // Fit the new size by cascading siblings across pages (up to
     // MAX_PANEL_PAGES). If displaced widgets have nowhere to go, reject the
     // resize and flash the widget rather than corrupt the layout silently.
-    const next = tryResizeWidget(paginatedLayout, widgetId, size, capacity, MAX_PANEL_PAGES);
+    // Auto-arrange has no bound to cascade against: the repack in setLayout
+    // reflows the siblings around the new size.
+    const next = autoArrangeColumns
+      ? {
+          ...paginatedLayout,
+          pages: paginatedLayout.pages.map(page => ({
+            ...page,
+            widgets: page.widgets.map(w => (w.id === widgetId ? { ...w, size } : w)),
+          })),
+        }
+      : tryResizeWidget(paginatedLayout, widgetId, size, capacity, MAX_PANEL_PAGES);
     if (!next) {
       triggerFlash(widgetId);
       return;
@@ -1287,7 +1333,7 @@ export function PanelContent({
         style: buildEditorDockMotionStyle(rootRef.current, widgetWithNewSize, prev.sourceRect, surface),
       };
     });
-  }, [beginResizeMotion, paginatedLayout, capacity, setLayout, surface, triggerFlash, widgetById]);
+  }, [autoArrangeColumns, beginResizeMotion, paginatedLayout, capacity, setLayout, surface, triggerFlash, widgetById]);
 
   const removeWidget = useCallback((widgetId: string) => {
     setLayout(removeWidgetById(paginatedLayout, widgetId, capacity));

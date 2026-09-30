@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
+  autoArrangeLayout,
   flattenPages,
+  layoutRowExtent,
   repaginatePanelLayout,
   firstFreeRect,
   rectsOverlap,
@@ -286,5 +288,56 @@ describe('repaginatePanelLayout', () => {
     expect(rowOf(backToPortrait, 'calendar')).toBe(14);
     expect(flattenPages(backToPortrait.pages).map(w => w.id))
       .toEqual(['clock', 'weather', 'monitoring', 'cooling', 'calendar']);
+  });
+});
+
+describe('autoArrangeLayout', () => {
+  const layoutOf = (widgets: PanelWidget[]): PanelLayout => ({
+    layoutSchemaVersion: 1,
+    surface: 'desktop',
+    pages: [{ id: 'p0', widgets }],
+  } as PanelLayout);
+  const positions = (layout: PanelLayout) =>
+    Object.fromEntries(layout.pages[0].widgets.map(w => [w.id, [w.col, w.row]]));
+
+  it('packs in (row, col) reading order and backfills a hole with a later small widget', () => {
+    const layout = layoutOf([
+      widget('4x4', 0, 0, 'a'),
+      widget('2x2', 4, 0, 'b'),
+      widget('4x4', 8, 0, 'c'),
+      widget('2x2', 0, 6, 'd'),
+    ]);
+    expect(positions(autoArrangeLayout(layout, 8))).toEqual({
+      a: [0, 0], b: [4, 0], c: [4, 2], d: [6, 0],
+    });
+  });
+
+  it('reflows to the column count with no row limit', () => {
+    const layout = layoutOf([
+      widget('2x2', 0, 0, 'a'),
+      widget('2x2', 2, 0, 'b'),
+      widget('2x2', 4, 0, 'c'),
+      widget('2x2', 6, 0, 'd'),
+    ]);
+    const narrow = autoArrangeLayout(layout, 4);
+    expect(positions(narrow)).toEqual({ a: [0, 0], b: [2, 0], c: [0, 2], d: [2, 2] });
+    // Widening again restores the original single row.
+    expect(positions(autoArrangeLayout(narrow, 8))).toEqual(positions(layout));
+  });
+
+  it('closes gaps left by a removed widget', () => {
+    const layout = layoutOf([widget('2x2', 0, 0, 'a'), widget('2x2', 6, 4, 'b')]);
+    expect(positions(autoArrangeLayout(layout, 12))).toEqual({ a: [0, 0], b: [2, 0] });
+  });
+
+  it('returns the same reference when already packed', () => {
+    const layout = layoutOf([widget('4x4', 0, 0, 'a'), widget('2x4', 4, 0, 'b')]);
+    expect(autoArrangeLayout(layout, 8)).toBe(layout);
+  });
+
+  it('layoutRowExtent is the lowest bottom edge', () => {
+    const layout = layoutOf([widget('4x4', 0, 0, 'a'), widget('2x2', 4, 6, 'b')]);
+    expect(layoutRowExtent(layout)).toBe(8);
+    expect(layoutRowExtent(layoutOf([]))).toBe(0);
   });
 });

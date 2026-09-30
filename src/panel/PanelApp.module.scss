@@ -590,7 +590,7 @@
 }
 
 .panelRoot[data-surface='desktop'] {
-  --panel-columns: 12;
+  --panel-columns: 16;
   --panel-rows: 8;
   // No page padding on the embedded desktop grid: it lives inside the shared
   // .content wrapper (which already insets every view), so the grid sits flush

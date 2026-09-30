@@ -76,6 +76,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
       pinnedSidebarApps: ui.pinnedSidebarApps,
       sidebarAppOrder: ui.sidebarAppOrder,
       sidebarCollapsed: ui.sidebarCollapsed,
+      dashboardAutoArrange: ui.dashboardAutoArrange,
       widgetAdvancedMode: ui.widgetAdvancedMode,
       lightingDashboardMode: ui.lightingDashboardMode,
       coolingDashboardMode: ui.coolingDashboardMode,

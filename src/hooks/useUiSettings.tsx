@@ -100,6 +100,9 @@ export interface UiSettingsValue {
   // True while the user has collapsed the dashboard sidebar by hand. Posted
   // under ui.sidebarCollapsed.
   sidebarCollapsed: boolean;
+  // Packs the home dashboard to the window width. Posted under
+  // ui.dashboardAutoArrange.
+  dashboardAutoArrange: boolean;
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile (see useOemAppSeed). Server-only,
   // like the update block below - not mirrored to localStorage.
@@ -240,6 +243,7 @@ function fromNexusSettings(src: NexusSettings): UiSettingsValue {
     pinnedSidebarApps: sanitizePinnedTail(src.general.pinnedSidebarApps),
     sidebarAppOrder: sanitizeAppOrder(src.general.sidebarAppOrder),
     sidebarCollapsed: src.general.sidebarCollapsed,
+    dashboardAutoArrange: src.general.dashboardAutoArrange,
     oemAppSeeded: false,
     widgetAdvancedMode: src.general.widgetAdvancedMode,
     lightingDashboardMode: src.general.lightingDashboardMode,
@@ -308,6 +312,7 @@ function toNexusSettings(src: UiSettingsValue): NexusSettings {
       pinnedSidebarApps: src.pinnedSidebarApps,
       sidebarAppOrder: src.sidebarAppOrder,
       sidebarCollapsed: src.sidebarCollapsed,
+      dashboardAutoArrange: src.dashboardAutoArrange,
       widgetAdvancedMode: src.widgetAdvancedMode,
       lightingDashboardMode: src.lightingDashboardMode,
       coolingDashboardMode: src.coolingDashboardMode,
@@ -358,7 +363,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.preferredGpuId !== undefined) cooling.preferredGpuId = patch.preferredGpuId;
   if (Object.keys(cooling).length > 0) out.cooling = cooling;
   // ui block
-  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
+  const ui: Partial<{ showConflictAlerts: boolean; autoKillConflictsAtStartup: boolean; conflictAutoKillExclusions: string[]; notifyConflictLaunches: boolean; pinnedSidebarApps: string[]; sidebarAppOrder: string[]; sidebarCollapsed: boolean; dashboardAutoArrange: boolean; oemAppSeeded: boolean; lightingDashboardMode: DashboardMode; coolingDashboardMode: DashboardMode; showUncontrolledLightingDevices: boolean; showUncontrolledCoolingDevices: boolean }> = {};
   if (patch.showConflictAlerts !== undefined) ui.showConflictAlerts = patch.showConflictAlerts;
   if (patch.autoKillConflictsAtStartup !== undefined) ui.autoKillConflictsAtStartup = patch.autoKillConflictsAtStartup;
   if (patch.conflictAutoKillExclusions !== undefined) ui.conflictAutoKillExclusions = patch.conflictAutoKillExclusions;
@@ -366,6 +371,7 @@ function toServerPatch(patch: Patch): PreferencesPatch {
   if (patch.pinnedSidebarApps !== undefined) ui.pinnedSidebarApps = patch.pinnedSidebarApps;
   if (patch.sidebarAppOrder !== undefined) ui.sidebarAppOrder = patch.sidebarAppOrder;
   if (patch.sidebarCollapsed !== undefined) ui.sidebarCollapsed = patch.sidebarCollapsed;
+  if (patch.dashboardAutoArrange !== undefined) ui.dashboardAutoArrange = patch.dashboardAutoArrange;
   if (patch.oemAppSeeded !== undefined) ui.oemAppSeeded = patch.oemAppSeeded;
   if (patch.lightingDashboardMode !== undefined) ui.lightingDashboardMode = patch.lightingDashboardMode;
   if (patch.coolingDashboardMode !== undefined) ui.coolingDashboardMode = patch.coolingDashboardMode;
@@ -500,6 +506,7 @@ function applyServerToLocal(server: ServerPreferences, base: UiSettingsValue): U
       ? sanitizeAppOrder(server.ui.sidebarAppOrder)
       : base.sidebarAppOrder,
     sidebarCollapsed: server.ui?.sidebarCollapsed ?? base.sidebarCollapsed,
+    dashboardAutoArrange: server.ui?.dashboardAutoArrange ?? base.dashboardAutoArrange,
     oemAppSeeded: server.ui?.oemAppSeeded ?? base.oemAppSeeded,
     updateMode: (server.update?.updateMode as UpdateMode) ?? base.updateMode,
     updateChannel: (server.update?.updateChannel as UpdateChannel) ?? base.updateChannel,

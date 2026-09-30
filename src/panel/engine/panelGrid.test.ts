@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readRuntimePanelGrid, DESKTOP_GRID_REFERENCE_CELL } from './panelGrid';
+import { DESKTOP_GRID_COLUMNS, desktopAutoArrangeColumns, readRuntimePanelGrid, DESKTOP_GRID_REFERENCE_CELL } from './panelGrid';
 import { panelWidgetPaddingRatio } from './grid';
 
 describe('readRuntimePanelGrid desktop gap', () => {
@@ -36,5 +36,27 @@ describe('readRuntimePanelGrid phone at a real device pixel ratio', () => {
     } finally {
       Object.defineProperty(window, 'devicePixelRatio', { value: saved, configurable: true });
     }
+  });
+});
+
+describe('desktopAutoArrangeColumns', () => {
+  const pitch = DESKTOP_GRID_REFERENCE_CELL + 10;
+
+  it('counts whole cells that fit, rounded down to even', () => {
+    expect(desktopAutoArrangeColumns(10 * pitch - 10, 10)).toBe(10);
+    expect(desktopAutoArrangeColumns(11 * pitch - 10, 10)).toBe(10);
+    expect(desktopAutoArrangeColumns(12 * pitch - 11, 10)).toBe(10);
+    expect(desktopAutoArrangeColumns(12 * pitch - 10, 10)).toBe(12);
+  });
+
+  it('never drops below the widest widget span', () => {
+    expect(desktopAutoArrangeColumns(100, 10)).toBe(4);
+  });
+
+  it('caps at the manual grid width however wide the page', () => {
+    expect(DESKTOP_GRID_COLUMNS).toBe(16);
+    expect(desktopAutoArrangeColumns(16 * pitch - 10, 10)).toBe(16);
+    expect(desktopAutoArrangeColumns(40 * pitch, 10)).toBe(16);
+    expect(desktopAutoArrangeColumns(40 * DESKTOP_GRID_REFERENCE_CELL, 0)).toBe(16);
   });
 });

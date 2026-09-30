@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useState, type RefObject } from 'react';
 import { PANEL_WIDGET_PADDING_DEFAULT_PERCENT, panelGridCapacityForCanvas, panelWidgetPaddingRatio, type PanelGridCapacity } from './grid';
 import type { PanelSurface } from '../types';
 import { getPanelGridSizingSettings, PANEL_SIMULATION_CHANGED_EVENT } from '../../lib/panelSimulation';
@@ -9,7 +9,9 @@ export const PHONE_WIDGET_REFERENCE_CELL = 90;
 // The desktop cell is a fixed size (readRuntimePanelGrid), so this count sets
 // the grid's rendered width rather than how finely a fixed width is divided;
 // past the container the grid clips instead of rescaling.
-export const DESKTOP_GRID_COLUMNS = 12;
+export const DESKTOP_GRID_COLUMNS = 16;
+// The immersive overlay keeps the stock grid it was designed against.
+const DESKTOP_CONTENT_COLUMNS = 12;
 export const DESKTOP_GRID_ROWS = 8;
 // Hard cap on pages. Dragging a widget to the right edge creates a new page;
 // this caps growth at 10 so the pager / persistence stay bounded.
@@ -17,6 +19,9 @@ export const MAX_PANEL_PAGES = 10;
 export const DESKTOP_GRID_PADDING = 16;
 export const DESKTOP_ACTION_TRAY_HEIGHT = 0;
 export const DESKTOP_GRID_REFERENCE_CELL = PHONE_WIDGET_REFERENCE_CELL;
+// Auto-arrange never goes narrower than the widest widget span, nor wider
+// than the manual grid.
+const DESKTOP_AUTO_ARRANGE_MIN_COLUMNS = 4;
 export const DEFAULT_SURFACE_DPI: Record<PanelSurface, number> = {
   y70: 337,
   q60: 220,
@@ -90,6 +95,34 @@ export function usePanelPageScrollLock(enabled = true) {
       if (root) root.style.height = previous.rootHeight;
     };
   }, [enabled]);
+}
+
+// Whole desktop cells that fit `width`, rounded down to even: multi-cell
+// spans are even, so an odd last column would stay empty.
+export function desktopAutoArrangeColumns(width: number, gap: number): number {
+  const fit = Math.floor((width + gap) / (DESKTOP_GRID_REFERENCE_CELL + gap));
+  return Math.min(DESKTOP_GRID_COLUMNS, Math.max(DESKTOP_AUTO_ARRANGE_MIN_COLUMNS, fit - (fit % 2)));
+}
+
+// Whole desktop cells that fit the element's content width, tracked live; null
+// while disabled or unmeasured. Holds the count rather than the width so a
+// window resize re-renders only when a column appears or disappears. Measured
+// before paint so the first frame already uses it.
+export function useDesktopFitColumns(ref: RefObject<HTMLElement | null>, enabled: boolean, gap: number): number | null {
+  const [columns, setColumns] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el || typeof ResizeObserver === 'undefined') return undefined;
+    const measure = (width: number) => {
+      const next = width > 0 ? desktopAutoArrangeColumns(width, gap) : null;
+      setColumns(prev => (prev === next ? prev : next));
+    };
+    measure(el.clientWidth);
+    const observer = new ResizeObserver(entries => measure(entries[entries.length - 1].contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ref, enabled, gap]);
+  return enabled ? columns : null;
 }
 
 export function useRuntimePanelGrid(
@@ -166,7 +199,7 @@ export function readRuntimePanelGrid(
       gap: widgetPaddingRatio * DESKTOP_GRID_REFERENCE_CELL,
       padding: 0,
       contentGap: panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT) * DESKTOP_GRID_REFERENCE_CELL,
-      contentColumns: DESKTOP_GRID_COLUMNS,
+      contentColumns: DESKTOP_CONTENT_COLUMNS,
       contentRows: DESKTOP_GRID_ROWS,
     };
   }

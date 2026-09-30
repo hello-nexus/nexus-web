@@ -125,8 +125,12 @@ function firstFitCell(
  * the grid holds) push the leftover past the flow edge without
  * overlapping - that clip is pagination's problem, not packing's.
  */
-export function repackToFit(widgets: readonly PanelWidget[], cols: number, rows: number): PanelWidget[] {
-  const columnMajor = cols > rows;
+export function repackToFit(
+  widgets: readonly PanelWidget[],
+  cols: number,
+  rows: number,
+  columnMajor = cols > rows,
+): PanelWidget[] {
   const ordered = widgets
     .map((w, i) => ({ w, i }))
     .sort((a, b) => {
@@ -154,6 +158,34 @@ export function repackToFit(widgets: readonly PanelWidget[], cols: number, rows:
     out[i] = { ...w, col: slot.col, row: slot.row };
   }
   return out;
+}
+
+/**
+ * Dashboard auto-arrange: packs each page row-major into `cols` columns with
+ * no row limit, in (row, col) reading order. First-fit lets a later small
+ * widget fill a hole a bigger one left. Returns the same reference when
+ * nothing moves.
+ */
+export function autoArrangeLayout(layout: PanelLayout, cols: number): PanelLayout {
+  let changed = false;
+  const pages = layout.pages.map(page => {
+    // Stacking every widget is always a fit, so this bound never clips.
+    const rows = page.widgets.reduce((sum, w) => sum + Math.max(1, sizeToSpan(w.size).rows), 0);
+    const widgets = repackToFit(page.widgets, cols, rows, false);
+    if (!widgets.some((w, i) => w.col !== page.widgets[i].col || w.row !== page.widgets[i].row)) return page;
+    changed = true;
+    return { ...page, widgets };
+  });
+  return changed ? { ...layout, pages } : layout;
+}
+
+/** Rows down to the bottom edge of the lowest widget on any page. */
+export function layoutRowExtent(layout: PanelLayout): number {
+  let bottom = 0;
+  for (const page of layout.pages) {
+    for (const w of page.widgets) bottom = Math.max(bottom, w.row + Math.max(1, sizeToSpan(w.size).rows));
+  }
+  return bottom;
 }
 
 /**
