@@ -210,11 +210,11 @@ void main() {
       vec3 ldir = vec3(sin(ph), 0.0, -cos(ph));
       float shade = smoothstep(-0.06, 0.12, dot(n, ldir));
       float maria = 0.82 + 0.18 * fbm(mq * 2.2 + 4.0, 3);
-      vec3 moonCol = vec3(0.93, 0.92, 0.86) * maria * shade + vec3(0.05, 0.06, 0.08);
+      vec3 moonCol = vec3(0.75, 0.74, 0.7) * maria * shade + vec3(0.05, 0.06, 0.08);
       float edge = smoothstep(1.0, 0.94, md);
       col = mix(col, moonCol, edge * moonVis);
     }
-    col += vec3(0.6, 0.68, 0.85) * exp(-md * moonR * 7.0) * 0.28 * lit * moonVis;
+    col += vec3(0.6, 0.68, 0.85) * exp(-md * moonR * 7.0) * 0.18 * lit * moonVis;
   }
 
   // Clouds on a perspective deck: small and dense toward the horizon.
