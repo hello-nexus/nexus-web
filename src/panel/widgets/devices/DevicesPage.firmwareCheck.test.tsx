@@ -13,7 +13,7 @@ vi.mock('../../../lib/i18n', () => ({
     t: (key: string, vars?: Record<string, unknown>) => (vars ? `${key}:${JSON.stringify(vars)}` : key),
   }),
 }));
-vi.mock('../../../components/common/Toast/Toast', () => ({ useToast: () => ({ push: vi.fn() }) }));
+vi.mock('../../../components/common/Toast/Toast', () => ({ useToast: () => ({ push: vi.fn() }), useToastSafe: () => ({ push: vi.fn() }) }));
 vi.mock('../../../hooks/useUsbDevices', () => ({
   useUsbDevices: () => ({ devices: [], loading: false, refresh: vi.fn() }),
 }));

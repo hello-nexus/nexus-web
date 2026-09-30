@@ -22,7 +22,12 @@ export interface FirmwareStatusItem {
   availableUnknown?: boolean;
   availableVersions: string[];  // connected variant's bundled versions
   devImages: FlashableImage[];  // all images the device can flash (incl. sibling variants) - dev picker
+  // Optional: an older service omits both; absent reads as a normal row.
+  needsRecovery?: boolean;
+  recoveryState?: RecoveryState;
 }
+
+export type RecoveryState = 'ready' | 'identifying' | 'unsupported' | '';
 
 // Backs the Firmware Updates page. Reports, per connected supported device,
 // the version it's running vs the newest version bundled in this build. Seeds

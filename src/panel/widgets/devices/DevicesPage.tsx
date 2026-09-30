@@ -1,10 +1,14 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Usb, Monitor, Microchip, FileText, Cable, BookOpen, Link2 } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
-import { useFirmwareStatus, type FirmwareStatusItem } from '../../../hooks/useFirmwareStatus';
+import { useFirmwareStatus, type FirmwareStatusItem, type FlashableImage } from '../../../hooks/useFirmwareStatus';
 import { useFlashStatus, type FlashStatus } from '../../../hooks/useFlashStatus';
+import { useRecoverConfirm } from '../../../hooks/useFirmwareRecovery';
+import { findRecoveryRow, flashMatchesRecovery, recoveryAction, recoveryDone } from '../../../lib/firmwareRecovery';
+import { FirmwareRecoveryBanner } from '../../../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
+import { FlashProgress } from '../../../components/common/FlashProgress/FlashProgress';
 import { useSystemSpecs, type SystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -346,11 +350,20 @@ const DEV_TOOLS = import.meta.env.DEV || __DEV_TOOLS__;
 // DEV_TOOLS (see above) and is absent from release builds.
 function FirmwarePanel({ items, onRetryCheck }: FirmwarePanelProps) {
   const { t } = useTranslation();
-  const { status, startFlash } = useFlashStatus(true);
+  const { status, startFlash, refresh: refreshFlash } = useFlashStatus(true);
   const anyFlashing = !!status?.active;
+  const { request: requestRecover, modal: recoverModal } = useRecoverConfirm(() => { void refreshFlash(); }, status);
+  const recoveryRow = findRecoveryRow(items);
+
+  const flashPhase = status?.active ? '' : status?.phase;
+  useEffect(() => {
+    if (flashPhase === 'done' || flashPhase === 'failed') void onRetryCheck();
+  }, [flashPhase, onRetryCheck]);
 
   return (
     <>
+      <FirmwareRecoveryBanner item={recoveryRow} status={status} devTools={DEV_TOOLS} onRecover={requestRecover} />
+      {recoverModal}
       {items.length === 0 ? (
         <div className={styles.empty}>{t('devices.firmware.empty')}</div>
       ) : (
@@ -366,11 +379,12 @@ function FirmwarePanel({ items, onRetryCheck }: FirmwarePanelProps) {
             <tbody>
               {items.map(d => (
                 <FirmwareRow
-                  key={d.deviceType}
+                  key={d.needsRecovery ? `recovery:${d.deviceType}` : d.deviceType}
                   item={d}
                   status={status}
                   anyFlashing={anyFlashing}
                   onFlash={startFlash}
+                  onRecover={requestRecover}
                   onRetryCheck={onRetryCheck}
                 />
               ))}
@@ -387,10 +401,11 @@ interface FirmwareRowProps {
   status: FlashStatus | null;
   anyFlashing: boolean;
   onFlash: (deviceType: string, version: string) => void | Promise<void>;
+  onRecover: (item: FirmwareStatusItem, pick?: { firmwareType: string; version: string }) => void;
   onRetryCheck: () => void | Promise<void>;
 }
 
-function FirmwareRow({ item, status, anyFlashing, onFlash, onRetryCheck }: FirmwareRowProps) {
+function FirmwareRow({ item, status, anyFlashing, onFlash, onRecover, onRetryCheck }: FirmwareRowProps) {
   const { t } = useTranslation();
   const icon = FW_ICONS[item.deviceType] ?? FW_FALLBACK_ICON;
 
@@ -403,10 +418,12 @@ function FirmwareRow({ item, status, anyFlashing, onFlash, onRetryCheck }: Firmw
 
   // A flash matches this row if it targets the connected variant or any sibling
   // image this device can flash (dev cross-branch picker).
-  const matches = status != null && (
-    status.deviceType === item.firmwareType ||
-    item.devImages.some(img => img.firmwareType === status.deviceType)
-  );
+  const matches = item.needsRecovery
+    ? flashMatchesRecovery(item, status)
+    : status != null && (
+      status.deviceType === item.firmwareType ||
+      item.devImages.some(img => img.firmwareType === status.deviceType)
+    );
   const flashing = !!status?.active && matches;
   const lastError = (!status?.active && matches && status?.phase === 'failed')
     ? (status?.error || t('devices.firmware.flash.failed'))
@@ -451,7 +468,18 @@ function FirmwareRow({ item, status, anyFlashing, onFlash, onRetryCheck }: Firmw
       </td>
       <td className={styles.mono}>{installedVersion || '-'}</td>
       <td>
-        {flashing ? (
+        {item.needsRecovery ? (
+          <RecoveryStatusCell
+            item={item}
+            status={status}
+            anyFlashing={anyFlashing}
+            images={images}
+            sel={sel}
+            onSel={setSel}
+            onRecover={onRecover}
+            lastError={lastError}
+          />
+        ) : flashing ? (
           <FlashProgress status={status!} />
         ) : (
           <>
@@ -522,14 +550,60 @@ function FirmwareRow({ item, status, anyFlashing, onFlash, onRetryCheck }: Firmw
   );
 }
 
-function FlashProgress({ status }: { status: FlashStatus }) {
+interface RecoveryStatusCellProps {
+  item: FirmwareStatusItem;
+  status: FlashStatus | null;
+  anyFlashing: boolean;
+  images: FlashableImage[];
+  sel: number;
+  onSel: (i: number) => void;
+  onRecover: FirmwareRowProps['onRecover'];
+  lastError: string;
+}
+
+// Status cell for a device stuck in update mode; Recover opens the confirm dialog.
+function RecoveryStatusCell({ item, status, anyFlashing, images, sel, onSel, onRecover, lastError }: RecoveryStatusCellProps) {
+  const { t } = useTranslation();
+  if (recoveryDone(item, status)) {
+    return <span className={styles.fwUpToDate}>{t('devices.firmware.recovery.restored', { name: item.name })}</span>;
+  }
+  if (status?.active && flashMatchesRecovery(item, status)) return <FlashProgress status={status} />;
+
+  const action = recoveryAction(item, DEV_TOOLS);
+  const chosen = images[sel] ?? images[0];
   return (
-    <span className={styles.fwProgress}>
-      <span className={styles.fwProgressBar}>
-        <span className={styles.fwProgressFill} style={{ width: `${status.percent}%` }} />
+    <>
+      {lastError && <div className={styles.fwFailed}>{lastError}</div>}
+      <span className={styles.fwUpdateRow}>
+        <span className={styles.fwUpdateBadge}>{t('devices.firmware.recovery.needed')}</span>
+        {action === 'recover' && (
+          <Button type="button" tone="accent" size="sm" disabled={anyFlashing} onClick={() => onRecover(item)}>
+            {t('devices.firmware.recovery.action')}
+          </Button>
+        )}
+        {action === 'checking' && <span className={styles.fwUpToDate}>{t('devices.firmware.recovery.checking')}</span>}
+        {action === 'contactSupport' && <span className={styles.fwUpToDate}>{t('devices.firmware.recovery.contactSupport')}</span>}
+        {action === 'pick' && (
+          <>
+            <Select
+              value={String(sel)}
+              onChange={v => onSel(Number(v))}
+              disabled={anyFlashing}
+              options={images.map((img, i) => ({ value: String(i), label: `${img.version} (${img.firmwareType})` }))}
+            />
+            <Button
+              type="button"
+              tone="accent"
+              size="sm"
+              disabled={anyFlashing || !chosen}
+              onClick={() => chosen && onRecover(item, chosen)}
+            >
+              {t('devices.firmware.recovery.action')}
+            </Button>
+          </>
+        )}
       </span>
-      <span className={styles.fwProgressMsg}>{status.message} ({status.percent}%)</span>
-    </span>
+    </>
   );
 }
 
