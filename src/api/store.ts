@@ -18,6 +18,8 @@ export interface StoreVersion {
   releasedAt: string;
   /** The version manifest's capabilities as published; author-supplied JSON, so every field is unchecked. */
   capabilities?: Record<string, unknown>;
+  /** What is new in this version, in the client's language where translated; only an app page's versions carry it. */
+  notes?: string;
 }
 
 export interface StoreRating {
@@ -44,7 +46,7 @@ export interface StoreApp {
 export interface StoreAppDetail extends StoreApp {
   description: string;
   screenshots: string[];
-  versions: Array<{ version: string; releasedAt: string; minNexusVersion: string }>;
+  versions: Array<{ version: string; releasedAt: string; minNexusVersion: string; notes?: string }>;
 }
 
 export interface StoreInstallResult {

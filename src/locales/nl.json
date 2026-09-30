@@ -4448,6 +4448,7 @@
   "store.section.description": "Beschrijving",
   "store.section.permissions": "Machtigingen",
   "store.section.preview": "Voorbeeld",
+  "store.section.whatsNew": "Nieuw in {version}",
   "store.signIn.body": "Meld je aan bij je Nexus-account of maak er gratis een aan om verder te gaan.",
   "store.signIn.title": "Meld je aan om apps te halen",
   "store.spec.requires": "Vereist Nexus",

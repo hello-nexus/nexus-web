@@ -4448,6 +4448,7 @@
   "store.section.description": "Beschreibung",
   "store.section.permissions": "Berechtigungen",
   "store.section.preview": "Vorschau",
+  "store.section.whatsNew": "Neu in {version}",
   "store.signIn.body": "Melde dich bei deinem Nexus-Konto an oder erstelle eines kostenlos, um fortzufahren.",
   "store.signIn.title": "Zum Laden von Apps anmelden",
   "store.spec.requires": "Erfordert Nexus",

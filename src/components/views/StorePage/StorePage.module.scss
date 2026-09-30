@@ -319,7 +319,8 @@ $card-gap: 0.6rem;
   &:hover { text-decoration: underline; }
 }
 
-.permissions {
+.permissions,
+.notes {
   margin: 0;
   padding-left: 1.2rem;
   max-width: 48rem;

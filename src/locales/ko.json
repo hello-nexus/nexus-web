@@ -4448,6 +4448,7 @@
   "store.section.description": "설명",
   "store.section.permissions": "권한",
   "store.section.preview": "미리보기",
+  "store.section.whatsNew": "{version}의 새로운 기능",
   "store.signIn.body": "Nexus 계정에 로그인하거나 무료로 계정을 만들어 계속하세요.",
   "store.signIn.title": "앱을 받으려면 로그인하세요",
   "store.spec.requires": "필요한 Nexus",
