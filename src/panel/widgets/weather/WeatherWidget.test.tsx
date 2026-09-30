@@ -29,6 +29,12 @@ const mockSnapshot = vi.hoisted(() => ({
   }),
 }));
 
+const shader = vi.hoisted(() => ({ ready: true, error: null as string | null }));
+
+vi.mock('../../../hooks/useShaderRenderer', () => ({
+  useShaderRenderer: () => ({ ready: shader.ready, loading: false, error: shader.error }),
+}));
+
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn(() => Promise.resolve(mockSnapshot.build())),
 }));
@@ -53,12 +59,16 @@ vi.mock('../../../lib/i18n', () => {
   return { useTranslation: () => ({ t }) };
 });
 
-function weatherWidget(size: PanelWidget['size']): PanelWidget {
-  return { id: `weather-${size}`, type: 'weather', size, col: 0, row: 0 };
+function weatherWidget(size: PanelWidget['size'], config?: PanelWidget['config']): PanelWidget {
+  return { id: `weather-${size}`, type: 'weather', size, col: 0, row: 0, config };
 }
 
 describe('WeatherWidget', () => {
-  beforeEach(() => resetWeatherSnapshotCache());
+  beforeEach(() => {
+    resetWeatherSnapshotCache();
+    shader.ready = true;
+    shader.error = null;
+  });
   afterEach(() => vi.clearAllMocks());
 
   it('renders the compact (2x2) layout with live data', async () => {
@@ -79,5 +89,26 @@ describe('WeatherWidget', () => {
     render(<WeatherWidget widget={weatherWidget('4x4')} />);
     expect(await screen.findByText('72°')).toBeInTheDocument();
     expect(screen.getByText('Today')).toBeInTheDocument();
+  });
+
+  it('draws no sky unless the widget opts in', async () => {
+    const { container } = render(<WeatherWidget widget={weatherWidget('4x2')} />);
+    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(container.querySelector('canvas')).toBeNull();
+  });
+
+  it.each(['1x1', '2x2', '2x4', '4x2', '4x4', '2x2round'] as const)('puts the %s tile on the animated sky', async (size) => {
+    const { container } = render(<WeatherWidget widget={weatherWidget(size, { animatedSky: true })} />);
+    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(container.querySelector('canvas')).not.toBeNull();
+    expect(container.querySelector('[data-sky="true"]')).not.toBeNull();
+  });
+
+  it('keeps themed text when the sky cannot draw', async () => {
+    shader.ready = false;
+    shader.error = 'WebGL2 not supported';
+    const { container } = render(<WeatherWidget widget={weatherWidget('4x2', { animatedSky: true })} />);
+    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(container.querySelector('[data-sky="false"]')).not.toBeNull();
   });
 });

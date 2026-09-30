@@ -3631,6 +3631,8 @@
   "panel.widget.weather.precipitation": "降水量",
   "panel.widget.weather.pressure": "氣壓",
   "panel.widget.weather.removeLocation": "移除{location}",
+  "panel.widget.weather.settings.animatedSky": "動態天空",
+  "panel.widget.weather.settings.animatedSkyDescription": "在小工具後方以動態天空呈現目前天氣與時段。",
   "panel.widget.weather.settings.auto": "自動",
   "panel.widget.weather.settings.autoLocation": "自動偵測位置",
   "panel.widget.weather.settings.celsius": "攝氏",

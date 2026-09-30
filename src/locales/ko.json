@@ -3631,6 +3631,8 @@
   "panel.widget.weather.precipitation": "강수량",
   "panel.widget.weather.pressure": "기압",
   "panel.widget.weather.removeLocation": "{location} 제거",
+  "panel.widget.weather.settings.animatedSky": "애니메이션 하늘",
+  "panel.widget.weather.settings.animatedSkyDescription": "현재 날씨와 시간대를 위젯 뒤에 움직이는 하늘로 표시합니다.",
   "panel.widget.weather.settings.auto": "자동",
   "panel.widget.weather.settings.autoLocation": "위치 자동 감지",
   "panel.widget.weather.settings.celsius": "섭씨",

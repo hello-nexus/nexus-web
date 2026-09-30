@@ -3631,6 +3631,8 @@
   "panel.widget.weather.precipitation": "Yağış",
   "panel.widget.weather.pressure": "Basınç",
   "panel.widget.weather.removeLocation": "{location} konumunu kaldır",
+  "panel.widget.weather.settings.animatedSky": "Hareketli gökyüzü",
+  "panel.widget.weather.settings.animatedSkyDescription": "Güncel hava durumunu ve günün saatini widget'ın arkasında hareketli bir gökyüzü olarak gösterir.",
   "panel.widget.weather.settings.auto": "Otomatik",
   "panel.widget.weather.settings.autoLocation": "Konumu otomatik olarak algıla",
   "panel.widget.weather.settings.celsius": "Celsius",

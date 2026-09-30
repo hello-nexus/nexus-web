@@ -3631,6 +3631,8 @@
   "panel.widget.weather.precipitation": "Precipitação",
   "panel.widget.weather.pressure": "Pressão",
   "panel.widget.weather.removeLocation": "Remover {location}",
+  "panel.widget.weather.settings.animatedSky": "Céu animado",
+  "panel.widget.weather.settings.animatedSkyDescription": "Mostra o clima atual e o período do dia como um céu em movimento atrás do widget.",
   "panel.widget.weather.settings.auto": "Automático",
   "panel.widget.weather.settings.autoLocation": "Detectar localização automaticamente",
   "panel.widget.weather.settings.celsius": "Celsius",

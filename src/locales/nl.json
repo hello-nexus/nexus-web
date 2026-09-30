@@ -3631,6 +3631,8 @@
   "panel.widget.weather.precipitation": "Neerslag",
   "panel.widget.weather.pressure": "Luchtdruk",
   "panel.widget.weather.removeLocation": "{location} verwijderen",
+  "panel.widget.weather.settings.animatedSky": "Geanimeerde lucht",
+  "panel.widget.weather.settings.animatedSkyDescription": "Toont het huidige weer en het tijdstip van de dag als een bewegende lucht achter de widget.",
   "panel.widget.weather.settings.auto": "Automatisch",
   "panel.widget.weather.settings.autoLocation": "Locatie automatisch detecteren",
   "panel.widget.weather.settings.celsius": "Celsius",

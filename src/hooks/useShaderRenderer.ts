@@ -19,7 +19,10 @@ export function useShaderRenderer(
   effect: string | null,
   stateRef: React.RefObject<EffectState | null>,
   audioRef?: React.RefObject<AudioSnapshot | null>,
-  options?: { maxDevicePixelRatio?: number; maxFps?: number },
+  // screenSize sizes the backing store from the on-screen rect, so a canvas
+  // under a CSS scale() (a panel cell) renders at the pixels it covers.
+  // visibleRef false skips drawing while keeping the compiled program.
+  options?: { maxDevicePixelRatio?: number; maxFps?: number; screenSize?: boolean; visibleRef?: React.RefObject<boolean> },
   // When true, u_time is held at the value it had the instant this flipped
   // true, so the preview freezes on the same frame the server-side lighting
   // engine freezes at instead of blanking or drifting.
@@ -197,14 +200,15 @@ export function useShaderRenderer(
             histRingRef.current.fill(0);
           }
         }
-        if (!shouldDraw(ts)) { rafRef.current = requestAnimationFrame(render); return; }
+        if (options?.visibleRef?.current === false || !shouldDraw(ts)) { rafRef.current = requestAnimationFrame(render); return; }
         const g = glRef.current;
         const c = canvasRef.current!;
         const devicePixelRatio = window.devicePixelRatio || 1;
         const maxDevicePixelRatio = options?.maxDevicePixelRatio ?? devicePixelRatio;
         const dpr = Math.min(devicePixelRatio, maxDevicePixelRatio);
-        const w = c.clientWidth * dpr;
-        const h = c.clientHeight * dpr;
+        const rect = options?.screenSize ? c.getBoundingClientRect() : null;
+        const w = rect ? Math.round(rect.width * dpr) : c.clientWidth * dpr;
+        const h = rect ? Math.round(rect.height * dpr) : c.clientHeight * dpr;
         if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
 
         g.viewport(0, 0, w, h);
@@ -281,7 +285,7 @@ export function useShaderRenderer(
       };
       rafRef.current = requestAnimationFrame(render);
     });
-  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, audioRef]);
+  }, [effect, canvasRef, stateRef, options?.maxDevicePixelRatio, options?.maxFps, options?.screenSize, options?.visibleRef, audioRef]);
 
   return { ready, loading, error };
 }
