@@ -90,16 +90,10 @@ const SIMULATED_SURFACE_CAPABILITIES: Partial<Record<PanelSurface, PanelDeviceCa
   'lcd-square': STREAMED_PANEL_CAPABILITIES,
 };
 
-// Per-surface branding for streamed panels; they carry no curated device id to
-// look an icon up from.
-const STREAMED_PANEL_ICONS: Partial<Record<PanelSurface, string>> = {
-  kraken: '/assets/devices/nzxt.svg',
-};
-
-// Finer-grained branding for streamed panels whose surface is shared by more than one
-// model. The service stamps capabilities.family with the handler id; the cooler-LCD
-// surfaces need this because 'lcd-round' alone cannot tell a Lian Li from an ID-Cooling.
+// Streamed-panel branding by capabilities.family, which the service stamps with the
+// handler id; surfaces are shared ('lcd-round' cannot tell a Lian Li from an ID-Cooling).
 const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
+  'nzxt-kraken': '/assets/devices/nzxt.svg',
   'lianli-galahad2-lcd': '/assets/devices/lianli.svg',
   'lianli-hydroshift-lcd': '/assets/devices/lianli.svg',
   'corsair-link-lcd': '/assets/devices/corsair.svg',
@@ -107,13 +101,6 @@ const STREAMED_FAMILY_ICONS: Partial<Record<string, string>> = {
   'corsair-capellix-lcd': '/assets/devices/corsair.svg',
   'lianli-screen88': '/assets/devices/lianli.svg',
   'zmatrices-lcd': '/assets/devices/wide-screen.svg',
-};
-
-// The curated device a streamed panel belongs to. Claiming it merges the two into
-// one sidebar entry: the glass is the panel, the hardware around it is that
-// panel's settings tab, the way the Q60 carries its cooler.
-const STREAMED_PANEL_SOURCE: Partial<Record<PanelSurface, string>> = {
-  kraken: 'nzxt-kraken',
 };
 
 const WIDGET_PANEL_PROFILES: Partial<Record<string, {
@@ -306,12 +293,10 @@ export function buildPanelDevices({
     const cssWidth = record.capabilities?.cssWidth ?? 0;
     const cssHeight = record.capabilities?.cssHeight ?? 0;
     const surface = record.capabilities?.surface as PanelSurface | undefined;
-    // Cooler LCDs share surfaces, so the surface alone cannot name their device; the
-    // service stamps capabilities.family with the handler id, which is also the id of
-    // the curated device row that model reports (Galahad II LCD, HydroShift, ...).
+    // The family is the handler id, which is also the curated device row's id. Claiming
+    // that row merges the two into one sidebar entry, the way the Q60 carries its cooler.
     const family = record.capabilities?.family;
-    const claimed = (family && curatedDevices.some(d => d.id === family) ? family : undefined)
-      ?? (surface ? STREAMED_PANEL_SOURCE[surface] : undefined);
+    const claimed = family && curatedDevices.some(d => d.id === family) ? family : undefined;
     // A claimed panel IS the device's row, so it carries the device's name; the
     // record's own name describes only the glass ("NZXT Kraken LCD").
     const claimedName = claimed ? curatedDevices.find(d => d.id === claimed)?.name : undefined;
@@ -331,9 +316,7 @@ export function buildPanelDevices({
       runtimeSurface: surface,
       previewSize: cssWidth > 0 && cssHeight > 0 ? { width: cssWidth, height: cssHeight } : undefined,
       previewDpr: record.capabilities?.dpr,
-      iconSrc: (record.capabilities?.family ? STREAMED_FAMILY_ICONS[record.capabilities.family] : undefined)
-        ?? (surface && STREAMED_PANEL_ICONS[surface])
-        ?? PANEL_MONITOR_ICON,
+      iconSrc: (family ? STREAMED_FAMILY_ICONS[family] : undefined) ?? PANEL_MONITOR_ICON,
       capabilities: STREAMED_PANEL_CAPABILITIES,
       modalKind: 'panel-editor',
     });
