@@ -17,6 +17,8 @@ export interface DashboardSectionNavigatePayload {
   // Settings deep-link: tab to open, plus the SettingRow anchorId to reveal.
   settingsTab?: SettingsTabKey;
   settingsAnchor?: string;
+  // Subtab of the target section (the diagnostics widget's per-domain buttons).
+  tab?: string;
 }
 
 export type DashboardSectionNavigate =
