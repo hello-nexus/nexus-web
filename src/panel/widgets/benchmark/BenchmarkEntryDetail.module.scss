@@ -130,25 +130,7 @@
 }
 
 .hardwareList {
-  list-style: none;
-  margin: 0;
-  padding: var(--space-md) var(--space-lg);
-  display: grid;
-  gap: var(--space-sm);
-
-  li {
-    @include text-body;
-    color: var(--text);
-    overflow-wrap: anywhere;
-  }
-}
-
-.hwKey {
-  @include text-label;
-  display: inline-block;
-  min-width: 4.5rem;
-  margin-right: var(--space-md);
-  color: var(--text-dim);
+  padding: var(--space-sm);
 }
 
 .footer {

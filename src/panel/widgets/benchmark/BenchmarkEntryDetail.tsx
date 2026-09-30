@@ -6,6 +6,7 @@ import {
 } from '../../../lib/units';
 import type { LeaderboardEntry } from '../../../types/benchmark';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
+import { SpecList, type SpecListRow } from '../../../components/common/SpecList/SpecList';
 import styles from './BenchmarkEntryDetail.module.scss';
 
 // Hardware-category acronyms plus "Storage" stay untranslated.
@@ -52,6 +53,14 @@ export function BenchmarkEntryDetail({
   const { cpuMaxClockMhz, ramBytes } = entry.hardware;
   const cpuClock = cpuMaxClockMhz ? localizeNumbers(`${(cpuMaxClockMhz / 1000).toFixed(1)} GHz`, numberFormat) : '';
   const ramSize = ramBytes ? `${Math.round(ramBytes / BYTES_PER_GIB)} GB` : '';
+  // The same labels as a PC's spec card on the profile and account pages.
+  const hardwareRows: SpecListRow[] = [
+    { key: 'cpu', label: t('devices.specs.row.processor'), value: withExtra(entry.hardware.cpuModel, cpuClock) },
+    ...entry.hardware.gpuModels.map((gpu, i) => ({ key: `gpu-${i}`, label: t('devices.specs.row.graphicsCard'), value: gpu })),
+    { key: 'ram', label: t('devices.specs.row.memory'), value: withExtra(entry.hardware.ramModel, ramSize) },
+    { key: 'storage', label: t('devices.specs.row.storage'), value: entry.hardware.storageModel },
+    { key: 'os', label: t('devices.specs.row.osBuild'), value: entry.hardware.os },
+  ];
 
   return (
     <div className={styles.detail}>
@@ -110,16 +119,9 @@ export function BenchmarkEntryDetail({
 
       <section className={styles.section}>
         <SectionHeader>{t('benchmark.leaderboard.hardware')}</SectionHeader>
-        <ul className={`${styles.card} ${styles.hardwareList}`}>
-          <li><span className={styles.hwKey}>CPU</span>{withExtra(entry.hardware.cpuModel, cpuClock)}</li>
-          {entry.hardware.gpuModels.map((gpu, i) => (
-            <li key={i}><span className={styles.hwKey}>GPU</span>{gpu}</li>
-          ))}
-          <li><span className={styles.hwKey}>RAM</span>{withExtra(entry.hardware.ramModel, ramSize)}</li>
-          {/* eslint-disable-next-line i18next/no-literal-string -- Storage is a hardware category proper noun */}
-          <li><span className={styles.hwKey}>Storage</span>{entry.hardware.storageModel}</li>
-          <li><span className={styles.hwKey}>{t('benchmark.leaderboard.os')}</span>{entry.hardware.os}</li>
-        </ul>
+        <div className={`${styles.card} ${styles.hardwareList}`}>
+          <SpecList rows={hardwareRows} />
+        </div>
       </section>
 
       <footer className={styles.footer}>

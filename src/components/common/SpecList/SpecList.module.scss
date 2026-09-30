@@ -1,0 +1,35 @@
+@use '../../../styles/text' as *;
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+// Fixed label track so every value starts at the same x down the list.
+.row {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+
+  &:nth-child(odd) {
+    background: var(--devices-row-alt);
+  }
+}
+
+.label {
+  @include text-label;
+  margin: 0;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+.value {
+  @include text-button;
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
