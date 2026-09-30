@@ -100,6 +100,7 @@ const CURATED_ICONS: Record<string, string> = {
   // identical at thumbnail size.
   qseries: '/assets/devices/q60.svg',
   y70: '/assets/devices/y70.svg',
+  aw3225qf: '/assets/devices/alienware.svg',
   keeb: '/assets/devices/keeb.svg',
   np50: '/assets/devices/np50.svg',
   'fan-hub': '/assets/devices/ibuypower.svg',
