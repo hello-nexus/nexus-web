@@ -26,7 +26,7 @@ interface ImmersiveSlot {
   valueColorReverse?: boolean;
 }
 
-const IMMERSIVE_TILE = { cols: 4, rows: 2 };
+const IMMERSIVE_TILE = { cols: 4, rows: 4 };
 
 // A Micro widget renders its bars as one widget, so it stays a single cell.
 type ImmersiveEntry =

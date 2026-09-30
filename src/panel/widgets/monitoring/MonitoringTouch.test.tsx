@@ -108,3 +108,17 @@ describe('immersiveEntries', () => {
     expect(immersiveEntries(slotWidget('a', ['summary/cpu-usage', 'summary/cpu-temp']), undefined)).toHaveLength(2);
   });
 });
+
+describe('MonitoringTouch - immersive tiles', () => {
+  it('gives each sensor its own 4x4: three per page on a Y70 portrait grid', () => {
+    const page4 = ['summary/cpu-usage', 'summary/cpu-temp', 'summary/gpu-usage', 'summary/gpu-temp']
+      .map((sensor, i) => slotWidget(`w${i}`, [sensor]));
+    const { container } = render(
+      <MonitoringTouch widget={page4[0]} pageWidgets={page4} immersiveGrid={{ columns: 4, rows: 12 }} />,
+    );
+    const page = container.querySelector<HTMLElement>('[data-tiled="true"]');
+    expect(page?.style.getPropertyValue('--tiles-across')).toBe('1');
+    expect(page?.style.getPropertyValue('--tiles-down')).toBe('3');
+    expect(page?.dataset.cells).toBe('3');
+  });
+});
