@@ -897,6 +897,10 @@ export function Dashboard() {
               navigate('system', 'device', payload.deviceKey);
               return;
             }
+            if (payload?.tab) {
+              navigate('system', target, payload.tab);
+              return;
+            }
             setView(target);
           }}
         />

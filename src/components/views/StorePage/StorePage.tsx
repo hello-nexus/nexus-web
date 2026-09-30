@@ -16,6 +16,7 @@ import {
   getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
 } from '../../../widgets/marketplaceRegistry';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
+import { capabilityGrants, capabilityLabel } from './capabilityLabels';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
 import { AppIconTile } from '../../common/AppIconTile/AppIconTile';
 import { resolveHttp } from '../../../api/service';
@@ -350,6 +351,21 @@ function Description({ text }: { text: string }) {
   );
 }
 
+/** What the version is allowed to do on this PC; renders nothing when it requests no permission. */
+function Permissions({ latest }: { latest: StoreVersion }) {
+  const { t } = useTranslation();
+  const grants = capabilityGrants(latest.capabilities);
+  if (grants.length === 0) return null;
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.sectionTitle}>{t('store.section.permissions')}</h2>
+      <ul className={`${styles.permissions} selectable`}>
+        {grants.map(grant => <li key={grant}>{capabilityLabel(grant, t)}</li>)}
+      </ul>
+    </section>
+  );
+}
+
 /** The screenshot row; an arrow shows only while more screenshots lie past that edge. */
 function Screenshots({ app }: { app: StoreAppDetail }) {
   const { t } = useTranslation();
@@ -488,6 +504,8 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
           <Description text={app.description} />
         </section>
       )}
+
+      {app.latest && <Permissions latest={app.latest} />}
     </div>
   );
 }

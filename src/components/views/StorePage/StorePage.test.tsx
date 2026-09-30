@@ -1,4 +1,4 @@
-import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { StorePage } from './StorePage';
 import type { StoreApp, StoreAppDetail } from '../../../api/store';
@@ -520,5 +520,37 @@ describe('StorePage language', () => {
     } finally {
       i18n.language = 'en';
     }
+  });
+});
+
+describe('StorePage permissions', () => {
+  it('lists each permission the version requests under its heading, leaving out app data and audio', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      latest: {
+        ...version,
+        capabilities: { dispatch: ['lighting.setMode'], 'net.fetch': ['api.example.com'], appData: true, audio: true },
+      },
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    const section = (await screen.findByText('store.section.permissions')).closest('section')!;
+    const items = within(section).getAllByRole('listitem').map(li => li.textContent);
+    expect(items).toEqual(['store.consent.cap.lighting.setMode', 'store.consent.cap.netFetch host=api.example.com']);
+  });
+
+  it('shows no Permissions section for an app that requests none', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...version, capabilities: { appData: true, audio: true } } });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.section.description')).toBeInTheDocument();
+    expect(screen.queryByText('store.section.permissions')).not.toBeInTheDocument();
+  });
+
+  it('shows no Permissions section when the catalog omits capabilities', async () => {
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.section.description')).toBeInTheDocument();
+    expect(screen.queryByText('store.section.permissions')).not.toBeInTheDocument();
   });
 });

@@ -18,6 +18,7 @@ import {
 } from '../../../panel/embed/simulatorProtocol';
 import type { PanelLayout, PanelSurface, PanelWidget } from '../../../panel/types';
 import { simulatedPanelCssViewport } from '../../../panel/embed/simulatedPanelViewport';
+import { playlistTypeOfWidgetId, playlistWidget } from '../../../panel/engine/widgetPlaylist';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './PanelEmbedFrame.module.scss';
 
@@ -39,6 +40,8 @@ interface PanelEmbedFrameProps {
   onLayoutChange: (layout: PanelLayout) => void;
   onWidgetClicked: (widget: PanelWidget) => void;
   onBackgroundClicked: () => void;
+  // The widget type the preview's playlist rotation shows (null when none).
+  onPlaylistShown?: (type: string | null) => void;
   /** Panel device record id. Forwarded to the simulator iframe so it can render media backgrounds. */
   deviceId?: string;
   // Per-device touch capability, forwarded in 'simulator/init'. The preview's
@@ -213,6 +216,7 @@ export function PanelEmbedFrame({
   onLayoutChange,
   onWidgetClicked,
   onBackgroundClicked,
+  onPlaylistShown,
   canvasSize,
   canvasDpi,
   canvasIsCssPixels,
@@ -319,12 +323,19 @@ export function PanelEmbedFrame({
           break;
         }
         case 'simulator/widget-clicked': {
-          const widget = findWidget(layout, data.widgetId);
+          // A playlist stand-in is not in the layout; its type is enough for the editor.
+          const playlistType = playlistTypeOfWidgetId(data.widgetId);
+          const widget = findWidget(layout, data.widgetId)
+            ?? (playlistType ? playlistWidget(layout, playlistType, surface) : undefined);
           if (widget) onWidgetClicked(widget);
           break;
         }
         case 'simulator/background-clicked': {
           onBackgroundClicked();
+          break;
+        }
+        case 'simulator/playlist-shown': {
+          onPlaylistShown?.(data.widgetType);
           break;
         }
         default:
@@ -333,7 +344,7 @@ export function PanelEmbedFrame({
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [layout, onBackgroundClicked, onLayoutChange, onWidgetClicked]);
+  }, [layout, onBackgroundClicked, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
 
   // Init handshake: send the full state once the child says it's ready.
   useEffect(() => {

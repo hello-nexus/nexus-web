@@ -35,7 +35,12 @@ vi.mock('../../../hooks/useSensors', () => ({
 vi.mock('../../../hooks/useSensorExtras', () => ({
   useSensorExtras: () => ({ batteries: [], nics: [], coolers: [], psus: [], nvmeStorage: [], embeddedControllers: [], memoryModules: [] }),
 }));
-vi.mock('../../../hooks/useFpsSensors', () => ({ useFpsSensors: () => [] }));
+const mockFps = vi.hoisted(() => ({ value: 0 }));
+vi.mock('../../../hooks/useFpsSensors', () => ({
+  useFpsSensors: () => [
+    { id: 'fps/current', name: 'FPS', type: 'Framerate', value: mockFps.value, theoreticalMaximum: 240, units: 'fps', formatted: String(mockFps.value), parent: { id: 'fps', name: 'FPS' } },
+  ],
+}));
 vi.mock('../../../hooks/useNetworkMonitor', () => ({
   useNetworkMonitor: () => ({ series: [], sampleCount: 60, totalRate: 0, totalRateIn: 0, totalRateOut: 0, entries: [] }),
 }));
@@ -129,5 +134,42 @@ describe('MonitoringWidget value colouring', () => {
     );
     expect(slot(container).style.getPropertyValue('--panel-accent')).toBe('');
     expect(fillBackground(container)).toBe('');
+  });
+
+  it('reverses the scale on request, so a hot CPU reads cool', () => {
+    const { container } = render(
+      <MonitoringWidget widget={widgetWith({ slot0_sensor: 'CPU Package', slot0_valueColor: true, slot0_valueColorReverse: true })} />,
+    );
+    // Reversed, the cool #4f80f0 (hue 221.7) holds from 73% up.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(221\.7,/);
+  });
+
+  describe('FPS', () => {
+    function fpsWidget(fps: number, config: Record<string, unknown> = {}) {
+      mockFps.value = fps;
+      return widgetWith({ slot0_device: 'fps', slot0_sensor: 'FPS', slot0_valueColor: true, ...config });
+    }
+
+    it('runs reversed by default: a low frame rate reads red', () => {
+      // 30 of 240 fps is 12.5%, inside the reversed red end (up to 15%).
+      const { container } = render(<MonitoringWidget widget={fpsWidget(30)} />);
+      expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(0\.0,/);
+    });
+
+    it('runs reversed by default: a high frame rate reads cool', () => {
+      const { container } = render(<MonitoringWidget widget={fpsWidget(230)} />);
+      expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(221\.7,/);
+    });
+
+    it('a stored false restores the hot-high direction', () => {
+      const { container } = render(<MonitoringWidget widget={fpsWidget(30, { slot0_valueColorReverse: false })} />);
+      expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(221\.7,/);
+    });
+
+    it('leaves the slot untinted while no game is presenting', () => {
+      const { container } = render(<MonitoringWidget widget={fpsWidget(0)} />);
+      expect(slot(container).style.getPropertyValue('--panel-accent')).toBe('');
+      expect(fillBackground(container)).toBe('');
+    });
   });
 });

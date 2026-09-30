@@ -775,6 +775,12 @@
   box-shadow: 0 0 0 1px var(--panel-accent);
 }
 
+.catalogCellDragging {
+  position: relative;
+  z-index: 3;
+  cursor: grabbing;
+}
+
 // No room on the target grid. Dimmed rather than hidden so the widget stays
 // discoverable and the notice's "make room" instruction has a referent. The
 // hover/focus/active affordances are gated off in .catalogCell above.
@@ -2059,6 +2065,11 @@
 
 .panelRoot[data-simulator='true'] .cellWrap {
   cursor: pointer;
+}
+
+// The blank widget is not a click target (PanelApp drops its click and hint).
+.panelRoot[data-simulator='true'] .cell[data-widget-type='blank'] {
+  cursor: default;
 }
 
 // A preview cell that is not the one being edited is one click target: its

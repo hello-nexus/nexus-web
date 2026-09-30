@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it } from 'vitest';
-import { isSingleWidgetSurface, surfaceSupportsTouch } from '../types';
+import { isSingleWidgetSurface, PANEL_SURFACES, singleWidgetSurfaceSize, surfaceSupportsTouch } from '../types';
 import {
   sizesForSurface,
   APP_REGISTRY,
@@ -122,21 +122,23 @@ describe('appAvailableForSurface', () => {
 
   it('exposes every widget on the desktop dashboard (pointer + every multi-widget size)', () => {
     // Desktop has a mouse (pointer-capable) and accepts every multi-widget
-    // size. Built-ins declare no `surfaces` allowlist, so every widget in the
-    // registry should be reachable from the desktop add-widget picker.
-    // The reach flags are the exceptions: remote-only widgets are hidden
-    // because desktop is the host's own surface, panel-only widgets because
-    // the desktop never opens the fullscreen view they're played in.
+    // size, so every widget in the registry should be reachable from the
+    // desktop add-widget picker. The reach flags are the exceptions: remote-only
+    // widgets are hidden because desktop is the host's own surface, panel-only
+    // widgets because the desktop never opens the fullscreen view they're
+    // played in, and a `surfaces` allowlist (blank) that leaves desktop out.
     for (const [type, def] of Object.entries(APP_REGISTRY)) {
+      const allowed = !def.meta.surfaces || def.meta.surfaces.includes('desktop');
       expect(appAvailableForSurface(def.meta, 'desktop'),
-        `${type} on desktop`).toBe(!def.meta.remoteOnly && !def.meta.panelOnly);
+        `${type} on desktop`).toBe(!def.meta.remoteOnly && !def.meta.panelOnly && allowed);
     }
   });
 
   it('exposes every widget on Y70 (touch + every multi-widget size)', () => {
     for (const [type, def] of Object.entries(APP_REGISTRY)) {
+      const allowed = !def.meta.surfaces || def.meta.surfaces.includes('y70');
       expect(appAvailableForSurface(def.meta, 'y70'),
-        `${type} on y70`).toBe(!def.meta.remoteOnly);
+        `${type} on y70`).toBe(!def.meta.remoteOnly && allowed);
     }
   });
 
@@ -196,6 +198,17 @@ describe('appAvailableForSurface', () => {
       expect(def, `missing widget type: ${type}`).toBeDefined();
       expect(def.meta.touch, `${type} should require touch`).toBe(true);
       expect(appAvailableForSurface(def.meta, 'q60'), `${type} must be unavailable on q60`).toBe(false);
+    }
+  });
+});
+
+describe('blank widget', () => {
+  it('is offered on every single-widget surface at its locked size, and nowhere else', () => {
+    const blank = APP_REGISTRY.blank;
+    for (const surface of PANEL_SURFACES) {
+      const single = singleWidgetSurfaceSize(surface);
+      expect(appAvailableForSurface(blank.meta, surface), surface).toBe(single !== undefined);
+      if (single) expect(sizesForSurface(blank.meta, surface), surface).toEqual([single]);
     }
   });
 });

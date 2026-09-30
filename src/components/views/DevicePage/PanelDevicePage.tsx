@@ -14,6 +14,13 @@ import {
   swapSingleWidget,
   tryResizeWidget,
 } from '../../../panel/engine/panelLayoutOps';
+import {
+  playingPlaylistTypes,
+  setWidgetPlaylistEnabled,
+  stepPlaylistType,
+  updateWidgetPlaylist,
+  widgetPlaylistOf,
+} from '../../../panel/engine/widgetPlaylist';
 import { findWidgetById } from '../../../panel/engine/panelLayoutHelpers';
 import { DEFAULT_SURFACE_DPI, MAX_PANEL_PAGES } from '../../../panel/engine/panelGrid';
 import {
@@ -110,10 +117,16 @@ import {
 } from '../../../panel/types';
 import { isRemotePanel, type PanelDevice } from '../../../panel/device/panelDevices';
 import { defaultLayoutForSurface } from '../../../panel/engine/defaultLayout';
-import { PanelWidgetCatalog } from '../../../panel/editor/PanelWidgetCatalog';
+import { PanelWidgetCatalog, catalogEntriesFor } from '../../../panel/editor/PanelWidgetCatalog';
+import { WidgetPlaylistEditor } from '../../../panel/editor/WidgetPlaylistEditor';
+import { ChipGroup } from '../../common/ChipGroup/ChipGroup';
 import '../../../panel/styles/tokens.scss';
 import { useFocusStaticBackground } from '../../../panel/background/focusStaticBackground';
 import styles from './PanelDevicePage.module.scss';
+
+// ChipGroup keys for a single-widget panel's Single / Playlist switch.
+const WIDGET_MODE_SINGLE = 'single';
+const WIDGET_MODE_PLAYLIST = 'playlist';
 
 interface PanelDevicePageProps {
   device: PanelDevice;
@@ -835,6 +848,39 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const currentSingleWidget: PanelWidget | undefined = singleWidget
     ? layout.pages[0]?.widgets[0]
     : undefined;
+  const widgetPlaylist = singleWidget ? widgetPlaylistOf(layout) : null;
+  const playlistMode = widgetPlaylist?.enabled === true;
+  const remotePanel = isRemotePanel(device?.connectionKind);
+  // What the preview's rotation shows, reported by the simulator iframe.
+  const [previewPlaylist, setPreviewPlaylist] = useState<{ type: string | null; at: number }>({ type: null, at: 0 });
+  const handlePlaylistShown = useCallback((type: string | null) => setPreviewPlaylist({ type, at: Date.now() }), []);
+  const playingTypes = useMemo(
+    () => (playlistMode ? playingPlaylistTypes(layout, surface, deviceTouch) ?? [] : []),
+    [deviceTouch, layout, playlistMode, surface],
+  );
+  const stepPlaylist = useCallback((delta: 1 | -1) => {
+    // A jump the preview has not reported yet is the newer position.
+    const cursor = widgetPlaylistOf(layout).cursor;
+    const from = cursor && cursor.at > previewPlaylist.at ? cursor.type : previewPlaylist.type;
+    const type = stepPlaylistType(playingTypes, from, delta);
+    if (type) updateLayout(updateWidgetPlaylist(layout, { cursor: { type, at: Date.now() } }));
+  }, [layout, playingTypes, previewPlaylist, updateLayout]);
+  const showPlaylistArrows = playlistMode && !configuringWidget && playingTypes.length > 1;
+
+  // A playlist entry is edited as the shown widget: swapping to it restores
+  // its remembered config, so the settings pane edits the entry in place.
+  const editSingleWidgetType = useCallback((type: string) => {
+    const current = layout.pages[0]?.widgets[0];
+    if (current?.type === type) {
+      setConfiguringWidgetId(current.id);
+      return;
+    }
+    const size = singleWidgetSurfaceSize(surface);
+    if (!size) return;
+    const next: PanelWidget = { id: createUuid(), type, size, col: 0, row: 0 };
+    updateLayout(swapSingleWidget(layout, next));
+    setConfiguringWidgetId(next.id);
+  }, [layout, surface, updateLayout]);
 
   // Returns the id of the widget that landed so the catalog can offer
   // "click to edit" on the card that was just clicked.
@@ -882,8 +928,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   }, [editorCapacity, layout, updateLayout]);
 
   const handleConfigureWidget = useCallback((widget: PanelWidget) => {
+    // The preview shows a render-only stand-in for a playlist entry that is
+    // not the stored widget.
+    if (singleWidget && widget.id !== currentSingleWidget?.id) {
+      editSingleWidgetType(widget.type);
+      return;
+    }
     setConfiguringWidgetId(widget.id);
-  }, []);
+  }, [currentSingleWidget?.id, editSingleWidgetType, singleWidget]);
 
   const handleUpdateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     updateLayout(patchWidgetById(layout, widgetId, w => ({ ...w, config }), editorCapacity));
@@ -1262,6 +1314,30 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         aria-disabled={recordSecondaryMonitor || undefined}
                         inert={recordSecondaryMonitor || undefined}
                       >
+                        {widgetPlaylist && (
+                          <div className={styles.playlistPanel}>
+                            <ChipGroup
+                              fullWidth
+                              ariaLabel={t('panel.playlist.mode')}
+                              options={[
+                                { key: WIDGET_MODE_SINGLE, label: t('panel.playlist.single') },
+                                { key: WIDGET_MODE_PLAYLIST, label: t('panel.playlist.playlist') },
+                              ]}
+                              activeKey={playlistMode ? WIDGET_MODE_PLAYLIST : WIDGET_MODE_SINGLE}
+                              onChange={key => updateLayout(setWidgetPlaylistEnabled(
+                                layout,
+                                key === WIDGET_MODE_PLAYLIST,
+                                catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
+                              ))}
+                            />
+                            {playlistMode && (
+                              <WidgetPlaylistEditor
+                                playlist={widgetPlaylist}
+                                onChange={patch => updateLayout(updateWidgetPlaylist(layout, patch))}
+                              />
+                            )}
+                          </div>
+                        )}
                         <PanelWidgetCatalog
                           surface={surface}
                           deviceTouch={deviceTouch}
@@ -1269,9 +1345,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           onEditWidget={setConfiguringWidgetId}
                           placedTypes={placedTypes}
                           variant="desktop-modal"
-                          remote={isRemotePanel(device?.connectionKind)}
+                          remote={remotePanel}
                           className={styles.catalog}
                           selectedWidgetType={currentSingleWidget?.type}
+                          playlist={playlistMode && widgetPlaylist ? {
+                            order: widgetPlaylist.order,
+                            enabled: widgetPlaylist.types,
+                            onChange: next => updateLayout(updateWidgetPlaylist(layout, next)),
+                          } : undefined}
                           themeMode={desktopResolvedThemeMode}
                           themeStyle={panelPreviewThemeStyle}
                         />
@@ -1673,7 +1754,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             )}
           </div>
 
-          <div className={styles.previewPane} data-surface={surface}>
+          <div className={styles.previewPane} data-surface={surface} data-playlist-nav={showPlaylistArrows || undefined}>
             <div className={styles.previewStage}>
               {recordSecondaryMonitor ? (
                 <div className={styles.secondaryMonitorPreview}>
@@ -1734,10 +1815,27 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 deviceId={editingDeviceId ?? undefined}
                 deviceTouch={deviceTouch}
                 displayBound={!!device?.displayId}
+                onPlaylistShown={handlePlaylistShown}
               />
               </>
               )}
             </div>
+            {showPlaylistArrows && (
+              <div className={styles.playlistNav}>
+                <PanelArrowButton
+                  side="prev"
+                  className={styles.pageArrow}
+                  onClick={() => stepPlaylist(-1)}
+                  ariaLabel={t('panel.playlist.prev')}
+                />
+                <PanelArrowButton
+                  side="next"
+                  className={styles.pageArrow}
+                  onClick={() => stepPlaylist(1)}
+                  ariaLabel={t('panel.playlist.next')}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -16,6 +16,8 @@ export interface StoreVersion {
   sizes: string[];
   surfaces: string[];
   releasedAt: string;
+  /** The version manifest's capabilities as published; author-supplied JSON, so every field is unchecked. */
+  capabilities?: Record<string, unknown>;
 }
 
 export interface StoreRating {

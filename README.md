@@ -193,6 +193,8 @@ documented under `src/widgets/`.
 ## License
 
 `nexus-web` is licensed under the **GNU Affero General Public License v3.0**
-(AGPL-3.0); see [`LICENSE`](LICENSE) for the full text.
+(AGPL-3.0); see [`LICENSE`](LICENSE) for the full text. The app SDK package in
+`sdk/publish` (`@hello-nexus/sdk`) is MIT-licensed; see
+[`sdk/publish/LICENSE`](sdk/publish/LICENSE).
 
 Copyright (C) 2026 Hello Nexus

@@ -224,6 +224,29 @@
   min-height: 0;
 }
 
+// Prev/next under the preview for a single-widget playlist; the arrows keep
+// the Y70 page-arrow look and are positioned by PanelArrowButton's data-side.
+.previewPane[data-playlist-nav] {
+  flex-direction: column;
+}
+
+.playlistNav {
+  position: relative;
+  flex-shrink: 0;
+  width: 136px;
+  height: 56px;
+  margin: 12px auto 0;
+}
+
+// Single-widget playlist controls, above the catalog.
+.playlistPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  margin: 4px 0 8px;
+}
+
 // --- Theme Panel ---
 
 .themePanel {

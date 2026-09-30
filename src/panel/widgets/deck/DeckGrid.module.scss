@@ -6,10 +6,11 @@
 
 .grid {
   display: grid;
-  // Deck-wide gap: a touch of separation between keys on every surface
-  // (widget tiles + physical preview). Bumping it also shrinks the 1fr
-  // widget cells slightly, which is the intended "smaller keys" look.
+  // Minimum key spacing; useSquareCell reads it to size the widget's keys.
   gap: 11px;
+  // Square widget keys leave spare room on one axis; spread it, never stretch.
+  justify-content: space-evenly;
+  align-content: space-evenly;
   height: 100%;
   width: 100%;
   padding: 8px;
@@ -50,7 +51,7 @@
   // the glyph in #fff), so the on-screen preview reads the same as the hardware
   // for both the streamdeck editor and the touch widget. The opaque fill also
   // keeps keys legible when the widget tile is set fully transparent. One
-  // exception: a key showing a loaded app icon (.appIconFull) gets a
+  // exception: a loaded app icon or custom image with no slot color gets a
   // transparent accent, so the artwork itself is the key face.
   background: var(--deck-accent, #64748b);
   color: #ffffff;

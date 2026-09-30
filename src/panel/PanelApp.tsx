@@ -17,6 +17,14 @@ import { useOemAppSeed } from './engine/useOemAppSeed';
 import { useAppsChangedSync } from './engine/useAppsChangedSync';
 import { useFlashWidgets } from './engine/useFlashWidgets';
 import { useAddedWidgetEntrance } from './engine/useAddedWidgetEntrance';
+import {
+  patchPlaylistWidgetConfig,
+  playingPlaylistTypes,
+  playlistTypeOfWidgetId,
+  playlistWidget,
+  widgetPlaylistOf,
+} from './engine/widgetPlaylist';
+import { useWidgetPlaylistRotation } from './engine/useWidgetPlaylistRotation';
 import { useMachineName } from './engine/useMachineName';
 import { useEdgeAdvance } from './engine/useEdgeAdvance';
 import { usePageSync } from './engine/usePageSync';
@@ -332,6 +340,7 @@ export function PanelContent({
   simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
+  onSimulatorPlaylistShown,
   openCatalogSignal,
   appAccentColor,
   onSectionNavigate,
@@ -363,6 +372,7 @@ export function PanelContent({
   simulatorPreviewScale?: number;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
+  onSimulatorPlaylistShown?: (type: string | null) => void;
   openCatalogSignal?: number;
   appAccentColor?: string;
   onSectionNavigate?: DashboardSectionNavigate;
@@ -772,6 +782,30 @@ export function PanelContent({
     };
   }, [paginatedLayout, activeDragId, dragExtraPageId]);
 
+  // Widget playlist (single-widget surfaces): render-only like the offline
+  // clock below. Held on the edited widget while the device-page editor has
+  // one selected, so its settings preview what they change.
+  const widgetPlaylist = widgetPlaylistOf(layout);
+  const playlistTypes = useMemo(
+    () => playingPlaylistTypes(layout, surface, deviceTouch),
+    [layout, surface, deviceTouch],
+  );
+  const playlistType = useWidgetPlaylistRotation(
+    playlistTypes,
+    widgetPlaylist.interval,
+    widgetPlaylist.shuffle,
+    simulator && Boolean(simulatorSelectedWidgetId),
+    widgetPlaylist.cursor,
+  );
+  // The device page steps its prev/next arrows from what the preview shows.
+  useEffect(() => {
+    if (simulator) onSimulatorPlaylistShown?.(playlistType);
+  }, [simulator, playlistType, onSimulatorPlaylistShown]);
+  const shownPlaylistWidget = useMemo(
+    () => (playlistType ? playlistWidget(dragLayout, playlistType, surface, deviceId) : undefined),
+    [dragLayout, playlistType, surface, deviceId],
+  );
+
   const allFiltered = useMemo(() => {
     // q60 offline failsafe: keep the panel exactly as-is (background animation,
     // theme, chrome) and swap only the rendered widgets for the clock widget.
@@ -780,7 +814,10 @@ export function PanelContent({
     if (surface === 'q60' && isOffline) {
       return q60OfflineClockPages(dragLayout.pages, surface);
     }
-    return dragLayout.pages.map(page => ({
+    const pages = shownPlaylistWidget
+      ? [{ id: dragLayout.pages[0]?.id ?? '', widgets: [shownPlaylistWidget] }]
+      : dragLayout.pages;
+    return pages.map(page => ({
       id: page.id,
       widgets: page.widgets
         .filter(w => {
@@ -793,7 +830,7 @@ export function PanelContent({
         // visual layout; placement itself is via inline style, not source order.
         .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
     }));
-  }, [dragLayout.pages, surface, deviceTouch, isOffline]);
+  }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget]);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
@@ -1210,6 +1247,11 @@ export function PanelContent({
   }, [activePageIndex, embedded, paginatedLayout, capacity, surface]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
+    const standInType = playlistTypeOfWidgetId(widgetId);
+    if (standInType) {
+      setLayout(patchPlaylistWidgetConfig(paginatedLayout, standInType, config));
+      return;
+    }
     setLayout(patchWidgetById(
       paginatedLayout,
       widgetId,
@@ -1731,11 +1773,13 @@ export function PanelContent({
                               // Non-touch sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
-                              onSimulatorClick={simulator && !surfaceSupportsTouch(surface, deviceTouch) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
+                              // The blank widget has nothing to edit, so it takes
+                              // neither the click nor the hover notice.
+                              onSimulatorClick={simulator && w.type !== 'blank' && !surfaceSupportsTouch(surface, deviceTouch) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               // Device-page preview only: nothing else says a
                               // widget in the canvas is click-to-edit (NEX-6),
                               // so hovering one fades in a full-cell notice.
-                              editHint={simulator && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
+                              editHint={simulator && w.type !== 'blank' && !touch.rearranging && !activeDragId && simulatorSelectedWidgetId !== w.id}
                               // Device-page preview only: hovering the widget
                               // marked immersive-on-load frames it and names
                               // the mark, so the canvas says which one opens.

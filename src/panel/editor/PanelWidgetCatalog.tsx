@@ -1,4 +1,7 @@
-import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { usePersistentState } from '../../hooks/usePersistentState';
@@ -14,7 +17,8 @@ import {
   subscribeMarketplaceRegistry,
 } from '../../widgets/marketplaceRegistry';
 import { DEV_TOOLS } from '../../lib/devTools';
-import { PanelCatalogCell } from '../dnd/PanelDragCells';
+import { PanelCatalogCell, type CatalogCellDrag } from '../dnd/PanelDragCells';
+import { playlistDisplayOrder } from '../engine/widgetPlaylist';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import panelStyles from '../PanelApp.module.scss';
 import styles from './PanelWidgetCatalog.module.scss';
@@ -54,6 +58,30 @@ const SIZE_PREF_KEYS: readonly CatalogPreferredSize[] = ['2x2', '4x2'];
 
 type CatalogEntry = ReturnType<typeof getCatalogEntries>[number];
 
+// On beta/prod `meta.listed === false` delists an app (built-in delisted
+// inline, SDK app derived from the marketplace allowlist). DEV_TOOLS builds
+// bypass the curation so every installed widget is browseable for testing.
+export function catalogEntriesFor(
+  surface: PanelSurface,
+  opts: { remote?: boolean; deviceTouch?: boolean } = {},
+): CatalogEntry[] {
+  return getCatalogEntries().filter(([, def]) => {
+    if (!appAvailableForSurface(def.meta, surface, opts)) return false;
+    return DEV_TOOLS || def.meta.listed !== false;
+  });
+}
+
+function SortableCatalogCell({ id, children }: { id: string; children: (drag: CatalogCellDrag) => ReactNode }) {
+  const { setNodeRef, transform, transition, listeners, isDragging } = useSortable({ id });
+  return <>{children({
+    ref: setNodeRef,
+    transform: CSS.Transform.toString(transform) ?? undefined,
+    transition,
+    listeners: listeners as Record<string, unknown> | undefined,
+    dragging: isDragging,
+  })}</>;
+}
+
 // How long the checkmark holds before the overlay switches to "click to edit".
 const ADDED_BEAT_MS = 900;
 
@@ -88,6 +116,14 @@ export interface PanelWidgetCatalogProps {
   // Highlight the card matching this widget type. Used by single-widget
   // surfaces (q-series) to mark the device's active widget.
   selectedWidgetType?: string;
+  // Single-widget playlist: the library is the playlist. Cards sit in `order`,
+  // `enabled` ones are highlighted, a click toggles one and a drag reorders.
+  // Replaces onAdd and selectedWidgetType while set.
+  playlist?: {
+    order: readonly string[];
+    enabled: readonly string[];
+    onChange: (next: { order: string[]; types: string[] }) => void;
+  };
   // Per-device touch capability (promoted monitors): touch-requiring widgets
   // are listed only when the device's display actually has a digitizer.
   deviceTouch?: boolean;
@@ -106,6 +142,7 @@ export function PanelWidgetCatalog({
   themeStyle,
   className,
   selectedWidgetType,
+  playlist,
   deviceTouch,
 }: PanelWidgetCatalogProps) {
   const { t } = useTranslation();
@@ -140,16 +177,16 @@ export function PanelWidgetCatalog({
     return subscribeMarketplaceRegistry(forceRender);
   }, [forceRender]);
 
-  // Capability-filtered picker source. On beta/prod `meta.listed === false`
-  // delists an app (built-in delisted inline, SDK app derived from the
-  // marketplace allowlist). DEV_TOOLS builds bypass the curation so every
-  // installed widget is browseable for testing - same one flag that gates the
-  // Tools page and relay. Already-placed instances always render via lookupApp;
-  // listed apps co-mingle in one grid - no separate section.
-  const entries = getCatalogEntries().filter(([, def]) => {
-    if (!appAvailableForSurface(def.meta, surface, { remote, deviceTouch })) return false;
-    return DEV_TOOLS || def.meta.listed !== false;
-  });
+  // Already-placed instances always render via lookupApp; listed apps
+  // co-mingle in one grid - no separate section.
+  const catalogEntries = catalogEntriesFor(surface, { remote, deviceTouch });
+  const playlistOrder = playlist
+    ? playlistDisplayOrder(playlist.order, catalogEntries.map(([type]) => type))
+    : null;
+  const entryByType = new Map(catalogEntries);
+  const entries: CatalogEntry[] = playlistOrder
+    ? playlistOrder.map(type => [type, entryByType.get(type)!] as CatalogEntry)
+    : catalogEntries;
   const matchesSearch = (type: string, def: { meta: { i18nKey: string } }) => {
     if (!normalised) return true;
     const label = (t(def.meta.i18nKey) || type).toLowerCase();
@@ -264,21 +301,50 @@ export function PanelWidgetCatalog({
     fitCache.set(size, value);
     return value;
   };
+  const commitPlaylist = (order: string[], enabled: ReadonlySet<string>) =>
+    playlist?.onChange({ order, types: order.filter(type => enabled.has(type)) });
+  const togglePlaylistType = (type: string) => {
+    if (!playlist || !playlistOrder) return;
+    const enabled = new Set(playlist.enabled);
+    if (enabled.has(type)) enabled.delete(type);
+    else enabled.add(type);
+    commitPlaylist(playlistOrder, enabled);
+  };
+  // The dragged card sits under the pointer at release, so the drag's own
+  // pointerup fires a click on it: consumed there, and cleared by the next
+  // pointerdown in case the release landed elsewhere.
+  const suppressClickRef = useRef(false);
+  const onPlaylistDragEnd = (event: DragEndEvent) => {
+    const over = event.over ? String(event.over.id) : null;
+    const active = String(event.active.id);
+    if (!playlist || !playlistOrder || !over || over === active) return;
+    const moved = arrayMove(playlistOrder, playlistOrder.indexOf(active), playlistOrder.indexOf(over));
+    commitPlaylist(moved, new Set(playlist.enabled));
+  };
+  const sortSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
   const renderPacked = (items: CatalogEntry[]) =>
     packEntries(items).map(w => {
       const def = defByType.get(w.type);
       const alreadyPlaced = !!def?.meta.singleInstance && !!placedTypes?.includes(w.type);
       const addable = fits(w.size) && !alreadyPlaced;
-      return (
+      const cell = (drag?: CatalogCellDrag) => (
         <PanelCatalogCell
           key={w.id}
           widget={w}
           surface={surface}
           deviceTouch={deviceTouch}
           label={def ? t(def.meta.i18nKey) || w.type : w.type}
-          selected={selectedWidgetType === w.type}
-          disabled={!addable}
+          selected={playlist ? playlist.enabled.includes(w.type) : selectedWidgetType === w.type}
+          // Playlist toggles are not placements, so grid room and single-instance limits do not apply.
+          disabled={!playlist && !addable}
+          drag={drag}
           onClick={() => {
+            if (playlist) {
+              if (suppressClickRef.current) suppressClickRef.current = false;
+              else togglePlaylistType(w.type);
+              return;
+            }
             const widgetId = onAdd(w.type, w.size);
             if (variant === 'desktop-modal' && onEditWidget && typeof widgetId === 'string') {
               setAdded({ type: w.type, widgetId, stage: 'added' });
@@ -289,6 +355,9 @@ export function PanelWidgetCatalog({
           onPointerLeave={added?.type === w.type ? () => setAdded(null) : undefined}
         />
       );
+      return playlist
+        ? <SortableCatalogCell key={w.id} id={w.type}>{cell}</SortableCatalogCell>
+        : cell();
     });
 
   // Cards are dimmed at the size they would actually insert at (pickSize), so
@@ -355,7 +424,26 @@ export function PanelWidgetCatalog({
       </div>
       <div className={styles.scroller}>
         <div ref={measureRef} className={styles.propWrap}>
-          <div className={panelStyles.grid}>{renderPacked(visible)}</div>
+          {playlist ? (
+            <DndContext
+              sensors={sortSensors}
+              collisionDetection={closestCenter}
+              onDragStart={() => { suppressClickRef.current = true; }}
+              onDragEnd={onPlaylistDragEnd}
+              onDragCancel={() => { suppressClickRef.current = false; }}
+            >
+              <SortableContext items={visible.map(([type]) => type)} strategy={rectSortingStrategy}>
+                <div
+                  className={panelStyles.grid}
+                  onPointerDownCapture={() => { suppressClickRef.current = false; }}
+                >
+                  {renderPacked(visible)}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className={panelStyles.grid}>{renderPacked(visible)}</div>
+          )}
           {visibleCount === 0 && <div className={styles.empty}>{t('panel.add.noMatches')}</div>}
         </div>
       </div>

@@ -129,7 +129,7 @@ describe('buildPanelDevices streamed panels', () => {
       firstSeenAt: 0,
       lastSeenAt: 1,
       streamed: true,
-      capabilities: { surface: 'kraken', touch: false, cssWidth: 640, cssHeight: 640, dpr: 1 },
+      capabilities: { surface: 'kraken', family: 'nzxt-kraken', touch: false, cssWidth: 640, cssHeight: 640, dpr: 1 },
     };
   }
 
@@ -139,6 +139,7 @@ describe('buildPanelDevices streamed panels', () => {
     expect(device.id).toBe('stream:rec-lcd');
     expect(device.panelRecordId).toBe('rec-lcd');
     expect(device.runtimeSurface).toBe('kraken');
+    expect(device.iconSrc).toBe('/assets/devices/nzxt.svg');
     expect(device.modalKind).toBe('panel-editor');
     expect(device.capabilities.layout).toBe(true);
     // Host-rendered glass: nothing to launch, no display controls, no touch.
@@ -154,6 +155,46 @@ describe('buildPanelDevices streamed panels', () => {
     });
 
     expect(device.iconSrc).toBe('/assets/devices/lianli.svg');
+  });
+
+  it('claims a cooler LCD for the curated device its family names', () => {
+    const devices = buildPanelDevices({
+      curatedDevices: [{
+        id: 'lianli-galahad2-lcd',
+        name: 'Lian Li Galahad II LCD',
+        category: 'cooler',
+        connected: true,
+        firmwareVersion: '',
+        supportsNexusControl: true,
+        nexusControlEnabled: true,
+      }],
+      phoneSessions: [],
+      records: [{
+        ...krakenRecord(),
+        id: 'rec-galahad',
+        displayName: 'Lian Li Galahad II LCD',
+        capabilities: { surface: 'lcd-square', family: 'lianli-galahad2-lcd', touch: false, cssWidth: 480, cssHeight: 480, dpr: 1 },
+      }],
+      status: null,
+      simulatedPanels: [],
+      labels: LABELS,
+    });
+
+    expect(devices).toHaveLength(1);
+    expect(devices[0]).toMatchObject({
+      id: 'stream:rec-galahad',
+      sourceId: 'lianli-galahad2-lcd',
+      name: 'Lian Li Galahad II LCD',
+    });
+  });
+
+  it('leaves a cooler LCD unclaimed when no curated device matches its family', () => {
+    const device = firstDevice({
+      ...krakenRecord(),
+      capabilities: { surface: 'lcd-square', family: 'lianli-hydroshift-lcd', touch: false, cssWidth: 480, cssHeight: 480, dpr: 1 },
+    });
+
+    expect(device.sourceId).toBeUndefined();
   });
 
   it('hides a record whose stream session is gone', () => {

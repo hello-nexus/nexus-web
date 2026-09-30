@@ -46,3 +46,90 @@
   -webkit-line-clamp: 3;
   overflow: hidden;
 }
+
+// Grid, not flex gap: the Q60 panel WebView (Chromium 83) has no flex gap.
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.block {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 0.65rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+
+  // Translucent fill as an opacity layer: color-mix alpha is dead on the Q60's
+  // Chromium 83, and there is no rgb-triplet token to build an rgba from.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--text);
+    opacity: 0.08;
+    pointer-events: none;
+  }
+
+  > * { position: relative; }
+  > :first-child { flex-shrink: 0; margin-right: 0.6rem; }
+}
+
+button.block {
+  cursor: pointer;
+
+  &:hover::before { opacity: 0.14; }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+.blockText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.blockTitle {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+
+  > :first-child { flex-shrink: 0; margin-right: 0.4rem; }
+}
+
+.blockName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blockDetail {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}

@@ -19,7 +19,7 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import { TextInput } from '../../../components/common/TextInput/TextInput';
 import { SettingsSection, SettingsRow, SettingsToggle, SettingsSelect } from '../common/SettingsRow/SettingsRow';
 import { AppPicker } from '../common/AppPicker';
-import { IconPicker, type Tab as IconPickerTab } from '../common/IconPicker';
+import { IconPicker } from '../common/IconPicker';
 import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { canEditFreeText } from '../../types';
 import type { PanelSurface } from '../../types';
@@ -1311,7 +1311,6 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   // below) remounts on every slot change instead of carrying its tab state
   // over from whatever slot was selected before.
   const slotKey = `${page}:${folderPath.join('.')}:${selSlot}`;
-  const [iconTab, setIconTab] = useState<IconPickerTab>('auto');
 
   const writeSlot = (next: DeckSlot) => target.updateSlot(page, folderPath, selSlot, next);
 
@@ -1457,12 +1456,8 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
                 surface={surface}
                 desktopEditor={desktopEditor}
                 onChange={icon => writeSlot({ ...slot, icon })}
-                onTabChange={setIconTab}
               />
-              {/* A full-bleed Custom image ignores the tile color, so the swatch
-                  dims while that tab is active - it would otherwise look live
-                  while having no visible effect. */}
-              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} allowTransparent disabled={iconTab === 'custom'} onChange={color => writeSlot({ ...slot, color })} />
+              <SwatchRow label={t('panel.settings.deck.color')} value={slot.color} allowTransparent onChange={color => writeSlot({ ...slot, color })} />
             </SettingsSection>
           )}
 

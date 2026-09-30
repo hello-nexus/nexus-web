@@ -169,10 +169,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const handlePickRenderGpu = useCallback(() => {
     onSectionNavigate?.('settings', { settingsTab: 'lighting-cooling', settingsAnchor: 'set-render-gpu' });
   }, [onSectionNavigate]);
-  // The master slider's schedule marker deep-links to the schedule row.
-  const handleOpenSchedule = useMemo(() => onSectionNavigate
-    ? () => onSectionNavigate('settings', { settingsTab: 'lighting-cooling', settingsAnchor: 'set-brightness-schedule' })
-    : undefined, [onSectionNavigate]);
   // Game Sync requires the Windows Chroma capture shim; hide it on non-Windows
   // (empty platform = ping not yet resolved, keep hidden to avoid a flash).
   const isWindows = platform === 'windows';
@@ -2495,7 +2491,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
         {!dockCollapsed && (
         <div className={styles.rightPane}>
           <div className={styles.dockBrightness}>
-            <GlobalBrightnessSlider serviceOnline={serviceOnline} onOpenSchedule={handleOpenSchedule} />
+            <GlobalBrightnessSlider serviceOnline={serviceOnline} />
           </div>
             <div
               className={`${styles.effectTabBody} ${mixedSelection ? styles.effectTabBodyLocked : ''}`}
