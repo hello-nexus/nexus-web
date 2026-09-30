@@ -540,6 +540,17 @@
   }
 }
 
+.phonePairStoreLinks {
+  @include text-button;
+  margin: 0.5rem 0 0;
+  text-align: center;
+  color: var(--text-dim);
+
+  a {
+    margin-left: 0.6rem;
+  }
+}
+
 // Countdown text - accent color so it stands out from the regular hint
 // copy. Flashes when ≤5s remaining so the user can react before
 // regeneration happens under them.
