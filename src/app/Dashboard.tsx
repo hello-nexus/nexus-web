@@ -1184,7 +1184,7 @@ export function Dashboard() {
             open={accountSignInOpen}
             onClose={() => setAccountSignInOpen(false)}
             onSignedIn={() => { void handleAccountSignedIn(); }}
-            ariaLabel={t('account.signIn.title')}
+            title={t('account.title')}
           />
         )}
         {OFFICIAL_BUILD && <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />}

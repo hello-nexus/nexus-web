@@ -16,7 +16,7 @@ vi.mock('../../../../api/localServiceBackend', () => ({
 }));
 
 function renderModal(open: boolean, body?: string) {
-  return render(<AccountSignInModal open={open} onClose={vi.fn()} onSignedIn={vi.fn()} ariaLabel="Sign in" body={body} />);
+  return render(<AccountSignInModal open={open} onClose={vi.fn()} onSignedIn={vi.fn()} title="Sign in" body={body} />);
 }
 
 describe('AccountSignInModal', () => {
@@ -37,8 +37,16 @@ describe('AccountSignInModal', () => {
     fireEvent.click(screen.getByText('account.signIn.createAccount'));
     expect(screen.queryByText('account.signIn.title')).toBeNull();
 
-    rerender(<AccountSignInModal open={false} onClose={vi.fn()} onSignedIn={vi.fn()} ariaLabel="Sign in" />);
-    rerender(<AccountSignInModal open onClose={vi.fn()} onSignedIn={vi.fn()} ariaLabel="Sign in" />);
+    rerender(<AccountSignInModal open={false} onClose={vi.fn()} onSignedIn={vi.fn()} title="Sign in" />);
+    rerender(<AccountSignInModal open onClose={vi.fn()} onSignedIn={vi.fn()} title="Sign in" />);
     expect(screen.getByText('account.signIn.title')).toBeTruthy();
+  });
+
+  it('shows the title in a header whose X closes the dialog', () => {
+    const onClose = vi.fn();
+    render(<AccountSignInModal open onClose={onClose} onSignedIn={vi.fn()} title="Sign in to get apps" />);
+    expect(screen.getByRole('heading', { name: 'Sign in to get apps' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'app.window.close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

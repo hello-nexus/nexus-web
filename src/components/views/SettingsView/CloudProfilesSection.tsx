@@ -94,7 +94,7 @@ export function CloudProfilesSection(
             setSignInOpen(false);
             void accounts.refresh();
           }}
-          ariaLabel={t('account.signIn.title')}
+          title={t('account.title')}
         />
       </div>
     );

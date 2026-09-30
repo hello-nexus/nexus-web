@@ -591,7 +591,7 @@ export function StorePage({ tab, onTabChange, accounts }: {
         open={pendingInstall !== null}
         onClose={() => setPendingInstall(null)}
         onSignedIn={handleSignedIn}
-        ariaLabel={t('store.signIn.title')}
+        title={t('store.signIn.title')}
         body={t('store.signIn.body')}
       />
     </div>
