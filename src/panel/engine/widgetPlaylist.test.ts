@@ -3,10 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   nextPlaylistType,
   playingPlaylistTypes,
+  playlistDisplayOrder,
   playlistTypeOfWidgetId,
   playlistWidget,
   setWidgetPlaylistEnabled,
-  toggleWidgetPlaylistType,
+  stepPlaylistType,
   widgetPlaylistOf,
 } from './widgetPlaylist';
 import { appAvailableForSurface, getCatalogEntries } from '../widgets/registry';
@@ -27,12 +28,12 @@ function layout(shown: PanelWidget | null, extra: Partial<PanelLayout> = {}): Pa
 
 describe('widgetPlaylistOf', () => {
   it('defaults an absent playlist to off and empty', () => {
-    expect(widgetPlaylistOf(layout(null))).toEqual({ enabled: false, interval: 15, shuffle: false, types: [] });
+    expect(widgetPlaylistOf(layout(null))).toEqual({ enabled: false, interval: 15, shuffle: false, types: [], order: [], cursor: undefined });
   });
 
   it('drops duplicate types and snaps an off-list interval', () => {
     const playlist = widgetPlaylistOf(layout(null, {
-      widgetPlaylist: { enabled: true, interval: 14, shuffle: true, types: ['clock', 'weather', 'clock'] },
+      widgetPlaylist: { enabled: true, interval: 14, shuffle: true, types: ['clock', 'weather', 'clock'], order: [] },
     }));
     expect(playlist.types).toEqual(['clock', 'weather']);
     expect(playlist.interval).toBe(15);
@@ -40,34 +41,38 @@ describe('widgetPlaylistOf', () => {
 });
 
 describe('editor ops', () => {
-  it('seeds the first switch-on with the shown widget', () => {
-    const on = setWidgetPlaylistEnabled(layout(widget('a', 'clock')), true);
-    expect(on.widgetPlaylist).toMatchObject({ enabled: true, types: ['clock'] });
+  it('enables every widget but blank on the first switch-on', () => {
+    const on = setWidgetPlaylistEnabled(layout(widget('a', 'clock')), true, ['clock', 'blank', 'weather']);
+    expect(on.widgetPlaylist).toMatchObject({ enabled: true, types: ['clock', 'weather'], order: ['clock', 'blank', 'weather'] });
   });
 
   it('keeps an existing playlist when switched back on', () => {
     const before = layout(widget('a', 'clock'), {
-      widgetPlaylist: { enabled: false, interval: 30, shuffle: false, types: ['weather', 'media'] },
+      widgetPlaylist: { enabled: false, interval: 30, shuffle: false, types: ['media'], order: ['weather', 'media'] },
     });
-    expect(setWidgetPlaylistEnabled(before, true).widgetPlaylist?.types).toEqual(['weather', 'media']);
+    expect(setWidgetPlaylistEnabled(before, true, ['clock', 'weather', 'media']).widgetPlaylist)
+      .toMatchObject({ enabled: true, types: ['media'], order: ['weather', 'media'] });
   });
 
-  it('toggles a type in at the end and out again', () => {
-    const one = toggleWidgetPlaylistType(layout(null, {
-      widgetPlaylist: { enabled: true, interval: 15, shuffle: false, types: ['clock'] },
-    }), 'weather');
-    expect(one.widgetPlaylist?.types).toEqual(['clock', 'weather']);
-    expect(toggleWidgetPlaylistType(one, 'clock').widgetPlaylist?.types).toEqual(['weather']);
+  it('orders the library by the stored arrangement, then unseen types', () => {
+    expect(playlistDisplayOrder(['weather', 'gone', 'clock'], ['clock', 'media', 'weather'])).toEqual(['weather', 'clock', 'media']);
+  });
+
+  it('steps both ways and wraps', () => {
+    expect(stepPlaylistType(['a', 'b', 'c'], 'c', 1)).toBe('a');
+    expect(stepPlaylistType(['a', 'b', 'c'], 'a', -1)).toBe('c');
+    expect(stepPlaylistType(['a', 'b', 'c'], null, 1)).toBe('a');
+    expect(stepPlaylistType([], 'a', 1)).toBeNull();
   });
 });
 
 describe('playingPlaylistTypes', () => {
   const on = (types: string[]) => layout(widget('a', 'clock'), {
-    widgetPlaylist: { enabled: true, interval: 15, shuffle: false, types },
+    widgetPlaylist: { enabled: true, interval: 15, shuffle: false, types, order: types },
   });
 
   it('is null when off, empty, or on a multi-widget surface', () => {
-    expect(playingPlaylistTypes(setWidgetPlaylistEnabled(on(['clock']), false), 'q60')).toBeNull();
+    expect(playingPlaylistTypes(setWidgetPlaylistEnabled(on(['clock']), false, []), 'q60')).toBeNull();
     expect(playingPlaylistTypes(on([]), 'q60')).toBeNull();
     expect(playingPlaylistTypes(on(['clock', 'weather']), 'y70')).toBeNull();
   });

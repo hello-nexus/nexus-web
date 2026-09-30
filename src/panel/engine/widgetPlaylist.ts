@@ -14,15 +14,27 @@ const PLAYLIST_WIDGET_ID_PREFIX = 'playlist:';
 
 export function widgetPlaylistOf(layout: PanelLayout): PanelWidgetPlaylist {
   const stored = layout.widgetPlaylist;
-  const types = Array.isArray(stored?.types)
-    ? stored.types.filter((type): type is string => typeof type === 'string' && type.length > 0)
-    : [];
   return {
     enabled: stored?.enabled === true,
     interval: normalizeSlideshowInterval(stored?.interval, DEFAULT_WIDGET_PLAYLIST_INTERVAL),
     shuffle: stored?.shuffle === true,
-    types: [...new Set(types)],
+    types: typeList(stored?.types),
+    order: typeList(stored?.order),
+    cursor: typeof stored?.cursor?.type === 'string' && Number.isFinite(stored.cursor.at)
+      ? { type: stored.cursor.type, at: stored.cursor.at }
+      : undefined,
   };
+}
+
+function typeList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter((type): type is string => typeof type === 'string' && type.length > 0))];
+}
+
+/** Library order: the stored arrangement, then types it has not seen yet in catalog order. */
+export function playlistDisplayOrder(order: readonly string[], catalogTypes: readonly string[]): string[] {
+  const known = order.filter(type => catalogTypes.includes(type));
+  return [...known, ...catalogTypes.filter(type => !known.includes(type))];
 }
 
 /**
@@ -73,19 +85,21 @@ export function updateWidgetPlaylist(layout: PanelLayout, patch: Partial<PanelWi
   return { ...layout, widgetPlaylist: { ...widgetPlaylistOf(layout), ...patch } };
 }
 
-/** The first switch-on seeds an empty playlist with the shown widget. */
-export function setWidgetPlaylistEnabled(layout: PanelLayout, enabled: boolean): PanelLayout {
-  const { types } = widgetPlaylistOf(layout);
-  const shown = layout.pages[0]?.widgets[0];
-  const seed = enabled && types.length === 0 && shown && shown.type !== 'blank' ? [shown.type] : types;
-  return updateWidgetPlaylist(layout, { enabled, types: seed });
+/** The first switch-on enables every widget in `catalogTypes` except the blank one. */
+export function setWidgetPlaylistEnabled(layout: PanelLayout, enabled: boolean, catalogTypes: readonly string[]): PanelLayout {
+  if (enabled && layout.widgetPlaylist === undefined) {
+    const types = catalogTypes.filter(type => type !== 'blank');
+    return updateWidgetPlaylist(layout, { enabled, types, order: [...catalogTypes] });
+  }
+  return updateWidgetPlaylist(layout, { enabled });
 }
 
-export function toggleWidgetPlaylistType(layout: PanelLayout, type: string): PanelLayout {
-  const { types } = widgetPlaylistOf(layout);
-  return updateWidgetPlaylist(layout, {
-    types: types.includes(type) ? types.filter(t => t !== type) : [...types, type],
-  });
+/** The type `delta` steps from `shown` in play order, wrapping; unknown `shown` counts from the start. */
+export function stepPlaylistType(types: readonly string[], shown: string | null, delta: 1 | -1): string | null {
+  if (types.length === 0) return null;
+  const at = shown === null ? -1 : types.indexOf(shown);
+  if (at === -1) return delta === 1 ? types[0] : types[types.length - 1];
+  return types[(at + delta + types.length) % types.length];
 }
 
 /**

@@ -116,6 +116,12 @@ export interface SimulatorBackgroundClickedMessage {
   type: 'simulator/background-clicked';
 }
 
+// The widget type the playlist rotation shows; null when no playlist drives the preview.
+export interface SimulatorPlaylistShownMessage {
+  type: 'simulator/playlist-shown';
+  widgetType: string | null;
+}
+
 export type SimulatorParentToChild =
   | SimulatorInitMessage
   | SimulatorSetLayoutMessage
@@ -132,7 +138,8 @@ export type SimulatorChildToParent =
   | SimulatorReadyMessage
   | SimulatorLayoutChangedMessage
   | SimulatorWidgetClickedMessage
-  | SimulatorBackgroundClickedMessage;
+  | SimulatorBackgroundClickedMessage
+  | SimulatorPlaylistShownMessage;
 
 export type SimulatorMessage = SimulatorParentToChild | SimulatorChildToParent;
 

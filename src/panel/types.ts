@@ -201,8 +201,12 @@ export interface PanelWidgetPlaylist {
   /** Seconds each widget holds; one of SLIDESHOW_INTERVALS. */
   interval: number;
   shuffle: boolean;
-  /** Widget types in play order, each at most once. */
+  /** Enabled widget types in play order, each at most once. */
   types: string[];
+  /** Every arranged widget type, enabled or not, in the editor's library order. */
+  order: string[];
+  /** Manual jump from the editor's arrows; `at` (unix ms) re-fires a jump to the same type. */
+  cursor?: { type: string; at: number };
 }
 
 export interface PanelLayout {

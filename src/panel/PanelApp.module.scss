@@ -775,22 +775,10 @@
   box-shadow: 0 0 0 1px var(--panel-accent);
 }
 
-.catalogCellBadge {
-  @include text-numeric;
-  position: absolute;
-  top: 6px;
-  right: 6px;
+.catalogCellDragging {
+  position: relative;
   z-index: 3;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-pill);
-  color: var(--panel-accent-text);
-  background: var(--panel-accent);
-  pointer-events: none;
+  cursor: grabbing;
 }
 
 // No room on the target grid. Dimmed rather than hidden so the widget stays

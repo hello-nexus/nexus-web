@@ -334,6 +334,7 @@ export function PanelContent({
   simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
+  onSimulatorPlaylistShown,
   openCatalogSignal,
   appAccentColor,
   onSectionNavigate,
@@ -365,6 +366,7 @@ export function PanelContent({
   simulatorPreviewScale?: number;
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
+  onSimulatorPlaylistShown?: (type: string | null) => void;
   openCatalogSignal?: number;
   appAccentColor?: string;
   onSectionNavigate?: DashboardSectionNavigate;
@@ -787,7 +789,12 @@ export function PanelContent({
     widgetPlaylist.interval,
     widgetPlaylist.shuffle,
     simulator && Boolean(simulatorSelectedWidgetId),
+    widgetPlaylist.cursor,
   );
+  // The device page steps its prev/next arrows from what the preview shows.
+  useEffect(() => {
+    if (simulator) onSimulatorPlaylistShown?.(playlistType);
+  }, [simulator, playlistType, onSimulatorPlaylistShown]);
   const shownPlaylistWidget = useMemo(
     () => (playlistType ? playlistWidget(dragLayout, playlistType, surface) : undefined),
     [dragLayout, playlistType, surface],

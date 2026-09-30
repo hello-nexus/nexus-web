@@ -40,6 +40,8 @@ interface PanelEmbedFrameProps {
   onLayoutChange: (layout: PanelLayout) => void;
   onWidgetClicked: (widget: PanelWidget) => void;
   onBackgroundClicked: () => void;
+  // The widget type the preview's playlist rotation shows (null when none).
+  onPlaylistShown?: (type: string | null) => void;
   /** Panel device record id. Forwarded to the simulator iframe so it can render media backgrounds. */
   deviceId?: string;
   // Per-device touch capability, forwarded in 'simulator/init'. The preview's
@@ -214,6 +216,7 @@ export function PanelEmbedFrame({
   onLayoutChange,
   onWidgetClicked,
   onBackgroundClicked,
+  onPlaylistShown,
   canvasSize,
   canvasDpi,
   canvasIsCssPixels,
@@ -331,13 +334,17 @@ export function PanelEmbedFrame({
           onBackgroundClicked();
           break;
         }
+        case 'simulator/playlist-shown': {
+          onPlaylistShown?.(data.widgetType);
+          break;
+        }
         default:
           break;
       }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [layout, onBackgroundClicked, onLayoutChange, onWidgetClicked, surface]);
+  }, [layout, onBackgroundClicked, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
 
   // Init handshake: send the full state once the child says it's ready.
   useEffect(() => {

@@ -33,6 +33,23 @@ describe('useWidgetPlaylistRotation', () => {
     expect(none.result.current).toBeNull();
   });
 
+  it('jumps to a new cursor and restarts the interval', () => {
+    const { result, rerender } = renderHook(
+      ({ cursor }) => useWidgetPlaylistRotation(['a', 'b', 'c'], 10, false, false, cursor),
+      { initialProps: { cursor: undefined as { type: string; at: number } | undefined } },
+    );
+    act(() => { vi.advanceTimersByTime(8_000); });
+    rerender({ cursor: { type: 'c', at: 1 } });
+    expect(result.current).toBe('c');
+    act(() => { vi.advanceTimersByTime(8_000); });
+    expect(result.current).toBe('c');
+    rerender({ cursor: { type: 'c', at: 2 } });
+    act(() => { vi.advanceTimersByTime(8_000); });
+    expect(result.current).toBe('c');
+    act(() => { vi.advanceTimersByTime(2_000); });
+    expect(result.current).toBe('a');
+  });
+
   it('holds a one-type playlist', () => {
     const { result } = renderHook(() => useWidgetPlaylistRotation(['a'], 5, false, false));
     act(() => { vi.advanceTimersByTime(60_000); });
