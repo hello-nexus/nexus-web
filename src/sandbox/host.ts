@@ -58,6 +58,8 @@ export interface SandboxContext {
     /** Opens this widget's own fullscreen immersive view; only wired for the
      *  tile's cell-surface worker, never the immersive worker or a preview. */
     enterImmersive?(): void;
+    /** The worker's useOpaque(); only wired for a live tile's cell-surface worker. */
+    setOpaque?(opaque: boolean): void;
     /** Bound to this widget's own appId; absent when the manifest lacks
      *  `capabilities.appData` or this is a preview render. */
     appDataGet?(key: string): Promise<AppDataDoc>;

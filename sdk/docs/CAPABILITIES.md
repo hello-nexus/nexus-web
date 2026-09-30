@@ -462,6 +462,23 @@ if (input === 'none') return <GlanceableLayout />; // no pointer/touch at all
 
 Preview always reports `{ shape: 'rect', input: 'pointer' }`.
 
+On round glass the tile is the square the circle is inscribed in, masked to
+the circle: the corners are clipped, the edge midpoints touch the glass.
+
+### `useOpaque(opaque)`
+
+Tells the host the tile paints every pixel of its box with no transparency (a
+full-bleed scene, a photo). On round glass (the Kraken, round cooler LCDs) the
+host then stops drawing the background hidden under it.
+
+```tsx
+useOpaque(sceneDrawn);
+```
+
+Pass `true` only once the whole box is covered; `false`, or unmounting, hands
+the background back. A no-op in the immersive view, the page view, a preview,
+and on an older host.
+
 ### `useLocale()`
 
 The language Nexus's UI is set to, as a BCP 47 tag, one of the languages in

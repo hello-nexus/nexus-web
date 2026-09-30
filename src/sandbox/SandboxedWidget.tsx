@@ -72,6 +72,8 @@ export interface SandboxedWidgetProps {
   onDispatch?: (action: string, args?: Record<string, unknown>) => Promise<unknown>;
   /** Opens this widget's own immersive view; absent, the worker's useImmersive().enter is undefined. */
   onEnterImmersive?: () => void;
+  /** The worker's useOpaque(): whether the tile paints every pixel of its box. Cell surface only. */
+  onOpaqueChange?: (opaque: boolean) => void;
   /** Cert/manifest mediaImport path allowlist (e.g. ["/tryx/media"]). The host
    *  checks this before opening a file picker or uploading on the widget's behalf. */
   mediaImport?: string[];
@@ -120,7 +122,10 @@ interface LiveWidget {
   // drive this one worker, which holds one size. Newest mount last: it owns the
   // size, and when it leaves the one below re-asserts its own, else the cell
   // stays drawn at fullscreen scale. Disposal waits for the last mount.
-  mounts: Array<{ pushSize: () => void; exitImmersive: () => void; enterImmersive: () => void; wakeAppData: () => void }>;
+  mounts: Array<{ pushSize: () => void; exitImmersive: () => void; enterImmersive: () => void; wakeAppData: () => void; setOpaque: (opaque: boolean) => void }>;
+  // The worker's last useOpaque() report, for the life of the WORKER: a
+  // remount that adopts it never hears the report again, so it reads this.
+  opaque: boolean;
   // Keys the worker has read or written, for the life of the WORKER (not the
   // mount): a remount that adopts this cached worker must keep subscribing
   // the same topics, or a push landing during the keep-alive window is lost.
@@ -155,7 +160,7 @@ function noteAppDataKey(entry: LiveWidget, key: string): void {
   entry.mounts[entry.mounts.length - 1]?.wakeAppData();
 }
 
-export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, audio, streamed, displayShape, displayInput, displayCells, onEnterImmersive }: SandboxedWidgetProps) {
+export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, settings, netFetch, sensorsRead, surface, preview, onDispatch, mediaImport, appData, audio, streamed, displayShape, displayInput, displayCells, onEnterImmersive, onOpaqueChange }: SandboxedWidgetProps) {
   // The overlay's animated close, for the immersive worker's useImmersive().
   // The worker's api object is created once, so a reused worker resolves it
   // through the cache entry's newest mount, not the mount that spawned it.
@@ -164,6 +169,8 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   exitImmersiveRef.current = exitImmersive;
   const enterImmersiveRef = useRef(onEnterImmersive);
   enterImmersiveRef.current = onEnterImmersive;
+  const opaqueChangeRef = useRef(onOpaqueChange);
+  opaqueChangeRef.current = onOpaqueChange;
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide; ':preview' keeps a preview worker
@@ -203,6 +210,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       exitImmersive: () => exitImmersiveRef.current?.(),
       enterImmersive: () => enterImmersiveRef.current?.(),
       wakeAppData: () => bumpAppDataTick((t) => t + 1),
+      setOpaque: (opaque) => opaqueChangeRef.current?.(opaque),
     };
   }
 
@@ -272,6 +280,14 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
                 e.mounts[e.mounts.length - 1]?.enterImmersive();
               }
             : undefined,
+          setOpaque: (surface ?? 'cell') === 'cell' && !preview
+            ? (opaque) => {
+                const e = liveWidgets.get(key);
+                if (!e) return;
+                e.opaque = opaque === true;
+                for (const m of e.mounts) m.setOpaque(e.opaque);
+              }
+            : undefined,
           appDataGet: appDataEnabled
             ? (dataKey) => {
                 try { noteAppDataKey(entry!, dataKey); } catch (err) { return Promise.reject(err); }
@@ -299,12 +315,13 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           audioVolume: audioEngine ? (level, fade) => audioEngine.volume(level, fade) : undefined,
         },
       };
-      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], appDataKeys: new Set(), pressedAt: -Infinity, touchedAt: -Infinity, audioEngine, parkTimer: null };
+      entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], opaque: false, appDataKeys: new Set(), pressedAt: -Infinity, touchedAt: -Infinity, audioEngine, parkTimer: null };
       liveWidgets.set(key, entry);
     }
 
     handleRef.current = entry.handle;
     entry.mounts.push(mount);
+    if (entry.opaque) mount.setOpaque(true);
     setHandle(entry.handle);
     // On the reuse path `entry.handle` is unchanged, so the setHandle above is
     // a no-op render-wise; force one anyway so isNewestMount (read at render
@@ -319,6 +336,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
       if (!e) return;
       const at = e.mounts.indexOf(mount);
       if (at >= 0) e.mounts.splice(at, 1);
+      mount.setOpaque(false);
       const below = e.mounts[e.mounts.length - 1];
       if (below) { below.pushSize(); below.wakeAppData(); return; }
       // The last mount of this worker is gone (e.g. closing the immersive

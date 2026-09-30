@@ -1009,7 +1009,11 @@
 // its box stops short of the arc on all four sides and the card background
 // shows through as a ring. A square of the circle's full diameter covers the
 // circle - only the corners fall outside it, and the card clips those.
-:global(.panel-card[data-size='2x2round'][data-widget-type='gallery']) .cellScaler {
+// SDK apps get the same box: useDisplay() tells them the tile is round, so
+// they lay out for the circle inscribed in it.
+:global(.panel-card[data-size='2x2round'][data-widget-type='gallery']) .cellScaler,
+:global(.panel-card[data-size='2x2round'][data-widget-type^='app:']) .cellScaler,
+:global(.panel-card[data-size='2x2round'][data-widget-type^='marketplace:']) .cellScaler {
   --_fit: 1;
 }
 

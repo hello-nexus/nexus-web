@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { GalleryWidget } from './GalleryWidget';
 import { PanelPreviewProvider } from '../common/PanelPreviewContext';
+import { PanelOpaqueProvider } from '../common/PanelOpaqueContext';
 
 const mockItems = vi.hoisted(() => ({
   current: [] as { id: string; name: string; sourceId: string; kind: 'image' | 'video' }[],
@@ -382,6 +383,35 @@ describe('GalleryWidget', () => {
     render(<GalleryWidget widget={galleryWidget({ fit: true })} />);
     await waitFor(() => expect(shownImage()).toBe('blob:a'));
     expect(document.querySelector('img')!.getAttribute('data-fit')).toBe('contain');
+  });
+
+  describe('opaque report', () => {
+    function renderReporting(widget: PanelWidget) {
+      const report = vi.fn();
+      render(<PanelOpaqueProvider value={report}><GalleryWidget widget={widget} /></PanelOpaqueProvider>);
+      return report;
+    }
+
+    it('reports a JPEG shown in cover fit', async () => {
+      mockItems.current = [{ id: 'a', name: 'a.jpg', sourceId: 'src-1', kind: 'image' }];
+      const widget = galleryWidget();
+      const report = renderReporting(widget);
+      await waitFor(() => expect(report).toHaveBeenLastCalledWith(widget.id, true));
+    });
+
+    it('never reports a format that can carry alpha', async () => {
+      mockItems.current = items('a');
+      const report = renderReporting(galleryWidget());
+      await waitFor(() => expect(shownImage()).toBe('blob:a'));
+      expect(report).not.toHaveBeenCalled();
+    });
+
+    it('never reports a letterboxed photo', async () => {
+      mockItems.current = [{ id: 'a', name: 'a.jpg', sourceId: 'src-1', kind: 'image' }];
+      const report = renderReporting(galleryWidget({ fit: true }));
+      await waitFor(() => expect(shownImage()).toBe('blob:a'));
+      expect(report).not.toHaveBeenCalled();
+    });
   });
 
   it('immersive always letterboxes, even with fit off', async () => {

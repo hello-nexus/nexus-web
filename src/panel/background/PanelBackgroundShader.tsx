@@ -22,9 +22,12 @@ interface PanelBackgroundShaderProps {
   // Skip the q60 half-res cap: the dashboard simulator runs on the desktop GPU,
   // not the Q-series panel, so it renders the shader at native resolution.
   fullRes?: boolean;
+  // An opaque widget hides the whole background: stop drawing, keep the last
+  // frame and the compiled program so uncovering resumes on the next frame.
+  covered?: boolean;
 }
 
-export function PanelBackgroundShader({ effect, template, opacity, effectState, surface, fullRes }: PanelBackgroundShaderProps) {
+export function PanelBackgroundShader({ effect, template, opacity, effectState, surface, fullRes, covered = false }: PanelBackgroundShaderProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const normalizedEffect = normalizePanelBackgroundEffect(effect);
   const normalizedTemplate = normalizePanelBackgroundTemplate(template);
@@ -39,8 +42,10 @@ export function PanelBackgroundShader({ effect, template, opacity, effectState, 
   // res, so cap its backing store to half DPR. q60 is the only Q-series surface
   // (Q60 + Q80 share the LCD and both infer to it). fullRes lifts the cap for
   // the desktop simulator, which renders on the host GPU.
+  const visibleRef = useRef(!covered);
+  visibleRef.current = !covered;
   const renderOptions = useMemo(() => (
-    { maxDevicePixelRatio: surface === 'q60' && !fullRes ? 0.5 : 1 }
+    { maxDevicePixelRatio: surface === 'q60' && !fullRes ? 0.5 : 1, visibleRef }
   ), [surface, fullRes]);
   const { ready, error } = useShaderRenderer(
     canvasRef,

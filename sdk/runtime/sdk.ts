@@ -2,7 +2,7 @@
 export { mount } from './mount';
 export type { WidgetSurfaces } from './mount';
 export {
-  useSettings, useSize, useSurface, usePreview, useDevTools, useImmersive, useDisplay, useLocale, useLocalState, useTick, useSensor, useFetch, useDispatch, useHostAction,
+  useSettings, useSize, useSurface, usePreview, useDevTools, useImmersive, useDisplay, useOpaque, useLocale, useLocalState, useTick, useSensor, useFetch, useDispatch, useHostAction,
   useLatest, useAppData, useAudio, request,
 } from './hooks';
 export type { AppDataCasResult, AppAudio } from './hooks';

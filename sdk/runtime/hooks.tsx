@@ -53,6 +53,19 @@ export function useDisplay(): WidgetDisplay {
   return useSyncExternalStore(store.subscribe, () => store.getSnapshot().display);
 }
 
+/** Tells the host this tile paints every pixel of its box with no
+ *  transparency, so round glass it fills stops drawing the background hidden
+ *  under it. Pass true only once the whole tile is covered; false, or
+ *  unmounting, hands the background back. */
+export function useOpaque(opaque: boolean): void {
+  const store = useStore();
+  useEffect(() => {
+    if (!opaque) return;
+    store.api.setOpaque?.(true);
+    return () => { store.api.setOpaque?.(false); };
+  }, [store, opaque]);
+}
+
 /** True when the host is an internal DEV_TOOLS build. Static for the render.
  *  Use it to relax a ship-time availability gate on an internal machine; never
  *  to unlock something a shipped build must refuse. */

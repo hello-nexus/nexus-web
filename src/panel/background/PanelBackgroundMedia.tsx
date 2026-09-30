@@ -10,6 +10,7 @@ export function PanelBackgroundMedia({
   opacity,
   ready = true,
   loop = true,
+  covered = false,
   onLoaded,
   onFadedIn,
   onFailed,
@@ -27,6 +28,8 @@ export function PanelBackgroundMedia({
   ready?: boolean;
   /** A slideshow paces a video itself and turns the element's own loop off. */
   loop?: boolean;
+  /** An opaque widget hides the whole background: hold the video on its current frame. */
+  covered?: boolean;
   onLoaded?: () => void;
   /** The layer's opacity transition has finished after `ready` went true. */
   onFadedIn?: () => void;
@@ -39,8 +42,9 @@ export function PanelBackgroundMedia({
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    videoRef.current?.play().catch(() => {});
-  }, [url]);
+    if (covered) videoRef.current?.pause();
+    else videoRef.current?.play().catch(() => {});
+  }, [url, covered]);
 
   return (
     <div
@@ -64,7 +68,7 @@ export function PanelBackgroundMedia({
           ref={videoRef}
           src={url}
           className={`${styles.backgroundMediaContent} ${styles.backgroundMediaVideo}`}
-          autoPlay
+          autoPlay={!covered}
           loop={loop}
           muted
           playsInline
