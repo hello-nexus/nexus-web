@@ -169,7 +169,8 @@ export function WeatherPreview({ widget }: WidgetProps) {
     </div>
   );
 
-  const renderCurrentBlock = (sizeClass: string, showStats: boolean) => (
+  // `full` is false on a 1x1, which has room for the glyph and temperature only.
+  const renderCurrentBlock = (sizeClass: string, full: boolean) => (
     <div className={`${styles.compact} ${sizeClass}`}>
       <div className={styles.compactCurrent}>
         <div className={styles.compactIconWrap}>
@@ -179,9 +180,9 @@ export function WeatherPreview({ widget }: WidgetProps) {
           <div className={styles.compactTemp}>{tempText}</div>
         </div>
       </div>
-      {showStats && renderStats(styles.compactStats)}
-      <div className={styles.compactCondition}>{conditionText}</div>
-      <div className={styles.compactLocation}>{snap.locationLabel}</div>
+      {full && renderStats(styles.compactStats)}
+      {full && <div className={styles.compactCondition}>{conditionText}</div>}
+      {full && <div className={styles.compactLocation}>{snap.locationLabel}</div>}
     </div>
   );
 

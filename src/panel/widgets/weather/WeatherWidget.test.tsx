@@ -91,6 +91,13 @@ describe('WeatherWidget', () => {
     expect(screen.getByText('Today')).toBeInTheDocument();
   });
 
+  it('shows only the glyph and temperature on a 1x1', async () => {
+    render(<WeatherWidget widget={weatherWidget('1x1')} />);
+    expect(await screen.findByText('72°')).toBeInTheDocument();
+    expect(screen.queryByText('Partly cloudy')).toBeNull();
+    expect(screen.queryByText('San Francisco')).toBeNull();
+  });
+
   it('draws no sky unless the widget opts in', async () => {
     const { container } = render(<WeatherWidget widget={weatherWidget('4x2')} />);
     expect(await screen.findByText('72°')).toBeInTheDocument();

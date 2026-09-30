@@ -66,8 +66,23 @@ $row-seam: calc(
   @include vgap(6px);
 }
 
+// Glyph and temperature only (renderCurrentBlock drops the text lines).
 .compact1x1 {
+  padding: 8px;
   @include vgap(4px);
+
+  .compactIconWrap {
+    margin-bottom: 0;
+  }
+
+  .compactIcon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .compactTemp {
+    @include text-display;
+  }
 }
 
 .compactCurrent {
