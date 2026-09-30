@@ -3,6 +3,7 @@ import type { SelectOption } from '../components/common/Select/Select';
 import { fetchAudioOutput, setAudioOutput, type AudioOutputPick } from '../api/lighting';
 import { useTranslation } from '../lib/i18n';
 import { useAudioDevices } from './useAudioDevices';
+import { useTopicCallback } from './useMultiplexSocket';
 
 export interface LightingAudioOutput {
   /** Selected device id; empty follows the system default. */
@@ -16,30 +17,40 @@ export function useLightingAudioOutput(enabled: boolean): LightingAudioOutput {
   const { t } = useTranslation();
   const { outputs, activeOutput } = useAudioDevices(enabled);
   const [pick, setPick] = useState<AudioOutputPick>({ deviceId: '', deviceName: '' });
-  // A pick made before the first read lands must not be overwritten by it.
-  const pickedRef = useRef(false);
+  // Bumped on every local pick; a read started before it returns an older value.
+  const writeSeq = useRef(0);
+  const pendingWrites = useRef(0);
 
-  useEffect(() => {
-    if (!enabled) return;
-    pickedRef.current = false;
-    let cancelled = false;
+  const load = useCallback(() => {
+    const seq = writeSeq.current;
     fetchAudioOutput()
       .then(r => {
-        if (cancelled || !r || pickedRef.current) return;
+        if (!r || seq !== writeSeq.current || pendingWrites.current > 0) return;
         setPick({ deviceId: r.deviceId ?? '', deviceName: r.deviceName ?? '' });
       })
-      .catch(() => { /* keep the default */ });
-    return () => { cancelled = true; };
-  }, [enabled]);
+      .catch(() => { /* keep the current pick */ });
+  }, []);
+
+  useEffect(() => { if (enabled) load(); }, [enabled, load]);
+  // The service bumps the lighting topic on every pick, so Settings, the
+  // lighting canvas and other clients all follow a change made elsewhere.
+  useTopicCallback('lighting', enabled, load);
 
   const select = useCallback((deviceId: string) => {
     const prev = pick;
     const next = { deviceId, deviceName: outputs.find(d => d.id === deviceId)?.name ?? '' };
-    pickedRef.current = true;
+    writeSeq.current += 1;
+    pendingWrites.current += 1;
     setPick(next);
     // postService resolves null on a failed write rather than rejecting.
-    setAudioOutput(next).then(r => { if (!r) setPick(prev); }, () => setPick(prev));
-  }, [pick, outputs]);
+    setAudioOutput(next)
+      .then(r => { if (!r) setPick(prev); }, () => setPick(prev))
+      .finally(() => {
+        pendingWrites.current -= 1;
+        // Reads dropped while writing may have carried a newer remote pick.
+        if (pendingWrites.current === 0) load();
+      });
+  }, [pick, outputs, load]);
 
   const defaultName = activeOutput?.name ?? '';
   const options: SelectOption[] = [

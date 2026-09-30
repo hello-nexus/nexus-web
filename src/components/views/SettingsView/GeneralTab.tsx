@@ -328,6 +328,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
 
         <SettingRow
           label={t('settings.restartOnboarding')}
+          anchorId="set-restart-onboarding"
           description={t('settings.restartOnboarding.detail')}
           icon={<Compass />}
           iconLeading="subtle"

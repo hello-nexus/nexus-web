@@ -272,7 +272,7 @@ export function AccountAuthenticationSection({
         <MediaCropper src={cropSrc} aspect={1} busy={avatarBusy} onConfirm={c => void handleCropConfirm(c)} onCancel={handleCropCancel} />
       )}
 
-      <SettingRow label={t('account.username.label')} description={t('account.username.description')} stackOnNarrow>
+      <SettingRow label={t('account.username.label')} anchorId="set-account-username" description={t('account.username.description')} stackOnNarrow>
         <div className={styles.inlineField}>
           <TextInput
             value={usernameValue}
@@ -302,7 +302,7 @@ export function AccountAuthenticationSection({
         </p>
       )}
 
-      <SettingRow label={t('account.password.title')} description={t('account.password.description')} stackOnNarrow>
+      <SettingRow label={t('account.password.title')} anchorId="set-account-password" description={t('account.password.description')} stackOnNarrow>
         <Button type="button" tone="neutral" size="sm" onClick={() => setPasswordModalOpen(true)}>
           {t('account.password.change')}
         </Button>
@@ -310,6 +310,7 @@ export function AccountAuthenticationSection({
 
       <SettingToggle
         label={t('account.privacy.label')}
+        anchorId="set-account-privacy"
         description={t('account.privacy.description')}
         checked={account.isPrivate}
         onChange={() => void handlePrivacyToggle()}
@@ -317,7 +318,7 @@ export function AccountAuthenticationSection({
         stackOnNarrow
       />
 
-      <SettingRow label={t('account.logOut.label')} description={t('account.logOut.description')} stackOnNarrow>
+      <SettingRow label={t('account.logOut.label')} anchorId="set-account-logout" description={t('account.logOut.description')} stackOnNarrow>
         <Button type="button" tone="neutral" size="sm" onClick={() => setLogoutConfirmOpen(true)}>
           {t('account.logOut.label')}
         </Button>

@@ -171,6 +171,19 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
             onChange={handleGpuChange}
           />
         )}
+        {showAudioOutput && (
+          <SettingSelect
+            label={t('lighting.audioOutput.label')}
+            icon={<Speaker />}
+            iconLeading="subtle"
+            anchorId="set-audio-output"
+            description={t('lighting.audioOutput.description')}
+            value={audioOutput.value}
+            options={audioOutput.options}
+            onChange={audioOutput.select}
+            disabled={!serviceOnline}
+          />
+        )}
         {showSleepBlackout && (
           <SettingToggle
             label={t('lighting.sleepBlackout.label')}
@@ -192,19 +205,6 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
             description={t('lighting.lockBlackout.description')}
             checked={lockBlackout}
             onChange={handleLockBlackoutChange}
-            disabled={!serviceOnline}
-          />
-        )}
-        {showAudioOutput && (
-          <SettingSelect
-            label={t('lighting.audioOutput.label')}
-            icon={<Speaker />}
-            iconLeading="subtle"
-            anchorId="set-audio-output"
-            description={t('lighting.audioOutput.description')}
-            value={audioOutput.value}
-            options={audioOutput.options}
-            onChange={audioOutput.select}
             disabled={!serviceOnline}
           />
         )}
