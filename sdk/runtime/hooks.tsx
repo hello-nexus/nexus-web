@@ -54,9 +54,9 @@ export function useDisplay(): WidgetDisplay {
 }
 
 /** Tells the host this tile paints every pixel of its box with no
- *  transparency, so round glass it fills stops drawing the background hidden
- *  under it. Pass true only once the whole tile is covered; false, or
- *  unmounting, hands the background back. */
+ *  transparency, so a single-widget panel it fills stops drawing the
+ *  background hidden under it. Pass true only once the whole tile is covered;
+ *  false, or unmounting, hands the background back. */
 export function useOpaque(opaque: boolean): void {
   const store = useStore();
   useEffect(() => {

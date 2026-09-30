@@ -100,7 +100,7 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { isSingleWidgetSurface, surfaceSupportsTouch, widgetDisplayShape } from './types';
+import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
@@ -881,12 +881,10 @@ export function PanelContent({
     }));
   }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget]);
 
-  // An opaque tile on round glass hides the whole background, so it stops
-  // animating. Rect single-widget cards keep rounded corners that show it.
+  // An opaque tile filling a single-widget panel hides the background, so it
+  // stops animating.
   const shownSingleWidget = isSingleWidgetSurface(surface) ? allFiltered[0]?.widgets[0] : undefined;
-  const backgroundCovered = shownSingleWidget !== undefined
-    && widgetDisplayShape(shownSingleWidget.size) === 'round'
-    && opaqueWidgetIds.has(shownSingleWidget.id);
+  const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
@@ -1765,6 +1763,7 @@ export function PanelContent({
               finishVideos={effectiveTheme.backgroundSlideshowFinishVideos}
               order={effectiveTheme.backgroundMediaOrder}
               opacity={effectiveTheme.backgroundOpacity}
+              covered={backgroundCovered}
             />
           ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
             <PanelBackgroundMedia
