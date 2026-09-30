@@ -74,9 +74,14 @@ vi.mock('../../../hooks/useAudioDevices', () => {
   return { useAudioDevices: () => ({ outputs: [speakers, headset], activeOutput: speakers }) };
 });
 
-// The schedule hook subscribes to the lighting topic; no socket in tests.
+// No socket in tests: topic subscribers are collected so a test can play a push.
+const topicListeners = vi.hoisted(() => new Map<string, Set<() => void>>());
 vi.mock('../../../hooks/useMultiplexSocket', () => ({
-  useTopicCallback: () => {},
+  useTopicCallback: (topic: string, enabled: boolean, cb: () => void) => {
+    if (!enabled) return;
+    if (!topicListeners.has(topic)) topicListeners.set(topic, new Set());
+    topicListeners.get(topic)!.add(cb);
+  },
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -319,6 +324,7 @@ describe('LightingCoolingSection audio-reactive output', () => {
   beforeEach(() => {
     lightingApi.fetchAudioOutput.mockReset().mockResolvedValue({ deviceId: '', deviceName: '' });
     lightingApi.setAudioOutput.mockReset().mockResolvedValue({ error: false });
+    topicListeners.clear();
   });
 
   it('persists the picked output with its name', async () => {
@@ -341,6 +347,17 @@ describe('LightingCoolingSection audio-reactive output', () => {
     fireEvent.click(within(screen.getByRole('listbox')).getByText('Arctis Nova Pro'));
 
     await waitFor(() => expect(trigger()).toHaveTextContent('lighting.audioOutput.systemDefaultNamed'));
+  });
+
+  it('follows a pick made on the lighting canvas or another client', async () => {
+    render(<LightingCoolingSection serviceOnline platform="windows" />);
+    await waitFor(() => expect(lightingApi.fetchAudioOutput).toHaveBeenCalled());
+    expect(trigger()).toHaveTextContent('lighting.audioOutput.systemDefaultNamed');
+
+    lightingApi.fetchAudioOutput.mockResolvedValue({ deviceId: 'out-headset', deviceName: 'Arctis Nova Pro' });
+    topicListeners.get('lighting')?.forEach(cb => cb());
+
+    await waitFor(() => expect(trigger()).toHaveTextContent('Arctis Nova Pro'));
   });
 
   it('flags an unplugged pick rather than showing it as live', async () => {

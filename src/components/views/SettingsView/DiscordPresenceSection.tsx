@@ -91,6 +91,7 @@ export function DiscordPresenceSection({ serviceOnline }: { serviceOnline: boole
       />
       <SettingSelect
         label={t('discord.presence.status')}
+        anchorId="set-discord-status"
         icon={<Quote />}
         iconLeading="subtle"
         description={status}

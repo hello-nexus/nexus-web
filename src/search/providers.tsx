@@ -156,7 +156,10 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
 // to Settings, selects the owning tab, and scrolls to + shines that exact row.
 // `platforms` limits a row to the hosts whose Settings page renders it, so
 // "tray" on macOS doesn't offer a scroll target that isn't there.
-const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anchor: string; keywords: string[]; platforms?: string[]; official?: boolean }[] = [
+// `sectionKey` prefixes a label that is ambiguous on its own ("Status", "Model").
+// A row that renders only once another setting is on, or lives in a modal,
+// anchors to the always-rendered row that reveals it.
+const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sectionKey?: string; anchor: string; keywords: string[]; platforms?: string[]; official?: boolean; devTools?: boolean }[] = [
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  anchor: 'set-tray',       keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'systemd', 'login', 'autostart', 'auto start', 'launch', 'start with windows'], platforms: ['windows', 'linux'] },
@@ -164,9 +167,12 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.rememberLastPage.label', anchor: 'set-remember-page', keywords: ['remember', 'last page', 'restore', 'reopen', 'resume', 'startup', 'tray'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.alerts.label',        anchor: 'set-alerts',     keywords: ['conflict', 'warnings', 'alerts', 'notifications'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.conflictApps.manage.label', anchor: 'set-conflict-apps', keywords: ['conflict', 'conflicting', 'apps', 'applications', 'shut down', 'shutdown', 'close', 'startup'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.conflictApps.autoShutdown.label', anchor: 'set-conflict-apps', keywords: ['conflict', 'conflicting', 'apps', 'shut down', 'shutdown', 'close', 'kill', 'startup', 'automatic'] },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.conflictApps.notifyLaunch.label', anchor: 'set-conflict-apps', keywords: ['conflict', 'conflicting', 'apps', 'notify', 'notification', 'alert', 'launch', 'open'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            anchor: 'set-language',   keywords: ['language', 'locale', 'translation'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], platforms: ['windows'], official: true },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], platforms: ['windows'], official: true },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.restartOnboarding',    anchor: 'set-restart-onboarding', keywords: ['onboarding', 'setup', 'welcome', 'tour', 'wizard', 'first run', 'restart', 'intro'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.shutDown.label',      anchor: 'set-shutdown',   keywords: ['shut down', 'shutdown', 'stop', 'quit', 'exit', 'close'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.factoryReset.label',  anchor: 'set-factory-reset', keywords: ['factory reset', 'reset', 'wipe', 'erase', 'defaults', 'clean'] },
   { tab: 'appearance', tabLabelKey: 'settings.tab.appearance', labelKey: 'settings.accent',              anchor: 'set-accent',     keywords: ['accent', 'color', 'colour', 'highlight'] },
@@ -179,20 +185,34 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; anch
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.features.cooling.label',  anchor: 'set-feature-cooling',  keywords: ['cooling', 'fans', 'on', 'off', 'switch', 'feature'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.schedule.row.label', anchor: 'set-brightness-schedule', keywords: ['schedule', 'brightness', 'dim', 'night', 'evening', 'time', 'timer', 'clock', 'curve', 'leds', 'lights'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.renderGpu.label',     anchor: 'set-render-gpu', keywords: ['render', 'gpu', 'shader', 'graphics card'], platforms: ['windows', 'linux'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.audioOutput.label',   anchor: 'set-audio-output', keywords: ['audio', 'output', 'speakers', 'headphones', 'sound', 'music', 'reactive', 'visualizer'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.sleepBlackout.label', anchor: 'set-sleep-blackout', keywords: ['sleep', 'suspend', 'standby', 'shutdown', 'power off', 'fade', 'leds', 'lights', 'off', 'ram', 'memory'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.lockBlackout.label', anchor: 'set-lock-blackout', keywords: ['lock', 'locked', 'lock screen', 'away', 'afk', 'fade', 'dim', 'leds', 'lights', 'off'], platforms: ['windows', 'macos', 'linux'] },
-  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'lighting.audioOutput.label',   anchor: 'set-audio-output', keywords: ['audio', 'output', 'speakers', 'headphones', 'sound', 'music', 'reactive', 'visualizer'], platforms: ['windows'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.settings.cpuLabel',    anchor: 'set-cpu-sensor', keywords: ['cpu', 'temp', 'temperature', 'sensor', 'source'] },
   { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'cooling.settings.gpuLabel',    anchor: 'set-gpu-sensor', keywords: ['gpu', 'temp', 'temperature', 'sensor', 'source'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.manualRgb.import.label', sectionKey: 'settings.manualRgb.title', anchor: 'set-manual-rgb-import', keywords: ['openrgb', 'import', 'manual', 'add', 'devices', 'undetected', 'missing'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.manualRgb.qmk.label',    sectionKey: 'settings.manualRgb.title', anchor: 'set-manual-rgb-qmk',    keywords: ['qmk', 'keyboard', 'via', 'manual', 'add', 'vid', 'pid', 'undetected', 'missing'] },
+  { tab: 'lighting-cooling', tabLabelKey: 'settings.lightingCooling.title', labelKey: 'settings.manualRgb.e131.label',   sectionKey: 'settings.manualRgb.title', anchor: 'set-manual-rgb-e131',   keywords: ['wled', 'e1.31', 'e131', 'sacn', 'network', 'led strip', 'ip', 'manual', 'add'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.units.temperature.label', anchor: 'set-temp-unit',    keywords: ['temperature', 'celsius', 'fahrenheit', 'degrees', 'units', 'temp'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.monitoring.label',  anchor: 'set-feature-monitoring',  keywords: ['monitoring', 'history', 'on', 'off', 'switch', 'feature'] },
   { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.features.diagnostics.label', anchor: 'set-feature-diagnostics', keywords: ['diagnostics', 'health', 'alerts', 'on', 'off', 'switch', 'feature'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.defaultLabel',  sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-default',   keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'ssd', 'hdd', 'health', 'polling', 'interval', 'spin down', 'sleep'] },
+  { tab: 'monitoring', tabLabelKey: 'settings.tab.monitoringDiagnostics', labelKey: 'settings.smartPoll.perDriveLabel', sectionKey: 'settings.smartPoll.title', anchor: 'set-smart-poll-per-drive', keywords: ['smart', 's.m.a.r.t.', 'drive', 'disk', 'each drive', 'per drive', 'polling', 'interval'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.screentime.title', anchor: 'set-screentime', keywords: ['screen time', 'tracking', 'usage', 'data', 'clear'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.localDataStore.fps.label', anchor: 'set-fps-tracking', keywords: ['fps', 'frame rate', 'tracking', 'games', 'data', 'clear'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.localDataStore.monitoringHistory.label', anchor: 'set-monitoring-history-purge', keywords: ['monitoring', 'history', 'graphs', 'purge', 'clear', 'delete', 'data'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.telemetry.label',  anchor: 'set-telemetry',  keywords: ['telemetry', 'privacy', 'anonymous', 'data', 'consent'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'discord.presence.enable', anchor: 'set-discord-presence', keywords: ['discord', 'rich presence', 'status', 'profile', 'presence'] },
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'discord.presence.status', sectionKey: 'discord.presence.title', anchor: 'set-discord-status', keywords: ['discord', 'rich presence', 'status', 'preset', 'message', 'activity'] },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.master.label',     anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'model context protocol', 'assistant', 'agent', 'integration', 'token'] },
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.token.label',  sectionKey: 'settings.ai.title', anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'token', 'key', 'secret', 'copy', 'connect', 'endpoint'] },
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.rotate.label', sectionKey: 'settings.ai.title', anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'token', 'rotate', 'regenerate', 'reset', 'revoke'] },
+  ...(['telemetry', 'cooling', 'lighting', 'profiles', 'history'] as const).map(key => (
+    { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: `settings.ai.capability.${key}.label`, sectionKey: 'settings.ai.title', anchor: 'set-ai-integration', keywords: ['ai', 'mcp', 'capability', 'permission', 'access', 'allow', key] }
+  )),
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.assistant.runtime.label',           sectionKey: 'settings.ai.title', anchor: 'set-ai-integration', keywords: ['ai', 'assistant', 'local', 'runtime', 'ollama', 'install', 'llm'], devTools: true },
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.assistant.runtime.useSystem.label', sectionKey: 'settings.ai.title', anchor: 'set-ai-integration', keywords: ['ai', 'assistant', 'ollama', 'system', 'installed', 'existing'], devTools: true },
+  { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'settings.ai.assistant.model.label',             sectionKey: 'settings.ai.title', anchor: 'set-ai-integration', keywords: ['ai', 'assistant', 'model', 'llm', 'ollama', 'download'], devTools: true },
   { tab: 'privacy', tabLabelKey: 'settings.tab.privacyData', labelKey: 'nexus2Welcome.settingsEntry.rowLabel', anchor: 'set-nexus2-import', keywords: ['nexus 2', 'hyte', 'import', 'migration', 'personalization'] },
 ];
 
@@ -252,8 +272,10 @@ const settingsItems: SearchSource = (ctx) =>
   SETTINGS_ITEMS
     .filter((s) => !s.platforms || s.platforms.includes(ctx.platform))
     .filter((s) => !s.official || OFFICIAL_BUILD)
+    .filter((s) => !s.devTools || DEV_TOOLS)
     .map((s) => go(`setting:${s.labelKey}`, {
-      title: ctx.t(s.labelKey), subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
+      title: s.sectionKey ? `${ctx.t(s.sectionKey)} › ${ctx.t(s.labelKey)}` : ctx.t(s.labelKey),
+      subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
       icon: NAV_ICONS.settings, keywords: s.keywords,
       to: () => { ctx.host.goView('settings', s.tab); requestSearchScroll(s.anchor); },
     }));
@@ -791,6 +813,15 @@ const systemMedia: SearchSource = (ctx) => {
   return out;
 };
 
+// Signed-in Account page rows; `anchor` is the row's anchorId, as in SETTINGS_ITEMS.
+const ACCOUNT_ITEMS: { id: string; labelKey: string; anchor: string; keywords: string[] }[] = [
+  { id: 'account:username', labelKey: 'account.username.label', anchor: 'set-account-username', keywords: ['username', 'name', 'handle', 'rename', 'account'] },
+  { id: 'account:password', labelKey: 'account.password.title', anchor: 'set-account-password', keywords: ['password', 'change password', 'security', 'account'] },
+  { id: 'account:privacy',  labelKey: 'account.privacy.label',  anchor: 'set-account-privacy',  keywords: ['private', 'privacy', 'public', 'profile', 'visibility', 'account'] },
+  { id: 'account:sign-out', labelKey: 'account.logOut.label',   anchor: 'set-account-logout',   keywords: ['sign out', 'log out', 'logout', 'account'] },
+  { id: 'account:delete',   labelKey: 'account.danger.delete.label', anchor: 'set-account-delete', keywords: ['delete', 'remove', 'close account', 'erase', 'account'] },
+];
+
 // Cloud account one-shots, gated like the Account page. Sign-out opens
 // the page (its flow also clears local tokens); sync-now is safe directly.
 const accountExtra: SearchSource = (ctx) => {
@@ -802,12 +833,11 @@ const accountExtra: SearchSource = (ctx) => {
       keywords: ['sync', 'cloud', 'account', 'profiles', 'upload'],
       run: () => { void syncCloudNow().catch(() => {}); },
     }),
-    go('account:sign-out', {
-      title: ctx.t('account.logOut.label'), subtitle: ctx.t('account.title'),
-      icon: <UserRound size={18} />,
-      keywords: ['sign out', 'log out', 'logout', 'account'],
-      to: () => ctx.host.goView('account'),
-    }),
+    ...ACCOUNT_ITEMS.map((a) => go(a.id, {
+      title: ctx.t(a.labelKey), subtitle: ctx.t('account.title'),
+      icon: <UserRound size={18} />, keywords: a.keywords,
+      to: () => { ctx.host.goView('account'); requestSearchScroll(a.anchor); },
+    })),
   ];
 };
 

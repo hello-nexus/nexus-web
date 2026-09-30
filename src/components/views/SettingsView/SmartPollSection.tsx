@@ -57,6 +57,7 @@ export function SmartPollSection({ serviceOnline }: { serviceOnline: boolean }) 
     >
       <SettingToggle
         label={t('settings.smartPoll.perDriveLabel')}
+        anchorId="set-smart-poll-per-drive"
         checked={perDrive}
         onChange={v => update({ smartPollPerDrive: v })}
         disabled={!serviceOnline}

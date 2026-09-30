@@ -91,6 +91,7 @@ export function ManualRgbDevicesSection({ serviceOnline }: ManualRgbDevicesSecti
     >
       <SettingRow
         label={t('settings.manualRgb.import.label')}
+        anchorId="set-manual-rgb-import"
         description={data.importSourceAvailable
           ? t('settings.manualRgb.import.found', { path: data.importSourcePath })
           : t('settings.manualRgb.import.missing')}
@@ -110,6 +111,7 @@ export function ManualRgbDevicesSection({ serviceOnline }: ManualRgbDevicesSecti
 
       <SettingRow
         label={t('settings.manualRgb.qmk.label')}
+        anchorId="set-manual-rgb-qmk"
         description={t('settings.manualRgb.qmk.description')}
         icon={<Keyboard />}
         iconLeading="subtle"
@@ -162,6 +164,7 @@ export function ManualRgbDevicesSection({ serviceOnline }: ManualRgbDevicesSecti
 
       <SettingRow
         label={t('settings.manualRgb.e131.label')}
+        anchorId="set-manual-rgb-e131"
         description={t('settings.manualRgb.e131.description')}
         icon={<Wifi />}
         iconLeading="subtle"

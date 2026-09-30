@@ -51,7 +51,7 @@ export function AccountDangerZoneSection({
     <>
       {/* eslint-disable-next-line i18next/no-literal-string -- CSS variable token */}
       <SettingsSection title={t('settings.dangerZone')} titleStyle={{ color: 'var(--bad)' }}>
-        <SettingRow label={t('account.danger.delete.label')} description={t('account.danger.delete.description')}>
+        <SettingRow label={t('account.danger.delete.label')} anchorId="set-account-delete" description={t('account.danger.delete.description')}>
           <Button type="button" tone="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setDeleteConfirmOpen(true)}>
             {t('account.danger.delete.button')}
           </Button>
