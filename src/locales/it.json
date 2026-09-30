@@ -186,7 +186,6 @@
   "benchmark.intro.body": "Un benchmark misura CPU, GPU, RAM e archiviazione con carichi di lavoro reali. Dura circa 40 secondi, tutto in locale.",
   "benchmark.leaderboard.anonymous": "Anonimo",
   "benchmark.leaderboard.back": "Torna al benchmark",
-  "benchmark.leaderboard.cores": "{n} core",
   "benchmark.leaderboard.empty": "Nessuna voce ancora. Sii il primo a inviare un risultato.",
   "benchmark.leaderboard.error": "Impossibile caricare la classifica.",
   "benchmark.leaderboard.filterVersion": "Versione punteggio",

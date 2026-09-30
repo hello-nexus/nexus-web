@@ -186,7 +186,6 @@
   "benchmark.intro.body": "Un benchmark al misure il to CPU, GPU, RAM e archiviazion doprant cjariis di lavôr reâls. Al dure circa 40 seconts e al funzione in locâl.",
   "benchmark.leaderboard.anonymous": "Anonim",
   "benchmark.leaderboard.back": "Torne al Benchmark",
-  "benchmark.leaderboard.cores": "{n} core",
   "benchmark.leaderboard.empty": "Ancjemò nissune vôs. Sês il prin a inviâ un risultât di benchmark.",
   "benchmark.leaderboard.error": "No si è rivât a cjariâ la classifiche.",
   "benchmark.leaderboard.filterVersion": "Version di pontaç",

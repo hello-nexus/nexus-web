@@ -186,7 +186,6 @@
   "benchmark.intro.body": "Ein Benchmark misst CPU, GPU, RAM und Speicher mit realen Workloads. Dauert etwa 40 Sekunden und läuft lokal.",
   "benchmark.leaderboard.anonymous": "Anonym",
   "benchmark.leaderboard.back": "Zurück zum Benchmark",
-  "benchmark.leaderboard.cores": "{n} Kerne",
   "benchmark.leaderboard.empty": "Noch keine Einträge. Seien Sie der Erste, der ein Benchmark-Ergebnis einreicht.",
   "benchmark.leaderboard.error": "Rangliste konnte nicht geladen werden.",
   "benchmark.leaderboard.filterVersion": "Bewertungsversion",

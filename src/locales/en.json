@@ -186,7 +186,6 @@
   "benchmark.intro.body": "A benchmark measures your CPU, GPU, RAM, and storage using real workloads. It takes about 40 seconds and runs locally.",
   "benchmark.leaderboard.anonymous": "Anonymous",
   "benchmark.leaderboard.back": "Back to Benchmark",
-  "benchmark.leaderboard.cores": "{n} cores",
   "benchmark.leaderboard.empty": "No entries yet. Be the first to submit a benchmark result.",
   "benchmark.leaderboard.error": "Could not load the leaderboard.",
   "benchmark.leaderboard.filterVersion": "Scoring version",

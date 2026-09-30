@@ -186,7 +186,6 @@
   "benchmark.intro.body": "基准测试使用真实工作负载测量 CPU、GPU、内存和存储，本地运行约 40 秒。",
   "benchmark.leaderboard.anonymous": "匿名",
   "benchmark.leaderboard.back": "返回基准测试",
-  "benchmark.leaderboard.cores": "{n}核",
   "benchmark.leaderboard.empty": "暂无条目，成为第一个提交基准测试结果的人吧。",
   "benchmark.leaderboard.error": "无法加载排行榜。",
   "benchmark.leaderboard.filterVersion": "评分版本",

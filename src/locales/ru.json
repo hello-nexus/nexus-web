@@ -186,7 +186,6 @@
   "benchmark.intro.body": "Бенчмарк измеряет CPU, GPU, ОЗУ и накопитель с реальной нагрузкой. Занимает около 40 секунд, выполняется локально.",
   "benchmark.leaderboard.anonymous": "Аноним",
   "benchmark.leaderboard.back": "Назад к тесту",
-  "benchmark.leaderboard.cores": "{n} ядер",
   "benchmark.leaderboard.empty": "Записей пока нет. Станьте первым, кто отправит результат.",
   "benchmark.leaderboard.error": "Не удалось загрузить таблицу лидеров.",
   "benchmark.leaderboard.filterVersion": "Версия оценки",
