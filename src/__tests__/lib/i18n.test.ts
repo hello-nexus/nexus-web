@@ -40,6 +40,11 @@ describe('locale files', () => {
     }
   });
 
+  it('writes placeholders with single braces, the only form the i18n layer fills in', () => {
+    const doubled = LOCALE_FILES.flatMap(f => Object.entries(loadLocale(f)).filter(([, v]) => v.includes('{{')).map(([k]) => `${f}:${k}`));
+    expect(doubled, 'double-brace placeholders').toHaveLength(0);
+  });
+
   it('no empty string values in English', () => {
     const en = loadLocale('en.json');
     const empty = Object.entries(en).filter(([, v]) => v === '');

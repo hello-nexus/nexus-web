@@ -4488,6 +4488,7 @@
   "store.section.description": "Açıklama",
   "store.section.permissions": "İzinler",
   "store.section.preview": "Önizleme",
+  "store.section.whatsNew": "{version} sürümündeki yenilikler",
   "store.signIn.body": "Devam etmek için Nexus hesabına giriş yap veya ücretsiz bir hesap oluştur.",
   "store.signIn.title": "Uygulama almak için oturum aç",
   "store.spec.requires": "Nexus gerekli",

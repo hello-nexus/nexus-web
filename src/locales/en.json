@@ -4488,6 +4488,7 @@
   "store.section.description": "Description",
   "store.section.permissions": "Permissions",
   "store.section.preview": "Preview",
+  "store.section.whatsNew": "New in {version}",
   "store.signIn.body": "Sign in to your Nexus account, or create one for free to continue.",
   "store.signIn.title": "Sign in to get apps",
   "store.spec.requires": "Requires Nexus",

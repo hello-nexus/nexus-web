@@ -351,6 +351,47 @@ function Description({ text }: { text: string }) {
   );
 }
 
+/** A version's notes as blocks: a run of lines led by '- ', '* ' or '• ' is a list, any other run a paragraph; a blank line ends a run. */
+export function notesBlocks(notes: string): Array<{ list: false; text: string } | { list: true; items: string[] }> {
+  const blocks: Array<{ list: false; text: string } | { list: true; items: string[] }> = [];
+  let gap = true;
+  for (const raw of notes.split('\n')) {
+    const line = raw.trim();
+    if (!line) {
+      gap = true;
+      continue;
+    }
+    const last = gap ? undefined : blocks[blocks.length - 1];
+    const bullet = /^[-*\u2022]\s+(.*)$/.exec(line);
+    if (bullet) {
+      if (last?.list) last.items.push(bullet[1]);
+      else blocks.push({ list: true, items: [bullet[1]] });
+    } else if (last && !last.list) last.text += `\n${line}`;
+    else blocks.push({ list: false, text: line });
+    gap = false;
+  }
+  return blocks;
+}
+
+/** What is new in the version on offer; renders nothing when its release says nothing. */
+function WhatsNew({ latest }: { latest: StoreVersion }) {
+  const { t } = useTranslation();
+  const blocks = notesBlocks(latest.notes ?? '');
+  if (blocks.length === 0) return null;
+  return (
+    <section className={styles.section}>
+      <h2 className={styles.sectionTitle}>{t('store.section.whatsNew', { version: latest.version })}</h2>
+      {blocks.map((b, i) => (b.list ? (
+        <ul key={i} className={`${styles.notes} selectable`}>
+          {b.items.map((item, k) => <li key={k}>{item}</li>)}
+        </ul>
+      ) : (
+        <p key={i} className={`${styles.description} selectable`}>{b.text}</p>
+      )))}
+    </section>
+  );
+}
+
 /** What the version is allowed to do on this PC; renders nothing when it requests no permission. */
 function Permissions({ latest }: { latest: StoreVersion }) {
   const { t } = useTranslation();
@@ -489,6 +530,8 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
       </header>
 
       {app.latest && <Highlights latest={app.latest} />}
+
+      {app.latest && <WhatsNew latest={app.latest} />}
 
       {/* Media rides the service's store proxy, never the bundle: it must be readable before the app is installed. */}
       {app.screenshots.length > 0 && (

@@ -4488,6 +4488,7 @@
   "store.section.description": "描述",
   "store.section.permissions": "權限",
   "store.section.preview": "預覽",
+  "store.section.whatsNew": "{version} 新功能",
   "store.signIn.body": "登入你的 Nexus 帳戶，或免費建立一個以繼續。",
   "store.signIn.title": "登入以取得應用程式",
   "store.spec.requires": "需要 Nexus",

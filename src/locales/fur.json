@@ -4488,6 +4488,7 @@
   "store.section.description": "Descrizion",
   "store.section.permissions": "Permès",
   "store.section.preview": "Anteprime",
+  "store.section.whatsNew": "Gnovis te {version}",
   "store.signIn.body": "Jentre tal to account Nexus o cree un a gratis par lâ indenant.",
   "store.signIn.title": "Jentre par vê lis app",
   "store.spec.requires": "Al covente Nexus",

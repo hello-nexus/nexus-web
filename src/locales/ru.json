@@ -4529,6 +4529,7 @@
   "store.section.description": "Описание",
   "store.section.permissions": "Разрешения",
   "store.section.preview": "Предпросмотр",
+  "store.section.whatsNew": "Новое в {version}",
   "store.signIn.body": "Войдите в свой аккаунт Nexus или создайте его бесплатно, чтобы продолжить.",
   "store.signIn.title": "Войдите, чтобы загружать приложения",
   "store.spec.requires": "Требуется Nexus",
