@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, type ReactNode } from 'react';
+import { Delete } from 'lucide-react';
+import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
 import styles from './CalculatorWidget.module.scss';
 
@@ -34,6 +36,7 @@ function formatResult(n: number): string {
 // Calculator is 4x4 only, so no size variants needed.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature must match WidgetProps for the registry
 export function CalculatorWidget(_props: WidgetProps) {
+  const { t } = useTranslation();
   const [operand, setOperand] = useState('0');
   const [operator, setOperator] = useState<string | null>(null);
   const [secondOperand, setSecondOperand] = useState('');
@@ -135,28 +138,27 @@ export function CalculatorWidget(_props: WidgetProps) {
     ? currentDisplay.slice(0, MAX_DIGITS)
     : currentDisplay || '0';
 
-  // Button layout: label, handler, style class
-  const buttons: Array<{ label: string; action: () => void; cls: string }> = [
-    { label: 'AC',  action: doClear,         cls: styles.btnClear },
-    { label: '+/-', action: doNegate,         cls: styles.btnFunc },
-    { label: '%',   action: doPercent,        cls: styles.btnFunc },
-    { label: '/',   action: () => chooseOperator('/'), cls: operator === '/' && !secondOperand ? styles.btnOpActive : styles.btnOp },
-    { label: '7',   action: () => inputDigit('7'),     cls: styles.btnNum },
-    { label: '8',   action: () => inputDigit('8'),     cls: styles.btnNum },
-    { label: '9',   action: () => inputDigit('9'),     cls: styles.btnNum },
-    { label: 'x',   action: () => chooseOperator('x'), cls: operator === 'x' && !secondOperand ? styles.btnOpActive : styles.btnOp },
-    { label: '4',   action: () => inputDigit('4'),     cls: styles.btnNum },
-    { label: '5',   action: () => inputDigit('5'),     cls: styles.btnNum },
-    { label: '6',   action: () => inputDigit('6'),     cls: styles.btnNum },
-    { label: '-',   action: () => chooseOperator('-'),  cls: operator === '-' && !secondOperand ? styles.btnOpActive : styles.btnOp },
-    { label: '1',   action: () => inputDigit('1'),     cls: styles.btnNum },
-    { label: '2',   action: () => inputDigit('2'),     cls: styles.btnNum },
-    { label: '3',   action: () => inputDigit('3'),     cls: styles.btnNum },
-    { label: '+',   action: () => chooseOperator('+'), cls: operator === '+' && !secondOperand ? styles.btnOpActive : styles.btnOp },
-    { label: '0',   action: () => inputDigit('0'),     cls: styles.btnNum },
-    { label: '.',   action: inputDot,                  cls: styles.btnNum },
-    { label: 'DEL', action: doDelete,                  cls: styles.btnFunc },
-    { label: '=',   action: doEquals,                  cls: styles.btnEquals },
+  const buttons: Array<{ id: string; label: ReactNode; ariaLabel?: string; action: () => void; cls: string }> = [
+    { id: 'AC',  label: 'AC', action: doClear,         cls: styles.btnClear },
+    { id: '+/-', label: '±',  action: doNegate,        cls: styles.btnFunc },
+    { id: '%',   label: '%',  action: doPercent,       cls: styles.btnFunc },
+    { id: '/',   label: '÷',  action: () => chooseOperator('/'), cls: operator === '/' && !secondOperand ? styles.btnOpActive : styles.btnOp },
+    { id: '7',   label: '7',  action: () => inputDigit('7'),     cls: styles.btnNum },
+    { id: '8',   label: '8',  action: () => inputDigit('8'),     cls: styles.btnNum },
+    { id: '9',   label: '9',  action: () => inputDigit('9'),     cls: styles.btnNum },
+    { id: 'x',   label: '×',  action: () => chooseOperator('x'), cls: operator === 'x' && !secondOperand ? styles.btnOpActive : styles.btnOp },
+    { id: '4',   label: '4',  action: () => inputDigit('4'),     cls: styles.btnNum },
+    { id: '5',   label: '5',  action: () => inputDigit('5'),     cls: styles.btnNum },
+    { id: '6',   label: '6',  action: () => inputDigit('6'),     cls: styles.btnNum },
+    { id: '-',   label: '−',  action: () => chooseOperator('-'), cls: operator === '-' && !secondOperand ? styles.btnOpActive : styles.btnOp },
+    { id: '1',   label: '1',  action: () => inputDigit('1'),     cls: styles.btnNum },
+    { id: '2',   label: '2',  action: () => inputDigit('2'),     cls: styles.btnNum },
+    { id: '3',   label: '3',  action: () => inputDigit('3'),     cls: styles.btnNum },
+    { id: '+',   label: '+',  action: () => chooseOperator('+'), cls: operator === '+' && !secondOperand ? styles.btnOpActive : styles.btnOp },
+    { id: '0',   label: '0',  action: () => inputDigit('0'),     cls: styles.btnNum },
+    { id: '.',   label: '.',  action: inputDot,                  cls: styles.btnNum },
+    { id: 'DEL', label: <Delete className={styles.btnIcon} aria-hidden />, ariaLabel: t('common.delete'), action: doDelete, cls: styles.btnFunc },
+    { id: '=',   label: '=',  action: doEquals,                  cls: styles.btnEquals },
   ];
 
   return (
@@ -165,11 +167,12 @@ export function CalculatorWidget(_props: WidgetProps) {
         <span className={styles.displayText}>{displayText}</span>
       </div>
       <div className={styles.grid}>
-        {buttons.map(({ label, action, cls }) => (
+        {buttons.map(({ id, label, ariaLabel, action, cls }) => (
           <button
-            key={label}
+            key={id}
             type="button"
             className={cls}
+            aria-label={ariaLabel}
             onClick={action}
           >
             {label}

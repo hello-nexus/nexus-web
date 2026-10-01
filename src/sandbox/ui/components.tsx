@@ -19,7 +19,7 @@ import type { ButtonTone } from '../../components/common/Button/Button';
 import { UsageBar } from '../../components/common/UsageBar/UsageBar';
 import { Sparkline as NativeSparkline } from '../../components/common/Sparkline/Sparkline';
 import { ICON_TABLE } from './icons';
-import { alignValue, justifyValue, weightValue, toneVar, cssSize } from './tokens';
+import { alignValue, justifyValue, weightValue, textToneVar, toneVar, cssSize } from './tokens';
 import { useLongPress } from './useLongPress';
 import { useTranslation } from '../../lib/i18n';
 import { isExternalHttpsUrl, openExternalUrl } from './openExternal';
@@ -107,7 +107,7 @@ export function Divider(p: HostProps) {
 export function Text(p: HostProps) {
   const ls = num(p.letterSpacing);
   const style: CSSProperties = {
-    color: toneVar(str(p.tone), 'var(--text, currentColor)'),
+    color: textToneVar(str(p.tone), 'var(--text, currentColor)'),
     fontSize: cssSize(p.size as number | string | undefined),
     fontWeight: weightValue(str(p.weight)),
     textAlign: TEXT_ALIGN[str(p.align) ?? ''],

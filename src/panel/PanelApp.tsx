@@ -107,6 +107,7 @@ import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { PanelBackgroundSlideshow } from './background/PanelBackgroundSlideshow';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
+import { customTextVars, DEFAULT_CUSTOM_TEXT_COLOR, useAutoTextColor } from './theme/textColor';
 import { panelBackgroundFrostScale, resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
@@ -656,6 +657,14 @@ export function PanelContent({
     root.classList.toggle('panel-see-through', seeThrough);
     return () => root.classList.remove('panel-see-through');
   }, [seeThrough]);
+  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive');
+  // Scoped to the widget grids, the editor dock and the drag overlay, so the panel's own sheets and menus keep the theme.
+  const customTextStyle = useMemo(
+    () => (effectiveTheme.textColorMode === 'custom'
+      ? customTextVars(effectiveTheme.textColor || DEFAULT_CUSTOM_TEXT_COLOR)
+      : undefined),
+    [effectiveTheme.textColorMode, effectiveTheme.textColor],
+  );
   const showBackgroundLayers = showPanelBackground && backdrop === 'theme';
   // Frosted glass blurs what the page itself painted. Solid mode renders no
   // frost pass (a blurred solid colour is the colour), and see-through has
@@ -1810,6 +1819,7 @@ export function PanelContent({
                       <div
                         data-panel-grid
                         className={`${styles.grid} ${touch.rearranging ? styles.gridRearranging : ''}`}
+                        style={customTextStyle}
                       >
                         {page.widgets.map(w => (
                           <ErrorBoundary key={w.id} label={w.type}>
@@ -1920,7 +1930,7 @@ export function PanelContent({
               />
             )}
             {swipeOnboarding.hintVisible && <PanelSwipeHint />}
-            <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
+            <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} style={customTextStyle} aria-hidden="true" />
             {connectionIntroHost && connectionIdentityVisible && (
               <>
                 <div className={styles.connectionIntroBackdrop} aria-hidden="true" />
@@ -2115,6 +2125,9 @@ export function PanelContent({
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+          onThemeTextColorModeCommit={panelTheme.commitTextColorMode}
+          onThemeTextColorPreview={panelTheme.previewTextColor}
+          onThemeTextColorCommit={panelTheme.commitTextColor}
           onThemeBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
           onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
           onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
@@ -2168,6 +2181,7 @@ export function PanelContent({
           if (!w) return null;
           const overlayStyle: CSSProperties = {
             ...panelRootStyle,
+            ...customTextStyle,
             '--panel-cell-size': dragSnapshot.cellSize,
             '--panel-content-scale': dragSnapshot.cellSize,
             '--panel-row-size': dragSnapshot.cellSize,

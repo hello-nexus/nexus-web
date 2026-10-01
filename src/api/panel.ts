@@ -93,6 +93,8 @@ export interface PanelDeviceRecord {
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetPadding?: number;
+  textColorMode?: string;
+  textColor?: string;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   firstSeenAt: number;
@@ -166,6 +168,8 @@ export interface PanelDevicePatch {
   widgetOpacity?: number;
   widgetLabels?: boolean;
   widgetPadding?: number;
+  textColorMode?: string;
+  textColor?: string;
   themeSyncWithDesktop?: boolean;
   accentSyncWithDesktop?: boolean;
   // Display-bound records only; ignored for other panels.

@@ -31,6 +31,7 @@ import {
 } from '../background/panelBackground';
 import { useAnimateTemplates } from '../../hooks/useAnimateTemplates';
 import { gaugeGradientEquals, normalizeGaugeGradient, type GaugeGradientStop } from './gaugeGradient';
+import { normalizeTextColorMode, type TextColorMode } from './textColor';
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
@@ -228,6 +229,8 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
     widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
     widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
+    textColorMode: normalizeTextColorMode(r?.textColorMode),
+    textColor: r?.textColor ?? '',
     gaugeGradient: normalizeGaugeGradient(r?.gaugeGradient),
   };
 }
@@ -489,6 +492,16 @@ export function usePanelTheme(
     persistPatch({ widgetPadding: next });
   }, [persistPatch]);
 
+  const commitTextColorMode = useCallback((mode: TextColorMode) => {
+    setTheme(prev => ({ ...prev, textColorMode: mode }));
+    persistPatch({ textColorMode: mode });
+  }, [persistPatch]);
+
+  const commitTextColor = useCallback((hex: string) => {
+    setTheme(prev => ({ ...prev, textColor: hex }));
+    persistPatch({ textColor: hex });
+  }, [persistPatch]);
+
   const previewGaugeGradient = useCallback((stops: readonly GaugeGradientStop[]) => {
     setTheme(prev => ({ ...prev, gaugeGradient: normalizeGaugeGradient(stops) }));
   }, []);
@@ -543,6 +556,9 @@ export function usePanelTheme(
       { ...prev, widgetPadding: normalizePanelWidgetPadding(percent) }
     )),
     commitWidgetPadding,
+    commitTextColorMode,
+    previewTextColor: (hex: string) => setTheme(prev => ({ ...prev, textColor: hex })),
+    commitTextColor,
     previewGaugeGradient,
     commitGaugeGradient,
     prefs,

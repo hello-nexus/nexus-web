@@ -214,6 +214,6 @@
   .cardBottom,
   .flapTop,
   .flapBottom {
-    color: var(--panel-accent);
+    color: var(--panel-ink-accent, var(--panel-accent));
   }
 }
