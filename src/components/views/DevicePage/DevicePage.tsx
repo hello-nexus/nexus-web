@@ -62,7 +62,7 @@ interface DevicePageProps {
 export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate }: DevicePageProps) {
   const { t } = useTranslation();
   const { push } = useToast();
-  const { unified, controlDevice } = useUnifiedDevices(serviceOnline);
+  const { unified, controlDevice, turnedOffMonitorKeys } = useUnifiedDevices(serviceOnline);
   const device = useMemo<UnifiedDevice | undefined>(
     () => unified.find(d => d.key === deviceKey),
     [unified, deviceKey],
@@ -81,6 +81,15 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     const id = window.setTimeout(() => setGraceElapsed(true), DETECT_GRACE_MS);
     return () => window.clearTimeout(id);
   }, [notConnected, deviceKey]);
+
+  // A plain monitor leaves the device list once Nexus Control turns off, so
+  // its page has nothing to show: return to Devices instead of "Not connected".
+  // Keyed on its turned-off record, not on the row's absence, which a slow
+  // load, a failed refresh or an unplug also produce.
+  const monitorTurnedOff = !device && !!turnedOffMonitorKeys?.has(deviceKey);
+  useEffect(() => {
+    if (monitorTurnedOff) onSectionNavigate?.('devices');
+  }, [monitorTurnedOff, onSectionNavigate]);
 
   // Service reachability and its transient-blip grace are owned by
   // useServiceStatus (the /ping poller, via offlineGraceMs). By the time
@@ -118,12 +127,11 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     );
   }
 
-  // Promoted-monitor panel with Nexus Control off: the record (layout, theme,
-  // settings) persists but hosts no kiosk. The monitor stays physically
-  // attached and working as a normal display, unmanaged rather than
-  // disconnected - so collapse to the same re-enable gate a curated device
-  // gets when Nexus Control is off, instead of falling through to
-  // PanelDevicePage (whose toggle only ever renders checked/on).
+  // Product-family monitor panel (a plain monitor leaves the device list) with
+  // Nexus Control off: the record (layout, theme, settings) persists but hosts
+  // no kiosk, and the monitor keeps working as a normal display - so collapse
+  // to the same re-enable gate a curated device gets when Nexus Control is off,
+  // instead of PanelDevicePage (whose toggle only ever renders checked/on).
   const offMonitorDisplayId = device.kind === 'panel' && device.panelDevice?.linkEnabled === false
     ? device.panelDevice.displayId
     : undefined;

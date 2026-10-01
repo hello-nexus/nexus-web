@@ -109,6 +109,7 @@ export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
   const [updateReady, setUpdateReady] = useState(false);
   const [updateMode, setUpdateMode] = useState<string>('');
   const [canAutoInstall, setCanAutoInstall] = useState(true);
+  const [canStage, setCanStage] = useState(true);
   const [downloadUrl, setDownloadUrl] = useState('');
 
   const refetch = useCallback(() => {
@@ -118,6 +119,7 @@ export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
         setUpdateReady(s.updateReady);
         setUpdateMode(s.updateMode ?? '');
         setCanAutoInstall(s.canAutoInstall ?? true);
+        setCanStage(s.canStage ?? true);
         setDownloadUrl(s.downloadUrl ?? '');
       }
     });
@@ -138,16 +140,17 @@ export function UpdateStatusSlot({ serviceOnline, onOpen, onInstall }: {
   useTopicCallback(UPDATE_TOPIC, serviceOnline, refetch);
 
   const isNotify = updateMode === 'notify';
-  // Platforms that never stage an update (canAutoInstall=false) show the
-  // banner purely on updateAvailable; updateMode/updateReady only matter
-  // where a staged install exists to distinguish.
-  const visible = canAutoInstall ? (isNotify ? updateAvailable : updateReady) : updateAvailable;
+  // An update that is never staged (canAutoInstall=false, or a release whose
+  // SHA256SUMS lacks this platform's installer) shows the banner purely on
+  // updateAvailable; updateReady only matters where a staged install exists.
+  const visible = canAutoInstall && canStage && !isNotify ? updateReady : updateAvailable;
   if (!visible) return null;
 
   return (
     <UpdateBadge
       updateMode={updateMode}
       canAutoInstall={canAutoInstall}
+      canStage={canStage}
       downloadUrl={downloadUrl}
       onOpen={onOpen}
       onInstall={onInstall}

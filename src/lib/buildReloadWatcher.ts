@@ -141,6 +141,14 @@ function liveDeps(loaded: string): CheckDeps {
   };
 }
 
+let runCheck: (() => void) | null = null;
+
+// Checks now instead of at the next poll, e.g. once an update restarted the
+// service onto a new bundle. No-op before init or on a dev server.
+export function requestBuildCheck(): void {
+  runCheck?.();
+}
+
 // Wires the poll + wake triggers. Call once at boot (main.tsx). No-op when the
 // running document has no hashed entry (dev server) - nothing to compare against.
 export function initBuildReloadWatcher(): void {
@@ -148,6 +156,7 @@ export function initBuildReloadWatcher(): void {
   if (!loaded) return;
 
   const run = () => { void checkOnce(liveDeps(loaded)); };
+  runCheck = run;
 
   // The poll is the correctness backstop (catches a restart-less wwwroot swap).
   // The wake events make a foregrounded/reconnected client responsive without

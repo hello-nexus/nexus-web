@@ -43,6 +43,7 @@ vi.mock('../../../api/profiles', () => ({
   fetchPreferences: vi.fn().mockResolvedValue({ panel: { autoLaunch: false, reserveMonitor: true } }),
   savePreferences: vi.fn().mockResolvedValue(null),
 }));
+vi.mock('./PanelPresetToolbar', () => ({ PanelPresetToolbar: () => null }));
 vi.mock('../../../api/panel', () => ({
   fetchPanelDeviceWithStatus: vi.fn().mockResolvedValue({ found: false, status: 404 }),
   allocatePanelDevice: vi.fn().mockResolvedValue({ id: 'dev1' }),
