@@ -3788,6 +3788,8 @@
   "phonePair.unknown": "Unbekannt",
   "placeholder.badge": "Demnächst verfügbar",
   "profile.appData.count": "{count} Apps",
+  "profile.cloud.backup.error.failed": "Sicherung fehlgeschlagen. Es wurde nichts hochgeladen.",
+  "profile.cloud.backup.error.tooLarge": "Die App-Daten dieses Profils sind zu groß für eine Sicherung.",
   "profile.cloud.backup.includes": "inklusive {apps}",
   "profile.cloud.backup.lastSynced": "Zuletzt gesichert {when}",
   "profile.cloud.backup.never": "Noch nicht gesichert",

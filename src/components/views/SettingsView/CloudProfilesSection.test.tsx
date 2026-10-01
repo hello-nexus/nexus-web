@@ -310,6 +310,14 @@ describe('CloudProfilesSection profile list', () => {
     await waitFor(() => expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false, false));
   });
 
+  it('says so when a backup is refused for size', async () => {
+    syncResult.mockReturnValue({ ...BASE_SYNC, syncNow: vi.fn().mockResolvedValue({ ok: false, msg: 'app_data_too_large' }) });
+    renderSection();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' }).length).toBeGreaterThan(0));
+    fireEvent.click(screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' })[0]);
+    await waitFor(() => expect(screen.getByText('profile.cloud.backup.error.tooLarge')).toBeInTheDocument());
+  });
+
   it('marks the active local profile, as the local list does', async () => {
     renderSection();
     await waitFor(() => expect(screen.getByText('settings.profiles.active')).toBeInTheDocument());

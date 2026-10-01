@@ -3788,6 +3788,8 @@
   "phonePair.unknown": "No cognossût",
   "placeholder.badge": "Prest disponibil",
   "profile.appData.count": "{count} aplicazions",
+  "profile.cloud.backup.error.failed": "Il backup nol è lât. No je stât cjariât nuie.",
+  "profile.cloud.backup.error.tooLarge": "I dâts des aplicazions di chest profîl a son masse grancj par fâ il backup.",
   "profile.cloud.backup.includes": "al inclût {apps}",
   "profile.cloud.backup.lastSynced": "Ultin backup {when}",
   "profile.cloud.backup.never": "Ancjemò no salvât",

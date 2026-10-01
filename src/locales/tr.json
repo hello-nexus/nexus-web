@@ -3788,6 +3788,8 @@
   "phonePair.unknown": "Bilinmiyor",
   "placeholder.badge": "Yakinda",
   "profile.appData.count": "{count} uygulama",
+  "profile.cloud.backup.error.failed": "Yedekleme başarısız oldu. Hiçbir şey yüklenmedi.",
+  "profile.cloud.backup.error.tooLarge": "Bu profilin uygulama verileri yedeklenemeyecek kadar büyük.",
   "profile.cloud.backup.includes": "{apps} dahil",
   "profile.cloud.backup.lastSynced": "Son yedekleme {when}",
   "profile.cloud.backup.never": "Henüz yedeklenmedi",

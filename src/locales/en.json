@@ -3788,6 +3788,8 @@
   "phonePair.unknown": "Unknown",
   "placeholder.badge": "Coming soon",
   "profile.appData.count": "{count} apps",
+  "profile.cloud.backup.error.failed": "Backup failed. Nothing was uploaded.",
+  "profile.cloud.backup.error.tooLarge": "This profile's app data is too big to back up.",
   "profile.cloud.backup.includes": "includes {apps}",
   "profile.cloud.backup.lastSynced": "Last backed up {when}",
   "profile.cloud.backup.never": "Not backed up yet",

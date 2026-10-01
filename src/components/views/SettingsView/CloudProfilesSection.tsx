@@ -60,6 +60,7 @@ export function CloudProfilesSection(
   const [backingUp, setBackingUp] = useState<string[]>([]);
   const [signInOpen, setSignInOpen] = useState(false);
   const [restore, setRestore] = useState<RestorePrompt | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   const loadLibrary = useCallback(() => {
     if (!signedIn) return;
@@ -117,7 +118,16 @@ export function CloudProfilesSection(
   const handleBackUp = (profileId: string) => {
     if (backingUp.includes(profileId)) return;
     setBackingUp(prev => [...prev, profileId]);
-    void sync.syncNow(profileId).finally(() => setBackingUp(prev => prev.filter(id => id !== profileId)));
+    setBackupError(null);
+    void sync.syncNow(profileId)
+      .then(result => {
+        if (result && !result.ok) {
+          setBackupError(result.msg === 'app_data_too_large'
+            ? t('profile.cloud.backup.error.tooLarge')
+            : t('profile.cloud.backup.error.failed'));
+        }
+      })
+      .finally(() => setBackingUp(prev => prev.filter(id => id !== profileId)));
   };
 
   const runImport = async (installId: string, profileId: string, key: string, replaceExisting: boolean, name: string, includeAppData: boolean) => {
@@ -333,6 +343,7 @@ export function CloudProfilesSection(
         {library === null && profiles.profiles.length === 0 ? <Spinner size={24} /> : mine.length === 0 ? (
           <EmptyState title={t('profile.cloud.list.empty')} />
         ) : mine.map(ownRow)}
+        {backupError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{backupError}</p>}
 
         {/* Per-machine rows make a conflict need two writers on THIS machine. */}
         {sync.conflicts.length > 0 && (

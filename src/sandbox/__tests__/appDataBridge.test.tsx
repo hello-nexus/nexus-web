@@ -124,17 +124,27 @@ describe('SandboxedWidget appData bridge', () => {
     expect(spawnSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('drops a pushed document from a profile other than the one the worker read', async () => {
+  it('forwards pushes from the profile the worker read', async () => {
     const { SandboxedWidget, spawnSpy, topicCallbacks } = await loadSandbox();
     render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:v1" widgetId="com.hellonexus.aquarium" instanceId="inst-1" appData />);
     const context = spawnSpy.mock.calls[0][2] as SandboxContext;
     await act(async () => { await context.api.appDataGet!('save'); });
     const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
     const bridge = topicCallbacks[topicCallbacks.length - 1];
-    bridge.onFrame({ revision: 7, updatedAt: 't7', data: { coins: 1 }, profileId: 'p2' });
-    expect(handle.update).not.toHaveBeenCalledWith(expect.objectContaining({ appData: expect.anything() }));
     bridge.onFrame({ revision: 8, updatedAt: 't8', data: { coins: 2 }, profileId: 'p1' });
     expect(handle.update).toHaveBeenCalledWith({ appData: { key: 'save', revision: 8, updatedAt: 't8', data: { coins: 2 } } });
+  });
+
+  it('respawns, instead of applying, a pushed document from another profile (a missed reset)', async () => {
+    const { SandboxedWidget, spawnSpy, topicCallbacks } = await loadSandbox();
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:v1" widgetId="com.hellonexus.aquarium" instanceId="inst-1" appData />);
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+    await act(async () => { await context.api.appDataGet!('save'); });
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    const bridge = topicCallbacks[topicCallbacks.length - 1];
+    act(() => { bridge.onFrame({ revision: 7, updatedAt: 't7', data: { coins: 1 }, profileId: 'p2' }); });
+    expect(handle.update).not.toHaveBeenCalledWith(expect.objectContaining({ appData: expect.anything() }));
+    expect(spawnSpy).toHaveBeenCalledTimes(2);
   });
 
   it('never exposes appDataGet/appDataPut when the manifest lacks the appData capability', async () => {

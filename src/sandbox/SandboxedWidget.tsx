@@ -301,6 +301,7 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
                 try { noteAppDataKey(entry!, dataKey); } catch (err) { return Promise.reject(err); }
                 return getAppData(widgetId, dataKey).then(({ profileId, ...doc }) => {
                   if (entry && entry.appDataProfileId === undefined) entry.appDataProfileId = profileId;
+                  else if (entry?.appDataProfileId && profileId && profileId !== entry.appDataProfileId) noteAppDataReset(`profile:${profileId}`);
                   return doc;
                 });
               }
@@ -424,7 +425,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           dataKey={key}
           onFrame={({ profileId, ...doc }) => {
             const own = liveEntry.appDataProfileId;
-            if (own && profileId && profileId !== own) return;
+            // Another profile's document means this worker missed the reset
+            // (the socket was down during the switch): respawn it now.
+            if (own && profileId && profileId !== own) { noteAppDataReset(`profile:${profileId}`); return; }
             handle.update({ appData: { key, ...doc } });
           }}
         />

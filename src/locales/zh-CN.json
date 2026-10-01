@@ -3788,6 +3788,8 @@
   "phonePair.unknown": "未知",
   "placeholder.badge": "即将推出",
   "profile.appData.count": "{count} 个应用",
+  "profile.cloud.backup.error.failed": "备份失败，未上传任何内容。",
+  "profile.cloud.backup.error.tooLarge": "此配置文件的应用数据过大，无法备份。",
   "profile.cloud.backup.includes": "包含 {apps}",
   "profile.cloud.backup.lastSynced": "上次备份 {when}",
   "profile.cloud.backup.never": "尚未备份",

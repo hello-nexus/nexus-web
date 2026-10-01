@@ -3825,6 +3825,8 @@
   "phonePair.unknown": "Неизвестно",
   "placeholder.badge": "Скоро",
   "profile.appData.count": "Приложений: {count}",
+  "profile.cloud.backup.error.failed": "Не удалось создать копию. Ничего не загружено.",
+  "profile.cloud.backup.error.tooLarge": "Данные приложений этого профиля слишком велики для резервной копии.",
   "profile.cloud.backup.includes": "включает {apps}",
   "profile.cloud.backup.lastSynced": "Последняя копия {when}",
   "profile.cloud.backup.never": "Копий ещё нет",
