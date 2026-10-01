@@ -167,7 +167,7 @@ export const UI_ELEMENTS = {
   // "nothing playing" / "no devices" surfaces.
   'ui-empty': { properties: ['title', 'hint', 'icon', 'compact'] },
   // Uppercase section header (the native SectionHeader) for grouping a page.
-  'ui-section': { properties: ['title'] },
+  'ui-section': { properties: ['title', 'grow'] },
   // --- blessed composites ---
   // Rich, host-owned widgets the worker can place but not redraw. The host
   // renders the SAME pure presentational component a native widget uses (e.g.

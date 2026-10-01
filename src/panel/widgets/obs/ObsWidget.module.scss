@@ -31,7 +31,7 @@
 
   > svg {
     flex-shrink: 0;
-    color: var(--panel-accent-glow);
+    color: var(--panel-ink-accent, var(--panel-accent-glow));
   }
 }
 
@@ -122,7 +122,7 @@
 
   svg {
     flex-shrink: 0;
-    color: var(--panel-accent-glow);
+    color: var(--panel-ink-accent, var(--panel-accent-glow));
   }
 
   span {
@@ -219,7 +219,7 @@
   &[data-active='true'] {
     border-color: var(--panel-accent);
     background: var(--panel-accent-soft);
-    color: var(--panel-accent-glow);
+    color: var(--panel-ink-accent, var(--panel-accent-glow));
   }
 }
 

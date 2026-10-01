@@ -1,0 +1,28 @@
+@use '../../../styles/text' as *;
+
+// Same chrome as the conflict warning modal (Sidebar/ConflictWarning.module.scss).
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 360px;
+  max-width: 560px;
+}
+
+.intro {
+  @include text-body;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.warnIcon {
+  display: flex;
+  color: var(--warn);
+}

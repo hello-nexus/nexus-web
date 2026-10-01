@@ -3,6 +3,9 @@ import { Usb, Monitor, Microchip, FileText, Cable, BookOpen, Link2 } from 'lucid
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUsbDevices, type UsbDeviceDetail } from '../../../hooks/useUsbDevices';
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import { useConflictApps } from '../../../hooks/useConflictApps';
+import { useConflictGuardedEnable } from '../../../hooks/useConflictGuardedEnable';
+import type { DetectedConflict } from '../../../api/conflicts';
 import { useFirmwareStatus, type FirmwareStatusItem, type FlashableImage } from '../../../hooks/useFirmwareStatus';
 import { useFlashStatus, type FlashStatus } from '../../../hooks/useFlashStatus';
 import { useRecoverConfirm } from '../../../hooks/useFirmwareRecovery';
@@ -24,6 +27,8 @@ import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal'
 import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
+import { ConflictRunningBadge } from '../../../components/common/ConflictRunningBadge/ConflictRunningBadge';
+import { NexusControlConflictModal } from '../../../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { DisplaysView } from '../../../components/views/DisplaysView/DisplaysView';
 import { useSearchSignal } from '../../../search/signals';
 import { promoteDisplayToPanel, demoteDisplayPanel } from '../../../api/displays';
@@ -67,6 +72,9 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
 
   const availableActive = tab === 'available';
   const { unified, controlDevice } = useUnifiedDevices(serviceOnline && availableActive);
+  const { conflicts } = useConflictApps(serviceOnline && availableActive);
+  const controlGuard = useConflictGuardedEnable();
+  const requestEnable = controlGuard.requestEnable;
   // A promoted-monitor panel row (Xeneon Edge, etc) has no first-party
   // handler to gate through controlDevice - its on/off toggle is the same
   // display promote/demote the Displays tab uses (see DisplaysView.tsx).
@@ -110,17 +118,22 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
       : linkDisplayId
         ? (next: boolean) => toggleLink(linkDisplayId, next)
         : d.curatedId
-          ? (next: boolean) => void controlDevice(d.curatedId as string, next)
+          ? (next: boolean) => {
+            const enable = () => void controlDevice(d.curatedId as string, next);
+            if (next) void requestEnable(d, enable);
+            else enable();
+          }
           : undefined;
     return (
       <DeviceCard
         key={d.key}
         device={d}
+        runningConflict={d.conflictAppId ? conflicts.find(c => c.id === d.conflictAppId) : undefined}
         onClick={() => onDeviceSelect(d.key)}
         onToggleControl={onToggleControl}
       />
     );
-  }, [controlDevice, onDeviceSelect, toggleLink]);
+  }, [conflicts, controlDevice, onDeviceSelect, requestEnable, toggleLink]);
 
   const tabs = [
     { key: 'available', label: t('devices.tabs.available'), icon: <Usb size={14} /> },
@@ -218,6 +231,12 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
         loading={allUsb.loading}
         onRefresh={allUsb.refresh}
       />
+
+      <NexusControlConflictModal
+        pending={controlGuard.pending}
+        onConfirm={controlGuard.confirm}
+        onCancel={controlGuard.cancel}
+      />
     </section>
   );
 }
@@ -248,9 +267,11 @@ function ConnectedDevicesModal({ open, onClose, devices, loading, onRefresh }: C
 }
 
 function DeviceCard({
-  device, onClick, onToggleControl,
+  device, runningConflict, onClick, onToggleControl,
 }: {
   device: UnifiedDevice;
+  /** The device's competing app, when the watcher reports it running. */
+  runningConflict?: DetectedConflict;
   onClick: () => void;
   onToggleControl?: (next: boolean) => void;
 }) {
@@ -279,6 +300,7 @@ function DeviceCard({
         {meta && <span className={styles.rowMeta}>{meta}</span>}
       </div>
       {device.warning && <DeviceWarningIcon code={device.warning} />}
+      {runningConflict && <ConflictRunningBadge appName={runningConflict.displayName} />}
       {device.experimental && <ExperimentalBadge />}
       {onToggleControl && (
         // Stop click + keydown so toggling the control doesn't also fire the

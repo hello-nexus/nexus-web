@@ -23,9 +23,11 @@ async function loadSandbox(opts: { initialConnected?: boolean } = {}) {
     handles.push(h);
     return h;
   });
-  const getAppData = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { ok: true } });
+  const getAppData = vi.fn().mockResolvedValue({ revision: 1, updatedAt: 't1', data: { ok: true }, profileId: 'p1' });
   const putAppData = vi.fn().mockResolvedValue({ ok: true, revision: 2, updatedAt: 't2' });
   const topicCallbacks: Array<{ topic: string; onFrame: (raw: unknown) => void }> = [];
+  // The latest render's reset listener; the page-wide reset topic is not a per-key bridge.
+  let resetFrame: (raw: unknown) => void = () => {};
   let connected = opts.initialConnected ?? true;
   const connectionListeners = new Set<() => void>();
   const setConnected = (next: boolean) => {
@@ -41,6 +43,7 @@ async function loadSandbox(opts: { initialConnected?: boolean } = {}) {
   }));
   vi.doMock('../../hooks/useMultiplexSocket', () => ({
     useTopicCallback: (topic: string, _enabled: boolean, onFrame: (raw: unknown) => void) => {
+      if (topic === 'app-data-reset') { resetFrame = onFrame; return; }
       topicCallbacks.push({ topic, onFrame });
     },
     // A minimal reactive stand-in for the real multiplex context: re-renders
@@ -56,7 +59,7 @@ async function loadSandbox(opts: { initialConnected?: boolean } = {}) {
     },
   }));
   const { SandboxedWidget } = await import('../SandboxedWidget');
-  return { SandboxedWidget, spawnSpy, handles, getAppData, putAppData, topicCallbacks, setConnected };
+  return { SandboxedWidget, spawnSpy, handles, getAppData, putAppData, topicCallbacks, setConnected, reset: (raw: unknown) => resetFrame(raw) };
 }
 
 describe('SandboxedWidget appData bridge', () => {
@@ -87,7 +90,61 @@ describe('SandboxedWidget appData bridge', () => {
     expect(getAppData).toHaveBeenCalledWith('com.hellonexus.aquarium', 'save');
 
     await act(async () => { await context.api.appDataPut!('save', 1, { coins: 5 }); });
-    expect(putAppData).toHaveBeenCalledWith('com.hellonexus.aquarium', 'save', 1, { coins: 5 });
+    expect(putAppData).toHaveBeenCalledWith('com.hellonexus.aquarium', 'save', 1, { coins: 5 }, 'p1');
+  });
+
+  it('hands the worker the document without the profile tag', async () => {
+    const { SandboxedWidget, spawnSpy } = await loadSandbox();
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:v1" widgetId="com.hellonexus.aquarium" instanceId="inst-1" appData />);
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+    let doc: unknown;
+    await act(async () => { doc = await context.api.appDataGet!('save'); });
+    expect(doc).toEqual({ revision: 1, updatedAt: 't1', data: { ok: true } });
+  });
+
+  it('respawns the worker on a profile reset, and only once per reset id', async () => {
+    const { SandboxedWidget, spawnSpy, handles, reset } = await loadSandbox();
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:v1" widgetId="com.hellonexus.aquarium" instanceId="inst-1" appData />);
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+
+    act(() => { reset({ profileId: 'p2', resetId: 'r1' }); });
+    expect(spawnSpy).toHaveBeenCalledTimes(2);
+    act(() => { reset({ profileId: 'p2', resetId: 'r1' }); });
+    expect(spawnSpy).toHaveBeenCalledTimes(2);
+
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(handles[0].dispose).toHaveBeenCalled();
+    expect(handles[1].dispose).not.toHaveBeenCalled();
+  });
+
+  it('keeps a widget without the appData capability across a profile reset', async () => {
+    const { SandboxedWidget, spawnSpy, reset } = await loadSandbox();
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:v1" widgetId="com.example.clock" instanceId="inst-1" />);
+    act(() => { reset({ profileId: 'p2', resetId: 'r1' }); });
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards pushes from the profile the worker read', async () => {
+    const { SandboxedWidget, spawnSpy, topicCallbacks } = await loadSandbox();
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:v1" widgetId="com.hellonexus.aquarium" instanceId="inst-1" appData />);
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+    await act(async () => { await context.api.appDataGet!('save'); });
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    const bridge = topicCallbacks[topicCallbacks.length - 1];
+    bridge.onFrame({ revision: 8, updatedAt: 't8', data: { coins: 2 }, profileId: 'p1' });
+    expect(handle.update).toHaveBeenCalledWith({ appData: { key: 'save', revision: 8, updatedAt: 't8', data: { coins: 2 } } });
+  });
+
+  it('respawns, instead of applying, a pushed document from another profile (a missed reset)', async () => {
+    const { SandboxedWidget, spawnSpy, topicCallbacks } = await loadSandbox();
+    render(<SandboxedWidget runtimeUrl="blob:rt" entryUrl="blob:v1" widgetId="com.hellonexus.aquarium" instanceId="inst-1" appData />);
+    const context = spawnSpy.mock.calls[0][2] as SandboxContext;
+    await act(async () => { await context.api.appDataGet!('save'); });
+    const handle = spawnSpy.mock.results[0]!.value as FakeHandle;
+    const bridge = topicCallbacks[topicCallbacks.length - 1];
+    act(() => { bridge.onFrame({ revision: 7, updatedAt: 't7', data: { coins: 1 }, profileId: 'p2' }); });
+    expect(handle.update).not.toHaveBeenCalledWith(expect.objectContaining({ appData: expect.anything() }));
+    expect(spawnSpy).toHaveBeenCalledTimes(2);
   });
 
   it('never exposes appDataGet/appDataPut when the manifest lacks the appData capability', async () => {

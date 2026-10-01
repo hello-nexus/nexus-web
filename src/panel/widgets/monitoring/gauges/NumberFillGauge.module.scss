@@ -42,11 +42,11 @@
 }
 
 .textDim {
-  color: var(--panel-accent-shadow);
+  color: var(--panel-ink-accent-shadow, var(--panel-accent-shadow));
 }
 
 .textBright {
-  color: var(--panel-accent);
+  color: var(--panel-ink-accent, var(--panel-accent));
 }
 
 // Inherit the layer's fill color instead of the global dim grey, so the unit

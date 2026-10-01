@@ -35,7 +35,7 @@
 .compositeValue {
   @include text-display;
   font-size: var(--type-hero);
-  color: var(--accent-glow);
+  color: var(--panel-ink-accent, var(--accent-glow));
 }
 
 .compositeLabel {

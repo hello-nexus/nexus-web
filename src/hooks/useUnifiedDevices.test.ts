@@ -11,7 +11,7 @@ vi.mock('./useDevices', () => ({
 
 const mockUsePanelDevices = vi.fn();
 vi.mock('./usePanelDevices', () => ({
-  usePanelDevices: () => mockUsePanelDevices(),
+  usePanelDevices: () => ({ turnedOffMonitorIds: [], ...mockUsePanelDevices() }),
 }));
 
 const mockUseStreamDecks = vi.fn();

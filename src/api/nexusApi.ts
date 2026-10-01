@@ -3,7 +3,7 @@
 // the compiled-in default so a build missing VITE_API_URL still works; the
 // committed .env.development points `npm run dev` at a local API.
 
-import type { BenchmarkVersionInfo, LeaderboardResponse } from '../types/benchmark';
+import type { BenchmarkRanges, BenchmarkVersionInfo, LeaderboardResponse } from '../types/benchmark';
 import type { FpsSignatureParams, FpsSignatureResponse, FpsTableResponse } from '../types/fps-estimates';
 import type { GameScoresResponse, GameType } from '../types/games';
 import { authFetchWithStatus } from './service';
@@ -90,6 +90,15 @@ export async function getBenchmarkVersions(): Promise<BenchmarkVersionInfo[] | n
   } catch {
     return null;
   }
+}
+
+let rangesRequest: Promise<BenchmarkRanges | null> | null = null;
+
+/** Top-1% score per part for this machine's scoring version; fetched once per page load, a failure included. */
+export function getBenchmarkRanges(): Promise<BenchmarkRanges | null> {
+  rangesRequest ??= readApi<BenchmarkRanges>('/cloud/benchmarks/ranges', `${BASE}/benchmarks/ranges`)
+    .then(r => (r.ok ? r.data : null));
+  return rangesRequest;
 }
 
 /** Stable per-browser device id stored in localStorage. Generated lazily. */

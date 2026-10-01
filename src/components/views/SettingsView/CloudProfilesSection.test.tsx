@@ -179,6 +179,26 @@ describe('CloudProfilesSection profile list', () => {
     expect(screen.getByText('Main')).toBeInTheDocument();
   });
 
+  it('stamps other-computer rows with when they were backed up', async () => {
+    vi.mocked(fetchCloudLibrary).mockResolvedValue({
+      machines: [LIBRARY.machines[0], {
+        ...LIBRARY.machines[1],
+        profiles: [{ ...LIBRARY.machines[1].profiles[0], updatedAt: '2026-08-28T02:31:10.000Z' }],
+      }],
+    });
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('HYTEY70')).toBeInTheDocument());
+    expect(screen.getByText(/^profile\.cloud\.backup\.lastSynced/)).toBeInTheDocument();
+  });
+
+  it('chips every row with its computer, this one included', async () => {
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('HYTEY70')).toBeInTheDocument());
+    expect(screen.getByText('T1')).toBeInTheDocument();
+  });
+
   it('reports an import failure beside the import buttons, not under this computer', async () => {
     // A 409 body used to be discarded by postService, so the conflict showed
     // as a generic failure - and it rendered in the wrong section.
@@ -204,11 +224,8 @@ describe('CloudProfilesSection profile list', () => {
     renderSection();
 
     await waitFor(() => expect(screen.getByText('profile.cloud.others.title')).toBeInTheDocument());
-    // This computer's rows carry the backup stamp, not the machine name; the
-    // owning machine is named only in the other-computers section.
     expect(screen.getByText(/profile\.cloud\.backup\.lastSynced/)).toBeInTheDocument();
     expect(screen.getByText('HYTEY70')).toBeInTheDocument();
-    expect(screen.queryByText('T1')).not.toBeInTheDocument();
   });
 
   it('hides the other-computers section when nothing else has backed up', async () => {
@@ -233,7 +250,7 @@ describe('CloudProfilesSection profile list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
 
     await waitFor(() => {
-      expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false);
+      expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false, true);
     });
   });
 
@@ -267,8 +284,44 @@ describe('CloudProfilesSection profile list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.nameTaken.replace' }));
 
     await waitFor(() => {
-      expect(importCloudProfile).toHaveBeenLastCalledWith('other', 'p2', true);
+      expect(importCloudProfile).toHaveBeenLastCalledWith('other', 'p2', true, true);
     });
+  });
+
+  it('lists the apps a backup carries and asks before importing it', async () => {
+    const withApps = {
+      machines: [
+        LIBRARY.machines[0],
+        { ...LIBRARY.machines[1], profiles: [{ ...LIBRARY.machines[1].profiles[0], appIds: ['com.hellonexus.aquarium'] }] },
+      ],
+    };
+    vi.mocked(fetchCloudLibrary).mockResolvedValue(withApps);
+    vi.mocked(importCloudProfile).mockResolvedValue({ status: 200, body: { error: false } });
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText(/profile\.cloud\.backup\.includes apps=com\.hellonexus\.aquarium/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
+
+    await waitFor(() => expect(screen.getByText('profile.restore.importTitle name=Default')).toBeInTheDocument());
+    expect(importCloudProfile).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByRole('button', { name: 'profile.restore.importAction' }));
+
+    await waitFor(() => expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false, false));
+  });
+
+  it('says so when a backup is refused for size', async () => {
+    syncResult.mockReturnValue({ ...BASE_SYNC, syncNow: vi.fn().mockResolvedValue({ ok: false, msg: 'app_data_too_large' }) });
+    renderSection();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' }).length).toBeGreaterThan(0));
+    fireEvent.click(screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' })[0]);
+    await waitFor(() => expect(screen.getByText('profile.cloud.backup.error.tooLarge')).toBeInTheDocument());
+  });
+
+  it('marks the active local profile, as the local list does', async () => {
+    renderSection();
+    await waitFor(() => expect(screen.getByText('settings.profiles.active')).toBeInTheDocument());
+    expect(screen.getAllByText('settings.profiles.active')).toHaveLength(1);
   });
 
   it('surfaces the local profile cap instead of failing silently', async () => {

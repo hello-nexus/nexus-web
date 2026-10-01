@@ -18,7 +18,7 @@ import {
   LANGUAGE_FLAGS, LANGUAGE_LABELS, LANGUAGES,
   type Language, type NexusSettings,
 } from '../../../lib/settings';
-import type { UpdateChannel, UpdateMode } from '../../../api/update';
+import { getUpdateStatus, type UpdateChannel, type UpdateMode } from '../../../api/update';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import { DISCORD_INVITE_URL } from '../../../lib/externalLinks';
 import { DiscordGlyph } from '../../icons/NexusBrand';
@@ -44,6 +44,17 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
     else setRestartingOnboarding(false);
   };
   const [autoStart, setAutoStart] = useState<boolean | null>(null);
+  // macOS and Linux install updates only when the service can (a Nexus.app in a
+  // writable folder, the root daemon); elsewhere the modes would do nothing.
+  const [canAutoInstall, setCanAutoInstall] = useState(false);
+  useEffect(() => {
+    if (!serviceOnline || !OFFICIAL_BUILD || platform === 'windows') return;
+    let cancelled = false;
+    getUpdateStatus().then(s => {
+      if (s && !cancelled) setCanAutoInstall(s.canAutoInstall);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [serviceOnline, platform]);
   const [autoStartLoading, setAutoStartLoading] = useState(false);
   // Local drag preview - only committed to useUiSettings (and so posted to the
   // server) once the user releases the slider or types a precise value.
@@ -228,7 +239,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
       )}
 
       {/* OTA ships our signed releases. */}
-      {platform === 'windows' && OFFICIAL_BUILD && (
+      {OFFICIAL_BUILD && (platform === 'windows' || canAutoInstall) && (
         <SettingsSection title={t('settings.updates.title')}>
           <SettingSelect
             label={t('settings.updates.mode.label')}

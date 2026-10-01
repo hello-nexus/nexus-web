@@ -4,7 +4,7 @@ import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, ShieldUser, UserRound } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
@@ -42,10 +42,11 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
   const accounts = useCloudAccounts(OFFICIAL_BUILD);
   const showRefresh = active === 'cloud' && accounts.activeAccountId !== null;
   const tabs: TabDef[] = useMemo(() => [
-    { key: 'local', label: t('profile.tab.local') },
+    { key: 'local', label: t('profile.tab.local'), icon: <UserRound size={14} /> },
     {
       key: 'cloud',
       label: t('profile.tab.cloud'),
+      icon: <ShieldUser size={14} />,
       trailing: showRefresh ? (
         <button
           type="button"

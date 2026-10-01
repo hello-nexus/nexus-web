@@ -130,6 +130,19 @@ const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: str
   'xeneon-edge': { name: 'Xeneon Edge', icon: '/assets/devices/corsair.svg', defaultNames: ['crx ed00'] },
 };
 
+// A plain monitor (no product family) promoted to a panel and then turned off:
+// it leaves the device list, since it is only a device while used as a panel.
+export function promotedMonitorDeviceId(record: PanelDeviceRecord): string {
+  return `display:${record.id}`;
+}
+
+export function isTurnedOffPlainMonitor(record: PanelDeviceRecord): boolean {
+  return !!record.displayId
+    && record.displayAttached !== false
+    && record.enabled === false
+    && !record.capabilities?.family;
+}
+
 export function usePanelDevices(
   enabled: boolean,
   {
@@ -192,7 +205,14 @@ export function usePanelDevices(
     });
   }, [curatedDevices, phoneSessions, records, status, simulatedPanels, t]);
 
-  return { devices, loading };
+  // Device ids of monitors that left the list because they were turned off,
+  // so a page open on one can tell that apart from a list still loading.
+  const turnedOffMonitorIds = useMemo(
+    () => records.filter(isTurnedOffPlainMonitor).map(promotedMonitorDeviceId),
+    [records],
+  );
+
+  return { devices, loading, turnedOffMonitorIds };
 }
 
 export function buildPanelDevices({
@@ -281,10 +301,10 @@ export function buildPanelDevices({
   // service created on POST /displays/{id}/panel. Hidden while the bound
   // monitor is unplugged (displayAttached === false); unknown topology
   // (null/undefined) keeps the row visible rather than flickering it away.
-  // A record with Nexus Control off (enabled === false) stays in the list too -
-  // the monitor stays physically attached, unmanaged rather than
-  // disconnected - so its device page can show an accurate off state instead
-  // of "not connected".
+  // With Nexus Control off (enabled === false), a plain monitor leaves the list:
+  // it is only a device while used as a panel, and Devices > Displays turns it
+  // back on. A product family (the Xeneon Edge, also a USB touch device) keeps
+  // its row, so its device page can show an accurate off state.
   // Streamed panels: glass the overlay renders into and the service pushes
   // frames to (the Kraken LCD). Layout + theme edit like any panel; there is no
   // kiosk to launch, no display to control, and no touch digitizer.
@@ -324,6 +344,7 @@ export function buildPanelDevices({
 
   for (const record of records) {
     if (!record.displayId || record.displayAttached === false) continue;
+    if (isTurnedOffPlainMonitor(record)) continue;
     const linkEnabled = record.enabled !== false;
     const cssWidth = record.capabilities?.cssWidth ?? 0;
     const cssHeight = record.capabilities?.cssHeight ?? 0;
@@ -336,7 +357,7 @@ export function buildPanelDevices({
       && (normalizedName.includes(branding.name.toLowerCase())
         || branding.defaultNames.includes(normalizedName));
     devices.push({
-      id: `display:${record.id}`,
+      id: promotedMonitorDeviceId(record),
       panelRecordId: record.id,
       displayId: record.displayId,
       name: isDefaultName ? branding.name : record.displayName,

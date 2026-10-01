@@ -44,6 +44,7 @@ const STATE_COLORS: Record<NonNullable<SettingState['tone']>, string> = {
  */
 export function SettingRow({
   label,
+  labelSuffix,
   description,
   icon,
   iconLeading,
@@ -55,8 +56,11 @@ export function SettingRow({
   wrapControl,
   stackOnNarrow,
   descriptionBelow,
+  selected,
 }: {
   label?: string;
+  // Inline content after the label text, e.g. a chip naming what the row belongs to.
+  labelSuffix?: ReactNode;
   description?: ReactNode;
   // Optional accent glyph rendered inline before the label text.
   icon?: ReactNode;
@@ -95,6 +99,8 @@ export function SettingRow({
   // the row's, so the control jogs up and down as the text rewraps. 'tight'
   // seats the description against the label instead (SettingSlider).
   descriptionBelow?: boolean | 'tight';
+  // The row the user is currently on (e.g. the active profile): accent outline and fill.
+  selected?: boolean;
 }) {
   const cls = [
     styles.row,
@@ -105,6 +111,7 @@ export function SettingRow({
     descriptionBelow && styles.descBelow,
     descriptionBelow === 'tight' && styles.descBelowTight,
     icon && iconLeading && styles.hasLeadingIcon,
+    selected && styles.selected,
   ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>
@@ -122,6 +129,7 @@ export function SettingRow({
             <span className={styles.label}>
               {icon && !iconLeading && <span className={styles.labelIcon} aria-hidden="true">{icon}</span>}
               {label}
+              {labelSuffix && <span className={styles.labelSuffix}>{labelSuffix}</span>}
             </span>
           )}
           {description && !descriptionBelow && <span className={styles.desc}>{description}</span>}

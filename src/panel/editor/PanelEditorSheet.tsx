@@ -14,6 +14,7 @@ import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
 import { PanelThemeSettings, type PanelSlideshowSettings, type PanelThemeSettingsSection, type ResolvedPanelThemeMode } from './PanelThemeSettings';
+import type { TextColorMode } from '../theme/textColor';
 import { PairRemoteContent } from '../../components/common/PairRemote/PairRemoteContent';
 import { PairedPcsContent } from '../../components/common/PairedPcs/PairedPcsContent';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
@@ -77,6 +78,9 @@ export function PanelEditorSheet({
   onThemeWidgetOpacityPreview,
   onThemeWidgetOpacityCommit,
   onThemeWidgetLabelsCommit,
+  onThemeTextColorModeCommit,
+  onThemeTextColorPreview,
+  onThemeTextColorCommit,
   onThemeWidgetPaddingPreview,
   onThemeWidgetPaddingCommit,
   showMediaTab = false,
@@ -157,6 +161,9 @@ export function PanelEditorSheet({
   onThemeWidgetOpacityPreview: (opacity: number) => void;
   onThemeWidgetOpacityCommit: (opacity: number) => void;
   onThemeWidgetLabelsCommit: (enabled: boolean) => void;
+  onThemeTextColorModeCommit: (mode: TextColorMode) => void;
+  onThemeTextColorPreview: (hex: string) => void;
+  onThemeTextColorCommit: (hex: string) => void;
   onThemeWidgetPaddingPreview: (percent: number) => void;
   onThemeWidgetPaddingCommit: (percent: number) => void;
   showMediaTab?: boolean;
@@ -462,6 +469,9 @@ export function PanelEditorSheet({
               onWidgetLabelsCommit={onThemeWidgetLabelsCommit}
               onWidgetPaddingPreview={onThemeWidgetPaddingPreview}
               onWidgetPaddingCommit={onThemeWidgetPaddingCommit}
+              onTextColorModeCommit={onThemeTextColorModeCommit}
+              onTextColorPreview={onThemeTextColorPreview}
+              onTextColorCommit={onThemeTextColorCommit}
               hideWidgetChromeControls={isSingleWidgetSurface(surface)}
             />
           </div>

@@ -348,22 +348,23 @@ export const resetProfile = (profileId: string) =>
 export const resetProfileCategory = (profileId: string, category: ProfileCategory) =>
   postService(`/profiles/${encodeURIComponent(profileId)}/reset/${encodeURIComponent(category)}`, {});
 
-// Downloads the profile as a `.nexusprofile` archive (profile.json + any
-// app-data docs, zipped) rather than the legacy bare JSON export - the only
-// format that carries an app's app-data along with the profile.
+/** Characters Windows, macOS, or Linux refuse in a file name; the browser drops control characters itself. */
+const UNSAFE_FILE_CHARS = /[<>:"/\\|?*]/g;
+
+/** `<profile name>.nexusprofile`: the readable JSON bundle of the profile's settings and app data. */
 export async function exportProfile(id: string, name: string): Promise<void> {
   try {
     const token = await getToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const resp = await fetch(resolveHttp(`/profiles/${encodeURIComponent(id)}/export?format=archive`), { ...loopbackFetchInit, headers });
+    const resp = await fetch(resolveHttp(`/profiles/${encodeURIComponent(id)}/export`), { ...loopbackFetchInit, headers });
     if (!resp.ok) return;
     const blob = await resp.blob();
-    const safeName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeName = name.replace(UNSAFE_FILE_CHARS, '').trim() || 'profile';
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `nexus-${safeName}.nexusprofile`;
+    a.download = `${safeName}.nexusprofile`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -371,27 +372,35 @@ export async function exportProfile(id: string, name: string): Promise<void> {
   } catch { /* ignore download errors */ }
 }
 
-// Accepts both a `.nexusprofile` archive (raw zip bytes) and the legacy bare
-// JSON export, told apart by extension - the file picker only ever offers the
-// two (see ProfilesTab's file input `accept`).
-export async function importProfileFile(file: File, replace = false): Promise<ProfileFetchResult<ProfileResponse>> {
-  const path = replace ? '/profiles/import?replace=true' : '/profiles/import';
-  if (file.name.toLowerCase().endsWith('.nexusprofile')) {
-    try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const { response, status } = await postServiceBytesWithStatus(path, bytes, 'application/zip');
-      if (!response) return { status, body: null };
-      let body: ProfileResponse | null = null;
-      try { body = (await response.json()) as ProfileResponse; } catch { body = null; }
-      return { status, body };
-    } catch {
-      return { status: 0, body: null };
-    }
-  }
+export interface ProfileFileInfo {
+  name: string;
+  appIds: string[];
+  format: string;
+}
+
+/** Reads a profile file without importing it; null when the service cannot parse it. The service tells JSON and legacy zip apart by content. */
+export async function inspectProfileFile(file: File): Promise<ProfileFileInfo | null> {
   try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-    return await profileFetch<ProfileResponse>(path, 'POST', parsed);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const { response, status } = await postServiceBytesWithStatus('/profiles/import/inspect', bytes, 'application/octet-stream');
+    if (!response || status !== 200) return null;
+    const body = (await response.json()) as Partial<ProfileFileInfo>;
+    return { name: body.name ?? '', appIds: Array.isArray(body.appIds) ? body.appIds : [], format: body.format ?? '' };
+  } catch {
+    return null;
+  }
+}
+
+export async function importProfileFile(file: File, replace = false, includeAppData = true): Promise<ProfileFetchResult<ProfileResponse>> {
+  const query = [replace ? 'replace=true' : '', includeAppData ? '' : 'appData=skip'].filter(Boolean).join('&');
+  const path = query ? `/profiles/import?${query}` : '/profiles/import';
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const { response, status } = await postServiceBytesWithStatus(path, bytes, 'application/octet-stream');
+    if (!response) return { status, body: null };
+    let body: ProfileResponse | null = null;
+    try { body = (await response.json()) as ProfileResponse; } catch { body = null; }
+    return { status, body };
   } catch {
     return { status: 0, body: null };
   }

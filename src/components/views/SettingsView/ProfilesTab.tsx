@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Anchor, Download, Plus, RotateCcw, Trash2, Upload } from 'lucide-react';
+import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { EditableText } from '../../common/Editable/EditableText';
@@ -7,11 +8,12 @@ import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import { PromptModal } from '../../common/PromptModal/PromptModal';
 import { SortableList } from '../../common/SortableList/SortableList';
-import { exportProfile, type Preferences, type ProfileCategory } from '../../../api/profiles';
+import { exportProfile, inspectProfileFile, type Preferences, type ProfileCategory } from '../../../api/profiles';
 import { useProfileSharing, type UseProfilesResult } from '../../../hooks/useProfiles';
 import { isProfileNameTaken } from '../../../hooks/profileNameUtils';
 import { useTranslation } from '../../../lib/i18n';
 import { SharingSection } from './SharingSection';
+import { ProfileRestoreModal } from './ProfileRestoreModal';
 import styles from './SettingsView.module.scss';
 
 type ConfirmKind =
@@ -19,7 +21,7 @@ type ConfirmKind =
   | { kind: 'resetProfile'; profileId: string; name: string }
   | { kind: 'resetCategory'; profileId: string; category: ProfileCategory; shared: boolean }
   | { kind: 'shareCategory'; category: ProfileCategory; primaryName: string }
-  | { kind: 'replaceImport'; file: File };
+  | { kind: 'replaceImport'; file: File; includeAppData: boolean };
 
 export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseProfilesResult; onPreferencesChanged: (prefs: Preferences) => void }) {
   const { t } = useTranslation();
@@ -28,6 +30,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   const [createOpen, setCreateOpen] = useState(false);
   const [renameError, setRenameError] = useState<{ profileId: string; message: string } | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [pendingImport, setPendingImport] = useState<{ file: File; name: string; appIds: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const switchingRef = useRef(false);
   // Per-profile attempt counter so a stale rename response (superseded by a
@@ -54,9 +57,18 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
     if (!file) return;
     e.target.value = '';
     setImportError(null);
-    const result = await profiles.importProfile(file);
+    const info = await inspectProfileFile(file);
+    if (info && info.appIds.length > 0) {
+      setPendingImport({ file, name: info.name, appIds: info.appIds });
+      return;
+    }
+    await runImport(file, true);
+  };
+
+  const runImport = async (file: File, includeAppData: boolean) => {
+    const result = await profiles.importProfile(file, false, includeAppData);
     if (result.body?.msg === 'profile_name_taken') {
-      setConfirmTarget({ kind: 'replaceImport', file });
+      setConfirmTarget({ kind: 'replaceImport', file, includeAppData });
     }
   };
 
@@ -83,7 +95,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
     } else if (target.kind === 'shareCategory') {
       await sharing.setCategoryShared(target.category, true);
     } else if (target.kind === 'replaceImport') {
-      const result = await profiles.importProfile(target.file, true);
+      const result = await profiles.importProfile(target.file, true, target.includeAppData);
       if (result.body?.msg === 'profile_name_taken') {
         setImportError(t('profile.importDuplicateName'));
       }
@@ -152,7 +164,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   return (
     <div className={styles.tabPanel}>
       <SettingsSection
-        title={t('settings.tab.profiles')}
+        title={t('profile.tab.local')}
         description={t('settings.profiles.description')}
       >
       {profiles.profiles.length === 0 ? (
@@ -217,15 +229,14 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                     </p>
                   )}
                   {isActive && (
-                    <span className={styles.profileBadge}>{t('settings.profiles.active')}</span>
+                    <Badge label={t('settings.profiles.active')} color="var(--accent)" uppercase />
                   )}
                 </div>
                 <div className={styles.profileActions} data-no-dnd onClick={(e) => e.stopPropagation()}>
                   {isPrimary ? (
                     <HoverTooltip body={t('settings.profiles.sharing.primaryBadgeTooltip')} side="top">
-                      <span className={styles.profileBadgePrimary}>
-                        <Anchor size={11} />
-                        {t('settings.profiles.sharing.primary')}
+                      <span>
+                        <Badge label={t('settings.profiles.sharing.primary')} color="var(--accent)" icon={<Anchor size={11} />} uppercase />
                       </span>
                     </HoverTooltip>
                   ) : (
@@ -260,7 +271,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                   {profiles.profiles.length > 1 && !isActive && (
                     <Button
                       type="button"
-                      tone="ghost"
+                      tone="danger"
                       size="sm"
                       icon={<Trash2 />}
                       onClick={() => setConfirmTarget({ kind: 'delete', profileId: p.id, name: p.name })}
@@ -353,6 +364,18 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
           onCancel={() => setConfirmTarget(null)}
         />
       )}
+      <ProfileRestoreModal
+        open={pendingImport !== null}
+        title={t('profile.restore.importTitle', { name: pendingImport?.name ?? '' })}
+        confirmLabel={t('profile.restore.importAction')}
+        appIds={pendingImport?.appIds ?? []}
+        onConfirm={(includeAppData) => {
+          const pending = pendingImport;
+          setPendingImport(null);
+          if (pending) void runImport(pending.file, includeAppData);
+        }}
+        onCancel={() => setPendingImport(null)}
+      />
     </div>
   );
 }
