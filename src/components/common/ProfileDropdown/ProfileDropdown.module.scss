@@ -171,35 +171,17 @@
 }
 
 .accountCard {
-  position: relative;
-  isolation: isolate;
   display: flex;
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 0.6rem;
   border: none;
   border-radius: calc(var(--radius-sm) - 2px);
-  background: transparent;
+  // Same tint as the selected profile row below.
+  background: var(--accent-soft);
   color: var(--text);
   cursor: pointer;
   text-align: left;
-
-  // A dimmer take on the active profile row's --accent-soft, so the two never
-  // read as the same state; a layer, not color-mix, for the Chromium 83 floor.
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    background: var(--accent-soft);
-    opacity: 0.6;
-    transition: opacity var(--ease-fast);
-  }
-
-  &:hover::before {
-    opacity: 1;
-  }
 }
 
 .accountEntryText {
