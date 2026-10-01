@@ -8,6 +8,7 @@ import { fetchCloudAccounts, type GetAccountsResponse } from '../api/cloud';
 import { OFFICIAL_BUILD } from '../lib/officialBuild';
 import { fetchSystemVolume, type SystemVolumeState } from '../api/system';
 import { getTrackingStatus } from '../hooks/useScreenTimeBrowse';
+import { getUpdateStatus } from '../api/update';
 
 /** Live service state behind the palette's stateful entries (toggles that
  *  show their current position, per-device rows). Every field is null until
@@ -25,6 +26,8 @@ export interface SearchLiveState {
   discord: DiscordStatusResponse | null;
   cloud: GetAccountsResponse | null;
   volume: SystemVolumeState | null;
+  /** Whether the service installs updates itself (it always does on Windows). */
+  canAutoInstall: boolean | null;
 }
 
 export const EMPTY_LIVE_STATE: SearchLiveState = {
@@ -38,6 +41,7 @@ export const EMPTY_LIVE_STATE: SearchLiveState = {
   discord: null,
   cloud: null,
   volume: null,
+  canAutoInstall: null,
 };
 
 /**
@@ -63,7 +67,8 @@ export function useSearchLiveState(enabled: boolean): SearchLiveState {
       fetchDiscordStatus().catch(() => null),
       OFFICIAL_BUILD ? fetchCloudAccounts().catch(() => null) : Promise.resolve(null),
       fetchSystemVolume().catch(() => null),
-    ]).then(([music, telemetry, tracking, brightness, lightingDevices, smartLights, obs, discord, cloud, volume]) => {
+      OFFICIAL_BUILD ? getUpdateStatus().catch(() => null) : Promise.resolve(null),
+    ]).then(([music, telemetry, tracking, brightness, lightingDevices, smartLights, obs, discord, cloud, volume, update]) => {
       if (cancelled) return;
       setState({
         musicReactive: music ? music.enabled : null,
@@ -76,6 +81,7 @@ export function useSearchLiveState(enabled: boolean): SearchLiveState {
         discord: discord ?? null,
         cloud: cloud ?? null,
         volume: volume ?? null,
+        canAutoInstall: update ? update.canAutoInstall : null,
       });
     });
     return () => { cancelled = true; };

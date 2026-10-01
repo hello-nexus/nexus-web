@@ -13,6 +13,11 @@ uniform float u_snow;      // hint_range(0.0, 1.0, 0.01) = 0.0
 uniform float u_fog;       // hint_range(0.0, 1.0, 0.01) = 0.0
 uniform float u_storm;     // hint_range(0.0, 1.0, 0.01) = 0.0
 uniform float u_wind;      // hint_range(-1.0, 1.0, 0.01) = 0.2 screen-x wind, positive blows right
+// Wind drift is integrated on the CPU up to u_windT0 (u_time seconds), so a
+// wind change bends the motion instead of rescaling everything already drifted.
+uniform float u_windT0;    // hint_range(0.0, 86400.0, 0.001) = 0.0
+uniform float u_windW;     // hint_range(-86400.0, 86400.0, 0.001) = 0.0 integral of u_wind
+uniform float u_windS;     // hint_range(-86400.0, 86400.0, 0.001) = 0.0 integral of the wind's sign
 
 const float PI = 3.14159265;
 
@@ -132,10 +137,10 @@ float rainLayer(vec2 q, float px, float scale, float speed, float len, float den
   return body * trail * on;
 }
 
-float snowLayer(vec2 q, float px, float scale, float speed, float size, float density, float seed, float drift) {
+float snowLayer(vec2 q, float px, float scale, float speed, float size, float density, float seed, float driftX) {
   vec2 p = q * scale;
   p.y += u_time * speed;
-  p.x += u_time * drift + sin(p.y * 0.6 + seed) * 0.35;
+  p.x += driftX + sin(p.y * 0.6 + seed) * 0.35;
   vec2 id = floor(p);
   float h = hash12(id + seed);
   if (h > density) return 0.0;
@@ -156,6 +161,11 @@ void main() {
   float qw = res.x / px;
   float qh = res.y / px;
   float t = u_time;
+  // u_time wraps at UTC midnight.
+  float windDt = t - u_windT0;
+  if (windDt < 0.0) windDt += 86400.0;
+  float windW = u_windW + u_wind * windDt;
+  float windS = u_windS + (u_wind < 0.0 ? -1.0 : 1.0) * windDt;
 
   float day = smoothstep(-0.12, 0.2, u_sunAlt);
   float night = 1.0 - smoothstep(-0.22, 0.02, u_sunAlt);
@@ -220,8 +230,7 @@ void main() {
   // Clouds on a perspective deck: small and dense toward the horizon.
   float persp = 1.0 / (hgt * 1.05 + 0.22);
   vec2 cp = vec2((q.x - 0.5 * qw) * persp * 0.75, persp * 1.6);
-  float drift = t * (0.012 + 0.05 * abs(u_wind)) * (u_wind < 0.0 ? -1.0 : 1.0);
-  cp.x += drift;
+  cp.x += 0.012 * windS + 0.05 * windW;
   float cover = max(u_cloud, max(u_rain * 0.85, max(u_snow * 0.8, u_storm)));
   float coarse;
   float n = fbm4(cp * 1.7 + vec2(0.0, t * 0.004), coarse);
@@ -304,7 +313,7 @@ void main() {
 
   // Snow
   if (u_snow > 0.01) {
-    float sDrift = u_wind * 0.35;
+    float sDrift = windW * 0.35;
     float sd = mix(0.12, 0.75, u_snow);
     vec3 snowCol = mix(vec3(0.62, 0.66, 0.74), vec3(1.0), day);
     float ssum = snowLayer(q, px, 5.0, 0.28, 0.13, sd * 0.6, 1.0, sDrift) * 0.95;
@@ -315,7 +324,7 @@ void main() {
 
   // Fog: height-weighted with drifting wisps.
   if (u_fog > 0.01) {
-    float w = fbm(vec2(q.x * 1.2 + t * 0.018 * (u_wind < 0.0 ? -1.0 : 1.0), q.y * 2.6 - t * 0.004), 3);
+    float w = fbm(vec2(q.x * 1.2 + 0.018 * windS, q.y * 2.6 - t * 0.004), 3);
     vec3 fogCol = mix(vec3(0.1, 0.11, 0.14), vec3(0.74, 0.76, 0.79), day);
     fogCol = mix(fogCol, fogCol * vec3(1.08, 0.95, 0.85), lowSun * day);
     fogCol += sunCol * exp(-dSun * 2.5) * 0.35 * day * (1.0 - overcast * 0.6);

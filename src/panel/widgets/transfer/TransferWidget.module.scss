@@ -26,7 +26,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 
-  &[data-state='sent'] { color: var(--panel-accent-glow); }
+  &[data-state='sent'] { color: var(--panel-ink-accent, var(--panel-accent-glow)); }
   &[data-state='failed'] { color: var(--bad); }
 }
 

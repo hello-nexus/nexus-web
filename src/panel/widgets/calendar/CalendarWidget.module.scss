@@ -31,7 +31,7 @@
   font-weight: var(--weight-body);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--panel-accent);
+  color: var(--panel-ink-accent, var(--panel-accent));
 }
 
 .day {

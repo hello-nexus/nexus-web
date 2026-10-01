@@ -132,14 +132,9 @@ export function LeaderboardView() {
           ownerHref={selected.displayName ? publicProfileUrl(selected.displayName) : undefined}
           ownerNewTab
           actions={DEV_TOOLS ? (
-            <>
-              <Button tone="accent" onClick={() => requestOpenBuild(`/upgrade?bench=${encodeURIComponent(selected.id)}`)}>
-                {t('benchmark.detail.findUpgrades')}
-              </Button>
-              <Button tone="ghost" onClick={() => requestOpenBuild('/builder')}>
-                {t('benchmark.detail.planUpgrade')}
-              </Button>
-            </>
+            <Button tone="accent" onClick={() => requestOpenBuild(`/builder?bench=${encodeURIComponent(selected.id)}`)}>
+              {t('benchmark.detail.openInBuilder')}
+            </Button>
           ) : undefined}
         />
       </section>

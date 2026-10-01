@@ -22,6 +22,8 @@ export function buildBenchmarkSubmission(result: BenchmarkResult, deviceId: stri
       storage: { raw: result.storage.rawValue, unit: result.storage.rawUnit, detail: result.storage.detail },
       os: result.hardware.os,
       cores: result.hardware.logicalCores,
+      ramBytes: result.hardware.ramBytes,
+      cpuMaxClockMhz: result.hardware.cpuMaxClockMhz,
     },
     clientVersion: String(__APP_VERSION__ ?? '0'),
     cpuRaw: result.cpu.rawValue,

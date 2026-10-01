@@ -70,6 +70,7 @@ import { useDeckInstance, DeckInstanceProvider } from './widgets/deck/useDeckIns
 import { innerGridForSize } from './widgets/deck/deckLayout';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from './widgets/common/PanelGaugeGradientContext';
 import { PanelImmersiveOpenProvider } from './widgets/common/PanelImmersiveContext';
+import { PanelOpaqueProvider } from './widgets/common/PanelOpaqueContext';
 import { resolveGaugeGradient } from './theme/gaugeGradient';
 import { useDashboardGaugeGradient } from './engine/useDashboardGaugeGradient';
 import { createOverlayWidget, deleteOverlayWidget, listOverlayWidgets } from '../api/overlay';
@@ -106,6 +107,7 @@ import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { PanelBackgroundSlideshow } from './background/PanelBackgroundSlideshow';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
+import { customTextVars, DEFAULT_CUSTOM_TEXT_COLOR, useAutoTextColor } from './theme/textColor';
 import { panelBackgroundFrostScale, resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
@@ -538,6 +540,17 @@ export function PanelContent({
   // The open came from the immersive-on-load mark, not a tap: the overlay skips
   // its slide-up, which would otherwise play over a visible dashboard.
   const [immersiveOpenedOnLoad, setImmersiveOpenedOnLoad] = useState(false);
+  // Grid tiles painting every pixel of their box (useReportOpaque).
+  const [opaqueWidgetIds, setOpaqueWidgetIds] = useState<ReadonlySet<string>>(() => new Set());
+  const reportOpaque = useCallback((widgetId: string, opaque: boolean) => {
+    setOpaqueWidgetIds(prev => {
+      if (prev.has(widgetId) === opaque) return prev;
+      const next = new Set(prev);
+      if (opaque) next.add(widgetId);
+      else next.delete(widgetId);
+      return next;
+    });
+  }, []);
   const enterImmersive = useCallback((widgetId: string) => {
     setImmersiveOpenCounter(n => n + 1);
     setImmersiveOpenedOnLoad(false);
@@ -644,6 +657,14 @@ export function PanelContent({
     root.classList.toggle('panel-see-through', seeThrough);
     return () => root.classList.remove('panel-see-through');
   }, [seeThrough]);
+  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive');
+  // Scoped to the widget grids, the editor dock and the drag overlay, so the panel's own sheets and menus keep the theme.
+  const customTextStyle = useMemo(
+    () => (effectiveTheme.textColorMode === 'custom'
+      ? customTextVars(effectiveTheme.textColor || DEFAULT_CUSTOM_TEXT_COLOR)
+      : undefined),
+    [effectiveTheme.textColorMode, effectiveTheme.textColor],
+  );
   const showBackgroundLayers = showPanelBackground && backdrop === 'theme';
   // Frosted glass blurs what the page itself painted. Solid mode renders no
   // frost pass (a blurred solid colour is the colour), and see-through has
@@ -868,6 +889,11 @@ export function PanelContent({
         .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
     }));
   }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget]);
+
+  // An opaque tile filling a single-widget panel hides the background, so it
+  // stops animating.
+  const shownSingleWidget = isSingleWidgetSurface(surface) ? allFiltered[0]?.widgets[0] : undefined;
+  const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
@@ -1733,6 +1759,7 @@ export function PanelContent({
             effectState={effectiveTheme.backgroundEffectState}
             surface={surface}
             fullRes={simulator}
+            covered={backgroundCovered}
           />
         )}
         {showBackgroundLayers && effectiveTheme.backgroundMode === 'media' && deviceId && (
@@ -1745,6 +1772,7 @@ export function PanelContent({
               finishVideos={effectiveTheme.backgroundSlideshowFinishVideos}
               order={effectiveTheme.backgroundMediaOrder}
               opacity={effectiveTheme.backgroundOpacity}
+              covered={backgroundCovered}
             />
           ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
             <PanelBackgroundMedia
@@ -1753,6 +1781,7 @@ export function PanelContent({
               type={effectiveTheme.backgroundMediaType}
               alpha={effectiveTheme.backgroundMediaAlpha}
               opacity={effectiveTheme.backgroundOpacity}
+              covered={backgroundCovered}
             />
           ) : null
         )}
@@ -1778,6 +1807,7 @@ export function PanelContent({
           <>
             <div className={styles.panelStage}>
               <div className={styles.panelStagePages}>
+                <PanelOpaqueProvider value={reportOpaque}>
                 <SortableContext items={allFlatIds} strategy={projectedLayoutStrategy}>
                 <PanelPager
                   pages={allFiltered}
@@ -1789,6 +1819,7 @@ export function PanelContent({
                       <div
                         data-panel-grid
                         className={`${styles.grid} ${touch.rearranging ? styles.gridRearranging : ''}`}
+                        style={customTextStyle}
                       >
                         {page.widgets.map(w => (
                           <ErrorBoundary key={w.id} label={w.type}>
@@ -1863,6 +1894,7 @@ export function PanelContent({
                   )}
                 />
                 </SortableContext>
+                </PanelOpaqueProvider>
                 {pageCount > 1 && (
                   <div className={styles.panelPageIndicatorPosition} data-orientation={pageOrientation}>
                     <PanelPageIndicator
@@ -1898,7 +1930,7 @@ export function PanelContent({
               />
             )}
             {swipeOnboarding.hintVisible && <PanelSwipeHint />}
-            <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
+            <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} style={customTextStyle} aria-hidden="true" />
             {connectionIntroHost && connectionIdentityVisible && (
               <>
                 <div className={styles.connectionIntroBackdrop} aria-hidden="true" />
@@ -2093,6 +2125,9 @@ export function PanelContent({
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+          onThemeTextColorModeCommit={panelTheme.commitTextColorMode}
+          onThemeTextColorPreview={panelTheme.previewTextColor}
+          onThemeTextColorCommit={panelTheme.commitTextColor}
           onThemeBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
           onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
           onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
@@ -2146,6 +2181,7 @@ export function PanelContent({
           if (!w) return null;
           const overlayStyle: CSSProperties = {
             ...panelRootStyle,
+            ...customTextStyle,
             '--panel-cell-size': dragSnapshot.cellSize,
             '--panel-content-scale': dragSnapshot.cellSize,
             '--panel-row-size': dragSnapshot.cellSize,

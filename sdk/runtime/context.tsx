@@ -53,6 +53,9 @@ export interface WidgetHostApi {
    *  when the host can't open one for this render: not on a panel, already
    *  immersive, the app manifest lacks `immersive: true`, or a preview. */
   enterImmersive?(): void;
+  /** Whether this tile currently paints every pixel of its box (useOpaque).
+   *  Absent from an older host. */
+  setOpaque?(opaque: boolean): void;
   /** Reads the app's shared `{appId}/{key}` document (host -> GET
    *  /apps-api/data/{appId}/{key}). The host binds appId; absent when the
    *  manifest lacks `capabilities.appData` or this render is a preview. */

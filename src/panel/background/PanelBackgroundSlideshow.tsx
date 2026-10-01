@@ -28,6 +28,7 @@ export function PanelBackgroundSlideshow({
   finishVideos,
   order,
   opacity,
+  covered = false,
 }: {
   deviceId: string;
   startId: string | null;
@@ -37,6 +38,8 @@ export function PanelBackgroundSlideshow({
   /** Asset ids in play order for an in-order slideshow (see orderBackgroundMedia). */
   order: readonly string[];
   opacity: number;
+  /** An opaque widget hides the whole background: hold the current slide and pause its video. */
+  covered?: boolean;
 }) {
   const intervalMs = intervalSec * 1000;
   const [items, setItems] = useState<BackgroundMediaItem[]>([]);
@@ -196,11 +199,12 @@ export function PanelBackgroundSlideshow({
     lapDirtyRef.current = true;
     advance();
   }, [advance, setIncoming]);
+  // A covered video is paused and may never reach canplay, so it is not timed out.
   useEffect(() => {
-    if (!incoming || incomingReady) return;
+    if (covered || !incoming || incomingReady) return;
     const timer = setTimeout(failIncoming, LOAD_CEILING_MS);
     return () => clearTimeout(timer);
-  }, [incoming, incomingReady, failIncoming]);
+  }, [covered, incoming, incomingReady, failIncoming]);
 
   const failCurrent = useCallback(() => {
     const item = currentRef.current;
@@ -217,10 +221,10 @@ export function PanelBackgroundSlideshow({
   const videoPaced = isVideo && finishVideos && liveCount > 1;
 
   useEffect(() => {
-    if (!current || videoPaced || liveCount < 2) return;
+    if (covered || !current || videoPaced || liveCount < 2) return;
     const timer = setTimeout(advance, intervalMs);
     return () => clearTimeout(timer);
-  }, [current, videoPaced, liveCount, intervalMs, advance]);
+  }, [covered, current, videoPaced, liveCount, intervalMs, advance]);
 
   // Whole plays only, counted from the promotion (the clip loops unhandled while fading in).
   const playsRef = useRef(0);
@@ -233,20 +237,21 @@ export function PanelBackgroundSlideshow({
     ceilingRef.current = setTimeout(advance, Math.max(durationMs * 2, intervalMs) + VIDEO_STALL_GRACE_MS);
   }, [advance, intervalMs]);
   useEffect(() => {
-    if (!videoPaced || !current) return;
+    if (covered || !videoPaced || !current) return;
     armCeiling(durationsRef.current.get(current.id) ?? 0);
     return () => {
       if (ceilingRef.current) clearTimeout(ceilingRef.current);
     };
-  }, [videoPaced, current, armCeiling]);
+  }, [covered, videoPaced, current, armCeiling]);
 
   const onVideoMetadata = useCallback((id: string, video: HTMLVideoElement) => {
     const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : 0;
     durationsRef.current.set(id, durationMs);
-    if (videoPaced && currentRef.current?.id === id) armCeiling(durationMs);
-  }, [videoPaced, armCeiling]);
+    if (videoPaced && !covered && currentRef.current?.id === id) armCeiling(durationMs);
+  }, [videoPaced, covered, armCeiling]);
 
   const onVideoEnded = useCallback((video: HTMLVideoElement) => {
+    if (covered) return;
     playsRef.current += 1;
     // An unknown or zero duration cannot be paced; treat it as done.
     const durationMs = Number.isFinite(video.duration) && video.duration > 0 ? video.duration * 1000 : Infinity;
@@ -255,7 +260,7 @@ export function PanelBackgroundSlideshow({
     video.currentTime = 0;
     video.play()?.catch(() => {});
     if (videoPaced) armCeiling(durationMs === Infinity ? 0 : durationMs);
-  }, [videoPaced, intervalMs, advance, armCeiling]);
+  }, [covered, videoPaced, intervalMs, advance, armCeiling]);
 
   if (!current) return null;
   // The stack carries the background opacity so two overlapping layers never
@@ -270,6 +275,7 @@ export function PanelBackgroundSlideshow({
         alpha={current.alpha}
         opacity={1}
         loop={!videoPaced}
+        covered={covered}
         onFailed={failCurrent}
         onVideoMetadata={video => onVideoMetadata(current.id, video)}
         onVideoEnded={onVideoEnded}
@@ -283,6 +289,7 @@ export function PanelBackgroundSlideshow({
           alpha={incoming.alpha}
           opacity={1}
           ready={incomingReady}
+          covered={covered}
           onLoaded={() => setIncomingReady(true)}
           onFadedIn={promote}
           onFailed={failIncoming}

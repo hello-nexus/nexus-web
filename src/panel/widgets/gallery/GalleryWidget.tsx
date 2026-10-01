@@ -3,6 +3,7 @@ import { ImageIcon } from 'lucide-react';
 import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import { PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import { useReportOpaque } from '../common/PanelOpaqueContext';
 import { previewWallpaperUri } from '../common/previewAssets';
 import { Button } from '../../../components/common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
@@ -30,6 +31,8 @@ const VIDEO_STALL_GRACE_MS = 15_000;
 // Keep in sync with the viewer render; previewMode.test.tsx is the
 // fixture-sync gate.
 const GALLERY_PREVIEW_URL = previewWallpaperUri(210);
+// JPEG has no alpha channel; MP4 carries one only in rare HEVC-alpha files.
+const OPAQUE_MEDIA = /\.(jpe?g|mp4|m4v)$/i;
 
 /**
  * Letterboxed viewer over the per-system shared gallery. Images render whole
@@ -295,6 +298,10 @@ export function GalleryWidget({ widget, immersive, onSectionNavigate, onUpdate, 
     pointerRef.current = ((pointerRef.current + delta) % count + count) % count;
     goTo(pointerRef.current, delta, true);
   }, [goTo, count]);
+
+  // Cover fit of an alpha-free file paints every pixel of the tile.
+  useReportOpaque(widget.id, !preview && !fitWhole && current !== null && OPAQUE_MEDIA.test(current.name)
+    && (current.kind === 'video' || getUrl(current.id) !== null));
 
   if (preview) {
     return (

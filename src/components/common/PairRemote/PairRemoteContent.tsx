@@ -11,6 +11,8 @@ import { Select } from '../Select/Select';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingRow, SettingToggle } from '../SettingRow/SettingRow';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
+import { APP_STORE_URL, PLAY_STORE_URL } from '../../../lib/appStore';
+import { AndroidIcon, AppleIcon } from '../../icons/PlatformIcons';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import {
   fetchPanelPhonePairQr,
@@ -683,6 +685,22 @@ export function PairRemoteContent({
     </div>
   );
 
+  const storeLinks = (
+    <div className={appStyles.phonePairStoreLinks}>
+      <p>{t('phonePair.betterWithApp')}</p>
+      <div className={appStyles.phonePairStoreLinkRow}>
+        <a href={APP_STORE_URL} target="_blank" rel="noreferrer">
+          <AppleIcon size={14} />
+          {t('phonePair.appStore')}
+        </a>
+        <a href={PLAY_STORE_URL} target="_blank" rel="noreferrer">
+          <AndroidIcon size={14} />
+          {t('phonePair.googlePlay')}
+        </a>
+      </div>
+    </div>
+  );
+
   const confirmModals = (
     <>
       <ConfirmModal
@@ -714,6 +732,7 @@ export function PairRemoteContent({
           {connectionSection}
           {sessionsSection}
           {e2eNote}
+          {storeLinks}
         </div>
         {confirmModals}
       </>
@@ -734,6 +753,7 @@ export function PairRemoteContent({
         </div>
       </div>
       {e2eNote}
+      {storeLinks}
       {confirmModals}
     </>
   );

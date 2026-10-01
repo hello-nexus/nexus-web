@@ -34,6 +34,7 @@ const LIVE: SearchLiveState = {
   },
   cloud: { accounts: [], activeAccountId: 'acc1' },
   volume: { supported: true, volume: 0.4, muted: false },
+  canAutoInstall: true,
 };
 
 function ctx(online: boolean, over?: Partial<CommandContext>): CommandContext {
@@ -197,12 +198,19 @@ describe('buildEntries', () => {
   it('gates platform-bound entries on ctx.platform', () => {
     const win = idsOf(true);
     const mac = idsOf(true, { platform: 'macos' });
-    // Windows-only: update prefs, tray toggle + row, lock/sleep, event viewer.
-    // The two setting: ids are also the positive control for the credential
-    // gate asserted in providers.unofficial.test.ts.
-    for (const id of ['update-mode:notify', 'update-channel:beta', 'setting:settings.updates.mode.label', 'setting:settings.updates.channel.label', 'toggle:tray', 'system:lock', 'system:sleep', 'diag:event-viewer', 'gamesync:scan']) {
+    // Windows-only: tray toggle + row, lock/sleep, event viewer.
+    for (const id of ['toggle:tray', 'system:lock', 'system:sleep', 'diag:event-viewer', 'gamesync:scan']) {
       expect(win.has(id)).toBe(true);
       expect(mac.has(id)).toBe(false);
+    }
+    // Update prefs wherever the service installs updates itself. The two
+    // setting: ids are also the positive control for the credential gate
+    // asserted in providers.unofficial.test.ts.
+    const macNoInstall = idsOf(true, { platform: 'macos', live: { ...LIVE, canAutoInstall: false } });
+    for (const id of ['update-mode:notify', 'update-channel:beta', 'setting:settings.updates.mode.label', 'setting:settings.updates.channel.label']) {
+      expect(win.has(id)).toBe(true);
+      expect(mac.has(id)).toBe(true);
+      expect(macNoInstall.has(id)).toBe(false);
     }
     // macOS-only: the menu-bar toggle.
     expect(mac.has('toggle:menubar')).toBe(true);

@@ -16,6 +16,7 @@ import type { AppInstalledListing } from '../../../widgets/types';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { usePanelDisplayBound } from '../common/PanelDisplayBoundContext';
+import { useReportOpaque } from '../common/PanelOpaqueContext';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import { isStreamedPanelSurface, surfaceInputMode, widgetDisplayShape, type PanelSurface, type PanelWidgetSize } from '../../types';
 import { sizeToSpan } from '../../engine/grid';
@@ -47,6 +48,8 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
   const { entryUrl, failed: bundleFailed } = useSdkBundle(listing.id);
   const { runtimeUrl, failed: runtimeFailed } = useSdkRuntime();
   const failed = bundleFailed || runtimeFailed;
+  const [opaque, setOpaque] = useState(false);
+  useReportOpaque(instanceId, opaque && !failed);
 
   // Per-instance settings via the shared settings bridge. Preview skips the
   // bridge entirely - get() fire-and-forgets a network load on first call.
@@ -101,6 +104,7 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
       preview={preview}
       onDispatch={onDispatch}
       onEnterImmersive={onEnterImmersive}
+      onOpaqueChange={setOpaque}
     />
   );
 }

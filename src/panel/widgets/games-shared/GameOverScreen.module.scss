@@ -166,7 +166,7 @@
 .row[data-own='true'] {
   background: var(--accent-soft);
   border-color: var(--control-border-accent);
-  color: var(--accent-glow);
+  color: var(--panel-ink-accent, var(--accent-glow));
 }
 
 .rank {

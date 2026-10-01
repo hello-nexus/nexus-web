@@ -65,6 +65,16 @@ describe('buildBenchmarkSubmission', () => {
     });
   });
 
+  it('carries installed RAM and the peak CPU clock in rawMetrics', () => {
+    const base = mkResult();
+    const payload = buildBenchmarkSubmission(
+      mkResult({ hardware: { ...base.hardware, cpuMaxClockMhz: 5225 } }),
+      'device-abc',
+    );
+
+    expect(payload.rawMetrics).toMatchObject({ ramBytes: 34359738368, cpuMaxClockMhz: 5225 });
+  });
+
   it('never includes a displayName field', () => {
     const payload = buildBenchmarkSubmission(mkResult(), 'device-abc');
 

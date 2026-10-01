@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { Card } from '../../components/common/Card/Card';
-import { InfoList, InfoRow } from '../../components/common/InfoList/InfoList';
+import { SpecList, type SpecListRow } from '../../components/common/SpecList/SpecList';
 import { publicSpecRows } from './publicProfileUtils';
 
 export interface DeviceSpecsCardProps {
@@ -26,21 +26,19 @@ export interface DeviceSpecsCardProps {
  */
 export function DeviceSpecsCard({ hostname, specs, manual, lastSeenAt, badge, actions, className }: DeviceSpecsCardProps) {
   const { t } = useTranslation();
+  const rows: SpecListRow[] = publicSpecRows(specs).map((row) => ({ key: row.key, label: t(row.labelKey), value: row.value }));
+  if (!manual && lastSeenAt) {
+    rows.push({
+      key: 'lastSeen',
+      label: t('publicProfile.device.lastSeen'),
+      value: new Date(lastSeenAt).toLocaleString(undefined, {
+        year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+      }),
+    });
+  }
   return (
     <Card title={hostname} subtitle={badge} actions={actions} className={className}>
-      <InfoList>
-        {publicSpecRows(specs).map((row) => (
-          <InfoRow key={row.key} label={t(row.labelKey)} value={row.value} />
-        ))}
-        {!manual && lastSeenAt && (
-          <InfoRow
-            label={t('publicProfile.device.lastSeen')}
-            value={new Date(lastSeenAt).toLocaleString(undefined, {
-              year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-            })}
-          />
-        )}
-      </InfoList>
+      <SpecList rows={rows} />
     </Card>
   );
 }

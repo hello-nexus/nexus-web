@@ -9,6 +9,7 @@ import { SensorCard } from '../components/common/SensorCard/SensorCard';
 import { Card } from '../components/common/Card/Card';
 import { DomainGlyph } from '../components/common/DomainGlyph/DomainGlyph';
 import { InfoList, InfoRow } from '../components/common/InfoList/InfoList';
+import { SpecList } from '../components/common/SpecList/SpecList';
 import { StatTile } from '../components/common/StatTile/StatTile';
 import { SystemSpecsPanel } from '../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Avatar } from '../components/common/Avatar/Avatar';
@@ -89,6 +90,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../comp
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
+import { ConflictRunningBadge } from '../components/common/ConflictRunningBadge/ConflictRunningBadge';
+import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HeartBurst, useHeartBurstTrigger } from '../components/common/HeartBurst/HeartBurst';
@@ -466,6 +469,18 @@ function PreviewSystemSpecsPanel() {
         />
       </div>
     </div>
+  );
+}
+
+function PreviewSpecList() {
+  return (
+    <SpecList
+      rows={[
+        { key: 'cpu', label: 'Processor', value: 'Sample 8-Core Processor' },
+        { key: 'gpu', label: 'Graphics Card', value: 'Sample Graphics 16GB with a model name long enough to wrap onto a second line' },
+        { key: 'ram', label: 'Memory', value: '32 GB DDR5-6000 (2 x 16 GB)' },
+      ]}
+    />
   );
 }
 
@@ -1545,7 +1560,7 @@ function PreviewPanelThemeSettings() {
     backgroundSlideshow: false, backgroundSlideshowInterval: DEFAULT_PANEL_SLIDESHOW_INTERVAL, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
     backgroundMediaOrder: [],
     backgroundFrost: 0,
-    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
+    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '',
     gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -1585,6 +1600,9 @@ function PreviewPanelThemeSettings() {
         onBackgroundFrostCommit={v => set({ backgroundFrost: v })}
         onWidgetPaddingPreview={v => set({ widgetPadding: v })}
         onWidgetPaddingCommit={v => set({ widgetPadding: v })}
+        onTextColorModeCommit={v => set({ textColorMode: v })}
+        onTextColorPreview={v => set({ textColor: v })}
+        onTextColorCommit={v => set({ textColor: v })}
       />
     </div>
   );
@@ -1912,6 +1930,32 @@ function PreviewDesktopOnlyBadge() {
 
 function PreviewExperimentalBadge() {
   return <ExperimentalBadge />;
+}
+
+function PreviewConflictRunningBadge() {
+  return <ConflictRunningBadge appName="Lian Li L-Connect" />;
+}
+
+const PREVIEW_CONTROL_CONFLICT = {
+  deviceName: 'UNI FAN SL-INF',
+  conflict: { id: 'preview-l-connect', displayName: 'Lian Li L-Connect', category: 'lighting', processName: 'L-Connect 3.exe', pid: 4212 },
+  enable: () => {},
+};
+
+function PreviewNexusControlConflictModal() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Turn on Nexus Control
+      </button>
+      <NexusControlConflictModal
+        pending={open ? PREVIEW_CONTROL_CONFLICT : null}
+        onConfirm={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      />
+    </>
+  );
 }
 
 // Inline SVG sample image (160x90) for the cropper preview.
@@ -2387,6 +2431,11 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Sensor display: title + optional subtitle + name/value rows. Composes Card for the chrome.', Preview: PreviewSensorCard,
   },
   {
+    name: 'SpecList', category: 'cards',
+    filePath: 'src/components/common/SpecList/SpecList.tsx',
+    description: "A PC's hardware as zebra label/value rows; long values wrap to a second line instead of truncating. The one listing for a machine's parts (profile and account device cards, benchmark entry hardware).", Preview: PreviewSpecList,
+  },
+  {
     name: 'InfoList / InfoRow', category: 'cards',
     filePath: 'src/components/common/InfoList/InfoList.tsx',
     description: 'Bounded widget of label/value rows. Use for compact device meta, status keys, or any vertical key/value listing. Tones: accent / good / warn / bad / dim.', Preview: PreviewInfoList,
@@ -2469,6 +2518,13 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/Slideout/Slideout.tsx',
     description: 'Edge-anchored slide-in panel built on Overlay\'s sheet variant, matching the panel editor\'s desktop add-widget drawer look (translucent scrim, backdrop-base surface, border on the docked edge, slide-in animation). `side` docks it right (default) or left; width and inner padding are set through the --slideout-* custom properties. Title + optional icon + optional headerRight + close button. Esc and a backdrop click both dismiss.', Preview: PreviewSlideout,
     notes: 'Use for a dashboard detail/inspector drawer outside the panel editor (e.g. the monitoring process-detail slideout) - PanelEditorSheet stays the widget-grid editor\'s own component.',
+  },
+  {
+    name: 'NexusControlConflictModal', category: 'modals',
+    filePath: 'src/components/common/NexusControlConflictModal/NexusControlConflictModal.tsx',
+    description: 'Prompt held in front of a Nexus Control "on" while the device\'s competing app runs (driven by useConflictGuardedEnable). Conflict-popup chrome: DeviceModal with the warn icon, an intro, a plain ConflictAppCard whose End task is the yes, and Cancel. A kill that sticks, or the app exiting on its own after the prompt saw it live, turns control on and closes.',
+    Preview: PreviewNexusControlConflictModal,
+    notes: 'Preview End task posts the stub id to /conflicts/kill, which the service rejects as unknown, so the spinner resets.',
   },
   {
     name: 'ConfirmModal', category: 'modals',
@@ -2778,6 +2834,12 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewExperimentalBadge,
   },
   {
+    name: 'ConflictRunningBadge', category: 'status',
+    filePath: 'src/components/common/ConflictRunningBadge/ConflictRunningBadge.tsx',
+    description: 'Warn pill naming a detected third-party app that also drives the device ("<app> running"), with a HoverTooltip explaining that turning Nexus Control on ends it. Shown beside ExperimentalBadge on the Devices list whenever the device\'s conflictAppId is in the live conflicts list, whatever the Nexus Control state or whitelist.',
+    Preview: PreviewConflictRunningBadge,
+  },
+  {
     name: 'Toast', category: 'status',
     filePath: 'src/components/common/Toast/Toast.tsx',
     description: 'Transient notifications stacked bottom-right (ToastProvider + useToast().push). Auto-dismiss after 6s, click dismisses, optional accent action button. Used for incoming phone→PC transfer notices at the dashboard root.', Preview: PreviewToast,
@@ -2933,7 +2995,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'PanelSwipeHint', category: 'panel-kit',
     filePath: 'src/panel/chrome/PanelSwipeHint.tsx',
-    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks toward a chevron, then it unmounts. Pointer-transparent.',
+    description: 'Swipe-up hand a touch panel shows periodically until its actions tray has been opened once: repeated upward flicks along a long up arrow, then it unmounts. Pointer-transparent.',
     Preview: PreviewPanelSwipeHint,
     notes: 'Click "Replay" to run the cycle again. Period, cycle length and count come from usePanelSwipeOnboarding.',
   },

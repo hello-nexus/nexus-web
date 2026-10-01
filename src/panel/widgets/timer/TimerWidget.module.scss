@@ -100,7 +100,7 @@
 }
 
 .container[data-complete='true'] .countdown {
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
   text-shadow: 0 0 20px var(--panel-accent-shadow);
 }
 

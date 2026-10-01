@@ -65,7 +65,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`, `useImmersive`,
-  `useDisplay`, `useLocale`, `useAppData`, `useAudio`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
+  `useDisplay`, `useOpaque`, `useLocale`, `useAppData`, `useAudio`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
 - **`Slider` additions**: `trackFill` controls the accent fill (auto from value, or pass a
   `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
@@ -103,6 +103,8 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   render, or without WebAudio support.
 - **`useDisplay()`**: `{ shape, input }` - the tile's actual shape (`'round'` only on round
   glass) and the panel surface's input method (`'touch'` / `'pointer'` / `'none'`).
+- **`useOpaque(opaque)`**: tells the host the tile paints every pixel of its box, so a
+  single-widget panel it fills stops drawing the background hidden under it.
 - **`category:"device"`** manifest field: marks the app as a device app. It appears under
   DEVICES in the sidebar nav and its page renders inside device-page chrome (the same chrome
   as Cooling, Lighting, etc.) rather than the standard widget section route.
