@@ -250,7 +250,7 @@ describe('CloudProfilesSection profile list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
 
     await waitFor(() => {
-      expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false);
+      expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false, true);
     });
   });
 
@@ -284,8 +284,30 @@ describe('CloudProfilesSection profile list', () => {
     fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.nameTaken.replace' }));
 
     await waitFor(() => {
-      expect(importCloudProfile).toHaveBeenLastCalledWith('other', 'p2', true);
+      expect(importCloudProfile).toHaveBeenLastCalledWith('other', 'p2', true, true);
     });
+  });
+
+  it('lists the apps a backup carries and asks before importing it', async () => {
+    const withApps = {
+      machines: [
+        LIBRARY.machines[0],
+        { ...LIBRARY.machines[1], profiles: [{ ...LIBRARY.machines[1].profiles[0], appIds: ['com.hellonexus.aquarium'] }] },
+      ],
+    };
+    vi.mocked(fetchCloudLibrary).mockResolvedValue(withApps);
+    vi.mocked(importCloudProfile).mockResolvedValue({ status: 200, body: { error: false } });
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText(/profile\.cloud\.backup\.includes apps=com\.hellonexus\.aquarium/)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'profile.cloud.import.open' }));
+
+    await waitFor(() => expect(screen.getByText('profile.restore.importTitle name=Default')).toBeInTheDocument());
+    expect(importCloudProfile).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByRole('button', { name: 'profile.restore.importAction' }));
+
+    await waitFor(() => expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false, false));
   });
 
   it('surfaces the local profile cap instead of failing silently', async () => {

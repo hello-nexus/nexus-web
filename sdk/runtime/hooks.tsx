@@ -243,8 +243,9 @@ export type AppDataCasResult<T> =
   | { ok: true; revision: number }
   | { ok: false; revision: number; data: T };
 
-/** Generic per-app JSON document, shared by every running instance of this
- *  app on the install (see the nexus.app/1 `appData` capability). `value` is
+/** Generic per-app JSON document of the ACTIVE profile, shared by every
+ *  running instance of this app (see the nexus.app/1 `appData` capability);
+ *  switching profile remounts the app against that profile's document. `value` is
  *  `initial` until the first read arrives (`ready` false); a push from
  *  another instance replaces `value`/`revision` live. A failed initial read
  *  retries with backoff on its own, except a permanent error (400/403/404),

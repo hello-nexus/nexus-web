@@ -281,6 +281,8 @@ export interface CloudLibraryProfile {
   revision: number;
   sizeBytes: number;
   updatedAt: string;
+  /** Apps whose data is in this backup, sorted; absent from a service that predates profile app data. */
+  appIds?: string[];
 }
 
 export interface CloudLibraryMachine {
@@ -319,10 +321,11 @@ export async function importCloudProfile(
   installId: string,
   profileId: string,
   replaceExisting = false,
+  includeAppData = true,
 ): Promise<CloudImportResult> {
   const { response, status } = await authFetchWithStatus('/cloud/profiles/import', {
     method: 'POST',
-    body: { installId, profileId, replaceExisting },
+    body: { installId, profileId, replaceExisting, includeAppData },
   });
   if (!response) return { status, body: null };
   try {
