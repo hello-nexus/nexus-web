@@ -76,24 +76,20 @@ async function cropToAvatarBlob(objectUrl: string, crop: NormalizedCrop): Promis
   return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 }
 
-// Ticks off `retryAt` (an ISO date) into whole hours/minutes remaining, for
-// the username-change 24h cooldown. Mirrors PanelOfflineOverlay's
-// useCountdownSeconds shape at a coarser (minute) resolution.
-function useRetryCountdown(retryAt: string | null): { hours: number; minutes: number } | null {
+// `retryAt` (an ISO date) as a Date while it is still ahead; null once it
+// passes, so the cooldown message clears itself. Rechecked every minute.
+function useRetryDate(retryAt: string | null): Date | null {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!retryAt) return;
     setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    const id = window.setInterval(() => setNow(Date.now()), 60_000);
     return () => window.clearInterval(id);
   }, [retryAt]);
   if (!retryAt) return null;
-  const target = new Date(retryAt).getTime();
-  if (Number.isNaN(target)) return null;
-  const remainingMs = target - now;
-  if (remainingMs <= 0) return null;
-  const totalMinutes = Math.ceil(remainingMs / 60_000);
-  return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
+  const target = new Date(retryAt);
+  if (Number.isNaN(target.getTime()) || target.getTime() <= now) return null;
+  return target;
 }
 
 // Avatar, username, password, the private-account toggle, and log out - the block
@@ -102,7 +98,7 @@ function useRetryCountdown(retryAt: string | null): { hours: number; minutes: nu
 export function AccountAuthenticationSection({
   backend, account, onAccountChanged, recoveryFresh, onRecoveryFreshConsumed, onLoggedOut,
 }: AccountAuthenticationSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { push } = useToast();
   const initial = (account.username || '?').charAt(0).toUpperCase();
 
@@ -148,7 +144,7 @@ export function AccountAuthenticationSection({
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameRetryAt, setUsernameRetryAt] = useState<string | null>(null);
   useEffect(() => { setUsernameValue(account.username); }, [account.username]);
-  const cooldown = useRetryCountdown(usernameRetryAt);
+  const cooldown = useRetryDate(usernameRetryAt);
   useEffect(() => {
     if (cooldown == null && usernameRetryAt != null) {
       setUsernameRetryAt(null);
@@ -297,7 +293,7 @@ export function AccountAuthenticationSection({
       {usernameError && (
         <p className={styles.error} role="alert" data-settings-aside="true">
           {cooldown
-            ? t('account.username.error.cooldownIn', { hours: cooldown.hours, minutes: cooldown.minutes })
+            ? t('account.username.error.cooldownUntil', { date: cooldown.toLocaleDateString(language, { dateStyle: 'long' }) })
             : usernameError}
         </p>
       )}
