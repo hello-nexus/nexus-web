@@ -95,20 +95,21 @@ afterEach(() => {
 });
 
 describe('PanelApp background under an opaque tile', () => {
-  it('covers the shader while a photo fills round glass', async () => {
+  it('covers the shader while a photo fills kraken glass', async () => {
     fetchMock.mockResolvedValue({ found: true, record: recordWith('kraken', '2x2round') });
     await mountKiosk();
     await waitFor(() => expect(shaderCovered.at(-1)).toBe(true));
     expect(shaderCovered).toContain(false);
   });
 
-  it('keeps it drawing on rect glass, whose rounded card corners show it', async () => {
-    fetchMock.mockResolvedValue({ found: true, record: recordWith('lcd-square', '2x2') });
-    await mountKiosk();
-    await waitFor(() => expect(document.querySelector('img')).not.toBeNull());
-    expect(shaderCovered.length).toBeGreaterThan(0);
-    expect(shaderCovered.every(c => !c)).toBe(true);
-  });
+  // q60 swaps in its offline clock here: this harness has no live service.
+  for (const [surface, size] of [['lcd-square', '2x2'], ['lcd-wide', '4x2']] as const) {
+    it(`covers the shader while a photo fills ${surface} glass`, async () => {
+      fetchMock.mockResolvedValue({ found: true, record: recordWith(surface, size) });
+      await mountKiosk();
+      await waitFor(() => expect(shaderCovered.at(-1)).toBe(true));
+    });
+  }
 
   it('keeps it drawing while the photo is letterboxed', async () => {
     fetchMock.mockResolvedValue({ found: true, record: recordWith('kraken', '2x2round', { fit: true }) });

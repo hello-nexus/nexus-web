@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import type { DetectedConflict } from '../../../api/conflicts';
 
 // The Devices-page device row is the ONLY place a device's Nexus
 // Control/Link on/off toggle lives - never on the device's own page (see
@@ -25,6 +26,16 @@ vi.mock('../../../components/common/Toast/Toast', () => ({
 vi.mock('../../../api/displays', () => ({
   promoteDisplayToPanel: (...a: unknown[]) => promoteDisplayToPanelMock(...a),
   demoteDisplayPanel: (...a: unknown[]) => demoteDisplayPanelMock(...a),
+}));
+const fetchConflictsMock = vi.fn();
+const killConflictMock = vi.fn();
+vi.mock('../../../api/conflicts', () => ({
+  fetchConflicts: () => fetchConflictsMock(),
+  killConflict: (id: string) => killConflictMock(id),
+}));
+let mockConflicts: DetectedConflict[] = [];
+vi.mock('../../../hooks/useConflictApps', () => ({
+  useConflictApps: (enabled: boolean) => ({ conflicts: enabled ? mockConflicts : [], ready: enabled }),
 }));
 vi.mock('../../../hooks/useUsbDevices', () => ({
   useUsbDevices: () => ({ devices: [], loading: false, refresh: vi.fn() }),
@@ -123,7 +134,122 @@ beforeEach(() => {
   demoteDisplayPanelMock.mockReset();
   toastPushMock.mockReset();
   controlDeviceMock.mockReset();
+  fetchConflictsMock.mockReset();
+  killConflictMock.mockReset();
   mockUnified = [];
+  mockConflicts = [];
+});
+
+const L_CONNECT: DetectedConflict = {
+  id: 'lian-li-l-connect', displayName: 'Lian Li L-Connect', category: 'lighting', processName: 'L-Connect 3.exe', pid: 4212,
+};
+
+function lianLiRow(overrides: Partial<UnifiedDevice> = {}): UnifiedDevice {
+  return curatedRow({
+    key: 'curated-lianli', shortName: 'Uni Hub', name: 'Uni Hub', curatedId: 'lianli',
+    conflictAppId: L_CONNECT.id, experimental: true, nexusControlEnabled: false, ...overrides,
+  });
+}
+
+describe('DevicesPage running-conflict badge', () => {
+  const badgeName = /devices\.conflictRunning\.tooltip\.title/;
+
+  it('shows the badge while the device\'s competing app runs, whatever the control state', () => {
+    mockConflicts = [L_CONNECT];
+    mockUnified = [lianLiRow({ nexusControlEnabled: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.getByRole('img', { name: badgeName })).toBeInTheDocument();
+  });
+
+  it('shows no badge when a different app runs', () => {
+    mockConflicts = [{ ...L_CONNECT, id: 'icue', displayName: 'Corsair iCUE' }];
+    mockUnified = [lianLiRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    expect(screen.queryByRole('img', { name: badgeName })).toBeNull();
+  });
+});
+
+describe('DevicesPage Nexus Control on with a running competing app', () => {
+  it('turns control on directly when the click-time read finds the app gone', async () => {
+    fetchConflictsMock.mockResolvedValue([]);
+    mockUnified = [lianLiRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await waitFor(() => expect(controlDeviceMock).toHaveBeenCalledWith('lianli', true));
+    expect(screen.queryByText(/devices\.conflictEnable\.title/)).toBeNull();
+  });
+
+  it('asks first, and ends the app before turning control on', async () => {
+    fetchConflictsMock.mockResolvedValue([L_CONNECT]);
+    killConflictMock.mockResolvedValue({ error: false, msg: '', killed: true });
+    mockConflicts = [L_CONNECT];
+    mockUnified = [lianLiRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await screen.findByText(/devices\.conflictEnable\.title/);
+    expect(controlDeviceMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.endTask' }));
+    await waitFor(() => expect(controlDeviceMock).toHaveBeenCalledWith('lianli', true));
+    expect(killConflictMock).toHaveBeenCalledWith(L_CONNECT.id);
+    expect(controlDeviceMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(/devices\.conflictEnable\.title/)).toBeNull();
+  });
+
+  it('leaves control off when the user cancels', async () => {
+    fetchConflictsMock.mockResolvedValue([L_CONNECT]);
+    mockConflicts = [L_CONNECT];
+    mockUnified = [lianLiRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await screen.findByText(/devices\.conflictEnable\.title/);
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.cancel' }));
+
+    expect(screen.queryByText(/devices\.conflictEnable\.title/)).toBeNull();
+    expect(killConflictMock).not.toHaveBeenCalled();
+    expect(controlDeviceMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the prompt open and control off when the kill does not stick', async () => {
+    fetchConflictsMock.mockResolvedValue([L_CONNECT]);
+    killConflictMock.mockResolvedValue({ error: true, msg: 'denied', killed: false });
+    mockConflicts = [L_CONNECT];
+    mockUnified = [lianLiRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    await screen.findByText(/devices\.conflictEnable\.title/);
+    fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.endTask' }));
+
+    await waitFor(() => expect(killConflictMock).toHaveBeenCalled());
+    expect(controlDeviceMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/devices\.conflictEnable\.title/)).toBeInTheDocument();
+  });
+
+  it('ignores a second click while the click-time read is in flight', async () => {
+    let resolve!: (list: DetectedConflict[]) => void;
+    fetchConflictsMock.mockReturnValue(new Promise<DetectedConflict[]>(r => { resolve = r; }));
+    mockUnified = [lianLiRow()];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    const toggle = screen.getByRole('switch', { name: 'devices.nexusControl' });
+    fireEvent.click(toggle);
+    fireEvent.click(toggle);
+    resolve([]);
+    await waitFor(() => expect(controlDeviceMock).toHaveBeenCalledWith('lianli', true));
+    expect(fetchConflictsMock).toHaveBeenCalledTimes(1);
+    expect(controlDeviceMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('turns control off without asking', () => {
+    mockConflicts = [L_CONNECT];
+    mockUnified = [lianLiRow({ nexusControlEnabled: true })];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.nexusControl' }));
+    expect(controlDeviceMock).toHaveBeenCalledWith('lianli', false);
+    expect(fetchConflictsMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('DevicesPage device-row Nexus Link/Control toggle', () => {

@@ -90,6 +90,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../comp
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
 import { DesktopOnlyBadge } from '../components/common/DesktopOnlyBadge/DesktopOnlyBadge';
 import { ExperimentalBadge } from '../components/common/ExperimentalBadge/ExperimentalBadge';
+import { ConflictRunningBadge } from '../components/common/ConflictRunningBadge/ConflictRunningBadge';
+import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { PairingQrView } from '../components/common/PairingQr/PairingQrView';
 import { AboutModal } from '../components/common/AboutModal/AboutModal';
 import { HeartBurst, useHeartBurstTrigger } from '../components/common/HeartBurst/HeartBurst';
@@ -1930,6 +1932,32 @@ function PreviewExperimentalBadge() {
   return <ExperimentalBadge />;
 }
 
+function PreviewConflictRunningBadge() {
+  return <ConflictRunningBadge appName="Lian Li L-Connect" />;
+}
+
+const PREVIEW_CONTROL_CONFLICT = {
+  deviceName: 'UNI FAN SL-INF',
+  conflict: { id: 'preview-l-connect', displayName: 'Lian Li L-Connect', category: 'lighting', processName: 'L-Connect 3.exe', pid: 4212 },
+  enable: () => {},
+};
+
+function PreviewNexusControlConflictModal() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Turn on Nexus Control
+      </button>
+      <NexusControlConflictModal
+        pending={open ? PREVIEW_CONTROL_CONFLICT : null}
+        onConfirm={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      />
+    </>
+  );
+}
+
 // Inline SVG sample image (160x90) for the cropper preview.
 // Provides a visible still without loading a remote asset.
 const SAMPLE_CROP_SRC = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYwIiBoZWlnaHQ9IjkwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxNjAiIGhlaWdodD0iOTAiIGZpbGw9IiMzMzM2NTMiLz48dGV4dCB4PSI4MCIgeT0iNTAiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiPnNhbXBsZTwvdGV4dD48L3N2Zz4=';
@@ -2492,6 +2520,13 @@ export const REGISTRY: StorybookEntry[] = [
     notes: 'Use for a dashboard detail/inspector drawer outside the panel editor (e.g. the monitoring process-detail slideout) - PanelEditorSheet stays the widget-grid editor\'s own component.',
   },
   {
+    name: 'NexusControlConflictModal', category: 'modals',
+    filePath: 'src/components/common/NexusControlConflictModal/NexusControlConflictModal.tsx',
+    description: 'Prompt held in front of a Nexus Control "on" while the device\'s competing app runs (driven by useConflictGuardedEnable). Conflict-popup chrome: DeviceModal with the warn icon, an intro, a plain ConflictAppCard whose End task is the yes, and Cancel. A kill that sticks, or the app exiting on its own after the prompt saw it live, turns control on and closes.',
+    Preview: PreviewNexusControlConflictModal,
+    notes: 'Preview End task posts the stub id to /conflicts/kill, which the service rejects as unknown, so the spinner resets.',
+  },
+  {
     name: 'ConfirmModal', category: 'modals',
     filePath: 'src/components/common/ConfirmModal/ConfirmModal.tsx',
     description: 'Native-in-app confirmation modal with title + body + optional note + confirm/cancel actions. Esc cancels, Enter confirms, click-outside cancels. Cancel autofocused so destructive intent must be explicit. Used instead of window.confirm so the dialog matches app chrome.', Preview: PreviewConfirmModal,
@@ -2797,6 +2832,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/ExperimentalBadge/ExperimentalBadge.tsx',
     description: 'Pill badge flagging a device whose support is experimental (non-HYTE/iBUYPOWER hardware). Composes Badge inside a HoverTooltip that spells out the caveat. Shown left of the Nexus Control switch on the Devices list and under the on/off switch on the device page.',
     Preview: PreviewExperimentalBadge,
+  },
+  {
+    name: 'ConflictRunningBadge', category: 'status',
+    filePath: 'src/components/common/ConflictRunningBadge/ConflictRunningBadge.tsx',
+    description: 'Warn pill naming a detected third-party app that also drives the device ("<app> running"), with a HoverTooltip explaining that turning Nexus Control on ends it. Shown beside ExperimentalBadge on the Devices list whenever the device\'s conflictAppId is in the live conflicts list, whatever the Nexus Control state or whitelist.',
+    Preview: PreviewConflictRunningBadge,
   },
   {
     name: 'Toast', category: 'status',

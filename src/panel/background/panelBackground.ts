@@ -165,10 +165,12 @@ export function normalizePanelBackdrop(value: string | null | undefined): PanelB
   return value === 'theme' || value === 'wallpaper' || value === 'desktop' ? value : null;
 }
 
-// Wallpaper-capable panels (the Y70 and display-bound monitors) default to
-// redrawing the wallpaper; every other surface has no desktop behind it and
-// stays on the theme backdrop, which also clamps a stored mode that surface
-// cannot render. A stored value otherwise wins.
+// Wallpaper-capable panels (the Y70 and display-bound monitors) fall back to
+// redrawing the wallpaper when the record has no backdrop; a Windows service
+// reports an unset one as 'desktop', so this fallback is the macOS/Linux
+// default. Every other surface has no desktop behind it and stays on the
+// theme backdrop, which also clamps a stored mode that surface cannot render.
+// A stored value otherwise wins.
 export function resolvePanelBackdrop(
   stored: string | null | undefined,
   wallpaperCapable: boolean,
