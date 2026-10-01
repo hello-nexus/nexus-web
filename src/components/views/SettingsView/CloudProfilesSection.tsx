@@ -58,7 +58,7 @@ export function CloudProfilesSection(
   const [importError, setImportError] = useState<string | null>(null);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [backingUp, setBackingUp] = useState<string[]>([]);
-  // Profiles backed up since this page opened: their button says so until the page is left.
+  // Profiles backed up since this page opened: their button says so, and takes no press, until the page is left.
   const [doneBackups, setDoneBackups] = useState<string[]>([]);
   const [signInOpen, setSignInOpen] = useState(false);
   const [restore, setRestore] = useState<RestorePrompt | null>(null);
@@ -288,6 +288,7 @@ export function CloudProfilesSection(
               size="sm"
               icon={doneBackups.includes(row.profileId) ? <Check /> : <CloudUpload />}
               loading={backingUp.includes(row.profileId)}
+              disabled={doneBackups.includes(row.profileId)}
               onClick={() => handleBackUp(row.profileId)}
             >
               {doneBackups.includes(row.profileId) ? t('profile.cloud.backup.done') : t('profile.cloud.backup.syncNow')}
