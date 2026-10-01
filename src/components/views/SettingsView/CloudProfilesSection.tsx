@@ -253,7 +253,12 @@ export function CloudProfilesSection(
       <SettingRow
         key={key}
         label={row.name}
-        labelSuffix={ownMachine && pcChip(ownMachine.hostname)}
+        labelSuffix={(ownMachine || row.profileId === profiles.activeId) && (
+          <>
+            {ownMachine && pcChip(ownMachine.hostname)}
+            {row.isLocal && row.profileId === profiles.activeId && <Badge label={t('settings.profiles.active')} color="var(--accent)" uppercase />}
+          </>
+        )}
         description={withApps(!row.isLocal
           ? [t('profile.cloud.list.notOnThisComputer'), backedUp].filter(Boolean).join(' · ')
           : !row.inCloud

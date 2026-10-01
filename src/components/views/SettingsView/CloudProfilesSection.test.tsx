@@ -310,6 +310,12 @@ describe('CloudProfilesSection profile list', () => {
     await waitFor(() => expect(importCloudProfile).toHaveBeenCalledWith('other', 'p2', false, false));
   });
 
+  it('marks the active local profile, as the local list does', async () => {
+    renderSection();
+    await waitFor(() => expect(screen.getByText('settings.profiles.active')).toBeInTheDocument());
+    expect(screen.getAllByText('settings.profiles.active')).toHaveLength(1);
+  });
+
   it('surfaces the local profile cap instead of failing silently', async () => {
     vi.mocked(importCloudProfile).mockResolvedValue({ status: 400, body: { error: true, msg: 'profile_limit_reached' } });
     renderSection();

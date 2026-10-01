@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Anchor, Download, Plus, RotateCcw, Trash2, Upload } from 'lucide-react';
+import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { EditableText } from '../../common/Editable/EditableText';
@@ -228,15 +229,14 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                     </p>
                   )}
                   {isActive && (
-                    <span className={styles.profileBadge}>{t('settings.profiles.active')}</span>
+                    <Badge label={t('settings.profiles.active')} color="var(--accent)" uppercase />
                   )}
                 </div>
                 <div className={styles.profileActions} data-no-dnd onClick={(e) => e.stopPropagation()}>
                   {isPrimary ? (
                     <HoverTooltip body={t('settings.profiles.sharing.primaryBadgeTooltip')} side="top">
-                      <span className={styles.profileBadgePrimary}>
-                        <Anchor size={11} />
-                        {t('settings.profiles.sharing.primary')}
+                      <span>
+                        <Badge label={t('settings.profiles.sharing.primary')} color="var(--accent)" icon={<Anchor size={11} />} uppercase />
                       </span>
                     </HoverTooltip>
                   ) : (

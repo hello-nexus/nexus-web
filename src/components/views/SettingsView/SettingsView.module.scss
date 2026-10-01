@@ -139,7 +139,6 @@
   }
 }
 
-
 // ── AI Integration section ──────────────────────────────────────────────────
 
 // Token readout in the control slot - fixed width so toggling the reveal
@@ -321,15 +320,6 @@
   color: var(--bad);
 }
 
-.profileBadge {
-  @include text-label;
-  padding: 0.1rem 0.45rem;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--accent-text);
-  flex-shrink: 0;
-}
-
 .profileActions {
   display: flex;
   align-items: center;
@@ -342,22 +332,6 @@
   gap: 0.5rem;
   margin-top: 0.75rem;
 }
-
-.profileBadgePrimary {
-  @include text-label;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.1rem 0.45rem;
-  border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  flex-shrink: 0;
-}
-
-
-
 
 /* Refresh control living inside the Cloud profiles tab pill. Sibling of the
    tab button, never nested inside it (see Tabs' trailing contract). */
