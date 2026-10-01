@@ -23,6 +23,7 @@ import { Card } from '../../components/common/Card/Card';
 import { IconLabelButton } from '../../components/common/IconLabelButton/IconLabelButton';
 import { EmptyState } from '../../components/common/EmptyState/EmptyState';
 import { SettingsSection } from '../../components/common/SettingsSection/SettingsSection';
+import sectionStyles from './Section.module.scss';
 import { ClockWorldView } from '../../panel/widgets/clock/ClockWorldView';
 import { CLOCK_DESIGNS } from '../../panel/widgets/clock/designs';
 import { useUnitPrefs } from '../../hooks/useUiSettings';
@@ -233,7 +234,11 @@ export function EmptyHost(p: HostProps) {
 
 export function Section(p: HostProps) {
   return (
-    <SettingsSection title={str(p.title) ?? ''}>
+    <SettingsSection
+      title={str(p.title) ?? ''}
+      className={p.grow ? sectionStyles.grow : undefined}
+      boxClassName={p.grow ? sectionStyles.growBox : undefined}
+    >
       {p.children}
     </SettingsSection>
   );

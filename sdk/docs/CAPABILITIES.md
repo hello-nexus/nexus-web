@@ -695,6 +695,10 @@ Uppercase section header for grouping a page. Host renders `src/components/commo
 | Prop | Type |
 |---|---|
 | `title` | `string` |
+| `grow` | `boolean` |
+
+`grow` fills the parent's main axis and stretches the box with it, so Sections
+side by side in an `align="stretch"` row share the taller one's height.
 
 ### Data visualization
 
