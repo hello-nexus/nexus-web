@@ -202,7 +202,7 @@ export function CloudProfilesSection(
   const ownCloud = allRows.filter(r => r.machine.isThisMachine);
   const ownMachine = library?.machines.find(m => m.isThisMachine);
   const ownInstallId = ownMachine?.installId ?? '';
-  const pcChip = (hostname: string | undefined) => <Badge label={hostname || unknown} color="var(--accent)" />;
+  const pcChip = (hostname: string | undefined) => <Badge label={hostname || unknown} color="var(--accent)" uppercase />;
 
   // The list is the union of what is local and what is backed up, so a profile
   // whose backup was removed still appears - with only a Back up action - and
