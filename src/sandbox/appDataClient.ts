@@ -27,7 +27,10 @@ export function appDataTopic(appId: string, key: string): string {
   return `app-data/${appId}/${key}`;
 }
 
-export async function getAppData(appId: string, key: string): Promise<AppDataDoc> {
+/** A document as the service returns it: tagged with the profile it belongs to. */
+export type ProfileAppDataDoc = AppDataDoc & { profileId?: string };
+
+export async function getAppData(appId: string, key: string): Promise<ProfileAppDataDoc> {
   const { response, status } = await authFetchWithStatus(appDataPath(appId, key));
   if (!response) throw httpError('app-data get failed: offline', status || 0);
   let body: AppDataDoc | null = null;
@@ -38,10 +41,11 @@ export async function getAppData(appId: string, key: string): Promise<AppDataDoc
   throw httpError(`app-data get failed: ${status}`, status);
 }
 
-export async function putAppData(appId: string, key: string, baseRevision: number, data: unknown): Promise<AppDataPutResult> {
+/** `profileId` is the profile the caller read its base from; the service refuses (409, no revision) once another is active. */
+export async function putAppData(appId: string, key: string, baseRevision: number, data: unknown, profileId?: string): Promise<AppDataPutResult> {
   const { response, status } = await authFetchWithStatus(appDataPath(appId, key), {
     method: 'PUT',
-    body: { baseRevision, data },
+    body: profileId ? { baseRevision, data, profileId } : { baseRevision, data },
   });
   if (!response) throw httpError('app-data put failed: offline', status || 0);
   let body: Partial<AppDataDoc> | null = null;

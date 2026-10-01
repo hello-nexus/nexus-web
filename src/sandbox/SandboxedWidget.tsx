@@ -5,16 +5,17 @@
 
 import { DEV_TOOLS } from '../lib/devTools';
 import { useTranslation } from '../lib/i18n';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 import { MediaImportProvider } from './mediaImportContext';
 import { useImmersiveExit } from '../panel/overlays/immersiveExit';
 import { useMultiplex, useTopicCallback } from '../hooks/useMultiplexSocket';
-import { getAppData, putAppData, appDataTopic } from './appDataClient';
+import { getAppData, putAppData, appDataTopic, type ProfileAppDataDoc } from './appDataClient';
+import { APP_DATA_RESET_TOPIC, getAppDataEpoch, noteAppDataReset, subscribeAppDataEpoch } from './appDataEpoch';
 import { AudioInstanceEngine, isWebAudioSupported } from './audioEngine';
-import type { AppDataDoc, WidgetDisplay } from '../../sdk/runtime/context';
+import type { WidgetDisplay } from '../../sdk/runtime/context';
 
 // Mirrors the service's key contract (`^[a-z0-9][a-z0-9._-]{0,63}$`) and its
 // per-app key cap - checked here too so a bad or excess key never reaches the
@@ -26,7 +27,7 @@ const APP_DATA_MAX_KEYS_PER_APP = 16;
  *  per key the worker has actually read or written this mount. Also re-reads
  *  the doc on a socket reconnect (a push that landed while disconnected is
  *  otherwise lost - the topic resubscribes but the server doesn't replay). */
-function AppDataTopicBridge({ appId, dataKey, onFrame }: { appId: string; dataKey: string; onFrame: (doc: AppDataDoc) => void }) {
+function AppDataTopicBridge({ appId, dataKey, onFrame }: { appId: string; dataKey: string; onFrame: (doc: ProfileAppDataDoc) => void }) {
   const connected = useMultiplex()?.connected ?? false;
   const wasConnected = useRef(connected);
   useEffect(() => {
@@ -37,9 +38,9 @@ function AppDataTopicBridge({ appId, dataKey, onFrame }: { appId: string; dataKe
   }, [connected, appId, dataKey, onFrame]);
 
   useTopicCallback(appDataTopic(appId, dataKey), true, (raw) => {
-    const frame = raw as Partial<AppDataDoc> | null;
+    const frame = raw as Partial<ProfileAppDataDoc> | null;
     if (frame && typeof frame.revision === 'number' && typeof frame.updatedAt === 'string') {
-      onFrame({ revision: frame.revision, updatedAt: frame.updatedAt, data: frame.data });
+      onFrame({ revision: frame.revision, updatedAt: frame.updatedAt, data: frame.data, profileId: frame.profileId });
     }
   });
   return null;
@@ -130,6 +131,9 @@ interface LiveWidget {
   // mount): a remount that adopts this cached worker must keep subscribing
   // the same topics, or a push landing during the keep-alive window is lost.
   appDataKeys: Set<string>;
+  // The profile this worker's first app-data read came from; its writes carry it
+  // and frames from any other profile are dropped until the reset respawns it.
+  appDataProfileId?: string;
   // This instance's WebAudio sampler; null when audio is unavailable. Lives
   // for the life of the WORKER, disposed alongside it.
   audioEngine: AudioInstanceEngine | null;
@@ -172,11 +176,16 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   const opaqueChangeRef = useRef(onOpaqueChange);
   opaqueChangeRef.current = onOpaqueChange;
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const appDataEnabled = !!appData && !preview;
+  const appDataEpoch = useSyncExternalStore(subscribeAppDataEpoch, getAppDataEpoch);
+  useTopicCallback(APP_DATA_RESET_TOPIC, appDataEnabled, (raw) => {
+    noteAppDataReset((raw as { resetId?: unknown } | null)?.resetId);
+  });
   // Cache key includes the surface so a widget's cell and page workers (separate
   // renders of the same bundle) never collide; ':preview' keeps a preview worker
   // from ever being reused for a live mount. The bundle URL is part of it:
   // useSdkBundle mints one per app version, so a new URL means updated code.
-  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}:${entryUrl}`;
+  const cacheKey = `${widgetId}:${instanceId}:${surface ?? 'cell'}${preview ? ':preview' : ''}:${entryUrl}${appDataEnabled ? `:${appDataEpoch}` : ''}`;
   const notePress = useCallback(() => {
     const e = liveWidgets.get(cacheKey);
     if (e) e.pressedAt = e.touchedAt = performance.now();
@@ -215,7 +224,6 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
   }
 
   const { language } = useTranslation();
-  const appDataEnabled = !!appData && !preview;
   const audioEnabled = !!audio && !preview && !streamed && isWebAudioSupported();
   const display: WidgetDisplay = preview
     ? { shape: 'rect', input: 'pointer' }
@@ -291,13 +299,17 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           appDataGet: appDataEnabled
             ? (dataKey) => {
                 try { noteAppDataKey(entry!, dataKey); } catch (err) { return Promise.reject(err); }
-                return getAppData(widgetId, dataKey);
+                return getAppData(widgetId, dataKey).then(({ profileId, ...doc }) => {
+                  if (entry && entry.appDataProfileId === undefined) entry.appDataProfileId = profileId;
+                  else if (entry?.appDataProfileId && profileId && profileId !== entry.appDataProfileId) noteAppDataReset(`profile:${profileId}`);
+                  return doc;
+                });
               }
             : undefined,
           appDataPut: appDataEnabled
             ? (dataKey, baseRevision, data) => {
                 try { noteAppDataKey(entry!, dataKey); } catch (err) { return Promise.reject(err); }
-                return putAppData(widgetId, dataKey, baseRevision, data);
+                return putAppData(widgetId, dataKey, baseRevision, data, entry?.appDataProfileId);
               }
             : undefined,
           audioLoad: audioEngine ? (id, channels, sampleRate, loop) => audioEngine.load(id, channels, sampleRate, loop) : undefined,
@@ -355,10 +367,10 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
         }, KEEP_ALIVE_MS);
       }
     };
-    // Identity is the widget instance + surface (+ preview) + bundle; settings
-    // change in place on the reused worker.
+    // Identity is the widget instance + surface (+ preview) + bundle (+ app-data
+    // epoch); settings change in place on the reused worker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetId, instanceId, surface, preview, entryUrl]);
+  }, [widgetId, instanceId, surface, preview, entryUrl, appDataEnabled ? appDataEpoch : '']);
 
   useEffect(() => {
     handle?.update({ settings: settings ?? {} });
@@ -411,7 +423,13 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           key={key}
           appId={widgetId}
           dataKey={key}
-          onFrame={(doc) => handle.update({ appData: { key, ...doc } })}
+          onFrame={({ profileId, ...doc }) => {
+            const own = liveEntry.appDataProfileId;
+            // Another profile's document means this worker missed the reset
+            // (the socket was down during the switch): respawn it now.
+            if (own && profileId && profileId !== own) { noteAppDataReset(`profile:${profileId}`); return; }
+            handle.update({ appData: { key, ...doc } });
+          }}
         />
       ))}
     </div>

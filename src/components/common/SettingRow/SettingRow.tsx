@@ -56,6 +56,7 @@ export function SettingRow({
   wrapControl,
   stackOnNarrow,
   descriptionBelow,
+  selected,
 }: {
   label?: string;
   // Inline content after the label text, e.g. a chip naming what the row belongs to.
@@ -98,6 +99,8 @@ export function SettingRow({
   // the row's, so the control jogs up and down as the text rewraps. 'tight'
   // seats the description against the label instead (SettingSlider).
   descriptionBelow?: boolean | 'tight';
+  // The row the user is currently on (e.g. the active profile): accent outline and fill.
+  selected?: boolean;
 }) {
   const cls = [
     styles.row,
@@ -108,6 +111,7 @@ export function SettingRow({
     descriptionBelow && styles.descBelow,
     descriptionBelow === 'tight' && styles.descBelowTight,
     icon && iconLeading && styles.hasLeadingIcon,
+    selected && styles.selected,
   ].filter(Boolean).join(' ');
   return (
     <div id={anchorId} data-search-anchor={anchorId} className={cls}>

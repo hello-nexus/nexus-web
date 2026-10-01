@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { ChevronDown, Plus, UsersRound, UserRound, LogIn } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, UsersRound, UserRound, LogIn } from 'lucide-react';
 import classNames from 'classnames';
 import { useTranslation } from '../../../lib/i18n';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
@@ -173,32 +173,29 @@ export function ProfileDropdown({
         })}>
           {OFFICIAL_BUILD && onNavigateAccount && (
             <>
-              <div className={styles.groupLabel}>{t('account.title')}</div>
               <div className={styles.accountSection}>
                 <button
                   type="button"
-                  className={styles.actionBtn}
+                  className={styles.accountCard}
                   onClick={handleAccountEntry}
                   aria-label={signedIn ? `${t('account.title')}: ${accountUsername}` : undefined}
                 >
-                  {signedIn ? (
-                    <>
-                      <span className={styles.accountEntryAvatar}>
-                        {accountAvatarUrl ? (
-                          <img className={styles.accountAvatarImg} src={accountAvatarUrl} alt="" />
-                        ) : accountInitial ? (
-                          <span className={styles.accountAvatarInitial}>{accountInitial}</span>
-                        ) : (
-                          <UserRound size={12} aria-hidden />
-                        )}
-                      </span>
-                      <span className={styles.accountEntryName}>{accountUsername}</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn size={14} aria-hidden /> {t('account.dropdown.logIn')}
-                    </>
-                  )}
+                  <span className={styles.accountEntryAvatar}>
+                    {signedIn && accountAvatarUrl ? (
+                      <img className={styles.accountAvatarImg} src={accountAvatarUrl} alt="" />
+                    ) : signedIn && accountInitial ? (
+                      <span className={styles.accountAvatarInitial}>{accountInitial}</span>
+                    ) : signedIn ? (
+                      <UserRound size={14} aria-hidden />
+                    ) : (
+                      <LogIn size={14} aria-hidden />
+                    )}
+                  </span>
+                  <span className={styles.accountEntryText}>
+                    <span className={styles.accountEntryName}>{signedIn ? accountUsername : t('account.dropdown.logIn')}</span>
+                    <span className={styles.accountEntrySub}>{t('account.title')}</span>
+                  </span>
+                  <ChevronRight size={14} className={styles.accountEntryChevron} aria-hidden />
                 </button>
               </div>
               <MenuDivider />
@@ -220,7 +217,6 @@ export function ProfileDropdown({
             <button type="button" className={styles.actionBtn} onClick={handleCreate} disabled={atLimit}>
               <Plus size={14} /> {t('profile.create')}
             </button>
-            <MenuDivider />
             <button type="button" className={styles.actionBtn} onClick={handleManage}>
               <UsersRound size={14} /> {t('profile.manage')}
             </button>

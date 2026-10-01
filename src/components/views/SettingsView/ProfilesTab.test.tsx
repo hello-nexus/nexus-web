@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilesTab } from './ProfilesTab';
 import type { UseProfilesResult, UseProfileSharingResult } from '../../../hooks/useProfiles';
 import type { ProfileEntry, ProfileFetchResult, ProfileResponse } from '../../../api/profiles';
@@ -31,6 +31,12 @@ vi.mock('../../../hooks/useProfiles', async importOriginal => {
 });
 
 vi.mock('./SharingSection', () => ({ SharingSection: () => null }));
+
+const { inspectProfileFile } = vi.hoisted(() => ({ inspectProfileFile: vi.fn() }));
+vi.mock('../../../api/profiles', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/profiles')>()),
+  inspectProfileFile,
+}));
 
 const PROFILE_A: ProfileEntry = { id: 'a', name: 'Gaming', createdAt: '', updatedAt: '' };
 const PROFILE_B: ProfileEntry = { id: 'b', name: 'Work', createdAt: '', updatedAt: '' };
@@ -168,6 +174,8 @@ describe('ProfilesTab rename', () => {
 });
 
 describe('ProfilesTab import', () => {
+  beforeEach(() => { inspectProfileFile.mockReset().mockResolvedValue(null); });
+
   it('on a 409 profile_name_taken, opens the replace confirm dialog instead of the inline error', async () => {
     const profiles = buildProfiles({ importProfile: vi.fn().mockResolvedValue(taken()) });
     render(<ProfilesTab profiles={profiles} onPreferencesChanged={vi.fn()} />);
@@ -197,7 +205,7 @@ describe('ProfilesTab import', () => {
     fireEvent.click(screen.getByRole('button', { name: 'profile.importReplaceAction' }));
 
     await waitFor(() => expect(importProfile).toHaveBeenCalledTimes(2));
-    expect(importProfile).toHaveBeenNthCalledWith(2, file, true);
+    expect(importProfile).toHaveBeenNthCalledWith(2, file, true, true);
     expect(screen.queryByText('profile.importReplaceTitle')).not.toBeInTheDocument();
   });
 
@@ -228,5 +236,36 @@ describe('ProfilesTab import', () => {
     await waitFor(() => expect(profiles.importProfile).toHaveBeenCalled());
     expect(screen.queryByText('profile.importDuplicateName')).not.toBeInTheDocument();
     expect(screen.queryByText('profile.importReplaceTitle')).not.toBeInTheDocument();
+  });
+
+  it('asks about app data when the file carries some, and imports without it when switched off', async () => {
+    inspectProfileFile.mockResolvedValue({ name: 'Gaming', appIds: ['com.hellonexus.aquarium'], format: 'json' });
+    const profiles = buildProfiles();
+    render(<ProfilesTab profiles={profiles} onPreferencesChanged={vi.fn()} />);
+
+    const file = new File(['{}'], 'Gaming.nexusprofile');
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } });
+
+    await waitFor(() => expect(screen.getByText('profile.restore.importTitle name=Gaming')).toBeInTheDocument());
+    expect(profiles.importProfile).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByRole('button', { name: 'profile.restore.importAction' }));
+
+    await waitFor(() => expect(profiles.importProfile).toHaveBeenCalledWith(file, false, false));
+  });
+
+  it('keeps the app-data choice through the replace dialog', async () => {
+    inspectProfileFile.mockResolvedValue({ name: 'Gaming', appIds: ['com.hellonexus.aquarium'], format: 'json' });
+    const importProfile = vi.fn().mockResolvedValueOnce(taken()).mockResolvedValue(ok(PROFILE_A));
+    render(<ProfilesTab profiles={buildProfiles({ importProfile })} onPreferencesChanged={vi.fn()} />);
+
+    const file = new File(['{}'], 'Gaming.nexusprofile');
+    fireEvent.change(document.querySelector('input[type="file"]') as HTMLInputElement, { target: { files: [file] } });
+    await waitFor(() => expect(screen.getByText('profile.restore.importTitle name=Gaming')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'profile.restore.importAction' }));
+
+    await waitFor(() => expect(screen.getByText('profile.importReplaceTitle')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'profile.importReplaceAction' }));
+    await waitFor(() => expect(importProfile).toHaveBeenNthCalledWith(2, file, true, true));
   });
 });
