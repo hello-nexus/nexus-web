@@ -36,6 +36,7 @@ export function ProfileRestoreModal({ open, title, confirmLabel, appIds, onConfi
       title={title}
       message={t('profile.restore.message')}
       confirmLabel={confirmLabel}
+      destructive={false}
       onConfirm={() => onConfirm(includeAppData)}
       onCancel={onCancel}
     >
