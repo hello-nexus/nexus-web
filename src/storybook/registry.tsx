@@ -58,6 +58,9 @@ import { AdvancedModeCta } from '../components/common/AdvancedModeCta/AdvancedMo
 import { ModeMenu } from '../components/common/ModeMenu/ModeMenu';
 import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
+import { FirmwareRecoveryBanner } from '../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
+import { FlashProgress } from '../components/common/FlashProgress/FlashProgress';
+import type { FirmwareStatusItem } from '../hooks/useFirmwareStatus';
 import { Button } from '../components/common/Button/Button';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAllClear } from '../components/common/ConflictAllClear/ConflictAllClear';
@@ -1363,6 +1366,27 @@ function PreviewSimpleModeNotice() {
   );
 }
 
+const PREVIEW_RECOVERY_ITEM: FirmwareStatusItem = {
+  deviceType: 'qseries', firmwareType: 'q60', name: 'HYTE Q60', category: 'cooling',
+  currentVersion: '', availableVersion: '1.0.0', updateAvailable: false, availableVersions: [], devImages: [],
+  needsRecovery: true, recoveryState: 'ready',
+};
+
+function PreviewFirmwareRecoveryBanner() {
+  return (
+    <div className={styles.previewStack} style={{ width: 560 }}>
+      <FirmwareRecoveryBanner item={PREVIEW_RECOVERY_ITEM} status={null} onRecover={() => {}} />
+      <FirmwareRecoveryBanner item={{ ...PREVIEW_RECOVERY_ITEM, recoveryState: 'identifying' }} status={null} onRecover={() => {}} />
+    </div>
+  );
+}
+
+function PreviewFlashProgress() {
+  return (
+    <FlashProgress status={{ active: true, deviceType: 'q60', version: '1.0.0', phase: 'downloading', percent: 42, message: 'Downloading', success: false, error: '' }} />
+  );
+}
+
 function PreviewDeviceCountSummary() {
   return (
     <div className={styles.previewStack} style={{ width: 420 }}>
@@ -2481,6 +2505,18 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/SimpleModeNotice/SimpleModeNotice.tsx',
     description: 'Accent-tinted line on the simple-mode lighting/cooling pages, shown when the active configuration has no tile on the page (a custom cooling preset, a lighting effect or mixed per-device colours) - without it the page reads as though nothing is running. The page owns the wording and the condition.',
     Preview: PreviewSimpleModeNotice,
+  },
+  {
+    name: 'FirmwareRecoveryBanner', category: 'cards',
+    filePath: 'src/components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner.tsx',
+    description: 'Warning shown on the Cooling and Firmware Updates pages when a device is stuck in update mode after an interrupted firmware update. Carries the Recover action, a checking line while the service identifies the device, flash progress while recovering, and a contact-support line when the device cannot be recovered in-app. Pairs with useFirmwareRecoveryFlow / useRecoverConfirm for the confirm dialog.',
+    Preview: PreviewFirmwareRecoveryBanner,
+  },
+  {
+    name: 'FlashProgress', category: 'cards',
+    filePath: 'src/components/common/FlashProgress/FlashProgress.tsx',
+    description: 'Inline firmware flash progress: a thin bar plus the service\'s phase message and percent. Used in the Firmware Updates status cell and the recovery banner.',
+    Preview: PreviewFlashProgress,
   },
   {
     name: 'DeviceCountSummary', category: 'cards',

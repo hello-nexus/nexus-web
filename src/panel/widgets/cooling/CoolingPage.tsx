@@ -55,6 +55,8 @@ import { DeviceCountSummary } from '../../../components/common/DeviceCountSummar
 import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
+import { FirmwareRecoveryBanner } from '../../../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
+import { useFirmwareRecoveryFlow } from '../../../hooks/useFirmwareRecovery';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { type SortableRowArgs } from '../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../components/common/SortableList/GroupedSortableList';
@@ -124,6 +126,10 @@ const noopCurveEdit = () => {};
 
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
   const { t, language } = useTranslation();
+  const recovery = useFirmwareRecoveryFlow(serviceOnline);
+  const recoveryBanner = (
+    <FirmwareRecoveryBanner item={recovery.item} status={recovery.status} onRecover={recovery.request} />
+  );
   // Seed every primary slice from localStorage so subsequent visits to this
   // route paint cards immediately instead of flashing an empty fan list for
   // the duration of the /cooling/fans+curves+sources+profiles round-trip.
@@ -1348,6 +1354,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     return (
       <div className={styles.cooling}>
         <div className={`${styles.simpleBody} pageBodyFill`}>
+          {recoveryBanner}
+          {recovery.modal}
           <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
             <ViewHeader
               title={t('cooling.title')}
@@ -1404,6 +1412,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
   return (
     <div className={styles.cooling}>
+      {recovery.item && <div className={`${styles.recoveryBanner} pageBody`}>{recoveryBanner}</div>}
+      {recovery.modal}
       {/* Fan rail on the left, mode tabs + curve to its right, mirroring the
           lighting page. The rail header shares grid row 1 with the tabs so both
           columns start at the same line. Capped at --page-max (pageBody) so the
