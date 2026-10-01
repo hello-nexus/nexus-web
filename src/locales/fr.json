@@ -3789,6 +3789,7 @@
   "phonePair.unknown": "Inconnu",
   "placeholder.badge": "Bientôt disponible",
   "profile.appData.count": "{count} apps",
+  "profile.cloud.backup.done": "Sauvegardé",
   "profile.cloud.backup.error.failed": "La sauvegarde a échoué. Rien n'a été envoyé.",
   "profile.cloud.backup.error.tooLarge": "Les données des apps de ce profil sont trop volumineuses pour être sauvegardées.",
   "profile.cloud.backup.includes": "inclut {apps}",

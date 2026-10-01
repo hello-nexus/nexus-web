@@ -3789,6 +3789,7 @@
   "phonePair.unknown": "Bilinmiyor",
   "placeholder.badge": "Yakinda",
   "profile.appData.count": "{count} uygulama",
+  "profile.cloud.backup.done": "Yedeklendi",
   "profile.cloud.backup.error.failed": "Yedekleme başarısız oldu. Hiçbir şey yüklenmedi.",
   "profile.cloud.backup.error.tooLarge": "Bu profilin uygulama verileri yedeklenemeyecek kadar büyük.",
   "profile.cloud.backup.includes": "{apps} dahil",

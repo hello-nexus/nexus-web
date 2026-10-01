@@ -3826,6 +3826,7 @@
   "phonePair.unknown": "Nieznane",
   "placeholder.badge": "Juz wkrotce",
   "profile.appData.count": "Aplikacje: {count}",
+  "profile.cloud.backup.done": "Kopia utworzona",
   "profile.cloud.backup.error.failed": "Tworzenie kopii nie powiodło się. Nic nie zostało przesłane.",
   "profile.cloud.backup.error.tooLarge": "Dane aplikacji tego profilu są za duże, by utworzyć kopię.",
   "profile.cloud.backup.includes": "zawiera {apps}",

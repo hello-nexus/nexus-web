@@ -3789,6 +3789,7 @@
   "phonePair.unknown": "Onbekend",
   "placeholder.badge": "Binnenkort beschikbaar",
   "profile.appData.count": "{count} apps",
+  "profile.cloud.backup.done": "Back-up gemaakt",
   "profile.cloud.backup.error.failed": "Back-up mislukt. Er is niets geüpload.",
   "profile.cloud.backup.error.tooLarge": "De app-gegevens van dit profiel zijn te groot voor een back-up.",
   "profile.cloud.backup.includes": "inclusief {apps}",

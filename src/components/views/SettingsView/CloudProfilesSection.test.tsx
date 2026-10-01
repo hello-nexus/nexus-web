@@ -318,6 +318,20 @@ describe('CloudProfilesSection profile list', () => {
     await waitFor(() => expect(screen.getByText('profile.cloud.backup.error.tooLarge')).toBeInTheDocument());
   });
 
+  it('turns Back up now into a check once the backup lands, and leaves it a button when it fails', async () => {
+    const syncNow = vi.fn().mockResolvedValueOnce({ ok: true }).mockResolvedValueOnce({ ok: false });
+    syncResult.mockReturnValue({ ...BASE_SYNC, syncNow });
+    renderSection();
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' }).length).toBeGreaterThan(0));
+    fireEvent.click(screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' })[0]);
+    const done = await screen.findByRole('button', { name: 'profile.cloud.backup.done' });
+    // Backing up again starts over: a failure puts the plain button back.
+    fireEvent.click(done);
+    await screen.findByText('profile.cloud.backup.error.failed');
+    expect(screen.queryByRole('button', { name: 'profile.cloud.backup.done' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'profile.cloud.backup.syncNow' }).length).toBeGreaterThan(0);
+  });
+
   it('marks the active local profile, as the local list does', async () => {
     renderSection();
     await waitFor(() => expect(screen.getByText('settings.profiles.active')).toBeInTheDocument());
