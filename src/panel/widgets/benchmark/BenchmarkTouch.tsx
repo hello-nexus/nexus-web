@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { Play, RotateCcw, X } from 'lucide-react';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { useBenchmark } from '../../../hooks/useBenchmark';
@@ -15,15 +15,21 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
   const { t } = useTranslation();
   const { status, progress, result, error, start, cancel, reset } = useBenchmark(true);
   const { latest } = useBenchmarkHistory();
+  const [revealedRunId, setRevealedRunId] = useState<string | null>(null);
+  const revealing = status === 'complete' && !!progress && progress.runId !== revealedRunId;
+  const progressRunId = progress?.runId ?? null;
+  const handleRevealed = useCallback(() => setRevealedRunId(progressRunId), [progressRunId]);
 
   const statusCell: ReactNode = (() => {
-    if (status === 'running' && progress) {
+    if ((status === 'running' || revealing) && progress) {
       return (
         <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
-          <BenchmarkProgress progress={progress} />
-          <Button tone="ghost" icon={<X size={14} />} onClick={cancel}>
-            {t('benchmark.cancel')}
-          </Button>
+          <BenchmarkProgress key={progress.runId} progress={progress} result={result} compact onRevealed={handleRevealed} />
+          {!revealing && (
+            <Button tone="ghost" icon={<X size={14} />} onClick={cancel}>
+              {t('benchmark.cancel')}
+            </Button>
+          )}
         </div>
       );
     }

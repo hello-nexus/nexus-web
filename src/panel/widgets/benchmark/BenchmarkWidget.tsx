@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
 import { PanelWidgetShell, PanelWidgetEmpty } from '../common/PanelWidgetChrome';
 import type { WidgetProps } from '../types';
+import { BenchmarkChip } from './BenchmarkChip';
 import styles from './BenchmarkWidget.module.scss';
 
 export function BenchmarkWidget({ widget }: WidgetProps) {
@@ -36,12 +37,12 @@ export function BenchmarkWidget({ widget }: WidgetProps) {
 
   return (
     <PanelWidgetShell size={size} className={styles.widget}>
+      <div className={styles.chipLayer} aria-hidden>
+        <BenchmarkChip still contained />
+      </div>
       <div className={styles.main}>
-        <div className={styles.compositeRow}>
-          <Gauge size={14} className={styles.gaugeIcon} />
-          <div className={styles.score}>{Math.round(latest.composite)}</div>
-        </div>
         <div className={styles.label}>{t('benchmark.result.composite')}</div>
+        <div className={styles.score}>{Math.round(latest.composite)}</div>
         <div className={styles.time}>{relativeTime}</div>
       </div>
       {size === '4x2' && (
