@@ -15,6 +15,9 @@ const h = vi.hoisted(() => ({
   isRemoteOrigin: false,
   specs: null as unknown as SystemSpecs | null,
   gamesByKey: new Map<string, FpsGameSummary>(),
+  serverCase: null as string | null,
+  fetchService: vi.fn(),
+  putService: vi.fn(),
 }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
@@ -31,6 +34,8 @@ vi.mock('../../../sandbox/ui/openExternal', () => ({
 }));
 vi.mock('../../../api/service', () => ({
   get isRemoteOrigin() { return h.isRemoteOrigin; },
+  fetchService: (...args: unknown[]) => h.fetchService(...args),
+  putService: (...args: unknown[]) => h.putService(...args),
 }));
 
 const SAMPLE_SPECS: SystemSpecs = {
@@ -64,6 +69,11 @@ beforeEach(() => {
   h.specs = null;
   h.gamesByKey = new Map();
   h.openExternalUrl.mockClear();
+  h.serverCase = null;
+  h.fetchService.mockReset();
+  h.fetchService.mockImplementation(async (path: string) => (path === '/system/case' ? { caseId: h.serverCase } : null));
+  h.putService.mockReset();
+  h.putService.mockImplementation(async (_path: string, body: { caseId: string | null }) => ({ caseId: body.caseId }));
   Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
 });
 
@@ -276,22 +286,161 @@ describe('BuildPage', () => {
 
   it('exports a path validator that rejects a host-escaping shape and accepts a safe one', () => {
     expect(sanitizeBuildPath(encodeURIComponent('/upgrade?bench=abc'))).toBe('/upgrade?bench=abc');
-    expect(sanitizeBuildPath(null)).toBe('/upgrade');
-    expect(sanitizeBuildPath(undefined)).toBe('/upgrade');
+    expect(sanitizeBuildPath(null)).toBe('/builder');
+    expect(sanitizeBuildPath(undefined)).toBe('/builder');
     // No leading slash: `${BUILD_ORIGIN}${path}` would resolve to a different host.
-    expect(sanitizeBuildPath(encodeURIComponent('.attacker.com'))).toBe('/upgrade');
+    expect(sanitizeBuildPath(encodeURIComponent('.attacker.com'))).toBe('/builder');
     // Protocol-relative.
-    expect(sanitizeBuildPath(encodeURIComponent('//attacker.com'))).toBe('/upgrade');
+    expect(sanitizeBuildPath(encodeURIComponent('//attacker.com'))).toBe('/builder');
     // "@" before the query, e.g. userinfo-style host confusion.
-    expect(sanitizeBuildPath(encodeURIComponent('/@evil.com'))).toBe('/upgrade');
+    expect(sanitizeBuildPath(encodeURIComponent('/@evil.com'))).toBe('/builder');
     // Malformed percent-encoding.
-    expect(sanitizeBuildPath('%')).toBe('/upgrade');
+    expect(sanitizeBuildPath('%')).toBe('/builder');
   });
 
   it('renders an iframe pointed at build.hellonexus.com even given a host-escaping path prop', () => {
     render(<BuildPage path={encodeURIComponent('.attacker.com')} />);
     const src = getIframe().src;
     expect(src.startsWith(BUILD_ORIGIN)).toBe(true);
-    expect(src).toBe(`${BUILD_ORIGIN}/upgrade`);
+    expect(src).toBe(`${BUILD_ORIGIN}/builder`);
+  });
+  describe('this PC\'s case', () => {
+    const helloPosts = (spy: ReturnType<typeof vi.spyOn>) =>
+      spy.mock.calls.filter(c => (c[0] as { type?: string }).type === 'nexus-build:hello').map(c => c[0] as { machine?: { caseId?: string } });
+    const flush = () => act(async () => { await Promise.resolve(); await Promise.resolve(); });
+
+    it('carries the saved caseId in the hello machine object', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.serverCase = 'case-fractal-north';
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(h.fetchService).toHaveBeenCalledWith('/system/case');
+      expect(helloPosts(postSpy)[0].machine).toMatchObject({ caseId: 'case-fractal-north', processor: 'AMD Ryzen 7 7800X3D' });
+    });
+
+    it('omits caseId from the machine object when none is set', async () => {
+      h.specs = SAMPLE_SPECS;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(helloPosts(postSpy)[0].machine).not.toHaveProperty('caseId');
+    });
+
+    it('saves a set-case pick through the service and re-posts hello with it', async () => {
+      h.specs = SAMPLE_SPECS;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: 'case-abc' }));
+      await flush();
+
+      expect(h.putService).toHaveBeenCalledWith('/system/case', { caseId: 'case-abc' });
+      const posts = helloPosts(postSpy);
+      expect(posts).toHaveLength(2);
+      expect(posts[1].machine).toMatchObject({ caseId: 'case-abc' });
+    });
+
+    it('clears the pick on set-case null', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.serverCase = 'case-abc';
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: null }));
+      await flush();
+
+      expect(h.putService).toHaveBeenCalledWith('/system/case', { caseId: null });
+      expect(helloPosts(postSpy).at(-1)?.machine).not.toHaveProperty('caseId');
+    });
+
+    it.each([
+      ['empty', ''],
+      ['a space', 'has space'],
+      ['a slash', 'a/b'],
+      ['too long', 'a'.repeat(65)],
+      ['a number', 42],
+      ['undefined', undefined],
+    ])('rejects a set-case id that is %s without calling the service', async (_label, bad) => {
+      h.specs = SAMPLE_SPECS;
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: bad }));
+      await flush();
+
+      expect(h.putService).not.toHaveBeenCalled();
+    });
+
+    it('ignores set-case from the wrong origin or source', async () => {
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: 'case-abc' }, 'https://evil.example.com'));
+      act(() => {
+        window.dispatchEvent(new MessageEvent('message', {
+          data: { type: 'nexus-build:set-case', v: 1, caseId: 'case-abc' },
+          origin: BUILD_ORIGIN,
+          source: window,
+        }));
+      });
+      await flush();
+
+      expect(h.putService).not.toHaveBeenCalled();
+    });
+
+    it('keeps the initial GET\'s case when a save fails before the GET resolves', async () => {
+      h.specs = SAMPLE_SPECS;
+      let resolveGet: (v: unknown) => void = () => {};
+      h.fetchService.mockImplementation(() => new Promise(resolve => { resolveGet = resolve; }));
+      h.putService.mockImplementation(async () => null);
+      render(<BuildPage path="/builder" />);
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: 'case-new' }));
+      await flush();
+      await act(async () => { resolveGet({ caseId: 'case-stored' }); await Promise.resolve(); });
+      await flush();
+
+      expect(helloPosts(postSpy).at(-1)?.machine).toMatchObject({ caseId: 'case-stored' });
+    });
+
+    it('keeps the old caseId when the service refuses the save', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.serverCase = 'case-old';
+      h.putService.mockImplementation(async () => ({ error: true, msg: 'nope' }));
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:set-case', v: 1, caseId: 'case-new' }));
+      await flush();
+
+      const posts = helloPosts(postSpy);
+      expect(posts).toHaveLength(1);
+      expect(posts[0].machine).toMatchObject({ caseId: 'case-old' });
+    });
   });
 });

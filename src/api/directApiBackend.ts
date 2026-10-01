@@ -500,6 +500,12 @@ export const directApiBackend: AuthBackend = {
     return toEnvelopeResult<AuthDeviceUpsertResponse>(res);
   },
 
+  setDeviceCase: async (installId, caseId) => {
+    const res = await authedRequest(`/account/devices/${encodeURIComponent(installId)}/case`, 'PUT', { json: { caseId } });
+    if (!res?.ok) return null;
+    return await tryParseJson<AccountDeviceItem>(res);
+  },
+
   deleteDevice: async (installId) => {
     const res = await authedRequest(`/account/devices/${encodeURIComponent(installId)}`, 'DELETE');
     return Boolean(res?.ok);

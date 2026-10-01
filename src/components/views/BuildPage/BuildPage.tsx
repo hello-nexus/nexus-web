@@ -8,15 +8,17 @@ import { resolveTheme, currentAccentColor } from '../../../lib/settings';
 import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
-import { isRemoteOrigin } from '../../../api/service';
+import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
-const DEFAULT_PATH = '/upgrade';
+const DEFAULT_PATH = '/builder';
 const READY_TIMEOUT_MS = 8000;
 const MAX_GAMES = 10;
+// Same rule as the cloud api's device case id: a catalog part id.
+const CASE_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 const BYTES_PER_GIB = 1024 ** 3;
 // Only the iframe's own script/form/same-origin-storage capabilities are
 // granted - no allow-top-navigation, no allow-popups, so the only way out of
@@ -36,6 +38,7 @@ interface BuildMachine {
   res?: string;
   hz?: number;
   ramGb?: number;
+  caseId?: string;
 }
 
 interface BuildGame {
@@ -54,6 +57,10 @@ interface FrameMessage {
 function isGlassBackdrop(): boolean {
   const root = document.documentElement;
   return root.classList.contains('nexus-shell-native-glass') && root.getAttribute('data-bg') === 'glass';
+}
+
+function isValidCaseId(value: unknown): value is string | null {
+  return value === null || (typeof value === 'string' && CASE_ID_PATTERN.test(value));
 }
 
 function isFrameMessage(data: unknown): data is FrameMessage {
@@ -87,7 +94,7 @@ export function sanitizeBuildPath(raw: string | null | undefined): string {
 }
 
 interface BuildPageProps {
-  /** URL-encoded portal path (pathname + search), e.g. encodeURIComponent("/upgrade?bench=<id>"). Defaults to "/upgrade". */
+  /** URL-encoded portal path (pathname + search), e.g. encodeURIComponent("/upgrade?bench=<id>"). Defaults to "/builder". */
   path?: string | null;
 }
 
@@ -124,6 +131,21 @@ export function BuildPage({ path }: BuildPageProps) {
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, [settings.themeMode]);
+
+  // This machine's case, the one part the app cannot detect: saved by the
+  // service (machine-local, mirrored to the signed-in account) and picked in
+  // the frame.
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const caseTouchedRef = useRef(false);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const res = await fetchService<{ caseId?: string | null }>('/system/case');
+      if (cancelled || caseTouchedRef.current || !res) return;
+      if (typeof res.caseId === 'string' && isValidCaseId(res.caseId)) setCaseId(res.caseId);
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const readyRef = useRef(ready);
   useEffect(() => { readyRef.current = ready; }, [ready]);
@@ -187,6 +209,17 @@ export function BuildPage({ path }: BuildPageProps) {
           if (url) void openExternalUrl(url);
           break;
         }
+        case 'nexus-build:set-case': {
+          const next = data.caseId;
+          if (!isValidCaseId(next)) break;
+          void (async () => {
+            const res = await putService<{ caseId?: string | null; error?: boolean }>('/system/case', { caseId: next });
+            if (!res || res.error === true) return;
+            caseTouchedRef.current = true;
+            setCaseId(typeof res.caseId === 'string' && isValidCaseId(res.caseId) ? res.caseId : null);
+          })();
+          break;
+        }
         case 'nexus-build:history':
           setBuildFrameHistory({ canGoBack: data.canGoBack === true, canGoForward: data.canGoForward === true });
           break;
@@ -213,6 +246,7 @@ export function BuildPage({ path }: BuildPageProps) {
       res: sig?.res,
       hz: sig?.hz,
       ramGb: sig?.ramBytes != null ? Math.round(sig.ramBytes / BYTES_PER_GIB) : undefined,
+      ...(caseId ? { caseId } : {}),
     };
   })() : undefined;
 

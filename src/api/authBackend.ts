@@ -58,6 +58,8 @@ export interface AccountDeviceItem {
   /** Client-added entry (no telemetry backing it) vs an auto-reported install. */
   manual: boolean;
   lastSeenAt: string;
+  /** The catalog case part picked for this machine; absent from an api that predates it. */
+  caseId?: string | null;
 }
 
 export type AuthDeviceUpsertResponse = AuthEnvelope & Partial<AccountDeviceItem>;
@@ -89,4 +91,6 @@ export interface AuthBackend {
   listDevices?(): Promise<AccountDeviceItem[] | null>;
   upsertDevice?(installId: string, patch: { hostname: string; specs: Record<string, string>; manual?: boolean }): Promise<AuthFetchResult<AuthDeviceUpsertResponse>>;
   deleteDevice?(installId: string): Promise<boolean>;
+  /** Null when the request failed. */
+  setDeviceCase?(installId: string, caseId: string | null): Promise<AccountDeviceItem | null>;
 }
