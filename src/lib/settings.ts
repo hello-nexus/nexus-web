@@ -531,7 +531,7 @@ function needsDarkTextOnHsl(h: number, s: number, l: number): boolean {
 }
 
 /**
- * Black or white, whichever reads on a fill of this colour. The same pick that
+ * Black or white, whichever reads on a fill of this colour. The same rule that
  * backs --accent-text, exposed for surfaces that must contrast against a colour
  * which is not the accent (a palette swatch, a user-chosen background).
  */
@@ -545,6 +545,24 @@ export function accentShadowAlpha(mode: 'dark' | 'light'): number {
   return mode === 'dark' ? 0.45 : 0.35;
 }
 
+// Keeps --accent visible on the theme's surfaces: dark floors its lightness,
+// light caps it. Every preset sits inside both bounds.
+function themeAccentL(l: number, mode: 'dark' | 'light'): number {
+  return mode === 'dark' ? Math.max(l, 35) : Math.min(l, 70);
+}
+
+// Glow/deep saturation floor, ramped in from zero so a gray accent keeps gray
+// tiers instead of taking hexToHsl's achromatic hue (red).
+function accentBaseS(s: number): number {
+  return clamp(Math.max(s, Math.min(55, s * 5.5)));
+}
+
+// Black when either the pick or its bounded fill calls for it, so a near-white
+// pick capped in light theme keeps a readable label.
+function accentTextFor(h: number, s: number, pickL: number, l: number): string {
+  return needsDarkTextOnHsl(h, s, pickL) || needsDarkTextOnHsl(h, s, l) ? '#000000' : '#ffffff';
+}
+
 /**
  * Derive all accent variants for a base hex and apply them as CSS custom
  * properties on <html>. Safe to call on every color-picker input event.
@@ -555,16 +573,18 @@ export function accentShadowAlpha(mode: 'dark' | 'light'): number {
  */
 export function deriveAccentVars(hex: string, mode: 'dark' | 'light' = 'dark'): Record<string, string> {
   const safe = normalizeAccent(hex);
-  const { h, s, l } = hexToHsl(safe);
+  const pick = hexToHsl(safe);
+  const { h, s } = pick;
+  const l = themeAccentL(pick.l, mode);
 
-  // --accent is the user's pick verbatim. No saturation floor, no lightness clamp.
+  // --accent keeps the pick's hue and saturation; only its lightness is bounded per theme.
   // Glow / deep variants still derive from a bounded base so extreme picks
   // (near-black, near-white) don't collapse into unusable shades.
-  const baseS = clamp(Math.max(s, 55));
+  const baseS = accentBaseS(s);
   const baseL = mode === 'dark' ? clamp(l, 50, 66) : clamp(l, 40, 54);
   const glowL = mode === 'dark' ? clamp(baseL + 10, 58, 80) : clamp(baseL + 8, 48, 68);
   const deepL = mode === 'dark' ? clamp(baseL - 16, 22, 50) : clamp(baseL - 20, 14, 40);
-  const deepS = clamp(baseS + 5);
+  const deepS = baseS === 0 ? 0 : clamp(baseS + 5);
   const softAlpha       = mode === 'dark' ? 0.14 : 0.12;
   const glowShadowAlpha = accentShadowAlpha(mode);
   return {
@@ -573,7 +593,7 @@ export function deriveAccentVars(hex: string, mode: 'dark' | 'light' = 'dark'): 
     '--accent-deep':        hslCss(h, deepS, deepL),
     '--accent-soft':        hslCss(h, s, l, softAlpha),
     '--accent-glow-shadow': hslCss(h, s, l, glowShadowAlpha),
-    '--accent-text':        needsDarkTextOnHsl(h, s, l) ? '#000000' : '#ffffff',
+    '--accent-text':        accentTextFor(h, s, pick.l, l),
   };
 }
 
@@ -584,16 +604,18 @@ export function applyAccentColor(hex: string): void {
   const effective = document.documentElement.getAttribute('data-theme') === 'light'
     ? 'light'
     : 'dark';
-  const { h, s, l } = hexToHsl(safe);
+  const pick = hexToHsl(safe);
+  const { h, s } = pick;
+  const l = themeAccentL(pick.l, effective);
 
-  // --accent is the user's pick verbatim. No saturation floor, no lightness clamp.
+  // --accent keeps the pick's hue and saturation; only its lightness is bounded per theme.
   // Glow / deep variants still derive from a bounded base so extreme picks
   // (near-black, near-white) don't collapse into unusable shades.
-  const baseS = clamp(Math.max(s, 55));
+  const baseS = accentBaseS(s);
   const baseL = effective === 'dark' ? clamp(l, 50, 66) : clamp(l, 40, 54);
   const glowL = effective === 'dark' ? clamp(baseL + 10, 58, 80) : clamp(baseL + 8, 48, 68);
   const deepL = effective === 'dark' ? clamp(baseL - 16, 22, 50) : clamp(baseL - 20, 14, 40);
-  const deepS = clamp(baseS + 5);
+  const deepS = baseS === 0 ? 0 : clamp(baseS + 5);
 
   const softAlpha       = effective === 'dark' ? 0.14 : 0.12;
   const glowShadowAlpha = accentShadowAlpha(effective);
@@ -601,7 +623,7 @@ export function applyAccentColor(hex: string): void {
   // Pick black-or-white text for the accent surface based on its luminance.
   // Keeps text legible across the full hue range - dark picks keep white text;
   // bright yellows/limes/cyans flip to black.
-  const accentText = needsDarkTextOnHsl(h, s, l)             ? '#000000' : '#ffffff';
+  const accentText = accentTextFor(h, s, pick.l, l);
 
   const root = document.documentElement.style;
   root.setProperty('--accent',             hslCss(h, s, l));
