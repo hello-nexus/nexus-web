@@ -46,7 +46,7 @@ describe('ServiceGatePage', () => {
   it('desktop: keeps the ServiceRequired launch/download gate', async () => {
     stubUserAgent(DESKTOP_UA);
     render(<I18nProvider><ServiceGatePage state="offline" /></I18nProvider>);
-    await screen.findByText('This page connects to Nexus running on this computer.');
+    await screen.findByText('This page connects to Nexus running on this system.');
     expect(screen.getByText(/Already installed but not connecting/)).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'How to: pair this device with your PC' })).toBeNull();
   });
