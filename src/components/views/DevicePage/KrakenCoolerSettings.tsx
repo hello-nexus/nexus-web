@@ -17,6 +17,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
 import { KrakenFirmwareLightingSection } from './KrakenFirmwareLighting';
 import styles from './LianLiDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 // Matches the service status poll so the readout tracks the cooler without adding load.
 const STATE_POLL_MS = 1000;
@@ -44,6 +45,7 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
   const { t } = useTranslation();
   const { numberFormat, monitoringTempUnit } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [state, setState] = useState<KrakenState | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState(false);

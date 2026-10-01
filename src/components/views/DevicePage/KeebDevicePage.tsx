@@ -14,6 +14,7 @@ import { KeebRotaryView } from '../keeb/KeebRotaryView';
 import { KeebMacroView } from '../keeb/KeebMacroView';
 import { KeebTesterView } from '../keeb/KeebTesterView';
 import pageStyles from './KeebDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 /**
  * Routed keeb customization page (ViewHeader + section chrome). The
@@ -38,6 +39,7 @@ export function KeebDevicePage() {
   // the component lives only while the user is on the page, so we
   // pass true throughout - unmount tears the subscription down.
   const keeb = useKeeb(true);
+  useReportDeviceWaiting(!keeb.state.isConnected);
 
   const [selected, setSelected] = useState<KeebSelection>(null);
   const [rotaryLeft, setRotaryLeft] = useState('VolumeAdjustment');

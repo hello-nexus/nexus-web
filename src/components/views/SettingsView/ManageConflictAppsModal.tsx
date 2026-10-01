@@ -5,7 +5,7 @@ import { SearchInput } from '../../common/SearchInput/SearchInput';
 import { SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Toggle } from '../../common/Toggle/Toggle';
 import {
-  fetchConflictCatalog, fetchDynamicLighting, setDynamicLighting,
+  HYTE_NEXUS2_CONFLICT_ID, fetchConflictCatalog, fetchDynamicLighting, setDynamicLighting,
   type ConflictCatalogApp, type SetWindowsDynamicLightingBody, type WindowsDynamicLightingState,
 } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
@@ -210,8 +210,10 @@ export function ManageConflictAppsModal({
                       className={group.running ? `${styles.appRow} ${styles.appRowRunning}` : styles.appRow}
                     >
                       <span className={styles.appName}>{app.displayName}</span>
+                      {/* Nexus 2 is always ended, so its row cannot be switched off. */}
                       <Toggle
-                        checked={!excluded.has(app.id)}
+                        checked={app.id === HYTE_NEXUS2_CONFLICT_ID || !excluded.has(app.id)}
+                        disabled={app.id === HYTE_NEXUS2_CONFLICT_ID}
                         onChange={next => setEnabled(app.id, next)}
                         ariaLabel={app.displayName}
                       />

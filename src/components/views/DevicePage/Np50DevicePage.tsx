@@ -28,6 +28,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import styles from './Np50DevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 const RECONNECT_POLL_MS = 2000;
 
@@ -50,6 +51,7 @@ export function Np50DevicePage() {
   // 'disconnected' = explicit not-connected response. The empty state
   // only renders on the 'disconnected' arm.
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [defaults, setDefaults] = useState<Np50FirmwareDefaults | null>(null);
   const [animation, setAnimation] = useState<Np50FirmwareAnimation | null>(null);
   const [saving, setSaving] = useState(false);

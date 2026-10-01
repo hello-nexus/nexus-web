@@ -1,6 +1,6 @@
 import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { StorePage } from './StorePage';
+import { StorePage, notesBlocks } from './StorePage';
 import type { StoreApp, StoreAppDetail } from '../../../api/store';
 
 const i18n = vi.hoisted(() => ({ language: 'en' }));
@@ -552,5 +552,39 @@ describe('StorePage permissions', () => {
 
     expect(await screen.findByText('store.section.description')).toBeInTheDocument();
     expect(screen.queryByText('store.section.permissions')).not.toBeInTheDocument();
+  });
+});
+
+describe('StorePage release notes', () => {
+  it('shows what is new in the version on offer, its bullets as a list and other lines as text', async () => {
+    fetchStoreApp.mockResolvedValue({
+      ...detail,
+      latest: { ...version, version: '2.5.0', notes: 'Pearls are here.\n\n- A pearl shop\n- Hide and seek' },
+    });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    const section = (await screen.findByText('store.section.whatsNew version=2.5.0')).closest('section')!;
+    expect(within(section).getByText('Pearls are here.')).toBeInTheDocument();
+    expect(within(section).getAllByRole('listitem').map(li => li.textContent)).toEqual(['A pearl shop', 'Hide and seek']);
+  });
+
+  it('shows no such section when the release says nothing', async () => {
+    fetchStoreApp.mockResolvedValue({ ...detail, latest: { ...version, notes: '  \n' } });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.section.description')).toBeInTheDocument();
+    expect(screen.queryByText(/store\.section\.whatsNew/)).not.toBeInTheDocument();
+  });
+});
+
+describe('notesBlocks', () => {
+  it('groups bullet runs into lists and other runs into paragraphs, a blank line ending each', () => {
+    expect(notesBlocks('Intro\nmore\n\n- a\n* b\n\u2022 c\n\nOutro')).toEqual([
+      { list: false, text: 'Intro\nmore' },
+      { list: true, items: ['a', 'b', 'c'] },
+      { list: false, text: 'Outro' },
+    ]);
+    expect(notesBlocks('')).toEqual([]);
+    expect(notesBlocks('-not a bullet')).toEqual([{ list: false, text: '-not a bullet' }]);
   });
 });

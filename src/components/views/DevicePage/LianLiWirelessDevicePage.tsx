@@ -12,6 +12,7 @@ import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 import styles from './LianLiWirelessDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
@@ -43,6 +44,7 @@ interface LianLiWirelessDevicePageProps {
 export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDevicePageProps) {
   const { t } = useTranslation();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [state, setState] = useState<LianLiWirelessState | null>(null);
   const [linkStatus, setLinkStatus] = useState<LianLiWirelessLinkStatus | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<LianLiWirelessTab>('fans');

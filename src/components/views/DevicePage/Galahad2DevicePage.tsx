@@ -20,6 +20,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 const PERCENT_PER_LEVEL = 25;
 // Mode key under which the Lighting page drives the device.
@@ -38,6 +39,7 @@ export function Galahad2DevicePage({ onSectionNavigate }: Galahad2DevicePageProp
   const [activeTab, setActiveTab] = useState<'lighting' | 'cooling'>('lighting');
   const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [aioState, setAioState] = useState<Galahad2State | null>(null);
   const [lighting, setLighting] = useState<Galahad2Lighting | null>(null);
   const [saving, setSaving] = useState(false);

@@ -58,6 +58,8 @@ export function CloudProfilesSection(
   const [importError, setImportError] = useState<string | null>(null);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [backingUp, setBackingUp] = useState<string[]>([]);
+  // Profiles backed up since this page opened: their button says so, and takes no press, until the page is left.
+  const [doneBackups, setDoneBackups] = useState<string[]>([]);
   const [signInOpen, setSignInOpen] = useState(false);
   const [restore, setRestore] = useState<RestorePrompt | null>(null);
   const [backupError, setBackupError] = useState<string | null>(null);
@@ -119,9 +121,11 @@ export function CloudProfilesSection(
     if (backingUp.includes(profileId)) return;
     setBackingUp(prev => [...prev, profileId]);
     setBackupError(null);
+    setDoneBackups(prev => prev.filter(id => id !== profileId));
     void sync.syncNow(profileId)
       .then(result => {
-        if (result && !result.ok) {
+        if (result?.ok) setDoneBackups(prev => [...prev, profileId]);
+        else if (result) {
           setBackupError(result.msg === 'app_data_too_large'
             ? t('profile.cloud.backup.error.tooLarge')
             : t('profile.cloud.backup.error.failed'));
@@ -282,11 +286,12 @@ export function CloudProfilesSection(
               type="button"
               tone="neutral"
               size="sm"
-              icon={<CloudUpload />}
+              icon={doneBackups.includes(row.profileId) ? <Check /> : <CloudUpload />}
               loading={backingUp.includes(row.profileId)}
+              disabled={doneBackups.includes(row.profileId)}
               onClick={() => handleBackUp(row.profileId)}
             >
-              {t('profile.cloud.backup.syncNow')}
+              {doneBackups.includes(row.profileId) ? t('profile.cloud.backup.done') : t('profile.cloud.backup.syncNow')}
             </Button>
             {/* Nothing to remove or restore until it has actually been backed up. */}
             {row.inCloud && deleteButton(row.installId, row.profileId, key)}

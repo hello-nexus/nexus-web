@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { AlertTriangle, ShieldCheck, SlidersHorizontal } from 'lucide-react';
-import type { DetectedConflict } from '../../../api/conflicts';
+import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
 import { Button } from '../Button/Button';
 import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
@@ -45,7 +45,11 @@ interface ConflictWarningProps {
 export function ConflictWarningBadge({ conflicts, ready, suppressed, open, onOpenChange, onSuppressedChange, onManageApps }: ConflictWarningProps) {
   const { t } = useTranslation();
   const exclusions = useConflictAutoKillExclusions();
-  const whitelisted = useMemo(() => new Set(exclusions), [exclusions]);
+  // Nexus 2 is never whitelisted: the service ends it whatever the list says.
+  const whitelisted = useMemo(
+    () => new Set(exclusions.filter(id => id !== HYTE_NEXUS2_CONFLICT_ID)),
+    [exclusions],
+  );
   // A whitelisted app never alerts: the button reflects only what the user
   // has not already told Nexus to leave alone.
   const showButton = conflicts.some(c => !whitelisted.has(c.id)) && !suppressed;
@@ -124,7 +128,9 @@ export function ConflictWarningModal({
                 <ConflictAppCard
                   conflict={entry.conflict}
                   devices={devicesByApp.get(entry.conflict.id)}
-                  onSetOwner={owner => setOwner(entry.conflict.id, owner)}
+                  onSetOwner={entry.conflict.id === HYTE_NEXUS2_CONFLICT_ID
+                    ? undefined
+                    : owner => setOwner(entry.conflict.id, owner)}
                   whitelisted={whitelisted.has(entry.conflict.id)}
                   terminated={entry.terminated}
                   onTerminated={() => markTerminated(entry.conflict.id)}

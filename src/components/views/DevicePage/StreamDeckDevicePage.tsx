@@ -33,6 +33,7 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { Button } from '../../common/Button/Button';
 import styles from './StreamDeckDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 
@@ -104,6 +105,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const deck = decks.find(d => d.serial === serial) ?? null;
+  useReportDeviceWaiting(!deck);
   const instanceId = serial ? `streamdeck:${serial}` : null;
   const instanceGrid = useMemo(() => ({ cols: deck?.cols ?? 0, rows: deck?.rows ?? 0 }), [deck?.cols, deck?.rows]);
   const instance = useDeckInstance(instanceId, 'physical', instanceGrid, tab === 'customize');

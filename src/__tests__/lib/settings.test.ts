@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import {
-  hexToHsv, hsvToHex, deriveAccentVars,
+  hexToHsv, hsvToHex, deriveAccentVars, applyAccentColor,
   loadSettings, saveSettings, getDefaultSettings,
   DEFAULT_ACCENT, PRESET_ACCENTS,
 } from '../../lib/settings';
@@ -114,16 +114,37 @@ describe('deriveAccentVars', () => {
     expect(parseFloat(match![1])).toBeLessThan(55);
   });
 
-  it('--accent is the user pick verbatim (no lightness clamp)', () => {
-    // Very dark input - --accent stays dark, no clamp to 50.
-    const varsDark = deriveAccentVars('#1a0033', 'dark');
-    const matchDark = varsDark['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
-    expect(parseFloat(matchDark![1])).toBeLessThan(50);
+  const hsl = (css: string) => css.match(/hsla?\(([\d.]+), ([\d.]+)%, ([\d.]+)%/)!.slice(1).map(Number);
 
-    // Very bright input - --accent stays bright, no clamp to 66.
-    const varsBright = deriveAccentVars('#eeccff', 'dark');
-    const matchBright = varsBright['--accent'].match(/hsl\([\d.]+, [\d.]+%, ([\d.]+)%/);
-    expect(parseFloat(matchBright![1])).toBeGreaterThan(66);
+  it('dark theme floors --accent lightness; light theme caps it', () => {
+    expect(hsl(deriveAccentVars('#000000', 'dark')['--accent'])[2]).toBe(35);
+    expect(hsl(deriveAccentVars('#042604', 'dark')['--accent'])).toEqual([120, 81, 35]);
+    expect(hsl(deriveAccentVars('#ffffff', 'light')['--accent'])[2]).toBe(70);
+  });
+
+  it('a near-white pick capped in light theme keeps black text', () => {
+    expect(deriveAccentVars('#ffffff', 'light')['--accent-text']).toBe('#000000');
+    expect(deriveAccentVars('#000000', 'dark')['--accent-text']).toBe('#ffffff');
+  });
+
+  it('the opposite extreme passes untouched', () => {
+    expect(hsl(deriveAccentVars('#ffffff', 'dark')['--accent'])[2]).toBe(100);
+    expect(hsl(deriveAccentVars('#000000', 'light')['--accent'])[2]).toBe(0);
+  });
+
+  it.each(PRESET_ACCENTS)('preset %s keeps its own lightness in both themes', hex => {
+    expect(deriveAccentVars(hex, 'dark')['--accent']).toBe(deriveAccentVars(hex, 'light')['--accent']);
+  });
+
+  it('a gray accent keeps gray tiers instead of turning red', () => {
+    for (const hex of ['#000000', '#808080', '#ffffff']) {
+      for (const mode of ['dark', 'light'] as const) {
+        const vars = deriveAccentVars(hex, mode);
+        for (const key of ['--accent', '--accent-glow', '--accent-deep', '--accent-soft'] as const) {
+          expect(hsl(vars[key])[1], `${key} for ${hex} ${mode}`).toBe(0);
+        }
+      }
+    }
   });
 
   it('--accent-glow / --accent-deep still respect derivation bands', () => {
@@ -279,5 +300,25 @@ describe('loadSettings / saveSettings', () => {
     localStorage.setItem('nexus_settings', '{broken json');
     const loaded = loadSettings();
     expect(loaded).toEqual(getDefaultSettings());
+  });
+});
+
+describe('applyAccentColor', () => {
+  const rootVar = (name: string) => document.documentElement.style.getPropertyValue(name);
+
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme');
+    document.documentElement.removeAttribute('style');
+  });
+
+  it.each([
+    ['dark', '#000000', 'hsl(0.0, 0.0%, 35.0%)', 'hsl(0.0, 0.0%, 60.0%)', '#ffffff'],
+    ['light', '#ffffff', 'hsl(0.0, 0.0%, 70.0%)', 'hsl(0.0, 0.0%, 62.0%)', '#000000'],
+  ])('%s theme bounds %s and keeps its tiers gray', (mode, hex, accent, glow, text) => {
+    document.documentElement.setAttribute('data-theme', mode);
+    applyAccentColor(hex);
+    expect(rootVar('--accent')).toBe(accent);
+    expect(rootVar('--accent-glow')).toBe(glow);
+    expect(rootVar('--accent-text')).toBe(text);
   });
 });

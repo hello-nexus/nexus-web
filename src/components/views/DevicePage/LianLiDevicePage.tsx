@@ -22,6 +22,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 const PORT_COUNT = 4;
 const FAN_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
@@ -43,6 +44,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const [activeTab, setActiveTab] = useState<'lighting' | 'cooling'>('lighting');
   const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [lianliState, setLianliState] = useState<LianLiState | null>(null);
   const [lighting, setLighting] = useState<LianLiLighting | null>(null);
   const [saving, setSaving] = useState(false);

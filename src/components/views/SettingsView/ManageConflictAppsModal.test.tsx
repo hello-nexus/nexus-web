@@ -8,6 +8,7 @@ import {
 import { useConflictApps } from '../../../hooks/useConflictApps';
 
 vi.mock('../../../api/conflicts', () => ({
+  HYTE_NEXUS2_CONFLICT_ID: 'hyte-nexus-2',
   fetchConflictCatalog: vi.fn(),
   fetchDynamicLighting: vi.fn(),
   setDynamicLighting: vi.fn(),
