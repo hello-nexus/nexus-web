@@ -3798,6 +3798,7 @@
   "phonePair.unknown": "未知",
   "placeholder.badge": "即將推出",
   "profile.appData.count": "{count} 個應用程式",
+  "profile.cloud.backup.done": "已備份",
   "profile.cloud.backup.error.failed": "備份失敗，未上傳任何內容。",
   "profile.cloud.backup.error.tooLarge": "此設定檔的應用程式資料過大，無法備份。",
   "profile.cloud.backup.includes": "包含 {apps}",

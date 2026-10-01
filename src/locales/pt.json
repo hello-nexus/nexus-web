@@ -3798,6 +3798,7 @@
   "phonePair.unknown": "Desconhecido",
   "placeholder.badge": "Em breve",
   "profile.appData.count": "{count} apps",
+  "profile.cloud.backup.done": "Guardado",
   "profile.cloud.backup.error.failed": "A cópia falhou. Não foi enviado nada.",
   "profile.cloud.backup.error.tooLarge": "Os dados das apps deste perfil são demasiado grandes para a cópia.",
   "profile.cloud.backup.includes": "inclui {apps}",

@@ -3798,6 +3798,7 @@
   "phonePair.unknown": "不明",
   "placeholder.badge": "近日公開",
   "profile.appData.count": "{count} 個のアプリ",
+  "profile.cloud.backup.done": "バックアップ済み",
   "profile.cloud.backup.error.failed": "バックアップに失敗しました。何もアップロードされていません。",
   "profile.cloud.backup.error.tooLarge": "このプロファイルのアプリデータは大きすぎてバックアップできません。",
   "profile.cloud.backup.includes": "{apps} を含む",
