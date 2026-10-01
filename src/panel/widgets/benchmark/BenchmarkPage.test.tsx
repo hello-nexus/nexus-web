@@ -40,6 +40,24 @@ function mkResult(): BenchmarkResult {
   } as BenchmarkResult;
 }
 
+function mkRun(id: string, result: BenchmarkResult, submissionId: string | null = null) {
+  return {
+    id,
+    timestamp: 1_700_000_000_000,
+    composite: result.composite,
+    cpu: result.cpu.score,
+    gpu: result.gpu.score,
+    ram: result.ram.score,
+    storage: result.storage.score,
+    cpuModel: result.hardware.cpuModel,
+    gpuModels: result.hardware.gpuModels,
+    scoringVersion: result.scoringVersion ?? '',
+    result,
+    submissionId,
+    submission: null,
+  };
+}
+
 const h = vi.hoisted(() => ({
   result: null as BenchmarkResult | null,
   telemetryEnabled: true as boolean | null,
@@ -92,13 +110,14 @@ import { BenchmarkPage } from './BenchmarkPage';
 
 describe('BenchmarkPage telemetry-gated submission', () => {
   beforeEach(() => {
+    sessionStorage.clear();
     h.result = null;
     h.telemetryEnabled = true;
     h.history = [];
     h.addRun.mockReset();
     h.addRun.mockImplementation(((result: BenchmarkResult, submissionId?: string | null) => {
       const id = `hist-${h.history.length + 1}`;
-      h.history = [{ id, result, submissionId, submission: null }, ...h.history];
+      h.history = [mkRun(id, result, submissionId ?? null), ...h.history];
       return id;
     }) as any);
     h.updateRunSubmission.mockReset();
@@ -113,7 +132,7 @@ describe('BenchmarkPage telemetry-gated submission', () => {
     mockSubmitCloudBenchmark.mockResolvedValue({ id: 'sub-1', percentile: 87, rank: 5, totalSubmissions: 100 });
     h.result = mkResult();
 
-    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
     await waitFor(() => expect(mockSubmitCloudBenchmark).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByText(/benchmark\.result\.percentile/)).toBeInTheDocument());
@@ -125,7 +144,7 @@ describe('BenchmarkPage telemetry-gated submission', () => {
     mockSubmitCloudBenchmark.mockResolvedValue({ id: 'sub-2', percentile: 42, rank: 60, totalSubmissions: 100 });
     h.result = mkResult();
 
-    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
     await waitFor(() => expect(h.addRun).toHaveBeenCalledWith(expect.objectContaining({ runId: 'run-1' }), null));
     expect(mockSubmitCloudBenchmark).not.toHaveBeenCalled();
@@ -142,11 +161,11 @@ describe('BenchmarkPage telemetry-gated submission', () => {
   it('records a run handed over twice (same runId, new object) only once', async () => {
     h.telemetryEnabled = false;
     h.result = mkResult();
-    const { rerender } = render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    const { rerender } = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
     await waitFor(() => expect(h.addRun).toHaveBeenCalledTimes(1));
 
     h.result = mkResult();
-    rerender(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    rerender(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
     await waitFor(() => expect(screen.getByText('benchmark.result.uploadCta')).toBeInTheDocument());
     expect(h.addRun).toHaveBeenCalledTimes(1);
   });
@@ -155,7 +174,7 @@ describe('BenchmarkPage telemetry-gated submission', () => {
     h.telemetryEnabled = false;
     mockSubmitCloudBenchmark.mockRejectedValueOnce(new Error('offline'));
     h.result = mkResult();
-    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
     const button = await screen.findByText('benchmark.result.uploadCta');
     await act(async () => { button.closest('button')!.click(); });
@@ -169,7 +188,7 @@ describe('BenchmarkPage telemetry-gated submission', () => {
     h.telemetryEnabled = false;
     mockSubmitCloudBenchmark.mockResolvedValueOnce(null);
     h.result = mkResult();
-    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
     const button = await screen.findByText('benchmark.result.uploadCta');
     await act(async () => { button.closest('button')!.click(); });
@@ -181,7 +200,7 @@ describe('BenchmarkPage telemetry-gated submission', () => {
 
   it('offers the upload for an unsubmitted saved run after returning to the page', async () => {
     h.telemetryEnabled = false;
-    h.history = [{ id: 'hist-9', result: mkResult(), submissionId: null, submission: null }];
+    h.history = [mkRun('hist-9', mkResult())];
 
     render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
@@ -192,10 +211,77 @@ describe('BenchmarkPage telemetry-gated submission', () => {
     h.telemetryEnabled = null;
     h.result = mkResult();
 
-    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
 
     await waitFor(() => expect(h.addRun).toHaveBeenCalledWith(expect.objectContaining({ runId: 'run-1' }), null));
     expect(await screen.findByText('benchmark.result.uploadCta')).toBeInTheDocument();
     expect(mockSubmitCloudBenchmark).not.toHaveBeenCalled();
+  });
+
+  it('keeps the Run tab as the launcher after a run completes', async () => {
+    h.telemetryEnabled = false;
+    h.result = mkResult();
+
+    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+
+    await waitFor(() => expect(h.addRun).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('benchmark.start')).toBeInTheDocument();
+    expect(screen.queryByText('benchmark.result.composite')).not.toBeInTheDocument();
+  });
+
+  it('shows the selected history run at the top of the Results tab', async () => {
+    h.history = [
+      mkRun('hist-2', { ...mkResult(), runId: 'run-2', composite: 2000 }),
+      mkRun('hist-1', { ...mkResult(), runId: 'run-1', composite: 1500 }),
+    ];
+    const { container } = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+    const shownScore = () => container.querySelector('[class*="compositeScore"]')?.textContent;
+
+    expect(shownScore()).toBe('2000');
+    const rows = container.querySelectorAll('button[aria-pressed]');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].getAttribute('aria-pressed')).toBe('true');
+
+    await act(async () => { (rows[1] as HTMLButtonElement).click(); });
+
+    expect(shownScore()).toBe('1500');
+    expect(rows[1].getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('opens the Results tab on the best run when no benchmark just finished', () => {
+    h.history = [
+      mkRun('hist-2', { ...mkResult(), runId: 'run-2', composite: 1500 }),
+      mkRun('hist-1', { ...mkResult(), runId: 'run-1', composite: 2000 }),
+    ];
+    const { container } = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+
+    expect(container.querySelector('[class*="compositeScore"]')?.textContent).toBe('2000');
+    expect(screen.getByRole('radio', { name: 'benchmark.results.best' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('shows the latest run after a benchmark finishes', async () => {
+    h.telemetryEnabled = false;
+    h.history = [mkRun('hist-old', { ...mkResult(), runId: 'run-0', composite: 3000 })];
+    h.result = mkResult();
+    const { container, rerender } = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+
+    await waitFor(() => expect(h.addRun).toHaveBeenCalledTimes(1));
+    rerender(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+    expect(container.querySelector('[class*="compositeScore"]')?.textContent).toBe(String(Math.round(mkResult().composite)));
+    expect(screen.getByRole('radio', { name: 'benchmark.results.latest' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('keeps a manual Latest/Best pick for the rest of the session', async () => {
+    h.history = [
+      mkRun('hist-2', { ...mkResult(), runId: 'run-2', composite: 1500 }),
+      mkRun('hist-1', { ...mkResult(), runId: 'run-1', composite: 2000 }),
+    ];
+    const first = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+    await act(async () => { screen.getByRole('radio', { name: 'benchmark.results.latest' }).click(); });
+    expect(first.container.querySelector('[class*="compositeScore"]')?.textContent).toBe('1500');
+    first.unmount();
+
+    const again = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
+    expect(again.container.querySelector('[class*="compositeScore"]')?.textContent).toBe('1500');
   });
 });

@@ -1,0 +1,136 @@
+// Absolutely centred on its positioned parent, one layer below it: the parent needs `isolation: isolate` and clips the traces.
+.chip {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1400px;
+  height: 900px;
+  margin: -450px 0 0 -700px;
+  z-index: -1;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+:global([data-theme='light']) .chip {
+  opacity: 0.4;
+}
+
+.traces {
+  fill: none;
+  stroke: var(--accent-deep);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.6;
+}
+
+.pulses {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+.pulseA {
+  stroke-dasharray: 44 256;
+  animation: chipFlowOut calc(var(--ease-slow) * 8) linear infinite;
+}
+
+.pulseB {
+  stroke-dasharray: 10 190;
+  opacity: 0.6;
+  animation: chipFlowIn calc(var(--ease-slow) * 8) linear infinite;
+}
+
+.vias {
+  fill: var(--backdrop-base);
+  stroke: var(--accent-deep);
+  stroke-width: 2.5;
+}
+
+.body {
+  fill: var(--accent-deep);
+  fill-opacity: 0.1;
+  stroke: var(--accent-deep);
+  stroke-width: 2.5;
+}
+
+.scan {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: 140 860;
+  opacity: 0.55;
+  animation: chipScan calc(var(--ease-slow) * 17) linear infinite;
+}
+
+.inner {
+  fill: none;
+  stroke: var(--accent-deep);
+  stroke-width: 2;
+  opacity: 0.75;
+}
+
+.die {
+  fill: var(--accent-deep);
+  animation: chipDie calc(var(--ease-slow) * 9) ease-in-out infinite;
+}
+
+.surge {
+  fill: none;
+  stroke: var(--accent-glow);
+  stroke-width: 3;
+  opacity: 0;
+  animation: chipSurge calc(var(--ease-slow) * 5) ease-out 1;
+}
+
+.surgeDie {
+  fill: var(--accent-glow);
+  stroke: none;
+}
+
+.still .die {
+  animation: none;
+  opacity: 0.16;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulseA,
+  .pulseB,
+  .scan,
+  .die {
+    animation: none;
+  }
+
+  .surge {
+    display: none;
+  }
+}
+
+@keyframes chipFlowOut {
+  from { stroke-dashoffset: 300; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes chipFlowIn {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 200; }
+}
+
+@keyframes chipScan {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes chipDie {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.24; }
+}
+
+@keyframes chipSurge {
+  0% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
