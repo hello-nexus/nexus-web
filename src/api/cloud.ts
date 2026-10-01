@@ -262,9 +262,20 @@ export const submitGameScore = (payload: CloudGameScoreSubmitBody) =>
 export const fetchCloudSyncStatus = () =>
   fetchService<SyncStatus>('/cloud/sync/status');
 
+export interface SyncNowResult {
+  ok: boolean;
+  /** The service's failure code, e.g. `app_data_too_large`. */
+  msg?: string;
+}
+
 /** Resolves once the backup finishes; without a profileId it backs up every profile. */
-export const syncCloudNow = (profileId?: string) =>
-  postService('/cloud/sync/now', { profileId });
+export async function syncCloudNow(profileId?: string): Promise<SyncNowResult> {
+  const { response, status } = await authFetchWithStatus('/cloud/sync/now', { method: 'POST', body: { profileId } });
+  if (!response) return { ok: false };
+  let body: { msg?: string } | null = null;
+  try { body = (await response.json()) as { msg?: string }; } catch { body = null; }
+  return { ok: status >= 200 && status < 300, msg: body?.msg };
+}
 
 export const resolveCloudSyncConflict = (profileId: string, choice: 'local' | 'cloud') =>
   postService('/cloud/sync/resolve', { profileId, choice });
@@ -281,6 +292,8 @@ export interface CloudLibraryProfile {
   revision: number;
   sizeBytes: number;
   updatedAt: string;
+  /** Apps whose data is in this backup, sorted; absent from a service that predates profile app data. */
+  appIds?: string[];
 }
 
 export interface CloudLibraryMachine {
@@ -319,10 +332,11 @@ export async function importCloudProfile(
   installId: string,
   profileId: string,
   replaceExisting = false,
+  includeAppData = true,
 ): Promise<CloudImportResult> {
   const { response, status } = await authFetchWithStatus('/cloud/profiles/import', {
     method: 'POST',
-    body: { installId, profileId, replaceExisting },
+    body: { installId, profileId, replaceExisting, includeAppData },
   });
   if (!response) return { status, body: null };
   try {

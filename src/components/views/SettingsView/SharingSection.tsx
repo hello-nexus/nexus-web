@@ -73,7 +73,7 @@ export function SharingSection({ profiles, sharing, primaryId, sharedCats, count
           >
             {count > 0 && (
               <span className={styles.presetCountBadge}>
-                <Badge label={t(pluralKey('settings.profiles.sharing.presetCount', language, count), { count })} />
+                <Badge label={t(pluralKey('settings.profiles.sharing.presetCount', language, count), { count })} uppercase />
               </span>
             )}
             <ChipGroup

@@ -220,7 +220,7 @@ export function AccountAuthenticationSection({
   }, [accountId]);
 
   return (
-    <SettingsSection title={t('account.authentication.title')}>
+    <SettingsSection title={t('account.authentication.title')} description={t('account.authentication.description')}>
       <div className={styles.accountCard} data-settings-aside="true">
         <div className={styles.avatarWrap}>
           {account.avatar?.large ? (
