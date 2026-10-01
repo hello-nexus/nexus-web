@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UpdateModal } from './UpdateModal';
+import { pingService } from '../../../api/service';
 import { checkForUpdate, getUpdateProgress, getUpdateStatus, startUpdate, type UpdateStatus } from '../../../api/update';
 
 vi.mock('../../../api/update', () => ({
@@ -14,8 +15,10 @@ vi.mock('../../../api/service', () => ({
   pingService: vi.fn(),
 }));
 
+// A stable t, as the app's is: the progress poll effect depends on it.
+const t = (key: string) => key;
 vi.mock('../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key, language: 'en' }),
+  useTranslation: () => ({ t, language: 'en' }),
 }));
 
 const baseStatus: UpdateStatus = {
@@ -97,5 +100,28 @@ describe('UpdateModal - canAutoInstall=true (Windows, unchanged)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: DOWNLOAD_AND_INSTALL }));
     await waitFor(() => expect(startUpdate).toHaveBeenCalledWith('3.1.0', { reopenAfter: true }));
+  });
+
+  it('reconnects when the service restarts on the target version between two progress polls', async () => {
+    vi.mocked(getUpdateProgress).mockClear();
+    vi.mocked(pingService).mockClear();
+    vi.mocked(getUpdateProgress).mockResolvedValue({
+      active: false, phase: 'idle', percent: 0, message: '', version: '', success: false, error: '',
+    });
+    vi.mocked(pingService).mockResolvedValue({ version: '3.1.0' } as never);
+    render(
+      <UpdateModal
+        open
+        autoCheck={false}
+        onClose={vi.fn()}
+        status={{ ...baseStatus, canAutoInstall: true }}
+      />,
+    );
+    // Let the on-open poll see the idle service and stop, as it does in the app.
+    await waitFor(() => expect(getUpdateProgress).toHaveBeenCalledTimes(1));
+    await act(async () => {});
+
+    fireEvent.click(screen.getByRole('button', { name: DOWNLOAD_AND_INSTALL }));
+    expect(await screen.findAllByText('update.modal.reconnecting')).not.toHaveLength(0);
   });
 });
