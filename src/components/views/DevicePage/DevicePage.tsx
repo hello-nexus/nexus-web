@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Unplug } from 'lucide-react';
 import { useUnifiedDevices, type UnifiedDevice } from '../../../hooks/useUnifiedDevices';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
@@ -25,11 +25,13 @@ import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { ExperimentalBadge } from '../../common/ExperimentalBadge/ExperimentalBadge';
+import { Spinner } from '../../common/Spinner/Spinner';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useToast } from '../../common/Toast/Toast';
 import { promoteDisplayToPanel } from '../../../api/displays';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
+import { DeviceDetectingContext } from './deviceDetecting';
 import styles from './DevicePage.module.scss';
 
 /**
@@ -50,6 +52,10 @@ import styles from './DevicePage.module.scss';
 // hardware. Hold this long before showing the not-connected notice so it
 // never flashes before detection lands.
 const DETECT_GRACE_MS = 700;
+
+// Longest the "Detecting device..." screen holds after Nexus Control turns on
+// before the page's own not-connected state shows.
+const DETECT_MAX_MS = 10_000;
 
 interface DevicePageProps {
   deviceKey: string;
@@ -81,6 +87,26 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     const id = window.setTimeout(() => setGraceElapsed(true), DETECT_GRACE_MS);
     return () => window.clearTimeout(id);
   }, [notConnected, deviceKey]);
+
+  // Set when the user turns Nexus Control on from this page; the device page
+  // mounts hidden behind the detecting screen until its poll finds the device.
+  const [detectingKey, setDetectingKey] = useState<string | null>(null);
+  const detectReportedRef = useRef(false);
+  const holdBody = detectingKey === deviceKey && serviceOnline && !notConnected && !!device?.nexusControlEnabled;
+  const reportWaiting = useCallback((waiting: boolean) => {
+    detectReportedRef.current = true;
+    if (!waiting) setDetectingKey(null);
+  }, []);
+  useEffect(() => {
+    if (!holdBody) return;
+    // Child effects run first, so no report by now means the page has no
+    // connection state to wait on.
+    if (!detectReportedRef.current) { setDetectingKey(null); return; }
+    const id = window.setTimeout(() => setDetectingKey(null), DETECT_MAX_MS);
+    return () => window.clearTimeout(id);
+  }, [holdBody]);
+  // Stays mounted across devices, so leaving one ends its hold.
+  useEffect(() => { setDetectingKey(null); }, [deviceKey]);
 
   // A plain monitor leaves the device list once Nexus Control turns off, so
   // its page has nothing to show: return to Devices instead of "Not connected".
@@ -114,7 +140,8 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
   // When the user turns Nexus Control off, the device's settings are
   // meaningless (Nexus holds no connection), so the page collapses to a single
-  // re-enable switch instead of the normal body.
+  // re-enable switch instead of the normal body. Its key matches the detecting
+  // screen's below, so the card (and its toggle) survives the switch.
   if (device.supportsNexusControl && !device.nexusControlEnabled && device.curatedId) {
     return (
       <NexusControlOff
@@ -122,7 +149,11 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         deviceName={device.name}
         conflictAppId={device.conflictAppId}
         experimental={device.experimental}
-        onEnable={() => controlDevice(device.curatedId as string, true)}
+        onEnable={() => {
+          detectReportedRef.current = false;
+          setDetectingKey(device.key);
+          void controlDevice(device.curatedId as string, true);
+        }}
       />
     );
   }
@@ -148,6 +179,32 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
       />
     );
   }
+
+  // The body keeps its tree position whether held or shown, so the page's
+  // poll state carries over when the detecting screen lifts.
+  return (
+    <>
+      {holdBody && (
+        <NexusControlOff key={device.key} deviceName={device.name} experimental={device.experimental} detecting onEnable={() => {}} />
+      )}
+      <div className={holdBody ? styles.bodyHeld : styles.bodyShown}>
+        <DeviceDetectingContext.Provider value={reportWaiting}>
+          <DeviceBody device={device} controlDevice={controlDevice} onOpenFirmware={onOpenFirmware} onSectionNavigate={onSectionNavigate} />
+        </DeviceDetectingContext.Provider>
+      </div>
+    </>
+  );
+}
+
+interface DeviceBodyProps {
+  device: UnifiedDevice;
+  controlDevice: (id: string, nextEnabled: boolean) => Promise<void>;
+  onOpenFirmware?: () => void;
+  onSectionNavigate?: (section: string) => void;
+}
+
+function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }: DeviceBodyProps) {
+  const { t } = useTranslation();
 
   if (device.kind === 'panel' && device.panelDevice) {
     // `key` forces unmount + remount when navigating between panel device
@@ -237,7 +294,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   );
 }
 
-export function NexusControlOff({ deviceName, conflictAppId, experimental, onEnable }: { deviceName: string; conflictAppId?: string; experimental?: boolean; onEnable: () => void }) {
+export function NexusControlOff({ deviceName, conflictAppId, experimental, detecting, onEnable }: { deviceName: string; conflictAppId?: string; experimental?: boolean; detecting?: boolean; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -255,6 +312,18 @@ export function NexusControlOff({ deviceName, conflictAppId, experimental, onEna
               <p className={styles.controlOffHint}>{t('devices.nexusControlOff.conflictHint', { app: activeConflict.displayName })}</p>
               <ConflictAppCard conflict={activeConflict} />
               <NexusControlCard checked={false} disabled onChange={() => {}} />
+            </>
+          ) : detecting ? (
+            <>
+              {/* The invisible hint keeps the block's height, so the card does not shift. */}
+              <div className={styles.controlOffHintSlot}>
+                <p className={`${styles.controlOffHint} ${styles.controlOffHintGhost}`} aria-hidden>{t('devices.nexusControlOff.enableHint')}</p>
+                <p className={`${styles.controlOffHint} ${styles.controlOffDetecting}`}>
+                  <Spinner size={16} />
+                  {t('devices.nexusControlOff.detecting')}
+                </p>
+              </div>
+              <NexusControlCard checked disabled onChange={() => {}} />
             </>
           ) : (
             <>

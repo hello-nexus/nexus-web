@@ -849,6 +849,7 @@
   "devices.loading": "Carregando...",
   "devices.nexusControl": "Controle do Nexus",
   "devices.nexusControlOff.conflictHint": "{app} está controlando este dispositivo no momento. Encerre-o primeiro para ativar o controle do Nexus.",
+  "devices.nexusControlOff.detecting": "Detectando dispositivo...",
   "devices.nexusControlOff.enableHint": "O controle do Nexus está desativado. Ative-o para que o Nexus possa gerenciar este dispositivo.",
   "devices.nexusControlOff.sidebarTooltip": "O controle do Nexus está desativado",
   "devices.nollie.channels": "Canais",

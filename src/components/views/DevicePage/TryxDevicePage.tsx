@@ -75,6 +75,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import { useTryxSimulated } from '../../../lib/tryxSimulation';
 import styles from './TryxDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 // Debounce window for pushing overlay edits (item/font/size/color/align/
 // docked/drag) to the service - long enough to coalesce a drag's pointermove
@@ -388,6 +389,7 @@ export function TryxDevicePage() {
   }, [pushOverlay, overlayFont, overlaySize, overlayColor]);
 
   const connected = !!status?.connected;
+  useReportDeviceWaiting(!connected);
   const mediaUsedBytes = status?.mediaUsedBytes ?? 0;
   const storageUsedPercent = 100 - tryxStorageFreePercent(mediaUsedBytes);
   const hasEnabledOverlayItem = overlayItems.some(item => item.enabled);

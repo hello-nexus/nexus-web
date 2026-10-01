@@ -20,6 +20,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
@@ -40,6 +41,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
   const [activeTab, setActiveTab] = useState<'lighting' | 'cooling'>('lighting');
   const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [tlState, setTlState] = useState<LianLiTlState | null>(null);
   const [lighting, setLighting] = useState<LianLiTlLighting | null>(null);
   const aliveRef = useRef(true);

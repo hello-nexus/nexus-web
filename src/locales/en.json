@@ -849,6 +849,7 @@
   "devices.loading": "Loading...",
   "devices.nexusControl": "Nexus Control",
   "devices.nexusControlOff.conflictHint": "{app} is currently controlling this device. End it first to turn on Nexus Control.",
+  "devices.nexusControlOff.detecting": "Detecting device...",
   "devices.nexusControlOff.enableHint": "Nexus Control is off. Turn it on to let Nexus manage this device.",
   "devices.nexusControlOff.sidebarTooltip": "Nexus Control is off",
   "devices.nollie.channels": "Channels",

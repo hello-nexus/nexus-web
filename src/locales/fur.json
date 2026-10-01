@@ -849,6 +849,7 @@
   "devices.loading": "Daûr a cjariâ...",
   "devices.nexusControl": "Control Nexus",
   "devices.nexusControlOff.conflictHint": "{app} al sta controlant chest dispositîf. Sierilu prime par ativâ il control Nexus.",
+  "devices.nexusControlOff.detecting": "Rilevament dal dispositîf...",
   "devices.nexusControlOff.enableHint": "Il control Nexus al è distudât. Impiilu par lassâ che Nexus al gjestissi chest dispositîf.",
   "devices.nexusControlOff.sidebarTooltip": "Il control Nexus al è distudât",
   "devices.nollie.channels": "Canâi",

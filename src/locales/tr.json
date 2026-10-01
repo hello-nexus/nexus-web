@@ -849,6 +849,7 @@
   "devices.loading": "Yukleniyor...",
   "devices.nexusControl": "Nexus Kontrolü",
   "devices.nexusControlOff.conflictHint": "{app} şu anda bu cihazı kontrol ediyor. Nexus Kontrolünü açmak için önce onu sonlandırın.",
+  "devices.nexusControlOff.detecting": "Cihaz algılanıyor...",
   "devices.nexusControlOff.enableHint": "Nexus Kontrolü kapalı. Nexus’un bu cihazı yönetebilmesi için açın.",
   "devices.nexusControlOff.sidebarTooltip": "Nexus Kontrolü kapalı",
   "devices.nollie.channels": "Kanallar",

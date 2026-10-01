@@ -849,6 +849,7 @@
   "devices.loading": "Chargement...",
   "devices.nexusControl": "Contrôle Nexus",
   "devices.nexusControlOff.conflictHint": "{app} contrôle actuellement cet appareil. Fermez-la d'abord pour activer le contrôle Nexus.",
+  "devices.nexusControlOff.detecting": "Détection de l'appareil...",
   "devices.nexusControlOff.enableHint": "Le contrôle Nexus est désactivé. Activez-le pour permettre à Nexus de gérer cet appareil.",
   "devices.nexusControlOff.sidebarTooltip": "Le contrôle Nexus est désactivé",
   "devices.nollie.channels": "Canaux",

@@ -849,6 +849,7 @@
   "devices.loading": "加载中...",
   "devices.nexusControl": "Nexus 控制",
   "devices.nexusControlOff.conflictHint": "{app} 目前正在控制此设备。请先结束它，再开启 Nexus 控制。",
+  "devices.nexusControlOff.detecting": "正在检测设备...",
   "devices.nexusControlOff.enableHint": "Nexus 控制已关闭。开启后 Nexus 即可管理此设备。",
   "devices.nexusControlOff.sidebarTooltip": "Nexus 控制已关闭",
   "devices.nollie.channels": "通道",

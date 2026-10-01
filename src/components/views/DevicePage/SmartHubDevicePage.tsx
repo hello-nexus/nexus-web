@@ -22,6 +22,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import styles from './SmartHubDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 /**
  * Routed page for the HYTE SmartHub. Exposes the single flash-persisted
@@ -42,6 +43,7 @@ export function SmartHubDevicePage() {
   // 'disconnected' = explicit not-connected response. The placeholder
   // only renders on the 'disconnected' arm.
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [setting, setSetting] = useState<SmartHubFwSetting | null>(null);
   const [saving, setSaving] = useState(false);
   const aliveRef = useRef(true);

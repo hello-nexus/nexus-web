@@ -9,6 +9,7 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import styles from './CorsairDevicePage.module.scss';
+import { useReportDeviceWaiting } from './deviceDetecting';
 
 // Re-enumerates the chain each tick so a fan moved between ports or hot-plugged
 // shows up without a manual refresh; the service re-detects on its own poll.
@@ -22,6 +23,7 @@ export function CorsairDevicePage({ onSectionNavigate }: CorsairDevicePageProps)
   const { t } = useTranslation();
   const { monitoringTempUnit, numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
+  useReportDeviceWaiting(connection !== 'connected');
   const [state, setState] = useState<CorsairState | null>(null);
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);

@@ -849,6 +849,7 @@
   "devices.loading": "Laden...",
   "devices.nexusControl": "Nexus Control",
   "devices.nexusControlOff.conflictHint": "{app} bedient dit apparaat momenteel. Sluit dit eerst af om Nexus Control in te schakelen.",
+  "devices.nexusControlOff.detecting": "Apparaat detecteren...",
   "devices.nexusControlOff.enableHint": "Nexus Control staat uit. Schakel het in om Nexus dit apparaat te laten beheren.",
   "devices.nexusControlOff.sidebarTooltip": "Nexus Control staat uit",
   "devices.nollie.channels": "Kanalen",

@@ -49,3 +49,33 @@
   max-width: 32rem;
   margin: 0;
 }
+
+.controlOffHintSlot {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+
+  > * {
+    grid-area: 1 / 1;
+  }
+}
+
+.controlOffHintGhost {
+  visibility: hidden;
+}
+
+.controlOffDetecting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+// Wraps the device body without adding a layout box.
+.bodyShown {
+  display: contents;
+}
+
+.bodyHeld {
+  display: none;
+}

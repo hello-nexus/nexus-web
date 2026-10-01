@@ -849,6 +849,7 @@
   "devices.loading": "Wird geladen...",
   "devices.nexusControl": "Nexus-Steuerung",
   "devices.nexusControlOff.conflictHint": "{app} steuert dieses Gerät gerade. Beenden Sie die App zuerst, um die Nexus-Steuerung zu aktivieren.",
+  "devices.nexusControlOff.detecting": "Gerät wird erkannt...",
   "devices.nexusControlOff.enableHint": "Die Nexus-Steuerung ist deaktiviert. Aktivieren Sie sie, damit Nexus dieses Gerät verwalten kann.",
   "devices.nexusControlOff.sidebarTooltip": "Die Nexus-Steuerung ist deaktiviert",
   "devices.nollie.channels": "Kanäle",
