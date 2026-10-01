@@ -305,7 +305,7 @@
   "conflicts.onboarding.intro": "Elles sont en cours d'exécution et pilotent le même éclairage, les mêmes ventilateurs ou périphériques que Nexus. Fermez celles dont vous n'avez pas besoin.",
   "conflicts.onboarding.skip": "Passer",
   "conflicts.onboarding.title": "Applications en concurrence pour votre matériel",
-  "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 sera désinstallé",
+  "conflicts.onboarding.uninstallNexus2": "Désinstaller HYTE Nexus 2",
   "connection.directFailed.disconnect": "Déconnecter",
   "connection.directFailed.message": "Impossible d'établir une connexion directe avec ce PC. Continuer via le relais cloud chiffré ?",
   "connection.directFailed.title": "Connexion directe indisponible",

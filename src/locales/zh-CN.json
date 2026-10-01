@@ -305,7 +305,7 @@
   "conflicts.onboarding.intro": "这些应用正在运行，并与 Nexus 控制同一套灯效、风扇或外设。结束你不需要的那些。",
   "conflicts.onboarding.skip": "跳过",
   "conflicts.onboarding.title": "正在争夺硬件控制权的应用",
-  "conflicts.onboarding.uninstallNexus2": "将卸载 HYTE Nexus 2",
+  "conflicts.onboarding.uninstallNexus2": "卸载 HYTE Nexus 2",
   "connection.directFailed.disconnect": "断开连接",
   "connection.directFailed.message": "无法与此电脑建立直接连接。是否通过加密云中继继续？",
   "connection.directFailed.title": "无法建立直接连接",

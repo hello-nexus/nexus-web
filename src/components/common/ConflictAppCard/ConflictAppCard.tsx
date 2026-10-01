@@ -85,10 +85,10 @@ export function ConflictAppCard({
   }, [whitelisted]);
 
   const list = devices ?? [];
-  const showDevices = list.length > 0 && onSetOwner !== undefined;
+  const showDevices = list.length > 0;
   // An ended app drives nothing, so the choice is moot; the devices stay
   // listed so the row still says what it was fighting Nexus for.
-  const showSwitch = showDevices && terminated !== true;
+  const showSwitch = showDevices && onSetOwner !== undefined && terminated !== true;
   const currentOwner: ConflictOwnerChoice = whitelisted ? APP_OWNER : NEXUS_OWNER;
   const selection = optimisticOwner ?? currentOwner;
 

@@ -305,7 +305,7 @@
   "conflicts.onboarding.intro": "These are running now and drive the same lighting, fans, or peripherals as Nexus. End the ones you don't need.",
   "conflicts.onboarding.skip": "Skip",
   "conflicts.onboarding.title": "Apps competing for your hardware",
-  "conflicts.onboarding.uninstallNexus2": "HYTE Nexus 2 will be uninstalled",
+  "conflicts.onboarding.uninstallNexus2": "Uninstall HYTE Nexus 2",
   "connection.directFailed.disconnect": "Disconnect",
   "connection.directFailed.message": "A direct connection to this PC couldn't be established. Continue over the encrypted cloud relay?",
   "connection.directFailed.title": "Direct connection unavailable",
