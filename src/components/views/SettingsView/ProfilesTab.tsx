@@ -164,7 +164,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
   return (
     <div className={styles.tabPanel}>
       <SettingsSection
-        title={t('settings.tab.profiles')}
+        title={t('profile.tab.local')}
         description={t('settings.profiles.description')}
       >
       {profiles.profiles.length === 0 ? (
