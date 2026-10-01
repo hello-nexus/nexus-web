@@ -296,7 +296,7 @@ export interface CurveProps {
 }
 export interface BadgeProps { label: string; tone?: UiTone; icon?: string }
 export interface EmptyProps { title: string; hint?: string; icon?: string; compact?: boolean }
-export interface SectionProps extends WithChildren { title: string }
+export interface SectionProps extends WithChildren { title: string; grow?: boolean }
 
 /** Host-mediated file pick + crop + upload. The app must declare each uploadPath
  *  in its manifest capabilities.mediaImport list; the host refuses to open the

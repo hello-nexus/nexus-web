@@ -1,0 +1,409 @@
+@use '../../../styles/text' as *;
+@use '../../styles/flexGap' as *;
+
+// Flex spacing goes through the flexGap mixins: touch panels include Chromium 83 WebViews.
+.root {
+  --tower-h: 22rem;
+  --side-w: 22rem;
+  --cap-space: 4.5rem;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.side {
+  position: relative;
+  flex: 0 0 var(--side-w);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.5rem 2.5rem 0.5rem 0.5rem;
+  @include vgap(1.25rem);
+}
+
+// Centred on the big readout; the root clips the traces and keeps them behind the content.
+.readout {
+  position: relative;
+  padding: 1.5rem 0;
+  text-align: center;
+}
+
+.compactChip {
+  transform: scale(0.45);
+}
+
+.readoutLabel {
+  @include text-label;
+  color: var(--text-dim);
+  margin-bottom: 0.5rem;
+}
+
+.big {
+  @include text-code;
+  font-size: var(--type-jumbo);
+  color: var(--text);
+}
+
+.bigUnit {
+  font-size: var(--type-heading);
+  color: var(--text-dim);
+  margin-left: 0.25rem;
+}
+
+.bigScore {
+  color: var(--accent-glow);
+  text-shadow: 0 0 48px var(--accent-glow-shadow);
+  transform-origin: center;
+  animation: readoutPop calc(var(--ease-slow) * 2.7) cubic-bezier(0.2, 1.7, 0.4, 1) both;
+}
+
+.now {
+  position: relative;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.1rem 1.25rem;
+  background: var(--backdrop-base);
+  border-radius: var(--radius-lg);
+  @include vgap(0.6rem);
+}
+
+.now::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+}
+
+.nowLabel {
+  @include text-label;
+  color: var(--text-dim);
+}
+
+.nowName {
+  @include text-display;
+  color: var(--accent-glow);
+}
+
+.nowDetail {
+  @include text-numeric;
+  color: var(--text);
+  background: var(--surface-hover);
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-pill);
+}
+
+.towers {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  padding: var(--cap-space) 1rem 0 0;
+  @include hgap(1.25rem);
+}
+
+.col {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  @include vgap(1rem);
+}
+
+.tower {
+  position: relative;
+  height: var(--tower-h);
+}
+
+.track {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  background: var(--backdrop-base);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 1px var(--separator);
+  transition: box-shadow var(--ease-slow) ease;
+}
+
+// Opaque base plus the surface tint, so the circuit traces stay out of the columns.
+.track::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--surface);
+}
+
+.active .track {
+  box-shadow: 0 0 0 2px var(--accent-glow), 0 0 48px var(--accent-glow-shadow);
+}
+
+.charge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.chargeFill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(0deg, var(--accent-deep), var(--accent-glow));
+  opacity: 0.55;
+}
+
+.chargeTop {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  top: 0;
+  height: 5px;
+  background: var(--accent-text);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 18px 4px var(--accent-glow-shadow);
+  animation: towerEdge calc(var(--ease-slow) * 3) ease-in-out infinite;
+}
+
+// The rise overshoots and settles; the score cap below rides the same curve.
+.solid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(0deg, var(--accent-deep) 0%, var(--accent) 60%, var(--accent-glow) 100%);
+  animation: towerRise calc(var(--ease-slow) * 4) calc(var(--ease-slow) * 0.8) cubic-bezier(0.28, 1.5, 0.5, 1) both;
+}
+
+.solidTop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 5px;
+  background: var(--accent-text);
+  opacity: 0.85;
+}
+
+.flash {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: var(--accent-text);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.celebrating .flash {
+  animation: towerFlash calc(var(--ease-slow) * 2.4) ease-out 1;
+}
+
+.cap {
+  position: absolute;
+  left: -0.5rem;
+  right: -0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.capLive {
+  @include text-code;
+  font-size: var(--type-body);
+  color: var(--text);
+  background: var(--backdrop-base);
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-sm);
+}
+
+.capDone {
+  animation: capRise calc(var(--ease-slow) * 4) calc(var(--ease-slow) * 0.8) cubic-bezier(0.28, 1.5, 0.5, 1) both;
+}
+
+.capNum {
+  @include text-code;
+  font-size: var(--type-display);
+  color: var(--accent-glow);
+  text-shadow: 0 0 22px var(--accent-glow-shadow);
+}
+
+.label {
+  @include text-heading;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  transition: color var(--ease-slow) ease;
+  @include hgap(0.5rem);
+}
+
+.pending .label {
+  opacity: 0.6;
+}
+
+.active .label {
+  color: var(--text);
+}
+
+.done .label {
+  color: var(--accent-glow);
+}
+
+.burst {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.ring {
+  position: absolute;
+  left: -2.75rem;
+  top: -2.75rem;
+  width: 5.5rem;
+  height: 5.5rem;
+  box-sizing: border-box;
+  border: 3px solid var(--accent-text);
+  border-radius: 50%;
+  opacity: 0;
+  animation: burstRing calc(var(--ease-slow) * 2.7) ease-out 1;
+}
+
+.spark {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-glow);
+  opacity: 0;
+  animation-duration: calc(var(--ease-slow) * 3);
+  animation-timing-function: cubic-bezier(0.1, 0.8, 0.3, 1);
+  animation-iteration-count: 1;
+}
+
+.spark:nth-child(odd) {
+  background: var(--accent-text);
+}
+
+.s1 { animation-name: spark1; }
+.s2 { animation-name: spark2; }
+.s3 { animation-name: spark3; }
+.s4 { animation-name: spark4; }
+.s5 { animation-name: spark5; }
+.s6 { animation-name: spark6; }
+
+.compact {
+  --tower-h: 11rem;
+  --side-w: 11rem;
+  --cap-space: 3rem;
+
+  .side {
+    padding-right: 1rem;
+  }
+
+  .big,
+  .nowName {
+    font-size: var(--type-heading);
+  }
+
+  .capNum,
+  .label {
+    font-size: var(--type-body);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chargeTop {
+    animation: none;
+  }
+
+  .burst {
+    display: none;
+  }
+}
+
+@keyframes readoutPop {
+  0% { transform: scale(0.45); opacity: 0; }
+  55% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes towerEdge {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+@keyframes towerRise {
+  from { height: 0; }
+}
+
+@keyframes capRise {
+  from { bottom: 0; opacity: 0; }
+  20% { opacity: 1; }
+}
+
+@keyframes towerFlash {
+  0% { opacity: 0.6; }
+  100% { opacity: 0; }
+}
+
+@keyframes burstRing {
+  0% { transform: scale(0.2); opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes spark1 {
+  0% { transform: translate(0, 0) scale(1.3); opacity: 1; }
+  100% { transform: translate(70px, -80px) scale(0); opacity: 0; }
+}
+
+@keyframes spark2 {
+  0% { transform: translate(0, 0) scale(1.3); opacity: 1; }
+  100% { transform: translate(10px, -110px) scale(0); opacity: 0; }
+}
+
+@keyframes spark3 {
+  0% { transform: translate(0, 0) scale(1.3); opacity: 1; }
+  100% { transform: translate(-60px, -90px) scale(0); opacity: 0; }
+}
+
+@keyframes spark4 {
+  0% { transform: translate(0, 0) scale(1.3); opacity: 1; }
+  100% { transform: translate(-90px, -30px) scale(0); opacity: 0; }
+}
+
+@keyframes spark5 {
+  0% { transform: translate(0, 0) scale(1.3); opacity: 1; }
+  100% { transform: translate(95px, -25px) scale(0); opacity: 0; }
+}
+
+@keyframes spark6 {
+  0% { transform: translate(0, 0) scale(1.3); opacity: 1; }
+  100% { transform: translate(-20px, -70px) scale(0); opacity: 0; }
+}

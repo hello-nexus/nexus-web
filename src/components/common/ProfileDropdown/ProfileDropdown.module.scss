@@ -162,20 +162,50 @@
   top: 0;
 }
 
-// Top-of-dropdown account entry: log-in prompt when signed out, avatar +
-// username when signed in. Reuses .actionBtn for the row; MenuDivider draws
-// the rule below.
+// Top-of-dropdown account card: an identity block (avatar, name, "Account")
+// on its own surface, so it never reads as one of the profile rows below.
 .accountSection {
   display: flex;
   flex-direction: column;
   padding: 0.35rem;
 }
 
+.accountCard {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: calc(var(--radius-sm) - 2px);
+  // Same tint as the selected profile row below.
+  background: var(--accent-soft);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.accountEntryText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.accountEntrySub {
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.accountEntryChevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
 .accountEntryAvatar {
   display: grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--surface);
   color: var(--text-dim);
@@ -184,6 +214,8 @@
 }
 
 .accountEntryName {
+  font-size: var(--type-small);
+  font-weight: var(--weight-heading);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

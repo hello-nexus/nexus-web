@@ -64,14 +64,14 @@ describe('AccountAuthenticationSection username cooldown', () => {
   it('shows the live cooldown message when the 409 response carries a retryAt', async () => {
     const changeUsername = vi.fn().mockResolvedValue({
       status: 409,
-      body: { error: true, msg: 'username_cooldown', retryAt: new Date(Date.now() + 5 * 3_600_000).toISOString() },
+      body: { error: true, msg: 'username_cooldown', retryAt: new Date(Date.now() + 20 * 86_400_000).toISOString() },
     });
     renderSection(makeBackend({ changeUsername }));
 
     saveNewUsername();
 
     await waitFor(() => {
-      expect(screen.getByText(content => content.startsWith('account.username.error.cooldownIn'))).toBeInTheDocument();
+      expect(screen.getByText(content => content.startsWith('account.username.error.cooldownUntil'))).toBeInTheDocument();
     });
     expect(screen.queryByText('account.username.error.cooldown')).toBeNull();
   });

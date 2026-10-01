@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  fetchCloudSyncStatus, resolveCloudSyncConflict, syncCloudNow,
+  fetchCloudSyncStatus, resolveCloudSyncConflict, syncCloudNow, type SyncNowResult,
   type SyncConflict, type SyncProfileStatus, type SyncState,
 } from '../api/cloud';
 
@@ -11,7 +11,7 @@ export interface UseSyncStatusResult {
   lastSyncAt: string | null;
   conflicts: SyncConflict[];
   profiles: SyncProfileStatus[];
-  syncNow: (profileId?: string) => Promise<void>;
+  syncNow: (profileId?: string) => Promise<SyncNowResult>;
   resolve: (profileId: string, choice: 'local' | 'cloud') => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -56,8 +56,9 @@ export function useSyncStatus(enabled: boolean): UseSyncStatusResult {
   }, [enabled, refresh]);
 
   const syncNow = useCallback(async (profileId?: string) => {
-    await syncCloudNow(profileId);
+    const result = await syncCloudNow(profileId);
     await refresh();
+    return result;
   }, [refresh]);
 
   const resolve = useCallback(async (profileId: string, choice: 'local' | 'cloud') => {

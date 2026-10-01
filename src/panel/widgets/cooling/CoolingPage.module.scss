@@ -78,6 +78,11 @@
   min-width: 0;
 }
 
+.recoveryBanner {
+  flex: 0 0 auto;
+  margin-bottom: 1rem;
+}
+
 // Positioning context for the mode menu, which drops out of the mode tab and
 // is placed against this element's left edge (the tab leads the strip).
 .tabsAnchor {

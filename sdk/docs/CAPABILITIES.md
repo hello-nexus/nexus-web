@@ -135,9 +135,11 @@ relay tunnel). Omit this field if the app does not import media.
 #### `capabilities.appData`
 
 A `boolean` (default `false`). Grants `useAppData` a host bridge to one
-persistent JSON document per key, shared by every running instance of this
-app on this install (a Q-series tank and a Y70 tank see the same save file),
-and synced into profile export/import and the cloud account when signed in.
+persistent JSON document per key in the active profile, shared by every
+running instance of this app (a Q-series tank and a Y70 tank see the same save
+file). Each profile has its own documents: switching profile remounts the app
+against the other profile's save. They travel with the profile in its export
+file and its cloud backup.
 Without this capability `useAppData` still renders (so a widget never crashes
 for lacking it) but never reaches the host: it behaves exactly like preview
 mode, holding state only in that one render. See `useAppData` below.
@@ -343,8 +345,9 @@ const latestSettings = useLatest(settings);
 
 ### `useAppData<T>(key, initial)`
 
-Generic per-app JSON document, shared by every running instance of this app on
-the install - the "save file" primitive. Requires `capabilities.appData`.
+Generic per-app JSON document of the active profile, shared by every running
+instance of this app - the "save file" primitive. Requires
+`capabilities.appData`.
 
 ```tsx
 const save = useAppData<TankState>('save', { coins: 0, fish: [] });
@@ -372,7 +375,9 @@ Returns `{ value, ready, revision, update, put }`:
   document's current state, so the app can inspect the conflict itself).
 
 A push from another running instance of the same app updates `value`/
-`revision` live, with no action needed. In preview, or without
+`revision` live, with no action needed. A profile switch, or restoring a
+backup into the active profile, remounts the app, so it starts again from that
+profile's document. In preview, or without
 `capabilities.appData`, state lives only in that render (never touches the
 host) and `ready` is `true` immediately.
 
@@ -695,6 +700,10 @@ Uppercase section header for grouping a page. Host renders `src/components/commo
 | Prop | Type |
 |---|---|
 | `title` | `string` |
+| `grow` | `boolean` |
+
+`grow` fills the parent's main axis and stretches the box with it, so Sections
+side by side in an `align="stretch"` row share the taller one's height.
 
 ### Data visualization
 

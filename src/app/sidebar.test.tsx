@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UpdateStatus } from '../api/update';
 
@@ -72,6 +72,16 @@ describe('UpdateStatusSlot', () => {
     });
     renderSlot();
     expect(await screen.findByRole('button', { name: 'update.badge.label' })).toBeInTheDocument();
+  });
+
+  it('canAutoInstall=true, canStage=false: offers the update on availability in staging modes and opens the modal', async () => {
+    vi.mocked(getUpdateStatus).mockResolvedValue({
+      ...baseStatus, updateAvailable: true, updateReady: false, canAutoInstall: true, canStage: false, updateMode: 'always',
+    });
+    const { onOpen, onInstall } = renderSlot();
+    fireEvent.click(await screen.findByRole('button', { name: 'update.badge.label' }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onInstall).not.toHaveBeenCalled();
   });
 
   it('canAutoInstall=true: hides the badge when only updateAvailable is set but mode is not notify (unchanged legacy behavior)', async () => {

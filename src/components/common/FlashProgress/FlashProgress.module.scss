@@ -1,0 +1,26 @@
+.progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.bar {
+  position: relative;
+  width: 120px;
+  height: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--border);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent);
+  transition: width var(--ease);
+}
+
+.msg {
+  color: var(--text-dim);
+  white-space: nowrap;
+}

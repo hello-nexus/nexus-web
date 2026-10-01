@@ -32,6 +32,25 @@ describe('UpdateBadge', () => {
     expect(openSpy).not.toHaveBeenCalled();
   });
 
+  it('an unstageable release opens the modal instead of installing', () => {
+    const onOpen = vi.fn();
+    const onInstall = vi.fn();
+    render(
+      <UpdateBadge
+        updateMode="always"
+        canAutoInstall
+        canStage={false}
+        downloadUrl="https://example.com/Nexus-Linux-x64.tar.gz"
+        onOpen={onOpen}
+        onInstall={onInstall}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'update.badge.label' }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onInstall).not.toHaveBeenCalled();
+  });
+
   it('staged mode on an auto-install platform installs immediately', () => {
     const onOpen = vi.fn();
     const onInstall = vi.fn();

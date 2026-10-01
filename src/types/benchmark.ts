@@ -35,6 +35,15 @@ export interface LeaderboardResponse {
   entries: LeaderboardEntry[];
 }
 
+// GET /benchmarks/ranges: the 99th-percentile score per part; null where the version has no runs.
+export interface BenchmarkRanges {
+  scoringVersion: string;
+  cpu: number | null;
+  gpu: number | null;
+  ram: number | null;
+  storage: number | null;
+}
+
 // GET /benchmarks/versions returns a bare array (no wrapper object).
 export interface BenchmarkVersionInfo {
   scoringVersion: string;

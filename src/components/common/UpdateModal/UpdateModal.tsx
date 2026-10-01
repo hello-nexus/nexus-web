@@ -6,6 +6,7 @@ import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { GithubGlyph } from '../../icons/NexusBrand';
 import { checkForUpdate, getUpdateProgress, getUpdateStatus, startUpdate, type UpdateStatus, type UpdateProgress, type UpdatePhase } from '../../../api/update';
 import { pingService } from '../../../api/service';
+import { requestBuildCheck } from '../../../lib/buildReloadWatcher';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatDate, type DateFormat } from '../../../lib/units';
@@ -150,6 +151,9 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // Set to the monotonic time when the install was kicked off; cleared when active progress arrives.
   const neverActiveDeadlineRef = useRef(0);
   const [reconnectGaveUp, setReconnectGaveUp] = useState(false);
+  // Bumped when an install starts: the progress poll stops itself on an idle
+  // open (notes view), so the start has to run it again.
+  const [pollGen, setPollGen] = useState(0);
 
   // Non-closable ONLY while a genuine install is in flight: live active progress
   // or the post-install reconnect. A 'progress' view with no active progress (the
@@ -181,6 +185,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // the status snapshot the caller passed (before any re-fetch).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const targetVersion = status?.latestVersion ?? '';
 
   // Progress poll: runs while the modal is open. Transitions to 'reconnecting'
   // as soon as the service goes away mid-install or phase reaches launching/installing.
@@ -215,6 +221,17 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
         return;
       }
       if (!p.active) {
+        // A fast install restarts the service between two polls, and the new
+        // process reports idle: once it answers with the target, reconnect.
+        if (installActiveRef.current && targetVersion) {
+          const ping = await pingService();
+          if (cancelled) return;
+          if (ping?.version === targetVersion) {
+            setView('reconnecting');
+            clearInterval(id);
+            return;
+          }
+        }
         // Check never-went-active watchdog.
         const deadline = neverActiveDeadlineRef.current;
         if (deadline > 0 && Date.now() > deadline) {
@@ -235,7 +252,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       cancelled = true;
       clearInterval(id);
     };
-  }, [open, t]);
+  }, [open, t, pollGen, targetVersion]);
 
   // Reconnect poll: only leaves 'reconnecting' once the service reports the
   // target version, preventing the old process's brief final /ping from
@@ -250,6 +267,13 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       const p = await pingService();
       if (cancelled) return;
       if (p && (!status?.latestVersion || p.version === status.latestVersion)) {
+        // The new service usually serves a new web bundle: reload onto it now,
+        // and refresh status so the notes do not offer the installed version.
+        requestBuildCheck();
+        getUpdateStatus().then(s => { if (!cancelled && s && onStatusRefreshed) onStatusRefreshed(s); });
+        // The install is over: a later check must not inherit its latch.
+        installActiveRef.current = false;
+        neverActiveDeadlineRef.current = 0;
         setView('notes');
         return;
       }
@@ -263,7 +287,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       cancelled = true;
       clearInterval(id);
     };
-  }, [open, view, status?.latestVersion]);
+  }, [open, view, status?.latestVersion, onStatusRefreshed]);
 
   const handleCheck = async () => {
     setChecking(true);
@@ -314,6 +338,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       return;
     }
     setView('progress');
+    setPollGen(g => g + 1);
   };
 
   const isActive = progress?.active ?? false;

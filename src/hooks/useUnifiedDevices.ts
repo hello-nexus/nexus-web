@@ -256,9 +256,15 @@ export function useUnifiedDevices(enabled: boolean) {
     return list;
   }, [panels.devices, devices, deviceApps, streamDecks, tryxSimulated, t]);
 
+  const turnedOffMonitorKeys = useMemo(
+    () => new Set(panels.turnedOffMonitorIds.map(id => `panel-${id}`)),
+    [panels.turnedOffMonitorIds],
+  );
+
   return {
     unified,
     controlDevice,
+    turnedOffMonitorKeys,
   };
 }
 

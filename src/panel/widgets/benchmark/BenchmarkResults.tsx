@@ -1,24 +1,24 @@
-import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow, Wrench, Trophy, type LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Cpu, Monitor, MemoryStick, HardDrive, AppWindow, Trophy, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import type { BenchmarkResult, BenchmarkSubScore } from '../../../types/benchmark';
 import { Card } from '../../../components/common/Card/Card';
 import { DomainGlyph } from '../../../components/common/DomainGlyph/DomainGlyph';
-import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { HoverTooltip } from '../../../components/common/HoverTooltip/HoverTooltip';
 import { Button } from '../../../components/common/Button/Button';
-import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
-import { DEV_TOOLS } from '../../../lib/devTools';
+import { BenchmarkChip } from './BenchmarkChip';
 import styles from './BenchmarkPage.module.scss';
 
 interface Props {
   result: BenchmarkResult;
   submission: { percentile: number; rank: number; total: number } | null;
   submitting: boolean;
-  submissionId?: string | null;
   /** Set only while "Help improve Nexus" is off and this result is not uploaded yet. */
   onUpload?: () => void;
+  /** Controls docked top-right in the score header. */
+  actions?: ReactNode;
 }
 
 const SUBSYSTEM_ICONS: Record<string, LucideIcon> = {
@@ -67,7 +67,7 @@ function SubsystemCard({ s, model }: { s: BenchmarkSubScore; model: string }) {
   );
 }
 
-export function BenchmarkResults({ result, submission, submitting, submissionId, onUpload }: Props) {
+export function BenchmarkResults({ result, submission, submitting, onUpload, actions }: Props) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const hw = result.hardware;
@@ -79,51 +79,54 @@ export function BenchmarkResults({ result, submission, submitting, submissionId,
     storage: hw.storageModel,
   };
 
+  const showUpload = !!onUpload && !submission && !submitting;
+  const hasAside = (submitting && !submission) || !!submission || showUpload;
+
   return (
     <div className={styles.resultsPanel}>
       <div className={styles.compositeCard}>
-        <div className={styles.compositeHero}>
+        {actions && <div className={styles.compositeActions}>{actions}</div>}
+        <div className={styles.compositeReadout}>
+          <BenchmarkChip still contained />
           <div className={styles.compositeLabel}>{t('benchmark.result.composite')}</div>
           <div className={styles.compositeScore}>{Math.round(result.composite)}</div>
-          {submitting && !submission && (
-            <div className={styles.compositeResultLine}>
-              <span className={styles.percentilePending}>{t('benchmark.result.submitting')}</span>
-            </div>
-          )}
-          {submission && (
-            <div className={styles.compositeResultLine}>
-              <span className={styles.percentile}>
-                {t('benchmark.result.percentile', {
-                  pct: localizeNumbers(submission.percentile.toFixed(1), numberFormat),
-                  total: String(submission.total),
-                })}
-              </span>
-              <span className={styles.rankLine}>
-                {t('benchmark.result.rank', {
-                  rank: String(submission.rank),
-                  total: String(submission.total),
-                })}
-              </span>
-            </div>
-          )}
-          {onUpload && !submission && !submitting && (
-            <div className={styles.compositeResultLine}>
-              <span className={styles.percentilePending}>{t('benchmark.result.uploadPrompt', { setting: t('settings.telemetry.label') })}</span>
-              <Button tone="ghost" icon={<Trophy size={14} />} onClick={onUpload}>
-                {t('benchmark.result.uploadCta')}
-              </Button>
-            </div>
-          )}
         </div>
-        {DEV_TOOLS && submissionId && (
-          <Button
-            tone="accent"
-            icon={<Wrench size={14} />}
-            className={styles.exploreCta}
-            onClick={() => requestOpenBuild(`/upgrade?bench=${encodeURIComponent(submissionId)}`)}
-          >
-            {t('benchmark.result.exploreUpgrades')}
-          </Button>
+        {hasAside && (
+          <div className={styles.compositeAside}>
+            {submitting && !submission && (
+              <span className={styles.percentilePending}>{t('benchmark.result.submitting')}</span>
+            )}
+            {submission && (
+              <>
+                <span className={styles.percentile}>
+                  {t('benchmark.result.percentile', {
+                    pct: localizeNumbers(submission.percentile.toFixed(1), numberFormat),
+                    total: String(submission.total),
+                  })}
+                </span>
+                <span className={styles.rankLine}>
+                  {t('benchmark.result.rank', {
+                    rank: String(submission.rank),
+                    total: String(submission.total),
+                  })}
+                </span>
+              </>
+            )}
+            {showUpload && (
+              <>
+                <span className={styles.percentilePending}>{t('benchmark.result.uploadPrompt', { setting: t('settings.telemetry.label') })}</span>
+                <Button tone="ghost" icon={<Trophy size={14} />} onClick={onUpload}>
+                  {t('benchmark.result.uploadCta')}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+        {hw.os && (
+          <div className={styles.compositeOs}>
+            <AppWindow size={14} aria-hidden />
+            <span>{hw.os}</span>
+          </div>
         )}
         {result.scoringVersion && (
           <div className={styles.scoringVersion}>
@@ -135,7 +138,6 @@ export function BenchmarkResults({ result, submission, submitting, submissionId,
 
       <div className={styles.subGrid}>
         {subs.map(s => <SubsystemCard key={s.key} s={s} model={models[s.key] ?? ''} />)}
-        <SystemSpecsPanel variant="tiles" rows={[{ icon: <AppWindow size={18} />, label: t('benchmark.leaderboard.os'), value: hw.os }]} />
       </div>
     </div>
   );

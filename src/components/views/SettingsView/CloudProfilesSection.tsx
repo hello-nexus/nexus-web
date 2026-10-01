@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, Cloud, CloudUpload, DownloadCloud, Monitor, RotateCcw, Trash2 } from 'lucide-react';
+import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -15,6 +16,8 @@ import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatDateTime, hour12OptionFor } from '../../../lib/units';
+import { ProfileRestoreModal, appDataNames, appDataSummary } from './ProfileRestoreModal';
+import { HoverTooltip } from '../../common/HoverTooltip/HoverTooltip';
 import styles from './SettingsView.module.scss';
 
 interface ConflictPrompt {
@@ -22,6 +25,15 @@ interface ConflictPrompt {
   profileId: string;
   key: string;
   name: string;
+  includeAppData: boolean;
+}
+
+interface RestorePrompt {
+  installId: string;
+  profileId: string;
+  key: string;
+  name: string;
+  appIds: string[];
 }
 
 /** This machine's profiles back up to the account; another machine's never arrive on their own, so crossing machines is an explicit per-profile import. */
@@ -46,7 +58,11 @@ export function CloudProfilesSection(
   const [importError, setImportError] = useState<string | null>(null);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [backingUp, setBackingUp] = useState<string[]>([]);
+  // Profiles backed up since this page opened: their button says so, and takes no press, until the page is left.
+  const [doneBackups, setDoneBackups] = useState<string[]>([]);
   const [signInOpen, setSignInOpen] = useState(false);
+  const [restore, setRestore] = useState<RestorePrompt | null>(null);
+  const [backupError, setBackupError] = useState<string | null>(null);
 
   const loadLibrary = useCallback(() => {
     if (!signedIn) return;
@@ -104,19 +120,30 @@ export function CloudProfilesSection(
   const handleBackUp = (profileId: string) => {
     if (backingUp.includes(profileId)) return;
     setBackingUp(prev => [...prev, profileId]);
-    void sync.syncNow(profileId).finally(() => setBackingUp(prev => prev.filter(id => id !== profileId)));
+    setBackupError(null);
+    setDoneBackups(prev => prev.filter(id => id !== profileId));
+    void sync.syncNow(profileId)
+      .then(result => {
+        if (result?.ok) setDoneBackups(prev => [...prev, profileId]);
+        else if (result) {
+          setBackupError(result.msg === 'app_data_too_large'
+            ? t('profile.cloud.backup.error.tooLarge')
+            : t('profile.cloud.backup.error.failed'));
+        }
+      })
+      .finally(() => setBackingUp(prev => prev.filter(id => id !== profileId)));
   };
 
-  const runImport = async (installId: string, profileId: string, key: string, replaceExisting: boolean, name: string) => {
+  const runImport = async (installId: string, profileId: string, key: string, replaceExisting: boolean, name: string, includeAppData: boolean) => {
     if (busyKey) return;
     setBusyKey(key);
     setImportError(null);
-    const { status, body } = await importCloudProfile(installId, profileId, replaceExisting);
+    const { status, body } = await importCloudProfile(installId, profileId, replaceExisting, includeAppData);
     setBusyKey(null);
     if (status === 409 || body?.msg === 'profile_name_taken') {
       // body.name is the derived local name ("<name> (<hostname>)"), which is
       // what clashed - not the name on the row the user clicked.
-      setConflict({ installId, profileId, key, name: body?.name || name });
+      setConflict({ installId, profileId, key, name: body?.name || name, includeAppData });
       return;
     }
     if (status < 200 || status >= 300) {
@@ -143,6 +170,30 @@ export function CloudProfilesSection(
     loadLibrary();
   };
 
+  // A backup with app data asks first, the same dialog a file import shows.
+  const startImport = (installId: string, profileId: string, key: string, name: string, appIds: string[] | undefined) => {
+    if (appIds && appIds.length > 0) {
+      setRestore({ installId, profileId, key, name, appIds });
+      return;
+    }
+    void runImport(installId, profileId, key, false, name, true);
+  };
+
+  const includesApps = (appIds: string[] | undefined) => {
+    if (!appIds || appIds.length === 0) return null;
+    const text = t('profile.cloud.backup.includes', { apps: appDataSummary(t, appIds) });
+    return appIds.length >= 3
+      ? <HoverTooltip body={appDataNames(appIds).join(', ')}><span>{text}</span></HoverTooltip>
+      : text;
+  };
+
+  const withApps = (text: string | null, appIds: string[] | undefined) => {
+    const apps = includesApps(appIds);
+    if (!apps) return text;
+    if (!text) return apps;
+    return <>{text} · {apps}</>;
+  };
+
   const atLimit = profiles.profiles.length >= 5;
   const unknown = t('profile.cloud.machine.unknown');
 
@@ -163,7 +214,9 @@ export function CloudProfilesSection(
     .flatMap(machine => machine.profiles.map(profile => ({ machine, profile })));
   const others = allRows.filter(r => !r.machine.isThisMachine);
   const ownCloud = allRows.filter(r => r.machine.isThisMachine);
-  const ownInstallId = library?.machines.find(m => m.isThisMachine)?.installId ?? '';
+  const ownMachine = library?.machines.find(m => m.isThisMachine);
+  const ownInstallId = ownMachine?.installId ?? '';
+  const pcChip = (hostname: string | undefined) => <Badge label={hostname || unknown} color="var(--accent)" uppercase />;
 
   // The list is the union of what is local and what is backed up, so a profile
   // whose backup was removed still appears - with only a Back up action - and
@@ -175,6 +228,8 @@ export function CloudProfilesSection(
       installId: ownCloud.find(r => r.profile.profileId === local.id)?.machine.installId ?? ownInstallId,
       inCloud: ownCloud.some(r => r.profile.profileId === local.id),
       isLocal: true,
+      updatedAt: ownCloud.find(r => r.profile.profileId === local.id)?.profile.updatedAt,
+      appIds: ownCloud.find(r => r.profile.profileId === local.id)?.profile.appIds,
     })),
     ...ownCloud
       .filter(r => !profiles.profiles.some(local => local.id === r.profile.profileId))
@@ -184,33 +239,46 @@ export function CloudProfilesSection(
         installId: r.machine.installId,
         inCloud: true,
         isLocal: false,
+        updatedAt: r.profile.updatedAt,
+        appIds: r.profile.appIds,
       })),
   ];
 
-  const backedUpAt = (profileId: string) => {
-    const status = sync.profiles.find(p => p.profileId === profileId);
-    if (!status?.lastSyncedAt) return null;
+  const formatWhen = (iso: string | null | undefined) => {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
     // toLocaleString's own defaults, spelled out so a custom pattern keeps the time fields.
-    return formatDateTime(new Date(status.lastSyncedAt), dateFormat, {
+    return formatDateTime(date, dateFormat, {
       year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
       hour12: hour12OptionFor(timeFormat),
     }, { variant: 'year' });
   };
+  const lastBackedUp = (iso: string | null | undefined) => {
+    const when = formatWhen(iso);
+    return when ? t('profile.cloud.backup.lastSynced', { when }) : null;
+  };
 
   const ownRow = (row: typeof mine[number]) => {
     const key = `${row.installId}:${row.profileId}`;
-    const when = backedUpAt(row.profileId);
+    // The sync status is fresher right after a backup; the library row covers a profile it has no status for.
+    const backedUp = lastBackedUp(sync.profiles.find(p => p.profileId === row.profileId)?.lastSyncedAt || row.updatedAt);
     return (
       <SettingRow
         key={key}
         label={row.name}
-        description={!row.isLocal
-          ? t('profile.cloud.list.notOnThisComputer')
+        selected={row.isLocal && row.profileId === profiles.activeId}
+        labelSuffix={(ownMachine || row.profileId === profiles.activeId) && (
+          <>
+            {ownMachine && pcChip(ownMachine.hostname)}
+            {row.isLocal && row.profileId === profiles.activeId && <Badge label={t('settings.profiles.active')} color="var(--accent)" uppercase />}
+          </>
+        )}
+        description={withApps(!row.isLocal
+          ? [t('profile.cloud.list.notOnThisComputer'), backedUp].filter(Boolean).join(' · ')
           : !row.inCloud
             ? t('profile.cloud.backup.never')
-            : when
-              ? t('profile.cloud.backup.lastSynced', { when })
-              : t('profile.cloud.backup.never')}
+            : backedUp ?? t('profile.cloud.backup.never'), row.inCloud ? row.appIds : undefined)}
       >
         {row.isLocal ? (
           <>
@@ -218,11 +286,12 @@ export function CloudProfilesSection(
               type="button"
               tone="neutral"
               size="sm"
-              icon={<CloudUpload />}
+              icon={doneBackups.includes(row.profileId) ? <Check /> : <CloudUpload />}
               loading={backingUp.includes(row.profileId)}
+              disabled={doneBackups.includes(row.profileId)}
               onClick={() => handleBackUp(row.profileId)}
             >
-              {t('profile.cloud.backup.syncNow')}
+              {doneBackups.includes(row.profileId) ? t('profile.cloud.backup.done') : t('profile.cloud.backup.syncNow')}
             </Button>
             {/* Nothing to remove or restore until it has actually been backed up. */}
             {row.inCloud && deleteButton(row.installId, row.profileId, key)}
@@ -236,7 +305,7 @@ export function CloudProfilesSection(
               icon={<DownloadCloud />}
               loading={busyKey === key}
               disabled={atLimit || busyKey !== null}
-              onClick={() => void runImport(row.installId, row.profileId, key, false, row.name)}
+              onClick={() => startImport(row.installId, row.profileId, key, row.name, row.appIds)}
             >
               {t('profile.cloud.import.open')}
             </Button>
@@ -254,7 +323,8 @@ export function CloudProfilesSection(
       <SettingRow
         key={key}
         label={profile.name}
-        description={machine.hostname || unknown}
+        labelSuffix={pcChip(machine.hostname)}
+        description={withApps(lastBackedUp(profile.updatedAt), profile.appIds)}
       >
         <Button
           type="button"
@@ -263,7 +333,7 @@ export function CloudProfilesSection(
           icon={imported ? <Check /> : <DownloadCloud />}
           loading={busyKey === key}
           disabled={atLimit || busyKey !== null}
-          onClick={() => void runImport(machine.installId, profile.profileId, key, false, profile.name)}
+          onClick={() => startImport(machine.installId, profile.profileId, key, profile.name, profile.appIds)}
         >
           {imported ? t('profile.cloud.import.done') : t('profile.cloud.import.open')}
         </Button>
@@ -278,6 +348,7 @@ export function CloudProfilesSection(
         {library === null && profiles.profiles.length === 0 ? <Spinner size={24} /> : mine.length === 0 ? (
           <EmptyState title={t('profile.cloud.list.empty')} />
         ) : mine.map(ownRow)}
+        {backupError && <p className={styles.profileImportError} role="alert" data-settings-aside="true">{backupError}</p>}
 
         {/* Per-machine rows make a conflict need two writers on THIS machine. */}
         {sync.conflicts.length > 0 && (
@@ -309,9 +380,22 @@ export function CloudProfilesSection(
         onConfirm={() => {
           const pending = conflict;
           setConflict(null);
-          if (pending) void runImport(pending.installId, pending.profileId, pending.key, true, pending.name);
+          if (pending) void runImport(pending.installId, pending.profileId, pending.key, true, pending.name, pending.includeAppData);
         }}
         onCancel={() => setConflict(null)}
+      />
+
+      <ProfileRestoreModal
+        open={restore !== null}
+        title={t('profile.restore.importTitle', { name: restore?.name ?? '' })}
+        confirmLabel={t('profile.restore.importAction')}
+        appIds={restore?.appIds ?? []}
+        onConfirm={(includeAppData) => {
+          const pending = restore;
+          setRestore(null);
+          if (pending) void runImport(pending.installId, pending.profileId, pending.key, false, pending.name, includeAppData);
+        }}
+        onCancel={() => setRestore(null)}
       />
 
       <ConfirmModal

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { buildPanelDevices } from './usePanelDevices';
+import { buildPanelDevices, isTurnedOffPlainMonitor } from './usePanelDevices';
 import type { PanelDeviceRecord } from '../api/panel';
 
 const LABELS = {
@@ -82,6 +82,24 @@ describe('buildPanelDevices Nexus Link off state', () => {
     expect(devices).toHaveLength(1);
     expect(devices[0].linkEnabled).toBe(false);
     expect(devices[0].subtitle).toBe('Nexus Link is off');
+  });
+
+  it('hides a plain monitor (no product family) once Nexus Control is off', () => {
+    const plain = xeneonRecord('DELL U2415');
+    const record = { ...plain, capabilities: { ...plain.capabilities!, family: undefined }, enabled: false };
+    const devices = buildPanelDevices({
+      curatedDevices: [],
+      phoneSessions: [],
+      records: [record],
+      status: null,
+      simulatedPanels: [],
+      labels: LABELS,
+    });
+    expect(devices).toHaveLength(0);
+    expect(firstDevice({ ...record, enabled: true }).linkEnabled).toBe(true);
+    expect(isTurnedOffPlainMonitor(record)).toBe(true);
+    expect(isTurnedOffPlainMonitor({ ...record, displayAttached: false })).toBe(false);
+    expect(isTurnedOffPlainMonitor({ ...xeneonRecord('Xeneon Edge'), enabled: false })).toBe(false);
   });
 
   it('marks an enabled (or absent-enabled) record as linkEnabled with the resolution subtitle', () => {

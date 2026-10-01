@@ -15,6 +15,7 @@ const mockKill = vi.fn();
 const mockDisableAutostart = vi.fn();
 const mockFetchAutostart = vi.fn();
 vi.mock('../../../api/conflicts', () => ({
+  HYTE_NEXUS2_CONFLICT_ID: 'hyte-nexus-2',
   killConflict: (...args: any[]) => mockKill(...args),
   fetchConflictAutostart: (...args: any[]) => mockFetchAutostart(...args),
   disableConflictAutostart: (...args: any[]) => mockDisableAutostart(...args),
@@ -93,6 +94,34 @@ describe('ConflictOnboardingScreen', () => {
     expect(mockDisableAutostart).toHaveBeenCalledWith('icue');
     expect(mockUninstall).toHaveBeenCalledTimes(1);
     expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolve all keeps Nexus 2 installed when its uninstall switch is turned off', async () => {
+    const onComplete = vi.fn();
+    render(<ConflictOnboardingScreen open ready conflicts={[icue]} onComplete={onComplete} nexus2Installed />);
+    const uninstallSwitch = screen.getByRole('switch', { name: 'conflicts.onboarding.uninstallNexus2' });
+    expect(uninstallSwitch).toHaveAttribute('aria-checked', 'true');
+
+    fireEvent.click(uninstallSwitch);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+    });
+
+    expect(uninstallSwitch).toHaveAttribute('aria-checked', 'false');
+    expect(mockUninstall).not.toHaveBeenCalled();
+    expect(onComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolve all ends Nexus 2 even when it is whitelisted', async () => {
+    mockExclusions = ['hyte-nexus-2'];
+    const nexus2 = { id: 'hyte-nexus-2', displayName: 'HYTE Nexus 2', category: 'lighting', processName: 'HYTE Nexus', pid: 3268 };
+    render(<ConflictOnboardingScreen open ready conflicts={[nexus2]} onComplete={() => {}} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'conflicts.modal.resolveAll' }));
+    });
+
+    expect(mockKill).toHaveBeenCalledWith('hyte-nexus-2');
   });
 
   it('resolve all leaves Nexus 2 alone unless it is installed', async () => {

@@ -1,0 +1,30 @@
+@use '../../../styles/text' as *;
+
+.banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.9rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border: var(--border-width) solid var(--warn);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+
+  @include text-body;
+}
+
+.icon {
+  flex: 0 0 auto;
+  color: var(--warn);
+}
+
+.message {
+  flex: 1 1 18rem;
+}
+
+.action {
+  flex: 0 0 auto;
+  color: var(--text-dim);
+}

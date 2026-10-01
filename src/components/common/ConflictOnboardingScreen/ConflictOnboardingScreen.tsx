@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import { ArrowLeft, PackageMinus, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
+import { Toggle } from '../Toggle/Toggle';
 import { ConflictAllClear } from '../ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../ConflictAppCard/ConflictAppCard';
 import { SkipOnboardingButton } from '../SkipOnboardingButton/SkipOnboardingButton';
@@ -11,7 +12,7 @@ import { useConflictAutoKillExclusions } from '../../../hooks/useUiSettings';
 import { useConflictDevices } from '../../../hooks/useConflictDevices';
 import { useConflictResolveAll } from '../../../hooks/useConflictResolveAll';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
-import type { DetectedConflict } from '../../../api/conflicts';
+import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
 import { uninstallNexus2 } from '../../../api/migration';
 import styles from './ConflictOnboardingScreen.module.scss';
 
@@ -28,16 +29,17 @@ export interface ConflictOnboardingScreenProps {
   onBack?: () => void;
   /** Skips every remaining onboarding step; renders the top-right escape hatch when provided. */
   onSkipOnboarding?: () => void;
-  /** Nexus 2 is installed: Resolve all also runs its silent uninstall, and the screen says so. */
+  /** Nexus 2 is installed: the screen offers its silent uninstall (on by default) and Resolve all runs it. */
   nexus2Installed?: boolean;
 }
 
 /**
  * Conflict gate, after the import step and before device selection: apps
  * already driving the hardware the next screen enumerates. Resolve all ends
- * every app, turns off every boot entry, uninstalls Nexus 2 when it is
- * installed, then moves on; Skip moves on without ending anything now (the
- * startup shutdown, on by default, still runs at the next service start).
+ * every app not whitelisted (Nexus 2 always), turns off their boot entries,
+ * uninstalls Nexus 2 when it is installed and its switch is on, then moves on;
+ * Skip moves on without ending anything now (the service still ends Nexus 2,
+ * and the startup shutdown the rest, at the next service start).
  */
 export function ConflictOnboardingScreen({
   open, conflicts, ready, onComplete, onBack, onSkipOnboarding, nexus2Installed,
@@ -49,10 +51,16 @@ export function ConflictOnboardingScreen({
   const { devicesByApp, setOwner } = useConflictDevices(roster, open);
   const { autostartByApp, disable: disableAutostart } = useConflictAutostart(roster, open);
   const exclusions = useConflictAutoKillExclusions();
-  const whitelisted = useMemo(() => new Set(exclusions), [exclusions]);
+  // Nexus 2 is never whitelisted here: the service ends it whatever the list says.
+  const whitelisted = useMemo(
+    () => new Set(exclusions.filter(id => id !== HYTE_NEXUS2_CONFLICT_ID)),
+    [exclusions],
+  );
   const { pending, autostartDisabledIds, resolveAll } =
     useConflictResolveAll(entries, markTerminated, autostartByApp, disableAutostart, whitelisted);
   const [busy, setBusy] = useState(false);
+  const [uninstallN2, setUninstallN2] = useState(true);
+  const uninstallLabelId = useId();
   const heading = t('conflicts.onboarding.title');
 
   // Best-effort throughout: a kill or uninstall that did not stick is not a
@@ -62,12 +70,12 @@ export function ConflictOnboardingScreen({
     setBusy(true);
     try {
       if (pending) await resolveAll();
-      if (nexus2Installed) await uninstallNexus2().catch(() => null);
+      if (nexus2Installed && uninstallN2) await uninstallNexus2().catch(() => null);
     } finally {
       setBusy(false);
     }
     onComplete();
-  }, [busy, pending, resolveAll, nexus2Installed, onComplete]);
+  }, [busy, pending, resolveAll, nexus2Installed, uninstallN2, onComplete]);
 
   return (
     <Overlay
@@ -112,7 +120,9 @@ export function ConflictOnboardingScreen({
                 <ConflictAppCard
                   conflict={entry.conflict}
                   devices={devicesByApp.get(entry.conflict.id)}
-                  onSetOwner={owner => setOwner(entry.conflict.id, owner)}
+                  onSetOwner={entry.conflict.id === HYTE_NEXUS2_CONFLICT_ID
+                    ? undefined
+                    : owner => setOwner(entry.conflict.id, owner)}
                   whitelisted={whitelisted.has(entry.conflict.id)}
                   terminated={entry.terminated}
                   onTerminated={() => markTerminated(entry.conflict.id)}
@@ -125,11 +135,17 @@ export function ConflictOnboardingScreen({
           </div>
         )}
         {ready && nexus2Installed && (
-          <div className={styles.uninstall} role="note">
+          <div className={styles.uninstall}>
             <span className={styles.uninstallIcon} aria-hidden>
               <PackageMinus size={UNINSTALL_ICON_SIZE} />
             </span>
-            <span className={styles.uninstallTitle}>{t('conflicts.onboarding.uninstallNexus2')}</span>
+            <span className={styles.uninstallTitle} id={uninstallLabelId}>{t('conflicts.onboarding.uninstallNexus2')}</span>
+            <Toggle
+              checked={uninstallN2}
+              onChange={setUninstallN2}
+              disabled={busy}
+              ariaLabelledBy={uninstallLabelId}
+            />
           </div>
         )}
       </div>
