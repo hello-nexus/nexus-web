@@ -12,7 +12,7 @@
 }
 
 .icon {
-  color: var(--accent-glow);
+  color: var(--panel-ink-accent, var(--accent-glow));
   animation: rotateHint 1.8s ease-in-out infinite;
 }
 

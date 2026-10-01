@@ -5,6 +5,14 @@ import { BASE_UNIFORM_NAMES, clampToSpec, resolveParamUniforms, type ShaderParam
 import type { EffectState } from '../types/lighting';
 import type { AudioSnapshot } from './useAudioState';
 
+// rAF timestamp of each canvas's latest draw. Paced frames skip the draw and read back cleared.
+const drawnFrameTs = new WeakMap<HTMLCanvasElement, number>();
+
+/** True when the shader drew into this canvas in the frame whose rAF timestamp is `frameTs`. */
+export function shaderDrewThisFrame(canvas: HTMLCanvasElement, frameTs: number): boolean {
+  return drawnFrameTs.get(canvas) === frameTs;
+}
+
 const QUAD_VERT = `#version 300 es
 layout (location = 0) in vec2 a_pos;
 void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
@@ -332,6 +340,7 @@ export function useShaderRenderer(
 
         g.bindVertexArray(vaoRef.current);
         g.drawArrays(g.TRIANGLE_STRIP, 0, 4);
+        drawnFrameTs.set(c, ts);
 
         if (firstFrame) { firstFrame = false; setReady(true); }
         rafRef.current = requestAnimationFrame(render);

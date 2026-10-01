@@ -27,7 +27,7 @@
 
   > svg {
     flex-shrink: 0;
-    color: var(--panel-accent-glow);
+    color: var(--panel-ink-accent, var(--panel-accent-glow));
   }
 }
 

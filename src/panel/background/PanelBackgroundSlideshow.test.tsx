@@ -40,7 +40,7 @@ const item = (id: string, importedAtUnixMs: number): BackgroundMediaItem => ({
 
 const shown = () => screen.getAllByTestId('slide').map(el => el.getAttribute('data-id'));
 
-async function renderShow(startId: string | null, over: Partial<{ shuffle: boolean; order: string[] }> = {}) {
+async function renderShow(startId: string | null, over: Partial<{ shuffle: boolean; order: string[]; covered: boolean }> = {}) {
   const view = render(
     <PanelBackgroundSlideshow
       deviceId="dev1"
@@ -50,6 +50,7 @@ async function renderShow(startId: string | null, over: Partial<{ shuffle: boole
       finishVideos
       order={over.order ?? []}
       opacity={1}
+      covered={over.covered}
     />,
   );
   // The library fetch resolves on the microtask queue.
@@ -99,6 +100,18 @@ describe('PanelBackgroundSlideshow', () => {
     await renderShow('a');
     await tick(10_000);
     expect(shown()).toEqual(['c']);
+    await tick(10_000);
+    expect(shown()).toEqual(['a']);
+  });
+
+  it('holds the current slide while an opaque widget covers the background', async () => {
+    api.items = [item('b', 2), item('a', 1)];
+    const view = await renderShow('b', { covered: true });
+    await tick(30_000);
+    expect(shown()).toEqual(['b']);
+    view.rerender(
+      <PanelBackgroundSlideshow deviceId="dev1" startId="b" intervalSec={10} shuffle={false} finishVideos order={[]} opacity={1} covered={false} />,
+    );
     await tick(10_000);
     expect(shown()).toEqual(['a']);
   });

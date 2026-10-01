@@ -468,8 +468,8 @@ the circle: the corners are clipped, the edge midpoints touch the glass.
 ### `useOpaque(opaque)`
 
 Tells the host the tile paints every pixel of its box with no transparency (a
-full-bleed scene, a photo). On round glass (the Kraken, round cooler LCDs) the
-host then stops drawing the background hidden under it.
+full-bleed scene, a photo). On a single-widget panel (cooler LCDs, the
+Q-series) the host then stops drawing the background hidden under it.
 
 ```tsx
 useOpaque(sceneDrawn);

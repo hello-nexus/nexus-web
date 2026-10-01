@@ -69,7 +69,7 @@
 .icon {
   width: 1.4em;
   height: 1.4em;
-  color: var(--accent-glow);
+  color: var(--panel-ink-accent, var(--accent-glow));
 }
 
 .precip {

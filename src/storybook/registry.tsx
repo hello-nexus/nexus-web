@@ -1558,7 +1558,7 @@ function PreviewPanelThemeSettings() {
     backgroundSlideshow: false, backgroundSlideshowInterval: DEFAULT_PANEL_SLIDESHOW_INTERVAL, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
     backgroundMediaOrder: [],
     backgroundFrost: 0,
-    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50,
+    widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '',
     gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
   const set = (patch: Partial<PanelThemeSettingsState>) => setTheme(t => ({ ...t, ...patch }));
@@ -1598,6 +1598,9 @@ function PreviewPanelThemeSettings() {
         onBackgroundFrostCommit={v => set({ backgroundFrost: v })}
         onWidgetPaddingPreview={v => set({ widgetPadding: v })}
         onWidgetPaddingCommit={v => set({ widgetPadding: v })}
+        onTextColorModeCommit={v => set({ textColorMode: v })}
+        onTextColorPreview={v => set({ textColor: v })}
+        onTextColorCommit={v => set({ textColor: v })}
       />
     </div>
   );

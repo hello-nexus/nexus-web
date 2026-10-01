@@ -19,6 +19,12 @@ describe('buildPanelTheme', () => {
     expect(theme.accentColor).toBe('');
   });
 
+  it('defaults text color to adaptive for a panel that never stored one', () => {
+    expect(buildPanelTheme(null, null).textColorMode).toBe('adaptive');
+    expect(buildPanelTheme(null, y70()).textColorMode).toBe('adaptive');
+    expect(buildPanelTheme(null, y70({ textColorMode: 'custom', textColor: '#ff8800' })).textColor).toBe('#ff8800');
+  });
+
   it('defaults a wallpaper-capable panel with no stored choice to the wallpaper', () => {
     expect(buildPanelTheme(null, y70()).backdrop).toBe('wallpaper');
   });

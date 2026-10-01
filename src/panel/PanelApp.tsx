@@ -100,13 +100,14 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { isSingleWidgetSurface, surfaceSupportsTouch, widgetDisplayShape } from './types';
+import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
 import { PanelBackgroundMedia } from './background/PanelBackgroundMedia';
 import { PanelBackgroundSlideshow } from './background/PanelBackgroundSlideshow';
 import { PanelBackgroundDesktop } from './background/PanelBackgroundDesktop';
+import { customTextVars, DEFAULT_CUSTOM_TEXT_COLOR, useAutoTextColor } from './theme/textColor';
 import { panelBackgroundFrostScale, resolvePanelBackground } from './background/panelBackground';
 import type { SimulatorTheme } from './embed/simulatorProtocol';
 import './styles/tokens.scss';
@@ -656,6 +657,14 @@ export function PanelContent({
     root.classList.toggle('panel-see-through', seeThrough);
     return () => root.classList.remove('panel-see-through');
   }, [seeThrough]);
+  useAutoTextColor(rootRef, effectiveTheme.textColorMode === 'adaptive');
+  // Scoped to the widget grids, the editor dock and the drag overlay, so the panel's own sheets and menus keep the theme.
+  const customTextStyle = useMemo(
+    () => (effectiveTheme.textColorMode === 'custom'
+      ? customTextVars(effectiveTheme.textColor || DEFAULT_CUSTOM_TEXT_COLOR)
+      : undefined),
+    [effectiveTheme.textColorMode, effectiveTheme.textColor],
+  );
   const showBackgroundLayers = showPanelBackground && backdrop === 'theme';
   // Frosted glass blurs what the page itself painted. Solid mode renders no
   // frost pass (a blurred solid colour is the colour), and see-through has
@@ -881,12 +890,10 @@ export function PanelContent({
     }));
   }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget]);
 
-  // An opaque tile on round glass hides the whole background, so it stops
-  // animating. Rect single-widget cards keep rounded corners that show it.
+  // An opaque tile filling a single-widget panel hides the background, so it
+  // stops animating.
   const shownSingleWidget = isSingleWidgetSurface(surface) ? allFiltered[0]?.widgets[0] : undefined;
-  const backgroundCovered = shownSingleWidget !== undefined
-    && widgetDisplayShape(shownSingleWidget.size) === 'round'
-    && opaqueWidgetIds.has(shownSingleWidget.id);
+  const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id);
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
@@ -1765,6 +1772,7 @@ export function PanelContent({
               finishVideos={effectiveTheme.backgroundSlideshowFinishVideos}
               order={effectiveTheme.backgroundMediaOrder}
               opacity={effectiveTheme.backgroundOpacity}
+              covered={backgroundCovered}
             />
           ) : effectiveTheme.backgroundMediaId && effectiveTheme.backgroundMediaType ? (
             <PanelBackgroundMedia
@@ -1811,6 +1819,7 @@ export function PanelContent({
                       <div
                         data-panel-grid
                         className={`${styles.grid} ${touch.rearranging ? styles.gridRearranging : ''}`}
+                        style={customTextStyle}
                       >
                         {page.widgets.map(w => (
                           <ErrorBoundary key={w.id} label={w.type}>
@@ -1921,7 +1930,7 @@ export function PanelContent({
               />
             )}
             {swipeOnboarding.hintVisible && <PanelSwipeHint />}
-            <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} aria-hidden="true" />
+            <div ref={setEditorDockPortalEl} className={styles.editorDockPortal} style={customTextStyle} aria-hidden="true" />
             {connectionIntroHost && connectionIdentityVisible && (
               <>
                 <div className={styles.connectionIntroBackdrop} aria-hidden="true" />
@@ -2116,6 +2125,9 @@ export function PanelContent({
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
+          onThemeTextColorModeCommit={panelTheme.commitTextColorMode}
+          onThemeTextColorPreview={panelTheme.previewTextColor}
+          onThemeTextColorCommit={panelTheme.commitTextColor}
           onThemeBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
           onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
           onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
@@ -2169,6 +2181,7 @@ export function PanelContent({
           if (!w) return null;
           const overlayStyle: CSSProperties = {
             ...panelRootStyle,
+            ...customTextStyle,
             '--panel-cell-size': dragSnapshot.cellSize,
             '--panel-content-scale': dragSnapshot.cellSize,
             '--panel-row-size': dragSnapshot.cellSize,
