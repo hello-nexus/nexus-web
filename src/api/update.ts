@@ -10,9 +10,13 @@ export interface UpdateStatus {
   latestVersion: string;
   updateAvailable: boolean;
   updateReady: boolean;
-  // False on platforms with no staging/install flow (mac/linux); the badge
-  // and modal fall back to opening downloadUrl instead of starting the OTA.
+  // False where the service cannot install updates itself (a dev run, an app
+  // in a folder it cannot write); the badge and modal open downloadUrl instead.
   canAutoInstall: boolean;
+  // False when the release's SHA256SUMS does not list this platform's
+  // installer: nothing downloads in the background, so the badge offers the
+  // update as soon as it is available. Absent from services that predate it.
+  canStage?: boolean;
   // The browser_download_url of this platform's release asset. Populated
   // whenever updateAvailable is true.
   downloadUrl: string;

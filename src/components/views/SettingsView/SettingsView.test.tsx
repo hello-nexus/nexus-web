@@ -1,6 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SettingsView } from './SettingsView';
+import { fetchService } from '../../../api/service';
 
 vi.mock('../../../api/smartPoll', async (importActual) => ({
   ...(await importActual<typeof import('../../../api/smartPoll')>()),
@@ -156,6 +157,34 @@ describe('SettingsView', () => {
     expect(screen.getByText('settings.screentime.title')).toBeInTheDocument();
     expect(screen.queryByText('settings.features.lighting.label')).not.toBeInTheDocument();
     expect(screen.queryByText('settings.dangerZone')).not.toBeInTheDocument();
+  });
+
+  it('shows update settings off Windows only when the service can install updates', async () => {
+    const statusWith = (canAutoInstall: boolean) => async (path: string) =>
+      (path === '/update/status' ? { canAutoInstall } : null) as never;
+    try {
+      vi.mocked(fetchService).mockImplementation(statusWith(true));
+      const { unmount } = render(
+        <SettingsView serviceOnline connectionState="online" platform="macos" tab="general" onTabChange={() => {}} />,
+      );
+      expect(await screen.findByText('settings.updates.title')).toBeInTheDocument();
+      unmount();
+
+      vi.mocked(fetchService).mockClear();
+      vi.mocked(fetchService).mockImplementation(statusWith(false));
+      render(
+        <SettingsView serviceOnline connectionState="online" platform="linux" tab="general" onTabChange={() => {}} />,
+      );
+      await vi.waitFor(() => expect(fetchService).toHaveBeenCalledWith('/update/status'));
+      // Let the status response land before asserting the section stays hidden.
+      await act(async () => {
+        await Promise.all(vi.mocked(fetchService).mock.results.map((r) => r.value));
+      });
+      expect(screen.queryByText('settings.updates.title')).not.toBeInTheDocument();
+    } finally {
+      vi.mocked(fetchService).mockReset();
+      vi.mocked(fetchService).mockResolvedValue(null);
+    }
   });
 
   it('calls onTabChange when a different tab is clicked', () => {

@@ -159,7 +159,7 @@ const SETTINGS_TABS: { tab: string; labelKey: string; keywords: string[] }[] = [
 // `sectionKey` prefixes a label that is ambiguous on its own ("Status", "Model").
 // A row that renders only once another setting is on, or lives in a modal,
 // anchors to the always-rendered row that reveals it.
-const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sectionKey?: string; anchor: string; keywords: string[]; platforms?: string[]; official?: boolean; devTools?: boolean }[] = [
+const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sectionKey?: string; anchor: string; keywords: string[]; platforms?: string[]; official?: boolean; devTools?: boolean; selfUpdating?: boolean }[] = [
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.windowsTray.label',  anchor: 'set-tray',       keywords: ['tray', 'system tray', 'notification area', 'taskbar', 'icon', 'windows'], platforms: ['windows'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.macStatusBar.label',  anchor: 'set-menubar',    keywords: ['menu bar', 'status bar', 'menubar', 'macos', 'mac', 'icon'], platforms: ['macos'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.systemStartup.label', anchor: 'set-startup',    keywords: ['startup', 'boot', 'systemd', 'login', 'autostart', 'auto start', 'launch', 'start with windows'], platforms: ['windows', 'linux'] },
@@ -170,8 +170,8 @@ const SETTINGS_ITEMS: { tab: string; tabLabelKey: string; labelKey: string; sect
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.conflictApps.autoShutdown.label', anchor: 'set-conflict-apps', keywords: ['conflict', 'conflicting', 'apps', 'shut down', 'shutdown', 'close', 'kill', 'startup', 'automatic'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.conflictApps.notifyLaunch.label', anchor: 'set-conflict-apps', keywords: ['conflict', 'conflicting', 'apps', 'notify', 'notification', 'alert', 'launch', 'open'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.language',            anchor: 'set-language',   keywords: ['language', 'locale', 'translation'] },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], platforms: ['windows'], official: true },
-  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], platforms: ['windows'], official: true },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.mode.label',    anchor: 'set-update-mode',    keywords: ['update', 'updates', 'automatic', 'install', 'mode'], official: true, selfUpdating: true },
+  { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.updates.channel.label', anchor: 'set-update-channel', keywords: ['update', 'updates', 'channel', 'beta', 'production'], official: true, selfUpdating: true },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.restartOnboarding',    anchor: 'set-restart-onboarding', keywords: ['onboarding', 'setup', 'welcome', 'tour', 'wizard', 'first run', 'restart', 'intro'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.shutDown.label',      anchor: 'set-shutdown',   keywords: ['shut down', 'shutdown', 'stop', 'quit', 'exit', 'close'], platforms: ['windows', 'macos', 'linux'] },
   { tab: 'general', tabLabelKey: 'settings.general', labelKey: 'settings.factoryReset.label',  anchor: 'set-factory-reset', keywords: ['factory reset', 'reset', 'wipe', 'erase', 'defaults', 'clean'] },
@@ -268,11 +268,18 @@ const settingsTabs: SearchSource = (ctx) =>
     to: () => ctx.host.goView('settings', s.tab),
   }));
 
+// Update preferences exist where the service installs updates itself, the same
+// rule as their Settings section: always on Windows, else per the live status.
+const selfUpdating = (ctx: CommandContext) =>
+  ctx.platform === 'windows'
+  || ((ctx.platform === 'macos' || ctx.platform === 'linux') && ctx.live.canAutoInstall === true);
+
 const settingsItems: SearchSource = (ctx) =>
   SETTINGS_ITEMS
     .filter((s) => !s.platforms || s.platforms.includes(ctx.platform))
     .filter((s) => !s.official || OFFICIAL_BUILD)
     .filter((s) => !s.devTools || DEV_TOOLS)
+    .filter((s) => !s.selfUpdating || selfUpdating(ctx))
     .map((s) => go(`setting:${s.labelKey}`, {
       title: s.sectionKey ? `${ctx.t(s.sectionKey)} › ${ctx.t(s.labelKey)}` : ctx.t(s.labelKey),
       subtitle: `${ctx.t('settings.title')} › ${ctx.t(s.tabLabelKey)}`,
@@ -603,7 +610,7 @@ const quickOpens: SearchSource = (ctx) => [
 const UPDATE_MODES: UpdateMode[] = ['always', 'download', 'notify'];
 const UPDATE_CHANNELS: UpdateChannel[] = ['production', 'beta'];
 const updatePrefs: SearchSource = (ctx) => {
-  if (ctx.platform !== 'windows' || !OFFICIAL_BUILD) return [];
+  if (!selfUpdating(ctx) || !OFFICIAL_BUILD) return [];
   const active = ctx.t('search.hint.active');
   return [
     ...UPDATE_MODES.map((mode) => act(`update-mode:${mode}`, {
