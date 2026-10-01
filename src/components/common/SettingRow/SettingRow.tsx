@@ -44,6 +44,7 @@ const STATE_COLORS: Record<NonNullable<SettingState['tone']>, string> = {
  */
 export function SettingRow({
   label,
+  labelSuffix,
   description,
   icon,
   iconLeading,
@@ -57,6 +58,8 @@ export function SettingRow({
   descriptionBelow,
 }: {
   label?: string;
+  // Inline content after the label text, e.g. a chip naming what the row belongs to.
+  labelSuffix?: ReactNode;
   description?: ReactNode;
   // Optional accent glyph rendered inline before the label text.
   icon?: ReactNode;
@@ -122,6 +125,7 @@ export function SettingRow({
             <span className={styles.label}>
               {icon && !iconLeading && <span className={styles.labelIcon} aria-hidden="true">{icon}</span>}
               {label}
+              {labelSuffix && <span className={styles.labelSuffix}>{labelSuffix}</span>}
             </span>
           )}
           {description && !descriptionBelow && <span className={styles.desc}>{description}</span>}
