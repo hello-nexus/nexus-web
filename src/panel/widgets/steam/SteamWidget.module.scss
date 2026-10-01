@@ -25,7 +25,7 @@
   display: grid;
   place-items: center;
   background: var(--panel-accent-soft);
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
 }
 
 .profileText {
@@ -69,7 +69,7 @@
   border: 1px solid var(--panel-accent);
   border-radius: var(--radius-pill);
   background: var(--panel-accent-soft);
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
 }
 
 .content {

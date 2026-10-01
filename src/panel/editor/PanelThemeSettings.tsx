@@ -5,6 +5,7 @@ import { SettingsSection } from '../../components/common/SettingsSection/Setting
 import { SettingRow, SettingSlider, SettingToggle } from '../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../lib/i18n';
 import { DEFAULT_ACCENT, PRESET_ACCENTS, THEME_MODES, type ThemeMode } from '../../lib/settings';
+import { DEFAULT_CUSTOM_TEXT_COLOR, type TextColorMode } from '../theme/textColor';
 import type { EffectState } from '../../types/lighting';
 import type { GaugeGradientStop } from '../theme/gaugeGradient';
 import {
@@ -86,6 +87,9 @@ export interface PanelThemeSettingsState {
   widgetLabels: boolean;
   // Percent 0-100 (see defaultPanelWidgetPadding, PANEL_WIDGET_PADDING_MAX_RATIO).
   widgetPadding: number;
+  textColorMode: TextColorMode;
+  // Hex for 'custom'; empty falls back to DEFAULT_CUSTOM_TEXT_COLOR.
+  textColor: string;
   // Stops for the value-coloured monitoring gauges (see gaugeGradient.ts).
   gaugeGradient: GaugeGradientStop[];
 }
@@ -118,6 +122,9 @@ export interface PanelThemeSettingsProps {
   onWidgetLabelsCommit: (enabled: boolean) => void;
   onWidgetPaddingPreview: (percent: number) => void;
   onWidgetPaddingCommit: (percent: number) => void;
+  onTextColorModeCommit: (mode: TextColorMode) => void;
+  onTextColorPreview: (hex: string) => void;
+  onTextColorCommit: (hex: string) => void;
   /** Show the media background tab. All display-backed surfaces support it; the
    * embedded desktop deck never renders theme backgrounds (PanelApp gates on
    * !embedded || simulator), so desktop hides it. Tunneled panels also hide it:
@@ -175,6 +182,9 @@ export function PanelThemeSettings({
   onWidgetLabelsCommit,
   onWidgetPaddingPreview,
   onWidgetPaddingCommit,
+  onTextColorModeCommit,
+  onTextColorPreview,
+  onTextColorCommit,
   showMediaTab = false,
   deviceAspect = 9 / 16,
   deviceW,
@@ -210,6 +220,16 @@ export function PanelThemeSettings({
     { key: 'wallpaper', label: label('panel.settings.backdrop.wallpaper', 'Wallpaper') },
     { key: 'desktop', label: label('panel.settings.backdrop.desktop', 'Desktop') },
   ];
+  const textColorOptions = [
+    { key: 'adaptive', label: label('panel.settings.textColor.adaptive', 'Adaptive') },
+    { key: 'theme', label: label('panel.settings.textColor.theme', 'Theme') },
+    { key: 'custom', label: label('panel.settings.textColor.custom', 'Custom') },
+  ];
+  const textColorDescription = theme.textColorMode === 'custom'
+    ? label('panel.settings.textColor.custom.desc', 'One color for all widget text, accent text included')
+    : theme.textColorMode === 'theme'
+      ? label('panel.settings.textColor.theme.desc', 'Follows the light or dark theme')
+      : label('panel.settings.textColor.adaptive.desc', 'White or black on each widget, whichever reads best on the background');
   const backdropDescription = theme.backdrop === 'desktop'
     ? label('panel.settings.backdrop.desktop.desc', 'The live desktop shows through, animated wallpapers included.')
     : theme.backdrop === 'wallpaper'
@@ -351,6 +371,30 @@ export function PanelThemeSettings({
               onChange={key => onThemeModeCommit(key as ThemeMode)}
               ariaLabel={label('settings.theme', 'Theme')}
               fullWidth
+            />
+          )}
+        </div>
+        <div className={styles.toggleReveal}>
+          <SettingRow
+            label={label('panel.settings.textColor', 'Text color')}
+            description={textColorDescription}
+            descriptionBelow
+          >
+            <ChipGroup
+              ariaLabel={label('panel.settings.textColor', 'Text color')}
+              activeKey={theme.textColorMode}
+              onChange={key => onTextColorModeCommit(key as TextColorMode)}
+              options={textColorOptions}
+            />
+          </SettingRow>
+          {theme.textColorMode === 'custom' && (
+            <ColorPickerWithPresets
+              value={theme.textColor || DEFAULT_CUSTOM_TEXT_COLOR}
+              presets={PRESET_ACCENTS}
+              fallback={DEFAULT_CUSTOM_TEXT_COLOR}
+              onPreview={onTextColorPreview}
+              onCommit={onTextColorCommit}
+              allowCustom
             />
           )}
         </div>

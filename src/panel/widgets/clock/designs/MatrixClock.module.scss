@@ -93,10 +93,10 @@
 
 .accent {
   .char {
-    color: var(--panel-accent);
+    color: var(--panel-ink-accent, var(--panel-accent));
   }
   .colonChar {
-    color: var(--panel-accent);
+    color: var(--panel-ink-accent, var(--panel-accent));
     opacity: 0.55;
   }
 }

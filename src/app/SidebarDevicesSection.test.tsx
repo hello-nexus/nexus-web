@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UnifiedDevice } from '../hooks/useUnifiedDevices';
 import type { PanelDevice } from '../panel/device/panelDevices';
@@ -49,6 +49,14 @@ vi.mock('../lib/panelSimulation', () => ({
 const setTryxSimulated = vi.fn();
 vi.mock('../lib/tryxSimulation', () => ({
   setTryxSimulated: (on: boolean) => setTryxSimulated(on),
+}));
+const fetchConflicts = vi.fn(async () => [] as unknown[]);
+vi.mock('../api/conflicts', () => ({
+  fetchConflicts: () => fetchConflicts(),
+  killConflict: vi.fn(),
+}));
+vi.mock('../hooks/useConflictApps', () => ({
+  useConflictApps: () => ({ conflicts: [], ready: false }),
 }));
 // Menu gating for the simulated-device remover; flipped per test.
 let devTools = true;
@@ -197,6 +205,26 @@ describe('SidebarDevicesSection row context menu', () => {
     openMenuOn('Lian Li Uni Hub');
     fireEvent.click(screen.getByRole('menuitem', { name: 'lighting.devices.menuControlOn' }));
     expect(controlDevice).toHaveBeenCalledWith('lianli', true);
+  });
+
+  it('holds turning Nexus Control on behind the end-app prompt while the competing app runs', async () => {
+    fetchConflicts.mockResolvedValueOnce([
+      { id: 'lian-li-l-connect', displayName: 'Lian Li L-Connect', category: 'lighting', processName: 'L-Connect 3.exe', pid: 7 },
+    ]);
+    mockUnified = [monitorDevice({
+      key: 'curated-lianli',
+      shortName: 'Lian Li Uni Hub',
+      kind: 'curated',
+      curatedId: 'lianli',
+      panelDevice: undefined,
+      nexusControlEnabled: false,
+      conflictAppId: 'lian-li-l-connect',
+    })];
+    renderSidebar();
+    openMenuOn('Lian Li Uni Hub');
+    fireEvent.click(screen.getByRole('menuitem', { name: 'lighting.devices.menuControlOn' }));
+    await waitFor(() => expect(screen.getByText('devices.conflictEnable.title')).toBeInTheDocument());
+    expect(controlDevice).not.toHaveBeenCalled();
   });
 
   // A promoted monitor has no first-party handler: its gate is the same

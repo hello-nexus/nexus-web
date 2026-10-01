@@ -60,7 +60,7 @@
   color: var(--text-dim);
 
   svg {
-    color: var(--panel-accent-glow);
+    color: var(--panel-ink-accent, var(--panel-accent-glow));
   }
 }
 

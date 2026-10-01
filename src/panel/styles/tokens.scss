@@ -180,6 +180,23 @@
   --panel-card-fill-opaque: color-mix(in srgb, #fff 60%, var(--backdrop-base));
 }
 
+// Auto text colour (useAutoTextColor) stamps a widget's card + label host with
+// the ink its backdrop needs. Only the ink tokens flip; the card fill and accent
+// keep the theme. Values mirror the two themes in styles/variables.scss.
+.panel-root [data-ink='light'] {
+  --text: #f5f5f5;
+  --text-dim: rgba(255, 255, 255, 0.6);
+  --separator: rgba(245, 245, 245, 0.12);
+  --gauge-track: rgba(255, 255, 255, 0.2);
+}
+
+.panel-root [data-ink='dark'] {
+  --text: #1a1a2e;
+  --text-dim: rgba(0, 0, 0, 0.6);
+  --separator: rgba(26, 26, 46, 0.12);
+  --gauge-track: rgba(0, 0, 0, 0.2);
+}
+
 // Sensor unit suffix inside any monitoring gauge (% / RPM / GB / °C / etc).
 // Smaller, dimmer, with a tiny gap from the value so the number stays the
 // primary read. Mirrors the desktop monitoring overview's value+unit pair.

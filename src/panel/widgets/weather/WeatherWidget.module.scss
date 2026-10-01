@@ -115,7 +115,7 @@ $row-seam: calc(
 .compactIcon {
   width: 58px;
   height: 58px;
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
 }
 
 .compact2x2 .compactIcon {
@@ -276,7 +276,7 @@ $row-seam: calc(
   width: 24px;
   height: 24px;
   flex-shrink: 0;
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
 }
 
 .largeDescription {
@@ -334,7 +334,7 @@ $row-seam: calc(
 .hourlyIcon {
   width: 22px;
   height: 22px;
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
 }
 
 .divider {
@@ -373,7 +373,7 @@ $row-seam: calc(
   align-items: center;
   justify-content: center;
   width: 22px;
-  color: var(--panel-accent-glow);
+  color: var(--panel-ink-accent, var(--panel-accent-glow));
 
   svg {
     width: 21px;

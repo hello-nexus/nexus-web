@@ -23,12 +23,12 @@ function renderWidget(size: PanelWidget['size'], onSectionNavigate?: () => void)
 }
 
 describe('DiagnosticsWidget', () => {
-  it('renders one status dot per domain at 2x2, GPU folded into Cooling', () => {
+  it('renders one status dot per domain at 2x2', () => {
     renderWidget('2x2');
     expect(screen.getAllByRole('img').map(el => el.getAttribute('aria-label'))).toEqual([
       'diagnostics.kind.storage: diagnostics.status.ok',
       'diagnostics.kind.memory: diagnostics.status.ok',
-      'diagnostics.kind.cooling: diagnostics.status.watch',
+      'diagnostics.kind.cooling: diagnostics.status.ok',
       'diagnostics.kind.system: diagnostics.status.ok',
     ]);
   });

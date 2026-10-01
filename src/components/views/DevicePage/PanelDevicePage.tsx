@@ -1418,6 +1418,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onWidgetLabelsCommit={panelTheme.commitWidgetLabels}
                             onWidgetPaddingPreview={panelTheme.previewWidgetPadding}
                             onWidgetPaddingCommit={panelTheme.commitWidgetPadding}
+                            onTextColorModeCommit={panelTheme.commitTextColorMode}
+                            onTextColorPreview={panelTheme.previewTextColor}
+                            onTextColorCommit={panelTheme.commitTextColor}
                             showMediaTab={surface !== 'desktop'}
                             backgroundHeldBy={backgroundHeldBy}
                             deviceAspect={devAspect}

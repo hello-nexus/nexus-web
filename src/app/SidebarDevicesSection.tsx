@@ -4,8 +4,10 @@ import { Ghost, Link2, Link2Off, Trash2, Usb } from 'lucide-react';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
+import { NexusControlConflictModal } from '../components/common/NexusControlConflictModal/NexusControlConflictModal';
 import { useToastSafe } from '../components/common/Toast/Toast';
 import { useUnifiedDevices, isSimulatedDevice, type UnifiedDevice } from '../hooks/useUnifiedDevices';
+import { useConflictGuardedEnable } from '../hooks/useConflictGuardedEnable';
 import { promoteDisplayToPanel, demoteDisplayPanel } from '../api/displays';
 import { clearSimulatedStreamDeck } from '../api/streamdeck';
 import { DEV_TOOLS } from '../lib/devTools';
@@ -57,6 +59,8 @@ export function SidebarDevicesSection({
   const { t } = useTranslation();
   const { push } = useToastSafe();
   const { unified, controlDevice } = useUnifiedDevices(serviceOnline);
+  const controlGuard = useConflictGuardedEnable();
+  const requestEnable = controlGuard.requestEnable;
   // Right-click menu state, held by key rather than by device object so a row
   // that disappears while the menu is open (unplug, simulator removed) closes
   // it instead of acting on a stale record.
@@ -78,8 +82,10 @@ export function SidebarDevicesSection({
       };
     }
     const curatedId = device.curatedId;
-    return curatedId ? () => void controlDevice(curatedId, next) : undefined;
-  }, [controlDevice, push, t]);
+    if (!curatedId) return undefined;
+    const apply = () => void controlDevice(curatedId, next);
+    return next ? () => void requestEnable(device, apply) : apply;
+  }, [controlDevice, push, requestEnable, t]);
 
   // Alphabetical by the row label, key breaking ties, so a disconnect never
   // moves a row. Only navigable devices (those with their own
@@ -221,6 +227,12 @@ export function SidebarDevicesSection({
           onClose={() => setCtxMenu(null)}
         />
       )}
+
+      <NexusControlConflictModal
+        pending={controlGuard.pending}
+        onConfirm={controlGuard.confirm}
+        onCancel={controlGuard.cancel}
+      />
     </section>
   );
 }

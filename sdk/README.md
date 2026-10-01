@@ -103,8 +103,8 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   render, or without WebAudio support.
 - **`useDisplay()`**: `{ shape, input }` - the tile's actual shape (`'round'` only on round
   glass) and the panel surface's input method (`'touch'` / `'pointer'` / `'none'`).
-- **`useOpaque(opaque)`**: tells the host the tile paints every pixel of its box, so round glass
-  it fills stops drawing the background hidden under it.
+- **`useOpaque(opaque)`**: tells the host the tile paints every pixel of its box, so a
+  single-widget panel it fills stops drawing the background hidden under it.
 - **`category:"device"`** manifest field: marks the app as a device app. It appears under
   DEVICES in the sidebar nav and its page renders inside device-page chrome (the same chrome
   as Cooling, Lighting, etc.) rather than the standard widget section route.
