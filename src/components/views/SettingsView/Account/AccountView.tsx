@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { KeyRound, Store } from 'lucide-react';
 import { ServiceRequired } from '../../ServiceRequired';
 import { GenericSkeleton } from '../../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../../hooks/useServiceStatus';
@@ -73,8 +74,8 @@ export function AccountView({ serviceOnline, connectionState, accounts, tab, onT
   }, [accounts]);
 
   const tabs: TabDef[] = useMemo(() => [
-    { key: 'account', label: t('account.tab.account') },
-    { key: PURCHASES_TAB, label: t('account.tab.purchases') },
+    { key: 'account', label: t('account.tab.account'), icon: <KeyRound size={14} /> },
+    { key: PURCHASES_TAB, label: t('account.tab.purchases'), icon: <Store size={14} /> },
   ], [t]);
 
   if (!serviceOnline) {

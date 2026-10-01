@@ -179,6 +179,26 @@ describe('CloudProfilesSection profile list', () => {
     expect(screen.getByText('Main')).toBeInTheDocument();
   });
 
+  it('stamps other-computer rows with when they were backed up', async () => {
+    vi.mocked(fetchCloudLibrary).mockResolvedValue({
+      machines: [LIBRARY.machines[0], {
+        ...LIBRARY.machines[1],
+        profiles: [{ ...LIBRARY.machines[1].profiles[0], updatedAt: '2026-08-28T02:31:10.000Z' }],
+      }],
+    });
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('HYTEY70')).toBeInTheDocument());
+    expect(screen.getByText(/^profile\.cloud\.backup\.lastSynced/)).toBeInTheDocument();
+  });
+
+  it('chips every row with its computer, this one included', async () => {
+    renderSection();
+
+    await waitFor(() => expect(screen.getByText('HYTEY70')).toBeInTheDocument());
+    expect(screen.getByText('T1')).toBeInTheDocument();
+  });
+
   it('reports an import failure beside the import buttons, not under this computer', async () => {
     // A 409 body used to be discarded by postService, so the conflict showed
     // as a generic failure - and it rendered in the wrong section.
@@ -204,11 +224,8 @@ describe('CloudProfilesSection profile list', () => {
     renderSection();
 
     await waitFor(() => expect(screen.getByText('profile.cloud.others.title')).toBeInTheDocument());
-    // This computer's rows carry the backup stamp, not the machine name; the
-    // owning machine is named only in the other-computers section.
     expect(screen.getByText(/profile\.cloud\.backup\.lastSynced/)).toBeInTheDocument();
     expect(screen.getByText('HYTEY70')).toBeInTheDocument();
-    expect(screen.queryByText('T1')).not.toBeInTheDocument();
   });
 
   it('hides the other-computers section when nothing else has backed up', async () => {

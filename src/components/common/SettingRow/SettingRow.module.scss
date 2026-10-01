@@ -110,6 +110,13 @@
   color: var(--accent);
 }
 
+// Inline after the label text; vertical-align keeps a caption-size chip centred on the body-size line.
+.labelSuffix {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
 // iconLeading variant: a large leading column beside label+description,
 // vertically centered against the row (via .row's align-items: center)
 // instead of an inline glyph on the label's own line. Caller sizes the icon

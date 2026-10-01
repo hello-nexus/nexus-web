@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Check, Cloud, CloudUpload, DownloadCloud, Monitor, RotateCcw, Trash2 } from 'lucide-react';
+import { Badge } from '../../common/Badge/Badge';
 import { Button } from '../../common/Button/Button';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -163,7 +164,9 @@ export function CloudProfilesSection(
     .flatMap(machine => machine.profiles.map(profile => ({ machine, profile })));
   const others = allRows.filter(r => !r.machine.isThisMachine);
   const ownCloud = allRows.filter(r => r.machine.isThisMachine);
-  const ownInstallId = library?.machines.find(m => m.isThisMachine)?.installId ?? '';
+  const ownMachine = library?.machines.find(m => m.isThisMachine);
+  const ownInstallId = ownMachine?.installId ?? '';
+  const pcChip = (hostname: string | undefined) => <Badge label={hostname || unknown} color="var(--accent)" />;
 
   // The list is the union of what is local and what is backed up, so a profile
   // whose backup was removed still appears - with only a Back up action - and
@@ -175,6 +178,7 @@ export function CloudProfilesSection(
       installId: ownCloud.find(r => r.profile.profileId === local.id)?.machine.installId ?? ownInstallId,
       inCloud: ownCloud.some(r => r.profile.profileId === local.id),
       isLocal: true,
+      updatedAt: ownCloud.find(r => r.profile.profileId === local.id)?.profile.updatedAt,
     })),
     ...ownCloud
       .filter(r => !profiles.profiles.some(local => local.id === r.profile.profileId))
@@ -184,33 +188,39 @@ export function CloudProfilesSection(
         installId: r.machine.installId,
         inCloud: true,
         isLocal: false,
+        updatedAt: r.profile.updatedAt,
       })),
   ];
 
-  const backedUpAt = (profileId: string) => {
-    const status = sync.profiles.find(p => p.profileId === profileId);
-    if (!status?.lastSyncedAt) return null;
+  const formatWhen = (iso: string | null | undefined) => {
+    if (!iso) return null;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
     // toLocaleString's own defaults, spelled out so a custom pattern keeps the time fields.
-    return formatDateTime(new Date(status.lastSyncedAt), dateFormat, {
+    return formatDateTime(date, dateFormat, {
       year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric',
       hour12: hour12OptionFor(timeFormat),
     }, { variant: 'year' });
   };
+  const lastBackedUp = (iso: string | null | undefined) => {
+    const when = formatWhen(iso);
+    return when ? t('profile.cloud.backup.lastSynced', { when }) : null;
+  };
 
   const ownRow = (row: typeof mine[number]) => {
     const key = `${row.installId}:${row.profileId}`;
-    const when = backedUpAt(row.profileId);
+    // The sync status is fresher right after a backup; the library row covers a profile it has no status for.
+    const backedUp = lastBackedUp(sync.profiles.find(p => p.profileId === row.profileId)?.lastSyncedAt || row.updatedAt);
     return (
       <SettingRow
         key={key}
         label={row.name}
+        labelSuffix={ownMachine && pcChip(ownMachine.hostname)}
         description={!row.isLocal
-          ? t('profile.cloud.list.notOnThisComputer')
+          ? [t('profile.cloud.list.notOnThisComputer'), backedUp].filter(Boolean).join(' · ')
           : !row.inCloud
             ? t('profile.cloud.backup.never')
-            : when
-              ? t('profile.cloud.backup.lastSynced', { when })
-              : t('profile.cloud.backup.never')}
+            : backedUp ?? t('profile.cloud.backup.never')}
       >
         {row.isLocal ? (
           <>
@@ -254,7 +264,8 @@ export function CloudProfilesSection(
       <SettingRow
         key={key}
         label={profile.name}
-        description={machine.hostname || unknown}
+        labelSuffix={pcChip(machine.hostname)}
+        description={lastBackedUp(profile.updatedAt)}
       >
         <Button
           type="button"
