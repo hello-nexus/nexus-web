@@ -12,6 +12,16 @@
   padding: 0.5rem 0;
 }
 
+// Bleeds into the section's side padding so the label stays aligned with the
+// rows around it; same outline and fill as the profile list's active card.
+.row.selected {
+  margin-inline: -0.7rem;
+  padding-inline: 0.7rem;
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+}
+
 .disabled {
   opacity: 0.5;
   pointer-events: none;

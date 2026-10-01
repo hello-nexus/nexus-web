@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "테마 모드, 강조 색상, 언어.",
   "settings.profiles.sharing.cat.theme.label": "테마",
   "settings.profiles.sharing.deletePrimaryDisabled": "먼저 다른 프로필을 기본으로 지정하세요.",
-  "settings.profiles.sharing.explainV2": "카테고리가 공유로 설정되면 모든 프로필이 {primary}의 값을 사용합니다. 카테고리를 공유로 전환하면 해당 카테고리에 대한 다른 모든 프로필의 데이터를 덮어씁니다 - 확인 대화 상자의 사용자 안내 문구가 이를 경고합니다. 프로필을 전환해도 프로필별 카테고리는 각 프로필의 고유 데이터를 계속 사용합니다.",
+  "settings.profiles.sharing.explainV2": "카테고리가 공유이면 모든 프로필이 {primary}의 값을 사용하며, 공유를 켜면 다른 모든 프로필의 해당 카테고리가 대체됩니다. 프로필별 카테고리는 전환해도 각 프로필의 데이터를 유지합니다.",
   "settings.profiles.sharing.heading": "프로필 간 공유",
   "settings.profiles.sharing.makePrimary": "기본으로 지정",
   "settings.profiles.sharing.onlyOneProfile": "프로필 간에 카테고리를 공유하려면 다른 프로필을 만드세요.",

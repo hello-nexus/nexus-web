@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Themamodus, accentkleur, taal.",
   "settings.profiles.sharing.cat.theme.label": "Thema",
   "settings.profiles.sharing.deletePrimaryDisabled": "Markeer eerst een ander profiel als primair.",
-  "settings.profiles.sharing.explainV2": "Wanneer een categorie gedeeld is, gebruikt elk profiel de waarde van {primary}. Een categorie op gedeeld zetten overschrijft de gegevens van elk ander profiel voor die categorie - de tekst in het bevestigingsvenster waarschuwt hiervoor. Bij het wisselen van profiel worden voor categorieën per profiel nog steeds de eigen gegevens van elk profiel gebruikt.",
+  "settings.profiles.sharing.explainV2": "Als een categorie gedeeld is, gebruikt elk profiel de waarde van {primary}, en Gedeeld inschakelen vervangt die categorie in elk ander profiel. Categorieën per profiel houden bij het wisselen de eigen gegevens van elk profiel.",
   "settings.profiles.sharing.heading": "Gedeeld over profielen",
   "settings.profiles.sharing.makePrimary": "Als primair instellen",
   "settings.profiles.sharing.onlyOneProfile": "Maak een ander profiel aan om categorieën tussen profielen te delen.",

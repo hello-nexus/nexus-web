@@ -4159,7 +4159,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Tryb motywu, kolor akcentu, język.",
   "settings.profiles.sharing.cat.theme.label": "Motyw",
   "settings.profiles.sharing.deletePrimaryDisabled": "Najpierw oznacz inny profil jako główny.",
-  "settings.profiles.sharing.explainV2": "Gdy kategoria jest współdzielona, każdy profil używa wartości profilu {primary}. Przełączenie kategorii na współdzieloną nadpisuje dane tej kategorii we wszystkich pozostałych profilach - tekst widoczny dla użytkownika w oknie potwierdzenia ostrzega o tym. Przełączanie profili nadal używa własnych danych każdego profilu dla kategorii indywidualnych dla profilu.",
+  "settings.profiles.sharing.explainV2": "Gdy kategoria jest współdzielona, każdy profil używa wartości profilu {primary}, a włączenie współdzielenia zastępuje tę kategorię we wszystkich pozostałych profilach. Kategorie indywidualne zachowują dane każdego profilu przy przełączaniu.",
   "settings.profiles.sharing.heading": "Współdzielone między profilami",
   "settings.profiles.sharing.makePrimary": "Ustaw jako główny",
   "settings.profiles.sharing.onlyOneProfile": "Utwórz kolejny profil, aby współdzielić kategorie między profilami.",

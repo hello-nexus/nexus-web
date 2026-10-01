@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Theme mode, accent color, language.",
   "settings.profiles.sharing.cat.theme.label": "Theme",
   "settings.profiles.sharing.deletePrimaryDisabled": "Mark another profile as Primary first.",
-  "settings.profiles.sharing.explainV2": "When a category is Shared, every profile uses {primary}'s value. Toggling a category to Shared overwrites every other profile's data for that category - the user-facing copy on the confirm dialog warns about this. Switching profiles still uses each profile's own data for Per-profile categories.",
+  "settings.profiles.sharing.explainV2": "When a category is Shared, every profile uses {primary}'s value, and turning Shared on replaces that category in every other profile. Per-profile categories keep each profile's own data when you switch.",
   "settings.profiles.sharing.heading": "Shared across profiles",
   "settings.profiles.sharing.makePrimary": "Make Primary",
   "settings.profiles.sharing.onlyOneProfile": "Create another profile to share categories between profiles.",

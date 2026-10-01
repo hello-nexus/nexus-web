@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Modo de tema, color de acento, idioma.",
   "settings.profiles.sharing.cat.theme.label": "Tema",
   "settings.profiles.sharing.deletePrimaryDisabled": "Marca primero otro perfil como Principal.",
-  "settings.profiles.sharing.explainV2": "Cuando una categoría es Compartida, todos los perfiles usan el valor de {primary}. Cambiar una categoría a Compartida sobrescribe los datos de todos los demás perfiles para esa categoría; el texto del cuadro de diálogo de confirmación advierte sobre ello. Al cambiar de perfil se siguen usando los datos propios de cada perfil para las categorías Por perfil.",
+  "settings.profiles.sharing.explainV2": "Cuando una categoría es Compartida, todos los perfiles usan el valor de {primary}, y activar Compartida reemplaza esa categoría en todos los demás perfiles. Las categorías Por perfil conservan los datos de cada perfil al cambiar.",
   "settings.profiles.sharing.heading": "Compartido entre perfiles",
   "settings.profiles.sharing.makePrimary": "Marcar como Principal",
   "settings.profiles.sharing.onlyOneProfile": "Crea otro perfil para compartir categorías entre perfiles.",

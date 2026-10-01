@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Mode du thème, couleur d'accentuation, langue.",
   "settings.profiles.sharing.cat.theme.label": "Thème",
   "settings.profiles.sharing.deletePrimaryDisabled": "Définissez d'abord un autre profil comme principal.",
-  "settings.profiles.sharing.explainV2": "Lorsqu'une catégorie est partagée, tous les profils utilisent la valeur de {primary}. Basculer une catégorie en partagé écrase les données de cette catégorie pour tous les autres profils - le texte du dialogue de confirmation en avertit l'utilisateur. Changer de profil utilise toujours les données propres à chaque profil pour les catégories par profil.",
+  "settings.profiles.sharing.explainV2": "Lorsqu'une catégorie est partagée, tous les profils utilisent la valeur de {primary}, et activer le partage remplace cette catégorie dans tous les autres profils. Les catégories par profil gardent les données de chaque profil quand vous changez.",
   "settings.profiles.sharing.heading": "Partagé entre les profils",
   "settings.profiles.sharing.makePrimary": "Définir comme principal",
   "settings.profiles.sharing.onlyOneProfile": "Créez un autre profil pour partager des catégories entre les profils.",

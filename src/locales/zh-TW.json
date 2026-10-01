@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "主題模式、強調色、語言。",
   "settings.profiles.sharing.cat.theme.label": "主題",
   "settings.profiles.sharing.deletePrimaryDisabled": "請先將另一個設定檔標記為主要。",
-  "settings.profiles.sharing.explainV2": "當某個類別設為共用時，每個設定檔都會使用 {primary} 的值。將某個類別切換為共用會覆寫所有其他設定檔在該類別的資料--確認對話框上的說明文字會就此提出警告。切換設定檔時，依設定檔分開的類別仍會使用各自設定檔的資料。",
+  "settings.profiles.sharing.explainV2": "類別設為共用時，每個設定檔都使用 {primary} 的值，開啟共用會取代所有其他設定檔中的該類別。依設定檔分開的類別在切換時會保留各設定檔自己的資料。",
   "settings.profiles.sharing.heading": "跨設定檔共用",
   "settings.profiles.sharing.makePrimary": "設為主要",
   "settings.profiles.sharing.onlyOneProfile": "建立另一個設定檔，即可在設定檔之間共用類別。",

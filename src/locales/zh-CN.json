@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "主题模式、强调色、语言。",
   "settings.profiles.sharing.cat.theme.label": "主题",
   "settings.profiles.sharing.deletePrimaryDisabled": "请先将另一个配置文件标记为主配置文件。",
-  "settings.profiles.sharing.explainV2": "当某个类别设为共享时，所有配置文件都使用 {primary} 的值。将某个类别切换为共享会覆盖所有其他配置文件中该类别的数据--确认对话框中面向用户的文案会对此发出警告。切换配置文件时，按配置文件分项的类别仍会使用各自配置文件的数据。",
+  "settings.profiles.sharing.explainV2": "类别设为共享时，所有配置文件都使用 {primary} 的值，开启共享会替换所有其他配置文件中的该类别。按配置文件分项的类别在切换时保留各配置文件自己的数据。",
   "settings.profiles.sharing.heading": "跨配置文件共享",
   "settings.profiles.sharing.makePrimary": "设为主配置文件",
   "settings.profiles.sharing.onlyOneProfile": "请创建另一个配置文件，以便在配置文件之间共享类别。",

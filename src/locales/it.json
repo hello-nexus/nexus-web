@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Modalità tema, colore accento, lingua.",
   "settings.profiles.sharing.cat.theme.label": "Tema",
   "settings.profiles.sharing.deletePrimaryDisabled": "Imposta prima un altro profilo come Principale.",
-  "settings.profiles.sharing.explainV2": "Quando una categoria è Condivisa, ogni profilo usa il valore di {primary}. Impostare una categoria su Condivisa sovrascrive i dati di tutti gli altri profili per quella categoria: il testo della finestra di conferma mostrato all'utente avvisa di questo. Il passaggio tra profili continua a usare i dati di ciascun profilo per le categorie Per profilo.",
+  "settings.profiles.sharing.explainV2": "Quando una categoria è Condivisa, ogni profilo usa il valore di {primary} e attivare Condivisa sostituisce quella categoria in tutti gli altri profili. Le categorie Per profilo mantengono i dati di ciascun profilo quando cambi.",
   "settings.profiles.sharing.heading": "Condiviso tra i profili",
   "settings.profiles.sharing.makePrimary": "Imposta come Principale",
   "settings.profiles.sharing.onlyOneProfile": "Crea un altro profilo per condividere le categorie tra i profili.",

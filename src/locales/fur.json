@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Modalitât dal teme, colôr di acent, lenghe.",
   "settings.profiles.sharing.cat.theme.label": "Teme",
   "settings.profiles.sharing.deletePrimaryDisabled": "Segne prime un altri profîl come Principâl.",
-  "settings.profiles.sharing.explainV2": "Cuant che une categorie e je Condividude, ogni profîl al dopre il valôr di {primary}. Meti une categorie su Condividude al sorescrîf i dâts di ducj i altris profîi par chê categorie - il test mostrât tal dialic di conferme al vise di chest. Cambiant profîl si dopre ancjemò i dâts propris di ogni profîl pes categoriis Par-profîl.",
+  "settings.profiles.sharing.explainV2": "Cuant che une categorie e je Condividude, ogni profîl al dopre il valôr di {primary}, e impiâ Condividude al sostituìs chê categorie in ducj i altris profîi. Lis categoriis Par-profîl a tegnin i dâts di ogni profîl cuant che si cambie.",
   "settings.profiles.sharing.heading": "Condividût tra i profîi",
   "settings.profiles.sharing.makePrimary": "Met come Principâl",
   "settings.profiles.sharing.onlyOneProfile": "Cree un altri profîl par condividi categoriis tra i profîi.",

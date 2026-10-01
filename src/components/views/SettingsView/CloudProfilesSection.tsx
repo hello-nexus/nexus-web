@@ -253,6 +253,7 @@ export function CloudProfilesSection(
       <SettingRow
         key={key}
         label={row.name}
+        selected={row.isLocal && row.profileId === profiles.activeId}
         labelSuffix={(ownMachine || row.profileId === profiles.activeId) && (
           <>
             {ownMachine && pcChip(ownMachine.hostname)}

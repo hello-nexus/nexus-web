@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "テーマモード、アクセントカラー、言語。",
   "settings.profiles.sharing.cat.theme.label": "テーマ",
   "settings.profiles.sharing.deletePrimaryDisabled": "先に別のプロファイルをプライマリに設定してください。",
-  "settings.profiles.sharing.explainV2": "カテゴリが共有の場合、すべてのプロファイルが {primary} の値を使用します。カテゴリを共有に切り替えると、そのカテゴリについて他のすべてのプロファイルのデータが上書きされます。確認ダイアログのユーザー向けメッセージでこの点について警告されます。プロファイルを切り替えても、プロファイルごとのカテゴリには各プロファイル自身のデータが使用されます。",
+  "settings.profiles.sharing.explainV2": "カテゴリが共有の場合、すべてのプロファイルが {primary} の値を使用し、共有をオンにすると他のすべてのプロファイルのそのカテゴリが置き換えられます。プロファイルごとのカテゴリは、切り替えても各プロファイル自身のデータを保持します。",
   "settings.profiles.sharing.heading": "プロファイル間で共有",
   "settings.profiles.sharing.makePrimary": "プライマリに設定",
   "settings.profiles.sharing.onlyOneProfile": "プロファイル間でカテゴリを共有するには、別のプロファイルを作成してください。",

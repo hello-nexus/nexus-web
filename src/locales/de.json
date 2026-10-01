@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Designmodus, Akzentfarbe, Sprache.",
   "settings.profiles.sharing.cat.theme.label": "Design",
   "settings.profiles.sharing.deletePrimaryDisabled": "Markiere zuerst ein anderes Profil als Primär.",
-  "settings.profiles.sharing.explainV2": "Wenn eine Kategorie geteilt ist, verwendet jedes Profil den Wert von {primary}. Das Umschalten einer Kategorie auf Geteilt überschreibt die Daten dieser Kategorie in jedem anderen Profil - der für Nutzer sichtbare Text im Bestätigungsdialog warnt davor. Beim Profilwechsel werden für profilspezifische Kategorien weiterhin die eigenen Daten jedes Profils verwendet.",
+  "settings.profiles.sharing.explainV2": "Ist eine Kategorie geteilt, verwendet jedes Profil den Wert von {primary}; beim Einschalten von Geteilt wird diese Kategorie in allen anderen Profilen ersetzt. Profilspezifische Kategorien behalten beim Wechseln die eigenen Daten jedes Profils.",
   "settings.profiles.sharing.heading": "Profilübergreifend geteilt",
   "settings.profiles.sharing.makePrimary": "Als Primär festlegen",
   "settings.profiles.sharing.onlyOneProfile": "Erstelle ein weiteres Profil, um Kategorien zwischen Profilen zu teilen.",

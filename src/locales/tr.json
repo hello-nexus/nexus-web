@@ -4122,7 +4122,7 @@
   "settings.profiles.sharing.cat.theme.desc": "Tema modu, vurgu rengi, dil.",
   "settings.profiles.sharing.cat.theme.label": "Tema",
   "settings.profiles.sharing.deletePrimaryDisabled": "Önce başka bir profili Birincil olarak işaretleyin.",
-  "settings.profiles.sharing.explainV2": "Bir kategori Paylaşılan olduğunda, her profil {primary} profilinin değerini kullanır. Bir kategoriyi Paylaşılan olarak değiştirmek, o kategori için diğer her profilin verisinin üzerine yazar - onay iletişim kutusundaki kullanıcıya yönelik metin bu konuda uyarır. Profil değiştirmek, Profil başına kategoriler için yine her profilin kendi verisini kullanır.",
+  "settings.profiles.sharing.explainV2": "Bir kategori Paylaşılan olduğunda her profil {primary} profilinin değerini kullanır; Paylaşılan'ı açmak o kategoriyi diğer tüm profillerde değiştirir. Profil başına kategoriler, geçiş yaptığınızda her profilin kendi verisini korur.",
   "settings.profiles.sharing.heading": "Profiller arasında paylaşılan",
   "settings.profiles.sharing.makePrimary": "Birincil Yap",
   "settings.profiles.sharing.onlyOneProfile": "Kategorileri profiller arasında paylaşmak için başka bir profil oluşturun.",

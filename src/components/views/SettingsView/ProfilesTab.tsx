@@ -271,7 +271,7 @@ export function ProfilesTab({ profiles, onPreferencesChanged }: { profiles: UseP
                   {profiles.profiles.length > 1 && !isActive && (
                     <Button
                       type="button"
-                      tone="ghost"
+                      tone="danger"
                       size="sm"
                       icon={<Trash2 />}
                       onClick={() => setConfirmTarget({ kind: 'delete', profileId: p.id, name: p.name })}

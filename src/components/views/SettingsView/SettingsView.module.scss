@@ -253,14 +253,17 @@
 .profileList {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  // Bleeds into the section's side padding so names line up with the rest of
+  // the page; same inset and divider as a SettingRow list with a selected row.
+  margin-inline: -0.7rem;
 }
 
 .profileCard {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 0.7rem;
+  position: relative;
+  padding: 0.5rem 0.7rem;
   border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   // Transparent so each row reads against the SettingsSection box surface; the
@@ -273,6 +276,22 @@
     background: var(--bg-card-hover);
   }
 
+  // Hairline between rows at the text edge, as between SettingRows; none
+  // against the active card's own outline.
+  & + &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0.7rem;
+    right: 0.7rem;
+    border-top: 1px solid var(--separator);
+  }
+
+  &.profileCardActive::before,
+  &.profileCardActive + &::before {
+    content: none;
+  }
+
   &.profileCardActive {
     border-color: var(--accent);
     background: var(--accent-soft);
@@ -281,11 +300,6 @@
     &:hover {
       background: var(--accent-soft);
     }
-  }
-
-  &.profileCardDragOver {
-    border-color: var(--accent-glow);
-    box-shadow: 0 0 0 1px var(--accent-glow);
   }
 }
 
