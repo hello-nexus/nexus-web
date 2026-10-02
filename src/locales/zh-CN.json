@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "识别",
   "lighting.devices.identifyCount.one": "识别 ({count} 个设备)",
   "lighting.devices.identifyCount.other": "识别 ({count} 个设备)",
+  "lighting.devices.ledColorsBadge": "编辑 LED 颜色",
   "lighting.devices.lockLook": "锁定静态颜色",
   "lighting.devices.lockLookCount.one": "锁定静态颜色（{count} 台设备）",
   "lighting.devices.lockLookCount.other": "锁定静态颜色（{count} 台设备）",

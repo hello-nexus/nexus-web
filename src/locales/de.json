@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "Identifizieren",
   "lighting.devices.identifyCount.one": "Identifizieren ({count} Gerät)",
   "lighting.devices.identifyCount.other": "Identifizieren ({count} Geräte)",
+  "lighting.devices.ledColorsBadge": "LED-Farben bearbeiten",
   "lighting.devices.lockLook": "Statische Farbe sperren",
   "lighting.devices.lockLookCount.one": "Statische Farbe sperren ({count} Gerät)",
   "lighting.devices.lockLookCount.other": "Statische Farbe sperren ({count} Geräte)",

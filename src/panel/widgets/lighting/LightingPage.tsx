@@ -2574,7 +2574,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           devices={devices}
           zoneCustomizable={editorTarget.zoneCustomizable}
           initialCommunityOpen={editorCommunityOpen}
-          onClose={() => setEditorTarget(null)}
+          // LED colour picks apply as they are made; the cards read them back on close.
+          onClose={() => { setEditorTarget(null); void refreshDevices(); }}
           onCompositionChanged={hubId => { void handleCompositionChanged(hubId); }}
           onNavigateToDevicePage={deviceKey => onSectionNavigate?.('device', { deviceKey })}
         />

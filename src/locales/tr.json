@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "Tanimla",
   "lighting.devices.identifyCount.one": "Tanimla ({count} cihaz)",
   "lighting.devices.identifyCount.other": "Tanimla ({count} cihaz)",
+  "lighting.devices.ledColorsBadge": "LED renklerini düzenle",
   "lighting.devices.lockLook": "Statik rengi kilitle",
   "lighting.devices.lockLookCount.one": "Statik rengi kilitle ({count} cihaz)",
   "lighting.devices.lockLookCount.other": "Statik rengi kilitle ({count} cihaz)",

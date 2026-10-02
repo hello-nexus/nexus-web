@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "식별",
   "lighting.devices.identifyCount.one": "식별 ({count}개 장치)",
   "lighting.devices.identifyCount.other": "식별 ({count}개 장치)",
+  "lighting.devices.ledColorsBadge": "LED 색상 편집",
   "lighting.devices.lockLook": "정적 색상 잠금",
   "lighting.devices.lockLookCount.one": "정적 색상 잠금 ({count}개 장치)",
   "lighting.devices.lockLookCount.other": "정적 색상 잠금 ({count}개 장치)",

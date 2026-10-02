@@ -179,8 +179,8 @@
 
 .ledDot {
   position: absolute;
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background: rgb(255 255 255 / var(--alpha-medium));
   transform: translate(-50%, -50%);
@@ -188,6 +188,10 @@
   z-index: 1;
 }
 
+// Held on a colour by the LED map: the dot wears it, ringed to read on any frame.
+.ledDotLocked {
+  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-medium));
+}
 
 .resizeHandle {
   position: absolute;

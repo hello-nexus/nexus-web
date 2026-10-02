@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "Identifiche",
   "lighting.devices.identifyCount.one": "Identifiche ({count} dispositîf)",
   "lighting.devices.identifyCount.other": "Identifiche ({count} dispositîfs)",
+  "lighting.devices.ledColorsBadge": "Modifiche i colôrs dai LED",
   "lighting.devices.lockLook": "Bloche il colôr static",
   "lighting.devices.lockLookCount.one": "Bloche il colôr static ({count} dispositîf)",
   "lighting.devices.lockLookCount.other": "Bloche il colôr static ({count} dispositîfs)",

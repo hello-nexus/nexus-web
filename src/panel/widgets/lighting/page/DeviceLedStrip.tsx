@@ -40,6 +40,42 @@ function paint(
   fullscreen: boolean,
   pickOnly: boolean,
 ): void {
+  paintLook(canvas, device, slot, frame, pick, pattern, fullscreen, pickOnly);
+  if (identifyPhase(device.id) === null) paintLedColors(canvas, device);
+}
+
+/**
+ * LEDs held on a colour by the LED map outrank every look, as on the hardware.
+ * Each cell reads the LED at its centre, the same spread the cells sample.
+ */
+function paintLedColors(canvas: HTMLCanvasElement, device: LightingDevice): void {
+  const locked = device.ledColors;
+  if (!locked?.length) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const cells = canvas.width;
+  const count = Math.max(1, device.ledCount);
+  const byIndex = new Map(locked.map(l => [l.index, l.color]));
+  ctx.globalAlpha = Math.min(1, Math.max(0, (device.brightness ?? 100) / 100));
+  for (let c = 0; c < cells; c++) {
+    const color = byIndex.get(Math.min(count - 1, Math.floor(((c + 0.5) * count) / cells)));
+    if (!color) continue;
+    ctx.fillStyle = color;
+    ctx.fillRect(c, 0, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function paintLook(
+  canvas: HTMLCanvasElement,
+  device: LightingDevice,
+  slot: StackSlot | null | undefined,
+  frame: LedFrame,
+  pick: LedPick | undefined,
+  pattern: HTMLImageElement | null,
+  fullscreen: boolean,
+  pickOnly: boolean,
+): void {
   const cells = Math.max(1, Math.min(cardEnabledLedCount(device) || 1, MAX_CELLS));
   if (canvas.width !== cells) canvas.width = cells;
   if (canvas.height !== 1) canvas.height = 1;
@@ -146,6 +182,7 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, slot, pick,
   // Last frame delivered, so a pattern that decodes between frames can repaint
   // without waiting for the next one (there is none while lighting is held).
   const frameRef = useRef<LedFrame>(EMPTY_FRAME);
+  const ledColorsKey = device.ledColors?.map(l => `${l.index}${l.color}`).join() ?? '';
 
   // The picked pattern's own render. The effect grid has already fetched this
   // exact blob for its tile, so a pick costs no extra request.
@@ -187,7 +224,7 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, slot, pick,
   useEffect(() => {
     const el = ref.current;
     if (el) paint(el, deviceRef.current, slot, frameRef.current, pick, pattern, !!fullscreen, !!pickOnly);
-  }, [pick, pattern, fullscreen, pickOnly, device.brightness, slot]);
+  }, [pick, pattern, fullscreen, pickOnly, device.brightness, slot, ledColorsKey]);
 
   return <canvas ref={ref} className={styles.ledStrip} aria-hidden />;
 });

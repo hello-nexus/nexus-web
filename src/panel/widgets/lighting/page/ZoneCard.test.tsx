@@ -894,3 +894,32 @@ describe('ZoneCard color lock', () => {
     expect(setLocked).toHaveBeenCalledWith(false);
   });
 });
+
+describe('ZoneCard LED colours badge', () => {
+  const badge = () => screen.queryByRole('button', { name: 'lighting.devices.ledColorsBadge' }) as HTMLButtonElement | null;
+  const renderWith = (device: LightingDevice, extra: Partial<Parameters<typeof ZoneCard>[0]> = {}) => render(
+    <ZoneCard
+      device={device} selected={false} indent={false} onSelect={() => {}}
+      onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
+      {...extra}
+    />,
+  );
+
+  it('shows no badge when no LED holds a colour', () => {
+    renderWith(baseDevice);
+    expect(badge()).toBeNull();
+  });
+
+  it('badges beside the colour lock and opens the LED map without clearing anything', () => {
+    const onOpenSettings = vi.fn();
+    const setLocked = vi.fn();
+    renderWith(
+      { ...baseDevice, ledColors: [{ index: 0, color: '#ff0000' }] },
+      { onOpenSettings, lock: { locked: true, lockable: false, hasPick: true, setLocked } },
+    );
+    expect(screen.getByRole('button', { name: 'lighting.devices.unlockLook' })).toBeTruthy();
+    fireEvent.click(badge()!);
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    expect(setLocked).not.toHaveBeenCalled();
+  });
+});

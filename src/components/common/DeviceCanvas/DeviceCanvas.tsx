@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Eye, Layers, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
@@ -331,6 +331,10 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     return members.length > 1 ? devices.find(d => members.includes(d.id) && !hiddenIds.has(d.id))?.id ?? id : id;
   }, [devices, hiddenIds, stackedWith]);
   const drawn = devices.filter(d => !hiddenIds.has(d.id) && frameOwner(d.id) === d.id);
+  const ledColorsById = useMemo(
+    () => new Map(devices.filter(d => d.ledColors?.length).map(d => [d.id, new Map(d.ledColors!.map(l => [l.index, l.color]))])),
+    [devices],
+  );
   // `ids` with every stack filled in, over the devices the canvas holds.
   const withStacks = useCallback((ids: Iterable<string>): LightingDevice[] => {
     const all = new Set<string>();
@@ -900,9 +904,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
                 // samples the same slot.
                 const slot = stackSlotOf(stacks, id);
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
-                return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => (
-                  <div key={`${id}:${led.index}`} className={styles.ledDot} style={{ left: `${(part.x + led.u * part.w) * 100}%`, top: `${(part.y + led.v * part.h) * 100}%` }} />
-                ));
+                const locked = ledColorsById.get(id);
+                return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => {
+                  const color = locked?.get(led.index);
+                  return (
+                    <div
+                      key={`${id}:${led.index}`}
+                      className={color ? `${styles.ledDot} ${styles.ledDotLocked}` : styles.ledDot}
+                      style={{ left: `${(part.x + led.u * part.w) * 100}%`, top: `${(part.y + led.v * part.h) * 100}%`, ...(color ? { background: color } : {}) }}
+                    />
+                  );
+                });
               })
             }
           </div>

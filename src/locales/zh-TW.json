@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "識別",
   "lighting.devices.identifyCount.one": "識別 ({count} 台裝置)",
   "lighting.devices.identifyCount.other": "識別 ({count} 台裝置)",
+  "lighting.devices.ledColorsBadge": "編輯 LED 顏色",
   "lighting.devices.lockLook": "鎖定靜態顏色",
   "lighting.devices.lockLookCount.one": "鎖定靜態顏色（{count} 台裝置）",
   "lighting.devices.lockLookCount.other": "鎖定靜態顏色（{count} 台裝置）",

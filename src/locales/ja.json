@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "識別",
   "lighting.devices.identifyCount.one": "識別 ({count} 台のデバイス)",
   "lighting.devices.identifyCount.other": "識別 ({count} 台のデバイス)",
+  "lighting.devices.ledColorsBadge": "LED カラーを編集",
   "lighting.devices.lockLook": "静的カラーをロック",
   "lighting.devices.lockLookCount.one": "静的カラーをロック（{count} 台）",
   "lighting.devices.lockLookCount.other": "静的カラーをロック（{count} 台）",

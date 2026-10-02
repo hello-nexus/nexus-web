@@ -2358,6 +2358,7 @@
   "lighting.devices.identifyCount.few": "Определить ({count} устройства)",
   "lighting.devices.identifyCount.one": "Определить ({count} устройство)",
   "lighting.devices.identifyCount.other": "Определить ({count} устройств)",
+  "lighting.devices.ledColorsBadge": "Изменить цвета светодиодов",
   "lighting.devices.lockLook": "Заблокировать статический цвет",
   "lighting.devices.lockLookCount.few": "Заблокировать статический цвет ({count} устройства)",
   "lighting.devices.lockLookCount.one": "Заблокировать статический цвет ({count} устройство)",

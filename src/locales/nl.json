@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "Identificeren",
   "lighting.devices.identifyCount.one": "Identificeren ({count} apparaat)",
   "lighting.devices.identifyCount.other": "Identificeren ({count} apparaten)",
+  "lighting.devices.ledColorsBadge": "LED-kleuren bewerken",
   "lighting.devices.lockLook": "Statische kleur vergrendelen",
   "lighting.devices.lockLookCount.one": "Statische kleur vergrendelen ({count} apparaat)",
   "lighting.devices.lockLookCount.other": "Statische kleur vergrendelen ({count} apparaten)",

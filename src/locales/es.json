@@ -2341,6 +2341,7 @@
   "lighting.devices.identify": "Identificar",
   "lighting.devices.identifyCount.one": "Identificar ({count} dispositivo)",
   "lighting.devices.identifyCount.other": "Identificar ({count} dispositivos)",
+  "lighting.devices.ledColorsBadge": "Editar colores de los LED",
   "lighting.devices.lockLook": "Bloquear color estático",
   "lighting.devices.lockLookCount.one": "Bloquear color estático ({count} dispositivo)",
   "lighting.devices.lockLookCount.other": "Bloquear color estático ({count} dispositivos)",
