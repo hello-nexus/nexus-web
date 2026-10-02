@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { subscribeLedFrame, type LedFrame } from '../../../../lib/ledFrameStore';
 import { identifyPhase, subscribeIdentify } from '../../../../lib/identifyFlash';
 import { useEffectThumbnail } from '../../../../hooks/useEffectThumbnail';
@@ -30,6 +30,27 @@ const MAX_CELLS = 24;
 
 const EMPTY_FRAME: LedFrame = { pixels: null, w: 0, h: 0, seq: 0 };
 
+const stripCells = (device: LightingDevice) => Math.max(1, Math.min(cardEnabledLedCount(device) || 1, MAX_CELLS));
+
+/** A strip cell held on a colour by the LED map. */
+type LockedCell = readonly [cell: number, color: string];
+const NO_LOCKED_CELLS: readonly LockedCell[] = [];
+
+/** The cells LED-map colours land on, read off the service's position-binned columns. */
+export function lockedCells(device: LightingDevice): readonly LockedCell[] {
+  const columns = device.ledColorStrip;
+  if (!columns?.length) return NO_LOCKED_CELLS;
+  const cells = stripCells(device);
+  const out: LockedCell[] = [];
+  for (let c = 0; c < cells; c++) {
+    // The x paintLook samples this cell at.
+    const x = cells === 1 ? 0.5 : c / (cells - 1);
+    const color = columns[Math.min(columns.length - 1, Math.floor(x * columns.length))];
+    if (color) out.push([c, color]);
+  }
+  return out;
+}
+
 function paint(
   canvas: HTMLCanvasElement,
   device: LightingDevice,
@@ -39,8 +60,40 @@ function paint(
   pattern: HTMLImageElement | null,
   fullscreen: boolean,
   pickOnly: boolean,
+  locks: readonly LockedCell[],
 ): void {
-  const cells = Math.max(1, Math.min(cardEnabledLedCount(device) || 1, MAX_CELLS));
+  paintLook(canvas, device, slot, frame, pick, pattern, fullscreen, pickOnly);
+  if (locks.length > 0 && identifyPhase(device.id) === null) paintLockedCells(canvas, device, locks);
+}
+
+/** LED-map colours outrank every look, as on the hardware. */
+function paintLockedCells(canvas: HTMLCanvasElement, device: LightingDevice, locks: readonly LockedCell[]): void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  const scale = Math.min(1, Math.max(0, (device.brightness ?? 100) / 100));
+  for (const [c, color] of locks) {
+    // Brightness scales toward black, as the service applies it.
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(c, 0, 1, 1);
+    ctx.globalAlpha = scale;
+    ctx.fillStyle = color;
+    ctx.fillRect(c, 0, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function paintLook(
+  canvas: HTMLCanvasElement,
+  device: LightingDevice,
+  slot: StackSlot | null | undefined,
+  frame: LedFrame,
+  pick: LedPick | undefined,
+  pattern: HTMLImageElement | null,
+  fullscreen: boolean,
+  pickOnly: boolean,
+): void {
+  const cells = stripCells(device);
   if (canvas.width !== cells) canvas.width = cells;
   if (canvas.height !== 1) canvas.height = 1;
   const ctx = canvas.getContext('2d');
@@ -146,6 +199,10 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, slot, pick,
   // Last frame delivered, so a pattern that decodes between frames can repaint
   // without waiting for the next one (there is none while lighting is held).
   const frameRef = useRef<LedFrame>(EMPTY_FRAME);
+  // Worked out per device refetch, so a frame only fills the cells it lists.
+  const locks = useMemo(() => lockedCells(device), [device]);
+  const locksRef = useRef(locks);
+  locksRef.current = locks;
 
   // The picked pattern's own render. The effect grid has already fetched this
   // exact blob for its tile, so a pick costs no extra request.
@@ -171,13 +228,13 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, slot, pick,
 
   useEffect(() => subscribeIdentify(() => {
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, slotRef.current, frameRef.current, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
+    if (el) paint(el, deviceRef.current, slotRef.current, frameRef.current, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current, locksRef.current);
   }), []);
 
   useEffect(() => subscribeLedFrame(frame => {
     frameRef.current = frame;
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, slotRef.current, frame, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current);
+    if (el) paint(el, deviceRef.current, slotRef.current, frame, pickRef.current, patternRef.current, !!fullscreenRef.current, !!pickOnlyRef.current, locksRef.current);
   }), []);
 
   // A pick or a decoded pattern lands between frames, so repaint immediately
@@ -186,8 +243,8 @@ export const DeviceLedStrip = memo(function DeviceLedStrip({ device, slot, pick,
   // arriving (a per-device surface) nothing else would ever repaint it.
   useEffect(() => {
     const el = ref.current;
-    if (el) paint(el, deviceRef.current, slot, frameRef.current, pick, pattern, !!fullscreen, !!pickOnly);
-  }, [pick, pattern, fullscreen, pickOnly, device.brightness, slot]);
+    if (el) paint(el, deviceRef.current, slot, frameRef.current, pick, pattern, !!fullscreen, !!pickOnly, locks);
+  }, [pick, pattern, fullscreen, pickOnly, device.brightness, slot, locks]);
 
   return <canvas ref={ref} className={styles.ledStrip} aria-hidden />;
 });

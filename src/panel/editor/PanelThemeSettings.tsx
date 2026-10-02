@@ -83,6 +83,8 @@ export interface PanelThemeSettingsState {
   // Frosted-glass blur over the background layer (shader / media / wallpaper),
   // percent 0-100 (see DEFAULT_PANEL_BACKGROUND_FROST).
   backgroundFrost: number;
+  // Off: immersive views show the panel background instead of a solid colour.
+  immersiveBackdrop: boolean;
   widgetOpacity: number;
   widgetLabels: boolean;
   // Percent 0-100 (see defaultPanelWidgetPadding, PANEL_WIDGET_PADDING_MAX_RATIO).
@@ -117,6 +119,7 @@ export interface PanelThemeSettingsProps {
   onBackgroundMediaOrderCommit: (ids: string[]) => void;
   onBackgroundFrostPreview: (percent: number) => void;
   onBackgroundFrostCommit: (percent: number) => void;
+  onImmersiveBackdropCommit: (enabled: boolean) => void;
   onWidgetOpacityPreview: (opacity: number) => void;
   onWidgetOpacityCommit: (opacity: number) => void;
   onWidgetLabelsCommit: (enabled: boolean) => void;
@@ -177,6 +180,7 @@ export function PanelThemeSettings({
   onBackgroundMediaOrderCommit,
   onBackgroundFrostPreview,
   onBackgroundFrostCommit,
+  onImmersiveBackdropCommit,
   onWidgetOpacityPreview,
   onWidgetOpacityCommit,
   onWidgetLabelsCommit,
@@ -288,7 +292,7 @@ export function PanelThemeSettings({
       editable
       trackFill
       label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
-      description={label('panel.settings.backgroundOpacity.desc', 'Dims the backdrop')}
+      description={label('panel.settings.backgroundOpacity.desc', 'Dims the background')}
       descriptionBelow
       value={backgroundOpacityPercent}
       min={0}
@@ -433,18 +437,24 @@ export function PanelThemeSettings({
             )}
             {showBackdropSelector && (
               <SettingRow
-                label={label('panel.settings.backdrop', 'Backdrop')}
+                label={label('panel.settings.backdrop', 'Rendering')}
                 description={backdropDescription}
                 descriptionBelow
               >
                 <ChipGroup
-                  ariaLabel={label('panel.settings.backdrop', 'Backdrop')}
+                  ariaLabel={label('panel.settings.backdrop', 'Rendering')}
                   activeKey={theme.backdrop}
                   onChange={key => onBackdropCommit(key as PanelBackdrop)}
                   options={backdropOptions}
                 />
               </SettingRow>
             )}
+            <SettingToggle
+              label={label('panel.settings.immersiveBackdrop', 'Immersive background')}
+              description={label('panel.settings.immersiveBackdrop.desc', 'Turn off to see your background through immersive views')}
+              checked={theme.immersiveBackdrop}
+              onChange={onImmersiveBackdropCommit}
+            />
             {/* Frost and opacity stay visible under every backdrop, which
                 hides the theme-only mode controls below. */}
             <SettingSlider
@@ -455,7 +465,7 @@ export function PanelThemeSettings({
               trackFill
               disabled={!frostApplies}
               label={label('panel.settings.backgroundFrost', 'Frosted glass')}
-              description={label('panel.settings.backgroundFrost.desc', 'Improves clarity on busy backdrops')}
+              description={label('panel.settings.backgroundFrost.desc', 'Improves clarity on busy backgrounds')}
               descriptionBelow
               value={theme.backgroundFrost}
               min={0}

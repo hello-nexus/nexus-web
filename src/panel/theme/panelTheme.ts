@@ -226,6 +226,7 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
     backgroundSlideshowFinishVideos: r?.backgroundMediaFinishVideos !== false,
     backgroundMediaOrder: normalizePanelBackgroundMediaOrder(r?.backgroundMediaOrder),
     backgroundFrost: normalizePanelBackgroundFrost(r?.backgroundFrostLevel),
+    immersiveBackdrop: r?.immersiveBackdrop !== false,
     widgetOpacity: r?.widgetOpacity == null && single ? 0 : normalizePanelWidgetOpacity(r?.widgetOpacity),
     widgetLabels: normalizePanelWidgetLabels(r?.widgetLabels),
     widgetPadding: r?.widgetPadding == null && single ? 0 : normalizePanelWidgetPadding(r?.widgetPadding),
@@ -480,6 +481,11 @@ export function usePanelTheme(
     persistPatch({ widgetOpacity: nextOpacity });
   }, [persistPatch]);
 
+  const commitImmersiveBackdrop = useCallback((enabled: boolean) => {
+    setTheme(prev => ({ ...prev, immersiveBackdrop: enabled }));
+    persistPatch({ immersiveBackdrop: enabled });
+  }, [persistPatch]);
+
   const commitWidgetLabels = useCallback((enabled: boolean) => {
     const next = normalizePanelWidgetLabels(enabled);
     setTheme(prev => ({ ...prev, widgetLabels: next }));
@@ -547,6 +553,7 @@ export function usePanelTheme(
       { ...prev, backgroundFrost: normalizePanelBackgroundFrost(percent) }
     )),
     commitBackgroundFrost,
+    commitImmersiveBackdrop,
     previewWidgetOpacity: (opacity: number) => setTheme(prev => (
       { ...prev, widgetOpacity: normalizePanelWidgetOpacity(opacity) }
     )),

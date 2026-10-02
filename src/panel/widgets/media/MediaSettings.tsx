@@ -3,17 +3,18 @@ import { useTranslation } from '../../../lib/i18n';
 import { useAudioDevices } from '../../../hooks/useAudioDevices';
 import { SettingsSection, SettingsSelect, SettingsToggle, SettingsHint } from '../common/SettingsRow/SettingsRow';
 import { MEDIA_VISUALIZER_EFFECTS, normalizeVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
-import { MEDIA_VOLUME_MODES, normalizeVolumeMode } from './mediaVolumeTarget';
+import { MEDIA_VOLUME_MODES, mediaShowsVolume, normalizeVolumeMode } from './mediaVolumeTarget';
 import styles from './MediaSettings.module.scss';
 
 export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
   const { t } = useTranslation();
   const visualizer = widget.config?.visualizer === true;
   const effect = normalizeVisualizerEffect(widget.config?.visualizerEffect);
+  const showVolume = mediaShowsVolume(widget);
   const volumeMode = normalizeVolumeMode(widget.config?.volumeTarget);
   const deviceId = typeof widget.config?.volumeDeviceId === 'string' ? widget.config.volumeDeviceId : '';
   const deviceName = typeof widget.config?.volumeDeviceName === 'string' ? widget.config.volumeDeviceName : '';
-  const { outputs } = useAudioDevices(volumeMode === 'output');
+  const { outputs } = useAudioDevices(showVolume && volumeMode === 'output');
 
   const deviceOptions = [
     { value: '', label: t('panel.media.volumeTarget.systemDefault') },
@@ -46,24 +47,38 @@ export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
         <SettingsHint>{t('panel.media.visualizer.hint')}</SettingsHint>
       </SettingsSection>
       <SettingsSection title={t('panel.media.volumeTarget.label')}>
-        <SettingsSelect
-          label={t('panel.media.volumeTarget.mode')}
-          value={volumeMode}
-          options={MEDIA_VOLUME_MODES.map(mode => ({ value: mode, label: t(`panel.media.volumeTarget.${mode}`) }))}
-          onChange={value => onUpdate({ volumeTarget: value })}
+        <SettingsToggle
+          label={t('panel.media.volumeTarget.show')}
+          checked={showVolume}
+          onChange={value => onUpdate({ showVolume: value })}
         />
-        {volumeMode === 'output' && (
-          <SettingsSelect
-            label={t('panel.media.volumeTarget.device')}
-            value={deviceId}
-            options={deviceOptions}
-            onChange={value => onUpdate({
-              volumeDeviceId: value,
-              volumeDeviceName: outputs.find(d => d.id === value)?.name ?? '',
-            })}
-          />
+        {showVolume && (
+          <>
+            <SettingsToggle
+              label={t('panel.media.volumeTarget.showSource')}
+              checked={widget.config?.showSource === true}
+              onChange={value => onUpdate({ showSource: value })}
+            />
+            <SettingsSelect
+              label={t('panel.media.volumeTarget.mode')}
+              value={volumeMode}
+              options={MEDIA_VOLUME_MODES.map(mode => ({ value: mode, label: t(`panel.media.volumeTarget.${mode}`) }))}
+              onChange={value => onUpdate({ volumeTarget: value })}
+            />
+            {volumeMode === 'output' && (
+              <SettingsSelect
+                label={t('panel.media.volumeTarget.device')}
+                value={deviceId}
+                options={deviceOptions}
+                onChange={value => onUpdate({
+                  volumeDeviceId: value,
+                  volumeDeviceName: outputs.find(d => d.id === value)?.name ?? '',
+                })}
+              />
+            )}
+            <SettingsHint>{t(`panel.media.volumeTarget.hint.${volumeMode}`)}</SettingsHint>
+          </>
         )}
-        <SettingsHint>{t(`panel.media.volumeTarget.hint.${volumeMode}`)}</SettingsHint>
       </SettingsSection>
     </div>
   );

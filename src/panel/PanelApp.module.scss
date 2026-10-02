@@ -354,6 +354,11 @@
 }
 
 // Stage hosts the pager (one page = one viewport).
+// A see-through immersive view shows only the background layers behind it.
+.panelRoot[data-immersive-see-through='true'] > :not([data-panel-bg-layer]):not([data-panel-frost]):not(.backgroundMediaStack) {
+  visibility: hidden;
+}
+
 .panelStage {
   position: relative;
   width: 100%;

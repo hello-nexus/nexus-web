@@ -551,12 +551,18 @@ export function PanelContent({
       return next;
     });
   }, []);
+  // True from the close tap until the overlay unmounts, so a see-through view
+  // gives the dashboard back as it starts sliding away.
+  const [immersiveClosing, setImmersiveClosing] = useState(false);
   const enterImmersive = useCallback((widgetId: string) => {
     setImmersiveOpenCounter(n => n + 1);
     setImmersiveOpenedOnLoad(false);
+    setImmersiveClosing(false);
     setImmersiveWidgetId(widgetId);
   }, []);
+  const handleImmersiveExitStart = useCallback(() => setImmersiveClosing(true), []);
   const handleImmersiveExit = useCallback(() => {
+    setImmersiveClosing(false);
     setImmersiveWidgetId(null);
   }, []);
   const { resizeMotionWidgetId, beginResizeMotion } = useWidgetResizeMotion(
@@ -751,6 +757,11 @@ export function PanelContent({
     return style;
   }, [panelRootStyle, runtimeGrid.contentColumns, runtimeGrid.contentGap, runtimeGrid.contentRows]);
 
+  // Backdrop off: the immersive overlay paints nothing and the dashboard
+  // under it hides, leaving the panel's own background behind the view.
+  const immersiveSeeThrough = (kioskBehavior || simulator) && immersiveWidgetId !== null && !immersiveClosing
+    && !effectiveTheme.immersiveBackdrop;
+
   // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's scrim, else
   // the edited widget reads dimmed under it. q60 is display-only so editing
@@ -893,7 +904,7 @@ export function PanelContent({
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
   const shownSingleWidget = isSingleWidgetSurface(surface) ? allFiltered[0]?.widgets[0] : undefined;
-  const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id);
+  const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id) && !immersiveSeeThrough;
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
@@ -1730,6 +1741,7 @@ export function PanelContent({
         data-surface={surface}
         data-simulator={simulator ? 'true' : undefined}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
+        data-immersive-see-through={immersiveSeeThrough ? 'true' : undefined}
         // Omitted on single-widget surfaces: they force widgetPadding 0
         // internally, and squaring their corners would round-trip onto a
         // surface with no adjacent widget to sit flush against. Stamped
@@ -2061,12 +2073,14 @@ export function PanelContent({
             instant={immersiveOpenedOnLoad}
             open
             onExit={handleImmersiveClose}
+            onExitStart={handleImmersiveExitStart}
             themeStyle={immersiveThemeStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
             confirmClose={def.meta.immersiveDoubleSwipe}
             // Only an open the user made: an immersive-on-load kiosk would show it for good.
             swipeHint={swipeOnboarding.immersiveHintPending && !immersiveOpenedOnLoad}
+            seeThrough={!effectiveTheme.immersiveBackdrop}
           >
             <Comp
               widget={w}
@@ -2137,6 +2151,7 @@ export function PanelContent({
           onThemeTextColorCommit={panelTheme.commitTextColor}
           onThemeBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
           onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
+          onThemeImmersiveBackdropCommit={panelTheme.commitImmersiveBackdrop}
           onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
           onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}
           machineName={machineName}

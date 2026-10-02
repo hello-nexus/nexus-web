@@ -43,6 +43,43 @@ describe('PanelImmersiveOverlay', () => {
     expect(screen.getByRole('dialog').className).toContain(styles.overlay);
   });
 
+  it('reports the close as it starts, a slide before onExit', () => {
+    vi.useFakeTimers();
+    try {
+      const onExitStart = vi.fn();
+      const onExit = vi.fn();
+      render(
+        <PanelImmersiveOverlay open onExit={onExit} onExitStart={onExitStart}>
+          <div>content</div>
+        </PanelImmersiveOverlay>,
+      );
+      fireEvent.click(screen.getByLabelText(CLOSE));
+      expect(onExitStart).toHaveBeenCalledTimes(1);
+      expect(onExit).not.toHaveBeenCalled();
+      act(() => { vi.advanceTimersByTime(500); });
+      expect(onExit).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('marks the overlay see-through only when asked', () => {
+    const solid = render(
+      <PanelImmersiveOverlay open onExit={() => {}}>
+        <div>content</div>
+      </PanelImmersiveOverlay>,
+    );
+    expect(screen.getByRole('dialog').getAttribute('data-see-through')).toBeNull();
+    solid.unmount();
+
+    render(
+      <PanelImmersiveOverlay open onExit={() => {}} seeThrough>
+        <div>content</div>
+      </PanelImmersiveOverlay>,
+    );
+    expect(screen.getByRole('dialog').getAttribute('data-see-through')).toBe('true');
+  });
+
   // A mouse cannot drag the hint back into view the way touch does, so without
   // the pointer reveal a faded hint leaves a mouse-driven surface no visible exit.
   it('re-reveals the faded hint on mouse movement', () => {

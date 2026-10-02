@@ -370,6 +370,10 @@ export interface LightingDevice {
   ledCount: number;
   /** LEDs not disabled by the user map. Undefined on older services; the UI falls back to ledCount then. */
   enabledLedCount?: number;
+  /** Card-local LEDs held on a colour by the LED map; absent when none is. */
+  ledColors?: { index: number; color: string }[];
+  /** The locks by strip column, left to right by LED position: "#rrggbb", or "" where the look shows. */
+  ledColorStrip?: string[];
   /** Cross-install hardware fingerprint for community mapping lookup. Empty when the device cannot be fingerprinted; all community mapping UI hides itself then. */
   deviceKey?: string;
   canvasX: number;
@@ -727,6 +731,21 @@ export const fetchLedMap = (id: string) =>
 
 export const highlightLeds = (id: string, indices: number[]) =>
   postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-highlight`, { indices });
+
+export interface LedColorsResponse {
+  /** Zone-local LED index and its locked "#rrggbb". */
+  leds: { index: number; color: string }[];
+}
+
+export const fetchLedColors = (id: string) =>
+  fetchService<LedColorsResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-colors`);
+
+/** Locks the zone-local LEDs to `color`; an empty colour unlocks them. */
+export const setLedColors = (id: string, indices: number[], color: string) =>
+  postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-colors`, { indices, color });
+
+export const clearLedColors = (id: string) =>
+  deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-colors`);
 
 export const testLedPattern = (id: string, pattern: string) =>
   postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-test-pattern`, { pattern });

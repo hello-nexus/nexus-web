@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
+import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Paintbrush, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -698,6 +698,21 @@ export function ZoneCard({
               onClick={e => { e.stopPropagation(); lock.setLocked(false); }}
             >
               <Lock />
+            </button>
+          </HoverTooltip>
+        )}
+        {/* LEDs holding a colour from the LED map. A press opens the map, where
+            they are edited; it never clears them. */}
+        {!!device.ledColors?.length && onOpenSettings && !toggleMode && !unavailable && !firmwareControlled && (
+          <HoverTooltip body={t('lighting.devices.ledColorsBadge')} side="top">
+            <button
+              type="button"
+              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn}`}
+              aria-label={t('lighting.devices.ledColorsBadge')}
+              data-no-dnd
+              onClick={e => { e.stopPropagation(); onOpenSettings(); }}
+            >
+              <Paintbrush />
             </button>
           </HoverTooltip>
         )}

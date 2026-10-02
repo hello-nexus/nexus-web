@@ -73,6 +73,7 @@ export function PanelEditorSheet({
   onThemeBackgroundMediaOrderCommit,
   onThemeBackgroundFrostPreview,
   onThemeBackgroundFrostCommit,
+  onThemeImmersiveBackdropCommit,
   showBackdropSelector = false,
   backgroundHeldBy = null,
   onThemeWidgetOpacityPreview,
@@ -154,6 +155,7 @@ export function PanelEditorSheet({
   onThemeBackgroundMediaOrderCommit: (ids: string[]) => void;
   onThemeBackgroundFrostPreview: (percent: number) => void;
   onThemeBackgroundFrostCommit: (percent: number) => void;
+  onThemeImmersiveBackdropCommit: (enabled: boolean) => void;
   // Backdrop selector; kiosk-hosted surfaces only.
   showBackdropSelector?: boolean;
   // Focus mode holding the panel on a plain background right now, if any.
@@ -460,6 +462,7 @@ export function PanelEditorSheet({
               onBackgroundMediaOrderCommit={onThemeBackgroundMediaOrderCommit}
               onBackgroundFrostPreview={onThemeBackgroundFrostPreview}
               onBackgroundFrostCommit={onThemeBackgroundFrostCommit}
+              onImmersiveBackdropCommit={onThemeImmersiveBackdropCommit}
               showMediaTab={showMediaTab}
               deviceAspect={deviceAspect}
               deviceW={deviceW}

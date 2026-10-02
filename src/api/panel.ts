@@ -88,6 +88,8 @@ export interface PanelDeviceRecord {
   // Frost strength, percent 0-100. Absent/null defaults to
   // DEFAULT_PANEL_BACKGROUND_FROST (normalizePanelBackgroundFrost).
   backgroundFrostLevel?: number | null;
+  // Absent/null defaults to on (immersive views paint the theme's solid colour).
+  immersiveBackdrop?: boolean | null;
   // Colour stops for the value-coloured monitoring gauges, 0-1 along a gauge's
   // scale. Absent/null defaults to DEFAULT_GAUGE_GRADIENT (normalizeGaugeGradient).
   gaugeGradient?: PanelGaugeGradientStopDto[] | null;
@@ -164,6 +166,7 @@ export interface PanelDevicePatch {
   // Full list (the client sends the whole order).
   backgroundMediaOrder?: string[];
   backgroundFrostLevel?: number;
+  immersiveBackdrop?: boolean;
   // Full list (the client sends the whole gradient).
   gaugeGradient?: PanelGaugeGradientStopDto[];
   widgetOpacity?: number;

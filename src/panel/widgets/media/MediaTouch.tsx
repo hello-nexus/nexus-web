@@ -15,7 +15,7 @@ import { surfaceSupportsTouch } from '../../types';
 import type { WidgetProps } from '../types';
 import { mediaArtSignature } from './mediaArt';
 import { formatTrackTime, useLivePositionMs } from './mediaTime';
-import { mediaVolumeTarget } from './mediaVolumeTarget';
+import { mediaShowsVolume, mediaVolumeTarget } from './mediaVolumeTarget';
 import { MediaVisualizer } from './MediaVisualizer';
 import { MediaLiveBackground } from './MediaLiveBackground';
 import { nextVisualizerEffect, normalizeVisualizerEffect, prevVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
@@ -245,6 +245,7 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
       session={active.session}
       sourceKey={active.key}
       volumeTarget={mediaVolumeTarget(widget, active.key)}
+      showVolume={mediaShowsVolume(widget)}
       t={t}
       visualizer={visualizerOn}
       controlsRevealed={controlsRevealed}
@@ -371,6 +372,7 @@ function MediaPlayerCell({
   session,
   sourceKey,
   volumeTarget,
+  showVolume,
   t,
   visualizer,
   controlsRevealed,
@@ -380,6 +382,7 @@ function MediaPlayerCell({
   session: MediaSession;
   sourceKey: string;
   volumeTarget: VolumeTargetQuery;
+  showVolume: boolean;
   t: (k: string, params?: Record<string, string | number>) => string;
   visualizer: boolean;
   controlsRevealed: boolean;
@@ -392,7 +395,7 @@ function MediaPlayerCell({
   const repeatActive = repeatMode === 'List' || repeatMode === 'Track';
   const RepeatIcon = repeatMode === 'Track' ? Repeat1 : Repeat;
 
-  const volumeBridge = useSystemVolume(true, volumeTarget);
+  const volumeBridge = useSystemVolume(showVolume, volumeTarget);
   const { state: volume, previewVolume, commitVolume, setMuted } = volumeBridge;
 
   return (
@@ -474,7 +477,7 @@ function MediaPlayerCell({
             />
           )}
         </div>
-        {volume.supported && (
+        {showVolume && volume.supported && (
           <HorizontalVolume
             volume={volume.volume}
             muted={volume.muted}

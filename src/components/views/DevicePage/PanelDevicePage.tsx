@@ -1413,6 +1413,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                             onBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
                             onBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
                             onBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
+                            onImmersiveBackdropCommit={panelTheme.commitImmersiveBackdrop}
                             onWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
                             onWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
                             onWidgetLabelsCommit={panelTheme.commitWidgetLabels}

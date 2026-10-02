@@ -5,6 +5,11 @@ export type MediaVolumeMode = VolumeTargetQuery['mode'];
 
 export const MEDIA_VOLUME_MODES: MediaVolumeMode[] = ['auto', 'app', 'output'];
 
+/** On unless the widget's config turned it off. */
+export function mediaShowsVolume(widget: PanelWidget | undefined): boolean {
+  return widget?.config?.showVolume !== false;
+}
+
 export function normalizeVolumeMode(value: unknown): MediaVolumeMode {
   return value === 'app' || value === 'output' ? value : 'auto';
 }

@@ -1584,6 +1584,7 @@ function PreviewPanelThemeSettings() {
     backgroundSlideshow: false, backgroundSlideshowInterval: DEFAULT_PANEL_SLIDESHOW_INTERVAL, backgroundSlideshowShuffle: false, backgroundSlideshowFinishVideos: true,
     backgroundMediaOrder: [],
     backgroundFrost: 0,
+    immersiveBackdrop: true,
     widgetOpacity: 1, widgetLabels: true, widgetPadding: 50, textColorMode: 'adaptive', textColor: '',
     gaugeGradient: [...DEFAULT_GAUGE_GRADIENT],
   });
@@ -1622,6 +1623,7 @@ function PreviewPanelThemeSettings() {
         onWidgetLabelsCommit={v => set({ widgetLabels: v })}
         onBackgroundFrostPreview={v => set({ backgroundFrost: v })}
         onBackgroundFrostCommit={v => set({ backgroundFrost: v })}
+        onImmersiveBackdropCommit={v => set({ immersiveBackdrop: v })}
         onWidgetPaddingPreview={v => set({ widgetPadding: v })}
         onWidgetPaddingCommit={v => set({ widgetPadding: v })}
         onTextColorModeCommit={v => set({ textColorMode: v })}
@@ -1663,7 +1665,7 @@ function PreviewSettingRow() {
         descriptionBelow
         formatValue={v => `${Math.round(v)}%`} onChange={v => setLevel(v)} />
       <SettingRow
-        label="Backdrop"
+        label="Rendering"
         description="Full-width description: the control keeps its place as this text changes length."
         descriptionBelow
       >
@@ -1671,7 +1673,7 @@ function PreviewSettingRow() {
           options={[{ key: 'a', label: 'Theme' }, { key: 'b', label: 'Wallpaper' }, { key: 'c', label: 'Desktop' }]}
           activeKey="b"
           onChange={() => {}}
-          ariaLabel="Backdrop"
+          ariaLabel="Rendering"
         />
       </SettingRow>
       <SettingRow label="Icon color" wrapControl>
