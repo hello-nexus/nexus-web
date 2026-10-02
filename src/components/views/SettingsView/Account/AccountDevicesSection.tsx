@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../../../common/Button/Button';
 import { Badge } from '../../../common/Badge/Badge';
 import { SettingsSection } from '../../../common/SettingsSection/SettingsSection';
 import { ConfirmModal } from '../../../common/ConfirmModal/ConfirmModal';
+import { Toggle } from '../../../common/Toggle/Toggle';
+import { fetchService, putService } from '../../../../api/service';
 import { useToast } from '../../../common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
 import { useSystemSpecs } from '../../../../hooks/useSystemSpecs';
@@ -17,6 +19,20 @@ interface AccountDevicesSectionProps {
   backend: AuthBackend;
   /** In-app surface only: seeds a new manual device's spec fields from the local service's own /system/specs. Never set on the public web account page (localhost is never reachable there). */
   prefillFromLocalSpecs?: boolean;
+  /** In-app surface only: lists the machine the app runs on first, with its reporting switch and no Remove. */
+  showThisSystem?: boolean;
+}
+
+// The local service's /system/report: the install id this machine reports under, and whether it reports.
+interface SystemReport {
+  installId: string;
+  report: boolean;
+}
+
+function asSystemReport(value: Partial<SystemReport> & { error?: boolean } | null): SystemReport | null {
+  return value && value.error !== true && typeof value.installId === 'string' && typeof value.report === 'boolean'
+    ? { installId: value.installId, report: value.report }
+    : null;
 }
 
 /**
@@ -24,10 +40,11 @@ interface AccountDevicesSectionProps {
  * read-only) alongside manually-added rigs (editable). Renders nothing when
  * the backend doesn't implement device management (see AuthBackend).
  */
-export function AccountDevicesSection({ backend, prefillFromLocalSpecs }: AccountDevicesSectionProps) {
+export function AccountDevicesSection({ backend, prefillFromLocalSpecs, showThisSystem }: AccountDevicesSectionProps) {
   const { t } = useTranslation();
   const { push } = useToast();
-  const { specs: localSpecs } = useSystemSpecs(Boolean(prefillFromLocalSpecs));
+  const syncLabelId = useId();
+  const { specs: localSpecs } = useSystemSpecs(Boolean(prefillFromLocalSpecs || showThisSystem));
   // Stable identity: ManualDeviceModal's form-reset effect depends on this
   // value, so a fresh object on every parent re-render (e.g. AccountSignedIn's
   // 25s sync-status poll) would wipe an in-progress add/edit.
@@ -40,6 +57,8 @@ export function AccountDevicesSection({ backend, prefillFromLocalSpecs }: Accoun
   const [editing, setEditing] = useState<AccountDeviceItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<AccountDeviceItem | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [thisSystem, setThisSystem] = useState<SystemReport | null>(null);
+  const [savingReport, setSavingReport] = useState(false);
 
   const load = useCallback(async () => {
     const result = await backend.listDevices?.();
@@ -47,6 +66,15 @@ export function AccountDevicesSection({ backend, prefillFromLocalSpecs }: Accoun
   }, [backend]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!showThisSystem) return undefined;
+    let cancelled = false;
+    void fetchService<Partial<SystemReport>>('/system/report').then((res) => {
+      if (!cancelled) setThisSystem(asSystemReport(res));
+    });
+    return () => { cancelled = true; };
+  }, [showThisSystem]);
 
   if (!backend.listDevices || !backend.upsertDevice) return null;
   const upsertDevice = backend.upsertDevice;
@@ -65,6 +93,32 @@ export function AccountDevicesSection({ backend, prefillFromLocalSpecs }: Accoun
     });
     push({ title: t(editing ? 'account.devices.updated' : 'account.devices.added') });
   };
+
+  // Off removes this machine from the account; on reports it again before the list reloads.
+  const changeReport = async (report: boolean) => {
+    if (!thisSystem || savingReport) return;
+    setSavingReport(true);
+    let saved: SystemReport | null = null;
+    try {
+      saved = asSystemReport(await putService<Partial<SystemReport> & { error?: boolean }>('/system/report', { report }));
+    } catch {
+      // A failed request leaves the switch where it was.
+    } finally {
+      setSavingReport(false);
+    }
+    if (!saved) {
+      push({ title: t('account.devices.syncFailed') });
+      return;
+    }
+    setThisSystem(saved);
+    if (saved.report) void load();
+    else setDevices((prev) => (prev ?? []).filter((d) => d.installId !== saved.installId));
+  };
+
+  const own = thisSystem ? (devices ?? []).find((d) => d.installId === thisSystem.installId) ?? null : null;
+  const others = (devices ?? []).filter((d) => d !== own);
+  // Off the account, the card fills from the local specs, empty until they load: the switch to turn sync back on always shows.
+  const ownSpecs = own?.specs ?? (localSpecs ? systemSpecsToDeviceSpecs(localSpecs) : {});
 
   const handleDeleteConfirm = async () => {
     if (!pendingDelete || deleting || !backend.deleteDevice) return;
@@ -89,17 +143,31 @@ export function AccountDevicesSection({ backend, prefillFromLocalSpecs }: Accoun
           </Button>
         )}
       >
-        {devices != null && devices.length === 0 && (
+        {devices != null && devices.length === 0 && !thisSystem && (
           <p className={styles.hint}>{t('account.devices.empty')}</p>
         )}
-        {(devices ?? []).map((device) => (
+        {thisSystem && (
+          <DeviceSpecsCard
+            hostname={own?.hostname || localSpecs?.pcName || t('account.devices.thisSystem')}
+            specs={ownSpecs}
+            lastSeenAt={own?.lastSeenAt}
+            badge={<Badge label={t('account.devices.thisSystem')} size="small" />}
+            actions={(
+              <span className={styles.syncSwitch}>
+                <span id={syncLabelId}>{t('account.devices.sync')}</span>
+                <Toggle checked={thisSystem.report} disabled={savingReport} onChange={(next) => void changeReport(next)} ariaLabelledBy={syncLabelId} />
+              </span>
+            )}
+          />
+        )}
+        {others.map((device) => (
           <DeviceSpecsCard
             key={device.installId}
             hostname={device.hostname}
             specs={device.specs}
             manual={device.manual}
             lastSeenAt={device.lastSeenAt}
-            badge={<Badge label={t(device.manual ? 'account.devices.manual.badge' : 'account.devices.auto.badge')} size="small" />}
+            badge={device.manual ? <Badge label={t('account.devices.manual.badge')} size="small" /> : undefined}
             actions={(
               <>
                 {device.manual && (

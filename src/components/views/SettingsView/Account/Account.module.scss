@@ -258,3 +258,11 @@
   60% { transform: translateX(-4px); }
   80% { transform: translateX(4px); }
 }
+
+.syncSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}

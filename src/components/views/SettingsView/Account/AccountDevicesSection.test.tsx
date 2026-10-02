@@ -14,6 +14,13 @@ vi.mock('../../../../lib/i18n', () => ({
   }),
 }));
 
+const fetchServiceMock = vi.fn();
+const putServiceMock = vi.fn();
+vi.mock('../../../../api/service', () => ({
+  fetchService: (...args: unknown[]) => fetchServiceMock(...args),
+  putService: (...args: unknown[]) => putServiceMock(...args),
+}));
+
 const useSystemSpecsMock = vi.fn();
 vi.mock('../../../../hooks/useSystemSpecs', () => ({
   useSystemSpecs: (...args: [boolean]) => useSystemSpecsMock(...args),
@@ -47,13 +54,20 @@ function mkDevice(overrides: Partial<AccountDeviceItem> = {}): AccountDeviceItem
   };
 }
 
-function renderSection(backend: AuthBackend, prefillFromLocalSpecs = false) {
-  return render(<ToastProvider><AccountDevicesSection backend={backend} prefillFromLocalSpecs={prefillFromLocalSpecs} /></ToastProvider>);
+function renderSection(backend: AuthBackend, prefillFromLocalSpecs = false, showThisSystem = false) {
+  return render(<ToastProvider><AccountDevicesSection backend={backend} prefillFromLocalSpecs={prefillFromLocalSpecs} showThisSystem={showThisSystem} /></ToastProvider>);
 }
+
+const LOCAL_SPECS = {
+  pcName: 'THIS-PC', osBuild: '', processor: 'Ryzen 7 9800X3D', motherboard: '',
+  memory: '', storage: '', graphicsCard: '', monitor: '', soundCard: '', networkCard: '',
+};
 
 describe('AccountDevicesSection', () => {
   beforeEach(() => {
     useSystemSpecsMock.mockReset().mockReturnValue({ specs: null });
+    fetchServiceMock.mockReset().mockResolvedValue(null);
+    putServiceMock.mockReset();
   });
 
   it('renders nothing for a backend without device support', () => {
@@ -75,7 +89,75 @@ describe('AccountDevicesSection', () => {
     expect(screen.getAllByRole('button', { name: 'account.devices.edit' })).toHaveLength(1);
     expect(screen.getAllByRole('button', { name: 'account.devices.remove' })).toHaveLength(2);
     expect(screen.getByText('account.devices.manual.badge')).toBeInTheDocument();
-    expect(screen.getByText('account.devices.auto.badge')).toBeInTheDocument();
+    expect(screen.queryByText('account.devices.auto.badge')).toBeNull();
+  });
+
+  describe('this System', () => {
+    const others = mkDevice({ installId: 'other-1', hostname: 'OTHER-PC', manual: false });
+    const own = mkDevice({ installId: 'own-1', hostname: 'THIS-PC', manual: false });
+
+    it('lists the machine the app runs on first, with its switch on and no Remove', async () => {
+      fetchServiceMock.mockResolvedValue({ installId: 'own-1', report: true });
+      const listDevices = vi.fn().mockResolvedValue([others, own]);
+      renderSection(makeBackend({ listDevices, upsertDevice: vi.fn(), deleteDevice: vi.fn() }), true, true);
+
+      const sw = await screen.findByRole('switch');
+      expect(sw).toHaveAttribute('aria-checked', 'true');
+      const names = screen.getAllByText(/^(THIS-PC|OTHER-PC)$/).map((el) => el.textContent);
+      expect(names[0]).toBe('THIS-PC');
+      expect(screen.getByText('account.devices.thisSystem')).toBeInTheDocument();
+      expect(screen.getAllByRole('button', { name: 'account.devices.remove' })).toHaveLength(1);
+    });
+
+    it('turning sync off takes it off the account but keeps it listed from local specs', async () => {
+      useSystemSpecsMock.mockReturnValue({ specs: LOCAL_SPECS });
+      fetchServiceMock.mockResolvedValue({ installId: 'own-1', report: true });
+      putServiceMock.mockResolvedValue({ installId: 'own-1', report: false });
+      const listDevices = vi.fn().mockResolvedValue([own]);
+      renderSection(makeBackend({ listDevices, upsertDevice: vi.fn(), deleteDevice: vi.fn() }), true, true);
+
+      fireEvent.click(await screen.findByRole('switch'));
+
+      await waitFor(() => expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false'));
+      expect(putServiceMock).toHaveBeenCalledWith('/system/report', { report: false });
+      // Title and PC-name row, both from the local specs.
+      expect(screen.getAllByText('THIS-PC')).toHaveLength(2);
+      expect(screen.queryByRole('button', { name: 'account.devices.remove' })).toBeNull();
+    });
+
+    it('turning sync on reloads the account list', async () => {
+      useSystemSpecsMock.mockReturnValue({ specs: LOCAL_SPECS });
+      fetchServiceMock.mockResolvedValue({ installId: 'own-1', report: false });
+      putServiceMock.mockResolvedValue({ installId: 'own-1', report: true });
+      const listDevices = vi.fn().mockResolvedValue([]);
+      renderSection(makeBackend({ listDevices, upsertDevice: vi.fn() }), true, true);
+
+      fireEvent.click(await screen.findByRole('switch'));
+
+      await waitFor(() => expect(listDevices).toHaveBeenCalledTimes(2));
+      expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('keeps the switch reachable with sync off before the local specs load', async () => {
+      fetchServiceMock.mockResolvedValue({ installId: 'own-1', report: false });
+      const listDevices = vi.fn().mockResolvedValue([]);
+      renderSection(makeBackend({ listDevices, upsertDevice: vi.fn() }), true, true);
+
+      expect(await screen.findByRole('switch')).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('keeps the switch and says so when the account cannot be updated', async () => {
+      fetchServiceMock.mockResolvedValue({ installId: 'own-1', report: true });
+      putServiceMock.mockResolvedValue({ error: true, msg: 'The account could not be updated.' });
+      const listDevices = vi.fn().mockResolvedValue([own]);
+      renderSection(makeBackend({ listDevices, upsertDevice: vi.fn() }), true, true);
+
+      fireEvent.click(await screen.findByRole('switch'));
+
+      expect(await screen.findByText('account.devices.syncFailed')).toBeInTheDocument();
+      expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getByText('THIS-PC')).toBeInTheDocument();
+    });
   });
 
   it('shows an empty state when the account has no devices', async () => {

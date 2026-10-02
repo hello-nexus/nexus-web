@@ -42,7 +42,7 @@ export function AccountSignedIn({ backend, account, accounts, recoveryFresh, onR
         onLoggedOut={() => void accounts.refresh()}
       />
 
-      <AccountDevicesSection backend={backend} prefillFromLocalSpecs />
+      <AccountDevicesSection backend={backend} prefillFromLocalSpecs showThisSystem />
 
       <AccountDangerZoneSection
         backend={backend}
