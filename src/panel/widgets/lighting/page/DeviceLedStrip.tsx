@@ -43,7 +43,9 @@ export function lockedCells(device: LightingDevice): readonly LockedCell[] {
   const cells = stripCells(device);
   const out: LockedCell[] = [];
   for (let c = 0; c < cells; c++) {
-    const color = columns[Math.floor(((c + 0.5) * columns.length) / cells)];
+    // The x paintLook samples this cell at.
+    const x = cells === 1 ? 0.5 : c / (cells - 1);
+    const color = columns[Math.min(columns.length - 1, Math.floor(x * columns.length))];
     if (color) out.push([c, color]);
   }
   return out;

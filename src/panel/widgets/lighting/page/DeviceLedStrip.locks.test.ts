@@ -16,9 +16,9 @@ describe('lockedCells', () => {
     expect(lockedCells(card({ ledColorStrip: columns({ 0: '#f00', 23: '#00f' }) }))).toEqual([[0, '#f00'], [23, '#00f']]);
   });
 
-  it('samples the columns when the strip has fewer cells', () => {
-    const cells = lockedCells(card({ ledCount: 12, enabledLedCount: 12, ledColorStrip: columns({ 22: '#0f0', 23: '#0f0' }) }));
-    expect(cells).toEqual([[11, '#0f0']]);
+  it('reads each cell at the x the strip samples it, at both ends', () => {
+    const cells = lockedCells(card({ ledCount: 12, enabledLedCount: 12, ledColorStrip: columns({ 0: '#f00', 23: '#0f0' }) }));
+    expect(cells).toEqual([[0, '#f00'], [11, '#0f0']]);
   });
 
   it('paints nothing without columns', () => {
