@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { tooltipOpenDelay, notifyTooltipOpen, notifyTooltipClose } from '../tooltipDelay';
+import { isRestoringModalFocus, onModalOpen } from '../Overlay/modalStack';
 import styles from './InfoTooltip.module.scss';
 
 interface InfoTooltipProps {
@@ -76,6 +77,14 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
       if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
     }, 120);
   };
+
+  // A modal opening takes over the screen; nothing under it keeps a tooltip.
+  useEffect(() => onModalOpen(() => {
+    cancelPendingOpen();
+    cancelPendingClose();
+    setOpen(false);
+    if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
+  }), []);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -170,7 +179,11 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
         }}
         onPointerEnter={(e) => { if (e.pointerType !== 'touch') { cancelPendingClose(); scheduleOpen(); } }}
         onPointerLeave={(e) => { if (e.pointerType !== 'touch') scheduleClose(); }}
-        onFocus={() => { cancelPendingClose(); cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen(); }}
+        onFocus={() => {
+          // Focus a closing modal hands back is not the user arriving here.
+          if (isRestoringModalFocus()) return;
+          cancelPendingClose(); cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen();
+        }}
         onBlur={() => scheduleClose()}>
         <Info size={14} strokeWidth={1.8} aria-hidden />
       </button>

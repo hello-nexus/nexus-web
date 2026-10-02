@@ -112,9 +112,29 @@ function teardownListenerIfEmpty() {
   }
 }
 
+const openListeners = new Set<() => void>();
+let restoringFocus = false;
+
+/** Hands focus back to `el` as a modal closes; tooltips do not open on it. */
+export function restoreFocusAfterModal(el: HTMLElement): void {
+  restoringFocus = true;
+  try { el.focus(); } finally { restoringFocus = false; }
+}
+
+export function isRestoringModalFocus(): boolean {
+  return restoringFocus;
+}
+
+/** Calls `listener` whenever a modal opens; returns the unsubscribe. Tooltips close on it. */
+export function onModalOpen(listener: () => void): () => void {
+  openListeners.add(listener);
+  return () => { openListeners.delete(listener); };
+}
+
 export function pushModalStackEntry(entry: ModalStackEntry): void {
   stack.push(entry);
   ensureListener();
+  for (const listener of [...openListeners]) listener();
 }
 
 export function removeModalStackEntry(id: string): void {

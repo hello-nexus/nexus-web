@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TOOLTIP_OPEN_DELAY_MS } from '../tooltipDelay';
 import { HoverTooltip } from './HoverTooltip';
+import { pushModalStackEntry, removeModalStackEntry, restoreFocusAfterModal } from '../Overlay/modalStack';
 
 function renderTrigger() {
   render(
@@ -104,5 +105,20 @@ describe('HoverTooltip', () => {
     fireEvent.pointerOver(btn, { pointerType: 'mouse' });
     act(() => { vi.advanceTimersByTime(TOOLTIP_OPEN_DELAY_MS + 1); });
     expect(screen.getByRole('tooltip')).toHaveTextContent('Reset');
+  });
+
+  it('closes when a modal opens', () => {
+    render(<HoverTooltip body="tip"><button type="button">trigger</button></HoverTooltip>);
+    fireEvent.focus(screen.getByRole('button'));
+    expect(screen.queryByRole('tooltip')).not.toBeNull();
+    act(() => { pushModalStackEntry({ id: 'm', containerRef: { current: null }, trapFocus: false, onEscape: () => false, onEnter: () => false }); });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    removeModalStackEntry('m');
+  });
+
+  it('does not open on focus a closing modal hands back', () => {
+    render(<HoverTooltip body="tip"><button type="button">trigger</button></HoverTooltip>);
+    act(() => { restoreFocusAfterModal(screen.getByRole('button')); });
+    expect(screen.queryByRole('tooltip')).toBeNull();
   });
 });

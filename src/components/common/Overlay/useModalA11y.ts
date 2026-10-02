@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type RefObject } from 'react';
-import { getFocusableElements, pushModalStackEntry, removeModalStackEntry } from './modalStack';
+import { getFocusableElements, pushModalStackEntry, removeModalStackEntry, restoreFocusAfterModal } from './modalStack';
 import { lockBackground, unlockBackground } from './backgroundLock';
 
 export interface UseModalA11yOptions {
@@ -81,7 +81,7 @@ export function useModalA11y({
     return () => {
       if (shouldLockBackground) unlockBackground();
       removeModalStackEntry(id);
-      if (trigger && document.body.contains(trigger)) trigger.focus();
+      if (trigger && document.body.contains(trigger)) restoreFocusAfterModal(trigger);
     };
     // containerRef is a stable ref object; onClose/onEnter/noEscDismiss read
     // from latestRef so they don't need to retrigger this registration

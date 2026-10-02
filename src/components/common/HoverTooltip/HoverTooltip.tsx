@@ -1,6 +1,7 @@
 import { cloneElement, isValidElement, useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { tooltipOpenDelay, notifyTooltipOpen, notifyTooltipClose } from '../tooltipDelay';
+import { isRestoringModalFocus, onModalOpen } from '../Overlay/modalStack';
 import styles from './HoverTooltip.module.scss';
 
 interface HoverTooltipProps {
@@ -19,6 +20,7 @@ interface HoverTooltipProps {
 }
 
 const OFFSET = 8;
+
 // Minimum gap kept between the tooltip box and the viewport edge when clamping.
 const VIEWPORT_MARGIN = 8;
 // The pointer-rest delay before opening lives in ../tooltipDelay as a shared
@@ -97,6 +99,11 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     setCoords(null);
     if (openedRef.current) { openedRef.current = false; notifyTooltipClose(); }
   };
+
+  // A modal opening takes over the screen; nothing under it keeps a tooltip.
+  // close reads refs / stable setters only.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => onModalOpen(() => close()), []);
 
   // On unmount, release scan mode if this tooltip was still open - otherwise
   // `scanning` stays latched in the shared coordinator with no timer to lapse
@@ -216,6 +223,8 @@ export function HoverTooltip({ title, body, side = 'bottom', children }: HoverTo
     // a deliberate commit. Pointer-press focus is swallowed via pointerFocusRef.
     onFocus: chain(childProps.onFocus, () => {
       if (pointerFocusRef.current) { pointerFocusRef.current = false; return; }
+      // Focus a closing modal hands back is not the user arriving here.
+      if (isRestoringModalFocus()) return;
       cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen();
     }),
     onBlur: chain(childProps.onBlur, () => { pointerFocusRef.current = false; close(); }),
