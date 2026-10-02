@@ -897,7 +897,7 @@ export function PanelContent({
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
   const shownSingleWidget = isSingleWidgetSurface(surface) ? allFiltered[0]?.widgets[0] : undefined;
-  const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id);
+  const backgroundCovered = shownSingleWidget !== undefined && opaqueWidgetIds.has(shownSingleWidget.id) && !immersiveSeeThrough;
 
   // Flat list of all visible widget ids. Drives a SINGLE SortableContext over
   // every page so dnd-kit's hover detection works across pages.
