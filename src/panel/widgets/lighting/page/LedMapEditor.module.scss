@@ -105,6 +105,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  // Dark enough that the white index reads; parked LEDs go dimmer still.
+  background: color-mix(in srgb, var(--text-dim) 60%, #000 40%);
 
   &:hover {
     box-shadow: 0 0 0 2px var(--accent-glow);
@@ -119,20 +121,6 @@
   &.ledSelected {
     box-shadow: 0 0 0 3px var(--accent);
     z-index: 5;
-  }
-
-  // Darker than the live-canvas accent/good/warn so the white LED index
-  // has contrast, still tinted per zone-type (matrix/linear/single).
-  &.ledMatrix {
-    background: color-mix(in srgb, var(--accent) 58%, #000 42%);
-  }
-
-  &.ledLinear {
-    background: color-mix(in srgb, var(--good) 48%, #000 52%);
-  }
-
-  &.ledSingle {
-    background: color-mix(in srgb, var(--warn) 48%, #000 52%);
   }
 
   // Holds a colour over every effect: the fill is that colour.

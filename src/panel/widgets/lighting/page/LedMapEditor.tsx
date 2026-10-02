@@ -344,11 +344,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return map;
   }, [zonesOrdered, offsets]);
 
-  const segmentTypeByIndex = useMemo(
-    () => new Map((structure?.segments ?? []).map(s => [s.index, s.zoneType])),
-    [structure],
-  );
-
   // Enabled-LED count per zone for the chip labels, tracking the staged
   // editor state live as the user parks / restores LEDs.
   const enabledByZone = useMemo(() => zoneEnabledCounts(leds), [leds]);
@@ -2022,13 +2017,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return getLedCanvasPos(led, dragOverride, snapTarget);
   };
 
-  const ledTypeClass = (led: EditorLed) => {
-    const type = segmentTypeByIndex.get(led.segment);
-    if (type === 'matrix') return styles.ledMatrix;
-    if (type === 'single') return styles.ledSingle;
-    return styles.ledLinear;
-  };
-
   const modes: { key: EditorMode; label: string }[] = [
     { key: 'animation', label: t('lighting.ledMap.modeAnim') },
     { key: 'horizontal', label: t('lighting.ledMap.testH') },
@@ -2481,7 +2469,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                       className={[
                         styles.led,
                         styles.ledGroup,
-                        ledTypeClass(repLed),
                         isUnsaved ? styles.ledCustom : '',
                         isSelected ? styles.ledSelected : '',
                         isDraggingGroup ? styles.ledDragging : '',
@@ -2511,7 +2498,6 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                     data-led="1"
                     className={[
                       styles.led,
-                      ledTypeClass(led),
                       unsavedLedSet.has(led.index) ? styles.ledCustom : '',
                       isSelected ? styles.ledSelected : '',
                       (dragging && isSelected) || beingParkedDragged ? styles.ledDragging : '',
