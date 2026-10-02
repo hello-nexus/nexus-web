@@ -74,6 +74,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   );
   const artSignature = mediaArtSignature(active?.session);
   const showVolume = volumeAllowed && volume.supported;
+  const showSource = widget.config?.showSource === true;
   const artResolved = artAsset.key === activeKey && artAsset.signature === artSignature;
   const artUrl = artResolved ? artAsset.url : '';
   const liveBackground = widget.config?.liveBackground === true;
@@ -123,7 +124,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
             <MediaVolumeSlider
               volume={volume.volume}
               muted={volume.muted}
-              sourceLabel={volume.name || t('panel.widget.media')}
+              sourceLabel={showSource ? volume.name || t('panel.widget.media') : undefined}
               onPreview={previewVolume}
               onCommit={commitVolume}
               onToggleMute={() => setMuted(!volume.muted)}
@@ -279,7 +280,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
               volume={volume.volume}
               muted={volume.muted}
               // An app strip's name is process-derived; the media source reads better.
-              sourceLabel={(volume.kind === 'app' ? s.sourceAppName : volume.name) || s.sourceAppName || t('panel.widget.media')}
+              sourceLabel={showSource ? (volume.kind === 'app' ? s.sourceAppName : volume.name) || s.sourceAppName || t('panel.widget.media') : undefined}
               onPreview={previewVolume}
               onCommit={commitVolume}
               onToggleMute={() => setMuted(!volume.muted)}
@@ -303,7 +304,7 @@ function MediaVolumeSlider({
 }: {
   volume: number;
   muted: boolean;
-  sourceLabel: string;
+  sourceLabel?: string;
   onPreview: (v: number) => void;
   onCommit: (v: number, options?: { flush?: boolean }) => void;
   onToggleMute: () => void;

@@ -3067,6 +3067,7 @@
   "panel.media.volumeTarget.mode": "Controlla",
   "panel.media.volumeTarget.output": "Dispositivo di uscita",
   "panel.media.volumeTarget.show": "Mostra cursore del volume",
+  "panel.media.volumeTarget.showSource": "Mostra sempre la sorgente",
   "panel.media.volumeTarget.systemDefault": "Predefinito di sistema",
   "panel.pages.label": "Pagine del pannello",
   "panel.playlist.hint": "Fai clic su un widget per attivarlo o disattivarlo. Trascina per riordinare.",

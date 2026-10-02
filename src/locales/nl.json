@@ -3067,6 +3067,7 @@
   "panel.media.volumeTarget.mode": "Regelt",
   "panel.media.volumeTarget.output": "Uitvoerapparaat",
   "panel.media.volumeTarget.show": "Volumeschuif tonen",
+  "panel.media.volumeTarget.showSource": "Bron altijd tonen",
   "panel.media.volumeTarget.systemDefault": "Systeemstandaard",
   "panel.pages.label": "Paneelpagina's",
   "panel.playlist.hint": "Klik op een widget om hem aan of uit te zetten. Sleep om de volgorde te wijzigen.",

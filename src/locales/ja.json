@@ -3067,6 +3067,7 @@
   "panel.media.volumeTarget.mode": "操作対象",
   "panel.media.volumeTarget.output": "出力デバイス",
   "panel.media.volumeTarget.show": "音量スライダーを表示",
+  "panel.media.volumeTarget.showSource": "再生元を常に表示",
   "panel.media.volumeTarget.systemDefault": "システムの既定",
   "panel.pages.label": "パネルページ",
   "panel.playlist.hint": "ウィジェットをクリックしてオン/オフを切り替えます。ドラッグで並べ替え。",

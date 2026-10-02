@@ -54,6 +54,11 @@ export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
         />
         {showVolume && (
           <>
+            <SettingsToggle
+              label={t('panel.media.volumeTarget.showSource')}
+              checked={widget.config?.showSource === true}
+              onChange={value => onUpdate({ showSource: value })}
+            />
             <SettingsSelect
               label={t('panel.media.volumeTarget.mode')}
               value={volumeMode}

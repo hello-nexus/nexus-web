@@ -3105,6 +3105,7 @@
   "panel.media.volumeTarget.mode": "Управляет",
   "panel.media.volumeTarget.output": "Устройство вывода",
   "panel.media.volumeTarget.show": "Показывать ползунок громкости",
+  "panel.media.volumeTarget.showSource": "Всегда показывать источник",
   "panel.media.volumeTarget.systemDefault": "Системное по умолчанию",
   "panel.pages.label": "Страницы панели",
   "panel.playlist.hint": "Нажмите на виджет, чтобы включить или выключить его. Перетащите, чтобы изменить порядок.",
