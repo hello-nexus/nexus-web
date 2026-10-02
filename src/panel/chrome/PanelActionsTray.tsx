@@ -44,6 +44,9 @@ interface PanelActionsTrayProps {
   remotePaired?: boolean;
 }
 
+// The iOS home-indicator / Android gesture-nav handoff band, in CSS px.
+const PHONE_SYSTEM_BAND_PX = 28;
+
 export function PanelActionsTray({
   open,
   onOpen,
@@ -79,6 +82,9 @@ export function PanelActionsTray({
     engageDistancePx: TRAY_ENGAGE_TRAVEL_MM * pxPerMm,
     commitDistancePx: TRAY_COMMIT_TRAVEL_MM * pxPerMm,
     commitVelocity: TRAY_COMMIT_FLICK_MM_PER_MS * pxPerMm,
+    // A phone's home-indicator band belongs to the system; on a kiosk panel
+    // the bottom edge is where a finger sliding in from the bezel first lands.
+    bottomEdgeIgnorePx: surface === 'phone' ? PHONE_SYSTEM_BAND_PX : 0,
     onCommit: handleCommit,
   });
 

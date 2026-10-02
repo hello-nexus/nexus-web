@@ -15,10 +15,10 @@ import { triggerHaptic } from '../device/panelNativeBridge';
  *    (dy > |dx| * dominance) and then claims the gesture's axis, so a
  *    horizontal page swipe is never also read as a tray pull and vice-versa
  *    (see gestureAxisLock).
- *  - Ignores starts inside the iOS home-indicator handoff band: the
- *    system steals these gestures to background the app, and the
- *    trailing-edge events on return commit the tray. See
- *    `bottomEdgeIgnorePx`.
+ *  - Can ignore starts inside a system swipe band at the bottom (a phone's
+ *    home indicator): the system steals those gestures to background the
+ *    app, and the trailing-edge events on return would commit the tray.
+ *    See `bottomEdgeIgnorePx`.
  *
  * `onCommit` fires once the gesture crosses the commit threshold; the
  * host opens the tray. The hook does not own the tray's open/close
@@ -38,9 +38,7 @@ interface TraySwipeOptions {
   // Pixels per ms upward flick that commits regardless of distance. Default 0.45.
   commitVelocity?: number;
   // Touches starting within this many CSS px of the viewport bottom are
-  // ignored: that band is the iOS home-indicator handoff zone, and a
-  // user-initiated tray-open always starts higher up on the surface
-  // anyway.
+  // ignored, for a system swipe band there. Default 0: none.
   bottomEdgeIgnorePx?: number;
   onCommit?: () => void;
   onCancel?: () => void;
@@ -61,7 +59,7 @@ export function usePanelTraySwipe({
   engageDistancePx = GESTURE_ENGAGE_PX,
   commitDistancePx = 48,
   commitVelocity = 0.45,
-  bottomEdgeIgnorePx = 28,
+  bottomEdgeIgnorePx = 0,
   onCommit,
   onCancel,
 }: TraySwipeOptions): TraySwipeResult {
