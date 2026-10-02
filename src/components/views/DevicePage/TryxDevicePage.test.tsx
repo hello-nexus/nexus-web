@@ -50,6 +50,7 @@ const mockSetTryxEnabled = vi.fn();
 const mockSetTryxBrightness = vi.fn();
 const mockSetTryxOverlay = vi.fn();
 const mockSetTryxSlideshow = vi.fn();
+const mockUploadTryxMedia = vi.fn();
 
 vi.mock('../../../api/tryx', () => ({
   getTryxStatus: (...args: any[]) => mockGetTryxStatus(...args),
@@ -64,10 +65,18 @@ vi.mock('../../../api/tryx', () => ({
   deleteTryxMedia: vi.fn(),
   setTryxOverlay: (...args: any[]) => mockSetTryxOverlay(...args),
   setTryxSlideshow: (...args: any[]) => mockSetTryxSlideshow(...args),
-  uploadTryxMedia: vi.fn(),
+  uploadTryxMedia: (...args: any[]) => mockUploadTryxMedia(...args),
   DEFAULT_TRYX_SLIDESHOW: { enabled: false, intervalSec: 10, shuffle: false, finishVideos: true },
   TRYX_MEDIA_WIDTH: 858,
   TRYX_MEDIA_HEIGHT: 428,
+}));
+
+vi.mock('../../common/MediaCropper/MediaCropper', () => ({
+  MediaCropper: ({ busy, onConfirm }: { busy?: boolean; onConfirm: (crop: unknown) => void }) => (
+    <div data-testid="cropper" data-busy={busy ? 'true' : 'false'}>
+      <button type="button" onClick={() => onConfirm({ x: 0, y: 0, w: 1, h: 1 })}>crop-confirm</button>
+    </div>
+  ),
 }));
 
 const defaultStatus = {
@@ -447,5 +456,28 @@ describe('TryxDevicePage - custom media slideshow', () => {
     });
 
     expect(screen.getByRole('switch', { name: 'devices.tryx.slideshow' })).toHaveAttribute('aria-checked', 'false');
+  });
+});
+
+describe('TryxDevicePage - custom upload', () => {
+  it('keeps the cropper open and busy until the upload finishes', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:clip');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    let finishUpload: (ok: boolean) => void = () => {};
+    mockUploadTryxMedia.mockReturnValue(new Promise<boolean>(resolve => { finishUpload = resolve; }));
+    const { container } = await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'clip.mp4', { type: 'video/mp4' })] } });
+
+    fireEvent.click(screen.getByText('crop-confirm'));
+    await act(async () => {});
+
+    expect(mockUploadTryxMedia).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('cropper')).toHaveAttribute('data-busy', 'true');
+
+    await act(async () => { finishUpload(true); });
+
+    expect(screen.queryByTestId('cropper')).not.toBeInTheDocument();
   });
 });
