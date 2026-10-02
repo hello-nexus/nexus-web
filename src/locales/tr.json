@@ -3067,7 +3067,7 @@
   "panel.media.volumeTarget.mode": "Kontrol eder",
   "panel.media.volumeTarget.output": "Çıkış cihazı",
   "panel.media.volumeTarget.show": "Ses kaydırıcısını göster",
-  "panel.media.volumeTarget.showSource": "Adı göster",
+  "panel.media.volumeTarget.showSource": "Uygulamayı veya çıkışı göster",
   "panel.media.volumeTarget.systemDefault": "Sistem varsayılanı",
   "panel.pages.label": "Panel sayfaları",
   "panel.playlist.hint": "Açmak veya kapatmak için bir widget'a tıklayın. Sıralamak için sürükleyin.",

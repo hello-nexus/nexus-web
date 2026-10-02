@@ -3067,7 +3067,7 @@
   "panel.media.volumeTarget.mode": "Controls",
   "panel.media.volumeTarget.output": "Output device",
   "panel.media.volumeTarget.show": "Show volume slider",
-  "panel.media.volumeTarget.showSource": "Show name",
+  "panel.media.volumeTarget.showSource": "Show app or output",
   "panel.media.volumeTarget.systemDefault": "System default",
   "panel.pages.label": "Panel pages",
   "panel.playlist.hint": "Click a widget to turn it on or off. Drag to reorder.",
