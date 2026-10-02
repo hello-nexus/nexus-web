@@ -3067,7 +3067,7 @@
   "panel.media.volumeTarget.mode": "控制对象",
   "panel.media.volumeTarget.output": "输出设备",
   "panel.media.volumeTarget.show": "显示音量滑块",
-  "panel.media.volumeTarget.showSource": "显示控制对象",
+  "panel.media.volumeTarget.showSource": "显示名称",
   "panel.media.volumeTarget.systemDefault": "系统默认",
   "panel.pages.label": "面板页面",
   "panel.playlist.hint": "点击小组件可将其开启或关闭。拖动以重新排序。",

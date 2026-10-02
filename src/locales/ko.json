@@ -3067,7 +3067,7 @@
   "panel.media.volumeTarget.mode": "조절 대상",
   "panel.media.volumeTarget.output": "출력 장치",
   "panel.media.volumeTarget.show": "볼륨 슬라이더 표시",
-  "panel.media.volumeTarget.showSource": "제어 대상 표시",
+  "panel.media.volumeTarget.showSource": "이름 표시",
   "panel.media.volumeTarget.systemDefault": "시스템 기본값",
   "panel.pages.label": "패널 페이지",
   "panel.playlist.hint": "위젯을 클릭해 켜거나 끕니다. 드래그해 순서를 바꾸세요.",
