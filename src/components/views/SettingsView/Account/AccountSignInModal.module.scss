@@ -1,7 +1,0 @@
-@use '../../../../styles/text' as *;
-
-.signInBody {
-  margin: 0;
-  @include text-body;
-  color: var(--text);
-}

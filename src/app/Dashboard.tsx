@@ -1188,7 +1188,7 @@ export function Dashboard() {
             open={accountSignInOpen}
             onClose={() => setAccountSignInOpen(false)}
             onSignedIn={() => { void handleAccountSignedIn(); }}
-            title={t('account.title')}
+            title={t('account.signIn.title')}
           />
         )}
         {OFFICIAL_BUILD && <UpdateAutoOpener online={online} onOpen={handleUpdateOpen} />}

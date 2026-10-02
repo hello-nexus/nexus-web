@@ -12,11 +12,13 @@ interface SignInFormProps {
   onSuccess: () => void;
   onForgotPassword?: () => void;
   onCreateAccount?: () => void;
+  /** False inside a dialog whose title already names the sign-in. */
+  showHeading?: boolean;
 }
 
 // Holds identifier/password itself so an email_unverified response can retry
 // the same credentials without the caller re-plumbing them.
-export function SignInForm({ backend, onSuccess, onForgotPassword, onCreateAccount }: SignInFormProps) {
+export function SignInForm({ backend, onSuccess, onForgotPassword, onCreateAccount, showHeading = true }: SignInFormProps) {
   const { t } = useTranslation();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -52,8 +54,12 @@ export function SignInForm({ backend, onSuccess, onForgotPassword, onCreateAccou
 
   return (
     <div className={styles.wrap}>
-      <h1 className={styles.title}>{t('account.signIn.title')}</h1>
-      <p className={styles.subtitle}>{t('account.signIn.subtitle')}</p>
+      {showHeading && (
+        <>
+          <h1 className={styles.title}>{t('account.signIn.title')}</h1>
+          <p className={styles.subtitle}>{t('account.signIn.subtitle')}</p>
+        </>
+      )}
       {unverified ? (
         <div className={styles.pendingBlock}>
           <p className={styles.subtitle}>{t('account.verify.pendingMessage')}</p>

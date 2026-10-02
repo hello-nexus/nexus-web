@@ -110,7 +110,7 @@ export function CloudProfilesSection(
             setSignInOpen(false);
             void accounts.refresh();
           }}
-          title={t('account.title')}
+          title={t('account.signIn.title')}
         />
       </div>
     );

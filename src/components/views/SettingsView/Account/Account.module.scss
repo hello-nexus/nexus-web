@@ -17,6 +17,13 @@
   padding: var(--space-xl) 0;
 }
 
+// A flow inside a dialog fills the dialog body instead of centering as a page column.
+.embedded .wrap {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 .form {
   display: flex;
   flex-direction: column;

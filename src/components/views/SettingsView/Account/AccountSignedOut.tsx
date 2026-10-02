@@ -15,12 +15,14 @@ interface AccountSignedOutProps {
   // "I've verified" retry) - the caller owns what "signed in" means (in-app:
   // refresh the accounts hook; public: navigate to /account).
   onSignedIn: () => void;
+  /** Inside a dialog, whose title and line replace the sign-in form's own heading. */
+  embedded?: boolean;
 }
 
 // Routes the three signed-out flows off the caller's subtab (URL-backed in
 // the in-app AccountView), so each flow is a distinct, freshly-mounted component whenever the
 // subtab changes into it.
-export function AccountSignedOut({ backend, subtab, onSubtabChange, onRecoveryApproved, onSignedIn }: AccountSignedOutProps) {
+export function AccountSignedOut({ backend, subtab, onSubtabChange, onRecoveryApproved, onSignedIn, embedded = false }: AccountSignedOutProps) {
   const goToSignIn = () => onSubtabChange('login');
 
   if (subtab === 'register') {
@@ -37,6 +39,7 @@ export function AccountSignedOut({ backend, subtab, onSubtabChange, onRecoveryAp
       onSuccess={onSignedIn}
       onForgotPassword={() => onSubtabChange('recover')}
       onCreateAccount={() => onSubtabChange('register')}
+      showHeading={!embedded}
     />
   );
 }
