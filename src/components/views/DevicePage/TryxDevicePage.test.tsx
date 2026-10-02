@@ -51,6 +51,8 @@ const mockSetTryxBrightness = vi.fn();
 const mockSetTryxOverlay = vi.fn();
 const mockSetTryxSlideshow = vi.fn();
 const mockUploadTryxMedia = vi.fn();
+const mockStageKlipy = vi.fn();
+const mockCancelMediaStage = vi.fn();
 
 vi.mock('../../../api/tryx', () => ({
   getTryxStatus: (...args: any[]) => mockGetTryxStatus(...args),
@@ -66,9 +68,32 @@ vi.mock('../../../api/tryx', () => ({
   setTryxOverlay: (...args: any[]) => mockSetTryxOverlay(...args),
   setTryxSlideshow: (...args: any[]) => mockSetTryxSlideshow(...args),
   uploadTryxMedia: (...args: any[]) => mockUploadTryxMedia(...args),
+  tryxMediaFileUrl: (name: string) => `http://svc/tryx/media/file?name=${name}`,
   DEFAULT_TRYX_SLIDESHOW: { enabled: false, intervalSec: 10, shuffle: false, finishVideos: true },
   TRYX_MEDIA_WIDTH: 858,
   TRYX_MEDIA_HEIGHT: 428,
+}));
+
+vi.mock('../../../api/klipy', () => ({
+  stageKlipy: (...args: any[]) => mockStageKlipy(...args),
+}));
+
+vi.mock('../../../api/mediaLibrary', () => ({
+  cancelMediaStage: (...args: any[]) => mockCancelMediaStage(...args),
+  mediaStageRawUrl: (id: string) => `http://svc/media/stage/${id}/raw`,
+  mediaStagePreviewUrl: (id: string) => `http://svc/media/stage/${id}/preview`,
+  stagePreviewFor: (_kind: string, raw: string, preview: string) => ({ src: raw, kind: 'video', fallbackSrc: preview }),
+}));
+
+vi.mock('../../common/KlipyPicker/KlipyPicker', () => ({
+  KlipyPicker: ({ open, importError, onPick }: { open: boolean; importError?: string | null; onPick: (gif: unknown) => void }) => (open
+    ? (
+      <div>
+        <button type="button" onClick={() => onPick({ slug: 'cat', title: 'Cat', width: 480, height: 270 })}>klipy-pick</button>
+        {importError && <p>{importError}</p>}
+      </div>
+    )
+    : null),
 }));
 
 vi.mock('../../common/MediaCropper/MediaCropper', () => ({
@@ -463,8 +488,8 @@ describe('TryxDevicePage - custom upload', () => {
   it('keeps the cropper open and busy until the upload finishes', async () => {
     vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:clip');
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-    let finishUpload: (ok: boolean) => void = () => {};
-    mockUploadTryxMedia.mockReturnValue(new Promise<boolean>(resolve => { finishUpload = resolve; }));
+    let finishUpload: (name: string | null) => void = () => {};
+    mockUploadTryxMedia.mockReturnValue(new Promise<string | null>(resolve => { finishUpload = resolve; }));
     const { container } = await renderPage();
     fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -476,8 +501,79 @@ describe('TryxDevicePage - custom upload', () => {
     expect(mockUploadTryxMedia).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('cropper')).toHaveAttribute('data-busy', 'true');
 
-    await act(async () => { finishUpload(true); });
+    await act(async () => { finishUpload('new.mp4.h264_2240x1080'); });
 
     expect(screen.queryByTestId('cropper')).not.toBeInTheDocument();
+  });
+});
+
+describe('TryxDevicePage - Klipy', () => {
+  it('uploads a staged pick from the cropper and releases the stage', async () => {
+    mockStageKlipy.mockResolvedValue({ stageId: 'st1', mediaKind: 'video' });
+    mockCancelMediaStage.mockResolvedValue(undefined);
+    mockUploadTryxMedia.mockResolvedValue('cat.mp4.h264_2240x1080');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, blob: async () => new Blob(['mp4'], { type: 'video/mp4' }) } as Response);
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
+    await act(async () => { fireEvent.click(screen.getByText('klipy-pick')); });
+    expect(mockStageKlipy).toHaveBeenCalledWith('cat');
+
+    await act(async () => { fireEvent.click(screen.getByText('crop-confirm')); });
+
+    expect(fetchSpy).toHaveBeenCalledWith('http://svc/media/stage/st1/raw');
+    const uploaded = mockUploadTryxMedia.mock.calls[0][0] as File;
+    expect(uploaded.name).toBe('cat.mp4');
+    expect(mockCancelMediaStage).toHaveBeenCalledWith('st1');
+    expect(screen.queryByTestId('cropper')).not.toBeInTheDocument();
+    fetchSpy.mockRestore();
+  });
+
+  it('keeps the picker open with the reason when Klipy refuses the pick', async () => {
+    mockStageKlipy.mockResolvedValue({ stageId: null, error: true });
+    await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.controls.klipyBrowse' }));
+    await act(async () => { fireEvent.click(screen.getByText('klipy-pick')); });
+
+    expect(screen.getByText('klipy-pick')).toBeInTheDocument();
+    expect(screen.getByText('lighting.controls.klipyPickFailed')).toBeInTheDocument();
+    expect(screen.queryByTestId('cropper')).not.toBeInTheDocument();
+  });
+});
+
+describe('TryxDevicePage - after an upload', () => {
+  it('selects the new clip and plays it in the preview', async () => {
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:clip');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    mockUploadTryxMedia.mockResolvedValue('new.mp4.h264_2240x1080');
+    const { container } = await renderPage();
+    fireEvent.click(screen.getByRole('tab', { name: 'devices.tryx.tabMedia' }));
+    mockGetTryxMedia.mockResolvedValue([{ name: 'new.mp4.h264_2240x1080', durationSec: 8 }]);
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'clip.mp4', { type: 'video/mp4' })] } });
+
+    await act(async () => { fireEvent.click(screen.getByText('crop-confirm')); });
+
+    const video = container.querySelector('video');
+    expect(video).not.toBeNull();
+    expect(video!.getAttribute('src')).toBe('http://svc/tryx/media/file?name=new.mp4.h264_2240x1080');
+  });
+
+  it('falls back to the thumbnail when the clip cannot load', async () => {
+    mockGetTryxStatus.mockResolvedValue({
+      ...defaultStatus,
+      state: { ...defaultStatus.state, currentMedia: 'old.mp4.h264_2240x1080', currentMediaIsCustom: true },
+    });
+    mockGetTryxMedia.mockResolvedValue([{ name: 'old.mp4.h264_2240x1080', durationSec: 8 }]);
+    const { container } = await renderPage();
+
+    const video = container.querySelector('video')!;
+    expect(video).not.toBeNull();
+    await act(async () => { fireEvent.error(video); });
+
+    expect(container.querySelector('video')).toBeNull();
   });
 });

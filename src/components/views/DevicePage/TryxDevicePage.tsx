@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { Monitor, MonitorOff, Film, Download } from 'lucide-react';
+import { Monitor, MonitorOff, Film, Download, Sparkles } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Spinner } from '../../common/Spinner/Spinner';
@@ -13,12 +13,15 @@ import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { EffectCard } from '../../common/EffectCard/EffectCard';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { MediaCropper, type NormalizedCrop } from '../../common/MediaCropper/MediaCropper';
+import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useSensors } from '../../../hooks/useSensors';
 import { useNetworkMonitor } from '../../../hooks/useNetworkMonitor';
 import { useFpsSensors } from '../../../hooks/useFpsSensors';
 import { buildNetworkSensors } from '../../../panel/widgets/monitoring/networkSensors';
 import { sensorsForCategory } from '../../../panel/widgets/monitoring/sensorCategories';
+import { stageKlipy, type KlipyGif } from '../../../api/klipy';
+import { cancelMediaStage, mediaStagePreviewUrl, mediaStageRawUrl, stagePreviewFor } from '../../../api/mediaLibrary';
 import {
   getTryxStatus,
   getTryxPresets,
@@ -33,6 +36,7 @@ import {
   setTryxOverlay,
   setTryxSlideshow,
   uploadTryxMedia,
+  tryxMediaFileUrl,
   DEFAULT_TRYX_SLIDESHOW,
   TRYX_MEDIA_WIDTH,
   TRYX_MEDIA_HEIGHT,
@@ -89,6 +93,18 @@ const DEFAULT_OVERLAY_DOCKED = true;
 const STATUS_POLL_MS = 4000;
 const MEDIA_POLL_MS = 8000;
 const UPLOAD_ASPECT = TRYX_MEDIA_WIDTH / TRYX_MEDIA_HEIGHT;
+
+// Pulls a staged Klipy file back so it uploads through the same multipart path as a local pick.
+async function fetchStagedFile(rawUrl: string, name: string): Promise<File | null> {
+  try {
+    const res = await fetch(rawUrl);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new File([blob], name, { type: blob.type });
+  } catch {
+    return null;
+  }
+}
 
 // Fallback thumbnail for a device file we have no local frame for (a clip uploaded
 // via another tool): a muted play glyph so the card reads as a video, not a blank.
@@ -170,7 +186,13 @@ export function TryxDevicePage() {
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
   const [previewHeightPx, setPreviewHeightPx] = useState(0);
 
-  const [cropState, setCropState] = useState<{ src: string; file: File } | null>(null);
+  // A local pick carries its File; a Klipy pick is staged in the service and fetched from rawUrl on confirm.
+  const [cropState, setCropState] = useState<{
+    src: string; kind: 'video' | 'image'; fallbackSrc?: string; name: string; file?: File; stageId?: string; rawUrl?: string;
+  } | null>(null);
+  const [klipyOpen, setKlipyOpen] = useState(false);
+  const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
+  const [klipyError, setKlipyError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
   // Live monitoring sensor library backing the overlay's device/sensor
@@ -460,6 +482,12 @@ export function TryxDevicePage() {
     ?? (activePreset ? presets.find(p => p.id === activePreset)?.thumb : undefined)
     ?? (activeCloudMaterialId != null ? cloudCatalog.find(m => m.id === activeCloudMaterialId)?.coverUrl : undefined)
     ?? null;
+  // A custom clip plays in the preview from the service's copy; presets have none, and a clip
+  // that fails to load falls back to the thumbnail behind it.
+  const [failedPreviewClip, setFailedPreviewClip] = useState<string | null>(null);
+  const previewClip = media.some(m => m.name === currentMedia) && currentMedia !== failedPreviewClip
+    ? currentMedia
+    : null;
 
   const getCanvasPercent = (e: { clientX: number; clientY: number }) => {
     const rect = previewCanvasRef.current?.getBoundingClientRect();
@@ -584,31 +612,69 @@ export function TryxDevicePage() {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    setCropState({ src: URL.createObjectURL(file), file });
+    setCropState({ src: URL.createObjectURL(file), kind: 'video', name: file.name, file });
   };
 
   const handleCropConfirm = useCallback(async (crop: NormalizedCrop) => {
     if (!cropState) return;
-    const { file, src } = cropState;
+    const { file, src, name, stageId, rawUrl } = cropState;
     // The cropper stays mounted + busy (converting overlay, controls locked) until the
     // transcode and panel transfer finish.
     setUploading(true);
     try {
-      await uploadTryxMedia(file, crop);
-      await refreshMedia();
+      const upload = file ?? (rawUrl ? await fetchStagedFile(rawUrl, name) : null);
+      if (upload) {
+        // The service already switched the panel to the new clip; highlight it now rather
+        // than on the next status poll.
+        const uploaded = await uploadTryxMedia(upload, crop);
+        if (uploaded && aliveRef.current) {
+          setSelectedPreset(null);
+          setSelectedMedia(uploaded);
+        }
+        await refreshMedia();
+        void refreshStatus();
+      }
     } finally {
-      URL.revokeObjectURL(src);
+      if (file) URL.revokeObjectURL(src);
+      if (stageId) cancelMediaStage(stageId).catch(() => {});
       if (aliveRef.current) {
         setUploading(false);
         setCropState(null);
       }
     }
-  }, [cropState, refreshMedia]);
+  }, [cropState, refreshMedia, refreshStatus]);
 
   const handleCropCancel = useCallback(() => {
-    if (cropState) URL.revokeObjectURL(cropState.src);
+    if (cropState?.file) URL.revokeObjectURL(cropState.src);
+    if (cropState?.stageId) cancelMediaStage(cropState.stageId).catch(() => {});
     setCropState(null);
   }, [cropState]);
+
+  // A pick is staged like the other Klipy surfaces and lands in the same cropper as a file.
+  const handleKlipyPick = useCallback(async (gif: KlipyGif) => {
+    setKlipyBusy(gif.slug);
+    setKlipyError(null);
+    const staged = await stageKlipy(gif.slug);
+    if (!aliveRef.current) return;
+    setKlipyBusy(null);
+    if (!staged) {
+      setKlipyError(t('lighting.controls.importNetworkError'));
+      return;
+    }
+    // A refusal here is Klipy's (no file, no such clip, over the cap), not the service's.
+    if (staged.error || !staged.stageId) {
+      setKlipyError(t('lighting.controls.klipyPickFailed'));
+      return;
+    }
+    setKlipyOpen(false);
+    const rawUrl = mediaStageRawUrl(staged.stageId);
+    setCropState({
+      ...stagePreviewFor(staged.mediaKind, rawUrl, mediaStagePreviewUrl(staged.stageId)),
+      name: `${gif.slug}.${staged.mediaKind === 'gif' ? 'gif' : 'mp4'}`,
+      stageId: staged.stageId,
+      rawUrl,
+    });
+  }, [t]);
 
   if (initialLoading && !status) {
     return (
@@ -846,6 +912,15 @@ export function TryxDevicePage() {
                     >
                       {uploading ? t('devices.tryx.uploading') : t('devices.tryx.uploadVideo')}
                     </Button>
+                    <Button
+                      size="sm"
+                      tone="neutral"
+                      icon={<Sparkles size={16} aria-hidden />}
+                      disabled={uploading}
+                      onClick={() => setKlipyOpen(true)}
+                    >
+                      {t('lighting.controls.klipyBrowse')}
+                    </Button>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -976,6 +1051,19 @@ export function TryxDevicePage() {
             className={styles.previewCanvas}
             style={previewThumbUrl ? { backgroundImage: `url(${previewThumbUrl})` } : undefined}
           >
+            {previewClip && (
+              <video
+                key={previewClip}
+                className={styles.previewVideo}
+                src={tryxMediaFileUrl(previewClip)}
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-hidden="true"
+                onError={() => setFailedPreviewClip(previewClip)}
+              />
+            )}
             {overlayItems.map((item, i) => {
               if (!item.enabled) return null;
               const value = tryxOverlayPreviewValue(item.device, item.sensorId, item.sensorType, sensorsByGroup);
@@ -1025,10 +1113,20 @@ export function TryxDevicePage() {
         </div>
       </div>
 
+      <KlipyPicker
+        open={klipyOpen}
+        busySlug={klipyBusy}
+        importError={klipyOpen ? klipyError : null}
+        thumbAspect={UPLOAD_ASPECT}
+        onPick={gif => { void handleKlipyPick(gif); }}
+        onClose={() => { setKlipyOpen(false); setKlipyError(null); }}
+      />
+
       {cropState && (
         <MediaCropper
           src={cropState.src}
-          kind="video"
+          kind={cropState.kind}
+          fallbackSrc={cropState.fallbackSrc}
           aspect={UPLOAD_ASPECT}
           busy={uploading}
           onConfirm={handleCropConfirm}
