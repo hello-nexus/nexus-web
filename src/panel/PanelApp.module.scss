@@ -909,8 +909,8 @@
   }
 
   .cellWrap[data-clickthrough='true']:hover .cell {
-    background: var(--surface-hover);
-    border-color: var(--panel-border-strong);
+    background: var(--panel-card-hover-fill);
+    border-color: var(--panel-card-hover-border);
   }
 }
 

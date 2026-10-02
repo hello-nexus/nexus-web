@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { customTextVars, normalizeTextColorMode, pickInk, regionLuminance, relativeLuminance } from './textColor';
 
 function solidGrid(width: number, height: number, [r, g, b]: [number, number, number]) {
@@ -68,5 +70,29 @@ describe('customTextVars', () => {
 
   it('falls back to white for an unparseable colour', () => {
     expect((customTextVars('') as Record<string, string>)['--text']).toBe('#ffffff');
+  });
+});
+
+function declarations(css: string, selector: string): Record<string, string> {
+  const start = css.indexOf(`${selector} {`);
+  expect(start).toBeGreaterThanOrEqual(0);
+  const body = css.slice(start, css.indexOf('\n}', start));
+  return Object.fromEntries([...body.matchAll(/^\s*((?:--)?[\w-]+):\s*([^;]+);/gm)].map(m => [m[1], m[2].trim()]));
+}
+
+describe('adaptive ink palettes', () => {
+  const variables = readFileSync(join(__dirname, '../../styles/variables.scss'), 'utf8');
+  const tokens = readFileSync(join(__dirname, '../styles/tokens.scss'), 'utf8');
+  // Accent is set per panel at runtime; the backdrop is what the ink is measured against.
+  const themeOnly = /^--(accent|slider-fill-dim|backdrop-)/;
+
+  it.each([
+    ['light', ':root,\n[data-theme="dark"]'],
+    ['dark', '[data-theme="light"]'],
+  ])("ink '%s' carries every light-theme palette token at its theme value", (ink, themeSelector) => {
+    const light = declarations(variables, '[data-theme="light"]');
+    const theme = declarations(variables, themeSelector);
+    const expected = Object.fromEntries(Object.keys(light).filter(k => !themeOnly.test(k)).map(k => [k, theme[k]]));
+    expect(declarations(tokens, `.panel-root [data-ink='${ink}']`)).toEqual(expected);
   });
 });

@@ -49,12 +49,12 @@ function FlapCard({ char, badge }: { char: string; badge?: ReactNode }) {
   const staticBottom = state.flipping ? state.from : state.current;
 
   const card = (
-    <div className={styles.card}>
-      <div className={styles.cardTop}>
+    <div className={state.flipping ? `${styles.card} ${styles.flipping}` : styles.card}>
+      <div key={`static-top-${state.sequence}`} className={styles.cardTop}>
         <span>{staticTop}</span>
       </div>
       <div className={styles.divider} />
-      <div className={styles.cardBottom}>
+      <div key={`static-bottom-${state.sequence}`} className={styles.cardBottom}>
         <span>{staticBottom}</span>
       </div>
       {state.flipping && (

@@ -32,13 +32,33 @@
 // Dashboard widgets sit flat on the app backdrop - drop their shadow (phone/kiosk keep theirs).
 .panel-root[data-surface='desktop'] { --panel-card-shadow-color: transparent; }
 
-.panel-root {
+// Theme-derived content tokens. A custom property inherits already resolved,
+// so adaptive-ink hosts re-declare these to resolve against the ink palette.
+.panel-root,
+.panel-root [data-ink] {
   --panel-border: var(--border);
   --panel-border-strong: var(--border-strong);
   --panel-control-bg: var(--bg-card-hover);
   --panel-control-bg-hover: var(--border);
   --panel-control-bg-active: var(--border-strong);
   --panel-sheet-bg: color-mix(in srgb, var(--bg-elevated) 98%, transparent);
+  // Inner widget elements (Steam/cooling/lighting sub-cards, the Discord card
+  // border) read --panel-card-bg = the shared translucent --surface directly.
+  --panel-card-bg: var(--surface);
+  --panel-element-bg: var(--panel-control-bg);
+  --panel-element-bg-hover: var(--panel-control-bg-hover);
+  --panel-element-bg-active: var(--panel-control-bg-active);
+  // Translucent control fill (mixer pill track, timing-widget chips) - a
+  // text-tint alpha so it reads over any card fill in both themes.
+  --panel-control-translucent: color-mix(in srgb, var(--text) 12%, transparent);
+  --panel-good:          var(--good);
+  --panel-warn:          var(--warn);
+  --panel-bad:           var(--bad);
+  --panel-status-away:   var(--status-away);
+  color: var(--text);
+}
+
+.panel-root {
   --panel-scrim-bg: rgb(0 0 0 / var(--alpha-strong));
 
   --panel-card-radius: var(--radius);
@@ -51,9 +71,6 @@
     calc(min(var(--panel-cell-size), var(--panel-row-size, var(--panel-cell-size))) * 0.14),
     40px
   );
-  // Inner widget elements (Steam/cooling/lighting sub-cards, the Discord card
-  // border) read --panel-card-bg = the shared translucent --surface directly.
-  --panel-card-bg: var(--surface);
   // The .panel-card fill. Defaults to translucent --surface so embedded hosts
   // (desktop dashboard, floating overlay - both buildEmbeddedPanelThemeVars)
   // keep their frosted look. Live device panels (buildPanelThemeVars) swap in
@@ -73,6 +90,10 @@
   // Widgets are flat at rest - no resting border. The editor selection ring
   // (--panel-accent) is the only widget border. Light theme mirrors below.
   --panel-card-border: transparent;
+  // Card hover chrome, resolved here so an adaptive-ink host keeps the theme's:
+  // the card itself never follows the ink.
+  --panel-card-hover-fill: var(--surface-hover);
+  --panel-card-hover-border: var(--panel-border-strong);
 
   // --panel-widget-padding is the Theme "Widget padding" setting, resolved to
   // a concrete px length by useRuntimePanelGrid (grid.ts resolvePanelSpacing)
@@ -109,13 +130,7 @@
   --panel-widget-card-bottom-gap: 0px;
   --panel-widget-card-inner-pad: 0px;
 
-  --panel-element-bg: var(--panel-control-bg);
-  --panel-element-bg-hover: var(--panel-control-bg-hover);
-  --panel-element-bg-active: var(--panel-control-bg-active);
   --panel-element-radius: var(--radius);
-  // Translucent control fill (mixer pill track, timing-widget chips) - a
-  // text-tint alpha so it reads over any card fill in both themes.
-  --panel-control-translucent: color-mix(in srgb, var(--text) 12%, transparent);
 
 
   --panel-accent:        var(--accent);
@@ -125,13 +140,8 @@
   // Foreground for content sitting ON the accent fill; panelTheme overrides it
   // per panel so a panel-specific accent gets its own contrast partner.
   --panel-accent-text:   var(--accent-text);
-  --panel-good:          var(--good);
-  --panel-warn:          var(--warn);
-  --panel-bad:           var(--bad);
-  --panel-status-away:   var(--status-away);
 
   font-family: var(--panel-font);
-  color: var(--text);
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -181,20 +191,56 @@
 }
 
 // Auto text colour (useAutoTextColor) stamps a widget's card + label host with
-// the ink its backdrop needs. Only the ink tokens flip; the card fill and accent
-// keep the theme. Values mirror the two themes in styles/variables.scss.
+// the ink its backdrop needs, and the host takes that theme's palette so its
+// contents render as under that theme. The card fill (inherited
+// --panel-card-fill), accent and backdrop keep the theme. Values mirror
+// styles/variables.scss; textColor.test.ts holds them in sync.
 .panel-root [data-ink='light'] {
+  color-scheme: dark;
+  --bg: rgba(0, 0, 0, 0.8);
+  --bg-elevated: #0f0f0f;
+  --bg-card-hover: #202020;
+  --border: #2a2a2a;
+  --border-strong: #3a3a3a;
+  --control-border: rgba(245, 245, 245, 0.12);
+  --control-border-strong: rgba(245, 245, 245, 0.4);
+  --gauge-track: rgba(255, 255, 255, 0.2);
+  --devices-row-alt: rgba(255, 255, 255, 0.035);
+  --devices-row-hover: rgba(255, 255, 255, 0.07);
+  --surface: rgba(0, 0, 0, 0.4);
+  --surface-hover: rgba(0, 0, 0, 0.6);
   --text: #f5f5f5;
   --text-dim: rgba(255, 255, 255, 0.6);
   --separator: rgba(245, 245, 245, 0.12);
-  --gauge-track: rgba(255, 255, 255, 0.2);
+  --good: #10b981;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+  --status-away: #d8a14a;
+  --chart-line-alt: #ec4899;
 }
 
 .panel-root [data-ink='dark'] {
+  color-scheme: light;
+  --bg: rgba(255, 255, 255, 1);
+  --bg-elevated: #ededed;
+  --bg-card-hover: #f5f5f5;
+  --border: #cacaca;
+  --border-strong: #c6c6c6;
+  --control-border: rgba(26, 26, 46, 0.12);
+  --control-border-strong: rgba(26, 26, 46, 0.4);
+  --gauge-track: rgba(0, 0, 0, 0.2);
+  --devices-row-alt: rgba(0, 0, 0, 0.035);
+  --devices-row-hover: rgba(0, 0, 0, 0.07);
+  --surface: rgba(255, 255, 255, 0.6);
+  --surface-hover: rgba(255, 255, 255, 0.8);
   --text: #1a1a2e;
   --text-dim: rgba(0, 0, 0, 0.6);
   --separator: rgba(26, 26, 46, 0.12);
-  --gauge-track: rgba(0, 0, 0, 0.2);
+  --good: #059669;
+  --warn: #d97706;
+  --bad: #dc2626;
+  --status-away: #b8812f;
+  --chart-line-alt: #db2777;
 }
 
 // Sensor unit suffix inside any monitoring gauge (% / RPM / GB / °C / etc).

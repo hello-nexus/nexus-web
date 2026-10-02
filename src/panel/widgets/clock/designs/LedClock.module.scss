@@ -56,7 +56,7 @@
 }
 
 .off {
-  background: var(--panel-border);
+  background: var(--gauge-track);
   opacity: 1;
 }
 
@@ -111,7 +111,7 @@
   }
 
   &.off {
-    background: var(--panel-border);
+    background: var(--gauge-track);
   }
 }
 
@@ -147,6 +147,10 @@
 }
 
 .accent {
+  .segment.off,
+  .colonDot.off {
+    background: var(--panel-accent-soft);
+  }
   .segment.on {
     background: var(--panel-accent);
     box-shadow: 0 0 6px var(--panel-accent-shadow);

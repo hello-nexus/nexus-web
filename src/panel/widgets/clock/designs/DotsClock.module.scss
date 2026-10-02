@@ -75,7 +75,7 @@
 }
 
 .off {
-  background: var(--panel-border);
+  background: var(--gauge-track);
 }
 
 // Colon - two dots centered vertically
@@ -124,6 +124,9 @@
 }
 
 .accent {
+  .dot.off {
+    background: var(--panel-accent-soft);
+  }
   .dot.on {
     background: var(--panel-accent);
     box-shadow: 0 0 4px var(--panel-accent-shadow);

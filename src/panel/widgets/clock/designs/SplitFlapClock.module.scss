@@ -63,6 +63,8 @@
 .card {
   --split-flap-card-height: 1.9em;
   --split-flap-slice-offset: calc(var(--split-flap-card-height) / 4);
+  // Half a flip; FLIP_DURATION_MS in SplitFlapClock.tsx is two of these.
+  --split-flap-half: 110ms;
   position: relative;
   width: 1.15em;
   height: var(--split-flap-card-height);
@@ -73,7 +75,6 @@
   perspective: 300px;
   overflow: hidden;
   border-radius: 0.1em;
-  background: var(--panel-element-bg);
   transform-style: preserve-3d;
 }
 
@@ -91,7 +92,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--panel-element-bg);
+  background: var(--gauge-track);
   color: var(--text);
   line-height: 1;
   z-index: 1;
@@ -137,11 +138,11 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--panel-element-bg);
+  background: var(--gauge-track);
   color: var(--text);
   border-radius: 0.1em 0.1em 0 0;
   transform-origin: bottom center;
-  animation: flapDown 110ms cubic-bezier(0.45, 0, 0.75, 0.45) forwards;
+  animation: flapDown var(--split-flap-half) cubic-bezier(0.45, 0, 0.75, 0.45) forwards;
   z-index: 4;
   backface-visibility: hidden;
 }
@@ -156,12 +157,12 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--panel-element-bg-hover);
+  background: var(--gauge-track);
   color: var(--text);
   border-radius: 0 0 0.1em 0.1em;
   transform-origin: top center;
   transform: rotateX(90deg);
-  animation: flapUp 110ms 110ms cubic-bezier(0.16, 0.78, 0.25, 1) forwards;
+  animation: flapUp var(--split-flap-half) var(--split-flap-half) cubic-bezier(0.16, 0.78, 0.25, 1) forwards;
   z-index: 4;
   backface-visibility: hidden;
 }
@@ -174,6 +175,16 @@
 @keyframes flapUp {
   0%   { transform: rotateX(90deg); }
   100% { transform: rotateX(0deg); }
+}
+
+// The translucent flaps cannot hide the half they sweep over, so each static
+// half (tint and digit) drops out while a flap covers it: the new top until the
+// old flap has fallen, the old bottom once the new flap starts rising.
+.flipping .cardTop { animation: flapCovered var(--split-flap-half); }
+.flipping .cardBottom { animation: flapCovered var(--split-flap-half) var(--split-flap-half) forwards; }
+
+@keyframes flapCovered {
+  from, to { opacity: 0; }
 }
 
 // Narrow box plus a negative side margin: the colon separates the flap pairs
@@ -210,6 +221,13 @@
 }
 
 .accent {
+  .cardTop,
+  .cardBottom,
+  .flapTop,
+  .flapBottom {
+    background: var(--panel-accent-soft);
+  }
+
   .cardTop,
   .cardBottom,
   .flapTop,
