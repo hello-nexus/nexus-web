@@ -3067,7 +3067,7 @@
   "panel.media.volumeTarget.mode": "Contrôle",
   "panel.media.volumeTarget.output": "Périphérique de sortie",
   "panel.media.volumeTarget.show": "Afficher le curseur de volume",
-  "panel.media.volumeTarget.showSource": "Afficher la sortie",
+  "panel.media.volumeTarget.showSource": "Afficher l'étiquette de sortie",
   "panel.media.volumeTarget.systemDefault": "Par défaut du système",
   "panel.pages.label": "Pages du panneau",
   "panel.playlist.hint": "Cliquez sur un widget pour l'activer ou le désactiver. Faites glisser pour réorganiser.",
