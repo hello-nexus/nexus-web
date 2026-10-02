@@ -1137,6 +1137,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
       setSelected(new Set());
     }
 
+    // Captured, as the lighting canvas does, so a fast drag past the frame
+    // keeps extending the marquee instead of ending on pointerleave.
+    try { canvasRef.current?.setPointerCapture(e.pointerId); } catch { /* ignore */ }
     setMarquee({ x1: px, y1: py, x2: px, y2: py });
     setMarqueeActive(true);
   };
@@ -1174,7 +1177,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
 
     if (marqueeActive && marquee) {
       const { x: px, y: py } = getCanvasPercent(e);
-      const updated = { ...marquee, x2: px, y2: py };
+      const updated = { ...marquee, x2: Math.max(0, Math.min(100, px)), y2: Math.max(0, Math.min(100, py)) };
       setMarquee(updated);
       setSelected(computeMarqueeSelection(updated));
       return;
@@ -2401,7 +2404,11 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
             onPointerDown={mappingUnavailable ? undefined : handleCanvasPointerDown}
             onPointerMove={mappingUnavailable ? undefined : handlePointerMove}
             onPointerUp={mappingUnavailable ? undefined : (e => handlePointerUp(e))}
-            onPointerLeave={mappingUnavailable ? undefined : (() => handlePointerUp())}
+            onPointerLeave={mappingUnavailable ? undefined : (e => {
+              // A captured drag carries on past the frame; its release ends it.
+              if (canvasRef.current?.hasPointerCapture?.(e.pointerId)) return;
+              handlePointerUp();
+            })}
           >
             {mappingUnavailable && (
               <div className={styles.mappingUnavailable} role="status">
