@@ -54,7 +54,7 @@ export const EffectControls = memo(function EffectControls({
   // the HSV-S post-process multiplier; simple.frag narrows u_saturation's own
   // range with a hint_range override line, so satSpec needs no isSimple branch.
   const isSimple = categoryOf(effect) === 'simple';
-  // Static patterns write fragColor directly from their own colour params, so
+  // Effects with colour slots write fragColor from their own colour params, so
   // the tint post-process (palette ring, saturation, contrast, the global hex)
   // has no effect on them - showing those controls would be a dead UI.
   const ownsColors = !!def.colors?.length;

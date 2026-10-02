@@ -67,12 +67,15 @@ export const SIMPLE_EFFECT_KEYS = [
 export interface EffectColorSlot {
   id: 'a' | 'b' | 'c' | 'd';
   labelKey: string;
+  /** The wheel picks a hue range (u_<id>Span, share of the wheel) the effect
+   *  steps through instead of a single hue. */
+  range?: boolean;
 }
 
 export interface EffectDef {
   key: string;
   labelKey: string;
-  /** Static patterns own their colours instead of using the global tint. */
+  /** The effect owns these colours instead of using the global tint. */
   colors?: EffectColorSlot[];
   /** Computed via {@link categoryOf} - the EFFECT_CATEGORY map below is the source of truth. */
   category?: EffectCategory;
@@ -276,9 +279,8 @@ export const EFFECTS: EffectDef[] = [
       { name: 'u_rotation', label: 'Rotation', labelKey: 'lighting.controls.param.rotation' },
       { name: 'u_position', label: 'Position', labelKey: 'lighting.controls.param.position' },
   ]},
-  { key: 'breathing',    labelKey: 'lighting.controls.breathing',    params: [
-      { name: 'u_colors', label: 'Colors', labelKey: 'lighting.controls.param.colors' },
-      { name: 'u_depth',  label: 'Depth', labelKey: 'lighting.controls.param.depth' },
+  { key: 'breathing',    labelKey: 'lighting.controls.breathing',
+     colors: [{ id: 'a', labelKey: 'lighting.controls.color1', range: true }, { id: 'b', labelKey: 'lighting.controls.color2', range: true }], params: [
       { name: 'u_spread', label: 'Spread', labelKey: 'lighting.controls.param.spread' },
   ]},
   { key: 'spiral',       labelKey: 'lighting.controls.spiral',       params: [

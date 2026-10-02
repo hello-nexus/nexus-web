@@ -4,6 +4,7 @@ import { hsvToHex } from '../../../../lib/settings';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
 import { Slider } from '../../../../components/common/Slider/Slider';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { MAX_COLORIZE } from '../../../../types/lightingTemplates';
 import type { EffectColorSlot, EffectState } from '../../../../types/lighting';
 import type { ShaderParamSpec } from '../../../../lib/shaderParams';
 import styles from '../LightingPage.module.scss';
@@ -19,6 +20,7 @@ function read(slot: EffectColorSlot, params: Record<string, number>, specs: Reco
     h: params[`u_${slot.id}Hue`] ?? specs[`u_${slot.id}Hue`]?.defaultValue ?? 0,
     s: params[`u_${slot.id}Sat`] ?? specs[`u_${slot.id}Sat`]?.defaultValue ?? 1,
     v: params[`u_${slot.id}Val`] ?? specs[`u_${slot.id}Val`]?.defaultValue ?? 1,
+    span: slot.range ? params[`u_${slot.id}Span`] ?? specs[`u_${slot.id}Span`]?.defaultValue ?? 0 : 0,
   };
 }
 
@@ -27,10 +29,19 @@ export function slotHex(slot: EffectColorSlot, params: Record<string, number>, s
   return hsvToHex(h * 360, s * 100, v * 100);
 }
 
+/** Gradient across a range slot's hues, or undefined for a single hue. */
+function slotRangeImage(slot: EffectColorSlot, params: Record<string, number>, specs: Record<string, ShaderParamSpec>): string | undefined {
+  const { h, s, v, span } = read(slot, params, specs);
+  if (span <= 0) return undefined;
+  const stops = Array.from({ length: 7 }, (_, i) => hsvToHex((h - span / 2 + (span * i) / 6) * 360, s * 100, v * 100));
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+
 /**
- * Colour picker for a static pattern: the same hue wheel the animate drawer
- * uses, plus saturation and brightness. With more than one colour a swatch row
- * selects which the wheel edits, so a four-colour effect still fits the pane.
+ * Colour picker for an effect's own colours: the same hue wheel the animate
+ * drawer uses, plus saturation and brightness. With more than one colour a
+ * swatch row selects which the wheel edits, so a four-colour effect still fits
+ * the pane. A range slot's wheel also sets the width of the hue range.
  */
 export function StaticColorSlots({ slots, state, specs, onChange, onCommit }: {
   slots: EffectColorSlot[];
@@ -44,14 +55,15 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit }: {
   const active = slots.find(s => s.id === activeId) ?? slots[0];
   if (!active) return null;
 
-  const { h, s, v } = read(active, state.params, specs);
-  const patch = (next: { h?: number; s?: number; v?: number }, commit: boolean) => {
+  const { h, s, v, span } = read(active, state.params, specs);
+  const patch = (next: { h?: number; s?: number; v?: number; span?: number }, commit: boolean) => {
     onChange({
       params: {
         ...state.params,
         [`u_${active.id}Hue`]: next.h ?? h,
         [`u_${active.id}Sat`]: next.s ?? s,
         [`u_${active.id}Val`]: next.v ?? v,
+        ...(active.range ? { [`u_${active.id}Span`]: next.span ?? span } : {}),
       },
     }, commit);
   };
@@ -69,7 +81,7 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit }: {
                   <button
                     type="button"
                     className={`${styles.staticSwatch} ${selected ? styles.staticSwatchActive : ''}`}
-                    style={{ backgroundColor: slotHex(slot, state.params, specs) }}
+                    style={{ backgroundColor: slotHex(slot, state.params, specs), backgroundImage: slotRangeImage(slot, state.params, specs) }}
                     onClick={() => setActiveId(slot.id)}
                     aria-label={t(slot.labelKey)}
                     aria-pressed={selected}
@@ -82,10 +94,10 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit }: {
       )}
       <div className={styles.paletteRingWrap}>
         <PaletteRing
-          hueOnly
+          hueOnly={!active.range}
           hue={h}
-          colorize={0}
-          onChange={(nextHue, _colorize, commit) => patch({ h: nextHue }, commit)}
+          colorize={(1 - span) * MAX_COLORIZE}
+          onChange={(nextHue, colorize, commit) => patch({ h: nextHue, span: 1 - colorize / MAX_COLORIZE }, commit)}
           onCommit={onCommit}
         />
       </div>
