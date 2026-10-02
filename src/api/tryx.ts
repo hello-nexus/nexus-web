@@ -205,14 +205,15 @@ export async function uploadTryxMedia(
   crop: NormalizedCrop,
   targetWidth = TRYX_MEDIA_WIDTH,
   targetHeight = TRYX_MEDIA_HEIGHT,
-): Promise<boolean> {
-  if (isTryxSimulated()) return true;
+): Promise<string | null> {
+  if (isTryxSimulated()) return null;
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('crop', serializeCrop(crop));
   form.append('targetWidth', String(targetWidth));
   form.append('targetHeight', String(targetHeight));
-  return isOk(await postServiceForm<OkResponse>('/tryx/media', form));
+  const res = await postServiceForm<{ error?: boolean; media?: string }>('/tryx/media', form);
+  return res && !res.error && res.media ? res.media : null;
 }
 
 /** Authenticated streaming URL for a custom media clip, for a <video> source. */
