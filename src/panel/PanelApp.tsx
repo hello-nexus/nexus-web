@@ -551,12 +551,18 @@ export function PanelContent({
       return next;
     });
   }, []);
+  // True from the close tap until the overlay unmounts, so a see-through view
+  // gives the dashboard back as it starts sliding away.
+  const [immersiveClosing, setImmersiveClosing] = useState(false);
   const enterImmersive = useCallback((widgetId: string) => {
     setImmersiveOpenCounter(n => n + 1);
     setImmersiveOpenedOnLoad(false);
+    setImmersiveClosing(false);
     setImmersiveWidgetId(widgetId);
   }, []);
+  const handleImmersiveExitStart = useCallback(() => setImmersiveClosing(true), []);
   const handleImmersiveExit = useCallback(() => {
+    setImmersiveClosing(false);
     setImmersiveWidgetId(null);
   }, []);
   const { resizeMotionWidgetId, beginResizeMotion } = useWidgetResizeMotion(
@@ -753,7 +759,8 @@ export function PanelContent({
 
   // Backdrop off: the immersive overlay paints nothing and the dashboard
   // under it hides, leaving the panel's own background behind the view.
-  const immersiveSeeThrough = (kioskBehavior || simulator) && immersiveWidgetId !== null && !effectiveTheme.immersiveBackdrop;
+  const immersiveSeeThrough = (kioskBehavior || simulator) && immersiveWidgetId !== null && !immersiveClosing
+    && !effectiveTheme.immersiveBackdrop;
 
   // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's scrim, else
@@ -2061,11 +2068,12 @@ export function PanelContent({
             instant={immersiveOpenedOnLoad}
             open
             onExit={handleImmersiveExit}
+            onExitStart={handleImmersiveExitStart}
             themeStyle={immersiveThemeStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
             confirmClose={def.meta.immersiveDoubleSwipe}
-            seeThrough={immersiveSeeThrough}
+            seeThrough={!effectiveTheme.immersiveBackdrop}
           >
             <Comp
               widget={w}

@@ -27,6 +27,8 @@ interface PanelImmersiveOverlayProps {
   confirmClose?: boolean;
   // Paint no background, so the panel background behind shows through.
   seeThrough?: boolean;
+  // Fires when the close starts, a slide before onExit.
+  onExitStart?: () => void;
 }
 
 const EXIT_MS = 200;
@@ -36,7 +38,7 @@ export const NOTCH_FADE_DELAY_MS = 1500;
 // to close; it stays armed for as long as the hint keeps showing.
 export const CONFIRM_WINDOW_MS = 3000;
 
-export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false, seeThrough = false }: PanelImmersiveOverlayProps) {
+export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false, seeThrough = false, onExitStart }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -47,13 +49,14 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
   const beginExit = useCallback(() => {
     if (mountState === 'exiting') return;
     setMountState('exiting');
+    onExitStart?.();
     if (exitTimer.current) clearTimeout(exitTimer.current);
     exitTimer.current = setTimeout(() => {
       exitTimer.current = null;
       setMountState('unmounted');
       onExit();
     }, EXIT_MS);
-  }, [mountState, onExit]);
+  }, [mountState, onExit, onExitStart]);
 
   // The host renders this with a literal `open`, so `open` is true for the
   // overlay's whole life and only the CROSSING into true may cancel a pending
