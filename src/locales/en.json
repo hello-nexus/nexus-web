@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "Picked colors stay on these LEDs over every effect until you clear them.",
   "lighting.ledMap.colorLockedCount.one": "{count} LED holds a color",
   "lighting.ledMap.colorLockedCount.other": "{count} LEDs hold a color",
+  "lighting.ledMap.colorSaveFirst": "Save your zone changes first, then set LED colors here.",
   "lighting.ledMap.colorSelectHint": "Select LEDs to change or clear their color.",
   "lighting.ledMap.community": "Community",
   "lighting.ledMap.communityUnavailable": "Community layouts aren't available for this zone",

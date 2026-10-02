@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "選定的顏色會在所有效果之上保留在這些 LED 上，直到你清除它們。",
   "lighting.ledMap.colorLockedCount.one": "{count} 個 LED 有固定顏色",
   "lighting.ledMap.colorLockedCount.other": "{count} 個 LED 有固定顏色",
+  "lighting.ledMap.colorSaveFirst": "請先儲存區域變更，然後在此設定 LED 顏色。",
   "lighting.ledMap.colorSelectHint": "選擇 LED 以變更或清除其顏色。",
   "lighting.ledMap.community": "社群",
   "lighting.ledMap.communityUnavailable": "此區域不支援社群配置",

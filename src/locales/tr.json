@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "Seçilen renkler, siz temizleyene kadar her efektin üzerinde bu LED'lerde kalır.",
   "lighting.ledMap.colorLockedCount.one": "{count} LED sabit renkte",
   "lighting.ledMap.colorLockedCount.other": "{count} LED sabit renkte",
+  "lighting.ledMap.colorSaveFirst": "Önce bölge değişikliklerinizi kaydedin, ardından LED renklerini burada ayarlayın.",
   "lighting.ledMap.colorSelectHint": "Rengini değiştirmek veya temizlemek için LED'leri seçin.",
   "lighting.ledMap.community": "Topluluk",
   "lighting.ledMap.communityUnavailable": "Bu bölge için topluluk düzenleri kullanılamaz",

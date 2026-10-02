@@ -44,4 +44,15 @@ describe('LedColorLockSection', () => {
     fireEvent.click(screen.getByText(CLEAR_ALL));
     expect(h.onClearAll).toHaveBeenCalled();
   });
+
+  it('asks for a save first on an unsaved zone, with nothing selected too', () => {
+    renderSection({ draft: true });
+    expect(screen.getByText('lighting.ledMap.colorSaveFirst')).toBeTruthy();
+  });
+
+  it('greys the picker on an unsaved zone', () => {
+    const h = renderSection({ draft: true, selectedCount: 2 });
+    fireEvent.click(screen.getByLabelText(LED_COLOR_PRESETS[0]));
+    expect(h.onCommit).not.toHaveBeenCalled();
+  });
 });

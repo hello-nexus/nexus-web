@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "選んだ色は、解除するまでどのエフェクトよりも優先してこれらの LED に保持されます。",
   "lighting.ledMap.colorLockedCount.one": "{count} 個の LED に固定色があります",
   "lighting.ledMap.colorLockedCount.other": "{count} 個の LED に固定色があります",
+  "lighting.ledMap.colorSaveFirst": "先にゾーンの変更を保存してから、ここで LED カラーを設定してください。",
   "lighting.ledMap.colorSelectHint": "LED を選択して色を変更またはクリアします。",
   "lighting.ledMap.community": "コミュニティ",
   "lighting.ledMap.communityUnavailable": "このゾーンではコミュニティレイアウトを利用できません",

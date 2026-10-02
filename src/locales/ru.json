@@ -2509,6 +2509,7 @@
   "lighting.ledMap.colorLockedCount.few": "{count} светодиода с закреплённым цветом",
   "lighting.ledMap.colorLockedCount.one": "{count} светодиод с закреплённым цветом",
   "lighting.ledMap.colorLockedCount.other": "Светодиоды с закреплённым цветом: {count}",
+  "lighting.ledMap.colorSaveFirst": "Сначала сохраните изменения зон, затем задайте здесь цвета светодиодов.",
   "lighting.ledMap.colorSelectHint": "Выберите светодиоды, чтобы изменить или сбросить их цвет.",
   "lighting.ledMap.community": "Сообщество",
   "lighting.ledMap.communityUnavailable": "Раскладки сообщества недоступны для этой зоны",

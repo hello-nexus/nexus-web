@@ -18,7 +18,8 @@ interface LedColorLockSectionProps {
   /** A colour one of the selected LEDs holds; empty when none holds one. */
   selectedColor: string;
   lockedCount: number;
-  disabled?: boolean;
+  /** The zone is an unsaved partition edit: no card exists to hold colours until Save. */
+  draft?: boolean;
   onPreview: (hex: string) => void;
   onCommit: (hex: string) => void;
   onClearSelected: () => void;
@@ -26,11 +27,11 @@ interface LedColorLockSectionProps {
 }
 
 export function LedColorLockSection({
-  selectedCount, selectedColor, lockedCount, disabled = false,
+  selectedCount, selectedColor, lockedCount, draft = false,
   onPreview, onCommit, onClearSelected, onClearAll,
 }: LedColorLockSectionProps) {
   const { t, language } = useTranslation();
-  if (selectedCount === 0 && lockedCount === 0) return null;
+  if (selectedCount === 0 && lockedCount === 0 && !draft) return null;
   return (
     <SettingsSection title={t('lighting.ledMap.color')} className={styles.section} boxClassName={styles.box}>
       <div className={styles.body}>
@@ -42,7 +43,7 @@ export function LedColorLockSection({
           onCommit={onCommit}
           allowCustom
           pickerPortal
-          disabled={disabled}
+          disabled={draft}
           extraSwatch={{
             color: NO_LOCK_SWATCH,
             label: t('lighting.ledMap.colorFollowEffect'),
@@ -50,16 +51,18 @@ export function LedColorLockSection({
             onSelect: onClearSelected,
           }}
         />
-      ) : (
+      ) : lockedCount > 0 && (
         <div className={styles.summary}>
           <span>{t(pluralKey('lighting.ledMap.colorLockedCount', language, lockedCount), { count: lockedCount })}</span>
-          <Button tone="ghost" size="sm" disabled={disabled} onClick={onClearAll}>
+          <Button tone="ghost" size="sm" disabled={draft} onClick={onClearAll}>
             {t('lighting.ledMap.colorClearAll')}
           </Button>
         </div>
       )}
       <div className={styles.hint}>
-        {selectedCount > 0 ? t('lighting.ledMap.colorHint') : t('lighting.ledMap.colorSelectHint')}
+        {draft
+          ? t('lighting.ledMap.colorSaveFirst')
+          : selectedCount > 0 ? t('lighting.ledMap.colorHint') : t('lighting.ledMap.colorSelectHint')}
       </div>
       </div>
     </SettingsSection>

@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "선택한 색상은 지울 때까지 모든 효과보다 우선해 이 LED에 유지됩니다.",
   "lighting.ledMap.colorLockedCount.one": "LED {count}개에 고정 색상이 있습니다",
   "lighting.ledMap.colorLockedCount.other": "LED {count}개에 고정 색상이 있습니다",
+  "lighting.ledMap.colorSaveFirst": "먼저 영역 변경 사항을 저장한 다음 여기에서 LED 색상을 설정하세요.",
   "lighting.ledMap.colorSelectHint": "LED를 선택해 색상을 바꾸거나 지우세요.",
   "lighting.ledMap.community": "커뮤니티",
   "lighting.ledMap.communityUnavailable": "이 영역에서는 커뮤니티 레이아웃을 사용할 수 없습니다",

@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "Gewählte Farben bleiben bei jedem Effekt auf diesen LEDs, bis du sie entfernst.",
   "lighting.ledMap.colorLockedCount.one": "{count} LED hat eine feste Farbe",
   "lighting.ledMap.colorLockedCount.other": "{count} LEDs haben eine feste Farbe",
+  "lighting.ledMap.colorSaveFirst": "Speichere zuerst deine Zonenänderungen, dann kannst du hier LED-Farben festlegen.",
   "lighting.ledMap.colorSelectHint": "Wähle LEDs aus, um ihre Farbe zu ändern oder zu entfernen.",
   "lighting.ledMap.community": "Community",
   "lighting.ledMap.communityUnavailable": "Für diese Zone sind keine Community-Layouts verfügbar",

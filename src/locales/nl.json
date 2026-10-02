@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "Gekozen kleuren blijven bij elk effect op deze LEDs staan tot je ze wist.",
   "lighting.ledMap.colorLockedCount.one": "{count} LED heeft een vaste kleur",
   "lighting.ledMap.colorLockedCount.other": "{count} LEDs hebben een vaste kleur",
+  "lighting.ledMap.colorSaveFirst": "Sla eerst je zonewijzigingen op en stel dan hier LED-kleuren in.",
   "lighting.ledMap.colorSelectHint": "Selecteer LEDs om hun kleur te wijzigen of te wissen.",
   "lighting.ledMap.community": "Community",
   "lighting.ledMap.communityUnavailable": "Community-indelingen zijn niet beschikbaar voor deze zone",

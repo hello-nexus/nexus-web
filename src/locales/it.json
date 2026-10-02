@@ -2477,6 +2477,7 @@
   "lighting.ledMap.colorHint": "I colori scelti restano su questi LED sopra ogni effetto finché non li cancelli.",
   "lighting.ledMap.colorLockedCount.one": "{count} LED ha un colore fisso",
   "lighting.ledMap.colorLockedCount.other": "{count} LED hanno un colore fisso",
+  "lighting.ledMap.colorSaveFirst": "Salva prima le modifiche alle zone, poi imposta qui i colori dei LED.",
   "lighting.ledMap.colorSelectHint": "Seleziona i LED per cambiare o cancellare il loro colore.",
   "lighting.ledMap.community": "Community",
   "lighting.ledMap.communityUnavailable": "I layout della community non sono disponibili per questa zona",

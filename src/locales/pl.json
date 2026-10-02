@@ -2509,6 +2509,7 @@
   "lighting.ledMap.colorLockedCount.few": "{count} diody mają stały kolor",
   "lighting.ledMap.colorLockedCount.one": "{count} dioda ma stały kolor",
   "lighting.ledMap.colorLockedCount.other": "Diody ze stałym kolorem: {count}",
+  "lighting.ledMap.colorSaveFirst": "Najpierw zapisz zmiany stref, a potem ustaw tutaj kolory diod.",
   "lighting.ledMap.colorSelectHint": "Zaznacz diody, aby zmienić lub wyczyścić ich kolor.",
   "lighting.ledMap.community": "Społeczność",
   "lighting.ledMap.communityUnavailable": "Układy społeczności nie są dostępne dla tej strefy",

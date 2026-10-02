@@ -2259,7 +2259,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               selectedCount={selected.size}
               selectedColor={selectedLedColor}
               lockedCount={ledColors.size}
-              disabled={isStagedZoneId(selectedZoneId)}
+              draft={isStagedZoneId(selectedZoneId)}
               onPreview={queueLedColor}
               onCommit={queueLedColor}
               onClearSelected={() => queueLedColor('')}
