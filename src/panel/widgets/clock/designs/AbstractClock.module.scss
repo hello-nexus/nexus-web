@@ -8,6 +8,8 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  // Immersive only: insets the date; the absolute sweep and scrim still fill the frame.
+  padding: var(--immersive-inset, 0px);
 
   @include clock-date-scale;
 }

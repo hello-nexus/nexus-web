@@ -370,6 +370,41 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+// The left and right thirds are the effect arrows' tap zones; the chevrons
+// stay hidden until a tap shows them. The centre third is the surface below.
+.visualizerNav {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  pointer-events: none;
+
+  .visualizerArrow {
+    // Under the revealed controls, which follow in DOM order; the shared
+    // arrow's z-index would lift the zones over them.
+    z-index: auto;
+    top: 0;
+    height: 100%;
+    width: 33%;
+    transform: none;
+    color: #fff;
+    opacity: 0;
+    pointer-events: auto;
+    transition: opacity var(--ease-slow) ease;
+
+    &:not(:disabled):hover,
+    &:not(:disabled):active {
+      transform: none;
+      color: #fff;
+    }
+  }
+
+  &[data-arrows-visible='true'] .visualizerArrow {
+    opacity: 1;
+  }
+}
+
 .visualizerToast {
   @include text-caption;
 

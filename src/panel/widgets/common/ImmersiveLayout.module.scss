@@ -19,9 +19,8 @@
   height: 100%;
   display: flex;
   gap: var(--panel-gap, 8px);
-  // Immersive page padding. Per-widget immersive components (lighting,
-  // media, monitoring) inherit this and MUST NOT add their own outer pad.
-  padding: 12px;
+  // A view's own background goes on an element around this, to reach the edge.
+  padding: var(--immersive-inset, 12px);
   box-sizing: border-box;
   min-height: 0;
 }

@@ -1,8 +1,14 @@
 import { useMemo } from 'react';
 import type { ComponentType } from 'react';
+import type { PanelWidget } from '../../types';
 import type { WidgetProps } from '../types';
 import { ImmersiveLayout } from './ImmersiveLayout';
 import styles from './WidgetTouchView.module.scss';
+
+interface WidgetTouchViewOptions {
+  // The widget paints its own background: it fills the frame and pads its content by --immersive-inset.
+  bleed?: (widget: PanelWidget) => boolean;
+}
 
 /**
  * Generic immersive wrapper for widgets that don't ship their own
@@ -10,7 +16,10 @@ import styles from './WidgetTouchView.module.scss';
  * ImmersiveLayout cell so it gets centered on the immersive page in
  * portrait, fills the column in landscape.
  */
-export function makeWidgetTouchView(Component: ComponentType<WidgetProps>): ComponentType<WidgetProps> {
+export function makeWidgetTouchView(
+  Component: ComponentType<WidgetProps>,
+  { bleed }: WidgetTouchViewOptions = {},
+): ComponentType<WidgetProps> {
   return function WidgetImmersiveAdapter({ widget, surface, deviceTouch, immersiveGrid, onUpdate, editorPreview }: WidgetProps) {
     const fullsize = useMemo(() => ({ ...widget, size: '4x4' as const }), [widget]);
     const cell = (
@@ -26,6 +35,7 @@ export function makeWidgetTouchView(Component: ComponentType<WidgetProps>): Comp
         />
       </div>
     );
+    if (bleed?.(widget)) return cell;
     return (
       <ImmersiveLayout
         cells={[cell]}

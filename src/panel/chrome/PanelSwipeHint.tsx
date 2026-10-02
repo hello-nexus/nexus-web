@@ -4,13 +4,14 @@ import { useTranslation } from '../../lib/i18n';
 import styles from './PanelSwipeHint.module.scss';
 
 // Pointer-transparent so it never steals the swipe it asks for.
-export function PanelSwipeHint() {
+export function PanelSwipeHint({ direction = 'up' }: { direction?: 'up' | 'down' }) {
   const { t } = useTranslation();
   return (
     <div
       className={styles.hint}
+      data-direction={direction}
       role="img"
-      aria-label={t('panel.swipeHint.label')}
+      aria-label={t(direction === 'down' ? 'panel.immersive.swipeHint' : 'panel.swipeHint.label')}
       style={{
         '--swipe-hint-cycle': `${SWIPE_HINT_CYCLE_MS}ms`,
         '--swipe-hint-cycles': SWIPE_HINT_CYCLES,
@@ -26,7 +27,7 @@ export function PanelSwipeHint() {
         strokeLinejoin="round"
         aria-hidden
       >
-        <path d="m18 9-6-6-6 6" />
+        <path d={direction === 'down' ? 'm6 45 6 6 6-6' : 'm18 9-6-6-6 6'} />
         <path d="M12 3v48" />
       </svg>
       <Pointer className={styles.hand} aria-hidden />

@@ -1,6 +1,24 @@
 // Shared by the arrow and the hand so they fade in step.
 $flick-ease: cubic-bezier(0.32, 0.72, 0, 1);
 
+// Lengths in hint units (--hint-u), which shrink the whole drawing on a short panel.
+@function u($n) {
+  @return calc(#{$n} * var(--hint-u));
+}
+
+$arrow-w: 44;
+$arrow-h: 99;
+$hand: 88;
+$gap: 49;
+$backdrop-x: 76;
+$backdrop-y: 48;
+$anchor: 80px;
+$edge-margin: 16px;
+// Height the --hint-u cap must fit: the up hint grows from its anchor with the
+// backdrop above it; the centred down hint has the backdrop on both sides.
+$extent-up: $arrow-h + $gap + $hand + $backdrop-y;
+$extent-down: $arrow-h + $gap + $hand + 2 * $backdrop-y;
+
 // Runs once over the whole cycles x cycle window; the lift below repeats.
 @keyframes swipeHintFade {
   0% { opacity: 0; }
@@ -13,18 +31,18 @@ $flick-ease: cubic-bezier(0.32, 0.72, 0, 1);
 @keyframes swipeHintLift {
   0% {
     opacity: 0;
-    transform: translateY(24px) scale(0.92);
+    transform: translateY(u(24)) scale(0.92);
   }
   20% {
     opacity: 1;
   }
   70% {
     opacity: 1;
-    transform: translateY(-34px) scale(1);
+    transform: translateY(u(-34)) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateY(-46px) scale(1);
+    transform: translateY(u(-46)) scale(1);
   }
 }
 
@@ -36,11 +54,11 @@ $flick-ease: cubic-bezier(0.32, 0.72, 0, 1);
   }
   70% {
     opacity: 1;
-    transform: translateY(-6px);
+    transform: translateY(u(-6));
   }
   100% {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(u(-8));
   }
 }
 
@@ -48,32 +66,99 @@ $flick-ease: cubic-bezier(0.32, 0.72, 0, 1);
   position: absolute;
   left: 50%;
   // Clear of the iOS home-indicator band the tray gesture ignores.
-  bottom: max(48px, calc(env(safe-area-inset-bottom) + 36px));
+  bottom: max(#{$anchor}, calc(env(safe-area-inset-bottom) + #{$anchor - 12px}));
   z-index: 52;
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: var(--text);
+  // White on its own black backdrop in either theme.
+  color: #fff;
   filter: drop-shadow(0 2px 10px rgb(0 0 0 / var(--alpha-strong, 0.5)));
   pointer-events: none;
-  // Tracks the surface's content scale so the hand is not tiny on a dense Y70 strip.
-  transform: translateX(-50%) scale(var(--panel-scale, 1));
-  transform-origin: bottom center;
+  // The surface's content scale, so the hand is not tiny on a dense Y70 strip,
+  // capped so the drawing and backdrop stay clear of the top edge on a short
+  // landscape panel.
+  --hint-u: min(calc(var(--panel-scale, 1) * 1px), calc((100vh - #{$anchor + $edge-margin}) / #{$extent-up}));
+  transform: translateX(-50%);
   animation: swipeHintFade calc(var(--swipe-hint-cycle) * var(--swipe-hint-cycles)) ease both;
 }
 
+// Soft backdrop so the hand reads over any background.
+.hint::before {
+  content: '';
+  position: absolute;
+  top: u(-$backdrop-y);
+  right: u(-$backdrop-x);
+  bottom: u(-$backdrop-y);
+  left: u(-$backdrop-x);
+  z-index: -1;
+  background: radial-gradient(closest-side, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.35) 55%, rgb(0 0 0 / 0));
+}
+
 .arrow {
-  width: 44px;
-  height: 99px;
+  width: u($arrow-w);
+  height: u($arrow-h);
   stroke-width: 2.5;
   animation: swipeHintArrow var(--swipe-hint-cycle) $flick-ease var(--swipe-hint-cycles);
 }
 
 .hand {
-  width: 88px;
-  height: 88px;
+  width: u($hand);
+  height: u($hand);
   stroke-width: 1.75;
   // Room for the full lift: the fingertip reaches the shaft's tail, never crosses it.
-  margin-top: 49px;
+  margin-top: u($gap);
   animation: swipeHintLift var(--swipe-hint-cycle) $flick-ease var(--swipe-hint-cycles);
+}
+
+// Immersive close: the lift played in reverse over the same band, the
+// fingertip leaving the arrowhead and pulling down.
+@keyframes swipeHintDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(u(-46)) scale(0.92);
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(u(12)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(u(24)) scale(1);
+  }
+}
+
+@keyframes swipeHintArrowDown {
+  0% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(u(6));
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(u(8));
+  }
+}
+
+.hint[data-direction='down'] {
+  top: 50%;
+  bottom: auto;
+  // Above the immersive content, below the close notch.
+  z-index: 205;
+  --hint-u: min(calc(var(--panel-scale, 1) * 1px), calc((100vh - #{2 * $edge-margin}) / #{$extent-down}));
+  transform: translate(-50%, -50%);
+
+  .arrow {
+    animation-name: swipeHintArrowDown;
+  }
+
+  .hand {
+    animation-name: swipeHintDrop;
+  }
 }

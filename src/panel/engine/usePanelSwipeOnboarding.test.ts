@@ -4,6 +4,7 @@ import { renderHook, act } from '@testing-library/react';
 const api = vi.hoisted(() => ({
   fetchPanelSwipeOnboarding: vi.fn(),
   completePanelSwipeOnboarding: vi.fn(),
+  completeImmersiveSwipeOnboarding: vi.fn(),
 }));
 vi.mock('../../api/onboarding', () => api);
 const topics = vi.hoisted(() => ({ listeners: new Map<string, (data: unknown) => void>() }));
@@ -114,6 +115,26 @@ describe('usePanelSwipeOnboarding', () => {
     await act(async () => { topics.listeners.get('prefs')?.({}); await Promise.resolve(); });
     act(() => { vi.advanceTimersByTime(SWIPE_HINT_PERIOD_MS); });
     expect(result.current.hintVisible).toBe(true);
+  });
+
+  it('reports the immersive hint pending and completes it once on the service', async () => {
+    api.fetchPanelSwipeOnboarding.mockResolvedValue({ completed: true, immersiveCompleted: false });
+    api.completeImmersiveSwipeOnboarding.mockResolvedValue({ completed: true, immersiveCompleted: true });
+    const { result } = renderHook(() => usePanelSwipeOnboarding({ enabled: true, blocked: false, trayOpen: false }));
+    await act(async () => { await Promise.resolve(); });
+    expect(result.current.immersiveHintPending).toBe(true);
+
+    act(() => { result.current.completeImmersive(); });
+    expect(result.current.immersiveHintPending).toBe(false);
+    act(() => { result.current.completeImmersive(); });
+    expect(api.completeImmersiveSwipeOnboarding).toHaveBeenCalledTimes(1);
+  });
+
+  it('never shows the immersive hint against a service without the flag', async () => {
+    const { result } = await setup({}, false);
+    expect(result.current.immersiveHintPending).toBe(false);
+    act(() => { result.current.completeImmersive(); });
+    expect(api.completeImmersiveSwipeOnboarding).not.toHaveBeenCalled();
   });
 
   it('does not read the flag while disabled', async () => {

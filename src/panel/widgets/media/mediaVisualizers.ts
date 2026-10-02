@@ -27,6 +27,12 @@ export function nextVisualizerEffect(key: string): string {
   return MEDIA_VISUALIZER_EFFECTS[(i + 1) % MEDIA_VISUALIZER_EFFECTS.length];
 }
 
+export function prevVisualizerEffect(key: string): string {
+  const i = MEDIA_VISUALIZER_EFFECTS.indexOf(normalizeVisualizerEffect(key));
+  const n = MEDIA_VISUALIZER_EFFECTS.length;
+  return MEDIA_VISUALIZER_EFFECTS[(i - 1 + n) % n];
+}
+
 /** Label key for the effect, so the visualizer names what it just cycled to. */
 export function visualizerLabelKey(key: string): string {
   const normalized = normalizeVisualizerEffect(key);

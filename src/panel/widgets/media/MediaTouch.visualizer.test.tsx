@@ -45,12 +45,13 @@ vi.mock('./MediaLiveBackground', async () => {
 });
 
 const { MediaTouch } = await import('./MediaTouch');
-const { DEFAULT_MEDIA_VISUALIZER, nextVisualizerEffect } = await import('./mediaVisualizers');
+const { DEFAULT_MEDIA_VISUALIZER, nextVisualizerEffect, prevVisualizerEffect } = await import('./mediaVisualizers');
 
 const SHOW = 'panel.media.visualizer.show';
 const HIDE = 'panel.media.visualizer.hide';
 const NEXT = 'panel.media.visualizer.next';
 const REVEAL = 'panel.media.visualizer.showControls';
+const PREV = 'panel.media.visualizer.prev';
 
 function renderTouch(config: Record<string, unknown> = {}, onUpdate?: (c: Record<string, unknown>) => void) {
   const widget = { id: 'm', type: 'media', size: '4x4', col: 0, row: 0, config };
@@ -135,6 +136,65 @@ describe('media immersive visualizer', () => {
     const surface = screen.getByLabelText(NEXT);
     fireEvent.pointerDown(surface);
     fireEvent.click(surface, { detail: 1 });
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(nextVisualizerEffect(DEFAULT_MEDIA_VISUALIZER));
+  });
+
+  // The close swipe can start on the surface; a mouse still clicks at its end.
+  it('does not cycle on a press that travelled like a swipe', async () => {
+    renderTouch({ visualizer: true });
+    await waitFor(() => expect(fadeGroup().dataset.revealed).toBe('true'));
+    const surface = screen.getByLabelText(NEXT);
+    expect(surface.closest('[data-panel-tap-surface="true"]')).not.toBeNull();
+    expect(surface.closest('[data-panel-no-sheet-swipe]')).toBeNull();
+    fireEvent.pointerDown(surface, { clientX: 100, clientY: 100 });
+    fireEvent.click(surface, { detail: 1, clientX: 100, clientY: 260 });
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(DEFAULT_MEDIA_VISUALIZER);
+  });
+
+  it('steps back an effect from the left side', async () => {
+    renderTouch({ visualizer: true });
+    await waitFor(() => expect(fadeGroup().dataset.revealed).toBe('true'));
+    fireEvent.click(screen.getByLabelText(PREV));
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(prevVisualizerEffect(DEFAULT_MEDIA_VISUALIZER));
+  });
+
+  it('shows the side arrows on a centre tap, changes nothing, and hides them again', async () => {
+    renderTouch({ visualizer: true });
+    await waitFor(() => expect(fadeGroup().dataset.revealed).toBe('true'));
+    const nav = screen.getByLabelText(NEXT).parentElement!;
+    expect(nav.dataset.arrowsVisible).toBe('false');
+    fireEvent.click(screen.getByLabelText(REVEAL));
+    expect(nav.dataset.arrowsVisible).toBe('true');
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(DEFAULT_MEDIA_VISUALIZER);
+    act(() => { vi.advanceTimersByTime(2_600); });
+    expect(nav.dataset.arrowsVisible).toBe('false');
+  });
+
+  function fadeControls(rect: { left: number; top: number; right: number; bottom: number }) {
+    act(() => { vi.advanceTimersByTime(3_100); });
+    expect(fadeGroup().dataset.revealed).toBe('false');
+    const control = fadeGroup().querySelector('button')!;
+    control.getBoundingClientRect = () => ({ ...rect, x: rect.left, y: rect.top, width: rect.right - rect.left, height: rect.bottom - rect.top, toJSON: () => {} });
+  }
+
+  it('brings the controls back instead of stepping when a side tap lands on a faded control', async () => {
+    renderTouch({ visualizer: true });
+    await waitFor(() => expect(fadeGroup().dataset.revealed).toBe('true'));
+    fadeControls({ left: 0, top: 500, right: 60, bottom: 560 });
+    const next = screen.getByLabelText(NEXT);
+    fireEvent.pointerDown(next, { clientX: 30, clientY: 530 });
+    fireEvent.click(next, { detail: 1, clientX: 30, clientY: 530 });
+    expect(screen.getByTestId('visualizer').dataset.effect).toBe(DEFAULT_MEDIA_VISUALIZER);
+    expect(fadeGroup().dataset.revealed).toBe('true');
+  });
+
+  it('steps from a side tap clear of any faded control', async () => {
+    renderTouch({ visualizer: true });
+    await waitFor(() => expect(fadeGroup().dataset.revealed).toBe('true'));
+    fadeControls({ left: 0, top: 500, right: 60, bottom: 560 });
+    const next = screen.getByLabelText(NEXT);
+    fireEvent.pointerDown(next, { clientX: 30, clientY: 100 });
+    fireEvent.click(next, { detail: 1, clientX: 30, clientY: 100 });
     expect(screen.getByTestId('visualizer').dataset.effect).toBe(nextVisualizerEffect(DEFAULT_MEDIA_VISUALIZER));
   });
 

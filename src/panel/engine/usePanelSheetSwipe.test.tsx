@@ -35,6 +35,7 @@ function SheetSwipeHarness() {
     >
       <input data-testid="range" type="range" />
       <div data-testid="blank">blank</div>
+      <button type="button" data-testid="tap-surface" data-panel-tap-surface="true" />
     </div>
   );
 }
@@ -106,6 +107,23 @@ describe('usePanelSheetSwipe', () => {
       dispatchTouch(blank, 'touchmove', 120, 160, 16);
     });
 
+    expect(sheet).toHaveAttribute('data-state', 'dragging');
+  });
+
+  it('lets a tap surface keep tap-sized travel but engages a real swipe from it', () => {
+    render(<SheetSwipeHarness />);
+    const sheet = screen.getByTestId('sheet');
+    const surface = screen.getByTestId('tap-surface');
+
+    act(() => {
+      dispatchTouch(surface, 'touchstart', 120, 120, 0);
+      dispatchTouch(surface, 'touchmove', 120, 136, 16);
+    });
+    expect(sheet).toHaveAttribute('data-state', 'idle');
+
+    act(() => {
+      dispatchTouch(surface, 'touchmove', 120, 170, 32);
+    });
     expect(sheet).toHaveAttribute('data-state', 'dragging');
   });
 });

@@ -26,6 +26,8 @@ export async function completeFeaturesOnboarding() {
 
 export interface PanelSwipeOnboardingResponse {
   completed: boolean;
+  // Absent from a service that predates the immersive hint.
+  immersiveCompleted?: boolean;
 }
 
 /** Touch-panel swipe-up hint flag; panel-reachable, unlike the flags above. */
@@ -35,6 +37,10 @@ export async function fetchPanelSwipeOnboarding() {
 
 export async function completePanelSwipeOnboarding() {
   return postService<PanelSwipeOnboardingResponse>('/onboarding/panel-swipe/complete', {});
+}
+
+export async function completeImmersiveSwipeOnboarding() {
+  return postService<PanelSwipeOnboardingResponse>('/onboarding/panel-swipe/immersive/complete', {});
 }
 
 /** Replays the whole first-run sequence, import steps included where still detected. */

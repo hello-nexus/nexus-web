@@ -4,6 +4,7 @@ import type { AppManifest } from '../types';
 import { ClockWidget } from './ClockWidget';
 import { ClockSettings } from './ClockSettings';
 import { makeWidgetTouchView } from '../common/WidgetTouchView';
+import { CLOCK_DESIGNS } from './designs';
 
 // Code-split: Page only loads when the dashboard navigates into the
 // immersive view. Widget + Touch stay eager so panel cells render
@@ -23,6 +24,8 @@ export const clockApp: AppManifest = {
   },
   Widget: ClockWidget,
   Page: ClockPage,
-  Touch: makeWidgetTouchView(ClockWidget),
+  Touch: makeWidgetTouchView(ClockWidget, {
+    bleed: widget => CLOCK_DESIGNS[(widget.config?.design as string | undefined) ?? 'digital']?.fullBleed === true,
+  }),
   Settings: ClockSettings,
 };

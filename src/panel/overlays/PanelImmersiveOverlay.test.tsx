@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CONFIRM_WINDOW_MS, NOTCH_FADE_DELAY_MS, PanelImmersiveOverlay } from './PanelImmersiveOverlay';
+import { SWIPE_HINT_PERIOD_MS, SWIPE_HINT_VISIBLE_MS } from '../engine/usePanelSwipeOnboarding';
 import { pushModalStackEntry, removeModalStackEntry } from '../../components/common/Overlay/modalStack';
 import styles from './PanelImmersiveOverlay.module.scss';
 
@@ -447,6 +448,103 @@ describe('PanelImmersiveOverlay', () => {
 
         act(() => { vi.runAllTimers(); });
         expect(onExit).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
+  function stubOverlayRect() {
+    screen.getByRole('dialog').getBoundingClientRect = () => ({
+      x: 0, y: 0, top: 0, left: 0, right: window.innerWidth, bottom: 800,
+      width: window.innerWidth, height: 800, toJSON: () => {},
+    });
+  }
+
+  // A finger sliding in from above the screen lands on the notch at top centre.
+  it('closes on a swipe that starts on the close notch', () => {
+    vi.useFakeTimers();
+    try {
+      const onExit = vi.fn();
+      render(
+        <PanelImmersiveOverlay open onExit={onExit}>
+          <div>content</div>
+        </PanelImmersiveOverlay>,
+      );
+      stubOverlayRect();
+      const notch = screen.getByLabelText(CLOSE);
+      act(() => {
+        dispatchTouch(notch, 'touchstart', 100, 10, 0);
+        dispatchTouch(notch, 'touchmove', 100, 120, 16);
+      });
+      act(() => { dispatchTouch(notch, 'touchend', 100, 120, 32); });
+      act(() => { vi.runAllTimers(); });
+      expect(onExit).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The strip sits over the content, so a swipe in from the bezel closes and
+  // never reaches a drawing surface or game underneath.
+  it('closes on a swipe that starts on the top edge strip, without the content seeing it', () => {
+    vi.useFakeTimers();
+    try {
+      const onExit = vi.fn();
+      const onContentTouch = vi.fn();
+      render(
+        <PanelImmersiveOverlay open onExit={onExit}>
+          <div onTouchStart={onContentTouch}>content</div>
+        </PanelImmersiveOverlay>,
+      );
+      stubOverlayRect();
+      const strip = screen.getByRole('dialog').querySelector(`.${styles.edgeCatcher}`)!;
+      act(() => {
+        dispatchTouch(strip, 'touchstart', 300, 4, 0);
+        dispatchTouch(strip, 'touchmove', 300, 120, 16);
+      });
+      act(() => { dispatchTouch(strip, 'touchend', 300, 120, 32); });
+      act(() => { vi.runAllTimers(); });
+      expect(onExit).toHaveBeenCalledTimes(1);
+      expect(onContentTouch).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  describe('first-run swipe-down hint', () => {
+    const HINT = 'panel.immersive.swipeHint';
+
+    it('shows once the slide-in settles, then again every hint period', () => {
+      vi.useFakeTimers();
+      try {
+        render(
+          <PanelImmersiveOverlay open onExit={() => {}} swipeHint>
+            <div>content</div>
+          </PanelImmersiveOverlay>,
+        );
+        expect(screen.queryByLabelText(HINT)).toBeNull();
+        act(() => { vi.advanceTimersByTime(300); });
+        expect(screen.getByLabelText(HINT)).toHaveAttribute('data-direction', 'down');
+        act(() => { vi.advanceTimersByTime(SWIPE_HINT_VISIBLE_MS); });
+        expect(screen.queryByLabelText(HINT)).toBeNull();
+        act(() => { vi.advanceTimersByTime(SWIPE_HINT_PERIOD_MS - SWIPE_HINT_VISIBLE_MS); });
+        expect(screen.getByLabelText(HINT)).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('never shows without swipeHint', () => {
+      vi.useFakeTimers();
+      try {
+        render(
+          <PanelImmersiveOverlay open onExit={() => {}}>
+            <div>content</div>
+          </PanelImmersiveOverlay>,
+        );
+        act(() => { vi.advanceTimersByTime(SWIPE_HINT_PERIOD_MS + 300); });
+        expect(screen.queryByLabelText(HINT)).toBeNull();
       } finally {
         vi.useRealTimers();
       }

@@ -32,6 +32,9 @@ interface SwipeResult {
 }
 
 const ENGAGE_DELTA = 6;
+// Engage distance for a touch on a tap target: past a touchscreen's tap slop,
+// so a tap never engages the drag and an engaged swipe fires no click.
+const TAP_SAFE_ENGAGE_DELTA = 24;
 const SETTLE_MS = 240;
 
 export function usePanelSheetSwipe({
@@ -67,6 +70,7 @@ export function usePanelSheetSwipe({
     let velocity = 0;
     let isDragging = false;
     let startedAtTop = false;
+    let engageDelta = ENGAGE_DELTA;
 
     const onStart = (t: GestureContact) => {
       // Side-anchored sheets (landscape phone settings, wide-screen desktop)
@@ -86,19 +90,21 @@ export function usePanelSheetSwipe({
         startedAtTop = false;
         return;
       }
-      if (isSheetSwipeControlTarget(t.target as Element | null, sheet)) {
+      const target = t.target as Element | null;
+      if (isSheetSwipeControlTarget(target, sheet)) {
         isDragging = false;
         startedAtTop = false;
         return;
       }
 
+      engageDelta = isTapSurfaceTarget(target, sheet) ? TAP_SAFE_ENGAGE_DELTA : ENGAGE_DELTA;
       startY = t.clientY;
       startX = t.clientX;
       lastY = t.clientY;
       lastTime = t.timeStamp;
       velocity = 0;
       isDragging = false;
-      const scroller = findScroller(t.target as Element | null, sheet, 'y');
+      const scroller = findScroller(target, sheet, 'y');
       startedAtTop = (scroller?.scrollTop ?? 0) <= 0;
       clearSettle();
     };
@@ -108,7 +114,7 @@ export function usePanelSheetSwipe({
       const deltaX = t.clientX - startX;
 
       if (!isDragging) {
-        if (deltaY <= ENGAGE_DELTA) return;
+        if (deltaY <= engageDelta) return;
         if (Math.abs(deltaX) > deltaY) return;
         if (!startedAtTop) return;
         isDragging = true;
@@ -121,7 +127,7 @@ export function usePanelSheetSwipe({
         if (dt > 0) velocity = (t.clientY - lastY) / dt;
         lastY = t.clientY;
         lastTime = t.timeStamp;
-        setOffset(Math.max(0, deltaY - ENGAGE_DELTA));
+        setOffset(Math.max(0, deltaY - engageDelta));
       }
     };
 
@@ -132,7 +138,7 @@ export function usePanelSheetSwipe({
       }
       isDragging = false;
       const sheetHeight = sheet.offsetHeight || 1;
-      const totalDelta = Math.max(0, lastY - startY - ENGAGE_DELTA);
+      const totalDelta = Math.max(0, lastY - startY - engageDelta);
       const dismissed =
         velocity > dismissVelocity ||
         totalDelta > sheetHeight * dismissDistanceFraction;
@@ -175,6 +181,12 @@ function isSheetSwipeControlTarget(start: Element | null, until: HTMLElement): b
     node = node.parentElement;
   }
   return false;
+}
+
+// Taps on a tap surface stay taps, but a swipe from it still dismisses.
+function isTapSurfaceTarget(start: Element | null, until: HTMLElement): boolean {
+  const surface = start instanceof Element ? start.closest('[data-panel-tap-surface="true"]') : null;
+  return surface !== null && until.contains(surface);
 }
 
 // Walks up from the touch target to the sheet root and returns the first

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { completePanelSwipeOnboarding, fetchPanelSwipeOnboarding } from '../../api/onboarding';
+import { useCallback, useEffect, useState } from 'react';
+import { completeImmersiveSwipeOnboarding, completePanelSwipeOnboarding, fetchPanelSwipeOnboarding } from '../../api/onboarding';
 import { useTopicCallback } from '../../hooks/useMultiplexSocket';
 
 // Swipe-up hand shown every period until the actions tray opens once; the
 // first open marks the install done (settings.json, cleared by a factory
-// reset or the Settings onboarding reset).
+// reset or the Settings onboarding reset). The immersive swipe-down hand
+// follows the same rules, ended by the first close of an immersive view.
 export const SWIPE_HINT_PERIOD_MS = 10_000;
 export const SWIPE_HINT_CYCLE_MS = 1200;
 export const SWIPE_HINT_CYCLES = 3;
@@ -30,6 +31,7 @@ interface Options {
 
 export function usePanelSwipeOnboarding({ enabled, blocked, trayOpen }: Options) {
   const [status, setStatus] = useState<Status>('unknown');
+  const [immersiveStatus, setImmersiveStatus] = useState<Status>('unknown');
   const [hintVisible, setHintVisible] = useState(false);
 
   const [readKey, setReadKey] = useState(0);
@@ -39,8 +41,16 @@ export function usePanelSwipeOnboarding({ enabled, blocked, trayOpen }: Options)
     if (!enabled) return;
     let cancelled = false;
     fetchPanelSwipeOnboarding()
-      .then(data => { if (!cancelled) setStatus(data?.completed === false ? 'pending' : 'completed'); })
-      .catch(() => { if (!cancelled) setStatus('completed'); });
+      .then(data => {
+        if (cancelled) return;
+        setStatus(data?.completed === false ? 'pending' : 'completed');
+        setImmersiveStatus(data?.immersiveCompleted === false ? 'pending' : 'completed');
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStatus('completed');
+        setImmersiveStatus('completed');
+      });
     return () => { cancelled = true; };
   }, [enabled, readKey]);
   // POST /onboarding/reset broadcasts prefs, so a live kiosk picks the
@@ -73,5 +83,11 @@ export function usePanelSwipeOnboarding({ enabled, blocked, trayOpen }: Options)
     completePanelSwipeOnboarding().catch(() => {});
   }, [trayOpen, status]);
 
-  return { hintVisible };
+  const completeImmersive = useCallback(() => {
+    if (immersiveStatus !== 'pending') return;
+    setImmersiveStatus('completed');
+    completeImmersiveSwipeOnboarding().catch(() => {});
+  }, [immersiveStatus]);
+
+  return { hintVisible, immersiveHintPending: enabled && immersiveStatus === 'pending', completeImmersive };
 }

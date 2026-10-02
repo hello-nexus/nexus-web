@@ -1067,6 +1067,11 @@ export function PanelContent({
     blocked: connectionIntroBlocked || Boolean(connectionIntroHost),
     trayOpen,
   });
+  const { completeImmersive } = swipeOnboarding;
+  const handleImmersiveClose = useCallback(() => {
+    if (!immersiveOpenedOnLoad) completeImmersive();
+    handleImmersiveExit();
+  }, [completeImmersive, handleImmersiveExit, immersiveOpenedOnLoad]);
   const connectionIntroLabel = (() => {
     const label = t('panel.connectedTo');
     return label === 'panel.connectedTo' ? 'Connected to' : label;
@@ -2055,11 +2060,13 @@ export function PanelContent({
             key={`${immersiveWidgetId}-${immersiveOpenCounter}`}
             instant={immersiveOpenedOnLoad}
             open
-            onExit={handleImmersiveExit}
+            onExit={handleImmersiveClose}
             themeStyle={immersiveThemeStyle}
             themeMode={resolvedThemeMode}
             surface={surface}
             confirmClose={def.meta.immersiveDoubleSwipe}
+            // Only an open the user made: an immersive-on-load kiosk would show it for good.
+            swipeHint={swipeOnboarding.immersiveHintPending && !immersiveOpenedOnLoad}
           >
             <Comp
               widget={w}

@@ -3,7 +3,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  // No outer padding here; ImmersiveLayout's .layout owns page padding.
+  // ImmersiveLayout insets a padded widget; a full-bleed one insets itself.
   padding: 0;
   box-sizing: border-box;
   font-size: 1.05em;

@@ -4,6 +4,8 @@ import { ImmersiveExitProvider } from './immersiveExit';
 import { PanelImmersiveProvider } from '../widgets/common/PanelImmersiveContext';
 import { useModalA11y } from '../../components/common/Overlay/useModalA11y';
 import { useTranslation } from '../../lib/i18n';
+import { PanelSwipeHint } from '../chrome/PanelSwipeHint';
+import { SWIPE_HINT_PERIOD_MS, SWIPE_HINT_VISIBLE_MS } from '../engine/usePanelSwipeOnboarding';
 import styles from './PanelImmersiveOverlay.module.scss';
 
 interface PanelImmersiveOverlayProps {
@@ -25,6 +27,8 @@ interface PanelImmersiveOverlayProps {
   // reveals the close hint, and only a second one before the hint fades again
   // closes. Default: any swipe closes.
   confirmClose?: boolean;
+  // First-run swipe-down hand, shown until the host records a close.
+  swipeHint?: boolean;
 }
 
 const EXIT_MS = 200;
@@ -34,7 +38,7 @@ export const NOTCH_FADE_DELAY_MS = 1500;
 // to close; it stays armed for as long as the hint keeps showing.
 export const CONFIRM_WINDOW_MS = 3000;
 
-export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false }: PanelImmersiveOverlayProps) {
+export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false, swipeHint = false }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -194,6 +198,25 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
     return () => window.clearTimeout(t);
   }, [mountState]);
 
+  // Shows once the slide-in settles, then every period; a drag hides it.
+  const [hintVisible, setHintVisible] = useState(false);
+  const hintActive = swipeHint && mountState === 'mounted' && didEnter && swipe.state === 'idle';
+  useEffect(() => {
+    if (!hintActive) return;
+    let hide: ReturnType<typeof window.setTimeout> | null = null;
+    const show = () => {
+      setHintVisible(true);
+      hide = window.setTimeout(() => { hide = null; setHintVisible(false); }, SWIPE_HINT_VISIBLE_MS);
+    };
+    show();
+    const period = window.setInterval(show, SWIPE_HINT_PERIOD_MS);
+    return () => {
+      window.clearInterval(period);
+      if (hide) window.clearTimeout(hide);
+      setHintVisible(false);
+    };
+  }, [hintActive]);
+
   if (mountState === 'unmounted') return null;
 
   const dragTransform = swipe.state === 'idle' && swipe.offset === 0
@@ -223,20 +246,22 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
           <PanelImmersiveProvider value={true}>{children}</PanelImmersiveProvider>
         </ImmersiveExitProvider>
       </div>
+      {/* A finger sliding in from above the screen lands here first, so the
+          close swipe starts on this strip and the content never sees it. */}
+      <div className={styles.edgeCatcher} data-panel-tap-surface="true" aria-hidden="true" />
       <button
         type="button"
         className={styles.exitHint}
         onClick={handleNotchTap}
-        // Marks this so usePanelSheetSwipe.isSheetSwipeControlTarget skips
-        // arming the drag on a touch here. Else the swipe engages on tap,
-        // onClick races the snap-back, and the overlay sticks partway down
-        // on Y70 WebView2.
-        data-panel-no-sheet-swipe="true"
+        // A tap that engaged the drag raced onClick against the snap-back and
+        // left the overlay stuck partway down on Y70 WebView2.
+        data-panel-tap-surface="true"
         // Opacity-only: the hit area, role, and label stay constant while
         // faded so a tap always lands and assistive tech never loses it.
         data-revealed={notchVisible ? 'true' : 'false'}
         aria-label={t('panel.immersive.close')}
       />
+      {hintVisible && <PanelSwipeHint direction="down" />}
     </div>
   );
 }

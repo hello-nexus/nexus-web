@@ -18,7 +18,8 @@ import { formatTrackTime, useLivePositionMs } from './mediaTime';
 import { mediaVolumeTarget } from './mediaVolumeTarget';
 import { MediaVisualizer } from './MediaVisualizer';
 import { MediaLiveBackground } from './MediaLiveBackground';
-import { nextVisualizerEffect, normalizeVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
+import { nextVisualizerEffect, normalizeVisualizerEffect, prevVisualizerEffect, visualizerLabelKey } from './mediaVisualizers';
+import { PanelArrowButton } from '../../chrome/PanelArrowButton';
 import styles from './MediaTouch.module.scss';
 
 interface MediaArtAsset {
@@ -53,6 +54,10 @@ function isImageBlob(blob: Blob | null): blob is Blob {
 const CONTROLS_IDLE_MS = 3_000;
 // How long the effect name stays up after a cycle tap.
 const EFFECT_TOAST_MS = 1_600;
+// Travel past this is a swipe, not a tap; a mouse still clicks at its end.
+const SURFACE_TAP_SLOP = 10;
+// How long the effect arrows stay up after a tap on the visualizer.
+const ARROWS_VISIBLE_MS = 2_500;
 
 export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpdate }: WidgetProps) {
   const { t } = useTranslation();
@@ -124,10 +129,10 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   const [shaderUnavailable, setShaderUnavailable] = useState(false);
   const liveBackground = widget?.config?.liveBackground === true && !visualizerOn;
   const [liveShowing, setLiveShowing] = useState(false);
-  // Set by a press that starts on the visualizer surface. The tap that turns
-  // the visualizer on commits on pointerup, the layout swaps, and its click
-  // then lands on the new surface; without this it cycled the effect.
-  const surfacePressRef = useRef(false);
+  // Where a press on the visualizer surface or its arrows landed. The tap that
+  // turns the visualizer on commits on pointerup, the layout swaps, and its
+  // click then lands on the new surface; without this it cycled the effect.
+  const surfacePressRef = useRef<{ x: number; y: number } | null>(null);
 
   const revealControls = useCallback(() => {
     setControlsRevealed(true);
@@ -147,7 +152,7 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   }, [effectToast]);
 
   const toggleVisualizer = useCallback(() => {
-    surfacePressRef.current = false;
+    surfacePressRef.current = null;
     setVisualizerOn(on => {
       const next = !on;
       onUpdate?.({ visualizer: next });
@@ -156,20 +161,63 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
     revealControls();
   }, [onUpdate, revealControls]);
 
-  // A tap with the controls faded only brings them back; a tap while they are
-  // up cycles the effect. Cycling on the reveal tap too would change the
-  // visualizer every time the user reached for the pause button.
-  const handleVisualizerTap = useCallback(() => {
-    if (!controlsRevealed) { revealControls(); return; }
+  const [arrowsVisible, setArrowsVisible] = useState(false);
+  const [arrowsNonce, setArrowsNonce] = useState(0);
+  const revealArrows = useCallback(() => {
+    setArrowsVisible(true);
+    setArrowsNonce(n => n + 1);
+  }, []);
+  useEffect(() => {
+    if (!arrowsVisible) return;
+    const id = window.setTimeout(() => setArrowsVisible(false), ARROWS_VISIBLE_MS);
+    return () => window.clearTimeout(id);
+  }, [arrowsVisible, arrowsNonce]);
+
+  // The left and right thirds step the effect; the centre only shows where to tap.
+  const stepEffect = useCallback((step: 1 | -1) => {
     setEffect(current => {
-      const next = nextVisualizerEffect(current);
+      const next = step > 0 ? nextVisualizerEffect(current) : prevVisualizerEffect(current);
       onUpdate?.({ visualizerEffect: next });
       return next;
     });
     setShaderUnavailable(false);
     setEffectToast(n => n + 1);
+    revealArrows();
     revealControls();
-  }, [controlsRevealed, onUpdate, revealControls]);
+  }, [onUpdate, revealArrows, revealControls]);
+
+  // detail 0 is a keyboard activation, which has no pointerdown.
+  const takeSurfaceTap = useCallback((event: React.MouseEvent) => {
+    const press = surfacePressRef.current;
+    surfacePressRef.current = null;
+    return event.detail === 0
+      || (press !== null && Math.hypot(event.clientX - press.x, event.clientY - press.y) <= SURFACE_TAP_SLOP);
+  }, []);
+  const recordSurfacePress = useCallback((event: React.PointerEvent) => {
+    surfacePressRef.current = { x: event.clientX, y: event.clientY };
+  }, []);
+  const clearSurfacePress = useCallback(() => { surfacePressRef.current = null; }, []);
+
+  // A faded control keeps its spot: a side tap landing on one brings the
+  // controls back instead of stepping the effect.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const overFadedControl = useCallback((x: number, y: number) => {
+    if (controlsRevealed) return false;
+    const group = rootRef.current?.querySelector(`.${styles.fadeGroup}`);
+    return Array.from(group?.querySelectorAll('button, [role="slider"]') ?? []).some(el => {
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    });
+  }, [controlsRevealed]);
+  const handleSideTap = useCallback((event: React.MouseEvent, step: 1 | -1) => {
+    if (!takeSurfaceTap(event)) return;
+    if (overFadedControl(event.clientX, event.clientY)) {
+      revealControls();
+      revealArrows();
+      return;
+    }
+    stepEffect(step);
+  }, [overFadedControl, revealArrows, revealControls, stepEffect, takeSurfaceTap]);
 
   if (!active) {
     return (
@@ -206,6 +254,7 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   );
   return (
     <div
+      ref={rootRef}
       className={styles.immersiveRoot}
       data-visualizer={visualizerOn ? 'true' : undefined}
       data-live={liveBackground && liveShowing ? 'true' : undefined}
@@ -239,19 +288,37 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
           <button
             type="button"
             className={styles.visualizerSurface}
-            onPointerDown={() => { surfacePressRef.current = true; }}
-            onPointerCancel={() => { surfacePressRef.current = false; }}
+            onPointerDown={recordSurfacePress}
+            onPointerCancel={clearSurfacePress}
             onClick={event => {
-              // detail 0 is a keyboard activation, which has no pointerdown.
-              if (event.detail !== 0 && !surfacePressRef.current) return;
-              surfacePressRef.current = false;
-              handleVisualizerTap();
+              if (!takeSurfaceTap(event)) return;
+              revealControls();
+              revealArrows();
             }}
-            // The sheet-swipe engine arms a drag on plain touches; without this
-            // the tap races the overlay's snap-back and the cycle is dropped.
-            data-panel-no-sheet-swipe="true"
-            aria-label={t(controlsRevealed ? 'panel.media.visualizer.next' : 'panel.media.visualizer.showControls')}
+            // A swipe down from here still closes.
+            data-panel-tap-surface="true"
+            aria-label={t('panel.media.visualizer.showControls')}
           />
+          <div
+            className={styles.visualizerNav}
+            data-arrows-visible={arrowsVisible ? 'true' : 'false'}
+            data-panel-tap-surface="true"
+            onPointerDown={recordSurfacePress}
+            onPointerCancel={clearSurfacePress}
+          >
+            <PanelArrowButton
+              side="prev"
+              className={styles.visualizerArrow}
+              onClick={event => handleSideTap(event, -1)}
+              ariaLabel={t('panel.media.visualizer.prev')}
+            />
+            <PanelArrowButton
+              side="next"
+              className={styles.visualizerArrow}
+              onClick={event => handleSideTap(event, 1)}
+              ariaLabel={t('panel.media.visualizer.next')}
+            />
+          </div>
           {effectToast > 0 && (
             <div className={styles.visualizerToast} role="status">{t(visualizerLabelKey(effect))}</div>
           )}

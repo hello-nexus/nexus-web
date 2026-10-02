@@ -50,4 +50,18 @@ describe('makeWidgetTouchView', () => {
     expect(probe().dataset.size).toBe('4x4');
     cleanup();
   });
+
+  it('insets the widget inside the immersive layout by default', () => {
+    const { container } = render(<Wrapped widget={widget} surface="y70" immersiveGrid={{ columns: 4, rows: 8 }} />);
+    expect(container.querySelector('[data-orientation]')).not.toBeNull();
+    cleanup();
+  });
+
+  it('renders a bleeding widget straight into the frame, with no layout inset around it', () => {
+    const Bleeding = makeWidgetTouchView(Probe, { bleed: () => true });
+    const { container } = render(<Bleeding widget={widget} surface="y70" immersiveGrid={{ columns: 4, rows: 8 }} />);
+    expect(container.querySelector('[data-orientation]')).toBeNull();
+    expect(probe().dataset.size).toBe('4x4');
+    cleanup();
+  });
 });

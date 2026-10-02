@@ -16,6 +16,10 @@
   // smart-lights, home-assistant, benchmark, screentime) scroll natively - so
   // permit both pan axes and withhold only pinch-zoom and double-tap zoom.
   touch-action: pan-x pan-y;
+  // Content clearance from the frame edge, in the body's zoomed px. A view pads
+  // by it on the element that paints its background, so the fill still
+  // reaches the edge.
+  --immersive-inset: 12px;
   // Safe-area only (no extra 12px): immersive content fills edge-to-edge like
   // the grid so the widget renders at its tile width.
   padding:
@@ -94,6 +98,17 @@
   &:active::before {
     opacity: 1;
   }
+}
+
+// Covers only the top inset band, which holds no content, so it never sits
+// over a control. Below the close notch, above the content.
+.edgeCatcher {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(env(safe-area-inset-top) + var(--immersive-inset) * var(--panel-scale, 1));
+  z-index: 209;
 }
 
 .exitHint[data-revealed='false'] {
