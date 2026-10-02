@@ -3067,7 +3067,7 @@
   "panel.media.volumeTarget.mode": "Steuert",
   "panel.media.volumeTarget.output": "Ausgabegerät",
   "panel.media.volumeTarget.show": "Lautstärkeregler anzeigen",
-  "panel.media.volumeTarget.showSource": "Quelle immer anzeigen",
+  "panel.media.volumeTarget.showSource": "Anzeigen, was er steuert",
   "panel.media.volumeTarget.systemDefault": "Systemstandard",
   "panel.pages.label": "Panel-Seiten",
   "panel.playlist.hint": "Klicke auf ein Widget, um es ein- oder auszuschalten. Zum Sortieren ziehen.",

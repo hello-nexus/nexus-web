@@ -3067,7 +3067,7 @@
   "panel.media.volumeTarget.mode": "控制對象",
   "panel.media.volumeTarget.output": "輸出裝置",
   "panel.media.volumeTarget.show": "顯示音量滑桿",
-  "panel.media.volumeTarget.showSource": "一律顯示來源",
+  "panel.media.volumeTarget.showSource": "顯示控制對象",
   "panel.media.volumeTarget.systemDefault": "系統預設",
   "panel.pages.label": "面板頁面",
   "panel.playlist.hint": "點選小工具即可開啟或關閉。拖曳以重新排序。",

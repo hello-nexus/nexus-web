@@ -55,13 +55,13 @@ describe('media volume slider toggle', () => {
     expect(volumeEnabled).not.toHaveBeenCalledWith(true);
   });
 
-  it('labels the slider with its source only when always-show-source is on', () => {
-    const off = render(<MediaWidget widget={widget({})} surface="y70" />);
-    expect(screen.queryByText('Speakers')).toBeNull();
-    off.unmount();
-
-    render(<MediaWidget widget={widget({ showSource: true })} surface="y70" />);
+  it('labels the slider with what it controls unless that is turned off', () => {
+    const on = render(<MediaWidget widget={widget({})} surface="y70" />);
     expect(screen.getByText('Speakers')).toBeTruthy();
+    on.unmount();
+
+    render(<MediaWidget widget={widget({ showSource: false })} surface="y70" />);
+    expect(screen.queryByText('Speakers')).toBeNull();
   });
 
   it('hides the slider in the immersive player when turned off', () => {
