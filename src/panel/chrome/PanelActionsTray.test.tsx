@@ -3,8 +3,9 @@ import { useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelActionsTray } from './PanelActionsTray';
 import { resetGestureAxis } from '../engine/gestureAxisLock';
+import type { PanelSurface } from '../types';
 
-function Harness() {
+function Harness({ surface = 'phone' }: { surface?: PanelSurface }) {
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   return (
     <div ref={surfaceRef} data-testid="surface" style={{ height: 800 }}>
@@ -15,7 +16,7 @@ function Harness() {
         onAddWidget={vi.fn()}
         pairAvailable={false}
         surfaceRef={surfaceRef}
-        surface="phone"
+        surface={surface}
       />
     </div>
   );
@@ -57,6 +58,34 @@ describe('PanelActionsTray swipe-to-open', () => {
       // vertical-dominant, so the tray leaves it to the pager.
       dispatchTouch(surface, 'touchstart', 100, 700, 0);
       dispatchTouch(surface, 'touchmove', 300, 680, 16);
+    });
+
+    expect(tray).toHaveAttribute('data-state', 'closed');
+  });
+
+  // A finger sliding in from below the screen first lands on the bottom edge.
+  it('opens from the very bottom edge on a kiosk panel', () => {
+    render(<Harness surface="y70" />);
+    const surface = screen.getByTestId('surface');
+    const tray = screen.getByLabelText('panel.actions.label');
+
+    act(() => {
+      dispatchTouch(surface, 'touchstart', 100, window.innerHeight - 4, 0);
+      dispatchTouch(surface, 'touchmove', 100, window.innerHeight - 300, 16);
+    });
+
+    expect(tray).toHaveAttribute('data-state', 'dragging');
+  });
+
+  // The phone's system home-indicator band keeps its bottom edge.
+  it('leaves the bottom edge to the system on a phone', () => {
+    render(<Harness surface="phone" />);
+    const surface = screen.getByTestId('surface');
+    const tray = screen.getByLabelText('panel.actions.label');
+
+    act(() => {
+      dispatchTouch(surface, 'touchstart', 100, window.innerHeight - 4, 0);
+      dispatchTouch(surface, 'touchmove', 100, window.innerHeight - 300, 16);
     });
 
     expect(tray).toHaveAttribute('data-state', 'closed');
