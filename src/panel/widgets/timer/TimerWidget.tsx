@@ -6,6 +6,7 @@ import { useFitWidth } from '../common/useFitWidth';
 import { StableDigits } from '../common/StableDigits';
 import { useTranslation } from '../../../lib/i18n';
 import type { WidgetProps } from '../types';
+import { readTimerAlarm, useTimerAlarm } from './timerAlarm';
 import styles from './TimerWidget.module.scss';
 
 function pad(n: number): string {
@@ -30,15 +31,17 @@ export function TimerWidget({ widget }: WidgetProps) {
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
+  const primeAlarm = useTimerAlarm(isComplete, readTimerAlarm(widget.config));
 
   const isWide = widget.size === '4x2' || widget.size === '4x4';
   const canStart = hours > 0 || minutes > 0 || seconds > 0;
 
   const handleStart = useCallback(() => {
     if (!canStart) return;
+    primeAlarm();
     start(hours, minutes, seconds);
     setPhase('running');
-  }, [canStart, hours, minutes, seconds, start]);
+  }, [canStart, hours, minutes, seconds, start, primeAlarm]);
 
   const handleStop = useCallback(() => {
     stop();

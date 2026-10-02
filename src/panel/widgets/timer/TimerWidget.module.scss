@@ -102,9 +102,14 @@
 .container[data-complete='true'] .countdown {
   color: var(--panel-ink-accent, var(--panel-accent-glow));
   text-shadow: 0 0 20px var(--panel-accent-shadow);
+  animation: completeBlink 1s steps(1, end) infinite;
 }
 
 @keyframes completePulse {
   from { background: transparent; }
   to   { background: var(--panel-accent-soft); }
+}
+
+@keyframes completeBlink {
+  50% { opacity: 0; }
 }
