@@ -1,6 +1,7 @@
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { Button } from '../../../../components/common/Button/Button';
+import { SettingsSection } from '../../../../components/common/SettingsSection/SettingsSection';
 import { ColorPickerWithPresets } from '../../../../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import styles from './LedColorLockSection.module.scss';
 
@@ -31,8 +32,8 @@ export function LedColorLockSection({
   const { t, language } = useTranslation();
   if (selectedCount === 0 && lockedCount === 0) return null;
   return (
-    <div className={styles.section}>
-      <div className={styles.header}>{t('lighting.ledMap.color')}</div>
+    <SettingsSection title={t('lighting.ledMap.color')} className={styles.section} boxClassName={styles.box}>
+      <div className={styles.body}>
       {selectedCount > 0 ? (
         <ColorPickerWithPresets
           value={selectedColor}
@@ -60,6 +61,7 @@ export function LedColorLockSection({
       <div className={styles.hint}>
         {selectedCount > 0 ? t('lighting.ledMap.colorHint') : t('lighting.ledMap.colorSelectHint')}
       </div>
-    </div>
+      </div>
+    </SettingsSection>
   );
 }

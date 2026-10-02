@@ -2471,7 +2471,7 @@
   "lighting.ledMap.chainReorder": "{name} verschieben",
   "lighting.ledMap.chainTotal": "Gesamt",
   "lighting.ledMap.clickMulti": "Klicken zur Mehrfachauswahl",
-  "lighting.ledMap.color": "LED-Farbe",
+  "lighting.ledMap.color": "LED-Farbzuweisung",
   "lighting.ledMap.colorClearAll": "Alle entfernen",
   "lighting.ledMap.colorFollowEffect": "Effekt folgen",
   "lighting.ledMap.colorHint": "Gewählte Farben bleiben bei jedem Effekt auf diesen LEDs, bis du sie entfernst.",

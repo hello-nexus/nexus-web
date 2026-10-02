@@ -2471,7 +2471,7 @@
   "lighting.ledMap.chainReorder": "{name} herordenen",
   "lighting.ledMap.chainTotal": "Totaal",
   "lighting.ledMap.clickMulti": "Klik om meerdere te selecteren",
-  "lighting.ledMap.color": "LED-kleur",
+  "lighting.ledMap.color": "LED-kleurtoewijzing",
   "lighting.ledMap.colorClearAll": "Alles wissen",
   "lighting.ledMap.colorFollowEffect": "Effect volgen",
   "lighting.ledMap.colorHint": "Gekozen kleuren blijven bij elk effect op deze LEDs staan tot je ze wist.",

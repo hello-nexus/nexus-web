@@ -2502,7 +2502,7 @@
   "lighting.ledMap.chainReorder": "Переместить {name}",
   "lighting.ledMap.chainTotal": "Всего",
   "lighting.ledMap.clickMulti": "Клик для множественного выбора",
-  "lighting.ledMap.color": "Цвет светодиодов",
+  "lighting.ledMap.color": "Назначение цвета светодиодов",
   "lighting.ledMap.colorClearAll": "Сбросить все",
   "lighting.ledMap.colorFollowEffect": "Следовать эффекту",
   "lighting.ledMap.colorHint": "Выбранные цвета остаются на этих светодиодах поверх любого эффекта, пока вы их не сбросите.",

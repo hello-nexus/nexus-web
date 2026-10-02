@@ -2471,7 +2471,7 @@
   "lighting.ledMap.chainReorder": "{name} öğesini yeniden sırala",
   "lighting.ledMap.chainTotal": "Toplam",
   "lighting.ledMap.clickMulti": "Coklu secim icin tikla",
-  "lighting.ledMap.color": "LED rengi",
+  "lighting.ledMap.color": "LED renk ataması",
   "lighting.ledMap.colorClearAll": "Tümünü temizle",
   "lighting.ledMap.colorFollowEffect": "Efekti takip et",
   "lighting.ledMap.colorHint": "Seçilen renkler, siz temizleyene kadar her efektin üzerinde bu LED'lerde kalır.",

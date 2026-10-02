@@ -1,13 +1,17 @@
 .section {
+  margin-top: var(--space-lg);
+}
+
+// The editor modal is itself --surface, so the box needs its own edge.
+.box {
+  border-color: var(--border-strong);
+  padding-top: var(--space-md);
+}
+
+.body {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
-}
-
-.header {
-  font-size: var(--type-body);
-  font-weight: var(--weight-strong);
-  color: var(--text);
 }
 
 .summary {

@@ -2502,7 +2502,7 @@
   "lighting.ledMap.chainReorder": "Zmień kolejność {name}",
   "lighting.ledMap.chainTotal": "Łącznie",
   "lighting.ledMap.clickMulti": "Kliknij, aby wybrac wiele",
-  "lighting.ledMap.color": "Kolor diod LED",
+  "lighting.ledMap.color": "Przypisanie kolorów LED",
   "lighting.ledMap.colorClearAll": "Wyczyść wszystko",
   "lighting.ledMap.colorFollowEffect": "Podążaj za efektem",
   "lighting.ledMap.colorHint": "Wybrane kolory zostają na tych diodach ponad każdym efektem, dopóki ich nie wyczyścisz.",

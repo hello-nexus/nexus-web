@@ -2471,7 +2471,7 @@
   "lighting.ledMap.chainReorder": "重新排序 {name}",
   "lighting.ledMap.chainTotal": "總計",
   "lighting.ledMap.clickMulti": "點擊多選",
-  "lighting.ledMap.color": "LED 顏色",
+  "lighting.ledMap.color": "LED 顏色指派",
   "lighting.ledMap.colorClearAll": "全部清除",
   "lighting.ledMap.colorFollowEffect": "跟隨效果",
   "lighting.ledMap.colorHint": "選定的顏色會在所有效果之上保留在這些 LED 上，直到你清除它們。",

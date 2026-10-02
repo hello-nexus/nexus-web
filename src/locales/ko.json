@@ -2471,7 +2471,7 @@
   "lighting.ledMap.chainReorder": "{name} 순서 변경",
   "lighting.ledMap.chainTotal": "합계",
   "lighting.ledMap.clickMulti": "클릭하여 다중 선택",
-  "lighting.ledMap.color": "LED 색상",
+  "lighting.ledMap.color": "LED 색상 지정",
   "lighting.ledMap.colorClearAll": "모두 지우기",
   "lighting.ledMap.colorFollowEffect": "효과 따르기",
   "lighting.ledMap.colorHint": "선택한 색상은 지울 때까지 모든 효과보다 우선해 이 LED에 유지됩니다.",

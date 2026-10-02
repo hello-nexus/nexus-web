@@ -2471,7 +2471,7 @@
   "lighting.ledMap.chainReorder": "Riordina {name}",
   "lighting.ledMap.chainTotal": "Totale",
   "lighting.ledMap.clickMulti": "Clic per selezione multipla",
-  "lighting.ledMap.color": "Colore LED",
+  "lighting.ledMap.color": "Assegnazione colore LED",
   "lighting.ledMap.colorClearAll": "Cancella tutto",
   "lighting.ledMap.colorFollowEffect": "Segui l'effetto",
   "lighting.ledMap.colorHint": "I colori scelti restano su questi LED sopra ogni effetto finché non li cancelli.",

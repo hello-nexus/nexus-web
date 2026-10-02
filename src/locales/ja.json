@@ -2471,7 +2471,7 @@
   "lighting.ledMap.chainReorder": "{name}を並べ替え",
   "lighting.ledMap.chainTotal": "合計",
   "lighting.ledMap.clickMulti": "クリックで複数選択",
-  "lighting.ledMap.color": "LED カラー",
+  "lighting.ledMap.color": "LED カラーの割り当て",
   "lighting.ledMap.colorClearAll": "すべてクリア",
   "lighting.ledMap.colorFollowEffect": "エフェクトに従う",
   "lighting.ledMap.colorHint": "選んだ色は、解除するまでどのエフェクトよりも優先してこれらの LED に保持されます。",
