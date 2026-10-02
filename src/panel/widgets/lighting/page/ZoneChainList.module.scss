@@ -1,7 +1,7 @@
 @use '../../../../styles/text' as *;
 
-// The editor's Devices section: a header, then a vertical list of one row per
-// zone in wire order, a footer with the add button, the zone tools and the
+// The editor's Devices section: a header with the zone tools, then a vertical
+// list of one row per zone in wire order, a footer with the add button and the
 // LED total.
 .section {
   display: flex;
@@ -9,7 +9,6 @@
   gap: var(--space-sm);
 }
 
-// Same weight as the lighting page's own pane titles, which this sits beside.
 .headerRow {
   display: flex;
   align-items: center;
@@ -24,6 +23,7 @@
   gap: var(--space-xs);
 }
 
+// Same weight as the lighting page's own pane titles, which this sits beside.
 .header {
   font-size: var(--type-body);
   font-weight: var(--weight-strong);

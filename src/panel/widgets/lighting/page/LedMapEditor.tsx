@@ -2233,7 +2233,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                     disables with an explanatory tooltip for them. */}
                 {COMMUNITY_BUTTON && (
                   <>
-                    <div className={styles.separator} />
+                    {!chainable && <div className={styles.separator} />}
                     <HoverTooltip
                       body={communityEnabled ? t('lighting.ledMap.community') : t('lighting.ledMap.communityUnavailable')}
                       side="top"

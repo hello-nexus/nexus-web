@@ -16,7 +16,8 @@
 .layout {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  // Matches the cooling page's devices-to-curves gap (--rail-gap).
+  gap: 1.5rem;
 
   @media (max-width: 480px) {
     flex-direction: column;
@@ -151,8 +152,8 @@
 }
 
 // LED index number rendered inside the circle. Bold so it stays readable on
-// the coloured LED fills (accent, good, warn). pointer-events none so the
-// underlying .led still owns drag + click.
+// any fill, a locked colour included. pointer-events none so the underlying
+// .led still owns drag + click.
 .ledIndex {
   font-size: 0.6rem;
   font-weight: var(--weight-display);

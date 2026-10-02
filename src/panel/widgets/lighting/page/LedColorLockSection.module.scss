@@ -3,7 +3,8 @@
 }
 
 // The editor modal is itself --surface, so the box needs its own edge.
-.box {
+// Scoped under .section to outrank SettingsSection's own .box.
+.section .box {
   border-color: var(--border-strong);
   padding-top: var(--space-md);
 }
