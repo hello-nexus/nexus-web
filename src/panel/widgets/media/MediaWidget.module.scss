@@ -170,7 +170,9 @@
   }
 }
 
-.square.full .controls {
+// Centred in the playback column, which ends at the volume rail - or at the
+// tile's edge when the rail is off.
+.full .controls {
   justify-content: center;
 }
 
