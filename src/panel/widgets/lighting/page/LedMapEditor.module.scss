@@ -135,6 +135,11 @@
     background: color-mix(in srgb, var(--warn) 48%, #000 52%);
   }
 
+  // Holds a colour over every effect: the fill is that colour.
+  &.ledLocked {
+    background: var(--led-lock-color);
+  }
+
   &.ledCustom {
     outline: 2px dashed var(--text-dim);
     outline-offset: 1px;

@@ -728,6 +728,21 @@ export const fetchLedMap = (id: string) =>
 export const highlightLeds = (id: string, indices: number[]) =>
   postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-highlight`, { indices });
 
+export interface LedColorsResponse {
+  /** Zone-local LED index and its locked "#rrggbb". */
+  leds: { index: number; color: string }[];
+}
+
+export const fetchLedColors = (id: string) =>
+  fetchService<LedColorsResponse>(`/devices/lighting-devices/${encodeURIComponent(id)}/led-colors`);
+
+/** Locks the zone-local LEDs to `color`; an empty colour unlocks them. */
+export const setLedColors = (id: string, indices: number[], color: string) =>
+  postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-colors`, { indices, color });
+
+export const clearLedColors = (id: string) =>
+  deleteService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-colors`);
+
 export const testLedPattern = (id: string, pattern: string) =>
   postService(`/devices/lighting-devices/${encodeURIComponent(id)}/led-test-pattern`, { pattern });
 

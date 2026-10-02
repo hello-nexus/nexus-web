@@ -1,0 +1,25 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.header {
+  font-size: var(--type-body);
+  font-weight: var(--weight-strong);
+  color: var(--text);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.hint {
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
