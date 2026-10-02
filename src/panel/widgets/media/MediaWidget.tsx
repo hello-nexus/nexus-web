@@ -16,7 +16,7 @@ import { PanelMixerSlider } from '../common/PanelMixerSlider';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { mediaArtSignature } from './mediaArt';
 import { useLivePositionMs } from './mediaTime';
-import { mediaVolumeTarget } from './mediaVolumeTarget';
+import { mediaShowsVolume, mediaVolumeTarget } from './mediaVolumeTarget';
 import { MediaLiveBackground } from './MediaLiveBackground';
 import { normalizeVisualizerEffect } from './mediaVisualizers';
 import { MEDIA_PREVIEW } from './mediaPreviewData';
@@ -58,8 +58,9 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const activeKey = active?.key ?? '';
   // Tall (2x4) is a portrait card (art over centered metadata +
   // controls) with no room for the persistent volume mixer rail.
+  const volumeAllowed = showControls && !compact && !tall && mediaShowsVolume(widget);
   const volumeBridge = useSystemVolume(
-    showControls && !compact && !tall && !preview,
+    volumeAllowed && !preview,
     mediaVolumeTarget(widget, activeKey),
   );
   const { state: liveVolume, previewVolume, commitVolume, setMuted } = volumeBridge;
@@ -72,7 +73,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
     !preview && !!active?.session.playback.playing && !active.session.playback.stopped,
   );
   const artSignature = mediaArtSignature(active?.session);
-  const showVolume = showControls && !compact && !tall && volume.supported;
+  const showVolume = volumeAllowed && volume.supported;
   const artResolved = artAsset.key === activeKey && artAsset.signature === artSignature;
   const artUrl = artResolved ? artAsset.url : '';
   const liveBackground = widget.config?.liveBackground === true;

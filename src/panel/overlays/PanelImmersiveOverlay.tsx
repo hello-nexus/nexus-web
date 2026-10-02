@@ -25,6 +25,8 @@ interface PanelImmersiveOverlayProps {
   // reveals the close hint, and only a second one before the hint fades again
   // closes. Default: any swipe closes.
   confirmClose?: boolean;
+  // Paint no background, so the panel background behind shows through.
+  seeThrough?: boolean;
 }
 
 const EXIT_MS = 200;
@@ -34,7 +36,7 @@ export const NOTCH_FADE_DELAY_MS = 1500;
 // to close; it stays armed for as long as the hint keeps showing.
 export const CONFIRM_WINDOW_MS = 3000;
 
-export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false }: PanelImmersiveOverlayProps) {
+export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, themeMode, surface, instant = false, confirmClose = false, seeThrough = false }: PanelImmersiveOverlayProps) {
   const { t } = useTranslation();
   const [mountState, setMountState] = useState<'mounted' | 'exiting' | 'unmounted'>(
     open ? 'mounted' : 'unmounted',
@@ -213,6 +215,7 @@ export function PanelImmersiveOverlay({ open, onExit, children, themeStyle, them
       data-entered={didEnter ? 'true' : undefined}
       data-theme={themeMode}
       data-surface={surface}
+      data-see-through={seeThrough ? 'true' : undefined}
       style={composedStyle}
       role="dialog"
       aria-modal="true"

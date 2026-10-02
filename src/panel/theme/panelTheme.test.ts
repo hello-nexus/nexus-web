@@ -28,6 +28,7 @@ const baseTheme: PanelThemeState = {
   backgroundSlideshowFinishVideos: true,
   backgroundMediaOrder: [],
   backgroundFrost: 100,
+  immersiveBackdrop: true,
   widgetOpacity: 1,
   widgetLabels: true,
   widgetPadding: 50,

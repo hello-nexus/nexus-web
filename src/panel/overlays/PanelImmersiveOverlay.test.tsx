@@ -42,6 +42,23 @@ describe('PanelImmersiveOverlay', () => {
     expect(screen.getByRole('dialog').className).toContain(styles.overlay);
   });
 
+  it('marks the overlay see-through only when asked', () => {
+    const solid = render(
+      <PanelImmersiveOverlay open onExit={() => {}}>
+        <div>content</div>
+      </PanelImmersiveOverlay>,
+    );
+    expect(screen.getByRole('dialog').getAttribute('data-see-through')).toBeNull();
+    solid.unmount();
+
+    render(
+      <PanelImmersiveOverlay open onExit={() => {}} seeThrough>
+        <div>content</div>
+      </PanelImmersiveOverlay>,
+    );
+    expect(screen.getByRole('dialog').getAttribute('data-see-through')).toBe('true');
+  });
+
   // A mouse cannot drag the hint back into view the way touch does, so without
   // the pointer reveal a faded hint leaves a mouse-driven surface no visible exit.
   it('re-reveals the faded hint on mouse movement', () => {

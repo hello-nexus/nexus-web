@@ -751,6 +751,10 @@ export function PanelContent({
     return style;
   }, [panelRootStyle, runtimeGrid.contentColumns, runtimeGrid.contentGap, runtimeGrid.contentRows]);
 
+  // Backdrop off: the immersive overlay paints nothing and the dashboard
+  // under it hides, leaving the panel's own background behind the view.
+  const immersiveSeeThrough = (kioskBehavior || simulator) && immersiveWidgetId !== null && !effectiveTheme.immersiveBackdrop;
+
   // ---------- Pagination derived from layout ----------
   // Touch surfaces hoist the focused widget above the editor's scrim, else
   // the edited widget reads dimmed under it. q60 is display-only so editing
@@ -1725,6 +1729,7 @@ export function PanelContent({
         data-surface={surface}
         data-simulator={simulator ? 'true' : undefined}
         data-show-widget-labels={effectiveTheme.widgetLabels ? 'true' : 'false'}
+        data-immersive-see-through={immersiveSeeThrough ? 'true' : undefined}
         // Omitted on single-widget surfaces: they force widgetPadding 0
         // internally, and squaring their corners would round-trip onto a
         // surface with no adjacent widget to sit flush against. Stamped
@@ -2060,6 +2065,7 @@ export function PanelContent({
             themeMode={resolvedThemeMode}
             surface={surface}
             confirmClose={def.meta.immersiveDoubleSwipe}
+            seeThrough={immersiveSeeThrough}
           >
             <Comp
               widget={w}
@@ -2130,6 +2136,7 @@ export function PanelContent({
           onThemeTextColorCommit={panelTheme.commitTextColor}
           onThemeBackgroundFrostPreview={panelTheme.previewBackgroundFrost}
           onThemeBackgroundFrostCommit={panelTheme.commitBackgroundFrost}
+          onThemeImmersiveBackdropCommit={panelTheme.commitImmersiveBackdrop}
           onThemeWidgetPaddingPreview={panelTheme.previewWidgetPadding}
           onThemeWidgetPaddingCommit={panelTheme.commitWidgetPadding}
           machineName={machineName}

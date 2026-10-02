@@ -25,6 +25,10 @@
     env(safe-area-inset-left);
 }
 
+.overlay[data-see-through='true'] {
+  background: transparent;
+}
+
 // After the enter animation, suppress further keyframes so removing
 // [data-drag] doesn't restart the enter slide. The exit rule below wins via
 // !important so host-driven exit (ESC, programmatic close) plays its keyframe.
