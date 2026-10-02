@@ -372,8 +372,8 @@ export interface LightingDevice {
   enabledLedCount?: number;
   /** Card-local LEDs held on a colour by the LED map; absent when none is. */
   ledColors?: { index: number; color: string }[];
-  /** LED index order runs left to right across the frame; false for a key matrix, a ring or a mirrored strip. */
-  ledOrderLeftToRight?: boolean;
+  /** The locks by strip column, left to right by LED position: "#rrggbb", or "" where the look shows. */
+  ledColorStrip?: string[];
   /** Cross-install hardware fingerprint for community mapping lookup. Empty when the device cannot be fingerprinted; all community mapping UI hides itself then. */
   deviceKey?: string;
   canvasX: number;

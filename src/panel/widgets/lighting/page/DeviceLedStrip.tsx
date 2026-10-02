@@ -36,24 +36,15 @@ const stripCells = (device: LightingDevice) => Math.max(1, Math.min(cardEnabledL
 type LockedCell = readonly [cell: number, color: string];
 const NO_LOCKED_CELLS: readonly LockedCell[] = [];
 
-/**
- * The cells LED-map colours land on. A cell wears the first locked LED in its
- * share of the LEDs, so a lock never falls between cells. Empty unless index
- * order runs left to right, the order the strip reads.
- */
+/** The cells LED-map colours land on, read off the service's position-binned columns. */
 export function lockedCells(device: LightingDevice): readonly LockedCell[] {
-  const locked = device.ledColors;
-  if (!locked?.length || !device.ledOrderLeftToRight) return NO_LOCKED_CELLS;
+  const columns = device.ledColorStrip;
+  if (!columns?.length) return NO_LOCKED_CELLS;
   const cells = stripCells(device);
-  const count = Math.max(1, device.ledCount);
-  const sorted = [...locked].sort((a, b) => a.index - b.index);
   const out: LockedCell[] = [];
-  let next = 0;
-  for (let c = 0; c < cells && next < sorted.length; c++) {
-    const end = Math.floor(((c + 1) * count) / cells);
-    if (sorted[next].index >= end) continue;
-    out.push([c, sorted[next].color]);
-    while (next < sorted.length && sorted[next].index < end) next++;
+  for (let c = 0; c < cells; c++) {
+    const color = columns[Math.floor(((c + 0.5) * columns.length) / cells)];
+    if (color) out.push([c, color]);
   }
   return out;
 }
