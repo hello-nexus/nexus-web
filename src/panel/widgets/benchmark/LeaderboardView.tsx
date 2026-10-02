@@ -10,7 +10,6 @@ import { Select } from '../../../components/common/Select/Select';
 import { Pager } from '../../../components/common/Pager/Pager';
 import { requestOpenBuild } from '../../../components/views/BuildPage/buildNav';
 import { publicProfileUrl } from '../../../lib/publicProfile';
-import { DEV_TOOLS } from '../../../lib/devTools';
 import { LeaderboardList } from './LeaderboardList';
 import { BenchmarkEntryDetail } from './BenchmarkEntryDetail';
 import styles from './LeaderboardView.module.scss';
@@ -131,11 +130,11 @@ export function LeaderboardView() {
           dateFormat={dateFormat}
           ownerHref={selected.displayName ? publicProfileUrl(selected.displayName) : undefined}
           ownerNewTab
-          actions={DEV_TOOLS ? (
+          actions={(
             <Button tone="accent" onClick={() => requestOpenBuild(`/builder?bench=${encodeURIComponent(selected.id)}`)}>
               {t('benchmark.detail.openInBuilder')}
             </Button>
-          ) : undefined}
+          )}
         />
       </section>
     );

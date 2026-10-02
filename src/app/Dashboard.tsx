@@ -943,7 +943,7 @@ export function Dashboard() {
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} />;
-      case 'build':      return DEV_TOOLS ? <BuildPage path={subtab} /> : <Placeholder title={activeView} />;
+      case 'build':      return <BuildPage path={subtab} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;
