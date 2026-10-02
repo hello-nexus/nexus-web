@@ -10,8 +10,21 @@
 }
 
 // Same weight as the lighting page's own pane titles, which this sits beside.
-.header {
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
   margin-bottom: var(--space-xs);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.header {
   font-size: var(--type-body);
   font-weight: var(--weight-strong);
   color: var(--text);

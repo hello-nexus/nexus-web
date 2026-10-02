@@ -71,7 +71,7 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
   onReorder: (rowKeys: string[]) => void;
   /** Most LEDs the port can drive; 0 when it declares no ceiling. At it, the chain can still be saved but not grown. */
   maxLedCount?: number;
-  /** Zone tools, rendered in the footer beside the add button. */
+  /** Zone tools, in a row on the header's right. */
   actions?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -177,7 +177,10 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
 
   return (
     <div className={styles.section}>
-      <div className={styles.header}>{t('lighting.rightPane.devices')}</div>
+      <div className={styles.headerRow}>
+        <div className={styles.header}>{t('lighting.rightPane.devices')}</div>
+        {actions && <div className={styles.actions}>{actions}</div>}
+      </div>
       {canReorder ? (
         <SortableList
           className={styles.list}
@@ -254,7 +257,6 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
             )}
           </div>
         )}
-        {actions}
         {/* One device is its own total. */}
         {rows.length > 1 && (
           <span className={styles.total}>
