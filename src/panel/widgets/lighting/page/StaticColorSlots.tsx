@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from '../../../../lib/i18n';
 import { hsvToHex } from '../../../../lib/settings';
 import { PaletteRing } from '../../../../components/common/PaletteRing/PaletteRing';
@@ -43,12 +43,14 @@ function slotRangeImage(slot: EffectColorSlot, params: Record<string, number>, s
  * swatch row selects which the wheel edits, so a four-colour effect still fits
  * the pane. A range slot's wheel also sets the width of the hue range.
  */
-export function StaticColorSlots({ slots, state, specs, onChange, onCommit }: {
+export function StaticColorSlots({ slots, state, specs, onChange, onCommit, children }: {
   slots: EffectColorSlot[];
   state: EffectState;
   specs: Record<string, ShaderParamSpec>;
   onChange: (patch: Partial<EffectState>, commit?: boolean) => void;
   onCommit: () => void;
+  /** Rendered between the wheel and the colour sliders (the effect's Speed). */
+  children?: ReactNode;
 }) {
   const { t } = useTranslation();
   const [activeId, setActiveId] = useState(slots[0]?.id);
@@ -101,6 +103,7 @@ export function StaticColorSlots({ slots, state, specs, onChange, onCommit }: {
           onCommit={onCommit}
         />
       </div>
+      {children}
       <Slider orientation={STACKED} editable trackFill label={t('lighting.controls.saturation')} value={Math.round(s * 100)} min={0} max={100}
         onChange={(val, commit) => patch({ s: val / 100 }, !!commit)} onCommit={onCommit} />
       <Slider orientation={STACKED} editable trackFill label={t('lighting.controls.param.brightness')} value={Math.round(v * 100)} min={0} max={100}

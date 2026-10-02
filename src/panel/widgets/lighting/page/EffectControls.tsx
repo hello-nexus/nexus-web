@@ -63,6 +63,14 @@ export const EffectControls = memo(function EffectControls({
   const satSpec = specs['u_saturation'];
   const contrastSpec = specs['u_contrast'];
   const intensitySpec = specs['u_intensity'];
+  // Speed always leads the sliders, so colour-slot effects take it right under
+  // their wheel.
+  const speedSlider = loaded && !def.hideSpeed && !staticMode && speedSpec && (
+    <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')}
+      value={clampDisplay(state.speed, speedSpec.min * 50, speedSpec.max * 50)}
+      min={Math.round(speedSpec.min * 50)} max={Math.round(speedSpec.max * 50)} zeroMarker
+      onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
+  );
   return (
     <div className={styles.effectControls}>
       {!isSimple && (
@@ -79,7 +87,9 @@ export const EffectControls = memo(function EffectControls({
       )}
       <div className={styles.drawerSliders}>
         {ownsColors && (
-          <StaticColorSlots slots={def.colors!} state={state} specs={specs} onChange={onChange} onCommit={onCommit} />
+          <StaticColorSlots slots={def.colors!} state={state} specs={specs} onChange={onChange} onCommit={onCommit}>
+            {speedSlider}
+          </StaticColorSlots>
         )}
         {!isSimple && !ownsColors && (
           <div className={styles.paletteRingWrap}>
@@ -91,12 +101,7 @@ export const EffectControls = memo(function EffectControls({
             />
           </div>
         )}
-        {loaded && !def.hideSpeed && !staticMode && speedSpec && (
-          <Slider orientation="stacked" editable trackFill label={t('lighting.controls.speed')}
-            value={clampDisplay(state.speed, speedSpec.min * 50, speedSpec.max * 50)}
-            min={Math.round(speedSpec.min * 50)} max={Math.round(speedSpec.max * 50)} zeroMarker
-            onChange={(v, commit) => onChange({ speed: v }, commit)} onCommit={onCommit} />
-        )}
+        {!ownsColors && speedSlider}
         {loaded && !isSimpleWhite && !ownsColors && satSpec && (
           <Slider orientation="stacked" editable trackFill label={t('lighting.controls.saturation')}
             value={clampDisplay(Math.round(state.saturation * 100), Math.round(satSpec.min * 100), Math.round(satSpec.max * 100))}

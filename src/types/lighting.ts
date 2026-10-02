@@ -281,7 +281,7 @@ export const EFFECTS: EffectDef[] = [
   ]},
   { key: 'breathing',    labelKey: 'lighting.controls.breathing',
      colors: [{ id: 'a', labelKey: 'lighting.controls.color1', range: true }, { id: 'b', labelKey: 'lighting.controls.color2', range: true }], params: [
-      { name: 'u_spread', label: 'Spread', labelKey: 'lighting.controls.param.spread' },
+      { name: 'u_sharpness', label: 'Sharpness', labelKey: 'lighting.controls.param.sharpness' },
   ]},
   { key: 'spiral',       labelKey: 'lighting.controls.spiral',       params: [
       { name: 'u_arms',      label: 'Arms', labelKey: 'lighting.controls.param.arms' },
