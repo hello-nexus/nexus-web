@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Prozessliste",
   "panel.screentime.empty": "noch keine Aktivität",
-  "panel.settings.backdrop": "Hintergrundquelle",
+  "panel.settings.backdrop": "Darstellung",
   "panel.settings.backdrop.desktop": "Desktop",
   "panel.settings.backdrop.desktop.desc": "Der Desktop ist live sichtbar, animierte Hintergrundbilder eingeschlossen.",
   "panel.settings.backdrop.theme": "Design",

@@ -1665,7 +1665,7 @@ function PreviewSettingRow() {
         descriptionBelow
         formatValue={v => `${Math.round(v)}%`} onChange={v => setLevel(v)} />
       <SettingRow
-        label="Backdrop"
+        label="Rendering"
         description="Full-width description: the control keeps its place as this text changes length."
         descriptionBelow
       >
@@ -1673,7 +1673,7 @@ function PreviewSettingRow() {
           options={[{ key: 'a', label: 'Theme' }, { key: 'b', label: 'Wallpaper' }, { key: 'c', label: 'Desktop' }]}
           activeKey="b"
           onChange={() => {}}
-          ariaLabel="Backdrop"
+          ariaLabel="Rendering"
         />
       </SettingRow>
       <SettingRow label="Icon color" wrapControl>

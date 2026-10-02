@@ -292,7 +292,7 @@ export function PanelThemeSettings({
       editable
       trackFill
       label={label('panel.settings.backgroundOpacity', 'Background Opacity')}
-      description={label('panel.settings.backgroundOpacity.desc', 'Dims the backdrop')}
+      description={label('panel.settings.backgroundOpacity.desc', 'Dims the background')}
       descriptionBelow
       value={backgroundOpacityPercent}
       min={0}
@@ -437,12 +437,12 @@ export function PanelThemeSettings({
             )}
             {showBackdropSelector && (
               <SettingRow
-                label={label('panel.settings.backdrop', 'Backdrop')}
+                label={label('panel.settings.backdrop', 'Rendering')}
                 description={backdropDescription}
                 descriptionBelow
               >
                 <ChipGroup
-                  ariaLabel={label('panel.settings.backdrop', 'Backdrop')}
+                  ariaLabel={label('panel.settings.backdrop', 'Rendering')}
                   activeKey={theme.backdrop}
                   onChange={key => onBackdropCommit(key as PanelBackdrop)}
                   options={backdropOptions}
@@ -465,7 +465,7 @@ export function PanelThemeSettings({
               trackFill
               disabled={!frostApplies}
               label={label('panel.settings.backgroundFrost', 'Frosted glass')}
-              description={label('panel.settings.backgroundFrost.desc', 'Improves clarity on busy backdrops')}
+              description={label('panel.settings.backgroundFrost.desc', 'Improves clarity on busy backgrounds')}
               descriptionBelow
               value={theme.backgroundFrost}
               min={0}

@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n} 秒",
   "panel.processes.settings.title": "进程列表",
   "panel.screentime.empty": "暂无活动",
-  "panel.settings.backdrop": "背景来源",
+  "panel.settings.backdrop": "渲染",
   "panel.settings.backdrop.desktop": "桌面",
   "panel.settings.backdrop.desktop.desc": "可直接透视桌面，包括动态壁纸。",
   "panel.settings.backdrop.theme": "主题",

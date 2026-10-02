@@ -3123,7 +3123,7 @@
   "panel.processes.settings.seconds": "{n} с",
   "panel.processes.settings.title": "Список процессов",
   "panel.screentime.empty": "пока нет активности",
-  "panel.settings.backdrop": "Источник фона",
+  "panel.settings.backdrop": "Отрисовка",
   "panel.settings.backdrop.desktop": "Рабочий стол",
   "panel.settings.backdrop.desktop.desc": "Рабочий стол виден вживую, включая анимированные обои.",
   "panel.settings.backdrop.theme": "Тема",

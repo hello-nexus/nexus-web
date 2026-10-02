@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Processenlijst",
   "panel.screentime.empty": "nog geen activiteit",
-  "panel.settings.backdrop": "Achtergrondbron",
+  "panel.settings.backdrop": "Weergave",
   "panel.settings.backdrop.desktop": "Bureaublad",
   "panel.settings.backdrop.desktop.desc": "Het bureaublad is live zichtbaar, inclusief bewegende achtergronden.",
   "panel.settings.backdrop.theme": "Thema",

@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Elenco processi",
   "panel.screentime.empty": "nessuna attività ancora",
-  "panel.settings.backdrop": "Origine sfondo",
+  "panel.settings.backdrop": "Resa",
   "panel.settings.backdrop.desktop": "Desktop",
   "panel.settings.backdrop.desktop.desc": "Il desktop si vede dal vivo, sfondi animati inclusi.",
   "panel.settings.backdrop.theme": "Tema",

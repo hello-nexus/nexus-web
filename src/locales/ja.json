@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n}秒",
   "panel.processes.settings.title": "プロセス一覧",
   "panel.screentime.empty": "アクティビティはまだありません",
-  "panel.settings.backdrop": "背景ソース",
+  "panel.settings.backdrop": "レンダリング",
   "panel.settings.backdrop.desktop": "デスクトップ",
   "panel.settings.backdrop.desktop.desc": "アニメーション壁紙を含め、デスクトップがそのまま透けて見えます。",
   "panel.settings.backdrop.theme": "テーマ",

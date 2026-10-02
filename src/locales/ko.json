@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n}초",
   "panel.processes.settings.title": "프로세스 목록",
   "panel.screentime.empty": "아직 활동 없음",
-  "panel.settings.backdrop": "배경 소스",
+  "panel.settings.backdrop": "렌더링",
   "panel.settings.backdrop.desktop": "바탕 화면",
   "panel.settings.backdrop.desktop.desc": "움직이는 배경을 포함해 바탕 화면이 그대로 비쳐 보입니다.",
   "panel.settings.backdrop.theme": "테마",

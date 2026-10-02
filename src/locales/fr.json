@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Liste des processus",
   "panel.screentime.empty": "aucune activité pour le moment",
-  "panel.settings.backdrop": "Source du fond",
+  "panel.settings.backdrop": "Rendu",
   "panel.settings.backdrop.desktop": "Bureau",
   "panel.settings.backdrop.desktop.desc": "Le bureau est visible en direct, fonds d'écran animés compris.",
   "panel.settings.backdrop.theme": "Thème",

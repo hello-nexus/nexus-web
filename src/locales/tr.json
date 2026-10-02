@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n} sn",
   "panel.processes.settings.title": "İşlem listesi",
   "panel.screentime.empty": "henuz etkinlik yok",
-  "panel.settings.backdrop": "Arka plan kaynağı",
+  "panel.settings.backdrop": "Görüntüleme",
   "panel.settings.backdrop.desktop": "Masaüstü",
   "panel.settings.backdrop.desktop.desc": "Hareketli duvar kağıtları dahil masaüstü canlı görünür.",
   "panel.settings.backdrop.theme": "Tema",

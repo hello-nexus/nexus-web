@@ -3123,7 +3123,7 @@
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Lista procesów",
   "panel.screentime.empty": "brak aktywnosci",
-  "panel.settings.backdrop": "Źródło tła",
+  "panel.settings.backdrop": "Renderowanie",
   "panel.settings.backdrop.desktop": "Pulpit",
   "panel.settings.backdrop.desktop.desc": "Pulpit widać na żywo, łącznie z animowanymi tapetami.",
   "panel.settings.backdrop.theme": "Motyw",

@@ -3085,7 +3085,7 @@
   "panel.processes.settings.seconds": "{n} s",
   "panel.processes.settings.title": "Lista de procesos",
   "panel.screentime.empty": "aún no hay actividad",
-  "panel.settings.backdrop": "Origen del fondo",
+  "panel.settings.backdrop": "Renderizado",
   "panel.settings.backdrop.desktop": "Escritorio",
   "panel.settings.backdrop.desktop.desc": "El escritorio se ve en vivo, incluidos los fondos animados.",
   "panel.settings.backdrop.theme": "Tema",
