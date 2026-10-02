@@ -33,7 +33,7 @@
   fill-opacity: 0.55;
 }
 
-/* Handle circle and centre-of-selection triangle match the filled slider thumb
+/* Handle circle matches the filled slider thumb
    (input[type="range"][data-fill]::-webkit-slider-thumb uses var(--text)). */
 .handle {
   fill: var(--text);
@@ -50,11 +50,10 @@
   }
 }
 
-/* Triangle indicator: marks the centre of the selected hue range on the ring's
-   inner edge. Points inward toward the centre. */
-.indicator {
-  fill: var(--text);
-  filter: drop-shadow(0 0 2.5px rgb(0 0 0 / var(--alpha-strong)));
+/* Mono ring handle. Its fill must be an inline style: .handle's CSS fill beats
+   an SVG fill attribute. */
+.handleHollow {
+  stroke: var(--text);
 }
 
 /* Accent-glow halo shown while the handle is at a snap boundary. No stroke
