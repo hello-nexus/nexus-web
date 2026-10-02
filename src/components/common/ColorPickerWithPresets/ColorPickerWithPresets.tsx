@@ -49,6 +49,8 @@ export interface ColorPickerWithPresetsProps {
   extraSwatch?: ExtraSwatch;
   /** Where the custom-colour popover opens; hosts near the bottom of a sheet open it upward. */
   pickerPlacement?: PopoverPlacement;
+  /** Portal the custom-colour popover out of the host, for hosts inside a scroller. */
+  pickerPortal?: boolean;
   className?: string;
 }
 
@@ -71,6 +73,7 @@ export function ColorPickerWithPresets({
   disabled = false,
   extraSwatch,
   pickerPlacement = 'bottom-end',
+  pickerPortal = false,
   className,
 }: ColorPickerWithPresetsProps) {
   const { t } = useTranslation();
@@ -157,6 +160,7 @@ export function ColorPickerWithPresets({
               onClose={() => setPickerOpen(false)}
               anchorRef={slotRef}
               placement={pickerPlacement}
+              portal={pickerPortal}
               ariaLabel={t('common.customColor')}
               className={styles.customPopover}
             >

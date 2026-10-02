@@ -40,6 +40,7 @@ export function LedColorLockSection({
           onPreview={onPreview}
           onCommit={onCommit}
           allowCustom
+          pickerPortal
           disabled={disabled}
           extraSwatch={{
             color: NO_LOCK_SWATCH,
