@@ -56,7 +56,7 @@ export function MediaSettings({ widget, onUpdate }: WidgetSettingsProps) {
           <>
             <SettingsToggle
               label={t('panel.media.volumeTarget.showSource')}
-              checked={widget.config?.showSource !== false}
+              checked={widget.config?.showSource === true}
               onChange={value => onUpdate({ showSource: value })}
             />
             <SettingsSelect

@@ -3105,7 +3105,7 @@
   "panel.media.volumeTarget.mode": "Steruje",
   "panel.media.volumeTarget.output": "Urządzenie wyjściowe",
   "panel.media.volumeTarget.show": "Pokaż suwak głośności",
-  "panel.media.volumeTarget.showSource": "Pokaż aplikację lub wyjście",
+  "panel.media.volumeTarget.showSource": "Pokaż wyjście",
   "panel.media.volumeTarget.systemDefault": "Domyślne systemowe",
   "panel.pages.label": "Strony panelu",
   "panel.playlist.hint": "Kliknij widżet, aby go włączyć lub wyłączyć. Przeciągnij, aby zmienić kolejność.",

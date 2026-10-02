@@ -74,7 +74,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   );
   const artSignature = mediaArtSignature(active?.session);
   const showVolume = volumeAllowed && volume.supported;
-  const showSource = widget.config?.showSource !== false;
+  const showSource = widget.config?.showSource === true;
   const artResolved = artAsset.key === activeKey && artAsset.signature === artSignature;
   const artUrl = artResolved ? artAsset.url : '';
   const liveBackground = widget.config?.liveBackground === true;
