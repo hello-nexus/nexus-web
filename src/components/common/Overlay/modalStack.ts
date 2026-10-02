@@ -33,13 +33,13 @@ export function getFocusableElements(container: HTMLElement): HTMLElement[] {
 }
 
 /**
- * Select's open listbox (and DatePicker-style popups) can portal their
- * interactive content straight onto document.body, outside the modal
- * surface's own subtree. Treat focus there as still "inside" so the trap
- * doesn't yank it back mid-navigation of an open dropdown.
+ * Select's open listbox (and DatePicker-style popups, and portaled Popovers)
+ * can portal their interactive content straight onto document.body, outside
+ * the modal surface's own subtree. Treat focus there as still "inside" so the
+ * trap doesn't yank it back mid-navigation of an open dropdown.
  */
 function isWithinPortaledControl(active: Element): boolean {
-  return active.closest('[role="listbox"], [role="combobox"]') !== null;
+  return active.closest('[role="listbox"], [role="combobox"], [data-portaled-popover]') !== null;
 }
 
 /**

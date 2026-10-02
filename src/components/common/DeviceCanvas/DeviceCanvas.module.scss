@@ -188,9 +188,9 @@
   z-index: 1;
 }
 
-// Held on a colour by the LED map: the dot wears it, ringed to read on any frame.
+// Held on a colour by the LED map: the dot wears it, shadowed to read on any frame.
 .ledDotLocked {
-  box-shadow: 0 0 0 1px rgb(0 0 0 / var(--alpha-medium));
+  box-shadow: var(--shadow-sm);
 }
 
 .resizeHandle {

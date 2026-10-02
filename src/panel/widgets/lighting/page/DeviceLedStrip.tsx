@@ -46,7 +46,9 @@ function paint(
 
 /**
  * LEDs held on a colour by the LED map outrank every look, as on the hardware.
- * Each cell reads the LED at its centre, the same spread the cells sample.
+ * A cell wears the first locked LED in its share of the strip, so a lock never
+ * falls between cells; disabled LEDs are not known here, so the share is of
+ * every LED.
  */
 function paintLedColors(canvas: HTMLCanvasElement, device: LightingDevice): void {
   const locked = device.ledColors;
@@ -55,11 +57,19 @@ function paintLedColors(canvas: HTMLCanvasElement, device: LightingDevice): void
   if (!ctx) return;
   const cells = canvas.width;
   const count = Math.max(1, device.ledCount);
-  const byIndex = new Map(locked.map(l => [l.index, l.color]));
-  ctx.globalAlpha = Math.min(1, Math.max(0, (device.brightness ?? 100) / 100));
-  for (let c = 0; c < cells; c++) {
-    const color = byIndex.get(Math.min(count - 1, Math.floor(((c + 0.5) * count) / cells)));
-    if (!color) continue;
+  const scale = Math.min(1, Math.max(0, (device.brightness ?? 100) / 100));
+  const sorted = [...locked].sort((a, b) => a.index - b.index);
+  let next = 0;
+  for (let c = 0; c < cells && next < sorted.length; c++) {
+    const end = Math.floor(((c + 1) * count) / cells);
+    if (sorted[next].index >= end) continue;
+    const color = sorted[next].color;
+    while (next < sorted.length && sorted[next].index < end) next++;
+    // Brightness scales toward black, as the service applies it.
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(c, 0, 1, 1);
+    ctx.globalAlpha = scale;
     ctx.fillStyle = color;
     ctx.fillRect(c, 0, 1, 1);
   }

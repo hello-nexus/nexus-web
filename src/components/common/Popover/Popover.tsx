@@ -107,14 +107,15 @@ export function Popover({
     if (!open || !portal) return;
     // Mounted open, the anchor's ref attaches after this popover's layout effect.
     reposition();
-    const onScroll = (e: Event) => { if (!popoverRef.current?.contains(e.target as Node)) reposition(); };
+    // A scrolling ancestor carries the anchor away; fixed coordinates cannot follow it.
+    const onScroll = (e: Event) => { if (!popoverRef.current?.contains(e.target as Node)) onClose(); };
     window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', reposition);
     return () => {
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', reposition);
     };
-  }, [open, portal, reposition]);
+  }, [open, portal, reposition, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -144,6 +145,7 @@ export function Popover({
       aria-label={ariaLabel}
       className={classNames(styles.popover, portal ? styles.portaled : styles[`placement_${placement.replace('-', '_')}`], className)}
       style={portal ? { top: coords?.top ?? 0, left: coords?.left ?? 0, visibility: coords ? undefined : 'hidden' } : undefined}
+      data-portaled-popover={portal || undefined}
     >
       {children}
     </div>
