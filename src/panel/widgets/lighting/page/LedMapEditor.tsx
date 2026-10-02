@@ -723,28 +723,37 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     return () => { cancelled = true; };
   }, [selectedZoneId, zoneIndicesKey]);
 
+  // Previews, commits and clears share one throttle, so a trailing preview can
+  // never land after the commit or clear that followed it.
   const ledColorThrottle = useThrottle(100);
   const applyLedColor = useCallback((hex: string) => {
-    if (isStagedZoneId(selectedZoneId) || selected.size === 0) return;
+    const zoneId = selectedZoneId;
+    if (isStagedZoneId(zoneId) || selected.size === 0) return;
+    const local = activeZone ? toZoneLocalIndices(activeZone, offsets, selected) : Array.from(selected);
+    postLedColors(zoneId, local, hex).catch(() => { /* best-effort */ });
+    // A trailing call can fire after a zone switch; its indices name the old zone.
+    if (selectedZoneIdRef.current !== zoneId) return;
     setLedColorState(prev => {
       const next = new Map(prev);
-      for (const i of selected) {
+      for (const l of local) {
+        const i = zoneIndices ? zoneIndices[l] : l;
         if (hex) next.set(i, hex);
         else next.delete(i);
       }
       return next;
     });
-    const indices = activeZone ? toZoneLocalIndices(activeZone, offsets, selected) : Array.from(selected);
-    postLedColors(selectedZoneId, indices, hex).catch(() => { /* best-effort */ });
-  }, [selectedZoneId, selected, activeZone, offsets]);
-  const handleLedColorPreview = useCallback((hex: string) => {
+  }, [selectedZoneId, selected, activeZone, offsets, zoneIndices]);
+  const queueLedColor = useCallback((hex: string) => {
     ledColorThrottle(() => applyLedColor(hex));
   }, [ledColorThrottle, applyLedColor]);
   const handleClearAllLedColors = useCallback(() => {
-    if (isStagedZoneId(selectedZoneId)) return;
-    setLedColorState(new Map());
-    clearLedColors(selectedZoneId).catch(() => { /* best-effort */ });
-  }, [selectedZoneId]);
+    const zoneId = selectedZoneId;
+    if (isStagedZoneId(zoneId)) return;
+    ledColorThrottle(() => {
+      clearLedColors(zoneId).catch(() => { /* best-effort */ });
+      if (selectedZoneIdRef.current === zoneId) setLedColorState(new Map());
+    });
+  }, [ledColorThrottle, selectedZoneId]);
   const selectedLedColor = useMemo(() => {
     for (const i of selected) {
       const color = ledColors.get(i);
@@ -2260,9 +2269,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
               selectedColor={selectedLedColor}
               lockedCount={ledColors.size}
               disabled={isStagedZoneId(selectedZoneId)}
-              onPreview={handleLedColorPreview}
-              onCommit={applyLedColor}
-              onClearSelected={() => applyLedColor('')}
+              onPreview={queueLedColor}
+              onCommit={queueLedColor}
+              onClearSelected={() => queueLedColor('')}
               onClearAll={handleClearAllLedColors}
             />
           )}
@@ -2463,7 +2472,8 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
                   const isSelected = members.every(m => selected.has(m));
                   const isDraggingGroup = dragging && members.some(m => selected.has(m));
                   const isUnsaved = members.some(m => unsavedLedSet.has(m));
-                  const groupColor = ledColors.get(repIdx);
+                  const firstColor = ledColors.get(members[0]);
+                  const groupColor = firstColor && members.every(m => ledColors.get(m) === firstColor) ? firstColor : undefined;
                   elements.push(
                     <div
                       key={repIdx}
