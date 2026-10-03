@@ -3,7 +3,7 @@
 // feeds them synced properties + event listeners. An author can ONLY cause one of
 // these to render, which is the structural visual-consistency guarantee.
 
-import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { Spinner as NativeSpinner } from '../../components/common/Spinner/Spinner';
 import { Stepper as NativeStepper } from '../../components/common/Stepper/Stepper';
@@ -23,6 +23,7 @@ import { alignValue, justifyValue, weightValue, textToneVar, toneVar, cssSize } 
 import { useLongPress } from './useLongPress';
 import { useTranslation } from '../../lib/i18n';
 import { isExternalHttpsUrl, openExternalUrl } from './openExternal';
+import { SdkAppIdContext } from '../appIdContext';
 import { getTokenSync } from '../../api/auth';
 
 export interface HostProps {
@@ -289,11 +290,12 @@ export function Button(p: HostProps) {
   // `href` opens in the system browser on press; the worker still gets its
   // press event so it can record the tap. Non-https values are ignored.
   const href = isExternalHttpsUrl(p.href) ? p.href : undefined;
+  const appId = useContext(SdkAppIdContext);
   const lp = useLongPress({
     onLongPress: p.__events?.longpress ? () => p.__events?.longpress?.() : undefined,
     onPress: () => {
       p.__events?.press?.();
-      if (href) void openExternalUrl(href);
+      if (href) void openExternalUrl(href, appId);
     },
     disabled,
   });

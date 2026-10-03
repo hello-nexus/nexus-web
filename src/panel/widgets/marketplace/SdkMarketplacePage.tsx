@@ -4,7 +4,7 @@
 // (a separate worker render via mount({ cell, page })) and fills the section
 // content area with its remote tree - e.g. the clock's day/night world map.
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { postService } from '../../../api/service';
 import { getMarketplaceListing, marketplaceIdFromType } from '../../../widgets/marketplaceRegistry';
@@ -30,6 +30,10 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
   const mediaImport = useMemo(() => listing?.capabilities.mediaImport ?? [], [listing]);
   const appData = !!listing?.capabilities.appData;
   const audio = !!listing?.capabilities.audio;
+  // One product-telemetry page view per open; the service drops it when the user opted out.
+  useEffect(() => {
+    if (id) postService<unknown>(`/apps-api/page-opened/${encodeURIComponent(id)}`, {}).catch(() => {});
+  }, [id]);
   const onDispatch = useCallback(
     (action: string, args?: Record<string, unknown>) =>
       postService<unknown>('/apps-api/dispatch', { appId: id, action, args: args ?? {} }),

@@ -14,12 +14,13 @@ export function isExternalHttpsUrl(url: unknown): url is string {
 
 // The route answers the ApiResponse envelope at HTTP 200 whether or not it
 // could open anything (no interactive session, rejected URL), so success is
-// the envelope's error flag, not the status.
-export async function openExternalUrl(url: string): Promise<void> {
+// the envelope's error flag, not the status. `appId` attributes an SDK app's
+// link press in product telemetry.
+export async function openExternalUrl(url: string, appId?: string): Promise<void> {
   if (!isExternalHttpsUrl(url)) return;
   let opened = false;
   try {
-    const res = await postService<{ error?: boolean }>('/system/open-url', { url });
+    const res = await postService<{ error?: boolean }>('/system/open-url', appId ? { url, appId } : { url });
     opened = res !== null && res.error !== true;
   } catch {
     opened = false;

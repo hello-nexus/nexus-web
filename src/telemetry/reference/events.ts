@@ -202,6 +202,32 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     params: [],
   },
   {
+    name: 'app_link_opened',
+    title: 'App link opened',
+    status: 'live',
+    source: 'service',
+    description: 'An installed SDK app sent the user to a website: a Button href press (POST /system/open-url with the app id) or the system.openUrl host action. Counted per press, whether or not the system browser opened. Only the host and utm_* parameters are kept; the path and every other query parameter are dropped, because app links can pre-fill machine identifiers such as the Windows product key.',
+    params: [
+      { name: 'app_id', type: 'string', required: true, description: 'Installed app id, e.g. com.ibuypower.control.' },
+      { name: 'host', type: 'string', required: true, description: 'Link host, e.g. www.ibuypower.com.' },
+      { name: 'utm_source', type: 'string', required: false, description: 'From the link, when present. Each utm value is capped at 100 characters.' },
+      { name: 'utm_medium', type: 'string', required: false, description: 'From the link, when present.' },
+      { name: 'utm_campaign', type: 'string', required: false, description: 'From the link, when present.' },
+      { name: 'utm_content', type: 'string', required: false, description: 'From the link, when present. Apps use it to tell buttons apart.' },
+      { name: 'utm_term', type: 'string', required: false, description: 'From the link, when present.' },
+    ],
+  },
+  {
+    name: 'app_page_opened',
+    title: 'App page opened',
+    status: 'live',
+    source: 'service',
+    description: 'An installed SDK app\'s page surface was opened in the dashboard (POST /apps-api/page-opened/{appId}). One per open; switching away and back counts again.',
+    params: [
+      { name: 'app_id', type: 'string', required: true, description: 'Installed app id, e.g. com.ibuypower.control.' },
+    ],
+  },
+  {
     name: 'widget_added',
     title: 'Widget added',
     status: 'planned',

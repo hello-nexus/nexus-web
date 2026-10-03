@@ -10,6 +10,7 @@ import { RemoteTree } from './RemoteTree';
 import { SdkErrorBoundary } from './SdkErrorBoundary';
 import { spawnSandboxedWidget, type SandboxContext, type SandboxHandle } from './host';
 import { MediaImportProvider } from './mediaImportContext';
+import { SdkAppIdContext } from './appIdContext';
 import { useImmersiveExit } from '../panel/overlays/immersiveExit';
 import { useMultiplex, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { getAppData, putAppData, appDataTopic, type ProfileAppDataDoc } from './appDataClient';
@@ -413,9 +414,11 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
     <div ref={wrapRef} style={{ width: '100%', height: '100%', display: 'flex', minWidth: 0, minHeight: 0 }}>
       {handle ? (
         <SdkErrorBoundary widgetId={widgetId} resetKey={handle.receiver}>
-          <MediaImportProvider allowed={mediaImport ?? []}>
-            <RemoteTree receiver={handle.receiver} onGesture={notePress} />
-          </MediaImportProvider>
+          <SdkAppIdContext.Provider value={widgetId}>
+            <MediaImportProvider allowed={mediaImport ?? []}>
+              <RemoteTree receiver={handle.receiver} onGesture={notePress} />
+            </MediaImportProvider>
+          </SdkAppIdContext.Provider>
         </SdkErrorBoundary>
       ) : null}
       {appDataEnabled && handle && isNewestMount && liveEntry && [...liveEntry.appDataKeys].map((key) => (
