@@ -20,8 +20,7 @@ interface UpdateModalProps {
   status: UpdateStatus | null;
   onStatusRefreshed?: (status: UpdateStatus) => void;
   onUpdateNow?: () => void;
-  // When true, an install was already started externally before the modal opened;
-  // latch installActiveRef so the reconnecting transition fires if the service exits.
+  // When true, the modal starts the install as it opens (the badge's one-click install).
   startedInstall?: boolean;
   // Default true. Set false to suppress the auto-check-on-open (e.g. the
   // Storybook preview, which must not fire a live POST /update/check).
@@ -146,7 +145,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const [startError, setStartError] = useState('');
   // Captured on open; persists so live status re-fetches can't clobber the whatsNew view.
   const whatsNewVersionRef = useRef('');
-  // True once any active install phase has been observed in this open session.
+  // True once this modal started an install or saw an installer launch.
   const installActiveRef = useRef(false);
   // Set to the monotonic time when the install was kicked off; cleared when active progress arrives.
   const neverActiveDeadlineRef = useRef(0);
@@ -174,10 +173,11 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     setReconnectGaveUp(false);
     const justUpdatedTo = status?.justUpdatedTo ?? '';
     whatsNewVersionRef.current = justUpdatedTo;
-    if (justUpdatedTo) {
-      setView('whatsNew');
-    } else if (startedInstall) {
+    if (startedInstall) {
       setView('progress');
+      void startInstall();
+    } else if (justUpdatedTo) {
+      setView('whatsNew');
     } else {
       setView('notes');
     }
@@ -205,10 +205,13 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
         return;
       }
       setProgress(p);
-      if (p.active) {
+      const launching = p.phase === 'launching' || p.phase === 'installing';
+      // Activity the modal did not start (such as the background stage its own
+      // check triggers) can end idle, so only an installer launch is adopted.
+      if (p.active && (installActiveRef.current || launching)) {
         installActiveRef.current = true;
         neverActiveDeadlineRef.current = 0;
-        if (p.phase === 'launching' || p.phase === 'installing') {
+        if (launching) {
           setView('reconnecting');
           clearInterval(id);
         } else {
@@ -319,14 +322,10 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const handleUpdateNow = async () => {
+  const startInstall = async () => {
     // Latch before calling start so the poll can drive reconnecting if the
     // service goes away before the 2s poll sees a launching/installing frame.
     installActiveRef.current = true;
-    if (onUpdateNow) {
-      onUpdateNow();
-      return;
-    }
     setStarting(true);
     neverActiveDeadlineRef.current = Date.now() + NEVER_ACTIVE_TIMEOUT_MS;
     const resp = await startUpdate(status?.latestVersion, { reopenAfter: true });
@@ -335,10 +334,20 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       installActiveRef.current = false;
       neverActiveDeadlineRef.current = 0;
       setStartError(t('update.modal.startFailed'));
+      setView('notes');
       return;
     }
     setView('progress');
     setPollGen(g => g + 1);
+  };
+
+  const handleUpdateNow = () => {
+    if (onUpdateNow) {
+      installActiveRef.current = true;
+      onUpdateNow();
+      return;
+    }
+    void startInstall();
   };
 
   const isActive = progress?.active ?? false;

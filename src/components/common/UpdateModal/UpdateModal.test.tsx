@@ -125,3 +125,64 @@ describe('UpdateModal - canAutoInstall=true (Windows, unchanged)', () => {
     expect(await screen.findAllByText('update.modal.reconnecting')).not.toHaveLength(0);
   });
 });
+
+describe('UpdateModal - background staging', () => {
+  it('stays on the notes view while an update stages in the background', async () => {
+    vi.useFakeTimers();
+    try {
+      vi.mocked(pingService).mockResolvedValue(null as never);
+      vi.mocked(getUpdateProgress)
+        .mockResolvedValueOnce({ active: true, phase: 'downloading', percent: 40, message: '', version: '3.1.0', success: false, error: '' })
+        .mockResolvedValue({ active: false, phase: 'idle', percent: 0, message: '', version: '3.1.0', success: false, error: '' });
+      render(<UpdateModal open autoCheck={false} onClose={vi.fn()} status={{ ...baseStatus, updateMode: 'download' }} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+
+      expect(screen.queryByText('update.modal.starting')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: DOWNLOAD_AND_INSTALL })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('UpdateModal - opened by the badge install (startedInstall)', () => {
+  const idleProgress = {
+    active: false, phase: 'idle' as const, percent: 0, message: '', version: '', success: false, error: '',
+  };
+  const readyStatus = { ...baseStatus, updateMode: 'download', updateReady: true };
+
+  beforeEach(() => {
+    vi.mocked(getUpdateProgress).mockResolvedValue(idleProgress);
+    vi.mocked(pingService).mockResolvedValue(null as never);
+  });
+
+  it('starts the install and shows the error when the service rejects the start', async () => {
+    vi.mocked(startUpdate).mockResolvedValue(null);
+    render(<UpdateModal open autoCheck={false} startedInstall onClose={vi.fn()} status={readyStatus} />);
+
+    await waitFor(() => expect(startUpdate).toHaveBeenCalledWith('3.1.0', { reopenAfter: true }));
+    expect(await screen.findByText('update.modal.startFailed')).toBeInTheDocument();
+    expect(screen.queryByText('update.modal.starting')).not.toBeInTheDocument();
+  });
+
+  it('starts the install even while the service still reports the previous update', async () => {
+    render(
+      <UpdateModal open autoCheck={false} startedInstall onClose={vi.fn()} status={{ ...readyStatus, justUpdatedTo: '3.0.0' }} />,
+    );
+
+    await waitFor(() => expect(startUpdate).toHaveBeenCalledWith('3.1.0', { reopenAfter: true }));
+  });
+
+  it('shows the error when an accepted start never goes active', async () => {
+    vi.useFakeTimers();
+    try {
+      render(<UpdateModal open autoCheck={false} startedInstall onClose={vi.fn()} status={readyStatus} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(15_000); });
+
+      expect(screen.getByText('update.modal.startFailed')).toBeInTheDocument();
+      expect(screen.queryByText('update.modal.starting')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
