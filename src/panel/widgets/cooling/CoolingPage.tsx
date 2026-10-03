@@ -69,7 +69,6 @@ import {
 } from '../../../lib/deviceGroups';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
-import { CoolingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
@@ -1342,7 +1341,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             tabsDisabled
           />
         </div>
-        <ServiceRequired state={connectionState} skeleton={<CoolingSkeleton />} />
+        <ServiceRequired page="cooling" state={connectionState} />
       </div>
     );
   }

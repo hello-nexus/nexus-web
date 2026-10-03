@@ -102,12 +102,11 @@
     max-width: 46ch;
   }
 
-  // Wide enough for a toggle card to read as a control row; a button stays
-  // its own width, centered.
+  // As wide as the points row; a button stays its own width, centered.
   .action {
     margin-top: 1.25rem;
     width: 100%;
-    max-width: 22rem;
+    max-width: var(--intro-max);
   }
 }
 

@@ -49,7 +49,6 @@ vi.mock('./page/RightPaneTabs', () => ({ RightPaneTabs: () => null }));
 vi.mock('./page/EffectTab', () => ({ EffectTab: () => null }));
 vi.mock('../../../components/common/ViewHeader/ViewHeader', () => ({ ViewHeader: () => null }));
 vi.mock('../../../components/views/ServiceRequired', () => ({ ServiceRequired: () => null }));
-vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({ LightingSkeleton: () => null }));
 vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({ DeviceCanvas: () => null }));
 
 vi.mock('../../../api/lighting', async importOriginal => {

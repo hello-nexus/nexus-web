@@ -32,6 +32,7 @@ import { DeviceGroupIcon } from '../components/common/DeviceGroupIcon/DeviceGrou
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
 import { FeatureDisabled } from '../components/common/FeatureDisabled/FeatureDisabled';
+import { PageHero } from '../components/common/PageHero/PageHero';
 import { Popover } from '../components/common/Popover/Popover';
 import { DatePicker } from '../components/common/DatePicker/DatePicker';
 import { EffectCard } from '../components/common/EffectCard/EffectCard';
@@ -388,6 +389,10 @@ function PreviewNexusControlOffIcon() {
 function PreviewNexusControlCard() {
   const [checked, setChecked] = useState(true);
   return <NexusControlCard checked={checked} onChange={() => setChecked(c => !c)} />;
+}
+
+function PreviewPageHero() {
+  return <PageHero page="cooling" />;
 }
 
 function PreviewFeatureDisabled() {
@@ -2632,9 +2637,15 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: () => <ConflictAllClear />,
   },
   {
+    name: 'PageHero', category: 'status',
+    filePath: 'src/components/common/PageHero/PageHero.tsx',
+    description: 'One intro per page (icon, title, intro, points) from a single registry, so a copy change lands everywhere at once. The state adds its own control under the points through `action`: ServiceRequired\'s launch card, the my. gate\'s download card, FeatureDisabled\'s switch, Benchmark\'s start button. heroForView maps a routed view to its hero; views without one share the Nexus hero.',
+    Preview: PreviewPageHero,
+  },
+  {
     name: 'FeatureDisabled', category: 'status',
     filePath: 'src/components/common/FeatureDisabled/FeatureDisabled.tsx',
-    description: 'Full-page disabled shell for a feature pillar (Lighting/Cooling/Monitoring/Diagnostics) switched off in Settings, matching DevicePage\'s NexusControlOff layout: title, hint, and a re-enable NexusControlCard. FeatureGate mounts this instead of the page\'s real content while the pillar is off, so the page\'s data hooks never run.',
+    description: 'Full-page disabled shell for a feature pillar (Lighting/Cooling/Monitoring/Diagnostics) switched off in Settings: the pillar\'s PageHero with a re-enable NexusControlCard under it. FeatureGate mounts this instead of the page\'s real content while the pillar is off, so the page\'s data hooks never run.',
     Preview: PreviewFeatureDisabled,
     notes: 'The re-enable toggle writes through useUiSettingsUpdateSafe, which no-ops outside a UiSettingsProvider - safe to click here.',
   },

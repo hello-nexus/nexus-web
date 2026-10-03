@@ -43,7 +43,6 @@ vi.mock('./page/DevicePanel', () => ({ DevicePanel: () => <div data-testid="devi
 vi.mock('./page/LedMapEditor', () => ({ LedMapEditor: () => null }));
 vi.mock('./page/EffectTab', () => ({ EffectTab: () => null }));
 vi.mock('../../../components/views/ServiceRequired', () => ({ ServiceRequired: () => null }));
-vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({ LightingSkeleton: () => null }));
 vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({ DeviceCanvas: () => null }));
 
 vi.mock('../../../api/lighting', async importOriginal => {

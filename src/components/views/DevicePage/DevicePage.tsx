@@ -122,7 +122,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   // serviceOnline is false here the service has been unreachable past that
   // grace, so a brief display-rotate blip never reaches this point.
   if (!serviceOnline) {
-    return <ServiceRequired state={connectionState} skeleton={<div />} />;
+    return <ServiceRequired page="nexus" state={connectionState} />;
   }
 
   if (notConnected) {

@@ -144,6 +144,32 @@ describe('BuildPage', () => {
     expect(h.openExternalUrl).toHaveBeenCalledWith('https://build.hellonexus.com/products/rtx-5080');
   });
 
+  it('advertises open-benchmark in hello only when it can open Benchmark, and runs it on request', () => {
+    const onOpenBenchmark = vi.fn();
+    render(<BuildPage path="/bench" onOpenBenchmark={onOpenBenchmark} />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    expect(postSpy).toHaveBeenCalledWith(expect.objectContaining({ type: 'nexus-build:hello', canOpenBenchmark: true }), BUILD_ORIGIN);
+
+    act(() => postFromFrame(iframe, { type: 'nexus-build:open-benchmark' }));
+    expect(onOpenBenchmark).toHaveBeenCalledTimes(1);
+
+    // A foreign origin cannot trigger it.
+    act(() => postFromFrame(iframe, { type: 'nexus-build:open-benchmark' }, 'https://evil.example'));
+    expect(onOpenBenchmark).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits canOpenBenchmark from hello without a handler', () => {
+    render(<BuildPage path="/bench" />);
+    const iframe = getIframe();
+    const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+    act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+    const hello = postSpy.mock.calls.map(([msg]) => msg as Record<string, unknown>).find(m => m.type === 'nexus-build:hello');
+    expect(hello).toBeDefined();
+    expect(hello).not.toHaveProperty('canOpenBenchmark');
+  });
+
   it('shares the frame\'s back/forward reach with the top bar, and drops it when the page unmounts', () => {
     const { unmount } = render(<BuildPage path="/builder" />);
     const history = renderHook(() => useBuildFrameHistory());

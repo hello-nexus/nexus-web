@@ -28,10 +28,10 @@ const CASES: { feature: FeatureKey; titleKey: string; settingsKey: string }[] = 
 ];
 
 describe('FeatureDisabled', () => {
-  it.each(CASES)('renders the $feature title and hint', ({ feature, titleKey }) => {
+  it.each(CASES)('renders the $feature hero with its switch', ({ feature, titleKey }) => {
     render(<FeatureDisabled feature={feature} />);
-    expect(screen.getByRole('heading', { name: titleKey })).toBeInTheDocument();
-    expect(screen.getByText(`featureDisabled.hint.${feature}`)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: `pageHero.${feature}.title` })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: titleKey })).toBeInTheDocument();
   });
 
   it('animates the toggle to checked immediately on click, ahead of the write settling', () => {
@@ -80,7 +80,7 @@ describe('FeatureGate', () => {
     mockFlags = { ...mockFlags, lighting: false };
     render(<FeatureGate feature="lighting"><div>live page</div></FeatureGate>);
     expect(screen.queryByText('live page')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'lighting.title' })).toBeInTheDocument();
+    expect(screen.getByText('pageHero.lighting.title')).toBeInTheDocument();
   });
 
   it('renders children immediately on mount with no shell frame, even when the flag was off a moment ago', () => {

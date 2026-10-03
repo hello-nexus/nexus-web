@@ -19,7 +19,6 @@ import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Badge } from '../../../components/common/Badge/Badge';
 import { LiveFollowControl } from '../../../components/common/LiveFollowControl/LiveFollowControl';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
-import { MonitoringSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DetailedTab } from './page/DetailedTab';
 import { MetricHistorySection } from './page/MetricHistorySection';
 import { ProcessListSection, type ProcessListItem } from './page/ProcessListSection';
@@ -454,7 +453,7 @@ export function MonitoringPage({ serviceOnline, connectionState, tab: urlTab, on
     return (
       <div className={styles.monitoring}>
         <ViewHeader title={t('nav.monitoring')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
-        <ServiceRequired state={connectionState} skeleton={<MonitoringSkeleton />} />
+        <ServiceRequired page="monitoring" state={connectionState} />
       </div>
     );
   }

@@ -49,7 +49,6 @@ import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/Si
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
-import { LightingSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
@@ -2127,7 +2126,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             tabsDisabled
           />
         </div>
-        <ServiceRequired state={connectionState} skeleton={<LightingSkeleton />} />
+        <ServiceRequired page="lighting" state={connectionState} />
       </div>
     );
   }

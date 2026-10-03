@@ -32,15 +32,17 @@ export interface EmptyStateProps {
 
 export function EmptyState({ icon, title, hint, action, compact, hero, points, className }: EmptyStateProps) {
   const variant = hero ? styles.hero : compact ? styles.compact : '';
+  // A hero is a page intro holding controls, so it is a heading, not a live region.
+  const Title = hero ? 'h2' : 'div';
   return (
-    <div className={`${styles.root} ${variant} ${className ?? ''}`} role="status">
+    <div className={`${styles.root} ${variant} ${className ?? ''}`} role={hero ? undefined : 'status'}>
       {icon && (
         <div className={styles.icon} aria-hidden="true">
           {hero && <span className={styles.iconDisc} />}
           {icon}
         </div>
       )}
-      <div className={styles.title}>{title}</div>
+      <Title className={styles.title}>{title}</Title>
       {hint && <div className={styles.hint}>{hint}</div>}
       {points && points.length > 0 && (
         <ul className={styles.points}>

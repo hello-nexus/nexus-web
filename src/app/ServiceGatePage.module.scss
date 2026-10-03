@@ -6,7 +6,8 @@
   flex-direction: column;
   align-items: center;
   padding: 40px 24px 32px;
-  background: var(--bg);
+  // The app's own canvas in either theme, so the gate reads as Nexus rather than a bare page.
+  background: var(--backdrop-base);
   color: var(--text);
 }
 
@@ -14,14 +15,6 @@
   display: inline-flex;
   color: var(--text);
   margin-bottom: 8px;
-}
-
-// ServiceRequired's card overlays this wrapper (absolute inset); it must span
-// a real width or the page's centered column collapses it to content size.
-.body {
-  width: min(720px, 100%);
-  display: flex;
-  flex-direction: column;
 }
 
 .handheldCard {
@@ -69,18 +62,127 @@
   &:hover { background: var(--accent-glow); }
 }
 
-.updateHint {
-  @include text-caption;
-  color: var(--text-dim);
-  max-width: 420px;
-  text-align: center;
-  margin: 4px 0 14px;
-}
-
 .backLink {
   @include text-label;
+  margin-top: var(--space-lg);
   color: var(--text-dim);
   text-decoration: none;
 
   &:hover { color: var(--text); }
+}
+
+// Download first, then the already-installed path, stacked in one card.
+.getNexus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.getCard {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.getSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-xl);
+
+  & + & { border-top: var(--border-width) solid var(--separator); }
+}
+
+.getLabel,
+.getHint {
+  @include text-button;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.getHint {
+  font-weight: var(--weight-small);
+  max-width: 46ch;
+}
+
+.download {
+  @include text-button;
+  font-size: var(--type-body);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 0 var(--space-xl);
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--accent-text);
+  text-decoration: none;
+  transition: background var(--ease-fast);
+
+  &:hover { background: var(--accent-glow); color: var(--accent-text); }
+}
+
+.downloadMeta {
+  font-family: var(--font-mono);
+  font-size: var(--type-mini);
+  color: var(--text-dim);
+}
+
+.otherPlatforms {
+  @include text-button;
+  font-weight: var(--weight-small);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  color: var(--text-dim);
+}
+
+.platformLink {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  text-decoration: none;
+
+  &:hover { color: var(--accent-glow); background: var(--bg-card-hover); }
+}
+
+.status {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding: 10px 20px 10px 16px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  border: var(--border-width) solid var(--separator);
+  color: var(--text-dim);
+}
+
+.pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-glow);
+  animation: gatePulse 1.8s infinite;
+}
+
+@keyframes gatePulse {
+  0% { box-shadow: 0 0 0 0 var(--accent-glow-shadow); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse { animation: none; }
 }

@@ -7,7 +7,6 @@ import { useTranslation } from '../../../lib/i18n';
 import { Button } from '../../../components/common/Button/Button';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../ServiceRequired';
-import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { MonitorMap } from './MonitorMap';
 import styles from './DisplaysView.module.scss';
 
@@ -52,7 +51,7 @@ export function DisplaysView({ serviceOnline, connectionState, onDeviceSelect }:
   if (!serviceOnline) {
     return (
       <section className={styles.view}>
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="nexus" state={connectionState} />
       </section>
     );
   }

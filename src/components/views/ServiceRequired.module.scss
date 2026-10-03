@@ -1,0 +1,99 @@
+@use '../../styles/text' as *;
+
+.page {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+// Same shell as NexusControlCard, so a launch card and a feature switch read as one control.
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-md) var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: left;
+}
+
+.cardText {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cardTitle {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--bad);
+  flex: none;
+}
+
+.cardMessage {
+  @include text-button;
+  font-weight: var(--weight-small);
+  color: var(--text-dim);
+}
+
+.reinstall {
+  @include text-button;
+  font-weight: var(--weight-small);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  margin: var(--space-md) 0 0;
+  color: var(--text-dim);
+}
+
+.reinstallLink {
+  @include text-button;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--accent-glow);
+    background: var(--bg-card-hover);
+  }
+}
+
+.safariNote {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: left;
+}
+
+.safariIcon {
+  color: var(--text-dim);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.safariNoteText {
+  @include text-button;
+  font-weight: var(--weight-small);
+  margin: 0;
+  color: var(--text);
+}

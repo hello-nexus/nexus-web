@@ -3,7 +3,6 @@ import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { fetchService } from '../../api/service';
 import { useTranslation } from '../../lib/i18n';
 import { ServiceRequired } from './ServiceRequired';
-import { GenericSkeleton } from './PageSkeleton/PageSkeleton';
 import { Card } from '../common/Card/Card';
 import { Button } from '../common/Button/Button';
 // Storybook lives behind the debug Tools page. Lazy so the catalog chunk is
@@ -68,7 +67,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
       <div className={styles.page}>
         <div className={`${styles.scroller} pageBody`}>
           <div className={styles.tools}>
-            <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+            <ServiceRequired page="nexus" state={connectionState} />
           </div>
         </div>
       </div>

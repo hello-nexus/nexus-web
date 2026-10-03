@@ -71,6 +71,7 @@ import { SystemAccentSync } from './SystemAccentSync';
 import { SidebarCollapsedSync } from './SidebarCollapsedSync';
 import { ResolvedThemeSync } from './ResolvedThemeSync';
 import { ServiceGatePage } from './ServiceGatePage';
+import { heroForView } from '../components/common/PageHero/PageHero';
 import { getSidebarAppMeta } from './sidebarApps';
 import { SidebarColumn } from './SidebarColumn';
 import { CrossZoneDragProvider } from './CrossZoneDrag';
@@ -943,7 +944,7 @@ export function Dashboard() {
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} />;
-      case 'build':      return <BuildPage path={subtab} />;
+      case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => navigate('system', 'benchmark', 'run')} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;
@@ -976,8 +977,8 @@ export function Dashboard() {
   // UI.
   if (isRemoteOrigin && status.state !== 'online') {
     return status.state === 'checking'
-      ? <div style={{ minHeight: '100dvh', background: 'var(--bg)' }} />
-      : <ServiceGatePage state={status.state} />;
+      ? <div style={{ minHeight: '100dvh', background: 'var(--backdrop-base)' }} />
+      : <ServiceGatePage state={status.state} page={heroForView(activeView)} />;
   }
 
   return (

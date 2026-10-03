@@ -98,9 +98,6 @@ vi.mock('../../../components/views/ServiceRequired', () => ({
   ServiceRequired: () => <div data-testid="service-required" />,
 }));
 
-vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({
-  LightingSkeleton: () => <div data-testid="lighting-skeleton" />,
-}));
 
 vi.mock('../../../components/common/DeviceCanvas/DeviceCanvas', () => ({
   // Two stand-ins for the canvas gestures that move the focus: a tap on empty

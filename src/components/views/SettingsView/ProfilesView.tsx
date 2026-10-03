@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ServiceRequired } from '../ServiceRequired';
-import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { UseProfilesResult } from '../../../hooks/useProfiles';
 import type { Preferences } from '../../../api/profiles';
@@ -71,7 +70,7 @@ export function ProfilesView({ serviceOnline, connectionState, profiles, tab, on
   if (!serviceOnline) {
     return (
       <div className={styles.settings}>
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="nexus" state={connectionState} />
       </div>
     );
   }

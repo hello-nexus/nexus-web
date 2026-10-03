@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { CalendarDays, CalendarRange, Calendar, AppWindow, LayoutDashboard } from 'lucide-react';
+import { CalendarDays, CalendarRange, Calendar, AppWindow } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
-import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { PageHero } from '../../../components/common/PageHero/PageHero';
 import { NexusControlCard } from '../../../components/common/NexusControlCard/NexusControlCard';
 import { getTrackingStatus, setTrackingEnabled } from '../../../hooks/useScreenTimeBrowse';
 import { ScreenTimeIcon } from './screentimeIcon';
@@ -9,7 +9,6 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
-import { GenericSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import {
   SCREEN_TIME_MODES,
   ScreenTimeBrowse,
@@ -67,7 +66,7 @@ export function ScreentimePage({ serviceOnline, connectionState, tab: urlTab, on
     return (
       <div className={styles.screentime}>
         <ViewHeader title={t('screentime.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="screentime" state={connectionState} />
       </div>
     );
   }
@@ -87,16 +86,8 @@ export function ScreentimePage({ serviceOnline, connectionState, tab: urlTab, on
       />
       <div className={`${styles.tabContent} pageBody`}>
         {tracking === false ? (
-          <EmptyState
-            hero
-            icon={<ScreenTimeIcon />}
-            title={t('screentime.intro.title')}
-            hint={t('screentime.intro.body')}
-            points={[
-              { icon: <AppWindow />, text: t('screentime.intro.pointApps') },
-              { icon: <CalendarRange />, text: t('screentime.intro.pointViews') },
-              { icon: <LayoutDashboard />, text: t('screentime.intro.pointWidget') },
-            ]}
+          <PageHero
+            page="screentime"
             action={(
               <NexusControlCard
                 checked={enabling}

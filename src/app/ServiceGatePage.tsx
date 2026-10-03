@@ -1,8 +1,14 @@
+import { useMemo } from 'react';
 import { MonitorSmartphone } from 'lucide-react';
 import { NexusWordmark } from '../components/icons/NexusBrand';
+import { PlatformIcon } from '../components/icons/PlatformIcons';
 import { useTranslation } from '../lib/i18n';
 import type { ConnectionState } from '../hooks/useServiceStatus';
-import { ServiceRequired } from '../components/views/ServiceRequired';
+import { PageHero, type PageHeroKey } from '../components/common/PageHero/PageHero';
+import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
+import { SafariLaunchNote, primaryDownloadOS, useSafariLaunchBlocked } from '../components/views/ServiceRequired';
+import { ALL_DOWNLOADABLE_OS, DOWNLOAD_URLS, formatDownloadSizeMb } from '../lib/downloads';
+import { useDownloadManifest } from '../hooks/useDownloadManifest';
 import { isHandheldDevice } from '../lib/platform';
 import styles from './ServiceGatePage.module.scss';
 
@@ -24,15 +30,16 @@ function marketingHref(path: string): string {
 const PAIR_HOWTO_PATH = '/docs/guides/remote-devices/pair-your-phone';
 
 /**
- * my.hellonexus.com with no reachable local service: the launch / download
- * gate (the dashboard renders once a local Nexus answers). The update hint
- * matters here - services older than the my. rollout don't allow this origin
- * via CORS, which is indistinguishable from "not running".
+ * my.hellonexus.com with no reachable local service: the requested page's
+ * hero with the download / launch card (the dashboard renders once a local
+ * Nexus answers). The update hint matters here - services older than the my.
+ * rollout don't allow this origin via CORS, which is indistinguishable from
+ * "not running".
  *
  * A phone or tablet can never reach a local service, so instead of the
  * launch/download card it gets the platform note and the pairing how-to.
  */
-export function ServiceGatePage({ state }: { state: ConnectionState }) {
+export function ServiceGatePage({ state, page = 'nexus' }: { state: ConnectionState; page?: PageHeroKey }) {
   const { t } = useTranslation();
   if (isHandheldDevice()) {
     return (
@@ -57,12 +64,57 @@ export function ServiceGatePage({ state }: { state: ConnectionState }) {
       <div className={styles.wordmark}>
         <NexusWordmark height={22} />
       </div>
-      {/* ServiceRequired positions its card against this wrapper's width; the
-          page's centered column would otherwise shrink it to content width. */}
-      <div className={styles.body}>
-        <ServiceRequired state={state} message={t('site.gate.message')} />
+      <PageHero page={page} action={<GetNexus state={state} />} />
+    </div>
+  );
+}
+
+/** Download first, then the already-installed path, under the page's hero. */
+function GetNexus({ state }: { state: ConnectionState }) {
+  const { t } = useTranslation();
+  const primaryOS = useMemo(() => primaryDownloadOS(), []);
+  const safariBlocked = useSafariLaunchBlocked();
+  const manifest = useDownloadManifest();
+  const version = manifest?.version ?? null;
+  const sizeMb = formatDownloadSizeMb(manifest?.assets?.[primaryOS]?.size);
+  const osLabel = (os: string) => t(`service.required.os.${os}`);
+  return (
+    <div className={styles.getNexus}>
+      <div className={styles.getCard}>
+        <div className={styles.getSection}>
+          <p className={styles.getLabel}>
+            {t(state === 'offline-installed' ? 'service.required.needReinstall' : 'service.required.dontHaveIt')}
+          </p>
+          <a className={styles.download} href={DOWNLOAD_URLS[primaryOS]} download rel="noopener">
+            <PlatformIcon platform={primaryOS} size={18} />
+            {t('service.required.downloadFor', { os: osLabel(primaryOS) })}
+          </a>
+          {version && sizeMb && (
+            <span className={styles.downloadMeta}>{t('site.download.meta', { version, size: sizeMb })}</span>
+          )}
+          <div className={styles.otherPlatforms}>
+            <span>{t('service.required.otherPlatforms')}</span>
+            {ALL_DOWNLOADABLE_OS.filter(os => os !== primaryOS).map(os => (
+              <a key={os} className={styles.platformLink} href={DOWNLOAD_URLS[os]} download rel="noopener">
+                <PlatformIcon platform={os} size={13} />
+                {osLabel(os)}
+              </a>
+            ))}
+          </div>
+        </div>
+        <div className={styles.getSection}>
+          {safariBlocked ? <SafariLaunchNote /> : (
+            <>
+              <p className={styles.getHint}>{t('site.gate.updateHint')}</p>
+              <ServiceLaunchButton />
+            </>
+          )}
+        </div>
       </div>
-      <p className={styles.updateHint}>{t('site.gate.updateHint')}</p>
+      <div className={styles.status} role="status">
+        <span className={styles.pulse} aria-hidden />
+        {t('status.checking')}
+      </div>
       <a className={styles.backLink} href={marketingUrl()}>{t('site.gate.backToSite')}</a>
     </div>
   );

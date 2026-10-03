@@ -15,7 +15,6 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({ useTopicCallback: vi.fn(),
 vi.mock('../../../lib/controlSync', () => ({ publishControlSync: vi.fn(), subscribeControlSync: vi.fn(() => () => {}) }));
 
 vi.mock('../../../components/views/ServiceRequired', () => ({ ServiceRequired: () => null }));
-vi.mock('../../../components/views/PageSkeleton/PageSkeleton', () => ({ LightingSkeleton: () => null }));
 
 const DEVICE = {
   id: 'openrgb-0', name: 'Strip', ledsOn: false, ledCount: 8, controlled: false,

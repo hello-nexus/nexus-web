@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { BenchmarkResult } from '../../../types/benchmark';
-import { Gauge, Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
+import { Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatDateTime, hour12OptionFor } from '../../../lib/units';
@@ -13,8 +13,7 @@ import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
 import { Overlay } from '../../../components/common/Overlay/Overlay';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
-import { GenericSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
-import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
+import { PageHero } from '../../../components/common/PageHero/PageHero';
 import { Button } from '../../../components/common/Button/Button';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
@@ -173,7 +172,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     return (
       <div className={styles.benchmark}>
         <ViewHeader title={t('benchmark.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="benchmark" state={connectionState} />
       </div>
     );
   }
@@ -181,17 +180,8 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
   // Shown wherever the page has no run yet: the Run tab you land on and the
   // Results tab.
   const renderIntro = (onStart: () => void) => (
-    <EmptyState
-      hero
-      icon={<Gauge />}
-      title={t('benchmark.results.introTitle')}
-      hint={t('benchmark.results.introBody')}
-      points={[
-        { icon: <Cpu />, text: t('benchmark.phase.cpu') },
-        { icon: <Monitor />, text: t('benchmark.phase.gpu') },
-        { icon: <MemoryStick />, text: t('benchmark.phase.ram') },
-        { icon: <HardDrive />, text: t('benchmark.phase.storage') },
-      ]}
+    <PageHero
+      page="benchmark"
       action={(
         <Button tone="accent" icon={<Play size={16} />} onClick={onStart}>
           {t('benchmark.start')}

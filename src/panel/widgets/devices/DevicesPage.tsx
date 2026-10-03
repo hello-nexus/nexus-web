@@ -21,7 +21,6 @@ import { Select } from '../../../components/common/Select/Select';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
 import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
-import { DevicesSkeleton } from '../../../components/views/PageSkeleton/PageSkeleton';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
 import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
@@ -155,7 +154,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
       <div className={`${styles.body} pageBody`}>
         {availableActive ? (
           !serviceOnline ? (
-            <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
+            <ServiceRequired page="nexus" state={connectionState} />
           ) : (
             <>
               <div className={styles.deviceActions}>
@@ -205,12 +204,12 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
           />
         ) : tab === 'firmware' ? (
           !serviceOnline ? (
-            <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
+            <ServiceRequired page="nexus" state={connectionState} />
           ) : (
             <FirmwarePanel items={firmwareItems} onRetryCheck={refreshFirmware} />
           )
         ) : !serviceOnline ? (
-          <ServiceRequired state={connectionState} skeleton={<DevicesSkeleton />} />
+          <ServiceRequired page="nexus" state={connectionState} />
         ) : (
           <SpecsPanel specs={systemSpecs.specs} />
         )}

@@ -23,6 +23,8 @@ const NON_UI_JSX_ATTRIBUTES = [
   'feature',
   // Leading-icon treatment tier ('subtle'); a style enum, not display text.
   'iconLeading',
+  // PageHero key ('monitoring' | 'nexus' | ...); selects a hero, never displayed.
+  'page',
   // Search deep-link target id stamped on a control; technical, never displayed.
   'anchorId',
   // i18n key prefixes/overrides handed to a shared component so it reads its

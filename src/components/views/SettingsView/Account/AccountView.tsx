@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { KeyRound, Store } from 'lucide-react';
 import { ServiceRequired } from '../../ServiceRequired';
-import { GenericSkeleton } from '../../PageSkeleton/PageSkeleton';
 import type { ConnectionState } from '../../../../hooks/useServiceStatus';
 import type { UseCloudAccountsResult } from '../../../../hooks/useCloudAccounts';
 import { localServiceBackend } from '../../../../api/localServiceBackend';
@@ -81,7 +80,7 @@ export function AccountView({ serviceOnline, connectionState, accounts, tab, onT
   if (!serviceOnline) {
     return (
       <div className={styles.settings}>
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="nexus" state={connectionState} />
       </div>
     );
   }

@@ -21,7 +21,6 @@ import {
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useToast } from '../../common/Toast/Toast';
 import { ServiceRequired } from '../ServiceRequired';
-import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { StorageSection } from './StorageSection';
 import { MemorySection } from './MemorySection';
 import { CoolingTab } from './CoolingTab';
@@ -175,7 +174,7 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
     return (
       <div className={styles.diagnostics}>
         <ViewHeader title={t('diagnostics.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="diagnostics" state={connectionState} />
       </div>
     );
   }

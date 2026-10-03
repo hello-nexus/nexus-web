@@ -43,11 +43,19 @@ describe('ServiceGatePage', () => {
     }
   });
 
-  it('desktop: keeps the ServiceRequired launch/download gate', async () => {
+  it('desktop: the page hero with the download and launch card', async () => {
+    stubUserAgent(DESKTOP_UA);
+    render(<I18nProvider><ServiceGatePage state="offline" page="benchmark" /></I18nProvider>);
+    await screen.findByText('See how your PC scores');
+    expect(screen.getByRole('link', { name: /Download for Windows/ })).toHaveAttribute('href', 'https://hellonexus.com/download/windows');
+    expect(screen.getByText(/Already installed but not connecting/)).toBeInTheDocument();
+    expect(screen.getByText('Looking for service...')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'How to: pair this device with your PC' })).toBeNull();
+  });
+
+  it('desktop: an unrouted page falls back to the Nexus hero', async () => {
     stubUserAgent(DESKTOP_UA);
     render(<I18nProvider><ServiceGatePage state="offline" /></I18nProvider>);
-    await screen.findByText('This page connects to Nexus running on this system.');
-    expect(screen.getByText(/Already installed but not connecting/)).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'How to: pair this device with your PC' })).toBeNull();
+    await screen.findByText('Everything Nexus Does for Your PC');
   });
 });

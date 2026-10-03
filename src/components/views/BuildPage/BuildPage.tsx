@@ -96,13 +96,15 @@ export function sanitizeBuildPath(raw: string | null | undefined): string {
 interface BuildPageProps {
   /** URL-encoded portal path (pathname + search), e.g. encodeURIComponent("/upgrade?bench=<id>"). Defaults to "/builder". */
   path?: string | null;
+  /** Opens the Benchmark page; the hello advertises it so the portal's Run benchmark stays in the app. */
+  onOpenBenchmark?: () => void;
 }
 
 /**
  * Build: a full-height iframe onto build.hellonexus.com, the upgrade
  * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
-export function BuildPage({ path }: BuildPageProps) {
+export function BuildPage({ path, onOpenBenchmark }: BuildPageProps) {
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);
@@ -111,6 +113,8 @@ export function BuildPage({ path }: BuildPageProps) {
   const safePath = sanitizeBuildPath(path);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const onOpenBenchmarkRef = useRef(onOpenBenchmark);
+  useEffect(() => { onOpenBenchmarkRef.current = onOpenBenchmark; }, [onOpenBenchmark]);
   const [ready, setReady] = useState(false);
   // Bumped on every `ready` message, not just the first: the portal navigates
   // between routes with full page loads inside the iframe, so each new page
@@ -220,6 +224,9 @@ export function BuildPage({ path }: BuildPageProps) {
           })();
           break;
         }
+        case 'nexus-build:open-benchmark':
+          onOpenBenchmarkRef.current?.();
+          break;
         case 'nexus-build:history':
           setBuildFrameHistory({ canGoBack: data.canGoBack === true, canGoForward: data.canGoForward === true });
           break;
@@ -274,6 +281,7 @@ export function BuildPage({ path }: BuildPageProps) {
       glass: isGlassBackdrop(),
       locale: language,
       host: isRemoteOrigin ? 'web' : 'app',
+      ...(onOpenBenchmark ? { canOpenBenchmark: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
     };

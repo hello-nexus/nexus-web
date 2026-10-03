@@ -11,7 +11,6 @@ import { useDashboardLayout } from '../../../panel/engine/useDashboardLayout';
 import { useSearchSignal } from '../../../search/signals';
 import { ServiceRequired } from '../ServiceRequired';
 import { Toggle } from '../../common/Toggle/Toggle';
-import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
 import { DashboardBanner } from './DashboardBanner';
 import { listOverlayWidgets } from '../../../api/overlay';
@@ -114,7 +113,7 @@ function DashboardOffline({ connectionState }: { connectionState?: ConnectionSta
   return (
     <div className={styles.dashboard}>
       <div className="pageBodyFill">
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="nexus" state={connectionState} />
       </div>
     </div>
   );

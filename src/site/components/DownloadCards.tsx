@@ -1,28 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from '../../lib/i18n';
 import { PlatformIcon } from '../../components/icons/PlatformIcons';
 import {
   DOWNLOAD_URLS,
   ALL_DOWNLOADABLE_OS,
-  fetchDownloadManifest,
   formatDownloadSizeMb,
   type DownloadableOS,
-  type DownloadManifest,
 } from '../../lib/downloads';
+import { useDownloadManifest } from '../../hooks/useDownloadManifest';
 import { detectOS } from '../../lib/platform';
 import styles from '../site.module.scss';
-
-function useDownloadManifest(): DownloadManifest | null {
-  const [manifest, setManifest] = useState<DownloadManifest | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchDownloadManifest(controller.signal).then((m) => {
-      if (m) setManifest(m);
-    });
-    return () => controller.abort();
-  }, []);
-  return manifest;
-}
 
 /** The per-OS download card grid, shared by the landing section and /download. */
 export function DownloadCards() {

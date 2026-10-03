@@ -1,7 +1,6 @@
 import { useCallback, useMemo, type ReactNode } from 'react';
 import { Activity, Lightbulb, Palette, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import { ServiceRequired } from '../ServiceRequired';
-import { GenericSkeleton } from '../PageSkeleton/PageSkeleton';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -111,7 +110,7 @@ export function SettingsView({ serviceOnline, connectionState, platform, tab: ur
     return (
       <div className={styles.settings}>
         <ViewHeader title={t('settings.title')} tabs={tabs} activeTab={tab} onTabChange={onTabChange} tabsDisabled />
-        <ServiceRequired state={connectionState} skeleton={<GenericSkeleton />} />
+        <ServiceRequired page="nexus" state={connectionState} />
       </div>
     );
   }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Activity, Fan, Lightbulb, Stethoscope, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { NexusControlCard } from '../NexusControlCard/NexusControlCard';
+import { PageHero } from '../PageHero/PageHero';
 import { useFeatureFlags, useUiSettingsUpdateSafe, type FeatureKey } from '../../../hooks/useUiSettings';
 import styles from './FeatureDisabled.module.scss';
 
@@ -39,11 +40,10 @@ export interface FeatureDisabledProps {
 }
 
 /**
- * Full-page disabled shell for a feature pillar turned off in Settings,
- * matching DevicePage's NexusControlOff layout. The toggle flips
- * optimistically on click, then writes the real flag after
- * REENABLE_DELAY_MS so the animation is visible before FeatureGate swaps
- * to the live page.
+ * Full-page disabled shell for a feature pillar turned off in Settings: the
+ * pillar's hero with its switch. The toggle flips optimistically on click,
+ * then writes the real flag after REENABLE_DELAY_MS so the animation is
+ * visible before FeatureGate swaps to the live page.
  */
 export function FeatureDisabled({ feature }: FeatureDisabledProps) {
   const { t } = useTranslation();
@@ -62,10 +62,9 @@ export function FeatureDisabled({ feature }: FeatureDisabledProps) {
   };
   return (
     <section className={styles.page}>
-      <div className={styles.controlOff}>
-        <h2 className={styles.controlOffTitle}>{title}</h2>
-        <div className={styles.controlOffBody}>
-          <p className={styles.controlOffHint}>{t(`featureDisabled.hint.${feature}`)}</p>
+      <PageHero
+        page={feature}
+        action={(
           <NexusControlCard
             checked={enabling}
             disabled={enabling}
@@ -73,8 +72,8 @@ export function FeatureDisabled({ feature }: FeatureDisabledProps) {
             label={title}
             onChange={handleEnable}
           />
-        </div>
-      </div>
+        )}
+      />
     </section>
   );
 }
