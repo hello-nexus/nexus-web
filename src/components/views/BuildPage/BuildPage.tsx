@@ -96,7 +96,7 @@ export function sanitizeBuildPath(raw: string | null | undefined): string {
 interface BuildPageProps {
   /** URL-encoded portal path (pathname + search), e.g. encodeURIComponent("/upgrade?bench=<id>"). Defaults to "/builder". */
   path?: string | null;
-  /** Opens the Benchmark page; the hello advertises it so the portal's Run benchmark stays in the app. */
+  /** Opens the Benchmark page and starts a run; the hello advertises it so the portal's Start benchmark stays in the app. */
   onOpenBenchmark?: () => void;
 }
 

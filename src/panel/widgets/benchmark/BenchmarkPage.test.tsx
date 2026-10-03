@@ -64,6 +64,7 @@ const h = vi.hoisted(() => ({
   addRun: vi.fn(() => `run-${Date.now()}`),
   updateRunSubmission: vi.fn(),
   history: [] as any[],
+  start: vi.fn(),
 }));
 
 const mockSubmitCloudBenchmark = vi.fn();
@@ -74,7 +75,7 @@ vi.mock('../../../hooks/useBenchmark', () => ({
     progress: null,
     result: h.result,
     error: null,
-    start: vi.fn(),
+    start: h.start,
     cancel: vi.fn(),
     reset: vi.fn(async () => { h.result = null; }),
   }),
@@ -107,6 +108,7 @@ vi.mock('../../../api/telemetry', () => ({
 }));
 
 import { BenchmarkPage } from './BenchmarkPage';
+import { requestBenchmarkStart, takeBenchmarkStartRequest } from './benchmarkNav';
 
 describe('BenchmarkPage telemetry-gated submission', () => {
   beforeEach(() => {
@@ -283,5 +285,42 @@ describe('BenchmarkPage telemetry-gated submission', () => {
 
     const again = render(<BenchmarkPage serviceOnline tab="results" onTabChange={() => {}} />);
     expect(again.container.querySelector('[class*="compositeScore"]')?.textContent).toBe('1500');
+  });
+});
+
+describe('BenchmarkPage start requested from outside the page', () => {
+  beforeEach(() => {
+    h.result = null;
+    h.history = [];
+    h.start.mockReset();
+    takeBenchmarkStartRequest();
+  });
+
+  it('starts one run on open when a start was requested', async () => {
+    requestBenchmarkStart();
+    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    await waitFor(() => expect(h.start).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not start on a plain visit', async () => {
+    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    await screen.findAllByText('benchmark.start');
+    expect(h.start).not.toHaveBeenCalled();
+  });
+
+  it('waits for the service, then starts', async () => {
+    requestBenchmarkStart();
+    const { rerender } = render(<BenchmarkPage serviceOnline={false} tab="run" onTabChange={() => {}} />);
+    expect(h.start).not.toHaveBeenCalled();
+    rerender(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    await waitFor(() => expect(h.start).toHaveBeenCalledTimes(1));
+  });
+
+  it('drops a request when the page closes before it could start', () => {
+    requestBenchmarkStart();
+    const { unmount } = render(<BenchmarkPage serviceOnline={false} tab="run" onTabChange={() => {}} />);
+    unmount();
+    render(<BenchmarkPage serviceOnline tab="run" onTabChange={() => {}} />);
+    expect(h.start).not.toHaveBeenCalled();
   });
 });

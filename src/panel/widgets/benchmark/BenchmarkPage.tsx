@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { BenchmarkResult } from '../../../types/benchmark';
-import { Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
+import { Gauge, Play, RotateCcw, History, Trophy, Cpu, Monitor, MemoryStick, HardDrive, CircuitBoard, AppWindow } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { formatDateTime, hour12OptionFor } from '../../../lib/units';
@@ -25,6 +25,7 @@ import { buildBenchmarkSubmission } from './benchmarkSubmission';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { LeaderboardView } from './LeaderboardView';
+import { takeBenchmarkStartRequest } from './benchmarkNav';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
 import styles from './BenchmarkPage.module.scss';
 
@@ -168,6 +169,17 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     await reset();
   }, [reset]);
 
+  // A start requested from outside the page waits here until the service can take it.
+  const pendingStartRef = useRef(false);
+  useEffect(() => {
+    if (takeBenchmarkStartRequest()) pendingStartRef.current = true;
+  }, []);
+  useEffect(() => {
+    if (!pendingStartRef.current || !serviceOnline || status !== 'idle') return;
+    pendingStartRef.current = false;
+    void start();
+  }, [serviceOnline, status, start]);
+
   if (!serviceOnline) {
     return (
       <div className={styles.benchmark}>
@@ -183,7 +195,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
     <PageHero
       page="benchmark"
       action={(
-        <Button tone="accent" icon={<Play size={16} />} onClick={onStart}>
+        <Button tone="accent" icon={<Gauge size={16} />} onClick={onStart}>
           {t('benchmark.start')}
         </Button>
       )}
@@ -223,7 +235,7 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
         <div className={styles.intro}>
           {specsSection}
           <div className={styles.controls}>
-            <Button tone="accent" icon={<Play size={16} />} onClick={startRun}>
+            <Button tone="accent" icon={<Gauge size={16} />} onClick={startRun}>
               {t('benchmark.start')}
             </Button>
           </div>

@@ -50,6 +50,7 @@ import { useLastRoute } from '../hooks/useLastRoute';
 import { onDeckOpenMonitoring } from '../panel/widgets/deck/deckMonitoringNav';
 import { onOpenFramesGame } from '../panel/widgets/frames/framesNav';
 import { onOpenBuild, useBuildFrameHistory } from '../components/views/BuildPage/buildNav';
+import { requestBenchmarkStart, takeBenchmarkStartRequest } from '../panel/widgets/benchmark/benchmarkNav';
 import { requestOpenDeckEditor } from '../panel/widgets/deck/deckOpenEditorNav';
 import { getPendingDeckEdit, type PendingDeckEdit } from '../api/streamdeck';
 import { useUnifiedDevices } from '../hooks/useUnifiedDevices';
@@ -613,6 +614,12 @@ export function Dashboard() {
   // Active view within the system section
   const activeView = view || 'dashboard';
 
+  // A Start benchmark request belongs to the navigation that made it: a route
+  // that settles anywhere but Benchmark drops it, so a later visit never starts a run.
+  useEffect(() => {
+    if (activeView !== 'benchmark') takeBenchmarkStartRequest();
+  }, [activeView, subtab]);
+
   // In service build the sidebar is only meaningful on /system (the
   // PORTAL entries open hellonexus.com in a new tab and never change `section`
   // locally). In the full build sidebar must render on every section so users
@@ -944,7 +951,7 @@ export function Dashboard() {
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
       case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} />;
-      case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => navigate('system', 'benchmark', 'run')} />;
+      case 'build':      return <BuildPage path={subtab} onOpenBenchmark={() => { requestBenchmarkStart(); navigate('system', 'benchmark', 'run'); }} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage />;
       case 'steam':      return <SteamPage />;
