@@ -258,7 +258,7 @@ describe('PanelDevicePage Q-series panel lifecycle', () => {
 
     expect(screen.queryByRole('button', { name: REBOOT_BUTTON })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'devices.panels.resetHardware.button' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'devices.panels.troubleshooting.open' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'devices.panels.troubleshooting.open' })).toBeInTheDocument();
   });
 
   it('offers neither on a non-Q-series panel', async () => {

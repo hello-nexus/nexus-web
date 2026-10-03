@@ -152,12 +152,12 @@ describe('PanelDevicePage Q-series firmware gate vs disconnected state', () => {
     );
   });
 
-  it('shows neither state for a simulated Q60', async () => {
+  it('shows neither state for a simulated Q60, but keeps the guide link', async () => {
     firmwareItems = [];
     render(<PanelDevicePage device={q60Device('simulated')} />);
     await waitFor(() => screen.getByTestId('embed'));
     expect(screen.queryByText(FWGATE_TITLE)).toBeNull();
     expect(screen.queryByText(DISCONNECTED_TITLE)).toBeNull();
-    expect(screen.queryByRole('link', { name: MISMATCH_LINK })).toBeNull();
+    expect(screen.getByRole('link', { name: MISMATCH_LINK })).toBeInTheDocument();
   });
 });
