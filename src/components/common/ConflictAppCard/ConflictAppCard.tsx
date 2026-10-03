@@ -20,7 +20,7 @@ interface ConflictAppCardProps {
   devices?: readonly ConflictDevice[];
   /** Flips every listed device to the chosen owner, and the app's whitelist state. Required for the switch to render. */
   onSetOwner?: (owner: ConflictOwnerChoice) => Promise<boolean>;
-  /** Whether the app is on `Ui.ConflictAutoKillExclusions` - the switch position this reflects, independent of device ownership. */
+  /** Whether the app is on `Ui.ConflictAutoKillExclusions`. With the devices' owners it picks the switch position: neither chip while they disagree. */
   whitelisted?: boolean;
   /** The app has been ended: the row stays listed with its devices, minus the owner switch. */
   terminated?: boolean;
@@ -46,6 +46,12 @@ export function selectedOwner(devices: readonly ConflictDevice[]): ConflictOwner
   return '';
 }
 
+/** The owner the whitelist and every listed device agree on; '' while they disagree, so neither chip claims a state the other half contradicts. */
+function agreedOwner(devices: readonly ConflictDevice[], whitelisted: boolean | undefined): ConflictOwnerChoice | '' {
+  const owner = selectedOwner(devices);
+  return owner === (whitelisted ? APP_OWNER : NEXUS_OWNER) ? owner : '';
+}
+
 /**
  * Name + executable/PID meta row for a single detected conflicting app, with
  * an End Task action. Used by ConflictWarningModal (one per detected conflict),
@@ -53,8 +59,8 @@ export function selectedOwner(devices: readonly ConflictDevice[]): ConflictOwner
  * single conflict blocking that device).
  *
  * With `devices`, the card also lists the hardware both apps are after and an
- * all-or-none switch over who drives it, driven by `whitelisted` rather than
- * the devices' own agreement: choosing the app whitelists it (never ended,
+ * all-or-none switch over who drives it, selected only while the whitelist
+ * and every listed device agree: choosing the app whitelists it (never ended,
  * never alerted on) and hands the devices back; choosing Nexus clears the
  * whitelist and claims the devices, without ending the app.
  */
@@ -64,9 +70,9 @@ export function ConflictAppCard({
   const { t } = useTranslation();
   // Which owner is being applied, or null when idle.
   const [applying, setApplying] = useState<ConflictOwnerChoice | null>(null);
-  // Shown immediately on click; cleared once `whitelisted` reflects the write,
-  // or at once when the write failed, so the switch never shows an owner the
-  // service did not record.
+  // Shown immediately on click; cleared once the whitelist and the devices
+  // agree on an owner, or at once when the write failed. The whitelist lands
+  // before the devices push, so a pick holds through that gap.
   const [optimisticOwner, setOptimisticOwner] = useState<ConflictOwnerChoice | null>(null);
   const [disablingAutostart, setDisablingAutostart] = useState(false);
   // Sticky for the life of the card: the entry list goes empty on success (or
@@ -80,16 +86,16 @@ export function ConflictAppCard({
     return () => { mountedRef.current = false; };
   }, []);
 
+  const currentOwner = agreedOwner(devices ?? [], whitelisted);
   useEffect(() => {
-    setOptimisticOwner(null);
-  }, [whitelisted]);
+    if (currentOwner !== '') setOptimisticOwner(null);
+  }, [currentOwner]);
 
   const list = devices ?? [];
   const showDevices = list.length > 0;
   // An ended app drives nothing, so the choice is moot; the devices stay
   // listed so the row still says what it was fighting Nexus for.
   const showSwitch = showDevices && onSetOwner !== undefined && terminated !== true;
-  const currentOwner: ConflictOwnerChoice = whitelisted ? APP_OWNER : NEXUS_OWNER;
   const selection = optimisticOwner ?? currentOwner;
 
   const handleOwner = useCallback(async (key: string) => {

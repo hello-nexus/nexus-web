@@ -113,7 +113,7 @@ describe('useConflictDevices.setOwner', () => {
     mockFetchService.mockReset().mockResolvedValue([hubOn]);
     mockSetDeviceControl.mockReset().mockResolvedValue([hubOn]);
     mockFetchLightingDevices.mockReset().mockResolvedValue({ isInit: true, devices: [...hubCards, ram] });
-    mockSetLightingDeviceControlled.mockReset().mockResolvedValue(null);
+    mockSetLightingDeviceControlled.mockReset().mockResolvedValue({ error: false, msg: 'Ok' });
     mockSetConflictWhitelisted.mockReset().mockResolvedValue({ error: false, msg: 'Ok' });
   });
 
@@ -153,6 +153,23 @@ describe('useConflictDevices.setOwner', () => {
     mockSetConflictWhitelisted.mockResolvedValueOnce(null);
     await act(async () => { recorded = await result.current.setOwner('icue', 'nexus'); });
     expect(recorded).toBe(false);
+  });
+
+  it('reports a device write that failed even when the whitelist landed', async () => {
+    const { result } = renderHook(() => useConflictDevices([icue], true));
+    await waitFor(() => expect(result.current.devicesByApp.get('icue')).toHaveLength(2));
+
+    mockSetLightingDeviceControlled.mockResolvedValueOnce(null);
+    let recorded = true;
+    await act(async () => { recorded = await result.current.setOwner('icue', 'nexus'); });
+    expect(recorded).toBe(false);
+
+    mockSetDeviceControl.mockResolvedValueOnce(null);
+    await act(async () => { recorded = await result.current.setOwner('icue', 'app'); });
+    expect(recorded).toBe(false);
+
+    await act(async () => { recorded = await result.current.setOwner('icue', 'nexus'); });
+    expect(recorded).toBe(true);
   });
 
   it('does nothing while disabled', async () => {
