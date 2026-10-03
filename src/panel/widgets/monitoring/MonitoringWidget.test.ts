@@ -69,7 +69,7 @@ describe('staticMaxForDevice - motherboard', () => {
   it('picks a ceiling per sensor type', () => {
     expect(staticMaxForDevice('motherboard', undefined, 'Fan')).toBe(2500);
     expect(staticMaxForDevice('motherboard', undefined, 'Clock')).toBe(6000);
-    expect(staticMaxForDevice('motherboard', undefined, 'Voltage')).toBe(2);
+    expect(staticMaxForDevice('motherboard', undefined, 'Voltage')).toBe(2.5);
     expect(staticMaxForDevice('motherboard', undefined, 'Load')).toBe(100);
     expect(staticMaxForDevice('motherboard', undefined, 'Temperature')).toBe(100);
   });
@@ -156,8 +156,54 @@ describe('percentForSensor / staticMaxForDevice - other heterogeneous devices', 
 
   it('scale a non-percent type against the resolved ceiling', () => {
     expect(percentForSensor('cooler', sensor({ id: 'a', name: 'a', type: 'Fan', value: 1250 }), 2500)).toBe(50);
-    expect(staticMaxForDevice('psu', undefined, 'Voltage')).toBe(2);
     expect(staticMaxForDevice('embeddedController', undefined, 'Clock')).toBe(6000);
+  });
+});
+
+describe('percentForSensor - non-percent types on cpu/gpu', () => {
+  it('scales Power and Clock against the resolved ceiling instead of reading watts or MHz as percent', () => {
+    expect(percentForSensor('gpu', sensor({ id: 'a', name: 'GPU Package', type: 'Power', value: 300 }), 600)).toBe(50);
+    expect(percentForSensor('cpu', sensor({ id: 'a', name: 'Core #1', type: 'Clock', value: 3000 }), 6000)).toBe(50);
+  });
+
+  // Typical readings per type, from a live Windows box: none may peg the
+  // gauge or leave it empty on the default scale.
+  it.each([
+    ['cpu', 'Package', 'Power', 40.7, undefined],
+    ['cpu', 'Core #1', 'Clock', 4558, undefined],
+    ['cpu', 'Core #1 VID', 'Voltage', 1.2, undefined],
+    ['gpu', 'GPU Package', 'Power', 97.9, undefined],
+    ['gpu', 'GPU Core', 'Clock', 3100, undefined],
+    ['gpu', 'GPU Memory', 'Clock', 10501, undefined],
+    ['gpu', 'GPU Package', 'Power', 575, undefined],
+    ['cpu', 'Package', 'Power', 253, undefined],
+    ['gpu', 'GPU Fan 1', 'Fan', 1500, undefined],
+    ['gpu', 'GPU Core Voltage', 'Voltage', 0.8, undefined],
+    ['gpu', 'GPU PCIe Rx', 'Throughput', 2_000_000_000, undefined],
+    ['gpu', 'GPU Memory Used', 'SmallData', 1061, 16303],
+    ['quick', 'GPU Clock', 'Clock', 2500, undefined],
+    ['quick', 'CPU Clock', 'Clock', 4558, undefined],
+    ['motherboard', 'Fan #1', 'Fan', 1819, undefined],
+    ['motherboard', 'Voltage #1', 'Voltage', 1.27, undefined],
+    ['motherboard', 'CPU VCCIO', 'Voltage', 1.05, undefined],
+    ['motherboard', '5VSB', 'Voltage', 5.02, undefined],
+    ['motherboard', '+3V Standby', 'Voltage', 3.31, undefined],
+    ['motherboard', '+12V', 'Voltage', 12.1, undefined],
+    ['smart', 'Read Rate', 'Throughput', 3_500_000_000, undefined],
+    ['psu', '+12V', 'Voltage', 12.1, undefined],
+    ['psu', 'Total', 'Power', 450, undefined],
+    ['storage', 'Used', 'Data', 1408.9, 1604.6],
+    ['memory', 'Memory Used', 'Data', 8.47, 31.11],
+  ] as const)('%s %s (%s) reads inside the gauge', (device, name, type, value, theoreticalMaximum) => {
+    const s = sensor({ id: 'a', name, type, value, theoreticalMaximum });
+    const percent = percentForSensor(device, s, theoreticalMaximum ?? staticMaxForDevice(device, name, type, value));
+    expect(percent).toBeGreaterThan(1);
+    expect(percent).toBeLessThan(99);
+  });
+
+  it('keeps Load and Temperature on their own 0-100 reading', () => {
+    expect(percentForSensor('gpu', sensor({ id: 'a', name: 'GPU Core', type: 'Load', value: 42 }), 100)).toBe(42);
+    expect(percentForSensor('cpu', sensor({ id: 'a', name: 'CPU Package', type: 'Temperature', value: 65 }), 100)).toBe(65);
   });
 });
 

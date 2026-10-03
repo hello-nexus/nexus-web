@@ -240,7 +240,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixe
   const history = useSharedSensorHistory(sensorKey, rawValue) as number[];
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : staticMaxForDevice(device, sensor?.name, sensor?.type);
+    : staticMaxForDevice(device, sensor?.name, sensor?.type, sensor?.value);
   // A shared Fixed range scales every bar to the same [min, max] window;
   // adaptive keeps each bar's natural percent fill.
   const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, defaultFixedMax(device, sensor, effectiveSensorName));
@@ -250,7 +250,7 @@ function MicroRow({ sensors, fpsSensors, networkSensors, extras, device, prefixe
 
   const gradientId = useId();
   const coloured = valueColor && sensorSupportsValueColor(sensor?.type, device) && hasValueColorReading(device, rawValue);
-  const reverse = valueColorReverse ?? defaultValueColorReverse(device, effectiveSensorName);
+  const reverse = valueColorReverse ?? defaultValueColorReverse(device, sensor?.name ?? effectiveSensorName);
   const panelStops = coloured ? gaugeGradient.stops : null;
   const stops = useMemo(() => (panelStops && reverse ? reverseGaugeGradient(panelStops) : panelStops), [panelStops, reverse]);
   const mode = gaugeGradient.mode;

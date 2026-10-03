@@ -75,8 +75,39 @@ describe('defaultFixedMax', () => {
     // CPU Clock / GPU Clock, so this is not a motherboard-only concern.
     expect(staticMaxForDevice('quick', 'CPU Clock', 'Clock')).toBe(6000);
     expect(staticMaxForDevice('cpu', 'P-Core #1', 'Clock')).toBe(6000);
-    expect(staticMaxForDevice('gpu', 'GPU Core', 'Clock')).toBe(6000);
     expect(staticMaxForDevice('motherboard', 'Bus Speed', 'Clock')).toBe(6000);
+  });
+
+  it('gives GPU clocks a GPU-scale ceiling, Quick included', () => {
+    expect(staticMaxForDevice('gpu', 'GPU Core', 'Clock')).toBe(3500);
+    expect(staticMaxForDevice('igpu', 'GPU Core', 'Clock')).toBe(3500);
+    expect(staticMaxForDevice('quick', 'GPU Clock', 'Clock')).toBe(3500);
+    expect(staticMaxForDevice('gpu', 'GPU Memory', 'Clock')).toBe(15000);
+  });
+
+  it('gives Power a per-device wattage ceiling', () => {
+    expect(staticMaxForDevice('cpu', 'Package', 'Power')).toBe(300);
+    expect(staticMaxForDevice('gpu', 'GPU Package', 'Power')).toBe(600);
+    expect(staticMaxForDevice('gpu2', 'GPU Package', 'Power')).toBe(600);
+    expect(staticMaxForDevice('psu', 'Total', 'Power')).toBe(1000);
+    expect(staticMaxForDevice('battery', 'Charge Rate', 'Power')).toBe(100);
+  });
+
+  it('gives Fan, Voltage and Throughput their ceilings on every device', () => {
+    expect(staticMaxForDevice('gpu', 'GPU Fan 1', 'Fan')).toBe(2500);
+    expect(staticMaxForDevice('cpu', 'Core #1 VID', 'Voltage', 1.2)).toBe(2.5);
+    expect(staticMaxForDevice('gpu', 'GPU Core', 'Voltage', 0.8)).toBe(2.5);
+    expect(staticMaxForDevice('motherboard', 'CPU VCCIO', 'Voltage', 1.05)).toBe(2.5);
+    expect(staticMaxForDevice('memoryModule', 'VDD', 'Voltage', 1.35)).toBe(2.5);
+    expect(staticMaxForDevice('motherboard', 'Voltage #2', 'Voltage', 2.02)).toBe(2.5);
+    expect(staticMaxForDevice('motherboard', 'Voltage #4', 'Voltage', 1.99)).toBe(2.5);
+    expect(staticMaxForDevice('motherboard', '+3V Standby', 'Voltage', 3.31)).toBe(15);
+    expect(staticMaxForDevice('motherboard', '5VSB', 'Voltage', 5.02)).toBe(15);
+    expect(staticMaxForDevice('motherboard', 'CMOS Battery', 'Voltage', 3.24)).toBe(15);
+    expect(staticMaxForDevice('psu', '+3.3V', 'Voltage', 3.3)).toBe(15);
+    expect(staticMaxForDevice('psu', '+12V', 'Voltage')).toBe(15);
+    expect(staticMaxForDevice('smart', 'Read Rate', 'Throughput')).toBe(7_000_000_000);
+    expect(staticMaxForDevice('gpu', 'GPU PCIe Rx', 'Throughput')).toBe(7_000_000_000);
   });
 
   it('leaves percent-typed sensors on the 100 ceiling', () => {
@@ -201,8 +232,7 @@ describe('relativeHistoryDomain / staticMaxForDevice - SSD SMART and extras devi
   });
 
   it('Voltage-typed psu sensors stretch to the observed max', () => {
-    expect(relativeHistoryDomain('psu', 1.25, [], 2, undefined, 'Voltage')).toEqual([0, 2]);
-    expect(staticMaxForDevice('psu', undefined, 'Voltage')).toBe(2);
+    expect(relativeHistoryDomain('psu', 1.25, [], 15, undefined, 'Voltage')).toEqual([0, 2]);
   });
 });
 

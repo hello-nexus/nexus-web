@@ -14,7 +14,10 @@ const mockSensors = vi.hoisted(() => ({
     { id: 'cpu-temp', name: 'CPU Package', type: 'Temperature', value: 95, units: '°C', formatted: '95 °C', parent: { id: 'cpu', name: 'CPU' } },
     { id: 'cpu-die', name: 'CPU Die', type: 'Temperature', value: 36, units: '°C', formatted: '36 °C', parent: { id: 'cpu', name: 'CPU' } },
   ],
-  gpu: [],
+  gpu: [
+    { id: 'gpu-power', name: 'GPU Package', type: 'Power', value: 97.9, units: 'W', formatted: '97.9 W', parent: { id: 'gpu', name: 'GPU' } },
+    { id: 'gpu-mem', name: 'GPU Memory Used', type: 'SmallData', value: 14000, theoreticalMaximum: 16000, units: 'MB', formatted: '14000 MB', parent: { id: 'gpu', name: 'GPU' } },
+  ],
   memory: [],
   storage: [],
   storageComponents: {},
@@ -126,14 +129,31 @@ describe('MonitoringWidget value colouring', () => {
     expect(top).not.toBe('#f59e0b');
   });
 
-  it('ignores the toggle on a sensor outside the percent/temperature families', () => {
+  it('colours a power reading against the GPU power ceiling, not a 0-100 scale', () => {
+    const { container } = render(
+      <MonitoringWidget widget={widgetWith({ slot0_device: 'gpu', slot0_sensor: 'GPU Package', slot0_valueColor: true })} />,
+    );
+    // A light draw against the GPU power ceiling stays on the cool end.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(221\.7,/);
+    expect(fillBackground(container)).toContain('linear-gradient');
+  });
+
+  it('colours a memory reading against its capacity', () => {
+    const { container } = render(
+      <MonitoringWidget widget={widgetWith({ slot0_device: 'gpu', slot0_sensor: 'GPU Memory Used', slot0_valueColor: true })} />,
+    );
+    // A nearly full VRAM reads hot.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(0\.0,/);
+  });
+
+  it('colours a fan against the RPM ceiling', () => {
     const { container } = render(
       <MonitoringWidget widget={widgetWith({
         slot0_device: 'motherboard', slot0_sensor: 'Fan 1', slot0_valueColor: true,
       })} />,
     );
-    expect(slot(container).style.getPropertyValue('--panel-accent')).toBe('');
-    expect(fillBackground(container)).toBe('');
+    // A fan near the RPM ceiling reads hot.
+    expect(slot(container).style.getPropertyValue('--panel-accent')).toMatch(/^hsl\(0\.0,/);
   });
 
   it('reverses the scale on request, so a hot CPU reads cool', () => {

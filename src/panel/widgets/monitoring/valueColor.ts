@@ -9,12 +9,9 @@ import { gaugeGradientColorAt, gaugeGradientCss, type GaugeGradientStop } from '
 import type { GaugeDesignKey } from './gauges/types';
 import type { DeviceKey } from './perfSlots';
 
-/** Sensor types the colouring is offered for: the percent family plus temperature. */
-const COLORABLE_TYPES = new Set(['Load', 'Control', 'Level', 'Temperature']);
-
-/** FPS slots qualify by device: the settings pane has no fps stream to resolve a type from. */
+/** Any resolved sensor; FPS qualifies by device as the settings pane has no fps stream to resolve. */
 export function sensorSupportsValueColor(sensorType: string | undefined, device?: DeviceKey): boolean {
-  return device === 'fps' || (sensorType !== undefined && COLORABLE_TYPES.has(sensorType));
+  return device === 'fps' || sensorType !== undefined;
 }
 
 /** FPS reads 0 while no game is presenting: no reading to tint. */
@@ -22,9 +19,17 @@ export function hasValueColorReading(device: DeviceKey, rawValue: number): boole
   return device !== 'fps' || rawValue > 0;
 }
 
-/** Unset, the frame rate runs reversed (a drop is the warning); every other sensor runs hot-high. */
+/** Headroom readings, where more is better: free space, available memory, remaining life. */
+const HEADROOM_NAME = /\b(Free|Available|Life)\b/;
+
+/**
+ * Unset, the frame rate and headroom readings run reversed (a drop is the
+ * warning); every other sensor runs hot-high. `sensorName` is the resolved
+ * sensor's display name, not a stored sensor id.
+ */
 export function defaultValueColorReverse(device: DeviceKey, sensorName: string): boolean {
-  return device === 'fps' && sensorName !== 'Frame Time';
+  if (device === 'fps') return sensorName !== 'Frame Time';
+  return HEADROOM_NAME.test(sensorName);
 }
 
 /** The same gradient read from the full end, so low readings take the hot colours. */
