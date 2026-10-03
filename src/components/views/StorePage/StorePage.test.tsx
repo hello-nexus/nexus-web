@@ -39,10 +39,27 @@ vi.mock('../SettingsView/Account/AccountSignInModal', () => ({
     (open ? <button type="button" onClick={onSignedIn}>signed-in</button> : null),
 }));
 
+// What the registry holds once an install's reload lands, separate from `installed` so Install stays offered.
+const listings = new Map<string, { id: string; version: string; iconUrl: string | null; page?: boolean }>();
+
 vi.mock('../../../widgets/marketplaceRegistry', () => ({
   getAllMarketplaceListings: () => installed,
+  getMarketplaceListing: (id: string) => listings.get(id),
   loadMarketplaceApps: () => Promise.resolve(),
+  reloadMarketplaceApps: () => Promise.resolve(true),
   subscribeMarketplaceRegistry: () => () => {},
+  typeForMarketplace: (id: string) => `app:${id}`,
+}));
+
+const announceSidebarArrival = vi.fn();
+
+vi.mock('../../../app/sidebarArrival', () => ({
+  announceSidebarArrival: (...args: unknown[]) => announceSidebarArrival(...args),
+}));
+
+vi.mock('./InstallPlacementModal', () => ({
+  InstallPlacementModal: ({ app: placed, onDone }: { app: { name: string }; onDone: () => void }) =>
+    <button type="button" onClick={onDone}>{`placement ${placed.name}`}</button>,
 }));
 
 const version = {
@@ -78,6 +95,8 @@ const detail: StoreAppDetail = {
 
 beforeEach(() => {
   installed.length = 0;
+  listings.clear();
+  announceSidebarArrival.mockReset();
   fetchStoreApps.mockResolvedValue([app]);
   fetchStoreApp.mockResolvedValue(detail);
   installStoreApp.mockReset();
@@ -404,6 +423,76 @@ describe('StorePage against an older catalog', () => {
     render(<StorePage />);
 
     expect(await screen.findByText('Aquarium')).toBeInTheDocument();
+  });
+});
+
+describe('StorePage after a fresh install', () => {
+  const freshInstall = async (latest: Partial<typeof version>, page: boolean) => {
+    fetchStoreApps.mockResolvedValue([{ ...app, latest: { ...version, ...latest } }]);
+    listings.set(app.id, { id: app.id, version: '1.0.2', iconUrl: null, page });
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: true });
+    render(<StorePage />);
+    fireEvent.click(await screen.findByRole('button', { name: 'store.install' }));
+  };
+
+  it('asks where a widget-only app goes and docks nothing', async () => {
+    await freshInstall({ hasWidget: true, hasPage: false }, false);
+
+    expect(await screen.findByRole('button', { name: 'placement Aquarium' })).toBeInTheDocument();
+    expect(announceSidebarArrival).not.toHaveBeenCalled();
+  });
+
+  it('docks a page-only app with a double shine and asks nothing', async () => {
+    await freshInstall({ hasWidget: false, hasPage: true }, true);
+
+    await waitFor(() => expect(announceSidebarArrival).toHaveBeenCalledWith(
+      `app:${app.id}`, { enter: true, shines: 2, onRevealed: undefined },
+    ));
+    expect(screen.queryByRole('button', { name: 'placement Aquarium' })).not.toBeInTheDocument();
+  });
+
+  it('docks a page-and-widget app first, asks once the shine ends, and shines the row again once answered', async () => {
+    await freshInstall({ hasWidget: true, hasPage: true }, true);
+
+    await waitFor(() => expect(announceSidebarArrival).toHaveBeenCalledWith(
+      `app:${app.id}`, expect.objectContaining({ enter: true, shines: 1 }),
+    ));
+    expect(screen.queryByRole('button', { name: 'placement Aquarium' })).not.toBeInTheDocument();
+    act(() => { (announceSidebarArrival.mock.calls[0][1] as { onRevealed: () => void }).onRevealed(); });
+    fireEvent.click(await screen.findByRole('button', { name: 'placement Aquarium' }));
+
+    expect(announceSidebarArrival).toHaveBeenLastCalledWith(`app:${app.id}`, { enter: false });
+    expect(screen.queryByRole('button', { name: 'placement Aquarium' })).not.toBeInTheDocument();
+  });
+
+  it('asks about a second install only after the first is answered', async () => {
+    const clock = { ...app, id: 'com.example.clock', name: 'Clock' };
+    fetchStoreApps.mockResolvedValue([app, clock]);
+    installStoreApp.mockImplementation(({ id }: { id: string }) => Promise.resolve({ appId: id, version: '1.0.2', ok: true }));
+    render(<StorePage />);
+
+    const installs = await screen.findAllByRole('button', { name: 'store.install' });
+    fireEvent.click(installs[0]);
+    fireEvent.click(installs[1]);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'placement Aquarium' }));
+    expect(await screen.findByRole('button', { name: 'placement Clock' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'placement Aquarium' })).not.toBeInTheDocument();
+  });
+
+  it('neither asks nor docks on an update', async () => {
+    installed.push({ id: app.id, version: '1.0.1', iconUrl: null });
+    listings.set(app.id, { id: app.id, version: '1.0.2', iconUrl: null, page: true });
+    installStoreApp.mockResolvedValue({ appId: app.id, version: '1.0.2', ok: true });
+    render(<StorePage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'store.update' }));
+
+    // Re-enabled once the install settles, which is when a fresh install would dock and ask.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'store.update' })).toBeEnabled());
+    expect(installStoreApp).toHaveBeenCalled();
+    expect(announceSidebarArrival).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'placement Aquarium' })).not.toBeInTheDocument();
   });
 });
 

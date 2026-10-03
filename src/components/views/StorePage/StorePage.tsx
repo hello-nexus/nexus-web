@@ -13,8 +13,13 @@ import {
   type StoreApp, type StoreAppDetail, type StoreVersion,
 } from '../../../api/store';
 import {
-  getAllMarketplaceListings, loadMarketplaceApps, subscribeMarketplaceRegistry,
+  getAllMarketplaceListings, getMarketplaceListing, loadMarketplaceApps, reloadMarketplaceApps,
+  subscribeMarketplaceRegistry, typeForMarketplace,
 } from '../../../widgets/marketplaceRegistry';
+import type { UnifiedDevice } from '../../../hooks/useUnifiedDevices';
+import { announceSidebarArrival } from '../../../app/sidebarArrival';
+import { InstallPlacementModal } from './InstallPlacementModal';
+import { dashboardColumnsForWidth } from './installPlacement';
 import type { UseCloudAccountsResult } from '../../../hooks/useCloudAccounts';
 import { capabilityGrants, capabilityLabel } from './capabilityLabels';
 import { AccountSignInModal } from '../SettingsView/Account/AccountSignInModal';
@@ -78,8 +83,12 @@ function formatLaunch(at: Date, language: string, dateFormat: DateFormat, timeFo
   }, { variant: year ? 'year' : 'short', locale: language });
 }
 
-function InstallButton({ app, installedVersion, onNeedsSignIn }: {
-  app: StoreApp; installedVersion?: string; onNeedsSignIn: (retry: () => void) => void;
+type NeedsSignIn = (retry: () => void) => void;
+/** A fresh install landed; updates do not call it. */
+type OnInstalled = (app: StoreApp) => void;
+
+function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
+  app: StoreApp; installedVersion?: string; onNeedsSignIn: NeedsSignIn; onInstalled: OnInstalled;
 }) {
   const { t, language } = useTranslation();
   const { timeFormat, dateFormat } = useUnitPrefs();
@@ -102,9 +111,11 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
     const res = await installStoreApp({ id: app.id, latest });
     if (res?.ok) {
       // The registry is what the panel picker reads; refreshing it is what makes
-      // the app appear without a reload.
-      await loadMarketplaceApps();
+      // the app appear without a reload. A load already in flight can predate
+      // the install, so this one must not join it.
+      await reloadMarketplaceApps();
       setState('idle');
+      if (!installedVersion) onInstalled(app);
       return;
     }
     setState('idle');
@@ -113,7 +124,7 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
       return;
     }
     setState('failed');
-  }, [app.id, latest, onNeedsSignIn]);
+  }, [app, installedVersion, latest, onNeedsSignIn, onInstalled]);
 
   // Ahead of compatibility: an app that is not out yet has nothing to say about
   // whether this build could run it, and the service refuses the install anyway.
@@ -146,6 +157,10 @@ function InstallButton({ app, installedVersion, onNeedsSignIn }: {
   );
 }
 
+interface Placing { app: StoreApp; iconSrc: string | null; dashboardColumns: number }
+
+const NO_DEVICES: readonly UnifiedDevice[] = [];
+
 // Row and hero edges in px; the row edge matches $row-icon in the stylesheet.
 const ICON_SIZE = { row: 56, hero: 112 } as const;
 
@@ -157,9 +172,9 @@ function AppIcon({ app, installed, size = 'row' }: {
 
 // disableInteractiveRole: the Install button inside is the focusable control;
 // role="button" here would nest a focusable descendant inside a button role.
-function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
+function AppRow({ app, installed, onOpen, onNeedsSignIn, onInstalled }: {
   app: StoreApp; installed?: InstalledInfo; onOpen: () => void;
-  onNeedsSignIn: (retry: () => void) => void;
+  onNeedsSignIn: NeedsSignIn; onInstalled: OnInstalled;
 }) {
   return (
     <Card
@@ -176,7 +191,7 @@ function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
       truncateSubtitle
     >
       <div className={styles.rowActions}>
-        <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
+        <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
       </div>
     </Card>
   );
@@ -186,9 +201,9 @@ function AppRow({ app, installed, onOpen, onNeedsSignIn }: {
  * The first app in the catalog, shown large with its screenshots. The
  * catalog lists no media, so the card fetches the app page's own detail.
  */
-function FeaturedApp({ app, installed, onOpen, onNeedsSignIn }: {
+function FeaturedApp({ app, installed, onOpen, onNeedsSignIn, onInstalled }: {
   app: StoreApp; installed?: InstalledInfo; onOpen: () => void;
-  onNeedsSignIn: (retry: () => void) => void;
+  onNeedsSignIn: NeedsSignIn; onInstalled: OnInstalled;
 }) {
   const { t } = useTranslation();
   const [shots, setShots] = useState<string[]>([]);
@@ -221,7 +236,7 @@ function FeaturedApp({ app, installed, onOpen, onNeedsSignIn }: {
           <p className={styles.featuredBlurb}>{app.description.trim().split(/\n\s*\n/)[0]}</p>
         )}
         <div className={styles.featuredActions}>
-          <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
+          <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
         </div>
       </div>
       {shots.length > 0 && (
@@ -484,9 +499,9 @@ function Screenshots({ app }: { app: StoreAppDetail }) {
   );
 }
 
-function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
+function AppDetail({ appId, onBack, installed, onNeedsSignIn, onInstalled }: {
   appId: string; onBack: () => void; installed?: InstalledInfo;
-  onNeedsSignIn: (retry: () => void) => void;
+  onNeedsSignIn: NeedsSignIn; onInstalled: OnInstalled;
 }) {
   const { t, language } = useTranslation();
   const [app, setApp] = useState<StoreAppDetail | null>(null);
@@ -519,7 +534,7 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
           <h1 className={`${styles.heroTitle} selectable`}>{app.name}</h1>
           {app.tagline.trim() && <p className={`${styles.heroSubtitle} selectable`}>{app.tagline.trim()}</p>}
           <div className={styles.heroActions}>
-            <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} />
+            <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
           </div>
           {installed && (
             <span className={`${styles.installedVersion} selectable`}>
@@ -558,12 +573,14 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn }: {
  * version decides which releases it is offered - so the page renders what it is
  * given rather than filtering locally.
  */
-export function StorePage({ tab, onTabChange, accounts }: {
+export function StorePage({ tab, onTabChange, accounts, devices = NO_DEVICES }: {
   /** Route segment: the open app's id, so a store page is linkable. */
   tab?: string | null;
   onTabChange?: (tab: string) => void;
   /** The app's shared account state: signing in from the store dialog signs the whole app in, so the top bar and account page have to hear about it. */
   accounts?: UseCloudAccountsResult;
+  /** The sidebar's device list: a fresh widget install offers every panel in it. */
+  devices?: readonly UnifiedDevice[];
 }) {
   const { t, language } = useTranslation();
   const installed = useInstalled();
@@ -593,6 +610,40 @@ export function StorePage({ tab, onTabChange, accounts }: {
     setPendingInstall(() => retry);
   }, []);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  // One modal at a time: a second install while one is open waits its turn.
+  const [placeQueue, setPlaceQueue] = useState<Placing[]>([]);
+  const placing = placeQueue[0] ?? null;
+
+  // A page docks into the sidebar at once; a widget asks where to go. With both,
+  // the modal waits for the dock's shine, which its scrim would otherwise cover.
+  const handleInstalled = useCallback((app: StoreApp) => {
+    const listing = getMarketplaceListing(app.id);
+    const hasPage = !!listing?.page;
+    const hasWidget = app.latest?.hasWidget !== false;
+    const ask = () => setPlaceQueue(queue => [...queue, {
+      app,
+      iconSrc: iconFor(app, listing ? { version: listing.version, iconUrl: listing.iconUrl } : undefined),
+      dashboardColumns: dashboardColumnsForWidth(rootRef.current?.clientWidth ?? 0),
+    }]);
+    if (hasPage) {
+      announceSidebarArrival(typeForMarketplace(app.id), {
+        enter: true,
+        shines: hasWidget ? 1 : 2,
+        onRevealed: hasWidget ? ask : undefined,
+      });
+    } else if (hasWidget) {
+      ask();
+    }
+  }, []);
+
+  const handlePlaced = useCallback(() => {
+    if (placing && getMarketplaceListing(placing.app.id)?.page) {
+      announceSidebarArrival(typeForMarketplace(placing.app.id), { enter: false });
+    }
+    setPlaceQueue(queue => queue.slice(1));
+  }, [placing]);
+
   const handleSignedIn = useCallback(() => {
     const retry = pendingInstall;
     setPendingInstall(null);
@@ -601,7 +652,7 @@ export function StorePage({ tab, onTabChange, accounts }: {
   }, [accounts, pendingInstall]);
 
   return (
-    <div className={styles.app}>
+    <div className={styles.app} ref={rootRef}>
       <ViewHeader title={t('apps.tabs.store')} />
       {openId ? (
         <AppDetail
@@ -609,6 +660,7 @@ export function StorePage({ tab, onTabChange, accounts }: {
           onBack={() => open(null)}
           installed={installed.get(openId)}
           onNeedsSignIn={handleNeedsSignIn}
+          onInstalled={handleInstalled}
         />
       ) : (
         <div className={styles.body}>
@@ -627,6 +679,7 @@ export function StorePage({ tab, onTabChange, accounts }: {
                 installed={installed.get(apps[0].id)}
                 onOpen={() => open(apps[0].id)}
                 onNeedsSignIn={handleNeedsSignIn}
+                onInstalled={handleInstalled}
               />
               {apps.length > 1 && (
                 <>
@@ -639,6 +692,7 @@ export function StorePage({ tab, onTabChange, accounts }: {
                         installed={installed.get(app.id)}
                         onOpen={() => open(app.id)}
                         onNeedsSignIn={handleNeedsSignIn}
+                        onInstalled={handleInstalled}
                       />
                     ))}
                   </div>
@@ -655,6 +709,16 @@ export function StorePage({ tab, onTabChange, accounts }: {
         title={t('store.signIn.title')}
         body={t('store.signIn.body')}
       />
+      {placing && (
+        <InstallPlacementModal
+          key={placing.app.id}
+          app={placing.app}
+          iconSrc={placing.iconSrc}
+          devices={devices}
+          dashboardColumns={placing.dashboardColumns}
+          onDone={handlePlaced}
+        />
+      )}
     </div>
   );
 }

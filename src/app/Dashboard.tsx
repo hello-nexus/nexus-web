@@ -503,8 +503,8 @@ export function Dashboard() {
   // signed in or not. useCloudAccounts itself only fetches once per online
   // flip (no poll), so activeAccountId is a safe, non-polling presence signal.
   const syncStatus = useSyncStatus(online && cloudAccounts.activeAccountId != null);
-  // Used only to resolve the active device's display name for the top-bar
-  // title on /system/device/<key>.
+  // Resolves the active device's top-bar title on /system/device/<key>, and
+  // lists the panels a fresh Marketplace widget can be placed on.
   const unifiedDevices = useUnifiedDevices(online);
   const { t, setLanguage } = useTranslation();
 
@@ -942,7 +942,7 @@ export function Dashboard() {
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;
       case 'frames':      return <FramesPage tab={subtab} onTabChange={setSubtab} />;
-      case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} />;
+      case 'store':      return <StorePage tab={subtab} onTabChange={setSubtab} accounts={cloudAccounts} devices={unifiedDevices.unified} />;
       case 'build':      return <BuildPage path={subtab} />;
       case 'clock':      return <ClockPage />;
       case 'weather':    return <WeatherPage />;

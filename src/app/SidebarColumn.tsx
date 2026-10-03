@@ -25,6 +25,7 @@ import {
   subscribeMarketplaceRegistry,
 } from '../widgets/marketplaceRegistry';
 import { useCrossZoneDrag } from './CrossZoneDrag';
+import { subscribeSidebarArrival, type SidebarArrival } from './sidebarArrival';
 import styles from '../App.module.scss';
 
 // The four feature-pillar sidebar rows share their key with FeatureKey
@@ -200,6 +201,46 @@ export function SidebarColumn({
   // Cross-zone drop from the dashboard panel. Published by PanelContent
   // when a pinnable widget enters its drag state; null otherwise.
   const { draggingPinnableType } = useCrossZoneDrag();
+  // A docked app page pins before a trailing store row, the way the OEM seed
+  // does. Only a row this pin creates slides in; a row already there only
+  // shines. The ref settles a replaced arrival's onRevealed, which its own
+  // shine will no longer report.
+  const [arrival, setArrival] = useState<SidebarArrival | null>(null);
+  const arrivalRef = useRef<SidebarArrival | null>(null);
+  useEffect(() => subscribeSidebarArrival(next => {
+    arrivalRef.current?.onRevealed?.();
+    arrivalRef.current = null;
+    if (!isPinnableAppKey(next.key)) {
+      setArrival(null);
+      next.onRevealed?.();
+      return;
+    }
+    const pinned = sanitizePinnedTail(settings.pinnedSidebarApps);
+    const pinning = next.enter && !pinned.includes(next.key);
+    if (pinning) {
+      update({
+        pinnedSidebarApps: pinned[pinned.length - 1] === 'store'
+          ? [...pinned.slice(0, -1), next.key, 'store']
+          : [...pinned, next.key],
+      });
+      setRecents(storedRecentsRaw.filter(k => k !== next.key));
+    }
+    const shown = { ...next, enter: pinning };
+    arrivalRef.current = shown;
+    setArrival(shown);
+  }), [settings.pinnedSidebarApps, storedRecentsRaw, update, setRecents]);
+  // A sidebar leaving mid-shine (Focus mode) must not strand a waiting modal.
+  useEffect(() => () => {
+    const pending = arrivalRef.current;
+    arrivalRef.current = null;
+    pending?.onRevealed?.();
+  }, []);
+  const handleArrivalDone = () => {
+    const done = arrivalRef.current;
+    arrivalRef.current = null;
+    setArrival(null);
+    done?.onRevealed?.();
+  };
   const handlePinDrop = (insertionIndex: number) => {
     if (!draggingPinnableType || !isPinnableAppKey(draggingPinnableType)) return;
     if (tail.includes(draggingPinnableType)) return;
@@ -241,6 +282,8 @@ export function SidebarColumn({
         extraSectionLabel=""
         extraActive={portalNavActive}
         extraOnChange={onPortalNavChange}
+        arrival={arrival}
+        onArrivalDone={handleArrivalDone}
         afterTail={
           <SidebarDevicesSection
             serviceOnline={online}

@@ -1,0 +1,331 @@
+@use '../../../styles/text' as *;
+
+.modal {
+  width: fit-content;
+  max-width: min(1200px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--backdrop-base);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  animation: modalRise var(--ease-slow) cubic-bezier(0.2, 0.9, 0.25, 1.05) both;
+}
+
+@keyframes modalRise {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-xl) 28px var(--space-sm);
+}
+
+.title {
+  @include text-heading;
+  margin: 0;
+  color: var(--text);
+}
+
+.subtitle {
+  @include text-button;
+  margin: var(--space-xs) 0 0;
+  color: var(--text-dim);
+}
+
+.cards {
+  // One row of --card-count cards, so a few targets do not stretch across the modal.
+  box-sizing: content-box;
+  width: calc(var(--card-count) * 260px + (var(--card-count) - 1) * var(--space-lg));
+  max-width: calc(100% - 56px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-lg);
+  padding: 18px 28px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.card {
+  position: relative;
+  flex: 0 1 260px;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--control-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--ease), background var(--ease), box-shadow var(--ease);
+  animation: cardRise var(--ease-slow) cubic-bezier(0.2, 0.9, 0.25, 1.05) both;
+  animation-delay: calc(var(--ease) * 0.5 + var(--card-index, 0) * var(--ease) * 0.3);
+
+  > * { flex-shrink: 0; }
+
+  &:hover { border-color: var(--control-border-strong); }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-glow);
+    outline-offset: 3px;
+  }
+
+  &:disabled { cursor: default; }
+}
+
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.cardOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
+
+  &:hover { border-color: var(--accent); }
+}
+
+.check {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--control-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: transparent;
+  transition: background var(--ease), border-color var(--ease), color var(--ease);
+
+  svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 3;
+    transform: scale(0.4);
+    transition: transform var(--ease) cubic-bezier(0.2, 0.9, 0.3, 1.5);
+  }
+}
+
+.cardOn .check {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+
+  svg { transform: scale(1); }
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 286px;
+  background: radial-gradient(70% 80% at 50% 45%, color-mix(in srgb, var(--text) 4%, transparent), transparent 75%);
+  transition: opacity var(--ease), filter var(--ease);
+}
+
+.card:not(.cardOn) .stage {
+  opacity: 0.38;
+  filter: grayscale(0.85);
+}
+
+.foot {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 14px var(--space-lg) var(--space-lg);
+  border-top: var(--border-width) solid var(--separator);
+}
+
+.targetIcon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: var(--border-width) solid var(--control-border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.cardOn .targetIcon {
+  border-color: var(--control-border-accent);
+  color: var(--accent-glow);
+}
+
+.deviceGlyph {
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  mask-image: var(--device-icon);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-image: var(--device-icon);
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+.footText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  @include text-body;
+  font-weight: var(--weight-strong);
+}
+
+.detail {
+  @include text-caption;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-dim);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 14px 28px var(--space-xl);
+}
+
+.count {
+  @include text-button;
+  flex: 1;
+  color: var(--text-dim);
+}
+
+.badge {
+  @include text-caption;
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: var(--space-sm);
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: rgb(255 255 255 / var(--alpha-faint));
+}
+
+// ── Preview art. Panel glass is dark in either app theme. ──
+
+.newTile {
+  display: grid;
+  place-items: center;
+  background-color: var(--accent-deep);
+  background-position: center 78%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.gridNewTile {
+  position: absolute;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 2px var(--accent-glow), 0 0 18px var(--accent-glow-shadow);
+  animation: tilePulse calc(var(--ease-slow) * 8) ease-in-out infinite;
+}
+
+@keyframes tilePulse {
+  50% { box-shadow: 0 0 0 2px var(--accent-glow), 0 0 28px var(--accent-glow-shadow); }
+}
+
+.tile {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  // Inset so neighbouring tiles read as separate cells.
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: rgb(255 255 255 / var(--alpha-faint)) padding-box;
+  color: rgb(255 255 255 / var(--alpha-medium));
+}
+
+.grid {
+  position: relative;
+  display: block;
+}
+
+.dashboard {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(60% 60% at 90% 0%, var(--backdrop-tint-a), transparent 70%),
+    radial-gradient(60% 60% at 0% 100%, var(--backdrop-tint-b), transparent 70%),
+    var(--backdrop-base);
+  box-shadow: var(--shadow-md);
+
+  .tile {
+    background: color-mix(in srgb, var(--text) 8%, transparent) padding-box;
+    color: var(--text-dim);
+  }
+}
+
+.dashboardRail {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 14px;
+  padding-top: 2px;
+
+  i {
+    display: block;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--text) 12%, transparent);
+  }
+}
+
+.bezel {
+  display: block;
+  padding: 5px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, #2a2a2a, #0a0a0a);
+  box-shadow: var(--shadow-md), inset 0 0 0 1px rgb(255 255 255 / var(--alpha-faint));
+}
+
+.screen {
+  display: block;
+  border-radius: var(--radius);
+  background-color: #121212;
+}
+
+.round { border-radius: 50%; }
+
+.lens {
+  position: relative;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md), 0 0 0 2px var(--accent-glow);
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: -16px;
+    top: 50%;
+    width: 12px;
+    border-top: 2px dashed var(--accent-glow);
+  }
+}

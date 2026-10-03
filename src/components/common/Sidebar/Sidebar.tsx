@@ -14,6 +14,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
 import { NexusControlOffIcon } from '../NexusControlOffIcon/NexusControlOffIcon';
 import type { ServiceState } from '../../../hooks/useServiceState';
+import type { SidebarArrival } from '../../../app/sidebarArrival';
 import styles from './Sidebar.module.scss';
 
 interface NavItem {
@@ -72,6 +73,9 @@ interface SidebarProps {
     showLabel: string;
     hideLabel: string;
   };
+  // A freshly docked app page: its row slides in and shines.
+  arrival?: SidebarArrival | null;
+  onArrivalDone?: () => void;
 }
 
 // Per-row status dot - same logic for sortable & locked rows. Suppressed on
@@ -101,6 +105,8 @@ interface RowProps {
   // Collapsed out of the lower list: the shell animates to zero height and
   // goes inert, leaving the tab order and the accessibility tree.
   hidden?: boolean;
+  arrival?: SidebarArrival;
+  onArrivalDone?: () => void;
 }
 
 // dnd-kit attachments: the node ref and transform go on the row's shell, the
@@ -115,7 +121,7 @@ interface SortableAttachments {
 }
 
 function SidebarRow({
-  item, active, compact, serviceState, onClick, onContextMenu, hidden = false, sortable,
+  item, active, compact, serviceState, onClick, onContextMenu, hidden = false, arrival, onArrivalDone, sortable,
 }: RowProps & { sortable?: SortableAttachments }) {
   const { show, pulsing } = rowStatus(item, serviceState);
   const button = (
@@ -126,6 +132,7 @@ function SidebarRow({
         [styles.active]: active,
         [styles.itemCompact]: compact,
         [styles.itemDragging]: sortable?.isDragging,
+        [styles.itemArriving]: arrival?.enter,
       })}
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -142,12 +149,24 @@ function SidebarRow({
       </span>
       {!compact && <span className={styles.label}>{item.label}</span>}
       {!compact && item.offTooltip && <NexusControlOffIcon label={item.offTooltip} />}
+      {arrival && (
+        <span
+          key={arrival.nonce}
+          className={classNames(styles.shine, { [styles.shineAfterEnter]: arrival.enter })}
+          style={{ animationIterationCount: arrival.shines }}
+          onAnimationEnd={onArrivalDone}
+          aria-hidden="true"
+        />
+      )}
     </button>
   );
   return (
     <div
       ref={sortable?.setNodeRef}
-      className={classNames(styles.rowShell, { [styles.rowShellHidden]: hidden })}
+      className={classNames(styles.rowShell, {
+        [styles.rowShellHidden]: hidden,
+        [styles.rowShellArriving]: arrival?.enter,
+      })}
       style={sortable?.style}
       inert={hidden}
     >
@@ -237,6 +256,8 @@ export function Sidebar({
   lowerItems,
   afterTail,
   more,
+  arrival,
+  onArrivalDone,
 }: SidebarProps) {
   const tail = items;
   const lower = lowerItems ?? [];
@@ -276,6 +297,8 @@ export function Sidebar({
     compact,
     serviceState,
     hidden,
+    arrival: arrival?.key === item.key ? arrival : undefined,
+    onArrivalDone,
     onClick: () => onChange(item.key),
     onContextMenu: onItemContextMenu ? (e) => {
       e.preventDefault();

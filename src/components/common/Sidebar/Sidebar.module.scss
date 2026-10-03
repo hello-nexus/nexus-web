@@ -143,6 +143,56 @@
   transition-delay: 0s;
 }
 
+// A freshly docked app page: the slot opens, the row swipes in from the left,
+// then .shine sweeps across it.
+.rowShellArriving {
+  animation: rowShellOpen var(--ease-slow) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  .rowShellInner { overflow: hidden; }
+}
+
+@keyframes rowShellOpen {
+  from { grid-template-rows: 0fr; }
+  to { grid-template-rows: 1fr; }
+}
+
+.itemArriving {
+  animation: rowSwipeIn calc(var(--ease-slow) * 2) cubic-bezier(0.18, 0.9, 0.22, 1.12) var(--ease) both;
+}
+
+@keyframes rowSwipeIn {
+  0% { transform: translateX(-115%); opacity: 0; }
+  55% { opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.shine {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, color-mix(in srgb, #fff 55%, var(--accent-glow)) 50%, transparent) 50%,
+    transparent 62%
+  );
+  background-size: 300% 100%;
+  background-repeat: no-repeat;
+  animation: rowShine calc(var(--ease-slow) * 3) cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+// Waits for the swipe to land.
+.shineAfterEnter {
+  animation-delay: calc(var(--ease-slow) * 2);
+}
+
+@keyframes rowShine {
+  0% { background-position: 100% 0; background-color: var(--accent-soft); }
+  70% { background-color: var(--accent-soft); }
+  100% { background-position: 0% 0; background-color: transparent; }
+}
+
 // The Show more / Show less toggle under the lower rows. Shorter than a nav row
 // and inside a row's highlight on every side, so it reads as a control rather
 // than another app.
