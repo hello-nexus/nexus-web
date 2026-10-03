@@ -123,6 +123,7 @@ afterEach(() => vi.restoreAllMocks());
 
 const DISCONNECTED_TITLE = 'devices.qseries.disconnected.title';
 const FWGATE_TITLE = 'devices.qseries.fwGate.title';
+const MISMATCH_LINK = 'devices.qseries.troubleshoot.mismatch';
 
 describe('PanelDevicePage Q-series firmware gate vs disconnected state', () => {
   it('shows the disconnected state when the qseries-app item is absent (panel USB detached)', async () => {
@@ -137,6 +138,7 @@ describe('PanelDevicePage Q-series firmware gate vs disconnected state', () => {
     render(<PanelDevicePage device={q60Device('usb-display')} />);
     await waitFor(() => screen.getByText(FWGATE_TITLE));
     expect(screen.queryByText(DISCONNECTED_TITLE)).toBeNull();
+    expect(screen.getByRole('link', { name: 'devices.qseries.troubleshoot.connection' })).toBeInTheDocument();
   });
 
   it('shows normal content when qshell is installed', async () => {
@@ -145,6 +147,9 @@ describe('PanelDevicePage Q-series firmware gate vs disconnected state', () => {
     await waitFor(() => screen.getByTestId('embed'));
     expect(screen.queryByText(FWGATE_TITLE)).toBeNull();
     expect(screen.queryByText(DISCONNECTED_TITLE)).toBeNull();
+    expect(screen.getByRole('link', { name: MISMATCH_LINK })).toHaveAttribute(
+      'href', 'https://hellonexus.com/docs/troubleshooting/q-series-panels',
+    );
   });
 
   it('shows neither state for a simulated Q60', async () => {
@@ -153,5 +158,6 @@ describe('PanelDevicePage Q-series firmware gate vs disconnected state', () => {
     await waitFor(() => screen.getByTestId('embed'));
     expect(screen.queryByText(FWGATE_TITLE)).toBeNull();
     expect(screen.queryByText(DISCONNECTED_TITLE)).toBeNull();
+    expect(screen.queryByRole('link', { name: MISMATCH_LINK })).toBeNull();
   });
 });

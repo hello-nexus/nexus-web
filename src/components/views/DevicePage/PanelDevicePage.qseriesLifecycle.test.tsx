@@ -135,7 +135,7 @@ const Q60_DEVICE: PanelDevice = {
   runtimeSurface: 'q60',
   panelRecordId: 'q1',
   capabilities: {
-    layout: true, theme: true, displayControls: true, launchClose: false,
+    layout: true, theme: true, displayControls: false, launchClose: false,
     pairing: false, presence: false, touch: true,
   },
 } as PanelDevice;
@@ -188,6 +188,9 @@ describe('PanelDevicePage Q-series panel lifecycle', () => {
 
     expect(await screen.findByRole('button', { name: REBOOT_BUTTON })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: RESET_BUTTON })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'devices.panels.troubleshooting.open' })).toHaveAttribute(
+      'href', 'https://hellonexus.com/docs/troubleshooting/q-series-panels',
+    );
   });
 
   it('shows the danger zone on a connected Q60 before its panel record exists', async () => {
@@ -255,6 +258,7 @@ describe('PanelDevicePage Q-series panel lifecycle', () => {
 
     expect(screen.queryByRole('button', { name: REBOOT_BUTTON })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'devices.panels.resetHardware.button' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'devices.panels.troubleshooting.open' })).not.toBeInTheDocument();
   });
 
   it('offers neither on a non-Q-series panel', async () => {
@@ -273,6 +277,7 @@ describe('PanelDevicePage Q-series panel lifecycle', () => {
 
     expect(screen.queryByRole('button', { name: REBOOT_BUTTON })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: RESET_BUTTON })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'devices.panels.troubleshooting.open' })).not.toBeInTheDocument();
   });
 
   it('requires the confirm before rebooting', async () => {

@@ -238,6 +238,34 @@
   margin: 12px auto 0;
 }
 
+.previewPane[data-troubleshoot] {
+  flex-direction: column;
+}
+
+.troubleshootLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  margin-top: 1.25rem;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color var(--ease-fast);
+
+  &:hover,
+  &:focus-visible {
+    color: var(--text);
+  }
+}
+
+// An empty state's CTA with the troubleshooting link stacked under it.
+.emptyActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 // Single-widget playlist controls, above the catalog.
 .playlistPanel {
   display: flex;

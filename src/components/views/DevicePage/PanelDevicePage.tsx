@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper, TvMinimal } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
@@ -81,6 +81,7 @@ import {
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useFlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
+import { troubleshootingUrl } from '../../../lib/externalLinks';
 import { createUuid } from '../../../lib/uuid';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -256,7 +257,7 @@ function matchPanelRecord(
 }
 
 export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: PanelDevicePageProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const isQSeries = device?.runtimeSurface === 'q60';
   const { items: firmwareItems, loaded: firmwareLoaded } = useFirmwareStatus(isQSeries);
   const [tab, setTab] = useState<Tab>('widgets');
@@ -1210,6 +1211,19 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const showQseriesNeedsHostReboot = showDisconnected
     && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && qseriesLinkState.hostRebootPending;
 
+  const showPreviewTroubleshoot = isQSeries && !isSimulated;
+  const qseriesTroubleshootLink = (label: string) => (
+    <a
+      className={styles.troubleshootLink}
+      href={troubleshootingUrl('q-series-panels', language)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <ExternalLink size={12} aria-hidden />
+      {label}
+    </a>
+  );
+
   return (
     <section className={styles.page}>
       <ViewHeader
@@ -1245,9 +1259,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           title={t('devices.qseries.unresponsive.title')}
           hint={t('devices.qseries.unresponsive.hint')}
           action={
-            <Button type="button" tone="accent" loading={repairingQseriesLink} onClick={() => { void repairQseriesLinkNow(); }}>
-              {t('devices.qseries.unresponsive.cta')}
-            </Button>
+            <div className={styles.emptyActions}>
+              <Button type="button" tone="accent" loading={repairingQseriesLink} onClick={() => { void repairQseriesLinkNow(); }}>
+                {t('devices.qseries.unresponsive.cta')}
+              </Button>
+              {qseriesTroubleshootLink(t('devices.qseries.troubleshoot.connection'))}
+            </div>
           }
         />
       ) : showQseriesNeedsHostReboot ? (
@@ -1255,12 +1272,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           icon={<Unplug size={48} />}
           title={t('devices.qseries.needsHostReboot.title')}
           hint={t('devices.qseries.needsHostReboot.hint')}
+          action={qseriesTroubleshootLink(t('devices.qseries.troubleshoot.connection'))}
         />
       ) : showDisconnected ? (
         <EmptyState
           icon={<Unplug size={48} />}
           title={t('devices.qseries.disconnected.title')}
           hint={t('devices.qseries.disconnected.hint')}
+          action={qseriesTroubleshootLink(t('devices.qseries.troubleshoot.connection'))}
         />
       ) : showFwGate ? (
         <EmptyState
@@ -1268,9 +1287,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
           title={t('devices.qseries.fwGate.title')}
           hint={t('devices.qseries.fwGate.hint')}
           action={
-            <Button type="button" tone="accent" onClick={onOpenFirmware}>
-              {t('devices.qseries.fwGate.cta')}
-            </Button>
+            <div className={styles.emptyActions}>
+              <Button type="button" tone="accent" onClick={onOpenFirmware}>
+                {t('devices.qseries.fwGate.cta')}
+              </Button>
+              {qseriesTroubleshootLink(t('devices.qseries.troubleshoot.connection'))}
+            </div>
           }
         />
       ) : (
@@ -1575,6 +1597,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         hardwareResetBusy={resettingHardware}
                       />
                       <QSeriesCoolerSettings />
+                      {!isSimulated && (
+                        <SettingsSection boxClassName={styles.deviceSettingsBox}>
+                          {/* eslint-disable-next-line i18next/no-literal-string -- docs page slug */}
+                          <TroubleshootingRow page="q-series-panels" />
+                        </SettingsSection>
+                      )}
                     </div>
                   )}
                   {activeTab === 'settings' && isDimmableLcdPanel && (
@@ -1760,7 +1788,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
             )}
           </div>
 
-          <div className={styles.previewPane} data-surface={surface} data-playlist-nav={showPlaylistArrows || undefined}>
+          <div
+            className={styles.previewPane}
+            data-surface={surface}
+            data-playlist-nav={showPlaylistArrows || undefined}
+            data-troubleshoot={showPreviewTroubleshoot || undefined}
+          >
             <div className={styles.previewStage}>
               {recordSecondaryMonitor ? (
                 <div className={styles.secondaryMonitorPreview}>
@@ -1842,6 +1875,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 />
               </div>
             )}
+            {showPreviewTroubleshoot && qseriesTroubleshootLink(t('devices.qseries.troubleshoot.mismatch'))}
           </div>
         </div>
       )}
@@ -2296,6 +2330,24 @@ function MonitorSettingsPanel({
 
 // --- Settings Panel ---
 
+function TroubleshootingRow({ page }: { page: 'q-series-panels' | 'y70-touch' }) {
+  const { t, language } = useTranslation();
+  return (
+    <SettingRow label={t('devices.panels.troubleshooting.label')}>
+      <Button
+        tone="neutral"
+        size="sm"
+        icon={<ExternalLink size={14} />}
+        href={troubleshootingUrl(page, language)}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t('devices.panels.troubleshooting.open')}
+      </Button>
+    </SettingRow>
+  );
+}
+
 interface SettingsPanelProps {
   brightness: number;
   onBrightness: (v: number) => void;
@@ -2446,6 +2498,9 @@ function SettingsPanel({
               {t('devices.y70.touchRepairButton')}
             </Button>
           </SettingRow>
+
+          {/* eslint-disable-next-line i18next/no-literal-string -- docs page slug */}
+          <TroubleshootingRow page="y70-touch" />
 
           {!!variant && (
             <SettingRow label={t('devices.y70.variant')}>
