@@ -126,6 +126,8 @@ const DISCONNECTED_TITLE = 'devices.qseries.disconnected.title';
 const UNRESPONSIVE_TITLE = 'devices.qseries.unresponsive.title';
 const UNRESPONSIVE_CTA = 'devices.qseries.unresponsive.cta';
 const NEEDS_HOST_REBOOT_TITLE = 'devices.qseries.needsHostReboot.title';
+const TROUBLESHOOT_LINK = 'devices.qseries.troubleshoot.connection';
+const TROUBLESHOOT_URL = 'https://hellonexus.com/docs/troubleshooting/q-series-panels';
 
 describe('PanelDevicePage Q-series link-state branching', () => {
   it('shows the unplugged copy when the link endpoint reports usbPresent=false', async () => {
@@ -134,6 +136,7 @@ describe('PanelDevicePage Q-series link-state branching', () => {
     await waitFor(() => screen.getByText(DISCONNECTED_TITLE));
     expect(screen.queryByText(UNRESPONSIVE_TITLE)).toBeNull();
     expect(screen.queryByText(NEEDS_HOST_REBOOT_TITLE)).toBeNull();
+    expect(screen.getByRole('link', { name: TROUBLESHOOT_LINK })).toHaveAttribute('href', TROUBLESHOOT_URL);
   });
 
   it('shows the unresponsive copy with a repair action when USB is present but adb is offline', async () => {
@@ -143,15 +146,17 @@ describe('PanelDevicePage Q-series link-state branching', () => {
     expect(screen.queryByText(DISCONNECTED_TITLE)).toBeNull();
     expect(screen.queryByText(NEEDS_HOST_REBOOT_TITLE)).toBeNull();
     expect(screen.getByRole('button', { name: UNRESPONSIVE_CTA })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: TROUBLESHOOT_LINK })).toHaveAttribute('href', TROUBLESHOOT_URL);
   });
 
-  it('shows the host-reboot copy with no action when Windows deferred the USB reset', async () => {
+  it('shows the host-reboot copy with no repair action when Windows deferred the USB reset', async () => {
     currentLinkState = { usbPresent: true, adbOnline: false, offlineSeconds: 900, hostRebootPending: true, serial: 'ABC' };
     render(<PanelDevicePage device={q60Device('usb-display')} />);
     await waitFor(() => screen.getByText(NEEDS_HOST_REBOOT_TITLE));
     expect(screen.queryByText(DISCONNECTED_TITLE)).toBeNull();
     expect(screen.queryByText(UNRESPONSIVE_TITLE)).toBeNull();
     expect(screen.queryByRole('button', { name: UNRESPONSIVE_CTA })).toBeNull();
+    expect(screen.getByRole('link', { name: TROUBLESHOOT_LINK })).toHaveAttribute('href', TROUBLESHOOT_URL);
   });
 
   it('posts a repair on click and reflects the recovered link state once adb comes back', async () => {

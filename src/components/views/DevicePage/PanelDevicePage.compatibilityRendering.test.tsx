@@ -118,6 +118,16 @@ async function openSettingsTab() {
 }
 
 describe('PanelDevicePage Y70 compatibility mode', () => {
+  it('links the Y70 touch troubleshooting guide from Settings', async () => {
+    serveCompat({ enabled: false, supported: false });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    expect(await screen.findByRole('link', { name: 'devices.panels.troubleshooting.open' })).toHaveAttribute(
+      'href', 'https://hellonexus.com/docs/troubleshooting/y70-touch',
+    );
+  });
+
   it('hides the toggle when the host does not support it', async () => {
     serveCompat({ enabled: false, supported: false });
     render(<PanelDevicePage device={DEVICE} />);
