@@ -30,6 +30,7 @@ import {
 } from '../../lib/panelSimulation';
 import { isTryxSimulated, setTryxSimulated } from '../../lib/tryxSimulation';
 import { FontDebugCard } from './FontDebugCard';
+import { AppTelemetryCard } from './AppTelemetryCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
@@ -82,6 +83,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <StorybookCard />
             <WidgetSdkCard />
             <TelemetryEventsCard />
+            {DEV_TOOLS && <AppTelemetryCard />}
             <InstallDefaultsCard />
             <PawnIoCard />
             <PanelSimulatorCard />

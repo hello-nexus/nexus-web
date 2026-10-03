@@ -1,0 +1,39 @@
+@use '../../styles/text' as *;
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0;
+}
+
+.scroll {
+  max-height: 24rem;
+  overflow: auto;
+}
+
+.table {
+  @include text-numeric;
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+
+  th {
+    @include text-button;
+    text-align: left;
+    color: var(--text-dim);
+  }
+
+  th,
+  td {
+    padding: 0.3rem 0.6rem 0.3rem 0;
+    vertical-align: top;
+  }
+
+  td {
+    border-top: 1px solid var(--separator);
+    overflow-wrap: anywhere;
+  }
+}

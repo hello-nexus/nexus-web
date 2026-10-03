@@ -16,6 +16,7 @@ import { useMultiplex, useTopicCallback } from '../hooks/useMultiplexSocket';
 import { getAppData, putAppData, appDataTopic, type ProfileAppDataDoc } from './appDataClient';
 import { APP_DATA_RESET_TOPIC, getAppDataEpoch, noteAppDataReset, subscribeAppDataEpoch } from './appDataEpoch';
 import { AudioInstanceEngine, isWebAudioSupported } from './audioEngine';
+import { sendAppTelemetry } from './appTelemetryClient';
 import type { WidgetDisplay } from '../../sdk/runtime/context';
 
 // Mirrors the service's key contract (`^[a-z0-9][a-z0-9._-]{0,63}$`) and its
@@ -326,6 +327,9 @@ export function SandboxedWidget({ runtimeUrl, entryUrl, widgetId, instanceId, se
           audioStop: audioEngine ? (opts) => audioEngine.stop(opts) : undefined,
           audioReverb: audioEngine ? (id, wet) => audioEngine.reverb(id, wet) : undefined,
           audioVolume: audioEngine ? (level, fade) => audioEngine.volume(level, fade) : undefined,
+          track: DEV_TOOLS && !preview
+            ? (event, properties) => sendAppTelemetry(widgetId, surface ?? 'cell', event, properties)
+            : undefined,
         },
       };
       entry = { handle: spawnSandboxedWidget(runtimeUrl, entryUrl, context), disposeTimer: null, mounts: [], opaque: false, appDataKeys: new Set(), pressedAt: -Infinity, touchedAt: -Infinity, audioEngine, parkTimer: null };

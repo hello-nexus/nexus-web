@@ -26,4 +26,12 @@ describe('SdkMarketplacePage', () => {
     expect(postService).toHaveBeenCalledTimes(1);
     expect(postService).toHaveBeenCalledWith('/apps-api/page-opened/com.example.app', {});
   });
+
+  it('reports the open duration when the page unmounts (dev-tools builds)', () => {
+    const { unmount } = render(<SdkMarketplacePage type="app:com.example.app" />);
+    postService.mockClear();
+    unmount();
+    expect(postService).toHaveBeenCalledTimes(1);
+    expect(postService).toHaveBeenCalledWith('/apps-api/page-closed/com.example.app', { durationMs: expect.any(Number) });
+  });
 });

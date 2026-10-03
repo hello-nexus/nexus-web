@@ -209,6 +209,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     description: 'An installed SDK app sent the user to a website: a Button href press (POST /system/open-url with the app id) or the system.openUrl host action. Counted per press, whether or not the system browser opened. Only the host and utm_* parameters are kept; the path and every other query parameter are dropped, because app links can pre-fill machine identifiers such as the Windows product key.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'Installed app id, e.g. com.ibuypower.control.' },
+      { name: 'app_version', type: 'string', required: false, description: 'Installed version of the app.' },
       { name: 'host', type: 'string', required: true, description: 'Link host, e.g. www.ibuypower.com.' },
       { name: 'utm_source', type: 'string', required: false, description: 'From the link, when present. Each utm value is capped at 100 characters.' },
       { name: 'utm_medium', type: 'string', required: false, description: 'From the link, when present.' },
@@ -225,6 +226,34 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     description: 'An installed SDK app\'s page surface was opened in the dashboard (POST /apps-api/page-opened/{appId}). One per open; switching away and back counts again.',
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'Installed app id, e.g. com.ibuypower.control.' },
+      { name: 'app_version', type: 'string', required: false, description: 'Installed version of the app.' },
+    ],
+  },
+  {
+    name: 'app_page_closed',
+    title: 'App page closed',
+    status: 'live',
+    source: 'service',
+    description: 'Dev-tools builds only. An installed SDK app\'s page surface was closed (POST /apps-api/page-closed/{appId}), with how long it was open. Pairs with app_page_opened.',
+    params: [
+      { name: 'app_id', type: 'string', required: true, description: 'Installed app id.' },
+      { name: 'app_version', type: 'string', required: false, description: 'Installed version of the app.' },
+      { name: 'duration_ms', type: 'number', required: true, description: 'Milliseconds the page was open.' },
+    ],
+  },
+  {
+    name: 'app_event',
+    title: 'App event',
+    status: 'live',
+    source: 'service',
+    description: 'Dev-tools builds only. A custom event an SDK app recorded with track() (POST /apps-api/telemetry/{appId}). Requires capabilities.telemetry in the manifest; event and property names are slugs, property values are booleans, finite numbers or short tokens, and the app is limited to 60 events a minute. Dropped when telemetry is opted out.',
+    params: [
+      { name: 'app_id', type: 'string', required: true, description: 'Installed app id.' },
+      { name: 'app_version', type: 'string', required: true, description: 'Installed version of the app.' },
+      { name: 'event', type: 'string', required: true, description: 'The app\'s own event name.' },
+      { name: 'surface', type: 'string', required: true, description: 'page | widget | immersive.' },
+      { name: 'dev_tools', type: 'boolean', required: true, description: 'Whether the sending Nexus is a dev-tools build.' },
+      { name: 'p_<key>', type: 'string', required: false, description: 'Each property the app passed, prefixed with p_ (up to 10).' },
     ],
   },
   {

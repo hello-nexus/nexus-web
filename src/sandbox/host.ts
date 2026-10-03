@@ -75,6 +75,8 @@ export interface SandboxContext {
     audioStop?(opts?: { tag?: string; clock?: string; fade?: number }): void;
     audioReverb?(id: string | null, wet?: number): void;
     audioVolume?(level: number, fade?: number): void;
+    /** Records the worker's track() call via the service; wired in DEV_TOOLS builds only, never a preview. */
+    track?(event: string, properties?: Record<string, string | number | boolean>): Promise<void>;
   };
 }
 

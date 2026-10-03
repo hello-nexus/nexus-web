@@ -4,7 +4,7 @@
 // instead of importing app stores directly.
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { useStore, type AudioPlay, type WidgetDisplay } from './context';
+import { getActiveStore, useStore, type AudioPlay, type WidgetDisplay } from './context';
 
 declare global {
   // The boot script installs this; sensor/net access for SDK widgets reuses it.
@@ -420,4 +420,18 @@ export function useAudio(): AppAudio {
       volume: (level, fade) => api.audioVolume!(level, fade),
     };
   }, [api, bridged]);
+}
+
+/** Records an anonymous app usage event. Fire-and-forget: it never throws and
+ *  never blocks. Needs `capabilities.telemetry: true` in the manifest; a no-op
+ *  on a preview render and on a host that does not record app telemetry.
+ *  `event` and each property key are lowercase slugs (a-z, 0-9, _; start with
+ *  a letter; 40 characters at most), at most 10 properties, and a value is a
+ *  boolean, a finite number or a short token string (a-z, 0-9, _ . : -). */
+export function track(event: string, properties?: Record<string, string | number | boolean>): void {
+  const store = getActiveStore();
+  if (!store || store.preview || !store.api.track) return;
+  try {
+    void Promise.resolve(store.api.track(event, properties)).catch(() => { /* host reports a rejection */ });
+  } catch { /* fire-and-forget */ }
 }

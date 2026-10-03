@@ -84,6 +84,9 @@ The TS shape lives in `src/widgets/types.ts`.
     // every running instance of this app on the install. Default false.
     "appData": true,
 
+    // Lets the app record anonymous usage events with track(). Default false.
+    "telemetry": true,
+
     // Whether the app exposes a settings schema.
     "config": true,
 
@@ -154,6 +157,14 @@ not play sound (preview, a streamed/headless panel render such as the Kraken
 LCD or the Q-series, or a document with no WebAudio support), `useAudio` still
 renders - every method on the returned object is a no-op and `available` is
 `false`. See `useAudio` below.
+
+#### `capabilities.telemetry`
+
+A `boolean` (default `false`). Lets the app record anonymous usage events with
+`track()`. Without it the service refuses every call (403) and the host logs the
+refusal to the console. Installing an app that declares it shows the consent
+line "Send anonymous usage events"; an update that newly adds it waits for the
+user's approval like any other capability. See `track()` below.
 
 ---
 
@@ -502,6 +513,50 @@ const strings = TABLES[locale] ?? TABLES[locale.split('-')[0]] ?? TABLES.en;
 An app ships its own string tables and picks one; Nexus's own translations are
 not exposed. The store listing's name, tagline and description are localized
 separately, through the manifest's `locales` field.
+
+### `track(event, properties?)`
+
+```ts
+track(event: string, properties?: Record<string, string | number | boolean>): void
+```
+
+Records one anonymous usage event for the app. Not a hook: call it from an
+event handler or an effect. It is fire-and-forget, never throws and never
+blocks rendering, and it is a no-op in a preview render. Requires
+`capabilities.telemetry`.
+
+The service validates every call and drops one that breaks a rule:
+
+- `event` and each property key match `^[a-z][a-z0-9_]{0,39}$`.
+- At most 10 properties.
+- A value is a boolean, a finite number, or a token string matching
+  `^[a-z0-9][a-z0-9_.:-]{0,63}$`. Free text (names, paths, messages) is not
+  accepted, so a user's content cannot leak through an event.
+- At most 60 events a minute per app (429 over that).
+
+Each event is sent with the app id, the app version and the surface it came
+from (`page`, `widget` or `immersive`). Properties arrive prefixed `p_` (`level` becomes `p_level`).
+A rejected call is reported to the browser console as
+`[sdk:<app id>] track(...) rejected: <reason>`, never to the user.
+
+**Opt-out.** When the user has opted out of Nexus telemetry, the service drops
+the event before it leaves the machine. An app needs no opt-out logic of its own.
+
+**Recorded without any code.** For an app that declares nothing: a page open
+(`app_page_opened`), and every `Button href` press or `system.openUrl` action
+(`app_link_opened`, host and `utm_*` parameters only). A page close with its
+duration (`app_page_closed`) is recorded in dev-tools builds.
+
+**Availability.** Recording is wired in dev-tools Nexus builds only for now;
+every other build drops the call silently, so call `track()` unconditionally.
+In dev-tools builds, Tools > App telemetry lists the events as they arrive and
+whether they are being sent to PostHog. A host older than this function has no
+`track` in its shared runtime and the import is `undefined` there; guard the
+call:
+
+```tsx
+if (typeof track === 'function') track('level_done', { level: 3, won: true });
+```
 
 ---
 

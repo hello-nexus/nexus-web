@@ -41,7 +41,7 @@ describe('capabilityLabel', () => {
   it('has an English label for every known action and flag', () => {
     const keys = new Set(Object.keys(en));
     for (const action of KNOWN_DISPATCH_ACTIONS) expect(keys.has(`store.consent.cap.${action}`), action).toBe(true);
-    for (const grant of ['rgb.read', 'rgb.write']) {
+    for (const grant of ['rgb.read', 'rgb.write', 'telemetry']) {
       expect(keys.has(capabilityLabel(grant, k => k)), grant).toBe(true);
     }
   });
@@ -64,6 +64,11 @@ describe('capabilityGrants', () => {
       'rgb.read',
       'rgb.write',
     ]);
+  });
+
+  it('lists telemetry as a permission only when granted', () => {
+    expect(capabilityGrants({ telemetry: true })).toEqual(['telemetry']);
+    expect(capabilityGrants({ telemetry: false })).toEqual([]);
   });
 
   it('never lists appData or audio, which are not permissions', () => {

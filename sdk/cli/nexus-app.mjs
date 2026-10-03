@@ -129,7 +129,7 @@ async function cmdDev(appDir, opts) {
 
 // nexus.app/1 capability keys: array allowlists vs boolean flags vs the code model.
 const ARRAY_CAPS = new Set(['net.fetch', 'sensors.read', 'dispatch', 'mediaImport']);
-const BOOL_CAPS = new Set(['rgb.read', 'rgb.write', 'config', 'appData']);
+const BOOL_CAPS = new Set(['rgb.read', 'rgb.write', 'config', 'appData', 'telemetry']);
 
 // Mirrors PANEL_SURFACES / PANEL_WIDGET_SIZES in nexus-web/src/panel/types.ts.
 // A surface outside this set only warns, so a manifest naming one this CLI has

@@ -24,4 +24,10 @@ describe('ToolsView without dev tools', () => {
     expect(screen.queryByText('tools.streamdeckSim.title')).toBeNull();
     expect(screen.queryByRole('button', { name: 'devices.streamdeck.model' })).toBeNull();
   });
+
+  it('does not render the App telemetry card', async () => {
+    await act(async () => { render(<ToolsView serviceOnline />); });
+
+    expect(screen.queryByText('tools.appTelemetry.title')).toBeNull();
+  });
 });

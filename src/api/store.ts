@@ -41,6 +41,8 @@ export interface StoreApp {
   releaseDate?: string | null;
   rating: StoreRating;
   latest: StoreVersion | null;
+  /** DEV_TOOLS service only: synthesized from a sideloaded app's manifest and store/ folder because the cloud catalog lacks it. Never installable from here (latest.sha256 is empty). */
+  localPreview?: boolean;
 }
 
 export interface StoreAppDetail extends StoreApp {

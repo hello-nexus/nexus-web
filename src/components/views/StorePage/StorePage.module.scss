@@ -418,6 +418,7 @@ $card-gap: 0.6rem;
 .featuredActions {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
   margin-top: 0.4rem;
 
   button:disabled {

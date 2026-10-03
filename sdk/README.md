@@ -65,7 +65,7 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `onLongPress`.
 - **Hooks** (`@hellonexus/sdk`): `useLocalState`, `useSettings`, `useSize`, `useTick`,
   `useSensor`, `useFetch`, `useDispatch`, `useHostAction`, `useSurface`, `usePreview`, `useImmersive`,
-  `useDisplay`, `useOpaque`, `useLocale`, `useAppData`, `useAudio`, `useLatest`, `request`. Plus `formatDuration`/`clamp`/`pct`.
+  `useDisplay`, `useOpaque`, `useLocale`, `useAppData`, `useAudio`, `useLatest`, `request`, `track`. Plus `formatDuration`/`clamp`/`pct`.
 - **`Slider` additions**: `trackFill` controls the accent fill (auto from value, or pass a
   `number` 0..100 to pin the fill end; bipolar ranges auto-fill centre-out). `orientation`
   selects `'inline'` (label+track+value on one row, default), `'stacked'` (label above,
@@ -101,6 +101,11 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   `stop`/`reverb`/`volume` through the host's WebAudio document. Requires `capabilities.audio`;
   `available` is `false` (every method a no-op) in preview, on a streamed/headless panel
   render, or without WebAudio support.
+- **`track(event, properties?)`**: records an anonymous app usage event (fire-and-forget, not a
+  hook). Requires `capabilities.telemetry`; event and property names are lowercase slugs, at
+  most 10 properties, values are booleans, finite numbers or short tokens. Dropped when the
+  user has opted out, and recorded by dev-tools Nexus builds only for now. Page opens and link
+  presses are counted without any code. See `track()` in `sdk/docs/CAPABILITIES.md`.
 - **`useDisplay()`**: `{ shape, input }` - the tile's actual shape (`'round'` only on round
   glass) and the panel surface's input method (`'touch'` / `'pointer'` / `'none'`).
 - **`useOpaque(opaque)`**: tells the host the tile paints every pixel of its box, so a

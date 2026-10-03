@@ -78,6 +78,10 @@ export interface WidgetHostApi {
   /** Uses a loaded sound as this instance's reverb bus impulse response (null turns the bus off). */
   audioReverb?(id: string | null, wet?: number): void;
   audioVolume?(level: number, fade?: number): void;
+  /** Records an app-defined usage event (host -> POST /apps-api/telemetry/{appId}).
+   *  Absent when the host build does not record app telemetry, or on a preview
+   *  render; the SDK's track() is a no-op then. */
+  track?(event: string, properties?: Record<string, string | number | boolean>): void | Promise<void>;
 }
 
 export type WidgetSurface = 'cell' | 'page';
@@ -159,6 +163,11 @@ export interface WidgetStore {
   applyAppData(key: string, doc: AppDataDoc): void;
 }
 
+/** The most recently created store: the worker runs one widget render, and the
+ *  SDK's track() is callable outside a component. */
+let activeStore: WidgetStore | null = null;
+export function getActiveStore(): WidgetStore | null { return activeStore; }
+
 export function createStore(init: WidgetContextInit): WidgetStore {
   let state: WidgetState = {
     settings: init.settings ?? {},
@@ -176,7 +185,7 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     state = { ...state, appData: { ...state.appData, [key]: doc } };
     emit();
   };
-  return {
+  const store: WidgetStore = {
     instanceId: init.instanceId,
     widgetId: init.widgetId,
     surface: init.surface ?? 'cell',
@@ -194,6 +203,8 @@ export function createStore(init: WidgetContextInit): WidgetStore {
     setLocal: (next) => { state = { ...state, local: next }; void init.api.persistLocal(next); emit(); },
     applyAppData,
   };
+  activeStore = store;
+  return store;
 }
 
 const StoreContext = createContext<WidgetStore | null>(null);

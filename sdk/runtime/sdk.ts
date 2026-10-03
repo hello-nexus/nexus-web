@@ -3,7 +3,7 @@ export { mount } from './mount';
 export type { WidgetSurfaces } from './mount';
 export {
   useSettings, useSize, useSurface, usePreview, useDevTools, useImmersive, useDisplay, useOpaque, useLocale, useLocalState, useTick, useSensor, useFetch, useDispatch, useHostAction,
-  useLatest, useAppData, useAudio, request,
+  useLatest, useAppData, useAudio, request, track,
 } from './hooks';
 export type { AppDataCasResult, AppAudio } from './hooks';
 export { clamp, pct, formatDuration } from './format';

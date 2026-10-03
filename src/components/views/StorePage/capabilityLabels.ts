@@ -25,6 +25,7 @@ export const KNOWN_DISPATCH_ACTIONS: readonly string[] = [
 const FLAG_KEYS: Record<string, string> = {
   'rgb.read': 'store.consent.cap.rgbRead',
   'rgb.write': 'store.consent.cap.rgbWrite',
+  telemetry: 'store.consent.cap.telemetry',
 };
 
 const SCOPED_KINDS = ['dispatch', 'net.fetch', 'sensors.read', 'mediaImport'] as const;

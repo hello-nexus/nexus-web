@@ -666,6 +666,31 @@ describe('StorePage release notes', () => {
   });
 });
 
+describe('StorePage local preview', () => {
+  const preview: StoreApp = { ...app, localPreview: true, latest: { ...version, sha256: '' } };
+
+  beforeEach(() => {
+    fetchStoreApps.mockResolvedValue([preview]);
+    fetchStoreApp.mockResolvedValue({ ...detail, ...preview });
+  });
+
+  it('chips the card and offers no install', async () => {
+    render(<StorePage />);
+
+    expect(await screen.findByText('store.localPreview')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'store.install' })).not.toBeInTheDocument();
+  });
+
+  it('chips the app page and shows a sideloaded copy as Installed, never Update', async () => {
+    installed.push({ id: app.id, version: '0.0.1', iconUrl: null });
+    render(<StorePage tab={app.id} onTabChange={vi.fn()} />);
+
+    expect(await screen.findByText('store.localPreview')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'store.installed' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'store.update' })).not.toBeInTheDocument();
+  });
+});
+
 describe('notesBlocks', () => {
   it('groups bullet runs into lists and other runs into paragraphs, a blank line ending each', () => {
     expect(notesBlocks('Intro\nmore\n\n- a\n* b\n\u2022 c\n\nOutro')).toEqual([

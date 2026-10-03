@@ -3,6 +3,7 @@ import {
   ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Store, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { Badge } from '../../common/Badge/Badge';
 import { Card } from '../../common/Card/Card';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
@@ -135,6 +136,12 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
       </span>
     );
   }
+  // No hash to verify a download against, so a local preview is never offered an install or update.
+  if (app.localPreview) {
+    return installedVersion
+      ? <Button type="button" tone="neutral" disabled>{t('store.installed')}</Button>
+      : null;
+  }
   if (!latest) return <span className={styles.incompatible}>{t('store.incompatible')}</span>;
 
   const upToDate = installedVersion === latest.version;
@@ -155,6 +162,11 @@ function InstallButton({ app, installedVersion, onNeedsSignIn, onInstalled }: {
       {label}
     </Button>
   );
+}
+
+function LocalPreviewChip({ app }: { app: StoreApp }) {
+  const { t } = useTranslation();
+  return app.localPreview ? <Badge label={t('store.localPreview')} color="var(--warn)" /> : null;
 }
 
 interface Placing { app: StoreApp; iconSrc: string | null; dashboardColumns: number }
@@ -191,6 +203,7 @@ function AppRow({ app, installed, onOpen, onNeedsSignIn, onInstalled }: {
       truncateSubtitle
     >
       <div className={styles.rowActions}>
+        <LocalPreviewChip app={app} />
         <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
       </div>
     </Card>
@@ -236,6 +249,7 @@ function FeaturedApp({ app, installed, onOpen, onNeedsSignIn, onInstalled }: {
           <p className={styles.featuredBlurb}>{app.description.trim().split(/\n\s*\n/)[0]}</p>
         )}
         <div className={styles.featuredActions}>
+          <LocalPreviewChip app={app} />
           <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
         </div>
       </div>
@@ -534,6 +548,7 @@ function AppDetail({ appId, onBack, installed, onNeedsSignIn, onInstalled }: {
           <h1 className={`${styles.heroTitle} selectable`}>{app.name}</h1>
           {app.tagline.trim() && <p className={`${styles.heroSubtitle} selectable`}>{app.tagline.trim()}</p>}
           <div className={styles.heroActions}>
+            <LocalPreviewChip app={app} />
             <InstallButton app={app} installedVersion={installed?.version} onNeedsSignIn={onNeedsSignIn} onInstalled={onInstalled} />
           </div>
           {installed && (

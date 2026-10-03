@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { postService } from '../../../api/service';
+import { DEV_TOOLS } from '../../../lib/devTools';
 import { getMarketplaceListing, marketplaceIdFromType } from '../../../widgets/marketplaceRegistry';
 import { SandboxedWidget } from '../../../sandbox/SandboxedWidget';
 import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
@@ -33,6 +34,14 @@ export function SdkMarketplacePage({ type }: SdkMarketplacePageProps) {
   // One product-telemetry page view per open; the service drops it when the user opted out.
   useEffect(() => {
     if (id) postService<unknown>(`/apps-api/page-opened/${encodeURIComponent(id)}`, {}).catch(() => {});
+  }, [id]);
+  // Dev-tools builds also report how long the page stayed open, on unmount or app change.
+  useEffect(() => {
+    if (!DEV_TOOLS || !id) return;
+    const openedAt = performance.now();
+    return () => {
+      postService<unknown>(`/apps-api/page-closed/${encodeURIComponent(id)}`, { durationMs: Math.round(performance.now() - openedAt) }).catch(() => {});
+    };
   }, [id]);
   const onDispatch = useCallback(
     (action: string, args?: Record<string, unknown>) =>
