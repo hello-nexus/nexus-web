@@ -6,6 +6,7 @@ import { useTranslation } from '../lib/i18n';
 import type { ConnectionState } from '../hooks/useServiceStatus';
 import { PageHero, type PageHeroKey } from '../components/common/PageHero/PageHero';
 import { ServiceLaunchButton } from '../components/common/ServiceLaunchButton/ServiceLaunchButton';
+import { Spinner } from '../components/common/Spinner/Spinner';
 import { SafariLaunchNote, primaryDownloadOS, useSafariLaunchBlocked } from '../components/views/ServiceRequired';
 import { ALL_DOWNLOADABLE_OS, DOWNLOAD_URLS, formatDownloadSizeMb } from '../lib/downloads';
 import { useDownloadManifest } from '../hooks/useDownloadManifest';
@@ -112,7 +113,7 @@ function GetNexus({ state }: { state: ConnectionState }) {
         </div>
       </div>
       <div className={styles.status} role="status">
-        <span className={styles.pulse} aria-hidden />
+        <span className={styles.spinner} aria-hidden><Spinner size={14} /></span>
         {t('status.checking')}
       </div>
       <a className={styles.backLink} href={marketingUrl()}>{t('site.gate.backToSite')}</a>
