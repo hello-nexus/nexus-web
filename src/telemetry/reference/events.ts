@@ -238,7 +238,7 @@ export const TELEMETRY_EVENTS: TelemetryEventDoc[] = [
     params: [
       { name: 'app_id', type: 'string', required: true, description: 'Installed app id.' },
       { name: 'app_version', type: 'string', required: false, description: 'Installed version of the app.' },
-      { name: 'duration_ms', type: 'number', required: true, description: 'Milliseconds the page was open.' },
+      { name: 'duration_s', type: 'number', required: true, description: 'Seconds the page was open, rounded, capped at one day.' },
     ],
   },
   {
