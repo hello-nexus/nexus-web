@@ -2520,7 +2520,7 @@
   "lighting.ledMap.saveFailed": "LEDマップを保存できませんでした",
   "lighting.ledMap.selectAll": "すべて選択",
   "lighting.ledMap.selectNone": "選択解除",
-  "lighting.ledMap.settings": "デバイスを割り当て",
+  "lighting.ledMap.settings": "デバイスをカスタマイズ",
   "lighting.ledMap.snapToGrid": "スナップ",
   "lighting.ledMap.snapToGridHint": "LED をグリッドにスナップ",
   "lighting.ledMap.testH": "横スワイプ",

@@ -22,6 +22,13 @@ export interface DeviceMenuItem {
   checked?: boolean;
 }
 
+/** Concatenates the non-empty sections with a rule between each. */
+export function menuSections(...sections: DeviceMenuItem[][]): DeviceMenuItem[] {
+  const filled = sections.filter(section => section.length > 0);
+  filled.slice(0, -1).forEach(section => { section[section.length - 1].separatorAfter = true; });
+  return filled.flat();
+}
+
 interface DeviceContextMenuProps {
   x: number;
   y: number;

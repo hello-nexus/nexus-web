@@ -2553,7 +2553,7 @@
   "lighting.ledMap.saveFailed": "Nie udało się zapisać mapy LED",
   "lighting.ledMap.selectAll": "Zaznacz wszystko",
   "lighting.ledMap.selectNone": "Wyczysc zaznaczenie",
-  "lighting.ledMap.settings": "Przypisz urządzenia",
+  "lighting.ledMap.settings": "Dostosuj urządzenie",
   "lighting.ledMap.snapToGrid": "Przyciąganie",
   "lighting.ledMap.snapToGridHint": "Przyciągaj diody do siatki",
   "lighting.ledMap.testH": "Przesuniecie H",

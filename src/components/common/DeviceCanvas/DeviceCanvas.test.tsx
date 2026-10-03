@@ -349,6 +349,30 @@ describe('DeviceCanvas', () => {
     }
   });
 
+  it('leads a group menu with Customize on the right-clicked frame, identify banded above stacking', () => {
+    const devices = [maximizedDevice('a', 'Alpha'), maximizedDevice('b', 'Bravo')];
+    for (const d of devices) d.ledCount = 4;
+    const onOpenSettings = vi.fn();
+    render(
+      <DeviceCanvas
+        devices={devices}
+        selectedIds={new Set(['a', 'b'])} primaryDeviceId="a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()} onOpenSettings={onOpenSettings}
+      />
+    );
+    fireEvent.contextMenu(screen.getByText('Bravo'));
+    const menu = document.querySelector('[class*="_menu_"]')!;
+    const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent : '|');
+    expect(rows).toEqual([
+      'lighting.ledMap.settings', '|',
+      'lighting.devices.minimizeCount.other', 'lighting.devices.rotateCwCount.other',
+      'lighting.devices.rotateCcwCount.other', 'lighting.devices.menuLightsOffCount.other', '|',
+      'lighting.devices.identifyCount.other',
+    ]);
+    fireEvent.click(screen.getByText('lighting.ledMap.settings'));
+    expect(onOpenSettings).toHaveBeenCalledWith('b');
+  });
+
   it('minimizing spreads frames down the canvas and staggers neighbouring columns', () => {
     const devices = [
       maximizedDevice('a', 'Alpha'), maximizedDevice('b', 'Bravo'),

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Eye, Layers, Maximize2, Minimize2, Power, PowerOff, RotateCcw, RotateCw, Settings } from 'lucide-react';
+import { Eye, Layers, Maximize2, Minimize2, Paintbrush, Power, PowerOff, RotateCcw, RotateCw } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -12,7 +12,7 @@ import { subscribeLedFrame } from '../../../lib/ledFrameStore';
 import type { EffectState } from '../../../types/lighting';
 import { CanvasNoticeBar } from '../CanvasNoticeBar';
 import { gpuNotice, type GpuState } from '../CanvasNoticeBar/gpuNotice';
-import { DeviceContextMenu, type DeviceMenuItem } from './DeviceContextMenu';
+import { DeviceContextMenu, menuSections, type DeviceMenuItem } from './DeviceContextMenu';
 import { stackMenuItems, type StackActions } from './groupMenuItems';
 import { sliceStackSlot, stackSlotOf, type DeviceStack } from '../../../lib/stackSlots';
 import styles from './DeviceCanvas.module.scss';
@@ -969,71 +969,66 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
         // (hidden frames excluded), so derive the targets and gate on their
         // count - not the parent's full selectedIds, which can include hidden
         // frames and yield "(1 devices)" labels / partial application. A
-        // right-click outside the selection (or a single visible target) stays
-        // single-device and keeps LED settings.
+        // right-click outside the selection stays single-device.
         // A stacked frame's targets are its whole stack, hidden members included,
         // so every row keeps the stack on one rect.
         const picked = selectedIds.has(dev.id) ? drawn.filter(d => selectedIds.has(d.id)) : [dev];
         const targets = withStacks(picked.map(d => d.id));
         const group = targets.length >= 2;
         const count = targets.length;
-        const items: DeviceMenuItem[] = [];
-        // Identify only reaches LED-bearing devices; the group label counts just
-        // those so it never promises to flash a frame with no LEDs.
-        const ledTargets = targets.filter(d => d.ledCount > 0);
-        if (ledTargets.length > 0) {
-          items.push({
-            key: 'identify', icon: <Eye size={14} />,
-            label: group
-              ? t(pluralKey('lighting.devices.identifyCount', language, ledTargets.length), { count: ledTargets.length })
-              : t('lighting.devices.identify'),
-            onSelect: () => { ledTargets.forEach(d => identifyLightingDevice(d.id, 2000).catch(() => { /* silent */ })); },
-          });
-        }
-        // LED-map editor is single-device only (it edits one device's zones), so
-        // it is hidden for a group selection. For a single device it opens even
-        // at 0 LEDs (positional mapping is always available).
-        if (onOpenSettings && picked.length === 1) {
-          items.push({
-            key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
+        // Customize opens the LED map on the right-clicked device, so it keeps
+        // its row in a group selection. It opens even at 0 LEDs (positional
+        // mapping is always available).
+        const editors: DeviceMenuItem[] = [];
+        if (onOpenSettings) {
+          editors.push({
+            key: 'settings', icon: <Paintbrush size={14} />, label: t('lighting.ledMap.settings'),
             onSelect: () => onOpenSettings(dev.id),
           });
         }
         // Group toggle reads "all maximized": minimize them only when every
         // target already fills the canvas, otherwise maximize them all.
         const maxed = group ? targets.every(isMaximized) : isMaximized(dev);
-        items.push({
-          key: 'maximize',
-          icon: maxed ? <Minimize2 size={14} /> : <Maximize2 size={14} />,
-          label: group
-            ? t(pluralKey(maxed ? 'lighting.devices.minimizeCount' : 'lighting.devices.maximizeCount', language, count), { count })
-            : (maxed ? t('lighting.devices.minimize') : t('lighting.devices.maximize')),
-          onSelect: () => group ? handleMaximizeGroup(targets, !maxed) : handleMaximize(dev),
-        });
-        items.push({
-          key: 'rotate-cw', icon: <RotateCw size={14} />,
-          label: group ? t(pluralKey('lighting.devices.rotateCwCount', language, count), { count }) : t('lighting.devices.rotateCw'),
-          onSelect: () => group ? handleRotateGroup(targets, 1) : handleRotate(dev, 1),
-        });
-        items.push({
-          key: 'rotate-ccw', icon: <RotateCcw size={14} />,
-          label: group ? t(pluralKey('lighting.devices.rotateCcwCount', language, count), { count }) : t('lighting.devices.rotateCcw'),
-          onSelect: () => group ? handleRotateGroup(targets, -1) : handleRotate(dev, -1),
-        });
         const anyOn = targets.some(d => d.ledsOn);
-        items.push({
-          key: 'power',
-          icon: anyOn ? <PowerOff size={14} /> : <Power size={14} />,
+        const toggles: DeviceMenuItem[] = [
+          {
+            key: 'maximize',
+            icon: maxed ? <Minimize2 size={14} /> : <Maximize2 size={14} />,
+            label: group
+              ? t(pluralKey(maxed ? 'lighting.devices.minimizeCount' : 'lighting.devices.maximizeCount', language, count), { count })
+              : (maxed ? t('lighting.devices.minimize') : t('lighting.devices.maximize')),
+            onSelect: () => group ? handleMaximizeGroup(targets, !maxed) : handleMaximize(dev),
+          },
+          {
+            key: 'rotate-cw', icon: <RotateCw size={14} />,
+            label: group ? t(pluralKey('lighting.devices.rotateCwCount', language, count), { count }) : t('lighting.devices.rotateCw'),
+            onSelect: () => group ? handleRotateGroup(targets, 1) : handleRotate(dev, 1),
+          },
+          {
+            key: 'rotate-ccw', icon: <RotateCcw size={14} />,
+            label: group ? t(pluralKey('lighting.devices.rotateCcwCount', language, count), { count }) : t('lighting.devices.rotateCcw'),
+            onSelect: () => group ? handleRotateGroup(targets, -1) : handleRotate(dev, -1),
+          },
+          {
+            key: 'power',
+            icon: anyOn ? <PowerOff size={14} /> : <Power size={14} />,
+            label: group
+              ? t(pluralKey(anyOn ? 'lighting.devices.menuLightsOffCount' : 'lighting.devices.menuLightsOnCount', language, count), { count })
+              : t(anyOn ? 'lighting.devices.menuLightsOff' : 'lighting.devices.menuLightsOn'),
+            onSelect: () => onSetDevicesPower?.(targets.map(d => d.id), !anyOn),
+          },
+        ];
+        // Identify only reaches LED-bearing devices; the group label counts just
+        // those so it never promises to flash a frame with no LEDs.
+        const ledTargets = targets.filter(d => d.ledCount > 0);
+        const locate: DeviceMenuItem[] = ledTargets.length === 0 ? [] : [{
+          key: 'identify', icon: <Eye size={14} />,
           label: group
-            ? t(pluralKey(anyOn ? 'lighting.devices.menuLightsOffCount' : 'lighting.devices.menuLightsOnCount', language, count), { count })
-            : t(anyOn ? 'lighting.devices.menuLightsOff' : 'lighting.devices.menuLightsOn'),
-          onSelect: () => onSetDevicesPower?.(targets.map(d => d.id), !anyOn),
-        });
-        const stackRows = stackMenuItems(t, language, stackActionsFor?.(targets.map(d => d.id)), count);
-        if (stackRows.length > 0) {
-          items[items.length - 1].separatorAfter = true;
-          items.push(...stackRows);
-        }
+            ? t(pluralKey('lighting.devices.identifyCount', language, ledTargets.length), { count: ledTargets.length })
+            : t('lighting.devices.identify'),
+          onSelect: () => { ledTargets.forEach(d => identifyLightingDevice(d.id, 2000).catch(() => { /* silent */ })); },
+        }];
+        const items = menuSections(editors, toggles, locate, stackMenuItems(t, language, stackActionsFor?.(targets.map(d => d.id)), count));
         return (
           <DeviceContextMenu
             key={`${ctxMenu.id}:${ctxMenu.x}:${ctxMenu.y}`}

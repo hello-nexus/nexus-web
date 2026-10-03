@@ -178,7 +178,6 @@ describe('ZoneCard bulk selection', () => {
       identifyCount: 3,
       controlled: true,
       ledsOn: true,
-      oneDevice: false,
       setControlled: vi.fn(),
       setPower: vi.fn(),
       identify: vi.fn(),
@@ -213,16 +212,25 @@ describe('ZoneCard bulk selection', () => {
     expect(screen.getByRole('button', { name: /menuLightsOffCount.*"count":3/ })).toBeTruthy();
   });
 
-  it('hides the LED map row when the selection spans devices', () => {
-    renderBulkAndOpen(bulkProps());
-    expect(screen.queryByRole('button', { name: /ledMap.settings/ })).toBeNull();
-  });
-
-  it('keeps the LED map row when the selection is one device\'s own zones', () => {
-    // Selecting a keeb's keys and underglow still names one device, and the
-    // editor opens on that device and lists both.
-    renderBulkAndOpen(bulkProps({ oneDevice: true }));
-    expect(screen.getByRole('button', { name: /ledMap.settings/ })).toBeTruthy();
+  it('leads with Customize even when the selection spans devices, opening this card', () => {
+    const onOpenSettings = vi.fn();
+    render(
+      <ZoneCard
+        device={baseDevice}
+        selected
+        indent={false}
+        onSelect={() => {}}
+        onTogglePower={() => {}}
+        onToggleControlled={() => {}}
+        onOpenSettings={onOpenSettings}
+        bulk={bulkProps()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+    const first = document.querySelector('[class*="_menu_"]')!.children[0];
+    expect(first.textContent).toBe('lighting.ledMap.settings');
+    fireEvent.click(first);
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
   });
 
   it('drives the whole selection to one state, not per-device toggles', () => {
@@ -247,14 +255,11 @@ describe('ZoneCard bulk selection', () => {
     expect(onToggleControlled).not.toHaveBeenCalled();
   });
 
-  it('offers no button at all when the selection leaves this card with no rows', () => {
-    // Detection-failed card: no identify, no state rows, and the LED map is
-    // single-device - the menu would otherwise open empty.
-    renderBulk(bulkProps({ identifyCount: 0 }), { ...baseDevice, ledCount: 0 });
-    expect(screen.queryByRole('button', { name: 'lighting.devices.moreActions' })).toBeNull();
-    const card = document.querySelector(`.${styles.deviceCard}`)!;
-    expect(fireEvent.contextMenu(card)).toBe(true); // no handler, so not prevented
-    expect(document.querySelector('[class*="_menu_"]')).toBeNull();
+  it('still offers Customize when the selection leaves this card nothing else', () => {
+    // Detection-failed card: no identify and no state rows.
+    renderBulkAndOpen(bulkProps({ identifyCount: 0 }), { ...baseDevice, ledCount: 0 });
+    const rows = Array.from(document.querySelector('[class*="_menu_"]')!.children).map(c => c.textContent);
+    expect(rows).toEqual(['lighting.ledMap.settings']);
   });
 
   it.each(['pl', 'ru'])('asks %s for the CLDR few form at 3', (language) => {
@@ -507,15 +512,14 @@ describe('ZoneCard select-only row', () => {
     expect(screen.queryByText(/lighting\.devices\.selectOnly/)).toBeNull();
   });
 
-  it('leads the menu, names the device, and fires the narrow', () => {
+  it('names the device and fires the narrow', () => {
     const onSelectOnly = vi.fn();
     renderWithSelectOnly(onSelectOnly);
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
-    const rows = screen.getAllByRole('button').filter(b => /lighting\.devices\./.test(b.textContent ?? ''));
-    expect(rows[0].textContent).toContain('lighting.devices.selectOnly');
+    const row = screen.getByText(/lighting\.devices\.selectOnly/);
     // The label interpolates the card's own name, so the row is unambiguous.
-    expect(rows[0].textContent).toContain('Test Strip');
-    fireEvent.click(rows[0]);
+    expect(row.textContent).toContain('Test Strip');
+    fireEvent.click(row);
     expect(onSelectOnly).toHaveBeenCalledTimes(1);
   });
 
@@ -714,7 +718,7 @@ describe('ZoneCard move-to-group flyout', () => {
 });
 
 describe('ZoneCard menu bands', () => {
-  it('splits naming and grouping off from the actions below', () => {
+  it('bands editors, toggles, identify + select, then naming and grouping', () => {
     render(
       <ZoneCard
         device={baseDevice}
@@ -725,19 +729,21 @@ describe('ZoneCard menu bands', () => {
         onTogglePower={() => {}}
         onToggleControlled={() => {}}
         onOpenSettings={() => {}}
+        onOpenColorTuning={() => {}}
         onRename={() => {}}
         groupMove={{ targets: [{ id: 'g1', name: 'Desk' }], onMove: () => {} }}
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
     const menu = document.querySelector('[class*="_menu_"]')!;
-    const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent?.trim() : '|');
-    // The select row interpolates the card name, so match its head only.
-    expect(rows[0]).toMatch(/^lighting\.devices\.selectOnly/);
-    expect(rows[1]).toBe('|');
-    // Naming and grouping close the menu, behind a rule of their own. This
-    // device carries no hardware name to reset, so there are two rows.
-    expect(rows.slice(-3)).toEqual(['|', 'lighting.devices.rename', 'lighting.devices.moveToGroup']);
+    // The select row interpolates the card name, so keep its key only.
+    const rows = Array.from(menu.children).map(c => c.tagName === 'BUTTON' ? c.textContent!.trim().replace(/^(lighting\.devices\.selectOnly).*/, '$1') : '|');
+    expect(rows).toEqual([
+      'lighting.ledMap.settings', 'lighting.colorTuning.menu', '|',
+      'lighting.devices.menuLightsOff', 'lighting.devices.menuControlOff', '|',
+      'lighting.devices.identify', 'lighting.devices.selectOnly', '|',
+      'lighting.devices.rename', 'lighting.devices.moveToGroup',
+    ]);
   });
 });
 
@@ -877,7 +883,7 @@ describe('ZoneCard color lock', () => {
         onTogglePower={() => {}} onToggleControlled={() => {}} onOpenSettings={() => {}}
         lock={{ locked: false, lockable: true, hasPick: true, setLocked: () => {} }}
         bulk={{
-          count: 3, identifyCount: 3, tunableCount: 3, controlled: true, ledsOn: true, oneDevice: false,
+          count: 3, identifyCount: 3, tunableCount: 3, controlled: true, ledsOn: true,
           setControlled: () => {}, setPower: () => {}, identify: () => {},
           lockCount: 2, unlockCount: 1, setLocked,
         }}
