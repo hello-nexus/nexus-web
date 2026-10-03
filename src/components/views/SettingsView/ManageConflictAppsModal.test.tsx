@@ -36,6 +36,8 @@ function renderModal(overrides: Partial<Parameters<typeof ManageConflictAppsModa
     onClose: vi.fn(),
     autoShutdown: false,
     onAutoShutdownChange: vi.fn(),
+    endOnLaunch: false,
+    onEndOnLaunchChange: vi.fn(),
     exclusions: [] as string[],
     onExclusionsChange: vi.fn(),
     notifyLaunches: true,
@@ -122,6 +124,19 @@ describe('ManageConflictAppsModal', () => {
 
     fireEvent.click(toggle);
     expect(props.onNotifyLaunchesChange).toHaveBeenCalledWith(true);
+  });
+
+  it('the end-on-launch switch starts off and calls its change handler', async () => {
+    vi.mocked(fetchConflictCatalog).mockResolvedValue(CATALOG);
+    vi.mocked(useConflictApps).mockReturnValue({ conflicts: [], ready: true });
+    const props = renderModal();
+
+    await waitFor(() => expect(screen.getByLabelText('NZXT CAM')).toBeTruthy());
+    const toggle = screen.getByLabelText('settings.conflictApps.endOnLaunch.label');
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+
+    fireEvent.click(toggle);
+    expect(props.onEndOnLaunchChange).toHaveBeenCalledWith(true);
   });
 
   it('hides the Dynamic Lighting switch when the service cannot read it', async () => {

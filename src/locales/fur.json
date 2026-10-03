@@ -4072,6 +4072,8 @@
   "settings.conflictApps.category.peripherals": "Periferichis",
   "settings.conflictApps.dynamicLighting.description": "Windows al ministre di bessi i dispositîfs RGB compatibii e si bat cun Nexus pes stessis LED. Distudilu par lassâjes a Nexus.",
   "settings.conflictApps.dynamicLighting.title": "Doprâ la iluminazion dinamiche di Windows",
+  "settings.conflictApps.endOnLaunch.description": "Siere lis aplicazions ativadis chi sot apene che si inviin, in cualsisei moment intant che Nexus al è in vore",
+  "settings.conflictApps.endOnLaunch.label": "Siere lis aplicazions in conflit cuant che a vierzin",
   "settings.conflictApps.listIntro": "Une aplicazion ativade e vignarà sierade. Disative par lassâle in esecuzion.",
   "settings.conflictApps.loadFailed": "Impussibil cjariâ la liste des aplicazions. Verifiche che Nexus al sedi in esecuzion e torne a vierzi chest barcon.",
   "settings.conflictApps.loading": "Cjariament des aplicazions…",

@@ -30,6 +30,9 @@ interface ManageConflictAppsModalProps {
   /** Master switch: shut down the enabled apps once at service start. */
   autoShutdown: boolean;
   onAutoShutdownChange: (enabled: boolean) => void;
+  /** End the enabled apps as soon as they launch, at any time. */
+  endOnLaunch: boolean;
+  onEndOnLaunchChange: (enabled: boolean) => void;
   /** Catalog ids opted OUT. Every app not listed here is shut down. */
   exclusions: string[];
   onExclusionsChange: (ids: string[]) => void;
@@ -53,8 +56,8 @@ interface ManageConflictAppsModalProps {
  * client rewriting its stored list.
  */
 export function ManageConflictAppsModal({
-  open, onClose, autoShutdown, onAutoShutdownChange, exclusions, onExclusionsChange,
-  notifyLaunches, onNotifyLaunchesChange,
+  open, onClose, autoShutdown, onAutoShutdownChange, endOnLaunch, onEndOnLaunchChange,
+  exclusions, onExclusionsChange, notifyLaunches, onNotifyLaunchesChange,
 }: ManageConflictAppsModalProps) {
   const { t } = useTranslation();
   const [catalog, setCatalog] = useState<ConflictCatalogApp[] | null>(null);
@@ -154,6 +157,14 @@ export function ManageConflictAppsModal({
           description={t('settings.conflictApps.autoShutdown.description')}
           checked={autoShutdown}
           onChange={onAutoShutdownChange}
+          stackOnNarrow
+        />
+
+        <SettingToggle
+          label={t('settings.conflictApps.endOnLaunch.label')}
+          description={t('settings.conflictApps.endOnLaunch.description')}
+          checked={endOnLaunch}
+          onChange={onEndOnLaunchChange}
           stackOnNarrow
         />
 

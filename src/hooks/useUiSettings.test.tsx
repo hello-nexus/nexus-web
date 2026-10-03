@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { UiSettingsProvider, useIgnoredComponents, useUiSettings, type UiSettingsContextValue } from './useUiSettings';
 import { applyThemeMode } from '../lib/settings';
@@ -572,5 +572,44 @@ describe('notifyConflictLaunches', () => {
     await act(async () => { captured.ctx!.update({ notifyConflictLaunches: true }); });
     await act(async () => { await new Promise(r => setTimeout(r, 300)); });
     expect(h.savePreferences).toHaveBeenCalledWith({ ui: { notifyConflictLaunches: true } });
+  });
+});
+
+describe('endConflictsOnLaunch', () => {
+  const flush = () => act(async () => { await Promise.resolve(); });
+
+  it('a server that omits the field maps to false', async () => {
+    h.fetchPreferences.mockResolvedValue(prefs('dark'));
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    expect(captured.ctx!.settings.endConflictsOnLaunch).toBe(false);
+  });
+
+  it('hydrates true from the server and posts a change under ui', async () => {
+    h.fetchPreferences.mockResolvedValue({
+      ...prefs('dark'),
+      ui: { endConflictsOnLaunch: true },
+    });
+    h.savePreferences.mockResolvedValue(undefined);
+    await act(async () => {
+      render(
+        <UiSettingsProvider serviceOnline manageDom>
+          <Consumer />
+        </UiSettingsProvider>,
+      );
+    });
+    await flush();
+
+    expect(captured.ctx!.settings.endConflictsOnLaunch).toBe(true);
+
+    await act(async () => { captured.ctx!.update({ endConflictsOnLaunch: false }); });
+    await waitFor(() => expect(h.savePreferences).toHaveBeenCalledWith({ ui: { endConflictsOnLaunch: false } }));
   });
 });
