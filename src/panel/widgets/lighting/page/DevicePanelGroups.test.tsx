@@ -354,10 +354,10 @@ describe('DevicePanel split card header', () => {
     openMenu('Desk keyboard');
     const rows = screen.getAllByRole('button').map(b => b.textContent ?? '').filter(x => x.startsWith('lighting.'));
     expect(rows).toEqual([
-      'lighting.devices.identify',
       'lighting.ledMap.settings',
       'lighting.devices.menuLightsOff',
       'lighting.devices.menuControlOff',
+      'lighting.devices.identify',
       'lighting.devices.rename',
       'lighting.devices.resetName',
     ]);

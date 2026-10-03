@@ -2520,7 +2520,7 @@
   "lighting.ledMap.saveFailed": "Could not save the LED map",
   "lighting.ledMap.selectAll": "Select all",
   "lighting.ledMap.selectNone": "Clear selection",
-  "lighting.ledMap.settings": "Assign Devices",
+  "lighting.ledMap.settings": "Customize device",
   "lighting.ledMap.snapToGrid": "Snap",
   "lighting.ledMap.snapToGridHint": "Snap LEDs to the grid",
   "lighting.ledMap.testH": "H Swipe",

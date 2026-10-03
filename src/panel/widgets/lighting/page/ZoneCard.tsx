@@ -1,10 +1,10 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Settings, Power, PowerOff, Ban, Eye, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Paintbrush, Pencil, RotateCcw, SlidersHorizontal, Unlock } from 'lucide-react';
+import { Power, PowerOff, Ban, Blend, Eye, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Paintbrush, Pencil, RotateCcw, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
 } from '../../../../api/lighting';
-import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
+import { DeviceContextMenu, menuSections, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
 import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/MenuArrowButton';
 import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
@@ -57,8 +57,6 @@ export interface BulkSelection {
   tunableCount: number;
   controlled: boolean;
   ledsOn: boolean;
-  /** True when every selected card is a zone of the SAME device, so the LED map still has one device to open. */
-  oneDevice: boolean;
   setControlled: (controlled: boolean) => void;
   setPower: (on: boolean) => void;
   identify: () => void;
@@ -153,31 +151,34 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount 
   const openMenu = (x: number, y: number) => setMenuAt({ x, y, seq: ++menuSeq.current });
   const nameRef = useRef<EditableTextHandle>(null);
 
-  // Same order as a card's menu: what the device does first, then its state,
-  // then what it is called.
+  // Same sections as a card's menu.
   const menuItems = (): DeviceMenuItem[] => {
     if (!menu) return [];
-    const items: DeviceMenuItem[] = [];
-    if (menu.onIdentify) {
-      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: menu.onIdentify });
-    }
+    const editors: DeviceMenuItem[] = [];
     if (menu.onOpenSettings) {
-      items.push({ key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'), onSelect: menu.onOpenSettings });
+      editors.push({ key: 'settings', icon: <Paintbrush size={14} />, label: t('lighting.ledMap.settings'), onSelect: menu.onOpenSettings });
     }
-    items.push(menu.on
-      ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
-      : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: menu.onTogglePower });
-    items.push(menu.controlled
-      ? { key: 'controlled', icon: <Link2Off size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: menu.onToggleControlled }
-      : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: menu.onToggleControlled });
+    const toggles: DeviceMenuItem[] = [
+      menu.on
+        ? { key: 'power', icon: <PowerOff size={14} />, label: t('lighting.devices.menuLightsOff'), onSelect: menu.onTogglePower }
+        : { key: 'power', icon: <Power size={14} />, label: t('lighting.devices.menuLightsOn'), onSelect: menu.onTogglePower },
+      menu.controlled
+        ? { key: 'controlled', icon: <Link2Off size={14} />, label: t('lighting.devices.menuControlOff'), onSelect: menu.onToggleControlled }
+        : { key: 'controlled', icon: <Link2 size={14} />, label: t('lighting.devices.menuControlOn'), onSelect: menu.onToggleControlled },
+    ];
+    const locate: DeviceMenuItem[] = [];
+    if (menu.onIdentify) {
+      locate.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: menu.onIdentify });
+    }
+    const organise: DeviceMenuItem[] = [];
     if (menu.onRename) {
-      items.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });
+      organise.push({ key: 'rename', icon: <Pencil size={14} />, label: t('lighting.devices.rename'), onSelect: () => nameRef.current?.startEditing() });
     }
     if (menu.onResetName) {
-      items.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: menu.onResetName });
+      organise.push({ key: 'resetName', icon: <RotateCcw size={14} />, label: t('lighting.devices.resetName'), onSelect: menu.onResetName });
     }
-    items.push(...stackMenuItems(t, language, menu, zoneCount));
-    return items;
+    organise.push(...stackMenuItems(t, language, menu, zoneCount));
+    return menuSections(editors, toggles, locate, organise);
   };
 
   return (
@@ -383,14 +384,10 @@ export function ZoneCard({
   const controlled = device.controlled !== false;
   const toggleable = toggleMode === true && !unavailable && !firmwareControlled;
   // Same gate as the action-icon row: the onboarding grid and firmware-owned
-  // cards expose no per-device controls. A bulk-selected card that can offer
-  // no row either (detection-failed, so no identify and no state rows, and
-  // the LED map is single-device) gets no button rather than an empty menu.
-  // A firmware-owned card offers exactly one row - take control - so it opts
-  // in only when that handler exists; every other gate is unchanged.
+  // cards expose no per-device controls. A firmware-owned card offers exactly
+  // one row - take control - so it opts in only when that handler exists.
   const menuEnabled = !toggleMode && !selectOnly
-    && (firmwareControlled ? !!onTakeControl : true)
-    && !(bulk && unavailable && bulk.identifyCount === 0);
+    && (firmwareControlled ? !!onTakeControl : true);
   // Same surfaces the action row is on. A card whose whole body is a switch
   // (onboarding) or a bare pick target (Static picker) keeps a plain label.
   const renameEnabled = !!onRename && !toggleMode && !selectOnly && !unavailable && !firmwareControlled;
@@ -445,58 +442,26 @@ export function ZoneCard({
       }
       return items;
     }
-    // Leads the menu and names the device, so it is unambiguous which card the
-    // selection is about to narrow to. Narrowing to this card is pointless when
-    // it IS the whole selection, so the row becomes the only useful thing left:
-    // clearing it.
-    if (clickable && selected && !bulk) {
-      items.push({
-        key: 'deselect',
-        icon: <MousePointerClick size={14} />,
-        label: t('lighting.devices.deselect'),
-        onSelect: () => onSelect(true),
-        separatorAfter: true,
-      });
-    } else if (onSelectOnly && clickable) {
-      items.push({
-        key: 'selectOnly',
-        icon: <MousePointerClick size={14} />,
-        label: t('lighting.devices.selectOnly', { name: displayName ?? device.name }),
-        onSelect: onSelectOnly,
-        separatorAfter: true,
-      });
-    }
-    if (bulk) {
-      if (bulk.identifyCount > 0) {
-        items.push({ key: 'identify', icon: <Eye size={14} />, label: t(pluralKey('lighting.devices.identifyCount', language, bulk.identifyCount), { count: bulk.identifyCount }), onSelect: bulk.identify });
-      }
-    } else if (device.ledCount > 0) {
-      items.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
-    }
-    // The LED map edits one device's zones, so it needs the selection to name
-    // exactly one - which a multi-zone device's own zones do (the keeb's keys
-    // plus underglow are one device). A selection spanning devices has nothing
-    // to open; same rule the canvas menu applies.
-    if (!bulk || bulk.oneDevice) {
-      items.push({
-        key: 'settings', icon: <Settings size={14} />, label: t('lighting.ledMap.settings'),
-        onSelect: () => onOpenSettings?.(),
-      });
-    }
+    // Customize opens the LED map on THIS card's device, so it keeps its row in
+    // a selection spanning devices.
+    const editors: DeviceMenuItem[] = [{
+      key: 'settings', icon: <Paintbrush size={14} />, label: t('lighting.ledMap.settings'),
+      onSelect: () => onOpenSettings?.(),
+    }];
     // Colour tuning is per device but reads the same for a whole selection -
-    // trimming eight strips to match each other is the point - so unlike the
-    // LED map it keeps its row in bulk mode. The modal scopes itself to the
-    // cards a trim can reach and drops the rest, so the row counts THOSE: a
-    // selection may now hold dark and un-driven cards it will not touch.
+    // trimming eight strips to match each other is the point. The modal scopes
+    // itself to the cards a trim can reach and drops the rest, so the row counts
+    // THOSE: a selection may hold dark and un-driven cards it will not touch.
     const tunableCount = bulk ? bulk.tunableCount : (zoneCardSelectable(device) ? 1 : 0);
     if (onOpenColorTuning && tunableCount > 0) {
-      items.push({
+      editors.push({
         key: 'colorTuning',
-        icon: <SlidersHorizontal size={14} />,
+        icon: <Blend size={14} />,
         label: bulkMenuLabel(t, language, bulk && { count: tunableCount }, 'lighting.colorTuning.menu', 'lighting.colorTuning.menuCount'),
         onSelect: onOpenColorTuning,
       });
     }
+    const toggles: DeviceMenuItem[] = [];
     if (!unavailable) {
       // Label and icon name the action, not the state - the widget menu's
       // pin/unpin idiom.
@@ -508,10 +473,10 @@ export function ZoneCard({
       // Whichever row un-sticks the card's current state gets the accent, and
       // only one ever does: an un-driven device ignores its power state, so
       // lights take the accent only once control is back on.
-      items.push(isOn
+      toggles.push(isOn
         ? { key: 'power', icon: <PowerOff size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount') }
         : { key: 'power', icon: <Power size={14} />, onSelect: setPower, label: label('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount'), highlighted: isControlled });
-      items.push(isControlled
+      toggles.push(isControlled
         ? { key: 'controlled', icon: <Link2Off size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOff', 'lighting.devices.menuControlOffCount') }
         : { key: 'controlled', icon: <Link2 size={14} />, onSelect: setControlled, label: label('lighting.devices.menuControlOn', 'lighting.devices.menuControlOnCount'), highlighted: true });
     }
@@ -523,20 +488,46 @@ export function ZoneCard({
       const unlockCount = bulk ? (bulk.unlockCount ?? 0) : (lock.locked ? 1 : 0);
       const setLocked = (locked: boolean) => bulk ? bulk.setLocked?.(locked) : lock.setLocked(locked);
       if (lockCount > 0) {
-        items.push({
+        toggles.push({
           key: 'lock', icon: <Lock size={14} />, onSelect: () => setLocked(true),
           label: bulkMenuLabel(t, language, bulk && { count: lockCount }, 'lighting.devices.lockLook', 'lighting.devices.lockLookCount'),
         });
       }
       if (unlockCount > 0) {
-        items.push({
+        toggles.push({
           key: 'unlock', icon: <Unlock size={14} />, onSelect: () => setLocked(false),
           label: bulkMenuLabel(t, language, bulk && { count: unlockCount }, 'lighting.devices.unlockLook', 'lighting.devices.unlockLookCount'),
         });
       }
     }
-    // Naming and grouping close the menu, under a rule: they change what the
-    // card IS, where everything above acts on what it does.
+    const locate: DeviceMenuItem[] = [];
+    if (bulk) {
+      if (bulk.identifyCount > 0) {
+        locate.push({ key: 'identify', icon: <Eye size={14} />, label: t(pluralKey('lighting.devices.identifyCount', language, bulk.identifyCount), { count: bulk.identifyCount }), onSelect: bulk.identify });
+      }
+    } else if (device.ledCount > 0) {
+      locate.push({ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: identify });
+    }
+    // Names the device, so it is unambiguous which card the selection is about
+    // to narrow to. Narrowing to this card is pointless when it IS the whole
+    // selection, so the row clears it instead.
+    if (clickable && selected && !bulk) {
+      locate.push({
+        key: 'deselect',
+        icon: <MousePointerClick size={14} />,
+        label: t('lighting.devices.deselect'),
+        onSelect: () => onSelect(true),
+      });
+    } else if (onSelectOnly && clickable) {
+      locate.push({
+        key: 'selectOnly',
+        icon: <MousePointerClick size={14} />,
+        label: t('lighting.devices.selectOnly', { name: displayName ?? device.name }),
+        onSelect: onSelectOnly,
+      });
+    }
+    // Naming and grouping close the menu: they change what the card IS, where
+    // everything above acts on what it does.
     const organise: DeviceMenuItem[] = [];
     if (!bulk && renameEnabled) {
       organise.push({
@@ -558,11 +549,7 @@ export function ZoneCard({
     }
     organise.push(...groupMenuItems(t, language, 'lighting.devices', groupMove, bulk));
     organise.push(...stackMenuItems(t, language, bulk ? bulk : { unstack: onUnstack }, bulk?.count ?? 1));
-    if (organise.length > 0) {
-      if (items.length > 0) items[items.length - 1].separatorAfter = true;
-      items.push(...organise);
-    }
-    return items;
+    return menuSections(editors, toggles, locate, organise);
   };
   // The drag spreads sit after the toggle props below: dnd-kit's
   // role/tabIndex/onKeyDown must win in normal mode, where the toggle props

@@ -2520,7 +2520,7 @@
   "lighting.ledMap.saveFailed": "Impossible d'enregistrer la carte LED",
   "lighting.ledMap.selectAll": "Tout selectionner",
   "lighting.ledMap.selectNone": "Effacer la selection",
-  "lighting.ledMap.settings": "Attribuer des appareils",
+  "lighting.ledMap.settings": "Personnaliser l'appareil",
   "lighting.ledMap.snapToGrid": "Aimanter",
   "lighting.ledMap.snapToGridHint": "Aimanter les LED sur la grille",
   "lighting.ledMap.testH": "Balayage H",
