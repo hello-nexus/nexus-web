@@ -1211,7 +1211,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const showQseriesNeedsHostReboot = showDisconnected
     && !!qseriesLinkState?.usbPresent && !qseriesLinkState.adbOnline && qseriesLinkState.hostRebootPending;
 
-  const showPreviewTroubleshoot = isQSeries && !isSimulated;
+  const showPreviewTroubleshoot = isQSeries;
   const qseriesTroubleshootLink = (label: string) => (
     <a
       className={styles.troubleshootLink}
@@ -1597,11 +1597,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         hardwareResetBusy={resettingHardware}
                       />
                       <QSeriesCoolerSettings />
-                      {!isSimulated && (
-                        <SettingsSection boxClassName={styles.deviceSettingsBox}>
-                          <TroubleshootingRow page="q-series-panels" />
-                        </SettingsSection>
-                      )}
+                      <SettingsSection boxClassName={styles.deviceSettingsBox}>
+                        <TroubleshootingRow page="q-series-panels" />
+                      </SettingsSection>
                     </div>
                   )}
                   {activeTab === 'settings' && isDimmableLcdPanel && (

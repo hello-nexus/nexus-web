@@ -92,8 +92,7 @@
 }
 
 .safariNoteText {
-  @include text-button;
-  font-weight: var(--weight-small);
+  @include text-body;
   margin: 0;
   color: var(--text);
 }

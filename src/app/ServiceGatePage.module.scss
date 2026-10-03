@@ -97,15 +97,16 @@
   & + & { border-top: var(--border-width) solid var(--separator); }
 }
 
-.getLabel,
-.getHint {
+.getLabel {
   @include text-button;
   margin: 0;
   color: var(--text-dim);
 }
 
 .getHint {
-  font-weight: var(--weight-small);
+  @include text-body;
+  margin: 0;
+  color: var(--text-dim);
   max-width: 46ch;
 }
 
@@ -169,20 +170,6 @@
   color: var(--text-dim);
 }
 
-.pulse {
-  width: 9px;
-  height: 9px;
-  border-radius: var(--radius-pill);
-  background: var(--accent-glow);
-  animation: gatePulse 1.8s infinite;
-}
-
-@keyframes gatePulse {
-  0% { box-shadow: 0 0 0 0 var(--accent-glow-shadow); }
-  70% { box-shadow: 0 0 0 8px transparent; }
-  100% { box-shadow: 0 0 0 0 transparent; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pulse { animation: none; }
+.spinner {
+  display: inline-flex;
 }
