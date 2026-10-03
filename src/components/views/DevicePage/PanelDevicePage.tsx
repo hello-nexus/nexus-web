@@ -1599,7 +1599,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       <QSeriesCoolerSettings />
                       {!isSimulated && (
                         <SettingsSection boxClassName={styles.deviceSettingsBox}>
-                          {/* eslint-disable-next-line i18next/no-literal-string -- docs page slug */}
                           <TroubleshootingRow page="q-series-panels" />
                         </SettingsSection>
                       )}
@@ -2499,7 +2498,6 @@ function SettingsPanel({
             </Button>
           </SettingRow>
 
-          {/* eslint-disable-next-line i18next/no-literal-string -- docs page slug */}
           <TroubleshootingRow page="y70-touch" />
 
           {!!variant && (
