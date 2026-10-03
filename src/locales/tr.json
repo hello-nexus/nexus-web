@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "Olay",
   "tools.appTelemetry.col.properties": "Özellikler",
   "tools.appTelemetry.col.time": "Zaman",
-  "tools.appTelemetry.description": "Bu hizmetin kaydettiği son 200 uygulama olayı, en yenisi başta. Her 2 saniyede bir yenilenir.",
+  "tools.appTelemetry.description": "Bu hizmetin kaydettiği son uygulama olayları, en yenisi başta. Otomatik olarak yenilenir.",
   "tools.appTelemetry.empty": "Henüz uygulama olayı yok.",
   "tools.appTelemetry.filter": "Uygulamaya göre filtrele",
   "tools.appTelemetry.status.off": "PostHog anahtarı yok, olaylar gönderilmiyor",

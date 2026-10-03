@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "Evento",
   "tools.appTelemetry.col.properties": "Propiedades",
   "tools.appTelemetry.col.time": "Hora",
-  "tools.appTelemetry.description": "Los últimos 200 eventos de apps que registró este servicio, los más recientes primero. Se actualiza cada 2 segundos.",
+  "tools.appTelemetry.description": "Los eventos de apps más recientes que registró este servicio, los más recientes primero. Se actualiza automáticamente.",
   "tools.appTelemetry.empty": "Aún no hay eventos de apps.",
   "tools.appTelemetry.filter": "Filtrar por app",
   "tools.appTelemetry.status.off": "Sin clave de PostHog, los eventos no se envían",

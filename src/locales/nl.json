@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "Gebeurtenis",
   "tools.appTelemetry.col.properties": "Eigenschappen",
   "tools.appTelemetry.col.time": "Tijd",
-  "tools.appTelemetry.description": "De laatste 200 app-gebeurtenissen die deze service heeft vastgelegd, nieuwste eerst. Wordt elke 2 seconden vernieuwd.",
+  "tools.appTelemetry.description": "De recente app-gebeurtenissen die deze service heeft vastgelegd, nieuwste eerst. Wordt automatisch vernieuwd.",
   "tools.appTelemetry.empty": "Nog geen app-gebeurtenissen.",
   "tools.appTelemetry.filter": "Filteren op app",
   "tools.appTelemetry.status.off": "Geen PostHog-sleutel, gebeurtenissen worden niet verzonden",

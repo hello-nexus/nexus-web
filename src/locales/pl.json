@@ -4648,7 +4648,7 @@
   "tools.appTelemetry.col.event": "Zdarzenie",
   "tools.appTelemetry.col.properties": "Właściwości",
   "tools.appTelemetry.col.time": "Czas",
-  "tools.appTelemetry.description": "Ostatnie 200 zdarzeń aplikacji zarejestrowanych przez tę usługę, od najnowszych. Odświeżane co 2 sekundy.",
+  "tools.appTelemetry.description": "Ostatnie zdarzenia aplikacji zarejestrowane przez tę usługę, od najnowszych. Odświeżane automatycznie.",
   "tools.appTelemetry.empty": "Brak zdarzeń aplikacji.",
   "tools.appTelemetry.filter": "Filtruj według aplikacji",
   "tools.appTelemetry.status.off": "Brak klucza PostHog, zdarzenia nie są wysyłane",

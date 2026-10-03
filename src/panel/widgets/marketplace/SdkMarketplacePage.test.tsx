@@ -20,11 +20,21 @@ import { SdkMarketplacePage } from './SdkMarketplacePage';
 afterEach(() => { cleanup(); postService.mockClear(); });
 
 describe('SdkMarketplacePage', () => {
-  it('reports one page view per open', () => {
+  it('reports one page view per open, and a same-app rerender is not another open', () => {
     const { rerender } = render(<SdkMarketplacePage type="app:com.example.app" />);
     rerender(<SdkMarketplacePage type="app:com.example.app" />);
     expect(postService).toHaveBeenCalledTimes(1);
     expect(postService).toHaveBeenCalledWith('/apps-api/page-opened/com.example.app', {});
+  });
+
+  it('closes app A before opening app B when the app changes', () => {
+    const { rerender } = render(<SdkMarketplacePage type="app:com.a.app" />);
+    postService.mockClear();
+    rerender(<SdkMarketplacePage type="app:com.b.app" />);
+    expect(postService.mock.calls.map(c => c[0])).toEqual([
+      '/apps-api/page-closed/com.a.app',
+      '/apps-api/page-opened/com.b.app',
+    ]);
   });
 
   it('reports the open duration when the page unmounts (dev-tools builds)', () => {

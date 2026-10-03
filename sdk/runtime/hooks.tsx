@@ -424,10 +424,10 @@ export function useAudio(): AppAudio {
 
 /** Records an anonymous app usage event. Fire-and-forget: it never throws and
  *  never blocks. Needs `capabilities.telemetry: true` in the manifest; a no-op
- *  on a preview render and on a host that does not record app telemetry.
- *  `event` and each property key are lowercase slugs (a-z, 0-9, _; start with
- *  a letter; 40 characters at most), at most 10 properties, and a value is a
- *  boolean, a finite number or a short token string (a-z, 0-9, _ . : -). */
+ *  on a preview render and on a host build that does not record app telemetry.
+ *  A host predating track() has no such export, so the import is `undefined`
+ *  there and calling it throws: guard with `typeof track === 'function'`. The
+ *  event and property rules are in sdk/docs/CAPABILITIES.md. */
 export function track(event: string, properties?: Record<string, string | number | boolean>): void {
   const store = getActiveStore();
   if (!store || store.preview || !store.api.track) return;

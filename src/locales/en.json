@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "Event",
   "tools.appTelemetry.col.properties": "Properties",
   "tools.appTelemetry.col.time": "Time",
-  "tools.appTelemetry.description": "The last 200 app events this service recorded, newest first. Refreshes every 2 seconds.",
+  "tools.appTelemetry.description": "The recent app events this service recorded, newest first. Refreshes automatically.",
   "tools.appTelemetry.empty": "No app events yet.",
   "tools.appTelemetry.filter": "Filter by app",
   "tools.appTelemetry.status.off": "No PostHog key, events are not sent",

@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "Ereignis",
   "tools.appTelemetry.col.properties": "Eigenschaften",
   "tools.appTelemetry.col.time": "Zeit",
-  "tools.appTelemetry.description": "Die letzten 200 App-Ereignisse, die dieser Dienst erfasst hat, neueste zuerst. Wird alle 2 Sekunden aktualisiert.",
+  "tools.appTelemetry.description": "Die zuletzt von diesem Dienst erfassten App-Ereignisse, neueste zuerst. Wird automatisch aktualisiert.",
   "tools.appTelemetry.empty": "Noch keine App-Ereignisse.",
   "tools.appTelemetry.filter": "Nach App filtern",
   "tools.appTelemetry.status.off": "Kein PostHog-Schlüssel, Ereignisse werden nicht gesendet",

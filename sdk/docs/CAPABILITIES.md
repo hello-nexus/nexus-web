@@ -548,11 +548,10 @@ the event before it leaves the machine. An app needs no opt-out logic of its own
 duration (`app_page_closed`) is recorded in dev-tools builds.
 
 **Availability.** Recording is wired in dev-tools Nexus builds only for now;
-every other build drops the call silently, so call `track()` unconditionally.
-In dev-tools builds, Tools > App telemetry lists the events as they arrive and
-whether they are being sent to PostHog. A host older than this function has no
-`track` in its shared runtime and the import is `undefined` there; guard the
-call:
+every other build drops the call silently. In dev-tools builds, Tools > App
+telemetry lists the events as they arrive and whether they are being sent to
+PostHog. A host older than this function has no `track` in its shared runtime,
+the import is `undefined` there and calling it throws, so guard the call:
 
 ```tsx
 if (typeof track === 'function') track('level_done', { level: 3, won: true });

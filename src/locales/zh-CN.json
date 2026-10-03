@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "事件",
   "tools.appTelemetry.col.properties": "属性",
   "tools.appTelemetry.col.time": "时间",
-  "tools.appTelemetry.description": "此服务记录的最近 200 个应用事件，最新的在前。每 2 秒刷新一次。",
+  "tools.appTelemetry.description": "此服务记录的最近应用事件，最新的在前。自动刷新。",
   "tools.appTelemetry.empty": "暂无应用事件。",
   "tools.appTelemetry.filter": "按应用筛选",
   "tools.appTelemetry.status.off": "没有 PostHog 密钥，事件不会发送",

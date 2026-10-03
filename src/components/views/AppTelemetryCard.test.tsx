@@ -33,6 +33,27 @@ describe('AppTelemetryCard', () => {
     expect(fetchRecent).toHaveBeenCalledTimes(3);
   });
 
+  it('never overlaps polls while a response is pending', async () => {
+    let release: (v: unknown) => void = () => {};
+    fetchRecent.mockReturnValueOnce(new Promise(r => { release = r; }));
+    render(<AppTelemetryCard />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+    expect(fetchRecent).toHaveBeenCalledTimes(1);
+    await act(async () => { release(sample); await vi.advanceTimersByTimeAsync(2000); });
+    expect(fetchRecent).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips polling while the document is hidden', async () => {
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    render(<AppTelemetryCard />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
+    expect(fetchRecent).not.toHaveBeenCalled();
+    hidden.mockReturnValue(false);
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(fetchRecent).toHaveBeenCalledTimes(1);
+    hidden.mockRestore();
+  });
+
   it('shows the unavailable note when the service cannot be read', async () => {
     fetchRecent.mockResolvedValue(null);
     await act(async () => { render(<AppTelemetryCard />); });

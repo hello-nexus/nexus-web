@@ -105,7 +105,9 @@ The same widget as declarative JSON was ~120 lines plus a binding mini-language
   hook). Requires `capabilities.telemetry`; event and property names are lowercase slugs, at
   most 10 properties, values are booleans, finite numbers or short tokens. Dropped when the
   user has opted out, and recorded by dev-tools Nexus builds only for now. Page opens and link
-  presses are counted without any code. See `track()` in `sdk/docs/CAPABILITIES.md`.
+  presses are counted without any code. A host older than `track()` has no such export, so guard
+  the call: `if (typeof track === 'function') track('level_done', { level: 3 })`. See `track()`
+  in `sdk/docs/CAPABILITIES.md`.
 - **`useDisplay()`**: `{ shape, input }` - the tile's actual shape (`'round'` only on round
   glass) and the panel surface's input method (`'touch'` / `'pointer'` / `'none'`).
 - **`useOpaque(opaque)`**: tells the host the tile paints every pixel of its box, so a

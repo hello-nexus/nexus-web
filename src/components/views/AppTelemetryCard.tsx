@@ -21,16 +21,21 @@ export function AppTelemetryCard() {
 
   useEffect(() => {
     let alive = true;
+    // One request at a time, so a slow response never lands over a newer one.
+    let inFlight = false;
     const poll = () => {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
       void fetchAppTelemetryRecent().then(res => {
         if (!alive) return;
         setFailed(!res);
         if (res) setData(res);
-      });
+      }).finally(() => { inFlight = false; });
     };
     poll();
     const id = window.setInterval(poll, POLL_MS);
-    return () => { alive = false; window.clearInterval(id); };
+    document.addEventListener('visibilitychange', poll);
+    return () => { alive = false; window.clearInterval(id); document.removeEventListener('visibilitychange', poll); };
   }, []);
 
   const events = useMemo(() => data?.events ?? [], [data]);

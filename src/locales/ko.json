@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "이벤트",
   "tools.appTelemetry.col.properties": "속성",
   "tools.appTelemetry.col.time": "시간",
-  "tools.appTelemetry.description": "이 서비스가 기록한 최근 앱 이벤트 200개를 최신순으로 표시합니다. 2초마다 새로 고칩니다.",
+  "tools.appTelemetry.description": "이 서비스가 기록한 최근 앱 이벤트를 최신순으로 표시합니다. 자동으로 새로 고칩니다.",
   "tools.appTelemetry.empty": "아직 앱 이벤트가 없습니다.",
   "tools.appTelemetry.filter": "앱별로 필터링",
   "tools.appTelemetry.status.off": "PostHog 키가 없어 이벤트가 전송되지 않습니다",

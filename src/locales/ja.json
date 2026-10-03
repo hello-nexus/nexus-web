@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "イベント",
   "tools.appTelemetry.col.properties": "プロパティ",
   "tools.appTelemetry.col.time": "時刻",
-  "tools.appTelemetry.description": "このサービスが記録した直近 200 件のアプリイベントを新しい順に表示します。2 秒ごとに更新されます。",
+  "tools.appTelemetry.description": "このサービスが記録した最近のアプリイベントを新しい順に表示します。自動的に更新されます。",
   "tools.appTelemetry.empty": "アプリイベントはまだありません。",
   "tools.appTelemetry.filter": "アプリで絞り込む",
   "tools.appTelemetry.status.off": "PostHog キーがないため、イベントは送信されません",

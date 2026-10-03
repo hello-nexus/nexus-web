@@ -4606,7 +4606,7 @@
   "tools.appTelemetry.col.event": "Event",
   "tools.appTelemetry.col.properties": "Proprietâts",
   "tools.appTelemetry.col.time": "Ore",
-  "tools.appTelemetry.description": "Chescj ultins 200 events des aplicazions regjistrâts di chest servizi, i plui resints par prins. Si inzorne ogni 2 seconts.",
+  "tools.appTelemetry.description": "I events des aplicazions plui resints regjistrâts di chest servizi, i plui resints par prins. Si inzorne in automatic.",
   "tools.appTelemetry.empty": "Nissun event des aplicazions ancjemò.",
   "tools.appTelemetry.filter": "Filtre par aplicazion",
   "tools.appTelemetry.status.off": "Nissune clâf PostHog, i events no vegnin mandâts",

@@ -4648,7 +4648,7 @@
   "tools.appTelemetry.col.event": "Событие",
   "tools.appTelemetry.col.properties": "Свойства",
   "tools.appTelemetry.col.time": "Время",
-  "tools.appTelemetry.description": "Последние 200 событий приложений, записанных этим сервисом, сначала новые. Обновляется каждые 2 секунды.",
+  "tools.appTelemetry.description": "Недавние события приложений, записанные этим сервисом, сначала новые. Обновляется автоматически.",
   "tools.appTelemetry.empty": "Событий приложений пока нет.",
   "tools.appTelemetry.filter": "Фильтр по приложению",
   "tools.appTelemetry.status.off": "Нет ключа PostHog, события не отправляются",

@@ -6,7 +6,7 @@ const ev = (event: string, properties: AppTelemetryEvent['properties']): AppTele
 const events = [
   ev('app_event', { app_id: 'b.app', app_version: '1.0.0', event: 'level_done', surface: 'page', dev_tools: true, p_level: 3 }),
   ev('app_page_opened', { app_id: 'a.app' }),
-  ev('app_page_closed', { app_id: 'b.app', duration_ms: 1200 }),
+  ev('app_page_closed', { app_id: 'b.app', duration_s: 1.2 }),
 ];
 
 describe('appTelemetryUtils', () => {
@@ -27,6 +27,6 @@ describe('appTelemetryUtils', () => {
   it('renders properties without app_id and without the folded event name', () => {
     expect(propertiesText(events[0])).toBe('app_version=1.0.0 surface=page dev_tools=true p_level=3');
     expect(propertiesText(events[1])).toBe('');
-    expect(propertiesText(events[2])).toBe('duration_ms=1200');
+    expect(propertiesText(events[2])).toBe('duration_s=1.2');
   });
 });
