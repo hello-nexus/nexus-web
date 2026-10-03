@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -23,6 +24,9 @@ export interface PaletteRingProps {
   /** Pick a single hue: the arc stays collapsed and the split tabs are hidden,
    *  for callers whose colour model has no palette width. */
   hueOnly?: boolean;
+  /** Effect saturation and contrast, previewed on the ring's colours. */
+  saturation?: number;
+  contrast?: number;
 }
 
 const SIZE = 200;
@@ -130,19 +134,39 @@ const RAINBOW_STOPS: ReadonlyArray<{ deg: number; s: number; l: number }> = [
   { deg: 360, s: 80, l: 55 },
 ];
 
-function rainbowColorAt(deg: number): string {
+type Rgb = [number, number, number];
+
+function hslToRgb(h: number, s: number, l: number): Rgb {
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+  return [f(0), f(8), f(4)];
+}
+
+function rainbowRgbAt(deg: number): Rgb {
   const d = ((deg % 360) + 360) % 360;
   for (let i = 0; i < RAINBOW_STOPS.length - 1; i++) {
     const a = RAINBOW_STOPS[i];
     const b = RAINBOW_STOPS[i + 1];
     if (d >= a.deg && d <= b.deg) {
       const t = (d - a.deg) / (b.deg - a.deg);
-      const s = a.s + (b.s - a.s) * t;
-      const l = a.l + (b.l - a.l) * t;
-      return `hsl(${d}, ${s}%, ${l}%)`;
+      return hslToRgb(d, (a.s + (b.s - a.s) * t) / 100, (a.l + (b.l - a.l) * t) / 100);
     }
   }
-  return `hsl(${d}, 80%, 55%)`;
+  return hslToRgb(d, 0.8, 0.55);
+}
+
+// Mirrors finalize() in the shader prelude: luma-anchored saturation, then
+// contrast around mid-grey.
+function toCss(rgb: Rgb, saturation = 1, contrast = 1): string {
+  const luma = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  const out = rgb.map(v => {
+    const g = (luma + (v - luma) * saturation - 0.5) * contrast + 0.5;
+    return Math.round(Math.max(0, Math.min(1, g)) * 255);
+  });
+  return `rgb(${out.join(",")})`;
 }
 
 // Rainbow donut as overlapping SVG arcs - keeping every element in one
@@ -150,15 +174,15 @@ function rainbowColorAt(deg: number): string {
 // Small overlap hides antialiasing seams between adjacent fills.
 const RAINBOW_SEGMENTS = 120;
 const RAINBOW_OVERLAP = 0.6;
-const RAINBOW_PATHS: ReadonlyArray<{ d: string; color: string }> = (() => {
+const RAINBOW_PATHS: ReadonlyArray<{ d: string; rgb: Rgb }> = (() => {
   const spanPerSegment = 360 / RAINBOW_SEGMENTS;
-  const out: Array<{ d: string; color: string }> = [];
+  const out: Array<{ d: string; rgb: Rgb }> = [];
   for (let i = 0; i < RAINBOW_SEGMENTS; i++) {
     const hueMid = (i + 0.5) * spanPerSegment;
     const svgStart = i * spanPerSegment - 90 - RAINBOW_OVERLAP / 2;
     const span = spanPerSegment + RAINBOW_OVERLAP;
     const d = donutArcPath(CX, CY, R_OUTER, R_INNER, svgStart, span);
-    out.push({ d, color: rainbowColorAt(hueMid) });
+    out.push({ d, rgb: rainbowRgbAt(hueMid) });
   }
   return out;
 })();
@@ -169,8 +193,14 @@ export function PaletteRing({
   onChange,
   onCommit,
   hueOnly,
+  saturation,
+  contrast,
 }: PaletteRingProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const rainbowFills = useMemo(
+    () => RAINBOW_PATHS.map(p => toCss(p.rgb, saturation, contrast)),
+    [saturation, contrast],
+  );
   const [snapHint, setSnapHint] = useState(false);
 
   const centerDeg = hueToAngle(hue);
@@ -351,7 +381,7 @@ export function PaletteRing({
       >
         <g className={styles.rainbow} aria-hidden="true" pointerEvents="none">
           {RAINBOW_PATHS.map((p, i) => (
-            <path key={i} d={p.d} fill={p.color} />
+            <path key={i} d={p.d} fill={rainbowFills[i]} />
           ))}
         </g>
         <path
@@ -369,7 +399,7 @@ export function PaletteRing({
               cy={mergeHandle.y}
               r={snappedClosed ? (HANDLE_R + HOLE_R) / 2 : HANDLE_R}
               className={`${styles.handle} ${snappedClosed ? styles.handleHollow : ""} ${snapHint ? styles.handleHint : ""}`}
-              style={snappedClosed ? { fill: rainbowColorAt(hue * 360), strokeWidth: HANDLE_R - HOLE_R } : undefined}
+              style={snappedClosed ? { fill: toCss(rainbowRgbAt(hue * 360), saturation, contrast), strokeWidth: HANDLE_R - HOLE_R } : undefined}
               onPointerDown={(e) => beginDrag("body", e)}
               role="slider"
               aria-label="Palette centre"

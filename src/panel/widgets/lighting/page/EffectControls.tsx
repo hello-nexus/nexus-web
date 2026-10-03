@@ -98,6 +98,8 @@ export const EffectControls = memo(function EffectControls({
               colorize={state.colorize}
               onChange={(hue, colorize, commit) => onChange({ hue, colorize }, commit)}
               onCommit={onCommit}
+              saturation={state.saturation}
+              contrast={state.contrast}
             />
           </div>
         )}

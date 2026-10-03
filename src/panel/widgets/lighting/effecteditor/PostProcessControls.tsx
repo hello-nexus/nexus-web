@@ -30,6 +30,8 @@ export function PostProcessControls({ value, onChange, onCommit, onReset }: {
             colorize={value.colorize}
             onChange={(hue, colorize, commit) => onChange({ hue, colorize }, commit)}
             onCommit={onCommit}
+            saturation={value.saturation}
+            contrast={value.contrast}
           />
         </div>
         <Slider
