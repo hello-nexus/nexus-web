@@ -24,7 +24,8 @@ import { layoutToSceneMatrix } from './layoutFrame';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
 import { CANVAS_H, CANVAS_W, rotateYaw, sceneBounds, toWorld } from './sceneMath';
 import { SceneStage } from './sceneStage';
-import type { LayoutShape, SceneAnchor, SceneBinding, SceneCamera, SceneModel, SceneObject } from './sceneTypes';
+import { TransformTool } from './transformTool';
+import type { LayoutShape, SceneAnchor, SceneBinding, SceneCamera, SceneModel, SceneObject, Vec3 } from './sceneTypes';
 import { buildShape, disposeGroup, floorGrid, type Palette, type ShapeSink } from './wireframe';
 
 export type ScenePick =
@@ -39,11 +40,16 @@ export interface SceneRenderState {
   selectedDeviceId: string | null;
   /** A device waiting for a spot: free spots glow to invite the click. */
   placing: boolean;
+  /** Edit scene mode: a click selects an object, a drag moves or turns it. */
+  editing: boolean;
 }
 
 export interface SceneRendererCallbacks {
   onCamera: (camera: SceneCamera, final: boolean) => void;
-  onPick: (pick: ScenePick | null) => void;
+  /** A click, with where it landed (client pixels). */
+  onPick: (pick: ScenePick | null, clientX: number, clientY: number) => void;
+  /** An object moved or turned in edit mode, once the drag ends. */
+  onMoveObject: (objectId: string, position: Vec3, yaw: number) => void;
   /** LED canvas positions after the camera or the placements changed. */
   onProjected?: (points: Map<string, Float32Array>) => void;
   /** What the pointer rests on, with its client position; null when it leaves everything. */
@@ -108,6 +114,8 @@ function boxOf(obj: SceneObject): LayoutShape {
 /** The Lighting page's scene: Build's wireframe objects, the spots devices sit on, and each LED as a live dot. */
 export class SceneRenderer {
   private readonly stage: SceneStage;
+  private readonly tool: TransformTool;
+  private objectGroups = new Map<string, Group>();
   private readonly palette: Palette;
   private readonly accent: Color;
   private readonly world = new Group();
@@ -149,6 +157,15 @@ export class SceneRenderer {
     canvas.addEventListener('pointerleave', this.onPointerLeave);
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('pointercancel', this.onPointerCancel);
+    // After the view's own listeners, so its hover runs last and its capture-phase press runs first.
+    this.tool = new TransformTool(this.stage, this.accent, {
+      onSelect: () => {},
+      onChange: (id, position, yaw, final) => {
+        // LED dots sit in world space; they hide while their object is on the move and return where it lands.
+        if (this.dots) this.dots.visible = final;
+        if (final) this.callbacks.onMoveObject(id, position, yaw);
+      },
+    });
     this.unsubscribeFrame = subscribeLedFrame(f => {
       this.frame = f;
       if (this.dots) this.stage.requestRender();
@@ -170,6 +187,7 @@ export class SceneRenderer {
     window.removeEventListener('pointercancel', this.onPointerCancel);
     this.clear();
     this.dotMap.dispose();
+    this.tool.dispose();
     this.stage.dispose();
   }
 
@@ -199,6 +217,7 @@ export class SceneRenderer {
   setState(next: SceneRenderState): void {
     const prev = this.state;
     this.state = next;
+    this.tool.setEnabled(next.editing);
     if (!prev || prev.objects !== next.objects || prev.bindings !== next.bindings || prev.leds !== next.leds) this.rebuild();
     else this.restyle();
   }
@@ -275,6 +294,7 @@ export class SceneRenderer {
     this.sink.pickables.length = 0;
     this.sink.dimmables.length = 0;
     this.anchorLines.clear();
+    this.objectGroups.clear();
     if (this.dots) {
       this.stage.scene.remove(this.dots);
       disposeGroup(this.dots);
@@ -306,9 +326,14 @@ export class SceneRenderer {
       drawn.applyMatrix4(new Matrix4().set(...(layoutToSceneMatrix(shape) as Parameters<Matrix4['set']>)));
       g.add(drawn, this.pickBox(obj));
       this.objectsGroup.add(g);
+      this.objectGroups.set(obj.id, g);
       for (const a of obj.anchors) this.addAnchor(obj, a);
     }
     this.stage.trackLines(this.sink.materials);
+    this.tool.setTargets(state.objects.flatMap(o => {
+      const g = this.objectGroups.get(o.id);
+      return g ? [{ id: o.id, object: g, radius: Math.hypot(o.size[0], o.size[2]) / 2 }] : [];
+    }));
 
     const positions: number[] = [];
     for (const world of state.leds.values()) {
@@ -437,7 +462,7 @@ export class SceneRenderer {
     this.down = null;
     if (!down || e.target !== this.stage.canvas) return;
     if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) return;
-    this.callbacks.onPick(down.pick);
+    this.callbacks.onPick(down.pick, e.clientX, e.clientY);
   };
 }
 

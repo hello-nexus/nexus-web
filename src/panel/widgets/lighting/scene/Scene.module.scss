@@ -201,3 +201,26 @@
   background: rgb(0 0 0 / var(--alpha-medium));
   text-align: center;
 }
+
+// A device's tools, beside the spot that was clicked in edit mode.
+.spotTools {
+  position: absolute;
+  z-index: 21;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem;
+  max-width: min(30rem, calc(100% - 1rem));
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+  transform: translate(-50%, calc(-100% - 0.75rem));
+}
+
+.spotToolsName {
+  @include text-caption;
+  padding: 0 0.35rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+}

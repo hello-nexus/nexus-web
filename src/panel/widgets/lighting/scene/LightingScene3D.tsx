@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { Box, FlipHorizontal2, Link, MapPin, Move3d, RotateCw, Trash2, X, Zap } from 'lucide-react';
+import { Box, FlipHorizontal2, Link, MapPin, Move3d, Pencil, RotateCw, X, Zap } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
-import type { SceneBinding, SceneCamera, SceneObject } from '../../../../api/lightingScene';
+import type { SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../../../api/lightingScene';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState } from '../../../../types/lighting';
 import { Button } from '../../../../components/common/Button/Button';
@@ -15,7 +15,7 @@ import type { ScenePick } from '../../../../lib/scene/sceneRenderer';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport } from './SceneViewport';
 import { anchorLabel, objectLabel } from './sceneLabels';
-import { flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
+import { flipBinding, moveObject, placeDevice, rotateBinding } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
 
@@ -92,8 +92,8 @@ interface Placing {
 }
 
 /**
- * The 3D view in place of the 2D canvas. Pick a device in the list (or press Place devices) and click the spot it
- * sits on; the device blinks so it can be found on the desk. What sits where comes from Build.
+ * The 3D view in place of the 2D canvas. Edit scene moves and turns what is on the desk the way Build does, and
+ * places devices on their spots (each blinks so it can be found on the desk). What is on the desk comes from Build.
  */
 export default function LightingScene3D({
   api, devices, selectedDeviceId, onSelectDevice, shaderEffect, shaderState, shaderPaused, audioRef,
@@ -107,6 +107,9 @@ export default function LightingScene3D({
   const [placing, setPlacing] = useState<Placing | null>(null);
   // Walking through every unplaced device, one blink and click at a time; skipped ones are not offered again.
   const [guided, setGuided] = useState(false);
+  // Edit scene mode: objects select, move and turn, and a device's spot shows its tools where it was clicked.
+  const [editing, setEditing] = useState(false);
+  const [spotTools, setSpotTools] = useState<{ deviceId: string; x: number; y: number } | null>(null);
   const skipped = useRef(new Set<string>());
 
   const placeable = useMemo(() => devices.filter(d => d.controlled !== false && d.ledCount > 0), [devices]);
@@ -148,23 +151,29 @@ export default function LightingScene3D({
     offerNext(new Set(sure.placed));
   }, [scene, placeable, api, flash, t, language, offerNext]);
 
+  // Ending the walk also lets go of the device it was offering, or that device would keep asking for a spot.
   const stopGuide = useCallback(() => {
     setGuided(false);
     setPlacing(null);
-  }, []);
+    if (guided) onSelectDevice(null);
+  }, [guided, onSelectDevice]);
 
   useEffect(() => {
     if (!startPlacing || !scene || scene.objects.length === 0) return;
     onPlacingStarted?.();
-    if (unplaced.length > 0) startGuide();
+    if (unplaced.length > 0) {
+      setEditing(true);
+      startGuide();
+    }
   }, [startPlacing, scene, unplaced.length, startGuide, onPlacingStarted]);
 
-  // A device picked in the list that has no spot yet is waiting for one.
-  const waiting = useMemo<Placing | null>(() => placing ?? (selectedDeviceId && !bindingOf(selectedDeviceId) && placeable.some(d => d.id === selectedDeviceId)
-    ? { deviceId: selectedDeviceId, append: false } : null), [placing, selectedDeviceId, bindingOf, placeable]);
+  // In edit mode a device picked in the list that has no spot yet is waiting for one.
+  const waiting = useMemo<Placing | null>(() => placing ?? (editing && selectedDeviceId && !bindingOf(selectedDeviceId) && placeable.some(d => d.id === selectedDeviceId)
+    ? { deviceId: selectedDeviceId, append: false } : null), [placing, editing, selectedDeviceId, bindingOf, placeable]);
 
   const place = useCallback((p: Placing, objectId: string, anchorId: string) => {
     api.update(s => placeDevice(s, p.deviceId, objectId, anchorId, p.append));
+    setSpotTools(null);
     if (guided && !p.append) {
       offerNext(new Set([p.deviceId]));
       return;
@@ -173,7 +182,7 @@ export default function LightingScene3D({
     onSelectDevice(p.deviceId);
   }, [api, guided, offerNext, onSelectDevice]);
 
-  const onPick = useCallback((pick: ScenePick | null) => {
+  const onPick = useCallback((pick: ScenePick | null, x: number, y: number) => {
     if (!scene) return;
     if (pick?.kind === 'anchor') {
       if (waiting) {
@@ -182,28 +191,39 @@ export default function LightingScene3D({
       }
       const bound = scene.bindings.find(b => onSpot(b, pick));
       if (bound) onSelectDevice(bound.deviceId);
+      // A device's spot shows its tools beside the click, in edit mode only.
+      setSpotTools(editing && bound ? { deviceId: bound.deviceId, x, y } : null);
       return;
     }
+    setSpotTools(null);
     if (!guided) setPlacing(null);
-  }, [scene, waiting, place, guided, onSelectDevice]);
+  }, [scene, waiting, place, editing, guided, onSelectDevice]);
+
+  const onMoveObject = useCallback((objectId: string, position: Vec3, yaw: number) => {
+    api.update(s => moveObject(s, objectId, position, yaw));
+  }, [api]);
+
+  const toggleEditing = useCallback(() => {
+    if (editing) stopGuide();
+    setSpotTools(null);
+    setEditing(!editing);
+  }, [editing, stopGuide]);
 
   useEffect(() => {
-    if (!placing && !guided) return undefined;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') stopGuide(); };
+    if (!placing && !guided && !spotTools) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setSpotTools(null);
+      stopGuide();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [placing, guided, stopGuide]);
+  }, [placing, guided, spotTools, stopGuide]);
 
   if (!scene) return <div className={styles.viewport} />;
   const fov = scene.view.camera?.fov ?? DEFAULT_FOV;
   const empty = scene.objects.length === 0;
   const caseObj = scene.objects.find(o => o.kind === 'case');
-  const selectedBinding = selectedDeviceId ? bindingOf(selectedDeviceId) ?? null : null;
-  const whereLabel = (binding: SceneBinding) => binding.targets.map(tg => {
-    const obj = scene.objects.find(o => o.id === tg.objectId);
-    const anchor = obj?.anchors.find(a => a.id === tg.anchorId);
-    return obj && anchor ? anchorLabel(t, obj, anchor) : '';
-  }).filter(Boolean).join(', ');
 
   return (
     <SceneViewport
@@ -212,11 +232,13 @@ export default function LightingScene3D({
       leds={leds}
       selectedDeviceId={selectedDeviceId}
       placing={waiting !== null}
+      editing={editing}
       shaderEffect={shaderEffect}
       shaderState={shaderState}
       shaderPaused={shaderPaused}
       audioRef={audioRef}
       onPick={onPick}
+      onMoveObject={onMoveObject}
       onCamera={onCamera}
       hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
     >
@@ -228,8 +250,13 @@ export default function LightingScene3D({
             </button>
           ))}
         </div>
+        {!empty && (
+          <Button size="sm" tone={editing ? 'accent' : 'neutral'} icon={<Pencil size={13} strokeWidth={1.8} />} aria-pressed={editing} onClick={toggleEditing}>
+            {t(editing ? 'lighting.scene.done' : 'lighting.scene.edit')}
+          </Button>
+        )}
         {!empty && unplaced.length > 0 && !guided && (
-          <Button size="sm" tone="accent" icon={<MapPin size={13} strokeWidth={1.8} />} onClick={startGuide}>
+          <Button size="sm" tone="neutral" icon={<MapPin size={13} strokeWidth={1.8} />} onClick={() => { setEditing(true); startGuide(); }}>
             {t('lighting.scene.place.start')}
             <span className={styles.countBadge}>{unplaced.length}</span>
           </Button>
@@ -238,6 +265,17 @@ export default function LightingScene3D({
           {t('lighting.scene.pc.update')}
         </Button>
       </div>
+
+      {spotTools && editing && !waiting && (
+        <div className={styles.spotTools} style={{ left: spotTools.x, top: spotTools.y }} role="toolbar" aria-label={deviceName(spotTools.deviceId)}>
+          <span className={styles.spotToolsName}>{deviceName(spotTools.deviceId)}</span>
+          <Button size="sm" tone="ghost" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => rotateBinding(s, spotTools.deviceId))}>{t('lighting.scene.device.rotate')}</Button>
+          <Button size="sm" tone="ghost" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => flipBinding(s, spotTools.deviceId))}>{t('lighting.scene.device.flip')}</Button>
+          <Button size="sm" tone="ghost" icon={<Move3d size={13} strokeWidth={1.8} />} onClick={() => { setPlacing({ deviceId: spotTools.deviceId, append: false }); setSpotTools(null); }}>{t('lighting.scene.device.move')}</Button>
+          <Button size="sm" tone="ghost" icon={<Link size={13} strokeWidth={1.8} />} onClick={() => { setPlacing({ deviceId: spotTools.deviceId, append: true }); setSpotTools(null); }}>{t('lighting.scene.device.addSurface')}</Button>
+          <Button size="sm" tone="ghost" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => blink(spotTools.deviceId)}>{t('lighting.scene.device.identify')}</Button>
+        </div>
+      )}
 
       {empty ? (
         <div className={styles.emptyCard}>
@@ -262,23 +300,11 @@ export default function LightingScene3D({
             {t(guided ? 'lighting.scene.done' : 'lighting.scene.cancel')}
           </Button>
         </div>
-      ) : selectedDeviceId && selectedBinding ? (
-        <div className={styles.floatingInspector} aria-live="polite">
-          <div className={styles.inspectorTitle}>{deviceName(selectedDeviceId)}</div>
-          <div className={styles.sectionNote}>{whereLabel(selectedBinding)}</div>
-          <div className={styles.buttonRow}>
-            <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => rotateBinding(s, selectedDeviceId))}>{t('lighting.scene.device.rotate')}</Button>
-            <Button size="sm" tone="neutral" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => flipBinding(s, selectedDeviceId))}>{t('lighting.scene.device.flip')}</Button>
-            <Button size="sm" tone="neutral" icon={<Move3d size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: false })}>{t('lighting.scene.device.move')}</Button>
-            <Button size="sm" tone="neutral" icon={<Link size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: true })}>{t('lighting.scene.device.addSurface')}</Button>
-            <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => blink(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>
-            <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => unplaceDevice(s, selectedDeviceId))}>{t('lighting.scene.device.unplace')}</Button>
-          </div>
-        </div>
       ) : (
         <div className={styles.overlayBottom}>
           <div className={styles.hint}>
-            {caseObj && !caseObj.anchors.some(a => a.kind === 'fan') ? t('lighting.scene.pc.noFans') : t('lighting.scene.hint.orbit')}
+            {editing ? t('lighting.scene.hint.edit')
+              : caseObj && !caseObj.anchors.some(a => a.kind === 'fan') ? t('lighting.scene.pc.noFans') : t('lighting.scene.hint.orbit')}
           </div>
         </div>
       )}

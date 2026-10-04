@@ -349,6 +349,21 @@ describe('BuildPage', () => {
       expect(helloPosts(postSpy)[0].machine).toMatchObject({ caseId: 'case-fractal-north', processor: 'AMD Ryzen 7 7800X3D' });
     });
 
+    it('carries the keyboard and mouse the lighting devices report', async () => {
+      h.specs = SAMPLE_SPECS;
+      h.fetchService.mockImplementation(async (path: string) => (path === '/devices/lighting-devices/all'
+        ? { isInit: true, devices: [{ id: 'm65', name: 'Corsair M65 PRO', type: 'mouse', ledsOn: true, ledCount: 15, canvasX: 0, canvasY: 0, canvasW: 1, canvasH: 1, canvasRotation: 0 }] }
+        : null));
+      render(<BuildPage path="/builder" />);
+      await flush();
+      const iframe = getIframe();
+      const postSpy = vi.spyOn(iframe.contentWindow as Window, 'postMessage');
+
+      act(() => postFromFrame(iframe, { type: 'nexus-build:ready' }));
+
+      expect(helloPosts(postSpy)[0].machine).toMatchObject({ peripherals: [{ category: 'mouse', name: 'Corsair M65 PRO' }] });
+    });
+
     it('omits caseId from the machine object when none is set', async () => {
       h.specs = SAMPLE_SPECS;
       render(<BuildPage path="/builder" />);
@@ -436,7 +451,7 @@ describe('BuildPage', () => {
     it('keeps the initial GET\'s case when a save fails before the GET resolves', async () => {
       h.specs = SAMPLE_SPECS;
       let resolveGet: (v: unknown) => void = () => {};
-      h.fetchService.mockImplementation(() => new Promise(resolve => { resolveGet = resolve; }));
+      h.fetchService.mockImplementation((path: string) => (path === '/system/case' ? new Promise(resolve => { resolveGet = resolve; }) : Promise.resolve(null)));
       h.putService.mockImplementation(async () => null);
       render(<BuildPage path="/builder" />);
       const iframe = getIframe();

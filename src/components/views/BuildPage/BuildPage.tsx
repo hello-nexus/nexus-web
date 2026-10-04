@@ -10,9 +10,12 @@ import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
+import { hostPeripherals, type HostPeripheral } from '../../../lib/scene/hostPeripherals';
+import { fetchLightingDevices } from '../../../api/lighting';
+import { fetchLightingScene, putSceneView, type Vec3 } from '../../../api/lightingScene';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
-import { relaySceneExport } from './buildScene';
+import { relaySceneExport, scenePlacements } from './buildScene';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
@@ -41,6 +44,9 @@ interface BuildMachine {
   hz?: number;
   ramGb?: number;
   caseId?: string;
+  peripherals?: HostPeripheral[];
+  // Where each object of this machine's lighting scene stands, so the frame's desk matches it.
+  placements?: Record<string, { position: Vec3; yaw: number }>;
 }
 
 interface BuildGame {
@@ -157,6 +163,21 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
     return () => { cancelled = true; };
   }, []);
 
+  // The keyboard, mouse and other desk products this machine's lighting devices report, for the frame's desk.
+  const [peripherals, setPeripherals] = useState<HostPeripheral[]>([]);
+  const [placements, setPlacements] = useState<Record<string, { position: Vec3; yaw: number }>>({});
+  useEffect(() => {
+    if (!SCENE_3D || isRemoteOrigin) return undefined;
+    let cancelled = false;
+    void fetchLightingDevices().then(res => {
+      if (!cancelled && res) setPeripherals(hostPeripherals(res.devices));
+    }).catch(() => { /* no lighting service: the desk holds only the PC */ });
+    void fetchLightingScene().then(scene => {
+      if (!cancelled) setPlacements(scenePlacements(scene));
+    }).catch(() => { /* no scene yet: the frame places everything at home */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const readyRef = useRef(ready);
   useEffect(() => { readyRef.current = ready; }, [ready]);
 
@@ -242,6 +263,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
           }));
           break;
         case 'nexus-build:open-lighting':
+          // Customize lighting from This System opens the scene it just sent, in 3D.
+          if (SCENE_3D && !isRemoteOrigin) void putSceneView({ enabled: true }).catch(() => { /* the page still opens */ });
           onOpenLightingRef.current?.();
           break;
         case 'nexus-build:history':
@@ -271,6 +294,8 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
       hz: sig?.hz,
       ramGb: sig?.ramBytes != null ? Math.round(sig.ramBytes / BYTES_PER_GIB) : undefined,
       ...(caseId ? { caseId } : {}),
+      ...(peripherals.length > 0 ? { peripherals } : {}),
+      ...(Object.keys(placements).length > 0 ? { placements } : {}),
     };
   })() : undefined;
 

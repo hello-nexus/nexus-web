@@ -2,18 +2,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../api/lightingScene', () => ({
   importLightingScene: vi.fn(),
+  putLightingScene: vi.fn(),
   putSceneView: vi.fn(),
   fetchLightingScene: vi.fn(),
 }));
+vi.mock('../../../api/lighting', () => ({ fetchLightingDevices: vi.fn() }));
 
-import { fetchLightingScene, importLightingScene, putSceneView } from '../../../api/lightingScene';
-import { relaySceneExport } from './buildScene';
+import { fetchLightingDevices } from '../../../api/lighting';
+import { fetchLightingScene, importLightingScene, putLightingScene, putSceneView } from '../../../api/lightingScene';
+import { relaySceneExport, scenePlacements } from './buildScene';
 
 const caseObject = { id: 'case', kind: 'case', source: 'build', position: [0, 0, 0], yaw: 0, size: [230, 470, 450], anchors: [] };
 const imported = (camera: unknown) => ({ objects: [caseObject], bindings: [], view: { enabled: false, camera } });
 
 describe('relaySceneExport', () => {
-  beforeEach(() => vi.resetAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(fetchLightingDevices).mockResolvedValue(null);
+  });
 
   it('refuses a message with no objects or too many', async () => {
     expect(await relaySceneExport({ objects: [] })).toBe(false);
@@ -45,6 +51,22 @@ describe('relaySceneExport', () => {
     vi.mocked(importLightingScene).mockResolvedValue(imported({ position: [0, 0, 1], target: [0, 0, 0], fov: 40 }) as never);
     await relaySceneExport({ objects: [caseObject], model: [1, 2] });
     expect(importLightingScene).toHaveBeenCalledWith({ caseId: null, objects: [caseObject], model: null });
+  });
+
+  it('places a device whose spot is certain right after the import', async () => {
+    const keyboard = { id: 'keyboard', kind: 'keyboard', source: 'build', position: [0, 0, 190], yaw: 0, size: [360, 40, 140],
+      anchors: [{ id: 'top', kind: 'surface', center: [0, 40, 0], right: [1, 0, 0], up: [0, 0, -1], width: 360, height: 140, shape: 'rect' }] };
+    vi.mocked(importLightingScene).mockResolvedValue({ ...imported({ position: [0, 0, 1], target: [0, 0, 0], fov: 40 }), objects: [caseObject, keyboard] } as never);
+    vi.mocked(fetchLightingDevices).mockResolvedValue({ isInit: true, devices: [
+      { id: 'keeb', name: 'HYTE Keeb TKL - Keys', type: 'ledstrip', iconType: 'keyboard', ledsOn: true, ledCount: 147, canvasX: 0, canvasY: 0, canvasW: 1, canvasH: 1, canvasRotation: 0 },
+    ] } as never);
+    expect(await relaySceneExport({ objects: [caseObject, keyboard] })).toBe(true);
+    expect(putLightingScene).toHaveBeenCalledWith({ objects: [caseObject, keyboard], bindings: [{ deviceId: 'keeb', targets: [{ objectId: 'keyboard', anchorId: 'top' }], rotation: 0, flip: false }] });
+  });
+
+  it('lists where each Build object stands, for the frame', () => {
+    expect(scenePlacements({ objects: [caseObject, { ...caseObject, id: 'mine', source: 'user' }] } as never)).toEqual({ case: { position: [0, 0, 0], yaw: 0 } });
+    expect(scenePlacements(null)).toEqual({});
   });
 
   it('reports a refused import', async () => {

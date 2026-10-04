@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SceneObject } from '../../../../api/lightingScene';
-import { flipBinding, placeDevice, rotateBinding, unplaceDevice } from './sceneEdits';
+import { flipBinding, moveObject, placeDevice, rotateBinding } from './sceneEdits';
 
 const obj = (id: string): SceneObject => ({
   id, kind: id, source: 'build', position: [0, 0, 0], yaw: 0, size: [100, 10, 100],
@@ -23,9 +23,10 @@ describe('scene edits', () => {
     expect(base.bindings).toEqual([]);
   });
 
-  it('unplaces one device and keeps the rest', () => {
-    const s = placeDevice(placeDevice(base, 'd1', kb.id, 'top', false), 'd2', mouse.id, 'top', false);
-    expect(unplaceDevice(s, 'd1').bindings.map(b => b.deviceId)).toEqual(['d2']);
+  it('moves and turns one object and leaves the rest', () => {
+    const s = moveObject(base, mouse.id, [10, 0, 20], 45);
+    expect(s.objects.find(o => o.id === mouse.id)).toMatchObject({ position: [10, 0, 20], yaw: 45 });
+    expect(s.objects.find(o => o.id === kb.id)).toBe(kb);
   });
 
   it('rotates in quarter turns and flips from the current binding', () => {
