@@ -96,7 +96,7 @@ export interface ConflictDevicesState {
   /**
    * Flips every device listed under the app to the chosen owner and, alongside,
    * writes the app's whitelist state ('app' owner whitelists it, 'nexus' clears it).
-   * Resolves once every write settled: true when the whitelist write landed.
+   * Resolves once every write settled: true when the whitelist and every device write landed.
    */
   setOwner: (conflictId: string, owner: 'nexus' | 'app') => Promise<boolean>;
 }
@@ -145,13 +145,15 @@ export function useConflictDevices(conflicts: readonly DetectedConflict[], enabl
     const lightingSet = new Set(lightingIds);
     setLighting(prev => prev.map(d => (lightingSet.has(d.id) ? { ...d, controlled } : d)));
     const whitelist = setConflictWhitelisted(conflictId, !controlled).catch(() => null);
-    await Promise.allSettled([
+    const writes = await Promise.allSettled([
       ...handlerIds.map(id => controlDevice(id, controlled)),
       ...lightingIds.map(id => setLightingDeviceControlled(id, controlled)),
     ]);
     await refreshLighting();
     const res = await whitelist;
-    return !!res && !res.error;
+    // A failed device write leaves the devices disagreeing with the whitelist, so the card must not hold the pick.
+    const devicesLanded = writes.every(w => w.status === 'fulfilled' && w.value !== null && w.value !== false);
+    return !!res && !res.error && devicesLanded;
   }, [byApp, controlDevice, refreshLighting]);
 
   return { devicesByApp: byApp, setOwner };

@@ -78,17 +78,36 @@ describe('ConflictAppCard', () => {
     expect(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' })).not.toBeChecked();
   });
 
-  it('preselects Nexus when the app is not whitelisted, regardless of device agreement', () => {
-    const devices: ConflictDevice[] = [
-      { key: 'a', name: 'Hub', owner: 'nexus' },
-      { key: 'b', name: 'RAM', owner: 'mixed' },
-    ];
+  it('preselects Nexus when the app is not whitelisted and Nexus drives every device', () => {
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
     render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={vi.fn()} />);
 
     expect(screen.getByText('brand')).toBeInTheDocument();
-    expect(screen.getByText('conflicts.devices.mixed')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' })).not.toBeChecked();
+  });
+
+  it.each<[string, ConflictDevice[], boolean]>([
+    ['off the whitelist with its devices off', [{ key: 'a', name: 'Hub', owner: 'app' }], false],
+    ['whitelisted while Nexus drives a device', [{ key: 'a', name: 'Hub', owner: 'nexus' }], true],
+    ['off the whitelist with split devices', [{ key: 'a', name: 'Hub', owner: 'nexus' }, { key: 'b', name: 'RAM', owner: 'mixed' }], false],
+  ])('selects neither owner for an app %s', (_label, devices, whitelisted) => {
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={vi.fn()} whitelisted={whitelisted} />);
+
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.nexusControls' })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' })).not.toBeChecked();
+  });
+
+  it('a pick on a split switch writes that owner', async () => {
+    const onSetOwner = vi.fn(async () => true);
+    const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'app' }];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted={false} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' }));
+    });
+
+    expect(onSetOwner).toHaveBeenCalledWith('app');
   });
 
   it('hands the devices to Nexus without ending the app', async () => {
@@ -148,7 +167,7 @@ describe('ConflictAppCard', () => {
     expect(endTask()).not.toHaveAttribute('data-loading', 'true');
   });
 
-  it('shows the chosen owner immediately, then follows the whitelisted prop once the write settles', async () => {
+  it('shows the chosen owner immediately and holds it until the whitelist and the devices both follow', async () => {
     let release = () => {};
     const onSetOwner = vi.fn(() => new Promise<boolean>(resolve => { release = () => resolve(true); }));
     const devices: ConflictDevice[] = [{ key: 'a', name: 'Hub', owner: 'nexus' }];
@@ -163,6 +182,9 @@ describe('ConflictAppCard', () => {
 
     await act(async () => { release(); });
     rerender(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={onSetOwner} whitelisted />);
+    expect(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' })).toBeChecked();
+
+    rerender(<ConflictAppCard conflict={conflict} devices={[{ key: 'a', name: 'Hub', owner: 'app' }]} onSetOwner={onSetOwner} whitelisted />);
     expect(screen.getByRole('radio', { name: 'conflicts.devices.appControls:iCUE' })).toBeChecked();
   });
 

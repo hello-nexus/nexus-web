@@ -138,6 +138,7 @@ export interface GeneralSettings {
   /** Catalog ids excluded from the startup shutdown; every other known app is included. */
   conflictAutoKillExclusions: string[];
   notifyConflictLaunches: boolean;
+  endConflictsOnLaunch: boolean;
   monitoringDetailedCollapsed: string[];
   monitoringEventsEnabled: boolean;
   monitoringFpsOverlayEnabled: boolean;
@@ -230,6 +231,7 @@ export function getDefaultSettings(): NexusSettings {
       autoKillConflictsAtStartup: true,
       conflictAutoKillExclusions: [],
       notifyConflictLaunches: true,
+      endConflictsOnLaunch: false,
       monitoringDetailedCollapsed: [],
       monitoringEventsEnabled: true,
       monitoringFpsOverlayEnabled: true,

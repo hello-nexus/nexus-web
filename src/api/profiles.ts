@@ -162,6 +162,9 @@ export interface UiPrefs {
   // launches while Nexus is running. On by default; a server that predates
   // the field omits it.
   notifyConflictLaunches?: boolean;
+  // End every non-whitelisted conflicting app as soon as it launches, at any
+  // time. Off by default; a server that predates the field omits it.
+  endConflictsOnLaunch?: boolean;
   // Order of the user's pinnable sidebar apps after the locked Dashboard
   // row. Optional because nexus-service does not implement this field yet:
   // GET /preferences never returns it and POST /preferences silently drops
