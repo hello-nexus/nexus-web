@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useState, type RefObject } from 'react';
 import { Fan, LayoutGrid } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { SettingToggle } from '../SettingRow/SettingRow';
 import { Button } from '../Button/Button';
@@ -51,7 +52,7 @@ export interface Nexus2ImportSectionProps {
 export function Nexus2ImportSection({
   open, disabled, onBusyChange, showAction = true, onSelectionChange, handleRef, wide,
 }: Nexus2ImportSectionProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
   const [preview, setPreview] = useState<Nexus2PreviewResponse | null>(null);
   const [selectedGroups, setSelectedGroups] = useState<Set<ImportGroupId>>(new Set());
@@ -168,7 +169,20 @@ export function Nexus2ImportSection({
 
           {groups.map(group => {
             const label = t(group.labelKey);
-            const detail = groupDetailParts(preview, group).map(d => t(d.key, d.params)).join(' · ');
+            // A span list: SettingToggle renders the description inside a span.
+            const detail = (
+              <span className={styles.detailBullets} role="list">
+                {groupDetailParts(preview, group).map(d => {
+                  const params = { ...d.params };
+                  for (const [name, key] of Object.entries(d.paramKeys ?? {})) params[name] = t(key);
+                  return (
+                    <span key={d.key} className={styles.detailBullet} role="listitem">
+                      {t(d.plural ? pluralKey(d.key, language, Number(d.params.count)) : d.key, params)}
+                    </span>
+                  );
+                })}
+              </span>
+            );
             const Icon = group.id === 'q60Panel' ? Fan : LayoutGrid;
             return (
               <SettingToggle

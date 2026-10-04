@@ -7,7 +7,7 @@ import {
   applyDetailKey,
   applyStatusKey,
   availableCategories,
-  categoryDetail,
+  categoryDetails,
   categoryLabelKey,
   defaultSelectedGroupIds,
   groupDetailParts,
@@ -30,31 +30,55 @@ describe('categoryLabelKey', () => {
   });
 });
 
-describe('categoryDetail', () => {
+describe('categoryDetails', () => {
   it('formats y70Layout as pages + mappedWidgets, not the raw widget count', () => {
-    expect(categoryDetail({ id: 'y70Layout', available: true, pages: 3, widgets: 12, mappedWidgets: 10, droppedTypes: ['aquarium'] }))
-      .toEqual({ key: 'nexus2Welcome.import.category.y70Layout.detail', params: { pages: 3, widgets: 10 } });
+    expect(categoryDetails({ id: 'y70Layout', available: true, pages: 3, widgets: 12, mappedWidgets: 10, droppedTypes: ['aquarium'] }))
+      .toEqual([{ key: 'nexus2Welcome.import.category.y70Layout.detail', params: { pages: 3, widgets: 10 } }]);
   });
 
-  it('formats wallpapers as a count', () => {
-    expect(categoryDetail({ id: 'wallpapers', available: true, count: 4 }))
-      .toEqual({ key: 'nexus2Welcome.import.category.wallpapers.detail', params: { count: 4 } });
+  it('adds a plural background count to the accent when the Y70 library gains backgrounds', () => {
+    expect(categoryDetails({ id: 'appearance', available: true, accentColor: '#ff0000', background: null, count: 20 })).toEqual([
+      { key: 'nexus2Welcome.import.category.appearance.detail', params: { accent: '#ff0000' } },
+      { key: 'nexus2Welcome.import.category.appearance.backgrounds', params: { count: 20 }, plural: true },
+    ]);
+    expect(categoryDetails({ id: 'appearance', available: true, accentColor: '#ff0000', background: null, count: 0 })).toHaveLength(1);
+  });
+
+  it('formats wallpapers as a plural count, plus the slideshow interval when there is one', () => {
+    expect(categoryDetails({ id: 'wallpapers', available: true, count: 4 }))
+      .toEqual([{ key: 'nexus2Welcome.import.category.wallpapers.detail', params: { count: 4 }, plural: true }]);
+    expect(categoryDetails({ id: 'wallpapers', available: true, count: 4, slideshowIntervalSec: 5 })).toEqual([
+      { key: 'nexus2Welcome.import.category.wallpapers.detail', params: { count: 4 }, plural: true },
+      { key: 'nexus2Welcome.import.category.wallpapers.slideshow', params: { count: 5 }, plural: true },
+    ]);
+  });
+
+  it('names the Q-Series face with its translated widget name', () => {
+    expect(categoryDetails({ id: 'q60Face', available: true, face: 'monitoring', stashedFaces: 1 })).toEqual([{
+      key: 'nexus2Welcome.import.category.q60Face.detail',
+      params: { face: 'monitoring', stashed: 1 },
+      paramKeys: { face: 'panel.widget.monitoring' },
+    }]);
   });
 
   it('formats gallerySources as a count only, regardless of missing', () => {
-    expect(categoryDetail({ id: 'gallerySources', available: true, count: 5, missing: 2 }))
-      .toEqual({ key: 'nexus2Welcome.import.category.gallerySources.detail', params: { count: 5 } });
+    expect(categoryDetails({ id: 'gallerySources', available: true, count: 5, missing: 2 }))
+      .toEqual([{ key: 'nexus2Welcome.import.category.gallerySources.detail', params: { count: 5 } }]);
+  });
+
+  it('leaves out a Gallery widget that has no photo sources', () => {
+    expect(categoryDetails({ id: 'gallerySources', available: true, count: 0, missing: 0 })).toEqual([]);
   });
 
   it('falls back to the generic detail key for language, which the web never groups', () => {
-    expect(categoryDetail({ id: 'language', available: true, value: 'it' }))
-      .toEqual({ key: 'nexus2Welcome.import.category.other.detail', params: { id: 'language' } });
+    expect(categoryDetails({ id: 'language', available: true, value: 'it' }))
+      .toEqual([{ key: 'nexus2Welcome.import.category.other.detail', params: { id: 'language' } }]);
   });
 
   it('falls back to the generic detail key for a category id this build does not model', () => {
     const futureCategory = { id: 'futureCategory', available: true } as unknown as Nexus2PreviewCategory;
-    expect(categoryDetail(futureCategory))
-      .toEqual({ key: 'nexus2Welcome.import.category.other.detail', params: { id: 'futureCategory' } });
+    expect(categoryDetails(futureCategory))
+      .toEqual([{ key: 'nexus2Welcome.import.category.other.detail', params: { id: 'futureCategory' } }]);
   });
 });
 
@@ -143,7 +167,7 @@ describe('visibleImportGroups / defaultSelectedGroupIds', () => {
 });
 
 describe('groupDetailParts', () => {
-  it('builds one positive detail part per available member category', () => {
+  it('builds the positive detail parts of every available member category', () => {
     const y70 = IMPORT_GROUPS.find(g => g.id === 'y70Panel')!;
     expect(groupDetailParts(PREVIEW, y70)).toEqual([
       { key: 'nexus2Welcome.import.category.appearance.detail', params: { accent: '#ff0000' } },

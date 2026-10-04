@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Nexus2ImportSection } from './Nexus2ImportSection';
 import { applyNexus2Import, previewNexus2Import } from '../../../api/migration';
@@ -12,6 +12,7 @@ vi.mock('../../../api/migration', () => ({
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
+    language: 'en',
     t: (key: string, params?: Record<string, string | number>) => {
       if (!params) return key;
       return `${key}:${Object.values(params).join(',')}`;
@@ -85,16 +86,32 @@ describe('Nexus2ImportSection - grouped preview', () => {
     expect(screen.queryByRole('switch', { name: Q60_GROUP_NAME })).not.toBeInTheDocument();
   });
 
-  it('composes the group detail line from positive per-category parts, joined together', async () => {
+  it('lists each positive per-category part as its own bullet under the group', async () => {
     renderSection();
     await screen.findByRole('switch', { name: Y70_GROUP_NAME });
-    // y70Layout uses mappedWidgets (4), not the raw widgets count (6); appearance and
-    // gallerySources contribute their own positive parts, joined with the app's separator.
-    expect(screen.getByText([
+    // y70Layout uses mappedWidgets (4), not the raw widgets count (6).
+    const [y70List] = screen.getAllByRole('list');
+    expect(within(y70List).getAllByRole('listitem').map(li => li.textContent)).toEqual([
       'nexus2Welcome.import.category.y70Layout.detail:2,4',
       'nexus2Welcome.import.category.appearance.detail:#ff0000',
       'nexus2Welcome.import.category.gallerySources.detail:5',
-    ].join(' · '))).toBeInTheDocument();
+    ]);
+  });
+
+  it('picks the plural form for the background, wallpaper and slideshow counts', async () => {
+    vi.mocked(previewNexus2Import).mockResolvedValue({
+      available: true,
+      profileName: null,
+      categories: [{ ...APPEARANCE, count: 1 }, { ...WALLPAPERS, count: 20, slideshowIntervalSec: 5 }],
+    });
+    renderSection();
+    await screen.findByRole('switch', { name: Y70_GROUP_NAME });
+    const [y70List, q60List] = screen.getAllByRole('list');
+    expect(within(y70List).getByText('nexus2Welcome.import.category.appearance.backgrounds.one:1')).toBeInTheDocument();
+    expect(within(q60List).getAllByRole('listitem').map(li => li.textContent)).toEqual([
+      'nexus2Welcome.import.category.wallpapers.detail.other:20',
+      'nexus2Welcome.import.category.wallpapers.slideshow.other:5',
+    ]);
   });
 
   it('never renders droppedTypes or the gallery missing count anywhere', async () => {
