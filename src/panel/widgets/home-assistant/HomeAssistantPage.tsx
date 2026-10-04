@@ -1,16 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { House, LayoutDashboard, Lightbulb, Sun, ToggleRight, Zap } from 'lucide-react';
+import { House, LayoutDashboard, Sun, ToggleRight } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
-import { Card } from '../../../components/common/Card/Card';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
-import { Overlay } from '../../../components/common/Overlay/Overlay';
-import { Slider } from '../../../components/common/Slider/Slider';
-import { Toggle } from '../../../components/common/Toggle/Toggle';
+import { SearchInput } from '../../../components/common/SearchInput/SearchInput';
+import { Select } from '../../../components/common/Select/Select';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
-import { HsvPicker } from '../../../components/common/HsvPicker/HsvPicker';
 import { useTranslation } from '../../../lib/i18n';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
+import { usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
   fetchHaEntities,
   getHaConfig,
@@ -18,23 +16,20 @@ import {
   setHaEntity,
   type HaConfig,
   type HaEntity,
+  type HaEntityAction,
 } from '../../../api/homeAssistant';
+import { isRoomEntity } from './haDomains';
+import { HaEntityTile, HaMoreInfoDialog } from './HaEntityTile';
+import {
+  dashboardTitle,
+  HaDashboardMessage,
+  HaDashboardViewBody,
+  useHaDashboard,
+  useHaDashboards,
+  viewTitle,
+} from './HomeAssistantDashboard';
+import { pickView } from './lovelaceLayout';
 import styles from './HomeAssistantPage.module.scss';
-
-// Color-temperature slider span in Kelvin, warm to daylight.
-const COLOR_TEMP_MIN = 2000;
-const COLOR_TEMP_MAX = 6500;
-
-function rgbToHex(rgb: [number, number, number]): string {
-  return `#${rgb.map(c => c.toString(16).padStart(2, '0')).join('')}`;
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return [r, g, b];
-}
 
 export interface HomeAssistantController {
   config: HaConfig | null;
@@ -52,6 +47,7 @@ export interface HomeAssistantController {
   setToken: (v: string) => void;
   handleConnect: () => void;
   handleToggle: (entityId: string, on: boolean) => void;
+  handleAction: (entityId: string, action: HaEntityAction) => void;
   previewBrightness: (entityId: string, brightnessPct: number) => void;
   handleBrightness: (entityId: string, brightnessPct: number) => void;
   previewColor: (entityId: string, rgb: [number, number, number]) => void;
@@ -64,7 +60,9 @@ export interface HomeAssistantController {
 // Same technical URL across all locales; not translated.
 const DEFAULT_HA_URL = 'http://localhost:8123';
 
-export function useHomeAssistant(): HomeAssistantController {
+// showingDashboard: also refetch when only dashboard-watched entities changed;
+// the room view skips those frames.
+export function useHomeAssistant(showingDashboard = false): HomeAssistantController {
   const { t } = useTranslation();
   const [config, setConfig] = useState<HaConfig | null>(null);
   const [entities, setEntities] = useState<HaEntity[]>([]);
@@ -110,7 +108,11 @@ export function useHomeAssistant(): HomeAssistantController {
     return () => { cancelled = true; };
   }, []);
 
-  useTopicCallback('homeAssistant', true, () => { void refetch(); });
+  useTopicCallback('homeAssistant', true, (data: unknown) => {
+    // A frame without the flag is from a service that predates it: always refetch.
+    const roomsChanged = (data as { roomsChanged?: unknown } | null)?.roomsChanged;
+    if (roomsChanged !== false || showingDashboard) void refetch();
+  });
 
   const handleConnect = useCallback(async () => {
     setConnecting(true);
@@ -140,6 +142,12 @@ export function useHomeAssistant(): HomeAssistantController {
       setEntities(snapshot);
       void refetch();
     }
+  }, [refetch]);
+
+  const handleAction = useCallback(async (entityId: string, action: HaEntityAction) => {
+    const res = await setHaEntity({ entityId, action });
+    if (res) setEntities(prev => prev.map(e => e.id === entityId ? res : e));
+    else void refetch();
   }, [refetch]);
 
   const captureBaseline = useCallback((entityId: string) => {
@@ -223,6 +231,7 @@ export function useHomeAssistant(): HomeAssistantController {
     setToken,
     handleConnect: () => { void handleConnect(); },
     handleToggle: (id, on) => { void handleToggle(id, on); },
+    handleAction: (id, action) => { void handleAction(id, action); },
     previewBrightness,
     handleBrightness: (id, pct) => { void handleBrightness(id, pct); },
     previewColor,
@@ -233,7 +242,7 @@ export function useHomeAssistant(): HomeAssistantController {
   };
 }
 
-// When any entity has an area, group by area (ungrouped -> 'other').
+// When any entity has an area, group by area (ungrouped -> 'other', listed last).
 // When no entity has an area, group by domain ('light' / 'switch').
 function groupEntities(entities: HaEntity[]): Map<string, HaEntity[]> {
   const hasAreas = entities.some(e => e.area);
@@ -244,176 +253,43 @@ function groupEntities(entities: HaEntity[]): Map<string, HaEntity[]> {
     if (arr) arr.push(e);
     else map.set(key, [e]);
   }
+  const other = map.get('other');
+  if (other) {
+    map.delete('other');
+    map.set('other', other);
+  }
   return map;
-}
-
-function HaTileCard({
-  entity,
-  onToggle,
-  onOpenDetail,
-}: {
-  entity: HaEntity;
-  onToggle: (id: string, on: boolean) => void;
-  onOpenDetail: (entity: HaEntity) => void;
-}) {
-  const { t } = useTranslation();
-  const Icon = entity.domain === 'light' ? Lightbulb : Zap;
-  const badgeStyle = entity.on
-    ? entity.rgb
-      ? { background: `rgb(${entity.rgb.join(',')})` }
-      : { background: 'var(--accent)' }
-    : {};
-  const stateLabel = !entity.reachable
-    ? t('homeAssistant.unreachable')
-    : entity.on && entity.supportsBrightness && entity.brightnessPct > 0
-      ? `${entity.brightnessPct}%`
-      : entity.on
-        ? t('homeAssistant.on')
-        : t('homeAssistant.off');
-
-  // disableInteractiveRole: the tile's own toggle button is the focusable
-  // control; role="button" here would nest a focusable descendant inside a
-  // button role.
-  return (
-    <Card interactive compact disableInteractiveRole onClick={() => onOpenDetail(entity)}>
-      <div className={styles.tileInner} data-unreachable={!entity.reachable ? 'true' : 'false'}>
-        <button
-          type="button"
-          className={styles.tileBadge}
-          style={badgeStyle}
-          data-on={entity.on ? 'true' : 'false'}
-          aria-label={entity.name}
-          aria-pressed={entity.on}
-          disabled={!entity.reachable}
-          onClick={e => {
-            e.stopPropagation();
-            onToggle(entity.id, !entity.on);
-          }}
-        >
-          <Icon size={20} />
-        </button>
-        <div className={styles.tileInfo}>
-          <div className={styles.tileName}>{entity.name}</div>
-          <div className={styles.tileState}>{stateLabel}</div>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function HaMoreInfoDialog({
-  entity,
-  onClose,
-  onToggle,
-  onPreviewBrightness,
-  onBrightness,
-  onPreviewColor,
-  onColor,
-  onPreviewColorTemp,
-  onColorTemp,
-}: {
-  entity: HaEntity | null;
-  onClose: () => void;
-  onToggle: (id: string, on: boolean) => void;
-  onPreviewBrightness: (id: string, pct: number) => void;
-  onBrightness: (id: string, pct: number) => void;
-  onPreviewColor: (id: string, rgb: [number, number, number]) => void;
-  onColor: (id: string, rgb: [number, number, number]) => void;
-  onPreviewColorTemp: (id: string, k: number) => void;
-  onColorTemp: (id: string, k: number) => void;
-}) {
-  const { t } = useTranslation();
-  const open = entity !== null;
-  if (!entity) return null;
-
-  const hexColor = entity.rgb ? rgbToHex(entity.rgb) : '#ffffff';
-  const hasControls = entity.supportsBrightness || entity.supportsColor || entity.supportsColorTemp;
-
-  return (
-    <Overlay open={open} onClose={onClose} variant="dialog" className={styles.moreInfoDialog} ariaLabel={entity.name}>
-      <div className={styles.moreInfoHeader}>
-        <h3 className={styles.moreInfoTitle}>{entity.name}</h3>
-        <Toggle
-          checked={entity.on}
-          onChange={on => onToggle(entity.id, on)}
-          ariaLabel={entity.name}
-          disabled={!entity.reachable}
-        />
-      </div>
-      {hasControls && (
-        <div className={styles.moreInfoBody}>
-          {entity.supportsBrightness && (
-            <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
-              editable
-              trackFill
-              label={t('homeAssistant.brightness')}
-              value={entity.brightnessPct}
-              min={0}
-              max={100}
-              step={1}
-              formatValue={v => `${v}%`}
-              onChange={(pct, commit) => { onPreviewBrightness(entity.id, pct); if (commit) onBrightness(entity.id, pct); }}
-              onCommit={pct => onBrightness(entity.id, pct)}
-              disabled={!entity.reachable || !entity.on}
-            />
-          )}
-          {entity.supportsColorTemp && (
-            <Slider
-              // eslint-disable-next-line i18next/no-literal-string -- slider layout enum
-              orientation="stacked"
-              editable
-              trackFill
-              label={t('homeAssistant.colorTemp')}
-              value={entity.colorTempK}
-              min={COLOR_TEMP_MIN}
-              max={COLOR_TEMP_MAX}
-              step={100}
-              formatValue={v => `${v}K`}
-              onChange={(k, commit) => { onPreviewColorTemp(entity.id, k); if (commit) onColorTemp(entity.id, k); }}
-              onCommit={k => onColorTemp(entity.id, k)}
-              disabled={!entity.reachable || !entity.on}
-            />
-          )}
-          {entity.supportsColor && (
-            <HsvPicker
-              value={hexColor}
-              onPreview={hex => onPreviewColor(entity.id, hexToRgb(hex))}
-              onCommit={hex => onColor(entity.id, hexToRgb(hex))}
-            />
-          )}
-        </div>
-      )}
-    </Overlay>
-  );
 }
 
 function AreaSection({
   area,
   entities,
-  onToggle,
+  open,
+  onToggleOpen,
+  ctrl,
   onOpenDetail,
 }: {
   area: string;
   entities: HaEntity[];
-  onToggle: (id: string, on: boolean) => void;
+  open: boolean;
+  onToggleOpen: () => void;
+  ctrl: HomeAssistantController;
   onOpenDetail: (entity: HaEntity) => void;
 }) {
-  const [open, setOpen] = useState(true);
   return (
     <CollapsibleSection
       title={area}
       open={open}
-      onToggle={() => setOpen(o => !o)}
+      onToggle={onToggleOpen}
       right={<span className={styles.categoryCount}>{entities.length}</span>}
     >
       <div className={styles.tileGrid}>
         {entities.map(e => (
-          <HaTileCard
+          <HaEntityTile
             key={e.id}
             entity={e}
-            onToggle={onToggle}
+            onToggle={ctrl.handleToggle}
+            onAction={ctrl.handleAction}
             onOpenDetail={onOpenDetail}
           />
         ))}
@@ -450,6 +326,7 @@ export function HomeAssistantSetupForm({
             { icon: <ToggleRight />, text: t('homeAssistant.intro.pointToggle') },
             { icon: <Sun />, text: t('homeAssistant.intro.pointColor') },
             { icon: <LayoutDashboard />, text: t('homeAssistant.intro.pointWidget') },
+            { icon: <LayoutDashboard />, text: t('homeAssistant.intro.pointDashboards') },
           ]}
         />
       )}
@@ -514,18 +391,45 @@ export function HomeAssistantEntityList({
 }) {
   const { t } = useTranslation();
   const { entities, connected } = ctrl;
+  const [query, setQuery] = useState('');
+  const [showUnavailable, setShowUnavailable] = useState(false);
+  const [collapsed, setCollapsed] = usePersistentIdSet('nexus.homeAssistant.collapsedRooms');
   // Track by entity ID so the dialog always sees live optimistic state.
   const [detailId, setDetailId] = useState<string | null>(null);
   const detailEntity = detailId ? entities.find(e => e.id === detailId) ?? null : null;
 
   if (!connected) return null;
 
-  const grouped = groupEntities(entities);
+  const roomEntities = entities.filter(isRoomEntity);
+  const q = query.trim().toLowerCase();
+  const matching = q
+    ? roomEntities.filter(e => e.name.toLowerCase().includes(q) || e.id.includes(q))
+    : roomEntities;
+  const unavailableCount = matching.filter(e => !e.reachable).length;
+  const visible = showUnavailable ? matching : matching.filter(e => e.reachable);
+  const grouped = groupEntities(visible);
+  const toggleRoom = (key: string) => setCollapsed(prev => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    return next;
+  });
 
   return (
     <div className={immersive ? styles.bodyImmersive : styles.entityList}>
-      {entities.length === 0 ? (
+      {!immersive && roomEntities.length > 0 && (
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder={t('homeAssistant.search')}
+          ariaLabel={t('homeAssistant.search')}
+          className={styles.search}
+        />
+      )}
+      {roomEntities.length === 0 ? (
         <EmptyState icon={<House size={28} />} title={t('homeAssistant.noEntities')} compact />
+      ) : visible.length === 0 && q ? (
+        <EmptyState icon={<House size={28} />} title={t('homeAssistant.noMatches')} compact />
       ) : (
         Array.from(grouped.entries()).map(([key, list]) => {
           // Domain keys are translated; 'other' is translated; area names are server data.
@@ -541,16 +445,32 @@ export function HomeAssistantEntityList({
               key={key}
               area={areaLabel}
               entities={list}
-              onToggle={ctrl.handleToggle}
+              // A search shows every match, collapsed rooms included.
+              open={q !== '' || !collapsed.has(key)}
+              onToggleOpen={() => { if (!q) toggleRoom(key); }}
+              ctrl={ctrl}
               onOpenDetail={e => setDetailId(e.id)}
             />
           );
         })
       )}
+      {unavailableCount > 0 && (
+        <Button
+          size="sm"
+          tone="ghost"
+          className={styles.unavailableToggle}
+          onClick={() => setShowUnavailable(v => !v)}
+        >
+          {showUnavailable
+            ? t('homeAssistant.hideUnavailable')
+            : t('homeAssistant.showUnavailable', { count: unavailableCount })}
+        </Button>
+      )}
       <HaMoreInfoDialog
         entity={detailEntity}
         onClose={() => setDetailId(null)}
         onToggle={ctrl.handleToggle}
+        onAction={ctrl.handleAction}
         onPreviewBrightness={ctrl.previewBrightness}
         onBrightness={ctrl.handleBrightness}
         onPreviewColor={ctrl.previewColor}
@@ -562,18 +482,60 @@ export function HomeAssistantEntityList({
   );
 }
 
-export function HomeAssistantPage() {
+// `tab` is the routed subtab: '' for the room view, else a dashboard id.
+export function HomeAssistantPage({ tab, onTabChange }: { tab?: string | null; onTabChange?: (tab: string) => void }) {
   const { t } = useTranslation();
-  const ctrl = useHomeAssistant();
+  const [localSource, setLocalSource] = useState('');
+  const source = tab ?? localSource;
+  const ctrl = useHomeAssistant(source !== '');
+  const live = !ctrl.showSetup && ctrl.connected;
+  const dashboards = useHaDashboards(live);
+  const dashboard = useHaDashboard(source, live && source !== '', ctrl.refetch);
+  const [viewKey, setViewKey] = useState('');
+  const view = source && dashboard.status === 'ready' ? pickView(dashboard.views, viewKey) : null;
+
+  const sourceOptions = [
+    { value: '', label: t('homeAssistant.source.rooms') },
+    ...(dashboards ?? []).map(d => ({ value: d.id, label: dashboardTitle(d, t) })),
+  ];
+  // A routed id whose dashboard is gone still has to render as a valid option.
+  if (source && !sourceOptions.some(o => o.value === source)) sourceOptions.push({ value: source, label: source });
+
+  const viewTabs = view && dashboard.views.length > 1
+    ? dashboard.views.map((v, i) => ({ key: v.key, label: viewTitle(v, i, t) }))
+    : undefined;
+
+  const selectSource = (next: string) => {
+    setViewKey('');
+    if (onTabChange) onTabChange(next);
+    else setLocalSource(next);
+  };
 
   return (
     <div className={styles.page}>
-      <ViewHeader title={t('homeAssistant.title')} />
+      <ViewHeader
+        title={t('homeAssistant.title')}
+        tabs={viewTabs}
+        activeTab={view?.key}
+        onTabChange={setViewKey}
+        tabActions={live ? (
+          <Select
+            value={source}
+            options={sourceOptions}
+            onChange={selectSource}
+            ariaLabel={t('homeAssistant.source')}
+          />
+        ) : undefined}
+      />
       <div className={`${styles.body} pageBody`} data-panel-scrollable="true">
         {ctrl.showSetup ? (
           <HomeAssistantSetupForm ctrl={ctrl} />
-        ) : (
+        ) : !source ? (
           <HomeAssistantEntityList ctrl={ctrl} />
+        ) : view ? (
+          <HaDashboardViewBody ctrl={ctrl} view={view} />
+        ) : (
+          <HaDashboardMessage status={dashboard.status} empty />
         )}
       </div>
     </div>

@@ -344,6 +344,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     if (!s) { setStartError(t('update.modal.checkFailed')); return; }
     setChecked(true);
     if (onStatusRefreshed) onStatusRefreshed(s);
+    // A failed check knows of nothing newer, which is not "up to date".
+    if (s.lastCheckError && !s.updateAvailable) setStartError(t('update.modal.checkFailed'));
   };
 
   // On open, the default (notes) flow runs a real check so the button shows its
@@ -415,8 +417,10 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       setPollGen(g => g + 1);
       return;
     }
-    const s = await checkForUpdate();
+    const checkedStatus = await checkForUpdate();
     if (token !== startTokenRef.current) return;
+    // A failed check says nothing about what is available.
+    const s = checkedStatus && !checkedStatus.lastCheckError ? checkedStatus : null;
     if (s) {
       onStatusRefreshed?.(s);
       if (!s.updateAvailable) {

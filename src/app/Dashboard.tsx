@@ -927,7 +927,7 @@ export function Dashboard() {
         setView(target);
       }} /></FeatureGate>;
       case 'smart-lights': return <SmartLightsPage onSectionNavigate={(target) => setView(target)} />;
-      case 'home-assistant': return <HomeAssistantPage />;
+      case 'home-assistant': return <HomeAssistantPage tab={subtab} onTabChange={setSubtab} />;
       case 'cooling':    return <FeatureGate feature="cooling"><CoolingPage serviceOnline={online} serviceState={serviceState} connectionState={status.state} activeProfileId={profilesHook.activeId} platform={status.ping?.platform ?? ''} /></FeatureGate>;
       case 'devices':    return (
         <DevicesPage
