@@ -5,6 +5,7 @@ import type { SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../../../a
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
 import type { EffectState } from '../../../../types/lighting';
 import { Button } from '../../../../components/common/Button/Button';
+import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
 import { useToastSafe } from '../../../../components/common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -268,12 +269,17 @@ export default function LightingScene3D({
 
       {spotTools && editing && !waiting && (
         <div className={styles.spotTools} style={{ left: spotTools.x, top: spotTools.y }} role="toolbar" aria-label={deviceName(spotTools.deviceId)}>
-          <span className={styles.spotToolsName}>{deviceName(spotTools.deviceId)}</span>
-          <Button size="sm" tone="ghost" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => rotateBinding(s, spotTools.deviceId))}>{t('lighting.scene.device.rotate')}</Button>
-          <Button size="sm" tone="ghost" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => flipBinding(s, spotTools.deviceId))}>{t('lighting.scene.device.flip')}</Button>
-          <Button size="sm" tone="ghost" icon={<Move3d size={13} strokeWidth={1.8} />} onClick={() => { setPlacing({ deviceId: spotTools.deviceId, append: false }); setSpotTools(null); }}>{t('lighting.scene.device.move')}</Button>
-          <Button size="sm" tone="ghost" icon={<Link size={13} strokeWidth={1.8} />} onClick={() => { setPlacing({ deviceId: spotTools.deviceId, append: true }); setSpotTools(null); }}>{t('lighting.scene.device.addSurface')}</Button>
-          <Button size="sm" tone="ghost" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => blink(spotTools.deviceId)}>{t('lighting.scene.device.identify')}</Button>
+          {([
+            ['lighting.scene.device.rotate', RotateCw, () => api.update(s => rotateBinding(s, spotTools.deviceId))],
+            ['lighting.scene.device.flip', FlipHorizontal2, () => api.update(s => flipBinding(s, spotTools.deviceId))],
+            ['lighting.scene.device.move', Move3d, () => { setPlacing({ deviceId: spotTools.deviceId, append: false }); setSpotTools(null); }],
+            ['lighting.scene.device.addSurface', Link, () => { setPlacing({ deviceId: spotTools.deviceId, append: true }); setSpotTools(null); }],
+            ['lighting.scene.device.identify', Zap, () => blink(spotTools.deviceId)],
+          ] as const).map(([key, Icon, run]) => (
+            <HoverTooltip key={key} body={t(key)} side="bottom">
+              <Button size="sm" tone="ghost" icon={<Icon size={14} strokeWidth={1.8} />} aria-label={t(key)} onClick={run} />
+            </HoverTooltip>
+          ))}
         </div>
       )}
 
