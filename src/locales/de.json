@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "Minimieren ({count} Gerät)",
   "lighting.devices.minimizeCount.other": "Minimieren ({count} Geräte)",
   "lighting.devices.mirror": "Spiegeln",
+  "lighting.devices.mirrorCount.one": "Spiegeln ({count} Gerät)",
+  "lighting.devices.mirrorCount.other": "Spiegeln ({count} Geräte)",
   "lighting.devices.moreActions": "Weitere Aktionen",
   "lighting.devices.motherboardHeader": "Mainboard ARGB",
   "lighting.devices.moveToGroup": "In Gruppe verschieben",

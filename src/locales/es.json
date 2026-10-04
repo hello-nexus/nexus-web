@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "Minimizar ({count} dispositivo)",
   "lighting.devices.minimizeCount.other": "Minimizar ({count} dispositivos)",
   "lighting.devices.mirror": "Reflejar",
+  "lighting.devices.mirrorCount.one": "Reflejar ({count} dispositivo)",
+  "lighting.devices.mirrorCount.other": "Reflejar ({count} dispositivos)",
   "lighting.devices.moreActions": "Más acciones",
   "lighting.devices.motherboardHeader": "ARGB placa base",
   "lighting.devices.moveToGroup": "Mover al grupo",

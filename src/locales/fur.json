@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "Riduç ({count} dispositîf)",
   "lighting.devices.minimizeCount.other": "Riduç ({count} dispositîfs)",
   "lighting.devices.mirror": "Spieli",
+  "lighting.devices.mirrorCount.one": "Spieli ({count} dispositîf)",
+  "lighting.devices.mirrorCount.other": "Spieli ({count} dispositîfs)",
   "lighting.devices.moreActions": "Altris azions",
   "lighting.devices.motherboardHeader": "ARGB de schede mari",
   "lighting.devices.moveToGroup": "Sposte tal grup",

@@ -2,7 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { DeviceCanvas, canvasLabelName } from './DeviceCanvas';
 import styles from './DeviceCanvas.module.scss';
-import type { LightingDevice } from '../../../api/lighting';
+import menuStyles from '../../../panel/widgets/common/WidgetContextMenu.module.scss';
+import type { LedMapEntry, LightingDevice } from '../../../api/lighting';
+import { saveDeviceLayout } from '../../../api/lighting';
 
 vi.mock('../../../lib/i18n', () => ({ useTranslation: () => ({ t: (key: string) => key, language: 'en' }) }));
 vi.mock('../../../lib/platform', () => ({ isMultiSelectModifier: () => false }));
@@ -366,7 +368,8 @@ describe('DeviceCanvas', () => {
     expect(rows).toEqual([
       'lighting.ledMap.settings', '|',
       'lighting.devices.minimizeCount.other', 'lighting.devices.rotateCwCount.other',
-      'lighting.devices.rotateCcwCount.other', 'lighting.devices.menuLightsOffCount.other', '|',
+      'lighting.devices.rotateCcwCount.other', 'lighting.devices.mirrorCount.other',
+      'lighting.devices.menuLightsOffCount.other', '|',
       'lighting.devices.identifyCount.other',
     ]);
     fireEvent.click(screen.getByText('lighting.ledMap.settings'));
@@ -640,5 +643,64 @@ describe('DeviceCanvas stacks', () => {
     fireEvent.contextMenu(screen.getByText('Loose'));
     fireEvent.click(screen.getByText('lighting.devices.stackCount.one'));
     expect(stack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('DeviceCanvas mirror', () => {
+  const mirrorRow = () => screen.getByText('lighting.devices.mirror').closest('button')!;
+
+  it('mirrors a frame from its menu, saves the flip, and a second mirror restores it', () => {
+    vi.mocked(saveDeviceLayout).mockClear();
+    const device = dragDevice('dev-m', 'Mirror Me');
+    render(<DeviceCanvas devices={[device]} selectedIds={new Set()} primaryDeviceId={null} onSelectDevice={vi.fn()} onSetSelection={vi.fn()} />);
+
+    fireEvent.contextMenu(screen.getByText('Mirror Me'));
+    expect(mirrorRow().querySelector(`.${menuStyles.itemCheck}`)).toBeNull();
+    fireEvent.click(mirrorRow());
+    expect(device.canvasFlip).toBe(true);
+    expect(saveDeviceLayout).toHaveBeenLastCalledWith('dev-m', 100, 100, 200, 100, 0, true);
+
+    fireEvent.contextMenu(screen.getByText('Mirror Me'));
+    expect(mirrorRow().querySelector(`.${menuStyles.itemCheck}`)).not.toBeNull();
+    fireEvent.click(mirrorRow());
+    expect(device.canvasFlip).toBe(false);
+    expect(saveDeviceLayout).toHaveBeenLastCalledWith('dev-m', 100, 100, 200, 100, 0, false);
+  });
+
+  it('mirrors every frame of a multi-selection under the group label', () => {
+    vi.mocked(saveDeviceLayout).mockClear();
+    const devices = [dragDevice('dev-a', 'Left'), dragDevice('dev-b', 'Right'), dragDevice('dev-c', 'Loose')];
+    render(<DeviceCanvas devices={devices} selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a" onSelectDevice={vi.fn()} onSetSelection={vi.fn()} />);
+
+    fireEvent.contextMenu(screen.getByText('Left'));
+    fireEvent.click(screen.getByText('lighting.devices.mirrorCount.other'));
+
+    expect(devices.map(d => !!d.canvasFlip)).toEqual([true, true, false]);
+    expect(saveDeviceLayout).toHaveBeenCalledTimes(2);
+    expect(saveDeviceLayout).toHaveBeenCalledWith('dev-b', 100, 100, 200, 100, 0, true);
+  });
+
+  it('mirrors a mixed selection whole, and unmirrors it once every frame is mirrored', () => {
+    const devices = [{ ...dragDevice('dev-a', 'Left'), canvasFlip: true } as LightingDevice, dragDevice('dev-b', 'Right')];
+    render(<DeviceCanvas devices={devices} selectedIds={new Set(['dev-a', 'dev-b'])} primaryDeviceId="dev-a" onSelectDevice={vi.fn()} onSetSelection={vi.fn()} />);
+
+    fireEvent.contextMenu(screen.getByText('Left'));
+    fireEvent.click(screen.getByText('lighting.devices.mirrorCount.other'));
+    expect(devices.map(d => d.canvasFlip)).toEqual([true, true]);
+
+    fireEvent.contextMenu(screen.getByText('Left'));
+    fireEvent.click(screen.getByText('lighting.devices.mirrorCount.other'));
+    expect(devices.map(d => d.canvasFlip)).toEqual([false, false]);
+  });
+
+  it('draws a mirrored frame\'s LED dots at 1 - u', () => {
+    const device = { ...dragDevice('dev-m', 'Mirror Me'), canvasFlip: true } as LightingDevice;
+    const leds = { 'dev-m': [{ index: 0, u: 0.25, v: 0.5, disabled: false } as LedMapEntry] };
+    const { container } = render(
+      <DeviceCanvas devices={[device]} selectedIds={new Set(['dev-m'])} primaryDeviceId="dev-m" selectedDeviceLeds={leds} onSelectDevice={vi.fn()} onSetSelection={vi.fn()} />,
+    );
+    const dot = container.querySelector<HTMLElement>(`.${styles.ledDot}`)!;
+    expect(dot.style.left).toBe('75%');
+    expect(dot.style.top).toBe('50%');
   });
 });

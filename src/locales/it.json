@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "Riduci ({count} dispositivo)",
   "lighting.devices.minimizeCount.other": "Riduci ({count} dispositivi)",
   "lighting.devices.mirror": "Specchia",
+  "lighting.devices.mirrorCount.one": "Specchia ({count} dispositivo)",
+  "lighting.devices.mirrorCount.other": "Specchia ({count} dispositivi)",
   "lighting.devices.moreActions": "Altre azioni",
   "lighting.devices.motherboardHeader": "ARGB scheda madre",
   "lighting.devices.moveToGroup": "Sposta nel gruppo",

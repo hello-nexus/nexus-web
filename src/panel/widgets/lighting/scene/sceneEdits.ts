@@ -23,6 +23,12 @@ export function flipBinding(s: SceneEdit, deviceId: string): SceneEdit {
   return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, flip: !b.flip } : b)) };
 }
 
+/** Mirrors every device in the group, or un-mirrors them when all already are, so a mixed group ends up alike. */
+export function mirrorGroup(s: SceneEdit, deviceIds: string[]): SceneEdit {
+  const to = !deviceIds.every(id => s.bindings.find(b => b.deviceId === id)?.flip);
+  return { ...s, bindings: s.bindings.map(b => (deviceIds.includes(b.deviceId) ? { ...b, flip: to } : b)) };
+}
+
 /** Where an object stands on the desk and which way it faces (degrees, counter-clockwise from above). */
 export function moveObject(s: SceneEdit, objectId: string, position: Vec3, yaw: number): SceneEdit {
   return { ...s, objects: s.objects.map(o => (o.id === objectId ? { ...o, position, yaw } : o)) };

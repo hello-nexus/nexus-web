@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SceneObject } from '../../../../api/lightingScene';
-import { flipBinding, menuDevices, moveObject, placeDevice, rotateBinding } from './sceneEdits';
+import { flipBinding, menuDevices, mirrorGroup, moveObject, placeDevice, rotateBinding } from './sceneEdits';
 
 const obj = (id: string): SceneObject => ({
   id, kind: id, source: 'build', position: [0, 0, 0], yaw: 0, size: [100, 10, 100],
@@ -44,5 +44,14 @@ describe('scene edits', () => {
     expect(menuDevices(shared.bindings, { objectId: mouse.id, anchorId: 'top' }, 'zone2')).toEqual(['zone2']);
     expect(menuDevices(shared.bindings, { objectId: kb.id, anchorId: 'top' }, null)).toEqual(['keeb']);
     expect(menuDevices(shared.bindings, { objectId: mouse.id, anchorId: 'side' }, null)).toEqual([]);
+  });
+
+  it('mirrors a mixed group alike, then un-mirrors it', () => {
+    const two = placeDevice(placeDevice(base, 'a', mouse.id, 'top', false), 'b', mouse.id, 'top', false);
+    const mixed = flipBinding(two, 'a');
+    const all = mirrorGroup(mixed, ['a', 'b']);
+    expect(all.bindings.map(b => b.flip)).toEqual([true, true]);
+    expect(mirrorGroup(all, ['a', 'b']).bindings.map(b => b.flip)).toEqual([false, false]);
+    expect(mirrorGroup(two, ['a']).bindings.map(b => b.flip)).toEqual([true, false]);
   });
 });

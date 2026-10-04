@@ -381,6 +381,8 @@ export interface LightingDevice {
   canvasW: number;
   canvasH: number;
   canvasRotation: number;
+  /** Mirrors the frame left to right before canvasRotation turns it. Undefined on older services. */
+  canvasFlip?: boolean;
   // Set only for motherboard zone cards - the service splits a motherboard
   // with >1 ARGB headers into one card per zone so the user can configure +
   // control each physical strip independently.
@@ -418,8 +420,9 @@ export const saveLightingStacks = (stacks: DeviceStack[]) =>
 export const fetchLightingDevices = () =>
   fetchService<LightingDevicesResponse>('/devices/lighting-devices/all');
 
-export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0) =>
-  postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation });
+/** Omitting `flip` keeps the device's stored mirror. */
+export const saveDeviceLayout = (id: string, x: number, y: number, w: number, h: number, rotation: number = 0, flip?: boolean) =>
+  postService('/devices/lighting-devices/layout', { id, x, y, w, h, rotation, flip });
 
 /** Renames one lighting card. An empty name clears the rename and the card
  *  goes back to its hardware name. */
@@ -439,6 +442,7 @@ export interface DeviceLayoutDto {
   w: number;
   h: number;
   rotation: number;
+  flip?: boolean;
 }
 
 /** An app that auto-activates its preset when it takes focus. `id` is a

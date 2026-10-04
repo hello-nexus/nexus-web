@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "Réduire ({count} appareil)",
   "lighting.devices.minimizeCount.other": "Réduire ({count} appareils)",
   "lighting.devices.mirror": "Inverser en miroir",
+  "lighting.devices.mirrorCount.one": "Inverser en miroir ({count} appareil)",
+  "lighting.devices.mirrorCount.other": "Inverser en miroir ({count} appareils)",
   "lighting.devices.moreActions": "Plus d'actions",
   "lighting.devices.motherboardHeader": "ARGB carte mere",
   "lighting.devices.moveToGroup": "Déplacer vers le groupe",

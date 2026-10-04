@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "Küçült ({count} cihaz)",
   "lighting.devices.minimizeCount.other": "Küçült ({count} cihaz)",
   "lighting.devices.mirror": "Aynala",
+  "lighting.devices.mirrorCount.one": "Aynala ({count} cihaz)",
+  "lighting.devices.mirrorCount.other": "Aynala ({count} cihaz)",
   "lighting.devices.moreActions": "Diğer işlemler",
   "lighting.devices.motherboardHeader": "Anakart ARGB",
   "lighting.devices.moveToGroup": "Gruba taşı",

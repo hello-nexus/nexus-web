@@ -17,7 +17,7 @@ import type { ScenePick } from '../../../../lib/scene/sceneRenderer';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport } from './SceneViewport';
 import { anchorLabel, objectLabel } from './sceneLabels';
-import { flipBinding, menuDevices, moveObject, placeDevice, rotateBinding } from './sceneEdits';
+import { menuDevices, mirrorGroup, moveObject, placeDevice, rotateBinding } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
 
@@ -311,7 +311,7 @@ export default function LightingScene3D({
           [
             { key: 'rotate-cw', icon: <RotateCw size={14} />, label: counted('lighting.devices.rotateCw', 'lighting.devices.rotateCwCount', count), onSelect: () => api.update(s => ids.reduce((acc, id) => rotateBinding(acc, id, 1), s)) },
             { key: 'rotate-ccw', icon: <RotateCcw size={14} />, label: counted('lighting.devices.rotateCcw', 'lighting.devices.rotateCcwCount', count), onSelect: () => api.update(s => ids.reduce((acc, id) => rotateBinding(acc, id, -1), s)) },
-            { key: 'mirror', icon: <FlipHorizontal2 size={14} />, label: t('lighting.devices.mirror'), onSelect: () => api.update(s => ids.reduce((acc, id) => flipBinding(acc, id), s)) },
+            { key: 'mirror', icon: <FlipHorizontal2 size={14} />, label: counted('lighting.devices.mirror', 'lighting.devices.mirrorCount', count), onSelect: () => api.update(s => mirrorGroup(s, ids)) },
             ...(group ? [] : [{ key: 'move', icon: <Move3d size={14} />, label: t('lighting.scene.device.move'), onSelect: () => setPlacing({ deviceId: ids[0] }) }]),
           ],
           onSetDevicesPower ? [{

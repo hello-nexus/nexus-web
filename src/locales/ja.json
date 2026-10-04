@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "最小化 ({count} 台のデバイス)",
   "lighting.devices.minimizeCount.other": "最小化 ({count} 台のデバイス)",
   "lighting.devices.mirror": "左右反転",
+  "lighting.devices.mirrorCount.one": "左右反転 ({count} 台のデバイス)",
+  "lighting.devices.mirrorCount.other": "左右反転 ({count} 台のデバイス)",
   "lighting.devices.moreActions": "その他の操作",
   "lighting.devices.motherboardHeader": "マザーボード ARGB",
   "lighting.devices.moveToGroup": "グループに移動",

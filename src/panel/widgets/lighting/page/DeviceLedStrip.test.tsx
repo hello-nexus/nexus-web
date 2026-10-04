@@ -55,6 +55,19 @@ describe('DeviceLedStrip', () => {
     expect(ctx.clearRect).toHaveBeenCalled();
   });
 
+  it('reads a mirrored frame from its other end, as the engine samples it', () => {
+    const firstAndLast = (d: LightingDevice) => {
+      ctx.putImageData.mockClear();
+      publishLedFrame(new Uint8Array([255, 0, 0, 0, 0, 255]), 2, 1);
+      const { unmount } = render(<DeviceLedStrip device={d} />);
+      const data = (ctx.putImageData.mock.calls[0][0] as { data: Uint8ClampedArray }).data;
+      unmount();
+      return [data[0], data[2], data[data.length - 4], data[data.length - 2]];
+    };
+    expect(firstAndLast(device)).toEqual([255, 0, 0, 255]);
+    expect(firstAndLast({ ...device, canvasFlip: true })).toEqual([0, 255, 255, 0]);
+  });
+
   it('still paints the device its own pick when there is one', () => {
     publishRed();
     const pick = { key: 'flat:blue-3', hex: '#0000ff', slot: 0, version: '1' };

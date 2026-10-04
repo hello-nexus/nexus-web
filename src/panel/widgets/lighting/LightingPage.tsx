@@ -1732,19 +1732,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     const fresh = next.filter(s => !before.some(b => b.id === s.id));
     if (fresh.length > 0) {
       handleBeforeLayoutSave();
-      const rect = new Map<string, { x: number; y: number; w: number; h: number; r: number }>();
+      const rect = new Map<string, { x: number; y: number; w: number; h: number; r: number; flip: boolean }>();
       for (const stack of fresh) {
         const lead = devicesRef.current.find(d => stack.members.includes(d.id));
         if (!lead) continue;
         for (const m of stack.members) {
-          if (m !== lead.id) rect.set(m, { x: lead.canvasX, y: lead.canvasY, w: lead.canvasW, h: lead.canvasH, r: lead.canvasRotation ?? 0 });
+          if (m !== lead.id) rect.set(m, { x: lead.canvasX, y: lead.canvasY, w: lead.canvasW, h: lead.canvasH, r: lead.canvasRotation ?? 0, flip: lead.canvasFlip ?? false });
         }
       }
       setDevices(prev => prev.map(d => {
         const to = rect.get(d.id);
-        return to ? { ...d, canvasX: to.x, canvasY: to.y, canvasW: to.w, canvasH: to.h, canvasRotation: to.r } : d;
+        return to ? { ...d, canvasX: to.x, canvasY: to.y, canvasW: to.w, canvasH: to.h, canvasRotation: to.r, canvasFlip: to.flip } : d;
       }));
-      void Promise.all([...rect].map(([id, to]) => saveDeviceLayout(id, to.x, to.y, to.w, to.h, to.r)))
+      void Promise.all([...rect].map(([id, to]) => saveDeviceLayout(id, to.x, to.y, to.w, to.h, to.r, to.flip)))
         .then(() => handleLayoutCommit())
         .catch(() => { /* 3s poll reconciles */ });
     }
@@ -1761,17 +1761,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
       if (!lead) continue;
       for (const m of members.slice(1)) {
         if (m.canvasX !== lead.canvasX || m.canvasY !== lead.canvasY || m.canvasW !== lead.canvasW
-          || m.canvasH !== lead.canvasH || (m.canvasRotation ?? 0) !== (lead.canvasRotation ?? 0)) drift.push([m.id, lead]);
+          || m.canvasH !== lead.canvasH || (m.canvasRotation ?? 0) !== (lead.canvasRotation ?? 0)
+          || !!m.canvasFlip !== !!lead.canvasFlip) drift.push([m.id, lead]);
       }
     }
     if (drift.length === 0) return;
     const to = new Map(drift);
     setDevices(prev => prev.map(d => {
       const lead = to.get(d.id);
-      return lead ? { ...d, canvasX: lead.canvasX, canvasY: lead.canvasY, canvasW: lead.canvasW, canvasH: lead.canvasH, canvasRotation: lead.canvasRotation ?? 0 } : d;
+      return lead ? { ...d, canvasX: lead.canvasX, canvasY: lead.canvasY, canvasW: lead.canvasW, canvasH: lead.canvasH, canvasRotation: lead.canvasRotation ?? 0, canvasFlip: lead.canvasFlip ?? false } : d;
     }));
     for (const [id, lead] of drift) {
-      saveDeviceLayout(id, lead.canvasX, lead.canvasY, lead.canvasW, lead.canvasH, lead.canvasRotation ?? 0).catch(() => { /* 3s poll reconciles */ });
+      saveDeviceLayout(id, lead.canvasX, lead.canvasY, lead.canvasW, lead.canvasH, lead.canvasRotation ?? 0, lead.canvasFlip ?? false).catch(() => { /* 3s poll reconciles */ });
     }
   }, [devices, deviceStacks]);
 

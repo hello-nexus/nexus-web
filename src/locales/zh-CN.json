@@ -2404,6 +2404,8 @@
   "lighting.devices.minimizeCount.one": "最小化 ({count} 个设备)",
   "lighting.devices.minimizeCount.other": "最小化 ({count} 个设备)",
   "lighting.devices.mirror": "镜像",
+  "lighting.devices.mirrorCount.one": "镜像 ({count} 个设备)",
+  "lighting.devices.mirrorCount.other": "镜像 ({count} 个设备)",
   "lighting.devices.moreActions": "更多操作",
   "lighting.devices.motherboardHeader": "主板 ARGB",
   "lighting.devices.moveToGroup": "移动到分组",
