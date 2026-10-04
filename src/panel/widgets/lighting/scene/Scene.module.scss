@@ -1,6 +1,5 @@
 @use '../../../../styles/text' as *;
 @use '../../../../styles/interactions' as *;
-@use '../../../../styles/scrollbar' as *;
 
 // The viewport is the lighting canvas seen through the scene camera, so it
 // keeps the canvas's own aspect: the hardware samples exactly this frame.
@@ -16,19 +15,11 @@
   user-select: none;
 }
 
-.viewportLarge {
-  width: 100%;
-  max-height: 100%;
-}
-
 .backdrop {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  transition: opacity var(--ease);
-
-  &[data-backdrop='dim'] { opacity: var(--alpha-medium); }
-  &[data-backdrop='off'] { opacity: 0; }
+  opacity: var(--alpha-medium);
 }
 
 .glBackdrop {
@@ -116,32 +107,6 @@
   &:focus-visible { @include focus-ring; }
 }
 
-.pillButtonActive {
-  background: var(--accent);
-  color: var(--accent-text);
-
-  &:hover { color: var(--accent-text); }
-}
-
-.iconButton {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: rgb(0 0 0 / var(--alpha-strong));
-  color: rgb(255 255 255 / var(--alpha-strong));
-  backdrop-filter: blur(var(--blur-backdrop));
-  cursor: pointer;
-  transition: color var(--ease-fast);
-
-  &:hover { color: rgb(255 255 255); }
-  &:focus-visible { @include focus-ring; }
-}
-
 .hint {
   @include text-caption;
   max-width: 36rem;
@@ -178,84 +143,6 @@
   color: rgb(255 255 255 / var(--alpha-strong));
 }
 
-// Editor modal: viewport on the left, setup panel on the right.
-.editorSurface {
-  width: min(96vw, 1500px);
-  height: min(92vh, 900px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: var(--radius-lg);
-  background: var(--bg-elevated);
-}
-
-.editorHeader {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
-  border-bottom: var(--border-width) solid var(--border);
-}
-
-.editorTitle {
-  @include text-heading;
-  color: var(--text);
-}
-
-.editorHeaderSpacer { flex: 1; }
-
-.editorBody {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.editorStage {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.editorStageInner {
-  position: relative;
-  width: 100%;
-  max-height: 100%;
-  aspect-ratio: 5 / 3;
-}
-
-.sidebar {
-  @include scrollbar-visible;
-  width: 320px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  overflow-y: auto;
-  padding-right: 0.25rem;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.sectionHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.sectionTitle {
-  @include text-label;
-  color: var(--text-dim);
-}
-
 .sectionNote {
   @include text-caption;
   color: var(--text-dim);
@@ -265,93 +152,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-}
-
-.deskGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
-}
-
-.deskTile {
-  @include text-caption;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.55rem 0.3rem;
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-  transition: border-color var(--ease-fast), background var(--ease-fast), color var(--ease-fast);
-
-  &:hover {
-    border-color: var(--accent);
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-
-  &:focus-visible { @include focus-ring; }
-}
-
-.deviceList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.deviceRow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.4rem 0.5rem;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  cursor: grab;
-  transition: border-color var(--ease-fast), background var(--ease-fast);
-
-  &:hover { border-color: var(--border-strong); }
-}
-
-.deviceRowActive {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-
-.deviceDot {
-  width: 8px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: var(--radius-pill);
-  background: var(--text-dim);
-}
-
-.deviceDotPlaced { background: var(--accent); }
-
-.deviceText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.deviceName {
-  @include text-body;
-  overflow: hidden;
-  color: var(--text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deviceWhere {
-  @include text-caption;
-  overflow: hidden;
-  color: var(--text-dim);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .inspectorTitle {
@@ -392,13 +192,12 @@
   box-shadow: var(--shadow-md);
 }
 
-.inspectorSection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-
-  & + & {
-    padding-top: 0.5rem;
-    border-top: var(--border-width) solid var(--border);
-  }
+.countBadge {
+  @include text-caption;
+  min-width: 1.25rem;
+  margin-left: 0.15rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / var(--alpha-medium));
+  text-align: center;
 }

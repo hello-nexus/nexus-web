@@ -1,5 +1,5 @@
 import type { LedMapEntry } from '../../api/lighting';
-import type { LightingScene, SceneAnchor, SceneObject, Vec3 } from '../../api/lightingScene';
+import type { SceneAnchor, SceneBinding, SceneObject, Vec3 } from './sceneTypes';
 
 /** The lighting canvas the engine samples, in its logical units. */
 export const CANVAS_W = 1000;
@@ -56,7 +56,7 @@ export function quadAt(q: SceneQuad, u: number, v: number): Vec3 {
 }
 
 /** Every bound device's surfaces in target order; a binding whose targets all miss is left out. */
-export function placements(scene: Pick<LightingScene, 'objects' | 'bindings'>): Map<string, SceneQuad[]> {
+export function placements(scene: { objects: SceneObject[]; bindings: SceneBinding[] }): Map<string, SceneQuad[]> {
   const objects = new Map(scene.objects.map(o => [o.id, o]));
   const out = new Map<string, SceneQuad[]>();
   for (const b of scene.bindings) {

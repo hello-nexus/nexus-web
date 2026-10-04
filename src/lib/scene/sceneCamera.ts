@@ -1,5 +1,5 @@
 import { PerspectiveCamera, Vector3 } from 'three';
-import type { SceneCamera, Vec3 } from '../../api/lightingScene';
+import type { SceneCamera, Vec3 } from './sceneTypes';
 import { CANVAS_H, CANVAS_W } from './sceneMath';
 
 export const CAMERA_NEAR = 1;

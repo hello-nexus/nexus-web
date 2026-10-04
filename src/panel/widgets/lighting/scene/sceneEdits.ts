@@ -1,4 +1,4 @@
-import type { SceneBinding, SceneObject, Vec3 } from '../../../../api/lightingScene';
+import type { SceneBinding } from '../../../../api/lightingScene';
 import type { SceneEdit } from './useLightingScene';
 
 /** Pure scene edits: each returns the next scene without touching the one passed in. */
@@ -18,10 +18,6 @@ export function unplaceDevice(s: SceneEdit, deviceId: string): SceneEdit {
   return { ...s, bindings: s.bindings.filter(b => b.deviceId !== deviceId) };
 }
 
-export function editBinding(s: SceneEdit, deviceId: string, patch: Partial<Pick<SceneBinding, 'rotation' | 'flip'>>): SceneEdit {
-  return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, ...patch } : b)) };
-}
-
 /** A quarter turn clockwise of the device's map on its surfaces. */
 export function rotateBinding(s: SceneEdit, deviceId: string): SceneEdit {
   return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, rotation: (b.rotation + 90) % 360 } : b)) };
@@ -29,24 +25,4 @@ export function rotateBinding(s: SceneEdit, deviceId: string): SceneEdit {
 
 export function flipBinding(s: SceneEdit, deviceId: string): SceneEdit {
   return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, flip: !b.flip } : b)) };
-}
-
-export function addObject(s: SceneEdit, obj: SceneObject): SceneEdit {
-  return { ...s, objects: [...s.objects, obj] };
-}
-
-/** Removes an object and every placement on it; a device left with no surface is unplaced. */
-export function removeObject(s: SceneEdit, objectId: string): SceneEdit {
-  const bindings = s.bindings
-    .map(b => ({ ...b, targets: b.targets.filter(t => t.objectId !== objectId) }))
-    .filter(b => b.targets.length > 0);
-  return { objects: s.objects.filter(o => o.id !== objectId), bindings };
-}
-
-export function moveObject(s: SceneEdit, objectId: string, position: Vec3): SceneEdit {
-  return { ...s, objects: s.objects.map(o => (o.id === objectId ? { ...o, position } : o)) };
-}
-
-export function turnObject(s: SceneEdit, objectId: string, degrees: number): SceneEdit {
-  return { ...s, objects: s.objects.map(o => (o.id === objectId ? { ...o, yaw: (((o.yaw + degrees) % 360) + 360) % 360 } : o)) };
 }

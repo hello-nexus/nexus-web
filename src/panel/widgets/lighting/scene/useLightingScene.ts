@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchLedMap, type LedMapEntry, type LightingDevice } from '../../../../api/lighting';
 import {
-  deleteSceneImport,
   fetchLightingScene,
   fetchSceneModel,
   putLightingScene,
@@ -9,6 +8,7 @@ import {
   type LightingScene,
   type SceneBinding,
   type SceneCamera,
+  type SceneModel,
   type SceneObject,
   type SceneView,
 } from '../../../../api/lightingScene';
@@ -37,19 +37,18 @@ export interface SceneEdit {
 
 export interface LightingSceneApi {
   scene: LightingScene | null;
-  model: ArrayBuffer | null;
+  model: SceneModel | null;
   update: (mutate: (current: SceneEdit) => SceneEdit) => void;
   setEnabled: (enabled: boolean) => Promise<void>;
   /** Resolves once a final camera is saved, so a preset snapshot taken after it sees the new view. */
   setCamera: (camera: SceneCamera, final: boolean) => Promise<void>;
-  removeImport: () => Promise<void>;
   /** Re-reads the view (and the scene when no local edit is waiting), after a preset or another client changed it. */
   refreshView: () => Promise<void>;
 }
 
 export function useLightingScene(active: boolean): LightingSceneApi {
   const [scene, setScene] = useState<LightingScene | null>(null);
-  const [model, setModel] = useState<ArrayBuffer | null>(null);
+  const [model, setModel] = useState<SceneModel | null>(null);
   const sceneRef = useRef<LightingScene | null>(null);
   sceneRef.current = scene;
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,7 +103,7 @@ export function useLightingScene(active: boolean): LightingSceneApi {
       return undefined;
     }
     let cancelled = false;
-    void fetchSceneModel().then(bytes => { if (!cancelled) setModel(bytes); });
+    void fetchSceneModel().then(next => { if (!cancelled) setModel(next); });
     return () => { cancelled = true; };
   }, [active, modelRev]);
 
@@ -171,12 +170,7 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     draftTimer.current = setTimeout(sendDraft, wait);
   }, [sendView, sendDraft]);
 
-  const removeImport = useCallback(async () => {
-    const next = await deleteSceneImport();
-    if (next) setScene(next);
-  }, []);
-
-  return { scene, model, update, setEnabled, setCamera, removeImport, refreshView };
+  return { scene, model, update, setEnabled, setCamera, refreshView };
 }
 
 /** LED maps of the placed devices, refetched when a device's LED count changes. */

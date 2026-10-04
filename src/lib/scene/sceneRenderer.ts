@@ -6,33 +6,26 @@ import {
   CircleGeometry,
   Color,
   DoubleSide,
-  EdgesGeometry,
   Float32BufferAttribute,
   Group,
-  LineBasicMaterial,
-  LineLoop,
-  LineSegments,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
-  type Object3D,
-  PerspectiveCamera,
-  Plane,
   PlaneGeometry,
   Points,
   PointsMaterial,
-  Raycaster,
-  Scene,
-  Vector2,
   Vector3,
-  WebGLRenderer,
 } from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import type { SceneAnchor, SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { subscribeLedFrame, type LedFrame } from '../ledFrameStore';
+import { layoutToSceneMatrix } from './layoutFrame';
 import { applyCamera, CAMERA_FAR, CAMERA_NEAR, projectToCanvas } from './sceneCamera';
-import { CANVAS_H, CANVAS_W, rotateYaw, toWorld } from './sceneMath';
+import { CANVAS_H, CANVAS_W, rotateYaw, sceneBounds, toWorld } from './sceneMath';
+import { SceneStage } from './sceneStage';
+import type { LayoutShape, SceneAnchor, SceneBinding, SceneCamera, SceneModel, SceneObject } from './sceneTypes';
+import { buildShape, disposeGroup, floorGrid, type Palette, type ShapeSink } from './wireframe';
 
 export type ScenePick =
   | { kind: 'anchor'; objectId: string; anchorId: string }
@@ -44,37 +37,25 @@ export interface SceneRenderState {
   /** World LED positions per placed device (x, y, z triples, NaN = disabled). */
   leds: Map<string, Float32Array>;
   selectedDeviceId: string | null;
-  selectedObjectId: string | null;
-  /** A device waiting for a surface: free surfaces glow to invite the click. */
+  /** A device waiting for a spot: free spots glow to invite the click. */
   placing: boolean;
-  /** Surface under a drag from the device list, as "objectId\nanchorId". */
-  dropTarget: string | null;
-  /** The selected object can be dragged across the desk. */
-  editable: boolean;
 }
 
 export interface SceneRendererCallbacks {
   onCamera: (camera: SceneCamera, final: boolean) => void;
   onPick: (pick: ScenePick | null) => void;
-  onMoveObject: (objectId: string, position: Vec3) => void;
   /** LED canvas positions after the camera or the placements changed. */
   onProjected?: (points: Map<string, Float32Array>) => void;
   /** What the pointer rests on, with its client position; null when it leaves everything. */
   onHover?: (pick: ScenePick | null, clientX: number, clientY: number) => void;
 }
 
-/** Visual tones; the accent is read from the theme when the renderer mounts. */
-export interface SceneTheme {
-  accent: string;
-  line: string;
-  face: string;
-  desk: string;
-}
-
 const anchorKey = (objectId: string, anchorId: string) => `${objectId}\n${anchorId}`;
 const CLICK_SLOP_PX = 5;
-const SNAP_MM = 5;
-const DESK_THICKNESS = 25;
+// Floor margin around the scene's footprint, as a fraction of its larger side.
+const FLOOR_MARGIN = 0.6;
+// How far the view may pan from the scene's centre, as a fraction of its radius.
+const PAN_LIMIT = 0.6;
 
 function dotTexture(): CanvasTexture {
   const c = document.createElement('canvas');
@@ -103,227 +84,154 @@ function anchorMatrix(obj: SceneObject, a: SceneAnchor): Matrix4 {
   return m;
 }
 
-function outline(a: SceneAnchor): BufferGeometry {
+function outlinePoints(a: SceneAnchor): number[] {
   const pts: number[] = [];
   if (a.shape === 'ring') {
     const r = Math.min(a.width, a.height) * 0.46;
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i <= 64; i++) {
       const t = (i / 64) * Math.PI * 2;
       pts.push(Math.cos(t) * r, Math.sin(t) * r, 0.5);
     }
   } else {
     const w = a.width / 2, h = a.height / 2;
-    pts.push(-w, -h, 0.5, w, -h, 0.5, w, h, 0.5, -w, h, 0.5);
+    pts.push(-w, -h, 0.5, w, -h, 0.5, w, h, 0.5, -w, h, 0.5, -w, -h, 0.5);
   }
-  const g = new BufferGeometry();
-  g.setAttribute('position', new Float32BufferAttribute(pts, 3));
-  return g;
+  return pts;
 }
 
+/** An object without a shape of its own, as one box in layout space (x depth, y height, z width). */
+function boxOf(obj: SceneObject): LayoutShape {
+  const [w, h, d] = obj.size;
+  return { size: [d, w, h], boxes: [{ slot: obj.kind, role: 'part', min: [0, 0, 0], size: [d, h, w], source: 'spec' }], lines: [] };
+}
+
+/** The Lighting page's scene: Build's wireframe objects, the spots devices sit on, and each LED as a live dot. */
 export class SceneRenderer {
-  readonly camera: PerspectiveCamera;
-  private readonly renderer: WebGLRenderer;
-  private readonly scene = new Scene();
-  private readonly controls: OrbitControls;
+  private readonly stage: SceneStage;
+  private readonly palette: Palette;
+  private readonly accent: Color;
   private readonly world = new Group();
   private readonly objectsGroup = new Group();
   private readonly anchorsGroup = new Group();
-  private model: Group | null = null;
+  private readonly sink: ShapeSink = { materials: [], pickables: [], dimmables: [] };
   private dots: Points | null = null;
   private readonly dotMap = dotTexture();
-  private readonly raycaster = new Raycaster();
-  private readonly pointer = new Vector2();
   private readonly scratch = new Vector3();
+  private readonly projected = new Vector3();
+  private model: SceneModel | null = null;
   private state: SceneRenderState | null = null;
   private frame: LedFrame = { pixels: null, w: 0, h: 0, seq: 0 };
   private readonly unsubscribeFrame: () => void;
-  private readonly resizeObserver: ResizeObserver;
   private interacting = false;
   private down: { x: number; y: number; pick: ScenePick | null } | null = null;
-  private drag: { objectId: string; group: Object3D; plane: Plane; offset: Vector3; start: Vec3; moved: boolean } | null = null;
   private hovered: string | null = null;
-  // Redraw only when something on screen changed: the camera, the scene, or a new LED frame.
-  private dirty = true;
-  private paintedSeq = -1;
-  private active = true;
-  private modelToken = 0;
-  private readonly projected = new Vector3();
-  private anchorLines = new Map<string, LineLoop>();
-  private objectGroups = new Map<string, Group>();
-  private readonly theme: SceneTheme;
-  private disposed = false;
-
-  private readonly canvas: HTMLCanvasElement;
+  private anchorLines = new Map<string, { line: LineMaterial; fill: MeshBasicMaterial }>();
   private readonly callbacks: SceneRendererCallbacks;
 
-  constructor(canvas: HTMLCanvasElement, callbacks: SceneRendererCallbacks, theme: SceneTheme) {
-    this.canvas = canvas;
+  /** Throws when the browser gives no WebGL context. */
+  constructor(host: HTMLElement, callbacks: SceneRendererCallbacks, palette: Palette) {
     this.callbacks = callbacks;
-    this.theme = theme;
-    this.renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true });
-    this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    this.camera = new PerspectiveCamera(40, CANVAS_W / CANVAS_H, CAMERA_NEAR, CAMERA_FAR);
-    this.camera.position.set(0, 600, 1800);
-    this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.enableDamping = false;
-    this.controls.screenSpacePanning = true;
-    this.controls.minDistance = 150;
-    this.controls.maxDistance = 20_000;
-    this.controls.addEventListener('start', () => { this.interacting = true; });
-    this.controls.addEventListener('change', () => {
-      this.dirty = true;
-      if (this.interacting) {
-        this.callbacks.onCamera(this.getCamera(), false);
-        this.publishProjection();
-      }
-    });
-    this.controls.addEventListener('end', () => {
-      this.interacting = false;
-      this.callbacks.onCamera(this.getCamera(), true);
-      this.publishProjection();
-    });
+    this.accent = palette.part.clone();
+    // Parts draw in the frame tone here, so the accent is left to the spots and selections.
+    this.palette = { ...palette, part: palette.frame.clone().lerp(new Color(1, 1, 1), 0.35) };
+    this.stage = new SceneStage(host, { fov: 40, near: CAMERA_NEAR, far: CAMERA_FAR, aspect: CANVAS_W / CANVAS_H });
+    const { controls, canvas } = this.stage;
+    controls.minDistance = 150;
+    controls.maxDistance = 20_000;
+    controls.addEventListener('start', this.onControlsStart);
+    controls.addEventListener('change', this.onControlsChange);
+    controls.addEventListener('end', this.onControlsEnd);
     this.world.add(this.objectsGroup, this.anchorsGroup);
-    this.scene.add(this.world);
-
-    canvas.addEventListener('pointerdown', this.onPointerDown, { capture: true });
+    this.stage.scene.add(this.world);
+    this.stage.beforeRender = () => this.paintDots();
+    canvas.addEventListener('pointerdown', this.onPointerDown);
     canvas.addEventListener('pointermove', this.onPointerMove);
     canvas.addEventListener('pointerleave', this.onPointerLeave);
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('pointercancel', this.onPointerCancel);
-    this.unsubscribeFrame = subscribeLedFrame(f => { this.frame = f; });
-    this.resizeObserver = new ResizeObserver(() => this.resize());
-    this.resizeObserver.observe(canvas);
-    this.resize();
-    this.renderer.setAnimationLoop(this.tick);
+    this.unsubscribeFrame = subscribeLedFrame(f => {
+      this.frame = f;
+      if (this.dots) this.stage.requestRender();
+    });
   }
 
   dispose(): void {
-    // A view torn down mid-drag (the editor closed) still saves where the camera ended up.
+    // A view torn down mid-drag still saves where the camera ended up.
     if (this.interacting) this.callbacks.onCamera(this.getCamera(), true);
-    this.disposed = true;
-    this.renderer.setAnimationLoop(null);
-    this.resizeObserver.disconnect();
     this.unsubscribeFrame();
-    this.canvas.removeEventListener('pointerdown', this.onPointerDown, { capture: true });
-    this.canvas.removeEventListener('pointermove', this.onPointerMove);
-    this.canvas.removeEventListener('pointerleave', this.onPointerLeave);
+    const { controls, canvas } = this.stage;
+    controls.removeEventListener('start', this.onControlsStart);
+    controls.removeEventListener('change', this.onControlsChange);
+    controls.removeEventListener('end', this.onControlsEnd);
+    canvas.removeEventListener('pointerdown', this.onPointerDown);
+    canvas.removeEventListener('pointermove', this.onPointerMove);
+    canvas.removeEventListener('pointerleave', this.onPointerLeave);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('pointercancel', this.onPointerCancel);
-    this.controls.dispose();
-    this.clearGroup(this.objectsGroup);
-    this.clearGroup(this.anchorsGroup);
-    this.clearDots();
-    if (this.model) this.clearGroup(this.model, true);
-    this.model = null;
+    this.clear();
     this.dotMap.dispose();
-    this.renderer.dispose();
-    // Frees the GL context now rather than at garbage collection; the browser caps live contexts.
-    this.renderer.forceContextLoss();
-  }
-
-  /** A hidden view stops drawing (the inline view under the open editor) and picks up again when shown. */
-  setActive(active: boolean): void {
-    if (active === this.active || this.disposed) return;
-    this.active = active;
-    this.dirty = true;
-    this.renderer.setAnimationLoop(active ? this.tick : null);
+    this.stage.dispose();
   }
 
   getCamera(): SceneCamera {
-    const p = this.camera.position;
-    const t = this.controls.target;
+    const p = this.stage.camera.position;
+    const t = this.stage.controls.target;
     const r = (v: number) => Math.round(v * 10) / 10;
-    return { position: [r(p.x), r(p.y), r(p.z)], target: [r(t.x), r(t.y), r(t.z)], fov: this.camera.fov };
+    return { position: [r(p.x), r(p.y), r(p.z)], target: [r(t.x), r(t.y), r(t.z)], fov: this.stage.camera.fov };
   }
 
   /** Moves the camera unless the user is dragging it. */
   setCamera(cam: SceneCamera): void {
     if (this.interacting) return;
-    applyCamera(this.camera, cam);
-    this.controls.target.set(...cam.target);
-    this.controls.update();
-    this.dirty = true;
+    applyCamera(this.stage.camera, cam);
+    this.stage.controls.target.set(...cam.target);
+    this.stage.controls.update();
+    this.stage.requestRender();
     this.publishProjection();
   }
 
-  async setModel(bytes: ArrayBuffer | null): Promise<void> {
-    const token = ++this.modelToken;
-    const parsed = bytes ? (await new GLTFLoader().parseAsync(bytes, '')).scene : null;
-    // A newer call (or disposal) overtook this parse: its model is the one to keep.
-    if (token !== this.modelToken || this.disposed) {
-      if (parsed) this.clearGroup(parsed, true);
-      return;
-    }
-    if (this.model) this.clearGroup(this.model, true);
-    this.model = parsed;
-    if (this.model) this.styleModel(this.model);
+  setModel(model: SceneModel | null): void {
+    if (model === this.model) return;
+    this.model = model;
     if (this.state) this.rebuild();
   }
 
   setState(next: SceneRenderState): void {
     const prev = this.state;
     this.state = next;
-    if (!prev || prev.objects !== next.objects || prev.bindings !== next.bindings || prev.leds !== next.leds) {
-      this.rebuild();
-    } else {
-      this.restyle();
-    }
+    if (!prev || prev.objects !== next.objects || prev.bindings !== next.bindings || prev.leds !== next.leds) this.rebuild();
+    else this.restyle();
   }
 
-  /** What sits under a viewport point (client pixels): a surface first, then an object. */
+  /** What sits under a viewport point (client pixels): a spot first, then an object. */
   pickAt(clientX: number, clientY: number): ScenePick | null {
-    const rect = this.canvas.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return null;
-    this.pointer.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
-    this.raycaster.setFromCamera(this.pointer, this.camera);
-    const hits = this.raycaster.intersectObjects([this.anchorsGroup, this.objectsGroup], true);
+    const hits = this.stage.raycast(clientX, clientY, [this.anchorsGroup, this.objectsGroup], true);
     const anchor = hits.find(h => h.object.userData.pick === 'anchor');
     if (anchor) return { kind: 'anchor', objectId: anchor.object.userData.objectId, anchorId: anchor.object.userData.anchorId };
     const obj = hits.find(h => h.object.userData.pick === 'object');
     return obj ? { kind: 'object', objectId: obj.object.userData.objectId } : null;
   }
 
-  private resize(): void {
-    const w = this.canvas.clientWidth;
-    const h = this.canvas.clientHeight;
-    if (w === 0 || h === 0) return;
-    this.renderer.setSize(w, h, false);
-    // The aspect stays the canvas's own: the viewport is styled to it, and the hardware samples through it.
-    this.camera.aspect = CANVAS_W / CANVAS_H;
-    this.camera.updateProjectionMatrix();
-    this.dirty = true;
-  }
-
-  private readonly tick = () => {
-    const frameMoved = this.frame.seq !== this.paintedSeq;
-    if (!this.dirty && !frameMoved) return;
-    this.paintDots();
-    this.paintedSeq = this.frame.seq;
-    this.dirty = false;
-    this.renderer.render(this.scene, this.camera);
-  };
-
   private paintDots(): void {
     const dots = this.dots;
     const { pixels, w, h } = this.frame;
     if (!dots) return;
+    const camera = this.stage.camera;
     const pos = dots.geometry.getAttribute('position') as BufferAttribute;
     const col = dots.geometry.getAttribute('color') as BufferAttribute;
-    const n = pos.count;
     const v = this.projected;
-    this.camera.updateMatrixWorld();
-    for (let i = 0; i < n; i++) {
+    camera.updateMatrixWorld();
+    for (let i = 0; i < pos.count; i++) {
       if (!pixels || w === 0) {
         col.setXYZ(i, 0.85, 0.85, 0.85);
         continue;
       }
-      v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(this.camera.matrixWorldInverse);
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(camera.matrixWorldInverse);
       if (-v.z < CAMERA_NEAR) {
         col.setXYZ(i, 0, 0, 0);
         continue;
       }
-      v.applyMatrix4(this.camera.projectionMatrix);
+      v.applyMatrix4(camera.projectionMatrix);
       // Floor, as the engine truncates its sample position, so the dot shows the LED's own pixel.
       const px = Math.min(w - 1, Math.max(0, Math.floor(((v.x + 1) / 2) * w)));
       const py = Math.min(h - 1, Math.max(0, Math.floor(((1 - v.y) / 2) * h)));
@@ -336,14 +244,15 @@ export class SceneRenderer {
 
   private publishProjection(): void {
     if (!this.callbacks.onProjected || !this.state) return;
-    this.camera.updateMatrixWorld();
+    const camera = this.stage.camera;
+    camera.updateMatrixWorld();
     const out = new Map<string, Float32Array>();
     for (const [id, world] of this.state.leds) {
       const n = world.length / 3;
       const pts = new Float32Array(n * 2).fill(Number.NaN);
       for (let i = 0; i < n; i++) {
         if (Number.isNaN(world[i * 3])) continue;
-        const p = projectToCanvas(this.camera, [world[i * 3], world[i * 3 + 1], world[i * 3 + 2]], this.scratch);
+        const p = projectToCanvas(camera, [world[i * 3], world[i * 3 + 1], world[i * 3 + 2]], this.scratch);
         if (p) {
           pts[i * 2] = p[0];
           pts[i * 2 + 1] = p[1];
@@ -354,71 +263,52 @@ export class SceneRenderer {
     this.callbacks.onProjected(out);
   }
 
-  private clearGroup(group: Object3D, disposeShared = false): void {
-    for (const child of [...group.children]) {
-      group.remove(child);
-      child.traverse(o => {
-        if (o.userData.shared && !disposeShared) return;
-        const m = o as Mesh;
-        m.geometry?.dispose?.();
-        const mat = m.material;
-        if (Array.isArray(mat)) mat.forEach(x => x.dispose());
-        else mat?.dispose?.();
-      });
-    }
-  }
-
-  private clearDots(): void {
-    if (!this.dots) return;
-    this.scene.remove(this.dots);
-    this.dots.geometry.dispose();
-    (this.dots.material as PointsMaterial).dispose();
-    this.dots = null;
-  }
-
-  private styleModel(model: Group): void {
-    const meshes: Mesh[] = [];
-    model.traverse(o => { if ((o as Mesh).isMesh) meshes.push(o as Mesh); });
-    for (const mesh of meshes) {
-      for (const old of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-        for (const value of Object.values(old)) {
-          if (value && typeof value === 'object' && 'isTexture' in value) (value as { dispose: () => void }).dispose();
-        }
-        old.dispose();
+  private clear(): void {
+    for (const group of [this.objectsGroup, this.anchorsGroup]) {
+      for (const child of [...group.children]) {
+        group.remove(child);
+        disposeGroup(child);
       }
-      mesh.material = new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false });
-      mesh.add(new LineSegments(new EdgesGeometry(mesh.geometry, 25), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.55 })));
     }
-    // Clones share these buffers; clearGroup leaves them for the model's own disposal.
-    model.traverse(o => { o.userData.shared = true; });
+    this.stage.untrackLines(this.sink.materials);
+    this.sink.materials.length = 0;
+    this.sink.pickables.length = 0;
+    this.sink.dimmables.length = 0;
+    this.anchorLines.clear();
+    if (this.dots) {
+      this.stage.scene.remove(this.dots);
+      disposeGroup(this.dots);
+      this.dots = null;
+    }
   }
 
   private rebuild(): void {
     const state = this.state;
     if (!state) return;
-    this.clearGroup(this.objectsGroup);
-    this.clearGroup(this.anchorsGroup);
-    this.anchorLines.clear();
-    this.objectGroups.clear();
-    this.clearDots();
-
-    this.objectsGroup.add(this.buildDesk(state.objects));
+    this.clear();
+    const bounds = sceneBounds(state.objects);
+    if (bounds) {
+      const side = Math.max(bounds.max[0] - bounds.min[0], bounds.max[2] - bounds.min[2]) * (1 + FLOOR_MARGIN);
+      const grid = floorGrid(side, this.palette);
+      grid.position.x = (bounds.min[0] + bounds.max[0]) / 2;
+      grid.position.z = (bounds.min[2] + bounds.max[2]) / 2;
+      this.objectsGroup.add(grid);
+      const centre = new Vector3((bounds.min[0] + bounds.max[0]) / 2, (bounds.min[1] + bounds.max[1]) / 2, (bounds.min[2] + bounds.max[2]) / 2);
+      const radius = Math.hypot(bounds.max[0] - bounds.min[0], bounds.max[1] - bounds.min[1], bounds.max[2] - bounds.min[2]) / 2;
+      this.stage.setPanLimit(centre, radius * PAN_LIMIT);
+    }
     for (const obj of state.objects) {
       const g = new Group();
       g.position.set(...obj.position);
       g.rotation.y = (obj.yaw * Math.PI) / 180;
-      if (obj.kind === 'case' && obj.hasModel && this.model) {
-        const model = this.model.clone(true);
-        g.add(model);
-        // The model is drawn, but picking uses the case's bounds so it can be grabbed anywhere.
-        g.add(this.pickBox(obj));
-      } else {
-        g.add(this.objectBox(obj));
-      }
+      const shape = (obj.hasModel ? this.model?.shapes[obj.id] : undefined) ?? boxOf(obj);
+      const drawn = buildShape(shape, this.palette, this.sink, false);
+      drawn.applyMatrix4(new Matrix4().set(...(layoutToSceneMatrix(shape) as Parameters<Matrix4['set']>)));
+      g.add(drawn, this.pickBox(obj));
       this.objectsGroup.add(g);
-      this.objectGroups.set(obj.id, g);
       for (const a of obj.anchors) this.addAnchor(obj, a);
     }
+    this.stage.trackLines(this.sink.materials);
 
     const positions: number[] = [];
     for (const world of state.leds.values()) {
@@ -433,166 +323,97 @@ export class SceneRenderer {
       const mat = new PointsMaterial({ size: 9, sizeAttenuation: false, vertexColors: true, map: this.dotMap, transparent: true, alphaTest: 0.05, depthTest: false });
       this.dots = new Points(geo, mat);
       this.dots.renderOrder = 10;
-      this.scene.add(this.dots);
+      this.stage.scene.add(this.dots);
     }
     this.restyle();
     this.publishProjection();
   }
 
-  private buildDesk(objects: SceneObject[]): Group {
-    const g = new Group();
-    const desk = objects.filter(o => o.kind !== 'case' || o.position[1] <= 1);
-    let minX = -800, maxX = 800, minZ = -375, maxZ = 375;
-    for (const o of desk) {
-      const r = Math.hypot(o.size[0], o.size[2]) / 2;
-      minX = Math.min(minX, o.position[0] - r - 40);
-      maxX = Math.max(maxX, o.position[0] + r + 40);
-      minZ = Math.min(minZ, o.position[2] - r - 40);
-      maxZ = Math.max(maxZ, o.position[2] + r + 40);
-    }
-    const geo = new BoxGeometry(maxX - minX, DESK_THICKNESS, maxZ - minZ);
-    const slab = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.desk), transparent: true, opacity: 0.35, depthWrite: false }));
-    slab.position.set((minX + maxX) / 2, -DESK_THICKNESS / 2, (minZ + maxZ) / 2);
-    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.25 }));
-    edges.position.copy(slab.position);
-    g.add(slab, edges);
-    return g;
-  }
-
-  private objectBox(obj: SceneObject): Group {
-    const g = new Group();
-    const [w, h, d] = obj.size;
-    const geo = new BoxGeometry(w, h, d);
-    const face = new Mesh(geo, new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.22, depthWrite: false }));
-    face.position.y = h / 2;
-    face.userData = { pick: 'object', objectId: obj.id, role: 'face' };
-    const edges = new LineSegments(new EdgesGeometry(geo), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.6 }));
-    edges.position.y = h / 2;
-    edges.userData = { role: 'edges' };
-    g.add(face, edges);
-    return g;
-  }
-
+  // The case is picked by its bounds, so it can be clicked anywhere, not only on its lines.
   private pickBox(obj: SceneObject): Mesh {
     const [w, h, d] = obj.size;
-    const mesh = new Mesh(new BoxGeometry(w, h, d), new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
+    const mesh = new Mesh(new BoxGeometry(w, h, d), new MeshBasicMaterial({ visible: false }));
     mesh.position.y = h / 2;
     mesh.userData = { pick: 'object', objectId: obj.id };
     return mesh;
   }
 
   private addAnchor(obj: SceneObject, a: SceneAnchor): void {
-    const m = anchorMatrix(obj, a);
     const g = new Group();
-    g.applyMatrix4(m);
-    const line = new LineLoop(outline(a), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.4, depthTest: false }));
+    g.applyMatrix4(anchorMatrix(obj, a));
+    const lineMat = new LineMaterial({ color: this.palette.frame, linewidth: 1.4, transparent: true, opacity: 0.4, depthTest: false });
+    this.sink.materials.push(lineMat);
+    const line = new Line2(new LineGeometry().setPositions(outlinePoints(a)), lineMat);
     line.renderOrder = 5;
     const pickGeo = a.shape === 'ring' ? new CircleGeometry(Math.min(a.width, a.height) * 0.5, 32) : new PlaneGeometry(Math.max(a.width, 12), Math.max(a.height, 12));
-    const pick = new Mesh(pickGeo, new MeshBasicMaterial({ color: new Color(this.theme.accent), transparent: true, opacity: 0, side: DoubleSide, depthWrite: false }));
+    const fill = new MeshBasicMaterial({ color: this.accent, transparent: true, opacity: 0, side: DoubleSide, depthWrite: false });
+    const pick = new Mesh(pickGeo, fill);
     pick.userData = { pick: 'anchor', objectId: obj.id, anchorId: a.id };
     pick.position.z = 0.6;
     g.add(line, pick);
     this.anchorsGroup.add(g);
-    this.anchorLines.set(anchorKey(obj.id, a.id), line);
+    this.anchorLines.set(anchorKey(obj.id, a.id), { line: lineMat, fill });
   }
 
-  /** Surface and object highlight from the current state, without rebuilding geometry. */
+  /** Spot highlights from the current state, without rebuilding geometry. */
   private restyle(): void {
     const state = this.state;
     if (!state) return;
-    this.dirty = true;
-    const accent = new Color(this.theme.accent);
-    const line = new Color(this.theme.line);
     const boundTo = new Map<string, string>();
     for (const b of state.bindings) for (const t of b.targets) boundTo.set(anchorKey(t.objectId, t.anchorId), b.deviceId);
-    for (const [key, loop] of this.anchorLines) {
-      const mat = loop.material as LineBasicMaterial;
+    for (const [key, { line, fill }] of this.anchorLines) {
       const device = boundTo.get(key);
-      const pick = loop.parent?.children.find(c => c.userData.pick === 'anchor') as Mesh | undefined;
-      const pickMat = pick?.material as MeshBasicMaterial | undefined;
+      let color = this.palette.frame;
       let opacity = 0.35;
-      let color = line;
-      let fill = 0;
+      let tint = 0;
       if (device) {
-        color = accent;
-        opacity = device === state.selectedDeviceId ? 1 : 0.75;
-        fill = device === state.selectedDeviceId ? 0.18 : 0;
+        color = this.accent;
+        opacity = device === state.selectedDeviceId ? 1 : 0.7;
+        tint = device === state.selectedDeviceId ? 0.18 : 0;
       } else if (state.placing) {
-        color = accent;
+        color = this.accent;
         opacity = 0.9;
-        fill = 0.12;
+        tint = 0.12;
       }
-      if (key === state.dropTarget || key === this.hovered) {
-        color = accent;
+      if (key === this.hovered) {
+        color = this.accent;
         opacity = 1;
-        fill = 0.3;
+        tint = 0.3;
       }
-      mat.color.copy(color);
-      mat.opacity = opacity;
-      if (pickMat) pickMat.opacity = fill;
+      line.color.copy(color);
+      line.opacity = opacity;
+      fill.opacity = tint;
     }
-    for (const [id, g] of this.objectGroups) {
-      const selected = id === state.selectedObjectId;
-      g.traverse(o => {
-        if (o.userData.role === 'edges') {
-          const mat = (o as LineSegments).material as LineBasicMaterial;
-          mat.color.copy(selected ? accent : line);
-          mat.opacity = selected ? 1 : 0.6;
-        }
-      });
-    }
+    this.stage.requestRender();
   }
 
-  private eventPick(e: PointerEvent): ScenePick | null {
-    return this.pickAt(e.clientX, e.clientY);
-  }
+  private readonly onControlsStart = () => { this.interacting = true; };
+
+  private readonly onControlsChange = () => {
+    if (!this.interacting) return;
+    this.callbacks.onCamera(this.getCamera(), false);
+    this.publishProjection();
+  };
+
+  private readonly onControlsEnd = () => {
+    this.interacting = false;
+    this.callbacks.onCamera(this.getCamera(), true);
+    this.publishProjection();
+  };
 
   private readonly onPointerDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
-    const pick = this.eventPick(e);
-    this.down = { x: e.clientX, y: e.clientY, pick };
-    const state = this.state;
-    // Only the selected object drags across the desk; a drag that starts anywhere else orbits, so a
-    // camera move that begins over the case never shoves it.
-    if (state?.editable && pick && pick.objectId === state.selectedObjectId) {
-      const group = this.objectGroups.get(pick.objectId);
-      const obj = state.objects.find(o => o.id === pick.objectId);
-      if (group && obj) {
-        const plane = new Plane(new Vector3(0, 1, 0), -obj.position[1]);
-        const hit = new Vector3();
-        if (this.raycaster.ray.intersectPlane(plane, hit)) {
-          this.drag = { objectId: obj.id, group, plane, offset: hit.sub(group.position), start: [...obj.position], moved: false };
-          this.controls.enabled = false;
-          this.canvas.setPointerCapture(e.pointerId);
-        }
-      }
-    }
+    this.down = e.button === 0 ? { x: e.clientX, y: e.clientY, pick: this.pickAt(e.clientX, e.clientY) } : null;
   };
 
   private readonly onPointerMove = (e: PointerEvent) => {
-    if (this.drag) {
-      const rect = this.canvas.getBoundingClientRect();
-      this.pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-      this.raycaster.setFromCamera(this.pointer, this.camera);
-      const hit = new Vector3();
-      if (this.raycaster.ray.intersectPlane(this.drag.plane, hit)) {
-        const p = hit.sub(this.drag.offset);
-        const snap = (v: number) => Math.round(v / SNAP_MM) * SNAP_MM;
-        this.drag.group.position.set(snap(p.x), this.drag.start[1], snap(p.z));
-        this.dirty = true;
-        if (this.down && Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > CLICK_SLOP_PX) this.drag.moved = true;
-      }
-      return;
-    }
     if (e.buttons !== 0) {
       this.callbacks.onHover?.(null, e.clientX, e.clientY);
       return;
     }
-    const pick = this.eventPick(e);
+    const pick = this.pickAt(e.clientX, e.clientY);
     this.callbacks.onHover?.(pick, e.clientX, e.clientY);
     const key = pick?.kind === 'anchor' ? anchorKey(pick.objectId, pick.anchorId) : null;
-    const movable = this.state?.editable && pick && pick.objectId === this.state.selectedObjectId;
-    this.canvas.style.cursor = pick ? (movable ? 'grab' : 'pointer') : '';
+    this.stage.canvas.style.cursor = key ? 'pointer' : '';
     if (key !== this.hovered) {
       this.hovered = key;
       this.restyle();
@@ -600,11 +421,7 @@ export class SceneRenderer {
   };
 
   private readonly onPointerCancel = () => {
-    if (this.drag) this.drag.group.position.set(...this.drag.start);
-    this.drag = null;
     this.down = null;
-    this.controls.enabled = true;
-    this.dirty = true;
   };
 
   private readonly onPointerLeave = (e: PointerEvent) => {
@@ -618,16 +435,9 @@ export class SceneRenderer {
   private readonly onPointerUp = (e: PointerEvent) => {
     const down = this.down;
     this.down = null;
-    const drag = this.drag;
-    this.drag = null;
-    this.controls.enabled = true;
-    if (drag?.moved) {
-      const p = drag.group.position;
-      this.callbacks.onMoveObject(drag.objectId, [p.x, p.y, p.z]);
-      return;
-    }
-    if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) return;
-    if (e.target !== this.canvas && !drag) return;
+    if (!down || e.target !== this.stage.canvas) return;
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > CLICK_SLOP_PX) return;
     this.callbacks.onPick(down.pick);
   };
 }
+

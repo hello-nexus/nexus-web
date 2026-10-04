@@ -22,14 +22,14 @@ describe('relaySceneExport', () => {
     expect(importLightingScene).not.toHaveBeenCalled();
   });
 
-  it('encodes the model as base64 and turns the view on with a framing camera on first import', async () => {
+  it('passes the shapes on and turns the view on with a framing camera on first import', async () => {
     vi.mocked(importLightingScene).mockResolvedValue(imported(null) as never);
     vi.mocked(fetchLightingScene).mockResolvedValue(imported(null) as never);
-    const model = new Uint8Array([0x67, 0x6c, 0x54, 0x46]).buffer;
+    const model = { version: 1, shapes: { case: { size: [450, 230, 470], boxes: [], lines: [] } } };
 
     expect(await relaySceneExport({ caseId: 'hyte-y70', objects: [caseObject], model })).toBe(true);
 
-    expect(importLightingScene).toHaveBeenCalledWith({ caseId: 'hyte-y70', objects: [caseObject], modelBase64: 'Z2xURg==' });
+    expect(importLightingScene).toHaveBeenCalledWith({ caseId: 'hyte-y70', objects: [caseObject], model });
     const view = vi.mocked(putSceneView).mock.calls[0][0];
     expect(view.enabled).toBe(true);
     expect(view.camera?.fov).toBeGreaterThan(0);
@@ -39,6 +39,12 @@ describe('relaySceneExport', () => {
     vi.mocked(importLightingScene).mockResolvedValue(imported({ position: [0, 0, 1], target: [0, 0, 0], fov: 40 }) as never);
     expect(await relaySceneExport({ objects: [caseObject] })).toBe(true);
     expect(putSceneView).not.toHaveBeenCalled();
+  });
+
+  it('drops a model that is not an object', async () => {
+    vi.mocked(importLightingScene).mockResolvedValue(imported({ position: [0, 0, 1], target: [0, 0, 0], fov: 40 }) as never);
+    await relaySceneExport({ objects: [caseObject], model: [1, 2] });
+    expect(importLightingScene).toHaveBeenCalledWith({ caseId: null, objects: [caseObject], model: null });
   });
 
   it('reports a refused import', async () => {

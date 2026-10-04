@@ -1,4 +1,4 @@
-import type { SceneCamera, SceneObject, Vec3 } from '../../api/lightingScene';
+import type { SceneCamera, SceneObject, Vec3 } from './sceneTypes';
 import { CANVAS_H, CANVAS_W, sceneBounds } from './sceneMath';
 
 export const DEFAULT_FOV = 40;

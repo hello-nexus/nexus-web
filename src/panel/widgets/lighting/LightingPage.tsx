@@ -11,7 +11,7 @@ import {
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   fetchStaticDeviceLooks, setStaticDeviceLock,
   steamArtworkUrl, resolveActiveGame, setLightingPaused,
-  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset, identifyLightingDevice,
+  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto, type PresetApp,
 } from '../../../api/lighting';
@@ -358,7 +358,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   const [committedTemplates, setCommittedTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const sceneApi = useLightingScene(SCENE_3D);
-  const [sceneEditorOpen, setSceneEditorOpen] = useState(false);
+  // The first switch to 3D walks through placing every device.
+  const [scenePlaceOnOpen, setScenePlaceOnOpen] = useState(false);
   const scene3d = SCENE_3D && !!sceneApi.scene?.view.enabled;
   // Canvas hides the frame for any device whose LEDs are off. The device
   // list is always mounted now, so there is no tab state to hide it behind.
@@ -2316,7 +2317,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               onChange={next => {
                 const firstTime = next === VIEW_3D && (sceneApi.scene?.bindings.length ?? 0) === 0;
                 void sceneApi.setEnabled(next === VIEW_3D);
-                if (firstTime) setSceneEditorOpen(true);
+                if (firstTime) setScenePlaceOnOpen(true);
               }}
             />
           )}
@@ -2440,9 +2441,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                       shaderState={shaderMode ? previewState : null}
                       shaderPaused={paused}
                       audioRef={audioRef}
-                      editorOpen={sceneEditorOpen}
-                      onEditorOpenChange={setSceneEditorOpen}
-                      onIdentify={id => { identifyLightingDevice(id).catch(() => { /* silent */ }); }}
+                      startPlacing={scenePlaceOnOpen}
+                      onPlacingStarted={() => setScenePlaceOnOpen(false)}
                       onLayoutCommit={handleLayoutCommit}
                     />
                   </Suspense>

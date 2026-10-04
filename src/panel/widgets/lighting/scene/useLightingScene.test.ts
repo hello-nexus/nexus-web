@@ -6,7 +6,6 @@ vi.mock('../../../../api/lightingScene', () => ({
   fetchSceneModel: vi.fn(),
   putLightingScene: vi.fn(),
   putSceneView: vi.fn(),
-  deleteSceneImport: vi.fn(),
 }));
 vi.mock('../../../../api/lighting', () => ({ fetchLedMap: vi.fn() }));
 
