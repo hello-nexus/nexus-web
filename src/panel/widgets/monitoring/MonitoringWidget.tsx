@@ -23,7 +23,7 @@ import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, smartStorageSensors }
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isNativePercentType, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
 import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
 import { defaultValueColorReverse, designSupportsValueColor, gaugeAccentVars, hasValueColorReading, reverseGaugeGradient, sensorSupportsValueColor } from './valueColor';
@@ -184,8 +184,7 @@ export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | und
   if (device === 'fan' || device === 'network' || device === 'fps') {
     return Math.min(100, (sensor.value / maxValue) * 100);
   }
-  if (isNativePercentType(sensor.type)) return Math.max(0, Math.min(100, sensor.value));
-  // Power, Clock, Fan, Voltage, Throughput...: against the type's ceiling.
+  // Every type against its ceiling; percent-family types resolve to a 100 ceiling.
   return Math.max(0, Math.min(100, (sensor.value / maxValue) * 100));
 }
 

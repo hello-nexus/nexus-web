@@ -184,6 +184,8 @@ describe('percentForSensor - non-percent types on cpu/gpu', () => {
     ['quick', 'GPU Clock', 'Clock', 2500, undefined],
     ['quick', 'CPU Clock', 'Clock', 4558, undefined],
     ['motherboard', 'Fan #1', 'Fan', 1819, undefined],
+    ['cooler', 'Pump', 'Fan', 2800, undefined],
+    ['cooler', 'Coolant in', 'Temperature', 34, undefined],
     ['motherboard', 'Voltage #1', 'Voltage', 1.27, undefined],
     ['motherboard', 'CPU VCCIO', 'Voltage', 1.05, undefined],
     ['motherboard', '5VSB', 'Voltage', 5.02, undefined],
@@ -199,6 +201,10 @@ describe('percentForSensor - non-percent types on cpu/gpu', () => {
     const percent = percentForSensor(device, s, theoreticalMaximum ?? staticMaxForDevice(device, name, type, value));
     expect(percent).toBeGreaterThan(1);
     expect(percent).toBeLessThan(99);
+  });
+
+  it('scales coolant against its lower ceiling', () => {
+    expect(percentForSensor('cooler', sensor({ id: 'a', name: 'Coolant in', type: 'Temperature', value: 30 }), 60)).toBe(50);
   });
 
   it('keeps Load and Temperature on their own 0-100 reading', () => {

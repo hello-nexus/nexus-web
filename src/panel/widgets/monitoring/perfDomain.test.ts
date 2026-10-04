@@ -95,6 +95,9 @@ describe('defaultFixedMax', () => {
 
   it('gives Fan, Voltage and Throughput their ceilings on every device', () => {
     expect(staticMaxForDevice('gpu', 'GPU Fan 1', 'Fan')).toBe(2500);
+    expect(staticMaxForDevice('cooler', 'Pump', 'Fan')).toBe(5000);
+    expect(staticMaxForDevice('fan', 'AIO Pump', 'Fan')).toBe(5000);
+    expect(staticMaxForDevice('fan', 'Fan #2', 'Fan')).toBe(2500);
     expect(staticMaxForDevice('cpu', 'Core #1 VID', 'Voltage', 1.2)).toBe(2.5);
     expect(staticMaxForDevice('gpu', 'GPU Core', 'Voltage', 0.8)).toBe(2.5);
     expect(staticMaxForDevice('motherboard', 'CPU VCCIO', 'Voltage', 1.05)).toBe(2.5);
@@ -113,6 +116,13 @@ describe('defaultFixedMax', () => {
   it('leaves percent-typed sensors on the 100 ceiling', () => {
     expect(staticMaxForDevice('quick', 'CPU Usage', 'Load')).toBe(100);
     expect(staticMaxForDevice('quick', 'CPU Temperature', 'Temperature')).toBe(100);
+  });
+
+  it('gives loop coolant a lower temperature ceiling than silicon', () => {
+    expect(staticMaxForDevice('cooler', 'Coolant in', 'Temperature')).toBe(60);
+    expect(staticMaxForDevice('cooler', 'Liquid Temperature', 'Temperature')).toBe(60);
+    expect(staticMaxForDevice('motherboard', 'Water In', 'Temperature')).toBe(60);
+    expect(staticMaxForDevice('cpu', 'Core (Tctl/Tdie)', 'Temperature')).toBe(100);
   });
 
   it('prefers the sensor theoreticalMaximum when present and positive', () => {

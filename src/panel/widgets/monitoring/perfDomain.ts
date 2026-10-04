@@ -51,6 +51,10 @@ const GPU_CLOCK_MAX = 3500;
 // LHM reports NVIDIA memory clocks at the effective data rate / 2.
 const GPU_MEMORY_CLOCK_MAX = 15000;
 const FAN_MAX_RPM = 2500;
+const PUMP_MAX_RPM = 5000;
+// Loop coolant runs far cooler than silicon.
+const COOLANT_TEMP_MAX = 60;
+const COOLANT_NAME = /coolant|liquid|water/i;
 const CPU_POWER_MAX = 300;
 const GPU_POWER_MAX = 600;
 const PSU_POWER_MAX = 1000;
@@ -63,11 +67,8 @@ const RAIL_VOLTAGE_MAX = 15;
 // PCIe 4.0 NVMe sequential class, in B/s.
 const THROUGHPUT_MAX_BPS = 7_000_000_000;
 
-/** Types that report 0-100 on their own (percent, or degrees C). */
-const NATIVE_PERCENT_TYPES = new Set(['Load', 'Control', 'Level', 'Temperature']);
-
-export function isNativePercentType(sensorType: string | undefined): boolean {
-  return sensorType === undefined || NATIVE_PERCENT_TYPES.has(sensorType);
+function fanMax(sensorName?: string): number {
+  return sensorName && /pump/i.test(sensorName) ? PUMP_MAX_RPM : FAN_MAX_RPM;
 }
 
 function isGpuSensor(device: DeviceKey, sensorName?: string): boolean {
@@ -95,12 +96,13 @@ export function isHeterogeneousTypeDevice(device: DeviceKey): boolean {
 }
 
 export function staticMaxForDevice(device: DeviceKey, sensorName?: string, sensorType?: string, sensorValue?: number): number {
-  if (device === 'fan') return FAN_MAX_RPM;
+  if (device === 'fan') return fanMax(sensorName);
   if (device === 'storage') return 100;
   if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
   if (device === 'network') return NETWORK_FIXED_DEFAULT_MAX_BPS;
   switch (sensorType) {
-    case 'Fan': return FAN_MAX_RPM;
+    case 'Fan': return fanMax(sensorName);
+    case 'Temperature': return sensorName && COOLANT_NAME.test(sensorName) ? COOLANT_TEMP_MAX : 100;
     case 'Clock':
       if (!isGpuSensor(device, sensorName)) return CLOCK_FIXED_MAX;
       return sensorName?.includes('Memory') ? GPU_MEMORY_CLOCK_MAX : GPU_CLOCK_MAX;
