@@ -1,4 +1,4 @@
-import { type Color, Group, Mesh, MeshBasicMaterial, type Object3D, Plane, TorusGeometry, Vector3, CircleGeometry, DoubleSide } from 'three';
+import { CircleGeometry, type Color, DoubleSide, Group, Mesh, MeshBasicMaterial, type Object3D, Plane, Vector3 } from 'three';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
@@ -23,9 +23,10 @@ export interface TransformCallbacks {
 const SNAP_MM = 5;
 const TURN_STEP_DEG = 15;
 const CLICK_SLOP_PX = 5;
-// Gap between an object's footprint and its turn ring, and how far either side of the ring a press still grabs it.
+// Gap between an object's footprint and its turn ring; a press this many screen pixels either side of the ring grabs it.
 const RING_GAP_MM = 40;
-const RING_GRAB_MM = 18;
+const RING_GRAB_PX = 12;
+const KNOB_MM = 12;
 const RING_SEGMENTS = 96;
 
 type Drag = { mode: 'move' | 'turn'; id: string; x: number; y: number; offset: Vector3; startYaw: number; startAngle: number; moved: boolean };
@@ -45,7 +46,6 @@ export class TransformTool {
   private readonly ringMaterial: LineMaterial;
   private readonly fillMaterial: MeshBasicMaterial;
   private ringLine: Line2 | null = null;
-  private ringGrab: Mesh | null = null;
   private knob: Mesh | null = null;
   private drag: Drag | null = null;
   private down: { x: number; y: number } | null = null;
@@ -120,7 +120,6 @@ export class TransformTool {
       (child as Mesh).geometry?.dispose();
     }
     this.ringLine = null;
-    this.ringGrab = null;
     this.knob = null;
   }
 
@@ -142,12 +141,10 @@ export class TransformTool {
       }
       this.ringLine = new Line2(new LineGeometry().setPositions(pts), this.ringMaterial);
       this.ringLine.renderOrder = 20;
-      this.ringGrab = new Mesh(new TorusGeometry(r, RING_GRAB_MM, 6, RING_SEGMENTS), new MeshBasicMaterial({ visible: false }));
-      this.ringGrab.rotation.x = Math.PI / 2;
-      this.knob = new Mesh(new CircleGeometry(RING_GRAB_MM * 0.7, 20), this.fillMaterial);
+      this.knob = new Mesh(new CircleGeometry(KNOB_MM, 20), this.fillMaterial);
       this.knob.rotation.x = -Math.PI / 2;
       this.knob.renderOrder = 21;
-      this.ring.add(this.ringLine, this.ringGrab, this.knob);
+      this.ring.add(this.ringLine, this.knob);
       this.ring.userData.radius = r;
     }
     const p = t.object.position;
@@ -171,6 +168,16 @@ export class TransformTool {
     return null;
   }
 
+  // On the selection's ring: its floor point lies within a few screen pixels of the ring, measured at the object.
+  private onRing(t: Transformable, clientX: number, clientY: number): boolean {
+    const at = this.floorPoint(clientX, clientY, t.object.position.y);
+    if (!at) return false;
+    const { camera, canvas } = this.stage;
+    const px = (2 * camera.position.distanceTo(t.object.position) * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(1, canvas.clientHeight);
+    const r = t.radius + RING_GAP_MM;
+    return Math.abs(Math.hypot(at.x - t.object.position.x, at.z - t.object.position.z) - r) <= RING_GRAB_PX * px;
+  }
+
   private floorPoint(clientX: number, clientY: number, y: number): Vector3 | null {
     this.stage.raycast(clientX, clientY, []);
     this.floor.constant = -y;
@@ -181,9 +188,10 @@ export class TransformTool {
     this.down = null;
     if (!this.enabled || e.button !== 0) return;
     const sel = this.selected ? this.targets.get(this.selected) : undefined;
+    // A press on the selection itself moves it, even where the ring runs behind it.
     let mode: Drag['mode'] | null = null;
-    if (sel && this.ringGrab && this.stage.raycast(e.clientX, e.clientY, [this.ringGrab]).length > 0) mode = 'turn';
-    else if (sel && this.targetAt(e.clientX, e.clientY) === sel.id) mode = 'move';
+    if (sel && this.targetAt(e.clientX, e.clientY) === sel.id) mode = 'move';
+    else if (sel && this.onRing(sel, e.clientX, e.clientY)) mode = 'turn';
     if (!sel || !mode) {
       this.down = { x: e.clientX, y: e.clientY };
       return;
@@ -259,13 +267,12 @@ export class TransformTool {
 
   // Runs after the view's own hover, so it only claims the cursor over something it can drag.
   private hover(e: PointerEvent): void {
-    const sel = this.selected;
+    const sel = this.selected ? this.targets.get(this.selected) : undefined;
+    const id = this.targetAt(e.clientX, e.clientY);
     let cursor = '';
-    if (sel && this.ringGrab && this.stage.raycast(e.clientX, e.clientY, [this.ringGrab]).length > 0) cursor = 'ew-resize';
-    else {
-      const id = this.targetAt(e.clientX, e.clientY);
-      if (id) cursor = id === sel ? 'move' : 'pointer';
-    }
+    if (sel && id === sel.id) cursor = 'move';
+    else if (sel && this.onRing(sel, e.clientX, e.clientY)) cursor = 'ew-resize';
+    else if (id) cursor = 'pointer';
     if (cursor) this.stage.canvas.style.cursor = cursor;
   }
 
