@@ -60,6 +60,8 @@ export class TransformTool {
     stage.trackLines([this.ringMaterial]);
     this.ring.visible = false;
     this.ring.renderOrder = 20;
+    // Marks the ring as the tool's, so a view that redraws its scene keeps it.
+    this.ring.userData.tool = true;
     stage.scene.add(this.ring);
     const { canvas } = stage;
     // Capture phase: a press that grabs an object must reach no one else, the orbit controls included.
