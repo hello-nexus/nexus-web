@@ -253,6 +253,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setCanvasFocus(withStacked(deviceStacksRef.current, ids));
     setPrimaryDeviceId(primary);
   }, [setPrimaryDeviceId]);
+  // The 3D scene has no frames to keep drawn, so a device picked there selects it in the list as a card click does;
+  // a click on empty space only clears the highlight.
+  const handleScenePick = useCallback((id: string | null) => {
+    if (id) handleSetSelection(new Set([id]), id);
+    else setPrimaryDeviceId(null);
+  }, [handleSetSelection, setPrimaryDeviceId]);
   // The list selection also shrinks without passing through those handlers -
   // the seed below, and the prune that drops devices which stopped being
   // selectable (unplugged, or their LEDs switched off). A focus id for a frame
@@ -2436,7 +2442,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                       api={sceneApi}
                       devices={visibleDevices}
                       selectedDeviceId={primaryDeviceId}
-                      onSelectDevice={handleFocusDevice}
+                      onSelectDevice={handleScenePick}
                       shaderEffect={shaderMode ? activeEffect : null}
                       shaderState={shaderMode ? previewState : null}
                       shaderPaused={paused}
