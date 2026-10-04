@@ -79,7 +79,7 @@
   "account.purchases.description": "Приложения, загруженные с этим аккаунтом, бесплатные и платные.",
   "account.purchases.empty": "Вы ещё не загрузили ни одного приложения.",
   "account.purchases.free": "Бесплатно",
-  "account.purchases.notInstalled": "Нет на этом ПК",
+  "account.purchases.notInstalled": "Нет в этой системе",
   "account.purchases.title": "Управление купленными приложениями",
   "account.purchases.uninstall": "Удалить с ПК",
   "account.purchases.upToDate": "Актуальная версия",

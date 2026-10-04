@@ -79,7 +79,7 @@
   "account.purchases.description": "使用此帐户下载过的应用，包括免费和付费。",
   "account.purchases.empty": "你还没有下载过应用。",
   "account.purchases.free": "免费",
-  "account.purchases.notInstalled": "不在此电脑上",
+  "account.purchases.notInstalled": "不在此系统上",
   "account.purchases.title": "管理已购应用",
   "account.purchases.uninstall": "卸载",
   "account.purchases.upToDate": "已是最新",
