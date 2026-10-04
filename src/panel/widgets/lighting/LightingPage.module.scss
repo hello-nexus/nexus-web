@@ -199,6 +199,14 @@
   position: relative;
 }
 
+// Holds the canvas's footprint while the 3D view's chunk loads.
+.scenePlaceholder {
+  width: min(100%, calc(440px * 5 / 3));
+  aspect-ratio: 5 / 3;
+  border-radius: var(--radius);
+  background: #080808;
+}
+
 // Sits over the preview without taking pointer input, so devices on the canvas
 // stay selectable and draggable underneath.
 .canvasNotice {

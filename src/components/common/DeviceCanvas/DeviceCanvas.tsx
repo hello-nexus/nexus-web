@@ -293,7 +293,7 @@ function layoutLabels(
 }
 
 // Paints from ledFrameStore: a pixels prop would re-render the lighting page per frame.
-const CanvasBackground = memo(function CanvasBackground() {
+export const CanvasBackground = memo(function CanvasBackground() {
   const bgRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => subscribeLedFrame(f => {

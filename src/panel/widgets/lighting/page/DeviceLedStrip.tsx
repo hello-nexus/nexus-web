@@ -6,6 +6,7 @@ import { isStaticFill } from '../../../../types/lighting';
 import { isPaletteKey } from '../../../../types/lightingPalette';
 import { cardEnabledLedCount } from './zoneUtils';
 import { sliceStackSlot, type StackSlot } from '../../../../lib/stackSlots';
+import { getScenePoints } from '../../../../lib/scene/scenePointsStore';
 import type { LightingDevice } from '../../../../api/lighting';
 import styles from '../LightingPage.module.scss';
 
@@ -147,6 +148,27 @@ function paintLook(
 
   const img = ctx.createImageData(cells, 1);
   const d = img.data;
+  // In the 3D view the hardware samples where the camera puts each LED, so the readout does too.
+  const scenePts = fullscreen ? undefined : getScenePoints(device.id);
+  if (scenePts && scenePts.length >= 2) {
+    const leds = scenePts.length / 2;
+    for (let i = 0; i < cells; i++) {
+      const led = cells === 1 ? 0 : Math.round((i * (leds - 1)) / (cells - 1));
+      const cx = scenePts[led * 2];
+      const cy = scenePts[led * 2 + 1];
+      const o = i * 4;
+      d[o + 3] = 255;
+      if (Number.isNaN(cx)) continue;
+      const ux = Math.min(w - 1, Math.max(0, Math.round((cx / CW) * w)));
+      const vy = Math.min(h - 1, Math.max(0, Math.round((cy / CH) * h)));
+      const s = (vy * w + ux) * 3;
+      d[o] = pixels[s] * scale;
+      d[o + 1] = pixels[s + 1] * scale;
+      d[o + 2] = pixels[s + 2] * scale;
+    }
+    ctx.putImageData(img, 0, 0);
+    return;
+  }
   // Static evaluates every device as if its frame filled the canvas, so a
   // pattern reads end to end on each device instead of the slice its rect
   // happens to cover. Other modes sample the centreline of the device's part

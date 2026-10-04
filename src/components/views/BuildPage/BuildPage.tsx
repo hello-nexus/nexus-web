@@ -9,8 +9,10 @@ import { useSystemSpecs } from '../../../hooks/useSystemSpecs';
 import { useFpsGames } from '../../../hooks/useFpsGames';
 import { buildFpsSignatureParams, primaryGpuModel } from '../../../panel/widgets/frames/fpsSignatureParams';
 import { fetchService, isRemoteOrigin, putService } from '../../../api/service';
+import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { openExternalUrl } from '../../../sandbox/ui/openExternal';
 import { clearBuildFrameHistory, setBuildFrameHistory } from './buildNav';
+import { relaySceneExport } from './buildScene';
 import styles from './BuildPage.module.scss';
 
 export const BUILD_ORIGIN = 'https://build.hellonexus.com';
@@ -98,13 +100,15 @@ interface BuildPageProps {
   path?: string | null;
   /** Opens the Benchmark page and starts a run; the hello advertises it so the portal's Start benchmark stays in the app. */
   onOpenBenchmark?: () => void;
+  /** Opens the Lighting page after the frame sent the PC there as a 3D scene. */
+  onOpenLighting?: () => void;
 }
 
 /**
  * Build: a full-height iframe onto build.hellonexus.com, the upgrade
  * advisor portal. nexus-web carries no catalog/affiliate code itself.
  */
-export function BuildPage({ path, onOpenBenchmark }: BuildPageProps) {
+export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPageProps) {
   const { t, language } = useTranslation();
   const { settings } = useUiSettings();
   const { specs } = useSystemSpecs(true);
@@ -115,6 +119,8 @@ export function BuildPage({ path, onOpenBenchmark }: BuildPageProps) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const onOpenBenchmarkRef = useRef(onOpenBenchmark);
   useEffect(() => { onOpenBenchmarkRef.current = onOpenBenchmark; }, [onOpenBenchmark]);
+  const onOpenLightingRef = useRef(onOpenLighting);
+  useEffect(() => { onOpenLightingRef.current = onOpenLighting; }, [onOpenLighting]);
   const [ready, setReady] = useState(false);
   // Bumped on every `ready` message, not just the first: the portal navigates
   // between routes with full page loads inside the iframe, so each new page
@@ -227,6 +233,13 @@ export function BuildPage({ path, onOpenBenchmark }: BuildPageProps) {
         case 'nexus-build:open-benchmark':
           onOpenBenchmarkRef.current?.();
           break;
+        case 'nexus-build:set-scene':
+          if (!SCENE_3D || isRemoteOrigin) break;
+          void relaySceneExport(data).then(ok => post({ type: 'nexus-build:scene-saved', v: 1, ok }));
+          break;
+        case 'nexus-build:open-lighting':
+          onOpenLightingRef.current?.();
+          break;
         case 'nexus-build:history':
           setBuildFrameHistory({ canGoBack: data.canGoBack === true, canGoForward: data.canGoForward === true });
           break;
@@ -239,7 +252,7 @@ export function BuildPage({ path, onOpenBenchmark }: BuildPageProps) {
       window.removeEventListener('message', handleMessage);
       clearBuildFrameHistory();
     };
-  }, []);
+  }, [post]);
 
   const machine: BuildMachine | undefined = specs ? (() => {
     const sig = buildFpsSignatureParams(specs);
@@ -282,6 +295,9 @@ export function BuildPage({ path, onOpenBenchmark }: BuildPageProps) {
       locale: language,
       host: isRemoteOrigin ? 'web' : 'app',
       ...(onOpenBenchmark ? { canOpenBenchmark: true } : {}),
+      // A scene lands in this machine's service, so only the desktop app offers it.
+      ...(SCENE_3D && !isRemoteOrigin ? { canExportScene: true } : {}),
+      ...(onOpenLighting ? { canOpenLighting: true } : {}),
       ...(machine ? { machine } : {}),
       ...(games.length > 0 ? { games } : {}),
     };

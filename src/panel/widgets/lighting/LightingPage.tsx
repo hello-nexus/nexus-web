@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Ban, CheckCheck, Eye, EyeOff, ExternalLink, Gamepad2, Lightbulb, Music, Pause, Play, PanelRightOpen, PanelRightClose } from 'lucide-react';
 import {
   startAnimate, startStatic, startScreenMirror, stopLighting, startGameSync,
@@ -11,7 +11,7 @@ import {
   fetchCurrentSync, fetchAvailableMappings, fetchGameSyncState, fetchGameSyncGames,
   fetchStaticDeviceLooks, setStaticDeviceLock,
   steamArtworkUrl, resolveActiveGame, setLightingPaused,
-  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset,
+  resetDeviceLayouts, applyDeviceLayouts, setActiveLayoutPreset, updateLayoutPreset, identifyLightingDevice,
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto, type PresetApp,
 } from '../../../api/lighting';
@@ -50,6 +50,9 @@ import { SectionHeader } from '../../../components/common/SectionHeader/SectionH
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
+import { SCENE_3D } from '../../../lib/scene/sceneFeature';
+import { useLightingScene } from './scene/useLightingScene';
+import { SceneViewSwitch } from './scene/SceneViewSwitch';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
   pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, devicePicksFromLooks,
@@ -157,6 +160,9 @@ function loadDeviceOrder(): string[] {
   } catch { /* localStorage / JSON parse failed; fall through to empty */ }
   return [];
 }
+
+// three.js loads only when someone turns the 3D view on.
+const LightingScene3D = lazy(() => import('./scene/LightingScene3D'));
 
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t, language } = useTranslation();
@@ -349,6 +355,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // frame (effectTemplates churns during drag for the live RGB preview).
   const [committedTemplates, setCommittedTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
+  const sceneApi = useLightingScene(SCENE_3D);
+  const [sceneEditorOpen, setSceneEditorOpen] = useState(false);
+  const scene3d = SCENE_3D && !!sceneApi.scene?.view.enabled;
   // Canvas hides the frame for any device whose LEDs are off. The device
   // list is always mounted now, so there is no tab state to hide it behind.
   // Cards whose LEDs are all user-disabled disappear from the listing and
@@ -2403,7 +2412,36 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               )}
               {showCanvas && (
               <div className={styles.canvasArea}>
-                <DeviceCanvas devices={canvasDevices} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} stacks={deviceStacks} stackActionsFor={stackActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
+                {scene3d ? (
+                  <Suspense fallback={<div className={styles.scenePlaceholder} />}>
+                    <LightingScene3D
+                      api={sceneApi}
+                      devices={visibleDevices}
+                      selectedDeviceId={primaryDeviceId}
+                      onSelectDevice={handleFocusDevice}
+                      shaderEffect={shaderMode ? activeEffect : null}
+                      shaderState={shaderMode ? previewState : null}
+                      shaderPaused={paused}
+                      audioRef={audioRef}
+                      editorOpen={sceneEditorOpen}
+                      onEditorOpenChange={setSceneEditorOpen}
+                      onIdentify={id => { identifyLightingDevice(id, 2000).catch(() => { /* silent */ }); }}
+                      onLayoutCommit={handleLayoutCommit}
+                    />
+                  </Suspense>
+                ) : (
+                  <DeviceCanvas devices={canvasDevices} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} stacks={deviceStacks} stackActionsFor={stackActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
+                )}
+                {SCENE_3D && (
+                  <SceneViewSwitch
+                    value={scene3d ? '3d' : '2d'}
+                    onChange={next => {
+                      const firstTime = next === '3d' && (sceneApi.scene?.bindings.length ?? 0) === 0;
+                      void sceneApi.setEnabled(next === '3d');
+                      if (firstTime) setSceneEditorOpen(true);
+                    }}
+                  />
+                )}
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
                   <>
