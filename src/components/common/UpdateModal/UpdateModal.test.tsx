@@ -127,6 +127,34 @@ describe('UpdateModal - canAutoInstall=true (Windows, unchanged)', () => {
   });
 });
 
+describe('UpdateModal - a check GitHub refused', () => {
+  const refused = (over: Partial<UpdateStatus> = {}): UpdateStatus => ({
+    ...baseStatus, latestVersion: '3.0.0', updateAvailable: false,
+    lastCheckError: 'HttpRequestException: Response status code does not indicate success: 403 (rate limit exceeded).', ...over,
+  });
+
+  function Harness() {
+    const [status, setStatus] = useState<UpdateStatus>(refused({ lastCheckError: '' }));
+    return <UpdateModal open onClose={vi.fn()} status={status} onStatusRefreshed={setStatus} />;
+  }
+
+  it('says it could not check instead of claiming the system is up to date', async () => {
+    vi.mocked(checkForUpdate).mockResolvedValue(refused());
+    render(<Harness />);
+
+    expect(await screen.findByText('update.modal.checkFailed')).toBeInTheDocument();
+    expect(screen.queryByText('update.modal.upToDate')).not.toBeInTheDocument();
+  });
+
+  it('still offers an update it already knows about', async () => {
+    vi.mocked(checkForUpdate).mockResolvedValue(refused({ latestVersion: '3.1.0', updateAvailable: true }));
+    render(<Harness />);
+
+    expect(await screen.findByRole('button', { name: DOWNLOAD_AND_INSTALL })).toBeInTheDocument();
+    expect(screen.queryByText('update.modal.checkFailed')).not.toBeInTheDocument();
+  });
+});
+
 describe('UpdateModal - background staging', () => {
   it('stays on the notes view while an update stages in the background', async () => {
     vi.useFakeTimers();
@@ -346,6 +374,20 @@ describe('UpdateModal - opened by the badge install (startedInstall)', () => {
 
     expect(screen.getByText('update.modal.upToDate')).toBeInTheDocument();
     expect(screen.queryByText('update.modal.failedMessage')).not.toBeInTheDocument();
+  });
+
+  it('keeps retrying when the re-check is refused rather than landing on up to date', async () => {
+    vi.mocked(startUpdate).mockResolvedValueOnce(null).mockResolvedValue({ started: true });
+    vi.mocked(checkForUpdate).mockResolvedValue({
+      ...readyStatus, latestVersion: '3.0.0', updateAvailable: false, updateReady: false, lastCheckError: 'HttpRequestException: 403',
+    });
+    vi.mocked(getUpdateProgress).mockImplementation(async () => (starts() >= 2 ? frame('downloading', true) : idle));
+    render(<Harness />);
+    await advance(5_000);
+
+    expect(starts()).toBe(2);
+    expect(vi.mocked(startUpdate).mock.calls[1][0]).toBe('3.1.0');
+    expect(screen.queryByText('update.modal.upToDate')).not.toBeInTheDocument();
   });
 
   it('stops retrying once the modal closes', async () => {
