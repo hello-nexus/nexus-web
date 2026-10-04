@@ -22,13 +22,15 @@ export interface TransformCallbacks {
   onClick?: (id: string, e: PointerEvent) => void;
   /** A right click on an object. */
   onContextMenu?: (id: string, e: MouseEvent) => void;
+  /** The view's own pick where no body is hit, such as a spot reaching past a small object; returns its object's id. */
+  pickFallback?: (clientX: number, clientY: number) => string | null;
 }
 
 const SNAP_MM = 5;
 const TURN_STEP_DEG = 15;
 const CLICK_SLOP_PX = 5;
 // Gap between an object's footprint and its turn ring; a press this many screen pixels either side of the ring grabs it.
-const RING_GAP_MM = 40;
+export const RING_GAP_MM = 40;
 const RING_GRAB_PX = 12;
 const KNOB_MM = 12;
 const RING_SEGMENTS = 96;
@@ -164,6 +166,10 @@ export class TransformTool {
   }
 
   private targetAt(clientX: number, clientY: number): string | null {
+    return this.bodyAt(clientX, clientY) ?? this.fallbackAt(clientX, clientY);
+  }
+
+  private bodyAt(clientX: number, clientY: number): string | null {
     const objects = [...this.targets.values()].map(t => t.object);
     const hits = this.stage.raycast(clientX, clientY, objects, true);
     for (const h of hits) {
@@ -173,6 +179,12 @@ export class TransformTool {
       }
     }
     return null;
+  }
+
+  // Ranks below the selection's ring, so a neighbour's spot never takes a press meant for turning.
+  private fallbackAt(clientX: number, clientY: number): string | null {
+    const id = this.callbacks.pickFallback?.(clientX, clientY) ?? null;
+    return id && this.targets.has(id) ? id : null;
   }
 
   // On the selection's ring: its floor point lies within a few screen pixels of the ring, measured at the object.
@@ -194,22 +206,28 @@ export class TransformTool {
   private readonly onDown = (e: PointerEvent) => {
     this.down = null;
     if (!this.enabled) return;
-    const id = this.targetAt(e.clientX, e.clientY);
+    const body = this.bodyAt(e.clientX, e.clientY);
     // A right press on an object is for its menu: it must not reach the controls, which would pan.
     if (e.button === 2) {
-      if (id) e.stopImmediatePropagation();
+      if (body ?? this.fallbackAt(e.clientX, e.clientY)) e.stopImmediatePropagation();
       return;
     }
     if (e.button !== 0) return;
     const sel = this.selected ? this.targets.get(this.selected) : undefined;
     let mode: Drag['mode'] | null = null;
     let t: Transformable | undefined;
-    if (id) {
+    if (body) {
       mode = 'move';
-      t = this.targets.get(id);
+      t = this.targets.get(body);
     } else if (sel && this.onRing(sel, e.clientX, e.clientY)) {
       mode = 'turn';
       t = sel;
+    } else {
+      const spot = this.fallbackAt(e.clientX, e.clientY);
+      if (spot) {
+        mode = 'move';
+        t = this.targets.get(spot);
+      }
     }
     if (!mode || !t) {
       this.down = { x: e.clientX, y: e.clientY };
@@ -295,10 +313,11 @@ export class TransformTool {
   // Runs after the view's own hover, so it only claims the cursor over something it can drag.
   private hover(e: PointerEvent): void {
     const sel = this.selected ? this.targets.get(this.selected) : undefined;
-    const id = this.targetAt(e.clientX, e.clientY);
+    const body = this.bodyAt(e.clientX, e.clientY);
+    const id = body ?? (sel && this.onRing(sel, e.clientX, e.clientY) ? null : this.fallbackAt(e.clientX, e.clientY));
     let cursor = '';
     if (sel && id === sel.id) cursor = 'move';
-    else if (sel && this.onRing(sel, e.clientX, e.clientY)) cursor = 'ew-resize';
+    else if (sel && !body && this.onRing(sel, e.clientX, e.clientY)) cursor = 'ew-resize';
     else if (id) cursor = 'pointer';
     if (cursor) this.stage.canvas.style.cursor = cursor;
   }

@@ -175,6 +175,7 @@ export class SceneRenderer {
       // A press the tool took without dragging is still a click: on a spot when it landed on one.
       onClick: (id, e) => this.callbacks.onPick(this.pickAt(e.clientX, e.clientY) ?? { kind: 'object', objectId: id }, e.clientX, e.clientY),
       onContextMenu: (id, e) => this.callbacks.onContextMenu?.(this.pickAt(e.clientX, e.clientY) ?? { kind: 'object', objectId: id }, e.clientX, e.clientY),
+      pickFallback: (x, y) => this.pickAt(x, y)?.objectId ?? null,
     });
     this.unsubscribeFrame = subscribeLedFrame(f => {
       this.frame = f;
