@@ -175,6 +175,10 @@ export default function LightingScene3D({
   useEffect(() => {
     if (selectedHome) setSelectedObjectId(selectedHome);
   }, [selectedHome]);
+  // A spot's tools belong to its device; picking another one elsewhere closes them.
+  useEffect(() => {
+    setSpotTools(cur => (cur && cur.deviceId !== selectedDeviceId ? null : cur));
+  }, [selectedDeviceId]);
 
   // A device picked in the list that has no spot yet is waiting for one.
   const waiting = useMemo<Placing | null>(() => placing ?? (selectedDeviceId && !bindingOf(selectedDeviceId) && placeable.some(d => d.id === selectedDeviceId)
