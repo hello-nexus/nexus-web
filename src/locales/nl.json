@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Standaardbehuizing gebruiken",
   "lighting.scene.pc.genericNote": "Er wordt een standaardbehuizing gebruikt. Stel je pc in Build in voor de echte vorm en ventilatorplekken.",
   "lighting.scene.pc.imported": "Je behuizing komt uit Build.",
+  "lighting.scene.pc.noFans": "Nog geen ventilatorplekken. Voeg de ventilatoren van deze pc toe in Build en stuur hem opnieuw.",
   "lighting.scene.pc.none": "Stel je pc in Build in om de behuizing en ventilatoren over te nemen, of begin met een standaardbehuizing.",
   "lighting.scene.pc.remove": "Pc verwijderen",
   "lighting.scene.pc.title": "Je pc",

@@ -2744,6 +2744,7 @@
   "lighting.scene.pc.generic": "Użyj ogólnej obudowy",
   "lighting.scene.pc.genericNote": "Używana jest ogólna obudowa. Skonfiguruj komputer w Build, aby uzyskać jego prawdziwy kształt i miejsca na wentylatory.",
   "lighting.scene.pc.imported": "Twoja obudowa pochodzi z Build.",
+  "lighting.scene.pc.noFans": "Brak jeszcze miejsc na wentylatory. Dodaj wentylatory tego komputera w Build i wyślij go ponownie.",
   "lighting.scene.pc.none": "Skonfiguruj komputer w Build, aby przenieść obudowę i wentylatory, albo zacznij od ogólnej obudowy.",
   "lighting.scene.pc.remove": "Usuń komputer",
   "lighting.scene.pc.title": "Twój komputer",

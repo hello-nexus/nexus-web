@@ -2744,6 +2744,7 @@
   "lighting.scene.pc.generic": "Использовать типовой корпус",
   "lighting.scene.pc.genericNote": "Используется типовой корпус. Настройте ПК в Build, чтобы получить его настоящую форму и места вентиляторов.",
   "lighting.scene.pc.imported": "Ваш корпус взят из Build.",
+  "lighting.scene.pc.noFans": "Мест для вентиляторов пока нет. Добавьте вентиляторы этого ПК в Build и отправьте его снова.",
   "lighting.scene.pc.none": "Настройте ПК в Build, чтобы перенести корпус и вентиляторы, или начните с типового корпуса.",
   "lighting.scene.pc.remove": "Убрать ПК",
   "lighting.scene.pc.title": "Ваш ПК",

@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Usa un case generico",
   "lighting.scene.pc.genericNote": "Stai usando un case generico. Configura il tuo PC in Build per averne la forma reale e le posizioni delle ventole.",
   "lighting.scene.pc.imported": "Il tuo case proviene da Build.",
+  "lighting.scene.pc.noFans": "Ancora nessuna posizione per le ventole. Aggiungi le ventole di questo PC in Build e invialo di nuovo.",
   "lighting.scene.pc.none": "Configura il tuo PC in Build per importare case e ventole, oppure parti da un case generico.",
   "lighting.scene.pc.remove": "Rimuovi PC",
   "lighting.scene.pc.title": "Il tuo PC",

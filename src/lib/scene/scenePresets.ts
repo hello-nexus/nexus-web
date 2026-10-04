@@ -15,7 +15,8 @@ export function presetCamera(objects: SceneObject[], preset: CameraPreset, fov =
   // The narrower of the two fovs bounds the fit; a little margin keeps edges off the frame.
   const vHalf = (fov * Math.PI) / 360;
   const hHalf = Math.atan(Math.tan(vHalf) * (CANVAS_W / CANVAS_H));
-  const dist = (radius * 1.1) / Math.sin(Math.min(vHalf, hHalf));
+  // The bounding sphere overstates a wide, flat desk; the margin stays under it so the scene fills the frame.
+  const dist = (radius * 0.92) / Math.sin(Math.min(vHalf, hHalf));
   const dir: Vec3 =
     preset === 'front' ? [0, 0.12, 1]
       : preset === 'side' ? [-1, 0.12, 0]

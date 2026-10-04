@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Dopre une scjatule gjeneriche",
   "lighting.scene.pc.genericNote": "Si dopre une scjatule gjeneriche. Configure il to PC in Build par vê la sô forme vere e i puescj dai ventiladôrs.",
   "lighting.scene.pc.imported": "La tô scjatule e ven di Build.",
+  "lighting.scene.pc.noFans": "Ancjemò nissun puest pai ventiladôrs. Zonte i ventiladôrs di chest PC in Build e mandilu di gnûf.",
   "lighting.scene.pc.none": "Configure il to PC in Build par puartâ dentri la sô scjatule e i ventiladôrs, o tache di une scjatule gjeneriche.",
   "lighting.scene.pc.remove": "Gjave il PC",
   "lighting.scene.pc.title": "Il to PC",

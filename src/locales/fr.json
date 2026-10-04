@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Utiliser un boîtier générique",
   "lighting.scene.pc.genericNote": "Boîtier générique utilisé. Configurez votre PC dans Build pour sa vraie forme et ses emplacements de ventilateurs.",
   "lighting.scene.pc.imported": "Votre boîtier provient de Build.",
+  "lighting.scene.pc.noFans": "Aucun emplacement de ventilateur pour l'instant. Ajoutez les ventilateurs de ce PC dans Build et renvoyez-le.",
   "lighting.scene.pc.none": "Configurez votre PC dans Build pour importer son boîtier et ses ventilateurs, ou partez d'un boîtier générique.",
   "lighting.scene.pc.remove": "Retirer le PC",
   "lighting.scene.pc.title": "Votre PC",

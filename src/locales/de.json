@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Standardgehäuse verwenden",
   "lighting.scene.pc.genericNote": "Ein Standardgehäuse wird verwendet. Richte deinen PC in Build ein, um seine echte Form und Lüfterplätze zu erhalten.",
   "lighting.scene.pc.imported": "Dein Gehäuse stammt aus Build.",
+  "lighting.scene.pc.noFans": "Noch keine Lüfterplätze. Füge die Lüfter dieses PCs in Build hinzu und sende ihn erneut.",
   "lighting.scene.pc.none": "Richte deinen PC in Build ein, um Gehäuse und Lüfter zu übernehmen, oder starte mit einem Standardgehäuse.",
   "lighting.scene.pc.remove": "PC entfernen",
   "lighting.scene.pc.title": "Dein PC",

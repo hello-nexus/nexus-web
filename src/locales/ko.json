@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "일반 케이스 사용",
   "lighting.scene.pc.genericNote": "일반 케이스를 사용 중입니다. 실제 모양과 팬 위치를 쓰려면 Build에서 PC를 설정하세요.",
   "lighting.scene.pc.imported": "케이스는 Build에서 가져왔습니다.",
+  "lighting.scene.pc.noFans": "아직 팬 위치가 없습니다. Build에서 이 PC에 팬을 추가한 뒤 다시 보내세요.",
   "lighting.scene.pc.none": "Build에서 PC를 설정하면 케이스와 팬을 가져올 수 있고, 일반 케이스로 시작할 수도 있습니다.",
   "lighting.scene.pc.remove": "PC 제거",
   "lighting.scene.pc.title": "내 PC",

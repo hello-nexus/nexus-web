@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Usar um gabinete genérico",
   "lighting.scene.pc.genericNote": "Usando um gabinete genérico. Configure seu PC no Build para ter o formato real e as posições das ventoinhas.",
   "lighting.scene.pc.imported": "Seu gabinete vem do Build.",
+  "lighting.scene.pc.noFans": "Ainda não há posições de ventoinha. Adicione as ventoinhas deste PC no Build e envie de novo.",
   "lighting.scene.pc.none": "Configure seu PC no Build para trazer o gabinete e as ventoinhas, ou comece com um gabinete genérico.",
   "lighting.scene.pc.remove": "Remover PC",
   "lighting.scene.pc.title": "Seu PC",

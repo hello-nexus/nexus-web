@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Use a generic case",
   "lighting.scene.pc.genericNote": "Using a generic case. Set your PC up in Build for its real shape and fan spots.",
   "lighting.scene.pc.imported": "Your case comes from Build.",
+  "lighting.scene.pc.noFans": "No fan spots yet. Add your fans to this PC in Build and send it again.",
   "lighting.scene.pc.none": "Set your PC up in Build to bring its case and fans in, or start from a generic case.",
   "lighting.scene.pc.remove": "Remove PC",
   "lighting.scene.pc.title": "Your PC",

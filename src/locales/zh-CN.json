@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "使用通用机箱",
   "lighting.scene.pc.genericNote": "正在使用通用机箱。在 Build 中设置你的电脑以获得真实外形和风扇位置。",
   "lighting.scene.pc.imported": "你的机箱来自 Build。",
+  "lighting.scene.pc.noFans": "还没有风扇位置。在 Build 中为这台电脑添加风扇后重新发送。",
   "lighting.scene.pc.none": "在 Build 中设置你的电脑以导入机箱和风扇，或从通用机箱开始。",
   "lighting.scene.pc.remove": "移除电脑",
   "lighting.scene.pc.title": "你的电脑",

@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Usar una caja genérica",
   "lighting.scene.pc.genericNote": "Usando una caja genérica. Configura tu PC en Build para obtener su forma real y sus huecos de ventilador.",
   "lighting.scene.pc.imported": "Tu caja viene de Build.",
+  "lighting.scene.pc.noFans": "Aún no hay huecos de ventilador. Añade los ventiladores de este PC en Build y envíalo de nuevo.",
   "lighting.scene.pc.none": "Configura tu PC en Build para traer su caja y ventiladores, o empieza con una caja genérica.",
   "lighting.scene.pc.remove": "Quitar PC",
   "lighting.scene.pc.title": "Tu PC",

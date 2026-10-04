@@ -2709,6 +2709,7 @@
   "lighting.scene.pc.generic": "Genel kasa kullan",
   "lighting.scene.pc.genericNote": "Genel bir kasa kullanılıyor. Gerçek şekli ve fan yerleri için PC'ni Build'de kur.",
   "lighting.scene.pc.imported": "Kasan Build'den geliyor.",
+  "lighting.scene.pc.noFans": "Henüz fan yeri yok. Bu PC'nin fanlarını Build'de ekle ve yeniden gönder.",
   "lighting.scene.pc.none": "Kasasını ve fanlarını getirmek için PC'ni Build'de kur ya da genel bir kasayla başla.",
   "lighting.scene.pc.remove": "PC'yi kaldır",
   "lighting.scene.pc.title": "PC'n",

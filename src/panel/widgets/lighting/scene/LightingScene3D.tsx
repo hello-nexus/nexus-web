@@ -439,6 +439,9 @@ function SceneEditor({
             {caseObj?.source === 'build' ? (
               <>
                 <div className={styles.sectionNote}>{t('lighting.scene.pc.imported')}</div>
+                {!caseObj.anchors.some(a => a.kind === 'fan') && (
+                  <div className={styles.sectionNote}>{t('lighting.scene.pc.noFans')}</div>
+                )}
                 <div className={styles.buttonRow}>
                   <Button size="sm" tone="neutral" icon={<Box size={13} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>{t('lighting.scene.pc.update')}</Button>
                   <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => void api.removeImport()}>{t('lighting.scene.pc.remove')}</Button>
