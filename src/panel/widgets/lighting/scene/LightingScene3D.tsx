@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useMemo, useRef, useState, type RefObject } from 'react';
 import {
   Box, Eye, EyeOff, FlipHorizontal2, Headphones, Keyboard, Lightbulb, Link, Monitor, Mouse, Move3d, Pencil,
   RectangleHorizontal, RotateCcw, RotateCw, Speaker, Square, Trash2, WandSparkles, X, Zap,
@@ -10,17 +10,18 @@ import type { EffectState } from '../../../../types/lighting';
 import { Button } from '../../../../components/common/Button/Button';
 import { Overlay } from '../../../../components/common/Overlay/Overlay';
 import { ExperimentalBadge } from '../../../../components/common/ExperimentalBadge/ExperimentalBadge';
+import { useToastSafe } from '../../../../components/common/Toast/Toast';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
 import { autoPlace } from '../../../../lib/scene/autoPlace';
 import { DESK_KINDS, genericCase, newDeskObject, type DeskKind } from '../../../../lib/scene/deskCatalog';
 import { ledWorldPositions, placements } from '../../../../lib/scene/sceneMath';
-import { presetCamera, type CameraPreset } from '../../../../lib/scene/scenePresets';
+import { DEFAULT_FOV, presetCamera, type CameraPreset } from '../../../../lib/scene/scenePresets';
 import type { ScenePick, SceneRenderer } from '../../../../lib/scene/sceneRenderer';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport, DEVICE_DRAG_TYPE, type Backdrop } from './SceneViewport';
 import { anchorLabel, objectLabel } from './sceneLabels';
-import { addObject, editBinding, moveObject, placeDevice, removeObject, turnObject, unplaceDevice } from './sceneEdits';
+import { addObject, flipBinding, moveObject, placeDevice, removeObject, rotateBinding, turnObject, unplaceDevice } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
 
@@ -60,20 +61,27 @@ const BACKDROP_NEXT: Record<Backdrop, Backdrop> = { dim: 'full', full: 'off', of
 
 /** World LED positions of every placed device, from the scene and each device's LED map. */
 function useSceneLeds(api: LightingSceneApi, devices: LightingDevice[]): Map<string, Float32Array> {
-  const scene = api.scene;
-  const boundIds = useMemo(() => (scene?.bindings ?? []).map(b => b.deviceId), [scene?.bindings]);
+  const objects = api.scene?.objects;
+  const bindings = api.scene?.bindings;
+  const boundIds = useMemo(() => (bindings ?? []).map(b => b.deviceId), [bindings]);
   const maps = useSceneLedMaps(boundIds, devices);
+  // Keyed on what positions depend on, so a camera move or a device poll that changes nothing here keeps the
+  // same Map and the renderer skips its rebuild.
+  const counts = devices.map(d => `${d.id}:${d.ledCount}`).join('|');
   return useMemo(() => {
     const out = new Map<string, Float32Array>();
-    if (!scene) return out;
-    const byId = new Map(devices.map(d => [d.id, d]));
-    for (const [id, quads] of placements(scene)) {
-      const device = byId.get(id);
-      if (!device) continue;
-      out.set(id, ledWorldPositions(device.ledCount, maps.get(id), quads));
+    if (!objects || !bindings) return out;
+    const ledCount = new Map(counts.split('|').map(entry => {
+      const at = entry.lastIndexOf(':');
+      return [entry.slice(0, at), Number(entry.slice(at + 1))] as const;
+    }));
+    for (const [id, quads] of placements({ objects, bindings })) {
+      const n = ledCount.get(id);
+      if (n === undefined) continue;
+      out.set(id, ledWorldPositions(n, maps.get(id), quads));
     }
     return out;
-  }, [scene, devices, maps]);
+  }, [objects, bindings, counts, maps]);
 }
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
@@ -133,8 +141,9 @@ export default function LightingScene3D({
   const scene = api.scene;
 
   const onCamera = useCallback((cam: SceneCamera, final: boolean) => {
-    api.setCamera(cam, final);
-    if (final) onLayoutCommit?.();
+    const saved = api.setCamera(cam, final);
+    // The active preset snapshots the saved view, so it saves only once the camera has landed.
+    if (final) void saved.then(() => onLayoutCommit?.());
   }, [api, onLayoutCommit]);
 
   const onInlinePick = useCallback((pick: ScenePick | null) => {
@@ -145,7 +154,7 @@ export default function LightingScene3D({
 
   if (!scene) return <div className={styles.viewport} />;
   const empty = scene.bindings.length === 0;
-  const fov = scene.view.camera?.fov ?? 40;
+  const fov = scene.view.camera?.fov ?? DEFAULT_FOV;
 
   return (
     <>
@@ -166,6 +175,7 @@ export default function LightingScene3D({
         onCamera={onCamera}
         hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
         publishPoints
+        active={!editorOpen}
       >
         <div className={styles.overlayTop}>
           <CameraPresets objects={scene.objects} fov={fov} onCamera={cam => onCamera(cam, true)} />
@@ -236,17 +246,9 @@ function SceneEditor({
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(initialDeviceId);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [placing, setPlacing] = useState<Placing | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const rendererRef = useRef<SceneRenderer | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
-
-  const flash = useCallback((message: string) => {
-    setToast(message);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
-  }, []);
+  const toast = useToastSafe();
+  const flash = useCallback((title: string) => toast.push({ title, durationMs: TOAST_MS }), [toast]);
 
   const placeable = useMemo(() => devices.filter(d => d.controlled !== false && d.ledCount > 0), [devices]);
   const deviceName = useCallback((id: string) => devices.find(d => d.id === id)?.name ?? id, [devices]);
@@ -333,7 +335,7 @@ function SceneEditor({
   const caseObj = scene.objects.find(o => o.kind === 'case');
   const selectedObject = selectedObjectId ? objectsById.get(selectedObjectId) ?? null : null;
   const selectedBinding = selectedDeviceId ? bindingOf(selectedDeviceId) ?? null : null;
-  const fov = scene.view.camera?.fov ?? 40;
+  const fov = scene.view.camera?.fov ?? DEFAULT_FOV;
 
   const hint = placing
     ? t(placing.append ? 'lighting.scene.hint.append' : 'lighting.scene.hint.place', { device: deviceName(placing.deviceId) })
@@ -384,7 +386,6 @@ function SceneEditor({
                 <CameraPresets objects={scene.objects} fov={fov} onCamera={cam => onCamera(cam, true)} />
                 <BackdropButton value={backdrop} onChange={onBackdrop} />
               </div>
-              {toast && <div className={styles.toast} role="status">{toast}</div>}
               <div className={styles.overlayBottom}>
                 <div className={styles.hint}>{hint}</div>
                 {placing && (
@@ -398,8 +399,8 @@ function SceneEditor({
                       <div className={styles.inspectorTitle}>{deviceName(selectedDeviceId)}</div>
                       <div className={styles.sectionNote}>{whereLabel(selectedDeviceId)}</div>
                       <div className={styles.buttonRow}>
-                        <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => editBinding(s, selectedDeviceId, { rotation: (selectedBinding.rotation + 90) % 360 }))}>{t('lighting.scene.device.rotate')}</Button>
-                        <Button size="sm" tone="neutral" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => editBinding(s, selectedDeviceId, { flip: !selectedBinding.flip }))}>{t('lighting.scene.device.flip')}</Button>
+                        <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => rotateBinding(s, selectedDeviceId))}>{t('lighting.scene.device.rotate')}</Button>
+                        <Button size="sm" tone="neutral" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => flipBinding(s, selectedDeviceId))}>{t('lighting.scene.device.flip')}</Button>
                         <Button size="sm" tone="neutral" icon={<Move3d size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: false })}>{t('lighting.scene.device.move')}</Button>
                         <Button size="sm" tone="neutral" icon={<Link size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: true })}>{t('lighting.scene.device.addSurface')}</Button>
                         {onIdentify && <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => onIdentify(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>}

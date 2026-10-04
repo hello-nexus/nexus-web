@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "모니터",
   "lighting.scene.kind.mouse": "마우스",
   "lighting.scene.kind.mousepad": "마우스 패드",
+  "lighting.scene.kind.other": "개체",
   "lighting.scene.kind.speaker": "스피커",
   "lighting.scene.kind.strip": "라이트 바",
   "lighting.scene.object.remove": "제거",

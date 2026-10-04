@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "螢幕",
   "lighting.scene.kind.mouse": "滑鼠",
   "lighting.scene.kind.mousepad": "滑鼠墊",
+  "lighting.scene.kind.other": "物件",
   "lighting.scene.kind.speaker": "喇叭",
   "lighting.scene.kind.strip": "燈條",
   "lighting.scene.object.remove": "移除",

@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "Monitor",
   "lighting.scene.kind.mouse": "Mouse",
   "lighting.scene.kind.mousepad": "Tapet pal mouse",
+  "lighting.scene.kind.other": "Ogjet",
   "lighting.scene.kind.speaker": "Casse",
   "lighting.scene.kind.strip": "Sbare di lûs",
   "lighting.scene.object.remove": "Gjave",

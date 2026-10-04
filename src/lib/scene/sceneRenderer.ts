@@ -63,7 +63,7 @@ export interface SceneRendererCallbacks {
   onHover?: (pick: ScenePick | null, clientX: number, clientY: number) => void;
 }
 
-/** Visual tones, read from the theme so the editor follows the accent. */
+/** Visual tones; the accent is read from the theme when the renderer mounts. */
 export interface SceneTheme {
   accent: string;
   line: string;
@@ -142,9 +142,15 @@ export class SceneRenderer {
   private down: { x: number; y: number; pick: ScenePick | null } | null = null;
   private drag: { objectId: string; group: Object3D; plane: Plane; offset: Vector3; start: Vec3; moved: boolean } | null = null;
   private hovered: string | null = null;
+  // Redraw only when something on screen changed: the camera, the scene, or a new LED frame.
+  private dirty = true;
+  private paintedSeq = -1;
+  private active = true;
+  private modelToken = 0;
+  private readonly projected = new Vector3();
   private anchorLines = new Map<string, LineLoop>();
   private objectGroups = new Map<string, Group>();
-  private theme: SceneTheme;
+  private readonly theme: SceneTheme;
   private disposed = false;
 
   private readonly canvas: HTMLCanvasElement;
@@ -166,6 +172,7 @@ export class SceneRenderer {
     this.controls.maxDistance = 20_000;
     this.controls.addEventListener('start', () => { this.interacting = true; });
     this.controls.addEventListener('change', () => {
+      this.dirty = true;
       if (this.interacting) {
         this.callbacks.onCamera(this.getCamera(), false);
         this.publishProjection();
@@ -183,6 +190,7 @@ export class SceneRenderer {
     canvas.addEventListener('pointermove', this.onPointerMove);
     canvas.addEventListener('pointerleave', this.onPointerLeave);
     window.addEventListener('pointerup', this.onPointerUp);
+    window.addEventListener('pointercancel', this.onPointerCancel);
     this.unsubscribeFrame = subscribeLedFrame(f => { this.frame = f; });
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
@@ -191,6 +199,8 @@ export class SceneRenderer {
   }
 
   dispose(): void {
+    // A view torn down mid-drag (the editor closed) still saves where the camera ended up.
+    if (this.interacting) this.callbacks.onCamera(this.getCamera(), true);
     this.disposed = true;
     this.renderer.setAnimationLoop(null);
     this.resizeObserver.disconnect();
@@ -199,16 +209,25 @@ export class SceneRenderer {
     this.canvas.removeEventListener('pointermove', this.onPointerMove);
     this.canvas.removeEventListener('pointerleave', this.onPointerLeave);
     window.removeEventListener('pointerup', this.onPointerUp);
+    window.removeEventListener('pointercancel', this.onPointerCancel);
     this.controls.dispose();
     this.clearGroup(this.objectsGroup);
     this.clearGroup(this.anchorsGroup);
+    this.clearDots();
+    if (this.model) this.clearGroup(this.model, true);
+    this.model = null;
     this.dotMap.dispose();
     this.renderer.dispose();
+    // Frees the GL context now rather than at garbage collection; the browser caps live contexts.
+    this.renderer.forceContextLoss();
   }
 
-  setTheme(theme: SceneTheme): void {
-    this.theme = theme;
-    if (this.state) this.rebuild();
+  /** A hidden view stops drawing (the inline view under the open editor) and picks up again when shown. */
+  setActive(active: boolean): void {
+    if (active === this.active || this.disposed) return;
+    this.active = active;
+    this.dirty = true;
+    this.renderer.setAnimationLoop(active ? this.tick : null);
   }
 
   getCamera(): SceneCamera {
@@ -224,20 +243,21 @@ export class SceneRenderer {
     applyCamera(this.camera, cam);
     this.controls.target.set(...cam.target);
     this.controls.update();
+    this.dirty = true;
     this.publishProjection();
   }
 
   async setModel(bytes: ArrayBuffer | null): Promise<void> {
-    if (this.model) {
-      this.clearGroup(this.model, true);
-      this.model = null;
+    const token = ++this.modelToken;
+    const parsed = bytes ? (await new GLTFLoader().parseAsync(bytes, '')).scene : null;
+    // A newer call (or disposal) overtook this parse: its model is the one to keep.
+    if (token !== this.modelToken || this.disposed) {
+      if (parsed) this.clearGroup(parsed, true);
+      return;
     }
-    if (bytes) {
-      const gltf = await new GLTFLoader().parseAsync(bytes, '');
-      if (this.disposed) return;
-      this.model = gltf.scene;
-      this.styleModel(this.model);
-    }
+    if (this.model) this.clearGroup(this.model, true);
+    this.model = parsed;
+    if (this.model) this.styleModel(this.model);
     if (this.state) this.rebuild();
   }
 
@@ -272,10 +292,15 @@ export class SceneRenderer {
     // The aspect stays the canvas's own: the viewport is styled to it, and the hardware samples through it.
     this.camera.aspect = CANVAS_W / CANVAS_H;
     this.camera.updateProjectionMatrix();
+    this.dirty = true;
   }
 
   private readonly tick = () => {
+    const frameMoved = this.frame.seq !== this.paintedSeq;
+    if (!this.dirty && !frameMoved) return;
     this.paintDots();
+    this.paintedSeq = this.frame.seq;
+    this.dirty = false;
     this.renderer.render(this.scene, this.camera);
   };
 
@@ -286,19 +311,22 @@ export class SceneRenderer {
     const pos = dots.geometry.getAttribute('position') as BufferAttribute;
     const col = dots.geometry.getAttribute('color') as BufferAttribute;
     const n = pos.count;
+    const v = this.projected;
     this.camera.updateMatrixWorld();
     for (let i = 0; i < n; i++) {
       if (!pixels || w === 0) {
         col.setXYZ(i, 0.85, 0.85, 0.85);
         continue;
       }
-      const p = projectToCanvas(this.camera, [pos.getX(i), pos.getY(i), pos.getZ(i)], this.scratch);
-      if (!p) {
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(this.camera.matrixWorldInverse);
+      if (-v.z < CAMERA_NEAR) {
         col.setXYZ(i, 0, 0, 0);
         continue;
       }
-      const px = Math.min(w - 1, Math.max(0, Math.floor((p[0] / CANVAS_W) * w)));
-      const py = Math.min(h - 1, Math.max(0, Math.floor((p[1] / CANVAS_H) * h)));
+      v.applyMatrix4(this.camera.projectionMatrix);
+      // Floor, as the engine truncates its sample position, so the dot shows the LED's own pixel.
+      const px = Math.min(w - 1, Math.max(0, Math.floor(((v.x + 1) / 2) * w)));
+      const py = Math.min(h - 1, Math.max(0, Math.floor(((1 - v.y) / 2) * h)));
       const s = (py * w + px) * 3;
       // A dark LED still needs to read as a dot on the dark viewport.
       col.setXYZ(i, Math.max(pixels[s] / 255, 0.08), Math.max(pixels[s + 1] / 255, 0.08), Math.max(pixels[s + 2] / 255, 0.08));
@@ -340,10 +368,24 @@ export class SceneRenderer {
     }
   }
 
+  private clearDots(): void {
+    if (!this.dots) return;
+    this.scene.remove(this.dots);
+    this.dots.geometry.dispose();
+    (this.dots.material as PointsMaterial).dispose();
+    this.dots = null;
+  }
+
   private styleModel(model: Group): void {
     const meshes: Mesh[] = [];
     model.traverse(o => { if ((o as Mesh).isMesh) meshes.push(o as Mesh); });
     for (const mesh of meshes) {
+      for (const old of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        for (const value of Object.values(old)) {
+          if (value && typeof value === 'object' && 'isTexture' in value) (value as { dispose: () => void }).dispose();
+        }
+        old.dispose();
+      }
       mesh.material = new MeshBasicMaterial({ color: new Color(this.theme.face), transparent: true, opacity: 0.18, side: DoubleSide, depthWrite: false });
       mesh.add(new LineSegments(new EdgesGeometry(mesh.geometry, 25), new LineBasicMaterial({ color: new Color(this.theme.line), transparent: true, opacity: 0.55 })));
     }
@@ -358,12 +400,7 @@ export class SceneRenderer {
     this.clearGroup(this.anchorsGroup);
     this.anchorLines.clear();
     this.objectGroups.clear();
-    if (this.dots) {
-      this.scene.remove(this.dots);
-      this.dots.geometry.dispose();
-      (this.dots.material as PointsMaterial).dispose();
-      this.dots = null;
-    }
+    this.clearDots();
 
     this.objectsGroup.add(this.buildDesk(state.objects));
     for (const obj of state.objects) {
@@ -463,6 +500,7 @@ export class SceneRenderer {
   private restyle(): void {
     const state = this.state;
     if (!state) return;
+    this.dirty = true;
     const accent = new Color(this.theme.accent);
     const line = new Color(this.theme.line);
     const boundTo = new Map<string, string>();
@@ -541,6 +579,7 @@ export class SceneRenderer {
         const p = hit.sub(this.drag.offset);
         const snap = (v: number) => Math.round(v / SNAP_MM) * SNAP_MM;
         this.drag.group.position.set(snap(p.x), this.drag.start[1], snap(p.z));
+        this.dirty = true;
         if (this.down && Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > CLICK_SLOP_PX) this.drag.moved = true;
       }
       return;
@@ -558,6 +597,14 @@ export class SceneRenderer {
       this.hovered = key;
       this.restyle();
     }
+  };
+
+  private readonly onPointerCancel = () => {
+    if (this.drag) this.drag.group.position.set(...this.drag.start);
+    this.drag = null;
+    this.down = null;
+    this.controls.enabled = true;
+    this.dirty = true;
   };
 
   private readonly onPointerLeave = (e: PointerEvent) => {

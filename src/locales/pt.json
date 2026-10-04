@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "Monitor",
   "lighting.scene.kind.mouse": "Rato",
   "lighting.scene.kind.mousepad": "Tapete de rato",
+  "lighting.scene.kind.other": "Objeto",
   "lighting.scene.kind.speaker": "Coluna",
   "lighting.scene.kind.strip": "Barra de luz",
   "lighting.scene.object.remove": "Remover",

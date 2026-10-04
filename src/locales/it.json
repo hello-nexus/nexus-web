@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "Monitor",
   "lighting.scene.kind.mouse": "Mouse",
   "lighting.scene.kind.mousepad": "Tappetino",
+  "lighting.scene.kind.other": "Oggetto",
   "lighting.scene.kind.speaker": "Altoparlante",
   "lighting.scene.kind.strip": "Barra luminosa",
   "lighting.scene.object.remove": "Rimuovi",

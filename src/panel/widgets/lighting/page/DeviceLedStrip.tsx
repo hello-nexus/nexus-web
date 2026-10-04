@@ -159,8 +159,9 @@ function paintLook(
       const o = i * 4;
       d[o + 3] = 255;
       if (Number.isNaN(cx)) continue;
-      const ux = Math.min(w - 1, Math.max(0, Math.round((cx / CW) * w)));
-      const vy = Math.min(h - 1, Math.max(0, Math.round((cy / CH) * h)));
+      // Floor, as the engine truncates its sample position.
+      const ux = Math.min(w - 1, Math.max(0, Math.floor((cx / CW) * w)));
+      const vy = Math.min(h - 1, Math.max(0, Math.floor((cy / CH) * h)));
       const s = (vy * w + ux) * 3;
       d[o] = pixels[s] * scale;
       d[o + 1] = pixels[s + 1] * scale;

@@ -2735,6 +2735,7 @@
   "lighting.scene.kind.monitor": "Monitor",
   "lighting.scene.kind.mouse": "Mysz",
   "lighting.scene.kind.mousepad": "Podkładka",
+  "lighting.scene.kind.other": "Obiekt",
   "lighting.scene.kind.speaker": "Głośnik",
   "lighting.scene.kind.strip": "Listwa świetlna",
   "lighting.scene.object.remove": "Usuń",

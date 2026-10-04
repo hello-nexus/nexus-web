@@ -359,51 +359,6 @@
   color: var(--text);
 }
 
-.toast {
-  @include text-caption;
-  position: absolute;
-  top: 0.6rem;
-  left: 50%;
-  z-index: 25;
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--accent-text);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-// 2D | 3D switch in the canvas pane's header, in the app's chrome rather than over the canvas.
-.viewSwitch {
-  display: flex;
-  margin-left: 0.5rem;
-  padding: 2px;
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-}
-
-.viewSwitchButton {
-  @include text-button;
-  padding: 0.15rem 0.55rem;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  transition: color var(--ease-fast), background var(--ease-fast);
-
-  &:hover { color: var(--text); }
-  &:focus-visible { @include focus-ring; }
-}
-
-.viewSwitchButtonActive {
-  background: var(--accent);
-  color: var(--accent-text);
-
-  &:hover { color: var(--accent-text); }
-}
-
 // Names the spot or object under the pointer, offset so it never sits under the cursor.
 .hoverChip {
   @include text-caption;

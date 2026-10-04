@@ -2735,6 +2735,7 @@
   "lighting.scene.kind.monitor": "Монитор",
   "lighting.scene.kind.mouse": "Мышь",
   "lighting.scene.kind.mousepad": "Коврик для мыши",
+  "lighting.scene.kind.other": "Объект",
   "lighting.scene.kind.speaker": "Колонка",
   "lighting.scene.kind.strip": "Световая панель",
   "lighting.scene.object.remove": "Убрать",

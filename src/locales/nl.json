@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "Monitor",
   "lighting.scene.kind.mouse": "Muis",
   "lighting.scene.kind.mousepad": "Muismat",
+  "lighting.scene.kind.other": "Object",
   "lighting.scene.kind.speaker": "Luidspreker",
   "lighting.scene.kind.strip": "Lichtbalk",
   "lighting.scene.object.remove": "Verwijderen",

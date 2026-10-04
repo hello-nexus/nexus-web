@@ -52,7 +52,7 @@ import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { DeviceCanvas } from '../../../components/common/DeviceCanvas/DeviceCanvas';
 import { SCENE_3D } from '../../../lib/scene/sceneFeature';
 import { useLightingScene } from './scene/useLightingScene';
-import { SceneViewSwitch } from './scene/SceneViewSwitch';
+import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { usePersistentState, usePersistentIdSet } from '../../../hooks/usePersistentState';
 import {
   pickLookForDevices, pickPaletteForDevices, pickCustomForDevices, pushPalettePick, devicePicksFromLooks,
@@ -163,6 +163,8 @@ function loadDeviceOrder(): string[] {
 
 // three.js loads only when someone turns the 3D view on.
 const LightingScene3D = lazy(() => import('./scene/LightingScene3D'));
+const VIEW_2D = '2d';
+const VIEW_3D = '3d';
 
 export function LightingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '', onSectionNavigate }: LightingViewProps) {
   const { t, language } = useTranslation();
@@ -762,6 +764,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
      
     void refreshDevices();
     void refreshWirelessPresets();
+    // A preset (picked here, on another client, or by app focus) can carry its own 3D view.
+    if (SCENE_3D) void sceneApi.refreshView();
     // A lock set from another client arrives on this frame. Only the lock
     // flags are taken: replacing the picks wholesale here would put a
     // still-queued colour write's record back to the older look.
@@ -2304,11 +2308,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
               modes that drive them all, the selection in the per-device ones. */}
           <Badge label={previewBadgeLabel} compact uppercase color="var(--text-dim)" />
           {SCENE_3D && showCanvas && (
-            <SceneViewSwitch
-              value={scene3d ? '3d' : '2d'}
+            <ChipGroup
+              className={styles.sceneViewSwitch}
+              ariaLabel={t('lighting.scene.viewSwitch')}
+              options={[{ key: VIEW_2D, label: t('lighting.scene.view.2d') }, { key: VIEW_3D, label: t('lighting.scene.view.3d') }]}
+              activeKey={scene3d ? VIEW_3D : VIEW_2D}
               onChange={next => {
-                const firstTime = next === '3d' && (sceneApi.scene?.bindings.length ?? 0) === 0;
-                void sceneApi.setEnabled(next === '3d');
+                const firstTime = next === VIEW_3D && (sceneApi.scene?.bindings.length ?? 0) === 0;
+                void sceneApi.setEnabled(next === VIEW_3D);
                 if (firstTime) setSceneEditorOpen(true);
               }}
             />
@@ -2435,7 +2442,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                       audioRef={audioRef}
                       editorOpen={sceneEditorOpen}
                       onEditorOpenChange={setSceneEditorOpen}
-                      onIdentify={id => { identifyLightingDevice(id, 2000).catch(() => { /* silent */ }); }}
+                      onIdentify={id => { identifyLightingDevice(id).catch(() => { /* silent */ }); }}
                       onLayoutCommit={handleLayoutCommit}
                     />
                   </Suspense>

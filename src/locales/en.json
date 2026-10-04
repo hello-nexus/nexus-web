@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "Monitor",
   "lighting.scene.kind.mouse": "Mouse",
   "lighting.scene.kind.mousepad": "Mouse pad",
+  "lighting.scene.kind.other": "Object",
   "lighting.scene.kind.speaker": "Speaker",
   "lighting.scene.kind.strip": "Light bar",
   "lighting.scene.object.remove": "Remove",

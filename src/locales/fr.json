@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "Écran",
   "lighting.scene.kind.mouse": "Souris",
   "lighting.scene.kind.mousepad": "Tapis de souris",
+  "lighting.scene.kind.other": "Objet",
   "lighting.scene.kind.speaker": "Enceinte",
   "lighting.scene.kind.strip": "Barre lumineuse",
   "lighting.scene.object.remove": "Retirer",

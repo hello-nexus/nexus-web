@@ -22,6 +22,15 @@ export function editBinding(s: SceneEdit, deviceId: string, patch: Partial<Pick<
   return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, ...patch } : b)) };
 }
 
+/** A quarter turn clockwise of the device's map on its surfaces. */
+export function rotateBinding(s: SceneEdit, deviceId: string): SceneEdit {
+  return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, rotation: (b.rotation + 90) % 360 } : b)) };
+}
+
+export function flipBinding(s: SceneEdit, deviceId: string): SceneEdit {
+  return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, flip: !b.flip } : b)) };
+}
+
 export function addObject(s: SceneEdit, obj: SceneObject): SceneEdit {
   return { ...s, objects: [...s.objects, obj] };
 }

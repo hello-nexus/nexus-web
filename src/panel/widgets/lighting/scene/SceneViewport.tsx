@@ -35,6 +35,8 @@ interface SceneViewportProps {
   hoverLabel?: (pick: ScenePick) => string | null;
   /** Feed the device cards' readouts with where the camera puts each LED. */
   publishPoints?: boolean;
+  /** False pauses drawing while the view is covered (the inline view under the open editor). */
+  active?: boolean;
   rendererRef?: { current: SceneRenderer | null };
   className?: string;
   children?: ReactNode;
@@ -53,7 +55,7 @@ function cssColor(el: Element, name: string, fallback: string): string {
 export function SceneViewport({
   scene, model, leds, selectedDeviceId, selectedObjectId, placing, editable, backdrop,
   shaderEffect, shaderState, shaderPaused, audioRef,
-  onPick, onCamera, onMoveObject, onDropDevice, hoverLabel, publishPoints, rendererRef, className, children,
+  onPick, onCamera, onMoveObject, onDropDevice, hoverLabel, publishPoints, active = true, rendererRef, className, children,
 }: SceneViewportProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -75,6 +77,7 @@ export function SceneViewport({
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return undefined;
+    // The viewport is dark in both themes, like the 2D canvas, so only the accent comes from the theme.
     const theme: SceneTheme = {
       accent: cssColor(container, '--accent', '#4da3ff'),
       line: '#e6e9ee',
@@ -111,6 +114,10 @@ export function SceneViewport({
   useEffect(() => {
     void rendererInst.current?.setModel(model).catch(() => { /* a broken model leaves the case drawn as its box */ });
   }, [model]);
+
+  useEffect(() => {
+    rendererInst.current?.setActive(active);
+  }, [active]);
 
   useEffect(() => {
     rendererInst.current?.setState({

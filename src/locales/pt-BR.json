@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "Monitor",
   "lighting.scene.kind.mouse": "Mouse",
   "lighting.scene.kind.mousepad": "Mousepad",
+  "lighting.scene.kind.other": "Objeto",
   "lighting.scene.kind.speaker": "Caixa de som",
   "lighting.scene.kind.strip": "Barra de luz",
   "lighting.scene.object.remove": "Remover",

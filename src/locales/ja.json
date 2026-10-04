@@ -2700,6 +2700,7 @@
   "lighting.scene.kind.monitor": "モニター",
   "lighting.scene.kind.mouse": "マウス",
   "lighting.scene.kind.mousepad": "マウスパッド",
+  "lighting.scene.kind.other": "オブジェクト",
   "lighting.scene.kind.speaker": "スピーカー",
   "lighting.scene.kind.strip": "ライトバー",
   "lighting.scene.object.remove": "削除",

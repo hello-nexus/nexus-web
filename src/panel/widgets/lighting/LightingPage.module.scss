@@ -199,6 +199,11 @@
   position: relative;
 }
 
+// 2D | 3D chip pair beside the Effects title.
+.sceneViewSwitch {
+  margin-left: 0.5rem;
+}
+
 // Holds the canvas's footprint while the 3D view's chunk loads.
 .scenePlaceholder {
   width: min(100%, calc(440px * 5 / 3));

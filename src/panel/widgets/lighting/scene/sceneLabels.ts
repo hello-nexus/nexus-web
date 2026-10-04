@@ -10,7 +10,7 @@ const STRIP_POSITIONS = ['front', 'top'] as const;
 export function objectLabel(t: T, obj: SceneObject): string {
   if (obj.label) return obj.label;
   if (obj.kind === 'case') return t('lighting.scene.kind.case');
-  return isDeskKind(obj.kind) ? t(`lighting.scene.kind.${obj.kind}`) : obj.kind;
+  return t(isDeskKind(obj.kind) ? `lighting.scene.kind.${obj.kind}` : 'lighting.scene.kind.other');
 }
 
 /** A surface's name from its kind and slot key, so imported and hand-made scenes read alike in every language. */
