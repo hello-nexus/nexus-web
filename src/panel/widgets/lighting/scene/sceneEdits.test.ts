@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SceneObject } from '../../../../api/lightingScene';
-import { flipBinding, moveObject, placeDevice, rotateBinding } from './sceneEdits';
+import { flipBinding, menuDevices, moveObject, placeDevice, rotateBinding } from './sceneEdits';
 
 const obj = (id: string): SceneObject => ({
   id, kind: id, source: 'build', position: [0, 0, 0], yaw: 0, size: [100, 10, 100],
@@ -35,5 +35,14 @@ describe('scene edits', () => {
     expect(turned.bindings[0].rotation).toBe(0);
     expect(rotateBinding(s, 'd1', -1).bindings[0].rotation).toBe(270);
     expect(flipBinding(flipBinding(s, 'd1'), 'd1').bindings[0].flip).toBe(false);
+  });
+
+  it('opens the menu on every device sharing a spot, or on the selected one among them', () => {
+    const shared = placeDevice(placeDevice(placeDevice(base, 'm65', mouse.id, 'top', false), 'zone2', mouse.id, 'top', false), 'keeb', kb.id, 'top', false);
+    expect(menuDevices(shared.bindings, { objectId: mouse.id, anchorId: 'top' }, null)).toEqual(['m65', 'zone2']);
+    expect(menuDevices(shared.bindings, { objectId: mouse.id }, 'keeb')).toEqual(['m65', 'zone2']);
+    expect(menuDevices(shared.bindings, { objectId: mouse.id, anchorId: 'top' }, 'zone2')).toEqual(['zone2']);
+    expect(menuDevices(shared.bindings, { objectId: kb.id, anchorId: 'top' }, null)).toEqual(['keeb']);
+    expect(menuDevices(shared.bindings, { objectId: mouse.id, anchorId: 'side' }, null)).toEqual([]);
   });
 });

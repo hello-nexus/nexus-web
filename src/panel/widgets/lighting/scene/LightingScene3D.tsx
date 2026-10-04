@@ -17,7 +17,7 @@ import type { ScenePick } from '../../../../lib/scene/sceneRenderer';
 import { requestOpenBuild } from '../../../../components/views/BuildPage/buildNav';
 import { SceneViewport } from './SceneViewport';
 import { anchorLabel, objectLabel } from './sceneLabels';
-import { flipBinding, moveObject, placeDevice, rotateBinding } from './sceneEdits';
+import { flipBinding, menuDevices, moveObject, placeDevice, rotateBinding } from './sceneEdits';
 import { useSceneLedMaps, type LightingSceneApi } from './useLightingScene';
 import styles from './Scene.module.scss';
 
@@ -114,7 +114,7 @@ export default function LightingScene3D({
   // Walking through every unplaced device, one blink and click at a time; skipped ones are not offered again.
   const [guided, setGuided] = useState(false);
   // A right-clicked device's menu, at the click (client pixels).
-  const [menu, setMenu] = useState<{ deviceId: string; x: number; y: number } | null>(null);
+  const [menu, setMenu] = useState<{ deviceIds: string[]; x: number; y: number } | null>(null);
   // The object carrying the move tool: the one clicked, or the one the device picked in the list sits on.
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const skipped = useRef(new Set<string>());
@@ -223,17 +223,15 @@ export default function LightingScene3D({
     return () => window.removeEventListener('keydown', onKey);
   }, [placing, guided, stopGuide]);
 
-  // A right click opens the device's menu: a spot's device, or an object's when it has just one.
+  // A one-device menu also selects that device in the list.
   const onContextMenu = useCallback((pick: ScenePick, x: number, y: number) => {
     if (!scene) return;
-    const bound = pick.kind === 'anchor'
-      ? scene.bindings.filter(b => onSpot(b, pick))
-      : scene.bindings.filter(b => b.targets.some(tg => tg.objectId === pick.objectId));
-    if (bound.length !== 1) return;
-    onSelectDevice(bound[0].deviceId);
+    const ids = menuDevices(scene.bindings, pick, selectedDeviceId);
+    if (ids.length === 0) return;
+    if (ids.length === 1) onSelectDevice(ids[0]);
     setSelectedObjectId(pick.objectId);
-    setMenu({ deviceId: bound[0].deviceId, x, y });
-  }, [scene, onSelectDevice]);
+    setMenu({ deviceIds: ids, x, y });
+  }, [scene, selectedDeviceId, onSelectDevice]);
 
   if (!scene) return <div className={styles.viewport} />;
   const fov = scene.view.camera?.fov ?? DEFAULT_FOV;
@@ -300,25 +298,30 @@ export default function LightingScene3D({
       </div>
 
       {menu && (() => {
-        const dev = devices.find(d => d.id === menu.deviceId);
-        if (!dev) return null;
-        const id = dev.id;
+        const targets = devices.filter(d => menu.deviceIds.includes(d.id) && bindingOf(d.id));
+        if (targets.length === 0) return null;
+        const ids = targets.map(d => d.id);
+        const count = targets.length;
+        const group = count > 1;
+        const counted = (single: string, plural: string, n: number) => (group ? t(pluralKey(plural, language, n), { count: n }) : t(single));
+        const anyOn = targets.some(d => d.ledsOn);
+        const ledTargets = targets.filter(d => d.ledCount > 0);
         const items = menuSections(
-          onOpenSettings ? [{ key: 'settings', icon: <Paintbrush size={14} />, label: t('lighting.ledMap.settings'), onSelect: () => onOpenSettings(id) }] : [],
+          onOpenSettings && !group ? [{ key: 'settings', icon: <Paintbrush size={14} />, label: t('lighting.ledMap.settings'), onSelect: () => onOpenSettings(ids[0]) }] : [],
           [
-            { key: 'rotate-cw', icon: <RotateCw size={14} />, label: t('lighting.devices.rotateCw'), onSelect: () => api.update(s => rotateBinding(s, id, 1)) },
-            { key: 'rotate-ccw', icon: <RotateCcw size={14} />, label: t('lighting.devices.rotateCcw'), onSelect: () => api.update(s => rotateBinding(s, id, -1)) },
-            { key: 'mirror', icon: <FlipHorizontal2 size={14} />, label: t('lighting.devices.mirror'), onSelect: () => api.update(s => flipBinding(s, id)) },
-            { key: 'move', icon: <Move3d size={14} />, label: t('lighting.scene.device.move'), onSelect: () => setPlacing({ deviceId: id }) },
+            { key: 'rotate-cw', icon: <RotateCw size={14} />, label: counted('lighting.devices.rotateCw', 'lighting.devices.rotateCwCount', count), onSelect: () => api.update(s => ids.reduce((acc, id) => rotateBinding(acc, id, 1), s)) },
+            { key: 'rotate-ccw', icon: <RotateCcw size={14} />, label: counted('lighting.devices.rotateCcw', 'lighting.devices.rotateCcwCount', count), onSelect: () => api.update(s => ids.reduce((acc, id) => rotateBinding(acc, id, -1), s)) },
+            { key: 'mirror', icon: <FlipHorizontal2 size={14} />, label: t('lighting.devices.mirror'), onSelect: () => api.update(s => ids.reduce((acc, id) => flipBinding(acc, id), s)) },
+            ...(group ? [] : [{ key: 'move', icon: <Move3d size={14} />, label: t('lighting.scene.device.move'), onSelect: () => setPlacing({ deviceId: ids[0] }) }]),
           ],
           onSetDevicesPower ? [{
-            key: 'power', icon: dev.ledsOn ? <PowerOff size={14} /> : <Power size={14} />,
-            label: t(dev.ledsOn ? 'lighting.devices.menuLightsOff' : 'lighting.devices.menuLightsOn'),
-            onSelect: () => onSetDevicesPower([id], !dev.ledsOn),
+            key: 'power', icon: anyOn ? <PowerOff size={14} /> : <Power size={14} />,
+            label: anyOn ? counted('lighting.devices.menuLightsOff', 'lighting.devices.menuLightsOffCount', count) : counted('lighting.devices.menuLightsOn', 'lighting.devices.menuLightsOnCount', count),
+            onSelect: () => onSetDevicesPower(ids, !anyOn),
           }] : [],
-          dev.ledCount > 0 ? [{ key: 'identify', icon: <Eye size={14} />, label: t('lighting.devices.identify'), onSelect: () => blink(id) }] : [],
+          ledTargets.length > 0 ? [{ key: 'identify', icon: <Eye size={14} />, label: counted('lighting.devices.identify', 'lighting.devices.identifyCount', ledTargets.length), onSelect: () => ledTargets.forEach(d => blink(d.id)) }] : [],
         );
-        return <DeviceContextMenu key={`${menu.deviceId}:${menu.x}:${menu.y}`} x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
+        return <DeviceContextMenu key={`${ids.join(',')}:${menu.x}:${menu.y}`} x={menu.x} y={menu.y} items={items} onClose={() => setMenu(null)} />;
       })()}
 
       {empty ? (

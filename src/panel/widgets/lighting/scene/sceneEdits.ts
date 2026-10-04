@@ -27,3 +27,11 @@ export function flipBinding(s: SceneEdit, deviceId: string): SceneEdit {
 export function moveObject(s: SceneEdit, objectId: string, position: Vec3, yaw: number): SceneEdit {
   return { ...s, objects: s.objects.map(o => (o.id === objectId ? { ...o, position, yaw } : o)) };
 }
+
+/** The devices a right click on a spot (anchorId) or an object acts on: the selected one when it is there, else all of them. */
+export function menuDevices(bindings: SceneBinding[], pick: { objectId: string; anchorId?: string }, selectedDeviceId: string | null): string[] {
+  const here = bindings
+    .filter(b => b.targets.some(tg => tg.objectId === pick.objectId && (pick.anchorId === undefined || tg.anchorId === pick.anchorId)))
+    .map(b => b.deviceId);
+  return selectedDeviceId && here.includes(selectedDeviceId) ? [selectedDeviceId] : here;
+}
