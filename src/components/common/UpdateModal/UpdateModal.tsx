@@ -13,6 +13,8 @@ import { formatDate, type DateFormat } from '../../../lib/units';
 import styles from './UpdateModal.module.scss';
 
 const NEVER_ACTIVE_TIMEOUT_MS = 12_000;
+// Waits between automatic retries of a start that did not take.
+const START_RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 20_000, 30_000];
 
 interface UpdateModalProps {
   open: boolean;
@@ -20,8 +22,7 @@ interface UpdateModalProps {
   status: UpdateStatus | null;
   onStatusRefreshed?: (status: UpdateStatus) => void;
   onUpdateNow?: () => void;
-  // When true, an install was already started externally before the modal opened;
-  // latch installActiveRef so the reconnecting transition fires if the service exits.
+  // When true, the modal starts the install as it opens (the badge's one-click install).
   startedInstall?: boolean;
   // Default true. Set false to suppress the auto-check-on-open (e.g. the
   // Storybook preview, which must not fire a live POST /update/check).
@@ -146,7 +147,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const [startError, setStartError] = useState('');
   // Captured on open; persists so live status re-fetches can't clobber the whatsNew view.
   const whatsNewVersionRef = useRef('');
-  // True once any active install phase has been observed in this open session.
+  // True once this modal started an install or saw an installer launch.
   const installActiveRef = useRef(false);
   // Set to the monotonic time when the install was kicked off; cleared when active progress arrives.
   const neverActiveDeadlineRef = useRef(0);
@@ -154,6 +155,15 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // Bumped when an install starts: the progress poll stops itself on an idle
   // open (notes view), so the start has to run it again.
   const [pollGen, setPollGen] = useState(0);
+  // Bumped per start attempt and on close; a reply to an older attempt is ignored.
+  const startTokenRef = useRef(0);
+  // A progress frame read while a start is in flight predates that start.
+  const startPendingRef = useRef(false);
+  // True once the install this modal follows has reported active progress.
+  const sawActiveRef = useRef(false);
+  const retryAttemptRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const recoverStartRef = useRef(() => {});
 
   // Non-closable ONLY while a genuine install is in flight: live active progress
   // or the post-install reconnect. A 'progress' view with no active progress (the
@@ -166,58 +176,95 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // resolve the initial view, and reset all per-open latches.
   useEffect(() => {
     if (!open) return;
+    cancelRetry();
     installActiveRef.current = startedInstall ?? false;
     neverActiveDeadlineRef.current = 0;
+    startPendingRef.current = false;
+    sawActiveRef.current = false;
     setStartError('');
+    setStarting(false);
     setChecking(false);
     setChecked(false);
     setReconnectGaveUp(false);
     const justUpdatedTo = status?.justUpdatedTo ?? '';
     whatsNewVersionRef.current = justUpdatedTo;
-    if (justUpdatedTo) {
-      setView('whatsNew');
-    } else if (startedInstall) {
+    if (startedInstall) {
       setView('progress');
+      void startInstall();
+    } else if (justUpdatedTo) {
+      setView('whatsNew');
     } else {
       setView('notes');
     }
+    return () => {
+      startTokenRef.current += 1;
+      startPendingRef.current = false;
+      cancelRetry();
+    };
   // open is the only dep: the effect must fire exactly once per open, capturing
   // the status snapshot the caller passed (before any re-fetch).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  useEffect(() => {
+    recoverStartRef.current = () => { void recoverStart(); };
+  });
+
   const targetVersion = status?.latestVersion ?? '';
 
   // Progress poll: runs while the modal is open. Transitions to 'reconnecting'
   // as soon as the service goes away mid-install or phase reaches launching/installing.
-  // Transitions to 'notes' on failure so the user sees the error rather than freezing.
+  // An install this modal runs that fails or stalls goes to recoverStart.
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     const poll = async () => {
+      const tokenAtRequest = startTokenRef.current;
+      const pendingAtRequest = startPendingRef.current;
       const p = await getUpdateProgress();
       if (cancelled) return;
+      // A frame requested before the latest start, or while it was pending, says nothing about it.
+      const fresh = !pendingAtRequest && !startPendingRef.current && tokenAtRequest === startTokenRef.current;
       if (!p) {
-        if (installActiveRef.current) {
+        // While a start is pending, the watchdog decides rather than a reconnect.
+        if (installActiveRef.current && !startPendingRef.current) {
           setView('reconnecting');
           clearInterval(id);
+        } else if (neverActiveDeadlineRef.current > 0 && Date.now() > neverActiveDeadlineRef.current) {
+          clearInterval(id);
+          recoverStartRef.current();
         }
         return;
       }
-      setProgress(p);
-      if (p.active) {
+      if (fresh || p.active) setProgress(p);
+      const launching = p.phase === 'launching' || p.phase === 'installing';
+      // Activity the modal did not start (such as the background stage its own
+      // check triggers) can end idle, so only an installer launch is adopted.
+      if (p.active && (installActiveRef.current || launching)) {
         installActiveRef.current = true;
+        sawActiveRef.current = true;
         neverActiveDeadlineRef.current = 0;
-        if (p.phase === 'launching' || p.phase === 'installing') {
+        if (launching) {
+          // The installer runs: a pending attempt or queued retry must not interfere.
+          startTokenRef.current += 1;
+          startPendingRef.current = false;
+          cancelRetry();
+          setStarting(false);
           setView('reconnecting');
           clearInterval(id);
         } else {
           setView(v => v === 'whatsNew' ? v : 'progress');
         }
       }
-      if (p.phase === 'failed' || (!p.active && !p.success && p.error !== '')) {
-        setView('notes');
+      const failed = p.phase === 'failed' || (!p.active && !p.success && p.error !== '');
+      if (failed && fresh) {
         clearInterval(id);
+        if (installActiveRef.current) {
+          recoverStartRef.current();
+        } else {
+          // A recovery waiting out its backoff keeps the progress view.
+          setView(v => (v === 'progress' ? v : 'notes'));
+        }
         return;
       }
       if (!p.active) {
@@ -232,13 +279,12 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
             return;
           }
         }
-        // Check never-went-active watchdog.
+        // The install went idle without launching the installer, or never went active.
+        const endedIdle = fresh && installActiveRef.current && sawActiveRef.current;
         const deadline = neverActiveDeadlineRef.current;
-        if (deadline > 0 && Date.now() > deadline) {
-          neverActiveDeadlineRef.current = 0;
-          setStartError(t('update.modal.startFailed'));
-          setView('notes');
+        if (endedIdle || (deadline > 0 && Date.now() > deadline)) {
           clearInterval(id);
+          recoverStartRef.current();
           return;
         }
         if (!installActiveRef.current) {
@@ -252,7 +298,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       cancelled = true;
       clearInterval(id);
     };
-  }, [open, t, pollGen, targetVersion]);
+  }, [open, pollGen, targetVersion]);
 
   // Reconnect poll: only leaves 'reconnecting' once the service reports the
   // target version, preventing the old process's brief final /ping from
@@ -273,6 +319,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
         getUpdateStatus().then(s => { if (!cancelled && s && onStatusRefreshed) onStatusRefreshed(s); });
         // The install is over: a later check must not inherit its latch.
         installActiveRef.current = false;
+        sawActiveRef.current = false;
         neverActiveDeadlineRef.current = 0;
         setView('notes');
         return;
@@ -319,26 +366,87 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const handleUpdateNow = async () => {
+  const cancelRetry = () => {
+    clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = undefined;
+    retryAttemptRef.current = 0;
+  };
+
+  const startInstall = async (version = status?.latestVersion) => {
+    const token = ++startTokenRef.current;
     // Latch before calling start so the poll can drive reconnecting if the
     // service goes away before the 2s poll sees a launching/installing frame.
     installActiveRef.current = true;
-    if (onUpdateNow) {
-      onUpdateNow();
-      return;
-    }
+    startPendingRef.current = true;
+    sawActiveRef.current = false;
     setStarting(true);
+    setStartError('');
     neverActiveDeadlineRef.current = Date.now() + NEVER_ACTIVE_TIMEOUT_MS;
-    const resp = await startUpdate(status?.latestVersion, { reopenAfter: true });
+    // The poll runs the watchdog, which also covers a start that never answers.
+    setPollGen(g => g + 1);
+    const resp = await startUpdate(version, { reopenAfter: true });
+    if (token !== startTokenRef.current) return;
+    startPendingRef.current = false;
     setStarting(false);
     if (!resp?.started) {
-      installActiveRef.current = false;
-      neverActiveDeadlineRef.current = 0;
-      setStartError(t('update.modal.startFailed'));
+      void recoverStart();
       return;
     }
     setView('progress');
     setPollGen(g => g + 1);
+  };
+
+  // A start that did not take: follow an install the service is already
+  // running, stop when a fresh check finds nothing to install, otherwise retry
+  // with backoff and report the failure only once the retries run out.
+  const recoverStart = async () => {
+    const token = ++startTokenRef.current;
+    startPendingRef.current = false;
+    sawActiveRef.current = false;
+    installActiveRef.current = false;
+    neverActiveDeadlineRef.current = 0;
+    setStarting(false);
+    const p = await getUpdateProgress();
+    if (token !== startTokenRef.current) return;
+    if (p?.active) {
+      installActiveRef.current = true;
+      sawActiveRef.current = true;
+      setView('progress');
+      setPollGen(g => g + 1);
+      return;
+    }
+    const s = await checkForUpdate();
+    if (token !== startTokenRef.current) return;
+    if (s) {
+      onStatusRefreshed?.(s);
+      if (!s.updateAvailable) {
+        // Often an install that went through between attempts: load its bundle.
+        requestBuildCheck();
+        setProgress(null);
+        setChecked(true);
+        setView('notes');
+        return;
+      }
+    }
+    const delay = START_RETRY_DELAYS_MS[retryAttemptRef.current];
+    if (delay === undefined) {
+      setStartError(t('update.modal.startFailed'));
+      setView('notes');
+      return;
+    }
+    retryAttemptRef.current += 1;
+    setView('progress');
+    retryTimerRef.current = setTimeout(() => { void startInstall(s?.latestVersion); }, delay);
+  };
+
+  const handleUpdateNow = () => {
+    if (onUpdateNow) {
+      installActiveRef.current = true;
+      onUpdateNow();
+      return;
+    }
+    cancelRetry();
+    void startInstall();
   };
 
   const isActive = progress?.active ?? false;
@@ -466,7 +574,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
                   </Button>
                 )}
                 <div className={styles.buttonRowRight}>
-                  {view === 'notes' && status?.updateAvailable && !isFailed && !startError && (
+                  {view === 'notes' && status?.updateAvailable && (
                     canAutoInstall ? (
                       <Button tone="accent" size="md" loading={starting} onClick={handleUpdateNow}>
                         {t('update.modal.downloadAndInstall')}
