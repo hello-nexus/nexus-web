@@ -68,6 +68,7 @@ export function useDevices(enabled: boolean) {
     const result = await setDeviceControl(id, nextEnabled);
     if (result && mountedRef.current) setDevices(result);
     else if (mountedRef.current) await refresh();
+    return result !== null;
   }, [refresh]);
 
   return { devices, controlDevice };

@@ -198,7 +198,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
 
 interface DeviceBodyProps {
   device: UnifiedDevice;
-  controlDevice: (id: string, nextEnabled: boolean) => Promise<void>;
+  controlDevice: (id: string, nextEnabled: boolean) => Promise<unknown>;
   onOpenFirmware?: () => void;
   onSectionNavigate?: (section: string) => void;
 }

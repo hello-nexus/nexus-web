@@ -414,6 +414,8 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         onClose={() => setConflictAppsOpen(false)}
         autoShutdown={settings.general.autoKillConflictsAtStartup}
         onAutoShutdownChange={v => updateGeneral({ autoKillConflictsAtStartup: v })}
+        endOnLaunch={settings.general.endConflictsOnLaunch}
+        onEndOnLaunchChange={v => updateGeneral({ endConflictsOnLaunch: v })}
         exclusions={settings.general.conflictAutoKillExclusions}
         onExclusionsChange={ids => updateGeneral({ conflictAutoKillExclusions: ids })}
         notifyLaunches={settings.general.notifyConflictLaunches}

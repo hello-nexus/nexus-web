@@ -74,7 +74,7 @@ function PageShell({ children }: { children: ReactNode }) {
 
 interface StreamDeckDevicePageProps {
   device: UnifiedDevice;
-  controlDevice: (id: string, nextEnabled: boolean) => Promise<void>;
+  controlDevice: (id: string, nextEnabled: boolean) => Promise<unknown>;
 }
 
 /**
