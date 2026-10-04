@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { House } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { fetchHaEntities, type HaEntity } from '../../../api/homeAssistant';
+import { fetchHaEntities, HA_DEFAULT_DASHBOARD_ID, type HaEntity } from '../../../api/homeAssistant';
 import type { WidgetProps } from '../types';
 import { usePanelPreview } from '../common/PanelPreviewContext';
 import { HOME_ASSISTANT_PREVIEW } from './homeAssistantPreviewData';
+import { isRoomEntity } from './haDomains';
+import { readHomeAssistantConfig } from './homeAssistantConfig';
 import styles from './HomeAssistantWidget.module.scss';
 
 const REFRESH_MS = 15_000;
@@ -30,14 +32,18 @@ export function HomeAssistantWidget({ widget, onSectionNavigate }: WidgetProps) 
     return () => { cancelled = true; window.clearInterval(timer); };
   }, [preview]);
 
+  const config = readHomeAssistantConfig(widget.config);
   const iconSize = widget.size === '2x2' ? 44 : 56;
-  const total = entities.length;
-  const on = entities.filter(e => e.on).length;
+  const rooms = entities.filter(isRoomEntity);
+  const total = rooms.length;
+  const on = rooms.filter(e => e.on).length;
   const label = !connected
     ? t('homeAssistant.notConfigured')
-    : total === 0
-      ? t('homeAssistant.noEntities')
-      : t('homeAssistant.onOfTotal', { on, total });
+    : config.dashboard
+      ? config.dashboardTitle || (config.dashboard === HA_DEFAULT_DASHBOARD_ID ? t('homeAssistant.dashboard.overview') : config.dashboard)
+      : total === 0
+        ? t('homeAssistant.noEntities')
+        : t('homeAssistant.onOfTotal', { on, total });
 
   const content = (
     <>
@@ -60,7 +66,7 @@ export function HomeAssistantWidget({ widget, onSectionNavigate }: WidgetProps) 
           type="button"
           className={styles.center}
           data-clickable="true"
-          onClick={() => onSectionNavigate('home-assistant')}
+          onClick={() => onSectionNavigate('home-assistant', config.dashboard ? { tab: config.dashboard } : undefined)}
         >
           {content}
         </button>

@@ -3165,13 +3165,13 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'HomeAssistantWidget', category: 'panel-kit',
     filePath: 'src/panel/widgets/home-assistant/HomeAssistantWidget.tsx',
-    description: 'Home Assistant tile widget (2x2 / 4x2): connection status dot, on/off entity count. Click opens the Home Assistant management page. Shows a "not configured" prompt when HA is not connected.',
+    description: 'Home Assistant tile widget (2x2 / 4x2): connection status dot, on/off count of visible lights and switches, or the picked dashboard\'s title. Settings pick the room view or an HA dashboard (and optionally one of its views) per widget; the fullscreen view renders that choice. Click opens the Home Assistant page on the same source.',
     notes: 'No live preview -- requires a running service with Home Assistant configured.',
   },
   {
     name: 'HomeAssistantPage', category: 'panel-kit',
     filePath: 'src/panel/widgets/home-assistant/HomeAssistantPage.tsx',
-    description: 'Home Assistant management page: setup form (URL + long-lived access token) or entity list (lights and switches grouped by area, with toggle, brightness slider, and color picker per entity).',
+    description: 'Home Assistant page: setup form (URL + long-lived access token), then a source picker. Rooms: lights and switches grouped by area with search, remembered collapsed rooms, and unavailable/HA-hidden entities left out. Dashboards: an HA Lovelace dashboard flattened into titled tile groups with docked view tabs, covering lights, switches, fans, helpers, scenes, scripts, buttons, covers, locks and sensors.',
     notes: 'No live preview -- requires a running service with Home Assistant configured.',
   },
   {
