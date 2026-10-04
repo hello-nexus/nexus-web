@@ -40,6 +40,7 @@ export function categoryDetails(cat: Nexus2PreviewCategory): CategoryDetail[] {
     case 'y70Layout':
       return [{ key: 'nexus2Welcome.import.category.y70Layout.detail', params: { pages: cat.pages, widgets: cat.mappedWidgets } }];
     case 'q60Face':
+      if (cat.face && !cat.stashedFaces) return [{ key: `panel.widget.${cat.face}`, params: {} }];
       return [{
         key: 'nexus2Welcome.import.category.q60Face.detail',
         params: { face: cat.face ?? '-', stashed: cat.stashedFaces },

@@ -61,6 +61,11 @@ describe('categoryDetails', () => {
     }]);
   });
 
+  it('names only the Q-Series face when no other faces are saved', () => {
+    expect(categoryDetails({ id: 'q60Face', available: true, face: 'clock', stashedFaces: 0 }))
+      .toEqual([{ key: 'panel.widget.clock', params: {} }]);
+  });
+
   it('formats gallerySources as a count only, regardless of missing', () => {
     expect(categoryDetails({ id: 'gallerySources', available: true, count: 5, missing: 2 }))
       .toEqual([{ key: 'nexus2Welcome.import.category.gallerySources.detail', params: { count: 5 } }]);
