@@ -2476,14 +2476,14 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                         )}
                       </div>
                     )}
-                    <HoverTooltip body={t('lighting.fullscreen')} side="left">
+                    {!scene3d && <HoverTooltip body={t('lighting.fullscreen')} side="left">
                       <button type="button" className={styles.fullscreenBtn} onClick={() => setFullscreenOpen(true)} aria-label={t('lighting.fullscreen')}>
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="9,1 13,1 13,5" /><polyline points="5,13 1,13 1,9" />
                           <line x1="13" y1="1" x2="8.5" y2="5.5" /><line x1="1" y1="13" x2="5.5" y2="8.5" />
                         </svg>
                       </button>
-                    </HoverTooltip>
+                    </HoverTooltip>}
                   </>
                 )}
               </div>

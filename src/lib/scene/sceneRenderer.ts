@@ -40,8 +40,8 @@ export interface SceneRenderState {
   selectedDeviceId: string | null;
   /** A device waiting for a spot: free spots glow to invite the click. */
   placing: boolean;
-  /** Edit scene mode: a click selects an object, a drag moves or turns it. */
-  editing: boolean;
+  /** The object with the move tool on it (a device's, or one clicked); null for none. */
+  selectedObjectId: string | null;
 }
 
 export interface SceneRendererCallbacks {
@@ -217,7 +217,6 @@ export class SceneRenderer {
   setState(next: SceneRenderState): void {
     const prev = this.state;
     this.state = next;
-    this.tool.setEnabled(next.editing);
     if (!prev || prev.objects !== next.objects || prev.bindings !== next.bindings || prev.leds !== next.leds) this.rebuild();
     else this.restyle();
   }
@@ -380,10 +379,11 @@ export class SceneRenderer {
     this.anchorLines.set(anchorKey(obj.id, a.id), { line: lineMat, fill });
   }
 
-  /** Spot highlights from the current state, without rebuilding geometry. */
+  /** Spot highlights and the selection from the current state, without rebuilding geometry. */
   private restyle(): void {
     const state = this.state;
     if (!state) return;
+    this.tool.setSelected(state.selectedObjectId);
     const boundTo = new Map<string, string>();
     for (const b of state.bindings) for (const t of b.targets) boundTo.set(anchorKey(t.objectId, t.anchorId), b.deviceId);
     for (const [key, { line, fill }] of this.anchorLines) {

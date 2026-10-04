@@ -16,8 +16,8 @@ interface SceneViewportProps {
   leds: Map<string, Float32Array>;
   selectedDeviceId: string | null;
   placing: boolean;
-  /** Edit scene mode: click an object to select it, drag it to move or turn it. */
-  editing: boolean;
+  /** The object carrying the move tool. */
+  selectedObjectId: string | null;
   shaderEffect: string | null;
   shaderState: EffectState | null;
   shaderPaused?: boolean;
@@ -33,7 +33,7 @@ interface SceneViewportProps {
 
 /** The 3D scene over the effect it samples: the effect plays behind, so each LED dot shows the colour it gets. */
 export function SceneViewport({
-  scene, model, leds, selectedDeviceId, placing, editing, shaderEffect, shaderState, shaderPaused, audioRef,
+  scene, model, leds, selectedDeviceId, placing, selectedObjectId, shaderEffect, shaderState, shaderPaused, audioRef,
   onPick, onMoveObject, onCamera, hoverLabel, children,
 }: SceneViewportProps) {
   const { t } = useTranslation();
@@ -88,8 +88,8 @@ export function SceneViewport({
   }, [model]);
 
   useEffect(() => {
-    rendererInst.current?.setState({ objects: scene.objects, bindings: scene.bindings, leds, selectedDeviceId, placing, editing });
-  }, [scene.objects, scene.bindings, leds, selectedDeviceId, placing, editing]);
+    rendererInst.current?.setState({ objects: scene.objects, bindings: scene.bindings, leds, selectedDeviceId, placing, selectedObjectId });
+  }, [scene.objects, scene.bindings, leds, selectedDeviceId, placing, selectedObjectId]);
 
   const camera = scene.view.camera;
   useEffect(() => {

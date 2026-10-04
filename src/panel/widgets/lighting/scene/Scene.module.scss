@@ -63,11 +63,39 @@
   z-index: 20;
   display: flex;
   align-items: flex-start;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.35rem;
   pointer-events: none;
 
   > * { pointer-events: auto; }
+}
+
+.topLeft,
+.topRight {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+// Centred on the bar, not between its ends; hidden (still measured) when it would crowd them.
+.topCenter {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+
+  &[data-hidden] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+.helpList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 20rem;
+  margin: 0;
+  padding-left: 1rem;
 }
 
 .overlayBottom {

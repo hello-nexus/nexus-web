@@ -100,8 +100,9 @@ export class TransformTool {
 
   /** Selects from outside (a part picked in a list); null clears. */
   setSelected(id: string | null): void {
-    if (id === this.selected || (id && !this.targets.has(id))) return;
-    this.select(id, false);
+    const next = id && this.targets.has(id) ? id : null;
+    if (next === this.selected || this.drag) return;
+    this.select(next, false);
   }
 
   get isDragging(): boolean {

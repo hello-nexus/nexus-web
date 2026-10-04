@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { Box, FlipHorizontal2, Link, MapPin, Move3d, Pencil, RotateCw, X, Zap } from 'lucide-react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { Box, FlipHorizontal2, Info, Link, MapPin, Move3d, RotateCw, X, Zap } from 'lucide-react';
 import { identifyLightingDevice, type LightingDevice } from '../../../../api/lighting';
 import type { SceneBinding, SceneCamera, SceneObject, Vec3 } from '../../../../api/lightingScene';
 import type { AudioSnapshot } from '../../../../hooks/useAudioState';
@@ -40,6 +40,8 @@ const PRESETS: CameraPreset[] = ['front', 'angle', 'side', 'top'];
 const TOAST_MS = 2600;
 // Long enough to find the blinking device on the desk before it stops.
 const BLINK_MS = 4000;
+// Least space between the centred camera buttons and the bar's ends.
+const FIT_GAP_PX = 8;
 
 /** World LED positions of every placed device, from the scene and each device's LED map. */
 function useSceneLeds(api: LightingSceneApi, devices: LightingDevice[]): Map<string, Float32Array> {
@@ -93,8 +95,9 @@ interface Placing {
 }
 
 /**
- * The 3D view in place of the 2D canvas. Edit scene moves and turns what is on the desk the way Build does, and
- * places devices on their spots (each blinks so it can be found on the desk). What is on the desk comes from Build.
+ * The 3D view in place of the 2D canvas. A click selects (here and in the device list), a drag moves or turns the
+ * selection the way Build does, and Place devices walks the unplaced devices onto their spots, each one blinking so
+ * it can be found on the desk. What is on the desk comes from Build.
  */
 export default function LightingScene3D({
   api, devices, selectedDeviceId, onSelectDevice, shaderEffect, shaderState, shaderPaused, audioRef,
@@ -108,15 +111,17 @@ export default function LightingScene3D({
   const [placing, setPlacing] = useState<Placing | null>(null);
   // Walking through every unplaced device, one blink and click at a time; skipped ones are not offered again.
   const [guided, setGuided] = useState(false);
-  // Edit scene mode: objects select, move and turn, and a device's spot shows its tools where it was clicked.
-  const [editing, setEditing] = useState(false);
+  // A device's spot shows its tools where it was clicked.
   const [spotTools, setSpotTools] = useState<{ deviceId: string; x: number; y: number } | null>(null);
+  // The object carrying the move tool: the one clicked, or the one the device picked in the list sits on.
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const skipped = useRef(new Set<string>());
 
   const placeable = useMemo(() => devices.filter(d => d.controlled !== false && d.ledCount > 0), [devices]);
   const bindingOf = useCallback((id: string) => scene?.bindings.find(b => b.deviceId === id), [scene?.bindings]);
   const unplaced = useMemo(() => placeable.filter(d => !bindingOf(d.id)), [placeable, bindingOf]);
   const deviceName = useCallback((id: string) => devices.find(d => d.id === id)?.name ?? id, [devices]);
+  const bar = useCenteredFit();
 
   const blink = useCallback((id: string) => { identifyLightingDevice(id, BLINK_MS).catch(() => { /* a device that cannot blink still places */ }); }, []);
 
@@ -162,15 +167,18 @@ export default function LightingScene3D({
   useEffect(() => {
     if (!startPlacing || !scene || scene.objects.length === 0) return;
     onPlacingStarted?.();
-    if (unplaced.length > 0) {
-      setEditing(true);
-      startGuide();
-    }
+    if (unplaced.length > 0) startGuide();
   }, [startPlacing, scene, unplaced.length, startGuide, onPlacingStarted]);
 
-  // In edit mode a device picked in the list that has no spot yet is waiting for one.
-  const waiting = useMemo<Placing | null>(() => placing ?? (editing && selectedDeviceId && !bindingOf(selectedDeviceId) && placeable.some(d => d.id === selectedDeviceId)
-    ? { deviceId: selectedDeviceId, append: false } : null), [placing, editing, selectedDeviceId, bindingOf, placeable]);
+  // A device picked in the list selects the object it sits on, as a device picked on the canvas does in 2D.
+  const selectedHome = selectedDeviceId ? bindingOf(selectedDeviceId)?.targets[0]?.objectId ?? null : null;
+  useEffect(() => {
+    if (selectedHome) setSelectedObjectId(selectedHome);
+  }, [selectedHome]);
+
+  // A device picked in the list that has no spot yet is waiting for one.
+  const waiting = useMemo<Placing | null>(() => placing ?? (selectedDeviceId && !bindingOf(selectedDeviceId) && placeable.some(d => d.id === selectedDeviceId)
+    ? { deviceId: selectedDeviceId, append: false } : null), [placing, selectedDeviceId, bindingOf, placeable]);
 
   const place = useCallback((p: Placing, objectId: string, anchorId: string) => {
     api.update(s => placeDevice(s, p.deviceId, objectId, anchorId, p.append));
@@ -183,32 +191,29 @@ export default function LightingScene3D({
     onSelectDevice(p.deviceId);
   }, [api, guided, offerNext, onSelectDevice]);
 
+  // A click selects what it lands on, here and in the list: a spot's device, or an object and the one device on it.
   const onPick = useCallback((pick: ScenePick | null, x: number, y: number) => {
     if (!scene) return;
+    if (pick?.kind === 'anchor' && waiting) {
+      place(waiting, pick.objectId, pick.anchorId);
+      return;
+    }
+    setSelectedObjectId(pick?.objectId ?? null);
     if (pick?.kind === 'anchor') {
-      if (waiting) {
-        place(waiting, pick.objectId, pick.anchorId);
-        return;
-      }
       const bound = scene.bindings.find(b => onSpot(b, pick));
-      if (bound) onSelectDevice(bound.deviceId);
-      // A device's spot shows its tools beside the click, in edit mode only.
-      setSpotTools(editing && bound ? { deviceId: bound.deviceId, x, y } : null);
+      onSelectDevice(bound?.deviceId ?? null);
+      setSpotTools(bound ? { deviceId: bound.deviceId, x, y } : null);
       return;
     }
     setSpotTools(null);
     if (!guided) setPlacing(null);
-  }, [scene, waiting, place, editing, guided, onSelectDevice]);
+    const onObject = pick ? scene.bindings.filter(b => b.targets.some(tg => tg.objectId === pick.objectId)) : [];
+    onSelectDevice(onObject.length === 1 ? onObject[0].deviceId : null);
+  }, [scene, waiting, place, guided, onSelectDevice]);
 
   const onMoveObject = useCallback((objectId: string, position: Vec3, yaw: number) => {
     api.update(s => moveObject(s, objectId, position, yaw));
   }, [api]);
-
-  const toggleEditing = useCallback(() => {
-    if (editing) stopGuide();
-    setSpotTools(null);
-    setEditing(!editing);
-  }, [editing, stopGuide]);
 
   useEffect(() => {
     if (!placing && !guided && !spotTools) return undefined;
@@ -226,6 +231,12 @@ export default function LightingScene3D({
   const empty = scene.objects.length === 0;
   const caseObj = scene.objects.find(o => o.kind === 'case');
 
+  const help = [
+    'lighting.scene.help.camera', 'lighting.scene.help.select', 'lighting.scene.help.spot',
+    'lighting.scene.help.list', 'lighting.scene.help.build', 'lighting.scene.help.lights',
+    ...(caseObj && !caseObj.anchors.some(a => a.kind === 'fan') ? ['lighting.scene.pc.noFans'] : []),
+  ];
+
   return (
     <SceneViewport
       scene={scene}
@@ -233,7 +244,7 @@ export default function LightingScene3D({
       leds={leds}
       selectedDeviceId={selectedDeviceId}
       placing={waiting !== null}
-      editing={editing}
+      selectedObjectId={selectedObjectId}
       shaderEffect={shaderEffect}
       shaderState={shaderState}
       shaderPaused={shaderPaused}
@@ -243,31 +254,42 @@ export default function LightingScene3D({
       onCamera={onCamera}
       hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
     >
-      <div className={styles.overlayTop}>
-        <div className={styles.pillGroup} role="group" aria-label={t('lighting.scene.camera.label')}>
-          {PRESETS.map(p => (
-            <button key={p} type="button" className={styles.pillButton} onClick={() => onCamera(presetCamera(scene.objects, p, fov), true)}>
-              {t(`lighting.scene.camera.${p}`)}
-            </button>
-          ))}
+      <div ref={bar.bar} className={styles.overlayTop}>
+        <div ref={bar.left} className={styles.topLeft}>
+          <Button size="sm" tone="neutral" icon={<Box size={13} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>
+            {t('lighting.scene.pc.update')}
+          </Button>
+          {!empty && unplaced.length > 0 && !guided && (
+            <Button size="sm" tone="neutral" icon={<MapPin size={13} strokeWidth={1.8} />} onClick={startGuide}>
+              {t('lighting.scene.place.start')}
+              <span className={styles.countBadge}>{unplaced.length}</span>
+            </Button>
+          )}
         </div>
-        {!empty && (
-          <Button size="sm" tone={editing ? 'accent' : 'neutral'} icon={<Pencil size={13} strokeWidth={1.8} />} aria-pressed={editing} onClick={toggleEditing}>
-            {t(editing ? 'lighting.scene.done' : 'lighting.scene.edit')}
-          </Button>
-        )}
-        {!empty && unplaced.length > 0 && !guided && (
-          <Button size="sm" tone="neutral" icon={<MapPin size={13} strokeWidth={1.8} />} onClick={() => { setEditing(true); startGuide(); }}>
-            {t('lighting.scene.place.start')}
-            <span className={styles.countBadge}>{unplaced.length}</span>
-          </Button>
-        )}
-        <Button size="sm" tone="neutral" icon={<Box size={13} strokeWidth={1.8} />} onClick={() => requestOpenBuild('/builder')}>
-          {t('lighting.scene.pc.update')}
-        </Button>
+        <div ref={bar.center} className={styles.topCenter} data-hidden={!bar.fits || undefined}>
+          <div className={styles.pillGroup} role="group" aria-label={t('lighting.scene.camera.label')}>
+            {PRESETS.map(p => (
+              <button key={p} type="button" className={styles.pillButton} tabIndex={bar.fits ? undefined : -1} onClick={() => onCamera(presetCamera(scene.objects, p, fov), true)}>
+                {t(`lighting.scene.camera.${p}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div ref={bar.right} className={styles.topRight}>
+          <HoverTooltip
+            side="left"
+            body={(
+              <ul className={styles.helpList}>
+                {help.map(key => <li key={key}>{t(key)}</li>)}
+              </ul>
+            )}
+          >
+            <Button size="sm" tone="ghost" icon={<Info size={16} />} aria-label={t('lighting.scene.help.label')} />
+          </HoverTooltip>
+        </div>
       </div>
 
-      {spotTools && editing && !waiting && (
+      {spotTools && !waiting && (
         <div className={styles.spotTools} style={{ left: spotTools.x, top: spotTools.y }} role="toolbar" aria-label={deviceName(spotTools.deviceId)}>
           {([
             ['lighting.scene.device.rotate', RotateCw, () => api.update(s => rotateBinding(s, spotTools.deviceId))],
@@ -291,7 +313,7 @@ export default function LightingScene3D({
             {t('lighting.scene.pc.fromBuild')}
           </Button>
         </div>
-      ) : waiting ? (
+      ) : waiting && (
         <div className={styles.overlayBottom} aria-live="polite">
           <div className={styles.hint}>
             {t(waiting.append ? 'lighting.scene.hint.append' : guided ? 'lighting.scene.place.blinking' : 'lighting.scene.hint.place', { device: deviceName(waiting.deviceId) })}
@@ -306,14 +328,29 @@ export default function LightingScene3D({
             {t(guided ? 'lighting.scene.done' : 'lighting.scene.cancel')}
           </Button>
         </div>
-      ) : (
-        <div className={styles.overlayBottom}>
-          <div className={styles.hint}>
-            {editing ? t('lighting.scene.hint.edit')
-              : caseObj && !caseObj.anchors.some(a => a.kind === 'fan') ? t('lighting.scene.pc.noFans') : t('lighting.scene.hint.orbit')}
-          </div>
-        </div>
       )}
     </SceneViewport>
   );
+}
+
+/** Whether the camera buttons fit centred between the bar's two ends; they hide rather than crowd them. */
+function useCenteredFit() {
+  const bar = useRef<HTMLDivElement>(null);
+  const left = useRef<HTMLDivElement>(null);
+  const center = useRef<HTMLDivElement>(null);
+  const right = useRef<HTMLDivElement>(null);
+  const [fits, setFits] = useState(true);
+  useLayoutEffect(() => {
+    const els = [bar.current, left.current, center.current, right.current];
+    if (els.some(e => !e)) return undefined;
+    const measure = () => {
+      const [b, l, c, r] = els.map(e => e!.getBoundingClientRect().width);
+      setFits((b - c) / 2 >= Math.max(l, r) + FIT_GAP_PX);
+    };
+    const observer = new ResizeObserver(measure);
+    els.forEach(e => observer.observe(e!));
+    measure();
+    return () => observer.disconnect();
+  }, []);
+  return { bar, left, center, right, fits };
 }
