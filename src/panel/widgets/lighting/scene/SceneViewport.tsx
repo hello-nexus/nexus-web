@@ -25,6 +25,8 @@ interface SceneViewportProps {
   /** A click, with where it landed in the viewport (CSS pixels from its top left). */
   onPick: (pick: ScenePick | null, x: number, y: number) => void;
   onMoveObject: (objectId: string, position: Vec3, yaw: number) => void;
+  /** A right click on a spot or object, at its client position. */
+  onContextMenu?: (pick: ScenePick, clientX: number, clientY: number) => void;
   onCamera: (camera: SceneCamera, final: boolean) => void;
   /** Names what the pointer rests on, shown as a chip beside it; null shows nothing. */
   hoverLabel?: (pick: ScenePick) => string | null;
@@ -34,7 +36,7 @@ interface SceneViewportProps {
 /** The 3D scene over the effect it samples: the effect plays behind, so each LED dot shows the colour it gets. */
 export function SceneViewport({
   scene, model, leds, selectedDeviceId, placing, selectedObjectId, shaderEffect, shaderState, shaderPaused, audioRef,
-  onPick, onMoveObject, onCamera, hoverLabel, children,
+  onPick, onMoveObject, onContextMenu, onCamera, hoverLabel, children,
 }: SceneViewportProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,8 +50,8 @@ export function SceneViewport({
   const { ready } = useShaderRenderer(glCanvasRef, shaderEffect, shaderStateRef, audioRef, undefined, shaderPaused);
 
   // Latest callbacks, read by the renderer without rebuilding it.
-  const handlers = useRef({ onPick, onMoveObject, onCamera, hoverLabel });
-  handlers.current = { onPick, onMoveObject, onCamera, hoverLabel };
+  const handlers = useRef({ onPick, onMoveObject, onContextMenu, onCamera, hoverLabel });
+  handlers.current = { onPick, onMoveObject, onContextMenu, onCamera, hoverLabel };
 
   useEffect(() => {
     const host = threeHostRef.current;
@@ -64,6 +66,7 @@ export function SceneViewport({
           handlers.current.onPick(pick, clientX - rect.left, clientY - rect.top);
         },
         onMoveObject: (id, position, yaw) => handlers.current.onMoveObject(id, position, yaw),
+        onContextMenu: (pick, clientX, clientY) => handlers.current.onContextMenu?.(pick, clientX, clientY),
         onProjected: points => setScenePoints(points),
         onHover: (pick, clientX, clientY) => {
           const text = pick ? handlers.current.hoverLabel?.(pick) ?? null : null;

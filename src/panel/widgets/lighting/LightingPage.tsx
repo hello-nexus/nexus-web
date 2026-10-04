@@ -2443,6 +2443,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                       audioRef={audioRef}
                       startPlacing={scenePlaceOnOpen}
                       onPlacingStarted={() => setScenePlaceOnOpen(false)}
+                      onOpenSettings={handleOpenSettings}
+                      onSetDevicesPower={handleSetDevicesPower}
                       onLayoutCommit={handleLayoutCommit}
                     />
                   </Suspense>

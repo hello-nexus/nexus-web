@@ -18,6 +18,10 @@ export interface TransformCallbacks {
   onSelect: (id: string | null) => void;
   /** Degrees counter-clockwise seen from above; final once the drag ends. */
   onChange: (id: string, position: Vec3, yaw: number, final: boolean) => void;
+  /** A press and release on an object that did not drag it, for the view's own pick at that point. */
+  onClick?: (id: string, e: PointerEvent) => void;
+  /** A right click on an object. */
+  onContextMenu?: (id: string, e: MouseEvent) => void;
 }
 
 const SNAP_MM = 5;
@@ -32,9 +36,9 @@ const RING_SEGMENTS = 96;
 type Drag = { mode: 'move' | 'turn'; id: string; x: number; y: number; offset: Vector3; startYaw: number; startAngle: number; moved: boolean };
 
 /**
- * Click to select, drag the selection to move it, drag its ring to turn it. The same tool runs in the Build portal's
- * PC view and the Lighting page's scene, so both edit the desk the same way; a drag on an object never moves the
- * camera, a drag anywhere else does.
+ * Press an object to select it and drag it across the floor; drag the selection's ring to turn it. The same tool runs
+ * in the Build portal's PC view and the Lighting page's scene, so both edit the desk the same way. A press of either
+ * button on an object never moves the camera; anywhere else the camera orbits (left) or pans (right).
  */
 export class TransformTool {
   private readonly stage: SceneStage;
@@ -67,6 +71,7 @@ export class TransformTool {
     // Capture phase: a press that grabs an object must reach no one else, the orbit controls included.
     canvas.addEventListener('pointerdown', this.onDown, { capture: true });
     canvas.addEventListener('pointermove', this.onMove);
+    canvas.addEventListener('contextmenu', this.onMenu);
     window.addEventListener('pointerup', this.onUp);
     window.addEventListener('pointercancel', this.onCancel);
   }
@@ -75,6 +80,7 @@ export class TransformTool {
     const { canvas } = this.stage;
     canvas.removeEventListener('pointerdown', this.onDown, { capture: true });
     canvas.removeEventListener('pointermove', this.onMove);
+    canvas.removeEventListener('contextmenu', this.onMenu);
     window.removeEventListener('pointerup', this.onUp);
     window.removeEventListener('pointercancel', this.onCancel);
     this.clearRing();
@@ -187,28 +193,47 @@ export class TransformTool {
 
   private readonly onDown = (e: PointerEvent) => {
     this.down = null;
-    if (!this.enabled || e.button !== 0) return;
+    if (!this.enabled) return;
+    const id = this.targetAt(e.clientX, e.clientY);
+    // A right press on an object is for its menu: it must not reach the controls, which would pan.
+    if (e.button === 2) {
+      if (id) e.stopImmediatePropagation();
+      return;
+    }
+    if (e.button !== 0) return;
     const sel = this.selected ? this.targets.get(this.selected) : undefined;
-    // A press on the selection itself moves it, even where the ring runs behind it.
     let mode: Drag['mode'] | null = null;
-    if (sel && this.targetAt(e.clientX, e.clientY) === sel.id) mode = 'move';
-    else if (sel && this.onRing(sel, e.clientX, e.clientY)) mode = 'turn';
-    if (!sel || !mode) {
+    let t: Transformable | undefined;
+    if (id) {
+      mode = 'move';
+      t = this.targets.get(id);
+    } else if (sel && this.onRing(sel, e.clientX, e.clientY)) {
+      mode = 'turn';
+      t = sel;
+    }
+    if (!mode || !t) {
       this.down = { x: e.clientX, y: e.clientY };
       return;
     }
-    const at = this.floorPoint(e.clientX, e.clientY, sel.object.position.y);
+    const at = this.floorPoint(e.clientX, e.clientY, t.object.position.y);
     if (!at) return;
     e.stopImmediatePropagation();
     this.stage.controls.enabled = false;
     this.stage.canvas.setPointerCapture(e.pointerId);
-    const p = sel.object.position;
+    if (t.id !== this.selected) this.select(t.id, true);
+    const p = t.object.position;
     this.drag = {
-      mode, id: sel.id, x: e.clientX, y: e.clientY, moved: false,
+      mode, id: t.id, x: e.clientX, y: e.clientY, moved: false,
       offset: at.clone().sub(p),
-      startYaw: sel.object.rotation.y,
+      startYaw: t.object.rotation.y,
       startAngle: Math.atan2(at.x - p.x, at.z - p.z),
     };
+  };
+
+  private readonly onMenu = (e: MouseEvent) => {
+    if (!this.enabled) return;
+    const id = this.targetAt(e.clientX, e.clientY);
+    if (id) this.callbacks.onContextMenu?.(id, e);
   };
 
   private readonly onMove = (e: PointerEvent) => {
@@ -245,6 +270,7 @@ export class TransformTool {
       this.stage.controls.enabled = true;
       const t = this.targets.get(drag.id);
       if (t && drag.moved) this.callbacks.onChange(drag.id, this.positionOf(t), this.yawOf(t), true);
+      else if (drag.mode === 'move') this.callbacks.onClick?.(drag.id, e);
       return;
     }
     const down = this.down;

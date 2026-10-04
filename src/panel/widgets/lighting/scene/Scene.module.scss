@@ -230,16 +230,3 @@
   text-align: center;
 }
 
-// A device's tools, just under the spot that was clicked in edit mode.
-.spotTools {
-  position: absolute;
-  z-index: 21;
-  display: flex;
-  align-items: center;
-  gap: 0.1rem;
-  padding: 0.2rem;
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
-  box-shadow: var(--shadow-md);
-  transform: translate(-50%, 0.9rem);
-}

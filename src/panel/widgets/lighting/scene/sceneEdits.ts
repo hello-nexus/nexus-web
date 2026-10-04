@@ -14,9 +14,9 @@ export function placeDevice(s: SceneEdit, deviceId: string, objectId: string, an
   return { ...s, bindings: [...s.bindings.filter(b => b.deviceId !== deviceId), binding] };
 }
 
-/** A quarter turn clockwise of the device's map on its surfaces. */
-export function rotateBinding(s: SceneEdit, deviceId: string): SceneEdit {
-  return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, rotation: (b.rotation + 90) % 360 } : b)) };
+/** Quarter turns of the device's map on its spots, clockwise for a positive count. */
+export function rotateBinding(s: SceneEdit, deviceId: string, quarterTurns = 1): SceneEdit {
+  return { ...s, bindings: s.bindings.map(b => (b.deviceId === deviceId ? { ...b, rotation: (((b.rotation + quarterTurns * 90) % 360) + 360) % 360 } : b)) };
 }
 
 export function flipBinding(s: SceneEdit, deviceId: string): SceneEdit {

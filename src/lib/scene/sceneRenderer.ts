@@ -48,8 +48,10 @@ export interface SceneRendererCallbacks {
   onCamera: (camera: SceneCamera, final: boolean) => void;
   /** A click, with where it landed (client pixels). */
   onPick: (pick: ScenePick | null, clientX: number, clientY: number) => void;
-  /** An object moved or turned in edit mode, once the drag ends. */
+  /** An object moved or turned, once the drag ends. */
   onMoveObject: (objectId: string, position: Vec3, yaw: number) => void;
+  /** A right click on a spot or an object (client pixels). */
+  onContextMenu?: (pick: ScenePick, clientX: number, clientY: number) => void;
   /** LED canvas positions after the camera or the placements changed. */
   onProjected?: (points: Map<string, Float32Array>) => void;
   /** What the pointer rests on, with its client position; null when it leaves everything. */
@@ -57,6 +59,8 @@ export interface SceneRendererCallbacks {
 }
 
 const anchorKey = (objectId: string, anchorId: string) => `${objectId}\n${anchorId}`;
+// The selected device's LED dots, in screen pixels; the rest draw at the plain dot size.
+const SELECTED_DOT_PX = 14;
 const CLICK_SLOP_PX = 5;
 // Floor margin around the scene's footprint, as a fraction of its larger side.
 const FLOOR_MARGIN = 0.6;
@@ -123,6 +127,9 @@ export class SceneRenderer {
   private readonly anchorsGroup = new Group();
   private readonly sink: ShapeSink = { materials: [], pickables: [], dimmables: [] };
   private dots: Points | null = null;
+  // The selected device's LEDs again, drawn larger over the rest.
+  private selectedDots: Points | null = null;
+  private selectedDotsFor: string | null = null;
   private readonly dotMap = dotTexture();
   private readonly scratch = new Vector3();
   private readonly projected = new Vector3();
@@ -162,9 +169,12 @@ export class SceneRenderer {
       onSelect: () => {},
       onChange: (id, position, yaw, final) => {
         // LED dots sit in world space; they hide while their object is on the move and return where it lands.
-        if (this.dots) this.dots.visible = final;
+        for (const d of [this.dots, this.selectedDots]) if (d) d.visible = final;
         if (final) this.callbacks.onMoveObject(id, position, yaw);
       },
+      // A press the tool took without dragging is still a click: on a spot when it landed on one.
+      onClick: (id, e) => this.callbacks.onPick(this.pickAt(e.clientX, e.clientY) ?? { kind: 'object', objectId: id }, e.clientX, e.clientY),
+      onContextMenu: (id, e) => this.callbacks.onContextMenu?.(this.pickAt(e.clientX, e.clientY) ?? { kind: 'object', objectId: id }, e.clientX, e.clientY),
     });
     this.unsubscribeFrame = subscribeLedFrame(f => {
       this.frame = f;
@@ -231,9 +241,11 @@ export class SceneRenderer {
   }
 
   private paintDots(): void {
-    const dots = this.dots;
+    for (const dots of [this.dots, this.selectedDots]) if (dots) this.paint(dots);
+  }
+
+  private paint(dots: Points): void {
     const { pixels, w, h } = this.frame;
-    if (!dots) return;
     const camera = this.stage.camera;
     const pos = dots.geometry.getAttribute('position') as BufferAttribute;
     const col = dots.geometry.getAttribute('color') as BufferAttribute;
@@ -299,6 +311,7 @@ export class SceneRenderer {
       disposeGroup(this.dots);
       this.dots = null;
     }
+    this.clearSelectedDots();
   }
 
   private rebuild(): void {
@@ -353,6 +366,33 @@ export class SceneRenderer {
     this.publishProjection();
   }
 
+  private clearSelectedDots(): void {
+    if (this.selectedDots) {
+      this.stage.scene.remove(this.selectedDots);
+      disposeGroup(this.selectedDots);
+    }
+    this.selectedDots = null;
+    this.selectedDotsFor = null;
+  }
+
+  private placeSelectedDots(deviceId: string | null): void {
+    if (deviceId === this.selectedDotsFor && (this.selectedDots || !deviceId)) return;
+    this.clearSelectedDots();
+    const world = deviceId ? this.state?.leds.get(deviceId) : undefined;
+    if (!deviceId || !world) return;
+    const positions: number[] = [];
+    for (let i = 0; i < world.length; i += 3) if (!Number.isNaN(world[i])) positions.push(world[i], world[i + 1], world[i + 2]);
+    if (positions.length === 0) return;
+    const geo = new BufferGeometry();
+    geo.setAttribute('position', new Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new Float32BufferAttribute(new Float32Array(positions.length).fill(0.85), 3));
+    const mat = new PointsMaterial({ size: SELECTED_DOT_PX, sizeAttenuation: false, vertexColors: true, map: this.dotMap, transparent: true, alphaTest: 0.05, depthTest: false });
+    this.selectedDots = new Points(geo, mat);
+    this.selectedDots.renderOrder = 11;
+    this.selectedDotsFor = deviceId;
+    this.stage.scene.add(this.selectedDots);
+  }
+
   // The case is picked by its bounds, so it can be clicked anywhere, not only on its lines.
   private pickBox(obj: SceneObject): Mesh {
     const [w, h, d] = obj.size;
@@ -384,17 +424,21 @@ export class SceneRenderer {
     const state = this.state;
     if (!state) return;
     this.tool.setSelected(state.selectedObjectId);
+    this.placeSelectedDots(state.selectedDeviceId);
     const boundTo = new Map<string, string>();
     for (const b of state.bindings) for (const t of b.targets) boundTo.set(anchorKey(t.objectId, t.anchorId), b.deviceId);
+    const anySelected = state.selectedDeviceId != null && state.bindings.some(b => b.deviceId === state.selectedDeviceId);
     for (const [key, { line, fill }] of this.anchorLines) {
       const device = boundTo.get(key);
       let color = this.palette.frame;
       let opacity = 0.35;
       let tint = 0;
       if (device) {
+        // The selected device's spots fill in; while one is selected the rest step back.
+        const selected = device === state.selectedDeviceId;
         color = this.accent;
-        opacity = device === state.selectedDeviceId ? 1 : 0.7;
-        tint = device === state.selectedDeviceId ? 0.18 : 0;
+        opacity = selected ? 1 : anySelected ? 0.35 : 0.7;
+        tint = selected ? 0.32 : 0;
       } else if (state.placing) {
         color = this.accent;
         opacity = 0.9;

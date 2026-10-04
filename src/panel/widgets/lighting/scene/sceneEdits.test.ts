@@ -33,6 +33,7 @@ describe('scene edits', () => {
     const s = placeDevice(base, 'd1', kb.id, 'top', false);
     const turned = rotateBinding(rotateBinding(rotateBinding(rotateBinding(s, 'd1'), 'd1'), 'd1'), 'd1');
     expect(turned.bindings[0].rotation).toBe(0);
+    expect(rotateBinding(s, 'd1', -1).bindings[0].rotation).toBe(270);
     expect(flipBinding(flipBinding(s, 'd1'), 'd1').bindings[0].flip).toBe(false);
   });
 });
