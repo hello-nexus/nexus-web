@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Strissinilu su la scrivanie par spostâlu.",
   "lighting.scene.hint.orbit": "Strissine par zirâ la cjamare, strissine cul boton diestri par spostâ, scor par ingrandî. Lis lûs a seguissin ce che e viôt la cjamare.",
   "lighting.scene.hint.place": "Fâs clic suntun pont evidenziât par meti {device}.",
+  "lighting.scene.hover.free": "{spot}: libar",
+  "lighting.scene.hover.placed": "{device} su {spot}",
   "lighting.scene.kind.case": "Scjatule dal PC",
   "lighting.scene.kind.deskmat": "Tapet de scrivanie",
   "lighting.scene.kind.headset": "Supuart pes cuffis",

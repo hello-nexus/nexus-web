@@ -76,6 +76,25 @@ function useSceneLeds(api: LightingSceneApi, devices: LightingDevice[]): Map<str
   }, [scene, devices, maps]);
 }
 
+type Translate = (key: string, params?: Record<string, string | number>) => string;
+
+/** The hover chip's text: who sits on a spot, or that it is free; an object's name. */
+function sceneHoverLabel(t: Translate, scene: { objects: SceneObject[]; bindings: { deviceId: string; targets: { objectId: string; anchorId: string }[] }[] }, devices: LightingDevice[], pick: ScenePick): string | null {
+  const obj = scene.objects.find(o => o.id === pick.objectId);
+  if (!obj) return null;
+  if (pick.kind === 'object') return objectLabel(t, obj);
+  const anchor = obj.anchors.find(a => a.id === pick.anchorId);
+  if (!anchor) return null;
+  const spot = anchorLabel(t, obj, anchor);
+  const names = scene.bindings
+    .filter(b => b.targets.some(tg => tg.objectId === pick.objectId && tg.anchorId === pick.anchorId))
+    .map(b => devices.find(d => d.id === b.deviceId)?.name ?? b.deviceId);
+  if (names.length === 0) return t('lighting.scene.hover.free', { spot });
+  // A device named after its spot (a "Top fan 2" on Top fan 2) needs saying once.
+  if (names.length === 1 && names[0].trim().toLowerCase() === spot.toLowerCase()) return names[0];
+  return t('lighting.scene.hover.placed', { device: names.join(', '), spot });
+}
+
 function CameraPresets({ objects, fov, onCamera }: { objects: SceneObject[]; fov: number; onCamera: (cam: SceneCamera) => void }) {
   const { t } = useTranslation();
   return (
@@ -145,6 +164,7 @@ export default function LightingScene3D({
         audioRef={audioRef}
         onPick={onInlinePick}
         onCamera={onCamera}
+        hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
         publishPoints
       >
         <div className={styles.overlayTop}>
@@ -259,7 +279,7 @@ function SceneEditor({
       const bound = scene.bindings.find(b => b.targets.some(tg => tg.objectId === pick.objectId && tg.anchorId === pick.anchorId));
       if (bound) {
         setSelectedDeviceId(bound.deviceId);
-        setSelectedObjectId(null);
+        setSelectedObjectId(pick.objectId);
       } else if (selectedDeviceId && !bindingOf(selectedDeviceId)) {
         place(selectedDeviceId, pick.objectId, pick.anchorId, false);
       } else {
@@ -357,6 +377,7 @@ function SceneEditor({
               onCamera={onCamera}
               onMoveObject={onMoveObject}
               onDropDevice={onDropDevice}
+              hoverLabel={pick => sceneHoverLabel(t, scene, devices, pick)}
               rendererRef={rendererRef}
             >
               <div className={styles.overlayTop}>
@@ -370,6 +391,38 @@ function SceneEditor({
                   <Button size="sm" tone="neutral" onClick={() => setPlacing(null)}>{t('lighting.scene.cancel')}</Button>
                 )}
               </div>
+              {((selectedDeviceId && selectedBinding) || selectedObject) && (
+                <div className={styles.floatingInspector} aria-live="polite">
+                  {selectedDeviceId && selectedBinding && (
+                    <section className={styles.inspectorSection}>
+                      <div className={styles.inspectorTitle}>{deviceName(selectedDeviceId)}</div>
+                      <div className={styles.sectionNote}>{whereLabel(selectedDeviceId)}</div>
+                      <div className={styles.buttonRow}>
+                        <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => editBinding(s, selectedDeviceId, { rotation: (selectedBinding.rotation + 90) % 360 }))}>{t('lighting.scene.device.rotate')}</Button>
+                        <Button size="sm" tone="neutral" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => editBinding(s, selectedDeviceId, { flip: !selectedBinding.flip }))}>{t('lighting.scene.device.flip')}</Button>
+                        <Button size="sm" tone="neutral" icon={<Move3d size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: false })}>{t('lighting.scene.device.move')}</Button>
+                        <Button size="sm" tone="neutral" icon={<Link size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: true })}>{t('lighting.scene.device.addSurface')}</Button>
+                        {onIdentify && <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => onIdentify(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>}
+                        <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => { api.update(s => unplaceDevice(s, selectedDeviceId)); }}>{t('lighting.scene.device.unplace')}</Button>
+                      </div>
+                    </section>
+                  )}
+
+                  {selectedObject && (
+                    <section className={styles.inspectorSection}>
+                      <div className={styles.inspectorTitle}>{objectLabel(t, selectedObject)}</div>
+                      <div className={styles.sectionNote}>{t('lighting.scene.hint.object')}</div>
+                      <div className={styles.buttonRow}>
+                        <Button size="sm" tone="neutral" icon={<RotateCcw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => turnObject(s, selectedObject.id, TURN_STEP))}>{t('lighting.scene.object.turnLeft')}</Button>
+                        <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => turnObject(s, selectedObject.id, -TURN_STEP))}>{t('lighting.scene.object.turnRight')}</Button>
+                        {selectedObject.source === 'user' && (
+                          <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => { api.update(s => removeObject(s, selectedObject.id)); setSelectedObjectId(null); }}>{t('lighting.scene.object.remove')}</Button>
+                        )}
+                      </div>
+                    </section>
+                  )}
+                </div>
+              )}
               {scene.objects.length === 0 && (
                 <div className={styles.emptyCard}>
                   <div className={styles.emptyTitle}>{t('lighting.scene.empty.title')}</div>
@@ -462,34 +515,6 @@ function SceneEditor({
             </div>
           </section>
 
-          {selectedDeviceId && selectedBinding && (
-            <section className={styles.inspector}>
-              <div className={styles.inspectorTitle}>{deviceName(selectedDeviceId)}</div>
-              <div className={styles.sectionNote}>{whereLabel(selectedDeviceId)}</div>
-              <div className={styles.buttonRow}>
-                <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => editBinding(s, selectedDeviceId, { rotation: (selectedBinding.rotation + 90) % 360 }))}>{t('lighting.scene.device.rotate')}</Button>
-                <Button size="sm" tone="neutral" icon={<FlipHorizontal2 size={13} strokeWidth={1.8} />} onClick={() => api.update(s => editBinding(s, selectedDeviceId, { flip: !selectedBinding.flip }))}>{t('lighting.scene.device.flip')}</Button>
-                <Button size="sm" tone="neutral" icon={<Move3d size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: false })}>{t('lighting.scene.device.move')}</Button>
-                <Button size="sm" tone="neutral" icon={<Link size={13} strokeWidth={1.8} />} onClick={() => setPlacing({ deviceId: selectedDeviceId, append: true })}>{t('lighting.scene.device.addSurface')}</Button>
-                {onIdentify && <Button size="sm" tone="neutral" icon={<Zap size={13} strokeWidth={1.8} />} onClick={() => onIdentify(selectedDeviceId)}>{t('lighting.scene.device.identify')}</Button>}
-                <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => { api.update(s => unplaceDevice(s, selectedDeviceId)); }}>{t('lighting.scene.device.unplace')}</Button>
-              </div>
-            </section>
-          )}
-
-          {selectedObject && (
-            <section className={styles.inspector}>
-              <div className={styles.inspectorTitle}>{objectLabel(t, selectedObject)}</div>
-              <div className={styles.sectionNote}>{t('lighting.scene.hint.object')}</div>
-              <div className={styles.buttonRow}>
-                <Button size="sm" tone="neutral" icon={<RotateCcw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => turnObject(s, selectedObject.id, TURN_STEP))}>{t('lighting.scene.object.turnLeft')}</Button>
-                <Button size="sm" tone="neutral" icon={<RotateCw size={13} strokeWidth={1.8} />} onClick={() => api.update(s => turnObject(s, selectedObject.id, -TURN_STEP))}>{t('lighting.scene.object.turnRight')}</Button>
-                {selectedObject.source === 'user' && (
-                  <Button size="sm" tone="ghost" icon={<Trash2 size={13} strokeWidth={1.8} />} onClick={() => { api.update(s => removeObject(s, selectedObject.id)); setSelectedObjectId(null); }}>{t('lighting.scene.object.remove')}</Button>
-                )}
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </Overlay>

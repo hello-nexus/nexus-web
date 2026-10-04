@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Taşımak için masada sürükle.",
   "lighting.scene.hint.orbit": "Kamerayı döndürmek için sürükle, kaydırmak için sağ tıkla sürükle, yakınlaştırmak için tekerleği kullan. Işıklar kameranın gördüğünü takip eder.",
   "lighting.scene.hint.place": "{device} cihazını yerleştirmek için vurgulanan bir noktaya tıkla.",
+  "lighting.scene.hover.free": "{spot}: boş",
+  "lighting.scene.hover.placed": "{spot} üzerinde {device}",
   "lighting.scene.kind.case": "PC kasası",
   "lighting.scene.kind.deskmat": "Masa matı",
   "lighting.scene.kind.headset": "Kulaklık standı",

@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Arraste pela secretária para o mover.",
   "lighting.scene.hint.orbit": "Arraste para rodar a câmara, arraste com o botão direito para mover e deslize para fazer zoom. As luzes seguem o que a câmara vê.",
   "lighting.scene.hint.place": "Clique num local destacado para posicionar {device}.",
+  "lighting.scene.hover.free": "{spot}: livre",
+  "lighting.scene.hover.placed": "{device} em {spot}",
   "lighting.scene.kind.case": "Caixa do PC",
   "lighting.scene.kind.deskmat": "Tapete de secretária",
   "lighting.scene.kind.headset": "Suporte de auscultadores",

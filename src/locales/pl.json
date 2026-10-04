@@ -2725,6 +2725,8 @@
   "lighting.scene.hint.object": "Przeciągnij po biurku, aby przesunąć.",
   "lighting.scene.hint.orbit": "Przeciągnij, aby obrócić kamerę, przeciągnij prawym, aby przesunąć, przewiń, aby powiększyć. Światła podążają za tym, co widzi kamera.",
   "lighting.scene.hint.place": "Kliknij wyróżnione miejsce, aby umieścić {device}.",
+  "lighting.scene.hover.free": "{spot}: wolne",
+  "lighting.scene.hover.placed": "{device} na: {spot}",
   "lighting.scene.kind.case": "Obudowa komputera",
   "lighting.scene.kind.deskmat": "Mata na biurko",
   "lighting.scene.kind.headset": "Stojak na słuchawki",

@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Sleep het over het bureau om het te verplaatsen.",
   "lighting.scene.hint.orbit": "Sleep om de camera te draaien, rechts slepen om te verschuiven, scrollen om te zoomen. De verlichting volgt wat de camera ziet.",
   "lighting.scene.hint.place": "Klik op een gemarkeerde plek om {device} te plaatsen.",
+  "lighting.scene.hover.free": "{spot}: vrij",
+  "lighting.scene.hover.placed": "{device} op {spot}",
   "lighting.scene.kind.case": "Pc-behuizing",
   "lighting.scene.kind.deskmat": "Bureaumat",
   "lighting.scene.kind.headset": "Headsetstandaard",

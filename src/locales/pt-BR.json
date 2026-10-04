@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Arraste pela mesa para movê-lo.",
   "lighting.scene.hint.orbit": "Arraste para girar a câmera, arraste com o botão direito para mover e role para dar zoom. As luzes seguem o que a câmera vê.",
   "lighting.scene.hint.place": "Clique em um local destacado para posicionar {device}.",
+  "lighting.scene.hover.free": "{spot}: livre",
+  "lighting.scene.hover.placed": "{device} em {spot}",
   "lighting.scene.kind.case": "Gabinete",
   "lighting.scene.kind.deskmat": "Desk pad",
   "lighting.scene.kind.headset": "Suporte de headset",

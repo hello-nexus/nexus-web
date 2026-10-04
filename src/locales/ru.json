@@ -2725,6 +2725,8 @@
   "lighting.scene.hint.object": "Перетащите по столу, чтобы переместить.",
   "lighting.scene.hint.orbit": "Перетаскивайте, чтобы вращать камеру, правой кнопкой, чтобы сдвигать, колёсиком, чтобы приближать. Подсветка следует тому, что видит камера.",
   "lighting.scene.hint.place": "Нажмите на подсвеченное место, чтобы разместить {device}.",
+  "lighting.scene.hover.free": "{spot}: свободно",
+  "lighting.scene.hover.placed": "{device}: {spot}",
   "lighting.scene.kind.case": "Корпус ПК",
   "lighting.scene.kind.deskmat": "Настольный коврик",
   "lighting.scene.kind.headset": "Подставка для гарнитуры",

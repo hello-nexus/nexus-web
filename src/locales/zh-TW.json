@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "在桌面上拖曳來移動它。",
   "lighting.scene.hint.orbit": "拖曳旋轉相機，右鍵拖曳平移，滾輪縮放。燈光跟隨相機所見。",
   "lighting.scene.hint.place": "點擊醒目位置來放置 {device}。",
+  "lighting.scene.hover.free": "{spot}：空閒",
+  "lighting.scene.hover.placed": "{spot}上的 {device}",
   "lighting.scene.kind.case": "電腦機殼",
   "lighting.scene.kind.deskmat": "桌墊",
   "lighting.scene.kind.headset": "耳機架",

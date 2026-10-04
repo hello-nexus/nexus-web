@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Arrástralo por el escritorio para moverlo.",
   "lighting.scene.hint.orbit": "Arrastra para girar la cámara, arrastra con el botón derecho para desplazar y desplázate para hacer zoom. Las luces siguen lo que ve la cámara.",
   "lighting.scene.hint.place": "Haz clic en un lugar resaltado para colocar {device}.",
+  "lighting.scene.hover.free": "{spot}: libre",
+  "lighting.scene.hover.placed": "{device} en {spot}",
   "lighting.scene.kind.case": "Caja del PC",
   "lighting.scene.kind.deskmat": "Alfombrilla de escritorio",
   "lighting.scene.kind.headset": "Soporte de auriculares",

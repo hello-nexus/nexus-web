@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "책상 위에서 드래그해 옮기세요.",
   "lighting.scene.hint.orbit": "드래그로 카메라 회전, 오른쪽 드래그로 이동, 스크롤로 확대/축소. 조명이 카메라가 보는 대로 따라갑니다.",
   "lighting.scene.hint.place": "강조 표시된 위치를 클릭해 {device}을(를) 배치하세요.",
+  "lighting.scene.hover.free": "{spot}: 비어 있음",
+  "lighting.scene.hover.placed": "{spot}의 {device}",
   "lighting.scene.kind.case": "PC 케이스",
   "lighting.scene.kind.deskmat": "데스크 매트",
   "lighting.scene.kind.headset": "헤드셋 거치대",

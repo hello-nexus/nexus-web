@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "デスク上でドラッグして移動します。",
   "lighting.scene.hint.orbit": "ドラッグでカメラを回転、右ドラッグで移動、スクロールでズーム。ライトはカメラの視点に追従します。",
   "lighting.scene.hint.place": "ハイライトされた場所をクリックして{device}を配置します。",
+  "lighting.scene.hover.free": "{spot}：空き",
+  "lighting.scene.hover.placed": "{spot}に{device}",
   "lighting.scene.kind.case": "PCケース",
   "lighting.scene.kind.deskmat": "デスクマット",
   "lighting.scene.kind.headset": "ヘッドセットスタンド",

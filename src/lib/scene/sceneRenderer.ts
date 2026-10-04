@@ -49,7 +49,7 @@ export interface SceneRenderState {
   placing: boolean;
   /** Surface under a drag from the device list, as "objectId\nanchorId". */
   dropTarget: string | null;
-  /** Objects can be dragged across the desk. */
+  /** The selected object can be dragged across the desk. */
   editable: boolean;
 }
 
@@ -59,6 +59,8 @@ export interface SceneRendererCallbacks {
   onMoveObject: (objectId: string, position: Vec3) => void;
   /** LED canvas positions after the camera or the placements changed. */
   onProjected?: (points: Map<string, Float32Array>) => void;
+  /** What the pointer rests on, with its client position; null when it leaves everything. */
+  onHover?: (pick: ScenePick | null, clientX: number, clientY: number) => void;
 }
 
 /** Visual tones, read from the theme so the editor follows the accent. */
@@ -179,6 +181,7 @@ export class SceneRenderer {
 
     canvas.addEventListener('pointerdown', this.onPointerDown, { capture: true });
     canvas.addEventListener('pointermove', this.onPointerMove);
+    canvas.addEventListener('pointerleave', this.onPointerLeave);
     window.addEventListener('pointerup', this.onPointerUp);
     this.unsubscribeFrame = subscribeLedFrame(f => { this.frame = f; });
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -194,6 +197,7 @@ export class SceneRenderer {
     this.unsubscribeFrame();
     this.canvas.removeEventListener('pointerdown', this.onPointerDown, { capture: true });
     this.canvas.removeEventListener('pointermove', this.onPointerMove);
+    this.canvas.removeEventListener('pointerleave', this.onPointerLeave);
     window.removeEventListener('pointerup', this.onPointerUp);
     this.controls.dispose();
     this.clearGroup(this.objectsGroup);
@@ -510,8 +514,9 @@ export class SceneRenderer {
     const pick = this.eventPick(e);
     this.down = { x: e.clientX, y: e.clientY, pick };
     const state = this.state;
-    // An object grabbed in an editable scene drags across the desk instead of orbiting.
-    if (state?.editable && pick?.kind === 'object') {
+    // Only the selected object drags across the desk; a drag that starts anywhere else orbits, so a
+    // camera move that begins over the case never shoves it.
+    if (state?.editable && pick && pick.objectId === state.selectedObjectId) {
       const group = this.objectGroups.get(pick.objectId);
       const obj = state.objects.find(o => o.id === pick.objectId);
       if (group && obj) {
@@ -540,14 +545,27 @@ export class SceneRenderer {
       }
       return;
     }
-    if (e.buttons !== 0) return;
+    if (e.buttons !== 0) {
+      this.callbacks.onHover?.(null, e.clientX, e.clientY);
+      return;
+    }
     const pick = this.eventPick(e);
+    this.callbacks.onHover?.(pick, e.clientX, e.clientY);
     const key = pick?.kind === 'anchor' ? anchorKey(pick.objectId, pick.anchorId) : null;
-    this.canvas.style.cursor = pick ? (pick.kind === 'object' && this.state?.editable ? 'grab' : 'pointer') : '';
+    const movable = this.state?.editable && pick && pick.objectId === this.state.selectedObjectId;
+    this.canvas.style.cursor = pick ? (movable ? 'grab' : 'pointer') : '';
     if (key !== this.hovered) {
       this.hovered = key;
       this.restyle();
     }
+  };
+
+  private readonly onPointerLeave = (e: PointerEvent) => {
+    if (this.hovered !== null) {
+      this.hovered = null;
+      this.restyle();
+    }
+    this.callbacks.onHover?.(null, e.clientX, e.clientY);
   };
 
   private readonly onPointerUp = (e: PointerEvent) => {

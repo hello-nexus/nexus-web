@@ -354,16 +354,6 @@
   white-space: nowrap;
 }
 
-.inspector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
 .inspectorTitle {
   @include text-body;
   color: var(--text);
@@ -412,4 +402,48 @@
   color: var(--accent-text);
 
   &:hover { color: var(--accent-text); }
+}
+
+// Names the spot or object under the pointer, offset so it never sits under the cursor.
+.hoverChip {
+  @include text-caption;
+  position: absolute;
+  z-index: 22;
+  max-width: 18rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: rgb(0 0 0 / var(--alpha-strong));
+  color: rgb(255 255 255);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translate(14px, 14px);
+  pointer-events: none;
+}
+
+// The selection's actions float over the viewport, next to what was just clicked.
+.floatingInspector {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 21;
+  width: min(22rem, calc(100% - 1rem));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-md);
+}
+
+.inspectorSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+
+  & + & {
+    padding-top: 0.5rem;
+    border-top: var(--border-width) solid var(--border);
+  }
 }

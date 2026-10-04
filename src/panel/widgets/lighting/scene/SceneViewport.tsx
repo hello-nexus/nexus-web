@@ -31,6 +31,8 @@ interface SceneViewportProps {
   onCamera: (camera: SceneCamera, final: boolean) => void;
   onMoveObject?: (objectId: string, position: Vec3) => void;
   onDropDevice?: (deviceId: string, pick: ScenePick | null) => void;
+  /** Names what the pointer rests on, shown as a chip beside it; null shows nothing. */
+  hoverLabel?: (pick: ScenePick) => string | null;
   /** Feed the device cards' readouts with where the camera puts each LED. */
   publishPoints?: boolean;
   rendererRef?: { current: SceneRenderer | null };
@@ -51,7 +53,7 @@ function cssColor(el: Element, name: string, fallback: string): string {
 export function SceneViewport({
   scene, model, leds, selectedDeviceId, selectedObjectId, placing, editable, backdrop,
   shaderEffect, shaderState, shaderPaused, audioRef,
-  onPick, onCamera, onMoveObject, onDropDevice, publishPoints, rendererRef, className, children,
+  onPick, onCamera, onMoveObject, onDropDevice, hoverLabel, publishPoints, rendererRef, className, children,
 }: SceneViewportProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,13 +62,14 @@ export function SceneViewport({
   const rendererInst = useRef<SceneRenderer | null>(null);
   const [failed, setFailed] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const [hover, setHover] = useState<{ text: string; x: number; y: number } | null>(null);
   const shaderStateRef = useRef(shaderState);
   shaderStateRef.current = shaderState;
   const { ready } = useShaderRenderer(glCanvasRef, backdrop === 'off' ? null : shaderEffect, shaderStateRef, audioRef, undefined, shaderPaused);
 
   // Latest callbacks, read by the renderer without rebuilding it.
-  const handlers = useRef({ onPick, onCamera, onMoveObject, publishPoints });
-  handlers.current = { onPick, onCamera, onMoveObject, publishPoints };
+  const handlers = useRef({ onPick, onCamera, onMoveObject, publishPoints, hoverLabel });
+  handlers.current = { onPick, onCamera, onMoveObject, publishPoints, hoverLabel };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -85,6 +88,11 @@ export function SceneViewport({
         onPick: pick => handlers.current.onPick(pick),
         onMoveObject: (id, pos) => handlers.current.onMoveObject?.(id, pos),
         onProjected: points => { if (handlers.current.publishPoints) setScenePoints(points); },
+        onHover: (pick, clientX, clientY) => {
+          const text = pick ? handlers.current.hoverLabel?.(pick) ?? null : null;
+          const rect = container.getBoundingClientRect();
+          setHover(text ? { text, x: clientX - rect.left, y: clientY - rect.top } : null);
+        },
       }, theme);
     } catch {
       setFailed(true);
@@ -150,6 +158,7 @@ export function SceneViewport({
       </div>
       <canvas ref={canvasRef} className={styles.three} />
       {failed && <div className={styles.webglFailed}>{t('lighting.scene.webglFailed')}</div>}
+      {hover && <div className={styles.hoverChip} style={{ left: hover.x, top: hover.y }}>{hover.text}</div>}
       {children}
     </div>
   );

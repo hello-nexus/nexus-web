@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Zieh es über den Tisch, um es zu verschieben.",
   "lighting.scene.hint.orbit": "Ziehen dreht die Kamera, Rechtsziehen verschiebt, Scrollen zoomt. Die Beleuchtung folgt dem, was die Kamera sieht.",
   "lighting.scene.hint.place": "Klicke auf eine markierte Stelle, um {device} zu platzieren.",
+  "lighting.scene.hover.free": "{spot}: frei",
+  "lighting.scene.hover.placed": "{device} auf {spot}",
   "lighting.scene.kind.case": "PC-Gehäuse",
   "lighting.scene.kind.deskmat": "Schreibtischunterlage",
   "lighting.scene.kind.headset": "Headset-Ständer",

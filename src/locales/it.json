@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Trascinalo sulla scrivania per spostarlo.",
   "lighting.scene.hint.orbit": "Trascina per ruotare la fotocamera, trascina col tasto destro per spostare, scorri per lo zoom. Le luci seguono ciò che vede la fotocamera.",
   "lighting.scene.hint.place": "Fai clic su un punto evidenziato per posizionare {device}.",
+  "lighting.scene.hover.free": "{spot}: libero",
+  "lighting.scene.hover.placed": "{device} su {spot}",
   "lighting.scene.kind.case": "Case del PC",
   "lighting.scene.kind.deskmat": "Tappetino da scrivania",
   "lighting.scene.kind.headset": "Supporto cuffie",

@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Faites-le glisser sur le bureau pour le déplacer.",
   "lighting.scene.hint.orbit": "Faites glisser pour tourner la caméra, glisser-droit pour déplacer, molette pour zoomer. L'éclairage suit ce que voit la caméra.",
   "lighting.scene.hint.place": "Cliquez sur un emplacement en surbrillance pour placer {device}.",
+  "lighting.scene.hover.free": "{spot} : libre",
+  "lighting.scene.hover.placed": "{device} sur {spot}",
   "lighting.scene.kind.case": "Boîtier PC",
   "lighting.scene.kind.deskmat": "Sous-main",
   "lighting.scene.kind.headset": "Support de casque",

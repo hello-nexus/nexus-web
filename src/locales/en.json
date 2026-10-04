@@ -2690,6 +2690,8 @@
   "lighting.scene.hint.object": "Drag it across the desk to move it.",
   "lighting.scene.hint.orbit": "Drag to turn the camera, right-drag to pan, scroll to zoom. The lights follow what the camera sees.",
   "lighting.scene.hint.place": "Click a highlighted spot to place {device}.",
+  "lighting.scene.hover.free": "{spot}: free",
+  "lighting.scene.hover.placed": "{device} on {spot}",
   "lighting.scene.kind.case": "PC case",
   "lighting.scene.kind.deskmat": "Desk mat",
   "lighting.scene.kind.headset": "Headset stand",
