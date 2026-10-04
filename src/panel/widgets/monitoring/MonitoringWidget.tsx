@@ -23,7 +23,7 @@ import { extrasSensorsForDevice, gpu2Sensors, igpuSensors, smartStorageSensors }
 import { MicroMonitoringWidget } from './MicroMonitoringWidget';
 import { buildNetworkSensors, networkMaxValue, NETWORK_SENSOR_TOTAL } from './networkSensors';
 import { formatSensorValue } from './sensorValueFormat';
-import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, isHeterogeneousTypeDevice, staticMaxForDevice, type ScaleMode } from './perfDomain';
+import { chartDomainForScale, DEFAULT_SCALE_MODE, defaultFixedMax, designIsFill, fixedFillPercent, staticMaxForDevice, type ScaleMode } from './perfDomain';
 import { usePanelGaugeGradient, type PanelGaugeGradientValue } from '../common/PanelGaugeGradientContext';
 import { remapGaugeGradientToDomain } from '../../theme/gaugeGradient';
 import { defaultValueColorReverse, designSupportsValueColor, gaugeAccentVars, hasValueColorReading, reverseGaugeGradient, sensorSupportsValueColor } from './valueColor';
@@ -181,21 +181,11 @@ export function percentForSensor(device: DeviceKey, sensor: HardwareSensor | und
   if (sensor.theoreticalMaximum && sensor.theoreticalMaximum > 0) {
     return Math.max(0, Math.min(100, (sensor.value / sensor.theoreticalMaximum) * 100));
   }
-  if (isHeterogeneousTypeDevice(device)) {
-    // Motherboard and the other mixed-bag device categories (SSD SMART,
-    // the extras-topic groups) are heterogeneous: Load/Control/Level and
-    // Temperature already read 0-100, everything else (Fan, Voltage, Clock)
-    // needs to scale against the resolved ceiling.
-    if (sensor.type === 'Load' || sensor.type === 'Control' || sensor.type === 'Level' || sensor.type === 'Temperature') {
-      return Math.max(0, Math.min(100, sensor.value));
-    }
-    return Math.min(100, (sensor.value / maxValue) * 100);
-  }
   if (device === 'fan' || device === 'network' || device === 'fps') {
     return Math.min(100, (sensor.value / maxValue) * 100);
   }
-  // Load sensors already report 0-100 percent.
-  return Math.max(0, Math.min(100, sensor.value));
+  // Every type against its ceiling; percent-family types resolve to a 100 ceiling.
+  return Math.max(0, Math.min(100, (sensor.value / maxValue) * 100));
 }
 
 export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetProps) {
@@ -308,7 +298,7 @@ interface PerfSlotProps {
   scale?: ScaleMode;
   fixedMin?: number;
   fixedMax?: number;
-  /** Paint the panel's gauge gradient into this slot (percent, temperature and FPS sensors). */
+  /** Paint the panel's gauge gradient into this slot. */
   valueColor?: boolean;
   /** Low readings take the hot end; unset follows defaultValueColorReverse. */
   valueColorReverse?: boolean;
@@ -338,7 +328,7 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const sensorMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
   const maxValue = device === 'network'
     ? networkMaxValue(rawValue, history)
-    : sensorMax || staticMaxForDevice(device, sensor?.name, sensor?.type);
+    : sensorMax || staticMaxForDevice(device, sensor?.name, sensor?.type, sensor?.value);
   const fixedDefaultMax = defaultFixedMax(device, sensor, effectiveSensorName);
   const [domainMin, domainMax] = chartDomainForScale(device, rawValue, history, maxValue, scale, sensor?.name, sensor?.type, fixedMin, fixedMax, fixedDefaultMax);
   // Value-fill gauges scale to the Fixed [min, max] window when set; otherwise
@@ -351,17 +341,15 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
   const historyDomain = useMemo<[number, number]>(() => [domainMin, domainMax], [domainMin, domainMax]);
 
   // The gradient describes the sensor's own scale: the Fixed window when set,
-  // else the natural percent (0-100 for a load or a temperature, the sensor's
-  // capacity for a Data sensor). Every design colours by that scale, so a
-  // chart stretched to the recent history still colours 36 degrees as cool.
-  const naturalMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 100;
+  // else [0, maxValue]. Every design colours by that scale, so a chart
+  // stretched to the recent history still colours a mild reading as cool.
   const scaleFraction = scale === 'fixed'
     ? fixedFillPercent(rawValue, domainMin, domainMax) / 100
     : percentForSensor(device, sensor, maxValue) / 100;
   const gradientId = useId();
   const coloured = valueColor && !!gaugeGradient && designSupportsValueColor(design)
     && sensorSupportsValueColor(sensor?.type, device) && hasValueColorReading(device, rawValue);
-  const reverse = valueColorReverse ?? defaultValueColorReverse(device, effectiveSensorName);
+  const reverse = valueColorReverse ?? defaultValueColorReverse(device, sensor?.name ?? effectiveSensorName);
   // Stable identity: the arc gauges memoise their coloured geometry on it, and
   // a fresh object per tick would rebuild forty paths a second. A history
   // chart plots [domainMin, domainMax], so its copy of the stops is re-expressed
@@ -376,9 +364,9 @@ export function PerfSlot({ slotIndex, sensors, fpsSensors, networkSensors, extra
     if (!chart) return { id: gradientId, stops, bodyAlpha };
     const valueAt = scale === 'fixed'
       ? (at: number) => domainMin + at * (domainMax - domainMin)
-      : (at: number) => at * naturalMax;
+      : (at: number) => at * maxValue;
     return { id: gradientId, stops: remapGaugeGradientToDomain(stops, valueAt, domainMin, domainMax), bodyAlpha };
-  }, [gradientId, stops, mode, chart, scale, domainMin, domainMax, naturalMax]);
+  }, [gradientId, stops, mode, chart, scale, domainMin, domainMax, maxValue]);
   // Tints the number and glow to the reading; the figure carries the whole
   // gradient, so the two together read like a tachometer.
   const gradeStyle = stops

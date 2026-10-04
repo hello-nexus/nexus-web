@@ -79,7 +79,7 @@
   "account.purchases.description": "이 계정으로 내려받은 앱(무료 및 유료)입니다.",
   "account.purchases.empty": "아직 내려받은 앱이 없습니다.",
   "account.purchases.free": "무료",
-  "account.purchases.notInstalled": "이 PC에 없음",
+  "account.purchases.notInstalled": "이 시스템에 없음",
   "account.purchases.title": "구매한 앱 관리",
   "account.purchases.uninstall": "제거",
   "account.purchases.upToDate": "최신 버전",

@@ -43,11 +43,38 @@ export function fixedFillPercent(raw: number, min: number, max: number): number 
   return Math.max(0, Math.min(100, ((raw - min) / (max - min)) * 100));
 }
 
-// Fixed-range ceiling for a Clock sensor on any device. Clock sensors carry no
-// theoreticalMaximum the way Data sensors do, and a core clock reads in the
-// thousands of MHz, so the 100 that percent-typed sensors fall back to pegs the
-// gauge at full instead of scaling it.
+// Ceilings for the sensor types that do not read 0-100 natively and carry no
+// theoreticalMaximum. They are the full-scale value of an Adaptive fill, the
+// value colouring's hot end, and the Fixed range's default max.
 const CLOCK_FIXED_MAX = 6000;
+const GPU_CLOCK_MAX = 3500;
+// LHM reports NVIDIA memory clocks at the effective data rate / 2.
+const GPU_MEMORY_CLOCK_MAX = 15000;
+const FAN_MAX_RPM = 2500;
+const PUMP_MAX_RPM = 5000;
+// Loop coolant runs far cooler than silicon.
+const COOLANT_TEMP_MAX = 60;
+const COOLANT_NAME = /coolant|liquid|water/i;
+const CPU_POWER_MAX = 300;
+const GPU_POWER_MAX = 600;
+const PSU_POWER_MAX = 1000;
+// A reading above the core ceiling is a supply rail; core voltages (VID,
+// Vcore, VCCIO, DIMM VDD, raw Super I/O channels) stay under it. The ceiling
+// sits in the gap between the two so no reading straddles it frame to frame.
+// Sensor names do not tell the two apart reliably across boards.
+const CORE_VOLTAGE_MAX = 2.5;
+const RAIL_VOLTAGE_MAX = 15;
+// PCIe 4.0 NVMe sequential class, in B/s.
+const THROUGHPUT_MAX_BPS = 7_000_000_000;
+
+function fanMax(sensorName?: string): number {
+  return sensorName && /pump/i.test(sensorName) ? PUMP_MAX_RPM : FAN_MAX_RPM;
+}
+
+function isGpuSensor(device: DeviceKey, sensorName?: string): boolean {
+  return device === 'gpu' || device === 'gpu2' || device === 'igpu'
+    || (device === 'quick' && sensorName?.startsWith('GPU') === true);
+}
 
 // Fixed-mode default ceiling for network sensors, in the sensor's own unit
 // (bytes/sec - see networkSensors.ts formatNetworkRate). 1 Gbps. Network
@@ -68,24 +95,27 @@ export function isHeterogeneousTypeDevice(device: DeviceKey): boolean {
   return HETEROGENEOUS_TYPE_DEVICES.has(device);
 }
 
-export function staticMaxForDevice(device: DeviceKey, sensorName?: string, sensorType?: string): number {
-  if (device === 'fan') return 2500;
+export function staticMaxForDevice(device: DeviceKey, sensorName?: string, sensorType?: string, sensorValue?: number): number {
+  if (device === 'fan') return fanMax(sensorName);
   if (device === 'storage') return 100;
   if (device === 'fps') return sensorName === 'Frame Time' ? 50 : 240;
   if (device === 'network') return NETWORK_FIXED_DEFAULT_MAX_BPS;
-  if (isHeterogeneousTypeDevice(device)) {
-    switch (sensorType) {
-      case 'Fan': return 2500;
-      case 'Clock': return CLOCK_FIXED_MAX;
-      case 'Voltage': return 2;
-      default: return 100;
-    }
+  switch (sensorType) {
+    case 'Fan': return fanMax(sensorName);
+    case 'Temperature': return sensorName && COOLANT_NAME.test(sensorName) ? COOLANT_TEMP_MAX : 100;
+    case 'Clock':
+      if (!isGpuSensor(device, sensorName)) return CLOCK_FIXED_MAX;
+      return sensorName?.includes('Memory') ? GPU_MEMORY_CLOCK_MAX : GPU_CLOCK_MAX;
+    case 'Voltage':
+      return device === 'psu' || device === 'battery' || (sensorValue ?? 0) > CORE_VOLTAGE_MAX ? RAIL_VOLTAGE_MAX : CORE_VOLTAGE_MAX;
+    case 'Throughput': return THROUGHPUT_MAX_BPS;
+    case 'Power':
+      if (device === 'cpu') return CPU_POWER_MAX;
+      if (device === 'gpu' || device === 'gpu2') return GPU_POWER_MAX;
+      if (device === 'psu') return PSU_POWER_MAX;
+      return 100;
+    default: return 100;
   }
-  // Not only the mixed-bag devices: cpu/gpu expose per-core clocks, and Quick
-  // carries CPU Clock / GPU Clock, all of which read in the thousands.
-  if (sensorType === 'Clock') return CLOCK_FIXED_MAX;
-  // Load/temperature sensors: percentage max.
-  return 100;
 }
 
 // Ceiling for a slot's Fixed-range upper bound when the user hasn't set an
@@ -93,7 +123,7 @@ export function staticMaxForDevice(device: DeviceKey, sensorName?: string, senso
 // per-device static ceiling the adaptive path falls back to.
 export function defaultFixedMax(device: DeviceKey, sensor: HardwareSensor | undefined, nameFallback?: string): number {
   const sMax = sensor?.theoreticalMaximum && sensor.theoreticalMaximum > 0 ? sensor.theoreticalMaximum : 0;
-  return sMax || staticMaxForDevice(device, sensor?.name ?? nameFallback, sensor?.type);
+  return sMax || staticMaxForDevice(device, sensor?.name ?? nameFallback, sensor?.type, sensor?.value);
 }
 
 export function chartDomainForScale(

@@ -88,7 +88,7 @@ import { LightingOnboardingScreen } from '../components/common/LightingOnboardin
 import { ImportOnboardingScreen } from '../components/common/ImportOnboarding/ImportOnboardingScreen';
 import { FeatureGate } from '../components/common/FeatureDisabled/FeatureDisabled';
 import { UpdateModal } from '../components/common/UpdateModal/UpdateModal';
-import { getUpdateStatus, startUpdate, type UpdateStatus } from '../api/update';
+import { getUpdateStatus, type UpdateStatus } from '../api/update';
 import { IncomingPairModal } from './IncomingPairModal';
 import { ToastProvider } from '../components/common/Toast/Toast';
 import { TransferToasts } from './TransferToasts';
@@ -812,7 +812,6 @@ export function Dashboard() {
   const handleInstall = useCallback(async () => {
     const s = await getUpdateStatus();
     if (s) setUpdateStatus(s);
-    void startUpdate(s?.latestVersion, { reopenAfter: true });
     setStartedInstall(true);
     setUpdateModalOpen(true);
   }, []);

@@ -79,7 +79,7 @@
   "account.purchases.description": "Bu hesapla indirdiğin uygulamalar, ücretsiz veya ücretli.",
   "account.purchases.empty": "Henüz hiç uygulama indirmedin.",
   "account.purchases.free": "Ücretsiz",
-  "account.purchases.notInstalled": "Bu bilgisayarda yok",
+  "account.purchases.notInstalled": "Bu sistemde yok",
   "account.purchases.title": "Satın alınan uygulamaları yönet",
   "account.purchases.uninstall": "Kaldır",
   "account.purchases.upToDate": "Güncel",

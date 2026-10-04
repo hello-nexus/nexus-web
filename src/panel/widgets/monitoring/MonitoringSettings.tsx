@@ -434,14 +434,11 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
       const parsed = parseFixedRangeInput(raw, microFixedDefaultMax);
       if (parsed !== microFixedMax) onUpdate({ micro_max: parsed });
     };
-    // One toggle for every bar, so it shows when any of them is a percent,
-    // temperature or FPS sensor; the rest keep the plain accent. Reverse is
-    // per row: an FPS micro pairs FPS (reversed) with Frame Time (not).
+    // One toggle for every bar; reverse is per row: an FPS micro pairs FPS
+    // (reversed) with Frame Time (not).
     const microValueColor = (widget.config?.micro_valueColor as boolean | undefined) ?? false;
-    const microRowColorable = microSensorNames.map((name, i) => sensorSupportsValueColor(
-      resolveSensor(sensors, [], networkSensors, rowDevices[i], name, undefined, extras)?.type,
-      rowDevices[i],
-    ));
+    const microRowSensors = microSensorNames.map((name, i) => resolveSensor(sensors, [], networkSensors, rowDevices[i], name, undefined, extras));
+    const microRowColorable = microRowSensors.map((s, i) => sensorSupportsValueColor(s?.type, rowDevices[i]));
     const microSupportsValueColor = microRowColorable.some(Boolean);
 
     return (
@@ -618,7 +615,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
                     label={t('monitoring.settings.valueColorReverseRow', {
                       sensor: microAutoLabel(rowDevices[i], name, sensors, networkSensors, extras, multiDevice),
                     })}
-                    checked={(widget.config?.[`micro_sensor${i}_valueColorReverse`] as boolean | undefined) ?? defaultValueColorReverse(rowDevices[i], name)}
+                    checked={(widget.config?.[`micro_sensor${i}_valueColorReverse`] as boolean | undefined) ?? defaultValueColorReverse(rowDevices[i], microRowSensors[i]?.name ?? name)}
                     onChange={next => onUpdate({ [`micro_sensor${i}_valueColorReverse`]: next })}
                   />
                 ))}
@@ -633,7 +630,7 @@ export function MonitoringSettings({ widget, surface, desktopEditor, onUpdate, s
 
   const slotValueColor = (widget.config?.[`slot${activeSlot}_valueColor`] as boolean | undefined) ?? false;
   const slotValueColorReverse = (widget.config?.[`slot${activeSlot}_valueColorReverse`] as boolean | undefined)
-    ?? (activeConfig ? defaultValueColorReverse(activeConfig.device, activeConfig.sensorName) : false);
+    ?? (activeConfig ? defaultValueColorReverse(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : false);
   const slotLabelMode = (widget.config?.[`slot${activeSlot}_labelMode`] as string | undefined) ?? 'auto';
   const slotLabelOverride = (widget.config?.[`slot${activeSlot}_label`] as string | undefined) ?? '';
   const slotAutoLabel = activeConfig ? labelForDevice(activeConfig.device, activeSensor?.name ?? activeConfig.sensorName) : '';
