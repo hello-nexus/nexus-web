@@ -383,11 +383,33 @@
   pointer-events: none;
 }
 
-// 2D | 3D switch over the lighting canvas.
+// 2D | 3D switch in the canvas pane's header, in the app's chrome rather than over the canvas.
 .viewSwitch {
-  position: absolute;
-  bottom: 0.45rem;
-  left: 50%;
-  z-index: 21;
-  transform: translateX(-50%);
+  display: flex;
+  margin-left: 0.5rem;
+  padding: 2px;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.viewSwitchButton {
+  @include text-button;
+  padding: 0.15rem 0.55rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color var(--ease-fast), background var(--ease-fast);
+
+  &:hover { color: var(--text); }
+  &:focus-visible { @include focus-ring; }
+}
+
+.viewSwitchButtonActive {
+  background: var(--accent);
+  color: var(--accent-text);
+
+  &:hover { color: var(--accent-text); }
 }

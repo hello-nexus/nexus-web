@@ -18,6 +18,17 @@ describe('autoPlace', () => {
     expect(deviceRole(dev('x', { type: 'gamepad' }))).toBeNull();
   });
 
+  it('reads a renamed strip by its name before calling it a strip', () => {
+    const strip = { iconType: 'strip', type: 'ledstrip' };
+    expect(deviceRole(dev('a', { ...strip, name: 'Keyboard underglow' }))).toBe('keyboard');
+    expect(deviceRole(dev('b', { ...strip, name: 'Mouse pad' }))).toBe('mousepad');
+    expect(deviceRole(dev('c', { ...strip, name: 'Mouse' }))).toBe('mouse');
+    expect(deviceRole(dev('d', { ...strip, name: 'Monitor backlight' }))).toBe('monitor');
+    expect(deviceRole(dev('e', { ...strip, name: 'Light bar' }))).toBe('lightbar');
+    expect(deviceRole(dev('f', { ...strip, name: 'Front fan 2' }))).toBe('fan');
+    expect(deviceRole(dev('g', { ...strip, name: 'Case strip' }))).toBe('strip');
+  });
+
   it('creates desk objects for peripherals and fills case fans front first', () => {
     const pc = genericCase([]);
     const devices = [

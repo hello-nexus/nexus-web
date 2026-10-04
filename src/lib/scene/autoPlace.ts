@@ -2,22 +2,39 @@ import type { LightingDevice } from '../../api/lighting';
 import type { SceneBinding, SceneObject } from '../../api/lightingScene';
 import { newDeskObject, type DeskKind } from './deskCatalog';
 
-export type DeviceRole = 'keyboard' | 'mouse' | 'mousepad' | 'headset' | 'speaker' | 'fan' | 'ram' | 'gpu' | 'pump' | 'board' | 'strip';
+export type DeviceRole =
+  | 'keyboard' | 'mouse' | 'mousepad' | 'headset' | 'speaker' | 'monitor' | 'lightbar'
+  | 'fan' | 'ram' | 'gpu' | 'pump' | 'board' | 'strip';
 
-/** What a device most likely is, from the service's type tags and, failing those, its name. */
+/**
+ * What a device most likely is: the service's type tags first, then its name
+ * (a renamed ARGB strip called "Monitor backlight" is a monitor light), then a
+ * plain strip.
+ */
 export function deviceRole(d: LightingDevice): DeviceRole | null {
   const tags = `${d.iconType ?? ''} ${d.type ?? ''}`.toLowerCase();
   const name = d.name.toLowerCase();
   if (/\bkeyboard\b/.test(tags)) return 'keyboard';
-  if (/\bmouse\b/.test(tags)) return 'mouse';
   if (/mousemat|mousepad/.test(tags)) return 'mousepad';
+  if (/\bmouse\b/.test(tags)) return 'mouse';
   if (/headset/.test(tags)) return 'headset';
   if (/speaker/.test(tags)) return 'speaker';
-  if (/\bfan\b/.test(tags) || /\bfans?\b/.test(name)) return 'fan';
-  if (/\bdram\b/.test(tags) || /\b(ram|dimm|memory)\b/.test(name)) return 'ram';
+  if (/\bfan\b/.test(tags)) return 'fan';
+  if (/\bdram\b/.test(tags)) return 'ram';
   if (/\bgpu\b/.test(tags)) return 'gpu';
   if (/\b(cooler|aio)\b/.test(tags)) return 'pump';
   if (/motherboard/.test(tags)) return /argb|header|addressable|jrainbow|d_led|rgb_led/.test(name) ? 'strip' : 'board';
+  if (/keyboard|\bkbd\b/.test(name)) return 'keyboard';
+  if (/mouse ?(pad|mat)|desk ?mat/.test(name)) return 'mousepad';
+  if (/\bmouse\b/.test(name)) return 'mouse';
+  if (/headset|headphone/.test(name)) return 'headset';
+  if (/speaker/.test(name)) return 'speaker';
+  if (/monitor|backlight|ambilight|screen/.test(name)) return 'monitor';
+  if (/light ?bar/.test(name)) return 'lightbar';
+  if (/\bfans?\b/.test(name)) return 'fan';
+  if (/\b(ram|dimm|memory)\b/.test(name)) return 'ram';
+  if (/\b(gpu|graphics)\b/.test(name)) return 'gpu';
+  if (/\b(pump|aio|cooler)\b/.test(name)) return 'pump';
   if (/strip/.test(tags)) return 'strip';
   return null;
 }
@@ -28,6 +45,8 @@ const DESK_ROLE: Partial<Record<DeviceRole, DeskKind[]>> = {
   mousepad: ['mousepad', 'deskmat'],
   headset: ['headset'],
   speaker: ['speaker'],
+  monitor: ['monitor'],
+  lightbar: ['strip'],
 };
 
 // Case surfaces each role may take, best first.

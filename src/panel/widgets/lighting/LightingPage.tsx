@@ -2303,6 +2303,16 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           {/* How many devices this preview stands for: every device in the
               modes that drive them all, the selection in the per-device ones. */}
           <Badge label={previewBadgeLabel} compact uppercase color="var(--text-dim)" />
+          {SCENE_3D && showCanvas && (
+            <SceneViewSwitch
+              value={scene3d ? '3d' : '2d'}
+              onChange={next => {
+                const firstTime = next === '3d' && (sceneApi.scene?.bindings.length ?? 0) === 0;
+                void sceneApi.setEnabled(next === '3d');
+                if (firstTime) setSceneEditorOpen(true);
+              }}
+            />
+          )}
           {dockCollapsed && (
             <HoverTooltip body={t('lighting.effectDock.expand')} side="bottom">
               <Button
@@ -2431,16 +2441,6 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   </Suspense>
                 ) : (
                   <DeviceCanvas devices={canvasDevices} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} stacks={deviceStacks} stackActionsFor={stackActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
-                )}
-                {SCENE_3D && (
-                  <SceneViewSwitch
-                    value={scene3d ? '3d' : '2d'}
-                    onChange={next => {
-                      const firstTime = next === '3d' && (sceneApi.scene?.bindings.length ?? 0) === 0;
-                      void sceneApi.setEnabled(next === '3d');
-                      if (firstTime) setSceneEditorOpen(true);
-                    }}
-                  />
                 )}
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
