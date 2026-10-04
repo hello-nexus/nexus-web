@@ -174,10 +174,11 @@ function paintLook(
   // pattern reads end to end on each device instead of the slice its rect
   // happens to cover. Other modes sample the centreline of the device's part
   // of its frame (its stack slot, else the whole frame), first LED at its own
-  // left, turned about the frame centre by the frame's rotation - the line
-  // the engine's strip sampler walks.
+  // left, mirrored across the frame centre when flipped, then turned about it
+  // by the frame's rotation - the line the engine's strip sampler walks.
   const rad = fullscreen ? 0 : (((device.canvasRotation ?? 0) % 360) + 360) % 360 * Math.PI / 180;
   const cos = Math.cos(rad), sin = Math.sin(rad);
+  const mirror = !fullscreen && device.canvasFlip ? -1 : 1;
   const fcx = fullscreen ? CW / 2 : device.canvasX + device.canvasW / 2;
   const fcy = fullscreen ? CH / 2 : device.canvasY + device.canvasH / 2;
   const whole = fullscreen ? { x: 0, y: 0, w: CW, h: CH } : { x: device.canvasX, y: device.canvasY, w: device.canvasW, h: device.canvasH };
@@ -185,7 +186,7 @@ function paintLook(
   const midY = part.y + part.h / 2 - fcy;
   for (let i = 0; i < cells; i++) {
     const t = cells === 1 ? 0 : i / (cells - 1) - 0.5;
-    const lx = part.x + part.w / 2 + t * part.w - fcx;
+    const lx = mirror * (part.x + part.w / 2 + t * part.w - fcx);
     const ux = Math.min(w - 1, Math.max(0, Math.round(((fcx + lx * cos - midY * sin) / CW) * w)));
     const vy = Math.min(h - 1, Math.max(0, Math.round(((fcy + lx * sin + midY * cos) / CH) * h)));
     const s = (vy * w + ux) * 3;

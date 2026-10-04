@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Eye, Layers, Maximize2, Minimize2, Paintbrush, Power, PowerOff, RotateCcw, RotateCw } from 'lucide-react';
+import { Eye, FlipHorizontal2, Layers, Maximize2, Minimize2, Paintbrush, Power, PowerOff, RotateCcw, RotateCw } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -715,6 +715,15 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
     void Promise.all(targets.map(d => saveDeviceLayout(d.id, d.canvasX, d.canvasY, d.canvasW, d.canvasH, d.canvasRotation))).then(() => onLayoutCommitRef.current?.());
   }, [rotateDevice]);
 
+  // Mirrors every target unless all already are, the state the row's check mark shows.
+  const handleMirror = useCallback((targets: LightingDevice[]) => {
+    onBeforeLayoutSaveRef.current?.();
+    const flip = !targets.every(d => d.canvasFlip);
+    targets.forEach(d => { d.canvasFlip = flip; });
+    forceRender(n => n + 1);
+    void Promise.all(targets.map(d => saveDeviceLayout(d.id, d.canvasX, d.canvasY, d.canvasW, d.canvasH, d.canvasRotation ?? 0, d.canvasFlip))).then(() => onLayoutCommitRef.current?.());
+  }, []);
+
   // A frame counts as "maximized" when it fills the padded canvas. Geometric
   // (not a stored flag) so a manual resize/move drops it out of the maximized
   // state and the menu offers Maximize again instead of Minimize.
@@ -904,14 +913,17 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
                 // samples the same slot.
                 const slot = stackSlotOf(stacks, id);
                 const part = slot ? sliceStackSlot({ x: 0, y: 0, w: 1, h: 1 }, slot) : { x: 0, y: 0, w: 1, h: 1 };
+                // The engine mirrors about the whole frame, so a series stack's slots swap sides too.
+                const flip = !!dev.canvasFlip;
                 const locked = ledColorsById.get(id);
                 return (selectedDeviceLeds[id] ?? []).filter(l => !l.disabled).map(led => {
                   const color = locked?.get(led.index);
+                  const x = part.x + led.u * part.w;
                   return (
                     <div
                       key={`${id}:${led.index}`}
                       className={color ? `${styles.ledDot} ${styles.ledDotLocked}` : styles.ledDot}
-                      style={{ left: `${(part.x + led.u * part.w) * 100}%`, top: `${(part.y + led.v * part.h) * 100}%`, ...(color ? { background: color } : {}) }}
+                      style={{ left: `${(flip ? 1 - x : x) * 100}%`, top: `${(part.y + led.v * part.h) * 100}%`, ...(color ? { background: color } : {}) }}
                     />
                   );
                 });
@@ -1008,6 +1020,12 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
             key: 'rotate-ccw', icon: <RotateCcw size={14} />,
             label: group ? t(pluralKey('lighting.devices.rotateCcwCount', language, count), { count }) : t('lighting.devices.rotateCcw'),
             onSelect: () => group ? handleRotateGroup(targets, -1) : handleRotate(dev, -1),
+          },
+          {
+            key: 'mirror', icon: <FlipHorizontal2 size={14} />,
+            label: group ? t(pluralKey('lighting.devices.mirrorCount', language, count), { count }) : t('lighting.devices.mirror'),
+            checked: group ? targets.every(d => d.canvasFlip) : !!dev.canvasFlip,
+            onSelect: () => handleMirror(group ? targets : [dev]),
           },
           {
             key: 'power',

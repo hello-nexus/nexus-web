@@ -15,7 +15,7 @@ const PresetRefetchDebounceMs = 400;
 export function devicesToLayouts(devices: LightingDevice[]): Record<string, DeviceLayoutDto> {
   const out: Record<string, DeviceLayoutDto> = {};
   for (const d of devices) {
-    out[d.id] = { x: d.canvasX, y: d.canvasY, w: d.canvasW, h: d.canvasH, rotation: d.canvasRotation ?? 0 };
+    out[d.id] = { x: d.canvasX, y: d.canvasY, w: d.canvasW, h: d.canvasH, rotation: d.canvasRotation ?? 0, flip: d.canvasFlip ?? false };
   }
   return out;
 }
