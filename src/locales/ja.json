@@ -79,7 +79,7 @@
   "account.purchases.description": "このアカウントでダウンロードしたアプリ（無料・有料）。",
   "account.purchases.empty": "まだアプリをダウンロードしていません。",
   "account.purchases.free": "無料",
-  "account.purchases.notInstalled": "この PC にはありません",
+  "account.purchases.notInstalled": "このシステムにはありません",
   "account.purchases.title": "購入したアプリの管理",
   "account.purchases.uninstall": "アンインストール",
   "account.purchases.upToDate": "最新",

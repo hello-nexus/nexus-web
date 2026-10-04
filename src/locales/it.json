@@ -79,7 +79,7 @@
   "account.purchases.description": "Le app scaricate con questo account, gratuite o a pagamento.",
   "account.purchases.empty": "Non hai ancora scaricato nessuna app.",
   "account.purchases.free": "Gratis",
-  "account.purchases.notInstalled": "Non presente su questo PC",
+  "account.purchases.notInstalled": "Non presente su questo sistema",
   "account.purchases.title": "Gestisci le app acquistate",
   "account.purchases.uninstall": "Disinstalla",
   "account.purchases.upToDate": "Aggiornata",

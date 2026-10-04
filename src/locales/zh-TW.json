@@ -79,7 +79,7 @@
   "account.purchases.description": "使用此帳戶下載過的應用程式，包含免費與付費。",
   "account.purchases.empty": "你還沒有下載任何應用程式。",
   "account.purchases.free": "免費",
-  "account.purchases.notInstalled": "不在這台電腦上",
+  "account.purchases.notInstalled": "不在此系統上",
   "account.purchases.title": "管理已購應用程式",
   "account.purchases.uninstall": "解除安裝",
   "account.purchases.upToDate": "已是最新",
