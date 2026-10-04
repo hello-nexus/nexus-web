@@ -1,8 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
   <!-- HYTE keeb: wide keyboard body drawn as a single-stroke outline,
-       with the raised module on the top-left (a bar on a short neck)
-       that gives the board its silhouette. -->
-  <rect x="5" y="23" width="38" height="15" rx="3.5" />
-  <line x1="12" y1="11" x2="12" y2="23" />
-  <line x1="7" y1="11" x2="18" y2="11" />
+       with the solid module bar docked on the top-left edge and its
+       dial cut out of the bar. -->
+  <rect x="5" y="20" width="38" height="15" rx="3.5" />
+  <path fill="currentColor" stroke="none" fill-rule="evenodd" d="M7.5 11.5h12a2.75 2.75 0 0 1 0 5.5h-12a2.75 2.75 0 0 1 0-5.5Z M11.9 14.25a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0Z" />
 </svg>
