@@ -12,6 +12,8 @@ describe('scene labels', () => {
     expect(at('fan:front:120:0')).toBe('lighting.scene.anchor.fan.front(1)');
     expect(at('fan:rear:120:0')).toBe('lighting.scene.anchor.fan.rear(1)');
     expect(anchorLabel(t, pc, { ...pc.anchors[0], id: 'fan:psu-shroud:120:1' })).toBe('lighting.scene.anchor.fan.other(2)');
+    expect(anchorLabel(t, pc, { ...pc.anchors[0], id: 'fan:cooler:120:0' })).toBe('lighting.scene.anchor.fan.cooler');
+    expect(anchorLabel(t, pc, { ...pc.anchors[0], id: 'fan:radiator-0:120:2' })).toBe('lighting.scene.anchor.fan.radiator(3)');
   });
 
   it('names parts and strips through translation keys', () => {

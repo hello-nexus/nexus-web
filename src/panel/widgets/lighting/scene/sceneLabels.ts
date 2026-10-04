@@ -18,9 +18,13 @@ export function anchorLabel(t: T, obj: SceneObject, anchor: SceneAnchor): string
   const parts = anchor.id.split(':');
   switch (anchor.kind) {
     case 'fan': {
-      const position = FAN_POSITIONS.find(p => (parts[1] ?? '').startsWith(p));
       const n = Number(parts[3]);
-      return t(`lighting.scene.anchor.fan.${position ?? 'other'}`, { n: Number.isFinite(n) ? n + 1 : 1 });
+      const index = { n: Number.isFinite(n) ? n + 1 : 1 };
+      // Build's air cooler and radiator fan spots (`fan:cooler:...`, `fan:radiator-<k>:...`).
+      if (parts[1] === 'cooler') return t('lighting.scene.anchor.fan.cooler');
+      if ((parts[1] ?? '').startsWith('radiator')) return t('lighting.scene.anchor.fan.radiator', index);
+      const position = FAN_POSITIONS.find(p => (parts[1] ?? '').startsWith(p));
+      return t(`lighting.scene.anchor.fan.${position ?? 'other'}`, index);
     }
     case 'radiator': {
       const n = Number(parts[parts.length - 1]);
