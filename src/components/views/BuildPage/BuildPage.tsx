@@ -235,7 +235,11 @@ export function BuildPage({ path, onOpenBenchmark, onOpenLighting }: BuildPagePr
           break;
         case 'nexus-build:set-scene':
           if (!SCENE_3D || isRemoteOrigin) break;
-          void relaySceneExport(data).then(ok => post({ type: 'nexus-build:scene-saved', v: 1, ok }));
+          // The frame's request id comes back with the answer, so a late reply is never credited to a retry.
+          void relaySceneExport(data).then(ok => post({
+            type: 'nexus-build:scene-saved', v: 1, ok,
+            ...(typeof data.requestId === 'string' ? { requestId: data.requestId } : {}),
+          }));
           break;
         case 'nexus-build:open-lighting':
           onOpenLightingRef.current?.();

@@ -67,11 +67,11 @@ function useSceneLeds(api: LightingSceneApi, devices: LightingDevice[]): Map<str
   const maps = useSceneLedMaps(boundIds, devices);
   // Keyed on what positions depend on, so a camera move or a device poll that changes nothing here keeps the
   // same Map and the renderer skips its rebuild.
-  const counts = devices.map(d => `${d.id}:${d.ledCount}`).join('|');
+  const counts = devices.map(d => `${d.id}:${d.ledCount}`).join('\n');
   return useMemo(() => {
     const out = new Map<string, Float32Array>();
     if (!objects || !bindings) return out;
-    const ledCount = new Map(counts.split('|').map(entry => {
+    const ledCount = new Map(counts.split('\n').map(entry => {
       const at = entry.lastIndexOf(':');
       return [entry.slice(0, at), Number(entry.slice(at + 1))] as const;
     }));
@@ -477,7 +477,7 @@ function SceneEditor({
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
               <div className={styles.sectionTitle}>{t('lighting.scene.devices.title')}</div>
-              <Button size="sm" tone="neutral" icon={<WandSparkles size={13} strokeWidth={1.8} />} onClick={runAutoPlace}>{t('lighting.scene.devices.autoPlace')}</Button>
+              <Button size="sm" tone={scene.bindings.length === 0 ? 'accent' : 'neutral'} icon={<WandSparkles size={13} strokeWidth={1.8} />} onClick={runAutoPlace}>{t('lighting.scene.devices.autoPlace')}</Button>
             </div>
             <div className={styles.sectionNote}>{t('lighting.scene.devices.note')}</div>
             <div className={styles.deviceList}>

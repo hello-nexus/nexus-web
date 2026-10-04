@@ -48,8 +48,10 @@ describe('useLightingScene', () => {
     await act(async () => { releaseDraft(); });
     await waitFor(() => expect(committed).toBe(true));
     expect(order).toEqual(['draft', 'commit']);
-    const seqs = vi.mocked(putSceneView).mock.calls.map(c => c[0].seq!);
-    expect(seqs[1]).toBeGreaterThan(seqs[0]);
+    const calls = vi.mocked(putSceneView).mock.calls.map(c => c[0]);
+    expect(calls[1].seq!).toBeGreaterThan(calls[0].seq!);
+    expect(calls[0].session).toBeTruthy();
+    expect(calls[1].session).toBe(calls[0].session);
   });
 
   it('keeps a pending local edit when a refresh arrives, taking only the view', async () => {
@@ -61,6 +63,28 @@ describe('useLightingScene', () => {
 
     expect(result.current.scene!.objects.map(o => o.id)).toEqual(['kb']);
     expect(result.current.scene!.view.enabled).toBe(false);
+  });
+
+  it('never lets a refresh put the old camera back while a camera save is on the wire', async () => {
+    let answer: () => void = () => {};
+    vi.mocked(putSceneView).mockImplementation(() => new Promise(resolve => { answer = () => resolve(baseScene().view); }));
+    const { result } = await mounted();
+    act(() => { void result.current.setCamera(cam(300), true); });
+    await waitFor(() => expect(putSceneView).toHaveBeenCalled());
+
+    await act(async () => { await result.current.refreshView(); });
+    expect(result.current.scene!.view.camera!.position[0]).toBe(300);
+
+    await act(async () => { answer(); });
+  });
+
+  it('keeps the same arrays when a refresh brings nothing new, so the renderer does not rebuild', async () => {
+    const { result } = await mounted();
+    const before = result.current.scene!;
+    await act(async () => { await result.current.refreshView(); });
+    expect(result.current.scene!.objects).toBe(before.objects);
+    expect(result.current.scene!.bindings).toBe(before.bindings);
+    expect(result.current.scene!.view).toBe(before.view);
   });
 
   it('sends a still-pending edit when the page unmounts instead of dropping it', async () => {

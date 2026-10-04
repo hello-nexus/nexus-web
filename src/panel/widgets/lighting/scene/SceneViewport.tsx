@@ -59,7 +59,7 @@ export function SceneViewport({
 }: SceneViewportProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const threeHostRef = useRef<HTMLDivElement>(null);
   const glCanvasRef = useRef<HTMLCanvasElement>(null);
   const rendererInst = useRef<SceneRenderer | null>(null);
   const [failed, setFailed] = useState(false);
@@ -74,9 +74,14 @@ export function SceneViewport({
   handlers.current = { onPick, onCamera, onMoveObject, publishPoints, hoverLabel };
 
   useEffect(() => {
-    const canvas = canvasRef.current;
+    const host = threeHostRef.current;
     const container = containerRef.current;
-    if (!canvas || !container) return undefined;
+    if (!host || !container) return undefined;
+    // A fresh canvas per renderer: dispose force-loses its GL context, and a canvas whose context was lost would
+    // hand that dead context to the next renderer (a StrictMode remount reuses the element).
+    const canvas = document.createElement('canvas');
+    canvas.className = styles.three;
+    host.appendChild(canvas);
     // The viewport is dark in both themes, like the 2D canvas, so only the accent comes from the theme.
     const theme: SceneTheme = {
       accent: cssColor(container, '--accent', '#4da3ff'),
@@ -98,6 +103,7 @@ export function SceneViewport({
         },
       }, theme);
     } catch {
+      canvas.remove();
       setFailed(true);
       return undefined;
     }
@@ -105,6 +111,7 @@ export function SceneViewport({
     if (rendererRef) rendererRef.current = renderer;
     return () => {
       renderer.dispose();
+      canvas.remove();
       rendererInst.current = null;
       if (rendererRef) rendererRef.current = null;
       if (handlers.current.publishPoints) setScenePoints(null);
@@ -163,7 +170,7 @@ export function SceneViewport({
         <CanvasBackground />
         <canvas ref={glCanvasRef} className={`${styles.glBackdrop} ${ready ? styles.glBackdropReady : ''}`} />
       </div>
-      <canvas ref={canvasRef} className={styles.three} />
+      <div ref={threeHostRef} className={styles.three} />
       {failed && <div className={styles.webglFailed}>{t('lighting.scene.webglFailed')}</div>}
       {hover && <div className={styles.hoverChip} style={{ left: hover.x, top: hover.y }}>{hover.text}</div>}
       {children}

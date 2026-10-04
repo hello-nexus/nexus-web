@@ -83,9 +83,9 @@ export const deleteSceneImport = () => deleteService<LightingScene>('/lighting/s
 
 /**
  * Commits the view; `draft` drives the hardware without saving, for a camera mid-drag. `seq` increases with every
- * request from one editor, so the service drops a draft that lands after its commit. Answers the saved view.
+ * request from one editor `session`, so the service drops a draft that lands after its commit. Answers the saved view.
  */
-export const putSceneView = (body: { enabled?: boolean; camera?: SceneCamera; draft?: boolean; seq?: number }) =>
+export const putSceneView = (body: { enabled?: boolean; camera?: SceneCamera; draft?: boolean; session?: string; seq?: number }) =>
   putService<SceneView>('/lighting/scene/view', body);
 
 export async function fetchSceneModel(): Promise<ArrayBuffer | null> {

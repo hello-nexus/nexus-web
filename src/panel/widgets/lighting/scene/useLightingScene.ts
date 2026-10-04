@@ -18,6 +18,17 @@ import { presetCamera } from '../../../../lib/scene/scenePresets';
 const SAVE_DEBOUNCE_MS = 250;
 // A camera mid-drag streams drafts at most this often; the hardware follows without flooding the service.
 const DRAFT_INTERVAL_MS = 60;
+// A view request that has not answered by now stops holding the queue; its sequence number keeps order on the service.
+const VIEW_REQUEST_PATIENCE_MS = 8000;
+
+function newSessionId(): string {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `s${Math.random().toString(36).slice(2)}`;
+}
+
+// Same content, same reference: a refresh that changes nothing must not make the renderer rebuild.
+function same<T>(current: T, next: T): T {
+  return JSON.stringify(current) === JSON.stringify(next) ? current : next;
+}
 
 export interface SceneEdit {
   objects: SceneObject[];
@@ -47,15 +58,21 @@ export function useLightingScene(active: boolean): LightingSceneApi {
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDraft = useRef(0);
   const pendingDraft = useRef<SceneCamera | null>(null);
-  // View requests go out one at a time and numbered, so the service can drop a draft that lands after its commit.
+  // View requests go out one at a time, numbered within this editor's session, so the service can drop a draft
+  // that lands after its commit without comparing clocks across clients.
   const viewChain = useRef<Promise<unknown>>(Promise.resolve());
   const viewSeq = useRef(0);
+  const session = useRef<string | null>(null);
+  // View requests not yet answered: until they are, a refresh must not put the older saved camera back.
+  const viewsInFlight = useRef(0);
 
   const sendView = useCallback((body: { enabled?: boolean; camera?: SceneCamera; draft?: boolean }) => {
-    // Clock-based so a reload never restarts below numbers the service already saw.
-    const seq = viewSeq.current = Math.max(viewSeq.current + 1, Date.now());
-    const sent = viewChain.current.then(() => putSceneView({ ...body, seq }));
-    viewChain.current = sent.catch(() => null);
+    session.current ??= newSessionId();
+    const request = { ...body, session: session.current, seq: ++viewSeq.current };
+    viewsInFlight.current++;
+    const sent = viewChain.current.then(() => putSceneView(request)).finally(() => { viewsInFlight.current--; });
+    const patience = new Promise(resolve => { setTimeout(resolve, VIEW_REQUEST_PATIENCE_MS); });
+    viewChain.current = Promise.race([sent, patience]).catch(() => null);
     return sent;
   }, []);
 
@@ -63,8 +80,16 @@ export function useLightingScene(active: boolean): LightingSceneApi {
     const next = await fetchLightingScene();
     if (!next) return;
     setScene(s => {
-      if (!s || (!saveTimer.current && saving.current === 0)) return next;
-      return { ...s, view: next.view, modelRev: next.modelRev, caseId: next.caseId };
+      if (!s) return next;
+      const editsPending = !!saveTimer.current || saving.current > 0;
+      return {
+        ...s,
+        objects: editsPending ? s.objects : same(s.objects, next.objects),
+        bindings: editsPending ? s.bindings : same(s.bindings, next.bindings),
+        view: viewsInFlight.current > 0 ? s.view : same(s.view, next.view),
+        modelRev: next.modelRev,
+        caseId: next.caseId,
+      };
     });
   }, []);
 
