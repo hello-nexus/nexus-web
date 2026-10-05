@@ -29,13 +29,10 @@ describe('SupportedDevicesModal search', () => {
     expect(search('')).toHaveLength(DEVICES.length);
   });
 
-  it('a brand box replaces the search with that brand', () => {
+  it('shows no brand logo grid; that lives on the site only', () => {
     render(<SupportedDevicesModal open onClose={() => {}} />);
 
-    search('q60');
-    fireEvent.click(screen.getByRole('button', { name: 'Corsair' }));
-    expect(screen.getByRole('textbox')).toHaveValue('Corsair');
-    expect(screen.queryAllByRole('row').slice(1).map(r => r.cells[1].textContent)).toEqual(['Hydro H100i Elite', 'K70 RGB']);
+    expect(screen.queryByRole('button', { name: 'Corsair' })).toBeNull();
   });
 
   it('does not match a word spanning vendor and model', () => {
