@@ -1292,9 +1292,20 @@ function PreviewSdkChipGroup() {
 }
 
 function PreviewIconLabelButton() {
+  return (
+    <div className={styles.previewStack}>
+      <span className={styles.previewCaption}>Default: soft accent</span>
+      <PreviewIconLabelGroup className={styles.previewIconLabelRow} />
+      <span className={styles.previewCaption}>Editor preset: solid accent</span>
+      <PreviewIconLabelGroup className={`${styles.previewIconLabelRow} ${styles.previewIconLabelSolid}`} />
+    </div>
+  );
+}
+
+function PreviewIconLabelGroup({ className }: { className: string }) {
   const [active, setActive] = useState('spark');
   return (
-    <div className={styles.previewIconLabelRow}>
+    <div className={className}>
       <IconLabelButton
         icon={<Sparkles size={18} />}
         label="Spark"
@@ -2310,7 +2321,14 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'IconLabelButton', category: 'inputs',
     filePath: 'src/components/common/IconLabelButton/IconLabelButton.tsx',
-    description: 'Compact icon-over-label button with an active state and touch-up press handling. Used by panel widget size and monitoring design selectors.', Preview: PreviewIconLabelButton,
+    description: 'Compact icon-over-label button with an active state and touch-up press handling. Styled through --icon-label-button-* tokens set on a container.', Preview: PreviewIconLabelButton,
+    notes: 'Two selected treatments. The default soft accent fill is what bare consumers get (keyboard page direction, layer and macro buttons, cooling presets, deck page numbers, lighting and media widget controls). Editor surfaces set the solid preset: accent fill and accent text, via the edit-sheet-icon-buttons mixin or the same tokens (widget edit sheet, monitoring and clock settings, deck inspector, panel device page, Type reactive effects).',
+  },
+  {
+    name: 'TypeReactiveEditor', category: 'inputs',
+    filePath: 'src/components/common/TypeReactiveEditor/TypeReactiveEditor.tsx',
+    description: 'Type reactive editor for one per-key keyboard: effect picker (IconLabelButton, solid preset), colour, background, speed and size, beside a live LED map of the board. Hosts own the config through useTypeReactiveConfig. Used by the lighting page modal and the keyboard page Passive lighting section.',
+    notes: 'No live preview - the board layout comes from the service\'s /lighting/key-reactive preview route and its colours from the lighting output stream, and every edit PUTs the card\'s stored config.',
   },
   {
     name: 'Button', category: 'inputs',

@@ -90,6 +90,8 @@ import { GAME_SYNC_GUIDE_URL } from '../../../lib/externalLinks';
 import { GameSyncLeftPane } from './page/GameSyncLeftPane';
 import { LedMapEditor } from './page/LedMapEditor';
 import { ColorTuningModal } from './page/ColorTuningModal';
+import { KeyReactionsModal } from './page/KeyReactionsModal';
+import { fetchKeyReactive, type KeyReactiveState } from '../../../api/keyReactive';
 import { visibleCards } from './page/zoneUtils';
 import { OpenRgbButton } from './page/OpenRgbButton';
 import { GlobalBrightnessSlider } from './page/GlobalBrightnessSlider';
@@ -199,7 +201,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     updateUiSettings({ lightingDashboardMode: next });
   }, [updateUiSettings]);
   // Keeps the output socket open; the canvas paints its frames from ledFrameStore.
-  useLightingFrames();
+  const lightingStream = useLightingFrames();
   // Read RGB running/scanning off useServiceState (already subscribed
   // to the lighting topic for the sidebar pip) so a topic push doesn't
   // trigger a duplicate GET. `running` is the openrgb-headless
@@ -1447,6 +1449,32 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [orderedDevices],
   );
   const [colorTuningIds, setColorTuningIds] = useState<string[] | null>(null);
+  // Key reactions. The service lists every per-key keyboard card it can react
+  // on; only those get the menu row. Fetched on mount and after each device
+  // refresh, since a keyboard can appear or leave with the device list. The
+  // modal mounts only while open so it opens on the stored config.
+  const [keyReactive, setKeyReactive] = useState<KeyReactiveState | null>(null);
+  const [keyReactionsId, setKeyReactionsId] = useState<string | null>(null);
+  const refreshKeyReactive = useCallback(async () => {
+    const data = await fetchKeyReactive().catch(() => null);
+    if (data) setKeyReactive(data);
+  }, []);
+  const keyReactiveIds = useMemo(
+    () => new Set((keyReactive?.devices ?? []).map(d => d.id)),
+    [keyReactive],
+  );
+  const keyReactiveOnIds = useMemo(
+    () => new Set((keyReactive?.devices ?? []).filter(d => d.config.enabled).map(d => d.id)),
+    [keyReactive],
+  );
+  const keyReactionsDevice = keyReactionsId
+    ? keyReactive?.devices.find(d => d.id === keyReactionsId)
+    : undefined;
+  // A keyboard that drops out of the list closes its editor for good, rather
+  // than leaving it to reopen when the card comes back.
+  useEffect(() => {
+    if (keyReactionsId && keyReactive && !keyReactionsDevice) setKeyReactionsId(null);
+  }, [keyReactionsId, keyReactive, keyReactionsDevice]);
   const handleOpenColorTuning = useCallback((cardId: string) => {
     setColorTuningIds(
       selectedDeviceIds.size > 1 && selectedDeviceIds.has(cardId)
@@ -1528,7 +1556,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     setDevices(devices);
     setDeviceGroups(data.groups ?? []);
     setDeviceStacks(data.stacks ?? []);
-  }, []);
+    void refreshKeyReactive();
+  }, [refreshKeyReactive]);
 
   useEffect(() => {
     if (!serviceOnline) return;
@@ -2376,6 +2405,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             lightingOff={effectiveMode === 'none'}
             onOpenSettings={handleOpenSettings}
             onOpenColorTuning={handleOpenColorTuning}
+            keyReactiveIds={keyReactiveIds}
+            keyReactiveOnIds={keyReactiveOnIds}
+            onOpenKeyReactions={setKeyReactionsId}
             onRenameDevice={handleRenameDevice}
             groups={deviceGroups}
             onGroupsChange={handleGroupsChange}
@@ -2447,7 +2479,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                     />
                   </Suspense>
                 ) : (
-                  <DeviceCanvas devices={canvasDevices} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} stacks={deviceStacks} stackActionsFor={stackActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
+                  <DeviceCanvas devices={canvasDevices} selectedIds={canvasFocusIds} primaryDeviceId={primaryDeviceId} onSelectDevice={handleFocusDevice} onSetSelection={handleSetFocus} shaderEffect={shaderMode ? activeEffect : null} shaderState={shaderMode ? previewState : null} shaderPaused={paused} audioRef={audioRef} hiddenFrameIds={hiddenFrameIds} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={handleOpenSettings} keyReactiveIds={keyReactiveIds} onOpenKeyReactions={setKeyReactionsId} onDragActiveChange={handleDragActiveChange} onBeforeLayoutSave={handleBeforeLayoutSave} onLayoutCommit={handleLayoutCommit} onSetDevicesPower={handleSetDevicesPower} stacks={deviceStacks} stackActionsFor={stackActionsFor} gpuAvailable={serviceState.lighting?.gpuAvailable ?? true} gpuState={serviceState.lighting?.gpuState} onPickRenderGpu={canPickRenderGpu ? handlePickRenderGpu : undefined} />
                 )}
                 {effectiveMode === 'gif' && <MediaCanvasNotice />}
                 {shaderMode && activeEffect && currentState && (
@@ -2629,6 +2661,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           devices={tunableDevices}
           deviceIds={colorTuningIds}
           onClose={() => setColorTuningIds(null)}
+        />
+      )}
+      {keyReactionsId && keyReactionsDevice && (
+        <KeyReactionsModal
+          cardId={keyReactionsId}
+          deviceName={orderedDevices.find(d => d.id === keyReactionsId)?.name ?? keyReactionsId}
+          initialConfig={keyReactionsDevice.config}
+          inputAvailable={keyReactive?.inputAvailable ?? false}
+          hardwareKeys={keyReactionsDevice.hardwareKeys}
+          frameIndex={keyReactionsDevice.frameIndex}
+          stream={lightingStream}
+          onClose={() => { setKeyReactionsId(null); void refreshKeyReactive(); }}
         />
       )}
       {presetAppsTarget && (

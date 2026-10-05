@@ -7,7 +7,6 @@ import {
   type SetFirmwareLightingBody,
   type SetGameModeBody,
   type SetLayerKeyBody,
-  type SetPassiveLightingBody,
   type SetRotaryWheelsBody,
   getKeebMacro,
   getKeebRotaryFunctions,
@@ -18,7 +17,6 @@ import {
   setKeebGameMode,
   setKeebLayerKey,
   setKeebMacro,
-  setKeebPassiveLighting,
   setKeebRotary,
 } from './keeb';
 import { fetchService, postService } from './service';
@@ -48,10 +46,6 @@ const settings: KeebSettings = {
   speed: 'Medium',
   direction: 'Left',
   brightness: 50,
-  keyReactive: false,
-  keyReactiveMask: false,
-  keyReactiveMode: 'Single',
-  keyReactiveColor: { r: 255, g: 0, b: 0, a: 255 },
 };
 
 afterEach(() => {
@@ -65,19 +59,12 @@ describe('boolean settings wrappers', () => {
     direction: 'Right',
     brightness: 80,
   };
-  const plBody: SetPassiveLightingBody = {
-    keyReactive: true,
-    keyReactiveMask: false,
-    keyReactiveMode: 'Single',
-    keyReactiveColor: { r: 0, g: 255, b: 0, a: 255 },
-  };
   const gmBody: SetGameModeBody = { altF4: true, altTab: false, shiftTab: true, windowsKey: false };
   const rotBody: SetRotaryWheelsBody = { left: 'Volume', right: 'Zoom' };
 
   it('return true when the service acks (non-null response)', async () => {
     mockPost.mockResolvedValue({ error: false });
     await expect(setKeebFirmwareLighting(fwBody)).resolves.toBe(true);
-    await expect(setKeebPassiveLighting(plBody)).resolves.toBe(true);
     await expect(setKeebGameMode(gmBody)).resolves.toBe(true);
     await expect(setKeebRotary(rotBody)).resolves.toBe(true);
   });
@@ -85,7 +72,6 @@ describe('boolean settings wrappers', () => {
   it('return false when the post fails (null response)', async () => {
     mockPost.mockResolvedValue(null);
     await expect(setKeebFirmwareLighting(fwBody)).resolves.toBe(false);
-    await expect(setKeebPassiveLighting(plBody)).resolves.toBe(false);
     await expect(setKeebGameMode(gmBody)).resolves.toBe(false);
     await expect(setKeebRotary(rotBody)).resolves.toBe(false);
   });
@@ -100,8 +86,6 @@ describe('boolean settings wrappers', () => {
     mockPost.mockResolvedValue({ error: false });
     await setKeebFirmwareLighting(fwBody);
     expect(mockPost).toHaveBeenLastCalledWith('/keeb/firmware/lighting', fwBody);
-    await setKeebPassiveLighting(plBody);
-    expect(mockPost).toHaveBeenLastCalledWith('/keeb/passive-lighting', plBody);
     await setKeebGameMode(gmBody);
     expect(mockPost).toHaveBeenLastCalledWith('/keeb/game-mode', gmBody);
     await setKeebRotary(rotBody);

@@ -373,6 +373,41 @@ describe('DeviceCanvas', () => {
     expect(onOpenSettings).toHaveBeenCalledWith('b');
   });
 
+  it('offers key reactions only on a right-clicked frame listed as a per-key keyboard', () => {
+    const devices = [maximizedDevice('a', 'Alpha'), maximizedDevice('b', 'Bravo')];
+    const onOpenKeyReactions = vi.fn();
+    render(
+      <DeviceCanvas
+        devices={devices}
+        selectedIds={new Set(['a'])} primaryDeviceId="a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+        onOpenKeyReactions={onOpenKeyReactions} keyReactiveIds={new Set(['b'])}
+      />
+    );
+    fireEvent.contextMenu(screen.getByText('Alpha'));
+    expect(screen.queryByText('lighting.keyReactions.menu')).toBeNull();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.contextMenu(screen.getByText('Bravo'));
+    fireEvent.click(screen.getByText('lighting.keyReactions.menu'));
+    expect(onOpenKeyReactions).toHaveBeenCalledWith('b');
+  });
+
+  it('offers key reactions on a keyboard frame that is part of a group selection', () => {
+    const devices = [maximizedDevice('a', 'Alpha'), maximizedDevice('b', 'Bravo')];
+    const onOpenKeyReactions = vi.fn();
+    render(
+      <DeviceCanvas
+        devices={devices}
+        selectedIds={new Set(['a', 'b'])} primaryDeviceId="a"
+        onSelectDevice={vi.fn()} onSetSelection={vi.fn()}
+        onOpenKeyReactions={onOpenKeyReactions} keyReactiveIds={new Set(['b'])}
+      />
+    );
+    fireEvent.contextMenu(screen.getByText('Bravo'));
+    fireEvent.click(screen.getByText('lighting.keyReactions.menu'));
+    expect(onOpenKeyReactions).toHaveBeenCalledWith('b');
+  });
+
   it('minimizing spreads frames down the canvas and staggers neighbouring columns', () => {
     const devices = [
       maximizedDevice('a', 'Alpha'), maximizedDevice('b', 'Bravo'),

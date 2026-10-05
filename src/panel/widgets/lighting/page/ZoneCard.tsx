@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Power, PowerOff, Ban, Blend, Eye, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Paintbrush, Pencil, RotateCcw, Unlock } from 'lucide-react';
+import { Power, PowerOff, Ban, Blend, Eye, Keyboard, Lightbulb, Users, Cpu, Check, Link2Off, Link2, Layers, Lock, MousePointerClick, Paintbrush, Pencil, RotateCcw, Unlock } from 'lucide-react';
 import {
   identifyLightingDevice,
   type LightingDevice,
@@ -270,6 +270,8 @@ export function ZoneCard({
   onToggleControlled,
   onOpenSettings,
   onOpenColorTuning,
+  onOpenKeyReactions,
+  typeReactiveOn,
   onRename,
   drag,
   communityCount,
@@ -312,6 +314,11 @@ export function ZoneCard({
   /** Opens the colour-tuning modal. Unlike the LED map it is meaningful for a
    *  whole selection, so the row stays on the menu in bulk mode. */
   onOpenColorTuning?: () => void;
+  /** Opens the key-reactions modal on this keyboard. Like Customize it stays
+   *  on THIS card in a selection; omitted for a card that is not a per-key keyboard. */
+  onOpenKeyReactions?: () => void;
+  /** Type reactive is on for this card's device: a badge beside the strip opens the editor. */
+  typeReactiveOn?: boolean;
   /** Commits a new display name for this card. Omitted by surfaces that only
    *  pick devices (onboarding, the immersive Static picker), where the name is
    *  a label and not a control. Committing an empty string is impossible -
@@ -459,6 +466,14 @@ export function ZoneCard({
         icon: <Blend size={14} />,
         label: bulkMenuLabel(t, language, bulk && { count: tunableCount }, 'lighting.colorTuning.menu', 'lighting.colorTuning.menuCount'),
         onSelect: onOpenColorTuning,
+      });
+    }
+    if (onOpenKeyReactions) {
+      editors.push({
+        key: 'keyReactions',
+        icon: <Keyboard size={14} />,
+        label: t('lighting.keyReactions.menu'),
+        onSelect: onOpenKeyReactions,
       });
     }
     const toggles: DeviceMenuItem[] = [];
@@ -700,6 +715,19 @@ export function ZoneCard({
               onClick={e => { e.stopPropagation(); onOpenSettings(); }}
             >
               <Paintbrush />
+            </button>
+          </HoverTooltip>
+        )}
+        {typeReactiveOn && onOpenKeyReactions && !toggleMode && !unavailable && !firmwareControlled && (
+          <HoverTooltip body={t('lighting.keyReactions.badge')} side="top">
+            <button
+              type="button"
+              className={`${styles.deviceSettingsBtn} ${styles.deviceLockBtn}`}
+              aria-label={t('lighting.keyReactions.badge')}
+              data-no-dnd
+              onClick={e => { e.stopPropagation(); onOpenKeyReactions(); }}
+            >
+              <Keyboard />
             </button>
           </HoverTooltip>
         )}

@@ -32,7 +32,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareActive, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareActive, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -77,6 +77,12 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   /** Opens the colour-tuning modal scoped to this card (or, when it is part of
    *  a multi-selection, to the whole selection). */
   onOpenColorTuning?: (id: string) => void;
+  /** Cards that are per-key keyboards the engine can react on; only these get
+   *  the key-reactions row on their menu. */
+  keyReactiveIds?: ReadonlySet<string>;
+  /** Cards whose device has Type reactive on; they carry the badge beside the strip. */
+  keyReactiveOnIds?: ReadonlySet<string>;
+  onOpenKeyReactions?: (id: string) => void;
   /** Commits a card's new display name. Absent leaves every name a plain label. */
   onRenameDevice?: (id: string, name: string) => void;
   /** Called after a drag reorder with the new flat device-id ordering. */
@@ -391,6 +397,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       onToggleControlled={() => toggleControlledFor(d)}
       onOpenSettings={() => onOpenSettings(d.id)}
       onOpenColorTuning={onOpenColorTuning ? () => onOpenColorTuning(d.id) : undefined}
+      onOpenKeyReactions={onOpenKeyReactions && keyReactiveIds?.has(d.id) ? () => onOpenKeyReactions(d.id) : undefined}
+      typeReactiveOn={keyReactiveOnIds?.has(d.id)}
       onRename={onRenameDevice ? name => onRenameDevice(d.id, name) : undefined}
       drag={drag}
       communityCount={communityCounts?.[d.id]}

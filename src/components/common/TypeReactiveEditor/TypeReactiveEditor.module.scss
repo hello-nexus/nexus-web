@@ -1,0 +1,115 @@
+@use '../../../styles/text' as *;
+
+.body {
+  // Board width: compact so the options lead; the dots scale to it.
+  --type-reactive-board-width: 20rem;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+// Options on the left, the board pinned on the right.
+.split {
+  --type-reactive-board-width: 24rem;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--type-reactive-board-width);
+  grid-template-areas:
+    'toggle board'
+    'options board';
+  grid-template-rows: auto 1fr;
+  column-gap: var(--space-lg);
+  row-gap: var(--space-md);
+  align-items: start;
+
+  .toggleArea { grid-area: toggle; }
+  .optionsArea { grid-area: options; }
+
+  .boardArea {
+    grid-area: board;
+    position: sticky;
+    top: 0;
+  }
+}
+
+.toggleArea,
+.optionsArea {
+  min-width: 0;
+}
+
+.optionsArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.boardArea,
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.boardArea {
+  width: 100%;
+  max-width: var(--type-reactive-board-width);
+}
+
+.sectionTitle {
+  @include text-label;
+  color: var(--text-dim);
+}
+
+.hint {
+  margin: 0;
+  @include text-caption;
+  color: var(--text-dim);
+}
+
+// The board sits on the LED map's near-black plate so the dots read the same
+// way they do in the mapping editor.
+.board {
+  padding: var(--space-sm);
+  border-radius: var(--radius);
+  background: #080808;
+  min-width: 0;
+}
+
+.canvas {
+  display: block;
+  max-width: 100%;
+  cursor: pointer;
+
+  &[aria-disabled='true'] {
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+// Same toggle-button treatment as the monitoring widget editor's style picker:
+// a solid accent fill on the selected effect.
+.gallery {
+  --icon-label-button-border: var(--border);
+  --icon-label-button-bg: var(--surface);
+  --icon-label-button-bg-hover: var(--bg-card-hover);
+  --icon-label-button-active-border: var(--panel-accent, var(--accent));
+  --icon-label-button-active-bg: var(--panel-accent, var(--accent));
+  --icon-label-button-active-text: var(--panel-accent-text, var(--accent-text));
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: var(--space-sm);
+}
+
+.sliders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

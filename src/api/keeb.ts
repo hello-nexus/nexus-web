@@ -51,10 +51,6 @@ export interface KeebSettings {
   speed: string;
   direction: string;
   brightness: number;
-  keyReactive: boolean;
-  keyReactiveMask: boolean;
-  keyReactiveMode: string;
-  keyReactiveColor: RGBA;
 }
 
 export interface SetFirmwareLightingBody {
@@ -62,13 +58,6 @@ export interface SetFirmwareLightingBody {
   speed: string;
   direction: string;
   brightness: number;
-}
-
-export interface SetPassiveLightingBody {
-  keyReactive: boolean;
-  keyReactiveMask: boolean;
-  keyReactiveMode: string;
-  keyReactiveColor: RGBA;
 }
 
 export interface SetGameModeBody {
@@ -163,10 +152,6 @@ function acked(r: ApiResponseWrapper | null): boolean {
 
 export async function setKeebFirmwareLighting(body: SetFirmwareLightingBody): Promise<boolean> {
   return acked(await postService<ApiResponseWrapper>('/keeb/firmware/lighting', body));
-}
-
-export async function setKeebPassiveLighting(body: SetPassiveLightingBody): Promise<boolean> {
-  return acked(await postService<ApiResponseWrapper>('/keeb/passive-lighting', body));
 }
 
 export async function setKeebGameMode(body: SetGameModeBody): Promise<boolean> {
