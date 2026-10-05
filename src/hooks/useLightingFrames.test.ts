@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useLightingFrames } from './useLightingFrames';
+import { parseFrame, useLightingFrames } from './useLightingFrames';
 import { subscribeLedFrame, type LedFrame } from '../lib/ledFrameStore';
 
 vi.mock('../api/lighting', () => ({
@@ -78,5 +78,56 @@ describe('useLightingFrames', () => {
     await Promise.resolve();
     expect(FakeWebSocket.instances).toHaveLength(0);
     expect(result.current).toEqual({ connected: false, live: false });
+  });
+});
+
+// v3 frame with device sections appended after the canvas.
+function frameWithDevices(w: number, h: number, devices: { index: number; rgb: number[] }[]): Uint8Array {
+  const sections = devices.flatMap(d => {
+    const leds = d.rgb.length / 3;
+    return [d.index, leds & 0xff, leds >> 8, ...d.rgb];
+  });
+  const bytes = new Uint8Array(5 + w * h * 3 + 1 + sections.length);
+  bytes[0] = 0x03;
+  bytes[1] = w & 0xff; bytes[2] = w >> 8;
+  bytes[3] = h & 0xff; bytes[4] = h >> 8;
+  bytes[5 + w * h * 3] = devices.length;
+  bytes.set(sections, 5 + w * h * 3 + 1);
+  return bytes;
+}
+
+describe('parseFrame device sections', () => {
+  it('returns each device section keyed by its index as a view over the buffer', () => {
+    const bytes = frameWithDevices(2, 1, [
+      { index: 0, rgb: [1, 2, 3] },
+      { index: 7, rgb: [10, 20, 30, 40, 50, 60] },
+    ]);
+    const parsed = parseFrame(bytes);
+    expect(parsed.canvasW).toBe(2);
+    expect(parsed.canvasPixels).toHaveLength(6);
+    expect([...parsed.devices.keys()]).toEqual([0, 7]);
+    expect([...(parsed.devices.get(7) ?? [])]).toEqual([10, 20, 30, 40, 50, 60]);
+    expect(parsed.devices.get(0)?.buffer).toBe(bytes.buffer);
+  });
+
+  it('has no devices when the count is zero or the frame ends at the canvas', () => {
+    expect(parseFrame(frameWithDevices(2, 1, [])).devices.size).toBe(0);
+    const canvasOnly = frame(2, 1, 5);
+    expect(parseFrame(new Uint8Array(canvasOnly)).devices.size).toBe(0);
+  });
+
+  it('keeps the sections that fit when the frame is truncated', () => {
+    const bytes = frameWithDevices(1, 1, [
+      { index: 1, rgb: [1, 2, 3] },
+      { index: 2, rgb: [4, 5, 6] },
+    ]);
+    const parsed = parseFrame(bytes.subarray(0, bytes.length - 2));
+    expect([...parsed.devices.keys()]).toEqual([1]);
+  });
+
+  it('ignores v2 frames', () => {
+    const parsed = parseFrame(new Uint8Array([0x02, 0, 0, 0, 0, 0]));
+    expect(parsed.canvasPixels).toBeNull();
+    expect(parsed.devices.size).toBe(0);
   });
 });

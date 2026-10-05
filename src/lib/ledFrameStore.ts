@@ -12,21 +12,32 @@ export interface LedFrame {
   w: number;
   h: number;
   seq: number;
+  /** Per-device LED bytes (RGB triples) keyed by the frame's device index.
+   *  Views over the socket buffer, never copies. Absent for frames built
+   *  outside the stream (idle placeholders). */
+  devices?: ReadonlyMap<number, Uint8Array>;
 }
 
-let frame: LedFrame = { pixels: null, w: 0, h: 0, seq: 0 };
+const NO_DEVICES: ReadonlyMap<number, Uint8Array> = new Map();
+
+let frame: LedFrame = { pixels: null, w: 0, h: 0, seq: 0, devices: NO_DEVICES };
 const subscribers = new Set<(f: LedFrame) => void>();
 let rafId: number | null = null;
 let deliveredSeq = -1;
 
-export function publishLedFrame(pixels: Uint8Array | null, w: number, h: number): void {
-  frame = { pixels, w, h, seq: frame.seq + 1 };
+export function publishLedFrame(
+  pixels: Uint8Array | null,
+  w: number,
+  h: number,
+  devices: ReadonlyMap<number, Uint8Array> = NO_DEVICES,
+): void {
+  frame = { pixels, w, h, seq: frame.seq + 1, devices };
 }
 
 /** Clears the frame so consumers fall back to their idle track (lighting off). */
 export function clearLedFrame(): void {
   if (frame.pixels === null) return;
-  frame = { pixels: null, w: 0, h: 0, seq: frame.seq + 1 };
+  frame = { pixels: null, w: 0, h: 0, seq: frame.seq + 1, devices: NO_DEVICES };
 }
 
 export function subscribeLedFrame(fn: (f: LedFrame) => void): () => void {

@@ -929,3 +929,55 @@ describe('ZoneCard LED colours badge', () => {
     expect(setLocked).not.toHaveBeenCalled();
   });
 });
+
+describe('ZoneCard key reactions row', () => {
+  const openMenu = (props: { onOpenKeyReactions?: () => void; bulk?: BulkSelection }) => {
+    render(
+      <ZoneCard
+        device={baseDevice}
+        selected={false}
+        indent={false}
+        onSelect={() => {}}
+        onOpenSettings={() => {}}
+        {...props}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.devices.moreActions' }));
+  };
+
+  it('offers the row and opens the modal for a per-key keyboard', () => {
+    const onOpenKeyReactions = vi.fn();
+    openMenu({ onOpenKeyReactions });
+    fireEvent.click(screen.getByText('lighting.keyReactions.menu'));
+    expect(onOpenKeyReactions).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the row off a card that is not a per-key keyboard', () => {
+    openMenu({});
+    expect(screen.queryByText('lighting.keyReactions.menu')).toBeNull();
+  });
+
+  it('shows the Type reactive badge only while it is on, and opens the editor from it', () => {
+    const onOpenKeyReactions = vi.fn();
+    const { rerender } = render(
+      <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={() => {}} onOpenKeyReactions={onOpenKeyReactions} />,
+    );
+    expect(screen.queryByRole('button', { name: 'lighting.keyReactions.badge' })).toBeNull();
+    rerender(
+      <ZoneCard device={baseDevice} selected={false} indent={false} onSelect={() => {}} onOpenKeyReactions={onOpenKeyReactions} typeReactiveOn />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.keyReactions.badge' }));
+    expect(onOpenKeyReactions).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the row for the right-clicked keyboard inside a selection', () => {
+    const onOpenKeyReactions = vi.fn();
+    const bulk: BulkSelection = {
+      count: 3, identifyCount: 3, controlled: true, ledsOn: true,
+      setControlled: vi.fn(), setPower: vi.fn(), identify: vi.fn(),
+    };
+    openMenu({ onOpenKeyReactions, bulk });
+    fireEvent.click(screen.getByText('lighting.keyReactions.menu'));
+    expect(onOpenKeyReactions).toHaveBeenCalledTimes(1);
+  });
+});

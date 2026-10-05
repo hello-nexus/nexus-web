@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Eye, Layers, Maximize2, Minimize2, Paintbrush, Power, PowerOff, RotateCcw, RotateCw } from 'lucide-react';
+import { Eye, Keyboard, Layers, Maximize2, Minimize2, Paintbrush, Power, PowerOff, RotateCcw, RotateCw } from 'lucide-react';
 import type { LightingDevice, LedMapEntry } from '../../../api/lighting';
 import { saveDeviceLayout, identifyLightingDevice } from '../../../api/lighting';
 import type { AudioSnapshot } from '../../../hooks/useAudioState';
@@ -51,6 +51,10 @@ interface DeviceCanvasProps {
   selectedDeviceLeds?: Record<string, LedMapEntry[]> | null;
   /** Called when the user clicks the settings button on a device frame. */
   onOpenSettings?: (id: string) => void;
+  /** Opens the key-reactions modal for a per-key keyboard frame. */
+  onOpenKeyReactions?: (id: string) => void;
+  /** Frame ids that are per-key keyboards; only these offer the key-reactions row. */
+  keyReactiveIds?: ReadonlySet<string>;
   /** Notifies parent when a drag starts or ends, so it can pause state updates. */
   onDragActiveChange?: (active: boolean) => void;
   /** Called before a layout-changing edit (first drag movement, rotate, maximize)
@@ -304,7 +308,7 @@ export const CanvasBackground = memo(function CanvasBackground() {
   return <canvas ref={bgRef} className={styles.bgCanvas} />;
 });
 
-const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, stacks, stackActionsFor }: {
+const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, containerRef, selectedDeviceLeds, onOpenSettings, onOpenKeyReactions, keyReactiveIds, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, stacks, stackActionsFor }: {
   /** Every device, hidden frames included: a hidden stack member still moves with its frame. */
   devices: LightingDevice[];
   /** Frames the eye is hiding: never drawn, never hit, but stacked ones follow their frame. */
@@ -316,6 +320,8 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   containerRef: React.RefObject<HTMLDivElement | null>;
   selectedDeviceLeds?: Record<string, LedMapEntry[]> | null;
   onOpenSettings?: (id: string) => void;
+  onOpenKeyReactions?: (id: string) => void;
+  keyReactiveIds?: ReadonlySet<string>;
   onDragActiveChange?: (active: boolean) => void;
   onBeforeLayoutSave?: () => void;
   onLayoutCommit?: () => void;
@@ -986,6 +992,13 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
             onSelect: () => onOpenSettings(dev.id),
           });
         }
+        // Like Customize, key reactions opens on the right-clicked keyboard even in a group selection.
+        if (onOpenKeyReactions && keyReactiveIds?.has(dev.id)) {
+          editors.push({
+            key: 'keyReactions', icon: <Keyboard size={14} />, label: t('lighting.keyReactions.menu'),
+            onSelect: () => onOpenKeyReactions(dev.id),
+          });
+        }
         // Group toggle reads "all maximized": minimize them only when every
         // target already fills the canvas, otherwise maximize them all.
         const maxed = group ? targets.every(isMaximized) : isMaximized(dev);
@@ -1042,7 +1055,7 @@ const DeviceOverlays = memo(function DeviceOverlays({ devices, hiddenIds, select
   );
 });
 
-export function DeviceCanvas({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu, stacks, stackActionsFor }: DeviceCanvasProps) {
+export function DeviceCanvas({ devices, selectedIds, primaryDeviceId, onSelectDevice, onSetSelection, shaderEffect, shaderState, shaderPaused, audioRef, hiddenFrameIds, selectedDeviceLeds, onOpenSettings, onOpenKeyReactions, keyReactiveIds, onDragActiveChange, onBeforeLayoutSave, onLayoutCommit, onSetDevicesPower, gpuAvailable, gpuState, onPickRenderGpu, stacks, stackActionsFor }: DeviceCanvasProps) {
   const notice = gpuNotice(gpuState, gpuAvailable);
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1059,7 +1072,7 @@ export function DeviceCanvas({ devices, selectedIds, primaryDeviceId, onSelectDe
     <div ref={containerRef} className={styles.canvas}>
       <CanvasBackground />
       <canvas ref={glCanvasRef} className={`${styles.glCanvas} ${ready ? styles.glCanvasReady : ''}`} />
-      <DeviceOverlays devices={devices} hiddenIds={hiddenIds} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} stacks={stacks} stackActionsFor={stackActionsFor} />
+      <DeviceOverlays devices={devices} hiddenIds={hiddenIds} selectedIds={selectedIds} primaryDeviceId={primaryDeviceId} onSelectDevice={onSelectDevice} onSetSelection={onSetSelection} containerRef={containerRef} selectedDeviceLeds={selectedDeviceLeds} onOpenSettings={onOpenSettings} onOpenKeyReactions={onOpenKeyReactions} keyReactiveIds={keyReactiveIds} onDragActiveChange={onDragActiveChange} onBeforeLayoutSave={onBeforeLayoutSave} onLayoutCommit={onLayoutCommit} onSetDevicesPower={onSetDevicesPower} stacks={stacks} stackActionsFor={stackActionsFor} />
       <CanvasNoticeBar
         visible={notice != null && shaderEffect != null}
         message={notice ? t(notice.key) : ''}

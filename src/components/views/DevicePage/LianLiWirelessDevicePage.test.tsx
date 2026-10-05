@@ -258,18 +258,24 @@ describe('LianLiWirelessDevicePage', () => {
     expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":1}')).not.toBeInTheDocument();
   });
 
-  it('pins Go to Cooling to the header on the Cooling tab only', async () => {
+  it('pins the Cooling shortcut to the Cooling tab and the Lighting shortcut to the Lighting tab', async () => {
     const nav = vi.fn();
     await act(async () => {
       render(<LianLiWirelessDevicePage onSectionNavigate={nav} />);
     });
-    expect(screen.queryByRole('button', { name: 'cooling.title' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.coolingPage.setHint' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lightingPage.setHint' })).not.toBeInTheDocument();
     await act(async () => {
       fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
     });
-    expect(screen.getByText('devices.coolingPage.setHint')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.title' }));
+    fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.setHint' }));
     expect(nav).toHaveBeenCalledWith('cooling');
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
+    });
+    expect(screen.queryByRole('button', { name: 'devices.coolingPage.setHint' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
+    expect(nav).toHaveBeenLastCalledWith('lighting');
   });
 
   it('falls back to Devices when the selected Cooling tab disappears', async () => {

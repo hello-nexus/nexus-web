@@ -135,6 +135,33 @@ describe('ZoneChainList on a chainable port', () => {
     expect(onSelect).toHaveBeenLastCalledWith('p:z0', true);
   });
 
+  it('selects a zone from anywhere on its row but the remove button, once per click', () => {
+    const { onSelect, onRemove } = setup(port, true);
+    fireEvent.click(dragHandles()[1]);
+    expect(onSelect).toHaveBeenLastCalledWith('p:z1', false);
+    fireEvent.click(screen.getByText('34', { exact: false }));
+    expect(onSelect).toHaveBeenLastCalledWith('p:z1', false);
+    fireEvent.click(document.querySelectorAll(`.${styles.row}`)[2]);
+    expect(onSelect).toHaveBeenLastCalledWith('p:z2', false);
+    fireEvent.click(dragHandles()[0], { metaKey: true, ctrlKey: true });
+    expect(onSelect).toHaveBeenLastCalledWith('p:z0', true);
+    onSelect.mockClear();
+    fireEvent.click(screen.getByText('Corsair QX Fan'));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    onSelect.mockClear();
+    fireEvent.click(screen.getAllByRole('button', { name: 'lighting.ledMap.chainRemove' })[0]);
+    expect(onRemove).toHaveBeenCalledWith(0);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('a pick in the product picker does not reselect through the row', async () => {
+    const { onSelect } = setup(port, true);
+    fireEvent.click(screen.getByText('Corsair QX Fan'));
+    onSelect.mockClear();
+    fireEvent.click(await screen.findByRole('option', { name: /Generic Fan/ }));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('opens the product picker from a plain click on the name, not a modifier-click', async () => {
     setup(port, true);
     fireEvent.click(screen.getByText('Generic Fan'), { metaKey: true, ctrlKey: true });

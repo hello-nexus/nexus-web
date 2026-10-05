@@ -1,14 +1,42 @@
 // Settings view tests - verifies the three Card sections (Firmware Lighting,
-// Passive Lighting, Game Mode) each write to the right onSave* callback with
-// the correct body shape, the direction icon-buttons toggle, and the
-// passive-lighting Mask + Mode controls show up only when Type Reactive is
-// on. Controls are queried by their aria-labels, which are locale keys under
+// Passive Lighting, Game Mode): firmware and game mode write to the right
+// onSave* callback with the correct body shape, the direction icon-buttons
+// toggle, and the passive section hosts the shared Type reactive editor for
+// the keyboard's lighting card. Controls are queried by their aria-labels, which are locale keys under
 // the key-echo i18n mock; the option VALUES stay raw firmware enums.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import type { KeebSettings } from '../../../api/keeb';
+import { DEFAULT_KEY_REACTION } from '../../../api/keyReactive';
 import { KeebSettingsView } from './KeebSettingsView';
+
+const api = vi.hoisted(() => ({
+  fetchState: vi.fn(),
+  put: vi.fn(),
+  press: vi.fn(),
+  preview: vi.fn(),
+  post: vi.fn(),
+  stream: vi.fn(),
+}));
+
+vi.mock('../../../api/keyReactive', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/keyReactive')>()),
+  fetchKeyReactive: api.fetchState,
+  putKeyReaction: api.put,
+  pressKeyReaction: api.press,
+  fetchKeyReactionPreview: api.preview,
+}));
+
+vi.mock('../../../hooks/useLightingFrames', () => ({
+  useLightingFrames: (enabled: boolean) => api.stream(enabled),
+}));
+
+// POSTs (the editor's presses) are stubbed so no request leaves the test.
+vi.mock('../../../api/service', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/service')>()),
+  postService: api.post,
+}));
 
 vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({
@@ -34,6 +62,11 @@ vi.mock('../../common/Select/Select', () => ({
   ),
 }));
 
+beforeEach(() => {
+  api.fetchState.mockResolvedValue(null);
+  api.stream.mockReturnValue({ connected: false, live: false });
+});
+
 afterEach(() => { cleanup(); });
 
 function defaultSettings(overrides: Partial<KeebSettings> = {}): KeebSettings {
@@ -47,10 +80,6 @@ function defaultSettings(overrides: Partial<KeebSettings> = {}): KeebSettings {
     direction: 'LeftToRight',
     brightness: 50,
     keyIndicator: false,
-    keyReactive: false,
-    keyReactiveMask: false,
-    keyReactiveMode: 'SingleKey',
-    keyReactiveColor: { r: 200, g: 100, b: 50, a: 255 },
     ...overrides,
   };
 }
@@ -61,7 +90,6 @@ describe('KeebSettingsView - loading state', () => {
       <KeebSettingsView
         settings={null}
         onSaveFirmwareLighting={async () => {}}
-        onSavePassiveLighting={async () => {}}
         onSaveGameMode={async () => {}}
       />
     );
@@ -71,12 +99,10 @@ describe('KeebSettingsView - loading state', () => {
 
 describe('KeebSettingsView - firmware lighting', () => {
   let onSaveFw: ReturnType<typeof vi.fn>;
-  let onSavePassive: ReturnType<typeof vi.fn>;
   let onSaveGame: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     onSaveFw = vi.fn(async () => {});
-    onSavePassive = vi.fn(async () => {});
     onSaveGame = vi.fn(async () => {});
   });
 
@@ -85,7 +111,6 @@ describe('KeebSettingsView - firmware lighting', () => {
       <KeebSettingsView
         settings={defaultSettings({ animationMode: 'Rainbow', speed: 'Energetic' })}
         onSaveFirmwareLighting={onSaveFw}
-        onSavePassiveLighting={onSavePassive}
         onSaveGameMode={onSaveGame}
       />
     );
@@ -100,7 +125,6 @@ describe('KeebSettingsView - firmware lighting', () => {
       <KeebSettingsView
         settings={defaultSettings()}
         onSaveFirmwareLighting={onSaveFw}
-        onSavePassiveLighting={onSavePassive}
         onSaveGameMode={onSaveGame}
       />
     );
@@ -114,7 +138,6 @@ describe('KeebSettingsView - firmware lighting', () => {
       <KeebSettingsView
         settings={defaultSettings({ direction: 'LeftToRight' })}
         onSaveFirmwareLighting={onSaveFw}
-        onSavePassiveLighting={onSavePassive}
         onSaveGameMode={onSaveGame}
       />
     );
@@ -123,54 +146,69 @@ describe('KeebSettingsView - firmware lighting', () => {
   });
 });
 
+function keebDevice(over: Record<string, unknown> = {}) {
+  return {
+    id: 'card-keeb', deviceId: 'keeb:SN1', frameIndex: 2, hardwareKeys: true,
+    ledCount: 2, namedKeys: 2, config: { ...DEFAULT_KEY_REACTION, enabled: true }, ...over,
+  };
+}
+
 describe('KeebSettingsView - passive lighting', () => {
-  let onSavePassive: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    onSavePassive = vi.fn(async () => {});
+    vi.clearAllMocks();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    api.stream.mockReturnValue({ connected: false, live: false });
+    api.preview.mockResolvedValue({ x: [0, 1], y: [0, 0], width: 2, height: 1, fps: 30, frameCount: 1, frames: btoa('\0\0\0\0\0\0') });
+    api.put.mockImplementation(async (_id: string, cfg: unknown) => cfg);
+    api.press.mockResolvedValue({ ok: true });
+  });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  const renderView = async () => {
+    await act(async () => {
+      render(
+        <KeebSettingsView
+          settings={defaultSettings()}
+          onSaveFirmwareLighting={async () => {}}
+          onSaveGameMode={async () => {}}
+        />
+      );
+    });
+  };
+
+  it('binds the shared editor to the first keeb: card', async () => {
+    api.fetchState.mockResolvedValue({
+      inputAvailable: false,
+      devices: [
+        keebDevice({ id: 'other', deviceId: 'strip:1' }),
+        keebDevice(),
+      ],
+    });
+    await renderView();
+    expect(screen.getByRole('group', { name: 'lighting.keyReactions.effect' })).toBeInTheDocument();
+    // The on/off row leads the section.
+    expect(screen.getByRole('switch', { name: 'lighting.keyReactions.title' })).toBeInTheDocument();
+    // Its own key events count as typing even with no OS key source.
+    expect(screen.getByText('lighting.keyReactions.previewHint')).toBeInTheDocument();
+    // The stream is requested for the live preview.
+    expect(api.stream).toHaveBeenLastCalledWith(true);
+    fireEvent.click(screen.getByRole('button', { name: 'lighting.keyReactions.effects.trace.name' }));
+    await waitFor(() => expect(api.put).toHaveBeenCalled());
+    expect(api.put.mock.calls[0][0]).toBe('card-keeb');
   });
 
-  it('mask + mode + color picker are hidden until Type Reactive is on', () => {
-    render(
-      <KeebSettingsView
-        settings={defaultSettings({ keyReactive: false })}
-        onSaveFirmwareLighting={async () => {}}
-        onSavePassiveLighting={onSavePassive}
-        onSaveGameMode={async () => {}}
-      />
-    );
-    expect(screen.queryByLabelText('keeb.settings.maskEffect')).toBeNull();
-    expect(screen.queryByLabelText('keeb.settings.mode')).toBeNull();
+  it('shows the unavailable note when no keeb card exists', async () => {
+    api.fetchState.mockResolvedValue({ inputAvailable: true, devices: [keebDevice({ deviceId: 'strip:1' })] });
+    await renderView();
+    expect(screen.getByText('keeb.settings.typeReactiveMissing')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'lighting.keyReactions.effect' })).toBeNull();
+    expect(api.stream).toHaveBeenLastCalledWith(false);
   });
 
-  it('flipping Type Reactive ON saves with keyReactive:true and reveals the sub-controls', () => {
-    render(
-      <KeebSettingsView
-        settings={defaultSettings({ keyReactive: false })}
-        onSaveFirmwareLighting={async () => {}}
-        onSavePassiveLighting={onSavePassive}
-        onSaveGameMode={async () => {}}
-      />
-    );
-    const toggle = screen.getByLabelText('keeb.settings.typeReactive');
-    fireEvent.click(toggle);
-    expect(onSavePassive).toHaveBeenCalledWith(expect.objectContaining({ keyReactive: true }));
-    // Sub-controls now visible.
-    expect(screen.getByLabelText('keeb.settings.maskEffect')).toBeInTheDocument();
-    expect(screen.getByLabelText('keeb.settings.mode')).toBeInTheDocument();
-  });
-
-  it('changing reactive mode select sends the new mode', () => {
-    render(
-      <KeebSettingsView
-        settings={defaultSettings({ keyReactive: true, keyReactiveMode: 'SingleKey' })}
-        onSaveFirmwareLighting={async () => {}}
-        onSavePassiveLighting={onSavePassive}
-        onSaveGameMode={async () => {}}
-      />
-    );
-    fireEvent.change(screen.getByLabelText('keeb.settings.mode'), { target: { value: 'Ripple' } });
-    expect(onSavePassive).toHaveBeenCalledWith(expect.objectContaining({ keyReactiveMode: 'Ripple' }));
+  it('shows the note when the card list cannot be fetched', async () => {
+    api.fetchState.mockResolvedValue(null);
+    await renderView();
+    expect(screen.getByText('keeb.settings.typeReactiveMissing')).toBeInTheDocument();
   });
 });
 
@@ -186,7 +224,6 @@ describe('KeebSettingsView - game mode', () => {
       <KeebSettingsView
         settings={defaultSettings()}
         onSaveFirmwareLighting={async () => {}}
-        onSavePassiveLighting={async () => {}}
         onSaveGameMode={onSaveGame}
       />
     );

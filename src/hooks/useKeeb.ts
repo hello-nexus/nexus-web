@@ -9,7 +9,6 @@ import {
   type SetGameModeBody,
   type SetLayerKeyBody,
   type SetMacroResponse,
-  type SetPassiveLightingBody,
   type SetRotaryWheelsBody,
   getKeebMacro,
   getKeebSettings,
@@ -19,7 +18,6 @@ import {
   setKeebGameMode,
   setKeebLayerKey,
   setKeebMacro,
-  setKeebPassiveLighting,
   setKeebRotary,
 } from '../api/keeb';
 
@@ -45,7 +43,6 @@ export interface UseKeebApi {
   loadMacro: (index: number) => Promise<KeebMacro | null>;
   saveMacro: (index: number, keys: MacroKey[]) => Promise<SetMacroResponse | null>;
   saveFirmwareLighting: (body: SetFirmwareLightingBody) => Promise<boolean>;
-  savePassiveLighting: (body: SetPassiveLightingBody) => Promise<boolean>;
   saveGameMode: (body: SetGameModeBody) => Promise<boolean>;
   saveRotary: (body: SetRotaryWheelsBody) => Promise<boolean>;
 }
@@ -210,11 +207,6 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     return runWrite(() => setKeebFirmwareLighting(body));
   }, [runWrite]);
 
-  const savePassiveLighting = useCallback(async (body: SetPassiveLightingBody) => {
-    setSettings(prev => prev ? { ...prev, ...body } : prev);
-    return runWrite(() => setKeebPassiveLighting(body));
-  }, [runWrite]);
-
   const saveGameMode = useCallback(async (body: SetGameModeBody) => {
     setSettings(prev => prev ? {
       ...prev,
@@ -241,7 +233,6 @@ export function useKeeb(enabled: boolean): UseKeebApi {
     loadMacro,
     saveMacro,
     saveFirmwareLighting,
-    savePassiveLighting,
     saveGameMode,
     saveRotary,
   };

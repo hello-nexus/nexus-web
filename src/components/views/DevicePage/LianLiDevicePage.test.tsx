@@ -103,7 +103,7 @@ describe('LianLiDevicePage', () => {
     expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
   });
 
-  it('Cooling lists the ports with fans read-only and pins Go to Cooling to the header', async () => {
+  it('Cooling lists the ports with fans read-only and pins the Cooling shortcut to the header, Lighting its own', async () => {
     const nav = vi.fn();
     await act(async () => {
       render(<LianLiDevicePage onSectionNavigate={nav} />);
@@ -119,12 +119,13 @@ describe('LianLiDevicePage', () => {
     expect(screen.getByText('cooling.card.bios')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /devices\.lianli\.fanCountAria/ })).not.toBeInTheDocument();
 
-    expect(screen.getByText('devices.coolingPage.setHint')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.title' }));
+    fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.setHint' }));
     expect(nav).toHaveBeenCalledWith('cooling');
 
     fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
-    expect(screen.queryByRole('button', { name: 'cooling.title' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.coolingPage.setHint' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
+    expect(nav).toHaveBeenLastCalledWith('lighting');
   });
 
   it('has no Cooling tab while no port has fans', async () => {

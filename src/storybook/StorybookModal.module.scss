@@ -1,4 +1,5 @@
 @use '../styles/scrollbar' as *;
+@use '../styles/text' as *;
 
 .shell {
   display: flex;
@@ -238,6 +239,18 @@
   display: flex;
   gap: 6px;
   align-items: center;
+}
+
+// The editor preset (edit-sheet-icon-buttons, Type reactive): solid accent selection.
+.previewIconLabelSolid {
+  --icon-label-button-active-border: var(--accent);
+  --icon-label-button-active-bg: var(--accent);
+  --icon-label-button-active-text: var(--accent-text);
+}
+
+.previewCaption {
+  @include text-caption;
+  color: var(--text-dim);
 }
 
 .previewPanelMixer {

@@ -11,7 +11,6 @@ const h = vi.hoisted(() => ({
   setKey: vi.fn(),
   resetLayer: vi.fn(),
   saveFirmwareLighting: vi.fn(),
-  savePassiveLighting: vi.fn(),
   saveGameMode: vi.fn(),
   saveRotary: vi.fn(),
   loadMacro: vi.fn(),
@@ -52,7 +51,6 @@ vi.mock('../../../hooks/useKeeb', () => ({
     loadMacro: h.loadMacro,
     saveMacro: h.saveMacro,
     saveFirmwareLighting: h.saveFirmwareLighting,
-    savePassiveLighting: h.savePassiveLighting,
     saveGameMode: h.saveGameMode,
     saveRotary: h.saveRotary,
   }),
@@ -140,7 +138,6 @@ beforeEach(() => {
     h.setKey,
     h.resetLayer,
     h.saveFirmwareLighting,
-    h.savePassiveLighting,
     h.saveGameMode,
     h.saveRotary,
   ]) {
