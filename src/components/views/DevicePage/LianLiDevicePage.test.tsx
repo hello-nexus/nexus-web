@@ -271,10 +271,33 @@ describe('LianLiDevicePage', () => {
       expect(screen.queryByText('devices.lianli.argbSyncSection')).not.toBeInTheDocument();
     });
 
-    it('lists the headers and stays off until one is chosen', async () => {
+    it('with no header saved, switching on shows the picker and the pick turns sync on', async () => {
       argb({});
       await renderOnLighting(<LianLiDevicePage />);
-      expect(screen.getByRole('button', { name: 'devices.lianli.argbSyncSource' })).toHaveTextContent('devices.lianli.argbSyncChoose');
+      const picker = () => screen.queryByRole('button', { name: 'devices.lianli.argbSyncSource' });
+      expect(picker()).not.toBeInTheDocument();
+      fireEvent.click(toggle());
+      expect(picker()).toHaveTextContent('devices.lianli.argbSyncChoose');
+      expect(mockSetLianLiLighting).not.toHaveBeenCalled();
+      fireEvent.click(picker()!);
+      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Header 1' })); });
+      expect(mockSetDeviceChain).toHaveBeenCalledWith('openrgb-1', [product, product, product]);
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      expect(toggle()).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('switching back off before a pick saves nothing', async () => {
+      argb({});
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(toggle());
+      fireEvent.click(toggle());
+      expect(screen.queryByRole('button', { name: 'devices.lianli.argbSyncSource' })).not.toBeInTheDocument();
+      expect(mockSetLianLiLighting).not.toHaveBeenCalled();
+    });
+
+    it('cannot be switched on with no header to play', async () => {
+      argb({ argbSyncSources: [] });
+      await renderOnLighting(<LianLiDevicePage />);
       expect(toggle()).toBeDisabled();
     });
 

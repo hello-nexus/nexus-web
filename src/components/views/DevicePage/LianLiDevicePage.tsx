@@ -456,49 +456,72 @@ interface LianLiArgbSyncSectionProps {
 
 function LianLiArgbSyncSection({ lighting, fansPerPort, onLighting, commit }: LianLiArgbSyncSectionProps) {
   const { t } = useTranslation();
+  // Switched on with no header saved yet: the picker shows and the pick turns sync on.
+  const [choosing, setChoosing] = useState(false);
+  // Locks the switch while a header is being wired, so an off cannot land before the on.
+  const [enabling, setEnabling] = useState(false);
   const sources = lighting.argbSyncSources ?? [];
   const stored = lighting.argbSyncSource ?? '';
   const source = sources.some(s => s.id === stored) ? stored : '';
   const fans = longestChain(fansPerPort);
+  const on = lighting.argbSync === true;
+
+  const enable = async (id: string) => {
+    const previous = lighting;
+    setEnabling(true);
+    onLighting({ ...lighting, argbSync: true, argbSyncSource: id });
+    const ok = await wireArgbSyncFans(id, fans) && await commit({ argbSync: true, argbSyncSource: id });
+    if (!ok) onLighting(previous);
+    setEnabling(false);
+    return ok;
+  };
 
   return (
     <SettingsSection title={t('devices.lianli.argbSyncSection')} boxClassName={styles.sectionBox}>
-      <SettingSelect
-        label={t('devices.lianli.argbSyncSource')}
-        value={source}
-        onChange={v => {
-          const previous = lighting;
-          onLighting({ ...lighting, argbSyncSource: v });
-          void (async () => {
-            const ok = (!lighting.argbSync || await wireArgbSyncFans(v, fans)) && await commit({ argbSyncSource: v });
-            if (!ok) {
-              onLighting(previous);
-              return;
-            }
-            if (lighting.argbSync && stored && stored !== v) await unwireArgbSyncFans(stored);
-          })();
-        }}
-        options={[
-          ...(source ? [] : [{ value: '', label: t('devices.lianli.argbSyncChoose') }]),
-          ...sources.map(s => ({ value: s.id, label: s.name })),
-        ]}
-        disabled={sources.length === 0}
-      />
       <SettingToggle
         label={t('devices.lianli.argbSync')}
         description={t('devices.lianli.argbSyncHint')}
-        checked={lighting.argbSync === true}
-        disabled={!source && lighting.argbSync !== true}
-        onChange={on => {
+        checked={on || choosing}
+        disabled={enabling || (sources.length === 0 && !on && !choosing)}
+        onChange={next => {
+          if (next) {
+            if (source) void enable(source);
+            else setChoosing(true);
+            return;
+          }
+          setChoosing(false);
+          if (!on) return;
           const previous = lighting;
-          onLighting({ ...lighting, argbSync: on });
-          void (async () => {
-            const ok = (!on || await wireArgbSyncFans(source, fans))
-              && await commit(on ? { argbSync: true, argbSyncSource: source } : { argbSync: false });
-            if (!ok) onLighting(previous);
-          })();
+          onLighting({ ...lighting, argbSync: false });
+          void commit({ argbSync: false }).then(ok => { if (!ok) onLighting(previous); });
         }}
       />
+      {(on || choosing) && (
+        <SettingSelect
+          label={t('devices.lianli.argbSyncSource')}
+          value={source}
+          onChange={v => {
+            if (!on) {
+              void enable(v).then(ok => { if (ok) setChoosing(false); });
+              return;
+            }
+            const previous = lighting;
+            onLighting({ ...lighting, argbSyncSource: v });
+            void (async () => {
+              if (!await wireArgbSyncFans(v, fans) || !await commit({ argbSyncSource: v })) {
+                onLighting(previous);
+                return;
+              }
+              if (stored && stored !== v) await unwireArgbSyncFans(stored);
+            })();
+          }}
+          options={[
+            ...(source ? [] : [{ value: '', label: t('devices.lianli.argbSyncChoose') }]),
+            ...sources.map(s => ({ value: s.id, label: s.name })),
+          ]}
+          disabled={enabling || sources.length === 0}
+        />
+      )}
     </SettingsSection>
   );
 }
