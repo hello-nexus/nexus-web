@@ -549,6 +549,7 @@
   "devices.connected.browse": "接続中のデバイス",
   "devices.connected.description": "このPCに現在接続されているすべてのUSBデバイス（Nexus非対応のものも含む）です。診断に便利です。",
   "devices.coolingPage.go": "冷却へ",
+  "devices.coolingPage.setHint": "ファン速度とカーブを設定",
   "devices.coolingPage.speedHint": "ファン速度とカーブはクーリングページで設定します。",
   "devices.corsair.channel": "ポート {n}",
   "devices.corsair.coolingHint": "ファン速度とカーブはクーリングページで設定します。",

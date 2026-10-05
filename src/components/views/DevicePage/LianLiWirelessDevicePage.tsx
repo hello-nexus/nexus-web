@@ -9,7 +9,7 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import { LianLiWirelessFansTab, fanTypeKey, isFanDevice } from './LianLiWirelessFansTab';
 import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
-import { CoolingPageButton } from './CoolingPageLink';
+import { CoolingPageShortcut } from './CoolingPageLink';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 import styles from './LianLiWirelessDevicePage.module.scss';
@@ -125,7 +125,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         tabs={disconnected ? undefined : tabs}
         activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
-        tabActions={tab === 'cooling' && !disconnected && onSectionNavigate ? <CoolingPageButton onSectionNavigate={onSectionNavigate} /> : undefined}
+        tabActions={tab === 'cooling' && !disconnected && onSectionNavigate ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} /> : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
         {disconnected && (

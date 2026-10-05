@@ -549,6 +549,7 @@
   "devices.connected.browse": "已连接设备",
   "devices.connected.description": "当前连接到此电脑的所有 USB 设备,包括不受 Nexus 支持的设备。用于诊断。",
   "devices.coolingPage.go": "前往冷却",
+  "devices.coolingPage.setHint": "设置风扇速度和曲线",
   "devices.coolingPage.speedHint": "风扇速度和曲线在冷却页面中配置。",
   "devices.corsair.channel": "端口 {n}",
   "devices.corsair.coolingHint": "风扇速度和曲线在冷却页面中配置。",

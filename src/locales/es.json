@@ -549,6 +549,7 @@
   "devices.connected.browse": "Dispositivos conectados",
   "devices.connected.description": "Todos los dispositivos USB conectados actualmente a este PC, incluidos los que no son compatibles con Nexus. Útil para diagnóstico.",
   "devices.coolingPage.go": "Ir a Refrigeración",
+  "devices.coolingPage.setHint": "Ajusta la velocidad del ventilador y las curvas",
   "devices.coolingPage.speedHint": "La velocidad del ventilador y las curvas se configuran en la página de Refrigeración.",
   "devices.corsair.channel": "Puerto {n}",
   "devices.corsair.coolingHint": "La velocidad del ventilador y las curvas se configuran en la página de Refrigeración.",

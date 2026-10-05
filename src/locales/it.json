@@ -549,6 +549,7 @@
   "devices.connected.browse": "Dispositivi connessi",
   "devices.connected.description": "Tutti i dispositivi USB attualmente collegati a questo PC, inclusi quelli senza supporto Nexus. Utile per la diagnostica.",
   "devices.coolingPage.go": "Vai a Raffreddamento",
+  "devices.coolingPage.setHint": "Imposta la velocità delle ventole e le curve",
   "devices.coolingPage.speedHint": "La velocità delle ventole e le curve sono configurate nella pagina Raffreddamento.",
   "devices.corsair.channel": "Porta {n}",
   "devices.corsair.coolingHint": "La velocità delle ventole e le curve sono configurate nella pagina Raffreddamento.",

@@ -549,6 +549,7 @@
   "devices.connected.browse": "Dispositivos conectados",
   "devices.connected.description": "Todos os dispositivos USB conectados a este PC, incluindo dispositivos sem suporte do Nexus. Útil para diagnóstico.",
   "devices.coolingPage.go": "Ir para Resfriamento",
+  "devices.coolingPage.setHint": "Ajuste a velocidade do ventilador e as curvas",
   "devices.coolingPage.speedHint": "A velocidade do ventilador e as curvas são configuradas na página de Resfriamento.",
   "devices.corsair.channel": "Porta {n}",
   "devices.corsair.coolingHint": "A velocidade do ventilador e as curvas são configuradas na página de Resfriamento.",

@@ -10,33 +10,37 @@ interface CoolingPageLinkProps {
 
 /** A device Cooling tab's pointer to the Cooling page, where curves and every fan live. */
 export function CoolingPageLink({ hint, onSectionNavigate }: CoolingPageLinkProps) {
+  const { t } = useTranslation();
   return (
     <>
       <p className={styles.customNote} data-settings-aside="true">{hint}</p>
       {onSectionNavigate && (
         <div data-settings-aside="true">
-          <CoolingPageButton className={styles.lightingLink} onSectionNavigate={onSectionNavigate} />
+          <Button
+            className={styles.lightingLink}
+            size="sm"
+            tone="neutral"
+            icon={<Fan size={14} />}
+            onClick={() => onSectionNavigate('cooling')}
+          >
+            {t('devices.coolingPage.go')}
+          </Button>
         </div>
       )}
     </>
   );
 }
 
-/** "Go to Cooling", for a device Cooling tab to pin in its tab row. */
-export function CoolingPageButton({ onSectionNavigate, className }: {
-  onSectionNavigate: (section: string) => void;
-  className?: string;
-}) {
+/** A device Cooling tab's tab-row shortcut: what the Cooling page sets, then a button to it. */
+export function CoolingPageShortcut({ onSectionNavigate }: { onSectionNavigate: (section: string) => void }) {
   const { t } = useTranslation();
+  const hint = t('devices.coolingPage.setHint');
   return (
-    <Button
-      className={className}
-      size="sm"
-      tone="neutral"
-      icon={<Fan size={14} />}
-      onClick={() => onSectionNavigate('cooling')}
-    >
-      {t('devices.coolingPage.go')}
-    </Button>
+    <>
+      <span className={styles.coolingShortcutHint} title={hint}>{hint}</span>
+      <Button className={styles.coolingShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} onClick={() => onSectionNavigate('cooling')}>
+        {t('cooling.title')}
+      </Button>
+    </>
   );
 }

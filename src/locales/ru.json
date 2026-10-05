@@ -556,6 +556,7 @@
   "devices.connected.browse": "Подключённые устройства",
   "devices.connected.description": "Все USB-устройства, подключённые к этому ПК, включая устройства без поддержки Nexus. Полезно для диагностики.",
   "devices.coolingPage.go": "Перейти к охлаждению",
+  "devices.coolingPage.setHint": "Настройте скорость вентиляторов и кривые",
   "devices.coolingPage.speedHint": "Скорость вентиляторов и кривые настраиваются на странице Охлаждение.",
   "devices.corsair.channel": "Порт {n}",
   "devices.corsair.coolingHint": "Скорость вентиляторов и кривые настраиваются на странице Охлаждение.",

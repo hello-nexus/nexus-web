@@ -549,6 +549,7 @@
   "devices.connected.browse": "Dispositîfs conetûts",
   "devices.connected.description": "Ogni dispositîf USB tacât in chest moment a chest PC, includûts i dispositîfs cence supuart Nexus. Util pe diagnostiche.",
   "devices.coolingPage.go": "Va al Rafreddament",
+  "devices.coolingPage.setHint": "Regole la velocitât dai ventilatôrs e lis curvis",
   "devices.coolingPage.speedHint": "La velocitât dai ventiladors e lis curvis a son configuradis te pagjine di Rafriscjament.",
   "devices.corsair.channel": "Port {n}",
   "devices.corsair.coolingHint": "La velocitât dai ventiladors e lis curvis a son configuradis te pagjine di Rafriscjament.",

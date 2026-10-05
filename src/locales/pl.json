@@ -556,6 +556,7 @@
   "devices.connected.browse": "Podłączone urządzenia",
   "devices.connected.description": "Wszystkie urządzenia USB aktualnie podłączone do tego PC, w tym urządzenia bez wsparcia Nexus. Przydatne do diagnostyki.",
   "devices.coolingPage.go": "Przejdź do Chłodzenia",
+  "devices.coolingPage.setHint": "Ustaw prędkość wentylatorów i krzywe",
   "devices.coolingPage.speedHint": "Prędkość wentylatorów i krzywe są konfigurowane na stronie Chłodzenie.",
   "devices.corsair.channel": "Port {n}",
   "devices.corsair.coolingHint": "Prędkość wentylatorów i krzywe są konfigurowane na stronie Chłodzenie.",

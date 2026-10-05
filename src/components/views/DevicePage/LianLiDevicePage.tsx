@@ -7,7 +7,7 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CoolingPageButton } from './CoolingPageLink';
+import { CoolingPageShortcut } from './CoolingPageLink';
 import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { LightingPageSwitch } from './LightingPageSwitch';
 import {
@@ -169,7 +169,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
         tabs={tabs}
         activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiTab)}
-        tabActions={tab === 'cooling' && onSectionNavigate ? <CoolingPageButton onSectionNavigate={onSectionNavigate} /> : undefined}
+        tabActions={tab === 'cooling' && onSectionNavigate ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} /> : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
         {tab === 'devices' && (

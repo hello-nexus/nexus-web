@@ -549,6 +549,7 @@
   "devices.connected.browse": "Verbonden apparaten",
   "devices.connected.description": "Elk USB-apparaat dat momenteel op deze pc is aangesloten, inclusief apparaten zonder Nexus-ondersteuning. Handig voor diagnostiek.",
   "devices.coolingPage.go": "Ga naar Koeling",
+  "devices.coolingPage.setHint": "Stel ventilatorsnelheid en curves in",
   "devices.coolingPage.speedHint": "Ventilatorsnelheid en curves stel je in op de pagina Koeling.",
   "devices.corsair.channel": "Poort {n}",
   "devices.corsair.coolingHint": "Ventilatorsnelheid en curves stel je in op de pagina Koeling.",

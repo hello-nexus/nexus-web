@@ -263,11 +263,12 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage onSectionNavigate={nav} />);
     });
-    expect(screen.queryByRole('button', { name: 'devices.coolingPage.go' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'cooling.title' })).not.toBeInTheDocument();
     await act(async () => {
       fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
     });
-    fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.go' }));
+    expect(screen.getByText('devices.coolingPage.setHint')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.title' }));
     expect(nav).toHaveBeenCalledWith('cooling');
   });
 

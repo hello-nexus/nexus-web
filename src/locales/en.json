@@ -549,6 +549,7 @@
   "devices.connected.browse": "Connected Devices",
   "devices.connected.description": "Every USB device currently attached to this PC, including devices without Nexus support. Useful for diagnostics.",
   "devices.coolingPage.go": "Go to Cooling",
+  "devices.coolingPage.setHint": "Set fan speed and curves",
   "devices.coolingPage.speedHint": "Fan speed and curves are configured on the Cooling page.",
   "devices.corsair.channel": "Port {n}",
   "devices.corsair.coolingHint": "Fan speed and curves are configured on the Cooling page.",

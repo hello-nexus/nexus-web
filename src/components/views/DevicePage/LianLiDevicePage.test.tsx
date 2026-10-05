@@ -106,11 +106,12 @@ describe('LianLiDevicePage', () => {
     expect(screen.getByText('cooling.card.bios')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /devices\.lianli\.fanCountAria/ })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.go' }));
+    expect(screen.getByText('devices.coolingPage.setHint')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.title' }));
     expect(nav).toHaveBeenCalledWith('cooling');
 
     fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
-    expect(screen.queryByRole('button', { name: 'devices.coolingPage.go' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'cooling.title' })).not.toBeInTheDocument();
   });
 
   it('has no Cooling tab while no port has fans', async () => {
