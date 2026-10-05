@@ -104,6 +104,16 @@ export function ZoneChainList({ rows, chainable, selectedZoneId, markedIds, disa
           row.zoneId === selectedZoneId ? styles.rowActive : '',
           drag?.isDragging ? drag.placeholderClassName : '',
         ].filter(Boolean).join(' ')}
+        // The handle, count and padding select too. The name and remove buttons
+        // own their clicks, and a click in the portaled picker bubbles here
+        // through React without being inside the row.
+        onClick={e => {
+          const target = e.target as HTMLElement;
+          if (disabled || !e.currentTarget.contains(target)) return;
+          const button = target.closest('button');
+          if (button && !button.dataset.dragHandle) return;
+          onSelect(row.zoneId, isMultiSelectModifier(e));
+        }}
       >
         {canReorder && (
           <button
