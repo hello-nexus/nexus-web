@@ -37,6 +37,8 @@ export interface Nexus2AppearanceCategory extends Nexus2PreviewCategoryBase {
   id: 'appearance';
   accentColor: string | null;
   background: string | null;
+  /** Backgrounds the Y70 library gains: every Nexus 2 upload plus the shown one. */
+  count?: number;
 }
 
 export interface Nexus2Y70LayoutCategory extends Nexus2PreviewCategoryBase {
@@ -56,6 +58,8 @@ export interface Nexus2Q60FaceCategory extends Nexus2PreviewCategoryBase {
 export interface Nexus2WallpapersCategory extends Nexus2PreviewCategoryBase {
   id: 'wallpapers';
   count: number;
+  /** Seconds per slide when Nexus 2's playlist becomes a slideshow. */
+  slideshowIntervalSec?: number | null;
 }
 
 export interface Nexus2GallerySourcesCategory extends Nexus2PreviewCategoryBase {

@@ -116,9 +116,10 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
 
   // A group's rows are its devices, each a card or a split. A parent-device
   // group with a single row (a keeb: keys + underglow are one device) is that
-  // row on its own, not a one-child category. Brand and smart-hub groups keep
-  // their header even at one member: it carries the brand name, or the hub's
-  // own name and whole-hub power / Nexus Control, which a card can't.
+  // row on its own, not a one-child category. Brand, smart-hub and Lian Li hub
+  // groups keep their header even at one member: it carries the brand name, or
+  // the hub's own name, whole-hub power / Nexus Control and its notice, which a
+  // card can't.
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     if (b.kind !== 'group') continue;
@@ -126,7 +127,7 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
     b.devices = b.blocks.flatMap(z => z.kind === 'single' ? [z.device] : z.devices);
     // A device rename lands as deviceName; a service before that field names a
     // standalone device (the keeb) through its parent rename instead.
-    if (!b.isBrand && !b.isSmartHub && b.blocks.length === 1) {
+    if (!b.isBrand && !b.isSmartHub && !keepsHubHeader(b.parentDeviceId) && b.blocks.length === 1) {
       const only = b.blocks[0];
       blocks[i] = only.kind === 'split'
         ? { ...only, label: only.devices[0].deviceName ?? only.devices[0].parentName ?? only.stripLabel }
@@ -138,6 +139,12 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
     }
   }
   return blocks;
+}
+
+// Lian Li's wired Uni Hub and wireless controller are one hub each, whatever
+// is plugged into them.
+function keepsHubHeader(parentDeviceId: string | undefined): boolean {
+  return parentDeviceId === 'lianli' || parentDeviceId === 'lianli-wireless';
 }
 
 // Cards that name the same device (deviceId) are its zones and stack; a card

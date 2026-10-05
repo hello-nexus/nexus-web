@@ -22,27 +22,45 @@ export function categoryLabelKey(id: string): string {
 export interface CategoryDetail {
   key: string;
   params: Record<string, string | number>;
+  /** `key` is a plural base; pick its form with pluralKey(key, language, params.count). */
+  plural?: boolean;
+  /** Params filled with a translated string: param name to its i18n key. */
+  paramKeys?: Record<string, string>;
 }
 
-/** The positive-framing count/value line for one available category. */
-export function categoryDetail(cat: Nexus2PreviewCategory): CategoryDetail {
+/** The positive-framing count/value lines for one available category, one bullet each. */
+export function categoryDetails(cat: Nexus2PreviewCategory): CategoryDetail[] {
   switch (cat.id) {
-    case 'appearance':
-      return { key: 'nexus2Welcome.import.category.appearance.detail', params: { accent: cat.accentColor ?? '-' } };
+    case 'appearance': {
+      const accent = { key: 'nexus2Welcome.import.category.appearance.detail', params: { accent: cat.accentColor ?? '-' } };
+      return cat.count
+        ? [accent, { key: 'nexus2Welcome.import.category.appearance.backgrounds', params: { count: cat.count }, plural: true }]
+        : [accent];
+    }
     case 'y70Layout':
-      return { key: 'nexus2Welcome.import.category.y70Layout.detail', params: { pages: cat.pages, widgets: cat.mappedWidgets } };
+      return [{ key: 'nexus2Welcome.import.category.y70Layout.detail', params: { pages: cat.pages, widgets: cat.mappedWidgets } }];
     case 'q60Face':
-      return { key: 'nexus2Welcome.import.category.q60Face.detail', params: { face: cat.face ?? '-', stashed: cat.stashedFaces } };
-    case 'wallpapers':
-      return { key: 'nexus2Welcome.import.category.wallpapers.detail', params: { count: cat.count } };
+      if (cat.face && !cat.stashedFaces) return [{ key: `panel.widget.${cat.face}`, params: {} }];
+      return [{
+        key: 'nexus2Welcome.import.category.q60Face.detail',
+        params: { face: cat.face ?? '-', stashed: cat.stashedFaces },
+        ...(cat.face ? { paramKeys: { face: `panel.widget.${cat.face}` } } : {}),
+      }];
+    case 'wallpapers': {
+      const count = { key: 'nexus2Welcome.import.category.wallpapers.detail', params: { count: cat.count }, plural: true };
+      return cat.slideshowIntervalSec
+        ? [count, { key: 'nexus2Welcome.import.category.wallpapers.slideshow', params: { count: cat.slideshowIntervalSec }, plural: true }]
+        : [count];
+    }
     case 'gallerySources':
-      return { key: 'nexus2Welcome.import.category.gallerySources.detail', params: { count: cat.count } };
+      // A Gallery widget with no folders brings nothing over.
+      return cat.count ? [{ key: 'nexus2Welcome.import.category.gallerySources.detail', params: { count: cat.count } }] : [];
     case 'rotation':
-      return { key: 'nexus2Welcome.import.category.rotation.detail', params: { value: cat.value ?? '-' } };
+      return [{ key: 'nexus2Welcome.import.category.rotation.detail', params: { value: cat.value ?? '-' } }];
     default:
       // Only reachable for Nexus2LanguageCategory: the web never groups or
       // sends it, so this just degrades a service-known id to its raw value.
-      return { key: 'nexus2Welcome.import.category.other.detail', params: { id: cat.id } };
+      return [{ key: 'nexus2Welcome.import.category.other.detail', params: { id: cat.id } }];
   }
 }
 
@@ -102,11 +120,11 @@ export function visibleImportGroups(preview: Nexus2PreviewResponse | null): Impo
   return IMPORT_GROUPS.filter(g => g.wireIds.some(id => available.has(id)));
 }
 
-/** The positive detail line for a group, one part per available member category. */
+/** The positive detail bullets for a group, in member-category order. */
 export function groupDetailParts(preview: Nexus2PreviewResponse | null, group: ImportGroupDef): CategoryDetail[] {
   return availableCategories(preview)
     .filter(c => group.wireIds.includes(c.id))
-    .map(categoryDetail);
+    .flatMap(categoryDetails);
 }
 
 /** Every visible group starts checked. */

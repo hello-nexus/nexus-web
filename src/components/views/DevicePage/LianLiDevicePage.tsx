@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, Lightbulb, Unplug } from 'lucide-react';
+import { Cable, Fan, Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
@@ -7,7 +7,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CoolingPageLink } from './CoolingPageLink';
+import { CoolingPageShortcut } from './CoolingPageLink';
+import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { LightingPageSwitch } from './LightingPageSwitch';
 import {
   getLianLiState,
@@ -22,7 +23,9 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
+import rowStyles from './CoolingFanRow.module.scss';
 import { useReportDeviceWaiting } from './deviceDetecting';
+import { fetchDeviceStructure, setDeviceChain, type ChainEntry } from '../../../api/lighting';
 
 const PORT_COUNT = 4;
 const FAN_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
@@ -35,13 +38,15 @@ const DEFAULT_COLOR_SECONDARY = '#000000';
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
 
+type LianLiTab = 'devices' | 'lighting' | 'cooling';
+
 interface LianLiDevicePageProps {
   onSectionNavigate?: (section: string) => void;
 }
 
 export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'lighting' | 'cooling'>('lighting');
+  const [activeTab, setActiveTab] = useState<LianLiTab>('devices');
   const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
@@ -101,24 +106,26 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   }, [refresh, refreshRpm]);
 
   const commitFanCount = useCallback(async (port: number, count: number) => {
-    setLianliState(prev => {
-      if (!prev) return prev;
-      const next = { ...prev, fansPerPort: [...prev.fansPerPort] };
-      next.fansPerPort[port] = count;
-      return next;
-    });
+    const fansPerPort = [...(lianliState?.fansPerPort ?? [])];
+    fansPerPort[port] = count;
+    setLianliState(prev => (prev ? { ...prev, fansPerPort } : prev));
     setSaving(true);
     try {
       await setLianLiFanCount(port, count);
+      // A header too short for the new chain drops off the source list; refetching shows it as unchosen.
+      if (lighting?.argbSync && lighting.argbSyncSource
+        && !await wireArgbSyncFans(lighting.argbSyncSource, longestChain(fansPerPort))) {
+        void refresh();
+      }
     } finally {
       if (aliveRef.current) setSaving(false);
     }
-  }, []);
+  }, [lianliState, lighting, refresh]);
 
   const commitLighting = useCallback(async (patch: LianLiLightingPatch) => {
     setSaving(true);
     try {
-      await setLianLiLighting(patch);
+      return (await setLianLiLighting(patch)) !== null;
     } finally {
       if (aliveRef.current) setSaving(false);
     }
@@ -146,13 +153,16 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
     : '';
   const selectedMode = effectModes.find(m => m.key === effectKey) ?? null;
   const isCustomMode = lighting?.mode === LIGHTING_PAGE_MODE;
+  const argbSyncOn = lighting?.argbSyncSupported === true && lighting.argbSync === true;
 
-  // Every port is a fan header, so the hub always has a Cooling tab.
-  const tab = activeTab;
+  // Cooling lists only ports with fans set on the Devices tab, like the service's channels.
+  const hasFans = !!lianliState?.fansPerPort.some(n => n > 0);
   const tabs = [
+    { key: 'devices', label: t('devices.title'), icon: <Cable size={14} /> },
     { key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> },
-    { key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> },
+    ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> }] : []),
   ];
+  const tab: LianLiTab = tabs.some(x => x.key === activeTab) ? activeTab : 'devices';
 
   return (
     <div className={styles.page}>
@@ -162,10 +172,11 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
         actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
         tabs={tabs}
         activeTab={tab}
-        onTabChange={key => setActiveTab(key as 'lighting' | 'cooling')}
+        onTabChange={key => setActiveTab(key as LianLiTab)}
+        tabActions={tab === 'cooling' && onSectionNavigate ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} /> : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
-        {tab === 'cooling' ? (
+        {tab === 'devices' && (
           <SettingsSection
             title={t('devices.lianli.portsSection')}
             boxClassName={styles.sectionBox}
@@ -192,9 +203,20 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                 </span>
               </SettingRow>
             ))}
-            <CoolingPageLink hint={t('devices.coolingPage.speedHint')} onSectionNavigate={onSectionNavigate} />
           </SettingsSection>
-        ) : (
+        )}
+        {tab === 'cooling' && lianliState && (
+          <LianLiCoolingRows fansPerPort={lianliState.fansPerPort} rpm={lianliState.rpm} />
+        )}
+        {tab === 'lighting' && lighting?.argbSyncSupported && (
+          <LianLiArgbSyncSection
+            lighting={lighting}
+            fansPerPort={lianliState?.fansPerPort ?? []}
+            onLighting={setLighting}
+            commit={commitLighting}
+          />
+        )}
+        {tab === 'lighting' && !argbSyncOn && (
           <SettingsSection
             title={t('devices.lianli.lightingSection')}
             boxClassName={styles.sectionBox}
@@ -398,5 +420,127 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
         )}
       </div>
     </div>
+  );
+}
+
+// Over ARGB sync each port plays the input from its first LED, fan by fan in
+// chain order, inner ring first: the layout of this catalog product.
+const ARGB_SYNC_FAN_PRODUCT = 'product:lianli-lian-li-sl120-infinity';
+
+// Every port plays the same input, so the longest chain sets how many fans the header carries.
+const longestChain = (fansPerPort: readonly number[]) => Math.max(1, ...fansPerPort);
+
+const isArgbSyncChain = (chain: ChainEntry[] | undefined) =>
+  !!chain?.length && chain.every(c => c.key === ARGB_SYNC_FAN_PRODUCT);
+
+/** Wires one fan layout per fan onto the source unless it already carries exactly that; false when the service refused. */
+async function wireArgbSyncFans(deviceId: string, fans: number): Promise<boolean> {
+  const structure = await fetchDeviceStructure(deviceId);
+  if (isArgbSyncChain(structure?.chain) && structure?.chain?.length === fans) return true;
+  const result = await setDeviceChain(deviceId, Array.from({ length: fans }, () => ({ key: ARGB_SYNC_FAN_PRODUCT })));
+  return result !== null && result.error !== true;
+}
+
+/** Clears a former source's chain only when it is the one this page wired. */
+async function unwireArgbSyncFans(deviceId: string): Promise<void> {
+  const structure = await fetchDeviceStructure(deviceId);
+  if (isArgbSyncChain(structure?.chain)) await setDeviceChain(deviceId, []);
+}
+
+interface LianLiArgbSyncSectionProps {
+  lighting: LianLiLighting;
+  fansPerPort: readonly number[];
+  onLighting: (next: LianLiLighting) => void;
+  commit: (patch: LianLiLightingPatch) => Promise<boolean>;
+}
+
+function LianLiArgbSyncSection({ lighting, fansPerPort, onLighting, commit }: LianLiArgbSyncSectionProps) {
+  const { t } = useTranslation();
+  // Switched on with no header saved yet: the picker shows and the pick turns sync on.
+  const [choosing, setChoosing] = useState(false);
+  // Locks the switch while a header is being wired, so an off cannot land before the on.
+  const [enabling, setEnabling] = useState(false);
+  const sources = lighting.argbSyncSources ?? [];
+  const stored = lighting.argbSyncSource ?? '';
+  const source = sources.some(s => s.id === stored) ? stored : '';
+  const fans = longestChain(fansPerPort);
+  const on = lighting.argbSync === true;
+
+  const enable = async (id: string) => {
+    const previous = lighting;
+    setEnabling(true);
+    onLighting({ ...lighting, argbSync: true, argbSyncSource: id });
+    const ok = await wireArgbSyncFans(id, fans) && await commit({ argbSync: true, argbSyncSource: id });
+    if (!ok) onLighting(previous);
+    setEnabling(false);
+    return ok;
+  };
+
+  return (
+    <SettingsSection title={t('devices.lianli.argbSyncSection')} boxClassName={styles.sectionBox}>
+      <SettingToggle
+        label={t('devices.lianli.argbSync')}
+        description={t('devices.lianli.argbSyncHint')}
+        checked={on || choosing}
+        disabled={enabling || (sources.length === 0 && !on && !choosing)}
+        onChange={next => {
+          if (next) {
+            if (source) void enable(source);
+            else setChoosing(true);
+            return;
+          }
+          setChoosing(false);
+          if (!on) return;
+          const previous = lighting;
+          onLighting({ ...lighting, argbSync: false });
+          void commit({ argbSync: false }).then(ok => { if (!ok) onLighting(previous); });
+        }}
+      />
+      {(on || choosing) && (
+        <SettingSelect
+          label={t('devices.lianli.argbSyncSource')}
+          value={source}
+          onChange={v => {
+            if (!on) {
+              void enable(v).then(ok => { if (ok) setChoosing(false); });
+              return;
+            }
+            const previous = lighting;
+            onLighting({ ...lighting, argbSyncSource: v });
+            void (async () => {
+              if (!await wireArgbSyncFans(v, fans) || !await commit({ argbSyncSource: v })) {
+                onLighting(previous);
+                return;
+              }
+              if (stored && stored !== v) await unwireArgbSyncFans(stored);
+            })();
+          }}
+          options={[
+            ...(source ? [] : [{ value: '', label: t('devices.lianli.argbSyncChoose') }]),
+            ...sources.map(s => ({ value: s.id, label: s.name })),
+          ]}
+          disabled={enabling || sources.length === 0}
+        />
+      )}
+    </SettingsSection>
+  );
+}
+
+function LianLiCoolingRows({ fansPerPort, rpm }: { fansPerPort: readonly number[]; rpm: readonly number[] }) {
+  const { t } = useTranslation();
+  const { channels, curves } = useCoolingChannels();
+  return (
+    <SettingsSection boxClassName={rowStyles.rows}>
+      {fansPerPort.map((fans, port) => fans > 0 && (
+        <CoolingFanRow
+          key={port}
+          label={t('devices.lianli.port', { n: port + 1 })}
+          rpm={rpm[port] ?? 0}
+          // LianLiCoolingProvider's channel id in nexus-service.
+          channel={channels.find(c => c.id === `lianli:port${port}`) ?? null}
+          curves={curves}
+        />
+      ))}
+    </SettingsSection>
   );
 }

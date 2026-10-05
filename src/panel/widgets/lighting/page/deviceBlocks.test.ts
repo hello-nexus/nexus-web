@@ -137,6 +137,22 @@ describe('buildDeviceBlocks split card', () => {
     expect(blocks[0].kind).toBe('group');
   });
 
+  it('keeps the Lian Li hub header over a single port, as the service sends it', () => {
+    const blocks = buildDeviceBlocks([
+      zone('lianli:port1', 'Lian Li - Port 1', { parentDeviceId: 'lianli', deviceId: 'lianli:port1', zoneIndex: 0, type: 'ledstrip' }),
+    ]);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].kind).toBe('group');
+  });
+
+  it('keeps the Lian Li wireless header over a single chain', () => {
+    const blocks = buildDeviceBlocks([
+      zone('lianli-wireless:64F271E566E1:z0', 'Lian Li Wireless - Strimer', { parentDeviceId: 'lianli-wireless', deviceId: 'lianli-wireless:64F271E566E1', zoneIndex: 0, type: 'ledstrip' }),
+    ]);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].kind).toBe('group');
+  });
+
   it('keeps the group rendering for an older service that sends no deviceId', () => {
     const blocks = buildDeviceBlocks([
       keebZone('keys', { deviceId: undefined }),

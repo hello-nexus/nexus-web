@@ -8,6 +8,8 @@ import { type LightingDevice } from '../../../../api/lighting';
 export function lightingDeviceNoticeKey(device: LightingDevice): string | null {
   // Every streamed frame crosses the radio, which cannot carry the full engine rate.
   if (device.id.startsWith('lianli-wireless:')) return 'lighting.devices.partialStreaming';
+  // The wired Uni Hub shows a streamed frame only through per-channel commits, far slower than the engine rate.
+  if (device.id.startsWith('lianli:')) return 'lighting.devices.partialStreaming';
   // The Kraken shares one HID pipe between its LEDs, its telemetry and its LCD.
   if (device.id.startsWith('nzxt-kraken:')) return 'lighting.devices.partialStreaming';
   return null;

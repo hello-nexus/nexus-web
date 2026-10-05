@@ -99,3 +99,17 @@
   align-self: flex-start;
   margin-top: 0.5rem;
 }
+
+// The one part of the tab row that gives way at narrow widths.
+.coolingShortcutHint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.coolingShortcutButton {
+  flex: none;
+}

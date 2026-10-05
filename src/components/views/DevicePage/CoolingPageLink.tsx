@@ -30,3 +30,17 @@ export function CoolingPageLink({ hint, onSectionNavigate }: CoolingPageLinkProp
     </>
   );
 }
+
+/** A device Cooling tab's tab-row shortcut: what the Cooling page sets, then a button to it. */
+export function CoolingPageShortcut({ onSectionNavigate }: { onSectionNavigate: (section: string) => void }) {
+  const { t } = useTranslation();
+  const hint = t('devices.coolingPage.setHint');
+  return (
+    <>
+      <span className={styles.coolingShortcutHint} title={hint}>{hint}</span>
+      <Button className={styles.coolingShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} onClick={() => onSectionNavigate('cooling')}>
+        {t('cooling.title')}
+      </Button>
+    </>
+  );
+}

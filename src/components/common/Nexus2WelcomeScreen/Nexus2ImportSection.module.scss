@@ -103,3 +103,20 @@
   margin: 0 0 0.25rem;
   color: var(--text-dim);
 }
+
+// One line per thing a group brings over, under the toggle's label.
+.detailBullets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.15rem;
+}
+
+.detailBullet {
+  display: flex;
+  gap: 0.4em;
+
+  &::before {
+    content: '\2022' / '';
+  }
+}
