@@ -1,25 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { SUPPORTED_BRANDS, SupportedBrands } from './SupportedBrands';
+import { SupportedBrands } from './SupportedBrands';
+import { BRAND_LOGOS } from './brandLogos';
 
 describe('SupportedBrands', () => {
   it('renders one labelled button per brand and reports the clicked brand', () => {
     const onSelect = vi.fn();
     render(<SupportedBrands onSelect={onSelect} />);
 
-    expect(screen.getAllByRole('button')).toHaveLength(SUPPORTED_BRANDS.length);
+    expect(screen.getAllByRole('button')).toHaveLength(BRAND_LOGOS.length);
     fireEvent.click(screen.getByRole('button', { name: 'Cooler Master' }));
     expect(onSelect).toHaveBeenCalledWith('Cooler Master');
   });
 
-  it('shows a mark where one exists and the name otherwise', () => {
+  it('draws every brand as a mark with at least one path', () => {
     render(<SupportedBrands />);
 
-    expect(screen.getByRole('button', { name: 'ASUS' }).querySelector('svg')).not.toBeNull();
-    const hyte = screen.getByRole('button', { name: 'HYTE' });
-    expect(hyte.querySelector('svg')).toBeNull();
-    expect(hyte).toHaveTextContent('HYTE');
+    for (const button of screen.getAllByRole('button')) {
+      expect(button.querySelectorAll('svg path').length).toBeGreaterThan(0);
+    }
   });
 
   it('renders to static HTML with data-brand for host pages to wire', () => {

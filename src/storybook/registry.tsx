@@ -2620,7 +2620,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SupportedBrands', category: 'inputs',
     filePath: 'src/components/common/SupportedBrands/SupportedBrands.tsx',
-    description: 'Grid of brand logo buttons above the Supported Devices search; a click hands the brand name to onSelect, which the modal uses as the search query. Brands without a mark show their name. Also rendered to static HTML on the /devices page, where the page script wires clicks through data-brand.', Preview: PreviewSupportedBrands,
+    description: 'Grid of brand logo buttons above the Supported Devices search; a click hands the brand name to onSelect, which the modal uses as the search query. Also rendered to static HTML on the /devices page, where the page script wires clicks through data-brand.', Preview: PreviewSupportedBrands,
   },
   {
     name: 'SupportedDevicesPager', category: 'navigation',
