@@ -845,6 +845,7 @@
   "devices.lianliEffect.warning": "Uyarı",
   "devices.lianliEffect.wave": "Dalga",
   "devices.lianliEffect.wing": "Kanat",
+  "devices.lightingPage.setHint": "Rengi ve parlaklığı ayarlayın",
   "devices.lightingPage.use": "Aydınlatma sayfası efektlerini kullan",
   "devices.lightingPage.useHint": "Kapalıyken cihaz aşağıda ayarlanan animasyonu kendi başına oynatır.",
   "devices.loading": "Yukleniyor...",

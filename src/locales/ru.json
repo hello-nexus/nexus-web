@@ -852,6 +852,7 @@
   "devices.lianliEffect.warning": "Предупреждение",
   "devices.lianliEffect.wave": "Волна",
   "devices.lianliEffect.wing": "Крыло",
+  "devices.lightingPage.setHint": "Настройте цвет и яркость",
   "devices.lightingPage.use": "Использовать эффекты со страницы Освещение",
   "devices.lightingPage.useHint": "Если выключено, устройство само воспроизводит анимацию, заданную ниже.",
   "devices.loading": "Загрузка...",

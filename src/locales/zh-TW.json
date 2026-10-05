@@ -845,6 +845,7 @@
   "devices.lianliEffect.warning": "警告",
   "devices.lianliEffect.wave": "波浪",
   "devices.lianliEffect.wing": "翅膀",
+  "devices.lightingPage.setHint": "設定顏色和亮度",
   "devices.lightingPage.use": "使用照明頁面效果",
   "devices.lightingPage.useHint": "關閉時，裝置將自行播放下方設定的動畫。",
   "devices.loading": "載入中...",

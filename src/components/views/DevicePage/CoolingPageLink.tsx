@@ -1,4 +1,4 @@
-import { Fan } from 'lucide-react';
+import { Fan, Lightbulb } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
@@ -31,16 +31,24 @@ export function CoolingPageLink({ hint, onSectionNavigate }: CoolingPageLinkProp
   );
 }
 
-/** A device Cooling tab's tab-row shortcut: what the Cooling page sets, then a button to it. */
+/** A device Cooling tab's tab-row button to the Cooling page, labelled with what it sets there. */
 export function CoolingPageShortcut({ onSectionNavigate }: { onSectionNavigate: (section: string) => void }) {
   const { t } = useTranslation();
-  const hint = t('devices.coolingPage.setHint');
+  const label = t('devices.coolingPage.setHint');
   return (
-    <>
-      <span className={styles.coolingShortcutHint} title={hint}>{hint}</span>
-      <Button className={styles.coolingShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} onClick={() => onSectionNavigate('cooling')}>
-        {t('cooling.title')}
-      </Button>
-    </>
+    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} title={label} onClick={() => onSectionNavigate('cooling')}>
+      <span className={styles.pageShortcutLabel}>{label}</span>
+    </Button>
+  );
+}
+
+/** A device Lighting tab's tab-row button to the Lighting page, labelled with what it sets there. */
+export function LightingPageShortcut({ onSectionNavigate }: { onSectionNavigate: (section: string) => void }) {
+  const { t } = useTranslation();
+  const label = t('devices.lightingPage.setHint');
+  return (
+    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Lightbulb size={14} />} title={label} onClick={() => onSectionNavigate('lighting')}>
+      <span className={styles.pageShortcutLabel}>{label}</span>
+    </Button>
   );
 }

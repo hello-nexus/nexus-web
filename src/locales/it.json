@@ -845,6 +845,7 @@
   "devices.lianliEffect.warning": "Avviso",
   "devices.lianliEffect.wave": "Onda",
   "devices.lianliEffect.wing": "Ala",
+  "devices.lightingPage.setHint": "Imposta il colore e la luminosità",
   "devices.lightingPage.use": "Usa gli effetti della pagina Illuminazione",
   "devices.lightingPage.useHint": "Se disattivato, il dispositivo riproduce da solo l'animazione impostata qui sotto.",
   "devices.loading": "Caricamento...",

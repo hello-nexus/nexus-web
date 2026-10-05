@@ -845,6 +845,7 @@
   "devices.lianliEffect.warning": "Avertissement",
   "devices.lianliEffect.wave": "Vague",
   "devices.lianliEffect.wing": "Aile",
+  "devices.lightingPage.setHint": "Réglez la couleur et la luminosité",
   "devices.lightingPage.use": "Utiliser les effets de la page Éclairage",
   "devices.lightingPage.useHint": "Désactivé, l'appareil joue lui-même l'animation réglée ci-dessous.",
   "devices.loading": "Chargement...",

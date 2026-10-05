@@ -845,6 +845,7 @@
   "devices.lianliEffect.warning": "警告",
   "devices.lianliEffect.wave": "ウェーブ",
   "devices.lianliEffect.wing": "ウィング",
+  "devices.lightingPage.setHint": "色と明るさを設定",
   "devices.lightingPage.use": "ライティングページのエフェクトを使用",
   "devices.lightingPage.useHint": "オフにすると、デバイスは下で設定したアニメーションを単独で再生します。",
   "devices.loading": "読み込み中...",

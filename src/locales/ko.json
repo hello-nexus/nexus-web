@@ -845,6 +845,7 @@
   "devices.lianliEffect.warning": "경고",
   "devices.lianliEffect.wave": "물결",
   "devices.lianliEffect.wing": "날개",
+  "devices.lightingPage.setHint": "색상과 밝기 설정",
   "devices.lightingPage.use": "조명 페이지 효과 사용",
   "devices.lightingPage.useHint": "끄면 장치가 아래에 설정된 애니메이션을 자체적으로 재생합니다.",
   "devices.loading": "로드 중...",

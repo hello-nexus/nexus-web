@@ -845,6 +845,7 @@
   "devices.lianliEffect.warning": "Warnung",
   "devices.lianliEffect.wave": "Welle",
   "devices.lianliEffect.wing": "Flügel",
+  "devices.lightingPage.setHint": "Farbe und Helligkeit einstellen",
   "devices.lightingPage.use": "Effekte der Beleuchtungsseite verwenden",
   "devices.lightingPage.useHint": "Wenn aus, spielt das Gerät die unten eingestellte Animation selbst ab.",
   "devices.loading": "Wird geladen...",

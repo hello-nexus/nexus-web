@@ -852,6 +852,7 @@
   "devices.lianliEffect.warning": "Ostrzeżenie",
   "devices.lianliEffect.wave": "Fala",
   "devices.lianliEffect.wing": "Skrzydło",
+  "devices.lightingPage.setHint": "Ustaw kolor i jasność",
   "devices.lightingPage.use": "Użyj efektów ze strony Oświetlenie",
   "devices.lightingPage.useHint": "Po wyłączeniu urządzenie samo odtwarza animację ustawioną poniżej.",
   "devices.loading": "Ladowanie...",
