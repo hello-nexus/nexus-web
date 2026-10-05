@@ -1,9 +1,9 @@
 import type { ReactElement } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEFAULT_PINNED_TAIL, getSidebarAppMeta, isPinnableAppKey, listSidebarAppKeys, sanitizePinnedTail, sanitizeRecents } from './sidebarApps';
-import { APP_REGISTRY } from '../panel/widgets/registry';
+import { APP_REGISTRY, lookupApp } from '../panel/widgets/registry';
 import { Boxes, Film } from 'lucide-react';
-import { appIconComponent } from '../components/icons/AppIconImage';
+import { appIconComponent, appIconMaskComponent } from '../components/icons/AppIconImage';
 import {
   _resetMarketplaceRegistryForTests,
   _seedMarketplaceRegistryForTests,
@@ -37,7 +37,16 @@ describe('getSidebarAppMeta - SDK app manifest icon', () => {
     ]);
     const meta = getSidebarAppMeta(typeForMarketplace('com.ibuypower.control'));
     expect(meta).not.toBeNull();
-    expect((meta!.icon as ReactElement).type).toBe(appIconComponent(MARK));
+    expect((meta!.icon as ReactElement).type).toBe(appIconMaskComponent(MARK));
+  });
+
+  // The silhouette is the sidebar's alone: the catalog manifest (store, widget
+  // picker) keeps the app's own coloured mark.
+  it('keeps the coloured mark on the catalog manifest', () => {
+    _seedMarketplaceRegistryForTests([
+      listing({ id: 'com.ibuypower.control', name: 'iBUYPOWER', preinstalled: true, page: true, iconUrl: MARK }),
+    ]);
+    expect(lookupApp(typeForMarketplace('com.ibuypower.control'))?.meta.icon).toBe(appIconComponent(MARK));
   });
 
   // The OEM flag decides whether an app auto-seeds onto the sidebar, not which
@@ -48,7 +57,7 @@ describe('getSidebarAppMeta - SDK app manifest icon', () => {
     ]);
     const meta = getSidebarAppMeta(typeForMarketplace('com.hellonexus.weather'));
     expect(meta).not.toBeNull();
-    expect((meta!.icon as ReactElement).type).toBe(appIconComponent('/x.svg'));
+    expect((meta!.icon as ReactElement).type).toBe(appIconMaskComponent('/x.svg'));
   });
 
   it('falls back to the generic glyph for an app that ships no icon', () => {
