@@ -2285,7 +2285,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'RangeSlider (temperature)', category: 'inputs',
     filePath: 'src/components/common/Slider/RangeSlider.tsx',
     description: 'Dual-knob slider. Two thumbs with an accent band painted between them. Used in the cooling fan-curve linear band for temperature.', Preview: PreviewRangeSliderTemp,
-    notes: 'minGap defaults to 10% of (max - min). Active knob clamps at the gap; the other knob is not pushed. Track-click-to-snap is disabled in dual-knob mode.',
+    notes: 'The knob gap defaults to a fixed share of the span on the step grid; minGap can only raise it. Active knob clamps at the gap; the other knob is not pushed. Track-click-to-snap is disabled in dual-knob mode.',
   },
   {
     name: 'RangeSlider (speed)', category: 'inputs',

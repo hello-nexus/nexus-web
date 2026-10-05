@@ -21,12 +21,13 @@ import styles from './RangeSlider.module.scss';
  * other input's thumb in z-order). Painting the band as a separate sibling
  * div keeps both thumbs visible and makes the band a real pointer target.
  *
- * `minGap` enforces a minimum separation between the two knobs in slider
- * units. Defaults to one `step`, so the knobs can sit adjacent. The active
- * knob clamps at the gap; the other knob is NOT pushed along (except during
- * a band drag, where both knobs move together by the same amount).
+ * The knobs keep a minimum separation: a fixed share of the span, rounded to
+ * the step grid and never below one step. `minGap` can raise it, never lower
+ * it. The active knob clamps at the gap; the other knob is NOT pushed along
+ * (except during a band drag, where both knobs move together by the same
+ * amount).
  *
- * Adjacent thumbs overlap, and the later input wins the hit test. Past the
+ * Close thumbs overlap, and the later input wins the hit test. Past the
  * track midpoint the min knob is raised above the max knob, so the thumb on
  * top is always the one with room to move away.
  */
@@ -51,6 +52,9 @@ export interface RangeSliderProps {
   className?: string;
 }
 
+// Default knob separation as a share of the track span.
+const DEFAULT_GAP_FRACTION = 1 / 40;
+
 interface BandDragState {
   startX: number;
   startMin: number;
@@ -67,7 +71,8 @@ export function RangeSlider({
 }: RangeSliderProps) {
   const [valMin, valMax] = value;
   const span = max - min;
-  const gap = minGap ?? step;
+  const defaultGap = step > 0 ? Math.max(1, Math.round((span * DEFAULT_GAP_FRACTION) / step)) * step : 0;
+  const gap = Math.max(defaultGap, minGap ?? 0);
 
   const latestRef = useRef<[number, number]>(value);
   const onCommitRef = useRef(onCommit);
