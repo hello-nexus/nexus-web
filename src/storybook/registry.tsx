@@ -47,6 +47,8 @@ import { UsageBar } from '../components/common/UsageBar/UsageBar';
 import { CapacityBar } from '../components/common/CapacityBar/CapacityBar';
 import { SupportedDevicesModal } from '../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { SupportedDevicesList, type SupportedDeviceRow } from '../components/common/SupportedDevicesList/SupportedDevicesList';
+import { SupportedBrands } from '../components/common/SupportedBrands/SupportedBrands';
+import { SupportedDevicesPager } from '../components/common/SupportedDevicesPager/SupportedDevicesPager';
 import { Overlay } from '../components/common/Overlay/Overlay';
 import { ColorPickerWithPresets } from '../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { SearchInput } from '../components/common/SearchInput/SearchInput';
@@ -818,6 +820,21 @@ function PreviewSupportedDevicesList() {
       detectedVidPids={new Set(['0x1532:0x0290'])}
     />
   );
+}
+
+function PreviewSupportedBrands() {
+  const [brand, setBrand] = useState('');
+  return (
+    <div>
+      <SupportedBrands onSelect={setBrand} />
+      <p>{brand}</p>
+    </div>
+  );
+}
+
+function PreviewSupportedDevicesPager() {
+  const [page, setPage] = useState(0);
+  return <SupportedDevicesPager page={page} pageCount={5} onPrev={() => setPage(p => Math.max(0, p - 1))} onNext={() => setPage(p => Math.min(4, p + 1))} />;
 }
 
 function PreviewHsvPicker() {
@@ -2616,7 +2633,17 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'SupportedDevicesList', category: 'cards',
     filePath: 'src/components/common/SupportedDevicesList/SupportedDevicesList.tsx',
     description: 'Presentational device-catalog table: source badge, brand, model, type, VID:PID, capabilities. Odd rows carry a subtle greyscale wash instead of row-separator lines. No fetch, no provider hooks - the caller supplies the rows, so this also mounts cleanly outside the app tree (SupportedDevicesModal in-app; the marketing site elsewhere) and renders via react-dom/server for SEO.', Preview: PreviewSupportedDevicesList,
-    notes: 'Zebra and hover backgrounds ride --devices-row-alt / --devices-row-hover custom properties with dark-friendly defaults, so a host page can override either without touching the component. detectedVidPids is optional - omit it entirely when the host has no notion of "connected".',
+    notes: 'Zebra and hover backgrounds ride --devices-row-alt / --devices-row-hover custom properties with dark-friendly defaults, so a host page can override either without touching the component. detectedVidPids is optional - omit it entirely when the host has no notion of "connected", and the status column is not rendered.',
+  },
+  {
+    name: 'SupportedBrands', category: 'inputs',
+    filePath: 'src/components/common/SupportedBrands/SupportedBrands.tsx',
+    description: 'Grid of brand logo buttons above the Supported Devices search; a click hands the brand name to onSelect, which the modal uses as the search query. Also rendered to static HTML on the /devices page, where the page script wires clicks through data-brand.', Preview: PreviewSupportedBrands,
+  },
+  {
+    name: 'SupportedDevicesPager', category: 'navigation',
+    filePath: 'src/components/common/SupportedDevicesPager/SupportedDevicesPager.tsx',
+    description: 'Prev / "Page X of Y" / Next row under the Supported Devices table. Shared by SupportedDevicesModal and the static /devices page.', Preview: PreviewSupportedDevicesPager,
   },
   {
     name: 'AboutModal', category: 'modals',
