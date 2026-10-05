@@ -1,0 +1,51 @@
+// Box class for a SettingsSection of rows: one dense line per fan.
+.rows {
+  gap: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.25rem;
+}
+
+.label {
+  flex: 0 0 9.5rem;
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.rpm,
+.rpmMuted {
+  flex: 0 0 6.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.rpmMuted {
+  color: var(--text-muted);
+  cursor: help;
+}
+
+.mode {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 1.5rem;
+  font-size: var(--type-small);
+  color: var(--text);
+}
+
+.duty {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}

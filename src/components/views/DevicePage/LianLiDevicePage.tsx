@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fan, Lightbulb, Unplug } from 'lucide-react';
+import { Cable, Fan, Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
@@ -7,7 +7,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CoolingPageLink } from './CoolingPageLink';
+import { CoolingPageShortcut } from './CoolingPageLink';
+import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { LightingPageSwitch } from './LightingPageSwitch';
 import {
   getLianLiState,
@@ -22,6 +23,7 @@ import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { formatNumber, localizeNumbers } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
+import rowStyles from './CoolingFanRow.module.scss';
 import { useReportDeviceWaiting } from './deviceDetecting';
 
 const PORT_COUNT = 4;
@@ -35,13 +37,15 @@ const DEFAULT_COLOR_SECONDARY = '#000000';
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
 
+type LianLiTab = 'devices' | 'lighting' | 'cooling';
+
 interface LianLiDevicePageProps {
   onSectionNavigate?: (section: string) => void;
 }
 
 export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'lighting' | 'cooling'>('lighting');
+  const [activeTab, setActiveTab] = useState<LianLiTab>('devices');
   const { numberFormat } = useUnitPrefs();
   const [connection, setConnection] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
   useReportDeviceWaiting(connection !== 'connected');
@@ -147,12 +151,14 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const selectedMode = effectModes.find(m => m.key === effectKey) ?? null;
   const isCustomMode = lighting?.mode === LIGHTING_PAGE_MODE;
 
-  // Every port is a fan header, so the hub always has a Cooling tab.
-  const tab = activeTab;
+  // Cooling lists only ports with fans set on the Devices tab, like the service's channels.
+  const hasFans = !!lianliState?.fansPerPort.some(n => n > 0);
   const tabs = [
+    { key: 'devices', label: t('devices.title'), icon: <Cable size={14} /> },
     { key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> },
-    { key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> },
+    ...(hasFans ? [{ key: 'cooling', label: t('cooling.title'), icon: <Fan size={14} /> }] : []),
   ];
+  const tab: LianLiTab = tabs.some(x => x.key === activeTab) ? activeTab : 'devices';
 
   return (
     <div className={styles.page}>
@@ -162,10 +168,11 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
         actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
         tabs={tabs}
         activeTab={tab}
-        onTabChange={key => setActiveTab(key as 'lighting' | 'cooling')}
+        onTabChange={key => setActiveTab(key as LianLiTab)}
+        tabActions={tab === 'cooling' && onSectionNavigate ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} /> : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
-        {tab === 'cooling' ? (
+        {tab === 'devices' && (
           <SettingsSection
             title={t('devices.lianli.portsSection')}
             boxClassName={styles.sectionBox}
@@ -192,9 +199,12 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                 </span>
               </SettingRow>
             ))}
-            <CoolingPageLink hint={t('devices.coolingPage.speedHint')} onSectionNavigate={onSectionNavigate} />
           </SettingsSection>
-        ) : (
+        )}
+        {tab === 'cooling' && lianliState && (
+          <LianLiCoolingRows fansPerPort={lianliState.fansPerPort} rpm={lianliState.rpm} />
+        )}
+        {tab === 'lighting' && (
           <SettingsSection
             title={t('devices.lianli.lightingSection')}
             boxClassName={styles.sectionBox}
@@ -398,5 +408,24 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
         )}
       </div>
     </div>
+  );
+}
+
+function LianLiCoolingRows({ fansPerPort, rpm }: { fansPerPort: readonly number[]; rpm: readonly number[] }) {
+  const { t } = useTranslation();
+  const { channels, curves } = useCoolingChannels();
+  return (
+    <SettingsSection boxClassName={rowStyles.rows}>
+      {fansPerPort.map((fans, port) => fans > 0 && (
+        <CoolingFanRow
+          key={port}
+          label={t('devices.lianli.port', { n: port + 1 })}
+          rpm={rpm[port] ?? 0}
+          // LianLiCoolingProvider's channel id in nexus-service.
+          channel={channels.find(c => c.id === `lianli:port${port}`) ?? null}
+          curves={curves}
+        />
+      ))}
+    </SettingsSection>
   );
 }
