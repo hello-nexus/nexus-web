@@ -52,16 +52,20 @@ import { useFeatureFlags, useUiSettings } from '../../../hooks/useUiSettings';
 import { resolveAdvancedMode } from '../common/AdvancedModeSettings';
 import { useStateChangePulse } from '../common/useStateChangePulse';
 import { usePanelPreview } from '../common/PanelPreviewContext';
+import { previewRainbowUri } from '../common/previewAssets';
 import { LightingLivePreview } from './LightingLivePreview';
 import { LightingShaderPreview } from './LightingShaderPreview';
 import type { GpuState } from '../../../components/common/CanvasNoticeBar/gpuNotice';
 import type { WidgetProps } from '../types';
 import styles from './LightingWidget.module.scss';
 
-// Catalog preview pins screen mode (pass-through, reactive=false):
-// the icon view renders with zero fetch/socket/blob traffic. Keep in sync with
-// the simple-mode render; previewMode.test.tsx is the fixture-sync gate.
-const LIGHTING_PREVIEW_MODE: LightingMode = 'screen';
+// Catalog preview pins Animate on the stock simple-mode Rainbow, with a generic
+// rainbow thumbnail in place of the service-rendered one, so the tile renders
+// with zero fetch/socket/blob traffic. Keep in sync with the simple-mode
+// render; previewMode.test.tsx is the fixture-sync gate.
+const LIGHTING_PREVIEW_MODE: LightingMode = 'animate';
+const LIGHTING_PREVIEW_EFFECT = 'sweeprainbow';
+const LIGHTING_PREVIEW_THUMBS: Record<string, string> = { [LIGHTING_PREVIEW_EFFECT]: previewRainbowUri() };
 
 export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNavigate }: WidgetProps & { immersive?: boolean; immersiveCanvas?: ReactNode }) {
   const { t, language } = useTranslation();
@@ -77,7 +81,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   // WS-synced from /lighting/current (re-hydrated on the 'lighting' topic), so
   // the shader preview freezes when lighting is paused from any surface.
   const [paused, setPaused] = useState(false);
-  const [activeEffect, setActiveEffect] = useState('rainbow');
+  const [activeEffect, setActiveEffect] = useState(preview ? LIGHTING_PREVIEW_EFFECT : 'rainbow');
   // The service's remembered static key, so entering the mode from animate
   // returns to the last static pick instead of the catalog default.
   const staticEffectRef = useRef(DEFAULT_STATIC_EFFECT);
@@ -88,7 +92,7 @@ export function LightingWidget({ widget, immersive, immersiveCanvas, onSectionNa
   const [templates, setTemplates] = useState<Record<string, EffectTemplateBundle>>({});
   // Direction of a running simple-mode sweep, read from its stored speed sign.
   const [sweepReversed, setSweepReversed] = useState(false);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [thumbs, setThumbs] = useState<Record<string, string>>(preview ? LIGHTING_PREVIEW_THUMBS : {});
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [activeMediaId, setActiveMediaId] = useState<string | null>(null);
   const [mediaThumbs, setMediaThumbs] = useState<Record<string, string>>({});

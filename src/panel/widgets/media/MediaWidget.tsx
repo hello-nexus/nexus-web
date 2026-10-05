@@ -75,8 +75,8 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
   const artSignature = mediaArtSignature(active?.session);
   const showVolume = volumeAllowed && volume.supported;
   const showSource = widget.config?.showSource === true;
-  const artResolved = artAsset.key === activeKey && artAsset.signature === artSignature;
-  const artUrl = artResolved ? artAsset.url : '';
+  const artResolved = preview || (artAsset.key === activeKey && artAsset.signature === artSignature);
+  const artUrl = preview ? MEDIA_PREVIEW.artUrl : artResolved ? artAsset.url : '';
   const liveBackground = widget.config?.liveBackground === true;
   const [liveShowing, setLiveShowing] = useState(false);
   const liveEffect = normalizeVisualizerEffect(widget.config?.visualizerEffect);
