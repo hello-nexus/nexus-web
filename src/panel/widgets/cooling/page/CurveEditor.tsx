@@ -759,9 +759,11 @@ export const CurveCard = memo(function CurveCard({
 
   const autoBlock = (
     <div className={styles.linearControls}>
+      {/* The service's under-load threshold falls to idleTemp once the band is no wider than the deadband. */}
       <RangeSlider orientation="stacked" editable label={t('cooling.curve.auto.temp')}
         info={t('cooling.curve.auto.temp.help')}
         value={[curve.auto.idleTemp, curve.auto.loadTemp]} min={20} max={100} formatValue={v => `${v}°`}
+        minGap={curve.auto.deadband + 1}
         onChange={([idleTemp, loadTemp]) => set({ auto: { ...curve.auto, idleTemp, loadTemp } })} />
       <RangeSlider orientation="stacked" editable label={t('cooling.curve.auto.speed')}
         info={t('cooling.curve.auto.speed.help')}
