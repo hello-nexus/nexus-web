@@ -1,4 +1,4 @@
-// Always two rows of eight that scale with the width. Grid, not flex: flex
+// One fixed column count, scaling with the width. Grid, not flex: flex
 // gap needs Chromium 84 and the Q60 WebView is 83.
 .brands {
   display: grid;
