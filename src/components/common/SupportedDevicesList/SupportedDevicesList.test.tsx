@@ -30,6 +30,13 @@ describe('SupportedDevicesList', () => {
     expect(screen.queryByText('-:-')).not.toBeInTheDocument();
   });
 
+  it('renders each capability as its own chip', () => {
+    render(<SupportedDevicesList devices={DEVICES} />);
+
+    const caps = screen.getByText('Stream Deck MK.2').closest('tr')!.querySelectorAll('td:last-child > span');
+    expect(Array.from(caps, c => c.textContent)).toEqual(['keys', 'brightness', 'screen']);
+  });
+
   it('marks a row detected only when its VID:PID is in detectedVidPids', () => {
     render(<SupportedDevicesList devices={DEVICES} detectedVidPids={new Set(['0x3402:0x0300'])} />);
 

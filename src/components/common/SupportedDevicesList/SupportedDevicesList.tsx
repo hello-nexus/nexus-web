@@ -78,16 +78,19 @@ function DeviceRow({ device, showStatus, detected }: { device: SupportedDeviceRo
         </td>
       )}
       <td className={styles.brand}>
-        {sourceLabel !== null && (
-          <HoverTooltip body={sourceLabel} side="right">
-            <span className={styles.sourceIcon} aria-label={sourceLabel}>
-              <span aria-hidden={true}>
-                {device.source === 'nexus' ? <NexusMark size={14} /> : <OpenRgbGlyph size={14} />}
+        {/* Flex on an inner span: a flex <td> stops being a table cell. */}
+        <span className={styles.brandInner}>
+          {sourceLabel !== null && (
+            <HoverTooltip body={sourceLabel} side="right">
+              <span className={styles.sourceIcon} aria-label={sourceLabel}>
+                <span aria-hidden={true}>
+                  {device.source === 'nexus' ? <NexusMark size={14} /> : <OpenRgbGlyph size={14} />}
+                </span>
               </span>
-            </span>
-          </HoverTooltip>
-        )}
-        {device.vendor}
+            </HoverTooltip>
+          )}
+          {device.vendor}
+        </span>
       </td>
       <td className={styles.model}>{device.model}</td>
       <td className={styles.type}>{device.category}</td>
@@ -96,7 +99,9 @@ function DeviceRow({ device, showStatus, detected }: { device: SupportedDeviceRo
       <td className={styles.mono}>
         {device.vendorId.startsWith('0x') ? `${device.vendorId}:${device.productId.replace(/^0x/, '')}` : '-'}
       </td>
-      <td className={styles.caps}>{device.capabilities.join(' · ')}</td>
+      <td>
+        {device.capabilities.map(cap => <span key={cap} className={styles.cap}>{cap}</span>)}
+      </td>
     </tr>
   );
 }

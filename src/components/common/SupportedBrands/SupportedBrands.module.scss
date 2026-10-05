@@ -19,7 +19,9 @@
   color: var(--text-dim);
   cursor: pointer;
 
-  &:hover {
+  // aria-current: the search leads with this brand; the site's page script sets it too.
+  &:hover,
+  &[aria-current='true'] {
     background: var(--accent-soft);
     border-color: var(--accent);
     color: var(--accent-glow);

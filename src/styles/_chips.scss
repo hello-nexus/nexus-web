@@ -1,0 +1,24 @@
+// Mixins only, so a .module.scss rendered on a host page without global.scss
+// (the site's /devices table) can draw the same chips.
+
+@mixin chip-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: var(--weight-body);
+  line-height: 1;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  user-select: none;
+}
+
+@mixin chip-status-muted {
+  background: transparent;
+  color: var(--text-dim);
+  border-color: var(--border);
+}

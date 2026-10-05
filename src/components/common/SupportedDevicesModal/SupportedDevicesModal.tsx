@@ -63,7 +63,7 @@ export function SupportedDevicesModal({
   return (
     <DeviceModal open={open} onClose={handleClose} fullscreen title={title ?? t('supported.title')}>
       <div className={styles.content}>
-        <SupportedBrands className={styles.brands} onSelect={brand => { setQuery(brand); setPage(0); }} />
+        <SupportedBrands className={styles.brands} query={query} onSelect={brand => { setQuery(brand); setPage(0); }} />
         <div className={styles.searchRow}>
           <SearchInput
             value={query}
