@@ -5,7 +5,8 @@ import { type ReactNode, createElement } from 'react';
 import { LayoutDashboard } from 'lucide-react';
 import { ICON_SIZE } from './sidebarNav';
 import { APP_REGISTRY, getCatalogEntries, lookupApp } from '../panel/widgets/registry';
-import { isMarketplaceType } from '../widgets/marketplaceRegistry';
+import { getMarketplaceListing, isMarketplaceType, marketplaceIdFromType } from '../widgets/marketplaceRegistry';
+import { appIconMaskComponent } from '../components/icons/AppIconImage';
 import { DEV_TOOLS } from '../lib/devTools';
 import { DASHBOARD_APP_KEY } from './sidebarAppKeys';
 import { PAGE_ONLY_APPS } from './pageOnlyApps';
@@ -53,8 +54,11 @@ export function getSidebarAppMeta(key: string): SidebarAppMeta | null {
   // synthetic manifest so a pinned SDK page renders its icon + name.
   const manifest = APP_REGISTRY[key] ?? (isMarketplaceType(key) ? lookupApp(key) : undefined);
   if (!manifest || !manifest.Page) return null;
+  // An SDK app's mark draws as a silhouette here so it matches the built-in
+  // glyphs beside it; the store and widget picker keep its own colours.
+  const iconUrl = isMarketplaceType(key) ? getMarketplaceListing(marketplaceIdFromType(key) ?? '')?.iconUrl : null;
   return {
-    icon: createElement(manifest.meta.icon, { size: ICON_SIZE }),
+    icon: createElement(iconUrl ? appIconMaskComponent(iconUrl) : manifest.meta.icon, { size: ICON_SIZE }),
     i18nKey: manifest.meta.i18nKey,
   };
 }
