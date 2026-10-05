@@ -4749,6 +4749,7 @@
   "supported.countN": "{n} cihaz",
   "supported.empty": "Aramanizla eslesen cihaz yok.",
   "supported.loading": "Yukleniyor...",
+  "supported.moreBrands": "ve daha fazlası...",
   "supported.next": "Sonraki",
   "supported.pageOf": "Sayfa {n} / {total}",
   "supported.prev": "Onceki",

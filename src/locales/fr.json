@@ -4749,6 +4749,7 @@
   "supported.countN": "{n} appareils",
   "supported.empty": "Aucun appareil ne correspond à votre recherche.",
   "supported.loading": "Chargement...",
+  "supported.moreBrands": "et bien d'autres...",
   "supported.next": "Suivant",
   "supported.pageOf": "Page {n} sur {total}",
   "supported.prev": "Précédent",

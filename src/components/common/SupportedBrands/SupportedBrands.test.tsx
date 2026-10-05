@@ -22,6 +22,14 @@ describe('SupportedBrands', () => {
     }
   });
 
+  it('ends the grid with the "and many more" text, not another button', () => {
+    const { container } = render(<SupportedBrands />);
+
+    const last = container.firstElementChild!.lastElementChild!;
+    expect(last.tagName).toBe('SPAN');
+    expect(last.textContent).toBe('supported.moreBrands');
+  });
+
   it('highlights only the brand the query leads with', () => {
     render(<SupportedBrands query="  cooler master ml240 " />);
 

@@ -4749,6 +4749,7 @@
   "supported.countN": "{n}개 장치",
   "supported.empty": "일치하는 장치가 없습니다.",
   "supported.loading": "로딩 중...",
+  "supported.moreBrands": "그 외 다수...",
   "supported.next": "다음",
   "supported.pageOf": "{total}페이지 중 {n}페이지",
   "supported.prev": "이전",

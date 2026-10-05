@@ -4749,6 +4749,7 @@
   "supported.countN": "{n} devices",
   "supported.empty": "No devices match your search.",
   "supported.loading": "Loading...",
+  "supported.moreBrands": "and many more...",
   "supported.next": "Next",
   "supported.pageOf": "Page {n} of {total}",
   "supported.prev": "Prev",

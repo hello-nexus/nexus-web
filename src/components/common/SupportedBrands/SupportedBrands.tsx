@@ -1,3 +1,4 @@
+import { useTranslation } from '../../../lib/i18n';
 import { BRAND_LOGOS, queryStartsWithBrand } from './brandLogos';
 import styles from './SupportedBrands.module.scss';
 
@@ -11,6 +12,7 @@ interface SupportedBrandsProps {
 
 /** Brand logo buttons above the Supported Devices search. */
 export function SupportedBrands({ onSelect, query = '', className }: SupportedBrandsProps) {
+  const { t } = useTranslation();
   return (
     <div className={[styles.brands, className].filter(Boolean).join(' ')}>
       {BRAND_LOGOS.map(logo => (
@@ -31,6 +33,7 @@ export function SupportedBrands({ onSelect, query = '', className }: SupportedBr
           </svg>
         </button>
       ))}
+      <span className={styles.more}>{t('supported.moreBrands')}</span>
     </div>
   );
 }

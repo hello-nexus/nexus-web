@@ -4795,6 +4795,7 @@
   "supported.countN": "{n} устройств",
   "supported.empty": "Устройства не найдены.",
   "supported.loading": "Загрузка...",
+  "supported.moreBrands": "и многие другие...",
   "supported.next": "Далее",
   "supported.pageOf": "Страница {n} из {total}",
   "supported.prev": "Назад",

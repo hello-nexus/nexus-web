@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 // One fixed column count, scaling with the width. Grid, not flex: flex
 // gap needs Chromium 84 and the Q60 WebView is 83.
 .brands {
@@ -41,4 +43,18 @@
     height: 50%;
     fill: currentColor;
   }
+}
+
+// Fills the grid slot after the last brand as plain text, not a box. Its
+// size tracks the viewport like the cards do, so a narrow grid never wraps
+// it taller than the logo row.
+.more {
+  @include text-body;
+  font-size: min(var(--type-body), 1vw);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-dim);
 }

@@ -4749,6 +4749,7 @@
   "supported.countN": "{n} apparaten",
   "supported.empty": "Geen apparaten komen overeen met je zoekopdracht.",
   "supported.loading": "Laden...",
+  "supported.moreBrands": "en nog veel meer...",
   "supported.next": "Volgende",
   "supported.pageOf": "Pagina {n} van {total}",
   "supported.prev": "Vorige",

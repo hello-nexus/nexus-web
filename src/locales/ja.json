@@ -4749,6 +4749,7 @@
   "supported.countN": "{n}件",
   "supported.empty": "条件に一致するデバイスはありません。",
   "supported.loading": "読み込み中...",
+  "supported.moreBrands": "その他多数...",
   "supported.next": "次へ",
   "supported.pageOf": "{total}ページ中{n}ページ",
   "supported.prev": "前へ",

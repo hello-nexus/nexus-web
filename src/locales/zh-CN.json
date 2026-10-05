@@ -4749,6 +4749,7 @@
   "supported.countN": "{n} 个设备",
   "supported.empty": "没有符合条件的设备。",
   "supported.loading": "加载中...",
+  "supported.moreBrands": "以及更多...",
   "supported.next": "下一页",
   "supported.pageOf": "第 {n} 页,共 {total} 页",
   "supported.prev": "上一页",

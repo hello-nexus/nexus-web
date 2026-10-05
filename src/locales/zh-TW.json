@@ -4749,6 +4749,7 @@
   "supported.countN": "{n} 個裝置",
   "supported.empty": "沒有符合條件的裝置。",
   "supported.loading": "載入中...",
+  "supported.moreBrands": "以及更多...",
   "supported.next": "下一頁",
   "supported.pageOf": "第 {n} 頁,共 {total} 頁",
   "supported.prev": "上一頁",

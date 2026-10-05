@@ -4795,6 +4795,7 @@
   "supported.countN": "{n} urzadzen",
   "supported.empty": "Brak urzadzen pasujacych do wyszukiwania.",
   "supported.loading": "Ladowanie...",
+  "supported.moreBrands": "i wiele innych...",
   "supported.next": "Nast.",
   "supported.pageOf": "Strona {n} z {total}",
   "supported.prev": "Poprz.",
