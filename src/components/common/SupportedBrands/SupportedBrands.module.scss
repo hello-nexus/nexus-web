@@ -1,0 +1,46 @@
+@use '../../../styles/text' as *;
+
+// Grid, not flex: flex gap needs Chromium 84 and the Q60 WebView is 83.
+.brands {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 0.5rem;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 0.75rem;
+  background: var(--surface);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent-glow);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  // Nested so a host page's own `svg { height: auto }` cannot resize the mark.
+  .logo {
+    display: block;
+    width: 100%;
+    max-width: 72px;
+    height: 28px;
+    fill: currentColor;
+  }
+}
+
+.wordmark {
+  @include text-label;
+  white-space: nowrap;
+}

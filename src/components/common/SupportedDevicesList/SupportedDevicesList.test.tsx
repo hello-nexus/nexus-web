@@ -39,6 +39,17 @@ describe('SupportedDevicesList', () => {
     expect(rows[2].className).not.toMatch(/detected/);
   });
 
+  it('renders the status column only when detectedVidPids is passed', () => {
+    const { unmount } = render(<SupportedDevicesList devices={DEVICES} />);
+    expect(screen.getAllByRole('columnheader')).toHaveLength(5);
+    expect(screen.getAllByRole('row')[1].querySelectorAll('td')).toHaveLength(5);
+    unmount();
+
+    render(<SupportedDevicesList devices={DEVICES} detectedVidPids={new Set()} />);
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getAllByRole('row')[1].querySelectorAll('td')).toHaveLength(6);
+  });
+
   it('renders with react-dom/server without throwing, producing every row', () => {
     const html = renderToString(<SupportedDevicesList devices={DEVICES} />);
 
