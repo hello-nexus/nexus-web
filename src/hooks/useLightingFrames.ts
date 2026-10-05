@@ -32,7 +32,7 @@ export function useLightingFrames(enabled = true): LightingFrameState {
       socket.onmessage = (event) => {
         if (!(event.data instanceof ArrayBuffer)) return;
         const parsed = parseFrame(new Uint8Array(event.data));
-        publishLedFrame(parsed.canvasPixels, parsed.canvasW, parsed.canvasH);
+        publishLedFrame(parsed.canvasPixels, parsed.canvasW, parsed.canvasH, parsed.devices);
         const nowLive = !!parsed.canvasPixels && parsed.canvasW > 0;
         if (nowLive !== live && !cancelled) {
           live = nowLive;
@@ -53,17 +53,46 @@ export function useLightingFrames(enabled = true): LightingFrameState {
   return state;
 }
 
-function parseFrame(bytes: Uint8Array): { canvasPixels: Uint8Array | null; canvasW: number; canvasH: number } {
-  // v3: canvas pixels, then per-device data (unused here - device cards sample
-  // the canvas). v2 frames carry no canvas.
+export interface ParsedLightingFrame {
+  canvasPixels: Uint8Array | null;
+  canvasW: number;
+  canvasH: number;
+  devices: ReadonlyMap<number, Uint8Array>;
+}
+
+const NO_DEVICES: ReadonlyMap<number, Uint8Array> = new Map();
+
+/** Splits a v3 frame (canvas pixels, then a device count and per-device LED
+ *  sections) into zero-copy views. v2 frames carry neither canvas nor devices. */
+export function parseFrame(bytes: Uint8Array): ParsedLightingFrame {
   if (bytes.length >= 5 && bytes[0] === 0x03) {
     const canvasW = bytes[1] | (bytes[2] << 8);
     const canvasH = bytes[3] | (bytes[4] << 8);
+    const canvasEnd = 5 + canvasW * canvasH * 3;
     // subarray is a zero-copy view over the WS ArrayBuffer (which is already a
-    // fresh allocation per message). slice() would copy ~43 KB per frame at
-    // 30 fps on top of that; the consumer only reads the pixels, never mutates.
-    const canvasPixels = bytes.subarray(5, 5 + canvasW * canvasH * 3);
-    return { canvasPixels, canvasW, canvasH };
+    // fresh allocation per message). slice() would copy the whole canvas per
+    // frame on top of that; consumers only read the pixels, never mutate.
+    const canvasPixels = bytes.subarray(5, canvasEnd);
+    return { canvasPixels, canvasW, canvasH, devices: parseDevices(bytes, canvasEnd) };
   }
-  return { canvasPixels: null, canvasW: 0, canvasH: 0 };
+  return { canvasPixels: null, canvasW: 0, canvasH: 0, devices: NO_DEVICES };
+}
+
+function parseDevices(bytes: Uint8Array, start: number): ReadonlyMap<number, Uint8Array> {
+  if (start >= bytes.length) return NO_DEVICES;
+  const count = bytes[start];
+  if (count === 0) return NO_DEVICES;
+  const devices = new Map<number, Uint8Array>();
+  let at = start + 1;
+  for (let i = 0; i < count; i++) {
+    // Index byte, then the LED count, little endian.
+    if (at + 3 > bytes.length) break;
+    const index = bytes[at];
+    const ledBytes = (bytes[at + 1] | (bytes[at + 2] << 8)) * 3;
+    at += 3;
+    if (at + ledBytes > bytes.length) break;
+    devices.set(index, bytes.subarray(at, at + ledBytes));
+    at += ledBytes;
+  }
+  return devices;
 }

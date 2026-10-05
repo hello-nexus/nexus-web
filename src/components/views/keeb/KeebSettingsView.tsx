@@ -1,19 +1,18 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from 'lucide-react';
-import type { KeebSettings, RGBA } from '../../../api/keeb';
-import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import type { KeebSettings } from '../../../api/keeb';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { useThrottle } from '../../../hooks/cadence';
 import { useTranslation } from '../../../lib/i18n';
+import { KeebTypeReactive } from './KeebTypeReactive';
 import styles from './KeebSettingsView.module.scss';
 
 // Firmware enum values (wire contract). Display labels come from the
-// keeb.fx.* / keeb.speed.* / keeb.reactive.* locale keys.
+// keeb.fx.* / keeb.speed.* locale keys.
 const FW_EFFECTS = ['Static', 'Breathe', 'Rainbow', 'Wave', 'Flow', 'PingPong'];
 const FW_SPEEDS = ['Slow', 'LaidBack', 'Standard', 'Energetic', 'Rapid'];
-const KEY_REACTIVE_MODES = ['SingleKey', 'HorizontalLine', 'VerticalLine', 'Ripple'];
 
 const DIRECTIONS: { value: string; icon: ReactNode }[] = [
   { value: 'LeftToRight', icon: <ArrowRight size={16} aria-hidden="true" /> },
@@ -25,17 +24,15 @@ const DIRECTIONS: { value: string; icon: ReactNode }[] = [
 export interface KeebSettingsViewProps {
   settings: KeebSettings | null;
   onSaveFirmwareLighting: (next: Pick<KeebSettings, 'animationMode' | 'speed' | 'direction' | 'brightness'>) => Promise<void>;
-  onSavePassiveLighting: (next: Pick<KeebSettings, 'keyReactive' | 'keyReactiveMask' | 'keyReactiveMode' | 'keyReactiveColor'>) => Promise<void>;
   onSaveGameMode: (body: { altF4: boolean; altTab: boolean; shiftTab: boolean; windowsKey: boolean }) => Promise<void>;
 }
 
-/// Settings tab: firmware lighting, passive (key-reactive) overlay, game mode.
+/// Settings tab: firmware lighting, passive (type reactive) lighting, game mode.
 /// Every change writes through to the persistence layer immediately so the
 /// next service start picks them up.
 export function KeebSettingsView({
   settings,
   onSaveFirmwareLighting,
-  onSavePassiveLighting,
   onSaveGameMode,
 }: KeebSettingsViewProps) {
   const { t } = useTranslation();
@@ -74,18 +71,6 @@ export function KeebSettingsView({
       speed: next.speed,
       direction: next.direction,
       brightness: next.brightness,
-    });
-  };
-
-  const pushPassive = (patch: Partial<KeebSettings>) => {
-    const next = { ...(localRef.current ?? local), ...patch };
-    localRef.current = next;
-    setLocal(next);
-    void onSavePassiveLighting({
-      keyReactive: next.keyReactive,
-      keyReactiveMask: next.keyReactiveMask,
-      keyReactiveMode: next.keyReactiveMode,
-      keyReactiveColor: next.keyReactiveColor,
     });
   };
 
@@ -147,38 +132,7 @@ export function KeebSettingsView({
         </SettingRow>
       </SettingsSection>
 
-      <SettingsSection title={t('keeb.settings.passive.title')} description={t('keeb.settings.passive.subtitle')}>
-        <div className={styles.toggleReveal}>
-          <SettingToggle
-            label={t('keeb.settings.typeReactive')}
-            checked={local.keyReactive}
-            onChange={v => pushPassive({ keyReactive: v, keyReactiveMask: v ? local.keyReactiveMask : false })}
-          />
-          {local.keyReactive && (
-            <>
-              <SettingToggle
-                label={t('keeb.settings.maskEffect')}
-                description={t('keeb.settings.maskEffectHint')}
-                checked={local.keyReactiveMask}
-                onChange={v => pushPassive({ keyReactiveMask: v })}
-              />
-              <SettingSelect
-                label={t('keeb.settings.mode')}
-                value={local.keyReactiveMode}
-                onChange={v => pushPassive({ keyReactiveMode: v })}
-                options={KEY_REACTIVE_MODES.map(m => ({ value: m, label: t(`keeb.reactive.${m}`) }))}
-              />
-              <SettingRow label={t('keeb.settings.color')}>
-                <HsvPicker
-                  value={rgbToHex(local.keyReactiveColor)}
-                  onPreview={hex => setLocalField('keyReactiveColor', hexToRgba(hex, local.keyReactiveColor.a))}
-                  onCommit={hex => pushPassive({ keyReactiveColor: hexToRgba(hex, local.keyReactiveColor.a) })}
-                />
-              </SettingRow>
-            </>
-          )}
-        </div>
-      </SettingsSection>
+      <KeebTypeReactive />
 
       <SettingsSection title={t('keeb.settings.game.title')} description={t('keeb.settings.game.subtitle')}>
         <SettingToggle
@@ -204,17 +158,4 @@ export function KeebSettingsView({
       </SettingsSection>
     </div>
   );
-}
-
-function rgbToHex(c: RGBA): string {
-  const n = (v: number) => v.toString(16).padStart(2, '0');
-  return `#${n(c.r)}${n(c.g)}${n(c.b)}`;
-}
-
-function hexToRgba(hex: string, a: number): RGBA {
-  const h = hex.replace('#', '');
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return { r, g, b, a };
 }

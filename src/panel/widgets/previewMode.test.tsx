@@ -80,6 +80,9 @@ const PREVIEW_CONTENT: Record<string, string[]> = {
   steam: ['Nova', 'Star Voyager', 'Driftline'],
   obs: ['Gameplay'],
   media: ['Midnight Drive', 'The Wavelengths'],
+  // The mocked t() returns keys, so the stock animation's name surfaces as its
+  // raw label key.
+  lighting: ['lighting.simple.anim.rainbow'],
   // The condition label comes from the fixture's weather code through the
   // shared key table, so the mocked t() surfaces the key, not the fixture's
   // own English `condition` string.
@@ -203,6 +206,14 @@ describe('widget preview mode', () => {
     const img = container.querySelector('img');
     expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
   });
+
+  for (const type of ['media', 'lighting']) {
+    it(`${type} preview renders an inline data-URI thumbnail`, () => {
+      const { container } = renderPreview(type, pickerSizeFor(APP_REGISTRY[type].meta));
+      const img = container.querySelector('img');
+      expect(img?.getAttribute('src')?.startsWith('data:image/svg+xml')).toBe(true);
+    });
+  }
 });
 
 // The panel keeps a widget mounted through drag and edit, so a size change must

@@ -45,13 +45,13 @@ export function SupportedDevicesModal({
     if (categoryFilter && categoryFilter.length > 0) {
       list = list.filter(d => categoryFilter.includes(d.category));
     }
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      list = list.filter(d =>
-        d.vendor.toLowerCase().includes(q) ||
-        d.model.toLowerCase().includes(q) ||
-        `${d.vendor} ${d.model}`.toLowerCase().includes(q)
-      );
+    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+    if (words.length > 0) {
+      list = list.filter(d => {
+        // The newline keeps a word from matching across vendor and model.
+        const text = `${d.vendor}\n${d.model}`.toLowerCase();
+        return words.every(w => text.includes(w));
+      });
     }
     return list;
   }, [devices, query, categoryFilter]);

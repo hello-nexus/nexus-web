@@ -16,7 +16,6 @@ import {
   setKeebGameMode,
   setKeebLayerKey,
   setKeebMacro,
-  setKeebPassiveLighting,
   setKeebRotary,
 } from '../api/keeb';
 
@@ -29,7 +28,6 @@ vi.mock('../api/keeb', () => ({
   setKeebGameMode: vi.fn(),
   setKeebLayerKey: vi.fn(),
   setKeebMacro: vi.fn(),
-  setKeebPassiveLighting: vi.fn(),
   setKeebRotary: vi.fn(),
 }));
 
@@ -40,7 +38,6 @@ const mockReset = vi.mocked(resetKeebLayer);
 const mockGetMacro = vi.mocked(getKeebMacro);
 const mockSetMacro = vi.mocked(setKeebMacro);
 const mockFw = vi.mocked(setKeebFirmwareLighting);
-const mockPassive = vi.mocked(setKeebPassiveLighting);
 const mockGameMode = vi.mocked(setKeebGameMode);
 const mockRotary = vi.mocked(setKeebRotary);
 
@@ -65,10 +62,6 @@ function makeSettings(over: Partial<KeebSettings> = {}): KeebSettings {
     speed: 'Medium',
     direction: 'Left',
     brightness: 50,
-    keyReactive: false,
-    keyReactiveMask: false,
-    keyReactiveMode: 'Single',
-    keyReactiveColor: { r: 255, g: 0, b: 0, a: 255 },
     ...over,
   };
 }
@@ -278,30 +271,6 @@ describe('useKeeb', () => {
     expect(mockFw).toHaveBeenCalledWith(body);
     // Success: no resync fetch beyond the initial one.
     expect(mockSettings).toHaveBeenCalledTimes(1);
-  });
-
-  it('savePassiveLighting failure resyncs settings back to server truth', async () => {
-    const { result } = await renderKeeb();
-    mockPassive.mockResolvedValue(false);
-
-    const body = {
-      keyReactive: true,
-      keyReactiveMask: true,
-      keyReactiveMode: 'Ripple',
-      keyReactiveColor: { r: 0, g: 255, b: 0, a: 255 },
-    };
-    let pending!: Promise<boolean>;
-    act(() => { pending = result.current.savePassiveLighting(body); });
-    expect(result.current.settings).toMatchObject(body);
-
-    let ok = true;
-    await act(async () => { ok = await pending; });
-    await flush();
-
-    expect(ok).toBe(false);
-    // The resync refetched settings and rolled the optimistic merge back.
-    expect(mockSettings).toHaveBeenCalledTimes(2);
-    expect(result.current.settings).toEqual(makeSettings());
   });
 
   it('saveGameMode maps the body onto the settings field names', async () => {

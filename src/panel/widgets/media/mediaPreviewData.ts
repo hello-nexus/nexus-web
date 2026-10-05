@@ -2,15 +2,17 @@
 // ONE complete full-state snapshot, independent of widget size: the compact
 // art+title+controls, the full art card, progress, controls, and the volume
 // rail all render from this. Keep in sync with what MediaWidget renders
-// (previewMode.test.tsx is the fixture-sync gate). MediaSession has no artUrl
-// field - art comes from the (gated) blob fetch, so preview falls through to
-// the built-in Music-icon fallback.
+// (previewMode.test.tsx is the fixture-sync gate). MediaSession has no art
+// field and live art comes from a blob fetch preview skips, so the fixture
+// carries its own generic cover.
 import type { MediaSession } from '../../../hooks/useMedia';
 import type { SystemVolumeState } from '../../../hooks/useSystemVolume';
+import { previewAlbumArtUri } from '../common/previewAssets';
 
 interface MediaPreviewData {
   active: { key: string; session: MediaSession };
   volume: SystemVolumeState;
+  artUrl: string;
 }
 
 export const MEDIA_PREVIEW: MediaPreviewData = {
@@ -24,4 +26,5 @@ export const MEDIA_PREVIEW: MediaPreviewData = {
     },
   },
   volume: { supported: true, volume: 0.62, muted: false },
+  artUrl: previewAlbumArtUri(320),
 };

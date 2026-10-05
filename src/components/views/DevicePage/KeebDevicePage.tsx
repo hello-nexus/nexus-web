@@ -169,7 +169,6 @@ export function KeebDevicePage() {
             <KeebSettingsView
               settings={keeb.settings}
               onSaveFirmwareLighting={async body => { reportWrite(await keeb.saveFirmwareLighting(body)); }}
-              onSavePassiveLighting={async body => { reportWrite(await keeb.savePassiveLighting(body)); }}
               onSaveGameMode={async body => { reportWrite(await keeb.saveGameMode(body)); }}
             />
           )}
