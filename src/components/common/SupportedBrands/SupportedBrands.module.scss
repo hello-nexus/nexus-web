@@ -1,16 +1,18 @@
-// Grid, not flex: flex gap needs Chromium 84 and the Q60 WebView is 83.
+// Always two rows of eight that scale with the width. Grid, not flex: flex
+// gap needs Chromium 84 and the Q60 WebView is 83.
 .brands {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 0.5rem;
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 48px;
-  padding: 0 0.75rem;
+  position: relative;
+  display: block;
+  width: 100%;
+  // padding-top ties height to width; aspect-ratio needs Chromium 88.
+  height: 0;
+  padding: 42% 0 0;
   background: var(--surface);
   border: var(--border-width) solid transparent;
   border-radius: var(--radius);
@@ -30,10 +32,11 @@
 
   // Nested so a host page's own `svg { height: auto }` cannot resize the mark.
   .logo {
-    display: block;
-    width: 100%;
-    max-width: 72px;
-    height: 28px;
+    position: absolute;
+    top: 25%;
+    left: 10%;
+    width: 80%;
+    height: 50%;
     fill: currentColor;
   }
 }
