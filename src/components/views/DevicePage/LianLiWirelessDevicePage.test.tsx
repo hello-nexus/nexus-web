@@ -31,6 +31,7 @@ vi.mock('../../../api/lianli-wireless', () => ({
   bindLianLiWirelessFan: (...args: any[]) => mockBindLianLiWirelessFan(...args),
   unbindLianLiWirelessFan: (...args: any[]) => mockUnbindLianLiWirelessFan(...args),
   identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
+  getLianLiWirelessLighting: () => Promise.resolve(null),
 }));
 
 vi.mock('../../../api/cooling', () => ({
