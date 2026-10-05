@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Wielkość kroku",
   "cooling.curve.auto.step.help": "Ile duty dodaje każda korekta po osiągnięciu celu. Kroki w dół są o połowę mniejsze, więc wycofuje się łagodnie.",
   "cooling.curve.auto.temp": "Temperatura (spoczynek-cel)",
-  "cooling.curve.auto.temp.help": "Spoczynek to temperatura, przy której wentylatory mogą pozostać na minimum; druga to temperatura, którą ta krzywa stara się utrzymać.",
+  "cooling.curve.auto.temp.help": "Spoczynek to temperatura, przy której wentylatory mogą pozostać na minimum; druga to temperatura, którą ta krzywa stara się utrzymać. Różnica między nimi musi być większa niż strefa martwa.",
   "cooling.curve.fixed.hint": "Stały duty niezależny od temperatury.",
   "cooling.curve.fixed.speed": "Predkosc wentylatora",
   "cooling.curve.fixed.speed.help": "Duty, jaki utrzymuje każdy wentylator na tej krzywej, niezależnie od temperatury.",

@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Schrittweite",
   "cooling.curve.auto.step.help": "Wie viel Duty jede Anpassung hinzufügt, sobald das Ziel erreicht ist. Schritte nach unten sind halb so groß, damit sie sanft zurückgeht.",
   "cooling.curve.auto.temp": "Temperatur (Leerlauf-Ziel)",
-  "cooling.curve.auto.temp.help": "Leerlauf ist die Temperatur, bis zu der die Lüfter auf Minimum bleiben können; der zweite Wert ist die Temperatur, die diese Kurve zu halten versucht.",
+  "cooling.curve.auto.temp.help": "Leerlauf ist die Temperatur, bis zu der die Lüfter auf Minimum bleiben können; der zweite Wert ist die Temperatur, die diese Kurve zu halten versucht. Der Abstand zwischen beiden muss größer als die Totzone sein.",
   "cooling.curve.fixed.hint": "Duty unabhängig von der Temperatur konstant halten.",
   "cooling.curve.fixed.speed": "Lüfterdrehzahl",
   "cooling.curve.fixed.speed.help": "Der Duty, den jeder Lüfter auf dieser Kurve hält, unabhängig davon, was die Temperatur macht.",

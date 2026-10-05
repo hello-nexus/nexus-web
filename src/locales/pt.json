@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Incremento",
   "cooling.curve.auto.step.help": "Quanto duty cada ajuste adiciona assim que o alvo é atingido. Os passos para baixo são metade disso, pelo que recua com suavidade.",
   "cooling.curve.auto.temp": "Temperatura (repouso-alvo)",
-  "cooling.curve.auto.temp.help": "Repouso é a temperatura até à qual as ventoinhas podem ficar no mínimo; a segunda é a temperatura que esta curva tenta manter.",
+  "cooling.curve.auto.temp.help": "Repouso é a temperatura até à qual as ventoinhas podem ficar no mínimo; a segunda é a temperatura que esta curva tenta manter. A diferença entre as duas tem de ser maior do que a banda morta.",
   "cooling.curve.fixed.hint": "Mantém duty constante, independente da temperatura.",
   "cooling.curve.fixed.speed": "Velocidade da ventoinha",
   "cooling.curve.fixed.speed.help": "O duty que cada ventoinha nesta curva mantém, seja qual for a temperatura.",

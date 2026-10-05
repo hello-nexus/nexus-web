@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Incremento",
   "cooling.curve.auto.step.help": "Cuánto duty añade cada ajuste al alcanzar el objetivo. Los pasos hacia abajo son la mitad, así que se retira con suavidad.",
   "cooling.curve.auto.temp": "Temperatura (reposo-objetivo)",
-  "cooling.curve.auto.temp.help": "Reposo es la temperatura hasta la que los ventiladores pueden quedarse al mínimo; la segunda es la temperatura que esta curva intenta mantener.",
+  "cooling.curve.auto.temp.help": "Reposo es la temperatura hasta la que los ventiladores pueden quedarse al mínimo; la segunda es la temperatura que esta curva intenta mantener. La diferencia entre ambas debe ser mayor que la banda muerta.",
   "cooling.curve.fixed.hint": "Mantiene un duty constante, independiente de la temperatura.",
   "cooling.curve.fixed.speed": "Velocidad del ventilador",
   "cooling.curve.fixed.speed.help": "El duty que mantiene cada ventilador de esta curva, sea cual sea la temperatura.",

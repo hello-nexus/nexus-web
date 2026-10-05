@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "단위",
   "cooling.curve.auto.step.help": "목표에 도달한 후 각 조정마다 더해지는 duty 양입니다. 내려갈 때는 이 값의 절반이라 부드럽게 낮아집니다.",
   "cooling.curve.auto.temp": "온도 (유휴-목표)",
-  "cooling.curve.auto.temp.help": "유휴는 팬이 최저를 유지할 수 있는 온도이고, 두 번째는 이 커브가 유지하려는 온도입니다.",
+  "cooling.curve.auto.temp.help": "유휴는 팬이 최저를 유지할 수 있는 온도이고, 두 번째는 이 커브가 유지하려는 온도입니다. 두 값의 차이는 데드밴드보다 커야 합니다.",
   "cooling.curve.fixed.hint": "온도와 무관하게 일정한 duty를 유지합니다.",
   "cooling.curve.fixed.speed": "팬 속도",
   "cooling.curve.fixed.speed.help": "온도와 관계없이 이 커브의 모든 팬이 유지하는 duty입니다.",

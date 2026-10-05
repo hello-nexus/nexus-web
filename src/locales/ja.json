@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "ステップ幅",
   "cooling.curve.auto.step.help": "目標に達した後、1回の調整で加わる duty の量です。下げる場合はこの半分なので、ゆるやかに戻ります。",
   "cooling.curve.auto.temp": "温度 (アイドル-目標)",
-  "cooling.curve.auto.temp.help": "アイドルはファンが最低のままでいられる温度、2つ目はこのカーブが維持しようとする温度です。",
+  "cooling.curve.auto.temp.help": "アイドルはファンが最低のままでいられる温度、2つ目はこのカーブが維持しようとする温度です。2つの差はデッドバンドより大きくする必要があります。",
   "cooling.curve.fixed.hint": "温度に関係なく一定の duty を維持します。",
   "cooling.curve.fixed.speed": "ファン速度",
   "cooling.curve.fixed.speed.help": "このカーブ上のすべてのファンが温度に関係なく保つ duty です。",

@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Adım boyutu",
   "cooling.curve.auto.step.help": "Hedefe ulaşıldığında her ayarlamanın eklediği duty miktarı. Aşağı adımlar bunun yarısıdır, böylece yumuşakça geri çekilir.",
   "cooling.curve.auto.temp": "Sıcaklık (rölanti-hedef)",
-  "cooling.curve.auto.temp.help": "Rölanti, fanların minimumda kalabileceği sıcaklıktır; ikincisi bu eğrinin korumaya çalıştığı sıcaklıktır.",
+  "cooling.curve.auto.temp.help": "Rölanti, fanların minimumda kalabileceği sıcaklıktır; ikincisi bu eğrinin korumaya çalıştığı sıcaklıktır. İkisi arasındaki fark ölü banttan büyük olmalıdır.",
   "cooling.curve.fixed.hint": "Sıcaklıktan bağımsız sabit duty tutar.",
   "cooling.curve.fixed.speed": "Fan hizi",
   "cooling.curve.fixed.speed.help": "Sıcaklık ne olursa olsun, bu eğrideki her fanın koruduğu duty.",

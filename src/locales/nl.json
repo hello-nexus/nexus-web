@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Stapgrootte",
   "cooling.curve.auto.step.help": "Hoeveel duty elke aanpassing toevoegt zodra het doel is bereikt. Stappen omlaag zijn de helft daarvan, zodat ze zachtjes terugschakelt.",
   "cooling.curve.auto.temp": "Temperatuur (stationair-doel)",
-  "cooling.curve.auto.temp.help": "Stationair is de temperatuur waarbij de ventilatoren op hun minimum kunnen blijven; de tweede is de temperatuur die deze curve probeert aan te houden.",
+  "cooling.curve.auto.temp.help": "Stationair is de temperatuur waarbij de ventilatoren op hun minimum kunnen blijven; de tweede is de temperatuur die deze curve probeert aan te houden. Het verschil tussen beide moet groter zijn dan de dode zone.",
   "cooling.curve.fixed.hint": "Houd een constante duty aan, ongeacht de temperatuur.",
   "cooling.curve.fixed.speed": "Ventilatorsnelheid",
   "cooling.curve.fixed.speed.help": "De duty die elke ventilator op deze curve aanhoudt, wat de temperatuur ook doet.",

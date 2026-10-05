@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Pas",
   "cooling.curve.auto.step.help": "Trop duty ogni juste al zonte une volte rivât al obietîf. I pas in jù a son mez di chest, cussì e cale planc.",
   "cooling.curve.auto.temp": "Temperadure (fer-obietîf)",
-  "cooling.curve.auto.temp.help": "Fer al è la temperadure fin che i ventilatôrs a puedin restâ al minim; la seconde e je la temperadure che cheste curve e cîr di tignî.",
+  "cooling.curve.auto.temp.help": "Fer al è la temperadure fin che i ventilatôrs a puedin restâ al minim; la seconde e je la temperadure che cheste curve e cîr di tignî. La diference tra lis dôs e à di jessi plui grande de zone muarte.",
   "cooling.curve.fixed.hint": "Manten un duty costant cence tignî cont de temperadure.",
   "cooling.curve.fixed.speed": "Velocitât ventilatôr",
   "cooling.curve.fixed.speed.help": "Il duty che ogni ventilatôr su cheste curve al ten, cualsisei robe che la temperadure e fasi.",

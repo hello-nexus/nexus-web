@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Incremento",
   "cooling.curve.auto.step.help": "Quanto duty aggiunge ogni regolazione una volta raggiunto l'obiettivo. I passi verso il basso sono la metà, così rallenta con dolcezza.",
   "cooling.curve.auto.temp": "Temperatura (riposo-obiettivo)",
-  "cooling.curve.auto.temp.help": "Riposo è la temperatura fino alla quale le ventole possono restare al minimo; la seconda è la temperatura che questa curva cerca di mantenere.",
+  "cooling.curve.auto.temp.help": "Riposo è la temperatura fino alla quale le ventole possono restare al minimo; la seconda è la temperatura che questa curva cerca di mantenere. La differenza tra le due deve essere maggiore della banda morta.",
   "cooling.curve.fixed.hint": "Duty costante, indipendente dalla temperatura.",
   "cooling.curve.fixed.speed": "Velocità ventola",
   "cooling.curve.fixed.speed.help": "Il duty che ogni ventola su questa curva mantiene, qualunque cosa faccia la temperatura.",

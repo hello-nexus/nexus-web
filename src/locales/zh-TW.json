@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "步長",
   "cooling.curve.auto.step.help": "達到目標後，每次調整增加的 duty 量。下調的步幅是這個值的一半，所以會平穩回落。",
   "cooling.curve.auto.temp": "溫度 (閒置-目標)",
-  "cooling.curve.auto.temp.help": "閒置是風扇可以維持最低轉速的溫度；第二個值是此曲線試圖維持的溫度。",
+  "cooling.curve.auto.temp.help": "閒置是風扇可以維持最低轉速的溫度；第二個值是此曲線試圖維持的溫度。兩者之差必須大於死區。",
   "cooling.curve.fixed.hint": "固定 duty,不隨溫度改變。",
   "cooling.curve.fixed.speed": "風扇轉速",
   "cooling.curve.fixed.speed.help": "無論溫度如何變化，此曲線上每個風扇都會保持的 duty。",

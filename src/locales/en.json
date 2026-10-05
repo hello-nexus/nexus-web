@@ -359,7 +359,7 @@
   "cooling.curve.auto.step": "Step size",
   "cooling.curve.auto.step.help": "How much duty each adjustment adds once the target is reached. Steps down are half this, so it backs off gently.",
   "cooling.curve.auto.temp": "Temperature (idle-target)",
-  "cooling.curve.auto.temp.help": "Idle is the temperature the fans can stay at their minimum for; the second is the temperature this curve tries to hold.",
+  "cooling.curve.auto.temp.help": "Idle is the temperature the fans can stay at their minimum for; the second is the temperature this curve tries to hold. The gap between them must be larger than the deadband.",
   "cooling.curve.fixed.hint": "Hold a constant duty regardless of temperature.",
   "cooling.curve.fixed.speed": "Fan speed",
   "cooling.curve.fixed.speed.help": "The duty every fan on this curve holds, whatever the temperature does.",
