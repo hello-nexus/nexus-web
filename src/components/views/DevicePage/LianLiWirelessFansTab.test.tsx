@@ -84,7 +84,7 @@ async function renderTab(state: LianLiWirelessState | null = wirelessState) {
 describe('LianLiWirelessFansTab', () => {
   it('renders bind/unbind/identify actions for a bound chain, with no speed controls', async () => {
     await renderTab();
-    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.unbind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
     expect(screen.getByText('devices.lianli-wireless.bound - devices.lianli-wireless.slot:{"n":1}')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('LianLiWirelessFansTab', () => {
     expect(screen.queryByText(/devices\.lianli-wireless\.slot/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.bind' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'devices.lianli-wireless.identify' })).toBeInTheDocument();
-    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.manualSpeed' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
   });
 
 });

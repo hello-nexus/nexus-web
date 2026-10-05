@@ -35,8 +35,7 @@ vi.mock('../../../api/lianli-wireless', () => ({
 
 vi.mock('../../../api/cooling', () => ({
   fetchFanChannels: () => Promise.resolve({ channels: [] }),
-  setFanSpeed: () => Promise.resolve(null),
-  releaseFanAuto: () => Promise.resolve(null),
+  fetchCurves: () => Promise.resolve({ globalSpeedModifier: 100, curves: [] }),
 }));
 
 const connectedState = {
@@ -257,6 +256,19 @@ describe('LianLiWirelessDevicePage', () => {
     });
     expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.fanN:{"n":1}')).not.toBeInTheDocument();
+  });
+
+  it('pins Go to Cooling to the header on the Cooling tab only', async () => {
+    const nav = vi.fn();
+    await act(async () => {
+      render(<LianLiWirelessDevicePage onSectionNavigate={nav} />);
+    });
+    expect(screen.queryByRole('button', { name: 'devices.coolingPage.go' })).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.go' }));
+    expect(nav).toHaveBeenCalledWith('cooling');
   });
 
   it('falls back to Devices when the selected Cooling tab disappears', async () => {

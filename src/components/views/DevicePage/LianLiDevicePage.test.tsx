@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiDevicePage } from './LianLiDevicePage';
 
@@ -21,6 +22,13 @@ vi.mock('../../../api/lianli', () => ({
   getLianLiLighting: (...args: any[]) => mockGetLianLiLighting(...args),
   setLianLiLighting: (...args: any[]) => mockSetLianLiLighting(...args),
   setLianLiFanCount: (...args: any[]) => mockSetLianLiFanCount(...args),
+}));
+
+const mockFetchFanChannels = vi.fn();
+
+vi.mock('../../../api/cooling', () => ({
+  fetchFanChannels: (...args: any[]) => mockFetchFanChannels(...args),
+  fetchCurves: () => Promise.resolve({ globalSpeedModifier: 100, curves: [] }),
 }));
 
 const defaultState = {
@@ -49,42 +57,72 @@ beforeEach(() => {
   mockGetLianLiLighting.mockResolvedValue(defaultLighting);
   mockSetLianLiLighting.mockResolvedValue(null);
   mockSetLianLiFanCount.mockResolvedValue(null);
+  mockFetchFanChannels.mockResolvedValue({
+    channels: [
+      { id: 'lianli:port0', name: 'SL-Infinity Port 1', dutyPercent: 40, rpm: 1200, mode: 'Manual' },
+      { id: 'lianli:port1', name: 'SL-Infinity Port 2', dutyPercent: 0, rpm: 900, mode: 'Auto' },
+    ],
+  });
 });
+
+async function renderOnLighting(ui: ReactElement) {
+  await act(async () => {
+    render(ui);
+  });
+  fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
+}
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
 describe('LianLiDevicePage', () => {
-  it('opens on Lighting with a Cooling tab beside it', async () => {
+  it('opens on Devices with the per-port fan-count setup', async () => {
     await act(async () => {
       render(<LianLiDevicePage />);
     });
-    expect(screen.getByRole('tab', { name: /lighting\.title/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /devices\.title/ })).toHaveAttribute('aria-selected', 'true');
+    const portSection = screen.getByText('devices.lianli.portsSection').closest('section')!;
+    for (let n = 1; n <= 4; n++) {
+      expect(within(portSection).getByRole('button', { name: `devices.lianli.fanCountAria:{"n":${n}}` })).toBeInTheDocument();
+    }
+    expect(screen.queryByText('devices.lianli.lightingSection')).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /cooling\.title/ })).toBeInTheDocument();
-    expect(screen.getByText('devices.lianli.lightingSection')).toBeInTheDocument();
-    expect(screen.queryByText('devices.lianli.portsSection')).not.toBeInTheDocument();
   });
 
-  it('Cooling tab lists all 4 ports and points to the Cooling page', async () => {
+  it('Cooling lists the ports with fans read-only and pins Go to Cooling to the header', async () => {
     const nav = vi.fn();
     await act(async () => {
       render(<LianLiDevicePage onSectionNavigate={nav} />);
     });
-    fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
-    const portSection = screen.getByText('devices.lianli.portsSection').closest('section')!;
-    for (let n = 1; n <= 4; n++) {
-      expect(within(portSection).getByText(`devices.lianli.port:{"n":${n}}`)).toBeInTheDocument();
-    }
-    expect(within(portSection).getByText('devices.coolingPage.speedHint')).toBeInTheDocument();
-    fireEvent.click(within(portSection).getByRole('button', { name: 'devices.coolingPage.go' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
+    });
+    expect(screen.getByText('devices.lianli.port:{"n":1}')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli.port:{"n":2}')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli.port:{"n":3}')).not.toBeInTheDocument();
+    expect(screen.getByText('cooling.card.manual')).toBeInTheDocument();
+    expect(screen.getByText('40%')).toBeInTheDocument();
+    expect(screen.getByText('cooling.card.bios')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /devices\.lianli\.fanCountAria/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.go' }));
     expect(nav).toHaveBeenCalledWith('cooling');
+
+    fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
+    expect(screen.queryByRole('button', { name: 'devices.coolingPage.go' })).not.toBeInTheDocument();
   });
 
-  it('firmware mode shows brightness slider first, then speed slider', async () => {
+  it('has no Cooling tab while no port has fans', async () => {
+    mockGetLianLiState.mockResolvedValue({ ...defaultState, fansPerPort: [0, 0, 0, 0] });
     await act(async () => {
       render(<LianLiDevicePage />);
     });
+    expect(screen.queryByRole('tab', { name: /cooling\.title/ })).not.toBeInTheDocument();
+  });
+
+  it('firmware mode shows brightness slider first, then speed slider', async () => {
+    await renderOnLighting(<LianLiDevicePage />);
     // In static mode (firmware), brightness should appear as a stacked slider label.
     expect(screen.getByText('devices.lianli.lightingBrightness')).toBeInTheDocument();
     // Speed also appears (static hasSpeed=true).
@@ -101,9 +139,7 @@ describe('LianLiDevicePage', () => {
       mode: 'custom',
       effectMode: 'rainbowWave',
     });
-    await act(async () => {
-      render(<LianLiDevicePage onSectionNavigate={vi.fn()} />);
-    });
+    await renderOnLighting(<LianLiDevicePage onSectionNavigate={vi.fn()} />);
     expect(screen.getByRole('switch', { name: 'devices.lightingPage.use' })).toHaveAttribute('aria-checked', 'true');
     expect(screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' })).toBeInTheDocument();
     const modeSelect = screen.getByRole('button', { name: 'devices.lianli.lightingMode' });
@@ -114,9 +150,7 @@ describe('LianLiDevicePage', () => {
 
   it('turning the switch off restores the last animation', async () => {
     mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, mode: 'custom', effectMode: 'rainbowWave' });
-    await act(async () => {
-      render(<LianLiDevicePage />);
-    });
+    await renderOnLighting(<LianLiDevicePage />);
     await act(async () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
     });
@@ -124,9 +158,7 @@ describe('LianLiDevicePage', () => {
   });
 
   it('offers Merge only for a mergeable mode and commits the toggle', async () => {
-    await act(async () => {
-      render(<LianLiDevicePage />);
-    });
+    await renderOnLighting(<LianLiDevicePage />);
     expect(screen.queryByRole('switch', { name: 'devices.lianli.merge' })).not.toBeInTheDocument();
 
     mockGetLianLiLighting.mockResolvedValue({
@@ -151,9 +183,7 @@ describe('LianLiDevicePage', () => {
   });
 
   it('turning the switch on hands the hub to the Lighting page', async () => {
-    await act(async () => {
-      render(<LianLiDevicePage />);
-    });
+    await renderOnLighting(<LianLiDevicePage />);
     await act(async () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
     });
@@ -161,9 +191,7 @@ describe('LianLiDevicePage', () => {
   });
 
   it('keeps the Lighting page mode out of the animation list', async () => {
-    await act(async () => {
-      render(<LianLiDevicePage />);
-    });
+    await renderOnLighting(<LianLiDevicePage />);
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.lightingMode' }));
     const options = screen.getAllByRole('option');
     expect(options.map(o => o.textContent)).not.toContain('Custom (per-LED effects)');
@@ -171,9 +199,7 @@ describe('LianLiDevicePage', () => {
 
   it('firmware mode does NOT show lighting-page link button', async () => {
     const spy = vi.fn();
-    await act(async () => {
-      render(<LianLiDevicePage onSectionNavigate={spy} />);
-    });
+    await renderOnLighting(<LianLiDevicePage onSectionNavigate={spy} />);
     // defaultLighting.mode is 'static' (a firmware mode).
     expect(screen.queryByRole('button', { name: /smartLights\.colorOnLightingPage/i })).not.toBeInTheDocument();
   });
@@ -183,9 +209,7 @@ describe('LianLiDevicePage', () => {
       ...defaultLighting,
       mode: 'rainbowWave',
     });
-    await act(async () => {
-      render(<LianLiDevicePage />);
-    });
+    await renderOnLighting(<LianLiDevicePage />);
     expect(screen.getByText('devices.lianli.lightingDirection')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli.addColor')).not.toBeInTheDocument();
   });
@@ -196,9 +220,7 @@ describe('LianLiDevicePage', () => {
       mode: 'dualColor',
       colors: ['#ff0000'],
     });
-    await act(async () => {
-      render(<LianLiDevicePage />);
-    });
+    await renderOnLighting(<LianLiDevicePage />);
     const section = screen.getByText('devices.lianli.lightingSection').closest('section')!;
     // Each HsvPicker renders one hex input; the fixed 2-color pair shows exactly two.
     expect(within(section).getAllByLabelText('common.hexColor')).toHaveLength(2);
@@ -216,9 +238,7 @@ describe('LianLiDevicePage', () => {
       mode: 'custom',
     });
     const spy = vi.fn();
-    await act(async () => {
-      render(<LianLiDevicePage onSectionNavigate={spy} />);
-    });
+    await renderOnLighting(<LianLiDevicePage onSectionNavigate={spy} />);
     const btn = screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' });
     btn.click();
     expect(spy).toHaveBeenCalledWith('lighting');
