@@ -9,7 +9,7 @@ import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard'
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
-import { lightingGroupAnchor } from '../../../../lib/pageAnchors';
+import { lightingDeviceAnchor, lightingGroupAnchor } from '../../../../lib/pageAnchors';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
@@ -386,6 +386,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     <ZoneCard
       key={d.id}
       device={d}
+      anchorId={lightingDeviceAnchor(d.id)}
       displayName={displayName}
       stacked={stacked}
       selected={selectedIds.has(d.id)}

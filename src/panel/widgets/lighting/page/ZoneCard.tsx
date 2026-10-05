@@ -19,7 +19,6 @@ import { DeviceNotice } from './DeviceNotice';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
-import { lightingDeviceAnchor } from '../../../../lib/pageAnchors';
 import styles from '../LightingPage.module.scss';
 import type { StackSlot } from '../../../../lib/stackSlots';
 
@@ -263,6 +262,7 @@ export function ZoneCardStack({ name, anchorId, selected, drag, onSelect, menu, 
  */
 export function ZoneCard({
   device,
+  anchorId,
   displayName,
   selected,
   ledPick,
@@ -295,6 +295,8 @@ export function ZoneCard({
   lock,
 }: {
   device: LightingDevice;
+  /** Deep-link anchor the card answers to; see CollapsibleSection's searchAnchor. */
+  anchorId?: string;
   /** Overrides the on-card name. Used to strip the parent prefix from child zones. */
   displayName?: string;
   selected: boolean;
@@ -580,7 +582,7 @@ export function ZoneCard({
       role={toggleable ? 'switch' : undefined}
       aria-checked={toggleable ? controlled : undefined}
       aria-label={toggleable ? displayName ?? device.name : undefined}
-      data-search-anchor={lightingDeviceAnchor(device.id)}
+      data-search-anchor={anchorId}
       tabIndex={toggleable ? 0 : undefined}
       onKeyDown={toggleable ? e => {
         if (e.key === 'Enter' || e.key === ' ') {

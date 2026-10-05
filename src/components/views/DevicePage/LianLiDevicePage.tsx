@@ -7,7 +7,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CoolingPageShortcut, LightingPageShortcut, type DeviceSectionNavigate } from './CoolingPageLink';
+import { CoolingPageShortcut, LightingPageShortcut } from './CoolingPageLink';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import { lianLiCoolingAnchors, lianLiLightingAnchors } from '../../../lib/pageAnchors';
 import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { LightingPageSwitch } from './LightingPageSwitch';
@@ -42,7 +43,7 @@ const RPM_POLL_MS = 2000;
 type LianLiTab = 'devices' | 'lighting' | 'cooling';
 
 interface LianLiDevicePageProps {
-  onSectionNavigate?: DeviceSectionNavigate;
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {

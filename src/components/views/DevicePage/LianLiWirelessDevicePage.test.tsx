@@ -276,7 +276,7 @@ describe('LianLiWirelessDevicePage', () => {
     expect(screen.queryByRole('button', { name: 'devices.coolingPage.setHint' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
     expect(nav).toHaveBeenLastCalledWith('lighting', {
-      scrollAnchors: ['lighting-group:mb:lianli-wireless', 'lighting-device:lianli-wireless:998D1DE566E1'],
+      scrollAnchors: ['lighting-group:mb:lianli-wireless'],
     });
   });
 

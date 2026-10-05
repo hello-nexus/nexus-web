@@ -8,7 +8,7 @@ import { Placeholder } from '../Placeholder';
 import { PanelDevicePage } from './PanelDevicePage';
 import { KeebDevicePage } from './KeebDevicePage';
 import { LianLiDevicePage } from './LianLiDevicePage';
-import type { DeviceSectionNavigate } from './CoolingPageLink';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import { CorsairDevicePage } from './CorsairDevicePage';
 import { Np50DevicePage } from './Np50DevicePage';
 import { SmartHubDevicePage } from './SmartHubDevicePage';
@@ -63,7 +63,7 @@ interface DevicePageProps {
   serviceOnline: boolean;
   connectionState?: ConnectionState;
   onOpenFirmware?: () => void;
-  onSectionNavigate?: DeviceSectionNavigate;
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFirmware, onSectionNavigate }: DevicePageProps) {
@@ -201,7 +201,7 @@ interface DeviceBodyProps {
   device: UnifiedDevice;
   controlDevice: (id: string, nextEnabled: boolean) => Promise<unknown>;
   onOpenFirmware?: () => void;
-  onSectionNavigate?: DeviceSectionNavigate;
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }: DeviceBodyProps) {

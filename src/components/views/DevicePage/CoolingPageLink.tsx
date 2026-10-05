@@ -1,10 +1,8 @@
 import { Fan, Lightbulb } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import styles from './LianLiDevicePage.module.scss';
-
-/** A device page's jump to another section, optionally naming what to scroll to and shine there. */
-export type DeviceSectionNavigate = (section: string, payload?: { scrollAnchors?: readonly string[] }) => void;
 
 interface CoolingPageLinkProps {
   hint: string;
@@ -35,7 +33,7 @@ export function CoolingPageLink({ hint, onSectionNavigate }: CoolingPageLinkProp
 }
 
 /** A device Cooling tab's tab-row button to the Cooling page, labelled with what it sets there. */
-export function CoolingPageShortcut({ onSectionNavigate, anchors }: { onSectionNavigate: DeviceSectionNavigate; anchors?: readonly string[] }) {
+export function CoolingPageShortcut({ onSectionNavigate, anchors }: { onSectionNavigate: DashboardSectionNavigate; anchors?: readonly string[] }) {
   const { t } = useTranslation();
   const label = t('devices.coolingPage.setHint');
   return (
@@ -46,7 +44,7 @@ export function CoolingPageShortcut({ onSectionNavigate, anchors }: { onSectionN
 }
 
 /** A device Lighting tab's tab-row button to the Lighting page, labelled with what it sets there. */
-export function LightingPageShortcut({ onSectionNavigate, anchors }: { onSectionNavigate: DeviceSectionNavigate; anchors?: readonly string[] }) {
+export function LightingPageShortcut({ onSectionNavigate, anchors }: { onSectionNavigate: DashboardSectionNavigate; anchors?: readonly string[] }) {
   const { t } = useTranslation();
   const label = t('devices.lightingPage.setHint');
   return (

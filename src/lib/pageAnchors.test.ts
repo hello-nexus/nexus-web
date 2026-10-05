@@ -7,30 +7,44 @@ import {
 } from './pageAnchors';
 
 describe('pageAnchors', () => {
-  it('wired lighting targets the hub group, then its first card', () => {
-    expect(lianLiLightingAnchors()).toEqual(['lighting-group:mb:lianli', 'lighting-device:lianli:port0']);
-    expect(lianLiLightingAnchors({ argbSync: false, argbSyncSource: 'openrgb-1' })[0]).toBe('lighting-group:mb:lianli');
+  it('wired lighting with sync off targets the hub group, whatever source is stored', () => {
+    expect(lianLiLightingAnchors()).toEqual(['lighting-group:mb:lianli']);
+    expect(lianLiLightingAnchors({ argbSync: false, argbSyncSource: 'openrgb-s-9876543210-1' })).toEqual(['lighting-group:mb:lianli']);
   });
 
-  it('wired lighting with sync on targets the source header, not the hub', () => {
-    expect(lianLiLightingAnchors({ argbSync: true, argbSyncSource: 'openrgb-1' })).toEqual([
-      'lighting-group:mb:openrgb-1',
-      'lighting-device:openrgb-1:z0',
+  it('sync on targets the source group, its card, the board group, then the hub', () => {
+    expect(lianLiLightingAnchors({ argbSync: true, argbSyncSource: 'openrgb-s-9876543210-1' })).toEqual([
+      'lighting-group:mb:openrgb-s-9876543210-1',
+      'lighting-device:openrgb-s-9876543210-1:z0',
+      'lighting-device:openrgb-s-9876543210-1',
+      'lighting-group:mb:openrgb-s-9876543210',
+      'lighting-group:mb:lianli',
+    ]);
+  });
+
+  it('sync on with a source that is not an OpenRGB port skips the board entry', () => {
+    expect(lianLiLightingAnchors({ argbSync: true, argbSyncSource: 'smarthub:1:port4' })).toEqual([
+      'lighting-group:mb:smarthub:1:port4',
+      'lighting-device:smarthub:1:port4:z0',
+      'lighting-device:smarthub:1:port4',
+      'lighting-group:mb:lianli',
     ]);
   });
 
   it('sync on with no source saved falls back to the hub', () => {
-    expect(lianLiLightingAnchors({ argbSync: true })[0]).toBe('lighting-group:mb:lianli');
+    expect(lianLiLightingAnchors({ argbSync: true })).toEqual(['lighting-group:mb:lianli']);
+    expect(lianLiLightingAnchors({ argbSync: true, argbSyncSource: null })).toEqual(['lighting-group:mb:lianli']);
   });
 
-  it('wired cooling targets the hub group, then its channels', () => {
-    const anchors = lianLiCoolingAnchors();
-    expect(anchors[0]).toBe('cooling-group:lianli');
-    expect(anchors).toContain('cooling-fan:lianli:port3');
+  it('wired cooling targets the hub group', () => {
+    expect(lianLiCoolingAnchors()).toEqual(['cooling-group:lianli']);
   });
 
   it('wireless targets the hub group on lighting and each bound chain on cooling', () => {
-    expect(lianLiWirelessLightingAnchors(['aa'])).toEqual(['lighting-group:mb:lianli-wireless', 'lighting-device:lianli-wireless:aa']);
-    expect(lianLiWirelessCoolingAnchors(['aa', 'bb'])).toEqual(['cooling-group:lianli-wireless:aa', 'cooling-group:lianli-wireless:bb']);
+    expect(lianLiWirelessLightingAnchors()).toEqual(['lighting-group:mb:lianli-wireless']);
+    expect(lianLiWirelessCoolingAnchors(['998D1DE566E1', 'AABBCCDDEEFF'])).toEqual([
+      'cooling-group:lianli-wireless:998D1DE566E1',
+      'cooling-group:lianli-wireless:AABBCCDDEEFF',
+    ]);
   });
 });

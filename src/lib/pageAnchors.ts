@@ -6,34 +6,36 @@
 export const lightingGroupAnchor = (groupKey: string) => `lighting-group:${groupKey}`;
 export const lightingDeviceAnchor = (deviceId: string) => `lighting-device:${deviceId}`;
 export const coolingGroupAnchor = (blockId: string) => `cooling-group:${blockId}`;
-export const coolingFanAnchor = (channelId: string) => `cooling-fan:${channelId}`;
 
 const WIRED_HUB_ID = 'lianli';
 const WIRELESS_HUB_ID = 'lianli-wireless';
-const WIRED_PORT_COUNT = 4;
+const OPENRGB_PORT_ID = /^(openrgb-s-.+)-\d+$/;
 
-/** Lighting rail targets for the wired hub: the source ARGB header while sync
- *  drives its fans through it, otherwise the hub's own group. */
+/** Lighting rail targets for the wired hub. With sync on, the source header
+ *  drives the fans: its group or stack, its single card, the board group that
+ *  holds the port, then the hub itself. Otherwise the hub's group. */
 export function lianLiLightingAnchors(sync?: { argbSync?: boolean; argbSyncSource?: string | null }): string[] {
+  const hub = lightingGroupAnchor(`mb:${WIRED_HUB_ID}`);
   const source = sync?.argbSync === true ? sync.argbSyncSource : undefined;
-  if (source) return [lightingGroupAnchor(`mb:${source}`), lightingDeviceAnchor(`${source}:z0`)];
-  return [lightingGroupAnchor(`mb:${WIRED_HUB_ID}`), lightingDeviceAnchor(`${WIRED_HUB_ID}:port0`)];
+  if (!source) return [hub];
+  const board = OPENRGB_PORT_ID.exec(source)?.[1];
+  return [
+    lightingGroupAnchor(`mb:${source}`),
+    lightingDeviceAnchor(`${source}:z0`),
+    lightingDeviceAnchor(source),
+    ...(board ? [lightingGroupAnchor(`mb:${board}`)] : []),
+    hub,
+  ];
 }
 
-/** Cooling rail targets for the wired hub: its group, else its first channel. */
+/** Cooling rail target for the wired hub: its group. */
 export function lianLiCoolingAnchors(): string[] {
-  return [
-    coolingGroupAnchor(WIRED_HUB_ID),
-    ...Array.from({ length: WIRED_PORT_COUNT }, (_, p) => coolingFanAnchor(`${WIRED_HUB_ID}:port${p}`)),
-  ];
+  return [coolingGroupAnchor(WIRED_HUB_ID)];
 }
 
-/** Lighting rail targets for the wireless controller: its hub group, else a bound chain's card. */
-export function lianLiWirelessLightingAnchors(macs: readonly string[]): string[] {
-  return [
-    lightingGroupAnchor(`mb:${WIRELESS_HUB_ID}`),
-    ...macs.map(mac => lightingDeviceAnchor(`${WIRELESS_HUB_ID}:${mac}`)),
-  ];
+/** Lighting rail target for the wireless controller: its hub group. */
+export function lianLiWirelessLightingAnchors(): string[] {
+  return [lightingGroupAnchor(`mb:${WIRELESS_HUB_ID}`)];
 }
 
 /** Cooling rail targets for the wireless controller: each bound chain's group. */

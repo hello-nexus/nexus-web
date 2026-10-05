@@ -28,9 +28,13 @@ export function requestSearchScroll(target: string | readonly string[]): void {
 /** Mount once near the app root so deep-link scroll works on any page. */
 export function useSearchAnchorScroller(): void {
   useEffect(() => {
+    // A newer request supersedes any loop still polling.
+    let latest = 0;
     const onRequest: Listener = (ids) => {
+      const mine = ++latest;
       let frames = 0;
       const tick = () => {
+        if (mine !== latest) return;
         let id = '';
         let el: HTMLElement | null = null;
         for (const candidate of ids) {

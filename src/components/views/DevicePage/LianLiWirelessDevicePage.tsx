@@ -9,7 +9,8 @@ import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
 import { LianLiWirelessFansTab, fanTypeKey, isFanDevice } from './LianLiWirelessFansTab';
 import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
-import { CoolingPageShortcut, LightingPageShortcut, type DeviceSectionNavigate } from './CoolingPageLink';
+import { CoolingPageShortcut, LightingPageShortcut } from './CoolingPageLink';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
 import { lianLiWirelessCoolingAnchors, lianLiWirelessLightingAnchors } from '../../../lib/pageAnchors';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
@@ -35,7 +36,7 @@ const LINK_HINT_KEYS: Partial<Record<LianLiWirelessLinkStatus, string>> = {
 };
 
 interface LianLiWirelessDevicePageProps {
-  onSectionNavigate?: DeviceSectionNavigate;
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 /**
@@ -129,7 +130,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
         tabActions={disconnected || !onSectionNavigate ? undefined
           : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiWirelessCoolingAnchors(boundMacs)} />
-          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiWirelessLightingAnchors(boundMacs)} />
+          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiWirelessLightingAnchors()} />
           : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>

@@ -56,4 +56,23 @@ describe('useSearchAnchorScroller', () => {
     first.remove();
     second.remove();
   });
+
+  it('a newer request cancels a loop still polling for the older one', async () => {
+    renderHook(() => useSearchAnchorScroller());
+    requestSearchScroll('late-a');
+    requestSearchScroll('late-b');
+    const a = document.createElement('div');
+    a.setAttribute('data-search-anchor', 'late-a');
+    const b = document.createElement('div');
+    b.setAttribute('data-search-anchor', 'late-b');
+    document.body.append(a, b);
+    a.scrollIntoView = vi.fn();
+    b.scrollIntoView = vi.fn();
+    await vi.waitFor(() => {
+      expect(b.classList.contains('nexus-search-anchor-active')).toBe(true);
+    });
+    expect(a.classList.contains('nexus-search-anchor-active')).toBe(false);
+    a.remove();
+    b.remove();
+  });
 });
