@@ -9,6 +9,7 @@ import { DeviceDiscoveryCard, type DiscoveryState } from './DeviceDiscoveryCard'
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { IDENTIFY_MS } from './zoneUtils';
 import { MotherboardGroup } from './MotherboardGroup';
+import { lightingGroupAnchor } from '../../../../lib/pageAnchors';
 import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
 import { GroupedSortableList } from '../../../../components/common/SortableList/GroupedSortableList';
@@ -435,6 +436,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     return (
       <ZoneCardStack
         key={block.groupKey}
+        anchorId={lightingGroupAnchor(block.groupKey)}
         name={block.label}
         selected={members.some(z => selectedIds.has(z.id))}
         zoneCount={members.length}
@@ -503,6 +505,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
     };
     return (
       <MotherboardGroup key={groupKey} parentName={label} ariaLabel={isBrand ? label : undefined}
+        searchAnchor={lightingGroupAnchor(groupKey)}
         icon={<DeviceGroupIcon id={parentDeviceId ?? groupKey} iconType={members[0]?.iconType} />}
         onRename={onRenameDevice && parentDeviceId ? name => onRenameDevice(parentDeviceId, name) : undefined}
         onResetName={onRenameDevice && parentDeviceId && members[0]?.parentName != null

@@ -3,6 +3,9 @@ import { Button } from '../../common/Button/Button';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './LianLiDevicePage.module.scss';
 
+/** A device page's jump to another section, optionally naming what to scroll to and shine there. */
+export type DeviceSectionNavigate = (section: string, payload?: { scrollAnchors?: readonly string[] }) => void;
+
 interface CoolingPageLinkProps {
   hint: string;
   onSectionNavigate?: (section: string) => void;
@@ -32,22 +35,22 @@ export function CoolingPageLink({ hint, onSectionNavigate }: CoolingPageLinkProp
 }
 
 /** A device Cooling tab's tab-row button to the Cooling page, labelled with what it sets there. */
-export function CoolingPageShortcut({ onSectionNavigate }: { onSectionNavigate: (section: string) => void }) {
+export function CoolingPageShortcut({ onSectionNavigate, anchors }: { onSectionNavigate: DeviceSectionNavigate; anchors?: readonly string[] }) {
   const { t } = useTranslation();
   const label = t('devices.coolingPage.setHint');
   return (
-    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} title={label} onClick={() => onSectionNavigate('cooling')}>
+    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Fan size={14} />} title={label} onClick={() => onSectionNavigate('cooling', anchors ? { scrollAnchors: anchors } : undefined)}>
       <span className={styles.pageShortcutLabel}>{label}</span>
     </Button>
   );
 }
 
 /** A device Lighting tab's tab-row button to the Lighting page, labelled with what it sets there. */
-export function LightingPageShortcut({ onSectionNavigate }: { onSectionNavigate: (section: string) => void }) {
+export function LightingPageShortcut({ onSectionNavigate, anchors }: { onSectionNavigate: DeviceSectionNavigate; anchors?: readonly string[] }) {
   const { t } = useTranslation();
   const label = t('devices.lightingPage.setHint');
   return (
-    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Lightbulb size={14} />} title={label} onClick={() => onSectionNavigate('lighting')}>
+    <Button className={styles.pageShortcutButton} size="sm" tone="neutral" icon={<Lightbulb size={14} />} title={label} onClick={() => onSectionNavigate('lighting', anchors ? { scrollAnchors: anchors } : undefined)}>
       <span className={styles.pageShortcutLabel}>{label}</span>
     </Button>
   );

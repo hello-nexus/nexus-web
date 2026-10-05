@@ -19,6 +19,7 @@ import { DeviceNotice } from './DeviceNotice';
 import { DeviceLedStrip, type LedPick } from './DeviceLedStrip';
 import { startIdentify } from '../../../../lib/identifyFlash';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
+import { lightingDeviceAnchor } from '../../../../lib/pageAnchors';
 import styles from '../LightingPage.module.scss';
 import type { StackSlot } from '../../../../lib/stackSlots';
 
@@ -126,9 +127,11 @@ export interface StackMenu {
  * The header row is the device: clicking it selects every zone, and its kebab
  * acts on them all.
  */
-export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount = 0, children }: {
+export function ZoneCardStack({ name, anchorId, selected, drag, onSelect, menu, zoneCount = 0, children }: {
   /** The device name, shown once above the zones. */
   name: string;
+  /** Deep-link anchor the stack answers to; see CollapsibleSection's searchAnchor. */
+  anchorId?: string;
   /** True while any zone under the header is selected: the header takes the
    *  selected fill (no border - that stays on the zone) so the device reads as
    *  one unit with something selected. */
@@ -188,6 +191,7 @@ export function ZoneCardStack({ name, selected, drag, onSelect, menu, zoneCount 
         style={drag?.style ?? {}}
         {...(drag?.attributes ?? {})}
         {...(drag?.listeners ?? {})}
+        data-search-anchor={anchorId}
         className={`${styles.deviceCardStack}${drag?.isDragging ? ` ${drag.placeholderClassName}` : ''}`}
       >
         <div
@@ -576,6 +580,7 @@ export function ZoneCard({
       role={toggleable ? 'switch' : undefined}
       aria-checked={toggleable ? controlled : undefined}
       aria-label={toggleable ? displayName ?? device.name : undefined}
+      data-search-anchor={lightingDeviceAnchor(device.id)}
       tabIndex={toggleable ? 0 : undefined}
       onKeyDown={toggleable ? e => {
         if (e.key === 'Enter' || e.key === ' ') {

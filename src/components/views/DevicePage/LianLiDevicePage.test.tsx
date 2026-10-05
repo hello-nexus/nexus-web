@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LianLiDevicePage } from './LianLiDevicePage';
+import { lianLiCoolingAnchors, lianLiLightingAnchors } from '../../../lib/pageAnchors';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -120,12 +121,12 @@ describe('LianLiDevicePage', () => {
     expect(screen.queryByRole('button', { name: /devices\.lianli\.fanCountAria/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.setHint' }));
-    expect(nav).toHaveBeenCalledWith('cooling');
+    expect(nav).toHaveBeenCalledWith('cooling', { scrollAnchors: lianLiCoolingAnchors() });
 
     fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
     expect(screen.queryByRole('button', { name: 'devices.coolingPage.setHint' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
-    expect(nav).toHaveBeenLastCalledWith('lighting');
+    expect(nav).toHaveBeenLastCalledWith('lighting', { scrollAnchors: lianLiLightingAnchors() });
   });
 
   it('has no Cooling tab while no port has fans', async () => {
@@ -265,6 +266,25 @@ describe('LianLiDevicePage', () => {
     const argb = (extra: Record<string, unknown>) =>
       mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, argbSyncSupported: true, argbSync: false, argbSyncSource: null, argbSyncSources: sources, ...extra });
     const toggle = () => screen.getByRole('switch', { name: 'devices.lianli.argbSync' });
+
+    it('the Lighting shortcut targets the hub group, or the source header while sync is on', async () => {
+      const nav = vi.fn();
+      argb({});
+      await renderOnLighting(<LianLiDevicePage onSectionNavigate={nav} />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
+      expect(nav).toHaveBeenLastCalledWith('lighting', { scrollAnchors: lianLiLightingAnchors() });
+      expect(nav.mock.lastCall![1].scrollAnchors[0]).toBe('lighting-group:mb:lianli');
+    });
+
+    it('with sync on, the Lighting shortcut targets the source header instead of the hub', async () => {
+      const nav = vi.fn();
+      argb({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      await renderOnLighting(<LianLiDevicePage onSectionNavigate={nav} />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
+      expect(nav).toHaveBeenLastCalledWith('lighting', {
+        scrollAnchors: ['lighting-group:mb:openrgb-1', 'lighting-device:openrgb-1:z0'],
+      });
+    });
 
     it('is absent on a hub whose ARGB layout is unverified', async () => {
       argb({ argbSyncSupported: false });

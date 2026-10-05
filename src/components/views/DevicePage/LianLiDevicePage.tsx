@@ -7,7 +7,8 @@ import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../c
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { CoolingPageShortcut, LightingPageShortcut } from './CoolingPageLink';
+import { CoolingPageShortcut, LightingPageShortcut, type DeviceSectionNavigate } from './CoolingPageLink';
+import { lianLiCoolingAnchors, lianLiLightingAnchors } from '../../../lib/pageAnchors';
 import { CoolingFanRow, useCoolingChannels } from './CoolingFanRow';
 import { LightingPageSwitch } from './LightingPageSwitch';
 import {
@@ -41,7 +42,7 @@ const RPM_POLL_MS = 2000;
 type LianLiTab = 'devices' | 'lighting' | 'cooling';
 
 interface LianLiDevicePageProps {
-  onSectionNavigate?: (section: string) => void;
+  onSectionNavigate?: DeviceSectionNavigate;
 }
 
 export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
@@ -174,8 +175,8 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
         activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiTab)}
         tabActions={!onSectionNavigate ? undefined
-          : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} />
-          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} />
+          : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiCoolingAnchors()} />
+          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiLightingAnchors(lighting ?? undefined)} />
           : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>

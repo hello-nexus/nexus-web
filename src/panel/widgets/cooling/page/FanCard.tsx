@@ -16,6 +16,7 @@ import { MenuArrowButton } from '../../../../components/common/DeviceCanvas/Menu
 import { bulkMenuLabel } from '../../../../components/common/DeviceCanvas/bulkMenuLabel';
 import { groupMenuItems, type GroupMove } from '../../../../components/common/DeviceCanvas/groupMenuItems';
 import { type SortableRowArgs } from '../../../../components/common/SortableList/SortableList';
+import { coolingFanAnchor } from '../../../../lib/pageAnchors';
 import styles from '../CoolingPage.module.scss';
 
 /**
@@ -414,6 +415,7 @@ export const FanCard = memo(function FanCard({
       {...(drag?.attributes ?? {})}
       {...(drag?.listeners ?? {})}
       data-menu-arrow-host={menuEnabled || undefined}
+      data-search-anchor={coolingFanAnchor(channel.id)}
       className={`${styles.fanCard} ${selected ? styles.fanCardSelected : ''} ${calibrating ? styles.fanCardCalibrating : ''} ${roleMenuOpen ? styles.fanCardMenuOpen : ''} ${dragClasses}`}
       onClick={onSelect ? e => {
         // Controls inside the card own their own clicks; only bare card
