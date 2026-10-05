@@ -120,12 +120,12 @@ describe('LianLiDevicePage', () => {
     expect(screen.queryByRole('button', { name: /devices\.lianli\.fanCountAria/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.setHint' }));
-    expect(nav).toHaveBeenCalledWith('cooling');
+    expect(nav).toHaveBeenCalledWith('cooling', { scrollAnchors: ['cooling-group:lianli'] });
 
     fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
     expect(screen.queryByRole('button', { name: 'devices.coolingPage.setHint' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
-    expect(nav).toHaveBeenLastCalledWith('lighting');
+    expect(nav).toHaveBeenLastCalledWith('lighting', { scrollAnchors: ['lighting-group:mb:lianli'] });
   });
 
   it('has no Cooling tab while no port has fans', async () => {
@@ -265,6 +265,30 @@ describe('LianLiDevicePage', () => {
     const argb = (extra: Record<string, unknown>) =>
       mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, argbSyncSupported: true, argbSync: false, argbSyncSource: null, argbSyncSources: sources, ...extra });
     const toggle = () => screen.getByRole('switch', { name: 'devices.lianli.argbSync' });
+
+    it('with sync off, the Lighting shortcut targets the hub group', async () => {
+      const nav = vi.fn();
+      argb({ argbSyncSource: 'openrgb-s-9876543210-1' });
+      await renderOnLighting(<LianLiDevicePage onSectionNavigate={nav} />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
+      expect(nav).toHaveBeenLastCalledWith('lighting', { scrollAnchors: ['lighting-group:mb:lianli'] });
+    });
+
+    it('with sync on, the Lighting shortcut targets the source header instead of the hub', async () => {
+      const nav = vi.fn();
+      argb({ argbSync: true, argbSyncSource: 'openrgb-s-9876543210-1' });
+      await renderOnLighting(<LianLiDevicePage onSectionNavigate={nav} />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lightingPage.setHint' }));
+      expect(nav).toHaveBeenLastCalledWith('lighting', {
+        scrollAnchors: [
+          'lighting-group:mb:openrgb-s-9876543210-1',
+          'lighting-device:openrgb-s-9876543210-1:z0',
+          'lighting-device:openrgb-s-9876543210-1',
+          'lighting-group:mb:openrgb-s-9876543210',
+          'lighting-group:mb:lianli',
+        ],
+      });
+    });
 
     it('is absent on a hub whose ARGB layout is unverified', async () => {
       argb({ argbSyncSupported: false });

@@ -15,7 +15,7 @@ vi.mock('../../../hooks/useSupportedDevices', () => ({
 
 function search(query: string): string[] {
   fireEvent.change(screen.getByRole('textbox'), { target: { value: query } });
-  return screen.queryAllByRole('row').slice(1).map(r => r.cells[2].textContent ?? '');
+  return screen.queryAllByRole('row').slice(1).map(r => r.cells[1].textContent ?? '');
 }
 
 describe('SupportedDevicesModal search', () => {
@@ -27,6 +27,15 @@ describe('SupportedDevicesModal search', () => {
     expect(search('  corsair   ')).toEqual(['Hydro H100i Elite', 'K70 RGB']);
     expect(search('corsair q60')).toEqual([]);
     expect(search('')).toHaveLength(DEVICES.length);
+  });
+
+  it('a brand box replaces the search with that brand', () => {
+    render(<SupportedDevicesModal open onClose={() => {}} />);
+
+    search('q60');
+    fireEvent.click(screen.getByRole('button', { name: 'Corsair' }));
+    expect(screen.getByRole('textbox')).toHaveValue('Corsair');
+    expect(screen.queryAllByRole('row').slice(1).map(r => r.cells[1].textContent)).toEqual(['Hydro H100i Elite', 'K70 RGB']);
   });
 
   it('does not match a word spanning vendor and model', () => {

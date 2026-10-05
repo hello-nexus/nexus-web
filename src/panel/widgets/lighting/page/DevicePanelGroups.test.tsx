@@ -821,3 +821,27 @@ describe('DevicePanel firmware-played devices', () => {
     expect(onFirmwareTakeControl).toHaveBeenCalledWith('lianli-wireless:64F271E566E1');
   });
 });
+
+describe('DevicePanel deep-link anchors', () => {
+  const hubPort = (n: number) => device(`lianli:port${n}`, `Lian Li Uni Hub - Port ${n}`, { parentDeviceId: 'lianli', zoneIndex: n });
+
+  it('tags the Lian Li hub group and every card', () => {
+    render(
+      <DevicePanel
+        devices={[hubPort(0), hubPort(1)]}
+        selectedIds={new Set()}
+        onSetSelection={() => {}}
+        onTogglePower={() => {}}
+        onSetPower={() => {}}
+        onToggleControlled={() => {}}
+        onSetControlled={() => {}}
+        lightingOff={false}
+        onOpenSettings={() => {}}
+        groups={[]}
+        onGroupsChange={() => {}}
+      />,
+    );
+    expect(document.querySelector('[data-search-anchor="lighting-group:mb:lianli"]')).not.toBeNull();
+    expect(document.querySelector('[data-search-anchor="lighting-device:lianli:port1"]')).not.toBeNull();
+  });
+});

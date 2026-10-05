@@ -3,6 +3,8 @@ import { useTranslation } from '../../../lib/i18n';
 import { useSupportedDevices, type SupportedSource } from '../../../hooks/useSupportedDevices';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { SupportedDevicesList } from '../SupportedDevicesList/SupportedDevicesList';
+import { SupportedBrands } from '../SupportedBrands/SupportedBrands';
+import { SupportedDevicesPager, SUPPORTED_DEVICES_PAGE_SIZE as PAGE_SIZE } from '../SupportedDevicesPager/SupportedDevicesPager';
 import { SearchInput } from '../SearchInput/SearchInput';
 import styles from './SupportedDevicesModal.module.scss';
 
@@ -18,8 +20,6 @@ interface SupportedDevicesModalProps {
   /** Title override; defaults to "Supported Devices" */
   title?: string;
 }
-
-const PAGE_SIZE = 80;
 
 export function SupportedDevicesModal({
   open,
@@ -63,6 +63,7 @@ export function SupportedDevicesModal({
   return (
     <DeviceModal open={open} onClose={handleClose} fullscreen title={title ?? t('supported.title')}>
       <div className={styles.content}>
+        <SupportedBrands className={styles.brands} onSelect={brand => { setQuery(brand); setPage(0); }} />
         <div className={styles.searchRow}>
           <SearchInput
             value={query}
@@ -85,15 +86,12 @@ export function SupportedDevicesModal({
         </div>
 
         {pageCount > 1 && (
-          <div className={styles.pagination}>
-            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={safePage === 0}>
-              {t('supported.prev')}
-            </button>
-            <span className={styles.pageLabel}>{t('supported.pageOf', { n: String(safePage + 1), total: String(pageCount) })}</span>
-            <button onClick={() => setPage(p => Math.min(pageCount - 1, p + 1))} disabled={safePage >= pageCount - 1}>
-              {t('supported.next')}
-            </button>
-          </div>
+          <SupportedDevicesPager
+            page={safePage}
+            pageCount={pageCount}
+            onPrev={() => setPage(p => Math.max(0, p - 1))}
+            onNext={() => setPage(p => Math.min(pageCount - 1, p + 1))}
+          />
         )}
       </div>
     </DeviceModal>

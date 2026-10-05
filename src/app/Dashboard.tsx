@@ -944,7 +944,10 @@ export function Dashboard() {
           serviceOnline={online}
           connectionState={status.state}
           onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
-          onSectionNavigate={(target) => setView(target)}
+          onSectionNavigate={(target, payload) => {
+            setView(target);
+            if (payload?.scrollAnchors) requestSearchScroll(payload.scrollAnchors);
+          }}
         />
       );
       case 'diagnostics': return <FeatureGate feature="diagnostics"><DiagnosticsPage serviceOnline={online} connectionState={status.state} platform={status.ping?.platform ?? ''} tab={subtab} onTabChange={setSubtab} /></FeatureGate>;

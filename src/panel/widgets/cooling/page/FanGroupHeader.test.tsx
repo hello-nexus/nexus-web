@@ -90,3 +90,10 @@ describe('FanGroupHeader title', () => {
     expect(screen.getByText('3')).toBeTruthy();
   });
 });
+
+describe('FanGroupHeader deep-link anchor', () => {
+  it('tags its section so a device page jump can scroll to and shine it', () => {
+    renderHeader({ searchAnchor: 'cooling-group:lianli' });
+    expect(document.querySelector('[data-search-anchor="cooling-group:lianli"]')).not.toBeNull();
+  });
+});

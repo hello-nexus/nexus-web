@@ -19,6 +19,9 @@ export interface DashboardSectionNavigatePayload {
   settingsAnchor?: string;
   // Subtab of the target section (the diagnostics widget's per-domain buttons).
   tab?: string;
+  // Anchors to scroll to and shine on the target page, first mounted wins
+  // (the device pages' jump to the Lighting or Cooling rail).
+  scrollAnchors?: readonly string[];
 }
 
 export type DashboardSectionNavigate =

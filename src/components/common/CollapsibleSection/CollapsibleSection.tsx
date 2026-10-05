@@ -33,6 +33,7 @@ export function CollapsibleSection({
   className,
   ariaLabel,
   sectionId,
+  searchAnchor,
   drag,
   onTitleRename,
   titleRenameRef,
@@ -70,6 +71,8 @@ export function CollapsibleSection({
   ariaLabel?: string;
   /** Sets `data-section-id` on the root (scroll/lookup targeting). */
   sectionId?: string;
+  /** Sets `data-search-anchor` on the root: a deep-link target the app-root scroller reveals and shines. */
+  searchAnchor?: string;
   /** When set, the whole section becomes reorderable among its siblings via
    *  dnd-kit. The header bar is the drag handle, title included, minus any
    *  interactive `right` control. */
@@ -113,6 +116,7 @@ export function CollapsibleSection({
       {...(drag?.attributes ?? {})}
       className={classNames}
       data-section-id={sectionId}
+      data-search-anchor={searchAnchor}
       data-boxed={boxed ? 'true' : undefined}
     >
       <div

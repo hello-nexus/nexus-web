@@ -22,9 +22,13 @@ import styles from './RangeSlider.module.scss';
  * div keeps both thumbs visible and makes the band a real pointer target.
  *
  * `minGap` enforces a minimum separation between the two knobs in slider
- * units. Defaults to (max - min) * 0.1. The active knob clamps at the gap;
- * the other knob is NOT pushed along (except during a band drag, where both
- * knobs move together by the same amount).
+ * units. Defaults to one `step`, so the knobs can sit adjacent. The active
+ * knob clamps at the gap; the other knob is NOT pushed along (except during
+ * a band drag, where both knobs move together by the same amount).
+ *
+ * Adjacent thumbs overlap, and the later input wins the hit test. Past the
+ * track midpoint the min knob is raised above the max knob, so the thumb on
+ * top is always the one with room to move away.
  */
 export interface RangeSliderProps {
   label?: string;
@@ -63,7 +67,7 @@ export function RangeSlider({
 }: RangeSliderProps) {
   const [valMin, valMax] = value;
   const span = max - min;
-  const gap = minGap ?? span * 0.1;
+  const gap = minGap ?? step;
 
   const latestRef = useRef<[number, number]>(value);
   const onCommitRef = useRef(onCommit);
@@ -194,6 +198,7 @@ export function RangeSlider({
       <input type="range" min={min} max={max} step={step} value={valMin}
         disabled={disabled} aria-label={ariaLabelMin}
         data-range-knob="min"
+        style={minPct > 50 ? { zIndex: 1 } : undefined}
         onChange={e => handleMinChange(Number(e.target.value), false)}
         onPointerUp={handleEnd}
         onPointerCancel={handleEnd}

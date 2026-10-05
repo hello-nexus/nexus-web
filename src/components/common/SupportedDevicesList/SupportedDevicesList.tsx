@@ -19,7 +19,10 @@ export interface SupportedDeviceRow {
 
 interface SupportedDevicesListProps {
   devices: SupportedDeviceRow[];
-  /** Lowercase "vendorid:productid" set - a matching row renders a connected dot. */
+  /**
+   * Lowercase "vendorid:productid" set - a matching row renders a connected
+   * dot. Omitted, the status column is not rendered.
+   */
   detectedVidPids?: Set<string>;
 }
 
@@ -31,11 +34,12 @@ interface SupportedDevicesListProps {
  */
 export function SupportedDevicesList({ devices, detectedVidPids }: SupportedDevicesListProps) {
   const { t } = useTranslation();
+  const showStatus = detectedVidPids !== undefined;
   return (
     <table className={styles.table}>
       <thead>
         <tr>
-          <th className={styles.colStatus}></th>
+          {showStatus && <th className={styles.colStatus}></th>}
           <th>{t('supported.col.brand')}</th>
           <th>{t('supported.col.model')}</th>
           <th>{t('supported.col.type')}</th>
@@ -48,6 +52,7 @@ export function SupportedDevicesList({ devices, detectedVidPids }: SupportedDevi
           <DeviceRow
             key={`${d.vendorId}-${d.productId}-${i}`}
             device={d}
+            showStatus={showStatus}
             detected={detectedVidPids?.has(`${d.vendorId.toLowerCase()}:${d.productId.toLowerCase()}`) ?? false}
           />
         ))}
@@ -56,20 +61,22 @@ export function SupportedDevicesList({ devices, detectedVidPids }: SupportedDevi
   );
 }
 
-function DeviceRow({ device, detected }: { device: SupportedDeviceRow; detected: boolean }) {
+function DeviceRow({ device, showStatus, detected }: { device: SupportedDeviceRow; showStatus: boolean; detected: boolean }) {
   const { t } = useTranslation();
   const sourceName = device.source === 'nexus' ? 'Nexus' : device.source === 'openrgb' ? 'OpenRGB' : null;
   const sourceLabel = sourceName !== null ? t('supported.source.drivenBy', { name: sourceName }) : null;
   const rowClass = [styles.row, detected && styles.detected].filter(Boolean).join(' ');
   return (
     <tr className={rowClass}>
-      <td className={styles.colStatus}>
-        {detected && (
-          <HoverTooltip body={t('supported.connected')} side="right">
-            <span className={styles.dot} aria-label={t('supported.connected')} />
-          </HoverTooltip>
-        )}
-      </td>
+      {showStatus && (
+        <td className={styles.colStatus}>
+          {detected && (
+            <HoverTooltip body={t('supported.connected')} side="right">
+              <span className={styles.dot} aria-label={t('supported.connected')} />
+            </HoverTooltip>
+          )}
+        </td>
+      )}
       <td className={styles.brand}>
         {sourceLabel !== null && (
           <HoverTooltip body={sourceLabel} side="right">

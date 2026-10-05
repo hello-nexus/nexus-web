@@ -27,6 +27,7 @@ export function FanGroupHeader({
   icon,
   onSelectAll,
   groupMove,
+  searchAnchor,
 }: {
   name: string;
   count: number;
@@ -57,6 +58,8 @@ export function FanGroupHeader({
   onSelectAll?: { count: number; run: () => void };
   /** Group placement for a hardware group's own row on the rail. */
   groupMove?: GroupMove;
+  /** Deep-link anchor the section answers to; see CollapsibleSection. */
+  searchAnchor?: string;
   children: React.ReactNode;
 }) {
   const { t, language } = useTranslation();
@@ -101,6 +104,7 @@ export function FanGroupHeader({
     <>
       <CollapsibleSection
         compact
+        searchAnchor={searchAnchor}
         className={dropTarget ? styles.fanGroupDropTarget : undefined}
         title={name}
         titleBefore={icon}

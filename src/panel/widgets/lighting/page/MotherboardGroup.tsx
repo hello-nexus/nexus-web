@@ -46,6 +46,7 @@ export function MotherboardGroup({
   groupMove,
   stack,
   unstack,
+  searchAnchor,
 }: {
   parentName: string;
   /** True iff at least one child zone has its LEDs on, so the menu offers to
@@ -103,6 +104,8 @@ export function MotherboardGroup({
   stack?: { count: number; run: () => void };
   /** Takes the members apart; present when they are exactly one stack. */
   unstack?: () => void;
+  /** Deep-link anchor the section answers to; see CollapsibleSection. */
+  searchAnchor?: string;
 }) {
   const { t, language } = useTranslation();
   const expanded = !collapsed;
@@ -150,6 +153,7 @@ export function MotherboardGroup({
     <>
       <CollapsibleSection
         compact
+        searchAnchor={searchAnchor}
         className={`${styles.motherboardGroup}${dropTarget ? ` ${styles.groupDropTarget}` : ''}`}
         title={parentName}
         titleBefore={icon}

@@ -68,6 +68,7 @@ import {
   MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup,
 } from '../../../lib/deviceGroups';
 import { FanGroupHeader } from './page/FanGroupHeader';
+import { coolingGroupAnchor } from '../../../lib/pageAnchors';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
@@ -1781,6 +1782,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 };
                 return (
                   <FanGroupHeader
+                    searchAnchor={coolingGroupAnchor(blockId)}
                     name={isBoard
                       ? (custom || boardBlockName)
                       : fanDeviceGroupName(blockId, custom)}

@@ -235,3 +235,31 @@ describe('sourceCategoryLabel', () => {
     expect(sourceCategoryLabel(src('hwmon/hwmon4/temp1'), [igpu, dgpu])).toBe('GPU');
   });
 });
+
+describe('cooling curve temperature bands', () => {
+  function renderCard(curve: CurveDef, onChange: (c: CurveDef) => void) {
+    const { container } = render(
+      <CurveCard curve={curve} allCurves={[curve]} sources={[]} onChange={onChange} onDelete={() => {}} />,
+    );
+    // The temperature band is the first RangeSlider in the mode's controls.
+    return container.querySelectorAll<HTMLInputElement>('input[data-range-knob="max"]')[0];
+  }
+
+  it('lets a trigger band close to one degree', () => {
+    const curve: CurveDef = { ...newCurve('trigger-band'), type: 'trigger' };
+    curve.trigger = { ...curve.trigger, idleTemp: 45, loadTemp: 53 };
+    const onChange = vi.fn();
+    fireEvent.change(renderCard(curve, onChange), { target: { value: '40' } });
+    const next = onChange.mock.calls.at(-1)![0] as CurveDef;
+    expect([next.trigger.idleTemp, next.trigger.loadTemp]).toEqual([45, 46]);
+  });
+
+  it('keeps an auto band wider than its deadband', () => {
+    const curve: CurveDef = { ...newCurve('auto-band'), type: 'auto' };
+    curve.auto = { ...curve.auto, idleTemp: 45, loadTemp: 60, deadband: 2 };
+    const onChange = vi.fn();
+    fireEvent.change(renderCard(curve, onChange), { target: { value: '40' } });
+    const next = onChange.mock.calls.at(-1)![0] as CurveDef;
+    expect([next.auto.idleTemp, next.auto.loadTemp]).toEqual([45, 48]);
+  });
+});

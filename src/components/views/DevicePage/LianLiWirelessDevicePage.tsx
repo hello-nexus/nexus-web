@@ -10,6 +10,8 @@ import { useTranslation } from '../../../lib/i18n';
 import { LianLiWirelessFansTab, fanTypeKey, isFanDevice } from './LianLiWirelessFansTab';
 import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
 import { CoolingPageShortcut, LightingPageShortcut } from './CoolingPageLink';
+import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
+import { lianLiWirelessCoolingAnchors, lianLiWirelessLightingAnchors } from '../../../lib/pageAnchors';
 import { LianLiWirelessLightingTab } from './LianLiWirelessLightingTab';
 import { LianLiWirelessScreenTab } from './LianLiWirelessScreenTab';
 import styles from './LianLiWirelessDevicePage.module.scss';
@@ -34,7 +36,7 @@ const LINK_HINT_KEYS: Partial<Record<LianLiWirelessLinkStatus, string>> = {
 };
 
 interface LianLiWirelessDevicePageProps {
-  onSectionNavigate?: (section: string) => void;
+  onSectionNavigate?: DashboardSectionNavigate;
 }
 
 /**
@@ -108,6 +110,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   // Fan families the service can upload animations to; CL and unclassified chains stream only.
   const hasLighting = hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
     && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
+  const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <RadioReceiver size={14} /> },
     ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
@@ -126,8 +129,8 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
         activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiWirelessTab)}
         tabActions={disconnected || !onSectionNavigate ? undefined
-          : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} />
-          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} />
+          : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiWirelessCoolingAnchors(boundMacs)} />
+          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiWirelessLightingAnchors()} />
           : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
