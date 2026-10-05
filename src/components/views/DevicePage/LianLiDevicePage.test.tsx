@@ -24,6 +24,15 @@ vi.mock('../../../api/lianli', () => ({
   setLianLiFanCount: (...args: any[]) => mockSetLianLiFanCount(...args),
 }));
 
+const mockSetDeviceChain = vi.fn();
+const mockFetchDeviceStructure = vi.fn();
+
+vi.mock('../../../api/lighting', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/lighting')>()),
+  setDeviceChain: (...args: any[]) => mockSetDeviceChain(...args),
+  fetchDeviceStructure: (...args: any[]) => mockFetchDeviceStructure(...args),
+}));
+
 const mockFetchFanChannels = vi.fn();
 
 vi.mock('../../../api/cooling', () => ({
@@ -52,11 +61,15 @@ const defaultLighting = {
 };
 
 beforeEach(() => {
+  vi.clearAllMocks();
   vi.useFakeTimers();
   mockGetLianLiState.mockResolvedValue(defaultState);
   mockGetLianLiLighting.mockResolvedValue(defaultLighting);
   mockSetLianLiLighting.mockResolvedValue(null);
   mockSetLianLiFanCount.mockResolvedValue(null);
+  mockSetDeviceChain.mockResolvedValue({ error: false, ledCount: 60, zoneIds: [] });
+  mockFetchDeviceStructure.mockResolvedValue({ id: 'x', name: 'x', chain: [] });
+  mockSetLianLiLighting.mockResolvedValue({ error: false });
   mockFetchFanChannels.mockResolvedValue({
     channels: [
       { id: 'lianli:port0', name: 'SL-Infinity Port 1', dutyPercent: 40, rpm: 1200, mode: 'Manual' },
@@ -243,5 +256,76 @@ describe('LianLiDevicePage', () => {
     const btn = screen.getByRole('button', { name: 'smartLights.colorOnLightingPage' });
     btn.click();
     expect(spy).toHaveBeenCalledWith('lighting');
+  });
+
+  describe('ARGB sync', () => {
+    const sources = [{ id: 'openrgb-1', name: 'Header 1' }, { id: 'smarthub:1:port4', name: 'SmartHub Port 4' }];
+    const product = { key: 'product:lianli-lian-li-sl120-infinity' };
+    const argb = (extra: Record<string, unknown>) =>
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, argbSyncSupported: true, argbSync: false, argbSyncSource: null, argbSyncSources: sources, ...extra });
+    const toggle = () => screen.getByRole('switch', { name: 'devices.lianli.argbSync' });
+
+    it('is absent on a hub whose ARGB layout is unverified', async () => {
+      argb({ argbSyncSupported: false });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByText('devices.lianli.argbSyncSection')).not.toBeInTheDocument();
+    });
+
+    it('lists the headers and stays off until one is chosen', async () => {
+      argb({});
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.getByRole('button', { name: 'devices.lianli.argbSyncSource' })).toHaveTextContent('devices.lianli.argbSyncChoose');
+      expect(toggle()).toBeDisabled();
+    });
+
+    it('turning it on wires one fan layout per fan of the longest port, then saves the source', async () => {
+      argb({ argbSyncSource: 'openrgb-1' });
+      await renderOnLighting(<LianLiDevicePage />);
+      await act(async () => { fireEvent.click(toggle()); });
+      expect(mockSetDeviceChain).toHaveBeenCalledWith('openrgb-1', [product, product, product]);
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      expect(mockSetDeviceChain.mock.invocationCallOrder[0]).toBeLessThan(mockSetLianLiLighting.mock.invocationCallOrder[0]);
+    });
+
+    it('does not rewire a header that already carries exactly that chain', async () => {
+      argb({ argbSyncSource: 'openrgb-1' });
+      mockFetchDeviceStructure.mockResolvedValue({ id: 'openrgb-1', name: 'Header 1', chain: [1, 2, 3].map(() => ({ ...product, name: 'SL120', ledCount: 20, editableCount: false })) });
+      await renderOnLighting(<LianLiDevicePage />);
+      await act(async () => { fireEvent.click(toggle()); });
+      expect(mockSetDeviceChain).not.toHaveBeenCalled();
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' });
+    });
+
+    it('a refused chain leaves sync off and saves nothing', async () => {
+      argb({ argbSyncSource: 'openrgb-1' });
+      mockSetDeviceChain.mockResolvedValue({ error: true, msg: 'chain is longer than the port carries' });
+      await renderOnLighting(<LianLiDevicePage />);
+      await act(async () => { fireEvent.click(toggle()); });
+      expect(mockSetLianLiLighting).not.toHaveBeenCalled();
+      expect(toggle()).toHaveAttribute('aria-checked', 'false');
+    });
+
+    it('while on, hides the hub animation; turning it off only saves the flag', async () => {
+      argb({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByText('devices.lianli.lightingSection')).not.toBeInTheDocument();
+      await act(async () => { fireEvent.click(toggle()); });
+      expect(mockSetDeviceChain).not.toHaveBeenCalled();
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: false });
+      expect(screen.getByText('devices.lianli.lightingSection')).toBeInTheDocument();
+    });
+
+    it('switching the source while on wires the new header and clears the chain it put on the old one', async () => {
+      argb({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      mockFetchDeviceStructure.mockImplementation((id: string) => Promise.resolve(id === 'openrgb-1'
+        ? { id, name: 'Header 1', chain: [{ ...product, name: 'SL120', ledCount: 20, editableCount: false }] }
+        : { id, name: 'SmartHub', chain: [] }));
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.argbSyncSource' }));
+      await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'SmartHub Port 4' })); });
+      expect(mockSetDeviceChain).toHaveBeenCalledWith('smarthub:1:port4', [product, product, product]);
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSyncSource: 'smarthub:1:port4' });
+      expect(mockSetDeviceChain).toHaveBeenCalledWith('openrgb-1', []);
+    });
   });
 });

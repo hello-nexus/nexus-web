@@ -37,9 +37,18 @@ export interface LianLiLighting {
   /** Mergeable modes run as one animation across every port. Absent on an older service. */
   merge?: boolean;
   modes: LianLiLightingMode[];
+  /** The hub plays its motherboard ARGB input instead of Nexus streaming to it. Absent on an older service. */
+  argbSync?: boolean;
+  /** False on hub families whose ARGB-input layout is unverified. */
+  argbSyncSupported?: boolean;
+  /** Lighting card driving that ARGB input. */
+  argbSyncSource?: string | null;
+  /** Cards that can drive it: single addressable ports. */
+  argbSyncSources?: { id: string; name: string }[];
 }
 
-export type LianLiLightingPatch = Partial<Pick<LianLiLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge'>>;
+export type LianLiLightingPatch = Partial<Pick<LianLiLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'argbSync'>>
+  & { argbSyncSource?: string };
 
 export function getLianLiLighting(): Promise<LianLiLighting | null> {
   return fetchService<LianLiLighting>('/devices/lianli/lighting');
