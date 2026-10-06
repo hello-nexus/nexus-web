@@ -91,6 +91,7 @@ export function DragTargetHighlight({
   return (
     <div
       aria-hidden="true"
+      data-panel-drop-target={`${targetCol}:${targetRow}`}
       style={{
         gridColumn: `${targetCol + 1} / span ${span.cols}`,
         gridRow: `${targetRow + 1} / span ${span.rows}`,

@@ -29,18 +29,6 @@
   gap: 0.5rem;
 }
 
-// A page setting rather than an action: pushed to the far right of the row
-// and set quieter than the chips.
-.autoArrange {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  cursor: pointer;
-}
-
 .widgetCountBadge {
   display: inline-flex;
   align-items: center;

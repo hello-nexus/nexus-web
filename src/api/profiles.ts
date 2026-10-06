@@ -179,8 +179,6 @@ export interface UiPrefs {
   // True while the user has collapsed the dashboard sidebar by hand. Absent
   // from a service that predates the field.
   sidebarCollapsed?: boolean;
-  // Packs the home dashboard to the window width. Off by default.
-  dashboardAutoArrange?: boolean;
   // One-time marker: the OEM bake-in app's dashboard widget + sidebar pin
   // have been reconciled onto this profile. Optional - older services
   // return Preferences without this field, which the client treats as false.
