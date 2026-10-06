@@ -12,6 +12,7 @@ import {
   type FanChannel, type FanRole, type HealState, type TemperatureSource,
 } from '../../../../api/cooling';
 import { useCurveSaveLint } from '../../../../hooks/useCurveSaveLint';
+import { latestError } from '../page/guardUtils';
 import { useThermalGuard } from '../../../../hooks/useThermalGuard';
 import {
   getNp50ConnectionState,
@@ -114,7 +115,10 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       void refreshRef.current();
     },
     // What a Fix changed is stale once a newer save lands.
-    onSaved: () => setHealNotice(null),
+    onSaved: () => {
+      setHealNotice(null);
+      thermalGuard.clearError();
+    },
   });
   const refreshRef = useRef<() => Promise<void>>(async () => {});
   const cachedSeed = useMemo(() => loadCoolingCache(), []);
@@ -646,8 +650,11 @@ export function useCoolingImmersive(): CoolingImmersiveController {
         void refreshRef.current();
       });
     },
-    dismissHealNotice: () => setHealNotice(null),
-    error: lintError ?? thermalGuard.error,
+    dismissHealNotice: () => {
+      setHealNotice(null);
+      thermalGuard.clearError();
+    },
+    error: latestError(lintError, thermalGuard.error),
     channels, sources, curves, fanStates, activeMode, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,

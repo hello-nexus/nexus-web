@@ -65,3 +65,17 @@ export const healLines = (channels: HealChannel[], t: Translate): string[] =>
 /** Stable key for a hazard set, so a save that repeats an already-acknowledged warning does not ask again. */
 export const hazardSignature = (hazards: CurveHazard[]): string =>
   hazards.map(h => `${h.channelId}:${h.kind}:${h.rootId ?? ''}`).sort().join('|');
+
+/** A failure to show inline. `at` orders errors from different sources so the newest wins. */
+export interface GuardErrorState {
+  message: string;
+  at: number;
+  kind?: 'undo';
+}
+
+let errorStamp = 0;
+export const newGuardError = (message: string, kind?: 'undo'): GuardErrorState => ({ message, at: ++errorStamp, kind });
+
+/** The most recent of several errors, as text, or null when there are none. */
+export const latestError = (...errors: Array<GuardErrorState | null>): string | null =>
+  errors.reduce<GuardErrorState | null>((best, e) => (e && (!best || e.at > best.at) ? e : best), null)?.message ?? null;

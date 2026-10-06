@@ -4,7 +4,7 @@ import {
   type CurveHazard, type HealState, type WireCurve,
 } from '../api/cooling';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
-import { hazardSignature, lintLines } from '../panel/widgets/cooling/page/guardUtils';
+import { hazardSignature, lintLines, newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTranslation } from '../lib/i18n';
 
 type CurvesBody = { globalSpeedModifier: number; curves: WireCurve[] };
@@ -39,12 +39,12 @@ export function useCurveSaveLint(options: {
 }): {
   saveWithLint: (body: CurvesBody) => Promise<unknown>;
   prompt: ReactNode;
-  /** Translated message for the last failed save or heal; cleared by the next successful save. */
-  error: string | null;
+  /** The last failed save or heal; cleared by the next successful save. */
+  error: GuardErrorState | null;
 } {
   const { t } = useTranslation();
   const [pending, setPending] = useState<PendingPrompt | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<GuardErrorState | null>(null);
   const pendingRef = useRef<PendingPrompt | null>(null);
   const latestRef = useRef<CurvesBody | null>(null);
   const waitersRef = useRef<Waiter[]>([]);
@@ -95,14 +95,14 @@ export function useCurveSaveLint(options: {
           const res = await saveCurves(body);
           const saved = !!res && !(res as { error?: boolean }).error;
           if (!saved) {
-            setError(tRef.current('cooling.guard.error.save'));
+            setError(newGuardError(tRef.current('cooling.guard.error.save')));
           } else {
             setError(null);
             optionsRef.current.onSaved?.();
             if (fix) {
               const heal = await healCooling();
               if (heal && heal.channels.length > 0) optionsRef.current.onHealed(heal);
-              else setError(tRef.current('cooling.guard.error.heal'));
+              else setError(newGuardError(tRef.current('cooling.guard.error.heal')));
             }
           }
           for (const w of batch) w.resolve(res);

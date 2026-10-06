@@ -34,7 +34,7 @@ const onSaved = vi.fn();
 function Harness() {
   const lint = useCurveSaveLint({ onHealed, onSaved });
   useEffect(() => { handle.current = lint; });
-  return <>{lint.prompt}{lint.error && <p role="alert">{lint.error}</p>}</>;
+  return <>{lint.prompt}{lint.error && <p role="alert">{lint.error.message}</p>}</>;
 }
 
 const mount = () => render(<Harness />);

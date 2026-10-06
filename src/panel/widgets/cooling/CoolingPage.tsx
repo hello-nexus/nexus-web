@@ -73,6 +73,7 @@ import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { ThermalGuardPanel } from './page/ThermalGuardPanel';
+import { latestError } from './page/guardUtils';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
@@ -144,7 +145,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       onToggle={enabled => { void thermalGuard.toggle(enabled); }}
       onUndo={() => { void thermalGuard.undo(); }}
       toggling={thermalGuard.toggling}
-      error={lintError ?? thermalGuard.error}
+      error={latestError(lintError, thermalGuard.error)}
     />
   );
   const recoveryBanner = (

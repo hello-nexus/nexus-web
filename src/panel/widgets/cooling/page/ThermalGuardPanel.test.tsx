@@ -77,4 +77,10 @@ describe('ThermalGuardPanel', () => {
     render(<ThermalGuardPanel guard={base} toggling onToggle={() => {}} onUndo={() => {}} />);
     expect(screen.getByRole('switch')).toBeDisabled();
   });
+
+  it('shows an error even before the guard has loaded', () => {
+    render(<ThermalGuardPanel guard={null} error="save failed" onToggle={() => {}} onUndo={() => {}} />);
+    expect(screen.getByRole('alert').textContent).toBe('save failed');
+    expect(screen.queryByRole('switch')).toBeNull();
+  });
 });

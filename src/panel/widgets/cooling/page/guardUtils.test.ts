@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CurveHazard, GuardResponse } from '../../../../api/cooling';
-import { guardBannerKey, guardBannerText, guardLimitText, hazardSignature, hazardText, healLines, lintLines } from './guardUtils';
+import { latestError, newGuardError, guardBannerKey, guardBannerText, guardLimitText, hazardSignature, hazardText, healLines, lintLines } from './guardUtils';
 
 // Echoes the key and its variables so the assertions can see both.
 const t = (key: string, vars?: Record<string, string | number>) =>
@@ -70,5 +70,16 @@ describe('hazard text', () => {
     const b: CurveHazard = { ...h, channelId: 'b' };
     expect(hazardSignature([h, b])).toBe(hazardSignature([b, h]));
     expect(hazardSignature([])).toBe('');
+  });
+});
+
+describe('latestError', () => {
+  it('returns the newest error, whichever source made it', () => {
+    const older = newGuardError('older');
+    const newer = newGuardError('newer');
+    expect(latestError(older, newer)).toBe('newer');
+    expect(latestError(newer, older)).toBe('newer');
+    expect(latestError(null, older)).toBe('older');
+    expect(latestError(null, null)).toBeNull();
   });
 });

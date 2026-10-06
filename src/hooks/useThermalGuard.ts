@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchGuard, setGuardEnabled, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
 import { useTranslation } from '../lib/i18n';
+import { newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTopicCallback } from './useMultiplexSocket';
 
 // Guard state changes broadcast on the cooling topic, but the live CPU
@@ -12,7 +13,9 @@ export function useThermalGuard(serviceOnline: boolean) {
   const { t } = useTranslation();
   const [guard, setGuard] = useState<GuardResponse | null>(null);
   const [toggling, setToggling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<GuardErrorState | null>(null);
+  const guardRef = useRef<GuardResponse | null>(null);
+  guardRef.current = guard;
   // Bumped when the service goes away or the page unmounts, so a response
   // from an earlier life of the effect is dropped.
   const generationRef = useRef(0);
@@ -35,7 +38,11 @@ export function useThermalGuard(serviceOnline: boolean) {
     const seq = seqRef.current;
     try {
       const next = await fetchGuard();
-      if (next && generation === generationRef.current && seq === seqRef.current) setGuard(next);
+      if (next && generation === generationRef.current && seq === seqRef.current) {
+        setGuard(next);
+        // A failed Undo is moot once the service no longer holds the snapshot.
+        if (!next.heal.undoAvailable) setError(prev => (prev?.kind === 'undo' ? null : prev));
+      }
     } finally {
       if (inFlightRef.current === generation) inFlightRef.current = null;
     }
@@ -71,7 +78,7 @@ export function useThermalGuard(serviceOnline: boolean) {
         setGuard(next);
         setError(null);
       } else {
-        setError(tRef.current('cooling.guard.error.toggle'));
+        setError(newGuardError(tRef.current('cooling.guard.error.toggle')));
       }
     } finally {
       togglingRef.current = false;
@@ -82,14 +89,16 @@ export function useThermalGuard(serviceOnline: boolean) {
   const applyHeal = useCallback((heal: HealState | null) => {
     if (!heal) return;
     seqRef.current += 1;
+    // Nothing to merge into yet: read the whole guard so Undo shows without waiting a poll.
+    if (!guardRef.current) { void refresh(); return; }
     setGuard(prev => (prev ? { ...prev, heal } : prev));
-  }, []);
+  }, [refresh]);
 
   /** True when the undo landed; a failed one leaves the notice and sets `error`. */
   const undo = useCallback(async (): Promise<boolean> => {
     const heal = await undoHeal();
     if (!heal) {
-      setError(tRef.current('cooling.guard.error.undo'));
+      setError(newGuardError(tRef.current('cooling.guard.error.undo'), 'undo'));
       return false;
     }
     setError(null);
@@ -97,5 +106,7 @@ export function useThermalGuard(serviceOnline: boolean) {
     return true;
   }, [applyHeal]);
 
-  return { guard, toggling, error, refresh, toggle, undo, applyHeal };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { guard, toggling, error, clearError, refresh, toggle, undo, applyHeal };
 }

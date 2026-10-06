@@ -33,7 +33,7 @@ const hook = {
 function Harness({ online = true }: { online?: boolean }) {
   const h = useThermalGuard(online);
   useEffect(() => { handle.current = h; });
-  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{h.error && <p role="alert">{h.error}</p>}</>;
+  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{h.error && <p role="alert">{h.error.message}</p>}</>;
 }
 const mount = (online = true) => render(<Harness online={online} />);
 
@@ -114,5 +114,34 @@ describe('useThermalGuard', () => {
     await act(async () => { void handle.current!.refresh(); });
     expect(api.fetchGuard).toHaveBeenCalledTimes(2);
     await act(async () => { first.resolve(guard('floor')); second.resolve(guard('normal')); });
+  });
+
+  it('clears a failed-undo error once a poll shows the snapshot gone', async () => {
+    mount();
+    await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+    api.undoHeal.mockResolvedValue(null);
+    await act(async () => { await handle.current!.undo(); });
+    await screen.findByText('cooling.guard.error.undo');
+    api.fetchGuard.mockResolvedValue(guard('normal'));
+    await act(async () => { await handle.current!.refresh(); });
+    await waitFor(() => { expect(screen.queryByText('cooling.guard.error.undo')).toBeNull(); });
+  });
+
+  it('clearError drops the message', async () => {
+    mount();
+    api.undoHeal.mockResolvedValue(null);
+    await act(async () => { await handle.current!.undo(); });
+    await screen.findByText('cooling.guard.error.undo');
+    act(() => { handle.current!.clearError(); });
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('refetches when a heal arrives before any guard has loaded', async () => {
+    api.fetchGuard.mockResolvedValue(null);
+    mount();
+    await act(async () => {});
+    const before = api.fetchGuard.mock.calls.length;
+    await act(async () => { handle.current!.applyHeal({ undoAvailable: true, healedAtUtcMs: 1, channels: [] }); });
+    expect(api.fetchGuard.mock.calls.length).toBe(before + 1);
   });
 });

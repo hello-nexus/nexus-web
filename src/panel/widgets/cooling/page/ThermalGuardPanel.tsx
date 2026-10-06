@@ -53,7 +53,8 @@ export function GuardError({ message, className }: { message: string; className?
 /** Thermal guard switch with its limit, the intervention banner, and the post-heal notice with Undo. */
 export function ThermalGuardPanel({ guard, onToggle, onUndo, toggling = false, error = null }: ThermalGuardPanelProps) {
   const { t } = useTranslation();
-  if (!guard) return null;
+  // Save and heal failures do not depend on the guard having loaded.
+  if (!guard) return error ? <div className={styles.panel}><GuardError message={error} /></div> : null;
 
   const banner = guardBannerText(guard, t);
   const limit = guardLimitText(guard, t);

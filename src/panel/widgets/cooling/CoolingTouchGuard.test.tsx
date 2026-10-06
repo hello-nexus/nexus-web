@@ -180,4 +180,23 @@ describe('CoolingTouch curve save lint', () => {
     await triggerSave();
     await screen.findByText('cooling.guard.error.save');
   });
+
+  it('dismissing the notice also clears a failed-undo error', async () => {
+    svc.undoResult = 'fail';
+    await fixOnce();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.undo' }));
+    await screen.findByText('cooling.guard.error.undo');
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
+    expect(screen.queryByText('cooling.guard.error.undo')).toBeNull();
+  });
+
+  it('a successful save clears a failed-undo error', async () => {
+    svc.undoResult = 'fail';
+    await fixOnce();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.undo' }));
+    await screen.findByText('cooling.guard.error.undo');
+    svc.hazards = [];
+    fireEvent.click(screen.getByRole('button', { name: 'My Graph Curve' }));
+    await waitFor(() => expect(screen.queryByText('cooling.guard.error.undo')).toBeNull());
+  });
 });
