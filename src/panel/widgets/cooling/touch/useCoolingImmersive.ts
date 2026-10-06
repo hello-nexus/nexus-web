@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   applyProfile, fetchCurves, fetchFanChannels, fetchProfiles, fetchTemperatureSources,
   isFanDisconnected,
-  releaseFanAuto, saveCurves,
+  releaseFanAuto,
   renameFan as apiRenameFan,
   resetPresetCurve as apiResetPresetCurve,
   setFanSpeed as apiSetFanSpeed,
@@ -11,6 +11,7 @@ import {
   setFanRole as apiSetFanRole,
   type FanChannel, type FanRole, type TemperatureSource,
 } from '../../../../api/cooling';
+import { useCurveSaveLint } from '../../../../hooks/useCurveSaveLint';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -49,6 +50,8 @@ import type { FanBulkSelection, FanCardHubMode } from '../page/FanCard';
 const PRESET_LOCK_MS = 1500;
 
 export interface CoolingImmersiveController {
+  /** Fix / Save anyway prompt for a curve save with hazards; render it beside the view. */
+  lintPrompt: ReactNode;
   channels: FanChannel[];
   sources: TemperatureSource[];
   curves: CurveDef[];
@@ -93,6 +96,8 @@ export interface CoolingImmersiveController {
  * resyncs on the 'cooling' / 'prefs' topics and cross-surface control-sync.
  */
 export function useCoolingImmersive(): CoolingImmersiveController {
+  const { saveWithLint, prompt: lintPrompt } = useCurveSaveLint(() => { void refreshRef.current(); });
+  const refreshRef = useRef<() => Promise<void>>(async () => {});
   const cachedSeed = useMemo(() => loadCoolingCache(), []);
   const [channels, setChannels] = useState<FanChannel[]>(() => cachedSeed.channels);
   const [sources, setSources] = useState<TemperatureSource[]>(() => cachedSeed.sources);
@@ -180,6 +185,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (temps?.sources) setSources(temps.sources);
   }, [refreshNp50HubMode, refreshQSeriesHubMode]);
 
+  refreshRef.current = refresh;
   useEffect(() => { void refresh(); }, [refresh]);
 
   // Mirror the desktop page's stale-while-revalidate write-back so the next
@@ -266,8 +272,8 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       c,
       Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
     ));
-    return saveCurves({ globalSpeedModifier: 1, curves: apiCurves });
-  }, []);
+    return saveWithLint({ globalSpeedModifier: 1, curves: apiCurves });
+  }, [saveWithLint]);
 
   // When cooling is Off, any fan change other than reverting to BIOS snaps
   // the preset to Custom first so the curve writes land in the right state.
@@ -611,6 +617,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   }, [curves]);
 
   return {
+    lintPrompt,
     channels, sources, curves, fanStates, activeMode, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,

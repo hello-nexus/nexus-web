@@ -24,10 +24,13 @@ export function CoolingTouch({ immersiveGrid }: WidgetProps) {
   ];
 
   return (
-    <ImmersiveLayout
-      cells={cells}
-      gridColumns={immersiveGrid?.columns ?? 4}
-      gridRows={immersiveGrid?.rows ?? 8}
-    />
+    <>
+      <ImmersiveLayout
+        cells={cells}
+        gridColumns={immersiveGrid?.columns ?? 4}
+        gridRows={immersiveGrid?.rows ?? 8}
+      />
+      {cooling.lintPrompt}
+    </>
   );
 }
