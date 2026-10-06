@@ -131,14 +131,22 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const { t, language } = useTranslation();
   const recovery = useFirmwareRecoveryFlow(serviceOnline);
   const thermalGuard = useThermalGuard(serviceOnline);
-  const guardPanel = (
-    <ThermalGuardPanel guard={thermalGuard.guard} onToggle={enabled => { void thermalGuard.toggle(enabled); }} onUndo={() => { void thermalGuard.undo(); }} toggling={thermalGuard.toggling} />
-  );
   const refreshCoolingConfigRef = useRef<() => void>(() => {});
-  const { saveWithLint, prompt: lintPrompt } = useCurveSaveLint(heal => {
-    thermalGuard.applyHeal(heal);
-    refreshCoolingConfigRef.current();
+  const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
+    onHealed: heal => {
+      thermalGuard.applyHeal(heal);
+      refreshCoolingConfigRef.current();
+    },
   });
+  const guardPanel = (
+    <ThermalGuardPanel
+      guard={thermalGuard.guard}
+      onToggle={enabled => { void thermalGuard.toggle(enabled); }}
+      onUndo={() => { void thermalGuard.undo(); }}
+      toggling={thermalGuard.toggling}
+      error={lintError ?? thermalGuard.error}
+    />
+  );
   const recoveryBanner = (
     <FirmwareRecoveryBanner item={recovery.item} status={recovery.status} onRecover={recovery.request} />
   );

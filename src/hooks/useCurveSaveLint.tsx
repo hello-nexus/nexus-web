@@ -4,7 +4,6 @@ import {
   type CurveHazard, type HealState, type WireCurve,
 } from '../api/cooling';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
-import { useToastSafe } from '../components/common/Toast/Toast';
 import { hazardSignature, lintLines } from '../panel/widgets/cooling/page/guardUtils';
 import { useTranslation } from '../lib/i18n';
 
@@ -32,29 +31,35 @@ interface PendingPrompt {
  * not yet saved, and every caller's promise resolves once a save covering it
  * has landed. Saves are never reordered.
  */
-export function useCurveSaveLint(onHealed: (heal: HealState) => void): {
+export function useCurveSaveLint(options: {
+  /** Called with what a successful Fix changed. */
+  onHealed: (heal: HealState) => void;
+  /** Called after each successful save, before any heal. */
+  onSaved?: () => void;
+}): {
   saveWithLint: (body: CurvesBody) => Promise<unknown>;
   prompt: ReactNode;
+  /** Translated message for the last failed save or heal; cleared by the next successful save. */
+  error: string | null;
 } {
   const { t } = useTranslation();
-  const toast = useToastSafe();
   const [pending, setPending] = useState<PendingPrompt | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const pendingRef = useRef<PendingPrompt | null>(null);
   const latestRef = useRef<CurvesBody | null>(null);
   const waitersRef = useRef<Waiter[]>([]);
   const runningRef = useRef(false);
   const ackedRef = useRef('');
   const unmountedRef = useRef(false);
-  const onHealedRef = useRef(onHealed);
-  onHealedRef.current = onHealed;
-  const toastRef = useRef({ toast, t });
-  toastRef.current = { toast, t };
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const run = useCallback(async () => {
     runningRef.current = true;
     // Waiters whose body was superseded before it saved ride along to the next save.
     let batch: Waiter[] = [];
-    let fixCarried = false;
     try {
       while (latestRef.current) {
         const body = latestRef.current;
@@ -70,7 +75,7 @@ export function useCurveSaveLint(onHealed: (heal: HealState) => void): {
           }
           if (latestRef.current) continue;
           const signature = hazardSignature(hazards);
-          let fix: boolean = fixCarried;
+          let fix = false;
           if (hazards.length === 0) {
             ackedRef.current = '';
           } else if (signature !== ackedRef.current && !unmountedRef.current) {
@@ -81,19 +86,23 @@ export function useCurveSaveLint(onHealed: (heal: HealState) => void): {
             });
             pendingRef.current = null;
             setPending(null);
+            // Only Save anyway acknowledges a hazard set; Fix does not, so a body
+            // built from pre-heal curves prompts again instead of undoing the heal.
             if (!fix) ackedRef.current = signature;
-            // A newer body arrived while the prompt was open: it replaces this one.
-            if (latestRef.current) { fixCarried = fixCarried || fix; continue; }
+            // A newer body replaces this one and is linted fresh.
+            if (latestRef.current) continue;
           }
           const res = await saveCurves(body);
-          fixCarried = false;
-          if (fix) {
-            const heal = await healCooling();
-            if (heal && heal.channels.length > 0) {
-              ackedRef.current = signature;
-              onHealedRef.current(heal);
-            } else {
-              toastRef.current.toast.push({ title: toastRef.current.t('cooling.guard.error.heal') });
+          const saved = !!res && !(res as { error?: boolean }).error;
+          if (!saved) {
+            setError(tRef.current('cooling.guard.error.save'));
+          } else {
+            setError(null);
+            optionsRef.current.onSaved?.();
+            if (fix) {
+              const heal = await healCooling();
+              if (heal && heal.channels.length > 0) optionsRef.current.onHealed(heal);
+              else setError(tRef.current('cooling.guard.error.heal'));
             }
           }
           for (const w of batch) w.resolve(res);
@@ -101,7 +110,6 @@ export function useCurveSaveLint(onHealed: (heal: HealState) => void): {
         } catch (err) {
           for (const w of batch) w.reject(err);
           batch = [];
-          fixCarried = false;
         }
       }
     } finally {
@@ -146,5 +154,5 @@ export function useCurveSaveLint(onHealed: (heal: HealState) => void): {
     />
   );
 
-  return { saveWithLint, prompt };
+  return { saveWithLint, prompt, error };
 }

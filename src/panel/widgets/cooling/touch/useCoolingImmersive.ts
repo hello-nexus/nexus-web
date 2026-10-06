@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   applyProfile, fetchCurves, fetchFanChannels, fetchProfiles, fetchTemperatureSources,
   isFanDisconnected,
-  releaseFanAuto, undoHeal as apiUndoHeal,
+  releaseFanAuto,
   renameFan as apiRenameFan,
   resetPresetCurve as apiResetPresetCurve,
   setFanSpeed as apiSetFanSpeed,
@@ -12,6 +12,7 @@ import {
   type FanChannel, type FanRole, type HealState, type TemperatureSource,
 } from '../../../../api/cooling';
 import { useCurveSaveLint } from '../../../../hooks/useCurveSaveLint';
+import { useThermalGuard } from '../../../../hooks/useThermalGuard';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -54,7 +55,12 @@ export interface CoolingImmersiveController {
   lintPrompt: ReactNode;
   /** What the last Fix changed, until it is undone or dismissed by a newer save. */
   healNotice: HealState | null;
+  /** The service still holds an undo snapshot for that heal. */
+  undoAvailable: boolean;
   undoHeal: () => void;
+  dismissHealNotice: () => void;
+  /** A failed save, heal or undo, for inline display (the panel tree has no toast provider). */
+  error: string | null;
   channels: FanChannel[];
   sources: TemperatureSource[];
   curves: CurveDef[];
@@ -100,9 +106,15 @@ export interface CoolingImmersiveController {
  */
 export function useCoolingImmersive(): CoolingImmersiveController {
   const [healNotice, setHealNotice] = useState<HealState | null>(null);
-  const { saveWithLint, prompt: lintPrompt } = useCurveSaveLint(heal => {
-    setHealNotice(heal);
-    void refreshRef.current();
+  const thermalGuard = useThermalGuard(true);
+  const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
+    onHealed: heal => {
+      setHealNotice(heal);
+      thermalGuard.applyHeal(heal);
+      void refreshRef.current();
+    },
+    // What a Fix changed is stale once a newer save lands.
+    onSaved: () => setHealNotice(null),
   });
   const refreshRef = useRef<() => Promise<void>>(async () => {});
   const cachedSeed = useMemo(() => loadCoolingCache(), []);
@@ -626,10 +638,16 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   return {
     lintPrompt,
     healNotice,
+    undoAvailable: thermalGuard.guard?.heal.undoAvailable ?? false,
     undoHeal: () => {
-      setHealNotice(null);
-      void apiUndoHeal().then(() => refreshRef.current());
+      void thermalGuard.undo().then(ok => {
+        if (!ok) return;
+        setHealNotice(null);
+        void refreshRef.current();
+      });
     },
+    dismissHealNotice: () => setHealNotice(null),
+    error: lintError ?? thermalGuard.error,
     channels, sources, curves, fanStates, activeMode, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,

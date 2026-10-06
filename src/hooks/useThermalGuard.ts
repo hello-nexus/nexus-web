@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchGuard, setGuardEnabled, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
-import { useToastSafe } from '../components/common/Toast/Toast';
 import { useTranslation } from '../lib/i18n';
 import { useTopicCallback } from './useMultiplexSocket';
 
@@ -11,33 +10,34 @@ const POLL_MS = 3000;
 /** The CPU thermal guard: its state, the on/off switch, and the post-heal Undo. */
 export function useThermalGuard(serviceOnline: boolean) {
   const { t } = useTranslation();
-  const toast = useToastSafe();
   const [guard, setGuard] = useState<GuardResponse | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   // Bumped when the service goes away or the page unmounts, so a response
   // from an earlier life of the effect is dropped.
   const generationRef = useRef(0);
   // Bumped by every applied write, so a poll that started before it is dropped.
   const seqRef = useRef(0);
-  const inFlightRef = useRef(false);
+  // The generation that has a poll in flight, so a flap offline and back online cannot overlap two.
+  const inFlightRef = useRef<number | null>(null);
   const dirtyRef = useRef(false);
   const togglingRef = useRef(false);
-  const toastRef = useRef({ toast, t });
-  toastRef.current = { toast, t };
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const refresh = useCallback(async () => {
-    if (inFlightRef.current || togglingRef.current) {
+    const generation = generationRef.current;
+    if (inFlightRef.current === generation || togglingRef.current) {
       dirtyRef.current = true;
       return;
     }
-    inFlightRef.current = true;
-    const generation = generationRef.current;
+    inFlightRef.current = generation;
     const seq = seqRef.current;
     try {
       const next = await fetchGuard();
       if (next && generation === generationRef.current && seq === seqRef.current) setGuard(next);
     } finally {
-      inFlightRef.current = false;
+      if (inFlightRef.current === generation) inFlightRef.current = null;
     }
     if (dirtyRef.current && generation === generationRef.current) {
       dirtyRef.current = false;
@@ -52,7 +52,6 @@ export function useThermalGuard(serviceOnline: boolean) {
     return () => {
       window.clearInterval(id);
       generationRef.current += 1;
-      inFlightRef.current = false;
       dirtyRef.current = false;
     };
   }, [serviceOnline, refresh]);
@@ -70,8 +69,9 @@ export function useThermalGuard(serviceOnline: boolean) {
       if (next && next.state) {
         seqRef.current += 1;
         setGuard(next);
+        setError(null);
       } else {
-        toastRef.current.toast.push({ title: toastRef.current.t('cooling.guard.error.toggle') });
+        setError(tRef.current('cooling.guard.error.toggle'));
       }
     } finally {
       togglingRef.current = false;
@@ -85,9 +85,17 @@ export function useThermalGuard(serviceOnline: boolean) {
     setGuard(prev => (prev ? { ...prev, heal } : prev));
   }, []);
 
-  const undo = useCallback(async () => {
-    applyHeal(await undoHeal());
+  /** True when the undo landed; a failed one leaves the notice and sets `error`. */
+  const undo = useCallback(async (): Promise<boolean> => {
+    const heal = await undoHeal();
+    if (!heal) {
+      setError(tRef.current('cooling.guard.error.undo'));
+      return false;
+    }
+    setError(null);
+    applyHeal(heal);
+    return true;
   }, [applyHeal]);
 
-  return { guard, toggling, refresh, toggle, undo, applyHeal };
+  return { guard, toggling, error, refresh, toggle, undo, applyHeal };
 }

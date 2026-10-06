@@ -1,7 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ToastProvider } from '../components/common/Toast/Toast';
 import { useCurveSaveLint } from './useCurveSaveLint';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
@@ -22,27 +21,31 @@ vi.mock('../api/cooling', async (importOriginal) => ({
 const hazard = { channelId: 'a', channelName: 'Fan #1', kind: 'manual-low', rootId: null, rootName: null };
 const body = (n: number) => ({ globalSpeedModifier: n, curves: [] });
 const hazardous = { hazards: [hazard], fixAvailable: true };
+const ok = { error: false, msg: '' };
+const healed = { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'a', name: 'Fan #1', hazard: 'manual-low' }] };
 const clean = { hazards: [], fixAvailable: false };
 
 const handle: { current: ReturnType<typeof useCurveSaveLint> | null } = { current: null };
 const save = (b: ReturnType<typeof body>) => handle.current!.saveWithLint(b);
 const onHealed = vi.fn();
+const onSaved = vi.fn();
 
+// No ToastProvider: the error has to render inline.
 function Harness() {
-  const lint = useCurveSaveLint(onHealed);
+  const lint = useCurveSaveLint({ onHealed, onSaved });
   useEffect(() => { handle.current = lint; });
-  return <>{lint.prompt}</>;
+  return <>{lint.prompt}{lint.error && <p role="alert">{lint.error}</p>}</>;
 }
 
-const mount = () => render(<ToastProvider><Harness /></ToastProvider>);
+const mount = () => render(<Harness />);
 const savedBodies = () => api.save.mock.calls.map(c => c[0].globalSpeedModifier);
 
 describe('useCurveSaveLint', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     api.lint.mockResolvedValue(clean);
-    api.save.mockResolvedValue(undefined);
-    api.heal.mockResolvedValue({ undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'a', name: 'Fan #1', hazard: 'manual-low' }] });
+    api.save.mockResolvedValue(ok);
+    api.heal.mockResolvedValue(healed);
   });
 
   it('a save arriving while the prompt is open replaces the held body and saves once', async () => {
@@ -103,7 +106,7 @@ describe('useCurveSaveLint', () => {
     expect(screen.getByRole('button', { name: 'cooling.guard.dialog.saveAnyway' })).toBeTruthy();
   });
 
-  it('reports a failed heal, keeps no stale notice, and asks again next time', async () => {
+  it('reports a failed heal inline and keeps no stale notice', async () => {
     mount();
     api.lint.mockResolvedValue(hazardous);
     api.heal.mockResolvedValue(null);
@@ -112,9 +115,7 @@ describe('useCurveSaveLint', () => {
     await screen.findByText('cooling.guard.error.heal');
     expect(onHealed).not.toHaveBeenCalled();
     expect(savedBodies()).toEqual([1]);
-    // Not acknowledged, so the same hazards prompt again.
-    act(() => { void save(body(2)); });
-    await screen.findByText('cooling.guard.dialog.title');
+    expect(screen.getByRole('alert').textContent).toBe('cooling.guard.error.heal');
   });
 
   it('treats a heal that changed no channel as failed', async () => {
@@ -133,5 +134,73 @@ describe('useCurveSaveLint', () => {
     act(() => { void save(body(1)); });
     fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
     await waitFor(() => { expect(onHealed).toHaveBeenCalled(); });
+  });
+
+  it('prompts once per body and heals once each when Fix is followed by a superseding save', async () => {
+    mount();
+    api.lint.mockResolvedValue(hazardous);
+    let first!: Promise<unknown>;
+    let second!: Promise<unknown>;
+    act(() => { first = save(body(1)); });
+    await screen.findByText('cooling.guard.dialog.title');
+    act(() => { second = save(body(2)); });
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.fix' }));
+    // Fix does not carry over: the newer body prompts on its own hazards.
+    await waitFor(() => { expect(api.lint).toHaveBeenCalledTimes(2); });
+    expect(api.save).not.toHaveBeenCalled();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
+    await act(async () => { await Promise.all([first, second]); });
+    expect(savedBodies()).toEqual([2]);
+    expect(api.heal).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not heal a superseding body that has no hazards', async () => {
+    mount();
+    api.lint.mockResolvedValueOnce(hazardous).mockResolvedValue(clean);
+    let first!: Promise<unknown>;
+    let second!: Promise<unknown>;
+    act(() => { first = save(body(1)); });
+    await screen.findByText('cooling.guard.dialog.title');
+    act(() => { second = save(body(2)); });
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.fix' }));
+    await act(async () => { await Promise.all([first, second]); });
+    expect(savedBodies()).toEqual([2]);
+    expect(api.heal).not.toHaveBeenCalled();
+  });
+
+  it.each([['null', null], ['an error envelope', { error: true, msg: 'x' }]])('never heals after a save that returned %s', async (_n, result) => {
+    mount();
+    api.lint.mockResolvedValue(hazardous);
+    api.save.mockResolvedValue(result);
+    act(() => { void save(body(1)); });
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
+    await screen.findByText('cooling.guard.error.save');
+    expect(api.heal).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
+  });
+
+  it('prompts again for a body queued during the heal', async () => {
+    mount();
+    api.lint.mockResolvedValue(hazardous);
+    let finishHeal!: (v: unknown) => void;
+    api.heal.mockImplementation(() => new Promise(r => { finishHeal = r; }));
+    act(() => { void save(body(1)); });
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
+    await waitFor(() => { expect(api.heal).toHaveBeenCalled(); });
+    act(() => { void save(body(2)); });
+    await act(async () => { finishHeal(healed); });
+    // Fix acknowledged nothing, so the pre-heal body asks instead of overwriting the heal.
+    await screen.findByText('cooling.guard.dialog.title');
+    expect(savedBodies()).toEqual([1]);
+  });
+
+  it('clears the error and reports a save once the next save succeeds', async () => {
+    mount();
+    api.save.mockResolvedValueOnce(null);
+    await act(async () => { await save(body(1)); });
+    expect(screen.getByRole('alert')).toBeTruthy();
+    await act(async () => { await save(body(2)); });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 });

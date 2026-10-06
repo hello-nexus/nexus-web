@@ -5,7 +5,11 @@ import type { PanelWidget } from '../../types';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
-const svc = vi.hoisted(() => ({ hazards: [] as Array<Record<string, unknown>> }));
+const svc = vi.hoisted(() => ({
+  hazards: [] as Array<Record<string, unknown>>,
+  undoAvailable: true,
+  undoResult: 'ok' as 'ok' | 'fail',
+}));
 
 vi.mock('../../../api/cooling', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../api/cooling')>();
@@ -57,14 +61,18 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     })),
     fetchProfiles: vi.fn(async () => ({ profiles: [], active: 'balanced' })),
     applyProfile: vi.fn(async () => undefined),
-    saveCurves: vi.fn(async () => undefined),
+    saveCurves: vi.fn(async () => ({ error: false, msg: '' })),
     releaseFanAuto: vi.fn(async () => undefined),
     renameFan: vi.fn(async () => undefined),
     resetPresetCurve: vi.fn(async () => undefined),
     setFanSpeed: vi.fn(async () => undefined),
     lintCurves: vi.fn(async () => ({ hazards: svc.hazards, fixAvailable: svc.hazards.length > 0 })),
-    healCooling: vi.fn(async () => ({ undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-case', name: 'Case Fan', hazard: 'manual-low' }] })),
-    undoHeal: vi.fn(async () => ({ undoAvailable: false, healedAtUtcMs: null, channels: [] })),
+    healCooling: vi.fn(async () => ({ undoAvailable: svc.undoAvailable, healedAtUtcMs: 1, channels: [{ id: 'fan-case', name: 'Case Fan', hazard: 'manual-low' }] })),
+    undoHeal: vi.fn(async () => (svc.undoResult === 'ok' ? { undoAvailable: false, healedAtUtcMs: null, channels: [] } : null)),
+    fetchGuard: vi.fn(async () => ({
+      state: 'normal', guardTempC: 50, limitC: 95, limitSource: 'spec', sinceUtcMs: null, lastTrip: null,
+      heal: { undoAvailable: svc.undoAvailable, healedAtUtcMs: null, channels: [] },
+    })),
   };
 });
 
@@ -91,6 +99,8 @@ describe('CoolingTouch curve save lint', () => {
     vi.clearAllMocks();
     localStorage.clear();
     svc.hazards = [];
+    svc.undoAvailable = true;
+    svc.undoResult = 'ok';
   });
 
   it('saves straight away without hazards', async () => {
@@ -128,5 +138,46 @@ describe('CoolingTouch curve save lint', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
     await waitFor(() => expect(saveCurves).toHaveBeenCalled());
     expect(healCooling).not.toHaveBeenCalled();
+  });
+
+  async function fixOnce() {
+    svc.hazards = [hazard];
+    await triggerSave();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
+    await screen.findByText('cooling.guard.heal.title');
+  }
+
+  it('dismisses the heal notice', async () => {
+    await fixOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
+    expect(screen.queryByText('cooling.guard.heal.title')).toBeNull();
+  });
+
+  it('clears the heal notice on the next successful save', async () => {
+    await fixOnce();
+    svc.hazards = [];
+    fireEvent.click(screen.getByRole('button', { name: 'My Graph Curve' }));
+    await waitFor(() => expect(saveCurves).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());
+  });
+
+  it('offers Undo only while the service still holds a snapshot', async () => {
+    svc.undoAvailable = false;
+    await fixOnce();
+    expect(screen.queryByRole('button', { name: 'cooling.guard.heal.undo' })).toBeNull();
+  });
+
+  it('keeps the notice and shows an inline error when Undo fails', async () => {
+    svc.undoResult = 'fail';
+    await fixOnce();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.undo' }));
+    await screen.findByText('cooling.guard.error.undo');
+    expect(screen.getByText('cooling.guard.heal.title')).toBeTruthy();
+  });
+
+  it('shows a failed save inline with no toast provider', async () => {
+    vi.mocked(saveCurves).mockResolvedValueOnce(null as never);
+    await triggerSave();
+    await screen.findByText('cooling.guard.error.save');
   });
 });

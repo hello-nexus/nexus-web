@@ -1,7 +1,6 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ToastProvider } from '../components/common/Toast/Toast';
 import type { GuardResponse } from '../api/cooling';
 import { useThermalGuard } from './useThermalGuard';
 
@@ -34,9 +33,9 @@ const hook = {
 function Harness({ online = true }: { online?: boolean }) {
   const h = useThermalGuard(online);
   useEffect(() => { handle.current = h; });
-  return <span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>;
+  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{h.error && <p role="alert">{h.error}</p>}</>;
 }
-const mount = (online = true) => render(<ToastProvider><Harness online={online} /></ToastProvider>);
+const mount = (online = true) => render(<Harness online={online} />);
 
 describe('useThermalGuard', () => {
   beforeEach(() => {
@@ -68,7 +67,7 @@ describe('useThermalGuard', () => {
     const poll = deferred<GuardResponse>();
     api.fetchGuard.mockReturnValueOnce(poll.promise);
     const view = mount();
-    view.rerender(<ToastProvider><Harness online={false} /></ToastProvider>);
+    view.rerender(<Harness online={false} />);
     await act(async () => { poll.resolve(guard('floor')); });
     expect(screen.getByTestId('state').textContent).toBe('none');
   });
@@ -92,6 +91,28 @@ describe('useThermalGuard', () => {
     await act(async () => { await hook.toggle(false); });
     await screen.findByText('cooling.guard.error.toggle');
     expect(screen.getByTestId('state').textContent).toBe('normal');
-    fireEvent.click(screen.getByText('cooling.guard.error.toggle'));
+  });
+
+  it('a failed undo sets an error and reports false', async () => {
+    mount();
+    api.undoHeal.mockResolvedValue(null);
+    let ok = true;
+    await act(async () => { ok = await handle.current!.undo(); });
+    expect(ok).toBe(false);
+    await screen.findByText('cooling.guard.error.undo');
+  });
+
+  it('an offline-online flap does not start overlapping polls', async () => {
+    const first = deferred<GuardResponse>();
+    const second = deferred<GuardResponse>();
+    api.fetchGuard.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const view = mount();
+    view.rerender(<Harness online={false} />);
+    view.rerender(<Harness online />);
+    // The new generation polls once even though the old poll is still pending.
+    expect(api.fetchGuard).toHaveBeenCalledTimes(2);
+    await act(async () => { void handle.current!.refresh(); });
+    expect(api.fetchGuard).toHaveBeenCalledTimes(2);
+    await act(async () => { first.resolve(guard('floor')); second.resolve(guard('normal')); });
   });
 });
