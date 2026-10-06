@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "ライティングページのエフェクトを使用",
   "devices.lightingPage.useHint": "オフにすると、デバイスは下で設定したアニメーションを単独で再生します。",
   "devices.loading": "読み込み中...",
+  "devices.motherboardArgb.hint": "マザーボードが同期ケーブルで送る色を表示します。オンの間は Nexus はライティングを制御しません。",
+  "devices.motherboardArgb.label": "マザーボードの ARGB に従う",
   "devices.nexusControl": "Nexus コントロール",
   "devices.nexusControlOff.conflictHint": "{app} が現在このデバイスを制御しています。先に終了して Nexus コントロールをオンにしてください。",
   "devices.nexusControlOff.detecting": "デバイスを検出しています...",

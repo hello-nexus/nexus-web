@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Usa gli effetti della pagina Illuminazione",
   "devices.lightingPage.useHint": "Se disattivato, il dispositivo riproduce da solo l'animazione impostata qui sotto.",
   "devices.loading": "Caricamento...",
+  "devices.motherboardArgb.hint": "Mostra i colori che la scheda madre invia tramite il cavo di sincronizzazione. Nexus smette di illuminarlo finché è attivo.",
+  "devices.motherboardArgb.label": "Segui l'ARGB della scheda madre",
   "devices.nexusControl": "Controllo Nexus",
   "devices.nexusControlOff.conflictHint": "{app} sta controllando questo dispositivo. Chiudila prima per attivare il controllo Nexus.",
   "devices.nexusControlOff.detecting": "Rilevamento dispositivo...",

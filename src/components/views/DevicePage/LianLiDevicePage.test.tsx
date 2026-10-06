@@ -363,10 +363,23 @@ describe('LianLiDevicePage', () => {
       });
     });
 
-    it('is absent on a hub whose ARGB layout is unverified', async () => {
+    it('is absent on a service that cannot sync this hub', async () => {
       argb({ argbSyncSupported: false });
       await renderOnLighting(<LianLiDevicePage />);
       expect(screen.queryByText('devices.lianli.argbSyncSection')).not.toBeInTheDocument();
+    });
+
+    it('on a hub with an unverified input layout, the switch alone hands the fans to the motherboard', async () => {
+      argb({ argbSyncSourcesSupported: false, argbSyncSources: [] });
+      await renderOnLighting(<LianLiDevicePage />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('switch', { name: 'devices.motherboardArgb.label' }));
+      });
+
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true });
+      expect(mockSetDeviceChain).not.toHaveBeenCalled();
+      expect(screen.queryByText('devices.lianli.argbSyncSource')).not.toBeInTheDocument();
     });
 
     it('with no header saved, switching on shows the picker and the pick turns sync on', async () => {

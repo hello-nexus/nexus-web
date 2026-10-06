@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Aydınlatma sayfası efektlerini kullan",
   "devices.lightingPage.useHint": "Kapalıyken cihaz aşağıda ayarlanan animasyonu kendi başına oynatır.",
   "devices.loading": "Yukleniyor...",
+  "devices.motherboardArgb.hint": "Anakartın senkronizasyon kablosuyla gönderdiği renkleri gösterir. Bu açıkken Nexus aydınlatmayı yönetmez.",
+  "devices.motherboardArgb.label": "Anakart ARGB'sini izle",
   "devices.nexusControl": "Nexus Kontrolü",
   "devices.nexusControlOff.conflictHint": "{app} şu anda bu cihazı kontrol ediyor. Nexus Kontrolünü açmak için önce onu sonlandırın.",
   "devices.nexusControlOff.detecting": "Cihaz algılanıyor...",

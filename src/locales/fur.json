@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Doprâ i efets de pagjine Iluminazion",
   "devices.lightingPage.useHint": "Cuant che al è distudât, il dispositîf al zuie di bessôl la animazion metude chi sot.",
   "devices.loading": "Daûr a cjariâ...",
+  "devices.motherboardArgb.hint": "Al mostre i colôrs che la schede mari e mande midiant il cabli di sincronizazion. Nexus nol iluminilu plui fintremai che chest al è atîf.",
+  "devices.motherboardArgb.label": "Seguî l'ARGB de schede mari",
   "devices.nexusControl": "Control Nexus",
   "devices.nexusControlOff.conflictHint": "{app} al sta controlant chest dispositîf. Sierilu prime par ativâ il control Nexus.",
   "devices.nexusControlOff.detecting": "Rilevament dal dispositîf...",

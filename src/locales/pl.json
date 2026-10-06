@@ -867,6 +867,8 @@
   "devices.lightingPage.use": "Użyj efektów ze strony Oświetlenie",
   "devices.lightingPage.useHint": "Po wyłączeniu urządzenie samo odtwarza animację ustawioną poniżej.",
   "devices.loading": "Ladowanie...",
+  "devices.motherboardArgb.hint": "Wyświetla kolory, które płyta główna wysyła kablem synchronizacji. Gdy to jest włączone, Nexus nie steruje podświetleniem.",
+  "devices.motherboardArgb.label": "Podążaj za ARGB płyty głównej",
   "devices.nexusControl": "Sterowanie Nexus",
   "devices.nexusControlOff.conflictHint": "{app} obecnie steruje tym urządzeniem. Najpierw zamknij tę aplikację, aby włączyć sterowanie Nexus.",
   "devices.nexusControlOff.detecting": "Wykrywanie urządzenia...",

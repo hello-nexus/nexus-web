@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Use Lighting page effects",
   "devices.lightingPage.useHint": "When off, the device plays the animation set below on its own.",
   "devices.loading": "Loading...",
+  "devices.motherboardArgb.hint": "Plays the colors your motherboard sends through the sync cable. Nexus stops lighting it while this is on.",
+  "devices.motherboardArgb.label": "Follow the motherboard ARGB",
   "devices.nexusControl": "Nexus Control",
   "devices.nexusControlOff.conflictHint": "{app} is currently controlling this device. End it first to turn on Nexus Control.",
   "devices.nexusControlOff.detecting": "Detecting device...",

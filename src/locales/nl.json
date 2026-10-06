@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Effecten van de pagina Verlichting gebruiken",
   "devices.lightingPage.useHint": "Uit: het apparaat speelt zelf de hieronder ingestelde animatie af.",
   "devices.loading": "Laden...",
+  "devices.motherboardArgb.hint": "Toont de kleuren die je moederbord via de synckabel stuurt. Zolang dit aan staat, verlicht Nexus het niet.",
+  "devices.motherboardArgb.label": "Moederbord-ARGB volgen",
   "devices.nexusControl": "Nexus Control",
   "devices.nexusControlOff.conflictHint": "{app} bedient dit apparaat momenteel. Sluit dit eerst af om Nexus Control in te schakelen.",
   "devices.nexusControlOff.detecting": "Apparaat detecteren...",

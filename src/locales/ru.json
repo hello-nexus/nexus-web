@@ -867,6 +867,8 @@
   "devices.lightingPage.use": "Использовать эффекты со страницы Освещение",
   "devices.lightingPage.useHint": "Если выключено, устройство само воспроизводит анимацию, заданную ниже.",
   "devices.loading": "Загрузка...",
+  "devices.motherboardArgb.hint": "Показывает цвета, которые материнская плата передаёт по кабелю синхронизации. Пока это включено, Nexus не управляет подсветкой.",
+  "devices.motherboardArgb.label": "Следовать ARGB материнской платы",
   "devices.nexusControl": "Управление Nexus",
   "devices.nexusControlOff.conflictHint": "{app} сейчас управляет этим устройством. Сначала завершите его, чтобы включить управление Nexus.",
   "devices.nexusControlOff.detecting": "Поиск устройства...",

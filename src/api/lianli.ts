@@ -45,8 +45,10 @@ export interface LianLiLighting {
   modes: LianLiLightingMode[];
   /** The hub plays its motherboard ARGB input instead of Nexus streaming to it. Absent on an older service. */
   argbSync?: boolean;
-  /** False on hub families whose ARGB-input layout is unverified. */
+  /** False on a service older than plain passthrough, where only the verified family could sync. */
   argbSyncSupported?: boolean;
+  /** False when the hub's input layout is unverified: sync then hands the fans to the motherboard without a Nexus source. */
+  argbSyncSourcesSupported?: boolean;
   /** Lighting card driving that ARGB input. */
   argbSyncSource?: string | null;
   /** Cards that can drive it: single addressable ports. */

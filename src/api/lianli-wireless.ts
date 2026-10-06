@@ -115,6 +115,12 @@ export interface LianLiWirelessChainLighting {
   /** A mergeable effect runs across every fan of the chain. Absent on an older service. */
   merge?: boolean;
   laneSettings: LianLiWirelessLane[];
+  /** Saved choice to play the motherboard ARGB header; null when never chosen, absent on an older service. */
+  motherboardArgb?: boolean | null;
+  /** The chain reports its ARGB sync cable plugged in. */
+  argbCableConnected?: boolean;
+  /** The chain reports it is playing its motherboard input. */
+  playingMotherboardArgb?: boolean;
 }
 
 export interface LianLiWirelessLighting {
@@ -123,7 +129,7 @@ export interface LianLiWirelessLighting {
 }
 
 export type LianLiWirelessChainPatch = Partial<Pick<LianLiWirelessChainLighting,
-  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings'>>;
+  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings' | 'motherboardArgb'>>;
 
 export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | null> {
   return fetchService<LianLiWirelessLighting>('/devices/lianli-wireless/lighting');

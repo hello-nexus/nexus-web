@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Usar efeitos da página Iluminação",
   "devices.lightingPage.useHint": "Desligado, o dispositivo reproduz sozinho a animação definida abaixo.",
   "devices.loading": "Carregando...",
+  "devices.motherboardArgb.hint": "Mostra as cores que a placa-mãe envia pelo cabo de sincronização. O Nexus deixa de iluminá-lo enquanto isto estiver ativado.",
+  "devices.motherboardArgb.label": "Seguir o ARGB da placa-mãe",
   "devices.nexusControl": "Controle do Nexus",
   "devices.nexusControlOff.conflictHint": "{app} está controlando este dispositivo no momento. Encerre-o primeiro para ativar o controle do Nexus.",
   "devices.nexusControlOff.detecting": "Detectando dispositivo...",

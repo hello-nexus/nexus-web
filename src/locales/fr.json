@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Utiliser les effets de la page Éclairage",
   "devices.lightingPage.useHint": "Désactivé, l'appareil joue lui-même l'animation réglée ci-dessous.",
   "devices.loading": "Chargement...",
+  "devices.motherboardArgb.hint": "Affiche les couleurs envoyées par la carte mère via le câble de synchronisation. Nexus ne gère plus son éclairage tant que c'est activé.",
+  "devices.motherboardArgb.label": "Suivre l'ARGB de la carte mère",
   "devices.nexusControl": "Contrôle Nexus",
   "devices.nexusControlOff.conflictHint": "{app} contrôle actuellement cet appareil. Fermez-la d'abord pour activer le contrôle Nexus.",
   "devices.nexusControlOff.detecting": "Détection de l'appareil...",

@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "Effekte der Beleuchtungsseite verwenden",
   "devices.lightingPage.useHint": "Wenn aus, spielt das Gerät die unten eingestellte Animation selbst ab.",
   "devices.loading": "Wird geladen...",
+  "devices.motherboardArgb.hint": "Zeigt die Farben, die dein Mainboard über das Sync-Kabel sendet. Solange das aktiv ist, steuert Nexus die Beleuchtung nicht.",
+  "devices.motherboardArgb.label": "Mainboard-ARGB folgen",
   "devices.nexusControl": "Nexus-Steuerung",
   "devices.nexusControlOff.conflictHint": "{app} steuert dieses Gerät gerade. Beenden Sie die App zuerst, um die Nexus-Steuerung zu aktivieren.",
   "devices.nexusControlOff.detecting": "Gerät wird erkannt...",

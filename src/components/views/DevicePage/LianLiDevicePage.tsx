@@ -479,6 +479,23 @@ function LianLiArgbSyncSection({ lighting, fansPerPort, onLighting, commit }: Li
   const fans = longestChain(fansPerPort);
   const on = lighting.argbSync === true;
 
+  if (lighting.argbSyncSourcesSupported === false) {
+    return (
+      <SettingsSection title={t('devices.lianli.argbSyncSection')} boxClassName={styles.sectionBox}>
+        <SettingToggle
+          label={t('devices.motherboardArgb.label')}
+          description={t('devices.motherboardArgb.hint')}
+          checked={on}
+          onChange={next => {
+            const previous = lighting;
+            onLighting({ ...lighting, argbSync: next });
+            void commit({ argbSync: next }).then(ok => { if (!ok) onLighting(previous); });
+          }}
+        />
+      </SettingsSection>
+    );
+  }
+
   const enable = async (id: string) => {
     const previous = lighting;
     setEnabling(true);

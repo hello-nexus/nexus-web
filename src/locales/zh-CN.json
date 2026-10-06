@@ -860,6 +860,8 @@
   "devices.lightingPage.use": "使用照明页面效果",
   "devices.lightingPage.useHint": "关闭时，设备将自行播放下方设置的动画。",
   "devices.loading": "加载中...",
+  "devices.motherboardArgb.hint": "显示主板通过同步线发送的颜色。开启时 Nexus 不再控制其灯光。",
+  "devices.motherboardArgb.label": "跟随主板 ARGB",
   "devices.nexusControl": "Nexus 控制",
   "devices.nexusControlOff.conflictHint": "{app} 目前正在控制此设备。请先结束它，再开启 Nexus 控制。",
   "devices.nexusControlOff.detecting": "正在检测设备...",
