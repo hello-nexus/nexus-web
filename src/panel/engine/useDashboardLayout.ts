@@ -18,16 +18,26 @@ function collapseToSinglePage(layout: PanelLayout): PanelLayout {
   return { ...layout, pages: [layout.pages[0]] };
 }
 
-interface UseDashboardLayoutResult {
+export interface UseDashboardLayoutResult {
   layout: PanelLayout;
   loaded: boolean;
   setLayout: (next: PanelLayout) => void;
+  /** Resolves once every setLayout so far is written, so a preset switch captures it. */
+  flush: () => Promise<void>;
+}
+
+function saveLayout(layout: PanelLayout): Promise<void> {
+  return savePreferences({ panel: { dashboardLayout: layout } })
+    .then(() => broadcastLayoutChanged())
+    .catch(() => {});
 }
 
 export function useDashboardLayout(): UseDashboardLayoutResult {
   const [layout, setLayoutState] = useState<PanelLayout>(() => defaultLayoutForDashboard());
   const [loaded, setLoaded] = useState(false);
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingWrite = useRef<PanelLayout | null>(null);
+  const lastSave = useRef<Promise<void>>(Promise.resolve());
 
   const fetchLayout = useCallback(() => {
     fetchPreferences().then(prefs => {
@@ -52,13 +62,24 @@ export function useDashboardLayout(): UseDashboardLayoutResult {
   const setLayout = useCallback((next: PanelLayout) => {
     const normalized = collapseToSinglePage(normalizePanelLayout(next, 'desktop'));
     setLayoutState(normalized);
+    pendingWrite.current = normalized;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     writeTimer.current = setTimeout(() => {
       writeTimer.current = null;
-      savePreferences({ panel: { dashboardLayout: normalized } })
-        .then(() => broadcastLayoutChanged())
-        .catch(() => {});
+      pendingWrite.current = null;
+      lastSave.current = saveLayout(normalized);
     }, 250);
+  }, []);
+
+  const flush = useCallback(async () => {
+    const pending = pendingWrite.current;
+    if (writeTimer.current && pending) {
+      clearTimeout(writeTimer.current);
+      writeTimer.current = null;
+      pendingWrite.current = null;
+      lastSave.current = saveLayout(pending);
+    }
+    await lastSave.current;
   }, []);
 
   useEffect(() => () => {
@@ -68,5 +89,5 @@ export function useDashboardLayout(): UseDashboardLayoutResult {
     }
   }, []);
 
-  return { layout, loaded, setLayout };
+  return { layout, loaded, setLayout, flush };
 }
