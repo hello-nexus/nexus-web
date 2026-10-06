@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { DASHBOARD_PRESET_IDS, dashboardPresetLayout } from './dashboardPresets';
+import { DASHBOARD_SAMPLE_PRESET_IDS, dashboardSamplePresetLayout } from './dashboardPresets';
 import { DESKTOP_GRID_COLUMNS, DESKTOP_GRID_ROWS } from './panelGrid';
 import { sizeToSpan } from './grid';
 import { APP_REGISTRY, appAvailableForSurface } from '../widgets/registry';
 
 describe('dashboard presets', () => {
-  for (const id of DASHBOARD_PRESET_IDS.filter(p => p !== 'default')) {
+  for (const id of DASHBOARD_SAMPLE_PRESET_IDS) {
     it(`${id} places desktop-available apps at allowed sizes without overlap`, () => {
-      const layout = dashboardPresetLayout(id);
+      const layout = dashboardSamplePresetLayout(id);
       expect(layout.surface).toBe('desktop');
       expect(layout.pages).toHaveLength(1);
       const taken = new Set<string>();
@@ -31,8 +31,8 @@ describe('dashboard presets', () => {
   }
 
   it('gives every applied widget a fresh id', () => {
-    const a = dashboardPresetLayout('monitoring').pages[0].widgets.map(w => w.id);
-    const b = dashboardPresetLayout('monitoring').pages[0].widgets.map(w => w.id);
+    const a = dashboardSamplePresetLayout('monitoring').pages[0].widgets.map(w => w.id);
+    const b = dashboardSamplePresetLayout('monitoring').pages[0].widgets.map(w => w.id);
     expect(new Set([...a, ...b]).size).toBe(a.length * 2);
   });
 });

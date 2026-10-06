@@ -3,11 +3,10 @@ import type { DeviceKey } from '../widgets/monitoring/perfSlots';
 import type { GaugeDesignKey } from '../widgets/monitoring/gauges';
 import { NETWORK_SENSOR_IN, NETWORK_SENSOR_OUT } from '../widgets/monitoring/networkSensors';
 import { createUuid } from '../../lib/uuid';
-import { defaultLayoutForDashboard } from './defaultLayout';
 
-export type DashboardPresetId = 'default' | 'monitoring' | 'productivity' | 'gaming';
+export type DashboardSamplePresetId = 'monitoring' | 'productivity' | 'gaming';
 
-export interface DashboardPresetWidget {
+interface DashboardPresetWidget {
   type: string;
   size: PanelWidgetSize;
   col: number;
@@ -25,8 +24,7 @@ function monitoringSlots(...slots: Array<[DeviceKey, string, GaugeDesignKey]>): 
   return config;
 }
 
-// 'default' has no entry: it is the service's install-default desktop layout.
-const PRESET_WIDGETS: Record<Exclude<DashboardPresetId, 'default'>, DashboardPresetWidget[]> = {
+const PRESET_WIDGETS: Record<DashboardSamplePresetId, DashboardPresetWidget[]> = {
   monitoring: [
     { type: 'monitoring', size: '4x4', col: 0, row: 0, config: monitoringSlots(
       ['quick', 'summary/cpu-usage', 'sparkline'],
@@ -74,15 +72,9 @@ const PRESET_WIDGETS: Record<Exclude<DashboardPresetId, 'default'>, DashboardPre
   ],
 };
 
-export const DASHBOARD_PRESET_IDS: DashboardPresetId[] = ['default', 'monitoring', 'productivity', 'gaming'];
+export const DASHBOARD_SAMPLE_PRESET_IDS: DashboardSamplePresetId[] = ['monitoring', 'productivity', 'gaming'];
 
-export function dashboardPresetWidgets(id: DashboardPresetId): DashboardPresetWidget[] {
-  if (id === 'default') return defaultLayoutForDashboard().pages[0]?.widgets ?? [];
-  return PRESET_WIDGETS[id];
-}
-
-export function dashboardPresetLayout(id: DashboardPresetId): PanelLayout {
-  if (id === 'default') return defaultLayoutForDashboard();
+export function dashboardSamplePresetLayout(id: DashboardSamplePresetId): PanelLayout {
   return {
     layoutSchemaVersion: 2,
     surface: 'desktop',
