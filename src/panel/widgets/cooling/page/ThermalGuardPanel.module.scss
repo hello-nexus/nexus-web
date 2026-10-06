@@ -1,0 +1,78 @@
+@use '../../../../styles/text' as *;
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.row,
+.banner,
+.heal {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+
+  @include text-body;
+}
+
+.text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.label {
+  @include text-heading;
+}
+
+.description {
+  color: var(--text-dim);
+}
+
+.icon {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.banner {
+  border-color: var(--warn);
+
+  &[data-state='tripped'],
+  &[data-state='escalated'] {
+    border-color: var(--bad);
+  }
+}
+
+.bannerIcon {
+  flex: 0 0 auto;
+  color: var(--warn);
+}
+
+.heal {
+  align-items: flex-start;
+}
+
+.healIcon {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+  color: var(--accent);
+}
+
+.healBody {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.healList {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--text-dim);
+}

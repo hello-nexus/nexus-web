@@ -26,7 +26,7 @@ import {
 } from '../../../api/qseries';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
-  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanControlled, setFanRole, setFanOffset,
+  setFanSpeed, releaseFanAuto, saveCurves, lintCurves, healCooling, type CurveHazard, renameFan, setFanLock, setFanControlled, setFanRole, setFanOffset,
   fetchCoolingPresets, createCoolingPreset, updateCoolingPreset, deleteCoolingPreset,
   activateCoolingPreset, type CoolingPreset,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
@@ -37,6 +37,7 @@ import {
 } from '../../../api/cooling';
 import { useCoolingRealtime } from '../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../hooks/useCoolingCurves';
+import { useThermalGuard } from '../../../hooks/useThermalGuard';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useSensors } from '../../../hooks/useSensors';
 import type { ServiceState } from '../../../hooks/useServiceState';
@@ -70,6 +71,8 @@ import {
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
+import { ThermalGuardPanel } from './page/ThermalGuardPanel';
+import { hazardSignature, lintLines } from './page/guardUtils';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
@@ -127,6 +130,15 @@ const noopCurveEdit = () => {};
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
   const { t, language } = useTranslation();
   const recovery = useFirmwareRecoveryFlow(serviceOnline);
+  const thermalGuard = useThermalGuard(serviceOnline);
+  const guardPanel = (
+    <ThermalGuardPanel guard={thermalGuard.guard} onToggle={enabled => { void thermalGuard.toggle(enabled); }} onUndo={() => { void thermalGuard.undo(); }} />
+  );
+  // The save-time lint prompt: settles with the user's choice, and a dismissal
+  // counts as Save anyway because saving is never blocked.
+  const [hazardPrompt, setHazardPrompt] = useState<{ hazards: CurveHazard[]; settle: (fix: boolean) => void } | null>(null);
+  const hazardPromptOpenRef = useRef(false);
+  const ackedHazardsRef = useRef('');
   const recoveryBanner = (
     <FirmwareRecoveryBanner item={recovery.item} status={recovery.status} onRecover={recovery.request} />
   );
@@ -602,9 +614,32 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       c,
       Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
     ));
-    return saveCurves({ globalSpeedModifier: 1, curves: apiCurves })
-      .then(res => { void saveActivePreset(); return res; });
-  }, [saveActivePreset]);
+    const body = { globalSpeedModifier: 1, curves: apiCurves };
+    return (async () => {
+      // A prompt already open covers this edit too; the lint reruns on the next one.
+      let fix = false;
+      if (!hazardPromptOpenRef.current) {
+        const lint = await lintCurves(body);
+        const hazards = lint?.hazards ?? [];
+        const signature = hazardSignature(hazards);
+        if (hazards.length === 0) {
+          ackedHazardsRef.current = '';
+        } else if (signature !== ackedHazardsRef.current) {
+          hazardPromptOpenRef.current = true;
+          fix = await new Promise<boolean>(settle => { setHazardPrompt({ hazards, settle }); });
+          hazardPromptOpenRef.current = false;
+          ackedHazardsRef.current = signature;
+        }
+      }
+      const res = await saveCurves(body);
+      if (fix) {
+        thermalGuard.applyHeal(await healCooling());
+        void refreshCoolingConfig();
+      }
+      void saveActivePreset();
+      return res;
+    })();
+  }, [saveActivePreset, thermalGuard, refreshCoolingConfig]);
   pushCurvesRef.current = pushCurves;
 
   // Issue rule: when cooling is Off, the user changing any fan setting other
@@ -1355,6 +1390,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       <div className={styles.cooling}>
         <div className={`${styles.simpleBody} pageBodyFill`}>
           {recoveryBanner}
+          {guardPanel}
           {recovery.modal}
           <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
             <ViewHeader
@@ -1413,6 +1449,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   return (
     <div className={styles.cooling}>
       {recovery.item && <div className={`${styles.recoveryBanner} pageBody`}>{recoveryBanner}</div>}
+      <div className={`${styles.guardBar} pageBody`}>{guardPanel}</div>
       {recovery.modal}
       {/* Fan rail on the left, mode tabs + curve to its right, mirroring the
           lighting page. The rail header shares grid row 1 with the tabs so both
@@ -1933,6 +1970,18 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         title={t('coolingImport.title')}
         sources={importSources}
         onImported={() => { void refreshCoolingConfig(); }}
+      />
+      <ConfirmModal
+        open={hazardPrompt !== null}
+        destructive={false}
+        title={t('cooling.guard.dialog.title')}
+        message={t('cooling.guard.dialog.message')}
+        bullets={hazardPrompt ? lintLines(hazardPrompt.hazards, t) : undefined}
+        note={t('cooling.guard.dialog.note')}
+        confirmLabel={t('cooling.guard.dialog.fix')}
+        cancelLabel={t('cooling.guard.dialog.saveAnyway')}
+        onConfirm={() => { hazardPrompt?.settle(true); setHazardPrompt(null); }}
+        onCancel={() => { hazardPrompt?.settle(false); setHazardPrompt(null); }}
       />
       <ConfirmModal
         open={calConfirmOpen && !calibrating}

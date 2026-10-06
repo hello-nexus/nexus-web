@@ -278,3 +278,74 @@ export const setActiveCoolingPreset = (id: string | null) =>
 
 export const activateCoolingPreset = (id: string) =>
   postService('/cooling/presets/' + encodeURIComponent(id) + '/activate', {});
+
+// ----- CPU thermal guard + auto-heal -----
+
+export type GuardState = 'inactive' | 'off' | 'normal' | 'floor' | 'tripped' | 'escalated';
+export type GuardLimitSource = 'hardware' | 'spec' | 'default';
+export type GuardTripReason = 'limit' | 'cooling-loss';
+
+export interface GuardLastTrip {
+  atUtcMs: number;
+  peakC: number;
+  reason: GuardTripReason;
+  escalated: boolean;
+}
+
+export interface HealChannel {
+  id: string;
+  name: string;
+  hazard: string;
+}
+
+export interface HealState {
+  undoAvailable: boolean;
+  healedAtUtcMs: number | null;
+  channels: HealChannel[];
+}
+
+export interface GuardGpu {
+  id: string;
+  name: string;
+  tempC: number | null;
+  limitC: number | null;
+  limitSource: GuardLimitSource | null;
+  state: string;
+}
+
+export interface GuardResponse {
+  state: GuardState;
+  guardTempC: number | null;
+  limitC: number | null;
+  limitSource: GuardLimitSource | null;
+  sinceUtcMs: number | null;
+  lastTrip: GuardLastTrip | null;
+  heal: HealState;
+  gpus?: GuardGpu[];
+}
+
+export interface CurveHazard {
+  channelId: string;
+  channelName: string;
+  kind: string;
+  rootId: string | null;
+  rootName: string | null;
+}
+
+export interface LintResponse {
+  hazards: CurveHazard[];
+  fixAvailable: boolean;
+}
+
+export const fetchGuard = () => fetchService<GuardResponse>('/cooling/guard');
+
+export const setGuardEnabled = (enabled: boolean) =>
+  postService<GuardResponse>('/cooling/guard/config', { enabled });
+
+/** Same body as saveCurves; advisory only, writes nothing. */
+export const lintCurves = (body: { globalSpeedModifier: number; curves: WireCurve[] }) =>
+  postService<LintResponse>('/cooling/curves/lint', body);
+
+export const healCooling = () => postService<HealState>('/cooling/heal', {});
+
+export const undoHeal = () => postService<HealState>('/cooling/heal/undo', {});
