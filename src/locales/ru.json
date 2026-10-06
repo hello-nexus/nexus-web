@@ -1183,6 +1183,8 @@
   "devices.y70.editor.addWidget": "Добавить виджет",
   "devices.y70.forceOrientation": "Принудительная ориентация экрана",
   "devices.y70.forceOrientationHint": "Автоматически поддерживает правильную ориентацию экрана. Отключите, чтобы задать её вручную.",
+  "devices.y70.keepCursorOff": "Не пускать мышь на панель",
+  "devices.y70.keepCursorOffHint": "Не даёт указателю мыши переходить на Y70 и уводит его оттуда, если он там оказался. Управляйте панелью касаниями.",
   "devices.y70.orientation": "Ориентация",
   "devices.y70.orientation.Landscape": "Альбомная",
   "devices.y70.orientation.LandscapeFlipped": "Альбомная (перевёрнутая)",

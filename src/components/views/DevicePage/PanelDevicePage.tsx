@@ -144,6 +144,7 @@ interface BrightnessResponse { brightness: number }
 interface RotationParams { orientation: string; forceOrientation: boolean }
 interface ToggleResponse { toggle: boolean }
 interface CompatibilityRenderingResponse { enabled: boolean; supported: boolean }
+interface KeepCursorOffResponse { enabled: boolean; supported: boolean }
 
 const Y70_ORIENTATIONS = ['Landscape', 'Portrait', 'LandscapeFlipped', 'PortraitFlipped'] as const;
 type Y70Orientation = (typeof Y70_ORIENTATIONS)[number];
@@ -265,6 +266,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [orientation, setOrientation] = useState<Y70Orientation>('PortraitFlipped');
   const [forceOrientation, setForceOrientation] = useState(true);
   const [compatibilityRendering, setCompatibilityRendering] = useState<CompatibilityRenderingResponse | null>(null);
+  const [keepCursorOff, setKeepCursorOff] = useState<KeepCursorOffResponse | null>(null);
   const [screenOn, setScreenOn] = useState(true);
   const [autoLaunch, setAutoLaunch] = useState(true);
   const [reserveMonitor, setReserveMonitor] = useState(true);
@@ -530,10 +532,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       fetchPanelDevices(),
       // Tolerates a service that predates the route (relay to an older host).
       supportsDisplayControls ? fetchService<CompatibilityRenderingResponse>('/y70/compatibility-rendering').catch(() => null) : Promise.resolve(null),
-    ]).then(([b, r, tog, qRotation, qDisplay, prefs, devices, compat]) => {
+      supportsDisplayControls ? fetchService<KeepCursorOffResponse>('/y70/keep-cursor-off').catch(() => null) : Promise.resolve(null),
+    ]).then(([b, r, tog, qRotation, qDisplay, prefs, devices, compat, cursorOff]) => {
       if (cancelled) return;
       if (b) setBrightness(b.brightness);
       setCompatibilityRendering(compat);
+      setKeepCursorOff(cursorOff);
       if (r) {
         setOrientation(normalizeOrientation(r.orientation));
         setForceOrientation(r.forceOrientation ?? true);
@@ -1521,6 +1525,13 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setCompatibilityRendering({ ...compatibilityRendering, enabled: next });
                         postService('/y70/compatibility-rendering', { enabled: next }).catch(() => {});
                       }}
+                      keepCursorOff={keepCursorOff?.supported ? keepCursorOff.enabled : undefined}
+                      onKeepCursorOffToggle={() => {
+                        if (!keepCursorOff) return;
+                        const next = !keepCursorOff.enabled;
+                        setKeepCursorOff({ ...keepCursorOff, enabled: next });
+                        postService('/y70/keep-cursor-off', { enabled: next }).catch(() => {});
+                      }}
                       screenOn={screenOn}
                       onScreenToggle={() => {
                         const next = !screenOn;
@@ -2356,6 +2367,9 @@ interface SettingsPanelProps {
   // Undefined hides the toggle: the host's panel window does not support it.
   compatibilityRendering?: boolean;
   onCompatibilityRenderingToggle: () => void;
+  // Undefined hides the toggle, as for compatibilityRendering.
+  keepCursorOff?: boolean;
+  onKeepCursorOffToggle: () => void;
   screenOn: boolean;
   onScreenToggle: () => void;
   autoLaunch: boolean;
@@ -2378,6 +2392,7 @@ function SettingsPanel({
   orientation, onOrientation, orientationOptions,
   forceOrientation, onForceOrientationToggle,
   compatibilityRendering, onCompatibilityRenderingToggle,
+  keepCursorOff, onKeepCursorOffToggle,
   screenOn, onScreenToggle,
   autoLaunch, onAutoLaunchToggle,
   reserveMonitor, onReserveMonitorToggle,
@@ -2477,6 +2492,15 @@ function SettingsPanel({
               description={t('devices.y70.compatibilityRenderingHint')}
               checked={compatibilityRendering}
               onChange={onCompatibilityRenderingToggle}
+            />
+          )}
+
+          {keepCursorOff !== undefined && (
+            <SettingToggle
+              label={t('devices.y70.keepCursorOff')}
+              description={t('devices.y70.keepCursorOffHint')}
+              checked={keepCursorOff}
+              onChange={onKeepCursorOffToggle}
             />
           )}
 

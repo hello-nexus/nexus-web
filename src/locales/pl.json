@@ -1183,6 +1183,8 @@
   "devices.y70.editor.addWidget": "Dodaj widget",
   "devices.y70.forceOrientation": "Wymuś orientację ekranu",
   "devices.y70.forceOrientationHint": "Automatycznie utrzymuje ekran we właściwej orientacji. Wyłącz, aby ustawić ją ręcznie.",
+  "devices.y70.keepCursorOff": "Nie wpuszczaj myszy na panel",
+  "devices.y70.keepCursorOffHint": "Nie pozwala wskaźnikowi myszy przejść na Y70 i przenosi go stamtąd, gdy tylko się tam znajdzie. Steruj panelem dotykiem.",
   "devices.y70.orientation": "Orientacja",
   "devices.y70.orientation.Landscape": "Poziomo",
   "devices.y70.orientation.LandscapeFlipped": "Poziomo (odwrócone)",

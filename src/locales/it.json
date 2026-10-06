@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "Aggiungi widget",
   "devices.y70.forceOrientation": "Forza l'orientamento dello schermo",
   "devices.y70.forceOrientationHint": "Mantiene automaticamente lo schermo nell'orientamento corretto. Disattivalo per impostarlo manualmente.",
+  "devices.y70.keepCursorOff": "Tieni il mouse fuori dal pannello",
+  "devices.y70.keepCursorOffHint": "Impedisce al puntatore del mouse di spostarsi sul Y70 e lo sposta via ogni volta che ci finisce. Controlla il pannello con il tocco.",
   "devices.y70.orientation": "Orientamento",
   "devices.y70.orientation.Landscape": "Orizzontale",
   "devices.y70.orientation.LandscapeFlipped": "Orizzontale (capovolto)",

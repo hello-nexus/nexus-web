@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "Adicionar Widget",
   "devices.y70.forceOrientation": "Forçar orientação da tela",
   "devices.y70.forceOrientationHint": "Mantém a tela na orientação correta automaticamente. Desative para defini-la manualmente.",
+  "devices.y70.keepCursorOff": "Manter o mouse fora do painel",
+  "devices.y70.keepCursorOffHint": "Impede que o ponteiro do mouse vá para o Y70 e o tira de lá sempre que ele for parar ali. Controle o painel pelo toque.",
   "devices.y70.orientation": "Orientação",
   "devices.y70.orientation.Landscape": "Paisagem",
   "devices.y70.orientation.LandscapeFlipped": "Paisagem (invertida)",

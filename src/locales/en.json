@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "Add Widget",
   "devices.y70.forceOrientation": "Force display orientation",
   "devices.y70.forceOrientationHint": "Keeps the display in its correct orientation automatically. Turn off to set it manually.",
+  "devices.y70.keepCursorOff": "Keep the mouse off the panel",
+  "devices.y70.keepCursorOffHint": "Stops the mouse pointer from moving onto the Y70 and moves it off whenever it lands there. Control the panel by touch.",
   "devices.y70.orientation": "Orientation",
   "devices.y70.orientation.Landscape": "Landscape",
   "devices.y70.orientation.LandscapeFlipped": "Landscape (flipped)",

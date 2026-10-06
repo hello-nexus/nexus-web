@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "添加小组件",
   "devices.y70.forceOrientation": "强制屏幕方向",
   "devices.y70.forceOrientationHint": "自动将屏幕保持在正确的方向。关闭以手动设置。",
+  "devices.y70.keepCursorOff": "让鼠标远离面板",
+  "devices.y70.keepCursorOffHint": "阻止鼠标指针移到 Y70 上，指针一旦落在那里就会被移走。请通过触摸操作面板。",
   "devices.y70.orientation": "方向",
   "devices.y70.orientation.Landscape": "横向",
   "devices.y70.orientation.LandscapeFlipped": "横向（翻转）",

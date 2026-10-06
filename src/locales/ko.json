@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "위젯 추가",
   "devices.y70.forceOrientation": "화면 방향 강제 설정",
   "devices.y70.forceOrientationHint": "화면을 자동으로 올바른 방향으로 유지합니다. 수동으로 설정하려면 꺼세요.",
+  "devices.y70.keepCursorOff": "마우스가 패널로 가지 않게 하기",
+  "devices.y70.keepCursorOffHint": "마우스 포인터가 Y70으로 이동하지 않게 하고, 그곳에 들어가면 밖으로 옮깁니다. 패널은 터치로 조작하세요.",
   "devices.y70.orientation": "방향",
   "devices.y70.orientation.Landscape": "가로",
   "devices.y70.orientation.LandscapeFlipped": "가로 (뒤집힘)",

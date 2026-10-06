@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "Zonte widget",
   "devices.y70.forceOrientation": "Sfuarce orientament dal schermi",
   "devices.y70.forceOrientationHint": "Al mantègn in automatic il schermi te orientazion juste. Disativilu par impostâlu a man.",
+  "devices.y70.keepCursorOff": "Ten il mouse fûr dal panel",
+  "devices.y70.keepCursorOffHint": "Al impedìs al pontadôr dal mouse di lâ sul Y70 e lu tire vie ogni volte che al finìs li. Controle il panel cul tocj.",
   "devices.y70.orientation": "Orientament",
   "devices.y70.orientation.Landscape": "Orizontâl",
   "devices.y70.orientation.LandscapeFlipped": "Orizontâl (zirât)",

@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "Añadir widget",
   "devices.y70.forceOrientation": "Forzar orientación de la pantalla",
   "devices.y70.forceOrientationHint": "Mantiene la pantalla en la orientación correcta automáticamente. Desáctivalo para configurarla manualmente.",
+  "devices.y70.keepCursorOff": "Mantener el ratón fuera del panel",
+  "devices.y70.keepCursorOffHint": "Impide que el puntero del ratón pase al Y70 y lo saca de ahí cada vez que acaba en él. Controla el panel con la pantalla táctil.",
   "devices.y70.orientation": "Orientación",
   "devices.y70.orientation.Landscape": "Horizontal",
   "devices.y70.orientation.LandscapeFlipped": "Horizontal (invertido)",

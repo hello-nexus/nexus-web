@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "Widget hinzufügen",
   "devices.y70.forceOrientation": "Bildschirmausrichtung erzwingen",
   "devices.y70.forceOrientationHint": "Hält den Bildschirm automatisch in der richtigen Ausrichtung. Schalten Sie es aus, um sie manuell festzulegen.",
+  "devices.y70.keepCursorOff": "Maus vom Panel fernhalten",
+  "devices.y70.keepCursorOffHint": "Verhindert, dass der Mauszeiger auf den Y70 wandert, und holt ihn zurück, sobald er dort landet. Bedienen Sie das Panel per Touch.",
   "devices.y70.orientation": "Ausrichtung",
   "devices.y70.orientation.Landscape": "Querformat",
   "devices.y70.orientation.LandscapeFlipped": "Querformat (gedreht)",

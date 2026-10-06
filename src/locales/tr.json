@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "Widget Ekle",
   "devices.y70.forceOrientation": "Ekran yönünü zorla",
   "devices.y70.forceOrientationHint": "Ekranı otomatik olarak doğru yönde tutar. Manuel olarak ayarlamak için kapatın.",
+  "devices.y70.keepCursorOff": "Fareyi panelden uzak tut",
+  "devices.y70.keepCursorOffHint": "Fare işaretçisinin Y70'e geçmesini engeller ve oraya her geçtiğinde onu dışarı taşır. Paneli dokunarak kontrol edin.",
   "devices.y70.orientation": "Yön",
   "devices.y70.orientation.Landscape": "Yatay",
   "devices.y70.orientation.LandscapeFlipped": "Yatay (ters)",

@@ -1176,6 +1176,8 @@
   "devices.y70.editor.addWidget": "ウィジェットを追加",
   "devices.y70.forceOrientation": "画面の向きを固定",
   "devices.y70.forceOrientationHint": "画面を自動的に正しい向きに保ちます。手動で設定するにはオフにしてください。",
+  "devices.y70.keepCursorOff": "マウスをパネルに入れない",
+  "devices.y70.keepCursorOffHint": "マウスポインターが Y70 に移動しないようにし、そこに入った場合は外に移します。パネルはタッチで操作します。",
   "devices.y70.orientation": "向き",
   "devices.y70.orientation.Landscape": "横",
   "devices.y70.orientation.LandscapeFlipped": "横 (反転)",
