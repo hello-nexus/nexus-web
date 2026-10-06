@@ -11,6 +11,7 @@ import {
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
 import { useTranslation } from '../../../lib/i18n';
+import { LianLiAioScreenSection } from './LianLiAioScreenSection';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Bind/unbind converge on the service in ~2-6s; give up waiting for the
@@ -46,6 +47,10 @@ export function isFanDevice(devType: number): boolean {
   return devType === 0 || (devType >= 20 && devType <= 63) || devType === 126 || devType === 127;
 }
 
+function isHydroShiftDevice(devType: number): boolean {
+  return devType === 10 || devType === 11;
+}
+
 /** A Strimer cable: no fan ports, so no PWM cable either. */
 function isStrimerDevice(devType: number): boolean {
   return devType >= 1 && devType <= 9;
@@ -64,7 +69,7 @@ function followsMotherboard(fan: LianLiWirelessFan): boolean {
 export function deviceTypeKey(devType: number, fanType: number):
   ReturnType<typeof fanTypeKey> | 'deviceStrimer' | 'deviceHydroShift' | 'deviceGeneric' {
   if (isStrimerDevice(devType)) return 'deviceStrimer';
-  if (devType === 10 || devType === 11) return 'deviceHydroShift';
+  if (isHydroShiftDevice(devType)) return 'deviceHydroShift';
   if (isFanDevice(devType)) return fanTypeKey(fanType);
   return 'deviceGeneric';
 }
@@ -206,6 +211,10 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
           ))
           : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>}
       </SettingsSection>
+
+      {loaded && state.fans
+        .filter(fan => fan.boundToUs && isHydroShiftDevice(fan.devType))
+        .map(fan => <LianLiAioScreenSection key={fan.mac} mac={fan.mac} />)}
 
       <ConfirmModal
         open={unbindTarget != null}

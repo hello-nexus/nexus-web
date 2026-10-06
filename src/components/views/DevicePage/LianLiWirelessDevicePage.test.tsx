@@ -26,12 +26,16 @@ const mockBindLianLiWirelessFan = vi.fn();
 const mockUnbindLianLiWirelessFan = vi.fn();
 const mockIdentifyLianLiWirelessFan = vi.fn();
 
+const mockGetLianLiAioScreen = vi.fn(() => Promise.resolve(null as unknown));
+
 vi.mock('../../../api/lianli-wireless', () => ({
   getLianLiWirelessState: (...args: any[]) => mockGetLianLiWirelessState(...args),
   bindLianLiWirelessFan: (...args: any[]) => mockBindLianLiWirelessFan(...args),
   unbindLianLiWirelessFan: (...args: any[]) => mockUnbindLianLiWirelessFan(...args),
   identifyLianLiWirelessFan: (...args: any[]) => mockIdentifyLianLiWirelessFan(...args),
   getLianLiWirelessLighting: () => Promise.resolve(null),
+  getLianLiAioScreen: (...args: any[]) => mockGetLianLiAioScreen(...args),
+  setLianLiAioScreen: () => Promise.resolve(true),
 }));
 
 vi.mock('../../../api/cooling', () => ({
@@ -361,6 +365,22 @@ describe('LianLiWirelessDevicePage', () => {
       render(<LianLiWirelessDevicePage />);
     });
     expect(screen.getByText(/noPwmCable/)).toBeInTheDocument();
+  });
+
+  it('shows the screen settings of a bound HydroShift II', async () => {
+    mockGetLianLiAioScreen.mockResolvedValue({
+      brightness: 80, theme: 0, themeCount: 13, labelColor: '#FFFFFF', valueColor: '#FFFFFF', unitColor: '#FFFFFF',
+      showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false,
+    });
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], devType: 11, fanType: 0, fanCount: 3 }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(mockGetLianLiAioScreen).toHaveBeenCalledWith(connectedState.fans[0].mac);
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.title')).toBeInTheDocument();
   });
 
   it('offers the Lighting tab once a Strimer is bound', async () => {

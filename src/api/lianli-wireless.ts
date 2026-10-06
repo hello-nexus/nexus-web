@@ -139,6 +139,33 @@ export async function setLianLiWirelessChainLighting(mac: string, patch: LianLiW
   return isOk(await putService<OkResponse>(`/devices/lianli-wireless/lighting/${encodeURIComponent(mac)}`, patch));
 }
 
+/** What a HydroShift II's screen shows while Nexus drives its pump. */
+export interface LianLiAioScreen {
+  /** Backlight, percent. */
+  brightness: number;
+  theme: number;
+  /** Built-in themes the AIO offers, numbered from 0. */
+  themeCount: number;
+  labelColor: string;
+  valueColor: string;
+  unitColor: string;
+  showCpuTemp: boolean;
+  showCpuLoad: boolean;
+  showGpuTemp: boolean;
+  showGpuLoad: boolean;
+  showFanSpeed: boolean;
+}
+
+export type LianLiAioScreenPatch = Partial<Omit<LianLiAioScreen, 'themeCount'>>;
+
+export function getLianLiAioScreen(mac: string): Promise<LianLiAioScreen | null> {
+  return fetchService<LianLiAioScreen>(`/devices/lianli-wireless/aio-screen/${encodeURIComponent(mac)}`);
+}
+
+export async function setLianLiAioScreen(mac: string, patch: LianLiAioScreenPatch): Promise<boolean> {
+  return isOk(await putService<OkResponse>(`/devices/lianli-wireless/aio-screen/${encodeURIComponent(mac)}`, patch));
+}
+
 export type LianLiWirelessScreenContentType =
   | 'off' | 'image' | 'gif' | 'video' | 'sensor' | 'clock' | 'animation';
 
