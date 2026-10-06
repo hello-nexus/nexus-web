@@ -107,4 +107,88 @@ describe('useDashboardLayout', () => {
     });
     expect(broadcastLayoutChangedMock).toHaveBeenCalledTimes(1);
   });
+
+  const single = (type: string): PanelLayout => ({
+    layoutSchemaVersion: 2,
+    surface: 'desktop',
+    pages: [{ id: 'p1', widgets: [{ id: `w-${type}`, type, size: '4x4', col: 0, row: 0 }] }],
+  });
+  const savedTypes = () => savePreferencesMock.mock.calls.map(
+    ([body]) => (body as { panel: { dashboardLayout: PanelLayout } }).panel.dashboardLayout.pages[0].widgets[0].type,
+  );
+
+  it('saves an edit still under the debounce when it unmounts', async () => {
+    fetchPreferencesMock.mockResolvedValue({ panel: { dashboardLayout: single('clock') } });
+    savePreferencesMock.mockResolvedValue({ error: false, msg: 'ok' });
+    const { result, unmount } = renderHook(() => useDashboardLayout());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    act(() => { result.current.setLayout(single('weather')); });
+    unmount();
+
+    expect(savedTypes()).toEqual(['weather']);
+  });
+
+  it('replaceFromService saves pending edits first, drops edits made meanwhile, and reloads', async () => {
+    fetchPreferencesMock.mockResolvedValue({ panel: { dashboardLayout: single('clock') } });
+    savePreferencesMock.mockResolvedValue({ error: false, msg: 'ok' });
+    const { result } = renderHook(() => useDashboardLayout());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    let finishSwitch!: (value: string) => void;
+    const op = vi.fn(() => new Promise<string>(resolve => { finishSwitch = resolve; }));
+    act(() => { result.current.setLayout(single('weather')); });
+    let switched!: Promise<string>;
+    act(() => { switched = result.current.replaceFromService(op); });
+    await waitFor(() => expect(op).toHaveBeenCalled());
+    expect(savedTypes()).toEqual(['weather']);
+
+    act(() => { result.current.setLayout(single('timer')); });
+    fetchPreferencesMock.mockResolvedValue({ panel: { dashboardLayout: single('calendar') } });
+    await act(async () => {
+      finishSwitch('done');
+      await expect(switched).resolves.toBe('done');
+      await vi.advanceTimersByTimeAsync(500);
+    });
+
+    expect(result.current.layout.pages[0].widgets[0].type).toBe('calendar');
+    expect(savedTypes()).toEqual(['weather']);
+  });
+
+  it('keeps edits off until the last of two overlapping switches lands', async () => {
+    fetchPreferencesMock.mockResolvedValue({ panel: { dashboardLayout: single('clock') } });
+    savePreferencesMock.mockResolvedValue({ error: false, msg: 'ok' });
+    const { result } = renderHook(() => useDashboardLayout());
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    const finish: Array<() => void> = [];
+    const op = () => new Promise<void>(resolve => { finish.push(resolve); });
+    let first!: Promise<void>;
+    act(() => {
+      first = result.current.replaceFromService(op);
+      void result.current.replaceFromService(op);
+    });
+    await waitFor(() => expect(finish).toHaveLength(2));
+    await act(async () => {
+      finish[0]();
+      await first;
+    });
+
+    act(() => { result.current.setLayout(single('timer')); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+    expect(savedTypes()).toEqual([]);
+  });
+
+  it('applies only the latest fetch when an older one resolves late', async () => {
+    let resolveOld!: (prefs: unknown) => void;
+    fetchPreferencesMock.mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve; }));
+    fetchPreferencesMock.mockResolvedValue({ panel: { dashboardLayout: single('calendar') } });
+    const { result } = renderHook(() => useDashboardLayout());
+    await act(async () => { await result.current.replaceFromService(() => Promise.resolve()); });
+    expect(result.current.layout.pages[0].widgets[0].type).toBe('calendar');
+
+    await act(async () => { resolveOld({ panel: { dashboardLayout: single('clock') } }); });
+
+    expect(result.current.layout.pages[0].widgets[0].type).toBe('calendar');
+  });
 });

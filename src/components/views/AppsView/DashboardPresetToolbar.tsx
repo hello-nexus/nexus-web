@@ -18,10 +18,9 @@ interface DashboardPresetToolbarProps {
   layoutState: UseDashboardLayoutResult;
 }
 
-/** The dashboard's presets: load, save as new, rename, delete. */
 export function DashboardPresetToolbar({ layoutState }: DashboardPresetToolbarProps) {
   const { t } = useTranslation();
-  const { flush } = layoutState;
+  const { flush, replaceFromService } = layoutState;
   const [state, setState] = useState<DashboardPresetsResponse | null>(null);
   const seeding = useRef(false);
 
@@ -60,9 +59,7 @@ export function DashboardPresetToolbar({ layoutState }: DashboardPresetToolbarPr
       presets={presets}
       activeId={state?.activeId ?? null}
       presetCount={presets.length}
-      onLoad={id => {
-        void flush().then(() => activateDashboardPreset(id)).then(apply);
-      }}
+      onLoad={id => { void replaceFromService(() => activateDashboardPreset(id)).then(apply); }}
       onCreate={async name => {
         await flush();
         const res = await createDashboardPreset(name);
@@ -71,7 +68,7 @@ export function DashboardPresetToolbar({ layoutState }: DashboardPresetToolbarPr
         return { error: false };
       }}
       onRename={(id, name) => { void renameDashboardPreset(id, name).then(apply); }}
-      onDelete={id => { void deleteDashboardPreset(id).then(apply); }}
+      onDelete={id => { void replaceFromService(() => deleteDashboardPreset(id)).then(apply); }}
     />
   );
 }
