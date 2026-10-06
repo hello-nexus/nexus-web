@@ -23,6 +23,7 @@ import { StrimerDevicePage } from './StrimerDevicePage';
 import { NollieDevicePage } from './NollieDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
+import { Aw3225QfDevicePage } from './Aw3225QfDevicePage';
 import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { ExperimentalBadge } from '../../common/ExperimentalBadge/ExperimentalBadge';
@@ -220,6 +221,10 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
 
   if (device.curatedId === 'keeb') {
     return <KeebDevicePage key={device.key} />;
+  }
+
+  if (device.curatedId === 'aw3225qf') {
+    return <Aw3225QfDevicePage key={device.key} />;
   }
 
   if (device.curatedId === 'lianli') {
