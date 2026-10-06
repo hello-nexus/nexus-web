@@ -205,6 +205,79 @@ describe('LianLiDevicePage', () => {
     expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'custom' });
   });
 
+  it('shows the hub firmware version once the service has read it', async () => {
+    mockGetLianLiState.mockResolvedValue({ ...defaultState, firmwareVersion: '1.4' });
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    expect(screen.getByText('devices.lianli.firmware')).toBeInTheDocument();
+    expect(screen.getByText('1.4')).toBeInTheDocument();
+  });
+
+  it('offers fan counts up to the hub family\'s cap', async () => {
+    mockGetLianLiState.mockResolvedValue({ ...defaultState, maxFansPerPort: 6 });
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.fanCountAria:{"n":1}' }));
+    expect(screen.getByRole('option', { name: 'devices.lianli.fanCount6' })).toBeInTheDocument();
+  });
+
+  it('caps fan counts at four on a service that does not report the cap', async () => {
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.fanCountAria:{"n":1}' }));
+    expect(screen.getByRole('option', { name: 'devices.lianli.fanCount4' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'devices.lianli.fanCount5' })).not.toBeInTheDocument();
+  });
+
+  it('a mode with no colours chosen shows its default palette without saving it', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      mode: 'meteor',
+      colors: [],
+      modes: [
+        ...defaultLighting.modes,
+        { key: 'meteor', label: 'Meteor', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4, defaultColors: ['#FF0000', '#0000FF'] },
+      ],
+    });
+    await renderOnLighting(<LianLiDevicePage />);
+    expect(screen.getAllByRole('button', { name: 'devices.lianli.removeColor' })).toHaveLength(2);
+    expect(mockSetLianLiLighting).not.toHaveBeenCalled();
+  });
+
+  it('keeps the last colour of a mode with defaults', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      mode: 'meteor',
+      colors: ['#00FF00'],
+      modes: [
+        ...defaultLighting.modes,
+        { key: 'meteor', label: 'Meteor', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4, defaultColors: ['#FF0000', '#0000FF'] },
+      ],
+    });
+    await renderOnLighting(<LianLiDevicePage />);
+    expect(screen.queryByRole('button', { name: 'devices.lianli.removeColor' })).not.toBeInTheDocument();
+  });
+
+  it('switching modes saves only the mode', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      colors: [],
+      modes: [
+        ...defaultLighting.modes,
+        { key: 'tide', label: 'Tide', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 2, defaultColors: ['#FF0000', '#0000FF'] },
+      ],
+    });
+    await renderOnLighting(<LianLiDevicePage />);
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.lightingMode' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'Tide' }));
+    });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'tide' });
+  });
+
   it('keeps the Lighting page mode out of the animation list', async () => {
     await renderOnLighting(<LianLiDevicePage />);
     fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.lightingMode' }));

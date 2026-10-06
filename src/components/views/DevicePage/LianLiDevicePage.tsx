@@ -30,7 +30,7 @@ import { useReportDeviceWaiting } from './deviceDetecting';
 import { fetchDeviceStructure, setDeviceChain, type ChainEntry } from '../../../api/lighting';
 
 const PORT_COUNT = 4;
-const FAN_COUNT_OPTIONS = [0, 1, 2, 3, 4] as const;
+const DEFAULT_MAX_FANS = 4;
 // Firmware brightness/speed are 5 discrete levels (0..4) presented as a percent.
 const PERCENT_PER_LEVEL = 25;
 // Mode key under which the Lighting page drives the device.
@@ -154,6 +154,8 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
     ? (lighting.mode !== LIGHTING_PAGE_MODE ? lighting.mode : lighting.effectMode ?? effectModes[0]?.key ?? '')
     : '';
   const selectedMode = effectModes.find(m => m.key === effectKey) ?? null;
+  // With no colours chosen the firmware plays the mode's own palette, so the pickers show it.
+  const shownColors = lighting && lighting.colors.length > 0 ? lighting.colors : (selectedMode?.defaultColors ?? []);
   const isCustomMode = lighting?.mode === LIGHTING_PAGE_MODE;
   const argbSyncOn = lighting?.argbSyncSupported === true && lighting.argbSync === true;
 
@@ -196,7 +198,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                   className={styles.portSelect}
                   value={String(lianliState?.fansPerPort[port] ?? 0)}
                   onChange={v => { void commitFanCount(port, Number(v)); }}
-                  options={FAN_COUNT_OPTIONS.map(count => ({
+                  options={Array.from({ length: (lianliState?.maxFansPerPort ?? DEFAULT_MAX_FANS) + 1 }, (_, count) => ({
                     value: String(count),
                     label: t(`devices.lianli.fanCount${count}` as Parameters<typeof t>[0]),
                   }))}
@@ -208,6 +210,11 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                 </span>
               </SettingRow>
             ))}
+            {lianliState?.firmwareVersion && (
+              <SettingRow label={t('devices.lianli.firmware')}>
+                <span className={styles.rowValue}>{lianliState.firmwareVersion}</span>
+              </SettingRow>
+            )}
           </SettingsSection>
         )}
         {tab === 'cooling' && lianliState && (
@@ -335,7 +342,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                 {selectedMode.colorsMax === 2 ? (
                   <div className={styles.colorPairRow}>
                     {([0, 1] as const).map(i => {
-                      const color = lighting?.colors[i] ?? DEFAULT_COLOR_SECONDARY;
+                      const color = shownColors[i] ?? DEFAULT_COLOR_SECONDARY;
                       return (
                         <div key={i} className={styles.colorEntry}>
                           <span className={styles.colorLabel}>
@@ -345,14 +352,14 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                             value={color}
                             onPreview={(hex: string) => {
                               if (!lighting) return;
-                              const next = [...lighting.colors];
+                              const next = [...shownColors];
                               while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
                               next[i] = hex;
                               setLighting({ ...lighting, colors: next });
                             }}
                             onCommit={(hex: string) => {
                               if (!lighting) return;
-                              const next = [...lighting.colors];
+                              const next = [...shownColors];
                               while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
                               next[i] = hex;
                               setLighting({ ...lighting, colors: next });
@@ -365,32 +372,33 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                   </div>
                 ) : (
                   <>
-                    {(lighting?.colors ?? []).map((color, i) => (
+                    {shownColors.map((color, i) => (
                       <div key={i} className={styles.colorEntry}>
                         <HsvPicker
                           value={color}
                           onPreview={(hex: string) => {
                             if (!lighting) return;
-                            const next = [...lighting.colors];
+                            const next = [...shownColors];
                             next[i] = hex;
                             setLighting({ ...lighting, colors: next });
                           }}
                           onCommit={(hex: string) => {
                             if (!lighting) return;
-                            const next = [...lighting.colors];
+                            const next = [...shownColors];
                             next[i] = hex;
                             setLighting({ ...lighting, colors: next });
                             void commitLighting({ colors: next });
                           }}
                         />
                         <div className={styles.colorActions}>
-                          {(lighting?.colors.length ?? 0) > selectedMode.colorsMin && (
+                          {/* An emptied list plays the mode's defaults, so the last colour of a mode that has them stays. */}
+                          {shownColors.length > Math.max(selectedMode.colorsMin, selectedMode.defaultColors?.length ? 1 : 0) && (
                             <Button
                               size="sm"
                               tone="neutral"
                               onClick={() => {
                                 if (!lighting) return;
-                                const next = lighting.colors.filter((_, idx) => idx !== i);
+                                const next = shownColors.filter((_, idx) => idx !== i);
                                 setLighting({ ...lighting, colors: next });
                                 void commitLighting({ colors: next });
                               }}
@@ -401,14 +409,14 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
                         </div>
                       </div>
                     ))}
-                    {(lighting?.colors.length ?? 0) < selectedMode.colorsMax && (
+                    {shownColors.length < selectedMode.colorsMax && (
                       <div className={styles.colorActions}>
                         <Button
                           size="sm"
                           tone="neutral"
                           onClick={() => {
                             if (!lighting) return;
-                            const next = [...lighting.colors, DEFAULT_COLOR];
+                            const next = [...shownColors, DEFAULT_COLOR];
                             setLighting({ ...lighting, colors: next });
                             void commitLighting({ colors: next });
                           }}

@@ -4,6 +4,10 @@ export interface LianLiState {
   isConnected: boolean;
   rpm: number[];
   fansPerPort: number[];
+  /** Fans the attached hub family chains on one port. Absent on an older service. */
+  maxFansPerPort?: number;
+  /** Hub firmware version; empty until read, absent on an older service. */
+  firmwareVersion?: string;
 }
 
 export function getLianLiState(): Promise<LianLiState | null> {
@@ -22,6 +26,8 @@ export interface LianLiLightingMode {
   hasBrightness: boolean;
   colorsMin: number;
   colorsMax: number;
+  /** Palette the mode starts from, as #RRGGBB. Absent on an older service. */
+  defaultColors?: string[];
   /** Has an across-every-port variant on the attached hub. Absent on an older service. */
   mergeable?: boolean;
 }
