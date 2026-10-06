@@ -145,6 +145,14 @@ describe('buildDeviceBlocks split card', () => {
     expect(blocks[0].kind).toBe('group');
   });
 
+  it('keeps a second wired hub\'s header over a single port', () => {
+    const blocks = buildDeviceBlocks([
+      zone('lianli2:port1', 'Lian Li 2 - Port 1', { parentDeviceId: 'lianli2', deviceId: 'lianli2:port1', zoneIndex: 0, type: 'ledstrip' }),
+    ]);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].kind).toBe('group');
+  });
+
   it('keeps the Lian Li wireless header over a single chain', () => {
     const blocks = buildDeviceBlocks([
       zone('lianli-wireless:64F271E566E1:z0', 'Lian Li Wireless - Strimer', { parentDeviceId: 'lianli-wireless', deviceId: 'lianli-wireless:64F271E566E1', zoneIndex: 0, type: 'ledstrip' }),

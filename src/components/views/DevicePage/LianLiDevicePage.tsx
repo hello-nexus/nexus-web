@@ -15,8 +15,10 @@ import { LightingPageSwitch } from './LightingPageSwitch';
 import {
   getLianLiState,
   getLianLiLighting,
+  lianLiHubName,
   setLianLiFanCount,
   setLianLiLighting,
+  LIANLI_PRIMARY_HUB,
   type LianLiState,
   type LianLiLighting,
   type LianLiLightingPatch,
@@ -43,10 +45,12 @@ const RPM_POLL_MS = 2000;
 type LianLiTab = 'devices' | 'lighting' | 'cooling';
 
 interface LianLiDevicePageProps {
+  /** Which wired hub the page shows. */
+  hubId?: string;
   onSectionNavigate?: DashboardSectionNavigate;
 }
 
-export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
+export function LianLiDevicePage({ hubId = LIANLI_PRIMARY_HUB, onSectionNavigate }: LianLiDevicePageProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<LianLiTab>('devices');
   const { numberFormat } = useUnitPrefs();
@@ -59,7 +63,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   const connectedRef = useRef(false);
 
   const refresh = useCallback(async () => {
-    const s = await getLianLiState();
+    const s = await getLianLiState(hubId);
     if (!aliveRef.current) return;
     if (s === null) return;
     if (!s.isConnected) {
@@ -72,17 +76,17 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
     connectedRef.current = true;
     setConnection('connected');
     setLianliState(s);
-    const lt = await getLianLiLighting().catch(() => null);
+    const lt = await getLianLiLighting(hubId).catch(() => null);
     if (!aliveRef.current) return;
     if (lt) setLighting(lt);
-  }, []);
+  }, [hubId]);
 
   // Steady-state telemetry tick: refresh only the read-only RPM so a poll
   // never overwrites an in-progress lighting/fan-count edit. While
   // disconnected, defer to the full refresh so a reconnect repopulates state.
   const refreshRpm = useCallback(async () => {
     if (!connectedRef.current) { void refresh(); return; }
-    const s = await getLianLiState();
+    const s = await getLianLiState(hubId);
     if (!aliveRef.current || s === null) return;
     if (!s.isConnected) {
       connectedRef.current = false;
@@ -92,7 +96,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
       return;
     }
     setLianliState(prev => (prev ? { ...prev, rpm: s.rpm } : s));
-  }, [refresh]);
+  }, [hubId, refresh]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -113,7 +117,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
     setLianliState(prev => (prev ? { ...prev, fansPerPort } : prev));
     setSaving(true);
     try {
-      await setLianLiFanCount(port, count);
+      await setLianLiFanCount(port, count, hubId);
       // A header too short for the new chain drops off the source list; refetching shows it as unchosen.
       if (lighting?.argbSync && lighting.argbSyncSource
         && !await wireArgbSyncFans(lighting.argbSyncSource, longestChain(fansPerPort))) {
@@ -122,22 +126,21 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
     } finally {
       if (aliveRef.current) setSaving(false);
     }
-  }, [lianliState, lighting, refresh]);
+  }, [hubId, lianliState, lighting, refresh]);
 
   const commitLighting = useCallback(async (patch: LianLiLightingPatch) => {
     setSaving(true);
     try {
-      return (await setLianLiLighting(patch)) !== null;
+      return (await setLianLiLighting(patch, hubId)) !== null;
     } finally {
       if (aliveRef.current) setSaving(false);
     }
-  }, []);
+  }, [hubId]);
 
   if (connection === 'disconnected') {
     return (
       <div className={styles.page}>
-        {/* eslint-disable-next-line i18next/no-literal-string -- brand + model name */}
-        <ViewHeader title="Lian Li Uni Hub" />
+        <ViewHeader title={lianLiHubName(hubId)} />
         <div className={`${styles.pageBody} pageBody`}>
           <EmptyState icon={<Unplug size={40} />} title={t('devices.lianli.notConnected')} />
         </div>
@@ -171,15 +174,14 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
   return (
     <div className={styles.page}>
       <ViewHeader
-        // eslint-disable-next-line i18next/no-literal-string -- brand + model name
-        title="Lian Li Uni Hub"
+        title={lianLiHubName(hubId)}
         actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
         tabs={tabs}
         activeTab={tab}
         onTabChange={key => setActiveTab(key as LianLiTab)}
         tabActions={!onSectionNavigate ? undefined
-          : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiCoolingAnchors()} />
-          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiLightingAnchors(lighting ?? undefined)} />
+          : tab === 'cooling' ? <CoolingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiCoolingAnchors(hubId)} />
+          : tab === 'lighting' ? <LightingPageShortcut onSectionNavigate={onSectionNavigate} anchors={lianLiLightingAnchors(lighting ?? undefined, hubId)} />
           : undefined}
       />
       <div className={`${styles.pageBody} pageBody`}>
@@ -218,7 +220,7 @@ export function LianLiDevicePage({ onSectionNavigate }: LianLiDevicePageProps) {
           </SettingsSection>
         )}
         {tab === 'cooling' && lianliState && (
-          <LianLiCoolingRows fansPerPort={lianliState.fansPerPort} rpm={lianliState.rpm} />
+          <LianLiCoolingRows hubId={hubId} fansPerPort={lianliState.fansPerPort} rpm={lianliState.rpm} />
         )}
         {tab === 'lighting' && lighting?.argbSyncSupported && (
           <LianLiArgbSyncSection
@@ -556,7 +558,7 @@ function LianLiArgbSyncSection({ lighting, fansPerPort, onLighting, commit }: Li
   );
 }
 
-function LianLiCoolingRows({ fansPerPort, rpm }: { fansPerPort: readonly number[]; rpm: readonly number[] }) {
+function LianLiCoolingRows({ hubId, fansPerPort, rpm }: { hubId: string; fansPerPort: readonly number[]; rpm: readonly number[] }) {
   const { t } = useTranslation();
   const { channels, curves } = useCoolingChannels();
   return (
@@ -567,7 +569,7 @@ function LianLiCoolingRows({ fansPerPort, rpm }: { fansPerPort: readonly number[
           label={t('devices.lianli.port', { n: port + 1 })}
           rpm={rpm[port] ?? 0}
           // LianLiCoolingProvider's channel id in nexus-service.
-          channel={channels.find(c => c.id === `lianli:port${port}`) ?? null}
+          channel={channels.find(c => c.id === `${hubId}:port${port}`) ?? null}
           curves={curves}
         />
       ))}

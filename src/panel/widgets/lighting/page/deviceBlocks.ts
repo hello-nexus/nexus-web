@@ -1,4 +1,5 @@
 import type { LightingDevice } from '../../../../api/lighting';
+import { isLianLiHubId } from '../../../../api/lianli';
 
 // Smart-light brands, in display order, keyed by the device-id prefix the
 // service routes on (e.g. "hue:<bridge>:<rid>"). Brand labels are proper nouns
@@ -144,7 +145,7 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
 // Lian Li's wired Uni Hub and wireless controller are one hub each, whatever
 // is plugged into them.
 function keepsHubHeader(parentDeviceId: string | undefined): boolean {
-  return parentDeviceId === 'lianli' || parentDeviceId === 'lianli-wireless';
+  return isLianLiHubId(parentDeviceId) || parentDeviceId === 'lianli-wireless';
 }
 
 // Cards that name the same device (deviceId) are its zones and stack; a card

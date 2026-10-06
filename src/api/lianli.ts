@@ -1,5 +1,24 @@
 import { fetchService, putService } from './service';
 
+/** The first wired Uni hub; the others are `lianli2` onward, named to the endpoints by `?hub=`. */
+export const LIANLI_PRIMARY_HUB = 'lianli';
+
+/** Whether a device id is a wired Uni hub: the service runs up to four. */
+export function isLianLiHubId(id: string | undefined): id is string {
+  return id !== undefined && /^lianli[2-4]?$/.test(id);
+}
+
+/** Display name of a wired hub; one past the first carries its number. */
+export function lianLiHubName(hubId: string): string {
+  const n = hubId.slice(LIANLI_PRIMARY_HUB.length);
+  return n ? `Lian Li Uni Hub ${n}` : 'Lian Li Uni Hub';
+}
+
+/** The primary hub sends no query, so a service without multi-hub support still answers. */
+export function lianLiHubQuery(hubId: string): string {
+  return hubId === LIANLI_PRIMARY_HUB ? '' : `?hub=${encodeURIComponent(hubId)}`;
+}
+
 export interface LianLiState {
   isConnected: boolean;
   rpm: number[];
@@ -10,12 +29,12 @@ export interface LianLiState {
   firmwareVersion?: string;
 }
 
-export function getLianLiState(): Promise<LianLiState | null> {
-  return fetchService<LianLiState>('/devices/lianli/state');
+export function getLianLiState(hubId = LIANLI_PRIMARY_HUB): Promise<LianLiState | null> {
+  return fetchService<LianLiState>(`/devices/lianli/state${lianLiHubQuery(hubId)}`);
 }
 
-export function setLianLiFanCount(port: number, count: number): Promise<unknown | null> {
-  return putService('/devices/lianli/fan-count', { port, count });
+export function setLianLiFanCount(port: number, count: number, hubId = LIANLI_PRIMARY_HUB): Promise<unknown | null> {
+  return putService(`/devices/lianli/fan-count${lianLiHubQuery(hubId)}`, { port, count });
 }
 
 export interface LianLiLightingMode {
@@ -58,11 +77,11 @@ export interface LianLiLighting {
 export type LianLiLightingPatch = Partial<Pick<LianLiLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'argbSync'>>
   & { argbSyncSource?: string };
 
-export function getLianLiLighting(): Promise<LianLiLighting | null> {
-  return fetchService<LianLiLighting>('/devices/lianli/lighting');
+export function getLianLiLighting(hubId = LIANLI_PRIMARY_HUB): Promise<LianLiLighting | null> {
+  return fetchService<LianLiLighting>(`/devices/lianli/lighting${lianLiHubQuery(hubId)}`);
 }
 
-export function setLianLiLighting(patch: LianLiLightingPatch): Promise<unknown | null> {
-  return putService('/devices/lianli/lighting', patch);
+export function setLianLiLighting(patch: LianLiLightingPatch, hubId = LIANLI_PRIMARY_HUB): Promise<unknown | null> {
+  return putService(`/devices/lianli/lighting${lianLiHubQuery(hubId)}`, patch);
 }
 
