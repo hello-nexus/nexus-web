@@ -1177,7 +1177,7 @@
   "devices.y70.forceOrientation": "Forçar orientação do ecrã",
   "devices.y70.forceOrientationHint": "Mantém o ecrã na orientação correta automaticamente. Desative para a definir manualmente.",
   "devices.y70.keepCursorOff": "Manter o rato fora do painel",
-  "devices.y70.keepCursorOffHint": "Impede que o ponteiro do rato passe para o Y70 e retira-o de lá sempre que lá for parar. Controle o painel por toque.",
+  "devices.y70.keepCursorOffHint": "Impede que o ponteiro do rato passe para o painel e retira-o de lá sempre que lá for parar. Controle o painel por toque.",
   "devices.y70.orientation": "Orientação",
   "devices.y70.orientation.Landscape": "Paisagem",
   "devices.y70.orientation.LandscapeFlipped": "Paisagem (invertida)",

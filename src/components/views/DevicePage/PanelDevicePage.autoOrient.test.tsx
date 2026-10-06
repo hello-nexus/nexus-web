@@ -187,3 +187,26 @@ describe('PanelDevicePage Xeneon Edge auto-orient', () => {
     expect(screen.queryByRole('switch', { name: AUTO_ORIENT_LABEL })).not.toBeInTheDocument();
   });
 });
+
+describe('PanelDevicePage monitor-panel keep the mouse off', () => {
+  const KEEP_OFF_LABEL = 'devices.y70.keepCursorOff';
+
+  it('defaults off and persists keepCursorOff:true on the record', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'rec1',
+        displayId: 'disp1',
+        capabilities: { surface: 'monitor', touch: true, family: 'xeneon-edge', orientation: 'Landscape' },
+      }],
+    });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: KEEP_OFF_LABEL });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(patchPanelDeviceMock).toHaveBeenCalledWith('rec1', { keepCursorOff: true }));
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+});

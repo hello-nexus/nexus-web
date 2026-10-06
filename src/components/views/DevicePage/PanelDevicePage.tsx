@@ -339,6 +339,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // Per-panel persisted settings off the device record (promoted monitors).
   const [recordReserve, setRecordReserve] = useState(true);
   const [recordAutoOrient, setRecordAutoOrient] = useState(true);
+  const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
   const [recordMirror, setRecordMirror] = useState(false);
   const [recordLcdBrightness, setRecordLcdBrightness] = useState(DEFAULT_LCD_BRIGHTNESS);
@@ -561,6 +562,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // Per-panel persisted settings (promoted monitors).
       setRecordReserve(match?.reserveMonitor ?? true);
       setRecordAutoOrient(match?.autoOrient ?? true);
+      setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordFlip180(match?.flip180 ?? false);
       setRecordMirror(match?.mirror ?? false);
       setRecordLcdBrightness(match?.lcdBrightness ?? DEFAULT_LCD_BRIGHTNESS);
@@ -1492,6 +1494,12 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         setRecordReserve(next);
                         if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { reserveMonitor: next }).catch(() => {});
                       }}
+                      keepCursorOff={monitorReserve ? recordKeepCursorOff : null}
+                      onKeepCursorOffToggle={() => {
+                        const next = !recordKeepCursorOff;
+                        setRecordKeepCursorOff(next);
+                        if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { keepCursorOff: next }).catch(() => {});
+                      }}
                       xeneonSettings={isXeneonEdgePanel ? xeneonSettings : null}
                       onXeneonChange={previewXeneonControl}
                       onXeneonCommit={commitXeneonControl}
@@ -1597,6 +1605,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         }}
                         reserveMonitor={null}
                         onReserveMonitorToggle={() => {}}
+                        keepCursorOff={null}
+                        onKeepCursorOffToggle={() => {}}
                         // Q-series has no orientation sensor and no vendor
                         // settings channel: null hides both blocks, leaving the
                         // manual picker unconditional.
@@ -1636,6 +1646,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                       onAutoOrientToggle={() => {}}
                       reserveMonitor={null}
                       onReserveMonitorToggle={() => {}}
+                      keepCursorOff={null}
+                      onKeepCursorOffToggle={() => {}}
                       xeneonSettings={null}
                       onXeneonChange={() => {}}
                       onXeneonCommit={() => {}}
@@ -2205,6 +2217,8 @@ interface MonitorSettingsPanelProps {
   onAutoOrientToggle: () => void;
   reserveMonitor: boolean | null;
   onReserveMonitorToggle: () => void;
+  keepCursorOff: boolean | null;
+  onKeepCursorOffToggle: () => void;
   // Corsair Xeneon Edge native settings (brightness/backlight/contrast/RGB).
   // Null hides the whole block: not this panel family, or the ~1s HID read
   // hasn't resolved yet.
@@ -2228,6 +2242,7 @@ function MonitorSettingsPanel({
   sleepWhenLocked, onSleepWhenLockedToggle,
   autoOrient, onAutoOrientToggle,
   reserveMonitor, onReserveMonitorToggle,
+  keepCursorOff, onKeepCursorOffToggle,
   xeneonSettings, onXeneonChange, onXeneonCommit,
   hardwareResetBusy,
   touchPermissionNeeded, onOpenTouchPermission,
@@ -2329,6 +2344,14 @@ function MonitorSettingsPanel({
           description={t('devices.y70.reserveMonitorHint')}
           checked={reserveMonitor}
           onChange={onReserveMonitorToggle}
+        />
+      )}
+      {keepCursorOff !== null && (
+        <SettingToggle
+          label={t('devices.y70.keepCursorOff')}
+          description={t('devices.y70.keepCursorOffHint')}
+          checked={keepCursorOff}
+          onChange={onKeepCursorOffToggle}
         />
       )}
       </SettingsSection>

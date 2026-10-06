@@ -1177,7 +1177,7 @@
   "devices.y70.forceOrientation": "Beeldoriëntatie forceren",
   "devices.y70.forceOrientationHint": "Houdt het scherm automatisch in de juiste oriëntatie. Schakel uit om deze handmatig in te stellen.",
   "devices.y70.keepCursorOff": "Muis van het paneel houden",
-  "devices.y70.keepCursorOffHint": "Voorkomt dat de muisaanwijzer naar de Y70 gaat en haalt hem weg zodra hij daar belandt. Bedien het paneel met aanraking.",
+  "devices.y70.keepCursorOffHint": "Voorkomt dat de muisaanwijzer naar het paneel gaat en haalt hem weg zodra hij daar belandt. Bedien het paneel met aanraking.",
   "devices.y70.orientation": "Oriëntatie",
   "devices.y70.orientation.Landscape": "Liggend",
   "devices.y70.orientation.LandscapeFlipped": "Liggend (omgekeerd)",

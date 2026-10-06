@@ -1177,7 +1177,7 @@
   "devices.y70.forceOrientation": "Forcer l'orientation de l'écran",
   "devices.y70.forceOrientationHint": "Maintient automatiquement l'écran dans la bonne orientation. Désactivez cette option pour la définir manuellement.",
   "devices.y70.keepCursorOff": "Garder la souris hors du panneau",
-  "devices.y70.keepCursorOffHint": "Empêche le pointeur de la souris d'aller sur le Y70 et l'en retire dès qu'il s'y retrouve. Contrôlez le panneau au toucher.",
+  "devices.y70.keepCursorOffHint": "Empêche le pointeur de la souris d'aller sur le panneau et l'en retire dès qu'il s'y retrouve. Contrôlez le panneau au toucher.",
   "devices.y70.orientation": "Orientation",
   "devices.y70.orientation.Landscape": "Paysage",
   "devices.y70.orientation.LandscapeFlipped": "Paysage (inversé)",

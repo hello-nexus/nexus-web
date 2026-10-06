@@ -1177,7 +1177,7 @@
   "devices.y70.forceOrientation": "強制螢幕方向",
   "devices.y70.forceOrientationHint": "自動將螢幕保持在正確的方向。關閉以手動設定。",
   "devices.y70.keepCursorOff": "讓滑鼠遠離面板",
-  "devices.y70.keepCursorOffHint": "阻止滑鼠指標移到 Y70 上，指標一旦落在那裡就會被移走。請以觸控操作面板。",
+  "devices.y70.keepCursorOffHint": "阻止滑鼠指標移到面板上，指標一旦落在那裡就會被移走。請以觸控操作面板。",
   "devices.y70.orientation": "方向",
   "devices.y70.orientation.Landscape": "橫向",
   "devices.y70.orientation.LandscapeFlipped": "橫向（翻轉）",
