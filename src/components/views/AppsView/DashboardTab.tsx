@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Monitor, Plus } from 'lucide-react';
+import { LayoutTemplate, Monitor, Plus } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -12,6 +12,7 @@ import { useSearchSignal } from '../../../search/signals';
 import { ServiceRequired } from '../ServiceRequired';
 import { Toggle } from '../../common/Toggle/Toggle';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
+import { DashboardPresetsModal } from './DashboardPresetsModal';
 import { DashboardBanner } from './DashboardBanner';
 import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
@@ -36,6 +37,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   const layoutState = useDashboardLayout();
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
   const [desktopModalOpen, setDesktopModalOpen] = useState(false);
+  const [presetsOpen, setPresetsOpen] = useState(false);
   const [desktopWidgetCount, setDesktopWidgetCount] = useState(0);
   const panelHostRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +91,15 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
               <span className={styles.widgetCountBadge}>{desktopWidgetCount}</span>
             )}
           </button>
+          <button
+            type="button"
+            className="chip-action"
+            disabled={!layoutState.loaded}
+            onClick={() => setPresetsOpen(true)}
+          >
+            <LayoutTemplate size={14} aria-hidden />
+            <span>{t('dashboard.presets.title')}</span>
+          </button>
           <label className={styles.autoArrange}>
             <span>{t('dashboard.autoArrange')}</span>
             <Toggle
@@ -105,6 +116,7 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
         </div>
       </div>
       <OverlayWidgetsModal open={desktopModalOpen} onClose={() => setDesktopModalOpen(false)} />
+      <DashboardPresetsModal open={presetsOpen} onClose={() => setPresetsOpen(false)} onApply={layoutState.setLayout} />
     </div>
   );
 }
