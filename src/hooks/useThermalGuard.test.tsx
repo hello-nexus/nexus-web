@@ -6,7 +6,7 @@ import { useThermalGuard } from './useThermalGuard';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
-const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardEnabled: vi.fn(), undoHeal: vi.fn() }));
+const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardEnabled: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn() }));
 
 vi.mock('../api/cooling', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/cooling')>()),
@@ -143,5 +143,29 @@ describe('useThermalGuard', () => {
     const before = api.fetchGuard.mock.calls.length;
     await act(async () => { handle.current!.applyHeal({ undoAvailable: true, healedAtUtcMs: 1, channels: [] }); });
     expect(api.fetchGuard.mock.calls.length).toBe(before + 1);
+  });
+
+  it('sends a limit override and applies the returned guard', async () => {
+    mount();
+    api.setGuardConfig.mockResolvedValue(guard('floor'));
+    await act(async () => { await handle.current!.setLimit(102); });
+    expect(api.setGuardConfig).toHaveBeenCalledWith({ limitOverrideC: 102 });
+    expect(screen.getByTestId('state').textContent).toBe('floor');
+  });
+
+  it('clears the override', async () => {
+    mount();
+    api.setGuardConfig.mockResolvedValue(guard('normal'));
+    await act(async () => { await handle.current!.clearLimit(); });
+    expect(api.setGuardConfig).toHaveBeenCalledWith({ clearLimitOverride: true });
+  });
+
+  it('shows the limit error for an error envelope', async () => {
+    mount();
+    await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+    api.setGuardConfig.mockResolvedValue({ error: true, msg: 'hardware' });
+    await act(async () => { await handle.current!.setLimit(110); });
+    await screen.findByText('cooling.guard.error.limit');
+    expect(screen.getByTestId('state').textContent).toBe('normal');
   });
 });

@@ -283,6 +283,8 @@ export const activateCoolingPreset = (id: string) =>
 
 export type GuardState = 'inactive' | 'off' | 'normal' | 'floor' | 'tripped' | 'escalated';
 export type GuardLimitSource = 'hardware' | 'spec' | 'default';
+/** The effective source can also be the user's own override. */
+export type GuardEffectiveLimitSource = GuardLimitSource | 'user';
 export type GuardTripReason = 'limit' | 'cooling-loss';
 
 export interface GuardLastTrip {
@@ -319,10 +321,16 @@ export interface GuardResponse {
   state: GuardState;
   guardTempC: number | null;
   limitC: number | null;
-  limitSource: GuardLimitSource | null;
+  limitSource: GuardEffectiveLimitSource | null;
+  /** What the service found for the CPU, before any user override. */
+  detectedLimitC?: number | null;
+  detectedLimitSource?: GuardLimitSource | null;
+  limitOverrideC?: number | null;
   sinceUtcMs: number | null;
   lastTrip: GuardLastTrip | null;
   heal: HealState;
+  /** The engine watchdog handed the fans to the BIOS and stays latched until a restart or a guard off/on. */
+  watchdogLatched?: boolean;
   gpus?: GuardGpu[];
 }
 
@@ -341,8 +349,11 @@ export interface LintResponse {
 
 export const fetchGuard = () => fetchService<GuardResponse>('/cooling/guard');
 
-export const setGuardEnabled = (enabled: boolean) =>
-  postService<GuardResponse>('/cooling/guard/config', { enabled });
+/** Partial update; an override sent while the detected source is hardware comes back as an error envelope. */
+export const setGuardConfig = (body: { enabled?: boolean; limitOverrideC?: number; clearLimitOverride?: boolean }) =>
+  postService<GuardResponse>('/cooling/guard/config', body);
+
+export const setGuardEnabled = (enabled: boolean) => setGuardConfig({ enabled });
 
 /** Same body as saveCurves; advisory only, writes nothing. */
 export const lintCurves = (body: { globalSpeedModifier: number; curves: WireCurve[] }) =>

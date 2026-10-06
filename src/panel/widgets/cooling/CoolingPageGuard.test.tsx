@@ -62,7 +62,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
   };
 });
 
-import { saveCurves, lintCurves, healCooling, undoHeal, setGuardEnabled } from '../../../api/cooling';
+import { saveCurves, lintCurves, healCooling, undoHeal } from '../../../api/cooling';
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 
@@ -140,20 +140,23 @@ describe('CoolingPage thermal guard', () => {
     expect(vi.mocked(healCooling)).not.toHaveBeenCalled();
   });
 
-  it('shows the guard switch on, with the limit and its source', async () => {
+  it('renders no guard switch on the Cooling page', async () => {
     renderAdvanced();
-    const sw = await screen.findByRole('switch', { name: 'cooling.guard.label' });
-    expect(sw.getAttribute('aria-checked')).toBe('true');
-    expect(screen.getByText(/cooling\.guard\.limit\.spec/)).toBeTruthy();
+    await screen.findByText('1,400');
+    expect(screen.queryByRole('switch', { name: 'cooling.guard.label' })).toBeNull();
   });
 
-  it('turning the switch off posts enabled false', async () => {
+  it('shows nothing for the guard while it is off', async () => {
+    svc.guard = { ...svc.guard, state: 'off' };
     renderAdvanced();
-    fireEvent.click(await screen.findByRole('switch', { name: 'cooling.guard.label' }));
-    await waitFor(() => { expect(vi.mocked(setGuardEnabled)).toHaveBeenCalledWith(false); });
-    await waitFor(() => {
-      expect(screen.getByRole('switch', { name: 'cooling.guard.label' }).getAttribute('aria-checked')).toBe('false');
-    });
+    await screen.findByText('1,400');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('shows the latched banner when the watchdog latched', async () => {
+    svc.guard = { ...svc.guard, watchdogLatched: true };
+    renderAdvanced();
+    expect(await screen.findByText('cooling.guard.latched')).toBeTruthy();
   });
 
   it('Undo calls the undo route and clears the notice', async () => {

@@ -1,17 +1,13 @@
-import { ShieldCheck, TriangleAlert, Wrench } from 'lucide-react';
+import { TriangleAlert, Wrench } from 'lucide-react';
 import type { GuardResponse, HealState } from '../../../../api/cooling';
 import { Button } from '../../../../components/common/Button/Button';
-import { SettingToggle } from '../../../../components/common/SettingRow/SettingRow';
 import { useTranslation } from '../../../../lib/i18n';
-import { guardBannerText, guardLimitText, healLines } from './guardUtils';
+import { guardBannerText, healLines } from './guardUtils';
 import styles from './ThermalGuardPanel.module.scss';
 
 interface ThermalGuardPanelProps {
   guard: GuardResponse | null;
-  onToggle: (enabled: boolean) => void;
   onUndo: () => void;
-  /** Disables the switch while its request is in flight. */
-  toggling?: boolean;
   /** A failed save, heal, undo or toggle, shown inline. */
   error?: string | null;
 }
@@ -50,32 +46,27 @@ export function GuardError({ message, className }: { message: string; className?
   );
 }
 
-/** Thermal guard switch with its limit, the intervention banner, and the post-heal notice with Undo. */
-export function ThermalGuardPanel({ guard, onToggle, onUndo, toggling = false, error = null }: ThermalGuardPanelProps) {
+/**
+ * Cooling page block for the thermal guard: the intervention banner, the
+ * watchdog-latched banner, the post-heal notice with Undo, and inline errors.
+ * The on/off switch lives in Settings. While the guard is off it shows nothing.
+ */
+export function ThermalGuardPanel({ guard, onUndo, error = null }: ThermalGuardPanelProps) {
   const { t } = useTranslation();
   // Save and heal failures do not depend on the guard having loaded.
-  if (!guard) return error ? <div className={styles.panel}><GuardError message={error} /></div> : null;
+  const errorNode = error ? <GuardError message={error} /> : null;
+  if (!guard || guard.state === 'off') return errorNode && <div className={styles.panel}>{errorNode}</div>;
 
   const banner = guardBannerText(guard, t);
-  const limit = guardLimitText(guard, t);
-  const enabled = guard.state !== 'off';
   const heal = guard.heal.undoAvailable ? guard.heal : null;
+  if (!banner && !guard.watchdogLatched && !heal && !errorNode) return null;
 
   return (
     <div className={styles.panel}>
-      <SettingToggle
-        label={t('cooling.guard.label')}
-        description={`${t('cooling.guard.description')}${limit && enabled ? ` ${limit}` : ''}`}
-        icon={<ShieldCheck size={18} />}
-        iconLeading="subtle"
-        checked={enabled}
-        disabled={toggling}
-        onChange={onToggle}
-      />
-      {guard.state === 'inactive' && (
-        <div className={styles.banner} role="status" data-state="inactive">
+      {guard.watchdogLatched && (
+        <div className={styles.banner} role="alert" data-state="escalated">
           <TriangleAlert className={styles.bannerIcon} size={18} aria-hidden />
-          <span>{t('cooling.guard.inactive')}</span>
+          <span>{t('cooling.guard.latched')}</span>
         </div>
       )}
       {banner && (
@@ -85,7 +76,7 @@ export function ThermalGuardPanel({ guard, onToggle, onUndo, toggling = false, e
         </div>
       )}
       {heal && <HealNotice heal={heal} onUndo={onUndo} />}
-      {error && <GuardError message={error} />}
+      {errorNode}
     </div>
   );
 }

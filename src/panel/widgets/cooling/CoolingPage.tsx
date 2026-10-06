@@ -142,9 +142,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const guardPanel = (
     <ThermalGuardPanel
       guard={thermalGuard.guard}
-      onToggle={enabled => { void thermalGuard.toggle(enabled); }}
       onUndo={() => { void thermalGuard.undo(); }}
-      toggling={thermalGuard.toggling}
       error={latestError(lintError, thermalGuard.error)}
     />
   );

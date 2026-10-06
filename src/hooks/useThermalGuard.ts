@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchGuard, setGuardEnabled, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
+import { fetchGuard, setGuardConfig, setGuardEnabled, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
 import { useTranslation } from '../lib/i18n';
 import { newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -65,26 +65,40 @@ export function useThermalGuard(serviceOnline: boolean) {
 
   useTopicCallback('cooling', serviceOnline, () => { void refresh(); });
 
-  const toggle = useCallback(async (enabled: boolean) => {
+  // One write at a time: the switch and the limit share the pending state and the error slot.
+  const write = useCallback(async (send: () => Promise<GuardResponse | null>, errorKey: string) => {
     if (togglingRef.current) return;
     togglingRef.current = true;
     setToggling(true);
     const generation = generationRef.current;
     try {
-      const next = await setGuardEnabled(enabled);
+      const next = await send();
       if (generation !== generationRef.current) return;
       if (next && next.state) {
         seqRef.current += 1;
         setGuard(next);
         setError(null);
       } else {
-        setError(newGuardError(tRef.current('cooling.guard.error.toggle')));
+        setError(newGuardError(tRef.current(errorKey)));
       }
     } finally {
       togglingRef.current = false;
       setToggling(false);
     }
   }, []);
+
+  const toggle = useCallback(
+    (enabled: boolean) => write(() => setGuardEnabled(enabled), 'cooling.guard.error.toggle'),
+    [write],
+  );
+  const setLimit = useCallback(
+    (limitOverrideC: number) => write(() => setGuardConfig({ limitOverrideC }), 'cooling.guard.error.limit'),
+    [write],
+  );
+  const clearLimit = useCallback(
+    () => write(() => setGuardConfig({ clearLimitOverride: true }), 'cooling.guard.error.limit'),
+    [write],
+  );
 
   const applyHeal = useCallback((heal: HealState | null) => {
     if (!heal) return;
@@ -108,5 +122,5 @@ export function useThermalGuard(serviceOnline: boolean) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, toggling, error, clearError, refresh, toggle, undo, applyHeal };
+  return { guard, toggling, error, clearError, refresh, toggle, setLimit, clearLimit, undo, applyHeal };
 }

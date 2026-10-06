@@ -1,4 +1,4 @@
-import type { CurveHazard, GuardResponse, GuardLimitSource, HealChannel } from '../../../../api/cooling';
+import type { CurveHazard, GuardResponse, GuardEffectiveLimitSource, HealChannel } from '../../../../api/cooling';
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -24,7 +24,8 @@ export function guardBannerText(guard: GuardResponse, t: Translate): string | nu
   return t(key, { temp: formatTemp(guard.guardTempC), limit: formatTemp(guard.limitC) });
 }
 
-const LIMIT_KEYS: Record<GuardLimitSource, string> = {
+const LIMIT_KEYS: Record<GuardEffectiveLimitSource, string> = {
+  user: 'cooling.guard.limit.user',
   hardware: 'cooling.guard.limit.hardware',
   spec: 'cooling.guard.limit.spec',
   default: 'cooling.guard.limit.default',
