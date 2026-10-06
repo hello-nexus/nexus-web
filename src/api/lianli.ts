@@ -51,6 +51,24 @@ export interface LianLiLightingMode {
   mergeable?: boolean;
 }
 
+/** A firmware animation and its parameters. */
+export interface LianLiEffect {
+  mode: string;
+  speed: number;
+  direction: number;
+  brightness: number;
+  colors: string[];
+}
+
+/** A port's own look in place of the hub's; the rings are both set or both absent. */
+export interface LianLiPortLook {
+  whole: LianLiEffect;
+  innerRing?: LianLiEffect | null;
+  outerRing?: LianLiEffect | null;
+}
+
+export type LianLiRing = 'inner' | 'outer';
+
 export interface LianLiLighting {
   mode: string;
   /** The animation the device plays when the Lighting page is not driving it. Absent on an older service. */
@@ -72,10 +90,28 @@ export interface LianLiLighting {
   argbSyncSource?: string | null;
   /** Cards that can drive it: single addressable ports. */
   argbSyncSources?: { id: string; name: string }[];
+  /** Each ring's own catalog on a two-ring hub. Absent on a one-ring hub and an older service. */
+  ringModes?: Record<LianLiRing, LianLiLightingMode[]>;
+  /** Every port's rings play these instead of the whole-fan mode; both set or both absent. */
+  innerRing?: LianLiEffect | null;
+  outerRing?: LianLiEffect | null;
+  /** Per-port looks, by port; null plays the hub's. Absent on an older service. */
+  ports?: (LianLiPortLook | null)[];
+  /** Ports in the order a merged animation runs through. Absent on an older service. */
+  mergeOrder?: number[];
 }
 
-export type LianLiLightingPatch = Partial<Pick<LianLiLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'argbSync'>>
-  & { argbSyncSource?: string };
+export type LianLiLightingPatch = Partial<Pick<LianLiLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'argbSync' | 'mergeOrder'>>
+  & {
+    argbSyncSource?: string;
+    /** The port the effect fields edit; the hub when absent. */
+    port?: number;
+    /** The ring the effect fields edit; the whole fan when absent. */
+    ring?: LianLiRing;
+    splitRings?: boolean;
+    /** Drops the port's own look so it plays the hub's again. */
+    resetPort?: boolean;
+  };
 
 export function getLianLiLighting(hubId = LIANLI_PRIMARY_HUB): Promise<LianLiLighting | null> {
   return fetchService<LianLiLighting>(`/devices/lianli/lighting${lianLiHubQuery(hubId)}`);

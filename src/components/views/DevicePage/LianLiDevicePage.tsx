@@ -3,8 +3,7 @@ import { Cable, Fan, Lightbulb, Unplug } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Select } from '../../common/Select/Select';
-import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
-import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
+import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CoolingPageShortcut, LightingPageShortcut } from './CoolingPageLink';
@@ -20,12 +19,16 @@ import {
   setLianLiLighting,
   LIANLI_PRIMARY_HUB,
   type LianLiState,
+  type LianLiEffect,
   type LianLiLighting,
   type LianLiLightingPatch,
+  type LianLiPortLook,
+  type LianLiRing,
 } from '../../../api/lianli';
+import { LianLiEffectControls } from './LianLiEffectControls';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
-import { formatNumber, localizeNumbers } from '../../../lib/units';
+import { formatNumber } from '../../../lib/units';
 import styles from './LianLiDevicePage.module.scss';
 import rowStyles from './CoolingFanRow.module.scss';
 import { useReportDeviceWaiting } from './deviceDetecting';
@@ -33,12 +36,10 @@ import { fetchDeviceStructure, setDeviceChain, type ChainEntry } from '../../../
 
 const PORT_COUNT = 4;
 const DEFAULT_MAX_FANS = 4;
-// Firmware brightness/speed are 5 discrete levels (0..4) presented as a percent.
-const PERCENT_PER_LEVEL = 25;
 // Mode key under which the Lighting page drives the device.
 const LIGHTING_PAGE_MODE = 'custom';
-const DEFAULT_COLOR = '#ffffff';
-const DEFAULT_COLOR_SECONDARY = '#000000';
+// Select value for editing every port at once.
+const ALL_PORTS = 'all';
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
 
@@ -59,6 +60,8 @@ export function LianLiDevicePage({ hubId = LIANLI_PRIMARY_HUB, onSectionNavigate
   const [lianliState, setLianliState] = useState<LianLiState | null>(null);
   const [lighting, setLighting] = useState<LianLiLighting | null>(null);
   const [saving, setSaving] = useState(false);
+  // Port the effect controls edit; null edits every port.
+  const [target, setTarget] = useState<number | null>(null);
   const aliveRef = useRef(true);
   const connectedRef = useRef(false);
 
@@ -157,10 +160,52 @@ export function LianLiDevicePage({ hubId = LIANLI_PRIMARY_HUB, onSectionNavigate
     ? (lighting.mode !== LIGHTING_PAGE_MODE ? lighting.mode : lighting.effectMode ?? effectModes[0]?.key ?? '')
     : '';
   const selectedMode = effectModes.find(m => m.key === effectKey) ?? null;
-  // With no colours chosen the firmware plays the mode's own palette, so the pickers show it.
-  const shownColors = lighting && lighting.colors.length > 0 ? lighting.colors : (selectedMode?.defaultColors ?? []);
   const isCustomMode = lighting?.mode === LIGHTING_PAGE_MODE;
   const argbSyncOn = lighting?.argbSyncSupported === true && lighting.argbSync === true;
+  const controlsDisabled = !lightingLoaded || isCustomMode;
+  // A merged animation spans every port, so per-port and per-ring looks give way to it.
+  const mergeActive = !!lighting?.merge && !!selectedMode?.mergeable;
+  const mergeOrder = lighting?.mergeOrder ?? [];
+  // Ports the picker offers: those with fans, plus any keeping its own look so it can be reset.
+  const pickablePorts = (lianliState?.fansPerPort ?? []).flatMap((n, p) => (n > 0 || lighting?.ports?.[p] ? [p] : []));
+  const targetPort = target !== null && !mergeActive && pickablePorts.includes(target) ? target : null;
+  const portField = targetPort === null ? {} : { port: targetPort };
+  const hubLook: LianLiPortLook = {
+    whole: {
+      mode: effectKey,
+      speed: lighting?.speed ?? 0,
+      direction: lighting?.direction ?? 0,
+      brightness: lighting?.brightness ?? 0,
+      colors: lighting?.colors ?? [],
+    },
+    innerRing: lighting?.innerRing ?? null,
+    outerRing: lighting?.outerRing ?? null,
+  };
+  const ownLook = targetPort === null ? null : lighting?.ports?.[targetPort] ?? null;
+  const look = ownLook ?? hubLook;
+  const split = !!lighting?.ringModes && !!look.innerRing && !!look.outerRing;
+
+  // A port's first edit starts its own look from the hub's, as the service does.
+  const editEffect = (ring: LianLiRing | undefined, next: LianLiEffect) => {
+    if (!lighting) return;
+    const ringKey = ring === 'inner' ? 'innerRing' : 'outerRing';
+    if (targetPort === null) {
+      setLighting(ring
+        ? { ...lighting, [ringKey]: next }
+        : { ...lighting, mode: next.mode, effectMode: next.mode, speed: next.speed, direction: next.direction, brightness: next.brightness, colors: next.colors });
+      return;
+    }
+    const ports = [...(lighting.ports ?? [])];
+    while (ports.length <= targetPort) ports.push(null);
+    const base = ports[targetPort] ?? hubLook;
+    ports[targetPort] = ring ? { ...base, [ringKey]: next } : { ...base, whole: next };
+    setLighting({ ...lighting, ports });
+  };
+
+  // Structural edits (splitting rings, dropping a port's look) take the service's seeded result.
+  const commitAndReload = async (patch: LianLiLightingPatch) => {
+    if (await commitLighting(patch)) await refresh();
+  };
 
   // Cooling lists only ports with fans set on the Devices tab, like the service's channels.
   const hasFans = !!lianliState?.fansPerPort.some(n => n > 0);
@@ -247,194 +292,125 @@ export function LianLiDevicePage({ hubId = LIANLI_PRIMARY_HUB, onSectionNavigate
               onSectionNavigate={onSectionNavigate}
             />
 
-            <SettingSelect
-              label={t('devices.lianli.lightingMode')}
-              value={effectKey}
-              onChange={v => {
-                if (!lighting) return;
-                setLighting({ ...lighting, mode: v, effectMode: v });
-                void commitLighting({ mode: v });
-              }}
-              options={effectModes.map(m => ({ value: m.key, label: m.label }))}
-              disabled={!lightingLoaded || isCustomMode}
-            />
-
-            {selectedMode?.mergeable && (
-              <SettingToggle
-                label={t('devices.lianli.merge')}
-                description={t('devices.lianli.mergeHint')}
-                checked={lighting?.merge ?? false}
-                onChange={on => {
-                  if (!lighting) return;
-                  setLighting({ ...lighting, merge: on });
-                  void commitLighting({ merge: on });
-                }}
-                disabled={!lightingLoaded || isCustomMode}
-              />
-            )}
-
-            {selectedMode?.hasBrightness && (
-              <SettingSlider
-                editable
-                trackFill
-                label={t('devices.lianli.lightingBrightness')}
-                value={(lighting?.brightness ?? 0) * PERCENT_PER_LEVEL}
-                min={0}
-                max={100}
-                step={PERCENT_PER_LEVEL}
-                formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
-                ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-                disabled={!lightingLoaded || isCustomMode}
-                onChange={(v: number, commit?: boolean) => {
-                  if (!lighting) return;
-                  const level = Math.round(v / PERCENT_PER_LEVEL);
-                  setLighting({ ...lighting, brightness: level });
-                  if (commit) void commitLighting({ brightness: level });
-                }}
-                onCommit={(v: number) => {
-                  void commitLighting({ brightness: Math.round(v / PERCENT_PER_LEVEL) });
-                }}
-              />
-            )}
-
-            {selectedMode?.hasSpeed && (
-              <SettingSlider
-                editable
-                trackFill
-                label={t('devices.lianli.lightingSpeed')}
-                value={(lighting?.speed ?? 0) * PERCENT_PER_LEVEL}
-                min={0}
-                max={100}
-                step={PERCENT_PER_LEVEL}
-                formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
-                ariaLabel={t('devices.lianli.lightingSpeedAria')}
-                disabled={!lightingLoaded || isCustomMode}
-                onChange={(v: number, commit?: boolean) => {
-                  if (!lighting) return;
-                  const level = Math.round(v / PERCENT_PER_LEVEL);
-                  setLighting({ ...lighting, speed: level });
-                  if (commit) void commitLighting({ speed: level });
-                }}
-                onCommit={(v: number) => {
-                  void commitLighting({ speed: Math.round(v / PERCENT_PER_LEVEL) });
-                }}
-              />
-            )}
-
-            {selectedMode?.hasDirection && (
+            {(pickablePorts.length > 1 || !!lighting?.ports?.some(Boolean)) && !mergeActive && (
               <SettingSelect
-                label={t('devices.lianli.lightingDirection')}
-                value={String(lighting?.direction ?? 0)}
-                onChange={v => {
-                  if (!lighting) return;
-                  const d = Number(v);
-                  setLighting({ ...lighting, direction: d });
-                  void commitLighting({ direction: d });
-                }}
+                label={t('devices.lianli.applyTo')}
+                value={targetPort === null ? ALL_PORTS : String(targetPort)}
+                onChange={v => setTarget(v === ALL_PORTS ? null : Number(v))}
                 options={[
-                  { value: '0', label: t('devices.lianli.directionLtr') },
-                  { value: '1', label: t('devices.lianli.directionRtl') },
+                  { value: ALL_PORTS, label: t('devices.lianli.allPorts') },
+                  ...pickablePorts.map(p => ({ value: String(p), label: t('devices.lianli.port', { n: p + 1 }) })),
                 ]}
-                disabled={!lightingLoaded || isCustomMode}
+                disabled={controlsDisabled}
               />
             )}
 
-            {selectedMode && selectedMode.colorsMax > 0 && lightingLoaded && (
-              <div className={`${styles.colorBlock} ${isCustomMode ? styles.rowDisabled : ''}`} data-settings-aside="true">
-                {selectedMode.colorsMax === 2 ? (
-                  <div className={styles.colorPairRow}>
-                    {([0, 1] as const).map(i => {
-                      const color = shownColors[i] ?? DEFAULT_COLOR_SECONDARY;
-                      return (
-                        <div key={i} className={styles.colorEntry}>
-                          <span className={styles.colorLabel}>
-                            {t('devices.lianli.colorN', { n: i + 1 })}
-                          </span>
-                          <HsvPicker
-                            value={color}
-                            onPreview={(hex: string) => {
-                              if (!lighting) return;
-                              const next = [...shownColors];
-                              while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
-                              next[i] = hex;
-                              setLighting({ ...lighting, colors: next });
-                            }}
-                            onCommit={(hex: string) => {
-                              if (!lighting) return;
-                              const next = [...shownColors];
-                              while (next.length < 2) next.push(DEFAULT_COLOR_SECONDARY);
-                              next[i] = hex;
-                              setLighting({ ...lighting, colors: next });
-                              void commitLighting({ colors: next });
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <>
-                    {shownColors.map((color, i) => (
-                      <div key={i} className={styles.colorEntry}>
-                        <HsvPicker
-                          value={color}
-                          onPreview={(hex: string) => {
-                            if (!lighting) return;
-                            const next = [...shownColors];
-                            next[i] = hex;
-                            setLighting({ ...lighting, colors: next });
-                          }}
-                          onCommit={(hex: string) => {
-                            if (!lighting) return;
-                            const next = [...shownColors];
-                            next[i] = hex;
-                            setLighting({ ...lighting, colors: next });
-                            void commitLighting({ colors: next });
-                          }}
-                        />
-                        <div className={styles.colorActions}>
-                          {/* An emptied list plays the mode's defaults, so the last colour of a mode that has them stays. */}
-                          {shownColors.length > Math.max(selectedMode.colorsMin, selectedMode.defaultColors?.length ? 1 : 0) && (
-                            <Button
-                              size="sm"
-                              tone="neutral"
-                              onClick={() => {
-                                if (!lighting) return;
-                                const next = shownColors.filter((_, idx) => idx !== i);
-                                setLighting({ ...lighting, colors: next });
-                                void commitLighting({ colors: next });
-                              }}
-                            >
-                              {t('devices.lianli.removeColor')}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {shownColors.length < selectedMode.colorsMax && (
-                      <div className={styles.colorActions}>
-                        <Button
-                          size="sm"
-                          tone="neutral"
-                          onClick={() => {
-                            if (!lighting) return;
-                            const next = [...shownColors, DEFAULT_COLOR];
-                            setLighting({ ...lighting, colors: next });
-                            void commitLighting({ colors: next });
-                          }}
-                        >
-                          {t('devices.lianli.addColor')}
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                )}
+            {targetPort !== null && ownLook && (
+              <div className={styles.colorActions}>
+                <Button
+                  size="sm"
+                  tone="neutral"
+                  disabled={controlsDisabled}
+                  onClick={() => { void commitAndReload({ port: targetPort, resetPort: true }); }}
+                >
+                  {t('devices.lianli.matchAllPorts')}
+                </Button>
               </div>
+            )}
+
+            {lighting?.ringModes && !mergeActive && (
+              <SettingToggle
+                label={t('devices.lianli.splitRings')}
+                checked={split}
+                onChange={on => { void commitAndReload({ splitRings: on, ...portField }); }}
+                disabled={controlsDisabled}
+              />
+            )}
+
+            {!split && (
+              <LianLiEffectControls
+                modes={effectModes}
+                effect={look.whole}
+                disabled={controlsDisabled}
+                loaded={lightingLoaded}
+                onPreview={next => editEffect(undefined, next)}
+                onCommit={patch => { void commitLighting({ ...patch, ...portField }); }}
+              >
+                {targetPort === null && selectedMode?.mergeable && (
+                  <SettingToggle
+                    label={t('devices.lianli.merge')}
+                    description={t('devices.lianli.mergeHint')}
+                    checked={lighting?.merge ?? false}
+                    onChange={on => {
+                      if (!lighting) return;
+                      setLighting({ ...lighting, merge: on });
+                      void commitLighting({ merge: on });
+                    }}
+                    disabled={controlsDisabled}
+                  />
+                )}
+                {mergeActive && mergeOrder.length > 0 && (
+                  <LianLiMergeOrderRows
+                    order={mergeOrder}
+                    disabled={controlsDisabled}
+                    onChange={next => {
+                      if (!lighting) return;
+                      setLighting({ ...lighting, mergeOrder: next });
+                      void commitLighting({ mergeOrder: next });
+                    }}
+                  />
+                )}
+              </LianLiEffectControls>
             )}
           </SettingsSection>
         )}
+        {tab === 'lighting' && !argbSyncOn && split && lighting?.ringModes && look.innerRing && look.outerRing && (
+          ([['inner', look.innerRing], ['outer', look.outerRing]] as const).map(([ring, effect]) => (
+            <SettingsSection
+              key={ring}
+              title={t(ring === 'inner' ? 'devices.lianli.innerRing' : 'devices.lianli.outerRing')}
+              boxClassName={styles.sectionBox}
+            >
+              <LianLiEffectControls
+                modes={lighting.ringModes![ring]}
+                effect={effect}
+                disabled={controlsDisabled}
+                loaded={lightingLoaded}
+                onPreview={next => editEffect(ring, next)}
+                onCommit={patch => { void commitLighting({ ...patch, ...portField, ring }); }}
+              />
+            </SettingsSection>
+          ))
+        )}
       </div>
     </div>
+  );
+}
+
+// Each position names the port the merged animation reaches next; picking a
+// port already placed swaps the two.
+function LianLiMergeOrderRows({ order, disabled, onChange }: { order: readonly number[]; disabled: boolean; onChange: (order: number[]) => void }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <SettingRow label={t('devices.lianli.mergeOrder')} description={t('devices.lianli.mergeOrderHint')} />
+      {order.map((port, position) => (
+        <SettingSelect
+          key={position}
+          label={t('devices.lianli.mergePosition', { n: position + 1 })}
+          value={String(port)}
+          onChange={v => {
+            const picked = Number(v);
+            const next = [...order];
+            next[next.indexOf(picked)] = port;
+            next[position] = picked;
+            onChange(next);
+          }}
+          options={order.map((_, p) => ({ value: String(p), label: t('devices.lianli.port', { n: p + 1 }) }))}
+          disabled={disabled}
+        />
+      ))}
+    </>
   );
 }
 

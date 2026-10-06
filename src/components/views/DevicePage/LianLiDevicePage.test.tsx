@@ -369,6 +369,111 @@ describe('LianLiDevicePage', () => {
     expect(spy).toHaveBeenCalledWith('lighting');
   });
 
+  describe('ports, rings and merge order', () => {
+    const ringModes = {
+      inner: [
+        { key: 'static', label: 'Inner Static', hasSpeed: false, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4 },
+        { key: 'meteor', label: 'Inner Meteor', hasSpeed: true, hasDirection: true, hasBrightness: true, colorsMin: 0, colorsMax: 4 },
+      ],
+      outer: [
+        { key: 'rainbowWave', label: 'Outer Rainbow', hasSpeed: true, hasDirection: true, hasBrightness: true, colorsMin: 0, colorsMax: 0 },
+        { key: 'static', label: 'Outer Static', hasSpeed: false, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4 },
+      ],
+    };
+    const effect = (mode: string) => ({ mode, speed: 2, direction: 0, brightness: 4, colors: [] });
+
+    it('edits one port when a port is picked', async () => {
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [null, null, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.applyTo' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.port:{"n":2}' }));
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.lightingMode' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('option', { name: 'Rainbow Wave' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'rainbowWave', port: 1 }, 'lianli');
+      expect(screen.getByRole('button', { name: 'devices.lianli.matchAllPorts' })).toBeInTheDocument();
+    });
+
+    it('a port with its own look goes back to the hub look', async () => {
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [null, { whole: effect('dualColor') }, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.applyTo' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.port:{"n":2}' }));
+      expect(screen.getByRole('button', { name: 'devices.lianli.lightingMode' })).toHaveTextContent('Dual Color');
+      const calls = mockGetLianLiLighting.mock.calls.length;
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.matchAllPorts' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ port: 1, resetPort: true }, 'lianli');
+      expect(mockGetLianLiLighting.mock.calls.length).toBeGreaterThan(calls);
+    });
+
+    it('keeps a port with its own look reachable when only one port has fans', async () => {
+      mockGetLianLiState.mockResolvedValue({ ...defaultState, fansPerPort: [3, 0, 0, 0] });
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [{ whole: effect('dualColor') }, null, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.applyTo' }));
+      expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual(['devices.lianli.allPorts', 'devices.lianli.port:{"n":1}']);
+    });
+
+    it('hides the port picker with one port and no port looks', async () => {
+      mockGetLianLiState.mockResolvedValue({ ...defaultState, fansPerPort: [3, 0, 0, 0] });
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [null, null, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByRole('button', { name: 'devices.lianli.applyTo' })).not.toBeInTheDocument();
+    });
+
+    it('offers separate rings only on a two-ring hub and reloads after splitting', async () => {
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByRole('switch', { name: 'devices.lianli.splitRings' })).not.toBeInTheDocument();
+
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ringModes });
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      const calls = mockGetLianLiLighting.mock.calls.length;
+      await act(async () => {
+        fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli.splitRings' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ splitRings: true }, 'lianli');
+      expect(mockGetLianLiLighting.mock.calls.length).toBeGreaterThan(calls);
+    });
+
+    it('split rings edit each ring from its own catalog', async () => {
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ringModes, innerRing: effect('static'), outerRing: effect('rainbowWave') });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.getByRole('switch', { name: 'devices.lianli.splitRings' })).toHaveAttribute('aria-checked', 'true');
+      const outer = screen.getByText('devices.lianli.outerRing').closest('section')!;
+      fireEvent.click(within(outer).getByRole('button', { name: 'devices.lianli.lightingMode' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('option', { name: 'Outer Static' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'static', ring: 'outer' }, 'lianli');
+      expect(screen.getByText('devices.lianli.innerRing')).toBeInTheDocument();
+    });
+
+    it('merge order swaps the picked port into place', async () => {
+      mockGetLianLiLighting.mockResolvedValue({
+        ...defaultLighting,
+        mode: 'runway',
+        merge: true,
+        mergeOrder: [0, 1, 2, 3],
+        modes: [
+          ...defaultLighting.modes,
+          { key: 'runway', label: 'Runway', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 2, mergeable: true },
+        ],
+      });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByRole('button', { name: 'devices.lianli.applyTo' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.mergePosition:{"n":1}' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.port:{"n":3}' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mergeOrder: [2, 1, 0, 3] }, 'lianli');
+    });
+  });
+
   describe('ARGB sync', () => {
     const sources = [{ id: 'openrgb-1', name: 'Header 1' }, { id: 'smarthub:1:port4', name: 'SmartHub Port 4' }];
     const product = { key: 'product:lianli-lian-li-sl120-infinity' };
