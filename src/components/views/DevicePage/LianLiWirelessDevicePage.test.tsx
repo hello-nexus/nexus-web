@@ -340,6 +340,29 @@ describe('LianLiWirelessDevicePage', () => {
     expect(screen.queryByText(/noPwmCable/)).not.toBeInTheDocument();
   });
 
+  it('says nothing about the PWM cable on a Strimer, which has no fan ports', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], devType: 2, fanType: 0, fanCount: 0, pwmCableConnected: false, pwm: [6, 6, 6, 6] }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.deviceStrimer')).toBeInTheDocument();
+    expect(screen.queryByText(/noPwmCable/)).not.toBeInTheDocument();
+  });
+
+  it('keeps the PWM cable hint on a HydroShift II, whose pump and fans follow the header', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], devType: 10, fanType: 0, fanCount: 3, pwmCableConnected: false, pwm: [6, 6, 6, 6] }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText(/noPwmCable/)).toBeInTheDocument();
+  });
+
   it('offers the Lighting tab once a Strimer is bound', async () => {
     mockGetLianLiWirelessState.mockResolvedValue({
       ...connectedState,

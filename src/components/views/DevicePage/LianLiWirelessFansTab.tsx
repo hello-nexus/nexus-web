@@ -46,6 +46,11 @@ export function isFanDevice(devType: number): boolean {
   return devType === 0 || (devType >= 20 && devType <= 63) || devType === 126 || devType === 127;
 }
 
+/** A Strimer cable: no fan ports, so no PWM cable either. */
+function isStrimerDevice(devType: number): boolean {
+  return devType >= 1 && devType <= 9;
+}
+
 /** The firmware echoes this duty byte on a port that follows the motherboard PWM header. */
 const PWM_FOLLOW_MOTHERBOARD = 6;
 
@@ -58,7 +63,7 @@ function followsMotherboard(fan: LianLiWirelessFan): boolean {
  *  what each paired device is instead of calling everything a fan. */
 export function deviceTypeKey(devType: number, fanType: number):
   ReturnType<typeof fanTypeKey> | 'deviceStrimer' | 'deviceHydroShift' | 'deviceGeneric' {
-  if (devType >= 1 && devType <= 9) return 'deviceStrimer';
+  if (isStrimerDevice(devType)) return 'deviceStrimer';
   if (devType === 10 || devType === 11) return 'deviceHydroShift';
   if (isFanDevice(devType)) return fanTypeKey(fanType);
   return 'deviceGeneric';
@@ -244,7 +249,7 @@ function DeviceRow({
     : { label: t('devices.lianli-wireless.unbound') };
   const details = [
     fan.firmwareVersion ? t('devices.lianli-wireless.firmwareVersion', { v: fan.firmwareVersion }) : null,
-    fan.boundToUs && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
+    fan.boundToUs && !isStrimerDevice(fan.devType) && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
   ].filter(Boolean).join(' - ');
 
   return (
