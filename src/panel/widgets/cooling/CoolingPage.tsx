@@ -132,7 +132,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const recovery = useFirmwareRecoveryFlow(serviceOnline);
   const thermalGuard = useThermalGuard(serviceOnline);
   const guardPanel = (
-    <ThermalGuardPanel guard={thermalGuard.guard} onToggle={enabled => { void thermalGuard.toggle(enabled); }} onUndo={() => { void thermalGuard.undo(); }} />
+    <ThermalGuardPanel guard={thermalGuard.guard} onToggle={enabled => { void thermalGuard.toggle(enabled); }} onUndo={() => { void thermalGuard.undo(); }} toggling={thermalGuard.toggling} />
   );
   const refreshCoolingConfigRef = useRef<() => void>(() => {});
   const { saveWithLint, prompt: lintPrompt } = useCurveSaveLint(heal => {
@@ -1370,6 +1370,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           {recoveryBanner}
           {guardPanel}
           {recovery.modal}
+          {lintPrompt}
           <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
             <ViewHeader
               title={t('cooling.title')}

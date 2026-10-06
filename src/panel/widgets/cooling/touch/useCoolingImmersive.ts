@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import {
   applyProfile, fetchCurves, fetchFanChannels, fetchProfiles, fetchTemperatureSources,
   isFanDisconnected,
-  releaseFanAuto,
+  releaseFanAuto, undoHeal as apiUndoHeal,
   renameFan as apiRenameFan,
   resetPresetCurve as apiResetPresetCurve,
   setFanSpeed as apiSetFanSpeed,
   setFanLock as apiSetFanLock,
   setFanControlled as apiSetFanControlled,
   setFanRole as apiSetFanRole,
-  type FanChannel, type FanRole, type TemperatureSource,
+  type FanChannel, type FanRole, type HealState, type TemperatureSource,
 } from '../../../../api/cooling';
 import { useCurveSaveLint } from '../../../../hooks/useCurveSaveLint';
 import {
@@ -52,6 +52,9 @@ const PRESET_LOCK_MS = 1500;
 export interface CoolingImmersiveController {
   /** Fix / Save anyway prompt for a curve save with hazards; render it beside the view. */
   lintPrompt: ReactNode;
+  /** What the last Fix changed, until it is undone or dismissed by a newer save. */
+  healNotice: HealState | null;
+  undoHeal: () => void;
   channels: FanChannel[];
   sources: TemperatureSource[];
   curves: CurveDef[];
@@ -96,7 +99,11 @@ export interface CoolingImmersiveController {
  * resyncs on the 'cooling' / 'prefs' topics and cross-surface control-sync.
  */
 export function useCoolingImmersive(): CoolingImmersiveController {
-  const { saveWithLint, prompt: lintPrompt } = useCurveSaveLint(() => { void refreshRef.current(); });
+  const [healNotice, setHealNotice] = useState<HealState | null>(null);
+  const { saveWithLint, prompt: lintPrompt } = useCurveSaveLint(heal => {
+    setHealNotice(heal);
+    void refreshRef.current();
+  });
   const refreshRef = useRef<() => Promise<void>>(async () => {});
   const cachedSeed = useMemo(() => loadCoolingCache(), []);
   const [channels, setChannels] = useState<FanChannel[]>(() => cachedSeed.channels);
@@ -618,6 +625,11 @@ export function useCoolingImmersive(): CoolingImmersiveController {
 
   return {
     lintPrompt,
+    healNotice,
+    undoHeal: () => {
+      setHealNotice(null);
+      void apiUndoHeal().then(() => refreshRef.current());
+    },
     channels, sources, curves, fanStates, activeMode, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,

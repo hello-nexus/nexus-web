@@ -304,13 +304,15 @@ export interface HealState {
   channels: HealChannel[];
 }
 
+export type GuardGpuState = 'inactive' | 'normal' | 'handedBack' | 'forced';
+
 export interface GuardGpu {
   id: string;
   name: string;
   tempC: number | null;
   limitC: number | null;
   limitSource: GuardLimitSource | null;
-  state: string;
+  state: GuardGpuState;
 }
 
 export interface GuardResponse {

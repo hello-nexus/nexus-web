@@ -63,7 +63,8 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     resetPresetCurve: vi.fn(async () => undefined),
     setFanSpeed: vi.fn(async () => undefined),
     lintCurves: vi.fn(async () => ({ hazards: svc.hazards, fixAvailable: svc.hazards.length > 0 })),
-    healCooling: vi.fn(async () => ({ undoAvailable: true, healedAtUtcMs: 1, channels: [] })),
+    healCooling: vi.fn(async () => ({ undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-case', name: 'Case Fan', hazard: 'manual-low' }] })),
+    undoHeal: vi.fn(async () => ({ undoAvailable: false, healedAtUtcMs: null, channels: [] })),
   };
 });
 
@@ -72,7 +73,7 @@ vi.mock('../../../api/np50', async (importOriginal) => {
   return { ...original, getNp50ConnectionState: vi.fn(async () => null) };
 });
 
-import { saveCurves, healCooling } from '../../../api/cooling';
+import { saveCurves, healCooling, undoHeal } from '../../../api/cooling';
 
 const widget = { id: 'w-cooling', type: 'cooling', size: '4x4', col: 0, row: 0 } as PanelWidget;
 const hazard = {
@@ -113,6 +114,12 @@ describe('CoolingTouch curve save lint', () => {
     await waitFor(() => expect(healCooling).toHaveBeenCalled());
     expect(vi.mocked(saveCurves).mock.invocationCallOrder[0])
       .toBeLessThan(vi.mocked(healCooling).mock.invocationCallOrder[0]);
+    // What changed is shown, with Undo.
+    expect(await screen.findByText('cooling.guard.heal.title')).toBeTruthy();
+    expect(screen.getByText('cooling.guard.hazard.manualLow')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.undo' }));
+    await waitFor(() => expect(undoHeal).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());
   });
 
   it('Save anyway saves without healing', async () => {

@@ -3,6 +3,8 @@ import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { CoolingImmersiveStatus } from './touch/CoolingImmersiveStatus';
 import { CoolingImmersiveEditor } from './touch/CoolingImmersiveEditor';
 import { useCoolingImmersive } from './touch/useCoolingImmersive';
+import { HealNotice } from './page/ThermalGuardPanel';
+import styles from './CoolingTouch.module.scss';
 import type { WidgetProps } from '../types';
 
 /**
@@ -31,6 +33,9 @@ export function CoolingTouch({ immersiveGrid }: WidgetProps) {
         gridRows={immersiveGrid?.rows ?? 8}
       />
       {cooling.lintPrompt}
+      {cooling.healNotice && (
+        <HealNotice className={styles.healNotice} heal={cooling.healNotice} onUndo={cooling.undoHeal} />
+      )}
     </>
   );
 }

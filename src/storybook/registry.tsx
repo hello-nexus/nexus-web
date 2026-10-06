@@ -62,6 +62,8 @@ import { ModeMenu } from '../components/common/ModeMenu/ModeMenu';
 import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { FirmwareRecoveryBanner } from '../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
+import { ThermalGuardPanel } from '../panel/widgets/cooling/page/ThermalGuardPanel';
+import type { GuardResponse } from '../api/cooling';
 import { FlashProgress } from '../components/common/FlashProgress/FlashProgress';
 import type { FirmwareStatusItem } from '../hooks/useFirmwareStatus';
 import { Button } from '../components/common/Button/Button';
@@ -1414,6 +1416,32 @@ function PreviewFirmwareRecoveryBanner() {
   );
 }
 
+const PREVIEW_GUARD: GuardResponse = {
+  state: 'normal', guardTempC: 58, limitC: 95, limitSource: 'spec', sinceUtcMs: null, lastTrip: null,
+  heal: { undoAvailable: false, healedAtUtcMs: null, channels: [] },
+};
+
+function PreviewThermalGuardPanel() {
+  const trip = (reason: 'limit' | 'cooling-loss', escalated: boolean) => ({ atUtcMs: 1, peakC: 93, reason, escalated });
+  const states: GuardResponse[] = [
+    PREVIEW_GUARD,
+    { ...PREVIEW_GUARD, state: 'floor', guardTempC: 84 },
+    { ...PREVIEW_GUARD, state: 'tripped', guardTempC: 93, lastTrip: trip('limit', false) },
+    { ...PREVIEW_GUARD, state: 'escalated', guardTempC: 94, lastTrip: trip('cooling-loss', true) },
+    { ...PREVIEW_GUARD, state: 'inactive', guardTempC: null },
+    { ...PREVIEW_GUARD, state: 'off' },
+    {
+      ...PREVIEW_GUARD,
+      heal: { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-1', name: 'Fan #1', hazard: 'manual-low' }] },
+    },
+  ];
+  return (
+    <div className={styles.previewStack} style={{ width: 560 }}>
+      {states.map((guard, i) => <ThermalGuardPanel key={i} guard={guard} onToggle={() => {}} onUndo={() => {}} />)}
+    </div>
+  );
+}
+
 function PreviewFlashProgress() {
   return (
     <FlashProgress status={{ active: true, deviceType: 'q60', version: '1.0.0', phase: 'downloading', percent: 42, message: 'Downloading', success: false, error: '' }} />
@@ -2553,6 +2581,12 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner.tsx',
     description: 'Warning shown on the Cooling and Firmware Updates pages when a device is stuck in update mode after an interrupted firmware update. Carries the Recover action, a checking line while the service identifies the device, flash progress while recovering, and a contact-support line when the device cannot be recovered in-app. Pairs with useFirmwareRecoveryFlow / useRecoverConfirm for the confirm dialog.',
     Preview: PreviewFirmwareRecoveryBanner,
+  },
+  {
+    name: 'ThermalGuardPanel', category: 'cards',
+    filePath: 'src/panel/widgets/cooling/page/ThermalGuardPanel.tsx',
+    description: 'Cooling page block for the CPU thermal guard: the on/off switch with the limit and its source, a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or handed them back to the BIOS (escalated), a note when the CPU temperature cannot be read (inactive), and the post-heal notice with Undo. Shown here in each state.',
+    Preview: PreviewThermalGuardPanel,
   },
   {
     name: 'FlashProgress', category: 'cards',

@@ -66,4 +66,15 @@ describe('ThermalGuardPanel', () => {
     render(<ThermalGuardPanel guard={guard} onToggle={() => {}} onUndo={() => {}} />);
     expect(screen.queryByRole('button', { name: 'cooling.guard.heal.undo' })).toBeNull();
   });
+
+  it('says the guard cannot act when the CPU temperature is unreadable', () => {
+    render(<ThermalGuardPanel guard={{ ...base, state: 'inactive', guardTempC: null }} onToggle={() => {}} onUndo={() => {}} />);
+    expect(screen.getByRole('status').textContent).toContain('cooling.guard.inactive');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('disables the switch while a toggle is in flight', () => {
+    render(<ThermalGuardPanel guard={base} toggling onToggle={() => {}} onUndo={() => {}} />);
+    expect(screen.getByRole('switch')).toBeDisabled();
+  });
 });

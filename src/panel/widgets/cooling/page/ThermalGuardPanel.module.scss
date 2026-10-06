@@ -7,7 +7,6 @@
   margin-bottom: 1rem;
 }
 
-.row,
 .banner,
 .heal {
   display: flex;
@@ -20,26 +19,6 @@
   color: var(--text);
 
   @include text-body;
-}
-
-.text {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.label {
-  @include text-heading;
-}
-
-.description {
-  color: var(--text-dim);
-}
-
-.icon {
-  flex: 0 0 auto;
-  color: var(--accent);
 }
 
 .banner {
