@@ -16,6 +16,14 @@ export interface LianLiWirelessFan {
   fanCount: number;
   rpm: number[];
   pwm: number[];
+  /** Chain RF firmware version; 0 or absent when not reported. */
+  firmwareVersion?: number;
+  /** The chain's ARGB sync cable to a motherboard header is plugged in. */
+  argbCableConnected?: boolean;
+  /** The chain is playing its motherboard ARGB input. */
+  playingMotherboardArgb?: boolean;
+  /** The chain's PWM cable to a motherboard fan header is plugged in. */
+  pwmCableConnected?: boolean;
 }
 
 /** Why the link is down, for the device page. Absent on a service older than the field. */

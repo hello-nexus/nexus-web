@@ -102,6 +102,20 @@ describe('fanTypeKey', () => {
     expect(fanTypeKey(35)).toBe('fanTypeTlLcd');
     expect(fanTypeKey(41)).toBe('fanTypeCl');
   });
+
+  it('maps the newer families: RL120, SL-INF Flex, TL Flex, SL V4, P28 V2, CL V2', () => {
+    expect(fanTypeKey(40)).toBe('fanTypeRl120');
+    expect(fanTypeKey(43)).toBe('fanTypeSlInfFlex');
+    expect(fanTypeKey(50)).toBe('fanTypeSlInfFlex');
+    expect(fanTypeKey(51)).toBe('fanTypeTlFlex');
+    expect(fanTypeKey(58)).toBe('fanTypeTlFlex');
+    expect(fanTypeKey(59)).toBe('fanTypeSlv4');
+    expect(fanTypeKey(62)).toBe('fanTypeSlv4');
+    expect(fanTypeKey(63)).toBe('fanTypeP28v2');
+    expect(fanTypeKey(64)).toBe('fanTypeGeneric');
+    expect(fanTypeKey(126)).toBe('fanTypeClv2');
+    expect(fanTypeKey(127)).toBe('fanTypeClv2');
+  });
 });
 
 describe('deviceTypeKey', () => {
@@ -126,10 +140,14 @@ describe('deviceTypeKey', () => {
     expect(deviceTypeKey(90, 0)).toBe('deviceGeneric');
   });
 
-  it('isFanDevice: dev_type 0 and 20-42 are fans, others are not', () => {
+  it('isFanDevice: dev_type 0, 20-63 and 126-127 are fans, others are not', () => {
     expect(isFanDevice(0)).toBe(true);
     expect(isFanDevice(20)).toBe(true);
     expect(isFanDevice(42)).toBe(true);
+    expect(isFanDevice(63)).toBe(true);
+    expect(isFanDevice(126)).toBe(true);
+    expect(isFanDevice(127)).toBe(true);
+    expect(isFanDevice(64)).toBe(false);
     expect(isFanDevice(5)).toBe(false);
     expect(isFanDevice(10)).toBe(false);
   });
@@ -297,6 +315,29 @@ describe('LianLiWirelessDevicePage', () => {
     });
     expect(screen.queryByRole('tab', { name: /cooling\.title/ })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.devices/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('shows a bound chain\'s firmware version and a missing PWM cable on a port following the motherboard', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], firmwareVersion: 18, pwmCableConnected: false }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText(/devices\.lianli-wireless\.firmwareVersion.*devices\.lianli-wireless\.noPwmCable/)).toBeInTheDocument();
+  });
+
+  it('says nothing about the PWM cable while Nexus drives the chain', async () => {
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], firmwareVersion: 18, pwmCableConnected: false, pwm: [127, 127, 127, 127] }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage />);
+    });
+    expect(screen.getByText(/devices\.lianli-wireless\.firmwareVersion/)).toBeInTheDocument();
+    expect(screen.queryByText(/noPwmCable/)).not.toBeInTheDocument();
   });
 
   it('offers the Lighting tab once a Strimer is bound', async () => {
