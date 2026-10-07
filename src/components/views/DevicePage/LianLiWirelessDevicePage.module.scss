@@ -39,6 +39,13 @@
   gap: 1rem;
 }
 
+// A colour setting: its label row, then the preset picker across the full row.
+.colorSetting {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .rowValueMono {
   flex: 1;
   text-align: right;

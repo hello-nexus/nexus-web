@@ -24,7 +24,12 @@ const LOOP_INTERVAL_MAX = 60;
 type ColorKey = 'labelColor' | 'valueColor' | 'unitColor';
 
 /** The screen of one bound HydroShift II: theme, brightness, readings and colours, applied as they change. */
-export function LianLiAioScreenSection({ mac, onOpenPanel }: { mac: string; onOpenPanel?: () => void }) {
+export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel }: {
+  mac: string;
+  /** The AIO's USB cable is connected, so Nexus widgets stream to this screen. */
+  usbConnected?: boolean;
+  onOpenPanel?: () => void;
+}) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [screen, setScreen] = useState<LianLiAioScreen | null>(null);
@@ -71,13 +76,21 @@ export function LianLiAioScreenSection({ mac, onOpenPanel }: { mac: string; onOp
     <SettingsSection
       title={t('devices.lianli-wireless.aioScreen.title')}
       description={t('devices.lianli-wireless.aioScreen.hint')}
-      action={onOpenPanel && (
-        <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
-          {t('devices.lianli-wireless.openScreenPage')}
-        </Button>
-      )}
       boxClassName={styles.sectionBox}
     >
+      {/* On USB the entry points at the screen's own page, so it waits until that page can be opened. */}
+      {(!usbConnected || onOpenPanel) && (
+        <SettingRow
+          label={t('devices.lianli-wireless.aioScreen.widgets')}
+          description={t(usbConnected ? 'devices.lianli-wireless.aioScreen.widgetsUsb' : 'devices.lianli-wireless.aioScreen.widgetsNoUsb')}
+        >
+          {usbConnected && onOpenPanel && (
+            <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
+              {t('devices.lianli-wireless.openScreenPage')}
+            </Button>
+          )}
+        </SettingRow>
+      )}
       <SettingSlider
         editable
         trackFill
@@ -134,7 +147,9 @@ export function LianLiAioScreenSection({ mac, onOpenPanel }: { mac: string; onOp
         />
       )}
       {colors.map(([key, label]) => (
-        <SettingRow key={key} label={t(label)} stackOnNarrow>
+        // The picker sizes its swatches to the width it gets, so it takes the full row under its label.
+        <div key={key} className={styles.colorSetting}>
+          <SettingRow label={t(label)} />
           <ColorPickerWithPresets
             value={screen[key]}
             presets={TEXT_COLOR_PRESETS}
@@ -142,7 +157,7 @@ export function LianLiAioScreenSection({ mac, onOpenPanel }: { mac: string; onOp
             pickerPortal
             onCommit={hex => { void commit({ [key]: hex.toUpperCase() }); }}
           />
-        </SettingRow>
+        </div>
       ))}
     </SettingsSection>
   );

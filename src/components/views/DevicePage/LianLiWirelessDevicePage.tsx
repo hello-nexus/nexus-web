@@ -145,6 +145,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
     && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
   const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
+  const usbMacs = (state?.fans ?? []).filter(f => f.usbConnected).map(f => f.mac);
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <RadioReceiver size={14} /> },
     ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
@@ -184,7 +185,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
           )}
           {tab === 'lighting' && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
           {tab === 'cooling' && <LianLiWirelessCoolingTab state={state} />}
-          {tab === 'screen' && <LianLiWirelessScreenTab aioMacs={aioMacs} panelOpener={panelOpener} />}
+          {tab === 'screen' && <LianLiWirelessScreenTab aioMacs={aioMacs} usbMacs={usbMacs} panelOpener={panelOpener} />}
         </div>
       </div>
     </div>

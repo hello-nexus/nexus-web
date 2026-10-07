@@ -139,6 +139,31 @@ describe('LianLiAioScreenSection', () => {
     expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.cpuTemp' })).toHaveAttribute('aria-checked', 'true');
   });
 
+  it('tells the user to connect USB for full widget support when the AIO is wireless only', async () => {
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" onOpenPanel={vi.fn()} />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.widgetsNoUsb')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+  });
+
+  it('holds the widgets entry back while an AIO on USB has no page to open yet', async () => {
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected />);
+    });
+    expect(screen.queryByText('devices.lianli-wireless.aioScreen.widgets')).not.toBeInTheDocument();
+  });
+
+  it('opens the screen page from the widgets entry when the AIO is on USB', async () => {
+    const open = vi.fn();
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected onOpenPanel={open} />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.widgetsUsb')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' }));
+    expect(open).toHaveBeenCalled();
+  });
+
   it('renders nothing for an AIO the service does not know', async () => {
     mockGetLianLiAioScreen.mockResolvedValue(null);
     await renderSection();

@@ -175,6 +175,17 @@ describe('LianLiWirelessScreenTab', () => {
     expect(screen.queryByText('devices.lianli-wireless.displaySection')).not.toBeInTheDocument();
   });
 
+  it('marks a bound HydroShift II on USB and offers its screen page', async () => {
+    mockGetScreens.mockResolvedValue([]);
+    const open = vi.fn();
+    await act(async () => {
+      render(<LianLiWirelessScreenTab aioMacs={['5ED6D8E566E1']} usbMacs={['5ED6D8E566E1']} panelOpener={() => open} />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.widgetsUsb')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' }));
+    expect(open).toHaveBeenCalled();
+  });
+
   it('a bound HydroShift II sits above the fan screens', async () => {
     await act(async () => {
       render(<LianLiWirelessScreenTab aioMacs={['5ED6D8E566E1']} />);
