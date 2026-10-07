@@ -1375,7 +1375,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       <div className={styles.cooling}>
         <div className={`${styles.simpleBody} pageBodyFill`}>
           {recoveryBanner}
-          {guardPanel}
           {recovery.modal}
           {lintPrompt}
           <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
@@ -1405,6 +1404,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             />
             {modeMenuNode}
           </div>
+          {guardPanel}
           <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
             {COOLING_MODES.filter(p => p.key !== 'custom' && p.key !== 'off').map(p => (
               <IconLabelButton
@@ -1435,7 +1435,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   return (
     <div className={styles.cooling}>
       {recovery.item && <div className={`${styles.recoveryBanner} pageBody`}>{recoveryBanner}</div>}
-      <div className={`${styles.guardBar} pageBody`}>{guardPanel}</div>
       {recovery.modal}
       {/* Fan rail on the left, mode tabs + curve to its right, mirroring the
           lighting page. The rail header shares grid row 1 with the tabs so both
@@ -1476,6 +1475,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             {modeMenuNode}
           </div>
         </div>
+        <div className={styles.guardBar}>{guardPanel}</div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <div className={styles.paneTitleGroup}>
             <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>

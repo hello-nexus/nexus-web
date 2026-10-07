@@ -35,6 +35,11 @@ describe('ThermalGuardPanel', () => {
     expect(container.firstChild).toBeNull();
   });
 
+  it('treats enabled false as off even while the state still reads normal', () => {
+    const { container } = render(<ThermalGuardPanel guard={{ ...base, enabled: false, watchdogLatched: true }} onUndo={() => {}} />);
+    expect(container.firstChild).toBeNull();
+  });
+
   it('shows the latched banner when the watchdog handed the fans to the BIOS', () => {
     render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true }} onUndo={() => {}} />);
     expect(screen.getByRole('alert').textContent).toContain('cooling.guard.latched');

@@ -1,6 +1,9 @@
-import type { CurveHazard, GuardResponse, GuardEffectiveLimitSource, HealChannel } from '../../../../api/cooling';
+import type { CurveHazard, GuardResponse, HealChannel } from '../../../../api/cooling';
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+/** Whether the guard is switched on; falls back to the state for a service that does not send `enabled`. */
+export const guardEnabled = (guard: GuardResponse): boolean => guard.enabled ?? guard.state !== 'off';
 
 /** The guard has intervened or handed control back; "off" and "inactive" show nothing beyond the switch. */
 export function guardBannerKey(guard: GuardResponse | null): string | null {
@@ -21,20 +24,7 @@ const formatTemp = (c: number | null): string => (c == null ? '-' : String(Math.
 export function guardBannerText(guard: GuardResponse, t: Translate): string | null {
   const key = guardBannerKey(guard);
   if (!key) return null;
-  return t(key, { temp: formatTemp(guard.guardTempC), limit: formatTemp(guard.limitC) });
-}
-
-const LIMIT_KEYS: Record<GuardEffectiveLimitSource, string> = {
-  user: 'cooling.guard.limit.user',
-  hardware: 'cooling.guard.limit.hardware',
-  spec: 'cooling.guard.limit.spec',
-  default: 'cooling.guard.limit.default',
-};
-
-/** One-line limit and where it came from; null until the service reports a limit. */
-export function guardLimitText(guard: GuardResponse, t: Translate): string | null {
-  if (guard.limitC == null) return null;
-  return t(LIMIT_KEYS[guard.limitSource ?? 'default'], { temp: formatTemp(guard.limitC) });
+  return t(key, { temp: formatTemp(guard.guardTempC), limit: formatTemp(guard.limitC ?? null) });
 }
 
 const HAZARD_KEYS: Record<string, string> = {

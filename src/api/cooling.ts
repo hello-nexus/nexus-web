@@ -312,16 +312,19 @@ export interface GuardGpu {
   id: string;
   name: string;
   tempC: number | null;
-  limitC: number | null;
-  limitSource: GuardLimitSource | null;
+  limitC?: number | null;
+  limitSource?: GuardLimitSource | null;
   state: GuardGpuState;
 }
 
 export interface GuardResponse {
   state: GuardState;
+  /** The switch's value; `state` can lag a tick behind a toggle. Absent on an older service. */
+  enabled?: boolean;
   guardTempC: number | null;
-  limitC: number | null;
-  limitSource: GuardEffectiveLimitSource | null;
+  /** Effective limit; omitted while the guard is off. */
+  limitC?: number | null;
+  limitSource?: GuardEffectiveLimitSource | null;
   /** What the service found for the CPU, before any user override. */
   detectedLimitC?: number | null;
   detectedLimitSource?: GuardLimitSource | null;

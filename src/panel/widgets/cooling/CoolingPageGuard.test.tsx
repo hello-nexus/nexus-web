@@ -153,6 +153,29 @@ describe('CoolingPage thermal guard', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 
+  it('renders the guard notices below the tabs, not above them', async () => {
+    svc.guard = { ...svc.guard, watchdogLatched: true };
+    renderAdvanced();
+    const notice = await screen.findByText('cooling.guard.latched');
+    const tab = screen.getAllByRole('tab')[0];
+    expect(tab.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders the guard notices below the tabs in simple mode too', async () => {
+    svc.guard = { ...svc.guard, watchdogLatched: true };
+    localStorage.setItem('nexus_settings', JSON.stringify({
+      general: { coolingDashboardMode: 'simple', lightingDashboardMode: 'simple' },
+    }));
+    render(
+      <UiSettingsProvider>
+        <CoolingPage serviceOnline serviceState={serviceState} />
+      </UiSettingsProvider>,
+    );
+    const notice = await screen.findByText('cooling.guard.latched');
+    const tab = screen.getAllByRole('tab')[0];
+    expect(tab.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('shows the latched banner when the watchdog latched', async () => {
     svc.guard = { ...svc.guard, watchdogLatched: true };
     renderAdvanced();

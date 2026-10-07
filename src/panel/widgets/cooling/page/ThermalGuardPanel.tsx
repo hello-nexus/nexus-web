@@ -2,7 +2,7 @@ import { TriangleAlert, Wrench } from 'lucide-react';
 import type { GuardResponse, HealState } from '../../../../api/cooling';
 import { Button } from '../../../../components/common/Button/Button';
 import { useTranslation } from '../../../../lib/i18n';
-import { guardBannerText, healLines } from './guardUtils';
+import { guardBannerText, guardEnabled, healLines } from './guardUtils';
 import styles from './ThermalGuardPanel.module.scss';
 
 interface ThermalGuardPanelProps {
@@ -55,7 +55,7 @@ export function ThermalGuardPanel({ guard, onUndo, error = null }: ThermalGuardP
   const { t } = useTranslation();
   // Save and heal failures do not depend on the guard having loaded.
   const errorNode = error ? <GuardError message={error} /> : null;
-  if (!guard || guard.state === 'off') return errorNode && <div className={styles.panel}>{errorNode}</div>;
+  if (!guard || !guardEnabled(guard)) return errorNode && <div className={styles.panel}>{errorNode}</div>;
 
   const banner = guardBannerText(guard, t);
   const heal = guard.heal.undoAvailable ? guard.heal : null;

@@ -49,9 +49,10 @@
   // Fan rail | preset tabs + curve. The rail matches the lighting page's so the
   // two views share one left edge.
   grid-template-columns: 300px minmax(0, 1fr);
-  // Row 1: the preset tabs across both columns. Row 2: the two pane titles, so
-  // they share one baseline. Row 3: content.
-  grid-template-rows: auto auto minmax(0, 1fr);
+  // Row 1: the preset tabs across both columns. Row 2: the thermal guard
+  // notices, under the docked tabs. Row 3: the two pane titles, so they share
+  // one baseline. Row 4: content.
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   // The fan rail's scroller reaches across this gap; see .fanList.
   --rail-gap: 1.5rem;
   column-gap: var(--rail-gap);
@@ -89,9 +90,9 @@
   position: relative;
 }
 
-// One title per column, both on grid row 2 so they share a baseline.
+// One title per column, both on grid row 3 so they share a baseline.
 .paneHeader {
-  grid-row: 2;
+  grid-row: 3;
   min-width: 0;
   display: flex;
   align-items: center;
@@ -123,7 +124,7 @@
 // the viewport so the fan rail keeps its independent scroll.
 .curveCol {
   grid-column: 2;
-  grid-row: 3;
+  grid-row: 4;
   min-height: 0;
   overflow-y: auto;
 }
@@ -164,7 +165,7 @@
 // Right column: fan header pinned, the fan list scrolls beneath it.
 .fanSidebar {
   grid-column: 1;
-  grid-row: 3;
+  grid-row: 4;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -1219,5 +1220,7 @@
 }
 
 .guardBar {
-  flex: 0 0 auto;
+  grid-column: 1 / span 2;
+  grid-row: 2;
+  min-width: 0;
 }

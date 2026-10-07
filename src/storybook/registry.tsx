@@ -2614,7 +2614,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ThermalGuardSetting', category: 'cards',
     filePath: 'src/components/views/SettingsView/ThermalGuardSetting.tsx',
-    description: 'Settings > Cooling rows for the CPU thermal guard: the on/off switch and the temperature limit. A limit read from the CPU is a read-only line; otherwise a stacked slider (committed on release) with the detected value and source, a Reset to detected action while an override is set, and a note about shutdown above about 105 degrees. Shown for hardware, spec, override set, error, inactive and off.',
+    description: 'Settings > Cooling rows for the CPU thermal guard: the on/off switch and the temperature limit. The limit is always a stacked slider (85 to 110, committed once the value settles) preset to the detected value, with the detected value and its source (read from the CPU, CPU spec or default), a Reset to detected action while an override is set, and a note about shutdown above about 105 degrees. Shown for hardware, spec, override set, error, inactive and off.',
     Preview: PreviewThermalGuardSetting,
   },
   {

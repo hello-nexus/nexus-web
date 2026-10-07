@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CurveHazard, GuardResponse } from '../../../../api/cooling';
-import { latestError, newGuardError, guardBannerKey, guardBannerText, guardLimitText, hazardSignature, hazardText, healLines, lintLines } from './guardUtils';
+import { latestError, newGuardError, guardBannerKey, guardBannerText, hazardSignature, hazardText, healLines, lintLines } from './guardUtils';
 
 // Echoes the key and its variables so the assertions can see both.
 const t = (key: string, vars?: Record<string, string | number>) =>
@@ -31,18 +31,6 @@ describe('guardBannerKey', () => {
 
   it('rounds the temperature and limit into the text', () => {
     expect(guardBannerText(guard({ state: 'floor' }), t)).toBe('cooling.guard.banner.floor|temp=70,limit=95');
-  });
-});
-
-describe('guardLimitText', () => {
-  it('picks the wording for each source', () => {
-    expect(guardLimitText(guard({ limitSource: 'hardware', limitC: 100 }), t)).toBe('cooling.guard.limit.hardware|temp=100');
-    expect(guardLimitText(guard({ limitSource: 'spec' }), t)).toBe('cooling.guard.limit.spec|temp=95');
-    expect(guardLimitText(guard({ limitSource: 'default', limitC: 90 }), t)).toBe('cooling.guard.limit.default|temp=90');
-  });
-
-  it('is empty until a limit is known', () => {
-    expect(guardLimitText(guard({ limitC: null, limitSource: null }), t)).toBeNull();
   });
 });
 

@@ -27,15 +27,22 @@ describe('ThermalGuardSettingView', () => {
     expect(h.onToggle).toHaveBeenCalledWith(false);
   });
 
+  it('drives the switch from enabled, so a lagging state does not flip it', () => {
+    view({ ...base, enabled: false, state: 'normal' });
+    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
+  });
+
   it('shows the switch off when the guard is off', () => {
     view({ ...base, state: 'off' });
     expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
   });
 
-  it('disables the controls while a write is pending', () => {
-    view(base, { pending: true });
+  it('disables the switch and Reset while a write is pending, but not the slider', () => {
+    view({ ...base, limitC: 102, limitSource: 'user', limitOverrideC: 102 }, { pending: true });
     expect(screen.getByRole('switch')).toBeDisabled();
-    expect(screen.getByRole('slider')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).toBeDisabled();
+    // Disabling the slider would drop keyboard focus mid-adjustment.
+    expect(screen.getByRole('slider')).not.toBeDisabled();
   });
 
   it('shows an inline error', () => {
@@ -48,17 +55,17 @@ describe('ThermalGuardSettingView', () => {
     expect(screen.getByRole('status').textContent).toContain('cooling.guard.inactive');
   });
 
-  it('shows a hardware limit as a read-only line with no slider', () => {
+  it('shows the slider for a hardware limit too, preset to the detected value', () => {
     view({ ...base, limitC: 100, limitSource: 'hardware', detectedLimitC: 100, detectedLimitSource: 'hardware' });
-    expect(screen.getByText('cooling.guard.limit.hardware')).toBeTruthy();
-    expect(screen.queryByRole('slider')).toBeNull();
+    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('100');
+    expect(screen.getByText(/cooling\.guard\.limit\.detectedHardware/)).toBeTruthy();
   });
 
   it('shows a slider for a spec limit with the detected value, note, and no reset', () => {
     view(base);
     const slider = screen.getByRole('slider') as HTMLInputElement;
-    expect(slider.min).toBe('80');
-    expect(slider.max).toBe('120');
+    expect(slider.min).toBe('85');
+    expect(slider.max).toBe('110');
     expect(slider.value).toBe('95');
     expect(screen.getByText(/cooling\.guard\.limit\.detectedSpec/)).toBeTruthy();
     expect(screen.getByText(/cooling\.guard\.limit\.note/)).toBeTruthy();
@@ -85,5 +92,40 @@ describe('ThermalGuardSettingView', () => {
     expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('102');
     fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.limit.reset' }));
     expect(h.onClearLimit).toHaveBeenCalled();
+  });
+
+  const off = { ...base, state: 'off' as const, limitC: undefined, limitSource: undefined, limitOverrideC: 102 };
+
+  it('reads the override while the guard is off, and dragging back to the detected value still writes', async () => {
+    const h = view(off);
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    expect(slider.value).toBe('102');
+    fireEvent.change(slider, { target: { value: '95' } });
+    fireEvent.pointerUp(slider);
+    await vi.waitFor(() => { expect(h.onSetLimit).toHaveBeenCalledExactlyOnceWith(95); });
+  });
+
+  it('keeps the dragged value until the write answers', async () => {
+    let answer!: () => void;
+    const onSetLimit = vi.fn(() => new Promise<void>(r => { answer = r; }));
+    render(<ThermalGuardSettingView guard={off} pending={false} error={null} onToggle={() => {}} onSetLimit={onSetLimit} onClearLimit={() => {}} />);
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    fireEvent.change(slider, { target: { value: '100' } });
+    fireEvent.pointerUp(slider);
+    await vi.waitFor(() => { expect(onSetLimit).toHaveBeenCalledWith(100); });
+    // The prop still says 102 while the write is in flight.
+    expect(slider.value).toBe('100');
+    answer();
+    await vi.waitFor(() => { expect(slider.value).toBe('102'); });
+  });
+
+  it('sends one write for a burst of keyboard steps', async () => {
+    const h = view(base);
+    const slider = screen.getByRole('slider');
+    for (const v of ['96', '97', '98']) {
+      fireEvent.change(slider, { target: { value: v } });
+      fireEvent.keyUp(slider);
+    }
+    await vi.waitFor(() => { expect(h.onSetLimit).toHaveBeenCalledExactlyOnceWith(98); });
   });
 });
