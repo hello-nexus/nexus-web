@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { usePanelHorizontalSwipe } from '../engine/usePanelHorizontalSwipe';
 import styles from './PanelPager.module.scss';
 
@@ -20,6 +20,7 @@ export function PanelPager<T extends { id: string }>({
   className,
 }: PanelPagerProps<T>) {
   const pagerRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
   const safeIndex = Math.max(0, Math.min(pages.length - 1, activeIndex));
   const { offset, state, pageWidth } = usePanelHorizontalSwipe({
     enabled: swipeEnabled && pages.length > 1,
@@ -38,6 +39,16 @@ export function PanelPager<T extends { id: string }>({
     el.scrollLeft = 0;
   }, [pageWidth, state]);
 
+  // Opening on page N shows it in place instead of sliding in from page 0: the
+  // track transitions only after its first page-aligned position has been
+  // style-resolved (the offsetWidth read), so that position never animates.
+  const [placed, setPlaced] = useState(false);
+  useLayoutEffect(() => {
+    if (placed || pageWidth <= 0 || !trackRef.current) return;
+    void trackRef.current.offsetWidth;
+    setPlaced(true);
+  }, [placed, pageWidth]);
+
   const baseTranslate = pageWidth > 0 ? -safeIndex * pageWidth : 0;
   const translateX = baseTranslate + offset;
   // Critical: do NOT set transform at rest on page 0. Any non-none transform
@@ -54,7 +65,7 @@ export function PanelPager<T extends { id: string }>({
 
   return (
     <div ref={pagerRef} className={`${styles.pager}${className ? ` ${className}` : ''}`}>
-      <div className={styles.track} data-state={state} style={trackStyle}>
+      <div ref={trackRef} className={styles.track} data-state={state} data-placed={placed || undefined} style={trackStyle}>
         {pages.map((page, idx) => (
           <div
             key={page.id}

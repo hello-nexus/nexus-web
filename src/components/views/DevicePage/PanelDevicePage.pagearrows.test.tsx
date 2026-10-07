@@ -59,7 +59,9 @@ vi.mock('../../../panel/theme/panelTheme', () => ({
   useResolvedPanelThemeMode: () => 'dark',
 }));
 vi.mock('../../../panel/editor/PanelWidgetCatalog', () => ({
-  PanelWidgetCatalog: () => <div data-testid="catalog" />,
+  PanelWidgetCatalog: (props: { onAdd: (type: string, size: string) => void }) => (
+    <button data-testid="catalog-add" onClick={() => props.onAdd('cooling', '2x2')}>add</button>
+  ),
 }));
 vi.mock('../../../panel/editor/PanelThemeSettings', () => ({
   PanelThemeSettings: () => <div data-testid="theme" />,
@@ -81,10 +83,18 @@ vi.mock('../../../panel/widgets/registry', () => ({
 vi.mock('./PanelEmbedFrame', () => ({
   PanelEmbedFrame: (props: {
     layout: PanelLayout;
+    blankPageShown?: boolean;
+    onBlankPageLeft?: () => void;
     onWidgetClicked: (w: PanelWidget) => void;
     onLayoutChange: (l: PanelLayout) => void;
   }) => (
-    <div data-testid="embed">
+    <div
+      data-testid="embed"
+      data-active-page={props.layout.activePageId}
+      data-page-count={props.layout.pages.length}
+      data-blank={String(Boolean(props.blankPageShown))}
+    >
+      <button data-testid="blank-left" onClick={() => props.onBlankPageLeft?.()}>left</button>
       {props.layout.pages.flatMap(p => p.widgets).map(w => (
         <button key={w.id} data-testid={`click-${w.id}`} onClick={() => props.onWidgetClicked(w)}>{w.id}</button>
       ))}
@@ -139,6 +149,7 @@ afterEach(() => vi.restoreAllMocks());
 
 const prevDisabled = () => (screen.getByLabelText('devices.panels.prevPage') as HTMLButtonElement).disabled;
 const nextDisabled = () => (screen.getByLabelText('devices.panels.nextPage') as HTMLButtonElement).disabled;
+const embed = () => screen.getByTestId('embed');
 
 async function loadAndGoToLastPage() {
   render(<PanelDevicePage device={DEVICE} />);
@@ -146,8 +157,11 @@ async function loadAndGoToLastPage() {
   // Navigate p1 -> p3 via the desktop next arrow.
   await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
   await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
-  await waitFor(() => expect(nextDisabled()).toBe(true)); // on last page (index 2 of 3)
+  await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
   expect(prevDisabled()).toBe(false);
+  // p3 has content, so next leads on to the preview's blank page.
+  expect(nextDisabled()).toBe(false);
+  expect(embed().dataset.blank).toBe('false');
 }
 
 describe('PanelDevicePage page arrows after deleting the last widget on the last page', () => {
@@ -157,10 +171,10 @@ describe('PanelDevicePage page arrows after deleting the last widget on the last
     await act(async () => { fireEvent.click(screen.getByTestId('click-c')); });
     await waitFor(() => screen.getByLabelText('devices.panels.widgetSettings.remove'));
     await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.widgetSettings.remove')); });
-    // Now 2 pages remain, showing page 2 (index 1): can still go left, not right.
+    // Now 2 pages remain, showing page 2 (index 1): can still go left.
     await waitFor(() => {
+      expect(embed().dataset.activePage).toBe('p2');
       expect(prevDisabled()).toBe(false);
-      expect(nextDisabled()).toBe(true);
     });
   });
 
@@ -168,8 +182,57 @@ describe('PanelDevicePage page arrows after deleting the last widget on the last
     await loadAndGoToLastPage();
     await act(async () => { fireEvent.click(screen.getByTestId('echo-delete-c')); });
     await waitFor(() => {
+      expect(embed().dataset.activePage).toBe('p2');
       expect(prevDisabled()).toBe(false);
-      expect(nextDisabled()).toBe(true);
     });
+  });
+});
+
+describe('PanelDevicePage preview blank page', () => {
+  it('steps onto the blank page after the last page and back', async () => {
+    await loadAndGoToLastPage();
+    await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
+    await waitFor(() => expect(embed().dataset.blank).toBe('true'));
+    expect(nextDisabled()).toBe(true);
+    expect(prevDisabled()).toBe(false);
+    // Never stored: the layout still has three pages on p3.
+    expect(embed().dataset.pageCount).toBe('3');
+    expect(embed().dataset.activePage).toBe('p3');
+
+    await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.prevPage')); });
+    await waitFor(() => expect(embed().dataset.blank).toBe('false'));
+    expect(embed().dataset.activePage).toBe('p3');
+  });
+
+  it('creates the page when a widget is added on the blank page', async () => {
+    await loadAndGoToLastPage();
+    await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
+    await waitFor(() => expect(embed().dataset.blank).toBe('true'));
+
+    await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
+    await waitFor(() => expect(embed().dataset.pageCount).toBe('4'));
+    expect(embed().dataset.blank).toBe('false');
+    const active = embed().dataset.activePage;
+    expect(['p1', 'p2', 'p3']).not.toContain(active);
+  });
+
+  it('follows the preview off the blank page', async () => {
+    await loadAndGoToLastPage();
+    await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
+    await waitFor(() => expect(embed().dataset.blank).toBe('true'));
+    await act(async () => { fireEvent.click(screen.getByTestId('blank-left')); });
+    await waitFor(() => expect(embed().dataset.blank).toBe('false'));
+    expect(nextDisabled()).toBe(false);
+    // The next add lands on the shown page instead of opening a new one.
+    await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
+    await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
+    expect(embed().dataset.pageCount).toBe('3');
+  });
+
+  it('adds on the shown page when not on the blank page', async () => {
+    await loadAndGoToLastPage();
+    await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
+    await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
+    expect(embed().dataset.pageCount).toBe('3');
   });
 });

@@ -34,6 +34,8 @@ interface PanelEmbedFrameProps {
   theme: SimulatorTheme;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
+  // Show the preview-only blank page after the last page.
+  blankPageShown?: boolean;
   // One-shot flash request for a widget the parent rejected (e.g. a resize
   // that can't fit). The nonce re-fires repeats; null until the first reject.
   flashSignal?: { widgetId: string; nonce: number } | null;
@@ -42,6 +44,7 @@ interface PanelEmbedFrameProps {
   onBackgroundClicked: () => void;
   // The widget type the preview's playlist rotation shows (null when none).
   onPlaylistShown?: (type: string | null) => void;
+  onBlankPageLeft?: () => void;
   /** Panel device record id. Forwarded to the simulator iframe so it can render media backgrounds. */
   deviceId?: string;
   // Per-device touch capability, forwarded in 'simulator/init'. The preview's
@@ -212,11 +215,13 @@ export function PanelEmbedFrame({
   theme,
   themeMode,
   selectedWidgetId,
+  blankPageShown = false,
   flashSignal,
   onLayoutChange,
   onWidgetClicked,
   onBackgroundClicked,
   onPlaylistShown,
+  onBlankPageLeft,
   canvasSize,
   canvasDpi,
   canvasIsCssPixels,
@@ -338,13 +343,17 @@ export function PanelEmbedFrame({
           onPlaylistShown?.(data.widgetType);
           break;
         }
+        case 'simulator/blank-page-left': {
+          onBlankPageLeft?.();
+          break;
+        }
         default:
           break;
       }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [layout, onBackgroundClicked, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
+  }, [layout, onBackgroundClicked, onBlankPageLeft, onLayoutChange, onPlaylistShown, onWidgetClicked, surface]);
 
   // Init handshake: send the full state once the child says it's ready.
   useEffect(() => {
@@ -422,6 +431,13 @@ export function PanelEmbedFrame({
     if (!childReady) return;
     post({ type: 'simulator/set-selection', widgetId: selectedWidgetId });
   }, [childReady, selectedWidgetId, post]);
+
+  // Declared after the set-layout effect: an add on the blank page posts the
+  // new layout first, so the preview lands on the new page without stepping back.
+  useEffect(() => {
+    if (!childReady) return;
+    post({ type: 'simulator/set-blank-page', shown: blankPageShown });
+  }, [childReady, blankPageShown, post]);
 
   // Forward a reject flash to the iframe. Keyed on the nonce so it fires once
   // per reject, not on the initial null or on childReady toggling.

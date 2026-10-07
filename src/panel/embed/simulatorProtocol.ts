@@ -95,6 +95,13 @@ export interface SimulatorSetSelectionMessage {
   widgetId: string | null;
 }
 
+// The device page's next arrow steps past the last page onto a blank page that
+// exists only in the preview; it is never in the layout.
+export interface SimulatorSetBlankPageMessage {
+  type: 'simulator/set-blank-page';
+  shown: boolean;
+}
+
 export interface SimulatorFlashWidgetMessage {
   type: 'simulator/flash-widget';
   widgetId: string;
@@ -122,6 +129,12 @@ export interface SimulatorPlaylistShownMessage {
   widgetType: string | null;
 }
 
+// The preview swiped off the blank page, or has none to show (the parent's
+// availability check sees widgets the preview filters out).
+export interface SimulatorBlankPageLeftMessage {
+  type: 'simulator/blank-page-left';
+}
+
 export type SimulatorParentToChild =
   | SimulatorInitMessage
   | SimulatorSetLayoutMessage
@@ -131,6 +144,7 @@ export type SimulatorParentToChild =
   | SimulatorSetDisplayBoundMessage
   | SimulatorSetThemeMessage
   | SimulatorSetSelectionMessage
+  | SimulatorSetBlankPageMessage
   | SimulatorFlashWidgetMessage
   | SimulatorSetDisplayMessage;
 
@@ -139,7 +153,8 @@ export type SimulatorChildToParent =
   | SimulatorLayoutChangedMessage
   | SimulatorWidgetClickedMessage
   | SimulatorBackgroundClickedMessage
-  | SimulatorPlaylistShownMessage;
+  | SimulatorPlaylistShownMessage
+  | SimulatorBlankPageLeftMessage;
 
 export type SimulatorMessage = SimulatorParentToChild | SimulatorChildToParent;
 

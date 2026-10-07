@@ -11,6 +11,7 @@ import { SlotLayoutIcon } from '../../../panel/widgets/monitoring/SlotCountIcons
 import {
   appendWidget,
   patchWidgetById,
+  pruneEmptyPages,
   removeWidgetById,
   swapSingleWidget,
   tryResizeWidget,
@@ -856,6 +857,18 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   });
 
   const singleWidget = isSingleWidgetSurface(surface);
+  // The next arrow steps from a last page with content onto a blank page that
+  // exists only in the preview; adding a widget there creates the page.
+  const [onBlankPage, setOnBlankPage] = useState(false);
+  const lastLayoutPage = layout.pages[layout.pages.length - 1];
+  const blankPageAvailable = !singleWidget
+    && layout.pages.length < MAX_PANEL_PAGES
+    && (lastLayoutPage?.widgets.length ?? 0) > 0;
+  const showingBlankPage = onBlankPage && blankPageAvailable;
+  // Any page change (an arrow, an add, the panel's own swipe) leaves the blank
+  // page, and so does losing it, so it never reappears without the arrow.
+  useEffect(() => { setOnBlankPage(false); }, [layout.activePageId, blankPageAvailable]);
+  const leaveBlankPage = useCallback(() => setOnBlankPage(false), []);
   const currentSingleWidget: PanelWidget | undefined = singleWidget
     ? layout.pages[0]?.widgets[0]
     : undefined;
@@ -917,19 +930,23 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       col: 0,
       row: 0,
     };
+    const blankPage = showingBlankPage ? { id: createUuid(), widgets: [] } : null;
+    const base = blankPage ? { ...layout, pages: [...layout.pages, blankPage] } : layout;
     // Prefer the page the preview is showing; appendWidget falls back to
     // the first page with room.
-    const appended = appendWidget(layout, next, editorCapacity, {
-      preferredPageId: layout.activePageId,
+    const appended = appendWidget(base, next, editorCapacity, {
+      preferredPageId: blankPage?.id ?? layout.activePageId,
     });
     // Jump the preview to the page the widget landed on - appendWidget spills
     // to a later page when the active one is full, so the new tile would
     // otherwise appear off-screen.
     const landingPage = appended.pages.find(p => p.widgets.some(w => w.id === next.id));
-    updateLayout(landingPage ? { ...appended, activePageId: landingPage.id } : appended);
+    const placed = landingPage ? { ...appended, activePageId: landingPage.id } : appended;
+    updateLayout(blankPage ? pruneEmptyPages(placed) : placed);
+    setOnBlankPage(false);
     // appendWidget refuses a full grid; only report an id the layout kept.
     return landingPage ? next.id : undefined;
-  }, [editorCapacity, layout, singleWidget, updateLayout]);
+  }, [editorCapacity, layout, showingBlankPage, singleWidget, updateLayout]);
 
   const handleRemoveWidget = useCallback((widgetId: string) => {
     updateLayout(removeWidgetById(layout, widgetId, editorCapacity));
@@ -1133,7 +1150,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
 
   const pageCount = layout.pages.length;
   const currentPageIndex = Math.max(0, layout.activePageId ? layout.pages.findIndex(p => p.id === layout.activePageId) : 0);
-  const showPageArrows = !singleWidget && pageCount > 1;
+  const showPageArrows = !singleWidget && (pageCount > 1 || blankPageAvailable);
+  const onLastPage = currentPageIndex >= pageCount - 1;
 
   // Decide only after both the layout and the firmware status load, so the gate
   // resolves once instead of flashing block-then-content.
@@ -1828,8 +1846,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 <PanelArrowButton
                   side="prev"
                   className={styles.pageArrow}
-                  disabled={currentPageIndex <= 0}
-                  onClick={() => goToPage(-1)}
+                  disabled={currentPageIndex <= 0 && !showingBlankPage}
+                  onClick={() => (showingBlankPage ? setOnBlankPage(false) : goToPage(-1))}
                   ariaLabel={t('devices.panels.prevPage')}
                 />
               )}
@@ -1837,8 +1855,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 <PanelArrowButton
                   side="next"
                   className={styles.pageArrow}
-                  disabled={currentPageIndex >= pageCount - 1}
-                  onClick={() => goToPage(1)}
+                  disabled={showingBlankPage || (onLastPage && !blankPageAvailable)}
+                  onClick={() => (onLastPage ? setOnBlankPage(true) : goToPage(1))}
                   ariaLabel={t('devices.panels.nextPage')}
                 />
               )}
@@ -1849,6 +1867,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 theme={theme}
                 themeMode={resolvedPanelThemeMode}
                 selectedWidgetId={configuringWidget?.id ?? null}
+                blankPageShown={showingBlankPage}
+                onBlankPageLeft={leaveBlankPage}
                 flashSignal={flashSignal}
                 onLayoutChange={updateLayout}
                 onWidgetClicked={handleConfigureWidget}

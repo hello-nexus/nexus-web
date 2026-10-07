@@ -33,6 +33,7 @@ export interface SimulatorRuntimeState {
   theme: SimulatorTheme | null;
   themeMode: 'dark' | 'light';
   selectedWidgetId: string | null;
+  blankPageShown: boolean;
   // Set when the parent rejects an action (e.g. a resize that can't fit);
   // drives a one-shot flash on the named widget. nonce re-fires repeats.
   flashSignal: { widgetId: string; nonce: number } | null;
@@ -43,6 +44,7 @@ export interface SimulatorRuntimeState {
   onWidgetClicked: (id: string) => void;
   onBackgroundClicked: () => void;
   onPlaylistShown: (widgetType: string | null) => void;
+  onBlankPageLeft: () => void;
 }
 
 const SIMULATOR_FALLBACK_LAYOUT: PanelLayout = {
@@ -77,6 +79,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
   const [theme, setTheme] = useState<SimulatorTheme | null>(null);
   const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+  const [blankPageShown, setBlankPageShown] = useState(false);
   const [brightness, setBrightness] = useState(100);
   const [screenOn, setScreenOn] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
@@ -136,6 +139,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
           setSelectedWidgetId(data.widgetId);
           break;
         }
+        case 'simulator/set-blank-page': {
+          setBlankPageShown(data.shown);
+          break;
+        }
         case 'simulator/flash-widget': {
           setFlashSignal({ widgetId: data.widgetId, nonce: data.nonce });
           break;
@@ -173,6 +180,10 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     postToParent({ type: 'simulator/playlist-shown', widgetType });
   }, []);
 
+  const onBlankPageLeft = useCallback(() => {
+    postToParent({ type: 'simulator/blank-page-left' });
+  }, []);
+
   const layoutState: PanelLayoutState = {
     layout,
     loaded: ready,
@@ -190,6 +201,7 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     theme,
     themeMode,
     selectedWidgetId,
+    blankPageShown,
     flashSignal,
     brightness,
     screenOn,
@@ -198,5 +210,6 @@ export function useSimulatorLayoutState(): SimulatorRuntimeState {
     onWidgetClicked,
     onBackgroundClicked,
     onPlaylistShown,
+    onBlankPageLeft,
   };
 }
