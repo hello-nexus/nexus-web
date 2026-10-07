@@ -12,7 +12,8 @@
  * the C# per-frame values, so they assume ~60 updates/s.
  *
  * User input is ignored while the intro push-in or the demo tour runs, as in
- * the C# (their Update paths return before input processing).
+ * the C# (their Update paths return before input processing), and while a
+ * pack shot node holds the camera.
  */
 
 import * as THREE from 'three';
@@ -74,6 +75,12 @@ export interface CameraControllerOptions {
    * the point in front of it, stays centered.
    */
   elevationDeg?: number;
+  /**
+   * Model node whose animated world pose replaces the rig's, blended by its
+   * scale.x (rest 0 = rig only); input is ignored while it holds the camera.
+   * The node's -Z is the view direction, as for a three camera.
+   */
+  shotNode?: string;
   /** Chain the demo tour after the intro push-in completes. */
   runDemoOnStart?: boolean;
   demoInitialDelay?: number;
@@ -120,6 +127,7 @@ export function cameraOptionsFromFields(fields: Record<string, ScriptFieldValue>
     num(key);
   }
   if (typeof fields.runDemoOnStart === 'boolean') opts.runDemoOnStart = fields.runDemoOnStart;
+  if (typeof fields.shotNode === 'string' && fields.shotNode.length > 0) opts.shotNode = fields.shotNode;
   return opts;
 }
 
@@ -204,6 +212,10 @@ export class CameraController {
   private demoActive = false;
   private demoElapsed = 0;
 
+  private readonly shot: THREE.Object3D | null;
+  private readonly shotPos = new THREE.Vector3();
+  private readonly shotQuat = new THREE.Quaternion();
+
   private readonly euler = new THREE.Euler(0, 0, 0, 'YXZ');
   private readonly dir = new THREE.Vector3();
   private readonly focus = new THREE.Vector3();
@@ -261,6 +273,11 @@ export class CameraController {
     this.demoPitchAmplitude = options.demoPitchAmplitude ?? 0.4;
     this.introPanDuration = options.introPanDuration ?? 4;
     this.introStartExtraDistance = options.introStartExtraDistance ?? 0.45;
+    const shotName = options.shotNode;
+    this.shot = shotName
+      ? target.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(shotName)) ?? target.getObjectByName(shotName) ?? null
+      : null;
+    if (shotName && !this.shot) console.warn(`[CameraController] shot node "${shotName}" not found; shots disabled`);
 
     this.previousTouchAction = element.style.touchAction;
     element.style.touchAction = 'none';
@@ -401,7 +418,11 @@ export class CameraController {
   }
 
   private get scriptedActive(): boolean {
-    return this.introActive || this.demoActive;
+    return this.introActive || this.demoActive || this.shotWeight() > 0;
+  }
+
+  private shotWeight(): number {
+    return this.shot ? clamp01(this.shot.scale.x) : 0;
   }
 
   private updateIntro(): void {
@@ -505,6 +526,23 @@ export class CameraController {
 
     this.camera.position.copy(this.focus).addScaledVector(this.dir, effectiveDistance);
     this.camera.lookAt(this.focus);
+
+    const w = this.shotWeight();
+    if (w > 0 && this.shot) {
+      // Composed from the parent's world pose: the node's own matrix is
+      // singular at the zero scale that carries "no shot".
+      const parent = this.shot.parent;
+      this.shotPos.copy(this.shot.position);
+      if (parent) {
+        parent.updateWorldMatrix(true, false);
+        this.shotPos.applyMatrix4(parent.matrixWorld);
+        parent.getWorldQuaternion(this.shotQuat).multiply(this.shot.quaternion);
+      } else {
+        this.shotQuat.copy(this.shot.quaternion);
+      }
+      this.camera.position.lerp(this.shotPos, w);
+      this.camera.quaternion.slerp(this.shotQuat, w);
+    }
   }
 
   // The angle itself never leaves its limits; travel past one is banked as

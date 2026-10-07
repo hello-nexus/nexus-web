@@ -161,7 +161,10 @@ export class DemoSequencer {
       case 'initialDelay':
       case 'gap':
       case 'loopGap':
-        if (this.clock >= this.phaseUntil) this.fireStep();
+        // Steps start only from the hub: a step that cannot enter its target
+        // ends in forcePlay(hub), which would cut short whatever else holds
+        // the graph (a pack activity entered by trigger).
+        if (this.clock >= this.phaseUntil && this.atHub()) this.fireStep();
         return;
 
       case 'enter': {
@@ -204,6 +207,10 @@ export class DemoSequencer {
     }
   }
 
+  private atHub(): boolean {
+    return this.idleHubState.length === 0 || this.stateMachine.currentState === this.idleHubState;
+  }
+
   private fireStep(): void {
     // Skip malformed rows, as the C# does.
     while (this.stepIndex < this.sequence.length) {
@@ -238,9 +245,10 @@ export class DemoSequencer {
     if (step.kind === 'Bool') this.stateMachine.setBool(step.parameter, false);
 
     // Blend cleanly back to the hub over a controlled duration rather than
-    // relying on the reaction's own short exit transition.
+    // relying on the reaction's own short exit transition. Only from the
+    // step's own state: a state some other trigger entered keeps the graph.
     if (this.returnToIdleBlend > 0 && this.idleHubState.length > 0) {
-      if (this.stateMachine.currentState !== this.idleHubState) {
+      if (this.stateMachine.currentState === step.targetState) {
         this.stateMachine.forcePlay(this.idleHubState, this.returnToIdleBlend);
       }
       this.phase = 'blend';

@@ -23,6 +23,8 @@ export interface AvatarPack {
   environment: GLTF | null;
   /** Equirect sky panorama (files.sky) for scene.background; null = none. */
   sky: THREE.Texture | null;
+  /** scene.screenFade.wipe images; null = none, or they failed to load (plain fade). */
+  wipe: WipeTextures | null;
   materials: MaterialsFile | null;
   springbones: SpringBonesFile | null;
   scene: SceneFile | null;
@@ -34,6 +36,11 @@ export interface AvatarPack {
    * GLB embeds its textures.
    */
   container?: NxPackReader;
+}
+
+export interface WipeTextures {
+  in: THREE.Texture;
+  out: THREE.Texture;
 }
 
 export interface LoadPackOptions {
@@ -122,6 +129,32 @@ async function skyTextureFromBytes(bytes: ArrayBuffer): Promise<THREE.Texture> {
   return tex;
 }
 
+/** Decodes a wipe image as linear data, top row at the top of the screen (flipY in the decode, like the sky). */
+async function maskTextureFromBytes(bytes: ArrayBuffer): Promise<THREE.Texture> {
+  const bitmap = await createImageBitmap(new Blob([bytes]), { imageOrientation: 'flipY' });
+  const tex = new THREE.Texture(bitmap);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.flipY = false;
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Loads scene.screenFade.wipe through `read`; cosmetic, so any failure falls back to the plain fade. */
+async function loadWipe(scene: SceneFile | null, read: (path: string) => Promise<ArrayBuffer>): Promise<WipeTextures | null> {
+  const def = scene?.screenFade?.wipe;
+  if (!def) return null;
+  try {
+    const into = await maskTextureFromBytes(await read(def.in));
+    const out = def.out && def.out !== def.in ? await maskTextureFromBytes(await read(def.out)) : into;
+    return { in: into, out };
+  } catch (err) {
+    console.warn(`[loadPack] screenFade wipe failed to load (${String(err)}); using the plain fade`);
+    return null;
+  }
+}
+
 function versionCheck(index: PackIndex): void {
   if (index.formatVersion !== 1) {
     throw new Error(`unsupported pack formatVersion ${String(index.formatVersion)} (runtime supports 1)`);
@@ -198,7 +231,11 @@ async function loadEncryptedPack(containerUrl: string, options: LoadPackOptions)
     readOptionalJson<ScriptsFile>(index.files.scripts, 'scripts'),
   ]);
 
-  return { baseUrl: containerUrl, index, gltf, environment, sky, materials, springbones, scene, states, scripts, container: reader };
+  const wipe = await loadWipe(scene, async (path) => {
+    if (!reader.hasEntry(path)) throw new Error(`${path} missing from container`);
+    return reader.readBytes(path);
+  });
+  return { baseUrl: containerUrl, index, gltf, environment, sky, wipe, materials, springbones, scene, states, scripts, container: reader };
 }
 
 /**
@@ -257,5 +294,10 @@ export async function loadPack(baseUrl: string, options: LoadPackOptions = {}): 
     fetchOptionalJson<ScriptsFile>(index.files.scripts && `${base}${index.files.scripts}`, 'scripts', doFetch),
   ]);
 
-  return { baseUrl: base, index, gltf, environment, sky, materials, springbones, scene, states, scripts };
+  const wipe = await loadWipe(scene, async (path) => {
+    const res = await doFetch(`${base}${path}`);
+    if (!res.ok) throw new Error(`${path}: HTTP ${res.status}`);
+    return res.arrayBuffer();
+  });
+  return { baseUrl: base, index, gltf, environment, sky, wipe, materials, springbones, scene, states, scripts };
 }

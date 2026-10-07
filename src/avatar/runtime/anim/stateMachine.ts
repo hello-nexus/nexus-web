@@ -4,7 +4,7 @@
  *
  * - Parameters: bool/int/float values plus latching triggers. A trigger stays
  *   set until a taken transition references it in a condition, then it is
- *   consumed (Unity semantics).
+ *   consumed (Unity semantics), or until its `expires` seconds run out.
  * - update(dt) advances normalized time and evaluates the current state's
  *   transitions in order, then anyState transitions (anyState re-entry into
  *   the current state is suppressed). All conditions must pass; hasExitTime
@@ -38,8 +38,9 @@ export class AvatarStateMachine {
   private readonly anyStateTransitions: StateTransition[] = [];
   /** bool (0/1), float, and int parameter values by name. */
   private readonly values = new Map<string, number>();
-  /** Trigger parameters currently latched. */
-  private readonly latchedTriggers = new Set<string>();
+  /** Latched triggers and the seconds each stays latched (Infinity without `expires`). */
+  private readonly latchedTriggers = new Map<string, number>();
+  private readonly triggerExpiry = new Map<string, number>();
   private readonly stateChangeListeners: StateChangeListener[] = [];
 
   private currentStateDef: AnimState | null = null;
@@ -53,6 +54,8 @@ export class AvatarStateMachine {
   private prevNormalized = 0;
   /** First-layer default (hub) state name from states.json; null with no graph. */
   private defaultStateName: string | null = null;
+  /** Source for transition `chance` rolls; replaceable for deterministic tests. */
+  random: () => number = Math.random;
 
   constructor(states: StatesFile | null, mixer: THREE.AnimationMixer, clips: THREE.AnimationClip[]) {
     this.mixer = mixer;
@@ -62,7 +65,10 @@ export class AvatarStateMachine {
     const layer = states?.layers[0];
     if (layer) {
       for (const p of states?.parameters ?? []) {
-        if (p.type === 'trigger') continue;
+        if (p.type === 'trigger') {
+          if (p.expires !== undefined) this.triggerExpiry.set(p.name, p.expires);
+          continue;
+        }
         const def = p.default;
         this.values.set(p.name, typeof def === 'number' ? def : def === true ? 1 : 0);
       }
@@ -130,6 +136,10 @@ export class AvatarStateMachine {
   update(dt: number): void {
     this.prevNormalized = this.normalizedTime;
     this.stateSeconds += dt;
+    for (const [name, left] of this.latchedTriggers) {
+      if (left - dt <= 0) this.latchedTriggers.delete(name);
+      else this.latchedTriggers.set(name, left - dt);
+    }
     this.evaluate();
   }
 
@@ -148,9 +158,9 @@ export class AvatarStateMachine {
     this.evaluate();
   }
 
-  /** Latches a trigger; it resets when a taken transition consumes it. */
+  /** Latches a trigger; it resets when a taken transition consumes it or it expires. */
   trigger(name: string): void {
-    this.latchedTriggers.add(name);
+    this.latchedTriggers.set(name, this.triggerExpiry.get(name) ?? Infinity);
     this.evaluate();
   }
 
@@ -197,6 +207,8 @@ export class AvatarStateMachine {
       if (fromAnyState && t.to === this.currentStateDef?.name) continue;
       if (t.hasExitTime && !this.exitTimeReached(t.exitTime)) continue;
       if (!this.conditionsPass(t.conditions)) continue;
+      // Rolled only once the transition is otherwise ready; a miss falls through to the next.
+      if (t.chance !== undefined && t.chance < 1 && this.random() >= t.chance) continue;
       const target = this.stateByName.get(t.to);
       if (!target) {
         console.warn(`[stateMachine] transition target "${t.to}" not found`);
@@ -279,6 +291,9 @@ export class AvatarStateMachine {
     } else {
       previous?.stop();
       action.play();
+      // A cut applies the new pose now: stopping restored every binding to
+      // its rest value, which would otherwise render for one frame.
+      this.mixer.update(0);
     }
     this.currentAction = action;
     this.generation++;

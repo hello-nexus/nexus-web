@@ -9,7 +9,7 @@
  */
 
 export type Vec3 = [number, number, number];
-export type FxKind = 'heart' | 'sparkle' | 'note' | 'z' | 'petal';
+export type FxKind = 'heart' | 'sparkle' | 'note' | 'z' | 'petal' | 'steam' | 'sweat' | 'heat' | 'breeze';
 
 interface EventBase {
   /** Clip time (seconds) the event fires at. */

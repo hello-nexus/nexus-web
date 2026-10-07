@@ -229,6 +229,28 @@ export interface SceneFile {
   /** World TRS of the environment (stage) scene instance; pairs with files.environment. */
   environment?: SceneCharacterRoot;
   outline: SceneOutline;
+  screenFade?: SceneScreenFade;
+}
+
+/** Full-frame color wash whose opacity is the named model node's animated scale.x (rest 0). */
+export interface SceneScreenFade {
+  node: string;
+  /** RGBA, read like every pack color (packColor); default opaque black. */
+  color?: Color4;
+  /**
+   * Shapes the fade with grayscale pack images (pack-relative paths): a pixel
+   * is covered once the fade passes its value, read from `in` while the fade
+   * rises and from `out` (default `in`) while it falls. Without it the whole
+   * frame fades by opacity.
+   */
+  wipe?: SceneWipe;
+}
+
+export interface SceneWipe {
+  in: string;
+  out?: string;
+  /** Edge width in fade units (default WIPE_SOFTNESS in runtime/AvatarRuntime.ts). */
+  softness?: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -240,6 +262,8 @@ export interface AnimParameter {
   name: string;
   type: AnimParameterType;
   default?: boolean | number;
+  /** Trigger only, not a Unity field: seconds a latched trigger waits for a transition before it drops. */
+  expires?: number;
 }
 
 /** Unity AnimatorConditionMode, lowercased. */
@@ -257,6 +281,8 @@ export interface StateTransition {
   exitTime: number;
   duration: number;
   conditions: TransitionCondition[];
+  /** 0..1 odds the transition is taken when it is otherwise ready; absent = always. */
+  chance?: number;
 }
 
 export interface AnimState {
