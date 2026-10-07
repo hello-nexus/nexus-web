@@ -7,6 +7,7 @@ import { useTranslation } from '../../lib/i18n';
 import { Button } from '../common/Button/Button';
 import { Card } from '../common/Card/Card';
 import { SettingToggle } from '../common/SettingRow/SettingRow';
+import { SettingsSection } from '../common/SettingsSection/SettingsSection';
 import styles from './ToolsView.module.scss';
 
 // Display order of the service's categories; one it does not list follows, under its raw name.
@@ -48,8 +49,11 @@ export function DevSimEventsView({ catalog, activeIds, busy, error, onToggle, on
     <Card title={t('tools.simEvents.title')}>
       <span className={styles.dim}>{t('tools.simEvents.description')}</span>
       {groups.map(({ category, entries }) => (
-        <section key={category} aria-label={localized(`tools.simEvents.category.${category}`, category)}>
-          <h4>{localized(`tools.simEvents.category.${category}`, category)}</h4>
+        <SettingsSection
+          key={category}
+          title={localized(`tools.simEvents.category.${category}`, category)}
+          ariaLabel={localized(`tools.simEvents.category.${category}`, category)}
+        >
           {entries.map(entry => (
             <SettingToggle
               key={entry.id}
@@ -59,7 +63,7 @@ export function DevSimEventsView({ catalog, activeIds, busy, error, onToggle, on
               onChange={on => onToggle(entry.id, on)}
             />
           ))}
-        </section>
+        </SettingsSection>
       ))}
       <div className={styles.actionsRow}>
         <Button tone="danger" size="sm" disabled={busy || activeIds.size === 0} onClick={onClear}>
@@ -78,12 +82,6 @@ export function DevSimEventsCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    const next = await fetchDevSimEvents();
-    if (next) setEvents(next);
-    return next !== null;
-  }, []);
-
   useEffect(() => {
     let cancelled = false;
     void fetchDevSimEvents().then(next => {
@@ -96,18 +94,21 @@ export function DevSimEventsCard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // One request at a time, then a refetch so the switches show what the service holds.
-  const run = useCallback(async (send: () => Promise<{ error?: boolean } | null>) => {
+  // One request at a time; the answer is the new state, so the switches follow it directly.
+  const run = useCallback(async (send: () => Promise<DevSimEvents | null>) => {
     setBusy(true);
     try {
       const res = await send();
-      if (!res || res.error) setError(t('tools.simEvents.error'));
-      else setError(null);
-      await refresh();
+      if (res) {
+        setEvents(res);
+        setError(null);
+      } else {
+        setError(t('tools.simEvents.error'));
+      }
     } finally {
       setBusy(false);
     }
-  }, [refresh, t]);
+  }, [t]);
 
   const activeIds = useMemo(() => new Set((events?.active ?? []).map(a => a.id)), [events]);
 

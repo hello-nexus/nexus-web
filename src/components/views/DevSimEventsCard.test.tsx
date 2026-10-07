@@ -32,9 +32,9 @@ describe('DevSimEventsCard', () => {
     vi.clearAllMocks();
     translations.map = {};
     api.fetchDevSimEvents.mockResolvedValue(events());
-    api.startDevSim.mockResolvedValue({ error: false });
-    api.stopDevSim.mockResolvedValue({ error: false });
-    api.clearDevSims.mockResolvedValue({ error: false });
+    api.startDevSim.mockImplementation(async (id: string) => events([id]));
+    api.stopDevSim.mockImplementation(async () => events());
+    api.clearDevSims.mockImplementation(async () => events());
   });
 
   it('lists the catalog grouped by category, an unknown category after the known ones', async () => {
@@ -62,12 +62,13 @@ describe('DevSimEventsCard', () => {
     expect(screen.getByRole('switch', { name: 'Guard limit trip' }).getAttribute('aria-checked')).toBe('false');
   });
 
-  it('turning a switch on starts the sim and refreshes', async () => {
+  it('turning a switch on starts the sim and the switches follow the response', async () => {
     render(<DevSimEventsCard />);
-    api.fetchDevSimEvents.mockResolvedValue(events(['guard.limitTrip']));
     fireEvent.click(await screen.findByRole('switch', { name: 'Guard limit trip' }));
     await waitFor(() => expect(api.startDevSim).toHaveBeenCalledWith('guard.limitTrip'));
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Guard limit trip' }).getAttribute('aria-checked')).toBe('true'));
+    // The response is the state: no second fetch follows the change.
+    expect(api.fetchDevSimEvents).toHaveBeenCalledTimes(1);
   });
 
   it('turning a switch off stops the sim', async () => {
@@ -75,6 +76,7 @@ describe('DevSimEventsCard', () => {
     render(<DevSimEventsCard />);
     fireEvent.click(await screen.findByRole('switch', { name: 'Guard ended trip' }));
     await waitFor(() => expect(api.stopDevSim).toHaveBeenCalledWith('guard.endedTrip'));
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Guard ended trip' }).getAttribute('aria-checked')).toBe('false'));
   });
 
   it('Clear all stops everything, and is disabled with nothing active', async () => {
@@ -86,7 +88,6 @@ describe('DevSimEventsCard', () => {
     api.fetchDevSimEvents.mockResolvedValue(events(['guard.limitTrip', 'health.fanStall']));
     render(<DevSimEventsCard />);
     await screen.findByText('Guard limit trip');
-    api.fetchDevSimEvents.mockResolvedValue(events());
     fireEvent.click(screen.getByRole('button', { name: 'tools.simEvents.clearAll' }));
     await waitFor(() => expect(api.clearDevSims).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Fan stall' }).getAttribute('aria-checked')).toBe('false'));
@@ -99,11 +100,12 @@ describe('DevSimEventsCard', () => {
     expect((await screen.findByRole('alert')).textContent).toBe('tools.simEvents.error');
   });
 
-  it('an error envelope also shows the error, and a later success clears it', async () => {
-    api.startDevSim.mockResolvedValueOnce({ error: true, msg: 'nope' });
+  it('a failing request keeps the switches as they were and a later success clears the error', async () => {
+    api.startDevSim.mockResolvedValueOnce(null);
     render(<DevSimEventsCard />);
     fireEvent.click(await screen.findByRole('switch', { name: 'Guard limit trip' }));
     await screen.findByRole('alert');
+    expect(screen.getByRole('switch', { name: 'Guard limit trip' }).getAttribute('aria-checked')).toBe('false');
     fireEvent.click(screen.getByRole('switch', { name: 'Guard limit trip' }));
     await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
@@ -120,7 +122,7 @@ describe('DevSimEventsCard', () => {
     render(<DevSimEventsCard />);
     fireEvent.click(await screen.findByRole('switch', { name: 'Guard limit trip' }));
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Fan stall' })).toBeDisabled());
-    await act(async () => { finish({ error: false }); });
+    await act(async () => { finish(events(['guard.limitTrip'])); });
     await waitFor(() => expect(screen.getByRole('switch', { name: 'Fan stall' })).not.toBeDisabled());
   });
 });

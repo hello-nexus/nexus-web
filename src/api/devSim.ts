@@ -23,17 +23,13 @@ export interface DevSimEvents {
   active: DevSimActiveEntry[];
 }
 
-interface DevSimAck {
-  error?: boolean;
-  msg?: string;
-}
-
 export const fetchDevSimEvents = () => fetchService<DevSimEvents>('/dev/sim/events');
 
+/** Start, stop and clear answer with the full state; null covers a 404 and an unreachable service. */
 export const startDevSim = (id: string) =>
-  postService<DevSimAck>(`/dev/sim/events/${encodeURIComponent(id)}`, {});
+  postService<DevSimEvents>(`/dev/sim/events/${encodeURIComponent(id)}`, {});
 
 export const stopDevSim = (id: string) =>
-  deleteService<DevSimAck>(`/dev/sim/events/${encodeURIComponent(id)}`);
+  deleteService<DevSimEvents>(`/dev/sim/events/${encodeURIComponent(id)}`);
 
-export const clearDevSims = () => postService<DevSimAck>('/dev/sim/clear', {});
+export const clearDevSims = () => postService<DevSimEvents>('/dev/sim/clear', {});
