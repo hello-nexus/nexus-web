@@ -73,6 +73,15 @@
   align-self: center;
 }
 
+// Square and round cooler glass: capped near the Q-series preview's area, and
+// below native glass size, instead of filling the whole pane.
+.previewPane[data-surface='kraken'],
+.previewPane[data-surface='lcd-round'],
+.previewPane[data-surface='lcd-square'] {
+  max-height: 420px;
+  align-self: center;
+}
+
 // Landscape strip panels (Y70 / Xeneon Edge): stack instead of side-by-side.
 // The DOM is already leftPane then previewPane, so column order docks the
 // canvas at the bottom without reordering.
