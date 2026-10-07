@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, X } from 'lucide-react';
 import { Button } from '../../components/common/Button/Button';
 import { armSentry, disarmSentry, fetchSentry, registerPhonePush, type SentryState } from '../../api/sentry';
 import { useTranslation } from '../../lib/i18n';
 import { useNativePush } from '../device/panelNativeBridge';
-import { buildPushRegistration, sentryCardVisible } from './sentryRegistration';
+import { buildPushRegistration } from './sentryRegistration';
 import styles from './PanelSentry.module.scss';
 
 const POLL_MS = 5000;
@@ -14,11 +14,14 @@ interface PanelSentryProps {
   enabled: boolean;
   resolvedThemeMode: 'dark' | 'light';
   themeStyle: CSSProperties;
+  // Bumped by the tray's Sentry row; each change opens the card even if it was dismissed.
+  openRequest?: number;
+  onSupportedChange?: (supported: boolean) => void;
 }
 
 // Phone panel: registers this phone's push target on every load and shows the
 // Sentry card while the PC is locked.
-export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSentryProps) {
+export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openRequest = 0, onSupportedChange }: PanelSentryProps) {
   const { t } = useTranslation();
   const push = useNativePush(enabled);
   const [state, setState] = useState<SentryState | null>(null);
@@ -84,10 +87,39 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
     };
   }, [enabled, syncPush]);
 
-  const visible = enabled && sentryCardVisible(state);
+  // Dismissal lasts until the PC's next lock transition; `opened` is the tray row forcing the card up.
+  const [dismissed, setDismissed] = useState(false);
+  const [opened, setOpened] = useState(false);
+  const lockedRef = useRef<boolean | null>(null);
+  const openRequestRef = useRef(openRequest);
+  const locked = state ? state.locked : null;
+  useEffect(() => {
+    if (locked === null) return;
+    if (locked && lockedRef.current === false) setDismissed(false);
+    lockedRef.current = locked;
+  }, [locked]);
+  useEffect(() => {
+    if (openRequestRef.current === openRequest) return;
+    openRequestRef.current = openRequest;
+    setDismissed(false);
+    setOpened(true);
+  }, [openRequest]);
+
+  const supported = state?.supported ?? false;
+  useEffect(() => {
+    onSupportedChange?.(enabled && supported);
+  }, [enabled, supported, onSupportedChange]);
+
+  const visible = enabled && state !== null && state.supported
+    && (opened || (!dismissed && (state.locked || state.armed)));
   useEffect(() => {
     if (!visible) setError(null);
   }, [visible]);
+
+  const dismiss = () => {
+    setDismissed(true);
+    setOpened(false);
+  };
 
   const run = useCallback(async (action: () => Promise<SentryState | null>) => {
     if (busyRef.current) return;
@@ -104,7 +136,11 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
     }
   }, []);
 
+  const alerts = !push.available ? null : push.status?.permission ?? 'prompt';
+
   const arm = () => run(async () => {
+    // Fire-and-forget: arming does not depend on the permission result.
+    if (alerts === 'prompt') push.requestPermission();
     const result = await armSentry(false);
     if (result.ok) return result.state;
     if (result.reason === 'not_locked') {
@@ -115,9 +151,8 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
     return null;
   });
 
-  if (!enabled || !sentryCardVisible(state)) return null;
+  if (!visible || !state) return null;
 
-  const alerts = !push.available ? null : push.status?.permission ?? 'prompt';
   const errorText = error === 'notLocked' ? t('sentry.card.notLocked')
     : error === 'failed' ? t('sentry.card.failed')
     : null;
@@ -132,13 +167,21 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
         <div className={styles.header}>
           <span className={styles.icon} aria-hidden="true"><ShieldAlert size={18} /></span>
           <h2 id="panel-sentry-title" className={styles.title}>{t('sentry.card.title')}</h2>
+          <Button
+            className={styles.close}
+            type="button"
+            tone="neutral"
+            icon={<X />}
+            aria-label={t('app.window.close')}
+            title={t('app.window.close')}
+            onClick={dismiss}
+          />
         </div>
         <p className={styles.message}>
-          {state.armed ? t('sentry.card.armed') : t('sentry.card.locked')}
+          {state.armed ? t('sentry.card.armed')
+            : state.locked ? t('sentry.card.locked')
+            : t('sentry.card.notLocked')}
         </p>
-        {alerts === 'prompt' && (
-          <p className={styles.message}>{t('sentry.card.alertsHint')}</p>
-        )}
         {alerts === 'denied' && (
           <p className={styles.message}>{t('sentry.card.alertsDenied')}</p>
         )}
@@ -147,11 +190,6 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
         )}
         {errorText && <p className={styles.error} role="alert">{errorText}</p>}
         <div className={styles.actions}>
-          {alerts === 'prompt' && (
-            <Button type="button" tone="neutral" onClick={push.requestPermission}>
-              {t('sentry.card.enableAlerts')}
-            </Button>
-          )}
           {state.armed ? (
             <Button
               type="button"
@@ -162,7 +200,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
               {t('sentry.card.disarm')}
             </Button>
           ) : (
-            <Button type="button" tone="accent" loading={busy} onClick={arm}>
+            <Button type="button" tone="accent" loading={busy} disabled={!state.locked} onClick={arm}>
               {t('sentry.card.arm')}
             </Button>
           )}

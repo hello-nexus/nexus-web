@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PanelActionsTray } from './PanelActionsTray';
@@ -21,6 +21,42 @@ function Harness({ surface = 'phone' }: { surface?: PanelSurface }) {
     </div>
   );
 }
+
+describe('PanelActionsTray Sentry row', () => {
+  function renderTray(onSentry: (() => void) | undefined, onClose = vi.fn()) {
+    render(
+      <PanelActionsTray
+        open
+        onOpen={vi.fn()}
+        onClose={onClose}
+        onAddWidget={vi.fn()}
+        pairAvailable={false}
+        surfaceRef={{ current: null }}
+        surface="phone"
+        machineName="Desk"
+        remotePaired
+        onSentry={onSentry}
+      />,
+    );
+    return onClose;
+  }
+
+  it('hides the row when Sentry is unsupported', () => {
+    renderTray(undefined);
+    expect(screen.queryByRole('button', { name: 'sentry.card.title' })).toBeNull();
+  });
+
+  it('opens Sentry and closes the tray, above the connected-to row', () => {
+    const onSentry = vi.fn();
+    const onClose = renderTray(onSentry);
+    const row = screen.getByRole('button', { name: 'sentry.card.title' });
+    const connected = screen.getByText('panel.connectedTo');
+    expect(row.compareDocumentPosition(connected) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(row);
+    expect(onSentry).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+});
 
 describe('PanelActionsTray swipe-to-open', () => {
   beforeEach(() => resetGestureAxis());
