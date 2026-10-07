@@ -505,7 +505,7 @@ export const FanCard = memo(function FanCard({
           {/* Rename lives on the context menu; a click on the name belongs to the card. */}
           <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} maxLength={DEVICE_NAME_MAX_LENGTH} />
         </span>
-        {hazard && <WarningIcon message={hazard} className={styles.fanHazard} />}
+        {hazard && <WarningIcon message={hazard} />}
         {channel.rpmUnavailable ? (
           <HoverTooltip body={t('cooling.fan.rpmUnavailableHint')}>
             <span className={styles.fanRpmReadout}>

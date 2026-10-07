@@ -38,7 +38,7 @@ export function WarningIcon({ message, tone = 'warning', className, bare = false
       data-no-dnd
       className={`${styles.trigger} ${className ?? ''}`}
       onClick={e => e.stopPropagation()}
-      onKeyDown={e => e.stopPropagation()}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); }}
     >
       <InfoTooltip message={message} ariaLabel={message} side="top" tone={tone} icon={<AlertTriangle size={14} aria-hidden />} />
     </span>

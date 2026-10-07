@@ -23,6 +23,34 @@ describe('WarningIcon', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 
+  it('a real tap sequence opens it once and a second tap closes it', () => {
+    render(<WarningIcon message="Fan can stop" />);
+    const btn = screen.getByRole('button', { name: 'Fan can stop' });
+    for (const expectOpen of [true, false]) {
+      fireEvent.pointerDown(btn, { pointerType: 'touch' });
+      fireEvent.mouseDown(btn);
+      if (expectOpen) fireEvent.focus(btn);
+      fireEvent.mouseUp(btn);
+      fireEvent.click(btn);
+      expect(!!screen.queryByRole('tooltip')).toBe(expectOpen);
+    }
+  });
+
+  it('Escape on the focused triangle closes the tooltip', () => {
+    render(<WarningIcon message="Fan can stop" />);
+    const btn = screen.getByRole('button', { name: 'Fan can stop' });
+    fireEvent.focus(btn);
+    fireEvent.keyDown(btn, { key: 'Escape' });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('keeps Enter from reaching a keyboard-activated ancestor', () => {
+    const onKey = vi.fn();
+    render(<div onKeyDown={onKey}><WarningIcon message="m" /></div>);
+    fireEvent.keyDown(screen.getByRole('button'), { key: 'Enter' });
+    expect(onKey).not.toHaveBeenCalled();
+  });
+
   it('keeps a click from reaching a clickable ancestor', () => {
     const onCard = vi.fn();
     render(<div onClick={onCard}><WarningIcon message="Fan can stop" /></div>);

@@ -45,6 +45,8 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
   // coordinator only sees a close for a tooltip that really opened (an
   // incidental cancelled hover must not re-arm the scan window).
   const openedRef = useRef(false);
+  // A pointer press focuses the button before its click arrives; that focus must not open the tooltip, or the click toggle would close it again.
+  const pointerPressRef = useRef(false);
   const tooltipId = useId();
 
   const cancelPendingClose = () => {
@@ -174,7 +176,9 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
         className={`${styles.trigger}${tone ? ` ${styles[tone]}` : ''}`}
         aria-label={label}
         aria-describedby={tooltipId}
+        onPointerDown={() => { pointerPressRef.current = true; }}
         onClick={() => {
+          pointerPressRef.current = false;
           cancelPendingOpen();
           const next = !open;
           if (next) { openedRef.current = true; notifyTooltipOpen(); }
@@ -186,9 +190,10 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
         onFocus={() => {
           // Focus a closing modal hands back is not the user arriving here.
           if (isRestoringModalFocus()) return;
+          if (pointerPressRef.current) return;
           cancelPendingClose(); cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen();
         }}
-        onBlur={() => scheduleClose()}>
+        onBlur={() => { pointerPressRef.current = false; scheduleClose(); }}>
         {icon ?? <Info size={14} strokeWidth={1.8} aria-hidden />}
       </button>
       {open && createPortal(
