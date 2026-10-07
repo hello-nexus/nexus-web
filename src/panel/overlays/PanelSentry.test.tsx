@@ -166,6 +166,23 @@ describe('PanelSentry', () => {
     }
   });
 
+  it('keeps retrying after a 403 (Remote off) until a PUT succeeds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(registerPhonePush).mockResolvedValueOnce(403).mockResolvedValue(200);
+      installBridge({ platform: 'ios', permission: 'granted', token: 'ab12', environment: 'production' });
+      render(<PanelSentry {...props} />);
+      await screen.findByText('sentry.card.arm');
+      expect(registerPhonePush).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('sentry.card.alertsOn')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      await screen.findByText('sentry.card.alertsOn');
+      expect(registerPhonePush).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('skips polling while the document is hidden', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);

@@ -8,6 +8,7 @@ import { buildPushRegistration, sentryCardVisible } from './sentryRegistration';
 import styles from './PanelSentry.module.scss';
 
 const POLL_MS = 5000;
+const FINAL_PUSH_STATUSES = new Set([400, 404, 422]);
 
 interface PanelSentryProps {
   enabled: boolean;
@@ -40,10 +41,12 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
     try {
       const status = await registerPhonePush(JSON.parse(json)).catch(() => 0);
       if (registrationRef.current !== json) return;
-      // Transport failures and 5xx retry on the next tick; a 4xx is final until the registration changes.
-      if (status === 0 || status >= 500) return;
+      // Only a rejected payload or a gone session is final until the registration changes; anything else
+      // (transport, 401/403 while Remote is off, 429, 5xx) retries on the next tick.
+      const ok = status >= 200 && status < 300;
+      if (!ok && !FINAL_PUSH_STATUSES.has(status)) return;
       sentRef.current = json;
-      if (status >= 200 && status < 300) setRegistered(true);
+      if (ok) setRegistered(true);
     } finally {
       pushingRef.current = false;
     }
