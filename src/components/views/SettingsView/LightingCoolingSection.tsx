@@ -6,6 +6,7 @@ import { Select } from '../../common/Select/Select';
 import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { BrightnessScheduleModal } from './BrightnessScheduleModal';
+import { ThermalGuardSetting } from './ThermalGuardSetting';
 import {
   fetchLockBlackout, fetchRenderGpu, fetchSleepBlackout, restartService, setLockBlackout,
   setRenderGpu, setSleepBlackout,
@@ -251,6 +252,7 @@ export function LightingCoolingSection({ serviceOnline, platform }: LightingCool
           numberFormat={settings.numberFormat}
           onChange={id => update({ preferredGpuTempSensorId: id })}
         />
+        <ThermalGuardSetting serviceOnline={serviceOnline} />
       </SettingsSection>
       <ConfirmModal
         open={restartOpen}

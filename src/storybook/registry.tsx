@@ -62,6 +62,10 @@ import { ModeMenu } from '../components/common/ModeMenu/ModeMenu';
 import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
 import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { FirmwareRecoveryBanner } from '../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
+import { ThermalGuardPanel } from '../panel/widgets/cooling/page/ThermalGuardPanel';
+import { GuardTripNoticeView } from '../components/views/DiagnosticsView/GuardTripNotice';
+import { ThermalGuardSettingView } from '../components/views/SettingsView/ThermalGuardSetting';
+import type { GuardResponse } from '../api/cooling';
 import { FlashProgress } from '../components/common/FlashProgress/FlashProgress';
 import type { FirmwareStatusItem } from '../hooks/useFirmwareStatus';
 import { Button } from '../components/common/Button/Button';
@@ -1414,6 +1418,72 @@ function PreviewFirmwareRecoveryBanner() {
   );
 }
 
+const PREVIEW_GUARD: GuardResponse = {
+  state: 'normal', guardTempC: 58, limitC: 95, limitSource: 'spec', sinceUtcMs: null, lastTrip: null,
+  heal: { undoAvailable: false, healedAtUtcMs: null, channels: [] },
+};
+
+function PreviewThermalGuardPanel() {
+  const trip = (reason: 'limit' | 'cooling-loss', escalated: boolean) => ({ atUtcMs: 1, peakC: 93, reason, escalated });
+  const states: GuardResponse[] = [
+    { ...PREVIEW_GUARD, state: 'floor', guardTempC: 84 },
+    { ...PREVIEW_GUARD, state: 'tripped', guardTempC: 93, lastTrip: trip('limit', false) },
+    { ...PREVIEW_GUARD, state: 'escalated', guardTempC: 94, lastTrip: trip('cooling-loss', true) },
+    { ...PREVIEW_GUARD, watchdogLatched: true },
+    {
+      ...PREVIEW_GUARD,
+      heal: { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-1', name: 'Fan #1', hazard: 'manual-low' }] },
+    },
+    PREVIEW_GUARD,
+    { ...PREVIEW_GUARD, state: 'off' },
+  ];
+  return (
+    <div className={styles.previewStack} style={{ width: 560 }}>
+      {states.map((guard, i) => <ThermalGuardPanel key={i} guard={guard} onUndo={() => {}} onKeep={() => {}} />)}
+    </div>
+  );
+}
+
+const PREVIEW_TRIP_AT = 1_760_000_000_000;
+
+function PreviewGuardTripNotice() {
+  const trip = (over: Partial<NonNullable<GuardResponse['lastTrip']>>) => ({
+    ...PREVIEW_GUARD,
+    lastTrip: { atUtcMs: PREVIEW_TRIP_AT, peakC: 93, reason: 'limit' as const, escalated: false, endedAtUtcMs: PREVIEW_TRIP_AT + 540_000, acknowledged: false, ...over },
+  });
+  return (
+    <div className={styles.previewStack} style={{ width: 560 }}>
+      <GuardTripNoticeView guard={trip({})} nowMs={PREVIEW_TRIP_AT + 600_000} error={null} onDismiss={() => {}} />
+      <GuardTripNoticeView guard={trip({ reason: 'cooling-loss' })} nowMs={PREVIEW_TRIP_AT + 600_000} error={null} onDismiss={() => {}} />
+      <GuardTripNoticeView guard={trip({ endedAtUtcMs: null })} nowMs={PREVIEW_TRIP_AT + 600_000} error={null} onDismiss={() => {}} onOpenCooling={() => {}} />
+      <GuardTripNoticeView guard={trip({})} nowMs={PREVIEW_TRIP_AT + 600_000} error="Couldn't dismiss the notice." onDismiss={() => {}} />
+    </div>
+  );
+}
+
+function PreviewThermalGuardSetting() {
+  const base = { ...PREVIEW_GUARD, detectedLimitC: 95, detectedLimitSource: 'spec' as const, limitOverrideC: null };
+  const states: Array<{ guard: GuardResponse; error?: string }> = [
+    { guard: { ...base, limitC: 100, limitSource: 'hardware', detectedLimitC: 100, detectedLimitSource: 'hardware' } },
+    { guard: base },
+    { guard: { ...base, limitC: 102, limitSource: 'user', limitOverrideC: 102 } },
+    { guard: { ...base, limitC: 89, detectedLimitC: 89 } },
+    { guard: { ...base, detectedLimitSource: 'default' }, error: "Couldn't change the CPU temperature limit." },
+    { guard: { ...base, state: 'inactive', guardTempC: null } },
+    { guard: { ...base, state: 'off', enabled: false, limitC: undefined, limitSource: undefined, limitOverrideC: 102 } },
+  ];
+  return (
+    <div className={styles.previewStack} style={{ width: 560 }}>
+      {states.map(({ guard, error }, i) => (
+        <ThermalGuardSettingView
+          key={i} guard={guard} pending={false} error={error ?? null}
+          onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}}
+        />
+      ))}
+    </div>
+  );
+}
+
 function PreviewFlashProgress() {
   return (
     <FlashProgress status={{ active: true, deviceType: 'q60', version: '1.0.0', phase: 'downloading', percent: 42, message: 'Downloading', success: false, error: '' }} />
@@ -2553,6 +2623,24 @@ export const REGISTRY: StorybookEntry[] = [
     filePath: 'src/components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner.tsx',
     description: 'Warning shown on the Cooling and Firmware Updates pages when a device is stuck in update mode after an interrupted firmware update. Carries the Recover action, a checking line while the service identifies the device, flash progress while recovering, and a contact-support line when the device cannot be recovered in-app. Pairs with useFirmwareRecoveryFlow / useRecoverConfirm for the confirm dialog.',
     Preview: PreviewFirmwareRecoveryBanner,
+  },
+  {
+    name: 'ThermalGuardPanel', category: 'cards',
+    filePath: 'src/panel/widgets/cooling/page/ThermalGuardPanel.tsx',
+    description: 'Cooling page block for the CPU thermal guard: a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or handed them back to the BIOS (escalated), a banner when the engine watchdog latched the fans to the BIOS, and the post-heal notice with Undo and Keep (Keep is the primary action). The switch lives in Settings. With the guard off the block shows nothing (last row).',
+    Preview: PreviewThermalGuardPanel,
+  },
+  {
+    name: 'GuardTripNotice', category: 'cards',
+    filePath: 'src/components/views/DiagnosticsView/GuardTripNotice.tsx',
+    description: 'Notice at the top of the Diagnostics Cooling tab for a thermal guard trip nobody has dismissed. An ended trip shows when it happened, the peak and the cause with a Dismiss button; a trip still in progress shows an Open Cooling link and no Dismiss; a failed dismissal shows an inline error. Gone once acknowledged.',
+    Preview: PreviewGuardTripNotice,
+  },
+  {
+    name: 'ThermalGuardSetting', category: 'cards',
+    filePath: 'src/components/views/SettingsView/ThermalGuardSetting.tsx',
+    description: 'Settings > Cooling rows for the CPU thermal guard: the on/off switch and the temperature limit. The limit is always a stacked slider (90 to 110, widened to include a lower detected value such as 89; pointer release commits at once, keyboard steps after a short wait) preset to the detected value, with the Slider marker at the CPU throttle point labelled by an info tooltip, the detected value and its source (read from the CPU, CPU spec or default), a Reset to detected action while an override is set, and a note about shutdown above about 105 degrees. Shown for hardware, spec, override set, the 89 degree bar, error, inactive and off (the limit row greys out, keeping the detected line and marker). The hazard-warnings switch beneath is independent of the guard switch and stays enabled when the guard is off.',
+    Preview: PreviewThermalGuardSetting,
   },
   {
     name: 'FlashProgress', category: 'cards',

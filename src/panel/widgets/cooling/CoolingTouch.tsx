@@ -3,6 +3,8 @@ import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { CoolingImmersiveStatus } from './touch/CoolingImmersiveStatus';
 import { CoolingImmersiveEditor } from './touch/CoolingImmersiveEditor';
 import { useCoolingImmersive } from './touch/useCoolingImmersive';
+import { GuardError, HealNotice } from './page/ThermalGuardPanel';
+import styles from './CoolingTouch.module.scss';
 import type { WidgetProps } from '../types';
 
 /**
@@ -24,10 +26,25 @@ export function CoolingTouch({ immersiveGrid }: WidgetProps) {
   ];
 
   return (
-    <ImmersiveLayout
-      cells={cells}
-      gridColumns={immersiveGrid?.columns ?? 4}
-      gridRows={immersiveGrid?.rows ?? 8}
-    />
+    <>
+      <ImmersiveLayout
+        cells={cells}
+        gridColumns={immersiveGrid?.columns ?? 4}
+        gridRows={immersiveGrid?.rows ?? 8}
+      />
+      {cooling.lintPrompt}
+      {((cooling.healNotice && cooling.undoAvailable) || cooling.error) && (
+        <div className={styles.noticeSlot}>
+          {cooling.healNotice && cooling.undoAvailable && (
+            <HealNotice
+              heal={cooling.healNotice}
+              onUndo={cooling.undoHeal}
+              onKeep={cooling.keepHeal}
+            />
+          )}
+          {cooling.error && <GuardError message={cooling.error} />}
+        </div>
+      )}
+    </>
   );
 }

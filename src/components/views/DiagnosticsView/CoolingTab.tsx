@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { CoolingHistorySection } from './CoolingHistorySection';
 import { CoolingSection } from './CoolingSection';
 import { GpuSection } from './GpuSection';
+import { GuardTripNotice } from './GuardTripNotice';
 import styles from './DiagnosticsView.module.scss';
 
 interface CoolingTabProps {
@@ -21,6 +22,11 @@ interface CoolingTabProps {
   };
   coolingHistory: UseMetricHistoryResult;
   episodes: readonly DiagnosticsTemperatureEpisode[];
+  serviceOnline: boolean;
+  /** Opens the Cooling page, for an active thermal guard trip. */
+  onOpenCooling?: () => void;
+  /** The user dismissed an ended trip: refresh whatever shows it. */
+  onGuardTripDismissed: () => void;
 }
 
 /**
@@ -31,10 +37,11 @@ interface CoolingTabProps {
  * persist across tab switches instead of resetting every time the user leaves
  * and returns to this tab.
  */
-export function CoolingTab({ cooling, gpu, coolingHistory, episodes }: CoolingTabProps) {
+export function CoolingTab({ cooling, gpu, coolingHistory, episodes, serviceOnline, onOpenCooling, onGuardTripDismissed }: CoolingTabProps) {
   const { t } = useTranslation();
   return (
     <>
+      <GuardTripNotice serviceOnline={serviceOnline} onOpenCooling={onOpenCooling} onDismissed={onGuardTripDismissed} />
       <CoolingHistorySection history={coolingHistory} episodes={episodes} />
       <div className={styles.diagSplit}>
         <GpuSection

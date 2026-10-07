@@ -7,12 +7,16 @@ import { useTranslation } from '../../../../lib/i18n';
 import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
 import { EffectEditor } from '../../lighting/effecteditor/EffectEditor';
 import { CurveCard } from '../page/CurveEditor';
+import { isManagedCurve } from '../page/guardUtils';
 import { CurveSelector } from '../page/CurveSelector';
 import { fanDeviceGroupName } from '../page/deviceGroupName';
 import { FanCard } from '../page/FanCard';
 import type { CoolingImmersiveController } from './useCoolingImmersive';
 import pageStyles from '../CoolingPage.module.scss';
 import styles from './CoolingImmersiveEditor.module.scss';
+
+// Swapped in for the editor's mutating callbacks on a curve the thermal guard manages.
+const noopCurveEdit = () => {};
 
 /**
  * Immersive cell 2 (the fill cell): the lighting immersive's tabbed editor
@@ -63,6 +67,8 @@ function CurvesSection({ cooling, liveChannels }: {
     [curves, selectedCurveId],
   );
 
+  const managed = isManagedCurve(selectedCurve?.id);
+
   // Fans the selected curve drives; a Sync curve may not follow its own output.
   const syncExcludedIds = useMemo(
     () => liveChannels.filter(c => fanStates[c.id]?.curveId === selectedCurve?.id).map(c => c.id),
@@ -80,17 +86,21 @@ function CurvesSection({ cooling, liveChannels }: {
         onAdd={cooling.addCurve}
       />
       {selectedCurve ? (
-        <CurveCard
-          key={selectedCurve.id}
-          curve={selectedCurve}
-          allCurves={curves}
-          sources={sources}
-          channels={liveChannels}
-          syncExcludedIds={syncExcludedIds}
-          onChange={cooling.saveCurve}
-          onDelete={() => cooling.deleteCurve(selectedCurve.id)}
-          onResetPreset={selectedCurve.preset ? () => cooling.resetPresetCurve(selectedCurve.preset!) : undefined}
-        />
+        <>
+          {managed && <span className={pageStyles.curveEditorHint}>{t('cooling.guard.managedCurve')}</span>}
+          <CurveCard
+            key={selectedCurve.id}
+            readOnly={managed}
+            curve={selectedCurve}
+            allCurves={curves}
+            sources={sources}
+            channels={liveChannels}
+            syncExcludedIds={syncExcludedIds}
+            onChange={managed ? noopCurveEdit : cooling.saveCurve}
+            onDelete={managed ? noopCurveEdit : () => cooling.deleteCurve(selectedCurve.id)}
+            onResetPreset={selectedCurve.preset && !managed ? () => cooling.resetPresetCurve(selectedCurve.preset!) : undefined}
+          />
+        </>
       ) : (
         <p className={styles.empty}>{t('cooling.curves.empty')}</p>
       )}

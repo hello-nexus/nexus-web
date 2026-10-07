@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   applyProfile, fetchCurves, fetchFanChannels, fetchProfiles, fetchTemperatureSources,
   isFanDisconnected,
-  releaseFanAuto, saveCurves,
+  releaseFanAuto,
   renameFan as apiRenameFan,
   resetPresetCurve as apiResetPresetCurve,
   setFanSpeed as apiSetFanSpeed,
   setFanLock as apiSetFanLock,
   setFanControlled as apiSetFanControlled,
   setFanRole as apiSetFanRole,
-  type FanChannel, type FanRole, type TemperatureSource,
+  type FanChannel, type FanRole, type HealState, type TemperatureSource,
 } from '../../../../api/cooling';
+import { useCurveSaveLint } from '../../../../hooks/useCurveSaveLint';
+import { latestError } from '../page/guardUtils';
+import { useThermalGuard } from '../../../../hooks/useThermalGuard';
 import {
   getNp50ConnectionState,
   np50HubModeFromName,
@@ -49,6 +52,16 @@ import type { FanBulkSelection, FanCardHubMode } from '../page/FanCard';
 const PRESET_LOCK_MS = 1500;
 
 export interface CoolingImmersiveController {
+  /** Fix / Save anyway prompt for a curve save with hazards; render it beside the view. */
+  lintPrompt: ReactNode;
+  /** What the last Fix changed, until it is undone or dismissed by a newer save. */
+  healNotice: HealState | null;
+  /** The service still holds an undo snapshot for that heal. */
+  undoAvailable: boolean;
+  undoHeal: () => void;
+  keepHeal: () => void;
+  /** A failed save, heal or undo, for inline display (the panel tree has no toast provider). */
+  error: string | null;
   channels: FanChannel[];
   sources: TemperatureSource[];
   curves: CurveDef[];
@@ -93,6 +106,22 @@ export interface CoolingImmersiveController {
  * resyncs on the 'cooling' / 'prefs' topics and cross-surface control-sync.
  */
 export function useCoolingImmersive(): CoolingImmersiveController {
+  const [healNotice, setHealNotice] = useState<HealState | null>(null);
+  const thermalGuard = useThermalGuard(true);
+  const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
+    lintEnabled: thermalGuard.guard?.lintWarnings !== false,
+    onHealed: heal => {
+      setHealNotice(heal);
+      thermalGuard.applyHeal(heal);
+      void refreshRef.current();
+    },
+    // What a Fix changed is stale once a newer save lands.
+    onSaved: () => {
+      setHealNotice(null);
+      thermalGuard.clearError();
+    },
+  });
+  const refreshRef = useRef<() => Promise<void>>(async () => {});
   const cachedSeed = useMemo(() => loadCoolingCache(), []);
   const [channels, setChannels] = useState<FanChannel[]>(() => cachedSeed.channels);
   const [sources, setSources] = useState<TemperatureSource[]>(() => cachedSeed.sources);
@@ -180,6 +209,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     if (temps?.sources) setSources(temps.sources);
   }, [refreshNp50HubMode, refreshQSeriesHubMode]);
 
+  refreshRef.current = refresh;
   useEffect(() => { void refresh(); }, [refresh]);
 
   // Mirror the desktop page's stale-while-revalidate write-back so the next
@@ -266,8 +296,8 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       c,
       Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
     ));
-    return saveCurves({ globalSpeedModifier: 1, curves: apiCurves });
-  }, []);
+    return saveWithLint({ globalSpeedModifier: 1, curves: apiCurves });
+  }, [saveWithLint]);
 
   // When cooling is Off, any fan change other than reverting to BIOS snaps
   // the preset to Custom first so the curve writes land in the right state.
@@ -611,6 +641,22 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   }, [curves]);
 
   return {
+    lintPrompt,
+    healNotice,
+    undoAvailable: thermalGuard.guard?.heal.undoAvailable ?? false,
+    undoHeal: () => {
+      void thermalGuard.undo().then(ok => {
+        if (!ok) return;
+        setHealNotice(null);
+        void refreshRef.current();
+      });
+    },
+    keepHeal: () => {
+      void thermalGuard.keep().then(ok => {
+        if (ok) setHealNotice(null);
+      });
+    },
+    error: latestError(lintError, thermalGuard.error),
     channels, sources, curves, fanStates, activeMode, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,
