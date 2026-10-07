@@ -162,9 +162,6 @@ export interface GeneralSettings {
   // True while the user has collapsed the dashboard sidebar by hand.
   // Server-mirrored under ui.sidebarCollapsed.
   sidebarCollapsed: boolean;
-  // Packs the home dashboard to the window width. Server-mirrored under
-  // ui.dashboardAutoArrange.
-  dashboardAutoArrange: boolean;
   // When true, lighting + cooling widgets render the full controls
   // (animation/mirror/static buttons on lighting, response chart +
   // silent/balanced/turbo chips on cooling); default false (single-icon
@@ -245,7 +242,6 @@ export function getDefaultSettings(): NexusSettings {
       pinnedSidebarApps: ['monitoring', 'lighting', 'cooling', 'diagnostics', 'store'],
       sidebarAppOrder: [],
       sidebarCollapsed: false,
-      dashboardAutoArrange: false,
       widgetAdvancedMode: false,
       lightingDashboardMode: 'simple',
       coolingDashboardMode: 'simple',

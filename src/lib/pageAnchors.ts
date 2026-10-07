@@ -14,8 +14,8 @@ const OPENRGB_PORT_ID = /^(openrgb-s-.+)-\d+$/;
 /** Lighting rail targets for the wired hub. With sync on, the source header
  *  drives the fans: its group or stack, its single card, the board group that
  *  holds the port, then the hub itself. Otherwise the hub's group. */
-export function lianLiLightingAnchors(sync?: { argbSync?: boolean; argbSyncSource?: string | null }): string[] {
-  const hub = lightingGroupAnchor(`mb:${WIRED_HUB_ID}`);
+export function lianLiLightingAnchors(sync?: { argbSync?: boolean; argbSyncSource?: string | null }, hubId = WIRED_HUB_ID): string[] {
+  const hub = lightingGroupAnchor(`mb:${hubId}`);
   const source = sync?.argbSync === true ? sync.argbSyncSource : undefined;
   if (!source) return [hub];
   const board = OPENRGB_PORT_ID.exec(source)?.[1];
@@ -29,8 +29,8 @@ export function lianLiLightingAnchors(sync?: { argbSync?: boolean; argbSyncSourc
 }
 
 /** Cooling rail target for the wired hub: its group. */
-export function lianLiCoolingAnchors(): string[] {
-  return [coolingGroupAnchor(WIRED_HUB_ID)];
+export function lianLiCoolingAnchors(hubId = WIRED_HUB_ID): string[] {
+  return [coolingGroupAnchor(hubId)];
 }
 
 /** Lighting rail target for the wireless controller: its hub group. */

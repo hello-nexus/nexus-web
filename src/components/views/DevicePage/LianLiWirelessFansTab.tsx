@@ -11,6 +11,7 @@ import {
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
 import { useTranslation } from '../../../lib/i18n';
+import { LianLiAioScreenSection } from './LianLiAioScreenSection';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Bind/unbind converge on the service in ~2-6s; give up waiting for the
@@ -22,13 +23,20 @@ type BindAction = 'bind' | 'unbind';
 
 /** Fan subtype (fans_type[0]) -> i18n key suffix naming the product line; same ranges as the service's fan families. */
 export function fanTypeKey(fanType: number):
-  'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeTlv2' | 'fanTypeTlLcd' | 'fanTypeSlInfinity' | 'fanTypeCl' | 'fanTypeGeneric' {
+  | 'fanTypeSlv3Lcd' | 'fanTypeSlv3Led' | 'fanTypeTlv2' | 'fanTypeTlLcd' | 'fanTypeSlInfinity' | 'fanTypeCl'
+  | 'fanTypeRl120' | 'fanTypeSlInfFlex' | 'fanTypeTlFlex' | 'fanTypeSlv4' | 'fanTypeP28v2' | 'fanTypeClv2' | 'fanTypeGeneric' {
   if (fanType >= 24 && fanType <= 26) return 'fanTypeSlv3Lcd';
   if (fanType >= 20 && fanType <= 23) return 'fanTypeSlv3Led';
   if (fanType === 27 || (fanType >= 32 && fanType <= 35)) return 'fanTypeTlLcd';
   if (fanType >= 28 && fanType <= 31) return 'fanTypeTlv2';
   if (fanType >= 36 && fanType <= 39) return 'fanTypeSlInfinity';
-  if (fanType >= 40 && fanType <= 42) return 'fanTypeCl';
+  if (fanType === 40) return 'fanTypeRl120';
+  if (fanType === 41 || fanType === 42) return 'fanTypeCl';
+  if (fanType >= 43 && fanType <= 50) return 'fanTypeSlInfFlex';
+  if (fanType >= 51 && fanType <= 58) return 'fanTypeTlFlex';
+  if (fanType >= 59 && fanType <= 62) return 'fanTypeSlv4';
+  if (fanType === 63) return 'fanTypeP28v2';
+  if (fanType === 126 || fanType === 127) return 'fanTypeClv2';
   return 'fanTypeGeneric';
 }
 
@@ -36,15 +44,32 @@ export function fanTypeKey(fanType: number):
  *  with the sub-family in fans_type[0]) or a fan's own DevTypes value. Standalone
  *  non-fan devices report their category in dev_type. */
 export function isFanDevice(devType: number): boolean {
-  return devType === 0 || (devType >= 20 && devType <= 42);
+  return devType === 0 || (devType >= 20 && devType <= 63) || devType === 126 || devType === 127;
+}
+
+function isHydroShiftDevice(devType: number): boolean {
+  return devType === 10 || devType === 11;
+}
+
+/** A Strimer cable: no fan ports, so no PWM cable either. */
+function isStrimerDevice(devType: number): boolean {
+  return devType >= 1 && devType <= 9;
+}
+
+/** The firmware echoes this duty byte on a port that follows the motherboard PWM header. */
+const PWM_FOLLOW_MOTHERBOARD = 6;
+
+/** A populated port of the chain follows the motherboard header, which needs the chain's PWM cable. */
+function followsMotherboard(fan: LianLiWirelessFan): boolean {
+  return fan.pwm.slice(0, Math.max(fan.fanCount, 1)).some(v => v === PWM_FOLLOW_MOTHERBOARD);
 }
 
 /** dev_type (+ fan sub-family) -> i18n key naming the device, so the list says
  *  what each paired device is instead of calling everything a fan. */
 export function deviceTypeKey(devType: number, fanType: number):
   ReturnType<typeof fanTypeKey> | 'deviceStrimer' | 'deviceHydroShift' | 'deviceGeneric' {
-  if (devType >= 1 && devType <= 9) return 'deviceStrimer';
-  if (devType === 10 || devType === 11) return 'deviceHydroShift';
+  if (isStrimerDevice(devType)) return 'deviceStrimer';
+  if (isHydroShiftDevice(devType)) return 'deviceHydroShift';
   if (isFanDevice(devType)) return fanTypeKey(fanType);
   return 'deviceGeneric';
 }
@@ -187,6 +212,10 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
           : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>}
       </SettingsSection>
 
+      {loaded && state.fans
+        .filter(fan => fan.boundToUs && isHydroShiftDevice(fan.devType))
+        .map(fan => <LianLiAioScreenSection key={fan.mac} mac={fan.mac} />)}
+
       <ConfirmModal
         open={unbindTarget != null}
         title={t('devices.lianli-wireless.unbindConfirmTitle')}
@@ -227,10 +256,15 @@ function DeviceRow({
   const bindState: SettingState = fan.boundToUs
     ? { label: `${t('devices.lianli-wireless.bound')} - ${t('devices.lianli-wireless.slot', { n: fan.slot })}`, tone: 'accent' }
     : { label: t('devices.lianli-wireless.unbound') };
+  const details = [
+    fan.firmwareVersion ? t('devices.lianli-wireless.firmwareVersion', { v: fan.firmwareVersion }) : null,
+    fan.boundToUs && !isStrimerDevice(fan.devType) && fan.pwmCableConnected === false && followsMotherboard(fan) ? t('devices.lianli-wireless.noPwmCable') : null,
+  ].filter(Boolean).join(' - ');
 
   return (
     <SettingRow
       label={typeLabel}
+      description={details || undefined}
       state={bindState}
     >
       {fan.boundToUs ? (

@@ -19,6 +19,7 @@ import {
 } from '../widgets/marketplaceRegistry';
 import type { AppInstalledListing } from '../widgets/types';
 import { resolveHttp } from '../api/service';
+import { isLianLiHubId, lianLiHubName, LIANLI_PRIMARY_HUB } from '../api/lianli';
 
 export type UnifiedDeviceKind = 'panel' | 'curated' | 'app-device';
 
@@ -333,11 +334,11 @@ function buildUnifiedList(
     const displayName = d.id === 'smbus-dram' ? t('devices.smbusDram.name') : d.name;
     list.push({
       key: `curated-${d.id}`,
-      shortName: CURATED_SHORT_NAMES[d.id] || displayName,
+      shortName: (isLianLiHubId(d.id) ? lianLiHubName(d.id) : CURATED_SHORT_NAMES[d.id]) || displayName,
       name: displayName,
       subtitle: d.category,
       category: d.category,
-      iconSrc: CURATED_ICONS[d.id] || CATEGORY_ICONS[d.category] || FALLBACK_ICON,
+      iconSrc: CURATED_ICONS[isLianLiHubId(d.id) ? LIANLI_PRIMARY_HUB : d.id] || CATEGORY_ICONS[d.category] || FALLBACK_ICON,
       connected: d.connected,
       kind: 'curated',
       curatedId: d.id,

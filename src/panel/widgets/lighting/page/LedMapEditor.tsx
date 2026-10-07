@@ -11,6 +11,7 @@ import {
   previewDeviceChain, setDeviceChain, setZoneLedCount, setLightingDeviceColor, setHubComposition,
   type ApiEnvelope, type ChainEntryBody, type DeviceMapResponse, type DeviceStructureResponse, type DeviceZone, type LightingDevice, type HubCompositionPatch,
 } from '../../../../api/lighting';
+import { LIANLI_PRIMARY_HUB } from '../../../../api/lianli';
 import { HubCompositionPanel } from './HubCompositionPanel';
 import { useTranslation } from '../../../../lib/i18n';
 import { pluralKey } from '../../../../lib/pluralKey';
@@ -1659,7 +1660,7 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
     if (!hub || !patch) return;
     setCompositionConfirm(false);
     setPendingCompositionPatch(null);
-    const result = await setHubComposition(hub.hubKind, patch);
+    const result = await setHubComposition(hub, patch);
     if (!result || result.error) {
       push({ title: t('lighting.ledMap.hubCompositionFailed') });
       return;
@@ -1671,8 +1672,9 @@ export function LedMapEditor({ deviceId, initialZoneId, devices, zoneCustomizabl
   // drive this LED composition). Routed through the unsaved-edits guard so a
   // mid-edit navigation does not silently drop LED overrides.
   const handleOpenHubDeviceSettings = useCallback(() => {
-    confirmDiscardEdits(() => onNavigateToDevicePage?.('curated-lianli'));
-  }, [confirmDiscardEdits, onNavigateToDevicePage]);
+    const hubId = structure?.hubComposition?.hubId ?? LIANLI_PRIMARY_HUB;
+    confirmDiscardEdits(() => onNavigateToDevicePage?.(`curated-${hubId}`));
+  }, [confirmDiscardEdits, onNavigateToDevicePage, structure]);
 
   const handleDeleteSelected = useCallback(() => {
     if (selected.size === 0) return;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
-import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
@@ -67,6 +67,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
     : '';
   const selectedMode = effectModes.find(m => m.key === effectKey) ?? null;
   const isCustomMode = lighting?.mode === LIGHTING_PAGE_MODE;
+  const argbSyncOn = lighting?.argbSync === true;
 
   return (
     <div className={styles.page}>
@@ -76,13 +77,33 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
         actions={saving ? <span className={styles.savingBadge}>{t('devices.saving')}</span> : null}
       />
       <div className={`${styles.pageBody} pageBody`}>
+        <SettingsSection title={t('devices.lianli.argbSyncSection')} boxClassName={styles.sectionBox}>
+          <SettingToggle
+            label={t('devices.motherboardArgb.label')}
+            description={t('devices.motherboardArgb.hint')}
+            checked={argbSyncOn}
+            disabled={!lightingLoaded}
+            onChange={on => {
+              if (!lighting) return;
+              const previous = lighting;
+              setLighting({ ...lighting, argbSync: on });
+              setSaving(true);
+              // It decides which controls lock, so a refused save must not leave the page showing it.
+              void setStrimerLighting({ argbSync: on }).catch(() => null).then(r => {
+                if (!aliveRef.current) return;
+                setSaving(false);
+                if (r === null) setLighting(previous);
+              });
+            }}
+          />
+        </SettingsSection>
         <SettingsSection
           title={t('devices.lianli.lightingSection')}
           boxClassName={styles.sectionBox}
         >
           <LightingPageSwitch
             on={isCustomMode}
-            disabled={!lightingLoaded}
+            disabled={!lightingLoaded || argbSyncOn}
             onChange={on => {
               if (!lighting) return;
               const mode = on ? LIGHTING_PAGE_MODE : effectKey;
@@ -101,7 +122,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
               void commitLighting({ mode: v });
             }}
             options={effectModes.map(m => ({ value: m.key, label: m.label }))}
-            disabled={!lightingLoaded || isCustomMode}
+            disabled={!lightingLoaded || isCustomMode || argbSyncOn}
           />
 
           {selectedMode?.hasBrightness && (
@@ -115,7 +136,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
               step={PERCENT_PER_LEVEL}
               formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
               ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-              disabled={!lightingLoaded || isCustomMode}
+              disabled={!lightingLoaded || isCustomMode || argbSyncOn}
               onChange={(v: number, commit?: boolean) => {
                 if (!lighting) return;
                 const level = Math.round(v / PERCENT_PER_LEVEL);
@@ -139,7 +160,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
               step={PERCENT_PER_LEVEL}
               formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
               ariaLabel={t('devices.lianli.lightingSpeedAria')}
-              disabled={!lightingLoaded || isCustomMode}
+              disabled={!lightingLoaded || isCustomMode || argbSyncOn}
               onChange={(v: number, commit?: boolean) => {
                 if (!lighting) return;
                 const level = Math.round(v / PERCENT_PER_LEVEL);
@@ -166,7 +187,7 @@ export function StrimerDevicePage({ onSectionNavigate }: StrimerDevicePageProps)
                 { value: '0', label: t('devices.lianli.directionLtr') },
                 { value: '1', label: t('devices.lianli.directionRtl') },
               ]}
-              disabled={!lightingLoaded || isCustomMode}
+              disabled={!lightingLoaded || isCustomMode || argbSyncOn}
             />
           )}
 

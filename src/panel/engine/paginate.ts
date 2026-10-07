@@ -160,23 +160,94 @@ export function repackToFit(
   return out;
 }
 
+const fitsColumns = (w: PanelWidget, cols: number) => w.col + sizeToSpan(w.size).cols <= cols;
+
 /**
- * Dashboard auto-arrange: packs each page row-major into `cols` columns with
- * no row limit, in (row, col) reading order. First-fit lets a later small
- * widget fill a hole a bigger one left. Returns the same reference when
- * nothing moves.
+ * Render-only: widgets past the right edge of `cols` show below the rest, from
+ * the left, in reading order. One keeps its cell in `previous` while that cell
+ * is free, so a drop beside it does not push it further down.
  */
-export function autoArrangeLayout(layout: PanelLayout, cols: number): PanelLayout {
+export function overflowLayout(layout: PanelLayout, cols: number, previous?: PanelLayout | null): PanelLayout {
+  const before = new Map(previous?.pages.flatMap(p => p.widgets.map(w => [w.id, w] as const)));
   let changed = false;
   const pages = layout.pages.map(page => {
-    // Stacking every widget is always a fit, so this bound never clips.
-    const rows = page.widgets.reduce((sum, w) => sum + Math.max(1, sizeToSpan(w.size).rows), 0);
-    const widgets = repackToFit(page.widgets, cols, rows, false);
-    if (!widgets.some((w, i) => w.col !== page.widgets[i].col || w.row !== page.widgets[i].row)) return page;
+    if (page.widgets.every(w => fitsColumns(w, cols))) return page;
     changed = true;
-    return { ...page, widgets };
+    const occupied = page.widgets.filter(w => fitsColumns(w, cols)).map(w => widgetRect(w, cols));
+    const top = occupied.reduce((m, o) => Math.max(m, o.row + o.rowSpan), 0);
+    const spilled = page.widgets
+      .filter(w => !fitsColumns(w, cols))
+      .sort((a, b) => a.row - b.row || a.col - b.col);
+    const shown = new Map<string, { col: number; row: number }>();
+    const place = (w: PanelWidget, slot: { col: number; row: number }) => {
+      occupied.push({ ...widgetRect(w, cols), ...slot });
+      shown.set(w.id, slot);
+    };
+    for (const w of spilled) {
+      const was = before.get(w.id);
+      if (!was) continue;
+      const rect = { ...widgetRect(w, cols), col: was.col, row: was.row };
+      if (rect.col + rect.colSpan <= cols && !occupied.some(o => rectsOverlap(o, rect))) place(w, was);
+    }
+    // Blocks the rows above so first-fit starts at the bottom left.
+    occupied.push({ col: 0, row: 0, colSpan: cols, rowSpan: top });
+    // Stacking every spilled widget below everything is always a fit.
+    const rows = spilled.reduce(
+      (sum, w) => sum + widgetRect(w, cols).rowSpan,
+      occupied.reduce((m, o) => Math.max(m, o.row + o.rowSpan), 0),
+    );
+    for (const w of spilled) {
+      if (shown.has(w.id)) continue;
+      const rect = widgetRect(w, cols);
+      place(w, firstFitCell(occupied, cols, rows, rect.colSpan, rect.rowSpan, false)!);
+    }
+    return { ...page, widgets: page.widgets.map(w => {
+      const slot = shown.get(w.id);
+      return slot ? { ...w, col: slot.col, row: slot.row } : w;
+    }) };
   });
   return changed ? { ...layout, pages } : layout;
+}
+
+/**
+ * Maps a write made against `shown` (overflowLayout of `stored`) back for
+ * storage: a moved-down widget the write left untouched keeps its stored cell
+ * unless the write filled it.
+ */
+export function restoreOverflowPositions(next: PanelLayout, stored: PanelLayout, shown: PanelLayout): PanelLayout {
+  const byId = (layout: PanelLayout) => new Map(layout.pages.flatMap(p => p.widgets.map(w => [w.id, w] as const)));
+  const storedById = byId(stored);
+  const shownById = byId(shown);
+  const pages = next.pages.map(page => {
+    const restore = new Map<string, PanelWidget>();
+    for (const w of page.widgets) {
+      const was = shownById.get(w.id);
+      const home = storedById.get(w.id);
+      if (!was || !home) continue;
+      const displaced = was.col !== home.col || was.row !== home.row;
+      const untouched = w.col === was.col && w.row === was.row && w.size === home.size;
+      if (displaced && untouched) restore.set(w.id, home);
+    }
+    if (restore.size === 0) return page;
+    const rect = (w: PanelWidget) => widgetRect(restore.get(w.id) ?? w, Number.POSITIVE_INFINITY);
+    // A blocked widget stays where it was shown, which can block another.
+    let blocked = true;
+    while (blocked) {
+      blocked = false;
+      for (const id of [...restore.keys()]) {
+        const home = rect(restore.get(id)!);
+        if (page.widgets.some(o => o.id !== id && rectsOverlap(home, rect(o)))) {
+          restore.delete(id);
+          blocked = true;
+        }
+      }
+    }
+    return { ...page, widgets: page.widgets.map(w => {
+      const home = restore.get(w.id);
+      return home ? { ...w, col: home.col, row: home.row } : w;
+    }) };
+  });
+  return { ...next, pages };
 }
 
 /** Rows down to the bottom edge of the lowest widget on any page. */

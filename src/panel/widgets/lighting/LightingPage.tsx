@@ -19,7 +19,7 @@ import { type DeviceGroup } from '../../../lib/deviceGroups';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
-import { getLianLiLighting, setLianLiLighting } from '../../../api/lianli';
+import { getLianLiLighting, isLianLiHubId, setLianLiLighting } from '../../../api/lianli';
 import { getLianLiWirelessLighting, setLianLiWirelessChainLighting } from '../../../api/lianli-wireless';
 import { useLightingFrames } from '../../../hooks/useLightingFrames';
 import { useLightingSync, normalizeSync } from '../../../hooks/useLightingSync';
@@ -275,22 +275,37 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     pushLayoutRef.current?.({ layouts: devicesToLayouts(devicesRef.current), power: devicesToPower(devicesRef.current), activeId: layoutActiveIdRef.current, powerIds: [] });
   }, []);
 
-  const [lianLiMode, setLianLiMode] = useState<string | null>(null);
-  // true when the hub's active lighting mode is not 'custom' (firmware animation overrides per-LED engine).
-  const lianLiFirmwareActive = lianLiMode !== null && lianLiMode !== 'custom';
+  // Wired hubs whose active mode is not 'custom': a firmware animation overrides the per-LED engine.
+  const [lianLiFirmwareHubs, setLianLiFirmwareHubs] = useState<ReadonlySet<string>>(() => new Set());
+  const lianLiHubIds = useMemo(
+    () => [...new Set(devices.map(d => d.parentDeviceId).filter(isLianLiHubId))].sort().join(','),
+    [devices],
+  );
+  // A hub whose read fails keeps its last known state.
+  const refreshLianLiModes = useCallback(async () => {
+    const hubs = lianLiHubIds ? lianLiHubIds.split(',') : [];
+    const modes = await Promise.all(hubs.map(h => getLianLiLighting(h).then(d => d?.mode ?? null, () => null)));
+    setLianLiFirmwareHubs(prev => {
+      const next = new Set<string>();
+      hubs.forEach((h, i) => {
+        const mode = modes[i];
+        if (mode === null ? prev.has(h) : mode !== 'custom') next.add(h);
+      });
+      return next;
+    });
+  }, [lianLiHubIds]);
 
   // Hands the hub's LEDs back to the engine. Optimistic: the card state
   // flips immediately and reverts if the PUT fails, since nothing else
   // re-reads the mode until a refetch.
-  const handleLianLiTakeControl = useCallback(async () => {
-    const previous = lianLiMode;
-    setLianLiMode('custom');
+  const handleLianLiTakeControl = useCallback(async (hubId: string) => {
+    setLianLiFirmwareHubs(prev => { const next = new Set(prev); next.delete(hubId); return next; });
     try {
-      await setLianLiLighting({ mode: 'custom' });
+      await setLianLiLighting({ mode: 'custom' }, hubId);
     } catch {
-      setLianLiMode(previous);
+      setLianLiFirmwareHubs(prev => new Set(prev).add(hubId));
     }
-  }, [lianLiMode]);
+  }, []);
 
   // Device ids of wireless chains playing an uploaded animation instead of the engine's frames.
   const [wirelessPresetIds, setWirelessPresetIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -1567,25 +1582,19 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
 
   useEffect(() => {
     if (!serviceOnline) return;
-    let cancelled = false;
-    getLianLiLighting().then(data => {
-      if (!cancelled && data) setLianLiMode(data.mode);
-    }).catch(() => {});
+    void refreshLianLiModes();
     void refreshWirelessPresets();
-    return () => { cancelled = true; };
-  }, [serviceOnline, refreshWirelessPresets]);
+  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets]);
 
   useEffect(() => {
     const onFocus = () => {
       if (!serviceOnline) return;
-      getLianLiLighting().then(data => {
-        if (data) setLianLiMode(data.mode);
-      }).catch(() => {});
+      void refreshLianLiModes();
       void refreshWirelessPresets();
     };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
-  }, [serviceOnline, refreshWirelessPresets]);
+  }, [serviceOnline, refreshLianLiModes, refreshWirelessPresets]);
 
   useTopicCallback('devices', serviceOnline, () => {
     void refreshDevices();
@@ -2416,8 +2425,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             onDeviceReorder={(newOrder) => setDeviceOrder(newOrder)}
             communityCounts={mappingCounts}
             onOpenCommunity={handleOpenCommunity}
-            lianLiFirmwareActive={lianLiFirmwareActive}
-            onLianLiTakeControl={handleLianLiTakeControl}
+            lianLiFirmwareHubs={lianLiFirmwareHubs}
+            onLianLiTakeControl={hubId => { void handleLianLiTakeControl(hubId); }}
             firmwareDeviceIds={wirelessPresetIds}
             onFirmwareTakeControl={id => { void handleWirelessTakeControl(id); }}
             onOpenSmartLights={() => onSectionNavigate?.('smart-lights')}

@@ -1,6 +1,7 @@
 // Lighting API wrapper - authenticated fetch/post to the local service.
 
 import { fetchService, postService, deleteService, putService, authFetchWithStatus, resolveAuthWs } from './service';
+import { lianLiHubQuery } from './lianli';
 import { type DeviceGroup } from '../lib/deviceGroups';
 import { type DeviceStack } from '../lib/stackSlots';
 import { parseShaderParams, type ShaderParamSpec } from '../lib/shaderParams';
@@ -829,8 +830,8 @@ export interface DeviceZoneDef {
 export const fetchDeviceStructure = (deviceId: string) =>
   fetchService<DeviceStructureResponse>(`/devices/lighting-devices/${encodeURIComponent(deviceId)}/structure`);
 
-export const setHubComposition = (hubKind: 'lianli' | 'smarthub', patch: HubCompositionPatch) =>
-  putService<ApiEnvelope>(`/devices/${encodeURIComponent(hubKind)}/composition`, patch);
+export const setHubComposition = (hub: Pick<HubComposition, 'hubKind' | 'hubId'>, patch: HubCompositionPatch) =>
+  putService<ApiEnvelope>(`/devices/${encodeURIComponent(hub.hubKind)}/composition${hub.hubKind === 'lianli' ? lianLiHubQuery(hub.hubId) : ''}`, patch);
 
 // Replaces the device's partition with the posted zone list. The service
 // validates full segment cover, rebuilds cards/frames, drops stale per-zone

@@ -30,6 +30,7 @@ import { Spinner } from '../../common/Spinner/Spinner';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useToast } from '../../common/Toast/Toast';
 import { promoteDisplayToPanel } from '../../../api/displays';
+import { isLianLiHubId } from '../../../api/lianli';
 import { useTranslation } from '../../../lib/i18n';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { DeviceDetectingContext } from './deviceDetecting';
@@ -222,8 +223,8 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
     return <KeebDevicePage key={device.key} />;
   }
 
-  if (device.curatedId === 'lianli') {
-    return <LianLiDevicePage key={device.key} onSectionNavigate={onSectionNavigate} />;
+  if (isLianLiHubId(device.curatedId)) {
+    return <LianLiDevicePage key={device.key} hubId={device.curatedId} onSectionNavigate={onSectionNavigate} />;
   }
 
   if (device.curatedId === 'corsair') {

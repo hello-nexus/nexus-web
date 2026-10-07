@@ -1,10 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import {
-  autoArrangeLayout,
   flattenPages,
   layoutRowExtent,
+  overflowLayout,
   repaginatePanelLayout,
+  restoreOverflowPositions,
   firstFreeRect,
   rectsOverlap,
 } from './paginate';
@@ -291,7 +292,7 @@ describe('repaginatePanelLayout', () => {
   });
 });
 
-describe('autoArrangeLayout', () => {
+describe('overflowLayout', () => {
   const layoutOf = (widgets: PanelWidget[]): PanelLayout => ({
     layoutSchemaVersion: 1,
     surface: 'desktop',
@@ -299,43 +300,92 @@ describe('autoArrangeLayout', () => {
   } as PanelLayout);
   const positions = (layout: PanelLayout) =>
     Object.fromEntries(layout.pages[0].widgets.map(w => [w.id, [w.col, w.row]]));
+  const row = layoutOf([
+    widget('4x4', 0, 0, 'a'),
+    widget('4x4', 4, 0, 'b'),
+    widget('4x4', 8, 0, 'c'),
+    widget('4x4', 12, 0, 'd'),
+  ]);
 
-  it('packs in (row, col) reading order and backfills a hole with a later small widget', () => {
+  it('returns the same reference when everything fits', () => {
+    expect(overflowLayout(row, 16)).toBe(row);
+  });
+
+  it('moves only the clipped widgets, below the rest from the left', () => {
+    expect(positions(overflowLayout(row, 14))).toEqual({ a: [0, 0], b: [4, 0], c: [8, 0], d: [0, 4] });
+  });
+
+  it('places spilled widgets in reading order and leaves in-window gaps alone', () => {
     const layout = layoutOf([
-      widget('4x4', 0, 0, 'a'),
-      widget('2x2', 4, 0, 'b'),
-      widget('4x4', 8, 0, 'c'),
-      widget('2x2', 0, 6, 'd'),
+      widget('2x2', 0, 0, 'a'),
+      widget('2x2', 12, 2, 'late'),
+      widget('2x2', 10, 0, 'early'),
     ]);
-    expect(positions(autoArrangeLayout(layout, 8))).toEqual({
-      a: [0, 0], b: [4, 0], c: [4, 2], d: [6, 0],
+    expect(positions(overflowLayout(layout, 10))).toEqual({ a: [0, 0], early: [0, 2], late: [2, 2] });
+  });
+
+  it('keeps a moved-down widget on its last shown cell while that cell is free', () => {
+    const previous = overflowLayout(row, 14);
+    const dropped = { ...row, pages: [{ ...row.pages[0], widgets: row.pages[0].widgets.map(w => (w.id === 'a' ? { ...w, col: 4, row: 4 } : w)) }] };
+    expect(positions(overflowLayout(dropped, 14)).d).toEqual([0, 8]);
+    expect(positions(overflowLayout(dropped, 14, previous)).d).toEqual([0, 4]);
+    const covered = { ...row, pages: [{ ...row.pages[0], widgets: row.pages[0].widgets.map(w => (w.id === 'a' ? { ...w, col: 0, row: 4 } : w)) }] };
+    expect(positions(overflowLayout(covered, 14, previous)).d).toEqual([0, 8]);
+  });
+});
+
+describe('restoreOverflowPositions', () => {
+  const layoutOf = (widgets: PanelWidget[]): PanelLayout => ({
+    layoutSchemaVersion: 1,
+    surface: 'desktop',
+    pages: [{ id: 'p0', widgets }],
+  } as PanelLayout);
+  const positions = (layout: PanelLayout) =>
+    Object.fromEntries(layout.pages[0].widgets.map(w => [w.id, [w.col, w.row, w.size]]));
+  const edit = (layout: PanelLayout, id: string, patch: Partial<PanelWidget>): PanelLayout => ({
+    ...layout,
+    pages: layout.pages.map(p => ({ ...p, widgets: p.widgets.map(w => (w.id === id ? { ...w, ...patch } : w)) })),
+  });
+  const stored = layoutOf([
+    widget('4x4', 0, 0, 'a'),
+    widget('4x4', 4, 0, 'b'),
+    widget('4x4', 10, 0, 'd'),
+  ]);
+  const shown = overflowLayout(stored, 12);
+
+  it('keeps a moved-down widget\'s stored cell when the write leaves it alone', () => {
+    const next = edit(shown, 'a', { config: { x: 1 } });
+    expect(positions(restoreOverflowPositions(next, stored, shown)).d).toEqual([10, 0, '4x4']);
+  });
+
+  it('keeps it across an edit to an in-window widget', () => {
+    const next = edit(shown, 'b', { col: 4, row: 4 });
+    expect(positions(restoreOverflowPositions(next, stored, shown))).toEqual({
+      a: [0, 0, '4x4'], b: [4, 4, '4x4'], d: [10, 0, '4x4'],
     });
   });
 
-  it('reflows to the column count with no row limit', () => {
-    const layout = layoutOf([
-      widget('2x2', 0, 0, 'a'),
-      widget('2x2', 2, 0, 'b'),
-      widget('2x2', 4, 0, 'c'),
-      widget('2x2', 6, 0, 'd'),
-    ]);
-    const narrow = autoArrangeLayout(layout, 4);
-    expect(positions(narrow)).toEqual({ a: [0, 0], b: [2, 0], c: [0, 2], d: [2, 2] });
-    // Widening again restores the original single row.
-    expect(positions(autoArrangeLayout(narrow, 8))).toEqual(positions(layout));
+  it('stores where the user moved or resized it', () => {
+    expect(positions(restoreOverflowPositions(edit(shown, 'd', { col: 8, row: 0 }), stored, shown)).d)
+      .toEqual([8, 0, '4x4']);
+    expect(positions(restoreOverflowPositions(edit(shown, 'd', { size: '2x2' }), stored, shown)).d)
+      .toEqual([0, 4, '2x2']);
   });
 
-  it('closes gaps left by a removed widget', () => {
-    const layout = layoutOf([widget('2x2', 0, 0, 'a'), widget('2x2', 6, 4, 'b')]);
-    expect(positions(autoArrangeLayout(layout, 12))).toEqual({ a: [0, 0], b: [2, 0] });
+  it('stores where it was shown when the write fills its stored cell', () => {
+    const next = { ...shown, pages: [{ ...shown.pages[0], widgets: [...shown.pages[0].widgets, widget('2x2', 10, 2, 'e')] }] };
+    expect(positions(restoreOverflowPositions(next, stored, shown)).d).toEqual([0, 4, '4x4']);
   });
+});
 
-  it('returns the same reference when already packed', () => {
-    const layout = layoutOf([widget('4x4', 0, 0, 'a'), widget('2x4', 4, 0, 'b')]);
-    expect(autoArrangeLayout(layout, 8)).toBe(layout);
-  });
+describe('layoutRowExtent', () => {
+  const layoutOf = (widgets: PanelWidget[]): PanelLayout => ({
+    layoutSchemaVersion: 1,
+    surface: 'desktop',
+    pages: [{ id: 'p0', widgets }],
+  } as PanelLayout);
 
-  it('layoutRowExtent is the lowest bottom edge', () => {
+  it('is the lowest bottom edge', () => {
     const layout = layoutOf([widget('4x4', 0, 0, 'a'), widget('2x2', 4, 6, 'b')]);
     expect(layoutRowExtent(layout)).toBe(8);
     expect(layoutRowExtent(layoutOf([]))).toBe(0);

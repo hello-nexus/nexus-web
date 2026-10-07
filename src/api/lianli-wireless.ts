@@ -16,6 +16,14 @@ export interface LianLiWirelessFan {
   fanCount: number;
   rpm: number[];
   pwm: number[];
+  /** Chain RF firmware version; 0 or absent when not reported. */
+  firmwareVersion?: number;
+  /** The chain's ARGB sync cable to a motherboard header is plugged in. */
+  argbCableConnected?: boolean;
+  /** The chain is playing its motherboard ARGB input. */
+  playingMotherboardArgb?: boolean;
+  /** The chain's PWM cable to a motherboard fan header is plugged in. */
+  pwmCableConnected?: boolean;
 }
 
 /** Why the link is down, for the device page. Absent on a service older than the field. */
@@ -107,6 +115,12 @@ export interface LianLiWirelessChainLighting {
   /** A mergeable effect runs across every fan of the chain. Absent on an older service. */
   merge?: boolean;
   laneSettings: LianLiWirelessLane[];
+  /** Saved choice to play the motherboard ARGB header; null when never chosen, absent on an older service. */
+  motherboardArgb?: boolean | null;
+  /** The chain reports its ARGB sync cable plugged in. */
+  argbCableConnected?: boolean;
+  /** The chain reports it is playing its motherboard input. */
+  playingMotherboardArgb?: boolean;
 }
 
 export interface LianLiWirelessLighting {
@@ -115,7 +129,7 @@ export interface LianLiWirelessLighting {
 }
 
 export type LianLiWirelessChainPatch = Partial<Pick<LianLiWirelessChainLighting,
-  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings'>>;
+  'mode' | 'effectMode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'merge' | 'laneSettings' | 'motherboardArgb'>>;
 
 export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | null> {
   return fetchService<LianLiWirelessLighting>('/devices/lianli-wireless/lighting');
@@ -123,6 +137,33 @@ export function getLianLiWirelessLighting(): Promise<LianLiWirelessLighting | nu
 
 export async function setLianLiWirelessChainLighting(mac: string, patch: LianLiWirelessChainPatch): Promise<boolean> {
   return isOk(await putService<OkResponse>(`/devices/lianli-wireless/lighting/${encodeURIComponent(mac)}`, patch));
+}
+
+/** What a HydroShift II's screen shows while Nexus drives its pump. */
+export interface LianLiAioScreen {
+  /** Backlight, percent. */
+  brightness: number;
+  theme: number;
+  /** Built-in themes the AIO offers, numbered from 0. */
+  themeCount: number;
+  labelColor: string;
+  valueColor: string;
+  unitColor: string;
+  showCpuTemp: boolean;
+  showCpuLoad: boolean;
+  showGpuTemp: boolean;
+  showGpuLoad: boolean;
+  showFanSpeed: boolean;
+}
+
+export type LianLiAioScreenPatch = Partial<Omit<LianLiAioScreen, 'themeCount'>>;
+
+export function getLianLiAioScreen(mac: string): Promise<LianLiAioScreen | null> {
+  return fetchService<LianLiAioScreen>(`/devices/lianli-wireless/aio-screen/${encodeURIComponent(mac)}`);
+}
+
+export async function setLianLiAioScreen(mac: string, patch: LianLiAioScreenPatch): Promise<boolean> {
+  return isOk(await putService<OkResponse>(`/devices/lianli-wireless/aio-screen/${encodeURIComponent(mac)}`, patch));
 }
 
 export type LianLiWirelessScreenContentType =
