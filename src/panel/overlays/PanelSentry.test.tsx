@@ -86,6 +86,17 @@ describe('PanelSentry', () => {
     await screen.findByText('sentry.card.notLocked');
   });
 
+  it('does not repeat the not-locked line when the refusal refetch finds the PC unlocked', async () => {
+    vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'not_locked' });
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
+    const arm = await screen.findByText('sentry.card.arm');
+    rerender(<PanelSentry {...props} openRequest={1} />);
+    vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
+    fireEvent.click(arm);
+    await waitFor(() => expect(screen.getByText('sentry.card.arm').closest('button')).toBeDisabled());
+    expect(screen.getAllByText('sentry.card.notLocked')).toHaveLength(1);
+  });
+
   it('shows no separate alerts button', async () => {
     render(<PanelSentry {...props} />);
     await screen.findByText('sentry.card.arm');

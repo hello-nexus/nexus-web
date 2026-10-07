@@ -4282,7 +4282,7 @@
   "sentry.settings.arm.label": "Оповещения Sentry",
   "sentry.settings.armed": "Включён",
   "sentry.settings.cooldown.few": "Не более одного оповещения раз в {count} минуты.",
-  "sentry.settings.cooldown.one": "Не более одного оповещения раз в минуту.",
+  "sentry.settings.cooldown.one": "Не более одного оповещения раз в {count} минуту.",
   "sentry.settings.cooldown.other": "Не более одного оповещения раз в {count} минут.",
   "sentry.settings.failed": "Не удалось заблокировать ПК и включить Sentry.",
   "sentry.settings.off": "Выключен",

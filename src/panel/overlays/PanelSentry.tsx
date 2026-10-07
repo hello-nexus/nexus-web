@@ -19,8 +19,9 @@ interface PanelSentryProps {
   onSupportedChange?: (supported: boolean) => void;
 }
 
-// Phone panel: registers this phone's push target on every load and shows the
-// Sentry card while the PC is locked.
+// Phone panel: registers this phone's push target on every load. The Sentry card
+// shows while the PC is locked or armed (until dismissed, until the next lock),
+// and on demand from the tray row at any time while Sentry is supported.
 export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openRequest = 0, onSupportedChange }: PanelSentryProps) {
   const { t } = useTranslation();
   const push = useNativePush(enabled);
@@ -145,7 +146,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
     if (result.ok) return result.state;
     if (result.reason === 'not_locked') {
       setError('notLocked');
-      // Refresh so the card drops away if the PC was unlocked meanwhile.
+      // Refresh so the card reflects the PC being unlocked meanwhile.
       return fetchSentry().catch(() => null);
     }
     return null;
@@ -153,7 +154,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
 
   if (!visible || !state) return null;
 
-  const errorText = error === 'notLocked' ? t('sentry.card.notLocked')
+  const errorText = error === 'notLocked' ? (state.locked ? t('sentry.card.notLocked') : null)
     : error === 'failed' ? t('sentry.card.failed')
     : null;
 
