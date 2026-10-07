@@ -146,6 +146,31 @@ describe('LianLiAioScreenSection', () => {
     });
     expect(screen.getByRole('status')).toHaveTextContent('devices.lianli-wireless.aioScreen.widgetsNoUsb');
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.aioScreen.widgets' })).not.toBeInTheDocument();
+  });
+
+  it('treats a service that sends no nexusWidgets as streaming widgets', async () => {
+    const older: Partial<typeof saved> = { ...saved };
+    delete older.nexusWidgets;
+    mockGetLianLiAioScreen.mockResolvedValue(older);
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected onOpenPanel={vi.fn()} />);
+    });
+    expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.widgets' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.managePanel' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.aioScreen.theme' })).not.toBeInTheDocument();
+  });
+
+  it('switching widgets back on saves it and hides the native controls', async () => {
+    mockGetLianLiAioScreen.mockResolvedValue({ ...saved, nexusWidgets: false });
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.widgets' }));
+    });
+    expect(mockSetLianLiAioScreen).toHaveBeenCalledWith('AABBCCDDEEFF', { nexusWidgets: true });
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.aioScreen.theme' })).not.toBeInTheDocument();
   });
 
   it('shows the widgets row and switch on USB without a page to open, but no Manage panel', async () => {

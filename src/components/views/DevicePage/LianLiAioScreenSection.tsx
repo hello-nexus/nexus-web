@@ -75,8 +75,9 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
   ];
 
   const widgetsLabel = t('devices.lianli-wireless.aioScreen.widgets');
-  // Nexus streams over the screen on USB, so the AIO's own theme and readings never reach the glass.
-  const showNative = !(usbConnected && screen.nexusWidgets);
+  const nexusWidgets = screen.nexusWidgets ?? true;
+  // While Nexus widgets own the glass, the AIO's own theme and readings never reach it.
+  const showNative = !(usbConnected && nexusWidgets);
 
   return (
     <SettingsSection
@@ -91,18 +92,18 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
       {usbConnected && (
         <SettingRow
           label={widgetsLabel}
-          description={t(screen.nexusWidgets
+          description={t(nexusWidgets
             ? 'devices.lianli-wireless.aioScreen.widgetsUsb'
             : 'devices.lianli-wireless.aioScreen.widgetsOff')}
           descriptionBelow
         >
-          {screen.nexusWidgets && onOpenPanel && (
+          {nexusWidgets && onOpenPanel && (
             <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
               {t('devices.lianli-wireless.managePanel')}
             </Button>
           )}
           <Toggle
-            checked={screen.nexusWidgets}
+            checked={nexusWidgets}
             onChange={on => { void commit({ nexusWidgets: on }); }}
             ariaLabel={widgetsLabel}
           />
