@@ -773,6 +773,7 @@
   "devices.lianli-wireless.noPwmCable": "PWM ケーブル未接続",
   "devices.lianli-wireless.noScreens": "画面が見つかりません",
   "devices.lianli-wireless.notConnected": "Lian Li L-Wireless Controller が接続されていません",
+  "devices.lianli-wireless.openScreenPage": "画面ページを開く",
   "devices.lianli-wireless.orderLabel": "ファンの順序",
   "devices.lianli-wireless.orderMoveLeft": "左へ移動",
   "devices.lianli-wireless.orderMoveRight": "右へ移動",

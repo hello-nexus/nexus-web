@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { MonitorSmartphone } from 'lucide-react';
+import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ColorPickerWithPresets } from '../../common/ColorPickerWithPresets/ColorPickerWithPresets';
@@ -22,7 +24,7 @@ const LOOP_INTERVAL_MAX = 60;
 type ColorKey = 'labelColor' | 'valueColor' | 'unitColor';
 
 /** The screen of one bound HydroShift II: theme, brightness, readings and colours, applied as they change. */
-export function LianLiAioScreenSection({ mac }: { mac: string }) {
+export function LianLiAioScreenSection({ mac, onOpenPanel }: { mac: string; onOpenPanel?: () => void }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [screen, setScreen] = useState<LianLiAioScreen | null>(null);
@@ -69,6 +71,11 @@ export function LianLiAioScreenSection({ mac }: { mac: string }) {
     <SettingsSection
       title={t('devices.lianli-wireless.aioScreen.title')}
       description={t('devices.lianli-wireless.aioScreen.hint')}
+      action={onOpenPanel && (
+        <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
+          {t('devices.lianli-wireless.openScreenPage')}
+        </Button>
+      )}
       boxClassName={styles.sectionBox}
     >
       <SettingSlider

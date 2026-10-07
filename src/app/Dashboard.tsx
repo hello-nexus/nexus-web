@@ -945,6 +945,7 @@ export function Dashboard() {
           connectionState={status.state}
           onOpenFirmware={() => navigate('system', 'devices', 'firmware')}
           onSectionNavigate={(target, payload) => {
+            if (target === 'device' && payload?.deviceKey) { navigate('system', 'device', payload.deviceKey); return; }
             setView(target);
             if (payload?.scrollAnchors) requestSearchScroll(payload.scrollAnchors);
           }}

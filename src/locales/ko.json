@@ -773,6 +773,7 @@
   "devices.lianli-wireless.noPwmCable": "PWM 케이블 연결 안 됨",
   "devices.lianli-wireless.noScreens": "화면을 찾을 수 없습니다",
   "devices.lianli-wireless.notConnected": "Lian Li L-Wireless Controller가 연결되지 않음",
+  "devices.lianli-wireless.openScreenPage": "화면 페이지 열기",
   "devices.lianli-wireless.orderLabel": "팬 순서",
   "devices.lianli-wireless.orderMoveLeft": "왼쪽으로 이동",
   "devices.lianli-wireless.orderMoveRight": "오른쪽으로 이동",

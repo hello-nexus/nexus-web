@@ -780,6 +780,7 @@
   "devices.lianli-wireless.noPwmCable": "Кабель PWM не подключён",
   "devices.lianli-wireless.noScreens": "Экраны не найдены",
   "devices.lianli-wireless.notConnected": "Lian Li L-Wireless Controller не подключён",
+  "devices.lianli-wireless.openScreenPage": "Открыть страницу экрана",
   "devices.lianli-wireless.orderLabel": "Порядок вентиляторов",
   "devices.lianli-wireless.orderMoveLeft": "Сдвинуть влево",
   "devices.lianli-wireless.orderMoveRight": "Сдвинуть вправо",

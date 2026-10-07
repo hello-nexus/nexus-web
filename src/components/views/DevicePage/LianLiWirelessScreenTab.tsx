@@ -84,7 +84,11 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  * Polls its own `/screens` list independently of the shell's fan-state poll.
  * Each bound HydroShift II adds its own screen section above the fan screens.
  */
-export function LianLiWirelessScreenTab({ aioMacs = [] }: { aioMacs?: string[] }) {
+export function LianLiWirelessScreenTab({ aioMacs = [], panelOpener }: {
+  aioMacs?: string[];
+  /** Opens an AIO's own panel page by MAC; undefined when it has none. */
+  panelOpener?: (mac: string) => (() => void) | undefined;
+}) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [screens, setScreens] = useState<LianLiWirelessScreen[] | null>(null);
@@ -319,7 +323,7 @@ export function LianLiWirelessScreenTab({ aioMacs = [] }: { aioMacs?: string[] }
 
   return (
     <>
-      {aioMacs.map(mac => <LianLiAioScreenSection key={mac} mac={mac} />)}
+      {aioMacs.map(mac => <LianLiAioScreenSection key={mac} mac={mac} onOpenPanel={panelOpener?.(mac)} />)}
 
       {fanScreens && <SettingsSection
         title={t('devices.lianli-wireless.selectionSection')}

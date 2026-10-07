@@ -40,6 +40,11 @@ vi.mock('../../../api/lianli-wireless', () => ({
   getLianLiWirelessMedia: () => Promise.resolve([]),
 }));
 
+const mockFetchPanelDevices = vi.fn(() => Promise.resolve({ devices: [] as unknown[] }));
+vi.mock('../../../api/panel', () => ({
+  fetchPanelDevices: () => mockFetchPanelDevices(),
+}));
+
 vi.mock('../../../api/cooling', () => ({
   fetchFanChannels: () => Promise.resolve({ channels: [] }),
   fetchCurves: () => Promise.resolve({ globalSpeedModifier: 100, curves: [] }),
@@ -389,6 +394,69 @@ describe('LianLiWirelessDevicePage', () => {
     expect(mockGetLianLiAioScreen).toHaveBeenCalledWith(connectedState.fans[0].mac);
     expect(screen.getByText('devices.lianli-wireless.aioScreen.title')).toBeInTheDocument();
     expect(screen.queryByText('devices.lianli-wireless.noScreens')).not.toBeInTheDocument();
+  });
+
+  it('links a HydroShift II on USB to its screen page from the Devices row and the Screens tab', async () => {
+    mockGetLianLiAioScreen.mockResolvedValue({
+      brightness: 80, theme: 0, themeCount: 13, labelColor: '#FFFFFF', valueColor: '#FFFFFF', unitColor: '#FFFFFF',
+      showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false, loopInterval: 3,
+    });
+    mockFetchPanelDevices.mockResolvedValue({ devices: [{ id: 'REC1', streamed: true, capabilities: { family: 'lianli-hydroshift2' } }] });
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], devType: 11, fanType: 0, fanCount: 0, usbConnected: true }],
+    });
+    const navigate = vi.fn();
+    await act(async () => {
+      render(<LianLiWirelessDevicePage onSectionNavigate={navigate} />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' }));
+    expect(navigate).toHaveBeenCalledWith('device', { deviceKey: 'panel-stream:REC1' });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ }));
+    });
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).toBeInTheDocument();
+  });
+
+  it('finds the screen page once its stream starts and drops it when the stream ends', async () => {
+    vi.useFakeTimers();
+    try {
+      const record = { id: 'REC1', streamed: true, capabilities: { family: 'lianli-hydroshift2' } };
+      mockFetchPanelDevices
+        .mockResolvedValueOnce({ devices: [] })
+        .mockResolvedValueOnce({ devices: [record] })
+        .mockResolvedValue({ devices: [] });
+      mockGetLianLiWirelessState.mockResolvedValue({
+        ...connectedState,
+        fans: [{ ...connectedState.fans[0], devType: 11, fanType: 0, fanCount: 0, usbConnected: true }],
+      });
+      await act(async () => {
+        render(<LianLiWirelessDevicePage onSectionNavigate={vi.fn()} />);
+      });
+      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).toBeInTheDocument();
+
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('offers no screen page for a HydroShift II that is not on USB', async () => {
+    mockFetchPanelDevices.mockResolvedValue({ devices: [{ id: 'REC1', streamed: true, capabilities: { family: 'lianli-hydroshift2' } }] });
+    mockGetLianLiWirelessState.mockResolvedValue({
+      ...connectedState,
+      fans: [{ ...connectedState.fans[0], devType: 11, fanType: 0, fanCount: 0 }],
+    });
+    await act(async () => {
+      render(<LianLiWirelessDevicePage onSectionNavigate={vi.fn()} />);
+    });
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+    expect(mockFetchPanelDevices).not.toHaveBeenCalled();
   });
 
   it('offers the Lighting tab once a Strimer is bound', async () => {

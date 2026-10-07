@@ -773,6 +773,7 @@
   "devices.lianli-wireless.noPwmCable": "PWM-kabel niet aangesloten",
   "devices.lianli-wireless.noScreens": "Geen schermen gevonden",
   "devices.lianli-wireless.notConnected": "Lian Li L-Wireless Controller niet verbonden",
+  "devices.lianli-wireless.openScreenPage": "Schermpagina openen",
   "devices.lianli-wireless.orderLabel": "Ventilatorvolgorde",
   "devices.lianli-wireless.orderMoveLeft": "Naar links",
   "devices.lianli-wireless.orderMoveRight": "Naar rechts",

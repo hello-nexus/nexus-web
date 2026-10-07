@@ -773,6 +773,7 @@
   "devices.lianli-wireless.noPwmCable": "PWM kablosu bağlı değil",
   "devices.lianli-wireless.noScreens": "Ekran bulunamadı",
   "devices.lianli-wireless.notConnected": "Lian Li L-Wireless Controller bağlı değil",
+  "devices.lianli-wireless.openScreenPage": "Ekran sayfasını aç",
   "devices.lianli-wireless.orderLabel": "Fan sırası",
   "devices.lianli-wireless.orderMoveLeft": "Sola taşı",
   "devices.lianli-wireless.orderMoveRight": "Sağa taşı",

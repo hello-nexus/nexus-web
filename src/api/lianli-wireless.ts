@@ -24,6 +24,8 @@ export interface LianLiWirelessFan {
   playingMotherboardArgb?: boolean;
   /** The chain's PWM cable to a motherboard fan header is plugged in. */
   pwmCableConnected?: boolean;
+  /** A HydroShift II that is also on USB, whose screen has its own panel page. */
+  usbConnected?: boolean;
 }
 
 /** Why the link is down, for the device page. Absent on a service older than the field. */

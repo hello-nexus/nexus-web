@@ -773,6 +773,7 @@
   "devices.lianli-wireless.noPwmCable": "Cavo PWM non collegato",
   "devices.lianli-wireless.noScreens": "Nessuno schermo trovato",
   "devices.lianli-wireless.notConnected": "Lian Li L-Wireless Controller non collegato",
+  "devices.lianli-wireless.openScreenPage": "Apri la pagina dello schermo",
   "devices.lianli-wireless.orderLabel": "Ordine delle ventole",
   "devices.lianli-wireless.orderMoveLeft": "Sposta a sinistra",
   "devices.lianli-wireless.orderMoveRight": "Sposta a destra",

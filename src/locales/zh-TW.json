@@ -773,6 +773,7 @@
   "devices.lianli-wireless.noPwmCable": "未連接 PWM 線材",
   "devices.lianli-wireless.noScreens": "找不到螢幕",
   "devices.lianli-wireless.notConnected": "Lian Li L-Wireless Controller 未連線",
+  "devices.lianli-wireless.openScreenPage": "開啟螢幕頁面",
   "devices.lianli-wireless.orderLabel": "風扇順序",
   "devices.lianli-wireless.orderMoveLeft": "左移",
   "devices.lianli-wireless.orderMoveRight": "右移",

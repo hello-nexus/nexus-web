@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MonitorSmartphone } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
@@ -76,6 +77,8 @@ export function deviceTypeKey(devType: number, fanType: number):
 export interface LianLiWirelessFansTabProps {
   state: LianLiWirelessState | null;
   refresh: () => Promise<void>;
+  /** Opens the panel page of a device that has one, by MAC; undefined when it has none. */
+  panelOpener?: (mac: string) => (() => void) | undefined;
 }
 
 /**
@@ -83,7 +86,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -206,6 +209,7 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
+              onOpenPanel={panelOpener?.(fan.mac)}
             />
           ))
           : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>}
@@ -230,6 +234,7 @@ function DeviceRow({
   onBind,
   onUnbindRequest,
   onIdentify,
+  onOpenPanel,
 }: {
   fan: LianLiWirelessFan;
   pending: BindAction | undefined;
@@ -237,6 +242,7 @@ function DeviceRow({
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
+  onOpenPanel?: () => void;
 }) {
   const { t } = useTranslation();
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
@@ -262,6 +268,11 @@ function DeviceRow({
       description={details || undefined}
       state={bindState}
     >
+      {onOpenPanel && (
+        <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
+          {t('devices.lianli-wireless.openScreenPage')}
+        </Button>
+      )}
       {fan.boundToUs ? (
         <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}
