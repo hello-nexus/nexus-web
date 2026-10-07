@@ -64,10 +64,21 @@ export function useWeatherSnapshot(location: WeatherLocation | null | undefined)
 
     async function load() {
       const cached = cache.get(key);
-      if (cached && Date.now() - cached.at < WEATHER_REFRESH_MS) return;
+      // Ticks land on whole minutes while a reading is stamped when its fetch
+      // finished, so a tick sees slightly under a full window; half a tick of
+      // tolerance keeps the cadence at one refresh per window.
+      if (cached && Date.now() - cached.at < WEATHER_REFRESH_MS - WEATHER_RETRY_MS / 2) {
+        // Another mount on this key fetched it; adopt the newer reading.
+        setState(prev => (cached.at > prev.fetchedAt
+          ? { snap: cached.snap, loaded: true, fetchedAt: cached.at }
+          : prev));
+        return;
+      }
       const snap = await fetchCached(key, location ?? null);
       if (cancelled) return;
-      setState(prev => ({ snap: snap ?? prev.snap, loaded: true, fetchedAt: snap ? Date.now() : prev.fetchedAt }));
+      const entry = cache.get(key);
+      const at = entry && entry.snap === snap ? entry.at : Date.now();
+      setState(prev => ({ snap: snap ?? prev.snap, loaded: true, fetchedAt: snap ? at : prev.fetchedAt }));
     }
     void load();
     const timer = setInterval(() => { void load(); }, WEATHER_RETRY_MS);

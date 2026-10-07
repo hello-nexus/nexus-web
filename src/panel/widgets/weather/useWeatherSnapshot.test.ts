@@ -52,4 +52,35 @@ describe('useWeatherSnapshot outages', () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(WEATHER_RETRY_MS * 3); });
     expect(api.fetchWeather).toHaveBeenCalledTimes(1);
   });
+
+  it('refetches at the 15 minute mark despite fetch latency', async () => {
+    api.fetchWeather.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(GOOD), 5000)));
+    renderHook(() => useWeatherSnapshot(null));
+    await act(async () => { await vi.advanceTimersByTimeAsync(15 * 60 * 1000 + 1000); });
+    expect(api.fetchWeather).toHaveBeenCalledTimes(2);
+  });
+
+  it('brings every mount on a key to the recovered reading', async () => {
+    api.fetchWeather.mockResolvedValueOnce(EMPTY).mockResolvedValue(GOOD);
+    const a = renderHook(() => useWeatherSnapshot(null));
+    await act(async () => { await vi.advanceTimersByTimeAsync(30 * 1000); });
+    const b = renderHook(() => useWeatherSnapshot(null));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(a.result.current.snap).toEqual(EMPTY);
+    expect(b.result.current.snap).toEqual(GOOD);
+    await act(async () => { await vi.advanceTimersByTimeAsync(WEATHER_RETRY_MS); });
+    expect(a.result.current.snap).toEqual(GOOD);
+    expect(b.result.current.snap).toEqual(GOOD);
+  });
+
+  it('advances every mount on a healthy refresh', async () => {
+    const r1 = { ...GOOD, temperatureC: 21 };
+    api.fetchWeather.mockResolvedValueOnce(GOOD).mockResolvedValue(r1);
+    const a = renderHook(() => useWeatherSnapshot(null));
+    await act(async () => { await vi.advanceTimersByTimeAsync(30 * 1000); });
+    const b = renderHook(() => useWeatherSnapshot(null));
+    await act(async () => { await vi.advanceTimersByTimeAsync(15 * 60 * 1000 + WEATHER_RETRY_MS); });
+    expect(a.result.current.snap).toEqual(r1);
+    expect(b.result.current.snap).toEqual(r1);
+  });
 });
