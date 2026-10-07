@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "你的电脑已锁定。有人触碰时，你会在这里收到提醒。",
   "sentry.card.armedTitle": "Sentry 已启用",
   "sentry.card.arming": "正在启用…",
+  "sentry.card.armingSentry": "正在启用 Sentry…",
   "sentry.card.disarm": "停用",
   "sentry.card.failed": "无法更改 Sentry 状态，请重试。",
   "sentry.card.lockAndArm": "锁定并启用 Sentry",

@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "Your PC is locked. If anyone touches it, you get an alert here.",
   "sentry.card.armedTitle": "Sentry is armed",
   "sentry.card.arming": "Arming…",
+  "sentry.card.armingSentry": "Arming Sentry…",
   "sentry.card.disarm": "Disarm",
   "sentry.card.failed": "Sentry could not be changed. Try again.",
   "sentry.card.lockAndArm": "Lock and Arm Sentry",

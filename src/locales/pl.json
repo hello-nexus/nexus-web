@@ -4278,6 +4278,7 @@
   "sentry.card.armed": "Twój komputer jest zablokowany. Gdy ktoś go dotknie, otrzymasz tutaj alert.",
   "sentry.card.armedTitle": "Sentry jest uzbrojony",
   "sentry.card.arming": "Uzbrajanie…",
+  "sentry.card.armingSentry": "Uzbrajanie Sentry…",
   "sentry.card.disarm": "Rozbrój",
   "sentry.card.failed": "Nie udało się zmienić ustawień Sentry. Spróbuj ponownie.",
   "sentry.card.lockAndArm": "Zablokuj i uzbrój Sentry",

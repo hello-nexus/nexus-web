@@ -4278,6 +4278,7 @@
   "sentry.card.armed": "Ваш ПК заблокирован. Если кто-то его коснётся, вы получите здесь оповещение.",
   "sentry.card.armedTitle": "Sentry включён",
   "sentry.card.arming": "Включение…",
+  "sentry.card.armingSentry": "Включение Sentry…",
   "sentry.card.disarm": "Выключить",
   "sentry.card.failed": "Не удалось изменить состояние Sentry. Повторите попытку.",
   "sentry.card.lockAndArm": "Заблокировать и включить Sentry",

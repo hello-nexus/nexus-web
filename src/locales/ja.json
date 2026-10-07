@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "PC はロックされています。誰かが触れると、ここにアラートが届きます。",
   "sentry.card.armedTitle": "Sentry は有効です",
   "sentry.card.arming": "有効にしています…",
+  "sentry.card.armingSentry": "Sentry を有効にしています…",
   "sentry.card.disarm": "無効にする",
   "sentry.card.failed": "Sentry を変更できませんでした。もう一度お試しください。",
   "sentry.card.lockAndArm": "ロックして Sentry を有効にする",

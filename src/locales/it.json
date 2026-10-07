@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "Il tuo PC è bloccato. Se qualcuno lo tocca, ricevi qui un avviso.",
   "sentry.card.armedTitle": "Sentry è attivo",
   "sentry.card.arming": "Attivazione…",
+  "sentry.card.armingSentry": "Attivazione di Sentry…",
   "sentry.card.disarm": "Disattiva",
   "sentry.card.failed": "Impossibile modificare Sentry. Riprova.",
   "sentry.card.lockAndArm": "Blocca e attiva Sentry",

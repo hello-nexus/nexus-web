@@ -146,10 +146,44 @@ describe('PanelSentry', () => {
   });
 
   it('reduced motion skips the minimum duration', async () => {
-    vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+      render(<PanelSentry {...props} />);
+      fireEvent.click(await screen.findByText('sentry.card.arm'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByText('sentry.card.disarm')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('drops a poll fetch that started before an arm finished', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let late: (v: SentryState) => void = () => {};
+      vi.mocked(fetchSentry).mockResolvedValueOnce(state({}))
+        .mockReturnValueOnce(new Promise<SentryState>((r) => { late = r; }))
+        .mockResolvedValue(state({ armed: true }));
+      vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+      render(<PanelSentry {...props} />);
+      const arm = await screen.findByText('sentry.card.arm');
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      fireEvent.click(arm);
+      await screen.findByText('sentry.card.disarm');
+      await act(async () => { late(state({ armed: false })); });
+      expect(screen.getByText('sentry.card.disarm')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('hides the alerts setup line once armed', async () => {
+    installBridge({ platform: 'ios', permission: 'prompt', token: null, environment: 'production' });
+    vi.mocked(fetchSentry).mockResolvedValue(state({ armed: true }));
     render(<PanelSentry {...props} />);
-    fireEvent.click(await screen.findByText('sentry.card.arm'));
     await screen.findByText('sentry.card.disarm');
+    expect(screen.queryByText('sentry.card.alertsSetup')).toBeNull();
   });
 
   it('tapping the icon while idle arms like the button', async () => {

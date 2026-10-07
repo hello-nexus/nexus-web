@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "Ihr PC ist gesperrt. Wenn ihn jemand berührt, erhalten Sie hier eine Warnung.",
   "sentry.card.armedTitle": "Sentry ist scharf geschaltet",
   "sentry.card.arming": "Wird scharf geschaltet…",
+  "sentry.card.armingSentry": "Sentry wird scharf geschaltet…",
   "sentry.card.disarm": "Entschärfen",
   "sentry.card.failed": "Sentry konnte nicht geändert werden. Versuchen Sie es erneut.",
   "sentry.card.lockAndArm": "Sperren und Sentry scharf schalten",

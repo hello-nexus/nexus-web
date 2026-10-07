@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "Bilgisayarınız kilitli. Biri ona dokunursa burada uyarı alırsınız.",
   "sentry.card.armedTitle": "Sentry etkin",
   "sentry.card.arming": "Etkinleştiriliyor…",
+  "sentry.card.armingSentry": "Sentry etkinleştiriliyor…",
   "sentry.card.disarm": "Devre dışı bırak",
   "sentry.card.failed": "Sentry değiştirilemedi. Lütfen tekrar deneyin.",
   "sentry.card.lockAndArm": "Kilitle ve Sentry'yi etkinleştir",

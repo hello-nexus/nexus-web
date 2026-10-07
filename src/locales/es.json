@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "Tu PC está bloqueado. Si alguien lo toca, recibes una alerta aquí.",
   "sentry.card.armedTitle": "Sentry está armado",
   "sentry.card.arming": "Armando…",
+  "sentry.card.armingSentry": "Armando Sentry…",
   "sentry.card.disarm": "Desarmar",
   "sentry.card.failed": "No se pudo cambiar Sentry. Inténtalo de nuevo.",
   "sentry.card.lockAndArm": "Bloquear y armar Sentry",

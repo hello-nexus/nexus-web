@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "PC가 잠겨 있습니다. 누군가 건드리면 여기에서 알림을 받습니다.",
   "sentry.card.armedTitle": "Sentry가 활성화되었습니다",
   "sentry.card.arming": "활성화 중…",
+  "sentry.card.armingSentry": "Sentry 활성화 중…",
   "sentry.card.disarm": "비활성화",
   "sentry.card.failed": "Sentry를 변경할 수 없습니다. 다시 시도해 주세요.",
   "sentry.card.lockAndArm": "잠그고 Sentry 활성화",

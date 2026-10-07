@@ -4236,6 +4236,7 @@
   "sentry.card.armed": "Il to PC al è blocât. Se cualchidun lu tocje, tu ricevis achì un avîs.",
   "sentry.card.armedTitle": "Sentry al è armât",
   "sentry.card.arming": "Daûr a armâ…",
+  "sentry.card.armingSentry": "Daûr a armâ Sentry…",
   "sentry.card.disarm": "Disarmâ",
   "sentry.card.failed": "Impussibil cambiâ Sentry. Torne prove.",
   "sentry.card.lockAndArm": "Bloche e arme Sentry",

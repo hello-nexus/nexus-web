@@ -9,7 +9,7 @@ import styles from './PanelSentry.module.scss';
 
 const POLL_MS = 5000;
 const FINAL_PUSH_STATUSES = new Set([400, 404, 422]);
-// The arming animation always plays this long, even when the service answers at once.
+// A successful arm holds the arming state at least this long, even when the service answers at once.
 const MIN_ARM_MS = 1000;
 
 function prefersReducedMotion(): boolean {
@@ -87,6 +87,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
     void syncPush();
   }, [registrationJson, syncPush]);
 
+  const actionSeqRef = useRef(0);
   const readingRef = useRef(false);
   useEffect(() => {
     if (!enabled) return;
@@ -96,9 +97,10 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
       void syncPush();
       if (busyRef.current || readingRef.current) return;
       readingRef.current = true;
+      const seq = actionSeqRef.current;
       try {
         const next = await fetchSentry().catch(() => null);
-        if (cancelled || busyRef.current || !next) return;
+        if (cancelled || busyRef.current || seq !== actionSeqRef.current || !next) return;
         setState(next);
       } finally {
         readingRef.current = false;
@@ -153,7 +155,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
     setError(null);
     try {
       const next = await action();
-      if (next) setState(next);
+      if (next) { actionSeqRef.current += 1; setState(next); }
       else setError('failed');
     } finally {
       busyRef.current = false;
@@ -178,6 +180,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
       if (result.ok) {
         const remaining = prefersReducedMotion() ? 0 : MIN_ARM_MS - (Date.now() - startedAt);
         if (remaining > 0) await new Promise<void>((resolve) => { window.setTimeout(resolve, remaining); });
+        actionSeqRef.current += 1;
         setState(result.state);
         return;
       }
@@ -189,7 +192,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
       if (result.reason === 'not_locked') {
         // Refresh so the card reflects the PC being unlocked meanwhile.
         const next = await fetchSentry().catch(() => null);
-        if (next) setState(next);
+        if (next) { actionSeqRef.current += 1; setState(next); }
       }
     } finally {
       busyRef.current = false;
@@ -205,7 +208,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
   const title = state.armed ? t('sentry.card.armedTitle') : t('sentry.card.title');
   const message = state.armed ? t('sentry.card.armed')
     : arming === 'lock' ? t('sentry.card.lockingPc')
-    : arming === 'arm' ? t('sentry.card.arming')
+    : arming === 'arm' ? t('sentry.card.armingSentry')
     : state.locked ? t('sentry.card.locked')
     : refusesLock ? t('sentry.card.notLocked')
     : t('sentry.card.promptLock');
@@ -216,7 +219,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
   const alertsOn = alerts === 'granted' && registered;
   const alertsText = alerts === 'denied' ? t('sentry.card.alertsDenied')
     : alertsOn ? t('sentry.card.alertsOn')
-    : alerts === 'prompt' ? t('sentry.card.alertsSetup')
+    : alerts === 'prompt' && !state.armed ? t('sentry.card.alertsSetup')
     : null;
 
   return (
