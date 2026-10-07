@@ -32,6 +32,7 @@ import { isTryxSimulated, setTryxSimulated } from '../../lib/tryxSimulation';
 import { FontDebugCard } from './FontDebugCard';
 import { AppTelemetryCard } from './AppTelemetryCard';
 import { HelloGreetingCard } from './HelloGreetingCard';
+import { DevSimEventsCard } from './DevSimEventsCard';
 import { fetchInstallDefaults, fetchInstallDefaultsSnapshot, type InstallDefaultsDocument } from '../../api/installDefaults';
 import { DeviceModal } from '../common/DeviceModal/DeviceModal';
 import { Select } from '../common/Select/Select';
@@ -87,6 +88,7 @@ export function ToolsView({ serviceOnline, connectionState }: ToolsViewProps) {
             <InstallDefaultsCard />
             <PawnIoCard />
             <PanelSimulatorCard />
+            {DEV_TOOLS && <DevSimEventsCard />}
             <FontDebugCard />
             <HelloGreetingCard />
           </div>

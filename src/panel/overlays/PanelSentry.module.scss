@@ -1,0 +1,65 @@
+@use '../styles/flexGap' as *;
+
+.wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 150;
+  display: flex;
+  justify-content: center;
+  padding: 12px 12px max(40px, calc(env(safe-area-inset-bottom) + 24px));
+  pointer-events: none;
+  font-family: var(--panel-font);
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.card {
+  width: min(420px, 100%);
+  border-radius: var(--radius-lg);
+  background: var(--panel-card-bg, var(--surface));
+  border: 1px solid var(--panel-card-border, var(--border));
+  padding: 16px;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  @include vgap(10px);
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  @include hgap(8px);
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--type-body);
+  font-weight: var(--weight-heading);
+}
+
+.message {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--type-small);
+  color: var(--bad);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  @include wrapgap(8px);
+}

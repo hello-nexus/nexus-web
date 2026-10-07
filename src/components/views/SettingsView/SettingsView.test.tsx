@@ -11,6 +11,8 @@ vi.mock('../../../api/smartPoll', async (importActual) => ({
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
   postService: vi.fn().mockResolvedValue(null),
+  isRemoteOrigin: false,
+  isRemotePaired: false,
 }));
 
 vi.mock('../../../hooks/useUiSettings', () => ({
