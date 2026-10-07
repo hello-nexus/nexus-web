@@ -17,7 +17,8 @@
   position: relative;
   width: min(420px, 100%);
   border-radius: var(--radius-lg);
-  background: var(--panel-card-bg, var(--surface));
+  // The opaque sheet fill, not the translucent widget card fill: the card sits over widgets.
+  background: var(--panel-sheet-bg);
   border: 1px solid var(--panel-card-border, var(--border));
   padding: 22px 18px 18px;
   box-shadow: var(--shadow-xl);
