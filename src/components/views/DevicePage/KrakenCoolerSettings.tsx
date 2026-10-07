@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image as ImageIcon, Lightbulb, Unplug } from 'lucide-react';
+import { Image as ImageIcon, Lightbulb, Sparkles, Unplug } from 'lucide-react';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
@@ -8,10 +8,14 @@ import {
   encodeKrakenFrame,
   getKrakenState,
   setKrakenLcd,
+  uploadKrakenLcdGif,
   uploadKrakenLcdImage,
+  uploadKrakenLcdKlipy,
   type KrakenLcdPatch,
   type KrakenState,
 } from '../../../api/nzxt-kraken';
+import type { KlipyGif } from '../../../api/klipy';
+import { KlipyPicker } from '../../common/KlipyPicker/KlipyPicker';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { convertTemperature, formatNumber, localizeNumbers, tempUnitSymbol } from '../../../lib/units';
@@ -49,6 +53,8 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
   const [state, setState] = useState<KrakenState | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadError, setUploadError] = useState(false);
+  const [klipyOpen, setKlipyOpen] = useState(false);
+  const [klipyBusy, setKlipyBusy] = useState<string | null>(null);
   const aliveRef = useRef(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
   // Set while the brightness thumb is being dragged, so the poll below keeps the local
@@ -97,6 +103,12 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
     setSaving(true);
     setUploadError(false);
     try {
+      if (state.lcdGif && file.type === 'image/gif') {
+        const ok = await uploadKrakenLcdGif(file);
+        if (aliveRef.current && !ok) setUploadError(true);
+        await refresh();
+        return;
+      }
       const bitmap = await createImageBitmap(file);
       try {
         const rgba = await encodeKrakenFrame(
@@ -113,6 +125,27 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
       if (aliveRef.current) setSaving(false);
     }
   }, [state, refresh]);
+
+  const onPickKlipy = useCallback(async (gif: KlipyGif) => {
+    setKlipyBusy(gif.slug);
+    setSaving(true);
+    setUploadError(false);
+    try {
+      const ok = await uploadKrakenLcdKlipy(gif.slug);
+      if (!aliveRef.current) return;
+      if (ok) {
+        setKlipyOpen(false);
+        await refresh();
+      } else {
+        setUploadError(true);
+      }
+    } finally {
+      if (aliveRef.current) {
+        setKlipyBusy(null);
+        setSaving(false);
+      }
+    }
+  }, [refresh]);
 
   if (connection === 'disconnected') {
     return <EmptyState icon={<Unplug size={40} />} title={t('devices.nzxt-kraken.notConnected')} />;
@@ -227,6 +260,27 @@ export function KrakenCoolerSettings({ onSectionNavigate, screenStreamed = false
             >
               {t('devices.nzxt-kraken.screenPickImage')}
             </Button>
+            {state?.lcdGif && (
+              <>
+                <Button
+                  className={styles.lightingLink}
+                  size="sm"
+                  tone="neutral"
+                  icon={<Sparkles size={14} aria-hidden />}
+                  disabled={saving}
+                  onClick={() => setKlipyOpen(true)}
+                >
+                  {t('lighting.controls.klipyBrowse')}
+                </Button>
+                <KlipyPicker
+                  open={klipyOpen}
+                  busySlug={klipyBusy}
+                  importError={klipyOpen && uploadError ? t('devices.nzxt-kraken.screenUploadFailed') : null}
+                  onPick={onPickKlipy}
+                  onClose={() => { setKlipyOpen(false); setUploadError(false); }}
+                />
+              </>
+            )}
             {uploadError && (
               <p className={styles.customNote} data-settings-aside="true">
                 {t('devices.nzxt-kraken.screenUploadFailed')}

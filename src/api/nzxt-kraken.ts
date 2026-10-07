@@ -1,4 +1,4 @@
-import { fetchService, putService, postServiceBytes } from './service';
+import { fetchService, putService, postService, postServiceBytes } from './service';
 
 export interface KrakenChannel {
   id: string;
@@ -20,6 +20,8 @@ export interface KrakenState {
   lcdBrightness: number;
   lcdOrientation: number;
   lcdMode: 'liquid' | 'image' | 'off';
+  /** True when the attached model plays an uploaded GIF by itself (Kraken Z3 only). */
+  lcdGif?: boolean;
   channels: KrakenChannel[];
 }
 
@@ -82,6 +84,23 @@ export function setKrakenFirmwareLighting(patch: KrakenFirmwareLightingPatch): P
 export async function uploadKrakenLcdImage(rgba: Uint8Array): Promise<boolean> {
   const r = await postServiceBytes('/devices/nzxt-kraken/lcd/image', rgba, 'application/octet-stream');
   return r !== null;
+}
+
+/** Sends the picked GIF as-is; the service converts it and uploads it to the pump. */
+export async function uploadKrakenLcdGif(file: Blob): Promise<boolean> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const r = await postServiceBytes('/devices/nzxt-kraken/lcd/gif', bytes, 'image/gif');
+  return r !== null;
+}
+
+/** Has the service fetch a Klipy GIF by slug, convert it, and upload it to the pump. */
+export async function uploadKrakenLcdKlipy(slug: string): Promise<boolean> {
+  try {
+    const r = await postService<{ error?: boolean }>('/devices/nzxt-kraken/lcd/klipy', { slug });
+    return r !== null && !r.error;
+  } catch {
+    return false;
+  }
 }
 
 /**
