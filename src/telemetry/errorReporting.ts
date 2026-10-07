@@ -1,4 +1,4 @@
-import { postService } from '../api/service';
+import { authFetchWithStatus } from '../api/service';
 
 export type ErrorKind = 'window-error' | 'unhandled-rejection' | 'render';
 
@@ -33,9 +33,9 @@ function cap(value: string, max: number): string {
   return value.length > max ? value.slice(0, max) : value;
 }
 
-// Drops query strings and hashes from URLs: panel URLs can carry tokens.
+// Drops query strings and fragments from scheme URLs and relative paths: panel URLs can carry tokens.
 function stripUrlSecrets(text: string): string {
-  return text.replace(/(https?:\/\/[^\s?#)'"]*)[?#][^\s)'"]*/g, '$1');
+  return text.replace(/([a-z][a-z0-9+.-]*:\/\/[^\s?#)'"]*|\/[^\s?#)'"]*)[?#][^\s)'"]*/gi, '$1');
 }
 
 function normalizeMessage(message: string): string {
@@ -63,16 +63,23 @@ export function fingerprintOf(type: string, message: string): string {
 
 function describe(error: unknown): { type: string; message: string; stack: string } {
   if (error instanceof Error) {
-    return { type: error.name || 'Error', message: String(error.message), stack: String(error.stack ?? '') };
+    const name: unknown = error.name;
+    return {
+      type: typeof name === 'string' && name !== '' ? name : 'Error',
+      message: String(error.message),
+      stack: String(error.stack ?? ''),
+    };
   }
   if (typeof error === 'string') return { type: 'string', message: error, stack: '' };
-  let message = '';
-  try {
-    message = typeof error === 'object' && error !== null ? JSON.stringify(error) ?? '' : String(error);
-  } catch {
-    message = '';
+  if (typeof error === 'function') {
+    return { type: 'function', message: `function ${String(error.name)}`, stack: '' };
   }
-  return { type: typeof error, message, stack: '' };
+  if (typeof error === 'object' && error !== null) {
+    const ctor: unknown = Object.getPrototypeOf(error)?.constructor?.name;
+    const type = typeof ctor === 'string' && ctor !== '' ? ctor : 'object';
+    return { type, message: `${type}{${Object.keys(error).slice(0, 10).join(',')}}`, stack: '' };
+  }
+  return { type: error === null ? 'null' : typeof error, message: String(error), stack: '' };
 }
 
 function isNoise(message: string, stack: string): boolean {
@@ -104,9 +111,9 @@ async function flush(): Promise<void> {
   if (dirty.size > 0) schedule();
   if (errors.length === 0) return;
   try {
-    await postService(ENDPOINT, { errors });
+    await authFetchWithStatus(ENDPOINT, { method: 'POST', body: { errors } });
   } catch {
-    // a failed POST is dropped
+    return;
   }
 }
 
@@ -130,7 +137,7 @@ function gateOpen(): boolean {
 }
 
 export function reportError(error: unknown, kind: ErrorKind, context?: string): void {
-  if (reporting || !gateOpen()) return;
+  if (!installed || reporting || !gateOpen()) return;
   reporting = true;
   try {
     const d = describe(error);
@@ -145,7 +152,20 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string): 
       schedule();
       return;
     }
-    if (records.size >= MAX_DISTINCT) return;
+    if (records.size >= MAX_DISTINCT) {
+      let evict: string | null = null;
+      for (const [fp, rec] of records) {
+        if (rec.unsent === 0) {
+          evict = fp;
+          break;
+        }
+      }
+      if (evict === null) {
+        dropped += 1;
+        return;
+      }
+      records.delete(evict);
+    }
     dirty.add(fingerprint);
     records.set(fingerprint, { unsent: 1, entry: {
       kind,
@@ -158,7 +178,7 @@ export function reportError(error: unknown, kind: ErrorKind, context?: string): 
     } });
     schedule();
   } catch {
-    // reporting must never throw
+    return;
   } finally {
     reporting = false;
   }

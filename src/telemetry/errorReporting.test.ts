@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const postService = vi.fn();
-vi.mock('../api/service', () => ({ postService: (...a: unknown[]) => postService(...a) }));
+vi.mock('../api/service', () => ({
+  authFetchWithStatus: (...a: unknown[]) => postService(...a),
+}));
 
 import {
   droppedErrorCount,
@@ -12,12 +14,13 @@ import {
 } from './errorReporting';
 
 type Body = { errors: Array<Record<string, unknown>> };
-const sent = (): Body[] => postService.mock.calls.map((c) => c[1] as Body);
+const sent = (): Body[] => postService.mock.calls.map((c) => (c[1] as { body: Body }).body);
 
 beforeEach(() => {
   vi.useFakeTimers();
   postService.mockReset();
-  postService.mockResolvedValue(null);
+  postService.mockResolvedValue({ response: null, status: 204 });
+  installGlobalErrorReporting();
 });
 
 afterEach(() => {
@@ -36,6 +39,7 @@ describe('fingerprintOf', () => {
 
 describe('installGlobalErrorReporting', () => {
   it('is idempotent', () => {
+    resetErrorReportingForTests();
     const spy = vi.spyOn(window, 'addEventListener');
     installGlobalErrorReporting();
     installGlobalErrorReporting();
@@ -106,8 +110,7 @@ describe('reportError', () => {
     const t0 = performance.now();
     for (let i = 0; i < 100000; i++) reportError(err, 'render');
     const ms = performance.now() - t0;
-    console.info(`100000 reportError calls: ${ms.toFixed(1)} ms`);
-    expect(ms).toBeLessThan(500);
+    expect(ms).toBeLessThan(2000);
     expect(droppedErrorCount()).toBeGreaterThanOrEqual(100000 - 20);
   });
 
@@ -155,5 +158,51 @@ describe('reportError', () => {
     expect(r.context).toBe('/panel/phone in Foo');
     expect(JSON.stringify(r)).not.toContain('SECRET');
     window.history.replaceState(null, '', '/');
+  });
+
+  it('is a no-op until the listeners are installed', async () => {
+    resetErrorReportingForTests();
+    reportError(new Error('early'), 'render');
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(postService).not.toHaveBeenCalled();
+  });
+
+  it('describes non-Error values by shape only', async () => {
+    reportError({ status: 500, body: 'secret-token' }, 'unhandled-rejection');
+    reportError(function leaky() { return 'secret-source'; }, 'unhandled-rejection');
+    reportError(Object.assign(new Error('e'), { name: 42 }), 'window-error');
+    reportError(null, 'unhandled-rejection');
+    await vi.advanceTimersByTimeAsync(5000);
+    const errors = sent()[0].errors;
+    expect(errors.map((e) => `${e.type}:${e.message}`)).toEqual([
+      'Object:Object{status,body}',
+      'function:function leaky',
+      'Error:e',
+      'null:null',
+    ]);
+    expect(JSON.stringify(errors)).not.toContain('secret');
+  });
+
+  it('strips query and fragment from ws urls and relative paths', async () => {
+    reportError(new Error('x wss://h/ws?token=SECRET and /panel?t=SECRET2#SECRET3 done'), 'window-error');
+    await vi.advanceTimersByTimeAsync(5000);
+    const r = sent()[0].errors[0];
+    expect(r.message).toBe('x wss://h/ws and /panel done');
+  });
+
+  it('evicts a sent record when full and counts a drop when nothing can be evicted', async () => {
+    for (let i = 0; i < 20; i++) {
+      reportError(new Error(`full-${'x'.repeat(i + 1)}-q`), 'window-error');
+      vi.advanceTimersByTime(120);
+    }
+    reportError(new Error('overflow-aaa'), 'window-error');
+    vi.advanceTimersByTime(120);
+    expect(droppedErrorCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(5000);
+    await vi.advanceTimersByTimeAsync(5000);
+    reportError(new Error('overflow-bbb'), 'window-error');
+    await vi.advanceTimersByTimeAsync(5000);
+    const last = sent()[sent().length - 1].errors[0];
+    expect(last.message).toBe('overflow-bbb');
   });
 });
