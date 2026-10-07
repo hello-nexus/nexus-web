@@ -87,6 +87,7 @@ import {
 import { useCrossZoneDrag } from '../app/CrossZoneDrag';
 import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
+import { PanelSentry } from './overlays/PanelSentry';
 import { useTranslation } from '../lib/i18n';
 import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
@@ -2159,6 +2160,11 @@ export function PanelContent({
           onOpenNativePairing={nativeSettings.open}
         />
       )}
+      <PanelSentry
+        enabled={kioskBehavior && surface === 'phone'}
+        resolvedThemeMode={resolvedThemeMode}
+        themeStyle={panelThemeVars}
+      />
       {kioskBehavior && surface === 'phone' && (
         <ConfirmModal
           open={(multiplex?.directUpgradeFailed ?? false) && multiplex?.transport === 'relay'}
