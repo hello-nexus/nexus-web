@@ -28,12 +28,13 @@ function deferred<T>() {
 const handle: { current: ReturnType<typeof useThermalGuard> | null } = { current: null };
 const hook = {
   toggle: (enabled: boolean) => handle.current!.toggle(enabled),
+  setLintWarnings: (on: boolean) => handle.current!.setLintWarnings(on),
   refresh: () => handle.current!.refresh(),
 };
 function Harness({ online = true }: { online?: boolean }) {
   const h = useThermalGuard(online);
   useEffect(() => { handle.current = h; });
-  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{[h.error, h.toggleError, h.limitError, h.lintWarningsError, h.ackError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
+  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.pendingEnabled != null ? ` pending:${h.pendingEnabled ? 'on' : 'off'}` : ''}</span><span data-testid="lint">{h.pendingLintWarnings == null ? 'none' : String(h.pendingLintWarnings)}</span>{[h.error, h.toggleError, h.limitError, h.lintWarningsError, h.ackError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
 }
 const mount = (online = true) => render(<Harness online={online} />);
 
@@ -72,17 +73,45 @@ describe('useThermalGuard', () => {
     expect(screen.getByTestId('state').textContent).toBe('none');
   });
 
-  it('marks the switch busy during the POST and merges a repeated submit', async () => {
+  it('shows the asked-for switch value during the POST and merges a repeated submit', async () => {
     mount();
     await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
     const post = deferred<GuardResponse>();
     api.setGuardConfig.mockReturnValue(post.promise);
     act(() => { void hook.toggle(false); void hook.toggle(false); });
-    expect(screen.getByTestId('state').textContent).toContain('busy');
+    expect(screen.getByTestId('state').textContent).toContain('pending:off');
     // The second request is the same intent: one write in flight, nothing dropped or doubled.
     await act(async () => { post.resolve(guard('off')); });
     await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('off'); });
     expect(screen.getByTestId('state').textContent).toBe('off');
+  });
+
+  it('keeps showing the last click through rapid off/on and ends on the last write', async () => {
+    mount();
+    await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+    const first = deferred<GuardResponse>();
+    const second = deferred<GuardResponse>();
+    api.setGuardConfig.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    act(() => { void hook.toggle(false); });
+    act(() => { void hook.toggle(true); });
+    expect(screen.getByTestId('state').textContent).toContain('pending:on');
+    // The first write lands while the newer click still waits: the switch keeps the newer value.
+    await act(async () => { first.resolve(guard('off')); });
+    expect(screen.getByTestId('state').textContent).toBe('off pending:on');
+    await act(async () => { second.resolve(guard('normal')); });
+    await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+    expect(api.setGuardConfig).toHaveBeenLastCalledWith({ enabled: true });
+  });
+
+  it('shows the asked-for hazard-warning value until the write lands', async () => {
+    mount();
+    await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+    const post = deferred<GuardResponse>();
+    api.setGuardConfig.mockReturnValueOnce(post.promise);
+    act(() => { void hook.setLintWarnings(false); });
+    expect(screen.getByTestId('lint').textContent).toBe('false');
+    await act(async () => { post.resolve({ ...guard('normal'), lintWarnings: false }); });
+    await waitFor(() => { expect(screen.getByTestId('lint').textContent).toBe('none'); });
   });
 
   it('shows an error and keeps the state when the POST fails', async () => {
@@ -91,7 +120,8 @@ describe('useThermalGuard', () => {
     api.setGuardConfig.mockResolvedValue(null);
     await act(async () => { await hook.toggle(false); });
     await screen.findByText('cooling.guard.error.toggle');
-    expect(screen.getByTestId('state').textContent).toBe('normal');
+    // The pending value is dropped, so the switch shows the server's state again.
+    await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
   });
 
   it('a failed undo sets an error and reports false', async () => {

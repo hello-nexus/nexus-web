@@ -1,6 +1,7 @@
 /**
  * Soft particle layer for clip-scheduled effects (hearts, sparkles, notes,
- * sleepy z's, petals). Sprites live under a root that mirrors the character
+ * sleepy z's, petals, steam puffs, sweat drops, heat squiggles, fanned air).
+ * Sprites live under a root that mirrors the character
  * root, so event coordinates in model scene space land on the character.
  * Rendered over the finished frame without depth testing: every authored
  * effect sits in front of the character.
@@ -114,6 +115,74 @@ const DRAW: Record<FxKind, Draw> = {
     ctx.strokeStyle = 'rgba(240,150,185,0.8)';
     ctx.stroke();
   },
+  steam(ctx, s) {
+    const puffs = [[0.5, 0.58, 0.24], [0.29, 0.63, 0.17], [0.71, 0.63, 0.17], [0.41, 0.42, 0.19], [0.61, 0.44, 0.16]];
+    for (const [fill, pad] of [['#d8d2f4', 0.04], ['#ffffff', 0]] as const) {
+      ctx.fillStyle = fill;
+      for (const [x, y, r] of puffs) {
+        ctx.beginPath();
+        ctx.arc(x * s, y * s, (r + pad) * s, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  },
+  sweat(ctx, s) {
+    const c = s / 2;
+    ctx.beginPath();
+    ctx.moveTo(c, s * 0.08);
+    ctx.bezierCurveTo(c + s * 0.06, s * 0.3, c + s * 0.29, s * 0.48, c + s * 0.29, s * 0.66);
+    ctx.arc(c, s * 0.66, s * 0.29, 0, Math.PI);
+    ctx.bezierCurveTo(c - s * 0.29, s * 0.48, c - s * 0.06, s * 0.3, c, s * 0.08);
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, s * 0.1, 0, s * 0.95);
+    g.addColorStop(0, '#d9f1ff');
+    g.addColorStop(1, '#73c6f4');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.lineWidth = s * 0.05;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.beginPath();
+    ctx.ellipse(c - s * 0.11, s * 0.64, s * 0.05, s * 0.09, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  heat(ctx, s) {
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const squiggle = (x: number, top: number) => {
+      ctx.beginPath();
+      for (let i = 0; i <= 24; i++) {
+        const f = i / 24;
+        const px = x + Math.sin(f * Math.PI * 2.5) * s * 0.055;
+        const py = top + (s * 0.86 - top) * f;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+    };
+    const lines = [[0.28, 0.3], [0.5, 0.14], [0.72, 0.3]] as const;
+    for (const [style, width] of [['rgba(255,255,255,0.9)', 0.11], ['#ff8aa6', 0.055]] as const) {
+      for (const [x, top] of lines) {
+        squiggle(x * s, top * s);
+        ctx.lineWidth = s * width;
+        ctx.strokeStyle = style;
+        ctx.stroke();
+      }
+    }
+  },
+  breeze(ctx, s) {
+    ctx.lineCap = 'round';
+    const arcs = [[0.3, 0.34], [0.5, 0.42], [0.36, 0.22]] as const;
+    for (const [style, width] of [['rgba(255,255,255,0.85)', 0.1], ['#9adcf7', 0.05]] as const) {
+      for (const [y, r] of arcs) {
+        ctx.beginPath();
+        ctx.arc(s * 0.22, y * s + r * s, r * s, -Math.PI / 2, -Math.PI / 2 + 1.2);
+        ctx.lineWidth = s * width;
+        ctx.strokeStyle = style;
+        ctx.stroke();
+      }
+    }
+  },
 };
 
 function makeTexture(kind: FxKind): THREE.Texture {
@@ -121,7 +190,8 @@ function makeTexture(kind: FxKind): THREE.Texture {
   canvas.width = TEXTURE_PX;
   canvas.height = TEXTURE_PX;
   const ctx = canvas.getContext('2d');
-  if (ctx) DRAW[kind](ctx, TEXTURE_PX);
+  // A kind this runtime does not know renders blank instead of throwing.
+  if (ctx) DRAW[kind]?.(ctx, TEXTURE_PX);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;

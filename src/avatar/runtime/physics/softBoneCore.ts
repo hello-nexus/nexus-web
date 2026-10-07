@@ -41,6 +41,8 @@ import type { Object3D } from 'three';
 
 /** Mirrors EZSoftBone.DeltaTime_Min. */
 export const DELTA_TIME_MIN = 1e-6;
+/** A chain root moving farther than this in one frame is a cut, not motion. */
+const CUT_DISTANCE_M = 0.5;
 
 /** Pre-sampled Unity AnimationCurve: [t, value] pairs, t ascending in 0..1. */
 export type SoftBoneCurve = ReadonlyArray<readonly [number, number]>;
@@ -348,6 +350,9 @@ export class SoftBoneSystem {
 
   private frozen = false;
   private accumulator = 0;
+  /** Each structure root's animated world position last frame, for cut detection. */
+  private readonly lastRootPositions: Vector3[] = [];
+  private hasLastRoots = false;
 
   constructor(
     host: Object3D,
@@ -398,6 +403,10 @@ export class SoftBoneSystem {
     if (this.frozen) return;
     for (let i = 0; i < this.structures.length; i++) this.revertNode(this.structures[i]);
     this.snapshot();
+    if (this.cutDetected()) {
+      for (let i = 0; i < this.structures.length; i++) this.seedNode(this.structures[i]);
+      this.accumulator = 0;
+    }
     if (this.deltaTimeMode === 'constant') {
       this.accumulator += dt;
       let steps = 0;
@@ -432,6 +441,19 @@ export class SoftBoneSystem {
       for (let i = 0; i < this.structures.length; i++) this.seedNode(this.structures[i]);
       this.accumulator = 0;
     }
+  }
+
+  /** Re-seeding on a cut (a clip placing the body elsewhere) keeps the sim from whipping across the gap. */
+  private cutDetected(): boolean {
+    let cut = false;
+    for (let i = 0; i < this.structures.length; i++) {
+      const p = this.structures[i].animWorldPosition;
+      const last = (this.lastRootPositions[i] ??= new Vector3());
+      if (this.hasLastRoots && last.distanceToSquared(p) > CUT_DISTANCE_M * CUT_DISTANCE_M) cut = true;
+      last.copy(p);
+    }
+    this.hasLastRoots = true;
+    return cut;
   }
 
   // --- structure setup -------------------------------------------------------

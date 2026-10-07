@@ -143,8 +143,10 @@ function LimitRow({ guard, pendingLimit, disabled, error, onCommit, onReset }: L
 
 interface ThermalGuardSettingViewProps {
   guard: GuardResponse;
-  /** A write is in flight; the switch disables. */
-  pending: boolean;
+  /** The switch value asked for but not yet confirmed by the service; the switch shows it meanwhile. */
+  pendingEnabled?: boolean | null;
+  /** The same for the hazard-warning switch. */
+  pendingLintWarnings?: boolean | null;
   /** The limit asked for but not yet confirmed by the service; the slider shows it meanwhile. */
   pendingLimit?: number | 'reset' | null;
   error: string | null;
@@ -160,9 +162,10 @@ interface ThermalGuardSettingViewProps {
 
 /** The settings rows themselves, apart from the service wiring. */
 export function ThermalGuardSettingView({
-  guard, pending, pendingLimit = null, error, limitError = null, lintWarningsError = null, onLintWarningsChange = () => {}, onToggle, onSetLimit, onClearLimit,
+  guard, pendingEnabled = null, pendingLintWarnings = null, pendingLimit = null, error, limitError = null, lintWarningsError = null, onLintWarningsChange = () => {}, onToggle, onSetLimit, onClearLimit,
 }: ThermalGuardSettingViewProps) {
   const { t } = useTranslation();
+  const on = pendingEnabled ?? guardEnabled(guard);
   return (
     <>
       <SettingToggle
@@ -177,12 +180,11 @@ export function ThermalGuardSettingView({
         icon={<ShieldCheck />}
         iconLeading="subtle"
         anchorId="set-thermal-guard"
-        checked={guardEnabled(guard)}
-        disabled={pending}
+        checked={on}
         onChange={onToggle}
       />
       {guard.detectedLimitSource && (
-        <LimitRow guard={guard} pendingLimit={pendingLimit} disabled={!guardEnabled(guard)} error={limitError} onCommit={onSetLimit} onReset={onClearLimit} />
+        <LimitRow guard={guard} pendingLimit={pendingLimit} disabled={!on} error={limitError} onCommit={onSetLimit} onReset={onClearLimit} />
       )}
       {/* Independent of the guard switch: it only governs the prompt when saving curves. */}
       <SettingToggle
@@ -196,7 +198,7 @@ export function ThermalGuardSettingView({
         icon={<TriangleAlert />}
         iconLeading="subtle"
         anchorId="set-thermal-guard-lint"
-        checked={guard.lintWarnings !== false}
+        checked={pendingLintWarnings ?? guard.lintWarnings !== false}
         onChange={onLintWarningsChange}
       />
     </>
@@ -211,13 +213,14 @@ export function ThermalGuardSettingView({
  */
 export function ThermalGuardSetting({ serviceOnline }: { serviceOnline: boolean }) {
   const {
-    guard, toggling, pendingLimit, toggleError, limitError, lintWarningsError, toggle, setLimit, clearLimit, setLintWarnings,
+    guard, pendingEnabled, pendingLintWarnings, pendingLimit, toggleError, limitError, lintWarningsError, toggle, setLimit, clearLimit, setLintWarnings,
   } = useThermalGuard(serviceOnline);
   if (!guard) return null;
   return (
     <ThermalGuardSettingView
       guard={guard}
-      pending={toggling}
+      pendingEnabled={pendingEnabled}
+      pendingLintWarnings={pendingLintWarnings}
       pendingLimit={pendingLimit}
       error={toggleError?.message ?? null}
       limitError={limitError?.message ?? null}

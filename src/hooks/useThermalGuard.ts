@@ -16,7 +16,6 @@ const tripKeyOf = (g: GuardResponse | null): string =>
 export function useThermalGuard(serviceOnline: boolean) {
   const { t } = useTranslation();
   const [guard, setGuard] = useState<GuardResponse | null>(null);
-  const [toggling, setToggling] = useState(false);
   // When the guard was last fetched: the notice's age cut-off needs a clock that is not read during render.
   const [fetchedAtMs, setFetchedAtMs] = useState(0);
   const [error, setError] = useState<GuardErrorState | null>(null);
@@ -85,11 +84,13 @@ export function useThermalGuard(serviceOnline: boolean) {
   const writerRunningRef = useRef(false);
   // The limit shown while it is pending, so the slider does not snap back to the server's value.
   const [pendingLimit, setPendingLimit] = useState<number | 'reset' | null>(null);
+  // The switches show what was asked for at once; a failed write drops back to the server's value.
+  const [pendingEnabled, setPendingEnabled] = useState<boolean | null>(null);
+  const [pendingLintWarnings, setPendingLintWarnings] = useState<boolean | null>(null);
 
   const runWriter = useCallback(async () => {
     if (writerRunningRef.current) return;
     writerRunningRef.current = true;
-    setToggling(true);
     // One request, applied to the guard and reported under its own error slot.
     const send = async (
       body: Parameters<typeof setGuardConfig>[0],
@@ -123,6 +124,7 @@ export function useThermalGuard(serviceOnline: boolean) {
         // The switch goes alone: a limit the service refuses must not take the toggle down with it.
         if (enabled !== undefined) {
           await send({ enabled }, 'cooling.guard.error.toggle', setToggleError);
+          if (intentRef.current.enabled === undefined) setPendingEnabled(null);
         }
         if (limit !== undefined) {
           await send(
@@ -133,19 +135,22 @@ export function useThermalGuard(serviceOnline: boolean) {
         }
         if (lintWarnings !== undefined) {
           await send({ lintWarnings }, 'cooling.guard.error.lintWarnings', setLintWarningsError);
+          if (intentRef.current.lintWarnings === undefined) setPendingLintWarnings(null);
         }
         // The display override ends once no newer limit intent is waiting.
         if (intentRef.current.limit === undefined) setPendingLimit(null);
       }
     } finally {
       writerRunningRef.current = false;
-      setToggling(false);
       if (intentRef.current.limit === undefined) setPendingLimit(null);
+      if (intentRef.current.enabled === undefined) setPendingEnabled(null);
+      if (intentRef.current.lintWarnings === undefined) setPendingLintWarnings(null);
     }
   }, []);
 
   const toggle = useCallback((enabled: boolean) => {
     intentRef.current.enabled = enabled;
+    setPendingEnabled(enabled);
     void runWriter();
   }, [runWriter]);
   const setLimit = useCallback((limit: number) => {
@@ -155,6 +160,7 @@ export function useThermalGuard(serviceOnline: boolean) {
   }, [runWriter]);
   const setLintWarnings = useCallback((lintWarnings: boolean) => {
     intentRef.current.lintWarnings = lintWarnings;
+    setPendingLintWarnings(lintWarnings);
     void runWriter();
   }, [runWriter]);
   const clearLimit = useCallback(() => {
@@ -216,5 +222,5 @@ export function useThermalGuard(serviceOnline: boolean) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, fetchedAtMs, toggling, pendingLimit, error, toggleError, limitError, lintWarningsError, ackError, clearError, refresh, toggle, setLimit, clearLimit, setLintWarnings, acknowledgeTrip, undo, keep, applyHeal };
+  return { guard, fetchedAtMs, pendingEnabled, pendingLintWarnings, pendingLimit, error, toggleError, limitError, lintWarningsError, ackError, clearError, refresh, toggle, setLimit, clearLimit, setLintWarnings, acknowledgeTrip, undo, keep, applyHeal };
 }

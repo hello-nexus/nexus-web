@@ -5,7 +5,7 @@
  */
 
 import * as THREE from 'three';
-import type { AvatarPack } from '../pack/loadPack';
+import type { AvatarPack, WipeTextures } from '../pack/loadPack';
 import type { MaterialEntry, SceneLight, Vec3 } from '../pack/types';
 import { AvatarStateMachine } from './anim/stateMachine';
 import { eventsBetween, type FxEvent } from './fx/clipEvents';
@@ -45,6 +45,37 @@ function unityEulerToThreeQuaternion(euler: Vec3): THREE.Quaternion {
   return q;
 }
 
+/** Default wipe edge width, in fade units. */
+const WIPE_SOFTNESS = 0.012;
+/** Bounds for a pack's softness: the shader divides by it and squeezes the image into the band it leaves, so it stays above zero and under half the fade range. */
+const WIPE_SOFTNESS_MIN = 0.001;
+const WIPE_SOFTNESS_MAX = 0.49;
+
+const WIPE_VERTEX = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+// The image value is when a pixel covers; it is squeezed inside the edge band
+// so a fade of 0 shows nothing and a fade of 1 covers everything.
+const WIPE_FRAGMENT = `
+uniform sampler2D mask;
+uniform float progress;
+uniform float softness;
+uniform vec3 color;
+uniform float alpha;
+uniform vec2 uvScale;
+varying vec2 vUv;
+void main() {
+  float m = texture2D(mask, (vUv - 0.5) * uvScale + 0.5).r;
+  m = softness + m * (1.0 - 2.0 * softness);
+  float a = clamp((progress - m) / softness + 0.5, 0.0, 1.0);
+  gl_FragColor = vec4(color, a * alpha);
+  #include <colorspace_fragment>
+}`;
+
 export class AvatarRuntime {
   readonly pack: AvatarPack;
   readonly renderer: THREE.WebGLRenderer;
@@ -57,6 +88,14 @@ export class AvatarRuntime {
   readonly fx: FxLayer;
   private eventGeneration = -1;
   private eventTime = 0;
+  /** scene.screenFade: the fade amount rides this node's animated scale.x. */
+  private fadeNode: THREE.Object3D | null = null;
+  private fadeQuad: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial | THREE.ShaderMaterial> | null = null;
+  private readonly fadeCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  private readonly wipeSize = new THREE.Vector2();
+  /** Last frame's fade amount and direction: a wipe reads its `in` image while rising, `out` while falling. */
+  private fadePrev = 0;
+  private fadeRising = true;
 
   private readonly ownedMaterials: THREE.Material[] = [];
   /** Environment atlas textures: exclusively env-owned, disposed with the runtime
@@ -164,6 +203,42 @@ export class AvatarRuntime {
     this.stateMachine = new AvatarStateMachine(pack.states, this.mixer, pack.gltf.animations);
     this.springBones = createSpringBones(pack, pack.gltf.scene);
     this.fx = new FxLayer(pack.gltf.scene);
+    this.setupScreenFade();
+  }
+
+  private setupScreenFade(): void {
+    if (this.pack.wipe) {
+      for (const tex of new Set([this.pack.wipe.in, this.pack.wipe.out])) this.ownedTextures.push(tex);
+    }
+    const def = this.pack.scene?.screenFade;
+    if (!def) return;
+    const root = this.pack.gltf.scene;
+    this.fadeNode = root.getObjectByName(THREE.PropertyBinding.sanitizeNodeName(def.node)) ?? root.getObjectByName(def.node) ?? null;
+    if (!this.fadeNode) {
+      console.warn(`[AvatarRuntime] screenFade node "${def.node}" not found; fade disabled`);
+      return;
+    }
+    const color = def.color ?? [0, 0, 0, 1];
+    const material = this.pack.wipe
+      ? new THREE.ShaderMaterial({
+        uniforms: {
+          mask: { value: this.pack.wipe.in },
+          progress: { value: 0 },
+          softness: { value: Math.min(Math.max(def.wipe?.softness ?? WIPE_SOFTNESS, WIPE_SOFTNESS_MIN), WIPE_SOFTNESS_MAX) },
+          color: { value: packColor(color) },
+          alpha: { value: color[3] },
+          uvScale: { value: new THREE.Vector2(1, 1) },
+        },
+        vertexShader: WIPE_VERTEX,
+        fragmentShader: WIPE_FRAGMENT,
+        transparent: true, depthTest: false, depthWrite: false,
+      })
+      : new THREE.MeshBasicMaterial({
+        color: packColor(color), transparent: true, opacity: 0, depthTest: false, depthWrite: false,
+      });
+    this.ownedMaterials.push(material);
+    this.fadeQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    this.fadeQuad.frustumCulled = false;
   }
 
   /**
@@ -186,6 +261,8 @@ export class AvatarRuntime {
       // spheres at the rig origin), so close-up cameras cull visible parts.
       if ((obj as THREE.SkinnedMesh).isSkinnedMesh) obj.frustumCulled = false;
       const replaceOne = (orig: THREE.Material): THREE.Material => {
+        // KHR_materials_unlit props carry their final color.
+        if (orig instanceof THREE.MeshBasicMaterial) return orig;
         const entry = entries.get(orig.name);
         if (!entry) {
           console.warn(`[AvatarRuntime] material "${orig.name}" missing from materials.json; keeping GLB material`);
@@ -295,13 +372,36 @@ export class AvatarRuntime {
     this.renderer.render(this.scene, this.camera);
   }
 
-  /** Draws the effect particles over the frame already on the canvas. */
+  /** Draws the effect particles, then the screen fade, over the frame already on the canvas. */
   renderFx(): void {
-    if (!this.fx.active) return;
+    const fade = this.fadeNode && this.fadeQuad ? Math.min(Math.max(this.fadeNode.scale.x, 0), 1) : 0;
+    if (fade > this.fadePrev) this.fadeRising = true;
+    else if (fade < this.fadePrev) this.fadeRising = false;
+    this.fadePrev = fade;
+    if (!this.fx.active && fade <= 0) return;
     const autoClear = this.renderer.autoClear;
     this.renderer.autoClear = false;
-    this.renderer.render(this.fx.scene, this.camera);
+    if (this.fx.active) this.renderer.render(this.fx.scene, this.camera);
+    if (fade > 0 && this.fadeQuad) {
+      const material = this.fadeQuad.material;
+      if (material instanceof THREE.ShaderMaterial && this.pack.wipe) this.updateWipe(material, this.pack.wipe, fade);
+      else material.opacity = fade;
+      this.renderer.render(this.fadeQuad, this.fadeCamera);
+    }
     this.renderer.autoClear = autoClear;
+  }
+
+  /** Points the wipe at this direction's image, cover-fitted to the canvas aspect. */
+  private updateWipe(material: THREE.ShaderMaterial, wipe: WipeTextures, fade: number): void {
+    const mask = this.fadeRising ? wipe.in : wipe.out;
+    const image = mask.image as { width: number; height: number };
+    const size = this.renderer.getSize(this.wipeSize);
+    const screen = size.x / Math.max(size.y, 1);
+    const art = image.width / Math.max(image.height, 1);
+    const u = material.uniforms;
+    u.mask.value = mask;
+    u.progress.value = fade;
+    (u.uvScale.value as THREE.Vector2).set(screen < art ? screen / art : 1, screen < art ? 1 : art / screen);
   }
 
   /**
@@ -344,6 +444,7 @@ export class AvatarRuntime {
   }
 
   dispose(): void {
+    this.fadeQuad?.geometry.dispose();
     if (this.shadowPlane) {
       this.scene.remove(this.shadowPlane);
       this.shadowPlane.geometry.dispose();
