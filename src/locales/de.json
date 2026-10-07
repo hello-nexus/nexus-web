@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "Lüfter blockiert",
   "diagnostics.reason.cooling.pumpStall": "Pumpe blockiert",
   "diagnostics.reason.cooling.sustainedHighTemp": "Anhaltend hohe Temperatur",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Thermischer Schutz ausgelöst",
   "diagnostics.reason.disk.eventErrors": "Laufwerk-Ereignisfehler",
   "diagnostics.reason.gpu.driverErrors": "GPU-Treiberfehler",
   "diagnostics.reason.gpu.noHealthSource": "GPU-Telemetrie nicht verfügbar",

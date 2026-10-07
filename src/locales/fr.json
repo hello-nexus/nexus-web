@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "Ventilateur bloqué",
   "diagnostics.reason.cooling.pumpStall": "Pompe bloquée",
   "diagnostics.reason.cooling.sustainedHighTemp": "Température élevée prolongée",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Protection thermique déclenchée",
   "diagnostics.reason.disk.eventErrors": "Erreurs d'événements disque",
   "diagnostics.reason.gpu.driverErrors": "Erreurs de pilote GPU",
   "diagnostics.reason.gpu.noHealthSource": "Télémétrie GPU indisponible",

@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "Ventilator vastgelopen",
   "diagnostics.reason.cooling.pumpStall": "Pomp vastgelopen",
   "diagnostics.reason.cooling.sustainedHighTemp": "Aanhoudend hoge temperatuur",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Thermische bescherming geactiveerd",
   "diagnostics.reason.disk.eventErrors": "Schijfgebeurtenisfouten",
   "diagnostics.reason.gpu.driverErrors": "GPU-stuurprogrammafouten",
   "diagnostics.reason.gpu.noHealthSource": "GPU-telemetrie niet beschikbaar",

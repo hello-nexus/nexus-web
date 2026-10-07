@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "Fan durdu",
   "diagnostics.reason.cooling.pumpStall": "Pompa durdu",
   "diagnostics.reason.cooling.sustainedHighTemp": "Sürekli yüksek sıcaklık",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Termal koruma devreye girdi",
   "diagnostics.reason.disk.eventErrors": "Disk olay hataları",
   "diagnostics.reason.gpu.driverErrors": "GPU sürücü hataları",
   "diagnostics.reason.gpu.noHealthSource": "GPU telemetrisi kullanılamıyor",

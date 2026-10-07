@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "Fan stalled",
   "diagnostics.reason.cooling.pumpStall": "Pump stalled",
   "diagnostics.reason.cooling.sustainedHighTemp": "Sustained high temperature",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Thermal guard tripped",
   "diagnostics.reason.disk.eventErrors": "Disk event errors",
   "diagnostics.reason.gpu.driverErrors": "GPU driver errors",
   "diagnostics.reason.gpu.noHealthSource": "GPU telemetry unavailable",

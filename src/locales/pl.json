@@ -1355,6 +1355,7 @@
   "diagnostics.reason.cooling.fanStall": "Wentylator zatrzymany",
   "diagnostics.reason.cooling.pumpStall": "Pompa zatrzymana",
   "diagnostics.reason.cooling.sustainedHighTemp": "Utrzymująca się wysoka temperatura",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Ochrona termiczna zadziałała",
   "diagnostics.reason.disk.eventErrors": "Błędy zdarzeń dysku",
   "diagnostics.reason.gpu.driverErrors": "Błędy sterownika GPU",
   "diagnostics.reason.gpu.noHealthSource": "Telemetria GPU niedostępna",

@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "Ventilador detenido",
   "diagnostics.reason.cooling.pumpStall": "Bomba detenida",
   "diagnostics.reason.cooling.sustainedHighTemp": "Temperatura alta sostenida",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Protección térmica activada",
   "diagnostics.reason.disk.eventErrors": "Errores de eventos de disco",
   "diagnostics.reason.gpu.driverErrors": "Errores de controlador de GPU",
   "diagnostics.reason.gpu.noHealthSource": "Telemetría de GPU no disponible",

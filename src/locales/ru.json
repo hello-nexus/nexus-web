@@ -1355,6 +1355,7 @@
   "diagnostics.reason.cooling.fanStall": "Вентилятор остановлен",
   "diagnostics.reason.cooling.pumpStall": "Насос остановлен",
   "diagnostics.reason.cooling.sustainedHighTemp": "Длительно высокая температура",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Тепловая защита сработала",
   "diagnostics.reason.disk.eventErrors": "Ошибки событий диска",
   "diagnostics.reason.gpu.driverErrors": "Ошибки драйвера GPU",
   "diagnostics.reason.gpu.noHealthSource": "Телеметрия GPU недоступна",

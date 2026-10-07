@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "ファン停止",
   "diagnostics.reason.cooling.pumpStall": "ポンプ停止",
   "diagnostics.reason.cooling.sustainedHighTemp": "持続的な高温",
+  "diagnostics.reason.cooling.thermalGuardTrip": "サーマルガード作動",
   "diagnostics.reason.disk.eventErrors": "ディスクイベントエラー",
   "diagnostics.reason.gpu.driverErrors": "GPUドライバーエラー",
   "diagnostics.reason.gpu.noHealthSource": "GPUテレメトリを取得できません",

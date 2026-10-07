@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "Ventiladôr fermât",
   "diagnostics.reason.cooling.pumpStall": "Pompe fermade",
   "diagnostics.reason.cooling.sustainedHighTemp": "Temperadure alte sostignude",
+  "diagnostics.reason.cooling.thermalGuardTrip": "Protezion termiche scjadenade",
   "diagnostics.reason.disk.eventErrors": "Erôrs di events dal disc",
   "diagnostics.reason.gpu.driverErrors": "Erôrs dal driver GPU",
   "diagnostics.reason.gpu.noHealthSource": "Telemetrie GPU no disponibile",

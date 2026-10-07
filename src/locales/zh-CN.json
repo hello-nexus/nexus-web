@@ -1348,6 +1348,7 @@
   "diagnostics.reason.cooling.fanStall": "风扇已停转",
   "diagnostics.reason.cooling.pumpStall": "水泵已停转",
   "diagnostics.reason.cooling.sustainedHighTemp": "持续高温",
+  "diagnostics.reason.cooling.thermalGuardTrip": "温度保护已触发",
   "diagnostics.reason.disk.eventErrors": "磁盘事件错误",
   "diagnostics.reason.gpu.driverErrors": "GPU 驱动程序错误",
   "diagnostics.reason.gpu.noHealthSource": "无法获取 GPU 遥测数据",
