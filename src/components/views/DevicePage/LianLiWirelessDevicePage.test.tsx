@@ -36,6 +36,8 @@ vi.mock('../../../api/lianli-wireless', () => ({
   getLianLiWirelessLighting: () => Promise.resolve(null),
   getLianLiAioScreen: (...args: any[]) => mockGetLianLiAioScreen(...args),
   setLianLiAioScreen: () => Promise.resolve(true),
+  getLianLiWirelessScreens: () => Promise.resolve([]),
+  getLianLiWirelessMedia: () => Promise.resolve([]),
 }));
 
 vi.mock('../../../api/cooling', () => ({
@@ -367,7 +369,7 @@ describe('LianLiWirelessDevicePage', () => {
     expect(screen.getByText(/noPwmCable/)).toBeInTheDocument();
   });
 
-  it('shows the screen settings of a bound HydroShift II', async () => {
+  it('shows the screen settings of a bound HydroShift II under Screens, not Devices', async () => {
     mockGetLianLiAioScreen.mockResolvedValue({
       brightness: 80, theme: 0, themeCount: 13, labelColor: '#FFFFFF', valueColor: '#FFFFFF', unitColor: '#FFFFFF',
       showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false,
@@ -379,8 +381,14 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage />);
     });
+    expect(screen.queryByText('devices.lianli-wireless.aioScreen.title')).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ }));
+    });
     expect(mockGetLianLiAioScreen).toHaveBeenCalledWith(connectedState.fans[0].mac);
     expect(screen.getByText('devices.lianli-wireless.aioScreen.title')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.noScreens')).not.toBeInTheDocument();
   });
 
   it('offers the Lighting tab once a Strimer is bound', async () => {

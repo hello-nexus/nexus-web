@@ -18,6 +18,10 @@ const mockSetContent = vi.fn();
 const mockImportMedia = vi.fn();
 const mockDeleteMedia = vi.fn();
 const mockSetOrder = vi.fn();
+const mockGetAioScreen = vi.fn(() => Promise.resolve({
+  brightness: 80, theme: 0, themeCount: 13, labelColor: '#FFFFFF', valueColor: '#FFFFFF', unitColor: '#FFFFFF',
+  showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false,
+}));
 
 vi.mock('../../../api/lianli-wireless', () => ({
   getLianLiWirelessScreens: (...args: any[]) => mockGetScreens(...args),
@@ -27,6 +31,8 @@ vi.mock('../../../api/lianli-wireless', () => ({
   importLianLiWirelessMedia: (...args: any[]) => mockImportMedia(...args),
   deleteLianLiWirelessMedia: (...args: any[]) => mockDeleteMedia(...args),
   setLianLiWirelessScreenOrder: (...args: any[]) => mockSetOrder(...args),
+  getLianLiAioScreen: (...args: any[]) => mockGetAioScreen(...args),
+  setLianLiAioScreen: () => Promise.resolve(true),
 }));
 
 // Positions are all 0 on real hardware (GetPosIndex is unresolved), so the
@@ -157,6 +163,41 @@ describe('LianLiWirelessScreenTab', () => {
     mockGetScreens.mockResolvedValue([]);
     await renderTab();
     expect(screen.getByText('devices.lianli-wireless.noScreens')).toBeInTheDocument();
+  });
+
+  it('a bound HydroShift II with no fan screens fills the tab with its own screen', async () => {
+    mockGetScreens.mockResolvedValue([]);
+    await act(async () => {
+      render(<LianLiWirelessScreenTab aioMacs={['5ED6D8E566E1']} />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.title')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.noScreens')).not.toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.displaySection')).not.toBeInTheDocument();
+  });
+
+  it('a bound HydroShift II sits above the fan screens', async () => {
+    await act(async () => {
+      render(<LianLiWirelessScreenTab aioMacs={['5ED6D8E566E1']} />);
+    });
+    const aio = screen.getByText('devices.lianli-wireless.aioScreen.title');
+    const display = screen.getByText('devices.lianli-wireless.displaySection');
+    expect(aio.compareDocumentPosition(display) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('the HydroShift II section survives the screens list loading', async () => {
+    let resolveScreens: (v: unknown) => void = () => {};
+    mockGetScreens.mockReturnValue(new Promise(resolve => { resolveScreens = resolve; }));
+    await act(async () => {
+      render(<LianLiWirelessScreenTab aioMacs={['5ED6D8E566E1']} />);
+    });
+    expect(screen.getByText('devices.lianli-wireless.loadingScreens')).toBeInTheDocument();
+
+    await act(async () => {
+      resolveScreens([]);
+    });
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.title')).toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.selectionSection')).not.toBeInTheDocument();
+    expect(mockGetAioScreen).toHaveBeenCalledTimes(1);
   });
 
   it('selecting only a different fan shows its content type', async () => {

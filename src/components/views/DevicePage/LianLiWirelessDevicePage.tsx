@@ -7,7 +7,7 @@ import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { L_CONNECT_CONFLICT_ID } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
-import { LianLiWirelessFansTab, fanTypeKey, isFanDevice } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, fanTypeKey, isFanDevice, isHydroShiftDevice } from './LianLiWirelessFansTab';
 import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
 import { CoolingPageShortcut, LightingPageShortcut } from './CoolingPageLink';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
@@ -111,6 +111,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   const hasLighting = hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
     && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
+  const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <RadioReceiver size={14} /> },
     ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
@@ -150,7 +151,7 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
           )}
           {tab === 'lighting' && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
           {tab === 'cooling' && <LianLiWirelessCoolingTab state={state} />}
-          {tab === 'screen' && <LianLiWirelessScreenTab />}
+          {tab === 'screen' && <LianLiWirelessScreenTab aioMacs={aioMacs} />}
         </div>
       </div>
     </div>
