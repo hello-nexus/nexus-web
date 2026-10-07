@@ -482,6 +482,7 @@
   "cooling.guard.limit.note": "Por encima de unos 105 °C, algunas CPU se apagan antes de que la protección actúe.",
   "cooling.guard.limit.reset": "Restablecer al valor detectado",
   "cooling.guard.limit.throttleMark": "Punto de limitación: {temp} °C",
+  "cooling.guard.managedCurve": "Gestionada por la protección térmica",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Editor de curvas",
   "cooling.label.curves": "Curvas",

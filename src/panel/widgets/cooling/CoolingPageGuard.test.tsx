@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiSettingsProvider } from '../../../hooks/useUiSettings';
 import type { ServiceState } from '../../../types/service';
@@ -12,6 +12,7 @@ const svc = vi.hoisted(() => ({
     heal: { undoAvailable: false, healedAtUtcMs: null, channels: [] as Array<{ id: string; name: string; hazard: string }> },
   } as Record<string, unknown>,
   hazards: [] as Array<Record<string, unknown>>,
+  managed: false,
 }));
 
 vi.mock('../../../api/cooling', async (importOriginal) => {
@@ -28,7 +29,11 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     })),
     fetchCurves: vi.fn(async () => ({
       globalSpeedModifier: 1,
-      curves: [{
+      curves: [...(svc.managed ? [{
+        id: 'guard-cpu', name: 'Thermal guard', type: 'Graph',
+        input: { id: 'cpu-package', type: 'Temperature', device: '' },
+        outputs: [], graph: { responseTime: 1.5, speedModifier: 1, points: [{ temp: 30, speed: 30 }, { temp: 90, speed: 100 }] },
+      }] : []), {
         id: 'curve-bravo', name: 'Bravo', type: 'Linear',
         input: { id: 'cpu-package', type: 'Temperature', device: '' },
         outputs: [],
@@ -94,6 +99,7 @@ describe('CoolingPage thermal guard', () => {
     vi.clearAllMocks();
     localStorage.clear();
     svc.hazards = [];
+    svc.managed = false;
     svc.guard = {
       state: 'normal', guardTempC: 55, limitC: 95, limitSource: 'spec', sinceUtcMs: null, lastTrip: null,
       heal: { undoAvailable: false, healedAtUtcMs: null, channels: [] },
@@ -174,6 +180,23 @@ describe('CoolingPage thermal guard', () => {
     const notice = await screen.findByText('cooling.guard.latched');
     const tab = screen.getAllByRole('tab')[0];
     expect(tab.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders the thermal guard curve read-only with a managed note', async () => {
+    svc.managed = true;
+    renderAdvanced();
+    expect(await screen.findByText('cooling.guard.managedCurve')).toBeTruthy();
+    const group = screen.getByRole('radiogroup', { name: 'cooling.curve.type.label' });
+    expect(group.closest('[aria-disabled="true"]')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: 'cooling.curve.type.trigger' }));
+    await act(async () => {});
+    expect(vi.mocked(saveCurves)).not.toHaveBeenCalled();
+  });
+
+  it('shows no managed note on an ordinary curve', async () => {
+    renderAdvanced();
+    await screen.findByText('1,400');
+    expect(screen.queryByText('cooling.guard.managedCurve')).toBeNull();
   });
 
   it('shows the latched banner when the watchdog latched', async () => {

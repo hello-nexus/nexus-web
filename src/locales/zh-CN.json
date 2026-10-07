@@ -482,6 +482,7 @@
   "cooling.guard.limit.note": "超过约 105 °C 时，部分 CPU 会在保护生效前关机。",
   "cooling.guard.limit.reset": "重置为检测值",
   "cooling.guard.limit.throttleMark": "降频点 {temp} °C",
+  "cooling.guard.managedCurve": "由温度保护管理",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "曲线编辑器",
   "cooling.label.curves": "曲线",

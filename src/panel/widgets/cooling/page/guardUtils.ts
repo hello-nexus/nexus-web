@@ -2,6 +2,10 @@ import type { CurveHazard, GuardResponse, HealChannel } from '../../../../api/co
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
+/** The service owns this curve: its points track the CPU limit and edits are reverted. */
+export const GUARD_CURVE_ID = 'guard-cpu';
+export const isManagedCurve = (curveId: string | null | undefined): boolean => curveId === GUARD_CURVE_ID;
+
 /** Whether the guard is switched on; falls back to the state for a service that does not send `enabled`. */
 export const guardEnabled = (guard: GuardResponse): boolean => guard.enabled ?? guard.state !== 'off';
 

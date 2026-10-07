@@ -73,7 +73,7 @@ import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { ThermalGuardPanel } from './page/ThermalGuardPanel';
-import { latestError } from './page/guardUtils';
+import { isManagedCurve, latestError } from './page/guardUtils';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
@@ -1101,6 +1101,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // target: grey the editor. NOT effectiveCurveId, which is also null for the
   // beat before the first curve is picked and greyed it out on every load.
   const curveEditorInert = scopedCurveId === null;
+  // The thermal guard's own curve: shown, never edited.
+  const curveManaged = isManagedCurve(selectedCurve?.id);
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   // Cooling offers only the apps that carry a cooling setup; Nexus 2's import
@@ -1924,11 +1926,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             {curveEditorInert && selectedCurve && (
               <span className={styles.curveEditorHint}>{t('cooling.curves.noCurveSelected')}</span>
             )}
+            {curveManaged && <span className={styles.curveEditorHint}>{t('cooling.guard.managedCurve')}</span>}
           </div>
           {selectedCurve ? (
             <div
-              className={curveEditorInert ? styles.curveEditorInert : undefined}
-              aria-disabled={curveEditorInert || undefined}
+              className={curveEditorInert ? styles.curveEditorInert : curveManaged ? styles.curveEditorManaged : undefined}
+              aria-disabled={curveEditorInert || curveManaged || undefined}
             >
               <CurveCard
                 key={selectedCurve.id}
@@ -1937,10 +1940,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 sources={sources}
                 channels={channels}
                 syncExcludedIds={syncExcludedIds}
-                onChange={curveEditorInert ? noopCurveEdit : saveCurveAndPush}
-                onDelete={curveEditorInert ? noopCurveEdit : () => deleteCurve(selectedCurve.id)}
+                onChange={curveEditorInert || curveManaged ? noopCurveEdit : saveCurveAndPush}
+                onDelete={curveEditorInert || curveManaged ? noopCurveEdit : () => deleteCurve(selectedCurve.id)}
                 onResetPreset={selectedCurve.preset
-                  ? (curveEditorInert ? noopCurveEdit : () => handleResetPresetCurve(selectedCurve.preset!))
+                  ? (curveEditorInert || curveManaged ? noopCurveEdit : () => handleResetPresetCurve(selectedCurve.preset!))
                   : undefined}
               />
             </div>

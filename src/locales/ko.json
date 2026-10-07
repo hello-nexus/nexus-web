@@ -482,6 +482,7 @@
   "cooling.guard.limit.note": "약 105 °C를 넘으면 보호 기능이 작동하기 전에 일부 CPU가 종료됩니다.",
   "cooling.guard.limit.reset": "감지된 값으로 되돌리기",
   "cooling.guard.limit.throttleMark": "쓰로틀링 시작점 {temp} °C",
+  "cooling.guard.managedCurve": "써멀 가드가 관리합니다",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "커브 편집기",
   "cooling.label.curves": "커브",

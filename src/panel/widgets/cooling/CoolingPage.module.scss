@@ -1198,6 +1198,11 @@
   pointer-events: none;
 }
 
+// The thermal guard's curve: readable at full strength, not editable.
+.curveEditorManaged {
+  pointer-events: none;
+}
+
 // Select all / none beside the Fans title, matching the lighting rail.
 .headerSep {
   @include control-separator;

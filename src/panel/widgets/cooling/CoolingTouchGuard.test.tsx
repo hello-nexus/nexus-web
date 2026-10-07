@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CoolingTouch } from './CoolingTouch';
 import type { PanelWidget } from '../../types';
 
@@ -9,6 +9,7 @@ const svc = vi.hoisted(() => ({
   hazards: [] as Array<Record<string, unknown>>,
   undoAvailable: true,
   undoResult: 'ok' as 'ok' | 'fail',
+  managedFirst: false,
 }));
 
 vi.mock('../../../api/cooling', async (importOriginal) => {
@@ -40,6 +41,13 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     fetchCurves: vi.fn(async () => ({
       globalSpeedModifier: 1,
       curves: [
+        ...(svc.managedFirst ? [{
+          id: 'guard-cpu', name: 'Thermal guard', type: 'Graph',
+          input: { id: 'cpu-package', type: 'Temperature', device: '' },
+          outputs: [], flat: null, linear: null,
+          graph: { responseTime: 1.5, speedModifier: 1, points: [{ temp: 30, speed: 30 }, { temp: 90, speed: 100 }] },
+          mixed: null, preset: null, isDefault: null,
+        }] : []),
         {
           id: 'curve-1', name: 'My Graph Curve', type: 'Graph',
           input: { id: 'cpu-package', type: 'Temperature', device: '' },
@@ -101,6 +109,7 @@ describe('CoolingTouch curve save lint', () => {
     svc.hazards = [];
     svc.undoAvailable = true;
     svc.undoResult = 'ok';
+    svc.managedFirst = false;
   });
 
   it('saves straight away without hazards', async () => {
@@ -198,5 +207,20 @@ describe('CoolingTouch curve save lint', () => {
     svc.hazards = [];
     fireEvent.click(screen.getByRole('button', { name: 'My Graph Curve' }));
     await waitFor(() => expect(screen.queryByText('cooling.guard.error.undo')).toBeNull());
+  });
+
+  it('shows the thermal guard curve read-only with a managed note', async () => {
+    svc.managedFirst = true;
+    render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
+    expect(await screen.findByText('cooling.guard.managedCurve')).toBeTruthy();
+    fireEvent.click(screen.getByRole('radio', { name: 'cooling.curve.type.trigger' }));
+    await act(async () => {});
+    expect(saveCurves).not.toHaveBeenCalled();
+  });
+
+  it('shows no managed note on an ordinary curve', async () => {
+    render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
+    await screen.findByRole('button', { name: 'My Graph Curve' });
+    expect(screen.queryByText('cooling.guard.managedCurve')).toBeNull();
   });
 });

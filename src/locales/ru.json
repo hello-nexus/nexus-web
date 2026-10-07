@@ -486,6 +486,7 @@
   "cooling.guard.limit.note": "Выше примерно 105 °C некоторые процессоры отключаются раньше, чем сработает защита.",
   "cooling.guard.limit.reset": "Сбросить на определённое значение",
   "cooling.guard.limit.throttleMark": "Порог троттлинга: {temp} °C",
+  "cooling.guard.managedCurve": "Управляется тепловой защитой",
   "cooling.label.cpu": "ЦП",
   "cooling.label.curveEditor": "Редактор кривой",
   "cooling.label.curves": "Кривые",

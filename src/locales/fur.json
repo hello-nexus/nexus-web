@@ -482,6 +482,7 @@
   "cooling.guard.limit.note": "Parsore di cirche 105 °C cualchi CPU si distude prime che la protezion e intervignedi.",
   "cooling.guard.limit.reset": "Ripristine il valôr rilevât",
   "cooling.guard.limit.throttleMark": "Pont di limitazion: {temp} °C",
+  "cooling.guard.managedCurve": "Gjestide de protezion termiche",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Editor des curvis",
   "cooling.label.curves": "Curvis",

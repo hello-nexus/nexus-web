@@ -482,6 +482,7 @@
   "cooling.guard.limit.note": "約 105 °C を超えると、保護が働く前に一部の CPU がシャットダウンします。",
   "cooling.guard.limit.reset": "検出値に戻す",
   "cooling.guard.limit.throttleMark": "スロットル開始点 {temp} °C",
+  "cooling.guard.managedCurve": "サーマルガードが管理しています",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "カーブエディター",
   "cooling.label.curves": "カーブ",
