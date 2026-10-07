@@ -112,6 +112,10 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const lightingPage = chain.mode === MODE_CUSTOM;
+  // With no saved choice the switch shows what the chain reports it is doing.
+  const argbOn = chain.motherboardArgb ?? chain.playingMotherboardArgb === true;
+  // Effect controls do nothing while the chain plays its motherboard input.
+  const locked = lightingPage || argbOn;
   // The animation the chain plays when the Lighting page is not driving it.
   const effectKey = lightingPage ? chain.effectMode ?? DEFAULT_EFFECT : chain.mode;
   const effect = chain.modes.find(e => e.key === effectKey) ?? null;
@@ -143,8 +147,17 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
 
   return (
     <SettingsSection title={chainTitle(t, chain)} boxClassName={styles.sectionBox}>
+      {(chain.argbCableConnected || argbOn) && (
+        <SettingToggle
+          label={t('devices.motherboardArgb.label')}
+          description={t('devices.motherboardArgb.hint')}
+          checked={argbOn}
+          onChange={on => onCommit({ motherboardArgb: on })}
+        />
+      )}
       <LightingPageSwitch
         on={lightingPage}
+        disabled={argbOn}
         onChange={on => onCommit(on ? { mode: MODE_CUSTOM } : { mode: effectKey, effectMode: effectKey })}
         onSectionNavigate={onSectionNavigate}
       />
@@ -154,7 +167,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
         value={effectKey}
         onChange={v => onCommit({ mode: v, effectMode: v })}
         options={modeOptions}
-        disabled={lightingPage}
+        disabled={locked}
       />
 
       {effect?.mergeable && (
@@ -163,7 +176,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
           description={t('devices.lianli-wireless.mergeHint')}
           checked={chain.merge ?? false}
           onChange={on => onCommit({ merge: on })}
-          disabled={lightingPage}
+          disabled={locked}
         />
       )}
 
@@ -177,7 +190,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
         step={PERCENT_PER_LEVEL}
         formatValue={percent}
         ariaLabel={t('devices.lianli.lightingBrightnessAria')}
-        disabled={lightingPage}
+        disabled={locked}
         onChange={(v: number, commit?: boolean) => {
           const level = Math.round(v / PERCENT_PER_LEVEL);
           (commit ? onCommit : onPreview)({ brightness: level });
@@ -196,7 +209,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
           step={PERCENT_PER_LEVEL}
           formatValue={percent}
           ariaLabel={t('devices.lianli.lightingSpeedAria')}
-          disabled={lightingPage}
+          disabled={locked}
           onChange={(v: number, commit?: boolean) => {
             const level = Math.round(v / PERCENT_PER_LEVEL);
             (commit ? onCommit : onPreview)({ speed: level });
@@ -211,7 +224,7 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
           value={String(chain.direction)}
           onChange={v => onCommit({ direction: Number(v) })}
           options={directionOptions}
-          disabled={lightingPage}
+          disabled={locked}
         />
       )}
 
@@ -239,14 +252,14 @@ function ChainSection({ chain, laneModes, onPreview, onCommit, onSectionNavigate
             value={lane.mode}
             onChange={v => setLane(i, { mode: v }, true)}
             options={laneModes.map(key => ({ value: key, label: effectLabel(t, key) }))}
-            disabled={lightingPage}
+            disabled={locked}
           />
           <SettingSelect
             label={t('devices.lianli.lightingDirection')}
             value={String(lane.direction)}
             onChange={v => setLane(i, { direction: Number(v) }, true)}
             options={directionOptions}
-            disabled={lightingPage}
+            disabled={locked}
           />
           <HsvPicker
             value={lane.color}

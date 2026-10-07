@@ -17,7 +17,8 @@ const mockGetLianLiLighting = vi.fn();
 const mockSetLianLiLighting = vi.fn();
 const mockSetLianLiFanCount = vi.fn();
 
-vi.mock('../../../api/lianli', () => ({
+vi.mock('../../../api/lianli', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../../api/lianli')>()),
   getLianLiState: (...args: any[]) => mockGetLianLiState(...args),
   getLianLiLighting: (...args: any[]) => mockGetLianLiLighting(...args),
   setLianLiLighting: (...args: any[]) => mockSetLianLiLighting(...args),
@@ -128,6 +129,42 @@ describe('LianLiDevicePage', () => {
     expect(nav).toHaveBeenLastCalledWith('lighting', { scrollAnchors: ['lighting-group:mb:lianli'] });
   });
 
+  it('a second hub reads and writes through its own id, channels and anchors', async () => {
+    mockFetchFanChannels.mockResolvedValue({
+      channels: [
+        { id: 'lianli:port0', name: 'SL-Infinity Port 1', dutyPercent: 40, rpm: 1200, mode: 'Manual' },
+        { id: 'lianli2:port0', name: 'SL-Infinity 2 Port 1', dutyPercent: 70, rpm: 1500, mode: 'Manual' },
+      ],
+    });
+    const nav = vi.fn();
+    await act(async () => {
+      render(<LianLiDevicePage hubId="lianli2" onSectionNavigate={nav} />);
+    });
+    expect(mockGetLianLiState).toHaveBeenCalledWith('lianli2');
+    expect(mockGetLianLiLighting).toHaveBeenCalledWith('lianli2');
+    expect(screen.getByRole('tablist', { name: 'Lian Li Uni Hub 2' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.fanCountAria:{"n":3}' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.fanCount2' }));
+    });
+    expect(mockSetLianLiFanCount).toHaveBeenCalledWith(2, 2, 'lianli2');
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('tab', { name: /cooling\.title/ }));
+    });
+    expect(screen.getByText('70%')).toBeInTheDocument();
+    expect(screen.queryByText('40%')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.coolingPage.setHint' }));
+    expect(nav).toHaveBeenCalledWith('cooling', { scrollAnchors: ['cooling-group:lianli2'] });
+
+    fireEvent.click(screen.getByRole('tab', { name: /lighting\.title/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
+    });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'custom' }, 'lianli2');
+  });
+
   it('has no Cooling tab while no port has fans', async () => {
     mockGetLianLiState.mockResolvedValue({ ...defaultState, fansPerPort: [0, 0, 0, 0] });
     await act(async () => {
@@ -169,7 +206,7 @@ describe('LianLiDevicePage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
     });
-    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'rainbowWave' });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'rainbowWave' }, 'lianli');
   });
 
   it('offers Merge only for a mergeable mode and commits the toggle', async () => {
@@ -193,7 +230,7 @@ describe('LianLiDevicePage', () => {
     await act(async () => {
       fireEvent.click(toggle);
     });
-    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ merge: true });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ merge: true }, 'lianli');
     expect(toggle).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -202,7 +239,80 @@ describe('LianLiDevicePage', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.lightingPage.use' }));
     });
-    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'custom' });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'custom' }, 'lianli');
+  });
+
+  it('shows the hub firmware version once the service has read it', async () => {
+    mockGetLianLiState.mockResolvedValue({ ...defaultState, firmwareVersion: '1.4' });
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    expect(screen.getByText('devices.lianli.firmware')).toBeInTheDocument();
+    expect(screen.getByText('1.4')).toBeInTheDocument();
+  });
+
+  it('offers fan counts up to the hub family\'s cap', async () => {
+    mockGetLianLiState.mockResolvedValue({ ...defaultState, maxFansPerPort: 6 });
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.fanCountAria:{"n":1}' }));
+    expect(screen.getByRole('option', { name: 'devices.lianli.fanCount6' })).toBeInTheDocument();
+  });
+
+  it('caps fan counts at four on a service that does not report the cap', async () => {
+    await act(async () => {
+      render(<LianLiDevicePage />);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.fanCountAria:{"n":1}' }));
+    expect(screen.getByRole('option', { name: 'devices.lianli.fanCount4' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'devices.lianli.fanCount5' })).not.toBeInTheDocument();
+  });
+
+  it('a mode with no colours chosen shows its default palette without saving it', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      mode: 'meteor',
+      colors: [],
+      modes: [
+        ...defaultLighting.modes,
+        { key: 'meteor', label: 'Meteor', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4, defaultColors: ['#FF0000', '#0000FF'] },
+      ],
+    });
+    await renderOnLighting(<LianLiDevicePage />);
+    expect(screen.getAllByRole('button', { name: 'devices.lianli.removeColor' })).toHaveLength(2);
+    expect(mockSetLianLiLighting).not.toHaveBeenCalled();
+  });
+
+  it('keeps the last colour of a mode with defaults', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      mode: 'meteor',
+      colors: ['#00FF00'],
+      modes: [
+        ...defaultLighting.modes,
+        { key: 'meteor', label: 'Meteor', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4, defaultColors: ['#FF0000', '#0000FF'] },
+      ],
+    });
+    await renderOnLighting(<LianLiDevicePage />);
+    expect(screen.queryByRole('button', { name: 'devices.lianli.removeColor' })).not.toBeInTheDocument();
+  });
+
+  it('switching modes saves only the mode', async () => {
+    mockGetLianLiLighting.mockResolvedValue({
+      ...defaultLighting,
+      colors: [],
+      modes: [
+        ...defaultLighting.modes,
+        { key: 'tide', label: 'Tide', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 2, defaultColors: ['#FF0000', '#0000FF'] },
+      ],
+    });
+    await renderOnLighting(<LianLiDevicePage />);
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.lightingMode' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'Tide' }));
+    });
+    expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'tide' }, 'lianli');
   });
 
   it('keeps the Lighting page mode out of the animation list', async () => {
@@ -259,6 +369,111 @@ describe('LianLiDevicePage', () => {
     expect(spy).toHaveBeenCalledWith('lighting');
   });
 
+  describe('ports, rings and merge order', () => {
+    const ringModes = {
+      inner: [
+        { key: 'static', label: 'Inner Static', hasSpeed: false, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4 },
+        { key: 'meteor', label: 'Inner Meteor', hasSpeed: true, hasDirection: true, hasBrightness: true, colorsMin: 0, colorsMax: 4 },
+      ],
+      outer: [
+        { key: 'rainbowWave', label: 'Outer Rainbow', hasSpeed: true, hasDirection: true, hasBrightness: true, colorsMin: 0, colorsMax: 0 },
+        { key: 'static', label: 'Outer Static', hasSpeed: false, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 4 },
+      ],
+    };
+    const effect = (mode: string) => ({ mode, speed: 2, direction: 0, brightness: 4, colors: [] });
+
+    it('edits one port when a port is picked', async () => {
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [null, null, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.applyTo' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.port:{"n":2}' }));
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.lightingMode' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('option', { name: 'Rainbow Wave' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'rainbowWave', port: 1 }, 'lianli');
+      expect(screen.getByRole('button', { name: 'devices.lianli.matchAllPorts' })).toBeInTheDocument();
+    });
+
+    it('a port with its own look goes back to the hub look', async () => {
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [null, { whole: effect('dualColor') }, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.applyTo' }));
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.port:{"n":2}' }));
+      expect(screen.getByRole('button', { name: 'devices.lianli.lightingMode' })).toHaveTextContent('Dual Color');
+      const calls = mockGetLianLiLighting.mock.calls.length;
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.matchAllPorts' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ port: 1, resetPort: true }, 'lianli');
+      expect(mockGetLianLiLighting.mock.calls.length).toBeGreaterThan(calls);
+    });
+
+    it('keeps a port with its own look reachable when only one port has fans', async () => {
+      mockGetLianLiState.mockResolvedValue({ ...defaultState, fansPerPort: [3, 0, 0, 0] });
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [{ whole: effect('dualColor') }, null, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.applyTo' }));
+      expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual(['devices.lianli.allPorts', 'devices.lianli.port:{"n":1}']);
+    });
+
+    it('hides the port picker with one port and no port looks', async () => {
+      mockGetLianLiState.mockResolvedValue({ ...defaultState, fansPerPort: [3, 0, 0, 0] });
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ports: [null, null, null, null] });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByRole('button', { name: 'devices.lianli.applyTo' })).not.toBeInTheDocument();
+    });
+
+    it('offers separate rings only on a two-ring hub and reloads after splitting', async () => {
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByRole('switch', { name: 'devices.lianli.splitRings' })).not.toBeInTheDocument();
+
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ringModes });
+      await act(async () => {
+        window.dispatchEvent(new Event('focus'));
+      });
+      const calls = mockGetLianLiLighting.mock.calls.length;
+      await act(async () => {
+        fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli.splitRings' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ splitRings: true }, 'lianli');
+      expect(mockGetLianLiLighting.mock.calls.length).toBeGreaterThan(calls);
+    });
+
+    it('split rings edit each ring from its own catalog', async () => {
+      mockGetLianLiLighting.mockResolvedValue({ ...defaultLighting, ringModes, innerRing: effect('static'), outerRing: effect('rainbowWave') });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.getByRole('switch', { name: 'devices.lianli.splitRings' })).toHaveAttribute('aria-checked', 'true');
+      const outer = screen.getByText('devices.lianli.outerRing').closest('section')!;
+      fireEvent.click(within(outer).getByRole('button', { name: 'devices.lianli.lightingMode' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('option', { name: 'Outer Static' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mode: 'static', ring: 'outer' }, 'lianli');
+      expect(screen.getByText('devices.lianli.innerRing')).toBeInTheDocument();
+    });
+
+    it('merge order swaps the picked port into place', async () => {
+      mockGetLianLiLighting.mockResolvedValue({
+        ...defaultLighting,
+        mode: 'runway',
+        merge: true,
+        mergeOrder: [0, 1, 2, 3],
+        modes: [
+          ...defaultLighting.modes,
+          { key: 'runway', label: 'Runway', hasSpeed: true, hasDirection: false, hasBrightness: true, colorsMin: 0, colorsMax: 2, mergeable: true },
+        ],
+      });
+      await renderOnLighting(<LianLiDevicePage />);
+      expect(screen.queryByRole('button', { name: 'devices.lianli.applyTo' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.mergePosition:{"n":1}' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('option', { name: 'devices.lianli.port:{"n":3}' }));
+      });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ mergeOrder: [2, 1, 0, 3] }, 'lianli');
+    });
+  });
+
   describe('ARGB sync', () => {
     const sources = [{ id: 'openrgb-1', name: 'Header 1' }, { id: 'smarthub:1:port4', name: 'SmartHub Port 4' }];
     const product = { key: 'product:lianli-lian-li-sl120-infinity' };
@@ -290,10 +505,23 @@ describe('LianLiDevicePage', () => {
       });
     });
 
-    it('is absent on a hub whose ARGB layout is unverified', async () => {
+    it('is absent on a service that cannot sync this hub', async () => {
       argb({ argbSyncSupported: false });
       await renderOnLighting(<LianLiDevicePage />);
       expect(screen.queryByText('devices.lianli.argbSyncSection')).not.toBeInTheDocument();
+    });
+
+    it('on a hub with an unverified input layout, the switch alone hands the fans to the motherboard', async () => {
+      argb({ argbSyncSourcesSupported: false, argbSyncSources: [] });
+      await renderOnLighting(<LianLiDevicePage />);
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('switch', { name: 'devices.motherboardArgb.label' }));
+      });
+
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true }, 'lianli');
+      expect(mockSetDeviceChain).not.toHaveBeenCalled();
+      expect(screen.queryByText('devices.lianli.argbSyncSource')).not.toBeInTheDocument();
     });
 
     it('with no header saved, switching on shows the picker and the pick turns sync on', async () => {
@@ -307,7 +535,7 @@ describe('LianLiDevicePage', () => {
       fireEvent.click(picker()!);
       await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'Header 1' })); });
       expect(mockSetDeviceChain).toHaveBeenCalledWith('openrgb-1', [product, product, product]);
-      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' }, 'lianli');
       expect(toggle()).toHaveAttribute('aria-checked', 'true');
     });
 
@@ -331,7 +559,7 @@ describe('LianLiDevicePage', () => {
       await renderOnLighting(<LianLiDevicePage />);
       await act(async () => { fireEvent.click(toggle()); });
       expect(mockSetDeviceChain).toHaveBeenCalledWith('openrgb-1', [product, product, product]);
-      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' }, 'lianli');
       expect(mockSetDeviceChain.mock.invocationCallOrder[0]).toBeLessThan(mockSetLianLiLighting.mock.invocationCallOrder[0]);
     });
 
@@ -341,7 +569,7 @@ describe('LianLiDevicePage', () => {
       await renderOnLighting(<LianLiDevicePage />);
       await act(async () => { fireEvent.click(toggle()); });
       expect(mockSetDeviceChain).not.toHaveBeenCalled();
-      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: true, argbSyncSource: 'openrgb-1' }, 'lianli');
     });
 
     it('a refused chain leaves sync off and saves nothing', async () => {
@@ -359,7 +587,7 @@ describe('LianLiDevicePage', () => {
       expect(screen.queryByText('devices.lianli.lightingSection')).not.toBeInTheDocument();
       await act(async () => { fireEvent.click(toggle()); });
       expect(mockSetDeviceChain).not.toHaveBeenCalled();
-      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: false });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSync: false }, 'lianli');
       expect(screen.getByText('devices.lianli.lightingSection')).toBeInTheDocument();
     });
 
@@ -372,7 +600,7 @@ describe('LianLiDevicePage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'devices.lianli.argbSyncSource' }));
       await act(async () => { fireEvent.click(screen.getByRole('option', { name: 'SmartHub Port 4' })); });
       expect(mockSetDeviceChain).toHaveBeenCalledWith('smarthub:1:port4', [product, product, product]);
-      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSyncSource: 'smarthub:1:port4' });
+      expect(mockSetLianLiLighting).toHaveBeenCalledWith({ argbSyncSource: 'smarthub:1:port4' }, 'lianli');
       expect(mockSetDeviceChain).toHaveBeenCalledWith('openrgb-1', []);
     });
   });

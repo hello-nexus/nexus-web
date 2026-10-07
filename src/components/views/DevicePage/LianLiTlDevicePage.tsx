@@ -5,7 +5,7 @@ import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { CoolingPageLink } from './CoolingPageLink';
-import { SettingSelect, SettingSlider } from '../../common/SettingRow/SettingRow';
+import { SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { HsvPicker } from '../../common/HsvPicker/HsvPicker';
 import {
   getLianLiTlLighting,
@@ -164,6 +164,22 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
             <CoolingPageLink hint={t('devices.coolingPage.speedHint')} onSectionNavigate={onSectionNavigate} />
           </SettingsSection>
         ) : (
+          <>
+          <SettingsSection title={t('devices.lianli.argbSyncSection')} boxClassName={styles.sectionBox}>
+            <SettingToggle
+              label={t('devices.motherboardArgb.label')}
+              description={t('devices.motherboardArgb.hint')}
+              checked={lighting?.argbSync === true}
+              disabled={!lightingLoaded}
+              onChange={on => {
+                if (!lighting) return;
+                const previous = lighting;
+                applyLocal({ ...lighting, argbSync: on });
+                // It decides which controls lock, so a refused save must not leave the page showing it.
+                void setLianLiTlLighting({ argbSync: on }).catch(() => null).then(r => { if (r === null && aliveRef.current) applyLocal(previous); });
+              }}
+            />
+          </SettingsSection>
           <SettingsSection
             title={t('devices.lianli-tl.lightingSection')}
             boxClassName={styles.sectionBox}
@@ -177,7 +193,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
                 void commitLighting({ mode: v });
               }}
               options={(lighting?.modes ?? []).map(m => ({ value: m.key, label: m.label }))}
-              disabled={!lightingLoaded}
+              disabled={!lightingLoaded || lighting?.argbSync === true}
             />
 
             {!lightsOff && (
@@ -191,7 +207,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
                 void commitLighting({ scope });
               }}
               options={SCOPES.map(s => ({ value: s, label: t(`devices.lianli-tl.scopes.${s}`) }))}
-              disabled={!lightingLoaded}
+              disabled={!lightingLoaded || lighting?.argbSync === true}
             />
             )}
 
@@ -206,7 +222,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
               step={PERCENT_PER_LEVEL}
               formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
               ariaLabel={t('devices.lianli-tl.lightingBrightnessAria')}
-              disabled={!lightingLoaded}
+              disabled={!lightingLoaded || lighting?.argbSync === true}
               onChange={(v: number, commit?: boolean) => {
                 if (!lighting) return;
                 const level = Math.round(v / PERCENT_PER_LEVEL);
@@ -230,7 +246,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
               step={PERCENT_PER_LEVEL}
               formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
               ariaLabel={t('devices.lianli-tl.lightingSpeedAria')}
-              disabled={!lightingLoaded}
+              disabled={!lightingLoaded || lighting?.argbSync === true}
               onChange={(v: number, commit?: boolean) => {
                 if (!lighting) return;
                 const level = Math.round(v / PERCENT_PER_LEVEL);
@@ -257,7 +273,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
                 value: String(d),
                 label: t('devices.lianli-tl.directionN', { n: d + 1 }),
               }))}
-              disabled={!lightingLoaded}
+              disabled={!lightingLoaded || lighting?.argbSync === true}
             />
             )}
 
@@ -317,6 +333,7 @@ export function LianLiTlDevicePage({ onSectionNavigate }: LianLiTlDevicePageProp
               </div>
             )}
           </SettingsSection>
+          </>
         )}
       </div>
     </div>

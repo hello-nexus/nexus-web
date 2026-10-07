@@ -191,3 +191,27 @@ describe('LianLiWirelessLightingTab', () => {
     ]);
   });
 });
+
+describe('motherboard ARGB', () => {
+  it('is offered only on a chain with its sync cable plugged in', async () => {
+    await renderTab({ ...catalog, chains: [{ ...fanChain, argbCableConnected: false }] });
+    expect(screen.queryByRole('switch', { name: 'devices.motherboardArgb.label' })).not.toBeInTheDocument();
+  });
+
+  it('with no saved choice shows what the chain reports', async () => {
+    await renderTab({ ...catalog, chains: [{ ...fanChain, argbCableConnected: true, motherboardArgb: null, playingMotherboardArgb: true }] });
+    expect(screen.getByRole('switch', { name: 'devices.motherboardArgb.label' })).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('turning it on saves the choice and locks the effect controls', async () => {
+    mockSetStrimer.mockResolvedValue(true);
+    await renderTab({ ...catalog, chains: [{ ...fanChain, argbCableConnected: true }] });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.motherboardArgb.label' }));
+    });
+
+    expect(mockSetStrimer).toHaveBeenCalledWith('998D1DE566E1', expect.objectContaining({ motherboardArgb: true }));
+    expect(screen.getByRole('button', { name: 'devices.lianli.lightingMode' })).toBeDisabled();
+  });
+});

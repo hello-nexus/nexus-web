@@ -33,7 +33,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareActive, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -92,11 +92,11 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   communityCounts?: Record<string, number>;
   /** Badge click: open the LED map editor on its Community tab. */
   onOpenCommunity?: (id: string) => void;
-  /** When true, Lian Li device cards are shown in the firmwareControlled (dimmed) state. */
-  lianLiFirmwareActive?: boolean;
-  /** Switches the Lian Li hub to its per-LED 'custom' mode, handing its zones
+  /** Wired Lian Li hubs (by hub id) playing a firmware animation; their cards are shown in the firmwareControlled (dimmed) state. */
+  lianLiFirmwareHubs?: ReadonlySet<string>;
+  /** Switches that hub to its per-LED 'custom' mode, handing its zones
    *  back to the engine. Drives the take-control row on those cards' menus. */
-  onLianLiTakeControl?: () => void;
+  onLianLiTakeControl?: (hubId: string) => void;
   /** Devices (by deviceId) playing an animation stored on the hardware, shown in the firmwareControlled state. */
   firmwareDeviceIds?: ReadonlySet<string>;
   /** Hands one of {@link firmwareDeviceIds} back to the engine. */
@@ -339,12 +339,15 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   };
 
   // The same gate a card's own click has, over a group's members.
+  const lianLiHubOf = (d: LightingDevice) =>
+    d.parentDeviceId !== undefined && lianLiFirmwareHubs?.has(d.parentDeviceId) ? d.parentDeviceId : undefined;
   const fwOf = (d: LightingDevice) =>
-    (!!lianLiFirmwareActive && d.id.startsWith('lianli:'))
+    lianLiHubOf(d) !== undefined
     || (d.deviceId !== undefined && !!firmwareDeviceIds?.has(d.deviceId));
   const takeControlFor = (d: LightingDevice) => {
     if (!fwOf(d)) return undefined;
-    if (d.id.startsWith('lianli:')) return onLianLiTakeControl;
+    const hub = lianLiHubOf(d);
+    if (hub !== undefined) return onLianLiTakeControl ? () => onLianLiTakeControl(hub) : undefined;
     const deviceId = d.deviceId;
     return deviceId !== undefined && onFirmwareTakeControl ? () => onFirmwareTakeControl(deviceId) : undefined;
   };

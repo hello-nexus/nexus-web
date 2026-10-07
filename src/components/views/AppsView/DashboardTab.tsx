@@ -5,13 +5,11 @@ import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useTranslation } from '../../../lib/i18n';
 import { PanelEmbeddedContent } from '../../../panel/PanelApp';
-import { DESKTOP_GRID_COLUMNS } from '../../../panel/engine/panelGrid';
-import { autoArrangeLayout } from '../../../panel/engine/paginate';
 import { useDashboardLayout } from '../../../panel/engine/useDashboardLayout';
 import { useSearchSignal } from '../../../search/signals';
 import { ServiceRequired } from '../ServiceRequired';
-import { Toggle } from '../../common/Toggle/Toggle';
 import { OverlayWidgetsModal } from './OverlayWidgetsModal';
+import { DashboardPresetToolbar } from './DashboardPresetToolbar';
 import { DashboardBanner } from './DashboardBanner';
 import { listOverlayWidgets } from '../../../api/overlay';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
@@ -32,7 +30,7 @@ export function DashboardTab({ serviceOnline, connectionState, onSectionNavigate
 
 function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardSectionNavigate }) {
   const { t } = useTranslation();
-  const { settings, update: updateUiSettings, hydrated: uiHydrated } = useUiSettings();
+  const { settings } = useUiSettings();
   const layoutState = useDashboardLayout();
   const [addWidgetSignal, setAddWidgetSignal] = useState(0);
   const [desktopModalOpen, setDesktopModalOpen] = useState(false);
@@ -59,13 +57,6 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
   useSearchSignal('add-widget', useCallback(() => setAddWidgetSignal((value) => value + 1), []));
   useSearchSignal('desktop-widgets', useCallback(() => setDesktopModalOpen(true), []));
 
-  const autoArrange = settings.dashboardAutoArrange;
-  const toggleAutoArrange = () => {
-    // Off keeps the arranged order, re-packed to the manual grid's width.
-    if (autoArrange) layoutState.setLayout(autoArrangeLayout(layoutState.layout, DESKTOP_GRID_COLUMNS));
-    updateUiSettings({ dashboardAutoArrange: !autoArrange });
-  };
-
   return (
     <div className={styles.dashboard}>
       <div className={`${styles.dashboardBody} pageBodyFill`}>
@@ -89,15 +80,9 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
               <span className={styles.widgetCountBadge}>{desktopWidgetCount}</span>
             )}
           </button>
-          <label className={styles.autoArrange}>
-            <span>{t('dashboard.autoArrange')}</span>
-            <Toggle
-              checked={autoArrange}
-              ariaLabel={t('dashboard.autoArrange')}
-              disabled={!uiHydrated || !layoutState.loaded}
-              onChange={toggleAutoArrange}
-            />
-          </label>
+          <div className={styles.presetRail}>
+            <DashboardPresetToolbar layoutState={layoutState} />
+          </div>
         </div>
         <DashboardBanner gridHostRef={panelHostRef} onOpen={() => onSectionNavigate?.('store')} />
         <div ref={panelHostRef} className={styles.panelHost}>

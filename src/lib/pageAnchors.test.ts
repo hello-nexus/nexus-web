@@ -40,6 +40,12 @@ describe('pageAnchors', () => {
     expect(lianLiCoolingAnchors()).toEqual(['cooling-group:lianli']);
   });
 
+  it('a second wired hub targets its own groups', () => {
+    expect(lianLiCoolingAnchors('lianli2')).toEqual(['cooling-group:lianli2']);
+    expect(lianLiLightingAnchors(undefined, 'lianli2')).toEqual(['lighting-group:mb:lianli2']);
+    expect(lianLiLightingAnchors({ argbSync: true, argbSyncSource: 'smarthub:1:port4' }, 'lianli2').at(-1)).toBe('lighting-group:mb:lianli2');
+  });
+
   it('wireless targets the hub group on lighting and each bound chain on cooling', () => {
     expect(lianLiWirelessLightingAnchors()).toEqual(['lighting-group:mb:lianli-wireless']);
     expect(lianLiWirelessCoolingAnchors(['998D1DE566E1', 'AABBCCDDEEFF'])).toEqual([

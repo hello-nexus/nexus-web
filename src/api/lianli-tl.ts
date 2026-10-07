@@ -32,10 +32,12 @@ export interface LianLiTlLighting {
   colors: string[];
   modes: LianLiTlMode[];
   maxColors: number;
+  /** The fans play the motherboard ARGB header. Absent on an older service. */
+  argbSync?: boolean;
 }
 
 export type LianLiTlLightingPatch = Partial<
-  Pick<LianLiTlLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'scope' | 'colors'>
+  Pick<LianLiTlLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'scope' | 'colors' | 'argbSync'>
 >;
 
 export function getLianLiTlLighting(): Promise<LianLiTlLighting | null> {

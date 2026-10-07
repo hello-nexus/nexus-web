@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DevicePanel } from './DevicePanel';
 import type { LightingDevice } from '../../../../api/lighting';
@@ -819,6 +819,44 @@ describe('DevicePanel firmware-played devices', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'lighting.devices.moreActions' })[0]);
     fireEvent.click(screen.getByText('lighting.devices.menuTakeControl'));
     expect(onFirmwareTakeControl).toHaveBeenCalledWith('lianli-wireless:64F271E566E1');
+  });
+});
+
+describe('DevicePanel wired hubs in firmware mode', () => {
+  const port = (hub: string, n: number) => device(`${hub}:port${n}`, `${hub} Port ${n}`, { parentDeviceId: hub, deviceId: `${hub}:port${n}`, zoneIndex: n });
+
+  function renderHubs(onLianLiTakeControl = vi.fn()) {
+    render(
+      <DevicePanel
+        devices={[port('lianli', 0), port('lianli2', 0)]}
+        selectedIds={new Set()}
+        onSetSelection={() => {}}
+        onTogglePower={() => {}}
+        onSetPower={() => {}}
+        onToggleControlled={() => {}}
+        onSetControlled={() => {}}
+        lightingOff={false}
+        onOpenSettings={() => {}}
+        lianLiFirmwareHubs={new Set(['lianli2'])}
+        onLianLiTakeControl={onLianLiTakeControl}
+      />,
+    );
+    return onLianLiTakeControl;
+  }
+
+  it('badges only the cards of the hub playing a firmware mode', () => {
+    renderHubs();
+    expect(screen.getAllByText('lighting.devices.smarthub.firmwareBadge')).toHaveLength(1);
+    const badged = screen.getByText('lighting.devices.smarthub.firmwareBadge').closest('[data-search-anchor]');
+    expect(badged?.getAttribute('data-search-anchor')).toBe('lighting-device:lianli2:port0');
+  });
+
+  it('takes that hub back from its card menu', () => {
+    const onLianLiTakeControl = renderHubs();
+    const card = document.querySelector('[data-search-anchor="lighting-device:lianli2:port0"]') as HTMLElement;
+    fireEvent.click(within(card).getByRole('button', { name: 'lighting.devices.moreActions' }));
+    fireEvent.click(screen.getByText('lighting.devices.menuTakeControl'));
+    expect(onLianLiTakeControl).toHaveBeenCalledWith('lianli2');
   });
 });
 

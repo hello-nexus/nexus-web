@@ -19,9 +19,11 @@ export interface StrimerLighting {
   brightness: number;
   colors: string[];
   modes: StrimerLightingMode[];
+  /** The cable plays the motherboard ARGB header. Absent on an older service. */
+  argbSync?: boolean;
 }
 
-export type StrimerLightingPatch = Partial<Pick<StrimerLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors'>>;
+export type StrimerLightingPatch = Partial<Pick<StrimerLighting, 'mode' | 'speed' | 'direction' | 'brightness' | 'colors' | 'argbSync'>>;
 
 export function getStrimerLighting(): Promise<StrimerLighting | null> {
   return fetchService<StrimerLighting>('/devices/strimer/lighting');
