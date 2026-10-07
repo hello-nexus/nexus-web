@@ -87,6 +87,7 @@ import {
 import { useCrossZoneDrag } from '../app/CrossZoneDrag';
 import { PanelOfflineOverlay } from './overlays/PanelOfflineOverlay';
 import { isInsecureBrowserPanel } from './overlays/PanelInsecureBanner';
+import { PanelSentry } from './overlays/PanelSentry';
 import { useTranslation } from '../lib/i18n';
 import { DEFAULT_ACCENT, applyHtmlChromeTheme } from '../lib/settings';
 import { patchPanelDevice, type PanelDeviceCapabilitiesDto } from '../api/panel';
@@ -859,6 +860,15 @@ export function PanelContent({
     [dragLayout, playlistType, surface, deviceId],
   );
 
+  // Render-only trailing blank page to swipe onto and add a widget on; never
+  // stored (addWidget creates it). A drag mints its own trailing page.
+  const [blankPageId] = useState(createUuid);
+  const blankPageEligible = kioskBehavior
+    && surfaceSupportsTouch(surface, deviceTouch)
+    && !isSingleWidgetSurface(surface)
+    && !activeDragId
+    && paginatedLayout.pages.length < MAX_PANEL_PAGES;
+
   const allFiltered = useMemo(() => {
     // q60 offline failsafe: keep the panel exactly as-is (background animation,
     // theme, chrome) and swap only the rendered widgets for the clock widget.
@@ -870,7 +880,7 @@ export function PanelContent({
     const pages = shownPlaylistWidget
       ? [{ id: dragLayout.pages[0]?.id ?? '', widgets: [shownPlaylistWidget] }]
       : dragLayout.pages;
-    return pages.map(page => ({
+    const filtered = pages.map(page => ({
       id: page.id,
       widgets: page.widgets
         .filter(w => {
@@ -883,7 +893,11 @@ export function PanelContent({
         // visual layout; placement itself is via inline style, not source order.
         .sort((a, b) => a.row !== b.row ? a.row - b.row : a.col - b.col),
     }));
-  }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget]);
+    const lastPage = filtered[filtered.length - 1];
+    return blankPageEligible && lastPage && lastPage.widgets.length > 0
+      ? [...filtered, { id: blankPageId, widgets: [] }]
+      : filtered;
+  }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -1276,20 +1290,26 @@ export function PanelContent({
     // Dashboard is single-page: appendWidget no-ops if page 0 is full
     // instead of spawning a new page. Other surfaces keep multi-page.
     const dashboardSinglePage = embedded && surface === 'desktop';
-    const appended = appendWidget(paginatedLayout, next, capacity, {
+    // On the blank page: create it as a real page that other clients follow.
+    const onBlankPage = allFiltered[activePageIndex]?.id === blankPageId;
+    const newPageId = createUuid();
+    const base = onBlankPage
+      ? { ...paginatedLayout, pages: [...paginatedLayout.pages, { id: newPageId, widgets: [] }], activePageId: newPageId }
+      : paginatedLayout;
+    const appended = appendWidget(base, next, capacity, {
       singlePage: dashboardSinglePage,
       // Land on the page the user is looking at when it has room, not the
       // first page with a slot.
-      preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
+      preferredPageId: base.pages[activePageIndex]?.id,
     });
     // Identity means no slot was found. The catalog dims what cannot fit, so
     // this is reachable only if the layout filled under an open sheet; leave
     // the sheet open rather than closing it on a widget that was never added.
-    if (appended === paginatedLayout) return;
-    setLayout(appended);
+    if (appended === base) return;
+    setLayout(onBlankPage ? pruneEmptyPages(appended) : appended);
     setPendingScrollId(next.id);
     closeSheet();
-  }, [activePageIndex, closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
+  }, [activePageIndex, allFiltered, blankPageId, closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
 
   // The dashboard cannot spill onto a new page, so a full grid has no room and
   // the catalog dims what will not fit. Multi-page surfaces always accept a
@@ -2159,6 +2179,11 @@ export function PanelContent({
           onOpenNativePairing={nativeSettings.open}
         />
       )}
+      <PanelSentry
+        enabled={kioskBehavior && surface === 'phone'}
+        resolvedThemeMode={resolvedThemeMode}
+        themeStyle={panelThemeVars}
+      />
       {kioskBehavior && surface === 'phone' && (
         <ConfirmModal
           open={(multiplex?.directUpgradeFailed ?? false) && multiplex?.transport === 'relay'}

@@ -32,9 +32,23 @@ import type {
 // below; every other domain resource stays null/empty since those tests
 // only exercise tab switching, not each section's own data rendering.
 let mockHealth: DiagnosticsHealth | null = null;
+const mockRefreshHealth = vi.hoisted(() => vi.fn());
+// An unacknowledged, ended thermal guard trip, so the Cooling tab shows the dismissable notice.
+const mockGuardTrip = vi.hoisted(() => ({ on: false }));
 
 vi.mock('../../../hooks/useDiagnosticsHealth', () => ({
-  useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: vi.fn() }),
+  useDiagnosticsHealth: () => ({ health: mockHealth, loading: false, error: false, mocked: false, refresh: mockRefreshHealth }),
+}));
+
+vi.mock('../../../hooks/useThermalGuard', () => ({
+  useThermalGuard: () => ({
+    guard: mockGuardTrip.on
+      ? { lastTrip: { atUtcMs: 1, peakC: 90, reason: 'limit', escalated: false, endedAtUtcMs: 2, acknowledged: false } }
+      : null,
+    fetchedAtMs: 3,
+    ackError: null,
+    acknowledgeTrip: async () => true,
+  }),
 }));
 
 vi.mock('../../../hooks/useDiagnosticsResource', () => ({
@@ -647,6 +661,18 @@ describe('DiagnosticsView tabs', () => {
     renderDiagnosticsView({ tab: 'gpu', onTabChange: vi.fn() });
 
     expect(screen.getByRole('tab', { name: /diagnostics.kind.cooling/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('dismissing a thermal guard trip force-refreshes the health overview', async () => {
+    mockGuardTrip.on = true;
+    mockRefreshHealth.mockClear();
+    try {
+      renderDiagnosticsView({ tab: 'cooling', onTabChange: vi.fn() });
+      fireEvent.click(await screen.findByRole('button', { name: 'diagnostics.cooling.guardTrip.dismiss' }));
+      await waitFor(() => expect(mockRefreshHealth).toHaveBeenCalledWith({ force: true }));
+    } finally {
+      mockGuardTrip.on = false;
+    }
   });
 
   it('deep-links straight into a domain tab from the url param', () => {

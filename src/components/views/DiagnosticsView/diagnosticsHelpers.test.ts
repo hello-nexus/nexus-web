@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
+import en from '../../../locales/en.json';
 import {
   aggregateDomainTiles,
   coolingStatusColor,
@@ -62,6 +63,19 @@ describe('reasonLabelKey / reasonLabel', () => {
     const unknown: DiagnosticsReason = { ...reason, code: 'future.newCode' };
     const translate = (key: string) => key; // simulates the i18n miss fallback
     expect(reasonLabel(unknown, translate)).toBe(unknown.summary);
+  });
+});
+
+describe('reasonLabel for the thermal guard', () => {
+  it('returns the short label, not the service summary, for the trip code', () => {
+    const reason: DiagnosticsReason = {
+      code: 'cooling.thermalGuardTrip',
+      severity: 'act',
+      summary: 'The CPU reached its limit and the thermal guard forced every fan to full speed; check the cooler.',
+      detail: '',
+    };
+    const translate = (key: string) => (en as Record<string, string>)[key] ?? key;
+    expect(reasonLabel(reason, translate)).toBe('Thermal guard tripped');
   });
 });
 

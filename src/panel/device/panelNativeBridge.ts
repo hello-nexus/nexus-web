@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+export interface NativePushStatus {
+  platform: 'ios' | 'android';
+  permission: 'granted' | 'denied' | 'prompt';
+  // APNs token as lowercase hex, or the FCM registration token.
+  token: string | null;
+  environment: 'sandbox' | 'production';
+}
+
+// Dispatched by the wrapper on request and whenever the push token changes.
+export const NATIVE_PUSH_STATUS_EVENT = 'nexus:push-status';
+
 interface NativeSettingsWindow extends Window {
   nexusNative?: {
     openSettings?: () => void;
@@ -7,7 +18,10 @@ interface NativeSettingsWindow extends Window {
     transferFiles?: () => void;
     sendClipboard?: () => void;
     findComputer?: () => void;
+    pushStatus?: () => void;
+    requestPushPermission?: () => void;
   };
+  nexusNativePush?: NativePushStatus;
   webkit?: {
     messageHandlers?: {
       nexusNativeSettings?: {
@@ -168,4 +182,47 @@ export function useNativeSettingsBridge(enabled: boolean) {
   }, []);
 
   return { available: enabled && available, open };
+}
+
+export function hasNativePushBridge() {
+  const nexusNative = (window as NativeSettingsWindow).nexusNative;
+  return typeof nexusNative?.pushStatus === 'function'
+    && typeof nexusNative?.requestPushPermission === 'function';
+}
+
+// Push alert state from the app wrapper. `available` is false in a plain
+// browser, where the panel shows no alert controls.
+export function useNativePush(enabled: boolean) {
+  const [available, setAvailable] = useState(false);
+  const [status, setStatus] = useState<NativePushStatus | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const nativeWindow = window as NativeSettingsWindow;
+    const refresh = () => {
+      const present = hasNativePushBridge();
+      setAvailable(present);
+      if (!present) return;
+      if (nativeWindow.nexusNativePush) setStatus(nativeWindow.nexusNativePush);
+      nativeWindow.nexusNative?.pushStatus?.();
+    };
+    const handleStatus = (e: Event) => {
+      const detail = (e as CustomEvent<NativePushStatus>).detail;
+      if (detail && typeof detail.permission === 'string') setStatus(detail);
+    };
+    refresh();
+    window.addEventListener('nexus:native-ready', refresh);
+    window.addEventListener(NATIVE_PUSH_STATUS_EVENT, handleStatus);
+    return () => {
+      window.removeEventListener('nexus:native-ready', refresh);
+      window.removeEventListener(NATIVE_PUSH_STATUS_EVENT, handleStatus);
+    };
+  }, [enabled]);
+
+  const requestPermission = useCallback(() => {
+    (window as NativeSettingsWindow).nexusNative?.requestPushPermission?.();
+  }, []);
+
+  return { available: enabled && available, status, requestPermission };
 }

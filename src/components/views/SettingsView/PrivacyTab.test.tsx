@@ -8,6 +8,8 @@ import type { Nexus2StatusResponse } from '../../../api/migration';
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn().mockResolvedValue(null),
   postService: vi.fn().mockResolvedValue(null),
+  isRemoteOrigin: false,
+  isRemotePaired: false,
 }));
 
 vi.mock('../../../api/migration', () => ({

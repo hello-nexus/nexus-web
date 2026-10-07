@@ -14,6 +14,9 @@ import { isRemoteOrigin } from './api/service';
 import { initMemoryProbe } from './diag/memoryProbe';
 import { initBuildReloadWatcher } from './lib/buildReloadWatcher';
 import { initHoverGuard } from './lib/hoverGuard';
+import { installGlobalErrorReporting } from './telemetry/errorReporting';
+
+installGlobalErrorReporting();
 
 // Apply persisted theme mode + accent color before first paint so there's
 // no flash of the default violet.

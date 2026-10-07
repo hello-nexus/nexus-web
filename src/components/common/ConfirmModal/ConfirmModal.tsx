@@ -23,6 +23,8 @@ interface ConfirmModalProps {
   destructive?: boolean;
   /** Disables the confirm button, e.g. while a caller-tracked async onConfirm is still in flight. */
   confirmDisabled?: boolean;
+  /** Drops the confirm button, for a prompt whose only action is the cancel button (relabelled via cancelLabel). */
+  hideConfirm?: boolean;
   /**
    * Optional third action, rendered as the primary button with confirm
    * demoted beside it. For a prompt where the safe way out is doing the work
@@ -32,6 +34,8 @@ interface ConfirmModalProps {
   primaryAction?: { label: string; onSelect: () => void; disabled?: boolean };
   onConfirm: () => void;
   onCancel: () => void;
+  /** Esc or a backdrop click, when it should differ from the Cancel button; defaults to onCancel. */
+  onDismiss?: () => void;
 }
 
 /**
@@ -54,9 +58,11 @@ export function ConfirmModal({
   cancelLabel,
   destructive = true,
   confirmDisabled = false,
+  hideConfirm = false,
   primaryAction,
   onConfirm,
   onCancel,
+  onDismiss,
 }: ConfirmModalProps) {
   const { t } = useTranslation();
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -70,7 +76,7 @@ export function ConfirmModal({
   const paragraphs = message.split(/\n+/).filter(p => p.length > 0);
 
   return (
-    <Overlay open={open} onClose={onCancel} variant="alert" onEnter={confirmDisabled ? undefined : onConfirm}
+    <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={confirmDisabled || hideConfirm ? undefined : onConfirm}
       className={styles.modal} ariaLabel={title}>
       <h2 className={styles.title}>{title}</h2>
       <div className={styles.body}>
@@ -87,15 +93,17 @@ export function ConfirmModal({
         <Button ref={cancelRef} tone="neutral" size="md" onClick={onCancel}>
           {cancelLabel ?? t('confirm.cancel')}
         </Button>
-        <Button
-          // With a primary action present, confirm is the other way out and
-          // never the accent button.
-          tone={destructive ? 'danger-solid' : primaryAction ? 'neutral' : 'accent'}
-          size="md"
-          onClick={onConfirm}
-          disabled={confirmDisabled}>
-          {confirmLabel ?? t('confirm.ok')}
-        </Button>
+        {!hideConfirm && (
+          <Button
+            // With a primary action present, confirm is the other way out and
+            // never the accent button.
+            tone={destructive ? 'danger-solid' : primaryAction ? 'neutral' : 'accent'}
+            size="md"
+            onClick={onConfirm}
+            disabled={confirmDisabled}>
+            {confirmLabel ?? t('confirm.ok')}
+          </Button>
+        )}
         {primaryAction && (
           <Button
             tone="accent"

@@ -77,6 +77,8 @@ export function Slider({
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Removes the window release listeners armed by a pointer-down; null when no drag is open.
+  const releaseCleanupRef = useRef<(() => void) | null>(null);
   const showZero = zeroMarker && min < 0 && max > 0;
   const zeroPct = showZero ? ((0 - min) / (max - min)) * 100 : 0;
   // A numeric `trackFill` sets the fill end explicitly; otherwise it
@@ -118,12 +120,19 @@ export function Slider({
     onCommitRef.current = onCommit;
   }, [onCommit]);
 
-  useEffect(() => () => {
+  // Unmounting, or becoming disabled, drops an armed drag and any commit still
+  // deferred: neither commits, because a gone or disabled slider must not call onCommit.
+  const dropGesture = () => {
+    releaseCleanupRef.current?.();
     if (commitTimerRef.current) {
       clearTimeout(commitTimerRef.current);
       commitTimerRef.current = null;
     }
-  }, []);
+  };
+  useEffect(() => dropGesture, []);
+  useEffect(() => {
+    if (disabled) dropGesture();
+  }, [disabled]);
 
   const handleChange = (next: number, commit = false) => {
     latestInputValueRef.current = next;
@@ -145,7 +154,7 @@ export function Slider({
   const fmt = (v: number) => (formatValue ? formatValue(v) : String(v));
   const valueNode = editable ? (
     <EditableNumber value={value} min={min} max={max} step={step}
-      onCommit={handleEditCommit} format={formatValue} className={styles.value} />
+      onCommit={handleEditCommit} format={formatValue} className={styles.value} disabled={disabled} />
   ) : (
     <span className={styles.value}>{fmt(value)}</span>
   );
@@ -160,7 +169,7 @@ export function Slider({
     <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
-          onCommit={handleEditCommit} format={formatValue} ariaLabel={ariaLabel} className={styles.value} />
+          onCommit={handleEditCommit} format={formatValue} ariaLabel={ariaLabel} className={styles.value} disabled={disabled} />
       ) : (
         <span className={styles.value}>{fmt(value)}</span>
       )}
@@ -179,6 +188,34 @@ export function Slider({
     }, 0);
   };
 
+  // A drag ends wherever the pointer is let go, which may be off the track, so the
+  // window hears the release. While a drag is armed this is the only pointer path
+  // that commits; the input's own release handler stands down.
+  const armRelease = (pointerId: number | undefined) => {
+    releaseCleanupRef.current?.();
+    const cleanup = () => {
+      window.removeEventListener('pointerup', onRelease);
+      window.removeEventListener('pointercancel', onRelease);
+      releaseCleanupRef.current = null;
+    };
+    const onRelease = (e: PointerEvent) => {
+      // Only the pointer that pressed ends the gesture.
+      if (pointerId != null && e.pointerId != null && e.pointerId !== pointerId) return;
+      cleanup();
+      handleEnd();
+    };
+    window.addEventListener('pointerup', onRelease);
+    window.addEventListener('pointercancel', onRelease);
+    releaseCleanupRef.current = cleanup;
+  };
+
+  const endArmedGesture = () => {
+    const cleanup = releaseCleanupRef.current;
+    if (!cleanup) return;
+    cleanup();
+    handleEnd();
+  };
+
   const range = (
     <input type="range" min={min} max={max} step={step} value={value}
       disabled={disabled}
@@ -186,11 +223,18 @@ export function Slider({
       data-fill=""
       style={trackStyle}
       onChange={e => handleChange(Number(e.target.value), false)}
-      onPointerDown={onPointerDown}
-      onPointerUp={handleEnd}
+      onPointerDown={e => {
+        onPointerDown?.(e);
+        // A secondary button does not drag the thumb, so it arms nothing.
+        if (e.button > 0) return;
+        armRelease(e.pointerId);
+      }}
+      // A press whose release never arrives (capture lost) ends the gesture here.
+      onLostPointerCapture={endArmedGesture}
+      onPointerUp={() => { if (!releaseCleanupRef.current) handleEnd(); }}
       onPointerCancel={e => {
-        if (onPointerCancel) onPointerCancel(e);
-        handleEnd();
+        onPointerCancel?.(e);
+        if (!releaseCleanupRef.current) handleEnd();
       }}
       onKeyUp={handleEnd}
       className={styles.range} />
