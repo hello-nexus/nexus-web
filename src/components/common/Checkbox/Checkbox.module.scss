@@ -1,13 +1,14 @@
 @use '../../../styles/text' as *;
+@use '../../../panel/styles/flexGap' as *;
 
 .checkbox {
   display: flex;
-  gap: 0.5rem;
   align-items: center;
   cursor: pointer;
   color: var(--text);
 
   @include text-body;
+  @include hgap(0.5rem);
 
   input {
     margin: 0;

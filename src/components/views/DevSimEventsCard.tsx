@@ -6,6 +6,7 @@ import {
 import { useTranslation } from '../../lib/i18n';
 import { Button } from '../common/Button/Button';
 import { Card } from '../common/Card/Card';
+import { InlineError } from '../common/InlineError/InlineError';
 import { SettingToggle } from '../common/SettingRow/SettingRow';
 import { SettingsSection } from '../common/SettingsSection/SettingsSection';
 import styles from './ToolsView.module.scss';
@@ -70,7 +71,7 @@ export function DevSimEventsView({ catalog, activeIds, busy, error, onToggle, on
           {t('tools.simEvents.clearAll')}
         </Button>
       </div>
-      {error && <span role="alert" className={styles.dim}>{error}</span>}
+      {error && <InlineError>{error}</InlineError>}
     </Card>
   );
 }

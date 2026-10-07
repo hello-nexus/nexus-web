@@ -9,10 +9,6 @@ import { hazardSignature, lintLines, newGuardError, type GuardErrorState } from 
 import { useTranslation } from '../lib/i18n';
 import styles from '../panel/widgets/cooling/page/ThermalGuardPanel.module.scss';
 
-// Hazard lists read as warnings, and a hazard line fits on one row.
-const BULLET_TONE = 'warning' as const;
-const DIALOG_SIZE = 'wide' as const;
-
 type CurvesBody = { globalSpeedModifier: number; curves: WireCurve[] };
 
 interface Waiter {
@@ -197,8 +193,9 @@ export function useCurveSaveLint(options: {
       title={t('cooling.guard.dialog.title')}
       message={t('cooling.guard.dialog.message')}
       bullets={pending ? lintLines(pending.hazards, t) : undefined}
-      bulletTone={BULLET_TONE}
-      size={DIALOG_SIZE}
+      // eslint-disable-next-line i18next/no-literal-string -- list tone enum
+      bulletTone="warning"
+      size="wide"
       note={canFix ? t('cooling.guard.dialog.note') : undefined}
       confirmLabel={t('cooling.guard.dialog.fix')}
       cancelLabel={t('cooling.guard.dialog.saveAnyway')}

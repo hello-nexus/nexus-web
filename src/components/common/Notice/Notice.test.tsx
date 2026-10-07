@@ -26,6 +26,6 @@ describe('Notice', () => {
     const { container } = render(<Notice tone="critical">x</Notice>);
     expect(container.firstElementChild?.getAttribute('role')).toBeNull();
     // The icon and the body only: no empty actions column.
-    expect(container.firstElementChild?.children).toHaveLength(2);
+    expect(container.firstElementChild?.firstElementChild?.children).toHaveLength(2);
   });
 });

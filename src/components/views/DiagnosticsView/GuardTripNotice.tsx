@@ -5,6 +5,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { formatDateTime, hour12OptionFor } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { Button } from '../../common/Button/Button';
+import { InlineError } from '../../common/InlineError/InlineError';
 import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
 import styles from './GuardTripNotice.module.scss';
 
@@ -63,7 +64,7 @@ export function GuardTripNoticeView({ guard, nowMs, dismissing = false, error, o
           : t('diagnostics.cooling.guardTrip.ended', { time, peak: Math.round(trip.peakC) })}
       </span>
       <NoticeSecondary>{cause}</NoticeSecondary>
-      {error && <span role="alert">{error}</span>}
+      {error && <InlineError>{error}</InlineError>}
     </Notice>
   );
 }

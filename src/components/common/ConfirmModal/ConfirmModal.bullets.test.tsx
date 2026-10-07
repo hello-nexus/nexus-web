@@ -2,6 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ConfirmModal } from './ConfirmModal';
 
+// jsdom does not resolve ::marker, so the warning marker colour itself is not asserted here;
+// the DOM shape that the stylesheet colours is.
 describe('ConfirmModal bullets', () => {
   const base = { open: true, title: 'T', message: 'M', onConfirm: () => {}, onCancel: () => {} };
 

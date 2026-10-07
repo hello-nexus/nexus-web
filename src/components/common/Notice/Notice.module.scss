@@ -1,13 +1,10 @@
 @use '../../../styles/text' as *;
+@use '../../../panel/styles/flexGap' as *;
 
 .notice {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem 0.9rem;
-  align-items: center;
   margin: 0;
   padding: 0.7rem 0.9rem;
-  border: var(--border-width) solid var(--warn);
+  border: var(--border-width) solid;
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
@@ -31,13 +28,22 @@
   }
 }
 
+// Wraps the actions under the text on a narrow notice; wrapgap spaces the children without flex gap.
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  @include wrapgap(0.9rem, 0.6rem);
+}
+
 .icon {
   flex: 0 0 auto;
 }
 
 .body {
   display: flex;
-  flex: 1 1 16rem;
+  flex: 1 1 18rem;
   flex-direction: column;
   min-width: 0;
 }

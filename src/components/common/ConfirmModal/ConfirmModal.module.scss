@@ -1,3 +1,5 @@
+@use '../../../panel/styles/flexGap' as *;
+
 .modal {
   background: var(--backdrop-base);
   border: 1px solid transparent;
@@ -38,16 +40,17 @@
   padding-left: 1.2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
   color: var(--text);
   font-size: var(--type-body);
   line-height: 1.4;
 
+  @include vgap(0.25rem);
+
   li::marker { color: var(--bad); }
 }
 
-// Danger callout: red-bordered box with red text, well-spaced from the body.
-// The marker takes the list item's colour; the text span puts the text colour back.
+// Hazard list: the item colour is the marker's fallback below Chromium 86 (no ::marker
+// there) and the span puts the text colour back.
 .bulletsWarning li {
   color: var(--warn);
 
@@ -56,6 +59,11 @@
   }
 }
 
+.bulletsWarning li::marker {
+  color: var(--warn);
+}
+
+// Danger callout: red-bordered box with red text, well-spaced from the body.
 .noteDanger {
   margin: 0.9rem 0 0;
   padding: 0.6rem 0.8rem;
