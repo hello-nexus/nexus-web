@@ -7,6 +7,7 @@ import { ImportDialog } from '../../common/ImportCenter/ImportDialog';
 import type { ImportSourceId } from '../../common/ImportCenter/ImportCenter';
 import { AiIntegrationSection } from './AiIntegrationSection';
 import { DiscordPresenceSection } from './DiscordPresenceSection';
+import { SentrySection } from './SentrySection';
 import { LocalDataStoreSection } from './LocalDataStoreSection';
 import { fetchService, postService } from '../../../api/service';
 import { fetchNexus2Status } from '../../../api/migration';
@@ -125,6 +126,8 @@ export function PrivacyTab({ settings, serviceOnline }: PrivacyTabProps) {
       {/* Rich Presence publishes a status line off this machine, so it sits
           with the other data-sharing controls rather than in General. */}
       <DiscordPresenceSection serviceOnline={serviceOnline} />
+
+      <SentrySection serviceOnline={serviceOnline} />
 
       <AiIntegrationSection serviceOnline={serviceOnline} numberFormat={settings.general.numberFormat} />
     </div>
