@@ -10,7 +10,7 @@ import { guardEnabled } from '../../../panel/widgets/cooling/page/guardUtils';
 import styles from './ThermalGuardSetting.module.scss';
 
 const STACKED = 'stacked' as const;
-// The bar spans these bounds, widened to include the detected value (an 89 degree part sits below the floor);
+// The bar spans these bounds, widened to include a detected value outside them;
 // the service clamps an override to the same range.
 const LIMIT_MIN_C = 90;
 const LIMIT_MAX_C = 110;
@@ -26,17 +26,20 @@ interface LimitRowProps {
   guard: GuardResponse;
   /** The limit the user asked for that the service has not confirmed yet. */
   pendingLimit: number | 'reset' | null;
+  error: string | null;
   onCommit: (c: number) => void;
   onReset: () => void;
 }
 
-function LimitRow({ guard, pendingLimit, onCommit, onReset }: LimitRowProps) {
+function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowProps) {
   const { t } = useTranslation();
   // The value while the thumb is being dragged or keyed, before it is committed.
   const [draft, setDraft] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keyedRef = useRef<number | null>(null);
   const immediateRef = useRef(false);
+  const draftRef = useRef<number | null>(null);
+  const releaseCleanupRef = useRef<(() => void) | null>(null);
   const onCommitRef = useRef(onCommit);
   onCommitRef.current = onCommit;
   // limitC is omitted while the guard is off, so read the override and the detected value first.
@@ -48,7 +51,30 @@ function LimitRow({ guard, pendingLimit, onCommit, onReset }: LimitRowProps) {
   const barMin = Math.min(LIMIT_MIN_C, Math.floor(detected));
   const barMax = Math.max(LIMIT_MAX_C, Math.ceil(detected));
 
+  // A release outside the slider never reaches it, so the window hears it too. The
+  // slider's own release commit runs first; this only handles one it never saw.
+  const armRelease = () => {
+    releaseCleanupRef.current?.();
+    const cleanup = () => {
+      window.removeEventListener('pointerup', onRelease);
+      window.removeEventListener('pointercancel', onRelease);
+      releaseCleanupRef.current = null;
+    };
+    const onRelease = () => {
+      cleanup();
+      setTimeout(() => {
+        if (!immediateRef.current) return;
+        immediateRef.current = false;
+        if (draftRef.current != null) settle(draftRef.current);
+      }, 0);
+    };
+    window.addEventListener('pointerup', onRelease);
+    window.addEventListener('pointercancel', onRelease);
+    releaseCleanupRef.current = cleanup;
+  };
+
   const settle = (value: number) => {
+    draftRef.current = null;
     keyedRef.current = null;
     setDraft(null);
     if (value !== shownRef.current) onCommitRef.current(value);
@@ -56,6 +82,7 @@ function LimitRow({ guard, pendingLimit, onCommit, onReset }: LimitRowProps) {
 
   // A keyed value still waiting out its settle time is written when the row goes away.
   useEffect(() => () => {
+    releaseCleanupRef.current?.();
     if (timerRef.current) clearTimeout(timerRef.current);
     if (keyedRef.current != null && keyedRef.current !== shownRef.current) onCommitRef.current(keyedRef.current);
   }, []);
@@ -80,6 +107,7 @@ function LimitRow({ guard, pendingLimit, onCommit, onReset }: LimitRowProps) {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
     keyedRef.current = null;
+    draftRef.current = null;
     setDraft(null);
     onReset();
   };
@@ -94,6 +122,7 @@ function LimitRow({ guard, pendingLimit, onCommit, onReset }: LimitRowProps) {
           {t(detectedKey, { temp: Math.round(detected) })}
           <br />
           {t('cooling.guard.limit.note')}
+          {error && <span role="alert">{` ${error}`}</span>}
         </>
       )}
       descriptionBelow
@@ -114,10 +143,14 @@ function LimitRow({ guard, pendingLimit, onCommit, onReset }: LimitRowProps) {
           value={draft ?? shown}
           formatValue={v => t('cooling.curve.tempBadge', { temp: v })}
           onChange={(v, typed) => {
+            draftRef.current = v;
             setDraft(v);
             if (typed) immediateRef.current = true;
           }}
-          onPointerDown={() => { immediateRef.current = true; }}
+          onPointerDown={() => {
+            immediateRef.current = true;
+            armRelease();
+          }}
           onCommit={commit}
           ariaLabel={t('cooling.guard.limit.label')}
         />
@@ -138,6 +171,8 @@ interface ThermalGuardSettingViewProps {
   /** The limit asked for but not yet confirmed by the service; the slider shows it meanwhile. */
   pendingLimit?: number | 'reset' | null;
   error: string | null;
+  /** A failed limit write, shown on the limit row apart from the switch's error. */
+  limitError?: string | null;
   onToggle: (enabled: boolean) => void;
   onSetLimit: (c: number) => void;
   onClearLimit: () => void;
@@ -145,7 +180,7 @@ interface ThermalGuardSettingViewProps {
 
 /** The settings rows themselves, apart from the service wiring. */
 export function ThermalGuardSettingView({
-  guard, pending, pendingLimit = null, error, onToggle, onSetLimit, onClearLimit,
+  guard, pending, pendingLimit = null, error, limitError = null, onToggle, onSetLimit, onClearLimit,
 }: ThermalGuardSettingViewProps) {
   const { t } = useTranslation();
   return (
@@ -167,7 +202,7 @@ export function ThermalGuardSettingView({
         onChange={onToggle}
       />
       {guard.detectedLimitSource && (
-        <LimitRow guard={guard} pendingLimit={pendingLimit} onCommit={onSetLimit} onReset={onClearLimit} />
+        <LimitRow guard={guard} pendingLimit={pendingLimit} error={limitError} onCommit={onSetLimit} onReset={onClearLimit} />
       )}
     </>
   );
@@ -180,14 +215,15 @@ export function ThermalGuardSettingView({
  * no dead controls.
  */
 export function ThermalGuardSetting({ serviceOnline }: { serviceOnline: boolean }) {
-  const { guard, toggling, pendingLimit, error, toggle, setLimit, clearLimit } = useThermalGuard(serviceOnline);
+  const { guard, toggling, pendingLimit, toggleError, limitError, toggle, setLimit, clearLimit } = useThermalGuard(serviceOnline);
   if (!guard) return null;
   return (
     <ThermalGuardSettingView
       guard={guard}
       pending={toggling}
       pendingLimit={pendingLimit}
-      error={error?.message ?? null}
+      error={toggleError?.message ?? null}
+      limitError={limitError?.message ?? null}
       onToggle={next => { void toggle(next); }}
       onSetLimit={c => setLimit(c)}
       onClearLimit={() => { void clearLimit(); }}

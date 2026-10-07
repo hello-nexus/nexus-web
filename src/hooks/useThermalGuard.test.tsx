@@ -33,7 +33,7 @@ const hook = {
 function Harness({ online = true }: { online?: boolean }) {
   const h = useThermalGuard(online);
   useEffect(() => { handle.current = h; });
-  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{h.error && <p role="alert">{h.error.message}</p>}</>;
+  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{[h.error, h.toggleError, h.limitError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
 }
 const mount = (online = true) => render(<Harness online={online} />);
 
@@ -168,5 +168,40 @@ describe('useThermalGuard', () => {
     await act(async () => { await handle.current!.setLimit(110); });
     await screen.findByText('cooling.guard.error.limit');
     expect(screen.getByTestId('state').textContent).toBe('normal');
+  });
+
+  it('sends a toggle and a limit as separate requests, toggle first', async () => {
+    mount();
+    api.setGuardConfig.mockResolvedValue(guard('normal'));
+    await act(async () => {
+      handle.current!.toggle(false);
+      handle.current!.setLimit(101);
+    });
+    await waitFor(() => { expect(api.setGuardConfig).toHaveBeenCalledTimes(2); });
+    expect(api.setGuardConfig.mock.calls.map(c => c[0])).toEqual([{ enabled: false }, { limitOverrideC: 101 }]);
+  });
+
+  it('reports a failed toggle and a failed limit separately', async () => {
+    mount();
+    api.setGuardConfig.mockResolvedValue(null);
+    await act(async () => {
+      handle.current!.toggle(false);
+      handle.current!.setLimit(101);
+    });
+    await screen.findByText('cooling.guard.error.toggle');
+    await screen.findByText('cooling.guard.error.limit');
+  });
+
+  it('a refused limit does not take the toggle down with it', async () => {
+    mount();
+    api.setGuardConfig.mockImplementation(async (body: Record<string, unknown>) =>
+      (body.limitOverrideC ? { error: true, msg: 'detecting' } : guard('off')));
+    await act(async () => {
+      handle.current!.toggle(false);
+      handle.current!.setLimit(101);
+    });
+    await screen.findByText('cooling.guard.error.limit');
+    expect(screen.getByTestId('state').textContent).toContain('off');
+    expect(screen.queryByText('cooling.guard.error.toggle')).toBeNull();
   });
 });

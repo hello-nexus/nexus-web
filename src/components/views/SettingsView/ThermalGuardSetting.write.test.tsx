@@ -111,4 +111,32 @@ describe('ThermalGuardSetting writes', () => {
     await waitFor(() => { expect(bodies()).toEqual([{ limitOverrideC: 100 }, { limitOverrideC: 104 }]); });
     await waitFor(() => { expect(slider().value).toBe('104'); });
   });
+
+  it('commits when the pointer is released outside the slider', async () => {
+    await mount();
+    fireEvent.pointerDown(slider());
+    fireEvent.change(slider(), { target: { value: '104' } });
+    // The release lands elsewhere on the page, never on the range input.
+    fireEvent.pointerUp(document.body);
+    await waitFor(() => { expect(bodies()).toEqual([{ limitOverrideC: 104 }]); });
+  });
+
+  it('drops the draft without writing when a release outside lands on the current value', async () => {
+    await mount();
+    fireEvent.pointerDown(slider());
+    fireEvent.change(slider(), { target: { value: '104' } });
+    fireEvent.change(slider(), { target: { value: '95' } });
+    fireEvent.pointerUp(document.body);
+    await tick();
+    expect(bodies()).toEqual([]);
+    expect(slider().value).toBe('95');
+  });
+
+  it('a cancelled pointer commits like a release', async () => {
+    await mount();
+    fireEvent.pointerDown(slider());
+    fireEvent.change(slider(), { target: { value: '102' } });
+    fireEvent.pointerCancel(document.body);
+    await waitFor(() => { expect(bodies()).toEqual([{ limitOverrideC: 102 }]); });
+  });
 });

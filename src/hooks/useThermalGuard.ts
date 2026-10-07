@@ -14,6 +14,9 @@ export function useThermalGuard(serviceOnline: boolean) {
   const [guard, setGuard] = useState<GuardResponse | null>(null);
   const [toggling, setToggling] = useState(false);
   const [error, setError] = useState<GuardErrorState | null>(null);
+  // The switch and the limit each report their own failure, beside their own control.
+  const [toggleError, setToggleError] = useState<GuardErrorState | null>(null);
+  const [limitError, setLimitError] = useState<GuardErrorState | null>(null);
   const guardRef = useRef<GuardResponse | null>(null);
   guardRef.current = guard;
   // Bumped when the service goes away or the page unmounts, so a response
@@ -76,28 +79,42 @@ export function useThermalGuard(serviceOnline: boolean) {
     if (writerRunningRef.current) return;
     writerRunningRef.current = true;
     setToggling(true);
+    // One request, applied to the guard and reported under its own error slot.
+    const send = async (
+      body: Parameters<typeof setGuardConfig>[0],
+      errorKey: string,
+      setSlot: (e: GuardErrorState | null) => void,
+    ) => {
+      const generation = generationRef.current;
+      let next: GuardResponse | null = null;
+      try {
+        next = await setGuardConfig(body);
+      } catch {
+        next = null;
+      }
+      if (generation !== generationRef.current) return;
+      if (next && next.state) {
+        seqRef.current += 1;
+        setGuard(next);
+        setSlot(null);
+      } else {
+        setSlot(newGuardError(tRef.current(errorKey)));
+      }
+    };
     try {
       while (intentRef.current.enabled !== undefined || intentRef.current.limit !== undefined) {
         const { enabled, limit } = intentRef.current;
         intentRef.current = {};
-        const generation = generationRef.current;
-        let next: GuardResponse | null = null;
-        try {
-          next = await setGuardConfig({
-            ...(enabled !== undefined ? { enabled } : {}),
-            ...(typeof limit === 'number' ? { limitOverrideC: limit } : {}),
-            ...(limit === 'reset' ? { clearLimitOverride: true } : {}),
-          });
-        } catch {
-          next = null;
+        // The switch goes alone: a limit the service refuses must not take the toggle down with it.
+        if (enabled !== undefined) {
+          await send({ enabled }, 'cooling.guard.error.toggle', setToggleError);
         }
-        if (generation !== generationRef.current) continue;
-        if (next && next.state) {
-          seqRef.current += 1;
-          setGuard(next);
-          setError(null);
-        } else {
-          setError(newGuardError(tRef.current(limit !== undefined ? 'cooling.guard.error.limit' : 'cooling.guard.error.toggle')));
+        if (limit !== undefined) {
+          await send(
+            limit === 'reset' ? { clearLimitOverride: true } : { limitOverrideC: limit },
+            'cooling.guard.error.limit',
+            setLimitError,
+          );
         }
         // The display override ends once no newer limit intent is waiting.
         if (intentRef.current.limit === undefined) setPendingLimit(null);
@@ -146,5 +163,5 @@ export function useThermalGuard(serviceOnline: boolean) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, toggling, pendingLimit, error, clearError, refresh, toggle, setLimit, clearLimit, undo, applyHeal };
+  return { guard, toggling, pendingLimit, error, toggleError, limitError, clearError, refresh, toggle, setLimit, clearLimit, undo, applyHeal };
 }

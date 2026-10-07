@@ -31,6 +31,10 @@ import styles from './Slider.module.scss';
  *     field, so the parent can apply + persist in one shot. For drag, parents wire
  *     `onCommit()` to the gesture-end so persistence happens once at the end.
  */
+// Marks this close to an end hang their caption inward so it stays inside the track.
+const MARK_LABEL_START_PCT = 15;
+const MARK_LABEL_END_PCT = 85;
+
 /** A fixed notch on the track at `value`, with an optional caption under it. */
 export interface SliderMark {
   value: number;
@@ -121,12 +125,12 @@ export function Slider({
   ) : null;
 
   const hasMarkLabels = !!marks?.some(m => m.label);
-  const marksNode = marks && marks.length > 0 ? marks.map(m => {
+  const marksNode = marks && marks.length > 0 ? marks.map((m, i) => {
     const pct = clamp(((m.value - min) / (max - min)) * 100);
     // Captions near an end hang inward so they stay inside the track.
-    const align = pct < 15 ? styles.markLabelStart : pct > 85 ? styles.markLabelEnd : '';
+    const align = pct < MARK_LABEL_START_PCT ? styles.markLabelStart : pct > MARK_LABEL_END_PCT ? styles.markLabelEnd : '';
     return (
-      <span key={m.value} className={styles.mark} style={{ left: `${pct}%` }}>
+      <span key={`${i}-${m.value}`} className={styles.mark} style={{ left: `${pct}%` }}>
         <span className={styles.markTick} aria-hidden />
         {m.label && <span className={`${styles.markLabel} ${align}`}>{m.label}</span>}
       </span>

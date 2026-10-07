@@ -356,7 +356,6 @@ export const fetchGuard = () => fetchService<GuardResponse>('/cooling/guard');
 export const setGuardConfig = (body: { enabled?: boolean; limitOverrideC?: number; clearLimitOverride?: boolean }) =>
   postService<GuardResponse>('/cooling/guard/config', body);
 
-export const setGuardEnabled = (enabled: boolean) => setGuardConfig({ enabled });
 
 /** Same body as saveCurves; advisory only, writes nothing. */
 export const lintCurves = (body: { globalSpeedModifier: number; curves: WireCurve[] }) =>

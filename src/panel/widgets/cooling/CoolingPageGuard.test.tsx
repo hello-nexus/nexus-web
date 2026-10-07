@@ -55,7 +55,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     deleteCoolingPreset: vi.fn(async () => ({ activeId: null })),
     activateCoolingPreset: vi.fn(async () => undefined),
     fetchGuard: vi.fn(async () => svc.guard),
-    setGuardEnabled: vi.fn(async (enabled: boolean) => {
+    setGuardConfig: vi.fn(async ({ enabled }: { enabled?: boolean }) => {
       svc.guard = { ...svc.guard, state: enabled ? 'normal' : 'off' };
       return svc.guard;
     }),
