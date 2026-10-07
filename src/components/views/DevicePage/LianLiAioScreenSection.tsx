@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { MonitorSmartphone } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { Notice } from '../../common/Notice/Notice';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { ColorPickerWithPresets } from '../../common/ColorPickerWithPresets/ColorPickerWithPresets';
@@ -73,92 +74,94 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
   ];
 
   return (
-    <SettingsSection
-      title={t('devices.lianli-wireless.aioScreen.title')}
-      description={t('devices.lianli-wireless.aioScreen.hint')}
-      boxClassName={styles.sectionBox}
-    >
-      {/* On USB the entry points at the screen's own page, so it waits until that page can be opened. */}
-      {(!usbConnected || onOpenPanel) && (
-        <SettingRow
-          label={t('devices.lianli-wireless.aioScreen.widgets')}
-          description={t(usbConnected ? 'devices.lianli-wireless.aioScreen.widgetsUsb' : 'devices.lianli-wireless.aioScreen.widgetsNoUsb')}
-        >
-          {usbConnected && onOpenPanel && (
+    <>
+      {!usbConnected && (
+        <Notice tone="warning" role="status">{t('devices.lianli-wireless.aioScreen.widgetsNoUsb')}</Notice>
+      )}
+      <SettingsSection
+        title={t('devices.lianli-wireless.aioScreen.title')}
+        boxClassName={styles.sectionBox}
+      >
+        {/* The entry points at the screen's own page, so it waits until that page can be opened. */}
+        {usbConnected && onOpenPanel && (
+          <SettingRow
+            label={t('devices.lianli-wireless.aioScreen.widgets')}
+            description={t('devices.lianli-wireless.aioScreen.widgetsUsb')}
+          >
             <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
               {t('devices.lianli-wireless.openScreenPage')}
             </Button>
-          )}
-        </SettingRow>
-      )}
-      <SettingSlider
-        editable
-        trackFill
-        label={t('devices.lianli-wireless.aioScreen.brightness')}
-        value={screen.brightness}
-        min={0}
-        max={100}
-        step={5}
-        formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
-        // A typed value fires onChange and onCommit both, so only onCommit saves.
-        onChange={(v: number) => setScreen(prev => (prev ? { ...prev, brightness: v } : prev))}
-        onCommit={(v: number) => { void commit({ brightness: v }); }}
-      />
-      <SettingSelect
-        label={t('devices.lianli-wireless.aioScreen.theme')}
-        value={String(screen.theme)}
-        onChange={v => { void commit({ theme: Number(v) }); }}
-        options={Array.from({ length: screen.themeCount }, (_, i) => ({
-          value: String(i),
-          label: t('devices.lianli-wireless.aioScreen.themeN', { n: i + 1 }),
-        }))}
-      />
-      <SettingSelect
-        label={t('devices.lianli-wireless.aioScreen.shows')}
-        value={shows}
-        onChange={showsChange}
-        options={[
-          ...readings.map(([key, label]) => ({ value: key, label: t(label) })),
-          { value: CYCLE, label: t('devices.lianli-wireless.aioScreen.cycle') },
-        ]}
-      />
-      {shows === CYCLE && readings.map(([key, label]) => (
-        <SettingToggle
-          key={key}
-          label={t(label)}
-          checked={screen[key]}
-          // Cycling needs two readings; dropping to one is the dropdown's job.
-          disabled={screen[key] && enabled.length <= 2}
-          onChange={on => { void commit({ [key]: on }); }}
-        />
-      ))}
-      {shows === CYCLE && (
+          </SettingRow>
+        )}
         <SettingSlider
           editable
           trackFill
-          label={t('devices.lianli-wireless.aioScreen.interval')}
-          value={screen.loopInterval}
-          min={1}
-          max={LOOP_INTERVAL_MAX}
-          step={1}
-          formatValue={v => localizeNumbers(t('devices.lianli-wireless.aioScreen.intervalValue', { n: v }), numberFormat)}
-          onChange={(v: number) => setScreen(prev => (prev ? { ...prev, loopInterval: v } : prev))}
-          onCommit={(v: number) => { void commit({ loopInterval: v }); }}
+          label={t('devices.lianli-wireless.aioScreen.brightness')}
+          value={screen.brightness}
+          min={0}
+          max={100}
+          step={5}
+          formatValue={v => localizeNumbers(`${v}%`, numberFormat)}
+          // A typed value fires onChange and onCommit both, so only onCommit saves.
+          onChange={(v: number) => setScreen(prev => (prev ? { ...prev, brightness: v } : prev))}
+          onCommit={(v: number) => { void commit({ brightness: v }); }}
         />
-      )}
-      {colors.map(([key, label]) => (
-        // The picker sizes its swatches to the width it gets, so it takes the full row under its label.
-        <div key={key} className={styles.colorSetting}>
-          <SettingRow label={t(label)} />
-          <ColorPickerWithPresets
-            value={screen[key]}
-            presets={TEXT_COLOR_PRESETS}
-            allowCustom
-            pickerPortal
-            onCommit={hex => { void commit({ [key]: hex.toUpperCase() }); }}
+        <SettingSelect
+          label={t('devices.lianli-wireless.aioScreen.theme')}
+          value={String(screen.theme)}
+          onChange={v => { void commit({ theme: Number(v) }); }}
+          options={Array.from({ length: screen.themeCount }, (_, i) => ({
+            value: String(i),
+            label: t('devices.lianli-wireless.aioScreen.themeN', { n: i + 1 }),
+          }))}
+        />
+        <SettingSelect
+          label={t('devices.lianli-wireless.aioScreen.shows')}
+          value={shows}
+          onChange={showsChange}
+          options={[
+            ...readings.map(([key, label]) => ({ value: key, label: t(label) })),
+            { value: CYCLE, label: t('devices.lianli-wireless.aioScreen.cycle') },
+          ]}
+        />
+        {shows === CYCLE && readings.map(([key, label]) => (
+          <SettingToggle
+            key={key}
+            label={t(label)}
+            checked={screen[key]}
+            // Cycling needs two readings; dropping to one is the dropdown's job.
+            disabled={screen[key] && enabled.length <= 2}
+            onChange={on => { void commit({ [key]: on }); }}
           />
-        </div>
-      ))}
-    </SettingsSection>
+        ))}
+        {shows === CYCLE && (
+          <SettingSlider
+            editable
+            trackFill
+            label={t('devices.lianli-wireless.aioScreen.interval')}
+            value={screen.loopInterval}
+            min={1}
+            max={LOOP_INTERVAL_MAX}
+            step={1}
+            formatValue={v => localizeNumbers(t('devices.lianli-wireless.aioScreen.intervalValue', { n: v }), numberFormat)}
+            onChange={(v: number) => setScreen(prev => (prev ? { ...prev, loopInterval: v } : prev))}
+            onCommit={(v: number) => { void commit({ loopInterval: v }); }}
+          />
+        )}
+        {colors.map(([key, label]) => (
+          // The picker sizes its swatches to the width it gets, so it takes the full row under its label.
+          <div key={key} className={styles.colorSetting}>
+            <SettingRow label={t(label)} />
+            <ColorPickerWithPresets
+              value={screen[key]}
+              presets={TEXT_COLOR_PRESETS}
+              allowCustom
+              pickerPortal
+              onCommit={hex => { void commit({ [key]: hex.toUpperCase() }); }}
+            />
+          </div>
+        ))}
+      </SettingsSection>
+    </>
   );
 }

@@ -112,19 +112,16 @@ export function ThemeTab({ settings, updateGeneral }: ThemeTabProps) {
           />
         </SettingRow>
         {settings.general.accentSource === 'custom' && (
-          <div className={styles.accentPickerRow}>
-            <div className={styles.accentPicker}>
-              <ColorPickerWithPresets
-                value={liveAccent}
-                presets={PRESET_ACCENTS}
-                onPreview={handleAccentPreview}
-                onCommit={handleAccentCommit}
-                allowCustom
-                customColor={settings.general.customAccentColor}
-                onCustomCommit={hex => updateGeneral({ customAccentColor: hex })}
-              />
-            </div>
-          </div>
+          <ColorPickerWithPresets
+            className={styles.accentPicker}
+            value={liveAccent}
+            presets={PRESET_ACCENTS}
+            onPreview={handleAccentPreview}
+            onCommit={handleAccentCommit}
+            allowCustom
+            customColor={settings.general.customAccentColor}
+            onCustomCommit={hex => updateGeneral({ customAccentColor: hex })}
+          />
         )}
       </div>
     </>

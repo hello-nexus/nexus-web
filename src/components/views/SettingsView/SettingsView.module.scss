@@ -46,23 +46,17 @@
   flex-direction: column;
 }
 
-// Swatch picker (or date pattern list) revealed below its row when Custom is
-// selected. A separate row (not inside the SettingRow) so picking Custom doesn't
-// re-center the row label. Right-aligned to sit under the segmented control.
-.accentPickerRow,
+// Date pattern list revealed below its row when Custom is selected. A separate
+// row (not inside the SettingRow) so picking Custom doesn't re-center the row
+// label. Right-aligned to sit under the segmented control.
 .dateFormatRow {
   display: flex;
   justify-content: flex-end;
   margin-top: -0.25rem;
 }
 
-// ColorPickerWithPresets is a width:100% block carrying its own width cap, which
-// tracks its column count (11 with the custom slot, 10 without). Pinning a width
-// here would divide the wrong total and shrink every swatch, so this wrapper
-// steps out of the box tree and lets the picker be the flex item the row
-// right-aligns.
 .accentPicker {
-  display: contents;
+  margin-top: -0.25rem;
 }
 
 .colorRow {

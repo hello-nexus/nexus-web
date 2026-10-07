@@ -143,7 +143,7 @@ describe('LianLiAioScreenSection', () => {
     await act(async () => {
       render(<LianLiAioScreenSection mac="AABBCCDDEEFF" onOpenPanel={vi.fn()} />);
     });
-    expect(screen.getByText('devices.lianli-wireless.aioScreen.widgetsNoUsb')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('devices.lianli-wireless.aioScreen.widgetsNoUsb');
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
   });
 
@@ -152,6 +152,7 @@ describe('LianLiAioScreenSection', () => {
       render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected />);
     });
     expect(screen.queryByText('devices.lianli-wireless.aioScreen.widgets')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('opens the screen page from the widgets entry when the AIO is on USB', async () => {
