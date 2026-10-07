@@ -1551,7 +1551,7 @@ function PreviewThermalGuardSetting() {
     <div className={styles.previewStack} style={{ width: 560 }}>
       {states.map(({ guard, error }, i) => (
         <ThermalGuardSettingView
-          key={i} guard={guard} pending={false} error={error ?? null}
+          key={i} guard={guard} error={error ?? null}
           onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}}
         />
       ))}

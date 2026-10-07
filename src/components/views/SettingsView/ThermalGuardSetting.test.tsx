@@ -12,9 +12,9 @@ const base: GuardResponse = {
   heal: { undoAvailable: false, healedAtUtcMs: null, channels: [] },
 };
 
-function view(guard: GuardResponse, over: Partial<{ pending: boolean; error: string | null }> = {}) {
+function view(guard: GuardResponse, over: Partial<{ pendingEnabled: boolean | null; error: string | null }> = {}) {
   const handlers = { onToggle: vi.fn(), onSetLimit: vi.fn(), onClearLimit: vi.fn(), onLintWarningsChange: vi.fn() };
-  render(<ThermalGuardSettingView guard={guard} pending={over.pending ?? false} error={over.error ?? null} {...handlers} />);
+  render(<ThermalGuardSettingView guard={guard} pendingEnabled={over.pendingEnabled ?? null} error={over.error ?? null} {...handlers} />);
   return handlers;
 }
 
@@ -37,12 +37,14 @@ describe('ThermalGuardSettingView', () => {
     expect(screen.getByRole('switch', { name: 'cooling.guard.label' }).getAttribute('aria-checked')).toBe('false');
   });
 
-  it('disables the switch while a write is pending, but not the slider or Reset', () => {
-    view({ ...base, limitC: 102, limitSource: 'user', limitOverrideC: 102 }, { pending: true });
-    expect(screen.getByRole('switch', { name: 'cooling.guard.label' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).not.toBeDisabled();
-    // Disabling the slider would drop keyboard focus mid-adjustment.
+  it('shows a pending switch value at once and never disables the switch while it is written', () => {
+    view({ ...base, state: 'off', enabled: false, limitC: 102, limitSource: 'user', limitOverrideC: 102 }, { pendingEnabled: true });
+    const sw = screen.getByRole('switch', { name: 'cooling.guard.label' });
+    expect(sw.getAttribute('aria-checked')).toBe('true');
+    expect(sw).not.toBeDisabled();
+    // The dependent limit row follows the switch as shown, not the server's value.
     expect(screen.getByRole('slider')).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).not.toBeDisabled();
   });
 
   it('shows an inline error', () => {
@@ -108,12 +110,12 @@ describe('ThermalGuardSettingView', () => {
   });
 
   it('shows the pending limit instead of the server value until it is confirmed', () => {
-    render(<ThermalGuardSettingView guard={off} pending pendingLimit={100} error={null} onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}} />);
+    render(<ThermalGuardSettingView guard={off} pendingLimit={100} error={null} onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}} />);
     expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('100');
   });
 
   it('shows the detected value while a reset is pending', () => {
-    render(<ThermalGuardSettingView guard={off} pending pendingLimit="reset" error={null} onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}} />);
+    render(<ThermalGuardSettingView guard={off} pendingLimit="reset" error={null} onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}} />);
     expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('95');
   });
 
