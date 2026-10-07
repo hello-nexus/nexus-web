@@ -35,6 +35,10 @@
   @include hgap(8px);
 }
 
+.close {
+  margin-left: auto;
+}
+
 .icon {
   display: inline-flex;
   color: var(--accent);

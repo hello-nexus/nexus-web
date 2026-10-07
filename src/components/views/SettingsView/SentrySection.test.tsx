@@ -4,7 +4,10 @@ import { SentrySection } from './SentrySection';
 import { armSentry, fetchSentry, type SentryState } from '../../../api/sentry';
 
 vi.mock('../../../lib/i18n', () => ({
-  useTranslation: () => ({ t: (key: string) => key }),
+  useTranslation: () => ({
+    language: 'en',
+    t: (key: string, vars?: Record<string, string | number>) => (vars ? `${key}:${vars.count}` : key),
+  }),
 }));
 
 vi.mock('../../../api/service', async (importActual) => ({
@@ -19,7 +22,7 @@ vi.mock('../../../api/sentry', () => ({
 }));
 
 const state = (patch: Partial<SentryState>): SentryState => ({
-  supported: true, armed: false, locked: false, alertPhones: 2, lastAlertAt: null, cooldownSeconds: 3600, ...patch,
+  supported: true, armed: false, locked: false, alertPhones: 2, lastAlertAt: null, cooldownSeconds: 600, ...patch,
 });
 
 describe('SentrySection', () => {
@@ -50,11 +53,24 @@ describe('SentrySection', () => {
     expect(await screen.findByText('sentry.settings.phones.none')).toBeInTheDocument();
   });
 
-  it('shows the phone count and the hourly note without a warning', async () => {
+  it('shows the phone count and the cooldown note in minutes without a warning', async () => {
     render(<SentrySection serviceOnline />);
     expect(await screen.findByText('2')).toBeInTheDocument();
-    expect(screen.getByText('sentry.settings.cooldown')).toBeInTheDocument();
+    expect(screen.getByText('sentry.settings.cooldown.other:10')).toBeInTheDocument();
     expect(screen.queryByText('sentry.settings.phones.none')).toBeNull();
+  });
+
+  it('uses the singular form for a one minute cooldown', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ cooldownSeconds: 60 }));
+    render(<SentrySection serviceOnline />);
+    expect(await screen.findByText('sentry.settings.cooldown.one:1')).toBeInTheDocument();
+  });
+
+  it('hides the cooldown note when there is no limit', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ cooldownSeconds: 0 }));
+    render(<SentrySection serviceOnline />);
+    expect(await screen.findByText('2')).toBeInTheDocument();
+    expect(screen.queryByText(/sentry\.settings\.cooldown/)).toBeNull();
   });
 
   it('shows a failure row when arming fails', async () => {

@@ -1,13 +1,8 @@
-import type { SentryState, PhonePushRegistration } from '../../api/sentry';
+import type { PhonePushRegistration } from '../../api/sentry';
 import type { NativePushStatus } from '../device/panelNativeBridge';
 
 export const PUSH_TITLE_KEY = 'sentry.push.title';
 export const PUSH_BODY_KEY = 'sentry.push.body';
-
-// A card only appears while the PC is locked (armed implies locked) and the OS has a lock watch.
-export function sentryCardVisible(state: SentryState | null): state is SentryState {
-  return state !== null && state.supported && (state.locked || state.armed);
-}
 
 // Null until the phone has a token with permission granted and the strings are translated
 // (the translator returns the key itself while the locale file is still loading).

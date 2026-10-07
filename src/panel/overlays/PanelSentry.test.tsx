@@ -86,18 +86,107 @@ describe('PanelSentry', () => {
     await screen.findByText('sentry.card.notLocked');
   });
 
-  it('offers no alert controls in a plain browser', async () => {
+  it('does not repeat the not-locked line when the refusal refetch finds the PC unlocked', async () => {
+    vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'not_locked' });
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
+    const arm = await screen.findByText('sentry.card.arm');
+    rerender(<PanelSentry {...props} openRequest={1} />);
+    vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
+    fireEvent.click(arm);
+    await waitFor(() => expect(screen.getByText('sentry.card.arm').closest('button')).toBeDisabled());
+    expect(screen.getAllByText('sentry.card.notLocked')).toHaveLength(1);
+  });
+
+  it('shows no separate alerts button', async () => {
     render(<PanelSentry {...props} />);
     await screen.findByText('sentry.card.arm');
     expect(screen.queryByText('sentry.card.enableAlerts')).toBeNull();
   });
 
-  it('asks for permission from the card when the wrapper has not granted it', async () => {
+  it('requests permission when arming while the wrapper is at prompt, and still arms', async () => {
     const request = installBridge({ platform: 'android', permission: 'prompt', token: null, environment: 'production' });
+    vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
     render(<PanelSentry {...props} />);
-    fireEvent.click(await screen.findByText('sentry.card.enableAlerts'));
-    expect(request).toHaveBeenCalled();
+    fireEvent.click(await screen.findByText('sentry.card.arm'));
+    await screen.findByText('sentry.card.disarm');
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(armSentry).toHaveBeenCalledWith(false);
+  });
+
+  it.each(['granted', 'denied'])('does not request permission when %s', async (permission) => {
+    const request = installBridge({ platform: 'ios', permission, token: null, environment: 'production' });
+    vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+    render(<PanelSentry {...props} />);
+    fireEvent.click(await screen.findByText('sentry.card.arm'));
+    await screen.findByText('sentry.card.disarm');
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('does not request permission in a plain browser', async () => {
+    vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+    render(<PanelSentry {...props} />);
+    fireEvent.click(await screen.findByText('sentry.card.arm'));
+    await screen.findByText('sentry.card.disarm');
     expect(registerPhonePush).not.toHaveBeenCalled();
+  });
+
+  it('dismisses with the X until the next lock transition', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(fetchSentry).mockResolvedValue(state({}));
+      render(<PanelSentry {...props} />);
+      fireEvent.click(await screen.findByLabelText('app.window.close'));
+      expect(screen.queryByText('sentry.card.title')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      expect(screen.queryByText('sentry.card.title')).toBeNull();
+      vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      expect(screen.queryByText('sentry.card.title')).toBeNull();
+      vi.mocked(fetchSentry).mockResolvedValue(state({ locked: true }));
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      await screen.findByText('sentry.card.title');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reports support and reopens a dismissed card from the menu request', async () => {
+    const onSupportedChange = vi.fn();
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} onSupportedChange={onSupportedChange} />);
+    fireEvent.click(await screen.findByLabelText('app.window.close'));
+    expect(screen.queryByText('sentry.card.title')).toBeNull();
+    expect(onSupportedChange).toHaveBeenLastCalledWith(true);
+    rerender(<PanelSentry {...props} openRequest={1} onSupportedChange={onSupportedChange} />);
+    await screen.findByText('sentry.card.title');
+  });
+
+  it('opened from the menu while unlocked: shows the lock hint and a disabled Arm', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
+    await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
+    expect(screen.queryByText('sentry.card.title')).toBeNull();
+    rerender(<PanelSentry {...props} openRequest={1} />);
+    await screen.findByText('sentry.card.notLocked');
+    expect(screen.getByText('sentry.card.arm').closest('button')).toBeDisabled();
+  });
+
+  it('opened from the menu while armed and unlocked: Disarm still works', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false, armed: true }));
+    vi.mocked(disarmSentry).mockResolvedValue(state({ locked: false, armed: false }));
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
+    await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
+    rerender(<PanelSentry {...props} openRequest={1} />);
+    fireEvent.click(await screen.findByText('sentry.card.disarm'));
+    await screen.findByText('sentry.card.arm');
+    expect(disarmSentry).toHaveBeenCalled();
+  });
+
+  it('hides the row support flag when the service reports unsupported', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ supported: false }));
+    const onSupportedChange = vi.fn();
+    render(<PanelSentry {...props} onSupportedChange={onSupportedChange} />);
+    await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
+    expect(onSupportedChange).toHaveBeenLastCalledWith(false);
   });
 
   it('registers the push target once permission is granted, even while the PC is unlocked', async () => {

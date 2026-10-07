@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Lock, Palette, Plus, QrCode } from 'lucide-react';
+import { Image, Lock, Palette, Plus, QrCode, ShieldAlert } from 'lucide-react';
 import { usePanelTraySwipe } from '../engine/usePanelTraySwipe';
 import { cssPxPerMm } from '../engine/panelGrid';
 import { TRAY_COMMIT_FLICK_MM_PER_MS, TRAY_COMMIT_TRAVEL_MM, TRAY_ENGAGE_TRAVEL_MM } from '../engine/gestureThresholds';
@@ -42,6 +42,8 @@ interface PanelActionsTrayProps {
   // not a local hardwired kiosk. The "Connected to <PC> 🔒" line shows only
   // then - a hardwired display already knows what it's plugged into.
   remotePaired?: boolean;
+  // Opens the Sentry card. Omitted when the PC does not support Sentry, which hides the row.
+  onSentry?: () => void;
 }
 
 // The iOS home-indicator / Android gesture-nav handoff band, in CSS px.
@@ -64,6 +66,7 @@ export function PanelActionsTray({
   pinnedOpen = false,
   machineName,
   remotePaired = false,
+  onSentry,
 }: PanelActionsTrayProps) {
   const { t } = useTranslation();
   const trayRef = useRef<HTMLDivElement | null>(null);
@@ -168,6 +171,16 @@ export function PanelActionsTray({
         }
         aria-label={t('panel.actions.label')}
       >
+        {onSentry && (
+          <button
+            type="button"
+            className={`${styles.connectedTo} ${styles.sentryRow}`}
+            onClick={() => { onSentry(); onClose(); }}
+          >
+            <ShieldAlert size={14} className={styles.connectedLock} />
+            <span className={styles.connectedName}>{t('sentry.card.title')}</span>
+          </button>
+        )}
         {machineName && remotePaired && (
           <div className={styles.connectedTo}>
             <span className={styles.connectedLabel}>{t('panel.connectedTo')}</span>

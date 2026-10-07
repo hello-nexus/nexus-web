@@ -528,6 +528,8 @@ export function PanelContent({
   }, []);
   const [pendingScrollId, setPendingScrollId] = useState<string | null>(null);
   const [trayOpen, setTrayOpen] = useState(false);
+  const [sentrySupported, setSentrySupported] = useState(false);
+  const [sentryOpenRequest, setSentryOpenRequest] = useState(0);
   const { t } = useTranslation();
   const { machineName, onMachineNameCommit } = useMachineName(kioskBehavior, surface, serviceStatus.ping?.machineName);
   const lastCatalogSignalRef = useRef(openCatalogSignal);
@@ -1938,6 +1940,7 @@ export function PanelContent({
                 disabled={Boolean(sheetMode) || isOffline || touch.rearranging || !!dragArmedId}
                 machineName={machineName}
                 remotePaired={connectionIdentityVisible}
+                onSentry={surface === 'phone' && sentrySupported ? () => setSentryOpenRequest((n) => n + 1) : undefined}
               />
             )}
             {swipeOnboarding.hintVisible && <PanelSwipeHint />}
@@ -2183,6 +2186,8 @@ export function PanelContent({
         enabled={kioskBehavior && surface === 'phone'}
         resolvedThemeMode={resolvedThemeMode}
         themeStyle={panelThemeVars}
+        openRequest={sentryOpenRequest}
+        onSupportedChange={setSentrySupported}
       />
       {kioskBehavior && surface === 'phone' && (
         <ConfirmModal

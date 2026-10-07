@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPushRegistration, sentryCardVisible } from './sentryRegistration';
-import type { SentryState } from '../../api/sentry';
+import { buildPushRegistration } from './sentryRegistration';
 import type { NativePushStatus } from '../device/panelNativeBridge';
 
 const translate = (key: string, params?: Record<string, string | number>) => {
@@ -14,9 +13,6 @@ const translate = (key: string, params?: Record<string, string | number>) => {
 };
 
 const granted: NativePushStatus = { platform: 'ios', permission: 'granted', token: 'ab12', environment: 'sandbox' };
-const state = (patch: Partial<SentryState>): SentryState => ({
-  supported: true, armed: false, locked: false, alertPhones: 0, lastAlertAt: null, cooldownSeconds: 3600, ...patch,
-});
 
 describe('buildPushRegistration', () => {
   it('keeps the {pc} placeholder literal in the translated body', () => {
@@ -34,15 +30,5 @@ describe('buildPushRegistration', () => {
 
   it('returns null while the locale is still loading (translator echoes the key)', () => {
     expect(buildPushRegistration(granted, key => key)).toBeNull();
-  });
-});
-
-describe('sentryCardVisible', () => {
-  it('shows only while locked or armed, and never where unsupported', () => {
-    expect(sentryCardVisible(null)).toBe(false);
-    expect(sentryCardVisible(state({}))).toBe(false);
-    expect(sentryCardVisible(state({ locked: true }))).toBe(true);
-    expect(sentryCardVisible(state({ armed: true }))).toBe(true);
-    expect(sentryCardVisible(state({ locked: true, supported: false }))).toBe(false);
   });
 });
