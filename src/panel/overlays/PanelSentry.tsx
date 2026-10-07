@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ShieldAlert, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Button } from '../../components/common/Button/Button';
 import { armSentry, disarmSentry, fetchSentry, registerPhonePush, type SentryState } from '../../api/sentry';
 import { useTranslation } from '../../lib/i18n';
@@ -9,6 +9,28 @@ import styles from './PanelSentry.module.scss';
 
 const POLL_MS = 5000;
 const FINAL_PUSH_STATUSES = new Set([400, 404, 422]);
+// A successful arm holds the arming state at least this long, even when the service answers at once.
+const MIN_ARM_MS = 1000;
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+function SentryMark() {
+  return (
+    <svg className={styles.svg} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        className={`${styles.ln} ${styles.shield}`}
+        d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+      />
+      <circle className={styles.idleDot} cx="12" cy="12.2" r="1.5" fill="currentColor" />
+      <g className={styles.eye}>
+        <path className={styles.ln} d="M7.6 12.2c2.6-3.4 6.2-3.4 8.8 0-2.6 3.4-6.2 3.4-8.8 0z" />
+        <circle className={styles.pupil} cx="12" cy="12.2" r="1.3" fill="currentColor" />
+      </g>
+    </svg>
+  );
+}
 
 interface PanelSentryProps {
   enabled: boolean;
@@ -27,7 +49,9 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
   const push = useNativePush(enabled);
   const [state, setState] = useState<SentryState | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<'notLocked' | 'failed' | null>(null);
+  const [error, setError] = useState<'failed' | null>(null);
+  const [refusesLock, setRefusesLock] = useState(false);
+  const [arming, setArming] = useState<'lock' | 'arm' | null>(null);
   const busyRef = useRef(false);
 
   const registration = enabled ? buildPushRegistration(push.status, t) : null;
@@ -63,6 +87,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
     void syncPush();
   }, [registrationJson, syncPush]);
 
+  const actionSeqRef = useRef(0);
   const readingRef = useRef(false);
   useEffect(() => {
     if (!enabled) return;
@@ -72,9 +97,10 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
       void syncPush();
       if (busyRef.current || readingRef.current) return;
       readingRef.current = true;
+      const seq = actionSeqRef.current;
       try {
         const next = await fetchSentry().catch(() => null);
-        if (cancelled || busyRef.current || !next) return;
+        if (cancelled || busyRef.current || seq !== actionSeqRef.current || !next) return;
         setState(next);
       } finally {
         readingRef.current = false;
@@ -129,7 +155,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
     setError(null);
     try {
       const next = await action();
-      if (next) setState(next);
+      if (next) { actionSeqRef.current += 1; setState(next); }
       else setError('failed');
     } finally {
       busyRef.current = false;
@@ -139,23 +165,61 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
 
   const alerts = !push.available ? null : push.status?.permission ?? 'prompt';
 
-  const arm = () => run(async () => {
-    // Fire-and-forget: arming does not depend on the permission result.
-    if (alerts === 'prompt') push.requestPermission();
-    const result = await armSentry(false);
-    if (result.ok) return result.state;
-    if (result.reason === 'not_locked') {
-      setError('notLocked');
-      // Refresh so the card reflects the PC being unlocked meanwhile.
-      return fetchSentry().catch(() => null);
+  const arm = async () => {
+    if (busyRef.current || !state || state.armed) return;
+    const lock = !state.locked;
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    setArming(lock ? 'lock' : 'arm');
+    const startedAt = Date.now();
+    try {
+      // Fire-and-forget: arming does not depend on the permission result.
+      if (alerts === 'prompt') push.requestPermission();
+      const result = await armSentry(lock);
+      if (result.ok) {
+        const remaining = prefersReducedMotion() ? 0 : MIN_ARM_MS - (Date.now() - startedAt);
+        if (remaining > 0) await new Promise<void>((resolve) => { window.setTimeout(resolve, remaining); });
+        actionSeqRef.current += 1;
+        setState(result.state);
+        return;
+      }
+      if (result.reason === 'desktop_only') {
+        setRefusesLock(true);
+        return;
+      }
+      setError('failed');
+      if (result.reason === 'not_locked') {
+        // Refresh so the card reflects the PC being unlocked meanwhile.
+        const next = await fetchSentry().catch(() => null);
+        if (next) { actionSeqRef.current += 1; setState(next); }
+      }
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+      setArming(null);
     }
-    return null;
-  });
+  };
 
   if (!visible || !state) return null;
 
-  const errorText = error === 'notLocked' ? (state.locked ? t('sentry.card.notLocked') : null)
-    : error === 'failed' ? t('sentry.card.failed')
+  const phase = state.armed ? 'armed' : arming ? 'arming' : 'idle';
+  const idle = phase === 'idle' && (state.locked || !refusesLock);
+  const title = state.armed ? t('sentry.card.armedTitle') : t('sentry.card.title');
+  const message = state.armed ? t('sentry.card.armed')
+    : arming === 'lock' ? t('sentry.card.lockingPc')
+    : arming === 'arm' ? t('sentry.card.armingSentry')
+    : state.locked ? t('sentry.card.locked')
+    : refusesLock ? t('sentry.card.notLocked')
+    : t('sentry.card.promptLock');
+  const primaryLabel = arming === 'lock' ? t('sentry.card.locking')
+    : arming === 'arm' ? t('sentry.card.arming')
+    : state.locked || refusesLock ? t('sentry.card.arm')
+    : t('sentry.card.lockAndArm');
+  const alertsOn = alerts === 'granted' && registered;
+  const alertsText = alerts === 'denied' ? t('sentry.card.alertsDenied')
+    : alertsOn ? t('sentry.card.alertsOn')
+    : alerts === 'prompt' && !state.armed ? t('sentry.card.alertsSetup')
     : null;
 
   return (
@@ -164,48 +228,62 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle, openReques
       data-theme={resolvedThemeMode}
       style={themeStyle}
     >
-      <section className={`panel-card ${styles.card}`} aria-labelledby="panel-sentry-title">
-        <div className={styles.header}>
-          <span className={styles.icon} aria-hidden="true"><ShieldAlert size={18} /></span>
-          <h2 id="panel-sentry-title" className={styles.title}>{t('sentry.card.title')}</h2>
+      <section
+        className={`panel-card ${styles.card}`}
+        data-state={phase}
+        aria-labelledby="panel-sentry-title"
+      >
+        <Button
+          className={styles.close}
+          type="button"
+          tone="neutral"
+          icon={<X />}
+          aria-label={t('app.window.close')}
+          title={t('app.window.close')}
+          onClick={dismiss}
+        />
+        <button
+          type="button"
+          className={styles.mark}
+          aria-label={state.armed ? title : primaryLabel}
+          disabled={!idle}
+          onClick={() => { void arm(); }}
+        >
+          <span className={styles.pulse} aria-hidden="true" />
+          <SentryMark />
+        </button>
+        <h2 id="panel-sentry-title" className={styles.title}>{title}</h2>
+        <p className={styles.message}>{message}</p>
+        {alertsText && (
+          <p className={`${styles.alerts} ${alertsOn ? '' : styles.alertsOff}`}>
+            <span className={styles.alertsDot} aria-hidden="true" />
+            <span>{alertsText}</span>
+          </p>
+        )}
+        {error === 'failed' && <p className={styles.error} role="alert">{t('sentry.card.failed')}</p>}
+        {state.armed ? (
           <Button
-            className={styles.close}
+            className={styles.primary}
             type="button"
+            size="lg"
             tone="neutral"
-            icon={<X />}
-            aria-label={t('app.window.close')}
-            title={t('app.window.close')}
-            onClick={dismiss}
-          />
-        </div>
-        <p className={styles.message}>
-          {state.armed ? t('sentry.card.armed')
-            : state.locked ? t('sentry.card.locked')
-            : t('sentry.card.notLocked')}
-        </p>
-        {alerts === 'denied' && (
-          <p className={styles.message}>{t('sentry.card.alertsDenied')}</p>
+            loading={busy}
+            onClick={() => run(() => disarmSentry())}
+          >
+            {t('sentry.card.disarm')}
+          </Button>
+        ) : (
+          <Button
+            className={styles.primary}
+            type="button"
+            size="lg"
+            tone="accent"
+            disabled={!idle}
+            onClick={() => { void arm(); }}
+          >
+            {primaryLabel}
+          </Button>
         )}
-        {alerts === 'granted' && registered && (
-          <p className={styles.message}>{t('sentry.card.alertsOn')}</p>
-        )}
-        {errorText && <p className={styles.error} role="alert">{errorText}</p>}
-        <div className={styles.actions}>
-          {state.armed ? (
-            <Button
-              type="button"
-              tone="neutral"
-              loading={busy}
-              onClick={() => run(() => disarmSentry())}
-            >
-              {t('sentry.card.disarm')}
-            </Button>
-          ) : (
-            <Button type="button" tone="accent" loading={busy} disabled={!state.locked} onClick={arm}>
-              {t('sentry.card.arm')}
-            </Button>
-          )}
-        </div>
       </section>
     </div>
   );

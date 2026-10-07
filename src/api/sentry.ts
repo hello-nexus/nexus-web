@@ -12,7 +12,7 @@ export interface SentryState {
 
 export type SentryArmResult =
   | { ok: true; state: SentryState }
-  | { ok: false; reason: 'not_locked' | 'failed' };
+  | { ok: false; reason: 'not_locked' | 'desktop_only' | 'failed' };
 
 export interface PhonePushRegistration {
   platform: NativePushStatus['platform'];
@@ -35,6 +35,7 @@ export async function armSentry(lock: boolean): Promise<SentryArmResult> {
     body = null;
   }
   if (status === 409 && body?.error === 'not_locked') return { ok: false, reason: 'not_locked' };
+  if (status === 403 && body?.error === 'desktop_only') return { ok: false, reason: 'desktop_only' };
   if (!response.ok || !body) return { ok: false, reason: 'failed' };
   return { ok: true, state: body as SentryState };
 }
