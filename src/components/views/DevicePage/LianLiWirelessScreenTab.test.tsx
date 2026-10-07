@@ -182,7 +182,7 @@ describe('LianLiWirelessScreenTab', () => {
       render(<LianLiWirelessScreenTab aioMacs={['5ED6D8E566E1']} usbMacs={['5ED6D8E566E1']} panelOpener={() => open} />);
     });
     expect(screen.getByText('devices.lianli-wireless.aioScreen.widgetsUsb')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.managePanel' }));
     expect(open).toHaveBeenCalled();
   });
 

@@ -90,7 +90,7 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
           description={t('devices.lianli-wireless.aioScreen.widgetsUsb')}
         >
           <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
-            {t('devices.lianli-wireless.openScreenPage')}
+            {t('devices.lianli-wireless.managePanel')}
           </Button>
         </SettingRow>
       )}

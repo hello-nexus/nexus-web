@@ -270,7 +270,7 @@ function DeviceRow({
     >
       {onOpenPanel && (
         <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
-          {t('devices.lianli-wireless.openScreenPage')}
+          {t('devices.lianli-wireless.managePanel')}
         </Button>
       )}
       {fan.boundToUs ? (

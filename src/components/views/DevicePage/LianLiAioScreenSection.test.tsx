@@ -144,7 +144,7 @@ describe('LianLiAioScreenSection', () => {
       render(<LianLiAioScreenSection mac="AABBCCDDEEFF" onOpenPanel={vi.fn()} />);
     });
     expect(screen.getByRole('status')).toHaveTextContent('devices.lianli-wireless.aioScreen.widgetsNoUsb');
-    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
   });
 
   it('holds the widgets entry back while an AIO on USB has no page to open yet', async () => {
@@ -161,7 +161,7 @@ describe('LianLiAioScreenSection', () => {
       render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected onOpenPanel={open} />);
     });
     expect(screen.getByText('devices.lianli-wireless.aioScreen.widgetsUsb')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.managePanel' }));
     expect(open).toHaveBeenCalled();
   });
 

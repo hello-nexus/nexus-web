@@ -410,13 +410,13 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage onSectionNavigate={navigate} />);
     });
-    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' }));
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.managePanel' }));
     expect(navigate).toHaveBeenCalledWith('device', { deviceKey: 'panel-stream:REC1' });
 
     await act(async () => {
       fireEvent.click(screen.getByRole('tab', { name: /devices\.lianli-wireless\.tab\.screen/ }));
     });
-    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.managePanel' })).toBeInTheDocument();
   });
 
   it('finds the screen page once its stream starts and drops it when the stream ends', async () => {
@@ -434,13 +434,13 @@ describe('LianLiWirelessDevicePage', () => {
       await act(async () => {
         render(<LianLiWirelessDevicePage onSectionNavigate={vi.fn()} />);
       });
-      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
 
       await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
-      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'devices.lianli-wireless.managePanel' })).toBeInTheDocument();
 
       await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
-      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
     } finally {
       vi.useRealTimers();
     }
@@ -455,7 +455,7 @@ describe('LianLiWirelessDevicePage', () => {
     await act(async () => {
       render(<LianLiWirelessDevicePage onSectionNavigate={vi.fn()} />);
     });
-    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.openScreenPage' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
     expect(mockFetchPanelDevices).not.toHaveBeenCalled();
   });
 
