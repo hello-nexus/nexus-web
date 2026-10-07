@@ -4,6 +4,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { ChipGroup, type ChipOption } from '../../../components/common/ChipGroup/ChipGroup';
 import { PresetToolbar } from '../../../components/common/PresetToolbar/PresetToolbar';
 import { Button } from '../../../components/common/Button/Button';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { SettingRow } from '../../../components/common/SettingRow/SettingRow';
 import { fitPageCount } from './deckLayout';
 import { DeckEditor } from './DeckEditor';
@@ -197,14 +198,17 @@ export function DeckInstanceEditor({
           )}
 
           {importError && (
-            <div className={styles.importError} role="alert">
-              <span>{importError}</span>
-              {privilegedRetryFile && (
+            <Notice
+              tone="critical"
+              role="alert"
+              actions={privilegedRetryFile && (
                 <Button type="button" size="sm" tone="neutral" onClick={() => void runImport(privilegedRetryFile, true)}>
                   {t('panel.settings.deck.presets.importAnyway')}
                 </Button>
               )}
-            </div>
+            >
+              {importError}
+            </Notice>
           )}
 
           {fitNote && <p className={styles.fitNote}>{fitNote}</p>}
@@ -225,10 +229,13 @@ export function DeckInstanceEditor({
             desktopEditor={desktopEditor}
           />
         ) : deck.error ? (
-          <div className={styles.loadError}>
-            <span>{t('panel.settings.deck.rail.loadFailed')}</span>
-            <Button type="button" size="sm" tone="neutral" onClick={deck.retry}>{t('panel.settings.deck.rail.retry')}</Button>
-          </div>
+          <Notice
+            tone="critical"
+            role="alert"
+            actions={<Button type="button" size="sm" tone="neutral" onClick={deck.retry}>{t('panel.settings.deck.rail.retry')}</Button>}
+          >
+            {t('panel.settings.deck.rail.loadFailed')}
+          </Notice>
         ) : (
           <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
         )

@@ -15,8 +15,10 @@ describe('Notice', () => {
     expect(screen.getByRole('button', { name: 'Do it' })).toBeTruthy();
   });
 
-  it('marks the tone so warning and critical stay distinct', () => {
-    const { rerender } = render(<Notice tone="warning" role="alert">x</Notice>);
+  it('marks the level so info, warning and critical stay distinct', () => {
+    const { rerender } = render(<Notice tone="info" role="alert">x</Notice>);
+    expect(screen.getByRole('alert').getAttribute('data-tone')).toBe('info');
+    rerender(<Notice tone="warning" role="alert">x</Notice>);
     expect(screen.getByRole('alert').getAttribute('data-tone')).toBe('warning');
     rerender(<Notice tone="critical" role="alert">x</Notice>);
     expect(screen.getByRole('alert').getAttribute('data-tone')).toBe('critical');
@@ -25,7 +27,9 @@ describe('Notice', () => {
   it('passes the role through and omits the actions slot when there are none', () => {
     const { container } = render(<Notice tone="critical">x</Notice>);
     expect(container.firstElementChild?.getAttribute('role')).toBeNull();
-    // The icon and the body only: no empty actions column.
-    expect(container.firstElementChild?.firstElementChild?.children).toHaveLength(2);
+    // One group holding the icon and the body, and no empty actions column.
+    const row = container.firstElementChild?.firstElementChild;
+    expect(row?.children).toHaveLength(1);
+    expect(row?.firstElementChild?.children).toHaveLength(2);
   });
 });

@@ -281,23 +281,6 @@
   color: var(--good);
 }
 
-.notice {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  border: var(--border-width) solid transparent;
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.noticeText {
-  margin: 0;
-  font-size: var(--type-small);
-  color: var(--text);
-}
-
 .note {
   margin: 0;
   font-size: var(--type-mini);

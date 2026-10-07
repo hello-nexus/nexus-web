@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { Overlay } from '../Overlay/Overlay';
 import { Button } from '../Button/Button';
+import { Notice } from '../Notice/Notice';
 import styles from './ConfirmModal.module.scss';
 
 interface ConfirmModalProps {
@@ -15,10 +16,10 @@ interface ConfirmModalProps {
   size?: 'default' | 'wide';
   /** 'warning' colours the bullet markers in the warning tone, for a list of hazards. */
   bulletTone?: 'default' | 'warning';
-  /** Optional secondary hint rendered in a dimmed block below the main message. */
+  /** Optional secondary line, shown as a Notice of level `noteTone` below the main message. */
   note?: string;
-  /** 'danger' renders the note as a red-bordered callout with red text. */
-  noteTone?: 'default' | 'danger';
+  /** The note's Notice level: warning for an irreversible step, critical for a failure. */
+  noteTone?: 'info' | 'warning' | 'critical';
   /** Extra content rendered after the note, before the actions row (e.g. a password field for a destructive confirm). */
   children?: ReactNode;
   confirmLabel?: string;
@@ -58,7 +59,7 @@ export function ConfirmModal({
   size = 'default',
   bulletTone = 'default',
   note,
-  noteTone = 'default',
+  noteTone = 'info',
   children,
   confirmLabel,
   cancelLabel,
@@ -92,7 +93,7 @@ export function ConfirmModal({
             {bullets.map((b, i) => <li key={i}>{bulletTone === 'warning' ? <span>{b}</span> : b}</li>)}
           </ul>
         )}
-        {note && <p className={noteTone === 'danger' ? styles.noteDanger : styles.note}>{note}</p>}
+        {note && <div className={styles.note}><Notice tone={noteTone} role="status">{note}</Notice></div>}
         {children}
       </div>
       <div className={styles.actions}>

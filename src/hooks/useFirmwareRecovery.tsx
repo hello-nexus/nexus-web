@@ -108,7 +108,7 @@ export function useRecoverConfirm(onStarted: () => void, status: FlashStatus | n
       message={t('devices.firmware.recovery.confirmMessage', { name: pending?.item.name ?? '', version: pending?.version ?? '' })}
       note={error || undefined}
       // eslint-disable-next-line i18next/no-literal-string -- enum tone value, not user-facing text
-      noteTone={error ? 'danger' : 'default'}
+      noteTone={error ? 'critical' : 'info'}
       confirmLabel={t('devices.firmware.recovery.action')}
       destructive={false}
       confirmDisabled={busy}

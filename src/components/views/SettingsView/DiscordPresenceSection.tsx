@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
-import { SettingRow, SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { SettingSelect, SettingToggle } from '../../common/SettingRow/SettingRow';
+import { Notice } from '../../common/Notice/Notice';
 import {
   fetchDiscordPresence,
   saveDiscordPresence,
   type DiscordPresenceResponse,
 } from '../../../api/discord';
 import { useTranslation } from '../../../lib/i18n';
-import { CircleAlert, Quote } from 'lucide-react';
+import { Quote } from 'lucide-react';
 import { DiscordGlyph } from '../../icons/NexusBrand';
 
 /** How often the live connection state is re-read while this tab is open. */
@@ -102,7 +103,9 @@ export function DiscordPresenceSection({ serviceOnline }: { serviceOnline: boole
         disabled={busy || !presence.enabled}
       />
       {presence.enabled && !presence.connected && (
-        <SettingRow label={t('discord.presence.discordClosed')} icon={<CircleAlert />} iconLeading="subtle" />
+        <div data-settings-aside="true">
+          <Notice tone="warning" role="status">{t('discord.presence.discordClosed')}</Notice>
+        </div>
       )}
     </SettingsSection>
   );

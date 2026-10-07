@@ -3,6 +3,7 @@ import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type D
 import { SortableContext, arrayMove, rectSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ChipGroup } from '../../components/common/ChipGroup/ChipGroup';
+import { Notice } from '../../components/common/Notice/Notice';
 import { SearchInput } from '../../components/common/SearchInput/SearchInput';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import { useTranslation } from '../../lib/i18n';
@@ -420,7 +421,11 @@ export function PanelWidgetCatalog({
           that matters (a size chip making the notice appear) is exactly that
           case. */}
       <div className={styles.noticeRegion} role="status">
-        {noticeKey && <div className={styles.notice}>{t(noticeKey)}</div>}
+        {noticeKey && (
+          <div className={styles.notice}>
+            <Notice tone={gridFull ? 'warning' : 'info'}>{t(noticeKey)}</Notice>
+          </div>
+        )}
       </div>
       <div className={styles.scroller}>
         <div ref={measureRef} className={styles.propWrap}>

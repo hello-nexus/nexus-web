@@ -332,8 +332,7 @@
   border-radius: var(--radius);
 }
 
-// Same danger-callout recipe as ConfirmModal's .noteDanger, applied to a row
-// instead of a note block.
+// A stalled fan's row reads as a danger callout.
 .coolingRowStalled {
   border: 1px solid var(--bad);
   background: color-mix(in srgb, var(--bad) 12%, transparent);
@@ -363,59 +362,6 @@
 }
 
 // ── Temperature history ──
-
-// Same danger-callout recipe as ConfirmModal's .noteDanger / .coolingRowStalled
-// above, at --warn instead of --bad (sustained-high is a watch, not act).
-.temperatureEpisodes {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid var(--warn);
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
-  border-radius: var(--radius);
-}
-
-.temperatureEpisodesTitle {
-  color: var(--text);
-  font-weight: var(--weight-heading);
-  font-size: var(--type-small);
-}
-
-.temperatureEpisodesList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin: 0;
-  padding: 0 0 0 1.1rem;
-  color: var(--text-dim);
-  font-size: var(--type-small);
-}
-
-// Warning block the tooltipExtra prepends when the cursor is over a
-// sustained-high-temperature band; shares the app-rows separator recipe.
-.tooltipWarnings {
-  margin-top: 0.45rem;
-  padding-top: 0.35rem;
-  border-top: 1px solid var(--separator);
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.tooltipWarningTitle {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: var(--type-small);
-  font-weight: var(--weight-body);
-  color: var(--warn);
-}
-
-.tooltipWarningRow {
-  font-size: var(--type-mini);
-  color: var(--text-dim);
-}
 
 // Mirrors TimeSeriesChart's own tooltipRow/tooltipDot/tooltipName/tooltipVal
 // recipe (a separate CSS module, not directly reusable) for the app rows

@@ -94,7 +94,7 @@ export function ClearDataModal({ scope, open, onClose, onCleared }: ClearDataMod
         : t('settings.localDataStore.clearDataModal.monitoringHistoryHint')}
       note={t('settings.localDataStore.clearDataModal.cannotBeUndone')}
       // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
-      noteTone="danger"
+      noteTone="warning"
       confirmLabel={t('settings.localDataStore.clearDataModal.confirmButton')}
       confirmDisabled={confirmDisabled}
       onConfirm={() => void handleConfirm()}

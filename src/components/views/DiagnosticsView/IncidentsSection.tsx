@@ -229,7 +229,7 @@ export function IncidentsSection({
         bullets={[t('diagnostics.incidents.clearLogsBullet1'), t('diagnostics.incidents.clearLogsBullet2')]}
         note={t('diagnostics.incidents.clearLogsNote')}
         // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
-        noteTone="danger"
+        noteTone="warning"
         confirmLabel={t('diagnostics.incidents.clearLogs')}
         onConfirm={() => void handleClearLogs()}
         onCancel={() => setClearLogsConfirmOpen(false)}

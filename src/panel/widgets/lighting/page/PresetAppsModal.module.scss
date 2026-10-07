@@ -14,16 +14,6 @@
   font-size: var(--type-small);
 }
 
-.alert {
-  margin: 0;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid var(--bad);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bad) 12%, transparent);
-  color: var(--bad);
-  font-size: var(--type-small);
-}
-
 .chipRow {
   display: flex;
   align-items: flex-start;

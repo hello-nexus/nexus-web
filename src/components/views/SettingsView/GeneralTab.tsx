@@ -439,7 +439,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
         bullets={t('settings.factoryReset.wipeList').split('\n')}
         note={t('settings.factoryReset.confirmNote')}
         // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
-        noteTone="danger"
+        noteTone="warning"
         confirmLabel={t('settings.factoryReset.confirmButton')}
         destructive
         onConfirm={factoryReset}

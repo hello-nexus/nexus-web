@@ -147,14 +147,3 @@
   color: var(--danger, #e5484d);
 }
 
-.notice {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-xs) var(--space-md);
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--border);
-  background: var(--surface);
-  color: var(--text-dim);
-  font-size: var(--type-mini);
-}

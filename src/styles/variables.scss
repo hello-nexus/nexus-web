@@ -116,6 +116,12 @@
   --good: #10b981;
   --warn: #f59e0b;
   --bad: #ef4444;
+  // Notice levels (Notice.tsx): soft fills and borders. Fixed rgba, not color-mix (Chromium 83 panels).
+  --info-soft: rgba(255, 255, 255, 0.05);
+  --warn-soft: rgba(245, 158, 11, 0.12);
+  --warn-line: rgba(245, 158, 11, 0.4);
+  --bad-soft: rgba(239, 68, 68, 0.12);
+  --bad-line: rgba(239, 68, 68, 0.4);
   --status-away: #d8a14a;  // presence "away" tier (Steam, future presence dots) - amber-adjacent, distinct from --warn
   // A second chart-series hue, independent of the user-customizable --accent
   // and the semantic status colors above - the monitoring hero chart's own
@@ -296,6 +302,12 @@
   --good: #059669;
   --warn: #d97706;
   --bad: #dc2626;
+  // Notice levels (Notice.tsx): soft fills and borders. Fixed rgba, not color-mix (Chromium 83 panels).
+  --info-soft: rgba(0, 0, 0, 0.05);
+  --warn-soft: rgba(217, 119, 6, 0.1);
+  --warn-line: rgba(217, 119, 6, 0.4);
+  --bad-soft: rgba(220, 38, 38, 0.1);
+  --bad-line: rgba(220, 38, 38, 0.4);
   --status-away: #b8812f;
   --chart-line-alt: #db2777;
 }

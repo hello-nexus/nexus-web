@@ -26,41 +26,10 @@
   overflow-y: auto;
 }
 
-// The storefront's one piece of chrome: the store is a preview, and the banner
-// is what says so before the user reads the (short) app list as the whole store.
-.banner {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.5rem;
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-}
-
-.bannerIcon {
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-  color: var(--accent);
-}
-
-.bannerText {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
+// Keeps the banner's heading in the outline while it reads as notice text.
 .bannerTitle {
   margin: 0;
-  @include text-heading;
-  color: var(--text);
-}
-
-.bannerBody {
-  margin: 0;
-  @include text-body;
-  font-size: var(--type-small);
-  color: var(--text-dim);
+  font: inherit;
 }
 
 .sectionTitle {

@@ -391,13 +391,6 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
 }
 // ── Calibration ───────────────────────────────────────────────────────────
-.calibrationBanner {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.75rem 1rem; border-radius: var(--radius); border: 1px solid var(--accent);
-  background: rgba(139, 92, 246, 0.08); color: var(--text); font-size: var(--type-small);
-  margin-bottom: 0.5rem;
-}
-
 .calibrationSpinner {
   width: 16px; height: 16px; border: 2px solid var(--accent);
   border-top-color: transparent; border-radius: 50%;
@@ -431,9 +424,6 @@
   white-space: nowrap;
 }
 .calBadge { font-size: 0.7rem; }
-.calControllable { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
-.calStalling { background: rgba(251, 191, 36, 0.15); color: var(--warn); }
-.calFixed { background: rgba(139, 92, 246, 0.15); color: var(--accent-glow); }
 .calUnresponsive { background: rgba(107, 114, 128, 0.15); color: var(--text-dim); }
 
 // ── Fan Card ───────────────────────────────────────────────────────────────

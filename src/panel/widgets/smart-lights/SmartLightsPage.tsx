@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ExternalLink, LampCeiling, Lightbulb, Network, Palette, Radar, RefreshCw } from 'lucide-react';
 import { Button } from '../../../components/common/Button/Button';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { Card } from '../../../components/common/Card/Card';
 import { CollapsibleSection } from '../../../components/common/CollapsibleSection/CollapsibleSection';
 import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
@@ -293,17 +294,22 @@ export function SmartLightsAddColumn({
                 <div className={styles.brandResults}>
                   {scanError && <p className={styles.error}>{scanError}</p>}
                   {pairState.kind === 'action-needed' && pairState.brand === brand && (
-                    <div className={styles.notice}>
-                      <p className={styles.noticeText}>{t(pairState.copyKey)}</p>
-                      <Button
-                        size="sm"
-                        tone="accent"
-                        icon={<RefreshCw size={14} />}
-                        onClick={() => ctrl.doPair(pairState.brand, pairState.host, pairState.stableKey, pairState.name)}
-                      >
-                        {t('smartLights.retry')}
-                      </Button>
-                    </div>
+                    <Notice
+                      tone="warning"
+                      role="status"
+                      actions={(
+                        <Button
+                          size="sm"
+                          tone="accent"
+                          icon={<RefreshCw size={14} />}
+                          onClick={() => ctrl.doPair(pairState.brand, pairState.host, pairState.stableKey, pairState.name)}
+                        >
+                          {t('smartLights.retry')}
+                        </Button>
+                      )}
+                    >
+                      {t(pairState.copyKey)}
+                    </Notice>
                   )}
                   {pairState.kind === 'added' && (
                     <p className={styles.success}>{t('smartLights.addedNLights', { count: pairState.count })}</p>

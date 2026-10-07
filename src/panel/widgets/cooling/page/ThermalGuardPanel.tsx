@@ -1,4 +1,3 @@
-import { Wrench } from 'lucide-react';
 import type { GuardResponse, HealState } from '../../../../api/cooling';
 import { Button } from '../../../../components/common/Button/Button';
 import { Notice } from '../../../../components/common/Notice/Notice';
@@ -25,19 +24,22 @@ export function HealNotice({ heal, onUndo, onKeep, className }: {
 }) {
   const { t } = useTranslation();
   return (
-    <div className={`${styles.heal} ${className ?? ''}`} role="status">
-      <Wrench className={styles.healIcon} size={18} aria-hidden />
-      <div className={styles.healBody}>
-        <span>{t('cooling.guard.heal.title')}</span>
-        <ul className={styles.healList}>
-          {healLines(heal.channels, t).map((line, i) => <li key={heal.channels[i].id}>{line}</li>)}
-        </ul>
-      </div>
-      <div className={styles.healActions}>
-        {onUndo && <Button type="button" size="sm" tone="neutral" onClick={onUndo}>{t('cooling.guard.heal.undo')}</Button>}
-        {onKeep && <Button type="button" size="sm" tone="accent" onClick={onKeep}>{t('cooling.guard.heal.keep')}</Button>}
-      </div>
-    </div>
+    <Notice
+      tone="info"
+      role="status"
+      className={className}
+      actions={(onUndo || onKeep) && (
+        <div className={styles.healActions}>
+          {onUndo && <Button type="button" size="sm" tone="neutral" onClick={onUndo}>{t('cooling.guard.heal.undo')}</Button>}
+          {onKeep && <Button type="button" size="sm" tone="accent" onClick={onKeep}>{t('cooling.guard.heal.keep')}</Button>}
+        </div>
+      )}
+    >
+      <span>{t('cooling.guard.heal.title')}</span>
+      <ul className={styles.healList}>
+        {healLines(heal.channels, t).map((line, i) => <li key={heal.channels[i].id}>{line}</li>)}
+      </ul>
+    </Notice>
   );
 }
 

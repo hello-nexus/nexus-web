@@ -107,9 +107,9 @@ export function DeckAppAwareSection({
           onSave={async apps => {
             const result = await setDeckPresetApps(appsTarget.id, apps);
             if (result.kind === 'conflict') {
-              return t('lighting.layoutPresets.appsTaken', { app: result.conflict.appName, preset: result.conflict.presetName });
+              return { message: t('lighting.layoutPresets.appsTaken', { app: result.conflict.appName, preset: result.conflict.presetName }), failed: false };
             }
-            if (result.kind === 'failed') return t('panel.settings.deck.appAware.appsSaveFailed');
+            if (result.kind === 'failed') return { message: t('panel.settings.deck.appAware.appsSaveFailed'), failed: true };
             // The service broadcasts a `preset` deck-topic frame for this
             // write, which useDeckInstance already applies to `presets` -
             // no need to re-fetch the whole hook and flash a loading state.

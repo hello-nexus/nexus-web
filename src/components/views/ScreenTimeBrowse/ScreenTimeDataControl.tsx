@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { Notice } from '../../common/Notice/Notice';
 import { DatePicker } from '../../common/DatePicker/DatePicker';
 import { DeviceModal } from '../../common/DeviceModal/DeviceModal';
 import {
@@ -94,7 +95,7 @@ export function ScreenTimeDataControl({ open, onClose, onChanged }: ScreenTimeDa
             )}
           </div>
 
-          {resultMsg && <div className={styles.resultMsg}>{resultMsg}</div>}
+          {resultMsg && <Notice tone="info" role="status">{resultMsg}</Notice>}
 
           <div className={styles.actions}>
             <button type="button" className={styles.cancelBtn} onClick={handleClose}>

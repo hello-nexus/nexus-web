@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import { Compass } from 'lucide-react';
 import { useTranslation } from '../../lib/i18n';
 import type { ConnectionState } from '../../hooks/useServiceStatus';
 import { detectOS, isSafari, type DetectedOS } from '../../lib/platform';
 import { DOWNLOAD_URLS, type DownloadableOS } from '../../lib/downloads';
 import { ServiceLaunchButton } from '../common/ServiceLaunchButton/ServiceLaunchButton';
+import { Notice } from '../common/Notice/Notice';
 import { PlatformIcon } from '../icons/PlatformIcons';
 import { PageHero, type PageHeroKey } from '../common/PageHero/PageHero';
 import styles from './ServiceRequired.module.scss';
@@ -24,8 +24,7 @@ export function SafariLaunchNote() {
   const { t } = useTranslation();
   return (
     <div className={styles.safariNote}>
-      <Compass size={20} aria-hidden className={styles.safariIcon} />
-      <p className={styles.safariNoteText}>{t('service.required.safari')}</p>
+      <Notice tone="warning">{t('service.required.safari')}</Notice>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ShieldAlert, Smartphone, Timer, TriangleAlert } from 'lucide-react';
+import { ShieldAlert, Smartphone, Timer } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
+import { Notice } from '../../common/Notice/Notice';
 import { Button } from '../../common/Button/Button';
 import { armSentry, fetchSentry, type SentryState } from '../../../api/sentry';
 import { isRemoteOrigin, isRemotePaired } from '../../../api/service';
@@ -83,7 +84,9 @@ export function SentrySection({ serviceOnline }: { serviceOnline: boolean }) {
         )}
       </SettingRow>
       {failed && (
-        <SettingRow label={t('sentry.settings.failed')} icon={<TriangleAlert />} iconLeading="subtle" />
+        <div data-settings-aside="true">
+          <Notice tone="critical" role="alert">{t('sentry.settings.failed')}</Notice>
+        </div>
       )}
       <SettingRow
         label={t('sentry.settings.phones.label')}

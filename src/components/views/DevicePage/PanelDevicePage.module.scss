@@ -522,31 +522,8 @@
   color: var(--text-dim);
 }
 
-// Monitor-only Y70 (no USB serial channel): brightness/screen have no
-// hardware path, so the Display section leads with this instead of them
-// silently no-oping.
-.usbNotice {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--warn) 12%, transparent);
-  color: var(--warn);
-  font-size: var(--type-small);
-
-  svg {
-    flex-shrink: 0;
-  }
-}
-
-// Lets a notice's text wrap while an action button keeps its width.
-.noticeText {
-  flex: 1;
-}
-
 // Widgets/Theme/Background tab body while the panel is set up as a
-// secondary monitor: read-only preview under the usbNotice above.
+// secondary monitor: read-only preview under the notice above.
 .tabDisabled {
   opacity: 0.5;
   pointer-events: none;

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
-import { AlertTriangle, LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
+import { LayoutGrid, Monitor, Settings as SettingsIcon, Unplug, Trash2 } from 'lucide-react';
 import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, pointerWithin, closestCenter, type DragEndEvent, type DragStartEvent, type CollisionDetection } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
@@ -23,6 +23,7 @@ import { resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck
 import { isLocalhostUnreachable } from '../../../api/service';
 import type { DeckSlot } from '../../../panel/widgets/deck/types';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { Notice } from '../../common/Notice/Notice';
 import { ElgatoImportModal } from './ElgatoImportModal';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
@@ -413,11 +414,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       />
       <div className={`${styles.pageBody} pageBody`}>
         {deck.warning && (
-          <div className={styles.warningBanner}>
-            {/* eslint-disable-next-line i18next/no-literal-string -- ARIA boolean attribute */}
-            <AlertTriangle size={14} aria-hidden="true" />
-            <span>{t('devices.streamdeck.elgatoConflict')}</span>
-          </div>
+          <Notice tone="warning" role="status">{t('devices.streamdeck.elgatoConflict')}</Notice>
         )}
         {activeConflict && <ConflictAppCard conflict={activeConflict} />}
 
@@ -525,10 +522,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       onDeleteSlot={() => requestDelete(selSlot)}
                     />
                   ) : instance.error ? (
-                    <div className={styles.loadError}>
-                      <span>{t('panel.settings.deck.rail.loadFailed')}</span>
-                      <Button type="button" size="sm" tone="neutral" onClick={instance.retry}>{t('panel.settings.deck.rail.retry')}</Button>
-                    </div>
+                    <Notice
+                      tone="critical"
+                      role="alert"
+                      actions={<Button type="button" size="sm" tone="neutral" onClick={instance.retry}>{t('panel.settings.deck.rail.retry')}</Button>}
+                    >
+                      {t('panel.settings.deck.rail.loadFailed')}
+                    </Notice>
                   ) : (
                     <div className={styles.loading}>{t('panel.settings.deck.rail.loadingConfig')}</div>
                   )}

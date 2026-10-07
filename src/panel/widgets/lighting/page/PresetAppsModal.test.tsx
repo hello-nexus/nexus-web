@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import type { PresetApp } from '../../../../api/lighting';
-import { PresetAppsModal } from './PresetAppsModal';
+import { PresetAppsModal, type PresetAppsSaveError } from './PresetAppsModal';
 
 // The picker itself needs the service's /shortcuts response and a live
 // processes topic; this exercises the modal's own selection state.
@@ -40,7 +40,7 @@ const CHROME: PresetApp = { id: 'proc:chrome', name: 'chrome' };
 
 function renderModal(
   apps: PresetApp[] = [],
-  onSave: (a: PresetApp[]) => string | null | Promise<string | null> = vi.fn(() => null),
+  onSave: (a: PresetApp[]) => PresetAppsSaveError | null | Promise<PresetAppsSaveError | null> = vi.fn(() => null),
   onClose = vi.fn(),
   taken: Record<string, string> = {},
 ) {
@@ -180,7 +180,7 @@ describe('PresetAppsModal', () => {
   });
 
   it('surfaces a conflict the server refused the save with', async () => {
-    const onSave = vi.fn(() => Promise.resolve('taken by Desk'));
+    const onSave = vi.fn(() => Promise.resolve({ message: 'taken by Desk', failed: false }));
     const onClose = vi.fn();
     renderModal([], onSave, onClose);
 
@@ -189,12 +189,13 @@ describe('PresetAppsModal', () => {
     await act(async () => { await Promise.resolve(); });
 
     expect(screen.getByRole('alert').textContent).toBe('taken by Desk');
+    expect(screen.getByRole('alert').getAttribute('data-tone')).toBe('warning');
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it('keeps the edit and explains when the save fails outright', async () => {
     // Offline / 404 / 500: not a conflict, and emphatically not success.
-    const onSave = vi.fn(() => Promise.resolve('could not save'));
+    const onSave = vi.fn(() => Promise.resolve({ message: 'could not save', failed: true }));
     const onClose = vi.fn();
     renderModal([], onSave, onClose);
 
@@ -203,6 +204,7 @@ describe('PresetAppsModal', () => {
     await act(async () => { await Promise.resolve(); });
 
     expect(screen.getByRole('alert').textContent).toBe('could not save');
+    expect(screen.getByRole('alert').getAttribute('data-tone')).toBe('critical');
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByTestId('selected').textContent).toBe('proc:code');
   });

@@ -23,7 +23,7 @@ import { Toggle } from '../../../components/common/Toggle/Toggle';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { SupportedDevicesModal } from '../../../components/common/SupportedDevicesModal/SupportedDevicesModal';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
-import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { DeviceWarningIcon } from '../../../components/common/DeviceWarningIcon/DeviceWarningIcon';
 import { ExperimentalBadge } from '../../../components/common/ExperimentalBadge/ExperimentalBadge';
 import { ConflictRunningBadge } from '../../../components/common/ConflictRunningBadge/ConflictRunningBadge';
@@ -192,7 +192,7 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
               )}
 
               <div className={styles.missingNotice}>
-                <SimpleModeNotice message={t('devices.available.missingNotice')} />
+                <Notice tone="info" role="status">{t('devices.available.missingNotice')}</Notice>
               </div>
             </>
           )
