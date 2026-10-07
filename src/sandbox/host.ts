@@ -11,8 +11,30 @@ import { flattenFrameForWorker, type FlatReading } from './sensorFlatten';
 import * as monitoringStore from '../lib/monitoringStore';
 import type { AppDataDoc, AppDataPutResult, AudioPlay, WidgetDisplay } from '../../sdk/runtime/context';
 
-function globToRegex(pattern: string): RegExp {
-  return new RegExp('^' + pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\\\*/g, '.*') + '$', 'i');
+/** Longest sensor glob honoured; a worker-supplied pattern runs against every reading on every frame. */
+const SENSOR_GLOB_MAX = 128;
+
+/**
+ * Sensor grant / subscription glob, case-insensitive: `*` matches any run of
+ * characters, everything else is literal. A two-pointer walk, not a RegExp:
+ * a regex built from a worker's pattern can backtrack for minutes per test.
+ */
+export function sensorGlobMatch(pattern: string, id: string): boolean {
+  if (pattern.length > SENSOR_GLOB_MAX) return false;
+  const p = pattern.toLowerCase();
+  const t = id.toLowerCase();
+  let pi = 0;
+  let ti = 0;
+  let star = -1;
+  let mark = 0;
+  while (ti < t.length) {
+    if (pi < p.length && p[pi] !== '*' && p[pi] === t[ti]) { pi++; ti++; }
+    else if (pi < p.length && p[pi] === '*') { star = pi++; mark = ti; }
+    else if (star !== -1) { pi = star + 1; ti = ++mark; }
+    else return false;
+  }
+  while (pi < p.length && p[pi] === '*') pi++;
+  return pi === p.length;
 }
 
 export interface SandboxContext {
@@ -115,9 +137,9 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
 
   // Sensor broker - capped to the manifest's
   // sensors.read grant (enforced here in the SDK host).
-  const allowedSensors = (context.sensorsRead ?? []).map(globToRegex);
-  const isGranted = (id: string) => allowedSensors.some((re) => re.test(id));
-  const sensorSubs = new Map<number, RegExp>();
+  const allowedSensors = context.sensorsRead ?? [];
+  const isGranted = (id: string) => allowedSensors.some((glob) => sensorGlobMatch(glob, id));
+  const sensorSubs = new Map<number, string>();
   const findReading = (id: string): FlatReading | null => {
     const frame = monitoringStore.getMonitoringFrame();
     return frame ? (flattenFrameForWorker(frame).find((s) => s.id === id) ?? null) : null;
@@ -128,8 +150,8 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
     if (!frame) return;
     for (const reading of flattenFrameForWorker(frame)) {
       if (!isGranted(reading.id)) continue;
-      for (const [subId, re] of sensorSubs) {
-        if (re.test(reading.id)) worker.postMessage({ type: 'nexus.sensors.reading', payload: { subscriptionId: subId, reading } });
+      for (const [subId, glob] of sensorSubs) {
+        if (sensorGlobMatch(glob, reading.id)) worker.postMessage({ type: 'nexus.sensors.reading', payload: { subscriptionId: subId, reading } });
       }
     }
   };
@@ -147,7 +169,7 @@ export function spawnSandboxedWidget(runtimeUrl: string, entryUrl: string, conte
     }
     if (d?.type === 'nexus.sensors.subscribe') {
       const p = d.payload as { pattern?: string; subscriptionId?: number } | undefined;
-      if (p?.subscriptionId && p?.pattern) { sensorSubs.set(p.subscriptionId, globToRegex(p.pattern)); fanoutSensors(); }
+      if (p?.subscriptionId && typeof p.pattern === 'string' && p.pattern) { sensorSubs.set(p.subscriptionId, p.pattern); fanoutSensors(); }
       return;
     }
     if (d?.type === 'nexus.sensors.unsubscribe') {
