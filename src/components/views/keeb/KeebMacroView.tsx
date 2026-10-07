@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Circle, ListVideo, Trash2, X, Square as StopIcon } from 'lucide-react';
 import type { KeebMacro, MacroKey, SetMacroResponse } from '../../../api/keeb';
 import { Button } from '../../common/Button/Button';
+import { Notice } from '../../common/Notice/Notice';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { IconLabelButton } from '../../common/IconLabelButton/IconLabelButton';
 import { SettingRow } from '../../common/SettingRow/SettingRow';
@@ -301,13 +302,13 @@ export function KeebMacroView({ loadMacro, saveMacro }: KeebMacroViewProps) {
         </header>
 
         {notice && (
-          <div className={styles.notice} role="status">
+          <Notice tone={notice.truncated || notice.dropped.length > 0 ? 'warning' : 'info'} role="status">
             {notice.truncated && <span>{t('keeb.macro.truncatedWarn')}</span>}
             {notice.dropped.length > 0 && (
               <span>{t('keeb.macro.droppedWarn', { keys: notice.dropped.join(', ') })}</span>
             )}
             {notice.offline && <span>{t('keeb.macro.savedOffline')}</span>}
-          </div>
+          </Notice>
         )}
 
         <SettingsSection

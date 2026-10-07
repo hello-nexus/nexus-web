@@ -45,7 +45,7 @@ import { CollapsibleSection } from '../../../components/common/CollapsibleSectio
 import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu/ModeMenu';
 import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
-import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
@@ -2238,7 +2238,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             />
           </div>
           {simpleCustomActive && (
-            <SimpleModeNotice message={t('lighting.simple.customActive')} />
+            <Notice tone="info" role="status">{t('lighting.simple.customActive')}</Notice>
           )}
           <div className={styles.simpleFooter}>
             <AdvancedModeCta
@@ -2692,15 +2692,18 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           onSave={async apps => {
             const result = await handlePresetSetApps(presetAppsTarget.id, apps);
             if (result.kind === 'conflict') {
-              return t('lighting.layoutPresets.appsTaken', {
-                app: result.conflict.appName,
-                preset: result.conflict.presetName,
-              });
+              return {
+                message: t('lighting.layoutPresets.appsTaken', {
+                  app: result.conflict.appName,
+                  preset: result.conflict.presetName,
+                }),
+                failed: false,
+              };
             }
             // Anything other than a clean 200 keeps the modal open with the
             // edit intact - closing on a failed write discards it silently.
             if (result.kind === 'failed') {
-              return t('lighting.layoutPresets.appsSaveFailed');
+              return { message: t('lighting.layoutPresets.appsSaveFailed'), failed: true };
             }
             setPresetAppsTarget(null);
             return null;

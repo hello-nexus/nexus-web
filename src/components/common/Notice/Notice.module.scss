@@ -6,14 +6,23 @@
   padding: 0.7rem 0.9rem;
   border: var(--border-width) solid;
   border-radius: var(--radius);
-  background: var(--surface);
   color: var(--text);
 
   @include text-body;
 }
 
+.info {
+  border-color: var(--border);
+  background: var(--info-soft);
+
+  .icon {
+    color: var(--text-dim);
+  }
+}
+
 .warning {
-  border-color: var(--warn);
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
 
   .icon {
     color: var(--warn);
@@ -21,7 +30,8 @@
 }
 
 .critical {
-  border-color: var(--bad);
+  border-color: var(--bad-line);
+  background: var(--bad-soft);
 
   .icon {
     color: var(--bad);
@@ -37,13 +47,25 @@
   @include wrapgap(0.9rem, 0.6rem);
 }
 
+// Icon and text never part: only the actions wrap.
+.main {
+  display: flex;
+  flex: 1 1 14rem;
+  align-items: flex-start;
+  min-width: 0;
+
+  @include hgap(0.75rem);
+}
+
+// Centred on the first text line (text-body line-height 1.5 at --type-body).
 .icon {
   flex: 0 0 auto;
+  margin-top: calc((var(--type-body) * 1.5 - 18px) / 2);
 }
 
 .body {
   display: flex;
-  flex: 1 1 18rem;
+  flex: 1 1 auto;
   flex-direction: column;
   min-width: 0;
 }

@@ -64,7 +64,7 @@ export function AccountDangerZoneSection({
         message={t('account.danger.delete.confirmMessage')}
         note={t('account.danger.delete.confirmNote')}
         // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
-        noteTone="danger"
+        noteTone="warning"
         confirmLabel={t('account.danger.delete.button')}
         destructive
         onConfirm={() => void handleDeleteConfirm()}

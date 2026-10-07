@@ -133,6 +133,11 @@ const PROMOTED_FAMILY_BRANDING: Partial<Record<string, { name: string; icon: str
 
 // A plain monitor (no product family) promoted to a panel and then turned off:
 // it leaves the device list, since it is only a device while used as a panel.
+/** The panel device id of a streamed panel record. */
+export function streamedPanelId(recordId: string): string {
+  return `stream:${recordId}`;
+}
+
 export function promotedMonitorDeviceId(record: PanelDeviceRecord): string {
   return `display:${record.id}`;
 }
@@ -322,7 +327,7 @@ export function buildPanelDevices({
     // record's own name describes only the glass ("NZXT Kraken LCD").
     const claimedName = claimed ? curatedDevices.find(d => d.id === claimed)?.name : undefined;
     devices.push({
-      id: `stream:${record.id}`,
+      id: streamedPanelId(record.id),
       panelRecordId: record.id,
       sourceId: claimed,
       name: claimedName ?? record.displayName,

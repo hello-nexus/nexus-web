@@ -61,7 +61,6 @@ import { IconLabelButton } from '../components/common/IconLabelButton/IconLabelB
 import { AdvancedModeCta } from '../components/common/AdvancedModeCta/AdvancedModeCta';
 import { ModeMenu } from '../components/common/ModeMenu/ModeMenu';
 import { DeviceCountSummary } from '../components/common/DeviceCountSummary/DeviceCountSummary';
-import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { FirmwareRecoveryBanner } from '../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
 import { ThermalGuardPanel } from '../panel/widgets/cooling/page/ThermalGuardPanel';
 import { GuardTripNoticeView } from '../components/views/DiagnosticsView/GuardTripNotice';
@@ -620,6 +619,9 @@ function PreviewChipGroupMulti() {
 function PreviewNotice() {
   return (
     <div className={styles.previewStack} style={{ width: 560 }}>
+      <Notice tone="info" role="status">
+        <span>Info: a custom preset is active. Switch to advanced mode to manage it.</span>
+      </Notice>
       <Notice tone="warning" role="status" actions={<Button size="sm">Action</Button>}>
         <span>Warning: something may need attention.</span>
         <NoticeSecondary>A dimmer line gives the cause.</NoticeSecondary>
@@ -1466,14 +1468,6 @@ function PreviewModeMenu() {
           ]}
         />
       </div>
-    </div>
-  );
-}
-
-function PreviewSimpleModeNotice() {
-  return (
-    <div className={styles.previewStack} style={{ width: 520 }}>
-      <SimpleModeNotice message="A custom preset is active. Switch to advanced mode to manage it." />
     </div>
   );
 }
@@ -2611,7 +2605,7 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'ColorPickerWithPresets', category: 'editable',
     filePath: 'src/components/common/ColorPickerWithPresets/ColorPickerWithPresets.tsx',
     description: 'Fixed 10-column swatch grid for theming surfaces (app accent, panel accent, panel background). Click commits immediately; allowCustom adds a trailing slot that commits the colour it shows and opens an HsvPicker popover for any off-palette colour.', Preview: PreviewColorPickerWithPresets,
-    notes: 'Pass a 20-entry preset list to render two rows. Row 2 should be a vertically paired darker / more saturated sibling of row 1 by hue family; the selected swatch gets a text-colour ring (not accent - on a grid of colours an accent ring vanishes on the swatch that IS the accent). Swatches stretch to 1/10 of the container width and cap at ~36px on desktop, so the grid fills phone-sheet widths edge-to-edge. With allowCustom the grid gains a column for the full-height custom slot, which opens an HsvPicker popover. The slot shows the current value whenever that value is off-palette (so it tracks a drag preview); pass customColor + onCustomCommit and it keeps showing the saved pick after a preset is selected, and clicking it re-applies that pick as it opens.',
+    notes: 'Pass a 20-entry preset list to render two rows. Row 2 should be a vertically paired darker / more saturated sibling of row 1 by hue family; the selected swatch gets a text-colour ring (not accent - on a grid of colours an accent ring vanishes on the swatch that IS the accent). Swatches stretch to 1/10 of the container width and cap at ~36px on desktop, so the grid fills phone-sheet widths edge-to-edge; in a host wider than that cap the picker right-aligns itself, like the control of a settings row, so a colour row puts it under its label rather than in the control slot of the row (where it shrinks). With allowCustom the grid gains a column for the full-height custom slot, which opens an HsvPicker popover. The slot shows the current value whenever that value is off-palette (so it tracks a drag preview); pass customColor + onCustomCommit and it keeps showing the saved pick after a preset is selected, and clicking it re-applies that pick as it opens.',
   },
   {
     name: 'PaletteRing', category: 'editable',
@@ -2695,12 +2689,6 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewModeMenu,
   },
   {
-    name: 'SimpleModeNotice', category: 'cards',
-    filePath: 'src/components/common/SimpleModeNotice/SimpleModeNotice.tsx',
-    description: 'Accent-tinted line on the simple-mode lighting/cooling pages, shown when the active configuration has no tile on the page (a custom cooling preset, a lighting effect or mixed per-device colours) - without it the page reads as though nothing is running. The page owns the wording and the condition.',
-    Preview: PreviewSimpleModeNotice,
-  },
-  {
     name: 'FirmwareRecoveryBanner', category: 'cards',
     filePath: 'src/components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner.tsx',
     description: 'Warning shown on the Cooling and Firmware Updates pages when a device is stuck in update mode after an interrupted firmware update. Carries the Recover action, a checking line while the service identifies the device, flash progress while recovering, and a contact-support line when the device cannot be recovered in-app. Pairs with useFirmwareRecoveryFlow / useRecoverConfirm for the confirm dialog.',
@@ -2777,7 +2765,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'Notice', category: 'cards',
     filePath: 'src/components/common/Notice/Notice.tsx',
-    description: 'The one inline warning block: a toned border and triangle on a surface with primary text, an optional dimmer line (NoticeSecondary) and an actions slot on the right. warning uses the warn colour for border and icon, critical uses the bad colour for both. Use role alert for something that interrupts and status for something that merely appears. FirmwareRecoveryBanner, the thermal guard banners and errors, and the Diagnostics trip notice are built on it.', Preview: PreviewNotice,
+    description: 'The one inline notice block, in three levels that share one layout: a soft fill, a border and an icon in the level colour, primary text, an optional dimmer line (NoticeSecondary) and an actions slot on the right. info is neutral guidance (never the accent, so a red accent cannot read as an error), warning uses the warn colour, critical the bad colour. Pages use it for every notice instead of building their own banner. Use role alert for something that interrupts and status for something that merely appears. FirmwareRecoveryBanner, the thermal guard banners and errors, and the Diagnostics trip notice are built on it.', Preview: PreviewNotice,
   },
   {
     name: 'Checkbox', category: 'inputs',

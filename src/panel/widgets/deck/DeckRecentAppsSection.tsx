@@ -4,6 +4,7 @@ import { useTranslation } from '../../../lib/i18n';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { Button } from '../../../components/common/Button/Button';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { DeviceModal } from '../../../components/common/DeviceModal/DeviceModal';
 import { SettingsSection } from '../../../components/common/SettingsSection/SettingsSection';
 import { SettingRow } from '../../../components/common/SettingRow/SettingRow';
@@ -126,7 +127,7 @@ export function DeckRecentAppsSection({ showPreviewNote, desktopActions = true }
         )}
       </SettingsSection>
 
-      {showPreviewNote && <p className={styles.previewNote}>{t('panel.settings.deck.recentApps.previewNote')}</p>}
+      {showPreviewNote && <Notice tone="info">{t('panel.settings.deck.recentApps.previewNote')}</Notice>}
 
       <DeviceModal
         open={pickerOpen}

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Store, Tag,
+  ChevronLeft, ChevronRight, Hand, HardDrive, LayoutGrid, Ruler, ShieldCheck, Sparkles, Tag,
 } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { Badge } from '../../common/Badge/Badge';
 import { Card } from '../../common/Card/Card';
+import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { useTranslation } from '../../../lib/i18n';
 import { formatDateTime, hour12OptionFor, type DateFormat, type TimeFormat } from '../../../lib/units';
@@ -272,13 +273,10 @@ function FeaturedApp({ app, installed, onOpen, onNeedsSignIn, onInstalled }: {
 function StoreBanner() {
   const { t } = useTranslation();
   return (
-    <div className={styles.banner}>
-      <Store className={styles.bannerIcon} size={22} aria-hidden={true} />
-      <div className={styles.bannerText}>
-        <h2 className={styles.bannerTitle}>{t('store.banner.title')}</h2>
-        <p className={styles.bannerBody}>{t('store.banner.body')}</p>
-      </div>
-    </div>
+    <Notice tone="info">
+      <h2 className={styles.bannerTitle}>{t('store.banner.title')}</h2>
+      <NoticeSecondary>{t('store.banner.body')}</NoticeSecondary>
+    </Notice>
   );
 }
 

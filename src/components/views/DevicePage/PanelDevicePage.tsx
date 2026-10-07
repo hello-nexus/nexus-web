@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, AlertTriangle, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
+import { Notice } from '../../common/Notice/Notice';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from '../../../panel/widgets/common/PanelGaugeGradientContext';
@@ -1336,10 +1337,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   {activeTab === 'widgets' && (
                     <>
                       {recordSecondaryMonitor && (
-                        <div className={styles.usbNotice}>
-                          <AlertTriangle size={14} aria-hidden />
-                          <span>{t('devices.lcd.secondaryMonitorNotice')}</span>
-                        </div>
+                        <Notice tone="info" role="status">{t('devices.lcd.secondaryMonitorNotice')}</Notice>
                       )}
                       <div
                         className={`${styles.catalogHost}${recordSecondaryMonitor ? ` ${styles.tabDisabled}` : ''}`}
@@ -1408,10 +1406,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                     return (
                       <>
                         {recordSecondaryMonitor && (
-                          <div className={styles.usbNotice}>
-                            <AlertTriangle size={14} aria-hidden />
-                            <span>{t('devices.lcd.secondaryMonitorNotice')}</span>
-                          </div>
+                          <Notice tone="info" role="status">{t('devices.lcd.secondaryMonitorNotice')}</Notice>
                         )}
                         <div
                           className={recordSecondaryMonitor ? styles.tabDisabled : undefined}
@@ -1698,16 +1693,10 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                           }}
                         />
                         {recordSecondaryMonitor && recordSecondaryMonitorState === 'driver-missing' && (
-                          <div className={styles.usbNotice}>
-                            <AlertTriangle size={14} aria-hidden />
-                            <span>{t('devices.lcd.secondaryMonitorDriverMissing')}</span>
-                          </div>
+                          <Notice tone="warning" role="status">{t('devices.lcd.secondaryMonitorDriverMissing')}</Notice>
                         )}
                         {recordSecondaryMonitor && recordSecondaryMonitorState === 'failed' && (
-                          <div className={styles.usbNotice}>
-                            <AlertTriangle size={14} aria-hidden />
-                            <span>{t('devices.lcd.secondaryMonitorFailed')}</span>
-                          </div>
+                          <Notice tone="critical" role="status">{t('devices.lcd.secondaryMonitorFailed')}</Notice>
                         )}
                         {recordSecondaryMonitor && recordSecondaryMonitorState === 'starting' && (
                           <SettingRow label={t('devices.lcd.secondaryMonitorStarting')} />
@@ -1914,7 +1903,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         bullets={t('devices.panels.resetPersonalization.wipeList').split('\n')}
         note={t('settings.factoryReset.confirmNote')}
         // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
-        noteTone="danger"
+        noteTone="warning"
         confirmLabel={t('devices.panels.resetPersonalization.confirmButton')}
         destructive
         onConfirm={() => void resetPersonalization()}
@@ -1949,7 +1938,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
         bullets={t('devices.q60.factoryResetPanel.wipeList').split('\n')}
         note={t('devices.q60.factoryResetPanel.confirmNote')}
         // eslint-disable-next-line i18next/no-literal-string -- note tone enum value
-        noteTone="danger"
+        noteTone="warning"
         confirmLabel={t('devices.q60.factoryResetPanel.confirmButton')}
         destructive
         onConfirm={() => void factoryResetPanel()}
@@ -2259,15 +2248,17 @@ function MonitorSettingsPanel({
     <div className={styles.settingsContent}>
       <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
       {touchPermissionNeeded && (
-        <div className={styles.usbNotice}>
-          <AlertTriangle size={14} aria-hidden />
-          <span className={styles.noticeText}>{t('devices.panels.touchPermission.notice')}</span>
-          {onOpenTouchPermission && (
+        <Notice
+          tone="warning"
+          role="status"
+          actions={onOpenTouchPermission && (
             <Button type="button" size="sm" onClick={onOpenTouchPermission}>
               {t('devices.panels.touchPermission.button')}
             </Button>
           )}
-        </div>
+        >
+          {t('devices.panels.touchPermission.notice')}
+        </Notice>
       )}
       {brightness !== null && (
         <SettingSlider
@@ -2473,17 +2464,11 @@ function SettingsPanel({
       {showDisplayControls && (
         <SettingsSection title={t('devices.y70.display')} boxClassName={styles.deviceSettingsBox}>
           {usbDisconnected && (
-            <div className={styles.usbNotice}>
-              <AlertTriangle size={14} aria-hidden />
-              <span>{t('devices.y70.usbDisconnectedNotice')}</span>
-            </div>
+            <Notice tone="warning" role="status">{t('devices.y70.usbDisconnectedNotice')}</Notice>
           )}
 
           {displayDisconnected && (
-            <div className={styles.usbNotice}>
-              <AlertTriangle size={14} aria-hidden />
-              <span>{t('devices.y70.displayDisconnectedNotice')}</span>
-            </div>
+            <Notice tone="warning" role="status">{t('devices.y70.displayDisconnectedNotice')}</Notice>
           )}
 
           <SettingToggle

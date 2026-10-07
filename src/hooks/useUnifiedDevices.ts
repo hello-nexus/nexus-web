@@ -77,6 +77,11 @@ export interface UnifiedDevice {
 
 // A simulated panel carries the marker on its panel record; the Tryx sim sets
 // `simulated` directly. Neither marker alone covers both.
+/** The device-page key of a panel device. */
+export function panelDeviceKey(panelId: string): string {
+  return `panel-${panelId}`;
+}
+
 export function isSimulatedDevice(device: UnifiedDevice): boolean {
   return device.panelDevice?.connectionKind === 'simulated' || device.simulated === true;
 }
@@ -298,7 +303,7 @@ function buildUnifiedList(
     // display promote/demote API, not controlDevice).
     const isPromotedMonitor = !!p.displayId;
     list.push({
-      key: `panel-${p.id}`,
+      key: panelDeviceKey(p.id),
       shortName,
       name: p.name,
       subtitle: p.subtitle,

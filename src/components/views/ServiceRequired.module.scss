@@ -75,24 +75,6 @@
 }
 
 .safariNote {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
   margin-top: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  border-radius: var(--radius-lg);
-  background: var(--surface);
   text-align: left;
-}
-
-.safariIcon {
-  color: var(--text-dim);
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.safariNoteText {
-  @include text-body;
-  margin: 0;
-  color: var(--text);
 }

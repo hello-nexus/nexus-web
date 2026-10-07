@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
-import { Ban, CheckCheck, Power } from 'lucide-react';
+import { Ban, CheckCheck } from 'lucide-react';
 import { Button } from '../../../../components/common/Button/Button';
+import { Notice } from '../../../../components/common/Notice/Notice';
 import { CollapsibleSection } from '../../../../components/common/CollapsibleSection/CollapsibleSection';
 import { usePersistentState } from '../../../../hooks/usePersistentState';
 import { useTranslation } from '../../../../lib/i18n';
@@ -223,12 +224,7 @@ function FansSection({ cooling, liveChannels }: {
         </div>
       )}
       {cooling.activeMode === 'off' && (
-        <div className={pageStyles.offStatus}
-          role="status"
-          aria-label={t('cooling.mode.off.banner')}>
-          <Power size={13} aria-hidden />
-          <span className={pageStyles.offStatusLabel}>{t('cooling.mode.off.banner')}</span>
-        </div>
+        <Notice tone="info" role="status">{t('cooling.mode.off.banner')}</Notice>
       )}
       {calibrating && <p className={styles.calibratingHint}>{t('cooling.calibrate.locked')}</p>}
       {/* Same input lock the desktop page applies to its fan rail: a running

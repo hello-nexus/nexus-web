@@ -15,6 +15,7 @@ import { Overlay } from '../../../components/common/Overlay/Overlay';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { PageHero } from '../../../components/common/PageHero/PageHero';
 import { Button } from '../../../components/common/Button/Button';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { SystemSpecsPanel } from '../../../components/common/SystemSpecsPanel/SystemSpecsPanel';
@@ -250,12 +251,17 @@ export function BenchmarkPage({ serviceOnline, connectionState, tab: urlTab, onT
 
     if (status === 'failed') {
       return (
-        <div className={styles.error}>
-          <p>{t('benchmark.failed')}: {error ?? t('benchmark.unknownError')}</p>
-          <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={handleRerun}>
-            {t('benchmark.rerun')}
-          </Button>
-        </div>
+        <Notice
+          tone="critical"
+          role="alert"
+          actions={(
+            <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={handleRerun}>
+              {t('benchmark.rerun')}
+            </Button>
+          )}
+        >
+          {t('benchmark.failed')}: {error ?? t('benchmark.unknownError')}
+        </Notice>
       );
     }
 

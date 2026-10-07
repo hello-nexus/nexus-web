@@ -3,11 +3,14 @@ import { Fan, Lightbulb, MonitorSmartphone, RadioReceiver, Unplug } from 'lucide
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { getLianLiWirelessState, type LianLiWirelessLinkStatus, type LianLiWirelessState } from '../../../api/lianli-wireless';
+import { fetchPanelDevices } from '../../../api/panel';
+import { streamedPanelId } from '../../../hooks/usePanelDevices';
+import { panelDeviceKey } from '../../../hooks/useUnifiedDevices';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { L_CONNECT_CONFLICT_ID } from '../../../api/conflicts';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useTranslation } from '../../../lib/i18n';
-import { LianLiWirelessFansTab, fanTypeKey, isFanDevice } from './LianLiWirelessFansTab';
+import { LianLiWirelessFansTab, fanTypeKey, isFanDevice, isHydroShiftDevice } from './LianLiWirelessFansTab';
 import { LianLiWirelessCoolingTab } from './LianLiWirelessCoolingTab';
 import { CoolingPageShortcut, LightingPageShortcut } from './CoolingPageLink';
 import type { DashboardSectionNavigate } from '../../../panel/engine/panelLayoutHelpers';
@@ -19,6 +22,10 @@ import { useReportDeviceWaiting } from './deviceDetecting';
 
 // Polling interval matches the service RpmPollMs.
 const RPM_POLL_MS = 2000;
+
+// The streamed-panel family of a HydroShift II on USB: its screen's own device page.
+const HYDROSHIFT2_PANEL_FAMILY = 'lianli-hydroshift2';
+const AIO_PANEL_LOOKUP_MS = 10_000;
 
 type LianLiWirelessTab = 'fans' | 'lighting' | 'cooling' | 'screen';
 
@@ -99,6 +106,32 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
     };
   }, [refresh, refreshLive]);
 
+  // A HydroShift II on USB has a panel page while its screen streams. The streamed
+  // record follows the stream session, not the USB link, so it is looked up again
+  // while the AIO stays on USB. One USB HydroShift II at a time, so the family names it.
+  const usbAio = !!state?.fans.some(f => f.usbConnected);
+  const [aioPanelKey, setAioPanelKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!usbAio) { setAioPanelKey(null); return; }
+    let alive = true;
+    const lookup = () => {
+      void fetchPanelDevices().then(res => {
+        if (!alive || !res) return;
+        const record = res.devices.find(d => d.streamed && d.capabilities?.family === HYDROSHIFT2_PANEL_FAMILY);
+        setAioPanelKey(record ? panelDeviceKey(streamedPanelId(record.id)) : null);
+      });
+    };
+    lookup();
+    const id = window.setInterval(lookup, AIO_PANEL_LOOKUP_MS);
+    return () => { alive = false; window.clearInterval(id); };
+  }, [usbAio]);
+  const panelOpener = (mac: string) => {
+    const onUsb = !!state?.fans.find(f => f.mac === mac)?.usbConnected;
+    return onUsb && aioPanelKey && onSectionNavigate
+      ? () => onSectionNavigate('device', { deviceKey: aioPanelKey })
+      : undefined;
+  };
+
   const disconnected = connection === 'disconnected';
   const hintKey = linkStatus ? LINK_HINT_KEYS[linkStatus] : undefined;
   // Only polled while the reason for being down is an app holding the dongle.
@@ -111,6 +144,8 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
   const hasLighting = hasStrimer || !!state?.fans.some(f => f.boundToUs && isFanDevice(f.devType) && f.fanCount > 0
     && !['fanTypeCl', 'fanTypeGeneric'].includes(fanTypeKey(f.fanType)));
   const boundMacs = (state?.fans ?? []).filter(f => f.boundToUs).map(f => f.mac);
+  const aioMacs = (state?.fans ?? []).filter(f => f.boundToUs && isHydroShiftDevice(f.devType)).map(f => f.mac);
+  const usbMacs = (state?.fans ?? []).filter(f => f.usbConnected).map(f => f.mac);
   const tabs = [
     { key: 'fans', label: t('devices.lianli-wireless.tab.devices'), icon: <RadioReceiver size={14} /> },
     ...(hasLighting ? [{ key: 'lighting', label: t('lighting.title'), icon: <Lightbulb size={14} /> }] : []),
@@ -146,11 +181,11 @@ export function LianLiWirelessDevicePage({ onSectionNavigate }: LianLiWirelessDe
             in-flight bind/unbind pending state survives the reconnect. */}
         <div className={styles.tabBody} hidden={disconnected}>
           {tab === 'fans' && (
-            <LianLiWirelessFansTab state={state} refresh={refresh} />
+            <LianLiWirelessFansTab state={state} refresh={refresh} panelOpener={panelOpener} />
           )}
           {tab === 'lighting' && <LianLiWirelessLightingTab onSectionNavigate={onSectionNavigate} />}
           {tab === 'cooling' && <LianLiWirelessCoolingTab state={state} />}
-          {tab === 'screen' && <LianLiWirelessScreenTab />}
+          {tab === 'screen' && <LianLiWirelessScreenTab aioMacs={aioMacs} usbMacs={usbMacs} panelOpener={panelOpener} />}
         </div>
       </div>
     </div>

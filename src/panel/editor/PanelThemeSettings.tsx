@@ -26,7 +26,7 @@ import { usePanelBackgroundUsage } from '../../hooks/usePanelBackgroundUsage';
 import { AnimateGrid } from '../widgets/lighting/page/AnimateGrid';
 import { EffectControls } from '../widgets/lighting/page/EffectControls';
 import { BackgroundMediaPicker } from '../background/BackgroundMediaPicker';
-import { SimpleModeNotice } from '../../components/common/SimpleModeNotice/SimpleModeNotice';
+import { Notice } from '../../components/common/Notice/Notice';
 import styles from './PanelThemeSettings.module.scss';
 
 export type ResolvedPanelThemeMode = 'dark' | 'light';
@@ -433,7 +433,7 @@ export function PanelThemeSettings({
               opacity slider, mode tabs, and the mode content. */}
           <div className={styles.backgroundContent} data-settings-aside>
             {backgroundHeldBy && (
-              <SimpleModeNotice message={label('panel.settings.backgroundHeldByFocus', '{mode} is showing a plain background right now. Your background comes back when it ends.').replace('{mode}', () => backgroundHeldBy)} />
+              <Notice tone="info" role="status">{label('panel.settings.backgroundHeldByFocus', '{mode} is showing a plain background right now. Your background comes back when it ends.').replace('{mode}', () => backgroundHeldBy)}</Notice>
             )}
             {showBackdropSelector && (
               <SettingRow

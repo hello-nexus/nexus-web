@@ -579,7 +579,7 @@ export function AiIntegrationSection({ serviceOnline, numberFormat = DEFAULT_NUM
         message={t('settings.ai.rotate.confirmMessage')}
         note={rotateError ? t('settings.ai.rotate.failed') : undefined}
         // eslint-disable-next-line i18next/no-literal-string -- enum tone value, not user-facing text
-        noteTone={rotateError ? 'danger' : 'default'}
+        noteTone={rotateError ? 'critical' : 'info'}
         confirmLabel={t('settings.ai.rotate.confirmButton')}
         confirmDisabled={mutating}
         destructive

@@ -4,6 +4,7 @@ import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import { useBenchmark } from '../../../hooks/useBenchmark';
 import { useBenchmarkHistory } from '../../../hooks/useBenchmarkHistory';
 import { Button } from '../../../components/common/Button/Button';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { BenchmarkProgress } from './BenchmarkProgress';
 import { BenchmarkResults } from './BenchmarkResults';
 import { LeaderboardView } from './LeaderboardView';
@@ -55,13 +56,18 @@ export function BenchmarkTouch({ immersiveGrid }: WidgetProps) {
 
     if (status === 'failed') {
       return (
-        <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          <p style={{ color: 'var(--bad)', fontSize: 'var(--type-small)' }}>
+        <div style={{ padding: '1rem' }}>
+          <Notice
+            tone="critical"
+            role="alert"
+            actions={(
+              <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
+                {t('benchmark.rerun')}
+              </Button>
+            )}
+          >
             {t('benchmark.failed')}: {error ?? t('benchmark.unknownError')}
-          </p>
-          <Button tone="ghost" icon={<RotateCcw size={14} />} onClick={reset}>
-            {t('benchmark.rerun')}
-          </Button>
+          </Notice>
         </div>
       );
     }

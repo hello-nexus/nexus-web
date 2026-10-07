@@ -4,6 +4,7 @@ import type { KeyboardState, SetLayerKeyBody } from '../../../api/keeb';
 import { Button } from '../../common/Button/Button';
 import { ChipGroup, type ChipOption } from '../../common/ChipGroup/ChipGroup';
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
+import { Notice } from '../../common/Notice/Notice';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Tabs, type TabDef } from '../../common/Tabs/Tabs';
 import { useTranslation } from '../../../lib/i18n';
@@ -181,9 +182,9 @@ export function KeebKeyAssignmentView({
       />
 
       {disabled && (
-        <p className={styles.hint} aria-live="polite">
-          {t('keeb.assign.hint')}
-        </p>
+        <div aria-live="polite">
+          <Notice tone="info">{t('keeb.assign.hint')}</Notice>
+        </div>
       )}
 
       {category === 'Keyboard' && (

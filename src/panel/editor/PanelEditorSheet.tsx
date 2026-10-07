@@ -5,6 +5,7 @@ import { sizeToSpan } from '../engine/grid';
 import { lookupApp, sizesForSurface } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
 import type { DashboardSectionNavigate } from '../engine/panelLayoutHelpers';
+import { Notice } from '../../components/common/Notice/Notice';
 import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
 import { SettingsSection, SettingsToggle } from '../widgets/common/SettingsRow/SettingsRow';
@@ -332,9 +333,9 @@ export function PanelEditorSheet({
         </header>
 
         {mode === 'settings' && saveForbidden && (
-          <p className={styles.editorForbiddenNotice} role="status" aria-live="polite">
-            {t('panel.settings.deck.saveForbidden')}
-          </p>
+          <div className={styles.editorForbiddenNotice}>
+            <Notice tone="info" role="status">{t('panel.settings.deck.saveForbidden')}</Notice>
+          </div>
         )}
 
         {mode === 'catalog' && (

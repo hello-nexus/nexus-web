@@ -82,12 +82,15 @@ export function PanelPresetToolbar({ deviceId }: PanelPresetToolbarProps) {
           onSave={async apps => {
             const result = await setPanelPresetApps(deviceId, appsTarget.id, apps);
             if (result.kind === 'conflict') {
-              return t('lighting.layoutPresets.appsTaken', {
-                app: result.conflict.appName,
-                preset: result.conflict.presetName,
-              });
+              return {
+                message: t('lighting.layoutPresets.appsTaken', {
+                  app: result.conflict.appName,
+                  preset: result.conflict.presetName,
+                }),
+                failed: false,
+              };
             }
-            if (result.kind === 'failed') return t('lighting.layoutPresets.appsSaveFailed');
+            if (result.kind === 'failed') return { message: t('lighting.layoutPresets.appsSaveFailed'), failed: true };
             setAppsTarget(null);
             reload();
             return null;

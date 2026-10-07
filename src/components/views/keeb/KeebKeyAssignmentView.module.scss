@@ -14,16 +14,6 @@
   gap: var(--space-md);
 }
 
-.hint {
-  margin: 0;
-  padding: 10px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  border: 1px dashed var(--border);
-  color: var(--text-dim);
-  font-size: var(--type-mini);
-}
-
 .grid {
   display: grid;
   // Titled surface boxes, two-up on a wide window and one-up when narrow.

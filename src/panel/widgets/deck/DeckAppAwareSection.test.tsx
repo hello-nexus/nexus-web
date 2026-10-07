@@ -16,7 +16,7 @@ let lastModalProps: {
   presetName: string;
   apps: PresetApp[];
   taken: Record<string, string>;
-  onSave: (apps: PresetApp[]) => Promise<string | null>;
+  onSave: (apps: PresetApp[]) => Promise<{ message: string; failed: boolean } | null>;
   onClose: () => void;
 } | null = null;
 vi.mock('../lighting/page/PresetAppsModal', () => ({
@@ -126,7 +126,7 @@ describe('DeckAppAwareSection - apps save', () => {
     fireEvent.click(screen.getByText('panel.settings.deck.appAware.appsButton'));
 
     const result = await lastModalProps!.onSave([]);
-    expect(result).toBe('lighting.layoutPresets.appsTaken');
+    expect(result).toEqual({ message: 'lighting.layoutPresets.appsTaken', failed: false });
   });
 
   it('closes the modal on a clean save without resetting the whole instance hook', async () => {
@@ -136,7 +136,7 @@ describe('DeckAppAwareSection - apps save', () => {
     render(<DeckAppAwareSection deck={deckResult({ presets, retry })} instanceGrid={{ cols: 5, rows: 3 }} />);
     fireEvent.click(screen.getByText('panel.settings.deck.appAware.appsButton'));
 
-    let result: string | null = null;
+    let result: { message: string; failed: boolean } | null = null;
     await act(async () => { result = await lastModalProps!.onSave([]); });
     expect(result).toBeNull();
     expect(screen.queryByTestId('preset-apps-modal')).toBeNull();

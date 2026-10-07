@@ -63,28 +63,8 @@
   color: var(--warn);
 }
 
-// Danger callout: red-bordered box with red text, well-spaced from the body.
-.noteDanger {
-  margin: 0.9rem 0 0;
-  padding: 0.6rem 0.8rem;
-  border: 1px solid var(--bad);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bad) 12%, transparent);
-  color: var(--bad);
-  font-size: var(--type-small);
-  font-weight: var(--weight-strong);
-  line-height: 1.4;
-}
-
 .note {
-  margin: 0.25rem 0 0;
-  padding: 0.55rem 0.7rem;
-  border-left: 2px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text-dim);
-  font-size: var(--type-small);
-  line-height: 1.4;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin-top: 0.5rem;
 }
 
 .actions {

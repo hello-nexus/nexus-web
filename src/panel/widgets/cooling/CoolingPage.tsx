@@ -54,7 +54,7 @@ import { AdvancedModeCta } from '../../../components/common/AdvancedModeCta/Adva
 import { ModeMenu, MODE_MENU_TAB_KEY } from '../../../components/common/ModeMenu/ModeMenu';
 import { usePageModeMenu } from '../../../components/common/ModeMenu/usePageModeMenu';
 import { DeviceCountSummary } from '../../../components/common/DeviceCountSummary/DeviceCountSummary';
-import { SimpleModeNotice } from '../../../components/common/SimpleModeNotice/SimpleModeNotice';
+import { Notice } from '../../../components/common/Notice/Notice';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
 import { FirmwareRecoveryBanner } from '../../../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
@@ -1415,7 +1415,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             ))}
           </div>
           {activeMode === 'custom' && (
-            <SimpleModeNotice message={t('cooling.simple.customActive')} />
+            <Notice tone="info" role="status">{t('cooling.simple.customActive')}</Notice>
           )}
           <div className={styles.simpleFooter}>
             <AdvancedModeCta

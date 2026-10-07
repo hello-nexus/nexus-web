@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MonitorSmartphone } from 'lucide-react';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
@@ -11,7 +12,6 @@ import {
   type LianLiWirelessState,
 } from '../../../api/lianli-wireless';
 import { useTranslation } from '../../../lib/i18n';
-import { LianLiAioScreenSection } from './LianLiAioScreenSection';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 // Bind/unbind converge on the service in ~2-6s; give up waiting for the
@@ -47,7 +47,7 @@ export function isFanDevice(devType: number): boolean {
   return devType === 0 || (devType >= 20 && devType <= 63) || devType === 126 || devType === 127;
 }
 
-function isHydroShiftDevice(devType: number): boolean {
+export function isHydroShiftDevice(devType: number): boolean {
   return devType === 10 || devType === 11;
 }
 
@@ -77,6 +77,8 @@ export function deviceTypeKey(devType: number, fanType: number):
 export interface LianLiWirelessFansTabProps {
   state: LianLiWirelessState | null;
   refresh: () => Promise<void>;
+  /** Opens the panel page of a device that has one, by MAC; undefined when it has none. */
+  panelOpener?: (mac: string) => (() => void) | undefined;
 }
 
 /**
@@ -84,7 +86,7 @@ export interface LianLiWirelessFansTabProps {
  * bind/unbind/identify. The shell owns the wireless state poll; this tab owns
  * the per-device interaction and pending state.
  */
-export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabProps) {
+export function LianLiWirelessFansTab({ state, refresh, panelOpener }: LianLiWirelessFansTabProps) {
   const { t } = useTranslation();
   const [pending, setPending] = useState<Record<string, BindAction>>({});
   const [identifying, setIdentifying] = useState<Record<string, boolean>>({});
@@ -207,14 +209,11 @@ export function LianLiWirelessFansTab({ state, refresh }: LianLiWirelessFansTabP
               onBind={handleBind}
               onUnbindRequest={setUnbindTarget}
               onIdentify={handleIdentify}
+              onOpenPanel={panelOpener?.(fan.mac)}
             />
           ))
           : <p className={styles.emptyNote} data-settings-aside="true">{t('devices.lianli-wireless.noDevicesPaired')}</p>}
       </SettingsSection>
-
-      {loaded && state.fans
-        .filter(fan => fan.boundToUs && isHydroShiftDevice(fan.devType))
-        .map(fan => <LianLiAioScreenSection key={fan.mac} mac={fan.mac} />)}
 
       <ConfirmModal
         open={unbindTarget != null}
@@ -235,6 +234,7 @@ function DeviceRow({
   onBind,
   onUnbindRequest,
   onIdentify,
+  onOpenPanel,
 }: {
   fan: LianLiWirelessFan;
   pending: BindAction | undefined;
@@ -242,6 +242,7 @@ function DeviceRow({
   onBind: (mac: string) => void;
   onUnbindRequest: (mac: string) => void;
   onIdentify: (mac: string) => void;
+  onOpenPanel?: () => void;
 }) {
   const { t } = useTranslation();
   const typeLabel = t(`devices.lianli-wireless.${deviceTypeKey(fan.devType, fan.fanType)}` as Parameters<typeof t>[0]);
@@ -267,6 +268,11 @@ function DeviceRow({
       description={details || undefined}
       state={bindState}
     >
+      {onOpenPanel && (
+        <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
+          {t('devices.lianli-wireless.managePanel')}
+        </Button>
+      )}
       {fan.boundToUs ? (
         <Button size="sm" tone="danger" disabled={busy} onClick={() => onUnbindRequest(fan.mac)}>
           {unbindLabel}

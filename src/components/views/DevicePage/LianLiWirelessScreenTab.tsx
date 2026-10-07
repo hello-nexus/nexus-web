@@ -29,6 +29,7 @@ import {
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
+import { LianLiAioScreenSection } from './LianLiAioScreenSection';
 import styles from './LianLiWirelessDevicePage.module.scss';
 
 const SCREENS_POLL_MS = 2000;
@@ -81,8 +82,15 @@ function contentTypeIcon(type: LianLiWirelessScreenContentType) {
  * fan screens. Fans are selected by toggling their tiles; every edit is
  * broadcast to all selected fans, so selecting several edits them as a group.
  * Polls its own `/screens` list independently of the shell's fan-state poll.
+ * Each bound HydroShift II adds its own screen section above the fan screens.
  */
-export function LianLiWirelessScreenTab() {
+export function LianLiWirelessScreenTab({ aioMacs = [], usbMacs = [], panelOpener }: {
+  aioMacs?: string[];
+  /** AIOs whose USB cable is connected, by MAC. */
+  usbMacs?: string[];
+  /** Opens an AIO's own panel page by MAC; undefined when it has none. */
+  panelOpener?: (mac: string) => (() => void) | undefined;
+}) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   const [screens, setScreens] = useState<LianLiWirelessScreen[] | null>(null);
@@ -312,9 +320,16 @@ export function LianLiWirelessScreenTab() {
     label: t(ct.labelKey),
   }));
 
+  // With only an AIO bound, the tab skips the fan screens' empty note and disabled controls.
+  const fanScreens = !(loaded && orderedScreens.length === 0 && aioMacs.length > 0);
+
   return (
     <>
-      <SettingsSection
+      {aioMacs.map(mac => (
+        <LianLiAioScreenSection key={mac} mac={mac} usbConnected={usbMacs.includes(mac)} onOpenPanel={panelOpener?.(mac)} />
+      ))}
+
+      {fanScreens && <SettingsSection
         title={t('devices.lianli-wireless.selectionSection')}
         boxClassName={styles.sectionBox}
       >
@@ -389,9 +404,9 @@ export function LianLiWirelessScreenTab() {
             </SettingRow>
           </>
         )}
-      </SettingsSection>
+      </SettingsSection>}
 
-      <SettingsSection
+      {fanScreens && <SettingsSection
         title={t('devices.lianli-wireless.displaySection')}
         boxClassName={styles.sectionBox}
       >
@@ -425,9 +440,9 @@ export function LianLiWirelessScreenTab() {
             }))}
           />
         </SettingRow>
-      </SettingsSection>
+      </SettingsSection>}
 
-      <SettingsSection
+      {fanScreens && <SettingsSection
         title={t('devices.lianli-wireless.contentSection')}
         boxClassName={styles.sectionBox}
       >
@@ -513,7 +528,7 @@ export function LianLiWirelessScreenTab() {
           onChange={handleFileChange}
           data-settings-aside="true"
         />
-      </SettingsSection>
+      </SettingsSection>}
 
       <ConfirmModal
         open={pendingDeleteMedia != null}

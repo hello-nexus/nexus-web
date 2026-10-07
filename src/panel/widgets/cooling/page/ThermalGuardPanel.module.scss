@@ -1,34 +1,8 @@
-@use '../../../../styles/text' as *;
-
 .panel {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   margin-bottom: 1rem;
-}
-
-.heal {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.7rem 0.9rem;
-  border: var(--border-width) solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-
-  @include text-body;
-}
-
-.healIcon {
-  flex: 0 0 auto;
-  margin-top: 0.1rem;
-  color: var(--accent);
-}
-
-.healBody {
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 .healList {
