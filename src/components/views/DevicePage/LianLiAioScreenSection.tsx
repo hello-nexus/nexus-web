@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { MonitorSmartphone } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { Toggle } from '../../common/Toggle/Toggle';
 import { Notice } from '../../common/Notice/Notice';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, SettingSelect, SettingSlider, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -73,6 +74,10 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
     ['unitColor', 'devices.lianli-wireless.aioScreen.unitColor'],
   ];
 
+  const widgetsLabel = t('devices.lianli-wireless.aioScreen.widgets');
+  // Nexus streams over the screen on USB, so the AIO's own theme and readings never reach the glass.
+  const showNative = !(usbConnected && screen.nexusWidgets);
+
   return (
     <SettingsSection
       title={t('devices.lianli-wireless.aioScreen.title')}
@@ -83,17 +88,27 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
           <Notice tone="info" role="status">{t('devices.lianli-wireless.aioScreen.widgetsNoUsb')}</Notice>
         </div>
       )}
-      {/* The entry points at the screen's own page, so it waits until that page can be opened. */}
-      {usbConnected && onOpenPanel && (
+      {usbConnected && (
         <SettingRow
-          label={t('devices.lianli-wireless.aioScreen.widgets')}
-          description={t('devices.lianli-wireless.aioScreen.widgetsUsb')}
+          label={widgetsLabel}
+          description={t(screen.nexusWidgets
+            ? 'devices.lianli-wireless.aioScreen.widgetsUsb'
+            : 'devices.lianli-wireless.aioScreen.widgetsOff')}
+          descriptionBelow
         >
-          <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
-            {t('devices.lianli-wireless.managePanel')}
-          </Button>
+          {screen.nexusWidgets && onOpenPanel && (
+            <Button size="sm" tone="neutral" icon={<MonitorSmartphone size={14} />} onClick={onOpenPanel}>
+              {t('devices.lianli-wireless.managePanel')}
+            </Button>
+          )}
+          <Toggle
+            checked={screen.nexusWidgets}
+            onChange={on => { void commit({ nexusWidgets: on }); }}
+            ariaLabel={widgetsLabel}
+          />
         </SettingRow>
       )}
+      {showNative && (<>
       <SettingSlider
         editable
         trackFill
@@ -162,6 +177,7 @@ export function LianLiAioScreenSection({ mac, usbConnected = false, onOpenPanel 
           />
         </div>
       ))}
+      </>)}
     </SettingsSection>
   );
 }

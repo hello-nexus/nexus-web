@@ -158,6 +158,8 @@ export interface LianLiAioScreen {
   showFanSpeed: boolean;
   /** Seconds each shown reading stays up before the screen moves to the next. */
   loopInterval: number;
+  /** Nexus widgets own the glass (USB stream); off shows the AIO's own theme and readings. */
+  nexusWidgets: boolean;
 }
 
 export type LianLiAioScreenPatch = Partial<Omit<LianLiAioScreen, 'themeCount'>>;

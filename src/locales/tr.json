@@ -700,6 +700,7 @@
   "devices.lianli-wireless.aioScreen.valueColor": "Değer rengi",
   "devices.lianli-wireless.aioScreen.widgets": "Nexus widget'ları",
   "devices.lianli-wireless.aioScreen.widgetsNoUsb": "Nexus widget'larının tam desteği için AIO'nun USB kablosunu bağlayın.",
+  "devices.lianli-wireless.aioScreen.widgetsOff": "Ekran kendi temasını ve değerlerini gösterir, bunları aşağıdan ayarlayın.",
   "devices.lianli-wireless.aioScreen.widgetsUsb": "Bu ekranın widget'ları, teması ve arka planı kendi sayfasında ayarlanır.",
   "devices.lianli-wireless.animationLabel": "Animasyon",
   "devices.lianli-wireless.animationPulse": "Nabız",

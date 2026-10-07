@@ -399,7 +399,7 @@ describe('LianLiWirelessDevicePage', () => {
   it('links a HydroShift II on USB to its screen page from the Devices row and the Screens tab', async () => {
     mockGetLianLiAioScreen.mockResolvedValue({
       brightness: 80, theme: 0, themeCount: 13, labelColor: '#FFFFFF', valueColor: '#FFFFFF', unitColor: '#FFFFFF',
-      showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false, loopInterval: 3,
+      showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false, loopInterval: 3, nexusWidgets: true,
     });
     mockFetchPanelDevices.mockResolvedValue({ devices: [{ id: 'REC1', streamed: true, capabilities: { family: 'lianli-hydroshift2' } }] });
     mockGetLianLiWirelessState.mockResolvedValue({

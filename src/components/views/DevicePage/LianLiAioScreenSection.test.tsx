@@ -32,6 +32,7 @@ const saved = {
   showGpuLoad: true,
   showFanSpeed: false,
   loopInterval: 3,
+  nexusWidgets: true,
 };
 
 beforeEach(() => {
@@ -147,12 +148,44 @@ describe('LianLiAioScreenSection', () => {
     expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
   });
 
-  it('holds the widgets entry back while an AIO on USB has no page to open yet', async () => {
+  it('shows the widgets row and switch on USB without a page to open, but no Manage panel', async () => {
     await act(async () => {
       render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected />);
     });
-    expect(screen.queryByText('devices.lianli-wireless.aioScreen.widgets')).not.toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.widgets')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.widgets' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('the switch saves nexusWidgets off', async () => {
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected />);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.widgets' }));
+    });
+    expect(mockSetLianLiAioScreen).toHaveBeenCalledWith('AABBCCDDEEFF', { nexusWidgets: false });
+  });
+
+  it('hides the native screen controls while Nexus widgets own the glass on USB', async () => {
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected />);
+    });
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.aioScreen.theme' })).not.toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.aioScreen.brightness')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.aioScreen.cpuTemp' })).not.toBeInTheDocument();
+  });
+
+  it('with widgets off on USB it shows the native controls, the off description and no Manage panel', async () => {
+    mockGetLianLiAioScreen.mockResolvedValue({ ...saved, nexusWidgets: false });
+    await act(async () => {
+      render(<LianLiAioScreenSection mac="AABBCCDDEEFF" usbConnected onOpenPanel={vi.fn()} />);
+    });
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.aioScreen.theme' })).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.brightness')).toBeInTheDocument();
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.widgetsOff')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.lianli-wireless.managePanel' })).not.toBeInTheDocument();
   });
 
   it('opens the screen page from the widgets entry when the AIO is on USB', async () => {
