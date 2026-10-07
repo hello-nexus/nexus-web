@@ -498,9 +498,16 @@
   gap: 0.75rem;
 }
 
+// Surface-specific blocks stack as siblings in a non-flex tab body; space
+// them like the sections inside one block.
+.settingsContent + .settingsContent {
+  margin-top: 0.75rem;
+}
+
 // The danger-zone block stacks below whichever surface-specific settings
-// block rendered; separate it clearly from that box.
-.settingsContentDanger {
+// block rendered; separate it clearly from that box. Must stay after the
+// sibling rule above, which has the same specificity.
+.settingsContent.settingsContentDanger {
   margin-top: 1.25rem;
 }
 
