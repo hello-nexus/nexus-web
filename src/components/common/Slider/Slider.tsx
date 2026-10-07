@@ -213,20 +213,29 @@ export function Slider({
   // A drag ends wherever the pointer is let go, which may be off the track, so the
   // window hears the release. While a drag is armed this is the only pointer path
   // that commits; the input's own release handler stands down.
-  const armRelease = () => {
+  const armRelease = (pointerId: number | undefined) => {
     releaseCleanupRef.current?.();
     const cleanup = () => {
       window.removeEventListener('pointerup', onRelease);
       window.removeEventListener('pointercancel', onRelease);
       releaseCleanupRef.current = null;
     };
-    const onRelease = () => {
+    const onRelease = (e: PointerEvent) => {
+      // Only the pointer that pressed ends the gesture.
+      if (pointerId != null && e.pointerId != null && e.pointerId !== pointerId) return;
       cleanup();
       handleEnd();
     };
     window.addEventListener('pointerup', onRelease);
     window.addEventListener('pointercancel', onRelease);
     releaseCleanupRef.current = cleanup;
+  };
+
+  const endArmedGesture = () => {
+    const cleanup = releaseCleanupRef.current;
+    if (!cleanup) return;
+    cleanup();
+    handleEnd();
   };
 
   const range = (
@@ -238,8 +247,13 @@ export function Slider({
       onChange={e => handleChange(Number(e.target.value), false)}
       onPointerDown={e => {
         onPointerDown?.(e);
-        armRelease();
+        // A secondary button does not drag the thumb, so it arms nothing.
+        if (e.button > 0) return;
+        armRelease(e.pointerId);
       }}
+      // A press whose release never arrives (capture lost, focus moved) ends the gesture here.
+      onLostPointerCapture={endArmedGesture}
+      onBlur={endArmedGesture}
       onPointerUp={() => { if (!releaseCleanupRef.current) handleEnd(); }}
       onPointerCancel={e => {
         onPointerCancel?.(e);

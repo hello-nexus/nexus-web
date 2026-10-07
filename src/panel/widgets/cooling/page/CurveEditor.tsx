@@ -835,6 +835,15 @@ export const CurveCard = memo(function CurveCard({
     curve.type === 'auto' ? autoBlock :
     curve.type === 'sync' ? syncBlock :
     mixBlock;
+  const options = (
+    <div className={styles.heroOptions}>
+      <span className={styles.curveFieldHeader}>{t('cooling.curve.type.label')}</span>
+      {typeChips}
+      {sourceRow}
+      {editControls}
+      {footer}
+    </div>
+  );
   return (
     <div className={styles.curveCard}>
       {/* Graph always on top. Live duty/temp read out on the axes. */}
@@ -851,22 +860,8 @@ export const CurveCard = memo(function CurveCard({
       {/* Curve selector (with its own header) sits under the graph. */}
       {children}
       {/* Then the selected curve's options, stacked. */}
-      {/* A disabled fieldset disables every native control inside it (chips, select,
-          buttons) without `inert`, which the Chromium floor lacks. The sliders and
-          editable values are disabled through their own prop. A wrapper only while
-          read-only: fieldsets cannot be flex containers on old Chromium. */}
-      {(() => {
-        const options = (
-          <div className={styles.heroOptions}>
-            <span className={styles.curveFieldHeader}>{t('cooling.curve.type.label')}</span>
-            {typeChips}
-            {sourceRow}
-            {editControls}
-            {footer}
-          </div>
-        );
-        return readOnly ? <fieldset disabled className={styles.readOnlyFieldset}>{options}</fieldset> : options;
-      })()}
+      {/* Wrapped only while read-only: a fieldset cannot be a flex container on old Chromium. */}
+      {readOnly ? <fieldset disabled className={styles.readOnlyFieldset}>{options}</fieldset> : options}
     </div>
   );
 });

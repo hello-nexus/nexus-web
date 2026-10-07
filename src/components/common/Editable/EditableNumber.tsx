@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useEditable } from './useEditable';
 import styles from './Editable.module.scss';
 
@@ -42,8 +43,14 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
     format: v => String(v),
   });
 
+  // Going read-only mid-edit drops the draft, so no stale input returns on re-enable.
+  const { editing, cancel } = editable;
+  useEffect(() => {
+    if (disabled && editing) cancel();
+  }, [disabled, editing, cancel]);
+
   if (disabled) {
-    return <span className={`${styles.display} ${className ?? ''}`}>{fmt(value)}</span>;
+    return <span className={`${styles.displayStatic} ${className ?? ''}`} aria-label={ariaLabel}>{fmt(value)}</span>;
   }
 
   if (editable.editing) {
