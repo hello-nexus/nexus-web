@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Thermometer } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { Slider } from '../../common/Slider/Slider';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
 import { useThermalGuard } from '../../../hooks/useThermalGuard';
@@ -26,12 +27,14 @@ interface LimitRowProps {
   guard: GuardResponse;
   /** The limit the user asked for that the service has not confirmed yet. */
   pendingLimit: number | 'reset' | null;
+  /** The guard is off: the row stays visible but greyed out, like a dependent setting. */
+  disabled: boolean;
   error: string | null;
   onCommit: (c: number) => void;
   onReset: () => void;
 }
 
-function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowProps) {
+function LimitRow({ guard, pendingLimit, disabled, error, onCommit, onReset }: LimitRowProps) {
   const { t } = useTranslation();
   // The value while the thumb is being dragged or keyed, before it is committed.
   const [draft, setDraft] = useState<number | null>(null);
@@ -46,6 +49,7 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
   const shown = pendingLimit === 'reset' ? detected : pendingLimit ?? serverLimit;
   const shownRef = useRef(shown);
   shownRef.current = shown;
+  const throttleText = t('cooling.guard.limit.throttleMark', { temp: Math.round(detected) });
   const barMin = Math.min(LIMIT_MIN_C, Math.floor(detected));
   const barMax = Math.max(LIMIT_MAX_C, Math.ceil(detected));
 
@@ -102,16 +106,18 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
       icon={<Thermometer />}
       iconLeading="subtle"
       anchorId="set-thermal-guard-limit"
+      disabled={disabled}
     >
       <div className={styles.limitControl}>
-        {/* Never disabled while a write is pending: that would drop keyboard focus mid-adjustment. */}
+        {/* Disabled only while the guard is off, never for a pending write: that would drop keyboard focus mid-adjustment. */}
         <Slider
           orientation={STACKED}
           editable
           trackFill
           min={barMin}
           max={barMax}
-          marks={[{ value: detected, label: t('cooling.guard.limit.throttleMark', { temp: Math.round(detected) }) }]}
+          marker={detected}
+          markerLabel={<InfoTooltip message={throttleText} ariaLabel={throttleText} side="top" />}
           step={1}
           value={draft ?? shown}
           formatValue={v => t('cooling.curve.tempBadge', { temp: v })}
@@ -121,10 +127,11 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
           }}
           onPointerDown={() => { immediateRef.current = true; }}
           onCommit={commit}
+          disabled={disabled}
           ariaLabel={t('cooling.guard.limit.label')}
         />
         {guard.limitOverrideC != null && (
-          <Button type="button" size="sm" onClick={reset}>
+          <Button type="button" size="sm" disabled={disabled} onClick={reset}>
             {t('cooling.guard.limit.reset')}
           </Button>
         )}
@@ -171,7 +178,7 @@ export function ThermalGuardSettingView({
         onChange={onToggle}
       />
       {guard.detectedLimitSource && (
-        <LimitRow guard={guard} pendingLimit={pendingLimit} error={limitError} onCommit={onSetLimit} onReset={onClearLimit} />
+        <LimitRow guard={guard} pendingLimit={pendingLimit} disabled={!guardEnabled(guard)} error={limitError} onCommit={onSetLimit} onReset={onClearLimit} />
       )}
     </>
   );

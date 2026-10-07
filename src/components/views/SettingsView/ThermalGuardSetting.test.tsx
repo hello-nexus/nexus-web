@@ -127,7 +127,8 @@ describe('ThermalGuardSettingView', () => {
     await vi.waitFor(() => { expect(h.onSetLimit).toHaveBeenCalledExactlyOnceWith(98); });
   });
 
-  const notchLeft = () => (screen.getByText('cooling.guard.limit.throttleMark').parentElement as HTMLElement).style.left;
+  // The throttle point is the Slider's marker: a caret above the track at the detected value, labelled by an info tooltip.
+  const markerLeft = () => (screen.getByRole('button', { name: 'cooling.guard.limit.throttleMark' }).closest('[style*="left"]') as HTMLElement).style.left;
 
   it('bounds the bar at 90 to 110 for a 95 degree part', () => {
     view(base);
@@ -141,14 +142,42 @@ describe('ThermalGuardSettingView', () => {
     expect([slider.min, slider.max, slider.value]).toEqual(['89', '110', '89']);
   });
 
-  it('draws the throttle-point notch at the detected value', () => {
+  it('marks the throttle point at the detected value', () => {
     view(base);
-    expect(notchLeft()).toBe('25%');
+    expect(markerLeft()).toBe('25%');
   });
 
-  it('keeps the notch at the detected value while an override is set', () => {
+  it('keeps the marker at the detected value while an override is set', () => {
     view({ ...base, limitC: 102, limitSource: 'user', limitOverrideC: 102 });
-    expect(notchLeft()).toBe('25%');
+    expect(markerLeft()).toBe('25%');
     expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('102');
+  });
+
+  describe('with the guard off', () => {
+    const overridden = { ...base, state: 'off' as const, enabled: false, limitC: undefined, limitSource: undefined, limitOverrideC: 102 };
+
+    it('greys out the slider, its value and Reset, but keeps the detected line and marker', () => {
+      view(overridden);
+      expect(screen.getByRole('slider')).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).toBeDisabled();
+      // The value is plain text, not click-to-edit.
+      expect(screen.queryByRole('button', { name: /^\d+ °C$/ })).toBeNull();
+      expect(screen.getByText(/cooling\.guard\.limit\.detectedSpec/)).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'cooling.guard.limit.throttleMark' })).toBeTruthy();
+      expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('102');
+    });
+
+    it('enables the row again, with the stored value, when the guard is on', () => {
+      view({ ...overridden, state: 'normal', enabled: true });
+      expect(screen.getByRole('slider')).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).not.toBeDisabled();
+      expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('102');
+    });
+
+    it('writes nothing when it re-enables', () => {
+      const h = view({ ...overridden, state: 'normal', enabled: true });
+      expect(h.onSetLimit).not.toHaveBeenCalled();
+      expect(h.onClearLimit).not.toHaveBeenCalled();
+    });
   });
 });

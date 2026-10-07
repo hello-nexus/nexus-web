@@ -203,15 +203,6 @@ function PreviewSliderRange() {
     formatValue={x => `${x} DPI`} onChange={setV} />;
 }
 
-function PreviewSliderMarks() {
-  const [v, setV] = useState(100);
-  return (
-    <Slider orientation="stacked" editable trackFill label="Limit" value={v} min={90} max={110}
-      marks={[{ value: 95, label: '95 °C throttle point' }]}
-      formatValue={x => `${x} °C`} onChange={setV} />
-  );
-}
-
 function PreviewEditableText() {
   const [name, setName] = useState('Click to edit');
   return <EditableText value={name} onCommit={setName} />;
@@ -1461,7 +1452,7 @@ function PreviewThermalGuardSetting() {
     { guard: { ...base, limitC: 89, detectedLimitC: 89 } },
     { guard: { ...base, detectedLimitSource: 'default' }, error: "Couldn't change the CPU temperature limit." },
     { guard: { ...base, state: 'inactive', guardTempC: null } },
-    { guard: { ...base, state: 'off' } },
+    { guard: { ...base, state: 'off', enabled: false, limitC: undefined, limitSource: undefined, limitOverrideC: 102 } },
   ];
   return (
     <div className={styles.previewStack} style={{ width: 560 }}>
@@ -2343,11 +2334,6 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Stacked slider with min and max printed under the track. Used by any range-bound control where the user needs to see the bounds.', Preview: PreviewSliderRange,
   },
   {
-    name: 'Slider (marks)', category: 'inputs',
-    filePath: 'src/components/common/Slider/Slider.tsx',
-    description: 'Stacked slider with a fixed notch on the track at a given value and a caption beneath it (the marks prop, a list of value and optional label). The notch never intercepts the pointer, so dragging and the editable value work through it. Used for a hardware limit the user can read against while adjusting.', Preview: PreviewSliderMarks,
-  },
-  {
     name: 'RangeSlider (temperature)', category: 'inputs',
     filePath: 'src/components/common/Slider/RangeSlider.tsx',
     description: 'Dual-knob slider. Two thumbs with an accent band painted between them. Used in the cooling fan-curve linear band for temperature.', Preview: PreviewRangeSliderTemp,
@@ -2629,7 +2615,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ThermalGuardSetting', category: 'cards',
     filePath: 'src/components/views/SettingsView/ThermalGuardSetting.tsx',
-    description: 'Settings > Cooling rows for the CPU thermal guard: the on/off switch and the temperature limit. The limit is always a stacked slider (90 to 110, widened to include a lower detected value such as 89; pointer release commits at once, keyboard steps after a short wait) preset to the detected value, with a notch and caption at the CPU throttle point, the detected value and its source (read from the CPU, CPU spec or default), a Reset to detected action while an override is set, and a note about shutdown above about 105 degrees. Shown for hardware, spec, override set, the 89 degree bar, error, inactive and off.',
+    description: 'Settings > Cooling rows for the CPU thermal guard: the on/off switch and the temperature limit. The limit is always a stacked slider (90 to 110, widened to include a lower detected value such as 89; pointer release commits at once, keyboard steps after a short wait) preset to the detected value, with the Slider marker at the CPU throttle point labelled by an info tooltip, the detected value and its source (read from the CPU, CPU spec or default), a Reset to detected action while an override is set, and a note about shutdown above about 105 degrees. Shown for hardware, spec, override set, the 89 degree bar, error, inactive and off (the limit row greys out, keeping the detected line and marker).',
     Preview: PreviewThermalGuardSetting,
   },
   {

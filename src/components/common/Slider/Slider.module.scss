@@ -135,51 +135,6 @@
   line-height: 0;
 }
 
-/* Fixed notch on the track with a caption below. Anchored on the track's
-   centre line like the zero tick; the track reserves a caption row only when
-   some mark has a label. pointer-events: none keeps the range input draggable
-   under it. */
-.trackMarked {
-  margin-bottom: 1.1rem;
-}
-
-.mark {
-  position: absolute;
-  top: 50%;
-  pointer-events: none;
-}
-
-.markTick {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 2px;
-  height: 14px;
-  background: var(--text);
-  transform: translate(-50%, -50%);
-  border-radius: var(--radius-sm);
-  opacity: 0.9;
-}
-
-.markLabel {
-  position: absolute;
-  top: 12px;
-  left: 0;
-  transform: translateX(-50%);
-  @include text-caption;
-  color: var(--text-dim);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.markLabelStart {
-  transform: none;
-}
-
-.markLabelEnd {
-  transform: translateX(-100%);
-}
-
 .rangeLabels {
   display: flex;
   justify-content: space-between;
