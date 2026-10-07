@@ -826,7 +826,7 @@ function PreviewSupportedBrands() {
   const [brand, setBrand] = useState('');
   return (
     <div>
-      <SupportedBrands onSelect={setBrand} />
+      <SupportedBrands onSelect={setBrand} query={brand} />
       <p>{brand}</p>
     </div>
   );
@@ -2638,7 +2638,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'SupportedBrands', category: 'inputs',
     filePath: 'src/components/common/SupportedBrands/SupportedBrands.tsx',
-    description: 'Grid of brand logo buttons above the Supported Devices search; a click hands the brand name to onSelect, which the modal uses as the search query. Also rendered to static HTML on the /devices page, where the page script wires clicks through data-brand.', Preview: PreviewSupportedBrands,
+    description: 'Brand logo grid for the marketing site\'s /devices page, rendered there to static HTML; the page script fills the search from data-brand and sets aria-current on the brand the search leads with. Not shown in the in-app Supported Devices modal.', Preview: PreviewSupportedBrands,
   },
   {
     name: 'SupportedDevicesPager', category: 'navigation',

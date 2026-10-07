@@ -1,4 +1,5 @@
 @use '../../../styles/text' as *;
+@use '../../../styles/chips' as *;
 
 // Zebra alternation lives on dedicated custom properties (not the shared
 // --text/--surface tokens) so a host page that doesn't load the app's token
@@ -71,8 +72,10 @@
 
 .brand {
   @include text-label;
-  font-family: var(--font-mono);
   color: var(--text-dim);
+}
+
+.brandInner {
   display: flex;
   align-items: center;
   gap: 0.35rem;
@@ -92,7 +95,6 @@
 
 .type {
   @include text-label;
-  font-family: var(--font-mono);
   color: var(--text-dim);
 }
 
@@ -101,11 +103,12 @@
   color: var(--text-dim);
 }
 
-.caps {
-  @include text-caption;
-  font-family: var(--font-mono);
-  color: var(--text-dim);
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.cap {
+  @include chip-base;
+  @include chip-status-muted;
+
+  // Margin, not flex gap: the Q60 panel's WebView predates flex gap.
+  & + & {
+    margin-left: 0.3rem;
+  }
 }

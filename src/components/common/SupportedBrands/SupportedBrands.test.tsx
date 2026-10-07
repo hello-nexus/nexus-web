@@ -22,6 +22,26 @@ describe('SupportedBrands', () => {
     }
   });
 
+  it('ends the grid with the "and many more" text, not another button', () => {
+    const { container } = render(<SupportedBrands />);
+
+    const last = container.firstElementChild!.lastElementChild!;
+    expect(last.tagName).toBe('SPAN');
+    expect(last.textContent).toBe('supported.moreBrands');
+  });
+
+  it('highlights only the brand the query leads with', () => {
+    render(<SupportedBrands query="  cooler master ml240 " />);
+
+    expect(screen.getByRole('button', { name: 'Cooler Master' }).getAttribute('aria-current')).toBe('true');
+    expect(screen.getAllByRole('button').filter(b => b.hasAttribute('aria-current'))).toHaveLength(1);
+  });
+
+  it('does not highlight a partial or later brand name', () => {
+    render(<SupportedBrands query="kraken nzxt" />);
+    expect(screen.getAllByRole('button').filter(b => b.hasAttribute('aria-current'))).toHaveLength(0);
+  });
+
   it('renders to static HTML with data-brand for host pages to wire', () => {
     const html = renderToString(<SupportedBrands />);
     expect(html).toContain('data-brand="Lian Li"');

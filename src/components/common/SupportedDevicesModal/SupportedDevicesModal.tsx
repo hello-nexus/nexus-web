@@ -3,7 +3,6 @@ import { useTranslation } from '../../../lib/i18n';
 import { useSupportedDevices, type SupportedSource } from '../../../hooks/useSupportedDevices';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { SupportedDevicesList } from '../SupportedDevicesList/SupportedDevicesList';
-import { SupportedBrands } from '../SupportedBrands/SupportedBrands';
 import { SupportedDevicesPager, SUPPORTED_DEVICES_PAGE_SIZE as PAGE_SIZE } from '../SupportedDevicesPager/SupportedDevicesPager';
 import { SearchInput } from '../SearchInput/SearchInput';
 import styles from './SupportedDevicesModal.module.scss';
@@ -63,7 +62,6 @@ export function SupportedDevicesModal({
   return (
     <DeviceModal open={open} onClose={handleClose} fullscreen title={title ?? t('supported.title')}>
       <div className={styles.content}>
-        <SupportedBrands className={styles.brands} onSelect={brand => { setQuery(brand); setPage(0); }} />
         <div className={styles.searchRow}>
           <SearchInput
             value={query}

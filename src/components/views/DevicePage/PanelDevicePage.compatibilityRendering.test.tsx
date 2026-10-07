@@ -98,7 +98,7 @@ const DEVICE: PanelDevice = {
 
 function serveCompat(value: { enabled: boolean; supported: boolean } | null) {
   fetchServiceMock.mockImplementation((path: string) =>
-    Promise.resolve(path === '/y70/compatibility-rendering' ? value : null));
+    Promise.resolve(path === '/y70/compatibility-rendering' || path === '/y70/keep-cursor-off' ? value : null));
 }
 
 beforeEach(() => {
@@ -149,6 +149,20 @@ describe('PanelDevicePage Y70 compatibility mode', () => {
     fireEvent.click(toggle);
 
     await waitFor(() => expect(postServiceMock).toHaveBeenCalledWith('/y70/compatibility-rendering', { enabled: true }));
+    expect(toggle).toBeChecked();
+  });
+
+  it('reads the keep-the-mouse-off value and posts the flip', async () => {
+    serveCompat({ enabled: false, supported: true });
+    render(<PanelDevicePage device={DEVICE} />);
+    await openSettingsTab();
+
+    const toggle = await screen.findByRole('switch', { name: 'devices.y70.keepCursorOff' });
+    expect(toggle).not.toBeChecked();
+
+    fireEvent.click(toggle);
+
+    await waitFor(() => expect(postServiceMock).toHaveBeenCalledWith('/y70/keep-cursor-off', { enabled: true }));
     expect(toggle).toBeChecked();
   });
 });

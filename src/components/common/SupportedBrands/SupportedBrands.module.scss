@@ -1,3 +1,5 @@
+@use '../../../styles/text' as *;
+
 // One fixed column count, scaling with the width. Grid, not flex: flex
 // gap needs Chromium 84 and the Q60 WebView is 83.
 .brands {
@@ -19,7 +21,9 @@
   color: var(--text-dim);
   cursor: pointer;
 
-  &:hover {
+  // aria-current: the search leads with this brand; the site's page script sets it too.
+  &:hover,
+  &[aria-current='true'] {
     background: var(--accent-soft);
     border-color: var(--accent);
     color: var(--accent-glow);
@@ -39,4 +43,17 @@
     height: 50%;
     fill: currentColor;
   }
+}
+
+// Fills the grid slot after the last brand as plain text, not a box. Its
+// size tracks the viewport like the cards do, so a narrow grid never wraps
+// it taller than the logo row.
+.more {
+  @include text-body;
+  font-size: min(var(--type-body), 1vw);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-dim);
 }
