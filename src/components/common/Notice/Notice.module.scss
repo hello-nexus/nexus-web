@@ -1,10 +1,10 @@
 @use '../../../styles/text' as *;
 
-.banner {
+.notice {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem 0.9rem;
+  align-items: center;
   margin: 0;
   padding: 0.7rem 0.9rem;
   border: var(--border-width) solid var(--warn);
@@ -15,16 +15,38 @@
   @include text-body;
 }
 
+.warning {
+  border-color: var(--warn);
+
+  .icon {
+    color: var(--warn);
+  }
+}
+
+.critical {
+  border-color: var(--bad);
+
+  .icon {
+    color: var(--bad);
+  }
+}
+
 .icon {
   flex: 0 0 auto;
-  color: var(--warn);
 }
 
-.message {
-  flex: 1 1 18rem;
+.body {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.action {
+.actions {
   flex: 0 0 auto;
+  color: var(--text-dim);
+}
+
+.secondary {
   color: var(--text-dim);
 }

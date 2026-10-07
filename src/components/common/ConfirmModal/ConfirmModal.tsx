@@ -11,6 +11,10 @@ interface ConfirmModalProps {
   message: string;
   /** Optional bulleted list rendered below the message (e.g. items affected). */
   bullets?: string[];
+  /** Modal width: wide fits a line of prose or a list of sentences; default suits a short question. */
+  size?: 'default' | 'wide';
+  /** 'warning' colours the bullet markers in the warning tone, for a list of hazards. */
+  bulletTone?: 'default' | 'warning';
   /** Optional secondary hint rendered in a dimmed block below the main message. */
   note?: string;
   /** 'danger' renders the note as a red-bordered callout with red text. */
@@ -51,6 +55,8 @@ export function ConfirmModal({
   title,
   message,
   bullets,
+  size = 'default',
+  bulletTone = 'default',
   note,
   noteTone = 'default',
   children,
@@ -77,13 +83,13 @@ export function ConfirmModal({
 
   return (
     <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={confirmDisabled || hideConfirm ? undefined : onConfirm}
-      className={styles.modal} ariaLabel={title}>
+      className={size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
       <h2 className={styles.title}>{title}</h2>
       <div className={styles.body}>
         {paragraphs.map((p, i) => <p key={i} className={styles.text}>{p}</p>)}
         {bullets && bullets.length > 0 && (
-          <ul className={styles.bullets}>
-            {bullets.map((b, i) => <li key={i}>{b}</li>)}
+          <ul className={bulletTone === 'warning' ? `${styles.bullets} ${styles.bulletsWarning}` : styles.bullets}>
+            {bullets.map((b, i) => <li key={i}>{bulletTone === 'warning' ? <span>{b}</span> : b}</li>)}
           </ul>
         )}
         {note && <p className={noteTone === 'danger' ? styles.noteDanger : styles.note}>{note}</p>}

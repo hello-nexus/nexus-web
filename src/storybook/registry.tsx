@@ -69,6 +69,9 @@ import type { GuardResponse } from '../api/cooling';
 import { FlashProgress } from '../components/common/FlashProgress/FlashProgress';
 import type { FirmwareStatusItem } from '../hooks/useFirmwareStatus';
 import { Button } from '../components/common/Button/Button';
+import { Notice, NoticeSecondary } from '../components/common/Notice/Notice';
+import { Checkbox } from '../components/common/Checkbox/Checkbox';
+import { InlineError } from '../components/common/InlineError/InlineError';
 import { EndTaskButton } from '../components/common/EndTaskButton/EndTaskButton';
 import { ConflictAllClear } from '../components/common/ConflictAllClear/ConflictAllClear';
 import { ConflictAppCard } from '../components/common/ConflictAppCard/ConflictAppCard';
@@ -592,6 +595,58 @@ function PreviewChipGroupMulti() {
       return next;
     })}
   />;
+}
+
+function PreviewNotice() {
+  return (
+    <div className={styles.previewStack} style={{ width: 560 }}>
+      <Notice tone="warning" role="status" actions={<Button size="sm">Action</Button>}>
+        <span>Warning: something may need attention.</span>
+        <NoticeSecondary>A dimmer line gives the cause.</NoticeSecondary>
+      </Notice>
+      <Notice tone="critical" role="alert">
+        <span>Critical: the fans were handed back to the BIOS.</span>
+      </Notice>
+    </div>
+  );
+}
+
+function PreviewCheckbox() {
+  const [on, setOn] = useState(false);
+  return (
+    <div className={styles.previewStack}>
+      <Checkbox checked={on} onChange={setOn} label="Don't warn me again" />
+      <Checkbox checked disabled onChange={() => {}} label="Disabled and ticked" />
+    </div>
+  );
+}
+
+function PreviewInlineError() {
+  return <InlineError>Couldn't change the setting.</InlineError>;
+}
+
+function PreviewWideConfirmModal() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className={styles.previewBtn} onClick={() => setOpen(true)}>
+        Open wide dialog with warning bullets
+      </button>
+      <ConfirmModal
+        open={open}
+        destructive={false}
+        size="wide"
+        bulletTone="warning"
+        title="Cooling may not protect your CPU"
+        message="These channels may not cool the CPU enough:"
+        bullets={['Fan #1 follows GPU Fan 1, which can stop at idle', 'Fan #4 is set to a low fixed speed']}
+        onConfirm={() => setOpen(false)}
+        onCancel={() => setOpen(false)}
+      >
+        <Checkbox checked={false} onChange={() => {}} label="Don't warn me again" />
+      </ConfirmModal>
+    </>
+  );
 }
 
 function PreviewConfirmModal() {
@@ -2691,6 +2746,26 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Prompt held in front of a Nexus Control "on" while the device\'s competing app runs (driven by useConflictGuardedEnable). Conflict-popup chrome: DeviceModal with the warn icon, an intro, a plain ConflictAppCard whose End task is the yes, and Cancel. A kill that sticks, or the app exiting on its own after the prompt saw it live, turns control on and closes.',
     Preview: PreviewNexusControlConflictModal,
     notes: 'Preview End task posts the stub id to /conflicts/kill, which the service rejects as unknown, so the spinner resets.',
+  },
+  {
+    name: 'Notice', category: 'cards',
+    filePath: 'src/components/common/Notice/Notice.tsx',
+    description: 'The one inline warning block: a toned border and triangle on a surface with primary text, an optional dimmer line (NoticeSecondary) and an actions slot on the right. warning uses the warn colour for border and icon, critical uses the bad colour for both. Use role alert for something that interrupts and status for something that merely appears. FirmwareRecoveryBanner, the thermal guard banners and errors, and the Diagnostics trip notice are built on it.', Preview: PreviewNotice,
+  },
+  {
+    name: 'Checkbox', category: 'inputs',
+    filePath: 'src/components/common/Checkbox/Checkbox.tsx',
+    description: 'A labelled native checkbox for dialogs and forms (Toggle is for a setting that applies at once). The label is the accessible name; it dims when disabled.', Preview: PreviewCheckbox,
+  },
+  {
+    name: 'InlineError', category: 'inputs',
+    filePath: 'src/components/common/InlineError/InlineError.tsx',
+    description: 'A short failure message in the error colour (role alert), for beside or under a control. A boxed warning belongs in Notice.', Preview: PreviewInlineError,
+  },
+  {
+    name: 'ConfirmModal (wide, warning bullets)', category: 'modals',
+    filePath: 'src/components/common/ConfirmModal/ConfirmModal.tsx',
+    description: 'size wide widens the modal for lines of prose, and bulletTone warning colours the list markers in the warning tone. Used by the save-time cooling lint dialog, which also carries a Checkbox as children.', Preview: PreviewWideConfirmModal,
   },
   {
     name: 'ConfirmModal', category: 'modals',

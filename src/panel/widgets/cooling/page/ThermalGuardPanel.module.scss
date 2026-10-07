@@ -7,10 +7,9 @@
   margin-bottom: 1rem;
 }
 
-.banner,
 .heal {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.75rem;
   padding: 0.7rem 0.9rem;
   border: var(--border-width) solid var(--border);
@@ -21,23 +20,6 @@
   @include text-body;
 }
 
-.banner {
-  border-color: var(--warn);
-
-  &[data-state='tripped'],
-  &[data-state='escalated'] {
-    border-color: var(--bad);
-  }
-}
-
-.bannerIcon {
-  flex: 0 0 auto;
-  color: var(--warn);
-}
-
-.heal {
-  align-items: flex-start;
-}
 
 .healIcon {
   flex: 0 0 auto;
@@ -64,13 +46,7 @@
   justify-content: flex-end;
 }
 
-// The "don't warn me again" tick in the save-time lint dialog.
+// Spacing above the "don't warn me again" checkbox in the save-time lint dialog.
 .dontAsk {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
   margin-top: 0.75rem;
-  cursor: pointer;
-
-  @include text-body;
 }

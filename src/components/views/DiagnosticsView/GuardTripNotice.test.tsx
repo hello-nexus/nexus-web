@@ -48,15 +48,26 @@ describe('GuardTripNoticeView', () => {
     expect(screen.getByText('diagnostics.cooling.guardTrip.causeLoss')).toBeTruthy();
   });
 
-  it('an active trip shows the active line and an Open Cooling link, with no Dismiss', () => {
+  it('an active trip shows the active line and an Open Cooling button, with no Dismiss', () => {
     const onOpen = vi.fn();
     render(<GuardTripNoticeView nowMs={NOW} guard={guard({ endedAtUtcMs: null })} error={null} onDismiss={() => {}} onOpenCooling={onOpen} />);
     expect(screen.getByText('diagnostics.cooling.guardTrip.active')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'diagnostics.cooling.guardTrip.dismiss' })).toBeNull();
-    const link = screen.getByRole('link', { name: 'diagnostics.cooling.guardTrip.openCooling' });
-    expect(link.getAttribute('href')).toBe('/system/cooling');
-    fireEvent.click(link);
+    expect(screen.queryByRole('link')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'diagnostics.cooling.guardTrip.openCooling' }));
     expect(onOpen).toHaveBeenCalled();
+  });
+
+  it('shows no Open Cooling control when the page cannot navigate', () => {
+    render(<GuardTripNoticeView nowMs={NOW} guard={guard({ endedAtUtcMs: null })} error={null} onDismiss={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'diagnostics.cooling.guardTrip.openCooling' })).toBeNull();
+  });
+
+  it('uses the warning tone for both an active and an ended trip', () => {
+    const { rerender } = render(<GuardTripNoticeView nowMs={NOW} guard={guard({})} error={null} onDismiss={() => {}} />);
+    expect(screen.getByRole('status').getAttribute('data-tone')).toBe('warning');
+    rerender(<GuardTripNoticeView nowMs={NOW} guard={guard({ endedAtUtcMs: null })} error={null} onDismiss={() => {}} />);
+    expect(screen.getByRole('status').getAttribute('data-tone')).toBe('warning');
   });
 
   it('shows an inline error', () => {

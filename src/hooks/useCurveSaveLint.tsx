@@ -3,10 +3,15 @@ import {
   healCooling, lintCurves, saveCurves, setGuardConfig,
   type CurveHazard, type HealState, type WireCurve,
 } from '../api/cooling';
+import { Checkbox } from '../components/common/Checkbox/Checkbox';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { hazardSignature, lintLines, newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTranslation } from '../lib/i18n';
 import styles from '../panel/widgets/cooling/page/ThermalGuardPanel.module.scss';
+
+// Hazard lists read as warnings, and a hazard line fits on one row.
+const BULLET_TONE = 'warning' as const;
+const DIALOG_SIZE = 'wide' as const;
 
 type CurvesBody = { globalSpeedModifier: number; curves: WireCurve[] };
 
@@ -192,6 +197,8 @@ export function useCurveSaveLint(options: {
       title={t('cooling.guard.dialog.title')}
       message={t('cooling.guard.dialog.message')}
       bullets={pending ? lintLines(pending.hazards, t) : undefined}
+      bulletTone={BULLET_TONE}
+      size={DIALOG_SIZE}
       note={canFix ? t('cooling.guard.dialog.note') : undefined}
       confirmLabel={t('cooling.guard.dialog.fix')}
       cancelLabel={t('cooling.guard.dialog.saveAnyway')}
@@ -200,17 +207,15 @@ export function useCurveSaveLint(options: {
       onCancel={() => answer(false)}
       onDismiss={() => pending?.settle({ fix: false, explicit: false })}
     >
-      <label className={styles.dontAsk}>
-        <input
-          type="checkbox"
-          checked={dontAsk}
-          onChange={e => {
-            dontAskRef.current = e.target.checked;
-            setDontAsk(e.target.checked);
-          }}
-        />
-        <span>{t('cooling.guard.dialog.dontAsk')}</span>
-      </label>
+      <Checkbox
+        className={styles.dontAsk}
+        checked={dontAsk}
+        label={t('cooling.guard.dialog.dontAsk')}
+        onChange={checked => {
+          dontAskRef.current = checked;
+          setDontAsk(checked);
+        }}
+      />
     </ConfirmModal>
   );
 

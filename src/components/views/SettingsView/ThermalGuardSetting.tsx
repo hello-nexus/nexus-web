@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Thermometer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
+import { InlineError } from '../../common/InlineError/InlineError';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { Slider } from '../../common/Slider/Slider';
 import { SettingRow, SettingToggle } from '../../common/SettingRow/SettingRow';
@@ -99,7 +100,7 @@ function LimitRow({ guard, pendingLimit, disabled, error, onCommit, onReset }: L
           {t(detectedKey, { temp: Math.round(detected) })}
           <br />
           {t('cooling.guard.limit.note')}
-          {error && <span role="alert">{` ${error}`}</span>}
+          {error && <> <InlineError>{error}</InlineError></>}
         </>
       )}
       descriptionBelow
@@ -170,7 +171,7 @@ export function ThermalGuardSettingView({
           <>
             {t('cooling.guard.description')}
             {guard.state === 'inactive' && <span role="status">{` ${t('cooling.guard.inactive')}`}</span>}
-            {error && <span role="alert">{` ${error}`}</span>}
+            {error && <> <InlineError>{error}</InlineError></>}
           </>
         )}
         icon={<ShieldCheck />}
@@ -189,7 +190,7 @@ export function ThermalGuardSettingView({
         description={(
           <>
             {t('cooling.guard.lintWarnings.description')}
-            {lintWarningsError && <span role="alert">{` ${lintWarningsError}`}</span>}
+            {lintWarningsError && <> <InlineError>{lintWarningsError}</InlineError></>}
           </>
         )}
         icon={<TriangleAlert />}

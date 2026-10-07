@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
-import { TriangleAlert } from 'lucide-react';
 import type { FirmwareStatusItem } from '../../../hooks/useFirmwareStatus';
 import type { FlashStatus } from '../../../hooks/useFlashStatus';
 import { useTranslation } from '../../../lib/i18n';
 import { flashMatchesRecovery, recoveryAction, recoveryDone } from '../../../lib/firmwareRecovery';
 import { Button } from '../Button/Button';
 import { FlashProgress } from '../FlashProgress/FlashProgress';
-import styles from './FirmwareRecoveryBanner.module.scss';
+import { Notice } from '../Notice/Notice';
 
 export interface FirmwareRecoveryBannerProps {
   item: FirmwareStatusItem | null;
@@ -43,10 +42,8 @@ export function FirmwareRecoveryBanner({ item, status, devTools = false, onRecov
   }
 
   return (
-    <div className={styles.banner} role="alert">
-      <TriangleAlert className={styles.icon} size={18} aria-hidden />
-      <span className={styles.message}>{t('devices.firmware.recovery.banner', { name: item.name })}</span>
-      {actionNode && <span className={styles.action}>{actionNode}</span>}
-    </div>
+    <Notice tone="warning" role="alert" actions={actionNode}>
+      <span>{t('devices.firmware.recovery.banner', { name: item.name })}</span>
+    </Notice>
   );
 }

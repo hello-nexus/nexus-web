@@ -1,6 +1,7 @@
-import { TriangleAlert, Wrench } from 'lucide-react';
+import { Wrench } from 'lucide-react';
 import type { GuardResponse, HealState } from '../../../../api/cooling';
 import { Button } from '../../../../components/common/Button/Button';
+import { Notice } from '../../../../components/common/Notice/Notice';
 import { useTranslation } from '../../../../lib/i18n';
 import { guardBannerText, guardEnabled, healLines } from './guardUtils';
 import styles from './ThermalGuardPanel.module.scss';
@@ -43,10 +44,9 @@ export function HealNotice({ heal, onUndo, onKeep, className }: {
 /** Inline failure line, for surfaces that cannot rely on a toast provider. */
 export function GuardError({ message, className }: { message: string; className?: string }) {
   return (
-    <div className={`${styles.banner} ${className ?? ''}`} role="alert" data-state="error">
-      <TriangleAlert className={styles.bannerIcon} size={18} aria-hidden />
+    <Notice tone="critical" role="alert" className={className}>
       <span>{message}</span>
-    </div>
+    </Notice>
   );
 }
 
@@ -68,16 +68,14 @@ export function ThermalGuardPanel({ guard, onUndo, onKeep, error = null }: Therm
   return (
     <div className={styles.panel}>
       {guard.watchdogLatched && (
-        <div className={styles.banner} role="alert" data-state="escalated">
-          <TriangleAlert className={styles.bannerIcon} size={18} aria-hidden />
+        <Notice tone="critical" role="alert">
           <span>{t('cooling.guard.latched')}</span>
-        </div>
+        </Notice>
       )}
       {banner && (
-        <div className={styles.banner} role="alert" data-state={guard.state}>
-          <TriangleAlert className={styles.bannerIcon} size={18} aria-hidden />
+        <Notice tone={guard.state === 'escalated' ? 'critical' : 'warning'} role="alert">
           <span>{banner}</span>
-        </div>
+        </Notice>
       )}
       {heal && <HealNotice heal={heal} onUndo={onUndo} onKeep={onKeep} />}
       {errorNode}

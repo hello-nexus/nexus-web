@@ -95,4 +95,18 @@ describe('ThermalGuardPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.keep' }));
     expect(onKeep).toHaveBeenCalled();
   });
+
+  it.each([
+    ['floor', 'warning'],
+    ['tripped', 'warning'],
+    ['escalated', 'critical'],
+  ] as const)('shows the %s banner in the %s tone', (state, tone) => {
+    render(<ThermalGuardPanel guard={{ ...base, state }} onUndo={() => {}} onKeep={() => {}} />);
+    expect(screen.getByRole('alert').getAttribute('data-tone')).toBe(tone);
+  });
+
+  it('shows the latched banner and an error in the critical tone', () => {
+    render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true }} error="oops" onUndo={() => {}} onKeep={() => {}} />);
+    expect(screen.getAllByRole('alert').map(a => a.getAttribute('data-tone'))).toEqual(['critical', 'critical']);
+  });
 });

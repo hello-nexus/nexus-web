@@ -1,49 +1,10 @@
 @use '../../../styles/text' as *;
 
+// Spacing under the notice at the top of the Cooling tab; the look is the shared Notice.
 .notice {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem 0.9rem;
-  align-items: center;
   margin-bottom: 1rem;
-  padding: 0.7rem 0.9rem;
-  border: var(--border-width) solid var(--warn);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-
-  @include text-body;
-
-  &[data-active] {
-    border-color: var(--bad);
-  }
-}
-
-.icon {
-  flex: 0 0 auto;
-  color: var(--warn);
-}
-
-.body {
-  display: flex;
-  flex: 1 1 16rem;
-  flex-direction: column;
-  min-width: 0;
 }
 
 .headline {
   @include text-button;
-}
-
-.cause {
-  color: var(--text-dim);
-}
-
-.error {
-  color: var(--bad);
-}
-
-.link {
-  flex: 0 0 auto;
-  color: var(--accent);
 }

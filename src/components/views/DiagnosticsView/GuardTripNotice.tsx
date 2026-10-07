@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { TriangleAlert } from 'lucide-react';
 import type { GuardResponse } from '../../../api/cooling';
 import { useThermalGuard } from '../../../hooks/useThermalGuard';
 import { useTranslation } from '../../../lib/i18n';
 import { formatDateTime, hour12OptionFor } from '../../../lib/units';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { Button } from '../../common/Button/Button';
+import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
 import styles from './GuardTripNotice.module.scss';
 
 // Matches the window the health component keeps a trip at watch.
@@ -43,33 +43,28 @@ export function GuardTripNoticeView({ guard, nowMs, dismissing = false, error, o
     : t('diagnostics.cooling.guardTrip.causeLimit');
 
   return (
-    <div className={styles.notice} role="status" data-active={active ? '' : undefined}>
-      <TriangleAlert className={styles.icon} size={18} aria-hidden />
-      <div className={styles.body}>
-        <span className={styles.headline}>
-          {active
-            ? t('diagnostics.cooling.guardTrip.active')
-            : t('diagnostics.cooling.guardTrip.ended', { time, peak: Math.round(trip.peakC) })}
-        </span>
-        <span className={styles.cause}>{cause}</span>
-        {error && <span className={styles.error} role="alert">{error}</span>}
-      </div>
-      {active ? (
-        <a
-          className={styles.link}
-          href="/system/cooling"
-          onClick={e => {
-            if (!onOpenCooling) return;
-            e.preventDefault();
-            onOpenCooling();
-          }}
-        >
-          {t('diagnostics.cooling.guardTrip.openCooling')}
-        </a>
+    <Notice
+      tone="warning"
+      role="status"
+      className={styles.notice}
+      actions={active ? (
+        onOpenCooling && (
+          <Button type="button" size="sm" tone="neutral" onClick={onOpenCooling}>
+            {t('diagnostics.cooling.guardTrip.openCooling')}
+          </Button>
+        )
       ) : (
         <Button type="button" size="sm" disabled={dismissing} onClick={onDismiss}>{t('diagnostics.cooling.guardTrip.dismiss')}</Button>
       )}
-    </div>
+    >
+      <span className={styles.headline}>
+        {active
+          ? t('diagnostics.cooling.guardTrip.active')
+          : t('diagnostics.cooling.guardTrip.ended', { time, peak: Math.round(trip.peakC) })}
+      </span>
+      <NoticeSecondary>{cause}</NoticeSecondary>
+      {error && <span role="alert">{error}</span>}
+    </Notice>
   );
 }
 

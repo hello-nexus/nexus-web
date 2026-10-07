@@ -1,0 +1,21 @@
+@use '../../../styles/text' as *;
+
+.checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  cursor: pointer;
+  color: var(--text);
+
+  @include text-body;
+
+  input {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+}
+
+.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
