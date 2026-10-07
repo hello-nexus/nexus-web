@@ -481,6 +481,7 @@
   "cooling.guard.limit.label": "Limite de température du CPU",
   "cooling.guard.limit.note": "Au-delà d'environ 105 °C, certains CPU s'éteignent avant que la protection n'agisse.",
   "cooling.guard.limit.reset": "Rétablir la valeur détectée",
+  "cooling.guard.limit.throttleMark": "Seuil de bridage : {temp} °C",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Editeur de courbe",
   "cooling.label.curves": "Courbes",

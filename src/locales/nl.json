@@ -481,6 +481,7 @@
   "cooling.guard.limit.label": "CPU-temperatuurlimiet",
   "cooling.guard.limit.note": "Boven ongeveer 105 °C schakelen sommige CPU's uit voordat de bescherming ingrijpt.",
   "cooling.guard.limit.reset": "Terugzetten naar gedetecteerde waarde",
+  "cooling.guard.limit.throttleMark": "Throttlepunt: {temp} °C",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Curve-editor",
   "cooling.label.curves": "Curves",

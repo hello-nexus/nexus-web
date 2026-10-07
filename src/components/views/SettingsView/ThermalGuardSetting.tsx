@@ -10,8 +10,9 @@ import { guardEnabled } from '../../../panel/widgets/cooling/page/guardUtils';
 import styles from './ThermalGuardSetting.module.scss';
 
 const STACKED = 'stacked' as const;
-// The service clamps an out-of-range override; these bounds cover every shipping part.
-const LIMIT_MIN_C = 85;
+// The bar spans these bounds, widened to include the detected value (an 89 degree part sits below the floor);
+// the service clamps an override to the same range.
+const LIMIT_MIN_C = 90;
 const LIMIT_MAX_C = 110;
 const DETECTED_KEYS = {
   hardware: 'cooling.guard.limit.detectedHardware',
@@ -23,58 +24,64 @@ const COMMIT_SETTLE_MS = 400;
 
 interface LimitRowProps {
   guard: GuardResponse;
-  pending: boolean;
-  onCommit: (c: number) => Promise<void> | void;
+  /** The limit the user asked for that the service has not confirmed yet. */
+  pendingLimit: number | 'reset' | null;
+  onCommit: (c: number) => void;
   onReset: () => void;
 }
 
-function LimitRow({ guard, pending, onCommit, onReset }: LimitRowProps) {
+function LimitRow({ guard, pendingLimit, onCommit, onReset }: LimitRowProps) {
   const { t } = useTranslation();
-  // Held from the first drag tick until the write answers, so the thumb does not snap back meanwhile.
+  // The value while the thumb is being dragged or keyed, before it is committed.
   const [draft, setDraft] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sendingRef = useRef(false);
-  const queuedRef = useRef<number | null>(null);
-  const lastSentRef = useRef<number | null>(null);
+  const keyedRef = useRef<number | null>(null);
+  const immediateRef = useRef(false);
   const onCommitRef = useRef(onCommit);
   onCommitRef.current = onCommit;
   // limitC is omitted while the guard is off, so read the override and the detected value first.
   const detected = guard.detectedLimitC ?? guard.limitC ?? LIMIT_MIN_C;
-  const effective = guard.limitOverrideC ?? guard.detectedLimitC ?? guard.limitC ?? LIMIT_MIN_C;
-  const effectiveRef = useRef(effective);
-  effectiveRef.current = effective;
+  const serverLimit = guard.limitOverrideC ?? detected;
+  const shown = pendingLimit === 'reset' ? detected : pendingLimit ?? serverLimit;
+  const shownRef = useRef(shown);
+  shownRef.current = shown;
+  const barMin = Math.min(LIMIT_MIN_C, Math.floor(detected));
+  const barMax = Math.max(LIMIT_MAX_C, Math.ceil(detected));
 
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
-
-  // One write in flight; a value that settles meanwhile is sent once it answers.
-  const send = async (value: number) => {
-    if (sendingRef.current) {
-      queuedRef.current = value;
-      return;
-    }
-    sendingRef.current = true;
-    lastSentRef.current = effectiveRef.current;
-    let next: number | null = value;
-    while (next != null) {
-      queuedRef.current = null;
-      if (next !== lastSentRef.current) {
-        lastSentRef.current = next;
-        await onCommitRef.current(next);
-      }
-      next = queuedRef.current;
-    }
-    sendingRef.current = false;
+  const settle = (value: number) => {
+    keyedRef.current = null;
     setDraft(null);
+    if (value !== shownRef.current) onCommitRef.current(value);
   };
 
+  // A keyed value still waiting out its settle time is written when the row goes away.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (keyedRef.current != null && keyedRef.current !== shownRef.current) onCommitRef.current(keyedRef.current);
+  }, []);
+
+  // Pointer release and typed edits commit at once; keyboard steps settle after a short wait.
   const commit = (value: number) => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    if (immediateRef.current) {
+      immediateRef.current = false;
+      settle(value);
+      return;
+    }
+    keyedRef.current = value;
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      void send(value);
+      settle(value);
     }, COMMIT_SETTLE_MS);
+  };
+
+  // Reset wins over a keyed value still waiting to settle.
+  const reset = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    keyedRef.current = null;
+    setDraft(null);
+    onReset();
   };
 
   const detectedKey = DETECTED_KEYS[guard.detectedLimitSource ?? 'default'];
@@ -100,17 +107,22 @@ function LimitRow({ guard, pending, onCommit, onReset }: LimitRowProps) {
           orientation={STACKED}
           editable
           trackFill
-          min={LIMIT_MIN_C}
-          max={LIMIT_MAX_C}
+          min={barMin}
+          max={barMax}
+          marks={[{ value: detected, label: t('cooling.guard.limit.throttleMark', { temp: Math.round(detected) }) }]}
           step={1}
-          value={draft ?? effective}
+          value={draft ?? shown}
           formatValue={v => t('cooling.curve.tempBadge', { temp: v })}
-          onChange={v => setDraft(v)}
+          onChange={(v, typed) => {
+            setDraft(v);
+            if (typed) immediateRef.current = true;
+          }}
+          onPointerDown={() => { immediateRef.current = true; }}
           onCommit={commit}
           ariaLabel={t('cooling.guard.limit.label')}
         />
         {guard.limitOverrideC != null && (
-          <Button type="button" size="sm" disabled={pending} onClick={onReset}>
+          <Button type="button" size="sm" onClick={reset}>
             {t('cooling.guard.limit.reset')}
           </Button>
         )}
@@ -121,17 +133,19 @@ function LimitRow({ guard, pending, onCommit, onReset }: LimitRowProps) {
 
 interface ThermalGuardSettingViewProps {
   guard: GuardResponse;
-  /** A write is in flight; the controls disable. */
+  /** A write is in flight; the switch disables. */
   pending: boolean;
+  /** The limit asked for but not yet confirmed by the service; the slider shows it meanwhile. */
+  pendingLimit?: number | 'reset' | null;
   error: string | null;
   onToggle: (enabled: boolean) => void;
-  onSetLimit: (c: number) => Promise<void> | void;
+  onSetLimit: (c: number) => void;
   onClearLimit: () => void;
 }
 
 /** The settings rows themselves, apart from the service wiring. */
 export function ThermalGuardSettingView({
-  guard, pending, error, onToggle, onSetLimit, onClearLimit,
+  guard, pending, pendingLimit = null, error, onToggle, onSetLimit, onClearLimit,
 }: ThermalGuardSettingViewProps) {
   const { t } = useTranslation();
   return (
@@ -153,7 +167,7 @@ export function ThermalGuardSettingView({
         onChange={onToggle}
       />
       {guard.detectedLimitSource && (
-        <LimitRow guard={guard} pending={pending} onCommit={onSetLimit} onReset={onClearLimit} />
+        <LimitRow guard={guard} pendingLimit={pendingLimit} onCommit={onSetLimit} onReset={onClearLimit} />
       )}
     </>
   );
@@ -166,15 +180,16 @@ export function ThermalGuardSettingView({
  * no dead controls.
  */
 export function ThermalGuardSetting({ serviceOnline }: { serviceOnline: boolean }) {
-  const { guard, toggling, error, toggle, setLimit, clearLimit } = useThermalGuard(serviceOnline);
+  const { guard, toggling, pendingLimit, error, toggle, setLimit, clearLimit } = useThermalGuard(serviceOnline);
   if (!guard) return null;
   return (
     <ThermalGuardSettingView
       guard={guard}
       pending={toggling}
+      pendingLimit={pendingLimit}
       error={error?.message ?? null}
       onToggle={next => { void toggle(next); }}
-      onSetLimit={setLimit}
+      onSetLimit={c => setLimit(c)}
       onClearLimit={() => { void clearLimit(); }}
     />
   );

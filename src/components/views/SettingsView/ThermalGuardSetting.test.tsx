@@ -37,10 +37,10 @@ describe('ThermalGuardSettingView', () => {
     expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
   });
 
-  it('disables the switch and Reset while a write is pending, but not the slider', () => {
+  it('disables the switch while a write is pending, but not the slider or Reset', () => {
     view({ ...base, limitC: 102, limitSource: 'user', limitOverrideC: 102 }, { pending: true });
     expect(screen.getByRole('switch')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).not.toBeDisabled();
     // Disabling the slider would drop keyboard focus mid-adjustment.
     expect(screen.getByRole('slider')).not.toBeDisabled();
   });
@@ -64,7 +64,7 @@ describe('ThermalGuardSettingView', () => {
   it('shows a slider for a spec limit with the detected value, note, and no reset', () => {
     view(base);
     const slider = screen.getByRole('slider') as HTMLInputElement;
-    expect(slider.min).toBe('85');
+    expect(slider.min).toBe('90');
     expect(slider.max).toBe('110');
     expect(slider.value).toBe('95');
     expect(screen.getByText(/cooling\.guard\.limit\.detectedSpec/)).toBeTruthy();
@@ -80,6 +80,7 @@ describe('ThermalGuardSettingView', () => {
   it('commits on release, not on every drag tick', () => {
     const h = view(base);
     const slider = screen.getByRole('slider');
+    fireEvent.pointerDown(slider);
     fireEvent.change(slider, { target: { value: '100' } });
     fireEvent.change(slider, { target: { value: '102' } });
     expect(h.onSetLimit).not.toHaveBeenCalled();
@@ -100,23 +101,20 @@ describe('ThermalGuardSettingView', () => {
     const h = view(off);
     const slider = screen.getByRole('slider') as HTMLInputElement;
     expect(slider.value).toBe('102');
+    fireEvent.pointerDown(slider);
     fireEvent.change(slider, { target: { value: '95' } });
     fireEvent.pointerUp(slider);
     await vi.waitFor(() => { expect(h.onSetLimit).toHaveBeenCalledExactlyOnceWith(95); });
   });
 
-  it('keeps the dragged value until the write answers', async () => {
-    let answer!: () => void;
-    const onSetLimit = vi.fn(() => new Promise<void>(r => { answer = r; }));
-    render(<ThermalGuardSettingView guard={off} pending={false} error={null} onToggle={() => {}} onSetLimit={onSetLimit} onClearLimit={() => {}} />);
-    const slider = screen.getByRole('slider') as HTMLInputElement;
-    fireEvent.change(slider, { target: { value: '100' } });
-    fireEvent.pointerUp(slider);
-    await vi.waitFor(() => { expect(onSetLimit).toHaveBeenCalledWith(100); });
-    // The prop still says 102 while the write is in flight.
-    expect(slider.value).toBe('100');
-    answer();
-    await vi.waitFor(() => { expect(slider.value).toBe('102'); });
+  it('shows the pending limit instead of the server value until it is confirmed', () => {
+    render(<ThermalGuardSettingView guard={off} pending pendingLimit={100} error={null} onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}} />);
+    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('100');
+  });
+
+  it('shows the detected value while a reset is pending', () => {
+    render(<ThermalGuardSettingView guard={off} pending pendingLimit="reset" error={null} onToggle={() => {}} onSetLimit={() => {}} onClearLimit={() => {}} />);
+    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('95');
   });
 
   it('sends one write for a burst of keyboard steps', async () => {
@@ -127,5 +125,30 @@ describe('ThermalGuardSettingView', () => {
       fireEvent.keyUp(slider);
     }
     await vi.waitFor(() => { expect(h.onSetLimit).toHaveBeenCalledExactlyOnceWith(98); });
+  });
+
+  const notchLeft = () => (screen.getByText('cooling.guard.limit.throttleMark').parentElement as HTMLElement).style.left;
+
+  it('bounds the bar at 90 to 110 for a 95 degree part', () => {
+    view(base);
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    expect([slider.min, slider.max]).toEqual(['90', '110']);
+  });
+
+  it('extends the bar to include an 89 degree part, preset to it', () => {
+    view({ ...base, limitC: 89, detectedLimitC: 89 });
+    const slider = screen.getByRole('slider') as HTMLInputElement;
+    expect([slider.min, slider.max, slider.value]).toEqual(['89', '110', '89']);
+  });
+
+  it('draws the throttle-point notch at the detected value', () => {
+    view(base);
+    expect(notchLeft()).toBe('25%');
+  });
+
+  it('keeps the notch at the detected value while an override is set', () => {
+    view({ ...base, limitC: 102, limitSource: 'user', limitOverrideC: 102 });
+    expect(notchLeft()).toBe('25%');
+    expect((screen.getByRole('slider') as HTMLInputElement).value).toBe('102');
   });
 });

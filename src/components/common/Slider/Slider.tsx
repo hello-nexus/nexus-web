@@ -31,6 +31,12 @@ import styles from './Slider.module.scss';
  *     field, so the parent can apply + persist in one shot. For drag, parents wire
  *     `onCommit()` to the gesture-end so persistence happens once at the end.
  */
+/** A fixed notch on the track at `value`, with an optional caption under it. */
+export interface SliderMark {
+  value: number;
+  label?: string;
+}
+
 export interface SliderProps {
   label?: string;
   /** One-sentence explanation shown behind an info affordance beside the label. */
@@ -64,6 +70,10 @@ export interface SliderProps {
       is painted in a dimmed accent - e.g. a master-brightness cap the device is
       set above. Requires trackFill; omit for a single-tone fill. */
   fillCap?: number;
+  /** Notches drawn on the track at fixed values (e.g. a hardware limit), each
+      with an optional caption beneath. They never intercept the pointer, so
+      dragging and the editable value work through them. */
+  marks?: SliderMark[];
   ariaLabel?: string;
   className?: string;
 }
@@ -72,7 +82,7 @@ export function Slider({
   label = '', info, value, min, max, step = 1,
   orientation = 'inline', editable = false, zeroMarker = false, showRange = false,
   formatValue, onChange, onCommit, onPointerDown, onPointerCancel,
-  disabled, trackFill, marker, markerLabel, fillCap, ariaLabel, className, labelAction,
+  disabled, trackFill, marker, markerLabel, fillCap, marks, ariaLabel, className, labelAction,
 }: SliderProps) {
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
@@ -109,6 +119,20 @@ export function Slider({
       <span className={styles.markerCaret} aria-hidden />
     </span>
   ) : null;
+
+  const hasMarkLabels = !!marks?.some(m => m.label);
+  const marksNode = marks && marks.length > 0 ? marks.map(m => {
+    const pct = clamp(((m.value - min) / (max - min)) * 100);
+    // Captions near an end hang inward so they stay inside the track.
+    const align = pct < 15 ? styles.markLabelStart : pct > 85 ? styles.markLabelEnd : '';
+    return (
+      <span key={m.value} className={styles.mark} style={{ left: `${pct}%` }}>
+        <span className={styles.markTick} aria-hidden />
+        {m.label && <span className={`${styles.markLabel} ${align}`}>{m.label}</span>}
+      </span>
+    );
+  }) : null;
+  const trackClass = hasMarkLabels ? `${styles.track} ${styles.trackMarked}` : styles.track;
 
   useEffect(() => {
     latestInputValueRef.current = value;
@@ -199,9 +223,10 @@ export function Slider({
   if (orientation === 'bare') {
     return (
       <div className={`${styles.root} ${styles.bare} ${className ?? ''}`}>
-        <div className={styles.track}>
+        <div className={trackClass}>
           {range}
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+          {marksNode}
           {markerNode}
         </div>
       </div>
@@ -215,9 +240,10 @@ export function Slider({
           <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>
           {valueNode}
         </div>
-        <div className={styles.track}>
+        <div className={trackClass}>
           {range}
           {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+          {marksNode}
           {markerNode}
         </div>
         {showRange && (
@@ -237,9 +263,10 @@ export function Slider({
   return (
     <div className={`${styles.root} ${styles.inline} ${className ?? ''}`}>
       {label && <span className={styles.label}>{label}{info && <InfoTooltip message={info} side="top" />}{labelAction}</span>}
-      <div className={styles.track}>
+      <div className={trackClass}>
         {range}
         {showZero && <span className={styles.zeroTick} style={{ left: `${zeroPct}%` }} />}
+        {marksNode}
         {markerNode}
       </div>
       {inlineValueNode}

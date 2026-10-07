@@ -481,6 +481,7 @@
   "cooling.guard.limit.label": "CPU 溫度上限",
   "cooling.guard.limit.note": "超過約 105 °C 時，部分 CPU 會在保護生效前關機。",
   "cooling.guard.limit.reset": "重設為偵測值",
+  "cooling.guard.limit.throttleMark": "降頻點 {temp} °C",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "曲線編輯器",
   "cooling.label.curves": "曲線",

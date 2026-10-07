@@ -6,7 +6,7 @@ import { useThermalGuard } from './useThermalGuard';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
-const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardEnabled: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn() }));
+const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn() }));
 
 vi.mock('../api/cooling', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/cooling')>()),
@@ -47,7 +47,7 @@ describe('useThermalGuard', () => {
     const poll = deferred<GuardResponse>();
     api.fetchGuard.mockReturnValueOnce(poll.promise);
     mount();
-    api.setGuardEnabled.mockResolvedValue(guard('off'));
+    api.setGuardConfig.mockResolvedValue(guard('off'));
     await act(async () => { await hook.toggle(false); });
     expect(screen.getByTestId('state').textContent).toBe('off');
     await act(async () => { poll.resolve(guard('normal')); });
@@ -72,22 +72,23 @@ describe('useThermalGuard', () => {
     expect(screen.getByTestId('state').textContent).toBe('none');
   });
 
-  it('marks the switch busy during the POST and blocks a second submit', async () => {
+  it('marks the switch busy during the POST and merges a repeated submit', async () => {
     mount();
     await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
     const post = deferred<GuardResponse>();
-    api.setGuardEnabled.mockReturnValue(post.promise);
+    api.setGuardConfig.mockReturnValue(post.promise);
     act(() => { void hook.toggle(false); void hook.toggle(false); });
     expect(screen.getByTestId('state').textContent).toContain('busy');
-    expect(api.setGuardEnabled).toHaveBeenCalledTimes(1);
+    // The second request is the same intent: one write in flight, nothing dropped or doubled.
     await act(async () => { post.resolve(guard('off')); });
+    await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('off'); });
     expect(screen.getByTestId('state').textContent).toBe('off');
   });
 
   it('shows an error and keeps the state when the POST fails', async () => {
     mount();
     await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
-    api.setGuardEnabled.mockResolvedValue(null);
+    api.setGuardConfig.mockResolvedValue(null);
     await act(async () => { await hook.toggle(false); });
     await screen.findByText('cooling.guard.error.toggle');
     expect(screen.getByTestId('state').textContent).toBe('normal');

@@ -481,6 +481,7 @@
   "cooling.guard.limit.label": "CPU sıcaklık sınırı",
   "cooling.guard.limit.note": "Yaklaşık 105 °C üzerinde bazı CPU'lar, koruma devreye girmeden kapanır.",
   "cooling.guard.limit.reset": "Algılanan değere sıfırla",
+  "cooling.guard.limit.throttleMark": "Kısıtlama noktası: {temp} °C",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Eğri düzenleyici",
   "cooling.label.curves": "Eğriler",

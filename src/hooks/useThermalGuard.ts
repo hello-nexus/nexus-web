@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchGuard, setGuardConfig, setGuardEnabled, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
+import { fetchGuard, setGuardConfig, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
 import { useTranslation } from '../lib/i18n';
 import { newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -24,13 +24,12 @@ export function useThermalGuard(serviceOnline: boolean) {
   // The generation that has a poll in flight, so a flap offline and back online cannot overlap two.
   const inFlightRef = useRef<number | null>(null);
   const dirtyRef = useRef(false);
-  const togglingRef = useRef(false);
   const tRef = useRef(t);
   tRef.current = t;
 
   const refresh = useCallback(async () => {
     const generation = generationRef.current;
-    if (inFlightRef.current === generation || togglingRef.current) {
+    if (inFlightRef.current === generation) {
       dirtyRef.current = true;
       return;
     }
@@ -65,40 +64,65 @@ export function useThermalGuard(serviceOnline: boolean) {
 
   useTopicCallback('cooling', serviceOnline, () => { void refresh(); });
 
-  // One write at a time: the switch and the limit share the pending state and the error slot.
-  const write = useCallback(async (send: () => Promise<GuardResponse | null>, errorKey: string) => {
-    if (togglingRef.current) return;
-    togglingRef.current = true;
+  // What the user last asked for, per field. Every action overwrites its field and
+  // kicks the single writer, which sends the merged intents and loops while new
+  // ones arrive, so nothing is dropped, reordered or reversed.
+  const intentRef = useRef<{ enabled?: boolean; limit?: number | 'reset' }>({});
+  const writerRunningRef = useRef(false);
+  // The limit shown while it is pending, so the slider does not snap back to the server's value.
+  const [pendingLimit, setPendingLimit] = useState<number | 'reset' | null>(null);
+
+  const runWriter = useCallback(async () => {
+    if (writerRunningRef.current) return;
+    writerRunningRef.current = true;
     setToggling(true);
-    const generation = generationRef.current;
     try {
-      const next = await send();
-      if (generation !== generationRef.current) return;
-      if (next && next.state) {
-        seqRef.current += 1;
-        setGuard(next);
-        setError(null);
-      } else {
-        setError(newGuardError(tRef.current(errorKey)));
+      while (intentRef.current.enabled !== undefined || intentRef.current.limit !== undefined) {
+        const { enabled, limit } = intentRef.current;
+        intentRef.current = {};
+        const generation = generationRef.current;
+        let next: GuardResponse | null = null;
+        try {
+          next = await setGuardConfig({
+            ...(enabled !== undefined ? { enabled } : {}),
+            ...(typeof limit === 'number' ? { limitOverrideC: limit } : {}),
+            ...(limit === 'reset' ? { clearLimitOverride: true } : {}),
+          });
+        } catch {
+          next = null;
+        }
+        if (generation !== generationRef.current) continue;
+        if (next && next.state) {
+          seqRef.current += 1;
+          setGuard(next);
+          setError(null);
+        } else {
+          setError(newGuardError(tRef.current(limit !== undefined ? 'cooling.guard.error.limit' : 'cooling.guard.error.toggle')));
+        }
+        // The display override ends once no newer limit intent is waiting.
+        if (intentRef.current.limit === undefined) setPendingLimit(null);
       }
     } finally {
-      togglingRef.current = false;
+      writerRunningRef.current = false;
       setToggling(false);
+      if (intentRef.current.limit === undefined) setPendingLimit(null);
     }
   }, []);
 
-  const toggle = useCallback(
-    (enabled: boolean) => write(() => setGuardEnabled(enabled), 'cooling.guard.error.toggle'),
-    [write],
-  );
-  const setLimit = useCallback(
-    (limitOverrideC: number) => write(() => setGuardConfig({ limitOverrideC }), 'cooling.guard.error.limit'),
-    [write],
-  );
-  const clearLimit = useCallback(
-    () => write(() => setGuardConfig({ clearLimitOverride: true }), 'cooling.guard.error.limit'),
-    [write],
-  );
+  const toggle = useCallback((enabled: boolean) => {
+    intentRef.current.enabled = enabled;
+    void runWriter();
+  }, [runWriter]);
+  const setLimit = useCallback((limit: number) => {
+    intentRef.current.limit = limit;
+    setPendingLimit(limit);
+    void runWriter();
+  }, [runWriter]);
+  const clearLimit = useCallback(() => {
+    intentRef.current.limit = 'reset';
+    setPendingLimit('reset');
+    void runWriter();
+  }, [runWriter]);
 
   const applyHeal = useCallback((heal: HealState | null) => {
     if (!heal) return;
@@ -122,5 +146,5 @@ export function useThermalGuard(serviceOnline: boolean) {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, toggling, error, clearError, refresh, toggle, setLimit, clearLimit, undo, applyHeal };
+  return { guard, toggling, pendingLimit, error, clearError, refresh, toggle, setLimit, clearLimit, undo, applyHeal };
 }

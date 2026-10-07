@@ -110,4 +110,21 @@ describe('Slider', () => {
     // that only persist in onCommit would silently drop typed edits.
     expect(onChange).toHaveBeenCalledWith(42, true);
   });
+
+  it('draws marks at their value with captions, without intercepting the slider', () => {
+    const onChange = vi.fn();
+    render(
+      <Slider value={50} min={0} max={200} ariaLabel="Level" onChange={onChange}
+        marks={[{ value: 50, label: 'Half' }, { value: 200 }]} />,
+    );
+    expect((screen.getByText('Half').parentElement as HTMLElement).style.left).toBe('25%');
+    // The range input is still the control that changes the value.
+    fireEvent.change(screen.getByRole('slider'), { target: { value: '60' } });
+    expect(onChange).toHaveBeenCalledWith(60, false);
+  });
+
+  it('renders no mark elements when marks is omitted', () => {
+    const { container } = render(<Slider value={5} min={0} max={10} ariaLabel="Level" onChange={() => {}} />);
+    expect(container.querySelector('[style*="left"]')).toBeNull();
+  });
 });

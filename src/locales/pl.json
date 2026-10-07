@@ -485,6 +485,7 @@
   "cooling.guard.limit.label": "Limit temperatury procesora",
   "cooling.guard.limit.note": "Powyżej około 105 °C niektóre procesory wyłączają się, zanim ochrona zadziała.",
   "cooling.guard.limit.reset": "Przywróć wykrytą wartość",
+  "cooling.guard.limit.throttleMark": "Punkt dławienia: {temp} °C",
   "cooling.label.cpu": "CPU",
   "cooling.label.curveEditor": "Edytor krzywej",
   "cooling.label.curves": "Krzywe",
