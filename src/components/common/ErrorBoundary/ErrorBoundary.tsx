@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { reportError } from '../../../telemetry/errorReporting';
 
 interface Props {
   children: ReactNode;
@@ -35,6 +36,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: { componentStack?: string }) {
     console.error('[ErrorBoundary] caught:', error, info);
+    const frames = (info.componentStack ?? '').split('\n').filter((l) => l.trim() !== '').slice(0, 3).join(' | ');
+    reportError(error, 'render', frames);
   }
 
   render() {
