@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Monitor, Plus } from 'lucide-react';
+import { Monitor, Plus, Store } from 'lucide-react';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import { useUiSettings } from '../../../hooks/useUiSettings';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
@@ -79,6 +79,14 @@ function DashboardOnline({ onSectionNavigate }: { onSectionNavigate?: DashboardS
             {desktopWidgetCount > 0 && (
               <span className={styles.widgetCountBadge}>{desktopWidgetCount}</span>
             )}
+          </button>
+          <button
+            type="button"
+            className="chip-action"
+            onClick={() => onSectionNavigate?.('store')}
+          >
+            <Store size={14} aria-hidden />
+            <span>{t('apps.tabs.store')}</span>
           </button>
           <div className={styles.presetRail}>
             <DashboardPresetToolbar layoutState={layoutState} />
