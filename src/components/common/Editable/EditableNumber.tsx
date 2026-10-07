@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useEditable } from './useEditable';
 import styles from './Editable.module.scss';
 
@@ -15,9 +16,11 @@ export interface EditableNumberProps {
   format?: (value: number) => string;
   className?: string;
   ariaLabel?: string;
+  /** Shows the value as plain text: no click or keyboard entry into edit mode. */
+  disabled?: boolean;
 }
 
-export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel }: EditableNumberProps) {
+export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel, disabled }: EditableNumberProps) {
   const fmt = format ?? ((v: number) => String(v));
   const editable = useEditable<number>({
     value,
@@ -39,6 +42,21 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
     },
     format: v => String(v),
   });
+
+  // Going read-only mid-edit drops the draft, so no stale input returns on re-enable.
+  const { editing, cancel } = editable;
+  useEffect(() => {
+    if (disabled && editing) cancel();
+  }, [disabled, editing, cancel]);
+
+  if (disabled) {
+    return (
+      <span className={`${styles.displayStatic} ${className ?? ''}`}>
+        {fmt(value)}
+        {ariaLabel && <span className={styles.visuallyHidden}>{ariaLabel}</span>}
+      </span>
+    );
+  }
 
   if (editable.editing) {
     return (

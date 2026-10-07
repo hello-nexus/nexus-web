@@ -278,3 +278,104 @@ export const setActiveCoolingPreset = (id: string | null) =>
 
 export const activateCoolingPreset = (id: string) =>
   postService('/cooling/presets/' + encodeURIComponent(id) + '/activate', {});
+
+// ----- CPU thermal guard + auto-heal -----
+
+export type GuardState = 'inactive' | 'off' | 'normal' | 'floor' | 'tripped' | 'escalated';
+export type GuardLimitSource = 'hardware' | 'spec' | 'default';
+/** The effective source can also be the user's own override. */
+export type GuardEffectiveLimitSource = GuardLimitSource | 'user';
+export type GuardTripReason = 'limit' | 'cooling-loss';
+
+export interface GuardLastTrip {
+  atUtcMs: number;
+  peakC: number;
+  reason: GuardTripReason;
+  escalated: boolean;
+  /** Null while the trip is still active. */
+  endedAtUtcMs?: number | null;
+  /** The user dismissed the ended trip, so the Diagnostics notice is gone. */
+  acknowledged?: boolean;
+}
+
+export interface HealChannel {
+  id: string;
+  name: string;
+  hazard: string;
+}
+
+export interface HealState {
+  undoAvailable: boolean;
+  healedAtUtcMs: number | null;
+  channels: HealChannel[];
+}
+
+export type GuardGpuState = 'inactive' | 'normal' | 'handedBack' | 'forced';
+
+export interface GuardGpu {
+  id: string;
+  name: string;
+  tempC: number | null;
+  limitC?: number | null;
+  limitSource?: GuardLimitSource | null;
+  state: GuardGpuState;
+}
+
+export interface GuardResponse {
+  state: GuardState;
+  /** The switch's value; `state` can lag a tick behind a toggle. Absent on an older service. */
+  enabled?: boolean;
+  guardTempC: number | null;
+  /** Effective limit; omitted while the guard is off. */
+  limitC?: number | null;
+  limitSource?: GuardEffectiveLimitSource | null;
+  /** What the service found for the CPU, before any user override. */
+  detectedLimitC?: number | null;
+  detectedLimitSource?: GuardLimitSource | null;
+  limitOverrideC?: number | null;
+  sinceUtcMs: number | null;
+  lastTrip: GuardLastTrip | null;
+  heal: HealState;
+  /** The engine watchdog handed the fans to the BIOS and stays latched until a restart or a guard off/on. */
+  watchdogLatched?: boolean;
+  /** Whether saves warn about hazardous fan setups; absent on an older service (treat as on). */
+  lintWarnings?: boolean;
+  gpus?: GuardGpu[];
+}
+
+export interface CurveHazard {
+  channelId: string;
+  channelName: string;
+  kind: string;
+  rootId: string | null;
+  rootName: string | null;
+}
+
+export interface LintResponse {
+  hazards: CurveHazard[];
+  fixAvailable: boolean;
+}
+
+export const fetchGuard = () => fetchService<GuardResponse>('/cooling/guard');
+
+/** Partial update; an override sent while the detected source is hardware comes back as an error envelope. */
+export const setGuardConfig = (body: {
+  enabled?: boolean; limitOverrideC?: number; clearLimitOverride?: boolean; lintWarnings?: boolean;
+}) =>
+  postService<GuardResponse>('/cooling/guard/config', body);
+
+
+/** Same body as saveCurves; advisory only, writes nothing. */
+export const lintCurves = (body: { globalSpeedModifier: number; curves: WireCurve[] }) =>
+  postService<LintResponse>('/cooling/curves/lint', body);
+
+export const healCooling = () => postService<HealState>('/cooling/heal', {});
+
+/** Dismisses an ended trip's Diagnostics notice; answers with the guard, or error true while the trip is still active. */
+export const acknowledgeGuardTrip = () =>
+  postService<GuardResponse & { error?: boolean; msg?: string }>('/cooling/guard/trip/acknowledge', {});
+
+export const undoHeal = () => postService<HealState>('/cooling/heal/undo', {});
+
+/** Accepts the heal for good: the service drops the undo snapshot and answers with undoAvailable false. */
+export const keepHeal = () => postService<HealState>('/cooling/heal/keep', {});

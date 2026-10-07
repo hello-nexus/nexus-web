@@ -26,7 +26,7 @@ import {
 } from '../../../api/qseries';
 import {
   fetchFanChannels, fetchTemperatureSources, fetchCurves,
-  setFanSpeed, releaseFanAuto, saveCurves, renameFan, setFanLock, setFanControlled, setFanRole, setFanOffset,
+  setFanSpeed, releaseFanAuto, renameFan, setFanLock, setFanControlled, setFanRole, setFanOffset,
   fetchCoolingPresets, createCoolingPreset, updateCoolingPreset, deleteCoolingPreset,
   activateCoolingPreset, type CoolingPreset,
   startCalibration, fetchCalibrationResults, fetchProfiles, applyProfile,
@@ -37,6 +37,8 @@ import {
 } from '../../../api/cooling';
 import { useCoolingRealtime } from '../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../hooks/useCoolingCurves';
+import { useThermalGuard } from '../../../hooks/useThermalGuard';
+import { useCurveSaveLint } from '../../../hooks/useCurveSaveLint';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useSensors } from '../../../hooks/useSensors';
 import type { ServiceState } from '../../../hooks/useServiceState';
@@ -70,6 +72,8 @@ import {
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
+import { ThermalGuardPanel } from './page/ThermalGuardPanel';
+import { isManagedCurve, latestError } from './page/guardUtils';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
@@ -127,6 +131,23 @@ const noopCurveEdit = () => {};
 export function CoolingPage({ serviceOnline, serviceState, connectionState, activeProfileId, platform = '' }: CoolingViewProps) {
   const { t, language } = useTranslation();
   const recovery = useFirmwareRecoveryFlow(serviceOnline);
+  const thermalGuard = useThermalGuard(serviceOnline);
+  const refreshCoolingConfigRef = useRef<() => void>(() => {});
+  const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
+    lintEnabled: thermalGuard.guard?.lintWarnings !== false,
+    onHealed: heal => {
+      thermalGuard.applyHeal(heal);
+      refreshCoolingConfigRef.current();
+    },
+  });
+  const guardPanel = (
+    <ThermalGuardPanel
+      guard={thermalGuard.guard}
+      onUndo={() => { void thermalGuard.undo(); }}
+      onKeep={() => { void thermalGuard.keep(); }}
+      error={latestError(lintError, thermalGuard.error)}
+    />
+  );
   const recoveryBanner = (
     <FirmwareRecoveryBanner item={recovery.item} status={recovery.status} onRecover={recovery.request} />
   );
@@ -264,6 +285,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
     if (temps?.sources) setSources(temps.sources);
   }, [serviceOnline]);
+  refreshCoolingConfigRef.current = refreshCoolingConfig;
 
   // Persist the cached slices on every change so the next visit to this
   // route paints from the last-good snapshot. JSON.stringify + a single
@@ -602,9 +624,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       c,
       Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
     ));
-    return saveCurves({ globalSpeedModifier: 1, curves: apiCurves })
+    return saveWithLint({ globalSpeedModifier: 1, curves: apiCurves })
       .then(res => { void saveActivePreset(); return res; });
-  }, [saveActivePreset]);
+  }, [saveActivePreset, saveWithLint]);
   pushCurvesRef.current = pushCurves;
 
   // Issue rule: when cooling is Off, the user changing any fan setting other
@@ -1081,6 +1103,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // target: grey the editor. NOT effectiveCurveId, which is also null for the
   // beat before the first curve is picked and greyed it out on every load.
   const curveEditorInert = scopedCurveId === null;
+  // The thermal guard's own curve: shown, never edited.
+  const curveManaged = isManagedCurve(selectedCurve?.id);
 
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   // Cooling offers only the apps that carry a cooling setup; Nexus 2's import
@@ -1356,6 +1380,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         <div className={`${styles.simpleBody} pageBodyFill`}>
           {recoveryBanner}
           {recovery.modal}
+          {lintPrompt}
           <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
             <ViewHeader
               title={t('cooling.title')}
@@ -1383,6 +1408,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             />
             {modeMenuNode}
           </div>
+          {guardPanel}
           <div className={styles.simplePresets} role="group" aria-label={t('cooling.title')}>
             {COOLING_MODES.filter(p => p.key !== 'custom' && p.key !== 'off').map(p => (
               <IconLabelButton
@@ -1453,6 +1479,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             {modeMenuNode}
           </div>
         </div>
+        <div className={styles.guardBar}>{guardPanel}</div>
         <div className={`${styles.paneHeader} ${styles.headerLeft}`}>
           <div className={styles.paneTitleGroup}>
             <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
@@ -1898,9 +1925,10 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
           <div className={styles.curveEditorHeader}>
             <span className={styles.paneTitle}>{t('cooling.label.curveEditor')}</span>
-            {curveEditorInert && selectedCurve && (
+            {curveEditorInert && selectedCurve && !curveManaged && (
               <span className={styles.curveEditorHint}>{t('cooling.curves.noCurveSelected')}</span>
             )}
+            {curveManaged && <span className={styles.curveEditorHint}>{t('cooling.guard.managedCurve')}</span>}
           </div>
           {selectedCurve ? (
             <div
@@ -1909,15 +1937,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             >
               <CurveCard
                 key={selectedCurve.id}
+                readOnly={curveManaged}
                 curve={selectedCurve}
                 allCurves={curves}
                 sources={sources}
                 channels={channels}
                 syncExcludedIds={syncExcludedIds}
-                onChange={curveEditorInert ? noopCurveEdit : saveCurveAndPush}
-                onDelete={curveEditorInert ? noopCurveEdit : () => deleteCurve(selectedCurve.id)}
+                onChange={curveEditorInert || curveManaged ? noopCurveEdit : saveCurveAndPush}
+                onDelete={curveEditorInert || curveManaged ? noopCurveEdit : () => deleteCurve(selectedCurve.id)}
                 onResetPreset={selectedCurve.preset
-                  ? (curveEditorInert ? noopCurveEdit : () => handleResetPresetCurve(selectedCurve.preset!))
+                  ? (curveEditorInert || curveManaged ? noopCurveEdit : () => handleResetPresetCurve(selectedCurve.preset!))
                   : undefined}
               />
             </div>
@@ -1934,6 +1963,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         sources={importSources}
         onImported={() => { void refreshCoolingConfig(); }}
       />
+      {lintPrompt}
       <ConfirmModal
         open={calConfirmOpen && !calibrating}
         destructive={false}
