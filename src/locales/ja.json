@@ -3970,6 +3970,7 @@
   "panel.widget.weather.precipitation": "降水量",
   "panel.widget.weather.pressure": "気圧",
   "panel.widget.weather.removeLocation": "{location}を削除",
+  "panel.widget.weather.serviceUnavailable": "天気サービスを利用できません",
   "panel.widget.weather.settings.animatedSky": "アニメーションの空",
   "panel.widget.weather.settings.animatedSkyDescription": "現在の天気と時間帯を、ウィジェットの背景に動く空として表示します。",
   "panel.widget.weather.settings.auto": "自動",

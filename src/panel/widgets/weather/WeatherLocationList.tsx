@@ -7,6 +7,7 @@ import { DesktopOnlyBadge } from '../../../components/common/DesktopOnlyBadge/De
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { geocodeResultToLocation, weatherLocationKey, type WeatherGeocodeResult, type WeatherLocation, type WeatherUnitPref } from '../../../api/weather';
 import { weatherConditionKey } from './weatherConditions';
+import { weatherProblem, WEATHER_PROBLEM_KEY } from './weatherProblem';
 import { WeatherIcon } from './WeatherIcon';
 import { WeatherLocationSearch } from './WeatherLocationSearch';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
@@ -99,6 +100,7 @@ function WeatherPlaceRow({
   const { timeFormat } = useUnitPrefs();
   const { snap, loaded } = useWeatherSnapshot(place.location);
   const unit = resolveUnit(unitPref, place.location?.cc ?? snap?.countryCode);
+  const problem = weatherProblem(snap, loaded);
   const conditionKey = weatherConditionKey(snap?.weatherCode);
   const conditionText = conditionKey ? t(conditionKey) : (snap?.condition || '');
   const today = snap?.daily?.[0];
@@ -125,7 +127,7 @@ function WeatherPlaceRow({
           </div>
           <div className={styles.rowCondition}>
             <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.rowIcon} strokeWidth={1.6} />
-            <span>{loaded && !snap ? t('panel.widget.weather.noData') : conditionText}</span>
+            <span>{problem ? t(WEATHER_PROBLEM_KEY[problem]) : conditionText}</span>
           </div>
         </div>
         <div className={styles.rowSide}>

@@ -3970,6 +3970,7 @@
   "panel.widget.weather.precipitation": "Précipitations",
   "panel.widget.weather.pressure": "Pression",
   "panel.widget.weather.removeLocation": "Supprimer {location}",
+  "panel.widget.weather.serviceUnavailable": "Service météo indisponible",
   "panel.widget.weather.settings.animatedSky": "Ciel animé",
   "panel.widget.weather.settings.animatedSkyDescription": "Affiche la météo actuelle et le moment de la journée sous forme de ciel animé derrière le widget.",
   "panel.widget.weather.settings.auto": "Automatique",

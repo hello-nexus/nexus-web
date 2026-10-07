@@ -4012,6 +4012,7 @@
   "panel.widget.weather.precipitation": "Осадки",
   "panel.widget.weather.pressure": "Давление",
   "panel.widget.weather.removeLocation": "Удалить {location}",
+  "panel.widget.weather.serviceUnavailable": "Служба погоды недоступна",
   "panel.widget.weather.settings.animatedSky": "Анимированное небо",
   "panel.widget.weather.settings.animatedSkyDescription": "Показывает текущую погоду и время суток в виде движущегося неба за виджетом.",
   "panel.widget.weather.settings.auto": "Автоматически",

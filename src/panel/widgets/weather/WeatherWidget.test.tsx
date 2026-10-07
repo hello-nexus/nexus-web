@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelWidget } from '../../types';
 import { WeatherWidget } from './WeatherWidget';
+import { fetchService } from '../../../api/service';
 import { resetWeatherSnapshotCache } from './useWeatherSnapshot';
 
 // Hourly forecast times are relative to Date.now() so the widget's
@@ -47,6 +48,9 @@ vi.mock('../../../lib/i18n', () => {
     'panel.widget.weather.pm': 'PM',
     'panel.widget.weather.hiLo': 'H:{hi}° L:{lo}°',
     'panel.widget.weather.noForecast': 'No forecast',
+    'panel.widget.weather.noData': 'Weather unavailable',
+    'panel.widget.weather.serviceUnavailable': 'Weather service unavailable',
+    'panel.widget.offline': 'No connection',
     'panel.widget.weather.cond.partlyCloudy': 'Partly cloudy',
   };
   const t = (key: string, params?: Record<string, string | number>) => {
@@ -130,5 +134,15 @@ describe('WeatherWidget', () => {
     const { container } = render(<WeatherWidget widget={weatherWidget('4x2', { animatedSky: true })} />);
     expect(await screen.findByText('72°')).toBeInTheDocument();
     expect(container.querySelector('[data-sky="false"]')).not.toBeNull();
+  });
+
+  it.each([
+    ['service', { ...mockSnapshot.build(), asOf: '', weatherCode: -1, temperatureC: null, unavailable: 'service' }, 'Weather service unavailable'],
+    ['network', { ...mockSnapshot.build(), asOf: '', weatherCode: -1, temperatureC: null, unavailable: 'network' }, 'No connection'],
+    ['an older service', { ...mockSnapshot.build(), asOf: '', weatherCode: -1, temperatureC: null }, 'Weather unavailable'],
+  ])('says why there is no weather on %s', async (_name, snap, message) => {
+    vi.mocked(fetchService).mockResolvedValueOnce(snap);
+    render(<WeatherWidget widget={weatherWidget('2x2')} />);
+    expect(await screen.findByText(message)).toBeInTheDocument();
   });
 });

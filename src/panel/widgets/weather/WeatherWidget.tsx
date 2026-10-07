@@ -9,6 +9,7 @@ import { Spinner } from '../../../components/common/Spinner/Spinner';
 import { WidgetOfflineState } from '../common/WidgetOfflineState';
 import { widgetSpinnerSize } from '../common/widgetSpinnerSize';
 import type { WidgetProps } from '../types';
+import { weatherProblem, WEATHER_PROBLEM_ICON, WEATHER_PROBLEM_KEY } from './weatherProblem';
 import { formatWeatherHour, weatherConditionKey } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
 import { DAY_LABEL_KEYS, dailyMax, dailyMin, formatTemp, hourlyTemp, resolveUnit, upcomingHours } from './weatherFormat';
@@ -73,8 +74,15 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
   // An empty asOf is the service's "no data at all" marker (upstream
   // unreachable and no cached reading worth serving), so the tile says so
   // instead of drawing an unknown-condition glyph over placeholder readings.
-  if (!snap || !snap.asOf) {
-    return <WidgetOfflineState compact={size === '1x1'} />;
+  const problem = weatherProblem(snap, loaded);
+  if (problem || !snap) {
+    return (
+      <WidgetOfflineState
+        compact={size === '1x1'}
+        label={t(WEATHER_PROBLEM_KEY[problem ?? 'unknown'])}
+        icon={WEATHER_PROBLEM_ICON[problem ?? 'unknown']}
+      />
+    );
   }
 
   const now = referenceNow || 0;

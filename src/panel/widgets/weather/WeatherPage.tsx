@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { ChipGroup } from '../../../components/common/ChipGroup/ChipGroup';
 import { SectionHeader } from '../../../components/common/SectionHeader/SectionHeader';
 import { ViewHeader } from '../../../components/common/ViewHeader/ViewHeader';
@@ -13,6 +14,7 @@ import { useWallClock } from './useWallClock';
 import { useWeatherPrefs } from './useWeatherPrefs';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
 import { resolveUnit } from './weatherFormat';
+import { weatherProblem, WEATHER_PROBLEM_ICON, WEATHER_PROBLEM_KEY } from './weatherProblem';
 import styles from './WeatherPage.module.scss';
 
 const UNIT_KEYS: WeatherUnitPref[] = ['auto', 'C', 'F'];
@@ -31,6 +33,8 @@ export function WeatherPage() {
   const { snap, loaded } = useWeatherSnapshot(selected.location);
   const unit = resolveUnit(prefs.unit, selected.location?.cc ?? snap?.countryCode);
   const now = useWallClock();
+  const problem = weatherProblem(snap, loaded);
+  const ProblemIcon = WEATHER_PROBLEM_ICON[problem ?? 'unknown'];
 
   // A removed place falls back to the auto entry.
   useEffect(() => {
@@ -71,15 +75,24 @@ export function WeatherPage() {
           />
         </aside>
         <section className={styles.detail} data-panel-scrollable="true">
-          <WeatherHero
-            snap={snap}
-            loaded={loaded}
-            unit={unit}
-            label={selected.location ? selected.location.label : (snap?.locationLabel || t('panel.widget.weather.myLocation'))}
-          />
-          <WeatherHourlyStrip snap={snap} unit={unit} />
-          <WeatherDailyList snap={snap} unit={unit} />
-          <WeatherDetailTiles snap={snap} unit={unit} nowMs={now} />
+          {problem ? (
+            <EmptyState
+              icon={<ProblemIcon />}
+              title={t(WEATHER_PROBLEM_KEY[problem])}
+            />
+          ) : (
+            <>
+              <WeatherHero
+                snap={snap}
+                loaded={loaded}
+                unit={unit}
+                label={selected.location ? selected.location.label : (snap?.locationLabel || t('panel.widget.weather.myLocation'))}
+              />
+              <WeatherHourlyStrip snap={snap} unit={unit} />
+              <WeatherDailyList snap={snap} unit={unit} />
+              <WeatherDetailTiles snap={snap} unit={unit} nowMs={now} />
+            </>
+          )}
         </section>
       </div>
     </div>

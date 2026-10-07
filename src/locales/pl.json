@@ -4012,6 +4012,7 @@
   "panel.widget.weather.precipitation": "Opady",
   "panel.widget.weather.pressure": "Ciśnienie",
   "panel.widget.weather.removeLocation": "Usuń {location}",
+  "panel.widget.weather.serviceUnavailable": "Usługa pogodowa niedostępna",
   "panel.widget.weather.settings.animatedSky": "Animowane niebo",
   "panel.widget.weather.settings.animatedSkyDescription": "Pokazuje bieżącą pogodę i porę dnia jako ruchome niebo za widżetem.",
   "panel.widget.weather.settings.auto": "Automatycznie",

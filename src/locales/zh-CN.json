@@ -3970,6 +3970,7 @@
   "panel.widget.weather.precipitation": "降水量",
   "panel.widget.weather.pressure": "气压",
   "panel.widget.weather.removeLocation": "移除{location}",
+  "panel.widget.weather.serviceUnavailable": "天气服务不可用",
   "panel.widget.weather.settings.animatedSky": "动态天空",
   "panel.widget.weather.settings.animatedSkyDescription": "在小组件背后以动态天空呈现当前天气和时段。",
   "panel.widget.weather.settings.auto": "自动",

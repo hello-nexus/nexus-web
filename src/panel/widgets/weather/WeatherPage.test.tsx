@@ -45,6 +45,9 @@ vi.mock('../../../lib/i18n', () => {
     'panel.widget.weather.settings.auto': 'Auto',
     'panel.widget.weather.settings.temperature': 'Temperature',
     'panel.widget.weather.settings.searchLocation': 'Search for a city...',
+    'panel.widget.weather.noData': 'Weather unavailable',
+    'panel.widget.weather.serviceUnavailable': 'Weather service unavailable',
+    'panel.widget.offline': 'No connection',
     'datepicker.today': 'Today',
     'common.loading': 'Loading...',
   };
@@ -188,6 +191,47 @@ describe('WeatherPage', () => {
     fireEvent.click(screen.getByRole('radio', { name: '°F' }));
     await flush();
     expect(api.saveWeatherPrefs).toHaveBeenCalledWith({ unit: 'F' });
+  });
+});
+
+const EMPTY: WeatherSnapshot = {
+  temperatureC: null, temperatureF: null, weatherCode: -1, condition: '',
+  humidityPct: null, windKph: null, locationLabel: '', asOf: '',
+};
+
+describe('WeatherPage without a forecast', () => {
+  beforeEach(() => {
+    resetWeatherPrefsStore();
+    resetWeatherSnapshotCache();
+    api.fetchWeatherPrefs.mockReset().mockResolvedValue({ unit: 'auto', locations: [BERLIN] });
+    api.saveWeatherPrefs.mockReset();
+  });
+
+  it.each([
+    ['service', { ...EMPTY, unavailable: 'service' as const }, 'Weather service unavailable'],
+    ['network', { ...EMPTY, unavailable: 'network' as const }, 'No connection'],
+    ['an older service', EMPTY, 'Weather unavailable'],
+    ['no answer', null, 'Weather unavailable'],
+  ])('names the problem on %s and drops the forecast sections', async (_name, snap, message) => {
+    api.fetchWeather.mockReset().mockResolvedValue(snap);
+    render(<WeatherPage />);
+    await flush();
+    const detail = document.querySelector('section') as HTMLElement;
+    expect(within(detail).getByText(message)).toBeInTheDocument();
+    expect(within(detail).queryByText('Air quality')).toBeNull();
+    // Rail rows say it too, and the saved places stay usable.
+    const rows = within(screen.getByRole('listbox', { name: 'Locations' })).getAllByRole('option');
+    expect(rows).toHaveLength(2);
+    expect(within(rows[0]).getByText(message)).toBeInTheDocument();
+  });
+
+  it('shows no problem for a snapshot with data', async () => {
+    api.fetchWeather.mockReset().mockResolvedValue(snapshot('Trieste, IT', 22));
+    render(<WeatherPage />);
+    await flush();
+    expect(screen.queryByText('Weather service unavailable')).toBeNull();
+    expect(screen.queryByText('Weather unavailable')).toBeNull();
+    expect(screen.getByText('Air quality')).toBeInTheDocument();
   });
 });
 

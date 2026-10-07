@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import type { WeatherLocation } from '../../../api/weather';
+import { WidgetOfflineState } from '../common/WidgetOfflineState';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import type { WidgetProps } from '../types';
 import { WeatherDailyList } from './WeatherDailyList';
@@ -11,6 +12,7 @@ import { useWallClock } from './useWallClock';
 import { useWeatherSnapshot } from './useWeatherSnapshot';
 import { WeatherSky } from './sky/WeatherSky';
 import { resolveUnit } from './weatherFormat';
+import { weatherProblem, WEATHER_PROBLEM_ICON, WEATHER_PROBLEM_KEY } from './weatherProblem';
 import styles from './WeatherTouch.module.scss';
 
 // The tile's own place, three 4x4 cells: conditions + hourly, the daily list,
@@ -24,6 +26,11 @@ export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
   const now = useWallClock();
   const tiles = useWeatherDetailTiles(snap, unit, now).filter(tile => tile.key !== 'feels');
   const label = location ? location.label : (snap?.locationLabel || t('panel.widget.weather.myLocation'));
+
+  const problem = weatherProblem(snap, loaded);
+  if (problem) {
+    return <WidgetOfflineState label={t(WEATHER_PROBLEM_KEY[problem])} icon={WEATHER_PROBLEM_ICON[problem]} />;
+  }
 
   const cells: ReactNode[] = [
     <div key="hero" className={`${styles.cell} ${styles.grow}`}>

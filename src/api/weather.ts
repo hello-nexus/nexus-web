@@ -102,6 +102,10 @@ export interface WeatherSnapshot {
   // Provider-local wall-clock of the current reading, no offset suffix.
   localTime?: string;
   asOf: string;
+  // Set only on a snapshot with no forecast at all: 'service' = the provider
+  // answered with an error, 'network' = it could not be reached. Absent from
+  // an older service that still returns the empty snapshot.
+  unavailable?: 'service' | 'network';
   hourly?: WeatherHourlyForecast[];
   daily?: WeatherDailyForecast[];
 }
