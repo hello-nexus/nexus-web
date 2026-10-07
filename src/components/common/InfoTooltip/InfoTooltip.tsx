@@ -177,6 +177,8 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, ic
         aria-label={label}
         aria-describedby={tooltipId}
         onPointerDown={() => { pointerPressRef.current = true; }}
+        // A touch that turns into a scroll or long-press never clicks or focuses.
+        onPointerCancel={() => { pointerPressRef.current = false; }}
         onClick={() => {
           pointerPressRef.current = false;
           cancelPendingOpen();

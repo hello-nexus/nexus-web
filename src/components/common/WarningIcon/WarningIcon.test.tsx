@@ -28,6 +28,7 @@ describe('WarningIcon', () => {
     const btn = screen.getByRole('button', { name: 'Fan can stop' });
     for (const expectOpen of [true, false]) {
       fireEvent.pointerDown(btn, { pointerType: 'touch' });
+      fireEvent.pointerUp(btn, { pointerType: 'touch' });
       fireEvent.mouseDown(btn);
       if (expectOpen) fireEvent.focus(btn);
       fireEvent.mouseUp(btn);
