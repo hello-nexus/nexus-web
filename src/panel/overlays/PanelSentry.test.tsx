@@ -44,7 +44,7 @@ const props = { enabled: true, resolvedThemeMode: 'dark' as const, themeStyle: {
 
 describe('PanelSentry', () => {
   beforeEach(() => {
-    vi.mocked(registerPhonePush).mockResolvedValue({});
+    vi.mocked(registerPhonePush).mockResolvedValue(200);
     vi.mocked(fetchSentry).mockResolvedValue(state({}));
   });
 
@@ -124,16 +124,42 @@ describe('PanelSentry', () => {
   it('retries the registration on the next poll until a PUT succeeds, then claims alerts on', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      vi.mocked(registerPhonePush).mockResolvedValueOnce(null).mockResolvedValue({});
+      vi.mocked(registerPhonePush).mockResolvedValueOnce(0).mockResolvedValueOnce(503).mockResolvedValue(200);
       installBridge({ platform: 'ios', permission: 'granted', token: 'ab12', environment: 'production' });
       render(<PanelSentry {...props} />);
       await screen.findByText('sentry.card.arm');
       expect(registerPhonePush).toHaveBeenCalledTimes(1);
       expect(screen.queryByText('sentry.card.alertsOn')).toBeNull();
       await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
-      await screen.findByText('sentry.card.alertsOn');
       expect(registerPhonePush).toHaveBeenCalledTimes(2);
+      expect(screen.queryByText('sentry.card.alertsOn')).toBeNull();
       await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      await screen.findByText('sentry.card.alertsOn');
+      expect(registerPhonePush).toHaveBeenCalledTimes(3);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      expect(registerPhonePush).toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stops retrying after a 4xx until the registration changes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(registerPhonePush).mockResolvedValue(400);
+      installBridge({ platform: 'ios', permission: 'granted', token: 'one', environment: 'production' });
+      render(<PanelSentry {...props} />);
+      await screen.findByText('sentry.card.arm');
+      await act(async () => { await vi.advanceTimersByTimeAsync(11000); });
+      expect(registerPhonePush).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('sentry.card.alertsOn')).toBeNull();
+      vi.mocked(registerPhonePush).mockResolvedValue(200);
+      act(() => {
+        window.dispatchEvent(new CustomEvent('nexus:push-status', {
+          detail: { platform: 'ios', permission: 'granted', token: 'two', environment: 'production' },
+        }));
+      });
+      await screen.findByText('sentry.card.alertsOn');
       expect(registerPhonePush).toHaveBeenCalledTimes(2);
     } finally {
       vi.useRealTimers();

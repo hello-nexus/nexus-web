@@ -38,11 +38,12 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
     if (!json || sentRef.current === json || pushingRef.current) return;
     pushingRef.current = true;
     try {
-      const res = await registerPhonePush(JSON.parse(json)).catch(() => null);
-      if (res && registrationRef.current === json) {
-        sentRef.current = json;
-        setRegistered(true);
-      }
+      const status = await registerPhonePush(JSON.parse(json)).catch(() => 0);
+      if (registrationRef.current !== json) return;
+      // Transport failures and 5xx retry on the next tick; a 4xx is final until the registration changes.
+      if (status === 0 || status >= 500) return;
+      sentRef.current = json;
+      if (status >= 200 && status < 300) setRegistered(true);
     } finally {
       pushingRef.current = false;
     }

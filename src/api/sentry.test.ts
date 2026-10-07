@@ -60,4 +60,14 @@ describe('registerPhonePush', () => {
     expect(init.method).toBe('PUT');
     expect(JSON.parse(init.body as string).body).toBe('Someone is using {pc}');
   });
+
+  it('returns the HTTP status, and 0 on a transport failure', async () => {
+    const reg = { platform: 'ios' as const, token: 'abc', environment: 'production' as const, title: 'Sentry', body: 'x {pc}' };
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(200, {})));
+    expect(await registerPhonePush(reg)).toBe(200);
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(400, {})));
+    expect(await registerPhonePush(reg)).toBe(400);
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
+    expect(await registerPhonePush(reg)).toBe(0);
+  });
 });

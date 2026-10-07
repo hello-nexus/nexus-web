@@ -1,4 +1,4 @@
-import { authFetchWithStatus, deleteService, fetchService, postService, putService } from './service';
+import { authFetchWithStatus, deleteService, fetchService, postService } from './service';
 import type { NativePushStatus } from '../panel/device/panelNativeBridge';
 
 export interface SentryState {
@@ -41,7 +41,10 @@ export async function armSentry(lock: boolean): Promise<SentryArmResult> {
 
 export const disarmSentry = () => postService<SentryState>('/sentry/disarm', {});
 
-export const registerPhonePush = (registration: PhonePushRegistration) =>
-  putService<unknown>('/panel/phone/push', registration);
+// HTTP status of the PUT; 0 is a transport failure.
+export async function registerPhonePush(registration: PhonePushRegistration): Promise<number> {
+  const { status } = await authFetchWithStatus('/panel/phone/push', { method: 'PUT', body: registration });
+  return status;
+}
 
 export const clearPhonePush = () => deleteService<unknown>('/panel/phone/push');
