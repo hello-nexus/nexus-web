@@ -138,7 +138,7 @@ describe('CoolingTouch curve save lint', () => {
       .toBeLessThan(vi.mocked(healCooling).mock.invocationCallOrder[0]);
     // What changed is shown, with Undo.
     expect(await screen.findByText('cooling.guard.heal.title')).toBeTruthy();
-    expect(screen.getByText('cooling.guard.hazard.manualLow')).toBeTruthy();
+    expect(screen.getByText('cooling.guard.heal.was.manualLow')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.undo' }));
     await waitFor(() => expect(undoHeal).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());

@@ -54,8 +54,16 @@ export function hazardText(
 export const lintLines = (hazards: CurveHazard[], t: Translate): string[] =>
   hazards.map(h => hazardText(h.channelName, h.kind, h.rootName, t));
 
+const HEAL_WAS_KEYS: Record<string, string> = {
+  'follows-stoppable-source': 'cooling.guard.heal.was.followsSource',
+  'non-cpu-sensor': 'cooling.guard.heal.was.nonCpuSensor',
+  'low-ceiling': 'cooling.guard.heal.was.lowCeiling',
+  'manual-low': 'cooling.guard.heal.was.manualLow',
+};
+
+/** One line per healed channel, stating the problem it HAD (past tense); an unknown kind is just the name. */
 export const healLines = (channels: HealChannel[], t: Translate): string[] =>
-  channels.map(c => hazardText(c.name, c.hazard, null, t));
+  channels.map(c => (HEAL_WAS_KEYS[c.hazard] ? t(HEAL_WAS_KEYS[c.hazard], { name: c.name }) : c.name));
 
 /** Stable key for a hazard set, so a save that repeats an already-acknowledged warning does not ask again. */
 export const hazardSignature = (hazards: CurveHazard[]): string =>

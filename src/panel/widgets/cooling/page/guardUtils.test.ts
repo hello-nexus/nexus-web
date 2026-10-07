@@ -51,7 +51,7 @@ describe('hazard text', () => {
 
   it('builds a line per hazard and per healed channel', () => {
     expect(lintLines([h], t)).toHaveLength(1);
-    expect(healLines([{ id: 'a', name: 'Fan #1', hazard: 'manual-low' }], t)[0]).toContain('hazard.manualLow');
+    expect(healLines([{ id: 'a', name: 'Fan #1', hazard: 'manual-low' }], t)[0]).toContain('heal.was.manualLow');
   });
 
   it('signs a hazard set independent of order', () => {
@@ -69,5 +69,30 @@ describe('latestError', () => {
     expect(latestError(newer, older)).toBe('newer');
     expect(latestError(null, older)).toBe('older');
     expect(latestError(null, null)).toBeNull();
+  });
+});
+
+describe('healLines', () => {
+  // Echoes the key and its variables so the assertions see both.
+  const echo = (key: string, vars?: Record<string, string | number>) =>
+    vars ? `${key}|${Object.entries(vars).map(([k, v]) => `${k}=${v}`).join(',')}` : key;
+
+  it('states each previous problem in past tense, one key per hazard kind', () => {
+    const lines = healLines([
+      { id: '1', name: 'A', hazard: 'manual-low' },
+      { id: '2', name: 'B', hazard: 'follows-stoppable-source' },
+      { id: '3', name: 'C', hazard: 'non-cpu-sensor' },
+      { id: '4', name: 'D', hazard: 'low-ceiling' },
+    ], echo);
+    expect(lines).toEqual([
+      'cooling.guard.heal.was.manualLow|name=A',
+      'cooling.guard.heal.was.followsSource|name=B',
+      'cooling.guard.heal.was.nonCpuSensor|name=C',
+      'cooling.guard.heal.was.lowCeiling|name=D',
+    ]);
+  });
+
+  it('shows just the name for an unknown kind', () => {
+    expect(healLines([{ id: '9', name: 'Fan #9', hazard: 'something-new' }], echo)).toEqual(['Fan #9']);
   });
 });

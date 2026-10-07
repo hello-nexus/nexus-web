@@ -66,7 +66,7 @@ describe('ThermalGuardPanel', () => {
       heal: { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'a', name: 'Fan #2', hazard: 'manual-low' }] },
     };
     render(<ThermalGuardPanel guard={guard} onUndo={onUndo} onKeep={() => {}} />);
-    expect(screen.getByText('cooling.guard.hazard.manualLow')).toBeTruthy();
+    expect(screen.getByText('cooling.guard.heal.was.manualLow')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.undo' }));
     expect(onUndo).toHaveBeenCalled();
   });
