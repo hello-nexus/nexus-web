@@ -10,7 +10,7 @@ interface ThermalGuardPanelProps {
   guard: GuardResponse | null;
   onUndo: () => void;
   onKeep: () => void;
-  /** A failed save, heal, undo or toggle, shown inline. */
+  /** A failed save, undo or toggle, shown inline. */
   error?: string | null;
 }
 
@@ -57,7 +57,7 @@ export function GuardError({ message, className }: { message: string; className?
  */
 export function ThermalGuardPanel({ guard, onUndo, onKeep, error = null }: ThermalGuardPanelProps) {
   const { t } = useTranslation();
-  // Save and heal failures do not depend on the guard having loaded.
+  // Save failures do not depend on the guard having loaded.
   const errorNode = error ? <GuardError message={error} /> : null;
   if (!guard || !guardEnabled(guard)) return errorNode && <div className={styles.panel}>{errorNode}</div>;
 

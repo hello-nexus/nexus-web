@@ -127,16 +127,16 @@ describe('CoolingTouch curve save and hazards', () => {
     svc.hazards = [hazard];
     render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
-    const icon = await screen.findByRole('img', { name: /cooling\.guard\.hazard\.followsSource/ });
+    const icon = await screen.findByRole('button', { name: /cooling\.guard\.hazard\.followsSource/ });
     expect(icon).toBeTruthy();
-    expect(screen.getAllByRole('img', { name: /cooling\.guard\.hazard\.followsSource/ })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /cooling\.guard\.hazard/ })).toHaveLength(1);
   });
 
   it('shows no triangle without hazards', async () => {
     render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
     fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
     await screen.findByText('Case Fan');
-    expect(screen.queryByRole('img', { name: /cooling\.guard\.hazard/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /cooling\.guard\.hazard/ })).toBeNull();
   });
 
   it('Keep calls the route for a held heal', async () => {

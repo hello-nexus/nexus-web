@@ -116,13 +116,13 @@ describe('CoolingPage thermal guard', () => {
   it('flags a hazardous fan with a warning triangle that carries the reason', async () => {
     svc.hazards = [hazard];
     renderAdvanced();
-    expect(await screen.findByRole('img', { name: /cooling\.guard\.hazard\.followsSource/ })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /cooling\.guard\.hazard\.followsSource/ })).toBeTruthy();
   });
 
   it('shows no triangle without hazards', async () => {
     renderAdvanced();
     await screen.findByText('1,400');
-    expect(screen.queryByRole('img', { name: /cooling\.guard\.hazard/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /cooling\.guard\.hazard/ })).toBeNull();
   });
 
   it('renders no guard switch on the Cooling page', async () => {

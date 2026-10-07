@@ -132,14 +132,14 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const { t, language } = useTranslation();
   const recovery = useFirmwareRecoveryFlow(serviceOnline);
   const thermalGuard = useThermalGuard(serviceOnline);
-  const { save: saveCurveBody, error: lintError } = useCurveSave();
+  const { save: saveCurveBody, error: saveError } = useCurveSave();
   const hazardByFan = useMemo(() => hazardMessages(thermalGuard.guard?.hazards, t), [thermalGuard.guard?.hazards, t]);
   const guardPanel = (
     <ThermalGuardPanel
       guard={thermalGuard.guard}
       onUndo={() => { void thermalGuard.undo(); }}
       onKeep={() => { void thermalGuard.keep(); }}
-      error={latestError(lintError, thermalGuard.error)}
+      error={latestError(saveError, thermalGuard.error)}
     />
   );
   const recoveryBanner = (

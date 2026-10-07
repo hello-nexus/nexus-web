@@ -366,11 +366,15 @@ function PreviewWarningIcon() {
     <div className={styles.previewStack}>
       <div className={styles.previewHoverCard}>
         <span>Fan 1</span>
-        <WarningIcon message="Fan 1 is set to a low fixed speed" tone="critical" />
+        <WarningIcon message="Fan 1 is set to a low fixed speed" />
       </div>
       <div className={styles.previewHoverCard}>
-        <span>Warning tone</span>
-        <WarningIcon message="Something worth a look" />
+        <span>Critical tone</span>
+        <WarningIcon message="The CPU is over its limit. Cooling needs your attention now." tone="critical" />
+      </div>
+      <div className={styles.previewHoverCard}>
+        <span>Bare, inside a button</span>
+        <WarningIcon bare message="Hover only, for use inside a button" />
       </div>
     </div>
   );
@@ -2556,9 +2560,9 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'WarningIcon', category: 'status',
     filePath: 'src/components/common/WarningIcon/WarningIcon.tsx',
-    description: 'Warning triangle that explains the problem in a hover tooltip. Sits next to the element it flags (the cooling FanCard name, via DeviceWarningIcon on device rows) instead of a banner or dialog, so it is reserved for what really matters. Two tones match the Notice standard: warning (default, --warn) and critical (--bad, for hardware at risk).',
+    description: 'Warning triangle that explains the problem in a tooltip. Sits next to the element it flags (the cooling FanCard name) instead of a banner or dialog. Two tones match the Notice standard: warning (default, --warn) and critical (--bad, only for what the user must act on).',
     Preview: PreviewWarningIcon,
-    notes: 'A bare non-focusable span with role="img" and an aria-label of the message, so it can sit inside a card or button. The tooltip opens on hover only, so it is not reachable on a touch screen; keep the same fact elsewhere when touch users must see it.',
+    notes: 'The default is a focusable InfoTooltip trigger: it opens on mouse hover and on focus, toggles on tap or click, and a click does not reach a clickable ancestor, so it works on touch panels and for keyboard users. Pass `bare` for a non-focusable, hover-only span with role="img" that can sit inside a button or card that is itself the control (DeviceWarningIcon does).',
   },
   {
     name: 'DeviceGroupIcon', category: 'status',

@@ -28,6 +28,18 @@
   }
 }
 
+.warning,
+.warning:hover,
+.warning:focus-visible {
+  color: var(--warn);
+}
+
+.critical,
+.critical:hover,
+.critical:focus-visible {
+  color: var(--bad);
+}
+
 // Rendered into a portal on document.body. position: fixed against the
 // viewport with top/left/transform set inline by the JS reposition logic.
 // Shares the body-only treatment with HoverTooltip.

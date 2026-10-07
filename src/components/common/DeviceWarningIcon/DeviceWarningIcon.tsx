@@ -24,5 +24,5 @@ export function DeviceWarningIcon({ code, className }: DeviceWarningIconProps) {
   const { t } = useTranslation();
   const key = WARNING_MESSAGE_KEYS[code];
   const message = key ? t(key) : code;
-  return <WarningIcon message={message} className={`${styles.icon} ${className ?? ''}`} />;
+  return <WarningIcon bare message={message} className={`${styles.icon} ${className ?? ''}`} />;
 }

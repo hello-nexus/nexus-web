@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Info } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
@@ -14,6 +14,10 @@ interface InfoTooltipProps {
   /** Preferred side. Default 'bottom'. */
   side?: 'top' | 'bottom' | 'right' | 'left';
   className?: string;
+  /** Replaces the default info glyph. */
+  icon?: ReactNode;
+  /** Colours the glyph for a warning or critical flag; absent keeps the neutral info look. */
+  tone?: 'warning' | 'critical';
 }
 
 const OFFSET = 8;
@@ -28,7 +32,7 @@ const VIEWPORT_MARGIN = 8;
  * Rendered into a portal on document.body so ancestor `overflow: auto`
  * containers (e.g. App's scrollable content column) can't clip it.
  */
-export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: InfoTooltipProps) {
+export function InfoTooltip({ message, ariaLabel, side = 'bottom', className, icon, tone }: InfoTooltipProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
@@ -167,7 +171,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
     <span ref={rootRef} className={`${styles.root} ${open ? styles.open : ''} ${className ?? ''}`}>
       <button type="button"
         ref={triggerRef}
-        className={styles.trigger}
+        className={`${styles.trigger}${tone ? ` ${styles[tone]}` : ''}`}
         aria-label={label}
         aria-describedby={tooltipId}
         onClick={() => {
@@ -185,7 +189,7 @@ export function InfoTooltip({ message, ariaLabel, side = 'bottom', className }: 
           cancelPendingClose(); cancelPendingOpen(); setOpen(true); openedRef.current = true; notifyTooltipOpen();
         }}
         onBlur={() => scheduleClose()}>
-        <Info size={14} strokeWidth={1.8} aria-hidden />
+        {icon ?? <Info size={14} strokeWidth={1.8} aria-hidden />}
       </button>
       {open && createPortal(
         // Rendered as soon as it opens (hidden until the layout effect measures

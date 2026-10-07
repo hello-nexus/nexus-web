@@ -108,7 +108,7 @@ export interface CoolingImmersiveController {
  */
 export function useCoolingImmersive(): CoolingImmersiveController {
   const thermalGuard = useThermalGuard(true);
-  const { save: saveCurveBody, error: lintError } = useCurveSave({
+  const { save: saveCurveBody, error: saveError } = useCurveSave({
     onSaved: () => { thermalGuard.clearError(); },
   });
   const refreshRef = useRef<() => Promise<void>>(async () => {});
@@ -642,7 +642,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
     keepHeal: () => {
       void thermalGuard.keep();
     },
-    error: latestError(lintError, thermalGuard.error),
+    error: latestError(saveError, thermalGuard.error),
     channels, sources, curves, fanStates, activeMode, hubModes,
     canAddCurve: curves.length < MAX_CURVES,
     selectedCurveId,

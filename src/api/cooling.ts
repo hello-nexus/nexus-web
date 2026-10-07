@@ -338,7 +338,7 @@ export interface GuardResponse {
   heal: HealState;
   /** The engine watchdog handed the fans to the BIOS and stays latched until a restart or a guard off/on. */
   watchdogLatched?: boolean;
-  /** Whether saves warn about hazardous fan setups; absent on an older service (treat as on). */
+  /** Whether fans that can stop while the CPU is hot are flagged; absent on an older service (treat as on). */
   lintWarnings?: boolean;
   /** Critical hazards in the saved config; empty while warnings are off. Absent on an older service. */
   hazards?: CurveHazard[];

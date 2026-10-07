@@ -1,28 +1,55 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { WarningIcon } from './WarningIcon';
 
 describe('WarningIcon', () => {
-  it('labels the icon with the message', () => {
+  it('is a focusable button labelled with the message', () => {
     render(<WarningIcon message="Fan can stop" />);
-    expect(screen.getByRole('img', { name: 'Fan can stop' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fan can stop' })).toBeInTheDocument();
   });
 
-  it('shows the message in a tooltip when the icon is reached', () => {
+  it('toggles the tooltip on tap', () => {
     render(<WarningIcon message="Fan can stop" />);
-    fireEvent.focus(screen.getByRole('img', { name: 'Fan can stop' }));
+    const btn = screen.getByRole('button', { name: 'Fan can stop' });
+    fireEvent.click(btn);
     expect(screen.getByRole('tooltip')).toHaveTextContent('Fan can stop');
+    fireEvent.click(btn);
+    expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
-  it('defaults to the warning tone and switches to critical', () => {
+  it('opens when focused from the keyboard', () => {
+    render(<WarningIcon message="Fan can stop" />);
+    fireEvent.focus(screen.getByRole('button', { name: 'Fan can stop' }));
+    expect(screen.getByRole('tooltip')).toBeInTheDocument();
+  });
+
+  it('keeps a click from reaching a clickable ancestor', () => {
+    const onCard = vi.fn();
+    render(<div onClick={onCard}><WarningIcon message="Fan can stop" /></div>);
+    fireEvent.click(screen.getByRole('button', { name: 'Fan can stop' }));
+    expect(onCard).not.toHaveBeenCalled();
+  });
+
+  it('applies the tone class', () => {
     const { rerender } = render(<WarningIcon message="m" />);
-    expect(screen.getByRole('img').className).toContain('warning');
+    expect(screen.getByRole('button').className).toContain('warning');
     rerender(<WarningIcon message="m" tone="critical" />);
-    expect(screen.getByRole('img').className).toContain('critical');
+    expect(screen.getByRole('button').className).toContain('critical');
   });
 
-  it('passes a class through to the icon', () => {
-    render(<WarningIcon message="m" className="extra" />);
-    expect(screen.getByRole('img').className).toContain('extra');
+  describe('bare', () => {
+    it('is a non-focusable image span, not a button', () => {
+      render(<WarningIcon bare message="Fan can stop" />);
+      expect(screen.getByRole('img', { name: 'Fan can stop' })).toBeInTheDocument();
+      expect(screen.queryByRole('button')).toBeNull();
+    });
+
+    it('defaults to the warning tone, switches to critical and passes a class', () => {
+      const { rerender } = render(<WarningIcon bare message="m" />);
+      expect(screen.getByRole('img').className).toContain('warning');
+      rerender(<WarningIcon bare message="m" tone="critical" className="extra" />);
+      expect(screen.getByRole('img').className).toContain('critical');
+      expect(screen.getByRole('img').className).toContain('extra');
+    });
   });
 });
