@@ -16,9 +16,12 @@ import styles from './LianLiWirelessDevicePage.module.scss';
 const TEXT_COLOR_PRESETS = ['#FFFFFF', '#FF0000', '#FF8000', '#FFFF00', '#00FF00', '#00FFFF', '#0000FF', '#FF00FF'] as const;
 
 type ReadingKey = 'showCpuTemp' | 'showCpuLoad' | 'showGpuTemp' | 'showGpuLoad' | 'showFanSpeed';
+const CYCLE = 'cycle';
+// Matches the service's AioLcdLoopIntervalMax.
+const LOOP_INTERVAL_MAX = 60;
 type ColorKey = 'labelColor' | 'valueColor' | 'unitColor';
 
-/** The screen of one bound HydroShift II: what it draws while Nexus drives the pump. */
+/** The screen of one bound HydroShift II: theme, brightness, readings and colours, applied as they change. */
 export function LianLiAioScreenSection({ mac }: { mac: string }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -48,6 +51,14 @@ export function LianLiAioScreenSection({ mac }: { mac: string }) {
     ['showGpuLoad', 'devices.lianli-wireless.aioScreen.gpuLoad'],
     ['showFanSpeed', 'devices.lianli-wireless.aioScreen.fanSpeed'],
   ];
+  // The firmware rotates through every enabled reading, so one enabled reading is a fixed display.
+  const enabled = readings.filter(([key]) => screen[key]).map(([key]) => key);
+  const shows = enabled.length === 1 ? enabled[0] : CYCLE;
+  const showsChange = (value: string) => {
+    const patch: LianLiAioScreenPatch = {};
+    for (const [key] of readings) patch[key] = value === CYCLE || key === value;
+    void commit(patch);
+  };
   const colors: [ColorKey, Parameters<typeof t>[0]][] = [
     ['labelColor', 'devices.lianli-wireless.aioScreen.labelColor'],
     ['valueColor', 'devices.lianli-wireless.aioScreen.valueColor'],
@@ -82,14 +93,39 @@ export function LianLiAioScreenSection({ mac }: { mac: string }) {
           label: t('devices.lianli-wireless.aioScreen.themeN', { n: i + 1 }),
         }))}
       />
-      {readings.map(([key, label]) => (
+      <SettingSelect
+        label={t('devices.lianli-wireless.aioScreen.shows')}
+        value={shows}
+        onChange={showsChange}
+        options={[
+          ...readings.map(([key, label]) => ({ value: key, label: t(label) })),
+          { value: CYCLE, label: t('devices.lianli-wireless.aioScreen.cycle') },
+        ]}
+      />
+      {shows === CYCLE && readings.map(([key, label]) => (
         <SettingToggle
           key={key}
           label={t(label)}
           checked={screen[key]}
+          // Cycling needs two readings; dropping to one is the dropdown's job.
+          disabled={screen[key] && enabled.length <= 2}
           onChange={on => { void commit({ [key]: on }); }}
         />
       ))}
+      {shows === CYCLE && (
+        <SettingSlider
+          editable
+          trackFill
+          label={t('devices.lianli-wireless.aioScreen.interval')}
+          value={screen.loopInterval}
+          min={1}
+          max={LOOP_INTERVAL_MAX}
+          step={1}
+          formatValue={v => localizeNumbers(t('devices.lianli-wireless.aioScreen.intervalValue', { n: v }), numberFormat)}
+          onChange={(v: number) => setScreen(prev => (prev ? { ...prev, loopInterval: v } : prev))}
+          onCommit={(v: number) => { void commit({ loopInterval: v }); }}
+        />
+      )}
       {colors.map(([key, label]) => (
         <SettingRow key={key} label={t(label)} stackOnNarrow>
           <ColorPickerWithPresets

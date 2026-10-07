@@ -154,6 +154,8 @@ export interface LianLiAioScreen {
   showGpuTemp: boolean;
   showGpuLoad: boolean;
   showFanSpeed: boolean;
+  /** Seconds each shown reading stays up before the screen moves to the next. */
+  loopInterval: number;
 }
 
 export type LianLiAioScreenPatch = Partial<Omit<LianLiAioScreen, 'themeCount'>>;

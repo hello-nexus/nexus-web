@@ -31,6 +31,7 @@ const saved = {
   showGpuTemp: true,
   showGpuLoad: true,
   showFanSpeed: false,
+  loopInterval: 3,
 };
 
 beforeEach(() => {
@@ -89,6 +90,53 @@ describe('LianLiAioScreenSection', () => {
       fireEvent.click(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.gpuLoad' }));
     });
     expect(screen.getByText('devices.lianli-wireless.aioScreen.title')).toBeInTheDocument();
+  });
+
+  it('picking one reading shows only it and hides the cycle list', async () => {
+    await renderSection();
+    expect(screen.getByText('devices.lianli-wireless.aioScreen.interval')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.aioScreen.shows' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.aioScreen.gpuTemp' }));
+    });
+    expect(mockSetLianLiAioScreen).toHaveBeenCalledWith('AABBCCDDEEFF', {
+      showCpuTemp: false, showCpuLoad: false, showGpuTemp: true, showGpuLoad: false, showFanSpeed: false,
+    });
+    expect(screen.queryByRole('switch', { name: 'devices.lianli-wireless.aioScreen.cpuTemp' })).not.toBeInTheDocument();
+    expect(screen.queryByText('devices.lianli-wireless.aioScreen.interval')).not.toBeInTheDocument();
+  });
+
+  it('a single saved reading shows in the dropdown, and Cycle turns every reading on', async () => {
+    mockGetLianLiAioScreen.mockResolvedValue({ ...saved, showCpuLoad: false, showGpuTemp: false, showGpuLoad: false });
+    await renderSection();
+    expect(screen.getByRole('button', { name: 'devices.lianli-wireless.aioScreen.shows' }))
+      .toHaveTextContent('devices.lianli-wireless.aioScreen.cpuTemp');
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.aioScreen.shows' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.aioScreen.cycle' }));
+    });
+    expect(mockSetLianLiAioScreen).toHaveBeenCalledWith('AABBCCDDEEFF', {
+      showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: true,
+    });
+  });
+
+  it('cycling keeps at least two readings on', async () => {
+    mockGetLianLiAioScreen.mockResolvedValue({ ...saved, showCpuLoad: false, showGpuLoad: false });
+    await renderSection();
+    expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.cpuTemp' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.gpuTemp' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.cpuLoad' })).not.toBeDisabled();
+  });
+
+  it('reloads every reading when the service refuses a Shows change', async () => {
+    mockSetLianLiAioScreen.mockResolvedValue(false);
+    await renderSection();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianli-wireless.aioScreen.shows' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('option', { name: 'devices.lianli-wireless.aioScreen.gpuTemp' }));
+    });
+    expect(mockGetLianLiAioScreen).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('switch', { name: 'devices.lianli-wireless.aioScreen.cpuTemp' })).toHaveAttribute('aria-checked', 'true');
   });
 
   it('renders nothing for an AIO the service does not know', async () => {
