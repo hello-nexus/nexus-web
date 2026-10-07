@@ -8,16 +8,18 @@ import styles from './ThermalGuardPanel.module.scss';
 interface ThermalGuardPanelProps {
   guard: GuardResponse | null;
   onUndo: () => void;
+  onKeep: () => void;
   /** A failed save, heal, undo or toggle, shown inline. */
   error?: string | null;
 }
 
-/** What a heal changed, with Undo. Shared by the cooling page and the immersive view. */
-export function HealNotice({ heal, onUndo, onDismiss, className }: {
+/** What a heal changed, with Undo and Keep. Shared by the cooling page and the immersive view. */
+export function HealNotice({ heal, onUndo, onKeep, className }: {
   heal: HealState;
-  /** Omit to hide Undo, e.g. once the service no longer holds an undo snapshot. */
+  /** Omit to hide Undo. */
   onUndo?: () => void;
-  onDismiss?: () => void;
+  /** Accepts the heal for good; Undo then has nothing left to restore. */
+  onKeep?: () => void;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -30,8 +32,10 @@ export function HealNotice({ heal, onUndo, onDismiss, className }: {
           {healLines(heal.channels, t).map((line, i) => <li key={heal.channels[i].id}>{line}</li>)}
         </ul>
       </div>
-      {onUndo && <Button type="button" size="sm" onClick={onUndo}>{t('cooling.guard.heal.undo')}</Button>}
-      {onDismiss && <Button type="button" size="sm" onClick={onDismiss}>{t('confirm.ok')}</Button>}
+      <div className={styles.healActions}>
+        {onUndo && <Button type="button" size="sm" tone="neutral" onClick={onUndo}>{t('cooling.guard.heal.undo')}</Button>}
+        {onKeep && <Button type="button" size="sm" tone="accent" onClick={onKeep}>{t('cooling.guard.heal.keep')}</Button>}
+      </div>
     </div>
   );
 }
@@ -51,7 +55,7 @@ export function GuardError({ message, className }: { message: string; className?
  * watchdog-latched banner, the post-heal notice with Undo, and inline errors.
  * The on/off switch lives in Settings. While the guard is off it shows nothing.
  */
-export function ThermalGuardPanel({ guard, onUndo, error = null }: ThermalGuardPanelProps) {
+export function ThermalGuardPanel({ guard, onUndo, onKeep, error = null }: ThermalGuardPanelProps) {
   const { t } = useTranslation();
   // Save and heal failures do not depend on the guard having loaded.
   const errorNode = error ? <GuardError message={error} /> : null;
@@ -75,7 +79,7 @@ export function ThermalGuardPanel({ guard, onUndo, error = null }: ThermalGuardP
           <span>{banner}</span>
         </div>
       )}
-      {heal && <HealNotice heal={heal} onUndo={onUndo} />}
+      {heal && <HealNotice heal={heal} onUndo={onUndo} onKeep={onKeep} />}
       {errorNode}
     </div>
   );

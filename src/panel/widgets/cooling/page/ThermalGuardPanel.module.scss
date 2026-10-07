@@ -55,3 +55,11 @@
   padding-left: 1.1rem;
   color: var(--text-dim);
 }
+
+.healActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}

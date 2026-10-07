@@ -13,6 +13,7 @@ const svc = vi.hoisted(() => ({
   } as Record<string, unknown>,
   hazards: [] as Array<Record<string, unknown>>,
   managed: false,
+  keepFails: false,
 }));
 
 vi.mock('../../../api/cooling', async (importOriginal) => {
@@ -64,10 +65,11 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
       undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-top', name: 'Top Fan', hazard: 'manual-low' }],
     })),
     undoHeal: vi.fn(async () => ({ undoAvailable: false, healedAtUtcMs: null, channels: [] })),
+    keepHeal: vi.fn(async () => (svc.keepFails ? null : { undoAvailable: false, healedAtUtcMs: null, channels: [] })),
   };
 });
 
-import { saveCurves, lintCurves, healCooling, undoHeal } from '../../../api/cooling';
+import { saveCurves, lintCurves, healCooling, undoHeal, keepHeal } from '../../../api/cooling';
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 
@@ -100,6 +102,7 @@ describe('CoolingPage thermal guard', () => {
     localStorage.clear();
     svc.hazards = [];
     svc.managed = false;
+    svc.keepFails = false;
     svc.guard = {
       state: 'normal', guardTempC: 55, limitC: 95, limitSource: 'spec', sinceUtcMs: null, lastTrip: null,
       heal: { undoAvailable: false, healedAtUtcMs: null, channels: [] },
@@ -206,6 +209,31 @@ describe('CoolingPage thermal guard', () => {
     svc.guard = { ...svc.guard, watchdogLatched: true };
     renderAdvanced();
     expect(await screen.findByText('cooling.guard.latched')).toBeTruthy();
+  });
+
+  const healedGuard = () => {
+    svc.guard = {
+      ...svc.guard,
+      heal: { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-top', name: 'Top Fan', hazard: 'manual-low' }] },
+    };
+  };
+
+  it('Keep calls the keep route and the notice clears', async () => {
+    healedGuard();
+    renderAdvanced();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.keep' }));
+    await waitFor(() => { expect(vi.mocked(keepHeal)).toHaveBeenCalled(); });
+    await waitFor(() => { expect(screen.queryByRole('button', { name: 'cooling.guard.heal.keep' })).toBeNull(); });
+    expect(screen.queryByRole('button', { name: 'cooling.guard.heal.undo' })).toBeNull();
+  });
+
+  it('a failed Keep shows an inline error and keeps the notice', async () => {
+    svc.keepFails = true;
+    healedGuard();
+    renderAdvanced();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.keep' }));
+    await screen.findByText('cooling.guard.error.keep');
+    expect(screen.getByRole('button', { name: 'cooling.guard.heal.keep' })).toBeTruthy();
   });
 
   it('Undo calls the undo route and clears the notice', async () => {

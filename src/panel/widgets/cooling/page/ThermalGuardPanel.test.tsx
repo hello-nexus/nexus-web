@@ -12,17 +12,17 @@ const base: GuardResponse = {
 
 describe('ThermalGuardPanel', () => {
   it('renders nothing before the guard loads', () => {
-    const { container } = render(<ThermalGuardPanel guard={null} onUndo={() => {}} />);
+    const { container } = render(<ThermalGuardPanel guard={null} onUndo={() => {}} onKeep={() => {}} />);
     expect(container.firstChild).toBeNull();
   });
 
   it('has no switch: the on/off control lives in Settings', () => {
-    render(<ThermalGuardPanel guard={{ ...base, state: 'floor' }} onUndo={() => {}} />);
+    render(<ThermalGuardPanel guard={{ ...base, state: 'floor' }} onUndo={() => {}} onKeep={() => {}} />);
     expect(screen.queryByRole('switch')).toBeNull();
   });
 
   it('shows nothing while normal', () => {
-    const { container } = render(<ThermalGuardPanel guard={base} onUndo={() => {}} />);
+    const { container } = render(<ThermalGuardPanel guard={base} onUndo={() => {}} onKeep={() => {}} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -31,17 +31,17 @@ describe('ThermalGuardPanel', () => {
       ...base, state: 'off',
       heal: { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'a', name: 'Fan #2', hazard: 'manual-low' }] },
     };
-    const { container } = render(<ThermalGuardPanel guard={guard} onUndo={() => {}} />);
+    const { container } = render(<ThermalGuardPanel guard={guard} onUndo={() => {}} onKeep={() => {}} />);
     expect(container.firstChild).toBeNull();
   });
 
   it('treats enabled false as off even while the state still reads normal', () => {
-    const { container } = render(<ThermalGuardPanel guard={{ ...base, enabled: false, watchdogLatched: true }} onUndo={() => {}} />);
+    const { container } = render(<ThermalGuardPanel guard={{ ...base, enabled: false, watchdogLatched: true }} onUndo={() => {}} onKeep={() => {}} />);
     expect(container.firstChild).toBeNull();
   });
 
   it('shows the latched banner when the watchdog handed the fans to the BIOS', () => {
-    render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true }} onUndo={() => {}} />);
+    render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true }} onUndo={() => {}} onKeep={() => {}} />);
     expect(screen.getByRole('alert').textContent).toContain('cooling.guard.latched');
   });
 
@@ -55,7 +55,7 @@ describe('ThermalGuardPanel', () => {
       ...base, state,
       lastTrip: reason ? { atUtcMs: 1, peakC: 99, reason, escalated: state === 'escalated' } : null,
     };
-    render(<ThermalGuardPanel guard={guard} onUndo={() => {}} />);
+    render(<ThermalGuardPanel guard={guard} onUndo={() => {}} onKeep={() => {}} />);
     expect(screen.getByRole('alert').textContent).toMatch(text);
   });
 
@@ -65,7 +65,7 @@ describe('ThermalGuardPanel', () => {
       ...base,
       heal: { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'a', name: 'Fan #2', hazard: 'manual-low' }] },
     };
-    render(<ThermalGuardPanel guard={guard} onUndo={onUndo} />);
+    render(<ThermalGuardPanel guard={guard} onUndo={onUndo} onKeep={() => {}} />);
     expect(screen.getByText('cooling.guard.hazard.manualLow')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.undo' }));
     expect(onUndo).toHaveBeenCalled();
@@ -73,13 +73,26 @@ describe('ThermalGuardPanel', () => {
 
   it('hides the heal notice once undo is no longer available', () => {
     const guard: GuardResponse = { ...base, heal: { undoAvailable: false, healedAtUtcMs: 1, channels: [{ id: 'a', name: 'Fan #2', hazard: 'manual-low' }] } };
-    render(<ThermalGuardPanel guard={guard} onUndo={() => {}} />);
+    render(<ThermalGuardPanel guard={guard} onUndo={() => {}} onKeep={() => {}} />);
     expect(screen.queryByRole('button', { name: 'cooling.guard.heal.undo' })).toBeNull();
   });
 
   it('shows an error even before the guard has loaded', () => {
-    render(<ThermalGuardPanel guard={null} error="save failed" onUndo={() => {}} />);
+    render(<ThermalGuardPanel guard={null} error="save failed" onUndo={() => {}} onKeep={() => {}} />);
     expect(screen.getByRole('alert').textContent).toBe('save failed');
     expect(screen.queryByRole('switch')).toBeNull();
+  });
+
+  it('offers Undo and Keep together, and Keep fires onKeep', () => {
+    const onKeep = vi.fn();
+    const guard: GuardResponse = {
+      ...base,
+      heal: { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'a', name: 'Fan #2', hazard: 'manual-low' }] },
+    };
+    render(<ThermalGuardPanel guard={guard} onUndo={() => {}} onKeep={onKeep} />);
+    const buttons = screen.getAllByRole('button').map(b => b.textContent);
+    expect(buttons).toEqual(['cooling.guard.heal.undo', 'cooling.guard.heal.keep']);
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.keep' }));
+    expect(onKeep).toHaveBeenCalled();
   });
 });

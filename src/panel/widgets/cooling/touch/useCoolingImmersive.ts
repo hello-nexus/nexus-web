@@ -59,7 +59,7 @@ export interface CoolingImmersiveController {
   /** The service still holds an undo snapshot for that heal. */
   undoAvailable: boolean;
   undoHeal: () => void;
-  dismissHealNotice: () => void;
+  keepHeal: () => void;
   /** A failed save, heal or undo, for inline display (the panel tree has no toast provider). */
   error: string | null;
   channels: FanChannel[];
@@ -650,9 +650,10 @@ export function useCoolingImmersive(): CoolingImmersiveController {
         void refreshRef.current();
       });
     },
-    dismissHealNotice: () => {
-      setHealNotice(null);
-      thermalGuard.clearError();
+    keepHeal: () => {
+      void thermalGuard.keep().then(ok => {
+        if (ok) setHealNotice(null);
+      });
     },
     error: latestError(lintError, thermalGuard.error),
     channels, sources, curves, fanStates, activeMode, hubModes,

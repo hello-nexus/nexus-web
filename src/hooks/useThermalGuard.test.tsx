@@ -6,7 +6,7 @@ import { useThermalGuard } from './useThermalGuard';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
-const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn() }));
+const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn(), keepHeal: vi.fn() }));
 
 vi.mock('../api/cooling', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/cooling')>()),
@@ -203,5 +203,23 @@ describe('useThermalGuard', () => {
     await screen.findByText('cooling.guard.error.limit');
     expect(screen.getByTestId('state').textContent).toContain('off');
     expect(screen.queryByText('cooling.guard.error.toggle')).toBeNull();
+  });
+
+  it('keep applies the returned heal and reports true', async () => {
+    mount();
+    api.keepHeal.mockResolvedValue({ undoAvailable: false, healedAtUtcMs: null, channels: [] });
+    let ok = false;
+    await act(async () => { ok = await handle.current!.keep(); });
+    expect(ok).toBe(true);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a failed keep sets an inline error and reports false', async () => {
+    mount();
+    api.keepHeal.mockResolvedValue(null);
+    let ok = true;
+    await act(async () => { ok = await handle.current!.keep(); });
+    expect(ok).toBe(false);
+    await screen.findByText('cooling.guard.error.keep');
   });
 });

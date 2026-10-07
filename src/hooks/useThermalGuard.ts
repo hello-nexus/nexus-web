@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchGuard, setGuardConfig, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
+import { fetchGuard, keepHeal, setGuardConfig, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
 import { useTranslation } from '../lib/i18n';
 import { newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -162,7 +162,20 @@ export function useThermalGuard(serviceOnline: boolean) {
     return true;
   }, [applyHeal]);
 
+  /** True when the heal was kept; a failed keep leaves the notice and sets `error`. */
+  const keep = useCallback(async (): Promise<boolean> => {
+    const heal = await keepHeal();
+    if (!heal) {
+      // Tagged like an Undo failure: it is moot once the snapshot is gone.
+      setError(newGuardError(tRef.current('cooling.guard.error.keep'), 'undo'));
+      return false;
+    }
+    setError(null);
+    applyHeal(heal);
+    return true;
+  }, [applyHeal]);
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, toggling, pendingLimit, error, toggleError, limitError, clearError, refresh, toggle, setLimit, clearLimit, undo, applyHeal };
+  return { guard, toggling, pendingLimit, error, toggleError, limitError, clearError, refresh, toggle, setLimit, clearLimit, undo, keep, applyHeal };
 }

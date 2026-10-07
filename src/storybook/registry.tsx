@@ -1438,7 +1438,7 @@ function PreviewThermalGuardPanel() {
   ];
   return (
     <div className={styles.previewStack} style={{ width: 560 }}>
-      {states.map((guard, i) => <ThermalGuardPanel key={i} guard={guard} onUndo={() => {}} />)}
+      {states.map((guard, i) => <ThermalGuardPanel key={i} guard={guard} onUndo={() => {}} onKeep={() => {}} />)}
     </div>
   );
 }
@@ -2609,7 +2609,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ThermalGuardPanel', category: 'cards',
     filePath: 'src/panel/widgets/cooling/page/ThermalGuardPanel.tsx',
-    description: 'Cooling page block for the CPU thermal guard: a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or handed them back to the BIOS (escalated), a banner when the engine watchdog latched the fans to the BIOS, and the post-heal notice with Undo. The switch lives in Settings. With the guard off the block shows nothing (last row).',
+    description: 'Cooling page block for the CPU thermal guard: a banner while the guard is raising fans (floor), has forced them to 100% (tripped) or handed them back to the BIOS (escalated), a banner when the engine watchdog latched the fans to the BIOS, and the post-heal notice with Undo and Keep (Keep is the primary action). The switch lives in Settings. With the guard off the block shows nothing (last row).',
     Preview: PreviewThermalGuardPanel,
   },
   {

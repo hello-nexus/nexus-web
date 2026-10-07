@@ -364,3 +364,6 @@ export const lintCurves = (body: { globalSpeedModifier: number; curves: WireCurv
 export const healCooling = () => postService<HealState>('/cooling/heal', {});
 
 export const undoHeal = () => postService<HealState>('/cooling/heal/undo', {});
+
+/** Accepts the heal for good: the service drops the undo snapshot and answers with undoAvailable false. */
+export const keepHeal = () => postService<HealState>('/cooling/heal/keep', {});

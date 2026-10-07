@@ -9,6 +9,7 @@ const svc = vi.hoisted(() => ({
   hazards: [] as Array<Record<string, unknown>>,
   undoAvailable: true,
   undoResult: 'ok' as 'ok' | 'fail',
+  keepResult: 'ok' as 'ok' | 'fail',
   managedFirst: false,
 }));
 
@@ -77,6 +78,7 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     lintCurves: vi.fn(async () => ({ hazards: svc.hazards, fixAvailable: svc.hazards.length > 0 })),
     healCooling: vi.fn(async () => ({ undoAvailable: svc.undoAvailable, healedAtUtcMs: 1, channels: [{ id: 'fan-case', name: 'Case Fan', hazard: 'manual-low' }] })),
     undoHeal: vi.fn(async () => (svc.undoResult === 'ok' ? { undoAvailable: false, healedAtUtcMs: null, channels: [] } : null)),
+    keepHeal: vi.fn(async () => (svc.keepResult === 'ok' ? { undoAvailable: false, healedAtUtcMs: null, channels: [] } : null)),
     fetchGuard: vi.fn(async () => ({
       state: 'normal', guardTempC: 50, limitC: 95, limitSource: 'spec', sinceUtcMs: null, lastTrip: null,
       heal: { undoAvailable: svc.undoAvailable, healedAtUtcMs: null, channels: [] },
@@ -89,7 +91,7 @@ vi.mock('../../../api/np50', async (importOriginal) => {
   return { ...original, getNp50ConnectionState: vi.fn(async () => null) };
 });
 
-import { saveCurves, healCooling, undoHeal } from '../../../api/cooling';
+import { saveCurves, healCooling, undoHeal, keepHeal } from '../../../api/cooling';
 
 const widget = { id: 'w-cooling', type: 'cooling', size: '4x4', col: 0, row: 0 } as PanelWidget;
 const hazard = {
@@ -109,6 +111,7 @@ describe('CoolingTouch curve save lint', () => {
     svc.hazards = [];
     svc.undoAvailable = true;
     svc.undoResult = 'ok';
+    svc.keepResult = 'ok';
     svc.managedFirst = false;
   });
 
@@ -156,10 +159,19 @@ describe('CoolingTouch curve save lint', () => {
     await screen.findByText('cooling.guard.heal.title');
   }
 
-  it('dismisses the heal notice', async () => {
+  it('Keep calls the route and clears the notice', async () => {
     await fixOnce();
-    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
-    expect(screen.queryByText('cooling.guard.heal.title')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.keep' }));
+    await waitFor(() => expect(keepHeal).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());
+  });
+
+  it('a failed Keep shows the inline error and keeps the notice', async () => {
+    svc.keepResult = 'fail';
+    await fixOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.keep' }));
+    await screen.findByText('cooling.guard.error.keep');
+    expect(screen.getByText('cooling.guard.heal.title')).toBeTruthy();
   });
 
   it('clears the heal notice on the next successful save', async () => {
@@ -170,10 +182,14 @@ describe('CoolingTouch curve save lint', () => {
     await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());
   });
 
-  it('offers Undo only while the service still holds a snapshot', async () => {
+  it('hides the notice once the service no longer holds a snapshot', async () => {
     svc.undoAvailable = false;
-    await fixOnce();
-    expect(screen.queryByRole('button', { name: 'cooling.guard.heal.undo' })).toBeNull();
+    svc.hazards = [hazard];
+    await triggerSave();
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
+    await waitFor(() => expect(healCooling).toHaveBeenCalled());
+    await act(async () => {});
+    expect(screen.queryByText('cooling.guard.heal.title')).toBeNull();
   });
 
   it('keeps the notice and shows an inline error when Undo fails', async () => {
@@ -188,15 +204,6 @@ describe('CoolingTouch curve save lint', () => {
     vi.mocked(saveCurves).mockResolvedValueOnce(null as never);
     await triggerSave();
     await screen.findByText('cooling.guard.error.save');
-  });
-
-  it('dismissing the notice also clears a failed-undo error', async () => {
-    svc.undoResult = 'fail';
-    await fixOnce();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.undo' }));
-    await screen.findByText('cooling.guard.error.undo');
-    fireEvent.click(screen.getByRole('button', { name: 'confirm.ok' }));
-    expect(screen.queryByText('cooling.guard.error.undo')).toBeNull();
   });
 
   it('a successful save clears a failed-undo error', async () => {
