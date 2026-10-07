@@ -1,7 +1,6 @@
 import { useTranslation } from '../../../lib/i18n';
 import { Card } from '../../../components/common/Card/Card';
 import type { WeatherSnapshot } from '../../../api/weather';
-import { weatherProblem, WEATHER_PROBLEM_KEY } from './weatherProblem';
 import { weatherConditionKey } from './weatherConditions';
 import { WeatherIcon } from './WeatherIcon';
 import { apparentTemp, currentTemp, dailyMax, dailyMin, formatTemp, type WeatherUnit } from './weatherFormat';
@@ -28,7 +27,6 @@ export function WeatherHero({ snap, loaded, unit, label, immersive }: WeatherHer
   const lo = today ? dailyMin(today, unit) : null;
   const feels = apparentTemp(snap, unit);
   const temp = currentTemp(snap, unit);
-  const problem = weatherProblem(snap, loaded);
 
   return (
     <Card className={`${styles.hero} ${immersive ? styles.immersive : ''}`}>
@@ -36,7 +34,7 @@ export function WeatherHero({ snap, loaded, unit, label, immersive }: WeatherHer
       <div className={styles.temp}>{formatTemp(temp, loaded ? '--' : '…')}</div>
       <div className={styles.conditionRow}>
         <WeatherIcon code={snap?.weatherCode} isDay={snap?.isDay} className={styles.icon} strokeWidth={1.6} />
-        <span className={styles.condition}>{problem ? t(WEATHER_PROBLEM_KEY[problem]) : conditionText}</span>
+        <span className={styles.condition}>{conditionText}</span>
       </div>
       <div className={styles.metaRow}>
         {hi !== null && hi !== undefined && lo !== null && lo !== undefined && (

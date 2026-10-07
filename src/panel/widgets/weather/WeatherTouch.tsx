@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import type { WeatherLocation } from '../../../api/weather';
-import { WidgetOfflineState } from '../common/WidgetOfflineState';
+import { EmptyState } from '../../../components/common/EmptyState/EmptyState';
 import { ImmersiveLayout } from '../common/ImmersiveLayout';
 import type { WidgetProps } from '../types';
 import { WeatherDailyList } from './WeatherDailyList';
@@ -29,7 +29,18 @@ export function WeatherTouch({ widget, surface, immersiveGrid }: WidgetProps) {
 
   const problem = weatherProblem(snap, loaded);
   if (problem) {
-    return <WidgetOfflineState label={t(WEATHER_PROBLEM_KEY[problem])} icon={WEATHER_PROBLEM_ICON[problem]} />;
+    const ProblemIcon = WEATHER_PROBLEM_ICON[problem];
+    return (
+      <ImmersiveLayout
+        cells={[
+          <div className={styles.empty}>
+            <EmptyState icon={<ProblemIcon strokeWidth={1.5} />} title={t(WEATHER_PROBLEM_KEY[problem])} />
+          </div>,
+        ]}
+        gridColumns={immersiveGrid?.columns ?? 4}
+        gridRows={immersiveGrid?.rows ?? 8}
+      />
+    );
   }
 
   const cells: ReactNode[] = [

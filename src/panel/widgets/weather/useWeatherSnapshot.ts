@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
+import { weatherProblem } from './weatherProblem';
 import { fetchWeather, weatherLocationQuery, type WeatherLocation, type WeatherSnapshot } from '../../../api/weather';
 
 export const WEATHER_REFRESH_MS = 15 * 60 * 1000;
+// Poll cadence. A reading is reused until WEATHER_REFRESH_MS, but an outage is
+// never cached, so it is retried at every tick.
+export const WEATHER_RETRY_MS = 60 * 1000;
 
 interface CacheEntry {
   snap: WeatherSnapshot;
@@ -19,7 +23,7 @@ function fetchCached(key: string, location: WeatherLocation | null): Promise<Wea
   if (pending) return pending;
   const p = fetchWeather(location)
     .then(snap => {
-      if (snap) cache.set(key, { snap, at: Date.now() });
+      if (snap && !weatherProblem(snap, true)) cache.set(key, { snap, at: Date.now() });
       return snap;
     })
     .catch(() => null)
@@ -58,15 +62,15 @@ export function useWeatherSnapshot(location: WeatherLocation | null | undefined)
     // cache hit renders immediately.
     setState(hit ? { snap: hit.snap, loaded: true, fetchedAt: hit.at } : { snap: null, loaded: false, fetchedAt: 0 });
 
-    async function load(force: boolean) {
+    async function load() {
       const cached = cache.get(key);
-      if (!force && cached && Date.now() - cached.at < WEATHER_REFRESH_MS) return;
+      if (cached && Date.now() - cached.at < WEATHER_REFRESH_MS) return;
       const snap = await fetchCached(key, location ?? null);
       if (cancelled) return;
       setState(prev => ({ snap: snap ?? prev.snap, loaded: true, fetchedAt: snap ? Date.now() : prev.fetchedAt }));
     }
-    void load(false);
-    const timer = setInterval(() => { void load(true); }, WEATHER_REFRESH_MS);
+    void load();
+    const timer = setInterval(() => { void load(); }, WEATHER_RETRY_MS);
     return () => { cancelled = true; clearInterval(timer); };
     // `location` is fully described by `key`.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -71,9 +71,6 @@ export function WeatherWidget({ widget, surface }: WidgetProps) {
     );
   }
 
-  // An empty asOf is the service's "no data at all" marker (upstream
-  // unreachable and no cached reading worth serving), so the tile says so
-  // instead of drawing an unknown-condition glyph over placeholder readings.
   const problem = weatherProblem(snap, loaded);
   if (problem || !snap) {
     return (

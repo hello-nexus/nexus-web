@@ -211,7 +211,7 @@ describe('WeatherPage without a forecast', () => {
     ['service', { ...EMPTY, unavailable: 'service' as const }, 'Weather service unavailable'],
     ['network', { ...EMPTY, unavailable: 'network' as const }, 'No connection'],
     ['an older service', EMPTY, 'Weather unavailable'],
-    ['no answer', null, 'Weather unavailable'],
+    ['no answer', null, 'No connection'],
   ])('names the problem on %s and drops the forecast sections', async (_name, snap, message) => {
     api.fetchWeather.mockReset().mockResolvedValue(snap);
     render(<WeatherPage />);

@@ -24,10 +24,13 @@ describe('weatherProblem', () => {
 
   it('is unknown for an empty snapshot from an older service', () => {
     expect(weatherProblem(EMPTY, true)).toBe('unknown');
-    expect(weatherProblem({ ...EMPTY, asOf: 'x' }, true)).toBe('unknown');
   });
 
-  it('is unknown when the service did not answer', () => {
-    expect(weatherProblem(null, true)).toBe('unknown');
+  it('is not a problem for a dated snapshot with a null current reading', () => {
+    expect(weatherProblem({ ...EMPTY, asOf: '2026-09-12T12:00:00Z' }, true)).toBeNull();
+  });
+
+  it('reads an unanswered Nexus service as no connection', () => {
+    expect(weatherProblem(null, true)).toBe('network');
   });
 });
