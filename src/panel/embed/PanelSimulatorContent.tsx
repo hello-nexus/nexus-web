@@ -36,12 +36,10 @@ export function PanelSimulatorContent() {
           simulatorTheme={sim.theme}
           simulatorThemeMode={sim.themeMode}
           simulatorSelectedWidgetId={sim.selectedWidgetId}
-          simulatorBlankPageShown={sim.blankPageShown}
           simulatorFlashSignal={sim.flashSignal}
           onSimulatorWidgetClicked={sim.onWidgetClicked}
           onSimulatorBackgroundClicked={sim.onBackgroundClicked}
           onSimulatorPlaylistShown={sim.onPlaylistShown}
-          onSimulatorBlankPageLeft={sim.onBlankPageLeft}
         />
       ) : (
         <div

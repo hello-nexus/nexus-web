@@ -409,11 +409,10 @@
   pointer-events: none;
 }
 
-.panelPageIndicatorPosition[data-orientation='landscape'] {
-  left: auto;
-  right: 8px;
-  bottom: 50%;
-  transform: translateY(50%);
+// Display-scaled surfaces size the dots with the panel, as the actions tray
+// does: zoom, not a transform, so they rasterize at the size shown.
+.panelRoot:not([data-surface='phone']):not([data-surface='desktop']) .panelPageIndicatorPosition {
+  zoom: var(--panel-scale, 1);
 }
 
 .panelRoot[data-surface='y70'] {

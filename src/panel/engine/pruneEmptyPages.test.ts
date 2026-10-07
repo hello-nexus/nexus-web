@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { pruneEmptyPages } from './panelLayoutOps';
+import { BLANK_PAGE_ID, pruneEmptyPages } from './panelLayoutOps';
 import type { PanelLayout, PanelWidget, PanelWidgetSize } from '../types';
 
 function widget(id: string, size: PanelWidgetSize, col: number, row: number, type = 'cooling'): PanelWidget {
@@ -58,5 +58,10 @@ describe('pruneEmptyPages', () => {
     const l = layout([[widget('a', '2x2', 0, 0)], [], [widget('b', '2x2', 0, 0)]], 'p3');
     const result = pruneEmptyPages(l);
     expect(result.activePageId).toBe('p3');
+  });
+
+  it('keeps the blank page active when a page is dropped', () => {
+    const l = layout([[widget('a', '2x2', 0, 0)], [], [widget('b', '2x2', 0, 0)]], BLANK_PAGE_ID);
+    expect(pruneEmptyPages(l).activePageId).toBe(BLANK_PAGE_ID);
   });
 });

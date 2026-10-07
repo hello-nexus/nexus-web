@@ -38,6 +38,7 @@ import { usePanelViewportLock } from './engine/usePanelViewportLock';
 import { panelWidgetPaddingRatio, sizeToSpan } from './engine/grid';
 import { layoutRowExtent, overflowLayout, repaginatePanelLayout, restoreOverflowPositions, type PaginateCapacity } from './engine/paginate';
 import {
+  BLANK_PAGE_ID,
   allCellsForPage,
   appendWidget,
   canAppendWidget,
@@ -341,13 +342,11 @@ export function PanelContent({
   simulatorTheme,
   simulatorThemeMode,
   simulatorSelectedWidgetId,
-  simulatorBlankPageShown = false,
   simulatorFlashSignal,
   simulatorPreviewScale = 1,
   onSimulatorWidgetClicked,
   onSimulatorBackgroundClicked,
   onSimulatorPlaylistShown,
-  onSimulatorBlankPageLeft,
   openCatalogSignal,
   appAccentColor,
   onSectionNavigate,
@@ -371,8 +370,6 @@ export function PanelContent({
   simulatorTheme?: SimulatorTheme;
   simulatorThemeMode?: 'dark' | 'light';
   simulatorSelectedWidgetId?: string | null;
-  // The device page's next arrow stepped onto the preview-only blank page.
-  simulatorBlankPageShown?: boolean;
   // Parent-driven one-shot flash (e.g. a resize the editor rejected). The
   // nonce re-fires the flash for repeat rejections of the same widget.
   simulatorFlashSignal?: { widgetId: string; nonce: number } | null;
@@ -382,7 +379,6 @@ export function PanelContent({
   onSimulatorWidgetClicked?: (id: string) => void;
   onSimulatorBackgroundClicked?: () => void;
   onSimulatorPlaylistShown?: (type: string | null) => void;
-  onSimulatorBlankPageLeft?: () => void;
   openCatalogSignal?: number;
   appAccentColor?: string;
   onSectionNavigate?: DashboardSectionNavigate;
@@ -868,9 +864,10 @@ export function PanelContent({
   );
 
   // Render-only trailing blank page to swipe onto and add a widget on; never
-  // stored (addWidget creates it). A drag mints its own trailing page.
+  // stored (addWidget creates it), though activePageId can point at it so every
+  // surface shows the same page. A drag mints its own trailing page.
   const [blankPageId] = useState(createUuid);
-  const blankPageEligible = (simulator ? simulatorBlankPageShown : kioskBehavior && surfaceSupportsTouch(surface, deviceTouch))
+  const blankPageEligible = (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && surfaceSupportsTouch(surface, deviceTouch)))
     && !isSingleWidgetSurface(surface)
     && !activeDragId
     && paginatedLayout.pages.length < MAX_PANEL_PAGES;
@@ -924,29 +921,17 @@ export function PanelContent({
   // strategy and project widgets via React state below.
   const projectedLayoutStrategy = useMemo<SortingStrategy>(() => () => null, []);
   const { activePageIndex, setActivePageIndex, activePageIndexRef, pageCountRef, handlePageChange } = usePageSync({
-    loaded,
+    // `loaded` flips a render before the stored layout replaces the seed; the
+    // boot must read the stored page or the kiosk's first-page reset never runs.
+    loaded: loaded && hydrated !== false,
     kioskBehavior,
     paginatedLayout,
     layout,
     setLayout,
     pageCount,
     pageDragging: Boolean(activeDragId || dragArmedId),
+    blankPageIndex: allFiltered.findIndex(p => p.id === blankPageId),
   });
-  // Steps onto the blank page only as the device page shows it: a layout change
-  // while it shows (an add there) must land on the new page, not re-pin.
-  useEffect(() => {
-    if (!simulatorBlankPageShown) return;
-    const idx = allFiltered.findIndex(p => p.id === blankPageId);
-    if (idx >= 0) setActivePageIndex(idx);
-    else onSimulatorBlankPageLeft?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- rising edge only
-  }, [simulatorBlankPageShown]);
-  // A swipe off the blank page lands on the last page, which is already the
-  // stored activePageId, so handlePageChange writes nothing the device page sees.
-  const handlePagerChange = useCallback((idx: number) => {
-    if (simulatorBlankPageShown && allFiltered[idx]?.id !== blankPageId) onSimulatorBlankPageLeft?.();
-    handlePageChange(idx);
-  }, [allFiltered, blankPageId, handlePageChange, onSimulatorBlankPageLeft, simulatorBlankPageShown]);
   // Frozen snapshot of the dragged cell's pixel size + runtime CSS vars at
   // drag start. Captured once in onDragStart and reused every overlay render
   // so the clone never re-measures mid-drag (which would pick up
@@ -965,7 +950,6 @@ export function PanelContent({
   // movement) shows only the menu, never the lift/overlay.
   const pendingDragRef = useRef<DragSnapshot | null>(null);
 
-  const pageOrientation: 'portrait' | 'landscape' = isLandscape ? 'landscape' : 'portrait';
 
   const widgetById = useCallback((id: string): PanelWidget | undefined => {
     for (const page of paginatedLayout.pages) {
@@ -1844,7 +1828,7 @@ export function PanelContent({
                 <PanelPager
                   pages={allFiltered}
                   activeIndex={Math.min(activePageIndex, pageCount - 1)}
-                  onActiveChange={handlePagerChange}
+                  onActiveChange={handlePageChange}
                   swipeEnabled={!sheetMode && !dragArmedId}
                   renderPage={page => (
                     <>
@@ -1928,7 +1912,7 @@ export function PanelContent({
                 </SortableContext>
                 </PanelOpaqueProvider>
                 {pageCount > 1 && (
-                  <div className={styles.panelPageIndicatorPosition} data-orientation={pageOrientation}>
+                  <div className={styles.panelPageIndicatorPosition}>
                     <PanelPageIndicator
                       total={pageCount}
                       active={Math.min(activePageIndex, pageCount - 1)}

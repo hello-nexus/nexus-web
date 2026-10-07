@@ -5,6 +5,9 @@ import { createUuid } from '../../lib/uuid';
 
 interface WidgetRect { col: number; row: number; colSpan: number; rowSpan: number; }
 
+/** activePageId for the render-only blank page after the last page; never a stored page's id. */
+export const BLANK_PAGE_ID = 'blank-page';
+
 function widgetRect(w: PanelWidget, cols: number): WidgetRect {
   const span = sizeToSpan(w.size);
   const colSpan = Math.max(1, Math.min(span.cols, cols));
@@ -133,7 +136,7 @@ export function pruneEmptyPages(layout: PanelLayout): PanelLayout {
   const pages = nonEmpty.length > 0 ? nonEmpty : layout.pages.slice(0, 1);
   if (pages.length === layout.pages.length) return layout;
   let activePageId = layout.activePageId;
-  if (activePageId && !pages.some(p => p.id === activePageId)) {
+  if (activePageId && activePageId !== BLANK_PAGE_ID && !pages.some(p => p.id === activePageId)) {
     const prevIdx = layout.pages.findIndex(p => p.id === activePageId);
     activePageId = pages[Math.min(Math.max(prevIdx, 0), pages.length - 1)]?.id;
   }

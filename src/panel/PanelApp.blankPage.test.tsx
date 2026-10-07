@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelLayout, PanelWidget } from './types';
 import { MAX_PANEL_PAGES } from './engine/panelGrid';
+import { BLANK_PAGE_ID } from './engine/panelLayoutOps';
 
 const fetchMock = vi.fn();
 const patchMock = vi.fn();
@@ -14,11 +15,14 @@ vi.mock('../api/panel', async importOriginal => ({
   patchPanelDevice: (...args: unknown[]) => patchCapsMock(...args),
 }));
 
+const topicHandlers = new Map<string, (raw: unknown) => void>();
 vi.mock('../hooks/useMultiplexSocket', async importOriginal => ({
   ...await importOriginal<typeof import('../hooks/useMultiplexSocket')>(),
   useMultiplex: () => null,
   useTopic: () => null,
-  useTopicCallback: () => {},
+  useTopicCallback: (topic: string, _enabled: boolean, handler: (raw: unknown) => void) => {
+    topicHandlers.set(topic, handler);
+  },
 }));
 
 vi.mock('./engine/panelSync', () => ({
@@ -137,5 +141,41 @@ describe('PanelApp trailing blank page', () => {
     expect(last.pages[0].widgets.map(w => w.id)).toEqual(['w-0']);
     expect(last.pages[1].widgets).toHaveLength(1);
     expect(last.activePageId).toBe(last.pages[1].id);
+  });
+
+  it('stores the blank page as the active page when swiped onto, so other clients follow', async () => {
+    await mountKiosk(layoutOf(1));
+    act(() => swipeLeft(renderedPages()[0]));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    const last = writtenLayouts().at(-1)!;
+    expect(last.activePageId).toBe(BLANK_PAGE_ID);
+    expect(last.pages).toHaveLength(1);
+  });
+
+  it('opens on the first page after a restart left on the blank page', async () => {
+    await mountKiosk({ ...layoutOf(2), activePageId: BLANK_PAGE_ID });
+    expect(renderedPages()[0].getAttribute('aria-hidden')).toBe('false');
+    expect(writtenLayouts().at(-1)?.activePageId).toBe('page-0');
+  });
+
+  it('opens on the first page after a restart left on a later page', async () => {
+    await mountKiosk({ ...layoutOf(3), activePageId: 'page-2' });
+    expect(renderedPages()[0].getAttribute('aria-hidden')).toBe('false');
+    expect(writtenLayouts().at(-1)?.activePageId).toBe('page-0');
+  });
+
+  it('follows another client onto the blank page', async () => {
+    await mountKiosk({ ...layoutOf(2), activePageId: 'page-0' });
+    // The device page stores the blank page; the record push refetches it.
+    fetchMock.mockResolvedValue({ found: true, record: recordWith({ ...layoutOf(2), activePageId: BLANK_PAGE_ID }) });
+    await act(async () => {
+      topicHandlers.get('panel/device')?.({ deviceId: 'y70-1' });
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+    const pages = renderedPages();
+    expect(pages).toHaveLength(3);
+    expect(pages[2].getAttribute('aria-hidden')).toBe('false');
   });
 });

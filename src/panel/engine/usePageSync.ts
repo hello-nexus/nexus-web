@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PanelLayout } from '../types';
+import { BLANK_PAGE_ID } from './panelLayoutOps';
 
 // Owns the active page index and keeps it in sync with layout.activePageId so
 // the device-page preview, the on-device panel, and sibling tabs track the same
@@ -13,8 +14,10 @@ export function usePageSync(params: {
   setLayout: (next: PanelLayout) => void;
   pageCount: number;
   pageDragging: boolean;
+  // Rendered index of the trailing blank page, -1 when none is rendered.
+  blankPageIndex: number;
 }) {
-  const { loaded, kioskBehavior, paginatedLayout, layout, setLayout, pageCount, pageDragging } = params;
+  const { loaded, kioskBehavior, paginatedLayout, layout, setLayout, pageCount, pageDragging, blankPageIndex } = params;
   const [activePageIndex, setActivePageIndex] = useState(0);
   useEffect(() => {
     if (activePageIndex > pageCount - 1) setActivePageIndex(pageCount - 1);
@@ -50,9 +53,14 @@ export function usePageSync(params: {
     if (!loaded || pageDragging) return;
     const pages = paginatedLayout.pages;
     if (pages.length === 0) return;
+    // A stored blank page resolves to the last rendered page: the blank page
+    // itself, or the last page where none renders.
+    const indexOf = (id: string) => (id === BLANK_PAGE_ID
+      ? (blankPageIndex >= 0 ? blankPageIndex : pages.length - 1)
+      : pages.findIndex(p => p.id === id));
     if (!pageBootRef.current) {
       pageBootRef.current = true;
-      if (kioskBehavior && pages.length > 1) {
+      if (kioskBehavior && (pages.length > 1 || layout.activePageId === BLANK_PAGE_ID)) {
         // Fresh panel start: show the first page and clear any page the last
         // session left in the record.
         lastSeenPageIdRef.current = pages[0].id;
@@ -62,7 +70,7 @@ export function usePageSync(params: {
         // Viewer (device-page preview / simulator) or single-page kiosk: adopt
         // whatever page the record already points at.
         lastSeenPageIdRef.current = layout.activePageId;
-        const idx = layout.activePageId ? pages.findIndex(p => p.id === layout.activePageId) : 0;
+        const idx = layout.activePageId ? indexOf(layout.activePageId) : 0;
         if (idx > 0 && idx !== activePageIndex) setActivePageIndex(idx);
       }
       return;
@@ -72,9 +80,9 @@ export function usePageSync(params: {
     const target = layout.activePageId;
     if (!target || target === lastSeenPageIdRef.current) return;
     lastSeenPageIdRef.current = target;
-    const idx = pages.findIndex(p => p.id === target);
+    const idx = indexOf(target);
     if (idx >= 0 && idx !== activePageIndex) setActivePageIndex(idx);
-  }, [loaded, kioskBehavior, paginatedLayout, layout, pageDragging, activePageIndex, setLayout]);
+  }, [loaded, kioskBehavior, paginatedLayout, layout, pageDragging, activePageIndex, setLayout, blankPageIndex]);
 
   // Persist a user-driven page change (swipe) into the layout so other clients
   // follow. Carries the new index from the pager so it never reads a stale
@@ -82,12 +90,12 @@ export function usePageSync(params: {
   const handlePageChange = useCallback((idx: number) => {
     setActivePageIndex(idx);
     const pages = paginatedLayout.pages;
-    if (pages.length <= 1) return;
-    const id = pages[Math.min(Math.max(idx, 0), pages.length - 1)]?.id;
+    if (pages.length <= 1 && blankPageIndex < 0) return;
+    const id = idx === blankPageIndex ? BLANK_PAGE_ID : pages[Math.min(Math.max(idx, 0), pages.length - 1)]?.id;
     if (!id) return;
     lastSeenPageIdRef.current = id;
     if (layout.activePageId !== id) setLayout({ ...layout, activePageId: id });
-  }, [paginatedLayout, layout, setLayout]);
+  }, [paginatedLayout, layout, setLayout, blankPageIndex]);
 
   return { activePageIndex, setActivePageIndex, activePageIndexRef, pageCountRef, handlePageChange };
 }

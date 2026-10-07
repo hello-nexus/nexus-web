@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PanelLayout, PanelWidget } from '../../../panel/types';
-import { removeWidgetById } from '../../../panel/engine/panelLayoutOps';
+import { BLANK_PAGE_ID, removeWidgetById } from '../../../panel/engine/panelLayoutOps';
 
 // The y70 editor capacity (PanelDevicePage.editorCapacity), used by the iframe
 // echo path below to mirror an on-device delete.
@@ -75,7 +75,8 @@ vi.mock('../../../panel/widgets/registry', () => ({
     Settings: undefined,
   }),
   sizesForSurface: () => ['2x2', '4x4'],
-  appAvailableForSurface: () => true,
+  // 'hidden' stands in for a widget the panel filters out on this surface.
+  appAvailableForSurface: (meta: { type: string }) => meta.type !== 'hidden',
 }));
 
 // Stub the iframe preview: expose a click target per widget (Path A: opens the
@@ -83,8 +84,6 @@ vi.mock('../../../panel/widgets/registry', () => ({
 vi.mock('./PanelEmbedFrame', () => ({
   PanelEmbedFrame: (props: {
     layout: PanelLayout;
-    blankPageShown?: boolean;
-    onBlankPageLeft?: () => void;
     onWidgetClicked: (w: PanelWidget) => void;
     onLayoutChange: (l: PanelLayout) => void;
   }) => (
@@ -92,9 +91,12 @@ vi.mock('./PanelEmbedFrame', () => ({
       data-testid="embed"
       data-active-page={props.layout.activePageId}
       data-page-count={props.layout.pages.length}
-      data-blank={String(Boolean(props.blankPageShown))}
     >
-      <button data-testid="blank-left" onClick={() => props.onBlankPageLeft?.()}>left</button>
+      {/* The iframe swipes back off the blank page and echoes the page it lands on. */}
+      <button
+        data-testid="swipe-to-p3"
+        onClick={() => props.onLayoutChange({ ...props.layout, activePageId: 'p3' })}
+      >swipe</button>
       {props.layout.pages.flatMap(p => p.widgets).map(w => (
         <button key={w.id} data-testid={`click-${w.id}`} onClick={() => props.onWidgetClicked(w)}>{w.id}</button>
       ))}
@@ -159,9 +161,8 @@ async function loadAndGoToLastPage() {
   await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
   await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
   expect(prevDisabled()).toBe(false);
-  // p3 has content, so next leads on to the preview's blank page.
+  // p3 has content, so next leads on to the blank page.
   expect(nextDisabled()).toBe(false);
-  expect(embed().dataset.blank).toBe('false');
 }
 
 describe('PanelDevicePage page arrows after deleting the last widget on the last page', () => {
@@ -188,40 +189,42 @@ describe('PanelDevicePage page arrows after deleting the last widget on the last
   });
 });
 
-describe('PanelDevicePage preview blank page', () => {
-  it('steps onto the blank page after the last page and back', async () => {
+const patchedActivePages = () => patchPanelDeviceMock.mock.calls
+  .map(([, patch]) => (patch as { layout?: PanelLayout }).layout?.activePageId)
+  .filter(Boolean);
+
+describe('PanelDevicePage blank page', () => {
+  it('steps onto the blank page after the last page and back, storing it for the panel', async () => {
     await loadAndGoToLastPage();
     await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
-    await waitFor(() => expect(embed().dataset.blank).toBe('true'));
+    await waitFor(() => expect(embed().dataset.activePage).toBe(BLANK_PAGE_ID));
     expect(nextDisabled()).toBe(true);
     expect(prevDisabled()).toBe(false);
-    // Never stored: the layout still has three pages on p3.
+    // The physical panel follows the stored page; no page is created.
+    await waitFor(() => expect(patchedActivePages().at(-1)).toBe(BLANK_PAGE_ID));
     expect(embed().dataset.pageCount).toBe('3');
-    expect(embed().dataset.activePage).toBe('p3');
 
     await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.prevPage')); });
-    await waitFor(() => expect(embed().dataset.blank).toBe('false'));
-    expect(embed().dataset.activePage).toBe('p3');
+    await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
+    await waitFor(() => expect(patchedActivePages().at(-1)).toBe('p3'));
   });
 
   it('creates the page when a widget is added on the blank page', async () => {
     await loadAndGoToLastPage();
     await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
-    await waitFor(() => expect(embed().dataset.blank).toBe('true'));
+    await waitFor(() => expect(embed().dataset.activePage).toBe(BLANK_PAGE_ID));
 
     await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
     await waitFor(() => expect(embed().dataset.pageCount).toBe('4'));
-    expect(embed().dataset.blank).toBe('false');
-    const active = embed().dataset.activePage;
-    expect(['p1', 'p2', 'p3']).not.toContain(active);
+    expect(['p1', 'p2', 'p3', BLANK_PAGE_ID]).not.toContain(embed().dataset.activePage);
   });
 
   it('follows the preview off the blank page', async () => {
     await loadAndGoToLastPage();
     await act(async () => { fireEvent.click(screen.getByLabelText('devices.panels.nextPage')); });
-    await waitFor(() => expect(embed().dataset.blank).toBe('true'));
-    await act(async () => { fireEvent.click(screen.getByTestId('blank-left')); });
-    await waitFor(() => expect(embed().dataset.blank).toBe('false'));
+    await waitFor(() => expect(embed().dataset.activePage).toBe(BLANK_PAGE_ID));
+    await act(async () => { fireEvent.click(screen.getByTestId('swipe-to-p3')); });
+    await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
     expect(nextDisabled()).toBe(false);
     // The next add lands on the shown page instead of opening a new one.
     await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
@@ -234,5 +237,22 @@ describe('PanelDevicePage preview blank page', () => {
     await act(async () => { fireEvent.click(screen.getByTestId('catalog-add')); });
     await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
     expect(embed().dataset.pageCount).toBe('3');
+  });
+
+  // Load-time normalization drops widgets the surface cannot show, so the
+  // device page and the panel agree on whether the last page has content.
+  it('offers no blank page after a last page the panel renders empty', async () => {
+    fetchPanelDevicesMock.mockResolvedValue({
+      devices: [{
+        id: 'dev1',
+        capabilities: { surface: 'y70', touch: true },
+        layout: { ...LAYOUT_3PAGES, activePageId: 'p3', pages: [...LAYOUT_3PAGES.pages.slice(0, 2), { id: 'p3', widgets: [{ ...cool('c'), type: 'hidden' }] }] },
+        reserveMonitor: true,
+      }],
+    });
+    render(<PanelDevicePage device={DEVICE} />);
+    await waitFor(() => expect(embed().dataset.activePage).toBe('p3'));
+    expect(nextDisabled()).toBe(true);
+    expect(prevDisabled()).toBe(false);
   });
 });
