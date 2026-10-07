@@ -38,7 +38,7 @@ import {
 import { useCoolingRealtime } from '../../../hooks/useCooling';
 import { useCoolingCurves } from '../../../hooks/useCoolingCurves';
 import { useThermalGuard } from '../../../hooks/useThermalGuard';
-import { useCurveSaveLint } from '../../../hooks/useCurveSaveLint';
+import { useCurveSave } from '../../../hooks/useCurveSave';
 import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import { useSensors } from '../../../hooks/useSensors';
 import type { ServiceState } from '../../../hooks/useServiceState';
@@ -73,7 +73,7 @@ import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
 import { ThermalGuardPanel } from './page/ThermalGuardPanel';
-import { isManagedCurve, latestError } from './page/guardUtils';
+import { hazardMessages, isManagedCurve, latestError } from './page/guardUtils';
 import { FanCard, type FanBulkSelection, type FanCardHubMode } from './page/FanCard';
 import { CurveCard } from './page/CurveEditor';
 import { CurveSelector } from './page/CurveSelector';
@@ -132,14 +132,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const { t, language } = useTranslation();
   const recovery = useFirmwareRecoveryFlow(serviceOnline);
   const thermalGuard = useThermalGuard(serviceOnline);
-  const refreshCoolingConfigRef = useRef<() => void>(() => {});
-  const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
-    lintEnabled: thermalGuard.guard?.lintWarnings !== false,
-    onHealed: heal => {
-      thermalGuard.applyHeal(heal);
-      refreshCoolingConfigRef.current();
-    },
-  });
+  const { save: saveCurveBody, error: lintError } = useCurveSave();
+  const hazardByFan = useMemo(() => hazardMessages(thermalGuard.guard?.hazards, t), [thermalGuard.guard?.hazards, t]);
   const guardPanel = (
     <ThermalGuardPanel
       guard={thermalGuard.guard}
@@ -285,7 +279,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
     }
     if (temps?.sources) setSources(temps.sources);
   }, [serviceOnline]);
-  refreshCoolingConfigRef.current = refreshCoolingConfig;
 
   // Persist the cached slices on every change so the next visit to this
   // route paints from the last-good snapshot. JSON.stringify + a single
@@ -624,9 +617,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
       c,
       Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
     ));
-    return saveWithLint({ globalSpeedModifier: 1, curves: apiCurves })
+    return saveCurveBody({ globalSpeedModifier: 1, curves: apiCurves })
       .then(res => { void saveActivePreset(); return res; });
-  }, [saveActivePreset, saveWithLint]);
+  }, [saveActivePreset, saveCurveBody]);
   pushCurvesRef.current = pushCurves;
 
   // Issue rule: when cooling is Off, the user changing any fan setting other
@@ -1380,7 +1373,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         <div className={`${styles.simpleBody} pageBodyFill`}>
           {recoveryBanner}
           {recovery.modal}
-          {lintPrompt}
           <div className={styles.tabsAnchor} ref={modeMenuAnchorRef}>
             <ViewHeader
               title={t('cooling.title')}
@@ -1702,7 +1694,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               };
 
               const renderFanCard = (ch: FanChannel, drag: SortableRowArgs) => (
-                <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+                <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves} hazard={hazardByFan[ch.id]}
                   compact
                   selected={selectedFanIds.has(ch.id)}
                   onSelect={additive => selectFan(ch.id, additive)}
@@ -1881,7 +1873,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       open={!isFanGroupCollapsed('disconnected')} onToggle={() => toggleFanGroup('disconnected')}
                       right={<span className={styles.fanGroupCount}>{disconnected.length}</span>}>
                       <div className={styles.fanGroupChildren}>{disconnected.map(ch => (
-                        <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+                        <FanCard key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves} hazard={hazardByFan[ch.id]}
                           compact
                           calibrating={calibrating}
                           canCreateCurve={curves.length < MAX_CURVES}
@@ -1963,7 +1955,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
         sources={importSources}
         onImported={() => { void refreshCoolingConfig(); }}
       />
-      {lintPrompt}
       <ConfirmModal
         open={calConfirmOpen && !calibrating}
         destructive={false}

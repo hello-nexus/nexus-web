@@ -1,6 +1,5 @@
-import { AlertTriangle } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
-import { HoverTooltip } from '../HoverTooltip/HoverTooltip';
+import { WarningIcon } from '../WarningIcon/WarningIcon';
 import styles from './DeviceWarningIcon.module.scss';
 
 // Service-reported device warning codes mapped to their localized message.
@@ -19,18 +18,11 @@ interface DeviceWarningIconProps {
 
 /**
  * Right-aligned warning glyph for a device row/card, shown whenever
- * `device.warning` is set. A bare (non-focusable) icon so it can sit inside
- * a device row/card that is itself a button, matching DeviceNotice's pattern.
+ * `device.warning` is set, pushed to the row's right edge.
  */
 export function DeviceWarningIcon({ code, className }: DeviceWarningIconProps) {
   const { t } = useTranslation();
   const key = WARNING_MESSAGE_KEYS[code];
   const message = key ? t(key) : code;
-  return (
-    <HoverTooltip body={message} side="top">
-      <span className={`${styles.icon} ${className ?? ''}`} role="img" aria-label={message}>
-        <AlertTriangle size={14} aria-hidden />
-      </span>
-    </HoverTooltip>
-  );
+  return <WarningIcon message={message} className={`${styles.icon} ${className ?? ''}`} />;
 }

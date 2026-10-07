@@ -55,21 +55,17 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     updateCoolingPreset: vi.fn(async () => undefined),
     deleteCoolingPreset: vi.fn(async () => ({ activeId: null })),
     activateCoolingPreset: vi.fn(async () => undefined),
-    fetchGuard: vi.fn(async () => svc.guard),
+    fetchGuard: vi.fn(async () => ({ ...svc.guard, hazards: svc.hazards })),
     setGuardConfig: vi.fn(async ({ enabled }: { enabled?: boolean }) => {
       svc.guard = { ...svc.guard, state: enabled ? 'normal' : 'off' };
       return svc.guard;
     }),
-    lintCurves: vi.fn(async () => ({ hazards: svc.hazards, fixAvailable: svc.hazards.length > 0 })),
-    healCooling: vi.fn(async () => ({
-      undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-top', name: 'Top Fan', hazard: 'manual-low' }],
-    })),
     undoHeal: vi.fn(async () => ({ undoAvailable: false, healedAtUtcMs: null, channels: [] })),
     keepHeal: vi.fn(async () => (svc.keepFails ? null : { undoAvailable: false, healedAtUtcMs: null, channels: [] })),
   };
 });
 
-import { saveCurves, lintCurves, healCooling, undoHeal, keepHeal } from '../../../api/cooling';
+import { saveCurves, undoHeal, keepHeal } from '../../../api/cooling';
 
 const serviceState = { cooling: { calibrating: false } } as unknown as ServiceState;
 
@@ -109,44 +105,24 @@ describe('CoolingPage thermal guard', () => {
     };
   });
 
-  it('saves straight away when the lint finds no hazards', async () => {
+  it('saves straight away, with no prompt, even when the service reports hazards', async () => {
+    svc.hazards = [hazard];
     renderAdvanced();
     await triggerSave();
     await waitFor(() => { expect(vi.mocked(saveCurves)).toHaveBeenCalled(); });
-    expect(vi.mocked(lintCurves)).toHaveBeenCalled();
-    expect(screen.queryByText('cooling.guard.dialog.title')).toBeNull();
-    expect(vi.mocked(healCooling)).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('lists each hazard in a dialog and holds the save until a choice is made', async () => {
+  it('flags a hazardous fan with a warning triangle that carries the reason', async () => {
     svc.hazards = [hazard];
     renderAdvanced();
-    await triggerSave();
-    await screen.findByText('cooling.guard.dialog.title');
-    expect(screen.getByText('cooling.guard.hazard.followsSource')).toBeTruthy();
-    expect(vi.mocked(saveCurves)).not.toHaveBeenCalled();
+    expect(await screen.findByRole('img', { name: /cooling\.guard\.hazard\.followsSource/ })).toBeTruthy();
   });
 
-  it('Fix saves, then heals', async () => {
-    svc.hazards = [hazard];
+  it('shows no triangle without hazards', async () => {
     renderAdvanced();
-    await triggerSave();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
-    await waitFor(() => { expect(vi.mocked(healCooling)).toHaveBeenCalled(); });
-    expect(vi.mocked(saveCurves)).toHaveBeenCalled();
-    expect(vi.mocked(saveCurves).mock.invocationCallOrder[0])
-      .toBeLessThan(vi.mocked(healCooling).mock.invocationCallOrder[0]);
-    // The heal result puts the notice with Undo on the page.
-    expect(await screen.findByRole('button', { name: 'cooling.guard.heal.undo' })).toBeTruthy();
-  });
-
-  it('Save anyway saves without healing', async () => {
-    svc.hazards = [hazard];
-    renderAdvanced();
-    await triggerSave();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
-    await waitFor(() => { expect(vi.mocked(saveCurves)).toHaveBeenCalled(); });
-    expect(vi.mocked(healCooling)).not.toHaveBeenCalled();
+    await screen.findByText('1,400');
+    expect(screen.queryByRole('img', { name: /cooling\.guard\.hazard/ })).toBeNull();
   });
 
   it('renders no guard switch on the Cooling page', async () => {

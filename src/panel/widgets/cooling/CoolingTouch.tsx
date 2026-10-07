@@ -32,7 +32,6 @@ export function CoolingTouch({ immersiveGrid }: WidgetProps) {
         gridColumns={immersiveGrid?.columns ?? 4}
         gridRows={immersiveGrid?.rows ?? 8}
       />
-      {cooling.lintPrompt}
       {((cooling.healNotice && cooling.undoAvailable) || cooling.error) && (
         <div className={styles.noticeSlot}>
           {cooling.healNotice && cooling.undoAvailable && (

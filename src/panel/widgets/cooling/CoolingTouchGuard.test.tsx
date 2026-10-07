@@ -75,13 +75,14 @@ vi.mock('../../../api/cooling', async (importOriginal) => {
     renameFan: vi.fn(async () => undefined),
     resetPresetCurve: vi.fn(async () => undefined),
     setFanSpeed: vi.fn(async () => undefined),
-    lintCurves: vi.fn(async () => ({ hazards: svc.hazards, fixAvailable: svc.hazards.length > 0 })),
-    healCooling: vi.fn(async () => ({ undoAvailable: svc.undoAvailable, healedAtUtcMs: 1, channels: [{ id: 'fan-case', name: 'Case Fan', hazard: 'manual-low' }] })),
     undoHeal: vi.fn(async () => (svc.undoResult === 'ok' ? { undoAvailable: false, healedAtUtcMs: null, channels: [] } : null)),
     keepHeal: vi.fn(async () => (svc.keepResult === 'ok' ? { undoAvailable: false, healedAtUtcMs: null, channels: [] } : null)),
     fetchGuard: vi.fn(async () => ({
       state: 'normal', guardTempC: 50, limitC: 95, limitSource: 'spec', sinceUtcMs: null, lastTrip: null,
-      heal: { undoAvailable: svc.undoAvailable, healedAtUtcMs: null, channels: [] },
+      hazards: svc.hazards,
+      heal: svc.undoAvailable
+        ? { undoAvailable: true, healedAtUtcMs: 1, channels: [{ id: 'fan-case', name: 'Case Fan', hazard: 'manual-low' }] }
+        : { undoAvailable: false, healedAtUtcMs: null, channels: [] },
     })),
   };
 });
@@ -91,7 +92,7 @@ vi.mock('../../../api/np50', async (importOriginal) => {
   return { ...original, getNp50ConnectionState: vi.fn(async () => null) };
 });
 
-import { saveCurves, healCooling, undoHeal, keepHeal } from '../../../api/cooling';
+import { saveCurves, undoHeal, keepHeal } from '../../../api/cooling';
 
 const widget = { id: 'w-cooling', type: 'cooling', size: '4x4', col: 0, row: 0 } as PanelWidget;
 const hazard = {
@@ -104,98 +105,53 @@ async function triggerSave() {
   fireEvent.click(await screen.findByRole('button', { name: 'My Graph Curve' }));
 }
 
-describe('CoolingTouch curve save lint', () => {
+describe('CoolingTouch curve save and hazards', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     svc.hazards = [];
-    svc.undoAvailable = true;
+    svc.undoAvailable = false;
     svc.undoResult = 'ok';
     svc.keepResult = 'ok';
     svc.managedFirst = false;
   });
 
-  it('saves straight away without hazards', async () => {
+  it('saves straight away, with no prompt, even when the service reports hazards', async () => {
+    svc.hazards = [hazard];
     await triggerSave();
     await waitFor(() => expect(saveCurves).toHaveBeenCalled());
-    expect(screen.queryByText('cooling.guard.dialog.title')).toBeNull();
-    expect(healCooling).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('holds the save behind the warning when there are hazards', async () => {
+  it('flags a hazardous fan with a warning triangle and no other fan', async () => {
     svc.hazards = [hazard];
-    await triggerSave();
-    await screen.findByText('cooling.guard.dialog.title');
-    expect(saveCurves).not.toHaveBeenCalled();
+    render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
+    const icon = await screen.findByRole('img', { name: /cooling\.guard\.hazard\.followsSource/ });
+    expect(icon).toBeTruthy();
+    expect(screen.getAllByRole('img', { name: /cooling\.guard\.hazard\.followsSource/ })).toHaveLength(1);
   });
 
-  it('Fix saves, then heals', async () => {
-    svc.hazards = [hazard];
-    await triggerSave();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
-    await waitFor(() => expect(healCooling).toHaveBeenCalled());
-    expect(vi.mocked(saveCurves).mock.invocationCallOrder[0])
-      .toBeLessThan(vi.mocked(healCooling).mock.invocationCallOrder[0]);
-    // What changed is shown, with Undo.
-    expect(await screen.findByText('cooling.guard.heal.title')).toBeTruthy();
-    expect(screen.getByText('cooling.guard.heal.was.manualLow')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.undo' }));
-    await waitFor(() => expect(undoHeal).toHaveBeenCalled());
-    await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());
+  it('shows no triangle without hazards', async () => {
+    render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'lighting.rightPane.devices' }));
+    await screen.findByText('Case Fan');
+    expect(screen.queryByRole('img', { name: /cooling\.guard\.hazard/ })).toBeNull();
   });
 
-  it('Save anyway saves without healing', async () => {
-    svc.hazards = [hazard];
-    await triggerSave();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
-    await waitFor(() => expect(saveCurves).toHaveBeenCalled());
-    expect(healCooling).not.toHaveBeenCalled();
-  });
-
-  async function fixOnce() {
-    svc.hazards = [hazard];
-    await triggerSave();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
-    await screen.findByText('cooling.guard.heal.title');
-  }
-
-  it('Keep calls the route and clears the notice', async () => {
-    await fixOnce();
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.keep' }));
+  it('Keep calls the route for a held heal', async () => {
+    svc.undoAvailable = true;
+    render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.keep' }));
     await waitFor(() => expect(keepHeal).toHaveBeenCalled());
-    await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());
-  });
-
-  it('a failed Keep shows the inline error and keeps the notice', async () => {
-    svc.keepResult = 'fail';
-    await fixOnce();
-    fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.heal.keep' }));
-    await screen.findByText('cooling.guard.error.keep');
-    expect(screen.getByText('cooling.guard.heal.title')).toBeTruthy();
-  });
-
-  it('clears the heal notice on the next successful save', async () => {
-    await fixOnce();
-    svc.hazards = [];
-    fireEvent.click(screen.getByRole('button', { name: 'My Graph Curve' }));
-    await waitFor(() => expect(saveCurves).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByText('cooling.guard.heal.title')).toBeNull());
-  });
-
-  it('hides the notice once the service no longer holds a snapshot', async () => {
-    svc.undoAvailable = false;
-    svc.hazards = [hazard];
-    await triggerSave();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.fix' }));
-    await waitFor(() => expect(healCooling).toHaveBeenCalled());
-    await act(async () => {});
-    expect(screen.queryByText('cooling.guard.heal.title')).toBeNull();
   });
 
   it('keeps the notice and shows an inline error when Undo fails', async () => {
+    svc.undoAvailable = true;
     svc.undoResult = 'fail';
-    await fixOnce();
+    render(<CoolingTouch widget={widget} immersiveGrid={{ columns: 4, rows: 8 }} />);
     fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.undo' }));
+    await waitFor(() => expect(undoHeal).toHaveBeenCalled());
     await screen.findByText('cooling.guard.error.undo');
     expect(screen.getByText('cooling.guard.heal.title')).toBeTruthy();
   });
@@ -204,16 +160,6 @@ describe('CoolingTouch curve save lint', () => {
     vi.mocked(saveCurves).mockResolvedValueOnce(null as never);
     await triggerSave();
     await screen.findByText('cooling.guard.error.save');
-  });
-
-  it('a successful save clears a failed-undo error', async () => {
-    svc.undoResult = 'fail';
-    await fixOnce();
-    fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.heal.undo' }));
-    await screen.findByText('cooling.guard.error.undo');
-    svc.hazards = [];
-    fireEvent.click(screen.getByRole('button', { name: 'My Graph Curve' }));
-    await waitFor(() => expect(screen.queryByText('cooling.guard.error.undo')).toBeNull());
   });
 
   it('shows the thermal guard curve read-only with a managed note', async () => {

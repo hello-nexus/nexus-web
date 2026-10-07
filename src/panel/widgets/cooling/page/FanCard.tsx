@@ -9,6 +9,7 @@ import { formatNumber } from '../../../../lib/units';
 import type { CurveDef, FanState } from '../../../../types/cooling';
 import { DEVICE_NAME_MAX_LENGTH, EditableText, type EditableTextHandle } from '../../../../components/common/Editable/EditableText';
 import { HoverTooltip } from '../../../../components/common/HoverTooltip/HoverTooltip';
+import { WarningIcon } from '../../../../components/common/WarningIcon/WarningIcon';
 import { Popover } from '../../../../components/common/Popover/Popover';
 import { Select, type SelectOption } from '../../../../components/common/Select/Select';
 import { DeviceContextMenu, type DeviceMenuItem } from '../../../../components/common/DeviceCanvas/DeviceContextMenu';
@@ -63,11 +64,13 @@ export const FanCard = memo(function FanCard({
   hubSupportsBios = true,
   nubRef, cardRef: cardRefProp, onWirePointerDown, onWireHover,
   onSetMode, onCreateCurve, onRename, onSpeedChange, onToggleLock, onToggleControlled, onSetRole, onClearOffset, drag,
-  onSelectOnly, bulk, groupMove,
+  onSelectOnly, bulk, groupMove, hazard,
 }: {
   channel: FanChannel;
   state: FanState | undefined;
   curves: CurveDef[];
+  /** Why this fan is flagged (it can stop while the CPU is hot); shows a warning triangle after the name. */
+  hazard?: string;
   calibrating?: boolean;
   /** Multi-select membership; a mode change on any selected card applies to all. */
   selected?: boolean;
@@ -502,6 +505,7 @@ export const FanCard = memo(function FanCard({
           {/* Rename lives on the context menu; a click on the name belongs to the card. */}
           <EditableText ref={nameRef} value={channel.name} onCommit={name => onRename(channel.id, name)} className={styles.editableName} clickToEdit={false} maxLength={DEVICE_NAME_MAX_LENGTH} />
         </span>
+        {hazard && <WarningIcon message={hazard} tone="critical" />}
         {channel.rpmUnavailable ? (
           <HoverTooltip body={t('cooling.fan.rpmUnavailableHint')}>
             <span className={styles.fanRpmReadout}>

@@ -51,8 +51,14 @@ export function hazardText(
   });
 }
 
-export const lintLines = (hazards: CurveHazard[], t: Translate): string[] =>
-  hazards.map(h => hazardText(h.channelName, h.kind, h.rootName, t));
+/** Channel id to its hazard message; a channel with several hazards shows the first. */
+export function hazardMessages(hazards: CurveHazard[] | undefined, t: Translate): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const h of hazards ?? []) {
+    if (!(h.channelId in out)) out[h.channelId] = hazardText(h.channelName, h.kind, h.rootName, t);
+  }
+  return out;
+}
 
 const HEAL_WAS_KEYS: Record<string, string> = {
   'follows-stoppable-source': 'cooling.guard.heal.was.followsSource',
@@ -64,10 +70,6 @@ const HEAL_WAS_KEYS: Record<string, string> = {
 /** One line per healed channel, stating the problem it HAD (past tense); an unknown kind is just the name. */
 export const healLines = (channels: HealChannel[], t: Translate): string[] =>
   channels.map(c => (HEAL_WAS_KEYS[c.hazard] ? t(HEAL_WAS_KEYS[c.hazard], { name: c.name }) : c.name));
-
-/** Stable key for a hazard set, so a save that repeats an already-acknowledged warning does not ask again. */
-export const hazardSignature = (hazards: CurveHazard[]): string =>
-  hazards.map(h => `${h.channelId}:${h.kind}:${h.rootId ?? ''}`).sort().join('|');
 
 /** A failure to show inline. `at` orders errors from different sources so the newest wins. */
 export interface GuardErrorState {

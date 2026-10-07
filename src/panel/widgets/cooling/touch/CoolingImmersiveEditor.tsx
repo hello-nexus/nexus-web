@@ -7,7 +7,7 @@ import { useTranslation } from '../../../../lib/i18n';
 import { type FanChannel, isFanDisconnected } from '../../../../api/cooling';
 import { EffectEditor } from '../../lighting/effecteditor/EffectEditor';
 import { CurveCard } from '../page/CurveEditor';
-import { isManagedCurve } from '../page/guardUtils';
+import { hazardMessages, isManagedCurve } from '../page/guardUtils';
 import { CurveSelector } from '../page/CurveSelector';
 import { fanDeviceGroupName } from '../page/deviceGroupName';
 import { FanCard } from '../page/FanCard';
@@ -140,9 +140,12 @@ function FansSection({ cooling, liveChannels }: {
     return s;
   }, [selectedCurveId, fanStates]);
 
+  const hazardByFan = useMemo(() => hazardMessages(cooling.hazards, t), [cooling.hazards, t]);
+
   const renderFan = (ch: FanChannel) => (
     <FanCard
       key={ch.id} channel={ch} state={fanStates[ch.id]} curves={curves}
+      hazard={hazardByFan[ch.id]}
       compact
       selected={selectedFanIds.has(ch.id)}
       onSelect={() => cooling.toggleFanSelection(ch.id)}

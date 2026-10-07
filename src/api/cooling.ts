@@ -340,6 +340,8 @@ export interface GuardResponse {
   watchdogLatched?: boolean;
   /** Whether saves warn about hazardous fan setups; absent on an older service (treat as on). */
   lintWarnings?: boolean;
+  /** Critical hazards in the saved config; empty while warnings are off. Absent on an older service. */
+  hazards?: CurveHazard[];
   gpus?: GuardGpu[];
 }
 
@@ -351,11 +353,6 @@ export interface CurveHazard {
   rootName: string | null;
 }
 
-export interface LintResponse {
-  hazards: CurveHazard[];
-  fixAvailable: boolean;
-}
-
 export const fetchGuard = () => fetchService<GuardResponse>('/cooling/guard');
 
 /** Partial update; an override sent while the detected source is hardware comes back as an error envelope. */
@@ -364,12 +361,6 @@ export const setGuardConfig = (body: {
 }) =>
   postService<GuardResponse>('/cooling/guard/config', body);
 
-
-/** Same body as saveCurves; advisory only, writes nothing. */
-export const lintCurves = (body: { globalSpeedModifier: number; curves: WireCurve[] }) =>
-  postService<LintResponse>('/cooling/curves/lint', body);
-
-export const healCooling = () => postService<HealState>('/cooling/heal', {});
 
 /** Dismisses an ended trip's Diagnostics notice; answers with the guard, or error true while the trip is still active. */
 export const acknowledgeGuardTrip = () =>

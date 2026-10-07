@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyProfile, fetchCurves, fetchFanChannels, fetchProfiles, fetchTemperatureSources,
   isFanDisconnected,
@@ -9,9 +9,9 @@ import {
   setFanLock as apiSetFanLock,
   setFanControlled as apiSetFanControlled,
   setFanRole as apiSetFanRole,
-  type FanChannel, type FanRole, type HealState, type TemperatureSource,
+  type CurveHazard, type FanChannel, type FanRole, type HealState, type TemperatureSource,
 } from '../../../../api/cooling';
-import { useCurveSaveLint } from '../../../../hooks/useCurveSaveLint';
+import { useCurveSave } from '../../../../hooks/useCurveSave';
 import { latestError } from '../page/guardUtils';
 import { useThermalGuard } from '../../../../hooks/useThermalGuard';
 import {
@@ -50,11 +50,12 @@ import type { FanBulkSelection, FanCardHubMode } from '../page/FanCard';
 // local preset change, stale topic / control-sync pushes are ignored for this
 // long so they can't snap the UI back mid-transition.
 const PRESET_LOCK_MS = 1500;
+const NO_HAZARDS: CurveHazard[] = [];
 
 export interface CoolingImmersiveController {
-  /** Fix / Save anyway prompt for a curve save with hazards; render it beside the view. */
-  lintPrompt: ReactNode;
-  /** What the last Fix changed, until it is undone or dismissed by a newer save. */
+  /** Critical hazards in the saved config; each flags its fan with a warning triangle. */
+  hazards: CurveHazard[];
+  /** What the last heal changed, while the service still holds its snapshot. */
   healNotice: HealState | null;
   /** The service still holds an undo snapshot for that heal. */
   undoAvailable: boolean;
@@ -106,20 +107,9 @@ export interface CoolingImmersiveController {
  * resyncs on the 'cooling' / 'prefs' topics and cross-surface control-sync.
  */
 export function useCoolingImmersive(): CoolingImmersiveController {
-  const [healNotice, setHealNotice] = useState<HealState | null>(null);
   const thermalGuard = useThermalGuard(true);
-  const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
-    lintEnabled: thermalGuard.guard?.lintWarnings !== false,
-    onHealed: heal => {
-      setHealNotice(heal);
-      thermalGuard.applyHeal(heal);
-      void refreshRef.current();
-    },
-    // What a Fix changed is stale once a newer save lands.
-    onSaved: () => {
-      setHealNotice(null);
-      thermalGuard.clearError();
-    },
+  const { save: saveCurveBody, error: lintError } = useCurveSave({
+    onSaved: () => { thermalGuard.clearError(); },
   });
   const refreshRef = useRef<() => Promise<void>>(async () => {});
   const cachedSeed = useMemo(() => loadCoolingCache(), []);
@@ -296,8 +286,8 @@ export function useCoolingImmersive(): CoolingImmersiveController {
       c,
       Object.entries(states).filter(([, st]) => st.curveId === c.id).map(([fanId]) => ({ id: fanId, type: 'Fan' })),
     ));
-    return saveWithLint({ globalSpeedModifier: 1, curves: apiCurves });
-  }, [saveWithLint]);
+    return saveCurveBody({ globalSpeedModifier: 1, curves: apiCurves });
+  }, [saveCurveBody]);
 
   // When cooling is Off, any fan change other than reverting to BIOS snaps
   // the preset to Custom first so the curve writes land in the right state.
@@ -641,20 +631,16 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   }, [curves]);
 
   return {
-    lintPrompt,
-    healNotice,
+    hazards: thermalGuard.guard?.hazards ?? NO_HAZARDS,
+    healNotice: thermalGuard.guard?.heal ?? null,
     undoAvailable: thermalGuard.guard?.heal.undoAvailable ?? false,
     undoHeal: () => {
       void thermalGuard.undo().then(ok => {
-        if (!ok) return;
-        setHealNotice(null);
-        void refreshRef.current();
+        if (ok) void refreshRef.current();
       });
     },
     keepHeal: () => {
-      void thermalGuard.keep().then(ok => {
-        if (ok) setHealNotice(null);
-      });
+      void thermalGuard.keep();
     },
     error: latestError(lintError, thermalGuard.error),
     channels, sources, curves, fanStates, activeMode, hubModes,

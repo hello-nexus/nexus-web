@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CurveHazard, GuardResponse } from '../../../../api/cooling';
-import { latestError, newGuardError, guardBannerKey, guardBannerText, hazardSignature, hazardText, healLines, lintLines } from './guardUtils';
+import { latestError, newGuardError, guardBannerKey, guardBannerText, hazardMessages, hazardText, healLines } from './guardUtils';
 
 // Echoes the key and its variables so the assertions can see both.
 const t = (key: string, vars?: Record<string, string | number>) =>
@@ -49,15 +49,18 @@ describe('hazard text', () => {
     expect(hazardText('F', 'follows-stoppable-source', null, t)).toContain('source=cooling.guard.hazard.unknownSource');
   });
 
-  it('builds a line per hazard and per healed channel', () => {
-    expect(lintLines([h], t)).toHaveLength(1);
+  it('builds a line per healed channel', () => {
     expect(healLines([{ id: 'a', name: 'Fan #1', hazard: 'manual-low' }], t)[0]).toContain('heal.was.manualLow');
   });
 
-  it('signs a hazard set independent of order', () => {
-    const b: CurveHazard = { ...h, channelId: 'b' };
-    expect(hazardSignature([h, b])).toBe(hazardSignature([b, h]));
-    expect(hazardSignature([])).toBe('');
+  it('maps a channel id to its first hazard message and treats a missing list as empty', () => {
+    const b: CurveHazard = { ...h, channelId: 'b', kind: 'low-ceiling' };
+    const second: CurveHazard = { ...h, kind: 'manual-low' };
+    const out = hazardMessages([h, b, second], t);
+    expect(Object.keys(out).sort()).toEqual([h.channelId, 'b'].sort());
+    expect(out[h.channelId]).toContain('hazard.followsSource');
+    expect(out.b).toContain('hazard.lowCeiling');
+    expect(hazardMessages(undefined, t)).toEqual({});
   });
 });
 

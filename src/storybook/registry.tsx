@@ -28,6 +28,7 @@ import { InfoTooltip } from '../components/common/InfoTooltip/InfoTooltip';
 import { HoverTooltip } from '../components/common/HoverTooltip/HoverTooltip';
 import { ChartHoverTooltip, ChartTooltipHeader, ChartTooltipRow, ChartTooltipVal } from '../components/common/ChartHoverTooltip/ChartHoverTooltip';
 import { DeviceWarningIcon } from '../components/common/DeviceWarningIcon/DeviceWarningIcon';
+import { WarningIcon } from '../components/common/WarningIcon/WarningIcon';
 import { DeviceGroupIcon } from '../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { NexusControlOffIcon } from '../components/common/NexusControlOffIcon/NexusControlOffIcon';
 import { NexusControlCard } from '../components/common/NexusControlCard/NexusControlCard';
@@ -355,6 +356,21 @@ function PreviewDeviceWarningIcon() {
       <div className={styles.previewHoverCard}>
         <span>Unknown code</span>
         <DeviceWarningIcon code="some-future-code" />
+      </div>
+    </div>
+  );
+}
+
+function PreviewWarningIcon() {
+  return (
+    <div className={styles.previewStack}>
+      <div className={styles.previewHoverCard}>
+        <span>Fan 1</span>
+        <WarningIcon message="Fan 1 is set to a low fixed speed" tone="critical" />
+      </div>
+      <div className={styles.previewHoverCard}>
+        <span>Warning tone</span>
+        <WarningIcon message="Something worth a look" />
       </div>
     </div>
   );
@@ -2536,6 +2552,13 @@ export const REGISTRY: StorybookEntry[] = [
     description: 'Right-aligned warning glyph for a device row/card, shown whenever the service reports a device-level issue via DeviceListItem.warning. Code-driven - the warning code maps to a localized tooltip, so any handler can flag a problem without new UI per device family. Used by the sidebar DEVICES section and the Devices-page card grid.',
     Preview: PreviewDeviceWarningIcon,
     notes: 'Renders the raw code as a fallback tooltip if it has no mapped i18n key, so an unmapped code fails visibly instead of silently.',
+  },
+  {
+    name: 'WarningIcon', category: 'status',
+    filePath: 'src/components/common/WarningIcon/WarningIcon.tsx',
+    description: 'Warning triangle that explains the problem in a hover tooltip. Sits next to the element it flags (the cooling FanCard name, via DeviceWarningIcon on device rows) instead of a banner or dialog, so it is reserved for what really matters. Two tones match the Notice standard: warning (default, --warn) and critical (--bad, for hardware at risk).',
+    Preview: PreviewWarningIcon,
+    notes: 'A bare non-focusable span with role="img" and an aria-label of the message, so it can sit inside a card or button. The tooltip opens on hover only, so it is not reachable on a touch screen; keep the same fact elsewhere when touch users must see it.',
   },
   {
     name: 'DeviceGroupIcon', category: 'status',

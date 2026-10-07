@@ -1,0 +1,13 @@
+.icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.warning {
+  color: var(--warn);
+}
+
+.critical {
+  color: var(--bad);
+}
