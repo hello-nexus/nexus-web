@@ -292,6 +292,10 @@ export interface GuardLastTrip {
   peakC: number;
   reason: GuardTripReason;
   escalated: boolean;
+  /** Null while the trip is still active. */
+  endedAtUtcMs?: number | null;
+  /** The user dismissed the ended trip, so the Diagnostics notice is gone. */
+  acknowledged?: boolean;
 }
 
 export interface HealChannel {
@@ -334,6 +338,8 @@ export interface GuardResponse {
   heal: HealState;
   /** The engine watchdog handed the fans to the BIOS and stays latched until a restart or a guard off/on. */
   watchdogLatched?: boolean;
+  /** Whether saves warn about hazardous fan setups; absent on an older service (treat as on). */
+  lintWarnings?: boolean;
   gpus?: GuardGpu[];
 }
 
@@ -353,7 +359,9 @@ export interface LintResponse {
 export const fetchGuard = () => fetchService<GuardResponse>('/cooling/guard');
 
 /** Partial update; an override sent while the detected source is hardware comes back as an error envelope. */
-export const setGuardConfig = (body: { enabled?: boolean; limitOverrideC?: number; clearLimitOverride?: boolean }) =>
+export const setGuardConfig = (body: {
+  enabled?: boolean; limitOverrideC?: number; clearLimitOverride?: boolean; lintWarnings?: boolean;
+}) =>
   postService<GuardResponse>('/cooling/guard/config', body);
 
 
@@ -362,6 +370,10 @@ export const lintCurves = (body: { globalSpeedModifier: number; curves: WireCurv
   postService<LintResponse>('/cooling/curves/lint', body);
 
 export const healCooling = () => postService<HealState>('/cooling/heal', {});
+
+/** Dismisses an ended trip's Diagnostics notice; answers with the guard, or error true while the trip is still active. */
+export const acknowledgeGuardTrip = () =>
+  postService<GuardResponse & { error?: boolean; msg?: string }>('/cooling/guard/trip/acknowledge', {});
 
 export const undoHeal = () => postService<HealState>('/cooling/heal/undo', {});
 

@@ -13,7 +13,7 @@ const base: GuardResponse = {
 };
 
 function view(guard: GuardResponse, over: Partial<{ pending: boolean; error: string | null }> = {}) {
-  const handlers = { onToggle: vi.fn(), onSetLimit: vi.fn(), onClearLimit: vi.fn() };
+  const handlers = { onToggle: vi.fn(), onSetLimit: vi.fn(), onClearLimit: vi.fn(), onLintWarningsChange: vi.fn() };
   render(<ThermalGuardSettingView guard={guard} pending={over.pending ?? false} error={over.error ?? null} {...handlers} />);
   return handlers;
 }
@@ -29,17 +29,17 @@ describe('ThermalGuardSettingView', () => {
 
   it('drives the switch from enabled, so a lagging state does not flip it', () => {
     view({ ...base, enabled: false, state: 'normal' });
-    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('switch', { name: 'cooling.guard.label' }).getAttribute('aria-checked')).toBe('false');
   });
 
   it('shows the switch off when the guard is off', () => {
     view({ ...base, state: 'off' });
-    expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('false');
+    expect(screen.getByRole('switch', { name: 'cooling.guard.label' }).getAttribute('aria-checked')).toBe('false');
   });
 
   it('disables the switch while a write is pending, but not the slider or Reset', () => {
     view({ ...base, limitC: 102, limitSource: 'user', limitOverrideC: 102 }, { pending: true });
-    expect(screen.getByRole('switch')).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'cooling.guard.label' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'cooling.guard.limit.reset' })).not.toBeDisabled();
     // Disabling the slider would drop keyboard focus mid-adjustment.
     expect(screen.getByRole('slider')).not.toBeDisabled();
@@ -178,6 +178,28 @@ describe('ThermalGuardSettingView', () => {
       const h = view({ ...overridden, state: 'normal', enabled: true });
       expect(h.onSetLimit).not.toHaveBeenCalled();
       expect(h.onClearLimit).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('hazard warnings toggle', () => {
+    const lintSwitch = () => screen.getByRole('switch', { name: 'cooling.guard.lintWarnings.label' });
+
+    it('is on by default and reports the next value', () => {
+      const h = view(base);
+      expect(lintSwitch().getAttribute('aria-checked')).toBe('true');
+      fireEvent.click(lintSwitch());
+      expect(h.onLintWarningsChange).toHaveBeenCalledWith(false);
+    });
+
+    it('follows lintWarnings from the service', () => {
+      view({ ...base, lintWarnings: false });
+      expect(lintSwitch().getAttribute('aria-checked')).toBe('false');
+    });
+
+    it('stays enabled when the guard is off, unlike the limit row', () => {
+      view({ ...base, state: 'off', enabled: false, limitC: undefined, limitSource: undefined });
+      expect(lintSwitch()).not.toBeDisabled();
+      expect(screen.getByRole('slider')).toBeDisabled();
     });
   });
 });

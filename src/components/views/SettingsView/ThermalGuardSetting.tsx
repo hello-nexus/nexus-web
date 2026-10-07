@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, Thermometer } from 'lucide-react';
+import { ShieldCheck, Thermometer, TriangleAlert } from 'lucide-react';
 import { Button } from '../../common/Button/Button';
 import { InfoTooltip } from '../../common/InfoTooltip/InfoTooltip';
 import { Slider } from '../../common/Slider/Slider';
@@ -149,6 +149,9 @@ interface ThermalGuardSettingViewProps {
   error: string | null;
   /** A failed limit write, shown on the limit row apart from the switch's error. */
   limitError?: string | null;
+  /** A failed hazard-warning write, shown on its own row. */
+  lintWarningsError?: string | null;
+  onLintWarningsChange?: (enabled: boolean) => void;
   onToggle: (enabled: boolean) => void;
   onSetLimit: (c: number) => void;
   onClearLimit: () => void;
@@ -156,7 +159,7 @@ interface ThermalGuardSettingViewProps {
 
 /** The settings rows themselves, apart from the service wiring. */
 export function ThermalGuardSettingView({
-  guard, pending, pendingLimit = null, error, limitError = null, onToggle, onSetLimit, onClearLimit,
+  guard, pending, pendingLimit = null, error, limitError = null, lintWarningsError = null, onLintWarningsChange = () => {}, onToggle, onSetLimit, onClearLimit,
 }: ThermalGuardSettingViewProps) {
   const { t } = useTranslation();
   return (
@@ -180,6 +183,21 @@ export function ThermalGuardSettingView({
       {guard.detectedLimitSource && (
         <LimitRow guard={guard} pendingLimit={pendingLimit} disabled={!guardEnabled(guard)} error={limitError} onCommit={onSetLimit} onReset={onClearLimit} />
       )}
+      {/* Independent of the guard switch: it only governs the prompt when saving curves. */}
+      <SettingToggle
+        label={t('cooling.guard.lintWarnings.label')}
+        description={(
+          <>
+            {t('cooling.guard.lintWarnings.description')}
+            {lintWarningsError && <span role="alert">{` ${lintWarningsError}`}</span>}
+          </>
+        )}
+        icon={<TriangleAlert />}
+        iconLeading="subtle"
+        anchorId="set-thermal-guard-lint"
+        checked={guard.lintWarnings !== false}
+        onChange={onLintWarningsChange}
+      />
     </>
   );
 }
@@ -191,7 +209,9 @@ export function ThermalGuardSettingView({
  * no dead controls.
  */
 export function ThermalGuardSetting({ serviceOnline }: { serviceOnline: boolean }) {
-  const { guard, toggling, pendingLimit, toggleError, limitError, toggle, setLimit, clearLimit } = useThermalGuard(serviceOnline);
+  const {
+    guard, toggling, pendingLimit, toggleError, limitError, lintWarningsError, toggle, setLimit, clearLimit, setLintWarnings,
+  } = useThermalGuard(serviceOnline);
   if (!guard) return null;
   return (
     <ThermalGuardSettingView
@@ -200,6 +220,8 @@ export function ThermalGuardSetting({ serviceOnline }: { serviceOnline: boolean 
       pendingLimit={pendingLimit}
       error={toggleError?.message ?? null}
       limitError={limitError?.message ?? null}
+      lintWarningsError={lintWarningsError?.message ?? null}
+      onLintWarningsChange={enabled => setLintWarnings(enabled)}
       onToggle={next => { void toggle(next); }}
       onSetLimit={c => setLimit(c)}
       onClearLimit={() => { void clearLimit(); }}

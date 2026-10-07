@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fetchGuard, keepHeal, setGuardConfig, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
+import { acknowledgeGuardTrip, fetchGuard, keepHeal, setGuardConfig, undoHeal, type GuardResponse, type HealState } from '../api/cooling';
 import { useTranslation } from '../lib/i18n';
 import { newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTopicCallback } from './useMultiplexSocket';
@@ -17,6 +17,7 @@ export function useThermalGuard(serviceOnline: boolean) {
   // The switch and the limit each report their own failure, beside their own control.
   const [toggleError, setToggleError] = useState<GuardErrorState | null>(null);
   const [limitError, setLimitError] = useState<GuardErrorState | null>(null);
+  const [lintWarningsError, setLintWarningsError] = useState<GuardErrorState | null>(null);
   const guardRef = useRef<GuardResponse | null>(null);
   guardRef.current = guard;
   // Bumped when the service goes away or the page unmounts, so a response
@@ -71,7 +72,7 @@ export function useThermalGuard(serviceOnline: boolean) {
   // kicks the single writer. Each pass sends up to two requests, the switch first
   // and then the limit, and loops while new intents arrive, so nothing is dropped,
   // reordered or reversed.
-  const intentRef = useRef<{ enabled?: boolean; limit?: number | 'reset' }>({});
+  const intentRef = useRef<{ enabled?: boolean; limit?: number | 'reset'; lintWarnings?: boolean }>({});
   const writerRunningRef = useRef(false);
   // The limit shown while it is pending, so the slider does not snap back to the server's value.
   const [pendingLimit, setPendingLimit] = useState<number | 'reset' | null>(null);
@@ -103,8 +104,12 @@ export function useThermalGuard(serviceOnline: boolean) {
       }
     };
     try {
-      while (intentRef.current.enabled !== undefined || intentRef.current.limit !== undefined) {
-        const { enabled, limit } = intentRef.current;
+      while (
+        intentRef.current.enabled !== undefined
+        || intentRef.current.limit !== undefined
+        || intentRef.current.lintWarnings !== undefined
+      ) {
+        const { enabled, limit, lintWarnings } = intentRef.current;
         intentRef.current = {};
         // The switch goes alone: a limit the service refuses must not take the toggle down with it.
         if (enabled !== undefined) {
@@ -116,6 +121,9 @@ export function useThermalGuard(serviceOnline: boolean) {
             'cooling.guard.error.limit',
             setLimitError,
           );
+        }
+        if (lintWarnings !== undefined) {
+          await send({ lintWarnings }, 'cooling.guard.error.lintWarnings', setLintWarningsError);
         }
         // The display override ends once no newer limit intent is waiting.
         if (intentRef.current.limit === undefined) setPendingLimit(null);
@@ -134,6 +142,10 @@ export function useThermalGuard(serviceOnline: boolean) {
   const setLimit = useCallback((limit: number) => {
     intentRef.current.limit = limit;
     setPendingLimit(limit);
+    void runWriter();
+  }, [runWriter]);
+  const setLintWarnings = useCallback((lintWarnings: boolean) => {
+    intentRef.current.lintWarnings = lintWarnings;
     void runWriter();
   }, [runWriter]);
   const clearLimit = useCallback(() => {
@@ -175,7 +187,20 @@ export function useThermalGuard(serviceOnline: boolean) {
     return true;
   }, [applyHeal]);
 
+  /** Dismisses an ended trip. True when the service accepted it and its guard became the state. */
+  const acknowledgeTrip = useCallback(async (): Promise<boolean> => {
+    const res = await acknowledgeGuardTrip();
+    if (!res || res.error || !res.state) {
+      setError(newGuardError(tRef.current('diagnostics.cooling.guardTrip.error')));
+      return false;
+    }
+    setError(null);
+    seqRef.current += 1;
+    setGuard(res);
+    return true;
+  }, []);
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, toggling, pendingLimit, error, toggleError, limitError, clearError, refresh, toggle, setLimit, clearLimit, undo, keep, applyHeal };
+  return { guard, toggling, pendingLimit, error, toggleError, limitError, lintWarningsError, clearError, refresh, toggle, setLimit, clearLimit, setLintWarnings, acknowledgeTrip, undo, keep, applyHeal };
 }

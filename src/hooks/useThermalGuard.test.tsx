@@ -6,7 +6,7 @@ import { useThermalGuard } from './useThermalGuard';
 
 // Rendered outside I18nProvider, so t() falls back to raw keys.
 
-const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn(), keepHeal: vi.fn() }));
+const api = vi.hoisted(() => ({ fetchGuard: vi.fn(), setGuardConfig: vi.fn(), undoHeal: vi.fn(), keepHeal: vi.fn(), acknowledgeGuardTrip: vi.fn() }));
 
 vi.mock('../api/cooling', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api/cooling')>()),
@@ -33,7 +33,7 @@ const hook = {
 function Harness({ online = true }: { online?: boolean }) {
   const h = useThermalGuard(online);
   useEffect(() => { handle.current = h; });
-  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{[h.error, h.toggleError, h.limitError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
+  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{[h.error, h.toggleError, h.limitError, h.lintWarningsError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
 }
 const mount = (online = true) => render(<Harness online={online} />);
 
@@ -221,5 +221,23 @@ describe('useThermalGuard', () => {
     await act(async () => { ok = await handle.current!.keep(); });
     expect(ok).toBe(false);
     await screen.findByText('cooling.guard.error.keep');
+  });
+
+  it('sends the hazard-warning switch as its own request', async () => {
+    mount();
+    api.setGuardConfig.mockResolvedValue(guard('normal'));
+    await act(async () => {
+      handle.current!.toggle(false);
+      handle.current!.setLintWarnings(false);
+    });
+    await waitFor(() => { expect(api.setGuardConfig).toHaveBeenCalledTimes(2); });
+    expect(api.setGuardConfig.mock.calls.map(c => c[0])).toEqual([{ enabled: false }, { lintWarnings: false }]);
+  });
+
+  it('reports a failed hazard-warning write under its own error', async () => {
+    mount();
+    api.setGuardConfig.mockResolvedValue(null);
+    await act(async () => { handle.current!.setLintWarnings(false); });
+    await screen.findByText('cooling.guard.error.lintWarnings');
   });
 });

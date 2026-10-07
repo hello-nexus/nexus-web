@@ -134,6 +134,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   const thermalGuard = useThermalGuard(serviceOnline);
   const refreshCoolingConfigRef = useRef<() => void>(() => {});
   const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
+    lintEnabled: thermalGuard.guard?.lintWarnings !== false,
     onHealed: heal => {
       thermalGuard.applyHeal(heal);
       refreshCoolingConfigRef.current();

@@ -63,3 +63,14 @@
   gap: 0.5rem;
   justify-content: flex-end;
 }
+
+// The "don't warn me again" tick in the save-time lint dialog.
+.dontAsk {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  cursor: pointer;
+
+  @include text-body;
+}

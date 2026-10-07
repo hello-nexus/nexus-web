@@ -109,6 +109,7 @@ export function useCoolingImmersive(): CoolingImmersiveController {
   const [healNotice, setHealNotice] = useState<HealState | null>(null);
   const thermalGuard = useThermalGuard(true);
   const { saveWithLint, prompt: lintPrompt, error: lintError } = useCurveSaveLint({
+    lintEnabled: thermalGuard.guard?.lintWarnings !== false,
     onHealed: heal => {
       setHealNotice(heal);
       thermalGuard.applyHeal(heal);

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
-  healCooling, lintCurves, saveCurves,
+  healCooling, lintCurves, saveCurves, setGuardConfig,
   type CurveHazard, type HealState, type WireCurve,
 } from '../api/cooling';
 import { ConfirmModal } from '../components/common/ConfirmModal/ConfirmModal';
 import { hazardSignature, lintLines, newGuardError, type GuardErrorState } from '../panel/widgets/cooling/page/guardUtils';
 import { useTranslation } from '../lib/i18n';
+import styles from '../panel/widgets/cooling/page/ThermalGuardPanel.module.scss';
 
 type CurvesBody = { globalSpeedModifier: number; curves: WireCurve[] };
 
@@ -36,6 +37,8 @@ export function useCurveSaveLint(options: {
   onHealed: (heal: HealState) => void;
   /** Called after each successful save, before any heal. */
   onSaved?: () => void;
+  /** False when the user switched hazard warnings off: saves then skip the lint and prompt. Absent means on. */
+  lintEnabled?: boolean;
 }): {
   saveWithLint: (body: CurvesBody) => Promise<unknown>;
   prompt: ReactNode;
@@ -51,6 +54,10 @@ export function useCurveSaveLint(options: {
   const runningRef = useRef(false);
   const ackedRef = useRef('');
   const unmountedRef = useRef(false);
+  // "Don't warn me again", ticked in the open prompt; and an opt-out sent but not yet reflected in `lintEnabled`.
+  const [dontAsk, setDontAsk] = useState(false);
+  const dontAskRef = useRef(false);
+  const lintOptedOutRef = useRef(false);
   const optionsRef = useRef(options);
   optionsRef.current = options;
   const tRef = useRef(t);
@@ -68,7 +75,8 @@ export function useCurveSaveLint(options: {
         try {
           let hazards: CurveHazard[] = [];
           let fixAvailable = false;
-          if (!unmountedRef.current) {
+          const lintOff = optionsRef.current.lintEnabled === false || lintOptedOutRef.current;
+          if (!unmountedRef.current && !lintOff) {
             const lint = await lintCurves(body);
             hazards = lint?.hazards ?? [];
             fixAvailable = lint?.fixAvailable ?? false;
@@ -76,9 +84,12 @@ export function useCurveSaveLint(options: {
           if (latestRef.current) continue;
           const signature = hazardSignature(hazards);
           let fix = false;
+          let optOutFailed = false;
           if (hazards.length === 0) {
             ackedRef.current = '';
           } else if (signature !== ackedRef.current && !unmountedRef.current) {
+            dontAskRef.current = false;
+            setDontAsk(false);
             fix = await new Promise<boolean>(settle => {
               const prompt: PendingPrompt = { hazards, fixAvailable, settle };
               pendingRef.current = prompt;
@@ -86,6 +97,15 @@ export function useCurveSaveLint(options: {
             });
             pendingRef.current = null;
             setPending(null);
+            // Ticked on either choice: switch the warnings off, in a request of its own.
+            if (dontAskRef.current && !unmountedRef.current) {
+              lintOptedOutRef.current = true;
+              const res = await setGuardConfig({ lintWarnings: false });
+              if (!res || !res.state) {
+                lintOptedOutRef.current = false;
+                optOutFailed = true;
+              }
+            }
             // Only Save anyway acknowledges a hazard set; Fix does not, so a body
             // built from pre-heal curves prompts again instead of undoing the heal.
             if (!fix) ackedRef.current = signature;
@@ -97,7 +117,8 @@ export function useCurveSaveLint(options: {
           if (!saved) {
             setError(newGuardError(tRef.current('cooling.guard.error.save')));
           } else {
-            setError(null);
+            // Reported after the save so its success does not wipe it.
+            setError(optOutFailed ? newGuardError(tRef.current('cooling.guard.error.lintWarnings')) : null);
             optionsRef.current.onSaved?.();
             if (fix) {
               const heal = await healCooling();
@@ -135,6 +156,12 @@ export function useCurveSaveLint(options: {
     };
   }, []);
 
+  // The server's value wins again once it reports warnings on.
+  const lintEnabledOpt = options.lintEnabled;
+  useEffect(() => {
+    if (lintEnabledOpt !== false) lintOptedOutRef.current = false;
+  }, [lintEnabledOpt]);
+
   const answer = (fix: boolean) => { pending?.settle(fix); };
 
   const canFix = pending?.fixAvailable ?? true;
@@ -151,7 +178,19 @@ export function useCurveSaveLint(options: {
       hideConfirm={!canFix}
       onConfirm={() => answer(true)}
       onCancel={() => answer(false)}
-    />
+    >
+      <label className={styles.dontAsk}>
+        <input
+          type="checkbox"
+          checked={dontAsk}
+          onChange={e => {
+            dontAskRef.current = e.target.checked;
+            setDontAsk(e.target.checked);
+          }}
+        />
+        <span>{t('cooling.guard.dialog.dontAsk')}</span>
+      </label>
+    </ConfirmModal>
   );
 
   return { saveWithLint, prompt, error };

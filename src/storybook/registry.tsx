@@ -63,6 +63,7 @@ import { DeviceCountSummary } from '../components/common/DeviceCountSummary/Devi
 import { SimpleModeNotice } from '../components/common/SimpleModeNotice/SimpleModeNotice';
 import { FirmwareRecoveryBanner } from '../components/common/FirmwareRecoveryBanner/FirmwareRecoveryBanner';
 import { ThermalGuardPanel } from '../panel/widgets/cooling/page/ThermalGuardPanel';
+import { GuardTripNoticeView } from '../components/views/DiagnosticsView/GuardTripNotice';
 import { ThermalGuardSettingView } from '../components/views/SettingsView/ThermalGuardSetting';
 import type { GuardResponse } from '../api/cooling';
 import { FlashProgress } from '../components/common/FlashProgress/FlashProgress';
@@ -1443,6 +1444,23 @@ function PreviewThermalGuardPanel() {
   );
 }
 
+const PREVIEW_TRIP_AT = 1_760_000_000_000;
+
+function PreviewGuardTripNotice() {
+  const trip = (over: Partial<NonNullable<GuardResponse['lastTrip']>>) => ({
+    ...PREVIEW_GUARD,
+    lastTrip: { atUtcMs: PREVIEW_TRIP_AT, peakC: 93, reason: 'limit' as const, escalated: false, endedAtUtcMs: PREVIEW_TRIP_AT + 540_000, acknowledged: false, ...over },
+  });
+  return (
+    <div className={styles.previewStack} style={{ width: 560 }}>
+      <GuardTripNoticeView guard={trip({})} error={null} onDismiss={() => {}} />
+      <GuardTripNoticeView guard={trip({ reason: 'cooling-loss' })} error={null} onDismiss={() => {}} />
+      <GuardTripNoticeView guard={trip({ endedAtUtcMs: null })} error={null} onDismiss={() => {}} onOpenCooling={() => {}} />
+      <GuardTripNoticeView guard={trip({})} error="Couldn't dismiss the notice." onDismiss={() => {}} />
+    </div>
+  );
+}
+
 function PreviewThermalGuardSetting() {
   const base = { ...PREVIEW_GUARD, detectedLimitC: 95, detectedLimitSource: 'spec' as const, limitOverrideC: null };
   const states: Array<{ guard: GuardResponse; error?: string }> = [
@@ -2613,9 +2631,15 @@ export const REGISTRY: StorybookEntry[] = [
     Preview: PreviewThermalGuardPanel,
   },
   {
+    name: 'GuardTripNotice', category: 'cards',
+    filePath: 'src/components/views/DiagnosticsView/GuardTripNotice.tsx',
+    description: 'Notice at the top of the Diagnostics Cooling tab for a thermal guard trip nobody has dismissed. An ended trip shows when it happened, the peak and the cause with a Dismiss button; a trip still in progress shows an Open Cooling link and no Dismiss; a failed dismissal shows an inline error. Gone once acknowledged.',
+    Preview: PreviewGuardTripNotice,
+  },
+  {
     name: 'ThermalGuardSetting', category: 'cards',
     filePath: 'src/components/views/SettingsView/ThermalGuardSetting.tsx',
-    description: 'Settings > Cooling rows for the CPU thermal guard: the on/off switch and the temperature limit. The limit is always a stacked slider (90 to 110, widened to include a lower detected value such as 89; pointer release commits at once, keyboard steps after a short wait) preset to the detected value, with the Slider marker at the CPU throttle point labelled by an info tooltip, the detected value and its source (read from the CPU, CPU spec or default), a Reset to detected action while an override is set, and a note about shutdown above about 105 degrees. Shown for hardware, spec, override set, the 89 degree bar, error, inactive and off (the limit row greys out, keeping the detected line and marker).',
+    description: 'Settings > Cooling rows for the CPU thermal guard: the on/off switch and the temperature limit. The limit is always a stacked slider (90 to 110, widened to include a lower detected value such as 89; pointer release commits at once, keyboard steps after a short wait) preset to the detected value, with the Slider marker at the CPU throttle point labelled by an info tooltip, the detected value and its source (read from the CPU, CPU spec or default), a Reset to detected action while an override is set, and a note about shutdown above about 105 degrees. Shown for hardware, spec, override set, the 89 degree bar, error, inactive and off (the limit row greys out, keeping the detected line and marker). The hazard-warnings switch beneath is independent of the guard switch and stays enabled when the guard is off.',
     Preview: PreviewThermalGuardSetting,
   },
   {

@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   lint: vi.fn(),
   save: vi.fn(),
   heal: vi.fn(),
+  config: vi.fn(),
 }));
 
 vi.mock('../api/cooling', async (importOriginal) => ({
@@ -16,6 +17,7 @@ vi.mock('../api/cooling', async (importOriginal) => ({
   lintCurves: api.lint,
   saveCurves: api.save,
   healCooling: api.heal,
+  setGuardConfig: api.config,
 }));
 
 const hazard = { channelId: 'a', channelName: 'Fan #1', kind: 'manual-low', rootId: null, rootName: null };
@@ -31,13 +33,13 @@ const onHealed = vi.fn();
 const onSaved = vi.fn();
 
 // No ToastProvider: the error has to render inline.
-function Harness() {
-  const lint = useCurveSaveLint({ onHealed, onSaved });
+function Harness({ lintEnabled }: { lintEnabled?: boolean }) {
+  const lint = useCurveSaveLint({ onHealed, onSaved, lintEnabled });
   useEffect(() => { handle.current = lint; });
   return <>{lint.prompt}{lint.error && <p role="alert">{lint.error.message}</p>}</>;
 }
 
-const mount = () => render(<Harness />);
+const mount = (lintEnabled?: boolean) => render(<Harness lintEnabled={lintEnabled} />);
 const savedBodies = () => api.save.mock.calls.map(c => c[0].globalSpeedModifier);
 
 describe('useCurveSaveLint', () => {
@@ -45,6 +47,7 @@ describe('useCurveSaveLint', () => {
     vi.clearAllMocks();
     api.lint.mockResolvedValue(clean);
     api.save.mockResolvedValue(ok);
+    api.config.mockResolvedValue({ state: 'normal', lintWarnings: false });
     api.heal.mockResolvedValue(healed);
   });
 
@@ -202,5 +205,74 @@ describe('useCurveSaveLint', () => {
     await act(async () => { await save(body(2)); });
     expect(screen.queryByRole('alert')).toBeNull();
     expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  describe("Don't warn me again", () => {
+    const tick = () => screen.findByRole('checkbox');
+
+    it('ticked with Fix: the opt-out goes in its own request, then the save and the heal', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      act(() => { void save(body(1)); });
+      fireEvent.click(await tick());
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.fix' }));
+      await waitFor(() => { expect(api.heal).toHaveBeenCalled(); });
+      expect(api.config).toHaveBeenCalledExactlyOnceWith({ lintWarnings: false });
+      expect(savedBodies()).toEqual([1]);
+    });
+
+    it('ticked with Save anyway: the opt-out is sent and nothing is healed', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      act(() => { void save(body(1)); });
+      fireEvent.click(await tick());
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
+      await waitFor(() => { expect(savedBodies()).toEqual([1]); });
+      expect(api.config).toHaveBeenCalledExactlyOnceWith({ lintWarnings: false });
+      expect(api.heal).not.toHaveBeenCalled();
+    });
+
+    it('unticked sends no opt-out', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      act(() => { void save(body(1)); });
+      fireEvent.click(await screen.findByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
+      await waitFor(() => { expect(savedBodies()).toEqual([1]); });
+      expect(api.config).not.toHaveBeenCalled();
+    });
+
+    it('after the opt-out, later saves skip the lint and save directly', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      act(() => { void save(body(1)); });
+      fireEvent.click(await tick());
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
+      await waitFor(() => { expect(savedBodies()).toEqual([1]); });
+      api.lint.mockClear();
+      await act(async () => { await save(body(2)); });
+      expect(api.lint).not.toHaveBeenCalled();
+      expect(savedBodies()).toEqual([1, 2]);
+    });
+
+    it('a failed opt-out shows an error and keeps warning', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      api.config.mockResolvedValue(null);
+      act(() => { void save(body(1)); });
+      fireEvent.click(await tick());
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
+      await screen.findByText('cooling.guard.error.lintWarnings');
+      expect(savedBodies()).toEqual([1]);
+      api.lint.mockClear();
+      await act(async () => { void save(body(2)); });
+      expect(api.lint).toHaveBeenCalled();
+    });
+  });
+
+  it('skips the lint entirely while lintEnabled is false', async () => {
+    mount(false);
+    await act(async () => { await save(body(1)); });
+    expect(api.lint).not.toHaveBeenCalled();
+    expect(savedBodies()).toEqual([1]);
   });
 });

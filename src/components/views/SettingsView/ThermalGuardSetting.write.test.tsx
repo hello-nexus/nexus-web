@@ -44,7 +44,7 @@ async function drag(to: number) {
 
 async function mount() {
   const view = render(<ThermalGuardSetting serviceOnline />);
-  await screen.findByRole('switch');
+  await screen.findByRole('switch', { name: 'cooling.guard.label' });
   return view;
 }
 
@@ -72,7 +72,7 @@ describe('ThermalGuardSetting writes', () => {
     const first = deferred<GuardResponse>();
     api.setGuardConfig.mockReturnValueOnce(first.promise);
     await mount();
-    fireEvent.click(screen.getByRole('switch'));
+    fireEvent.click(screen.getByRole('switch', { name: 'cooling.guard.label' }));
     await drag(100);
     await act(async () => { first.resolve(guard({ enabled: false, state: 'off' })); });
     await waitFor(() => { expect(bodies()).toEqual([{ enabled: false }, { limitOverrideC: 100 }]); });

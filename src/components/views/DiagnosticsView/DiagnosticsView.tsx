@@ -38,6 +38,8 @@ interface DiagnosticsViewProps {
   platform: string;
   tab: string | null;
   onTabChange: (tab: string) => void;
+  /** Opens the Cooling page; without it the notice link is a plain href. */
+  onOpenCooling?: () => void;
 }
 
 const INCIDENT_WINDOW_DAYS = 30;
@@ -49,7 +51,7 @@ const INCIDENT_WINDOW_DAYS = 30;
 // effect requires.
 const COOLING_EPISODES_QUERY: DiagnosticsTemperatureQuery = { hours: 168 };
 
-export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange }: DiagnosticsViewProps) {
+export function DiagnosticsView({ serviceOnline, connectionState, platform, tab: urlTab, onTabChange, onOpenCooling }: DiagnosticsViewProps) {
   const { t } = useTranslation();
   const { push } = useToast();
 
@@ -198,6 +200,12 @@ export function DiagnosticsView({ serviceOnline, connectionState, platform, tab:
           gpu={gpu}
           coolingHistory={coolingHistory}
           episodes={temperatures.data?.episodes ?? []}
+          serviceOnline={serviceOnline}
+          onOpenCooling={onOpenCooling}
+          onGuardTripDismissed={() => {
+            refreshHealth({ force: true });
+            refreshCooling();
+          }}
         />
       );
       case 'system': return (
