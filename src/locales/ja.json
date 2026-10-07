@@ -700,6 +700,7 @@
   "devices.lianli-wireless.aioScreen.valueColor": "数値の色",
   "devices.lianli-wireless.aioScreen.widgets": "Nexus ウィジェット",
   "devices.lianli-wireless.aioScreen.widgetsNoUsb": "Nexus ウィジェットをすべて使うには、AIO の USB ケーブルを接続してください。",
+  "devices.lianli-wireless.aioScreen.widgetsOff": "画面にはAIO独自のテーマと測定値が表示されます。設定は下で行います。",
   "devices.lianli-wireless.aioScreen.widgetsUsb": "この画面のウィジェット、テーマ、背景は専用ページで設定します。",
   "devices.lianli-wireless.animationLabel": "アニメーション",
   "devices.lianli-wireless.animationPulse": "パルス",

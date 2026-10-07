@@ -700,6 +700,7 @@
   "devices.lianli-wireless.aioScreen.valueColor": "Kleur van waarden",
   "devices.lianli-wireless.aioScreen.widgets": "Nexus-widgets",
   "devices.lianli-wireless.aioScreen.widgetsNoUsb": "Sluit de USB-kabel van de AIO aan voor volledige ondersteuning van Nexus-widgets.",
+  "devices.lianli-wireless.aioScreen.widgetsOff": "Het scherm toont zijn eigen thema en metingen, die je hieronder instelt.",
   "devices.lianli-wireless.aioScreen.widgetsUsb": "Widgets, thema en achtergrond voor dit scherm stel je in op de eigen pagina.",
   "devices.lianli-wireless.animationLabel": "Animatie",
   "devices.lianli-wireless.animationPulse": "Puls",

@@ -20,7 +20,7 @@ const mockDeleteMedia = vi.fn();
 const mockSetOrder = vi.fn();
 const mockGetAioScreen = vi.fn(() => Promise.resolve({
   brightness: 80, theme: 0, themeCount: 13, labelColor: '#FFFFFF', valueColor: '#FFFFFF', unitColor: '#FFFFFF',
-  showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false,
+  showCpuTemp: true, showCpuLoad: true, showGpuTemp: true, showGpuLoad: true, showFanSpeed: false, nexusWidgets: true,
 }));
 
 vi.mock('../../../api/lianli-wireless', () => ({

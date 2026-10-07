@@ -707,6 +707,7 @@
   "devices.lianli-wireless.aioScreen.valueColor": "Цвет значений",
   "devices.lianli-wireless.aioScreen.widgets": "Виджеты Nexus",
   "devices.lianli-wireless.aioScreen.widgetsNoUsb": "Подключите USB-кабель AIO, чтобы виджеты Nexus работали полностью.",
+  "devices.lianli-wireless.aioScreen.widgetsOff": "Экран показывает собственную тему и показания, которые настраиваются ниже.",
   "devices.lianli-wireless.aioScreen.widgetsUsb": "Виджеты, тема и фон этого экрана настраиваются на его собственной странице.",
   "devices.lianli-wireless.animationLabel": "Анимация",
   "devices.lianli-wireless.animationPulse": "Пульс",

@@ -700,6 +700,7 @@
   "devices.lianli-wireless.aioScreen.valueColor": "Value color",
   "devices.lianli-wireless.aioScreen.widgets": "Nexus widgets",
   "devices.lianli-wireless.aioScreen.widgetsNoUsb": "Connect the AIO's USB cable for full Nexus widget support.",
+  "devices.lianli-wireless.aioScreen.widgetsOff": "The screen shows its own theme and readings, set below.",
   "devices.lianli-wireless.aioScreen.widgetsUsb": "Widgets, theme and background for this screen are set on its own page.",
   "devices.lianli-wireless.animationLabel": "Animation",
   "devices.lianli-wireless.animationPulse": "Pulse",

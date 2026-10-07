@@ -700,6 +700,7 @@
   "devices.lianli-wireless.aioScreen.valueColor": "數值顏色",
   "devices.lianli-wireless.aioScreen.widgets": "Nexus 元件",
   "devices.lianli-wireless.aioScreen.widgetsNoUsb": "連接 AIO 的 USB 線材，即可完整使用 Nexus 元件。",
+  "devices.lianli-wireless.aioScreen.widgetsOff": "螢幕顯示其內建的主題與讀數，可在下方設定。",
   "devices.lianli-wireless.aioScreen.widgetsUsb": "此螢幕的元件、主題和背景在其專屬頁面中設定。",
   "devices.lianli-wireless.animationLabel": "動畫",
   "devices.lianli-wireless.animationPulse": "脈衝",
