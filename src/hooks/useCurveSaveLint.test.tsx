@@ -254,6 +254,51 @@ describe('useCurveSaveLint', () => {
       expect(savedBodies()).toEqual([1, 2]);
     });
 
+    it('Esc with the box ticked only saves: no opt-out is sent', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      act(() => { void save(body(1)); });
+      fireEvent.click(await tick());
+      fireEvent.keyDown(document, { key: 'Escape' });
+      await waitFor(() => { expect(savedBodies()).toEqual([1]); });
+      expect(api.config).not.toHaveBeenCalled();
+      expect(api.heal).not.toHaveBeenCalled();
+    });
+
+    it('Fix with the box ticked still fixes a body that superseded the prompted one, with no new prompt', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      let first!: Promise<unknown>;
+      let second!: Promise<unknown>;
+      act(() => { first = save(body(1)); });
+      fireEvent.click(await tick());
+      act(() => { second = save(body(2)); });
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.fix' }));
+      await act(async () => { await Promise.all([first, second]); });
+      expect(api.config).toHaveBeenCalledExactlyOnceWith({ lintWarnings: false });
+      expect(savedBodies()).toEqual([2]);
+      expect(api.heal).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('cooling.guard.dialog.title')).toBeNull();
+      // Later saves skip the lint as designed.
+      api.lint.mockClear();
+      await act(async () => { await save(body(3)); });
+      expect(api.lint).not.toHaveBeenCalled();
+    });
+
+    it('a failed opt-out keeps its error across a superseding body', async () => {
+      mount();
+      api.lint.mockResolvedValue(hazardous);
+      api.config.mockResolvedValue(null);
+      let first!: Promise<unknown>;
+      let second!: Promise<unknown>;
+      act(() => { first = save(body(1)); });
+      fireEvent.click(await tick());
+      act(() => { second = save(body(2)); });
+      fireEvent.click(screen.getByRole('button', { name: 'cooling.guard.dialog.saveAnyway' }));
+      await act(async () => { await Promise.all([first, second]); });
+      expect(screen.getByText('cooling.guard.error.lintWarnings')).toBeTruthy();
+    });
+
     it('a failed opt-out shows an error and keeps warning', async () => {
       mount();
       api.lint.mockResolvedValue(hazardous);

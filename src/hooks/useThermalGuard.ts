@@ -8,16 +8,24 @@ import { useTopicCallback } from './useMultiplexSocket';
 // temperature does not, so the banner also polls on the page's own cadence.
 const POLL_MS = 3000;
 
+// Identifies one trip and its state, so a failure about it expires when the trip changes or ends.
+const tripKeyOf = (g: GuardResponse | null): string =>
+  g?.lastTrip ? `${g.lastTrip.atUtcMs}:${g.lastTrip.endedAtUtcMs ?? 'active'}` : 'none';
+
 /** The CPU thermal guard: its state, the on/off switch, and the post-heal Undo. */
 export function useThermalGuard(serviceOnline: boolean) {
   const { t } = useTranslation();
   const [guard, setGuard] = useState<GuardResponse | null>(null);
   const [toggling, setToggling] = useState(false);
+  // When the guard was last fetched: the notice's age cut-off needs a clock that is not read during render.
+  const [fetchedAtMs, setFetchedAtMs] = useState(0);
   const [error, setError] = useState<GuardErrorState | null>(null);
   // The switch and the limit each report their own failure, beside their own control.
   const [toggleError, setToggleError] = useState<GuardErrorState | null>(null);
   const [limitError, setLimitError] = useState<GuardErrorState | null>(null);
   const [lintWarningsError, setLintWarningsError] = useState<GuardErrorState | null>(null);
+  // A refused trip dismissal, tied to the trip it was for: a new or ended trip makes it moot.
+  const [ackFailure, setAckFailure] = useState<{ tripKey: string; error: GuardErrorState } | null>(null);
   const guardRef = useRef<GuardResponse | null>(null);
   guardRef.current = guard;
   // Bumped when the service goes away or the page unmounts, so a response
@@ -43,6 +51,7 @@ export function useThermalGuard(serviceOnline: boolean) {
       const next = await fetchGuard();
       if (next && generation === generationRef.current && seq === seqRef.current) {
         setGuard(next);
+        setFetchedAtMs(Date.now());
         // A failed Undo is moot once the service no longer holds the snapshot.
         if (!next.heal.undoAvailable) setError(prev => (prev?.kind === 'undo' ? null : prev));
       }
@@ -69,8 +78,8 @@ export function useThermalGuard(serviceOnline: boolean) {
   useTopicCallback('cooling', serviceOnline, () => { void refresh(); });
 
   // What the user last asked for, per field. Every action overwrites its field and
-  // kicks the single writer. Each pass sends up to two requests, the switch first
-  // and then the limit, and loops while new intents arrive, so nothing is dropped,
+  // kicks the single writer. Each pass sends up to three requests, in order: the
+  // switch, the limit, then the hazard-warning setting, and loops while new intents arrive, so nothing is dropped,
   // reordered or reversed.
   const intentRef = useRef<{ enabled?: boolean; limit?: number | 'reset'; lintWarnings?: boolean }>({});
   const writerRunningRef = useRef(false);
@@ -191,16 +200,21 @@ export function useThermalGuard(serviceOnline: boolean) {
   const acknowledgeTrip = useCallback(async (): Promise<boolean> => {
     const res = await acknowledgeGuardTrip();
     if (!res || res.error || !res.state) {
-      setError(newGuardError(tRef.current('diagnostics.cooling.guardTrip.error')));
+      setAckFailure({
+        tripKey: tripKeyOf(guardRef.current),
+        error: newGuardError(tRef.current('diagnostics.cooling.guardTrip.error')),
+      });
       return false;
     }
-    setError(null);
+    setAckFailure(null);
     seqRef.current += 1;
     setGuard(res);
     return true;
   }, []);
 
+  const ackError = ackFailure && ackFailure.tripKey === tripKeyOf(guard) ? ackFailure.error : null;
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { guard, toggling, pendingLimit, error, toggleError, limitError, lintWarningsError, clearError, refresh, toggle, setLimit, clearLimit, setLintWarnings, acknowledgeTrip, undo, keep, applyHeal };
+  return { guard, fetchedAtMs, toggling, pendingLimit, error, toggleError, limitError, lintWarningsError, ackError, clearError, refresh, toggle, setLimit, clearLimit, setLintWarnings, acknowledgeTrip, undo, keep, applyHeal };
 }

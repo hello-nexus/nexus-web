@@ -1453,10 +1453,10 @@ function PreviewGuardTripNotice() {
   });
   return (
     <div className={styles.previewStack} style={{ width: 560 }}>
-      <GuardTripNoticeView guard={trip({})} error={null} onDismiss={() => {}} />
-      <GuardTripNoticeView guard={trip({ reason: 'cooling-loss' })} error={null} onDismiss={() => {}} />
-      <GuardTripNoticeView guard={trip({ endedAtUtcMs: null })} error={null} onDismiss={() => {}} onOpenCooling={() => {}} />
-      <GuardTripNoticeView guard={trip({})} error="Couldn't dismiss the notice." onDismiss={() => {}} />
+      <GuardTripNoticeView guard={trip({})} nowMs={PREVIEW_TRIP_AT + 600_000} error={null} onDismiss={() => {}} />
+      <GuardTripNoticeView guard={trip({ reason: 'cooling-loss' })} nowMs={PREVIEW_TRIP_AT + 600_000} error={null} onDismiss={() => {}} />
+      <GuardTripNoticeView guard={trip({ endedAtUtcMs: null })} nowMs={PREVIEW_TRIP_AT + 600_000} error={null} onDismiss={() => {}} onOpenCooling={() => {}} />
+      <GuardTripNoticeView guard={trip({})} nowMs={PREVIEW_TRIP_AT + 600_000} error="Couldn't dismiss the notice." onDismiss={() => {}} />
     </div>
   );
 }

@@ -33,7 +33,7 @@ const hook = {
 function Harness({ online = true }: { online?: boolean }) {
   const h = useThermalGuard(online);
   useEffect(() => { handle.current = h; });
-  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{[h.error, h.toggleError, h.limitError, h.lintWarningsError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
+  return <><span data-testid="state">{h.guard?.state ?? 'none'}{h.toggling ? ' busy' : ''}</span>{[h.error, h.toggleError, h.limitError, h.lintWarningsError, h.ackError].map((e, i) => e && <p key={i} role="alert">{e.message}</p>)}</>;
 }
 const mount = (online = true) => render(<Harness online={online} />);
 
@@ -239,5 +239,47 @@ describe('useThermalGuard', () => {
     api.setGuardConfig.mockResolvedValue(null);
     await act(async () => { handle.current!.setLintWarnings(false); });
     await screen.findByText('cooling.guard.error.lintWarnings');
+  });
+
+  describe('trip acknowledgement', () => {
+    const tripGuard = (atUtcMs: number, endedAtUtcMs: number | null): GuardResponse => ({
+      ...guard('normal'),
+      lastTrip: { atUtcMs, peakC: 90, reason: 'limit', escalated: false, endedAtUtcMs, acknowledged: false },
+    });
+
+    it('a refused dismissal sets its own error, not the shared one', async () => {
+      api.fetchGuard.mockResolvedValue(tripGuard(1, 2));
+      mount();
+      await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+      api.acknowledgeGuardTrip.mockResolvedValue({ error: true, msg: 'The thermal guard is still active.' });
+      let ok = true;
+      await act(async () => { ok = await handle.current!.acknowledgeTrip(); });
+      expect(ok).toBe(false);
+      await screen.findByText('diagnostics.cooling.guardTrip.error');
+      expect(handle.current!.error).toBeNull();
+    });
+
+    it('the error expires when the trip changes', async () => {
+      api.fetchGuard.mockResolvedValue(tripGuard(1, 2));
+      mount();
+      await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+      api.acknowledgeGuardTrip.mockResolvedValue({ error: true, msg: 'x' });
+      await act(async () => { await handle.current!.acknowledgeTrip(); });
+      await screen.findByText('diagnostics.cooling.guardTrip.error');
+      api.fetchGuard.mockResolvedValue(tripGuard(5, null));
+      await act(async () => { await handle.current!.refresh(); });
+      await waitFor(() => { expect(screen.queryByText('diagnostics.cooling.guardTrip.error')).toBeNull(); });
+    });
+
+    it('a successful dismissal clears the error and applies the guard', async () => {
+      api.fetchGuard.mockResolvedValue(tripGuard(1, 2));
+      mount();
+      await waitFor(() => { expect(screen.getByTestId('state').textContent).toBe('normal'); });
+      api.acknowledgeGuardTrip.mockResolvedValueOnce({ error: true, msg: 'x' });
+      await act(async () => { await handle.current!.acknowledgeTrip(); });
+      api.acknowledgeGuardTrip.mockResolvedValueOnce({ ...tripGuard(1, 2), lastTrip: { ...tripGuard(1, 2).lastTrip!, acknowledged: true } });
+      await act(async () => { await handle.current!.acknowledgeTrip(); });
+      expect(screen.queryByText('diagnostics.cooling.guardTrip.error')).toBeNull();
+    });
   });
 });

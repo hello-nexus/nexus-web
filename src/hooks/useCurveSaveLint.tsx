@@ -18,7 +18,8 @@ interface Waiter {
 interface PendingPrompt {
   hazards: CurveHazard[];
   fixAvailable: boolean;
-  settle: (fix: boolean) => void;
+  /** `explicit` is a click on Fix or Save anyway; Esc, a backdrop click and unmount are not. */
+  settle: (choice: { fix: boolean; explicit: boolean }) => void;
 }
 
 /**
@@ -67,6 +68,11 @@ export function useCurveSaveLint(options: {
     runningRef.current = true;
     // Waiters whose body was superseded before it saved ride along to the next save.
     let batch: Waiter[] = [];
+    // Set when "Don't warn me again" was ticked together with Fix and a newer body superseded the
+    // prompted one: that body is linted despite the opt-out and healed after its save, with no prompt.
+    let healNext = false;
+    // A failed opt-out's error, carried across a superseded body to the save that finally lands.
+    let optOutFailedCarry = false;
     try {
       while (latestRef.current) {
         const body = latestRef.current;
@@ -75,43 +81,57 @@ export function useCurveSaveLint(options: {
         try {
           let hazards: CurveHazard[] = [];
           let fixAvailable = false;
-          const lintOff = optionsRef.current.lintEnabled === false || lintOptedOutRef.current;
+          const lintOff = (optionsRef.current.lintEnabled === false || lintOptedOutRef.current) && !healNext;
           if (!unmountedRef.current && !lintOff) {
             const lint = await lintCurves(body);
             hazards = lint?.hazards ?? [];
             fixAvailable = lint?.fixAvailable ?? false;
           }
           if (latestRef.current) continue;
+          const forcedFix = healNext;
+          healNext = false;
           const signature = hazardSignature(hazards);
           let fix = false;
-          let optOutFailed = false;
+          let optOutFailed: boolean = optOutFailedCarry;
+          let optedOutNow: boolean = false;
           if (hazards.length === 0) {
             ackedRef.current = '';
+          } else if (forcedFix) {
+            fix = true;
           } else if (signature !== ackedRef.current && !unmountedRef.current) {
             dontAskRef.current = false;
             setDontAsk(false);
-            fix = await new Promise<boolean>(settle => {
+            const choice = await new Promise<{ fix: boolean; explicit: boolean }>(settle => {
               const prompt: PendingPrompt = { hazards, fixAvailable, settle };
               pendingRef.current = prompt;
               setPending(prompt);
             });
+            fix = choice.fix;
             pendingRef.current = null;
             setPending(null);
-            // Ticked on either choice: switch the warnings off, in a request of its own.
-            if (dontAskRef.current && !unmountedRef.current) {
+            // Ticked and confirmed with a click on either button: switch the warnings off, in a
+            // request of its own. Esc or a backdrop click only saves.
+            if (dontAskRef.current && choice.explicit && !unmountedRef.current) {
               lintOptedOutRef.current = true;
               const res = await setGuardConfig({ lintWarnings: false });
               if (!res || !res.state) {
                 lintOptedOutRef.current = false;
                 optOutFailed = true;
+              } else {
+                optedOutNow = true;
               }
             }
             // Only Save anyway acknowledges a hazard set; Fix does not, so a body
             // built from pre-heal curves prompts again instead of undoing the heal.
             if (!fix) ackedRef.current = signature;
             // A newer body replaces this one and is linted fresh.
-            if (latestRef.current) continue;
+            if (latestRef.current) {
+              optOutFailedCarry = optOutFailed;
+              healNext = fix && optedOutNow;
+              continue;
+            }
           }
+          optOutFailedCarry = false;
           const res = await saveCurves(body);
           const saved = !!res && !(res as { error?: boolean }).error;
           if (!saved) {
@@ -152,7 +172,7 @@ export function useCurveSaveLint(options: {
     unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
-      pendingRef.current?.settle(false);
+      pendingRef.current?.settle({ fix: false, explicit: false });
     };
   }, []);
 
@@ -162,7 +182,7 @@ export function useCurveSaveLint(options: {
     if (lintEnabledOpt !== false) lintOptedOutRef.current = false;
   }, [lintEnabledOpt]);
 
-  const answer = (fix: boolean) => { pending?.settle(fix); };
+  const answer = (fix: boolean) => { pending?.settle({ fix, explicit: true }); };
 
   const canFix = pending?.fixAvailable ?? true;
   const prompt = (
@@ -178,6 +198,7 @@ export function useCurveSaveLint(options: {
       hideConfirm={!canFix}
       onConfirm={() => answer(true)}
       onCancel={() => answer(false)}
+      onDismiss={() => pending?.settle({ fix: false, explicit: false })}
     >
       <label className={styles.dontAsk}>
         <input
