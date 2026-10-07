@@ -148,13 +148,19 @@ export function Slider({
     onCommitRef.current = onCommit;
   }, [onCommit]);
 
-  useEffect(() => () => {
+  // Unmounting, or becoming disabled, drops an armed drag and any commit still
+  // deferred: neither commits, because a gone or disabled slider must not call onCommit.
+  const dropGesture = () => {
     releaseCleanupRef.current?.();
     if (commitTimerRef.current) {
       clearTimeout(commitTimerRef.current);
       commitTimerRef.current = null;
     }
-  }, []);
+  };
+  useEffect(() => dropGesture, []);
+  useEffect(() => {
+    if (disabled) dropGesture();
+  }, [disabled]);
 
   const handleChange = (next: number, commit = false) => {
     latestInputValueRef.current = next;
@@ -251,9 +257,8 @@ export function Slider({
         if (e.button > 0) return;
         armRelease(e.pointerId);
       }}
-      // A press whose release never arrives (capture lost, focus moved) ends the gesture here.
+      // A press whose release never arrives (capture lost) ends the gesture here.
       onLostPointerCapture={endArmedGesture}
-      onBlur={endArmedGesture}
       onPointerUp={() => { if (!releaseCleanupRef.current) handleEnd(); }}
       onPointerCancel={e => {
         onPointerCancel?.(e);

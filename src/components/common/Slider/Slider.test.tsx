@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Slider } from './Slider';
 
 describe('Slider', () => {
@@ -129,6 +129,8 @@ describe('Slider', () => {
   });
 
   describe('end-of-drag commit', () => {
+    afterEach(() => { vi.useRealTimers(); });
+
     const mountSlider = () => {
       const onCommit = vi.fn();
       render(<Slider value={10} min={0} max={100} ariaLabel="Level" onChange={() => {}} onCommit={onCommit} />);
@@ -151,7 +153,6 @@ describe('Slider', () => {
       fireEvent.change(range, { target: { value: '55' } });
       fireEvent.pointerUp(range);
       vi.runAllTimers();
-      vi.useRealTimers();
       expect(onCommit).toHaveBeenCalledTimes(1);
       expect(onCommit).toHaveBeenCalledWith(55);
     });
@@ -180,7 +181,6 @@ describe('Slider', () => {
       expect(onCommit).toHaveBeenCalledTimes(1);
       fireEvent.pointerUp(document.body);
       vi.runAllTimers();
-      vi.useRealTimers();
       expect(onCommit).toHaveBeenCalledTimes(1);
     });
 
@@ -204,7 +204,6 @@ describe('Slider', () => {
       expect(onCommit).not.toHaveBeenCalled();
       press(document.body, 'pointerup', { pointerId: 1 });
       vi.runAllTimers();
-      vi.useRealTimers();
       expect(onCommit).toHaveBeenCalledTimes(1);
       expect(onCommit).toHaveBeenCalledWith(60);
     });
@@ -216,22 +215,52 @@ describe('Slider', () => {
       fireEvent.change(range, { target: { value: '60' } });
       press(document.body, 'pointerup', { pointerId: 1, button: 2 });
       vi.runAllTimers();
-      vi.useRealTimers();
       expect(onCommit).not.toHaveBeenCalled();
     });
 
-    it('ends an armed gesture once when focus leaves before any release', () => {
+    it('losing focus mid-drag does not end it: the real release still commits', () => {
       vi.useFakeTimers();
       const { onCommit, range } = mountSlider();
       press(range, 'pointerdown', { pointerId: 1 });
       fireEvent.change(range, { target: { value: '45' } });
       fireEvent.blur(range);
       vi.runAllTimers();
+      expect(onCommit).not.toHaveBeenCalled();
       press(document.body, 'pointerup', { pointerId: 1 });
       vi.runAllTimers();
-      vi.useRealTimers();
       expect(onCommit).toHaveBeenCalledTimes(1);
       expect(onCommit).toHaveBeenCalledWith(45);
+    });
+
+    it('commits once when pointer capture is lost with no release', () => {
+      vi.useFakeTimers();
+      const { onCommit, range } = mountSlider();
+      press(range, 'pointerdown', { pointerId: 1 });
+      fireEvent.change(range, { target: { value: '65' } });
+      press(range, 'lostpointercapture', { pointerId: 1 });
+      vi.runAllTimers();
+      press(document.body, 'pointerup', { pointerId: 1 });
+      vi.runAllTimers();
+      expect(onCommit).toHaveBeenCalledTimes(1);
+    });
+
+    it('never commits when it is disabled mid-drag, or when it unmounts mid-drag', () => {
+      vi.useFakeTimers();
+      const onCommit = vi.fn();
+      const view = render(<Slider value={10} min={0} max={100} ariaLabel="Level" onChange={() => {}} onCommit={onCommit} />);
+      press(screen.getByRole('slider'), 'pointerdown', { pointerId: 1 });
+      fireEvent.change(screen.getByRole('slider'), { target: { value: '40' } });
+      view.rerender(<Slider value={10} min={0} max={100} ariaLabel="Level" disabled onChange={() => {}} onCommit={onCommit} />);
+      press(document.body, 'pointerup', { pointerId: 1 });
+      vi.runAllTimers();
+      expect(onCommit).not.toHaveBeenCalled();
+
+      view.rerender(<Slider value={10} min={0} max={100} ariaLabel="Level" onChange={() => {}} onCommit={onCommit} />);
+      press(screen.getByRole('slider'), 'pointerdown', { pointerId: 2 });
+      view.unmount();
+      press(document.body, 'pointerup', { pointerId: 2 });
+      vi.runAllTimers();
+      expect(onCommit).not.toHaveBeenCalled();
     });
 
     it('commits on a key release, once', async () => {

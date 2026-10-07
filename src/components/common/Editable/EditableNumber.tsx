@@ -50,7 +50,12 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
   }, [disabled, editing, cancel]);
 
   if (disabled) {
-    return <span className={`${styles.displayStatic} ${className ?? ''}`} aria-label={ariaLabel}>{fmt(value)}</span>;
+    return (
+      <span className={`${styles.displayStatic} ${className ?? ''}`}>
+        {fmt(value)}
+        {ariaLabel && <span className={styles.visuallyHidden}>{ariaLabel}</span>}
+      </span>
+    );
   }
 
   if (editable.editing) {

@@ -7,7 +7,8 @@ describe('EditableNumber disabled', () => {
     const onCommit = vi.fn();
     render(<EditableNumber value={5} min={0} max={10} onCommit={onCommit} ariaLabel="Level" disabled />);
     expect(screen.queryByRole('button')).toBeNull();
-    fireEvent.click(screen.getByLabelText('Level'));
+    // The accessible name is real text, not an aria-label on a role-less span.
+    fireEvent.click(screen.getByText('Level'));
     expect(screen.queryByRole('spinbutton')).toBeNull();
   });
 
