@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Alertes Sentry",
   "sentry.settings.armed": "Armé",
   "sentry.settings.cooldown": "Une alerte par heure au maximum.",
-  "sentry.settings.failed": "Impossible de verrouiller et d'activer Sentry.",
+  "sentry.settings.failed": "Impossible de verrouiller le PC et d'activer Sentry.",
   "sentry.settings.off": "Désactivé",
   "sentry.settings.phones.label": "Téléphones qui recevront des alertes",
   "sentry.settings.phones.none": "Aucun téléphone ne recevra d'alertes. Dans l'application Nexus pour téléphone, activez les alertes depuis la carte Sentry pendant que ce PC est verrouillé.",

@@ -120,4 +120,55 @@ describe('PanelSentry', () => {
     });
     await waitFor(() => expect(registerPhonePush).toHaveBeenLastCalledWith(expect.objectContaining({ token: 'two' })));
   });
+
+  it('retries the registration on the next poll until a PUT succeeds, then claims alerts on', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(registerPhonePush).mockResolvedValueOnce(null).mockResolvedValue({});
+      installBridge({ platform: 'ios', permission: 'granted', token: 'ab12', environment: 'production' });
+      render(<PanelSentry {...props} />);
+      await screen.findByText('sentry.card.arm');
+      expect(registerPhonePush).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('sentry.card.alertsOn')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      await screen.findByText('sentry.card.alertsOn');
+      expect(registerPhonePush).toHaveBeenCalledTimes(2);
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      expect(registerPhonePush).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('skips polling while the document is hidden', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+    try {
+      render(<PanelSentry {...props} />);
+      await act(async () => { await vi.advanceTimersByTimeAsync(11000); });
+      expect(fetchSentry).not.toHaveBeenCalled();
+    } finally {
+      hidden.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('drops a stale not_locked error once the card hides', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'not_locked' });
+      vi.mocked(fetchSentry).mockResolvedValueOnce(state({})).mockResolvedValueOnce(state({}))
+        .mockResolvedValueOnce(state({ locked: false }))
+        .mockResolvedValue(state({}));
+      render(<PanelSentry {...props} />);
+      fireEvent.click(await screen.findByText('sentry.card.arm'));
+      await screen.findByText('sentry.card.notLocked');
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
+      await screen.findByText('sentry.card.arm');
+      expect(screen.queryByText('sentry.card.notLocked')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

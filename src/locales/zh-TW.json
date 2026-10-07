@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Sentry 提醒",
   "sentry.settings.armed": "已啟用",
   "sentry.settings.cooldown": "每小時最多一次提醒。",
-  "sentry.settings.failed": "無法鎖定並啟用 Sentry。",
+  "sentry.settings.failed": "無法鎖定電腦並啟用 Sentry。",
   "sentry.settings.off": "關閉",
   "sentry.settings.phones.label": "將收到提醒的手機",
   "sentry.settings.phones.none": "沒有手機會收到提醒。請在這台電腦鎖定時，於 Nexus 手機 App 的 Sentry 卡片中開啟提醒。",

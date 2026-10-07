@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Avvisi di Sentry",
   "sentry.settings.armed": "Attivo",
   "sentry.settings.cooldown": "Al massimo un avviso all'ora.",
-  "sentry.settings.failed": "Impossibile bloccare e attivare Sentry.",
+  "sentry.settings.failed": "Impossibile bloccare il PC e attivare Sentry.",
   "sentry.settings.off": "Disattivato",
   "sentry.settings.phones.label": "Telefoni che riceveranno gli avvisi",
   "sentry.settings.phones.none": "Nessun telefono riceverà avvisi. Nell'app Nexus per telefono, attiva gli avvisi dalla scheda Sentry mentre questo PC è bloccato.",

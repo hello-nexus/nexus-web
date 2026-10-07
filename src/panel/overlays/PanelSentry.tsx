@@ -25,14 +25,52 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
   const [error, setError] = useState<'notLocked' | 'failed' | null>(null);
   const busyRef = useRef(false);
 
+  const registration = enabled ? buildPushRegistration(push.status, t) : null;
+  const registrationJson = registration ? JSON.stringify(registration) : null;
+  const registrationRef = useRef(registrationJson);
+  const sentRef = useRef<string | null>(null);
+  const pushingRef = useRef(false);
+  const [registered, setRegistered] = useState(false);
+
+  // Re-sent on every poll tick until a PUT succeeds: the tunnel can be down at load.
+  const syncPush = useCallback(async () => {
+    const json = registrationRef.current;
+    if (!json || sentRef.current === json || pushingRef.current) return;
+    pushingRef.current = true;
+    try {
+      const res = await registerPhonePush(JSON.parse(json)).catch(() => null);
+      if (res && registrationRef.current === json) {
+        sentRef.current = json;
+        setRegistered(true);
+      }
+    } finally {
+      pushingRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    registrationRef.current = registrationJson;
+    sentRef.current = null;
+    setRegistered(false);
+    void syncPush();
+  }, [registrationJson, syncPush]);
+
+  const readingRef = useRef(false);
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
     const read = async () => {
-      if (busyRef.current) return;
-      const next = await fetchSentry().catch(() => null);
-      if (cancelled || busyRef.current || !next) return;
-      setState(next);
+      if (document.hidden) return;
+      void syncPush();
+      if (busyRef.current || readingRef.current) return;
+      readingRef.current = true;
+      try {
+        const next = await fetchSentry().catch(() => null);
+        if (cancelled || busyRef.current || !next) return;
+        setState(next);
+      } finally {
+        readingRef.current = false;
+      }
     };
     void read();
     const timer = window.setInterval(() => { void read(); }, POLL_MS);
@@ -40,14 +78,12 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [enabled]);
+  }, [enabled, syncPush]);
 
-  const registration = enabled ? buildPushRegistration(push.status, t) : null;
-  const registrationJson = registration ? JSON.stringify(registration) : null;
+  const visible = enabled && sentryCardVisible(state);
   useEffect(() => {
-    if (!registrationJson) return;
-    void registerPhonePush(JSON.parse(registrationJson)).catch(() => null);
-  }, [registrationJson]);
+    if (!visible) setError(null);
+  }, [visible]);
 
   const run = useCallback(async (action: () => Promise<SentryState | null>) => {
     if (busyRef.current) return;
@@ -102,7 +138,7 @@ export function PanelSentry({ enabled, resolvedThemeMode, themeStyle }: PanelSen
         {alerts === 'denied' && (
           <p className={styles.message}>{t('sentry.card.alertsDenied')}</p>
         )}
-        {alerts === 'granted' && (
+        {alerts === 'granted' && registered && (
           <p className={styles.message}>{t('sentry.card.alertsOn')}</p>
         )}
         {errorText && <p className={styles.error} role="alert">{errorText}</p>}

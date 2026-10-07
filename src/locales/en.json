@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Sentry alerts",
   "sentry.settings.armed": "Armed",
   "sentry.settings.cooldown": "At most one alert per hour.",
-  "sentry.settings.failed": "Could not lock and activate Sentry.",
+  "sentry.settings.failed": "Could not lock the PC and activate Sentry.",
   "sentry.settings.off": "Off",
   "sentry.settings.phones.label": "Phones that will get alerts",
   "sentry.settings.phones.none": "No phones will get alerts. In the Nexus phone app, turn on alerts from the Sentry card while this PC is locked.",

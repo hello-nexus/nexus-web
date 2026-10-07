@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Sentry 알림",
   "sentry.settings.armed": "활성",
   "sentry.settings.cooldown": "알림은 1시간에 최대 한 번만 전송됩니다.",
-  "sentry.settings.failed": "잠금 및 Sentry 활성화에 실패했습니다.",
+  "sentry.settings.failed": "PC를 잠그고 Sentry를 활성화하지 못했습니다.",
   "sentry.settings.off": "꺼짐",
   "sentry.settings.phones.label": "알림을 받을 휴대폰",
   "sentry.settings.phones.none": "알림을 받을 휴대폰이 없습니다. 이 PC가 잠겨 있는 동안 Nexus 휴대폰 앱의 Sentry 카드에서 알림을 켜 주세요.",

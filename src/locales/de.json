@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Sentry-Warnungen",
   "sentry.settings.armed": "Scharf",
   "sentry.settings.cooldown": "Höchstens eine Warnung pro Stunde.",
-  "sentry.settings.failed": "Sentry konnte nicht gesperrt und aktiviert werden.",
+  "sentry.settings.failed": "Der PC konnte nicht gesperrt und Sentry nicht aktiviert werden.",
   "sentry.settings.off": "Aus",
   "sentry.settings.phones.label": "Telefone, die Warnungen erhalten",
   "sentry.settings.phones.none": "Keine Telefone erhalten Warnungen. Aktivieren Sie in der Nexus-Telefon-App die Warnungen über die Sentry-Karte, während dieser PC gesperrt ist.",

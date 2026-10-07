@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Alertas do Sentry",
   "sentry.settings.armed": "Armado",
   "sentry.settings.cooldown": "No máximo um alerta por hora.",
-  "sentry.settings.failed": "Não foi possível bloquear e ativar o Sentry.",
+  "sentry.settings.failed": "Não foi possível bloquear o PC e ativar o Sentry.",
   "sentry.settings.off": "Desativado",
   "sentry.settings.phones.label": "Celulares que receberão alertas",
   "sentry.settings.phones.none": "Nenhum celular receberá alertas. No app do Nexus para celular, ative os alertas pelo cartão do Sentry enquanto este PC estiver bloqueado.",

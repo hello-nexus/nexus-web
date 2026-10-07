@@ -4232,7 +4232,7 @@
   "sentry.settings.arm.label": "Alerty Sentry",
   "sentry.settings.armed": "Uzbrojony",
   "sentry.settings.cooldown": "Najwyżej jeden alert na godzinę.",
-  "sentry.settings.failed": "Nie udało się zablokować i aktywować Sentry.",
+  "sentry.settings.failed": "Nie udało się zablokować komputera i aktywować Sentry.",
   "sentry.settings.off": "Wyłączony",
   "sentry.settings.phones.label": "Telefony, które otrzymają alerty",
   "sentry.settings.phones.none": "Żaden telefon nie otrzyma alertów. W aplikacji Nexus na telefon włącz alerty na karcie Sentry, gdy ten komputer jest zablokowany.",

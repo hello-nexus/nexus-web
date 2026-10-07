@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Sentry アラート",
   "sentry.settings.armed": "有効",
   "sentry.settings.cooldown": "アラートは 1 時間に 1 回までです。",
-  "sentry.settings.failed": "ロックして Sentry を有効にできませんでした。",
+  "sentry.settings.failed": "PC をロックして Sentry を有効にできませんでした。",
   "sentry.settings.off": "オフ",
   "sentry.settings.phones.label": "アラートを受け取るスマートフォン",
   "sentry.settings.phones.none": "アラートを受け取るスマートフォンがありません。この PC のロック中に、Nexus スマートフォンアプリの Sentry カードからアラートをオンにしてください。",

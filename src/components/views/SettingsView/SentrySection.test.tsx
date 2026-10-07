@@ -7,6 +7,12 @@ vi.mock('../../../lib/i18n', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+vi.mock('../../../api/service', async (importActual) => ({
+  ...(await importActual<typeof import('../../../api/service')>()),
+  isRemoteOrigin: false,
+  isRemotePaired: false,
+}));
+
 vi.mock('../../../api/sentry', () => ({
   fetchSentry: vi.fn(),
   armSentry: vi.fn(),
@@ -56,5 +62,13 @@ describe('SentrySection', () => {
     render(<SentrySection serviceOnline />);
     fireEvent.click(await screen.findByText('sentry.settings.arm.action'));
     expect(await screen.findByText('sentry.settings.failed')).toBeInTheDocument();
+  });
+
+  it('treats a 403 refusal as a failure', async () => {
+    vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'failed' });
+    render(<SentrySection serviceOnline />);
+    fireEvent.click(await screen.findByText('sentry.settings.arm.action'));
+    expect(await screen.findByText('sentry.settings.failed')).toBeInTheDocument();
+    expect(screen.getByText('sentry.settings.off')).toBeInTheDocument();
   });
 });

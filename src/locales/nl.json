@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Sentry-waarschuwingen",
   "sentry.settings.armed": "Ingeschakeld",
   "sentry.settings.cooldown": "Maximaal één waarschuwing per uur.",
-  "sentry.settings.failed": "Kon niet vergrendelen en Sentry activeren.",
+  "sentry.settings.failed": "Kon de pc niet vergrendelen en Sentry niet activeren.",
   "sentry.settings.off": "Uit",
   "sentry.settings.phones.label": "Telefoons die waarschuwingen krijgen",
   "sentry.settings.phones.none": "Geen enkele telefoon krijgt waarschuwingen. Zet in de Nexus-app op je telefoon de waarschuwingen aan via de Sentry-kaart terwijl deze pc is vergrendeld.",

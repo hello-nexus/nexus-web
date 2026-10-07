@@ -4,9 +4,13 @@ import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { SettingRow, type SettingState } from '../../common/SettingRow/SettingRow';
 import { Button } from '../../common/Button/Button';
 import { armSentry, fetchSentry, type SentryState } from '../../../api/sentry';
+import { isRemoteOrigin, isRemotePaired } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
 
 const POLL_MS = 5000;
+
+// The service accepts lock-and-arm only from the local desktop.
+const CAN_LOCK_HERE = !isRemoteOrigin && !isRemotePaired;
 
 const TONES: Record<'on' | 'off' | 'warn', SettingState['tone']> = { on: 'good', off: 'neutral', warn: 'warn' };
 
@@ -17,15 +21,21 @@ export function SentrySection({ serviceOnline }: { serviceOnline: boolean }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const busyRef = useRef(false);
+  const readingRef = useRef(false);
 
   useEffect(() => {
     if (!serviceOnline) return;
     let cancelled = false;
     const read = async () => {
-      if (busyRef.current) return;
-      const next = await fetchSentry().catch(() => null);
-      if (cancelled || busyRef.current || !next) return;
-      setState(next);
+      if (document.hidden || busyRef.current || readingRef.current) return;
+      readingRef.current = true;
+      try {
+        const next = await fetchSentry().catch(() => null);
+        if (cancelled || busyRef.current || !next) return;
+        setState(next);
+      } finally {
+        readingRef.current = false;
+      }
     };
     void read();
     const timer = window.setInterval(() => { void read(); }, POLL_MS);
@@ -64,9 +74,11 @@ export function SentrySection({ serviceOnline }: { serviceOnline: boolean }) {
           tone: state.armed ? TONES.on : TONES.off,
         }}
       >
-        <Button type="button" size="sm" tone="accent" loading={busy} disabled={!serviceOnline} onClick={lockAndArm}>
-          {t('sentry.settings.arm.action')}
-        </Button>
+        {CAN_LOCK_HERE && (
+          <Button type="button" size="sm" tone="accent" loading={busy} disabled={!serviceOnline} onClick={lockAndArm}>
+            {t('sentry.settings.arm.action')}
+          </Button>
+        )}
       </SettingRow>
       {failed && (
         <SettingRow label={t('sentry.settings.failed')} icon={<TriangleAlert />} iconLeading="subtle" />

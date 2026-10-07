@@ -35,6 +35,11 @@ describe('armSentry', () => {
     expect(await armSentry(false)).toEqual({ ok: false, reason: 'not_locked' });
   });
 
+  it('reports a 403 refusal as failed', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(403, { error: 'forbidden' })));
+    expect(await armSentry(true)).toEqual({ ok: false, reason: 'failed' });
+  });
+
   it('reports any other failure as failed', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(500, { error: 'boom' })));
     expect(await armSentry(false)).toEqual({ ok: false, reason: 'failed' });

@@ -4190,7 +4190,7 @@
   "sentry.settings.arm.label": "Sentry uyarıları",
   "sentry.settings.armed": "Etkin",
   "sentry.settings.cooldown": "Saatte en fazla bir uyarı.",
-  "sentry.settings.failed": "Sentry kilitlenip etkinleştirilemedi.",
+  "sentry.settings.failed": "Bilgisayar kilitlenemedi ve Sentry etkinleştirilemedi.",
   "sentry.settings.off": "Kapalı",
   "sentry.settings.phones.label": "Uyarı alacak telefonlar",
   "sentry.settings.phones.none": "Hiçbir telefon uyarı almayacak. Bu bilgisayar kilitliyken Nexus telefon uygulamasında Sentry kartından uyarıları açın.",
