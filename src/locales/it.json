@@ -456,7 +456,7 @@
   "cooling.guard.description": "Aumenta la velocità delle ventole quando la CPU si avvicina alla temperatura massima, qualunque cosa dicano le tue curve.",
   "cooling.guard.dialog.fix": "Correggi",
   "cooling.guard.dialog.message": "Questi canali potrebbero non raffreddare abbastanza la CPU:",
-  "cooling.guard.dialog.note": "Correggi mantiene le tue impostazioni alle temperature normali e aggiunge una curva di sicurezza che accelera le ventole vicino al limite.",
+  "cooling.guard.dialog.note": "Correggi sposta le ventole elencate sulla curva «Thermal guard», una curva bilanciata sulla temperatura della CPU. Puoi annullare l'operazione.",
   "cooling.guard.dialog.saveAnyway": "Salva comunque",
   "cooling.guard.dialog.title": "Il raffreddamento potrebbe non proteggere la CPU",
   "cooling.guard.error.heal": "Impossibile correggere il raffreddamento. Le tue curve sono state salvate così come sono.",

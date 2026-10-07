@@ -456,7 +456,7 @@
   "cooling.guard.description": "CPU azami sıcaklığına yaklaştığında, eğrileriniz ne derse desin fan hızlarını artırır.",
   "cooling.guard.dialog.fix": "Düzelt",
   "cooling.guard.dialog.message": "Bu kanallar CPU'yu yeterince soğutmayabilir:",
-  "cooling.guard.dialog.note": "Düzelt, ayarlarınızı normal sıcaklıklarda korur ve sınıra yakın fanları hızlandıran bir güvenlik eğrisi ekler.",
+  "cooling.guard.dialog.note": "Düzelt, listelenen fanları CPU sıcaklığına dayalı dengeli bir eğri olan “Thermal guard” eğrisine taşır. Geri alabilirsiniz.",
   "cooling.guard.dialog.saveAnyway": "Yine de kaydet",
   "cooling.guard.dialog.title": "Soğutma CPU'nuzu korumayabilir",
   "cooling.guard.error.heal": "Soğutma düzeltilemedi. Eğrileriniz olduğu gibi kaydedildi.",

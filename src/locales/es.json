@@ -456,7 +456,7 @@
   "cooling.guard.description": "Sube la velocidad de los ventiladores cuando la CPU se acerca a su temperatura máxima, sin importar tus curvas.",
   "cooling.guard.dialog.fix": "Corregir",
   "cooling.guard.dialog.message": "Es posible que estos canales no refrigeren la CPU lo suficiente:",
-  "cooling.guard.dialog.note": "Corregir mantiene tus ajustes a temperaturas normales y añade una curva de seguridad que acelera los ventiladores cerca del límite.",
+  "cooling.guard.dialog.note": "Corregir pasa los ventiladores indicados a la curva «Thermal guard», una curva equilibrada según la temperatura de la CPU. Puedes deshacerlo.",
   "cooling.guard.dialog.saveAnyway": "Guardar de todos modos",
   "cooling.guard.dialog.title": "Es posible que la refrigeración no proteja tu CPU",
   "cooling.guard.error.heal": "No se pudo corregir la refrigeración. Tus curvas se guardaron tal cual.",

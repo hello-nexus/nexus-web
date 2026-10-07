@@ -456,7 +456,7 @@
   "cooling.guard.description": "Raises fan speeds when the CPU nears its maximum temperature, whatever your curves say.",
   "cooling.guard.dialog.fix": "Fix",
   "cooling.guard.dialog.message": "These channels may not cool the CPU enough:",
-  "cooling.guard.dialog.note": "Fix keeps your settings at normal temperatures and adds a safety curve that raises fans near the limit.",
+  "cooling.guard.dialog.note": "Fix moves the listed fans onto the Thermal guard curve, a balanced curve on CPU temperature. You can undo it.",
   "cooling.guard.dialog.saveAnyway": "Save anyway",
   "cooling.guard.dialog.title": "Cooling may not protect your CPU",
   "cooling.guard.error.heal": "Couldn't fix the cooling. Your curves were saved as they are.",

@@ -456,7 +456,7 @@
   "cooling.guard.description": "Al alce la velocitât dai ventilatôrs cuant che il CPU si svicine a la temperadure massime, ce che a disin lis tôs curvis.",
   "cooling.guard.dialog.fix": "Comede",
   "cooling.guard.dialog.message": "Chescj canâi a podaressin no refredâ avonde il CPU:",
-  "cooling.guard.dialog.note": "Comedâ al ten lis tôs impostazions a temperaduris normâls e al zonte une curve di sigurece che e svelencie i ventilatôrs dongje dal limit.",
+  "cooling.guard.dialog.note": "Comedâ al sposte i ventilatôrs in liste su la curve «Thermal guard», une curve ekilibrade su la temperadure dal CPU. Tu puedis anulâlu.",
   "cooling.guard.dialog.saveAnyway": "Salve compagn",
   "cooling.guard.dialog.title": "Il refredament al podarès no protezi il to CPU",
   "cooling.guard.error.heal": "Impussibil comedâ il refredament. Lis tôs curvis a son stadis salvadis cussì come che a son.",

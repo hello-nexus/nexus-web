@@ -456,7 +456,7 @@
   "cooling.guard.description": "CPU が最高温度に近づくと、カーブの設定に関係なくファン速度を上げます。",
   "cooling.guard.dialog.fix": "修正",
   "cooling.guard.dialog.message": "次のチャンネルは CPU を十分に冷やせない可能性があります:",
-  "cooling.guard.dialog.note": "修正すると、通常の温度では現在の設定を維持し、上限付近でファンを加速する保護カーブを追加します。",
+  "cooling.guard.dialog.note": "「修正」を選ぶと、一覧のファンが CPU 温度に基づくバランス型の「Thermal guard」カーブに移ります。元に戻すこともできます。",
   "cooling.guard.dialog.saveAnyway": "そのまま保存",
   "cooling.guard.dialog.title": "冷却が CPU を守れない可能性があります",
   "cooling.guard.error.heal": "冷却を修正できませんでした。カーブはそのまま保存されました。",

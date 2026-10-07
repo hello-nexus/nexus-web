@@ -456,7 +456,7 @@
   "cooling.guard.description": "Verhoogt de ventilatorsnelheid wanneer de CPU de maximumtemperatuur nadert, wat je curves ook zeggen.",
   "cooling.guard.dialog.fix": "Herstellen",
   "cooling.guard.dialog.message": "Deze kanalen koelen de CPU mogelijk onvoldoende:",
-  "cooling.guard.dialog.note": "Herstellen behoudt je instellingen bij normale temperaturen en voegt een veiligheidscurve toe die de ventilatoren bij de limiet harder laat draaien.",
+  "cooling.guard.dialog.note": "Herstellen zet de genoemde ventilatoren op de curve ‘Thermal guard’, een gebalanceerde curve op basis van de CPU-temperatuur. Je kunt dit ongedaan maken.",
   "cooling.guard.dialog.saveAnyway": "Toch opslaan",
   "cooling.guard.dialog.title": "De koeling beschermt je CPU mogelijk niet",
   "cooling.guard.error.heal": "De koeling kon niet worden hersteld. Je curves zijn opgeslagen zoals ze zijn.",

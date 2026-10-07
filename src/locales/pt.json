@@ -456,7 +456,7 @@
   "cooling.guard.description": "Aumenta a velocidade das ventoinhas quando a CPU se aproxima da temperatura máxima, independentemente das suas curvas.",
   "cooling.guard.dialog.fix": "Corrigir",
   "cooling.guard.dialog.message": "Estes canais podem não arrefecer a CPU o suficiente:",
-  "cooling.guard.dialog.note": "Corrigir mantém as suas definições a temperaturas normais e adiciona uma curva de segurança que acelera as ventoinhas perto do limite.",
+  "cooling.guard.dialog.note": "Corrigir move as ventoinhas indicadas para a curva «Thermal guard», uma curva equilibrada com base na temperatura da CPU. Pode anular a alteração.",
   "cooling.guard.dialog.saveAnyway": "Guardar mesmo assim",
   "cooling.guard.dialog.title": "A refrigeração pode não proteger a sua CPU",
   "cooling.guard.error.heal": "Não foi possível corrigir a refrigeração. As suas curvas foram guardadas como estão.",

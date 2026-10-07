@@ -456,7 +456,7 @@
   "cooling.guard.description": "Erhöht die Lüfterdrehzahlen, wenn die CPU ihre maximale Temperatur erreicht, unabhängig von Ihren Kurven.",
   "cooling.guard.dialog.fix": "Beheben",
   "cooling.guard.dialog.message": "Diese Kanäle kühlen die CPU möglicherweise nicht ausreichend:",
-  "cooling.guard.dialog.note": "Beheben behält Ihre Einstellungen bei normalen Temperaturen bei und fügt eine Sicherheitskurve hinzu, die die Lüfter nahe am Limit hochdreht.",
+  "cooling.guard.dialog.note": "„Beheben“ legt die aufgeführten Lüfter auf die Kurve „Thermal guard“, eine ausgewogene Kurve auf Basis der CPU-Temperatur. Sie können das rückgängig machen.",
   "cooling.guard.dialog.saveAnyway": "Trotzdem speichern",
   "cooling.guard.dialog.title": "Die Kühlung schützt Ihre CPU möglicherweise nicht",
   "cooling.guard.error.heal": "Die Kühlung konnte nicht korrigiert werden. Ihre Kurven wurden unverändert gespeichert.",

@@ -456,7 +456,7 @@
   "cooling.guard.description": "當 CPU 接近最高溫度時提高風扇轉速，不論曲線如何設定。",
   "cooling.guard.dialog.fix": "修復",
   "cooling.guard.dialog.message": "以下通道可能無法為 CPU 提供足夠的散熱：",
-  "cooling.guard.dialog.note": "修復會在正常溫度下保留你的設定，並加入一條在接近上限時提高風扇轉速的安全曲線。",
+  "cooling.guard.dialog.note": "「修復」會將列出的風扇移到「Thermal guard」曲線，這是一條以 CPU 溫度為基礎的均衡曲線。你可以復原。",
   "cooling.guard.dialog.saveAnyway": "仍要儲存",
   "cooling.guard.dialog.title": "散熱可能無法保護你的 CPU",
   "cooling.guard.error.heal": "無法修復散熱。你的曲線已照原樣儲存。",

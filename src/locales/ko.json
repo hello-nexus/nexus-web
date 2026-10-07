@@ -456,7 +456,7 @@
   "cooling.guard.description": "CPU가 최대 온도에 가까워지면 커브 설정과 관계없이 팬 속도를 높입니다.",
   "cooling.guard.dialog.fix": "수정",
   "cooling.guard.dialog.message": "다음 채널은 CPU를 충분히 식히지 못할 수 있습니다:",
-  "cooling.guard.dialog.note": "수정하면 정상 온도에서는 현재 설정을 유지하고, 한계 근처에서 팬 속도를 높이는 안전 커브를 추가합니다.",
+  "cooling.guard.dialog.note": "수정을 선택하면 나열된 팬이 CPU 온도 기반의 균형 잡힌 \"Thermal guard\" 커브로 이동합니다. 되돌릴 수 있습니다.",
   "cooling.guard.dialog.saveAnyway": "그대로 저장",
   "cooling.guard.dialog.title": "냉각이 CPU를 보호하지 못할 수 있습니다",
   "cooling.guard.error.heal": "냉각을 수정하지 못했습니다. 커브는 그대로 저장되었습니다.",
