@@ -186,8 +186,11 @@ describe('CoolingPage thermal guard', () => {
     svc.managed = true;
     renderAdvanced();
     expect(await screen.findByText('cooling.guard.managedCurve')).toBeTruthy();
-    const group = screen.getByRole('radiogroup', { name: 'cooling.curve.type.label' });
-    expect(group.closest('[aria-disabled="true"]')).toBeTruthy();
+    // Every control in the card is disabled, not merely unclickable.
+    for (const radio of screen.getAllByRole('radio', { name: /cooling\.curve\.type\./ })) expect(radio).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cooling\.curves\.renameBtn/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /cooling\.curves\.removeBtn/ })).toBeDisabled();
+    for (const slider of screen.getAllByRole('slider')) expect(slider).toBeDisabled();
     fireEvent.click(screen.getByRole('radio', { name: 'cooling.curve.type.trigger' }));
     await act(async () => {});
     expect(vi.mocked(saveCurves)).not.toHaveBeenCalled();

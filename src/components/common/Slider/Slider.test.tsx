@@ -127,4 +127,63 @@ describe('Slider', () => {
     const { container } = render(<Slider value={5} min={0} max={10} ariaLabel="Level" onChange={() => {}} />);
     expect(container.querySelector('[style*="left"]')).toBeNull();
   });
+
+  describe('end-of-drag commit', () => {
+    const mountSlider = () => {
+      const onCommit = vi.fn();
+      render(<Slider value={10} min={0} max={100} ariaLabel="Level" onChange={() => {}} onCommit={onCommit} />);
+      return { onCommit, range: screen.getByRole('slider') };
+    };
+
+    it('commits once when the pointer is released outside the slider', async () => {
+      const { onCommit, range } = mountSlider();
+      fireEvent.pointerDown(range);
+      fireEvent.change(range, { target: { value: '40' } });
+      fireEvent.pointerUp(document.body);
+      await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1));
+      expect(onCommit).toHaveBeenCalledWith(40);
+    });
+
+    it('commits once, not twice, when the pointer is released on the slider', async () => {
+      const { onCommit, range } = mountSlider();
+      fireEvent.pointerDown(range);
+      fireEvent.change(range, { target: { value: '55' } });
+      fireEvent.pointerUp(range);
+      await new Promise(r => setTimeout(r, 20));
+      expect(onCommit).toHaveBeenCalledTimes(1);
+      expect(onCommit).toHaveBeenCalledWith(55);
+    });
+
+    it('commits once for a cancelled pointer', async () => {
+      const { onCommit, range } = mountSlider();
+      fireEvent.pointerDown(range);
+      fireEvent.change(range, { target: { value: '70' } });
+      fireEvent.pointerCancel(document.body);
+      await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1));
+    });
+
+    it('still commits a release it never saw start', async () => {
+      const { onCommit, range } = mountSlider();
+      fireEvent.change(range, { target: { value: '20' } });
+      fireEvent.pointerUp(range);
+      await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1));
+    });
+
+    it('does not commit again for a later stray release', async () => {
+      const { onCommit, range } = mountSlider();
+      fireEvent.pointerDown(range);
+      fireEvent.pointerUp(range);
+      await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1));
+      fireEvent.pointerUp(document.body);
+      await new Promise(r => setTimeout(r, 20));
+      expect(onCommit).toHaveBeenCalledTimes(1);
+    });
+
+    it('commits on a key release, once', async () => {
+      const { onCommit, range } = mountSlider();
+      fireEvent.change(range, { target: { value: '30' } });
+      fireEvent.keyUp(range);
+      await waitFor(() => expect(onCommit).toHaveBeenCalledTimes(1));
+    });
+  });
 });

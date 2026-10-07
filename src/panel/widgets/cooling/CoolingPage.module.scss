@@ -875,6 +875,14 @@
   gap: 0.6rem;
 }
 
+// Wraps .heroOptions in a read-only card: a disabled fieldset, reset to a plain box.
+.readOnlyFieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 // Curve-type chip-action buttons. Icon-only in a tight horizontal row;
 // active chip uses the standard chip-active accent fill. Each chip carries
 // its own hover tooltip describing the mode - no inline label is rendered.
@@ -1198,10 +1206,6 @@
   pointer-events: none;
 }
 
-// The thermal guard's curve: readable at full strength, not editable.
-.curveEditorManaged {
-  pointer-events: none;
-}
 
 // Select all / none beside the Fans title, matching the lighting rail.
 .headerSep {

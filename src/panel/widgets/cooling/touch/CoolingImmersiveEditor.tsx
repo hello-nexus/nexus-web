@@ -86,13 +86,11 @@ function CurvesSection({ cooling, liveChannels }: {
         onAdd={cooling.addCurve}
       />
       {selectedCurve ? (
-        <div
-          className={managed ? pageStyles.curveEditorManaged : undefined}
-          aria-disabled={managed || undefined}
-        >
+        <>
           {managed && <span className={pageStyles.curveEditorHint}>{t('cooling.guard.managedCurve')}</span>}
           <CurveCard
             key={selectedCurve.id}
+            readOnly={managed}
             curve={selectedCurve}
             allCurves={curves}
             sources={sources}
@@ -102,7 +100,7 @@ function CurvesSection({ cooling, liveChannels }: {
             onDelete={managed ? noopCurveEdit : () => cooling.deleteCurve(selectedCurve.id)}
             onResetPreset={selectedCurve.preset && !managed ? () => cooling.resetPresetCurve(selectedCurve.preset!) : undefined}
           />
-        </div>
+        </>
       ) : (
         <p className={styles.empty}>{t('cooling.curves.empty')}</p>
       )}

@@ -38,8 +38,6 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const keyedRef = useRef<number | null>(null);
   const immediateRef = useRef(false);
-  const draftRef = useRef<number | null>(null);
-  const releaseCleanupRef = useRef<(() => void) | null>(null);
   const onCommitRef = useRef(onCommit);
   onCommitRef.current = onCommit;
   // limitC is omitted while the guard is off, so read the override and the detected value first.
@@ -51,30 +49,7 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
   const barMin = Math.min(LIMIT_MIN_C, Math.floor(detected));
   const barMax = Math.max(LIMIT_MAX_C, Math.ceil(detected));
 
-  // A release outside the slider never reaches it, so the window hears it too. The
-  // slider's own release commit runs first; this only handles one it never saw.
-  const armRelease = () => {
-    releaseCleanupRef.current?.();
-    const cleanup = () => {
-      window.removeEventListener('pointerup', onRelease);
-      window.removeEventListener('pointercancel', onRelease);
-      releaseCleanupRef.current = null;
-    };
-    const onRelease = () => {
-      cleanup();
-      setTimeout(() => {
-        if (!immediateRef.current) return;
-        immediateRef.current = false;
-        if (draftRef.current != null) settle(draftRef.current);
-      }, 0);
-    };
-    window.addEventListener('pointerup', onRelease);
-    window.addEventListener('pointercancel', onRelease);
-    releaseCleanupRef.current = cleanup;
-  };
-
   const settle = (value: number) => {
-    draftRef.current = null;
     keyedRef.current = null;
     setDraft(null);
     if (value !== shownRef.current) onCommitRef.current(value);
@@ -82,7 +57,6 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
 
   // A keyed value still waiting out its settle time is written when the row goes away.
   useEffect(() => () => {
-    releaseCleanupRef.current?.();
     if (timerRef.current) clearTimeout(timerRef.current);
     if (keyedRef.current != null && keyedRef.current !== shownRef.current) onCommitRef.current(keyedRef.current);
   }, []);
@@ -107,7 +81,6 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = null;
     keyedRef.current = null;
-    draftRef.current = null;
     setDraft(null);
     onReset();
   };
@@ -143,14 +116,10 @@ function LimitRow({ guard, pendingLimit, error, onCommit, onReset }: LimitRowPro
           value={draft ?? shown}
           formatValue={v => t('cooling.curve.tempBadge', { temp: v })}
           onChange={(v, typed) => {
-            draftRef.current = v;
             setDraft(v);
             if (typed) immediateRef.current = true;
           }}
-          onPointerDown={() => {
-            immediateRef.current = true;
-            armRelease();
-          }}
+          onPointerDown={() => { immediateRef.current = true; }}
           onCommit={commit}
           ariaLabel={t('cooling.guard.limit.label')}
         />

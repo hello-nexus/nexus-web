@@ -91,6 +91,8 @@ export function Slider({
   const latestInputValueRef = useRef(value);
   const onCommitRef = useRef(onCommit);
   const commitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Removes the window release listeners armed by a pointer-down; null when no drag is open.
+  const releaseCleanupRef = useRef<(() => void) | null>(null);
   const showZero = zeroMarker && min < 0 && max > 0;
   const zeroPct = showZero ? ((0 - min) / (max - min)) * 100 : 0;
   // A numeric `trackFill` sets the fill end explicitly; otherwise it
@@ -147,6 +149,7 @@ export function Slider({
   }, [onCommit]);
 
   useEffect(() => () => {
+    releaseCleanupRef.current?.();
     if (commitTimerRef.current) {
       clearTimeout(commitTimerRef.current);
       commitTimerRef.current = null;
@@ -173,7 +176,7 @@ export function Slider({
   const fmt = (v: number) => (formatValue ? formatValue(v) : String(v));
   const valueNode = editable ? (
     <EditableNumber value={value} min={min} max={max} step={step}
-      onCommit={handleEditCommit} format={formatValue} className={styles.value} />
+      onCommit={handleEditCommit} format={formatValue} className={styles.value} disabled={disabled} />
   ) : (
     <span className={styles.value}>{fmt(value)}</span>
   );
@@ -188,7 +191,7 @@ export function Slider({
     <span className={styles.inlineValue} style={{ minWidth: `${reserveCh}ch` }}>
       {editable ? (
         <EditableNumber value={value} min={min} max={max} step={step}
-          onCommit={handleEditCommit} format={formatValue} ariaLabel={ariaLabel} className={styles.value} />
+          onCommit={handleEditCommit} format={formatValue} ariaLabel={ariaLabel} className={styles.value} disabled={disabled} />
       ) : (
         <span className={styles.value}>{fmt(value)}</span>
       )}
@@ -207,6 +210,25 @@ export function Slider({
     }, 0);
   };
 
+  // A drag ends wherever the pointer is let go, which may be off the track, so the
+  // window hears the release. While a drag is armed this is the only pointer path
+  // that commits; the input's own release handler stands down.
+  const armRelease = () => {
+    releaseCleanupRef.current?.();
+    const cleanup = () => {
+      window.removeEventListener('pointerup', onRelease);
+      window.removeEventListener('pointercancel', onRelease);
+      releaseCleanupRef.current = null;
+    };
+    const onRelease = () => {
+      cleanup();
+      handleEnd();
+    };
+    window.addEventListener('pointerup', onRelease);
+    window.addEventListener('pointercancel', onRelease);
+    releaseCleanupRef.current = cleanup;
+  };
+
   const range = (
     <input type="range" min={min} max={max} step={step} value={value}
       disabled={disabled}
@@ -214,11 +236,14 @@ export function Slider({
       data-fill=""
       style={trackStyle}
       onChange={e => handleChange(Number(e.target.value), false)}
-      onPointerDown={onPointerDown}
-      onPointerUp={handleEnd}
+      onPointerDown={e => {
+        onPointerDown?.(e);
+        armRelease();
+      }}
+      onPointerUp={() => { if (!releaseCleanupRef.current) handleEnd(); }}
       onPointerCancel={e => {
-        if (onPointerCancel) onPointerCancel(e);
-        handleEnd();
+        onPointerCancel?.(e);
+        if (!releaseCleanupRef.current) handleEnd();
       }}
       onKeyUp={handleEnd}
       className={styles.range} />

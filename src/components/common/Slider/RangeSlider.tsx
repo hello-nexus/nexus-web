@@ -176,11 +176,11 @@ export function RangeSlider({
     <span className={styles.valueGroup}>
       <EditableNumber value={valMin} min={min} max={max} step={step}
         onCommit={v => handleMinChange(v, true)} format={formatValue}
-        className={styles.value} ariaLabel={ariaLabelMin} />
+        className={styles.value} ariaLabel={ariaLabelMin} disabled={disabled} />
       <span className={styles.valueSep} aria-hidden="true">-</span>
       <EditableNumber value={valMax} min={min} max={max} step={step}
         onCommit={v => handleMaxChange(v, true)} format={formatValue}
-        className={styles.value} ariaLabel={ariaLabelMax} />
+        className={styles.value} ariaLabel={ariaLabelMax} disabled={disabled} />
     </span>
   ) : (
     <span className={styles.value}>{fmt(valMin)} - {fmt(valMax)}</span>

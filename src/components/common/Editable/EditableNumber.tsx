@@ -15,9 +15,11 @@ export interface EditableNumberProps {
   format?: (value: number) => string;
   className?: string;
   ariaLabel?: string;
+  /** Shows the value as plain text: no click or keyboard entry into edit mode. */
+  disabled?: boolean;
 }
 
-export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel }: EditableNumberProps) {
+export function EditableNumber({ value, min, max, step = 1, onCommit, format, className, ariaLabel, disabled }: EditableNumberProps) {
   const fmt = format ?? ((v: number) => String(v));
   const editable = useEditable<number>({
     value,
@@ -39,6 +41,10 @@ export function EditableNumber({ value, min, max, step = 1, onCommit, format, cl
     },
     format: v => String(v),
   });
+
+  if (disabled) {
+    return <span className={`${styles.display} ${className ?? ''}`}>{fmt(value)}</span>;
+  }
 
   if (editable.editing) {
     return (

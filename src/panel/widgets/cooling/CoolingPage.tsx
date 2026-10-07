@@ -1923,18 +1923,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           </div>
           <div className={styles.curveEditorHeader}>
             <span className={styles.paneTitle}>{t('cooling.label.curveEditor')}</span>
-            {curveEditorInert && selectedCurve && (
+            {curveEditorInert && selectedCurve && !curveManaged && (
               <span className={styles.curveEditorHint}>{t('cooling.curves.noCurveSelected')}</span>
             )}
             {curveManaged && <span className={styles.curveEditorHint}>{t('cooling.guard.managedCurve')}</span>}
           </div>
           {selectedCurve ? (
             <div
-              className={curveEditorInert ? styles.curveEditorInert : curveManaged ? styles.curveEditorManaged : undefined}
-              aria-disabled={curveEditorInert || curveManaged || undefined}
+              className={curveEditorInert ? styles.curveEditorInert : undefined}
+              aria-disabled={curveEditorInert || undefined}
             >
               <CurveCard
                 key={selectedCurve.id}
+                readOnly={curveManaged}
                 curve={selectedCurve}
                 allCurves={curves}
                 sources={sources}

@@ -134,7 +134,7 @@ export function computeCurveSpeed(
 
 // ── Response time helper ──────────────────────────────────────────────────
 // Wraps the canonical Slider with the seconds formatter so callers stay terse.
-function ResponseTimeSlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function ResponseTimeSlider({ value, onChange, disabled }: { value: number; onChange: (v: number) => void; disabled?: boolean }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
   return (
@@ -143,7 +143,7 @@ function ResponseTimeSlider({ value, onChange }: { value: number; onChange: (v: 
       orientation="stacked" editable label={t('cooling.curve.response')}
       info={t('cooling.curve.response.help')} value={value}
       min={0.1} max={5.0} step={0.1} trackFill
-      formatValue={v => t('cooling.curve.responseSeconds', { value: localizeNumbers(v.toFixed(1), numberFormat) })} onChange={onChange} />
+      formatValue={v => t('cooling.curve.responseSeconds', { value: localizeNumbers(v.toFixed(1), numberFormat) })} onChange={onChange} disabled={disabled} />
   );
 }
 
@@ -598,7 +598,7 @@ function MixControls({ curve, allCurves, sources, channels, onChange }: {
 
 export const CurveCard = memo(function CurveCard({
   curve, allCurves, sources, channels = [], syncExcludedIds = [], children,
-  onChange, onDelete, onResetPreset,
+  onChange, onDelete, onResetPreset, readOnly = false,
 }: {
   curve: CurveDef;
   allCurves: CurveDef[];
@@ -617,6 +617,8 @@ export const CurveCard = memo(function CurveCard({
   /** Reset a preset curve (silent/balanced/turbo/max) back to its defaults. Only
    *  rendered when curve.preset is set; gated by isModeCurveDirty. */
   onResetPreset?: () => void;
+  /** Every control is disabled and the graph is not draggable (a curve the service manages). */
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
@@ -711,48 +713,48 @@ export const CurveCard = memo(function CurveCard({
   );
 
   const flatSlider = (
-    <Slider orientation="stacked" editable label={t('cooling.curve.fixed.speed')}
+    <Slider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.fixed.speed')}
       info={t('cooling.curve.fixed.speed.help')}
       value={curve.flat.speed} min={0} max={100} trackFill formatValue={v => `${v}%`}
       onChange={v => set({ flat: { speed: v } })} />
   );
   const linearBlock = (
     <div className={styles.linearControls}>
-      <RangeSlider orientation="stacked" editable label={t('cooling.curve.linear.temp')}
+      <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.linear.temp')}
         info={t('cooling.curve.linear.temp.help')}
         value={[curve.linear.minTemp, curve.linear.maxTemp]} min={20} max={100} formatValue={v => `${v}°`}
         onChange={([minTemp, maxTemp]) => set({ linear: { ...curve.linear, minTemp, maxTemp } })} />
-      <RangeSlider orientation="stacked" editable label={t('cooling.curve.linear.speed')}
+      <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.linear.speed')}
         info={t('cooling.curve.linear.speed.help')}
         value={[curve.linear.minSpeed, curve.linear.maxSpeed]} min={0} max={100} formatValue={v => `${v}%`}
         onChange={([minSpeed, maxSpeed]) => set({ linear: { ...curve.linear, minSpeed, maxSpeed } })} />
-      <ResponseTimeSlider value={curve.linear.responseTime}
+      <ResponseTimeSlider disabled={readOnly} value={curve.linear.responseTime}
         onChange={v => set({ linear: { ...curve.linear, responseTime: v } })} />
     </div>
   );
   const multipointResponse = (
-    <ResponseTimeSlider value={curve.multipoint.responseTime}
+    <ResponseTimeSlider disabled={readOnly} value={curve.multipoint.responseTime}
       onChange={v => set({ multipoint: { ...curve.multipoint, responseTime: v } })} />
   );
   const mixBlock = (
     <>
       <MixControls curve={curve} allCurves={allCurves} sources={sources} channels={channels} onChange={onChange} />
-      <ResponseTimeSlider value={curve.mix.responseTime}
+      <ResponseTimeSlider disabled={readOnly} value={curve.mix.responseTime}
         onChange={v => set({ mix: { ...curve.mix, responseTime: v } })} />
     </>
   );
 
   const triggerBlock = (
     <div className={styles.linearControls}>
-      <RangeSlider orientation="stacked" editable label={t('cooling.curve.trigger.temp')}
+      <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.trigger.temp')}
         info={t('cooling.curve.trigger.temp.help')}
         value={[curve.trigger.idleTemp, curve.trigger.loadTemp]} min={20} max={100} formatValue={v => `${v}°`}
         onChange={([idleTemp, loadTemp]) => set({ trigger: { ...curve.trigger, idleTemp, loadTemp } })} />
-      <RangeSlider orientation="stacked" editable label={t('cooling.curve.trigger.speed')}
+      <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.trigger.speed')}
         info={t('cooling.curve.trigger.speed.help')}
         value={[curve.trigger.idleSpeed, curve.trigger.loadSpeed]} min={0} max={100} formatValue={v => `${v}%`}
         onChange={([idleSpeed, loadSpeed]) => set({ trigger: { ...curve.trigger, idleSpeed, loadSpeed } })} />
-      <ResponseTimeSlider value={curve.trigger.responseTime}
+      <ResponseTimeSlider disabled={readOnly} value={curve.trigger.responseTime}
         onChange={v => set({ trigger: { ...curve.trigger, responseTime: v } })} />
     </div>
   );
@@ -760,24 +762,24 @@ export const CurveCard = memo(function CurveCard({
   const autoBlock = (
     <div className={styles.linearControls}>
       {/* The service's under-load threshold falls to idleTemp once the band is no wider than the deadband. */}
-      <RangeSlider orientation="stacked" editable label={t('cooling.curve.auto.temp')}
+      <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.auto.temp')}
         info={t('cooling.curve.auto.temp.help')}
         value={[curve.auto.idleTemp, curve.auto.loadTemp]} min={20} max={100} formatValue={v => `${v}°`}
         minGap={curve.auto.deadband + 1}
         onChange={([idleTemp, loadTemp]) => set({ auto: { ...curve.auto, idleTemp, loadTemp } })} />
-      <RangeSlider orientation="stacked" editable label={t('cooling.curve.auto.speed')}
+      <RangeSlider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.auto.speed')}
         info={t('cooling.curve.auto.speed.help')}
         value={[curve.auto.minSpeed, curve.auto.maxSpeed]} min={0} max={100} formatValue={v => `${v}%`}
         onChange={([minSpeed, maxSpeed]) => set({ auto: { ...curve.auto, minSpeed, maxSpeed } })} />
-      <Slider orientation="stacked" editable label={t('cooling.curve.auto.step')}
+      <Slider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.auto.step')}
         info={t('cooling.curve.auto.step.help')}
         value={curve.auto.step} min={1} max={20} step={1} trackFill formatValue={v => `${v}%`}
         onChange={v => set({ auto: { ...curve.auto, step: v } })} />
-      <Slider orientation="stacked" editable label={t('cooling.curve.auto.deadband')}
+      <Slider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.auto.deadband')}
         info={t('cooling.curve.auto.deadband.help')}
         value={curve.auto.deadband} min={0} max={10} step={1} trackFill formatValue={v => `${v}°`}
         onChange={v => set({ auto: { ...curve.auto, deadband: v } })} />
-      <ResponseTimeSlider value={curve.auto.responseTime}
+      <ResponseTimeSlider disabled={readOnly} value={curve.auto.responseTime}
         onChange={v => set({ auto: { ...curve.auto, responseTime: v } })} />
     </div>
   );
@@ -810,7 +812,7 @@ export const CurveCard = memo(function CurveCard({
           </button>
         ))}
       </div>
-      <Slider orientation="stacked" editable label={t('cooling.curve.sync.offset')}
+      <Slider orientation="stacked" editable disabled={readOnly} label={t('cooling.curve.sync.offset')}
         info={t('cooling.curve.sync.offset.help')}
         value={curve.sync.offset} min={-50} max={50} step={1} trackFill
         formatValue={v => (curve.sync.proportional ? `${v > 0 ? '+' : ''}${v}%` : `${v > 0 ? '+' : ''}${v}`)}
@@ -840,7 +842,7 @@ export const CurveCard = memo(function CurveCard({
         <CurveGraph
           points={isMp ? curve.multipoint.points : sampleCurveShape(curve, allCurves, sources, channels)}
           showPoints={isMp}
-          editable={isMp}
+          editable={isMp && !readOnly}
           height={PINNED_GRAPH_H}
           currentTemp={dotTemp}
           onChange={isMp ? pts => set({ multipoint: { ...curve.multipoint, points: pts } }) : undefined}
@@ -849,13 +851,22 @@ export const CurveCard = memo(function CurveCard({
       {/* Curve selector (with its own header) sits under the graph. */}
       {children}
       {/* Then the selected curve's options, stacked. */}
-      <div className={styles.heroOptions}>
-        <span className={styles.curveFieldHeader}>{t('cooling.curve.type.label')}</span>
-        {typeChips}
-        {sourceRow}
-        {editControls}
-        {footer}
-      </div>
+      {/* A disabled fieldset disables every native control inside it (chips, select,
+          buttons) without `inert`, which the Chromium floor lacks. The sliders and
+          editable values are disabled through their own prop. A wrapper only while
+          read-only: fieldsets cannot be flex containers on old Chromium. */}
+      {(() => {
+        const options = (
+          <div className={styles.heroOptions}>
+            <span className={styles.curveFieldHeader}>{t('cooling.curve.type.label')}</span>
+            {typeChips}
+            {sourceRow}
+            {editControls}
+            {footer}
+          </div>
+        );
+        return readOnly ? <fieldset disabled className={styles.readOnlyFieldset}>{options}</fieldset> : options;
+      })()}
     </div>
   );
 });

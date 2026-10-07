@@ -68,8 +68,9 @@ export function useThermalGuard(serviceOnline: boolean) {
   useTopicCallback('cooling', serviceOnline, () => { void refresh(); });
 
   // What the user last asked for, per field. Every action overwrites its field and
-  // kicks the single writer, which sends the merged intents and loops while new
-  // ones arrive, so nothing is dropped, reordered or reversed.
+  // kicks the single writer. Each pass sends up to two requests, the switch first
+  // and then the limit, and loops while new intents arrive, so nothing is dropped,
+  // reordered or reversed.
   const intentRef = useRef<{ enabled?: boolean; limit?: number | 'reset' }>({});
   const writerRunningRef = useRef(false);
   // The limit shown while it is pending, so the slider does not snap back to the server's value.
