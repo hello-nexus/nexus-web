@@ -12,5 +12,7 @@ export function lightingDeviceNoticeKey(device: LightingDevice): string | null {
   if (device.id.startsWith('lianli:')) return 'lighting.devices.partialStreaming';
   // The Kraken shares one HID pipe between its LEDs, its telemetry and its LCD.
   if (device.id.startsWith('nzxt-kraken:')) return 'lighting.devices.partialStreaming';
+  // The HydroShift II ring plays an uploaded loop; each upload stalls the pump-head screen.
+  if (device.id.startsWith('lianli-hydroshift2:')) return 'lighting.devices.partialStreaming';
   return null;
 }

@@ -6,6 +6,7 @@ import { Button } from '../../common/Button/Button';
 import { armSentry, fetchSentry, type SentryState } from '../../../api/sentry';
 import { isRemoteOrigin, isRemotePaired } from '../../../api/service';
 import { useTranslation } from '../../../lib/i18n';
+import { pluralKey } from '../../../lib/pluralKey';
 
 const POLL_MS = 5000;
 
@@ -16,7 +17,7 @@ const TONES: Record<'on' | 'off' | 'warn', SettingState['tone']> = { on: 'good',
 
 // Locks the PC and arms Sentry; hidden where the OS has no lock input watch.
 export function SentrySection({ serviceOnline }: { serviceOnline: boolean }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [state, setState] = useState<SentryState | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -61,6 +62,7 @@ export function SentrySection({ serviceOnline }: { serviceOnline: boolean }) {
   }, []);
 
   if (!state?.supported) return null;
+  const cooldownMinutes = Math.max(1, Math.ceil(state.cooldownSeconds / 60));
 
   return (
     <SettingsSection title={t('sentry.settings.title')}>
@@ -90,11 +92,13 @@ export function SentrySection({ serviceOnline }: { serviceOnline: boolean }) {
         description={state.alertPhones === 0 ? t('sentry.settings.phones.none') : undefined}
         state={{ label: String(state.alertPhones), tone: state.alertPhones === 0 ? TONES.warn : TONES.off }}
       />
-      <SettingRow
-        label={t('sentry.settings.cooldown')}
-        icon={<Timer />}
-        iconLeading="subtle"
-      />
+      {state.cooldownSeconds > 0 && (
+        <SettingRow
+          label={t(pluralKey('sentry.settings.cooldown', language, cooldownMinutes), { count: cooldownMinutes })}
+          icon={<Timer />}
+          iconLeading="subtle"
+        />
+      )}
     </SettingsSection>
   );
 }

@@ -6,8 +6,8 @@ import { lightingDeviceNoticeKey } from './lightingDeviceNotices';
 const dev = (id: string): LightingDevice => ({ id } as LightingDevice);
 
 describe('lightingDeviceNoticeKey', () => {
-  it('returns the partial-streaming notice for Lian Li hubs and Kraken zones', () => {
-    for (const id of ['lianli-wireless:998D1DE566E1:inner', 'lianli-wireless:64F271E566E1:z0', 'lianli:port0', 'lianli:port2:inner', 'nzxt-kraken:abc']) {
+  it('returns the partial-streaming notice for Lian Li hubs, the HydroShift II ring and Kraken zones', () => {
+    for (const id of ['lianli-wireless:998D1DE566E1:inner', 'lianli-wireless:64F271E566E1:z0', 'lianli:port0', 'lianli:port2:inner', 'nzxt-kraken:abc', 'lianli-hydroshift2:ring']) {
       expect(lightingDeviceNoticeKey(dev(id))).toBe('lighting.devices.partialStreaming');
     }
   });

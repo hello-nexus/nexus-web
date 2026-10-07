@@ -118,6 +118,15 @@
   box-sizing: border-box;
 }
 
+// Tappable variant of the pill; the tray ignores pointer events, so the button opts back in.
+.sentryRow {
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .connectedLabel {
   font-size: var(--type-tiny);
   font-weight: var(--weight-strong);
