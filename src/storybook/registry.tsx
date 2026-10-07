@@ -1281,7 +1281,7 @@ function PreviewConflictAppCard() {
       <ConflictAppCard
         conflict={{ id: 'preview-icue', displayName: 'iCUE', category: 'cooling', processName: 'iCUE.exe', pid: 4212 }}
         devices={[
-          { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'app' },
+          { key: 'device:corsair', name: 'iCUE LINK System Hub', owner: 'app', experimental: true },
           { key: 'lighting:openrgb-s-RAM1', name: 'Vengeance RGB', owner: 'mixed' },
         ]}
         onSetOwner={async () => true}
@@ -2733,7 +2733,7 @@ export const REGISTRY: StorybookEntry[] = [
   {
     name: 'ConflictAppCard', category: 'cards',
     filePath: 'src/components/common/ConflictAppCard/ConflictAppCard.tsx',
-    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. With `autostart` (from useConflictAutostart) a "Disable auto start" button sits under End task, over a line naming each Windows startup entry or service it will turn off - only for the apps the service holds a hand-verified recipe for, and only while one is still armed; ending the task does not stop the next boot, so a terminated row keeps it. A partial or failed disable leaves the button up under a warning. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
+    description: 'Detected-conflict row: app name, executable / PID meta line, and an EndTaskButton. With `devices` (from useConflictDevices) it also lists the hardware Nexus recognizes that the app drives too, each tagged with who drives it now and an ExperimentalBadge after the name of any device whose support is experimental, under an all-or-none "Nexus controls these / <app> controls these" switch; choosing Nexus flips every device on and then ends the app, spinning the End task button while it runs. `terminated` keeps the row of an ended app listed with its devices, swapping the button for a green Terminated marker and dropping the switch. With `autostart` (from useConflictAutostart) a "Disable auto start" button sits under End task, over a line naming each Windows startup entry or service it will turn off - only for the apps the service holds a hand-verified recipe for, and only while one is still armed; ending the task does not stop the next boot, so a terminated row keeps it. A partial or failed disable leaves the button up under a warning. Used by ConflictWarningModal and ConflictOnboardingScreen (with devices) and the device-page NexusControlOff gate (plain row).',
     Preview: PreviewConflictAppCard,
   },
 

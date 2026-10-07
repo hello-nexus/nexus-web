@@ -11,6 +11,8 @@ export interface ConflictDevice {
   name: string;
   /** Who drives it now: Nexus, the app, or a mix (some of its lighting cards ignored). */
   owner: ConflictDeviceOwner;
+  /** Nexus drives it on a best-effort basis (the Devices list's Experimental badge). */
+  experimental?: boolean;
 }
 
 interface ConflictDeviceGroup extends ConflictDevice {
@@ -66,6 +68,7 @@ export function deriveConflictDevices(
         key: `device:${d.id}`,
         name: d.name,
         owner: d.nexusControlEnabled === false ? 'app' : lightingGroupOwner(cards) === 'nexus' ? 'nexus' : 'mixed',
+        experimental: d.experimental === true,
         handlerId: d.id,
         lightingIds: cards.map(c => c.id),
       });

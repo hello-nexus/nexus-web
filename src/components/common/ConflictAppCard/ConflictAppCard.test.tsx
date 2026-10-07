@@ -63,6 +63,18 @@ describe('ConflictAppCard', () => {
     expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
+  it('badges only the devices whose support is experimental', () => {
+    const devices: ConflictDevice[] = [
+      { key: 'device:corsair', name: 'iCUE LINK Hub', owner: 'app', experimental: true },
+      { key: 'lighting:openrgb-1', name: 'Vengeance RAM', owner: 'app' },
+    ];
+    render(<ConflictAppCard conflict={conflict} devices={devices} onSetOwner={vi.fn()} />);
+
+    const badges = screen.getAllByRole('img', { name: /devices\.experimental\.tooltip\.title/ });
+    expect(badges).toHaveLength(1);
+    expect(screen.getByText('iCUE LINK Hub').parentElement).toContainElement(badges[0]);
+  });
+
   it('lists the devices with who drives each, and preselects the app when the app is whitelisted', () => {
     const devices: ConflictDevice[] = [
       { key: 'device:corsair', name: 'iCUE LINK Hub', owner: 'app' },

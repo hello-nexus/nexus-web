@@ -5,6 +5,7 @@ import type { ConflictDevice } from '../../../hooks/useConflictDevices';
 import { Button } from '../Button/Button';
 import { ChipGroup } from '../ChipGroup/ChipGroup';
 import { EndTaskButton } from '../EndTaskButton/EndTaskButton';
+import { ExperimentalBadge } from '../ExperimentalBadge/ExperimentalBadge';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './ConflictAppCard.module.scss';
 
@@ -206,7 +207,10 @@ export function ConflictAppCard({
           <ul className={styles.deviceList}>
             {list.map(device => (
               <li key={device.key} className={styles.deviceRow}>
-                <span className={styles.deviceName}>{device.name}</span>
+                <span className={styles.deviceNameLine}>
+                  <span className={styles.deviceName}>{device.name}</span>
+                  {device.experimental && <ExperimentalBadge />}
+                </span>
                 <span className={styles.deviceOwner} data-owner={device.owner}>{ownerLabel(device)}</span>
               </li>
             ))}

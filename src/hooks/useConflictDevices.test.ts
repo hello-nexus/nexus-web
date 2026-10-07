@@ -21,9 +21,14 @@ describe('deriveConflictDevices', () => {
     const byApp = deriveConflictDevices([icue, lconnect], [curated({ nexusControlEnabled: false })], []);
 
     expect(byApp.get('icue')).toEqual([
-      { key: 'device:corsair', name: 'iCUE LINK Hub', owner: 'app', handlerId: 'corsair', lightingIds: [] },
+      { key: 'device:corsair', name: 'iCUE LINK Hub', owner: 'app', experimental: false, handlerId: 'corsair', lightingIds: [] },
     ]);
     expect(byApp.get('lian-li-l-connect')).toEqual([]);
+  });
+
+  it('carries a curated device\'s experimental flag', () => {
+    const byApp = deriveConflictDevices([icue], [curated({ experimental: true })], []);
+    expect(byApp.get('icue')?.[0].experimental).toBe(true);
   });
 
   it('skips curated devices that are unplugged or have no control switch', () => {
@@ -61,7 +66,7 @@ describe('deriveConflictDevices', () => {
     const byApp = deriveConflictDevices([icue], [curated({})], cards);
 
     expect(byApp.get('icue')).toEqual([
-      { key: 'device:corsair', name: 'iCUE LINK Hub', owner: 'mixed', handlerId: 'corsair', lightingIds: ['corsair:ch1', 'corsair:ch2'] },
+      { key: 'device:corsair', name: 'iCUE LINK Hub', owner: 'mixed', experimental: false, handlerId: 'corsair', lightingIds: ['corsair:ch1', 'corsair:ch2'] },
     ]);
   });
 
