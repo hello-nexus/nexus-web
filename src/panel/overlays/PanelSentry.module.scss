@@ -1,5 +1,3 @@
-@use '../styles/flexGap' as *;
-
 .wrap {
   position: fixed;
   left: 0;
@@ -16,54 +14,201 @@
 }
 
 .card {
+  position: relative;
   width: min(420px, 100%);
   border-radius: var(--radius-lg);
   background: var(--panel-card-bg, var(--surface));
   border: 1px solid var(--panel-card-border, var(--border));
-  padding: 16px;
+  padding: 22px 18px 18px;
   box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
-  @include vgap(10px);
+  align-items: center;
+  text-align: center;
   pointer-events: auto;
   box-sizing: border-box;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  @include hgap(8px);
-}
-
 .close {
-  margin-left: auto;
+  position: absolute;
+  top: 10px;
+  right: 10px;
 }
 
-.icon {
-  display: inline-flex;
+.mark {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: none;
+  background: none;
   color: var(--accent);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--ease-slow);
+
+  &:disabled {
+    cursor: default;
+  }
+
+  [data-state='armed'] & {
+    color: var(--good);
+  }
+}
+
+.svg {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ln {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shield {
+  stroke-dasharray: 64;
+  stroke-dashoffset: 0;
+
+  [data-state='arming'] & {
+    animation: draw 1s ease-in-out infinite;
+  }
+}
+
+.idleDot {
+  transform-origin: 12px 12.2px;
+  animation: breathe 3s ease-in-out infinite;
+  transition: opacity var(--ease-slow), transform var(--ease-slow);
+
+  [data-state='arming'] &,
+  [data-state='armed'] & {
+    animation: none;
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+.eye {
+  transform-origin: 12px 12.2px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--ease-slow) var(--ease-slow), transform var(--ease-slow) var(--ease-slow) cubic-bezier(0.3, 1.5, 0.5, 1);
+
+  [data-state='arming'] &,
+  [data-state='armed'] & {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pupil {
+  transform-origin: 12px 12.2px;
+
+  [data-state='armed'] & {
+    animation: glance 6s ease-in-out infinite;
+  }
+}
+
+.pulse {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  bottom: -6px;
+  left: -6px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0;
+
+  [data-state='armed'] & {
+    animation: pulse 2.4s ease-out infinite;
+  }
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: 64; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.35); opacity: 0.55; }
+}
+
+@keyframes glance {
+  0%, 38%, 100% { transform: translateX(0); }
+  45%, 55% { transform: translateX(-1.4px); }
+  62%, 72% { transform: translateX(1.4px); }
+  80% { transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0% { opacity: 0.5; transform: scale(0.85); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shield,
+  .idleDot,
+  .pupil,
+  .pulse {
+    animation: none !important;
+  }
+
+  .mark,
+  .idleDot,
+  .eye {
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
 }
 
 .title {
-  margin: 0;
+  margin: 12px 0 0;
   font-size: var(--type-body);
   font-weight: var(--weight-heading);
 }
 
 .message {
-  margin: 0;
+  margin: 6px 0 0;
+  max-width: 290px;
+  min-height: 2.6em;
   font-size: var(--type-small);
   color: var(--text-dim);
 }
 
+.alerts {
+  margin: 8px 0 0;
+  display: flex;
+  align-items: center;
+  font-size: var(--type-small);
+  color: var(--text-dim);
+}
+
+.alertsDot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--good);
+
+  .alertsOff & {
+    background: var(--text-dim);
+  }
+}
+
 .error {
-  margin: 0;
+  margin: 8px 0 0;
   font-size: var(--type-small);
   color: var(--bad);
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  @include wrapgap(8px);
+.primary {
+  width: 100%;
+  margin-top: 14px;
 }

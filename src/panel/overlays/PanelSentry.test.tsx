@@ -5,7 +5,7 @@ import { armSentry, disarmSentry, fetchSentry, registerPhonePush, type SentrySta
 
 vi.mock('../../lib/i18n', async (importActual) => {
   const text: Record<string, string> = {
-    'sentry.push.title': 'Sentry',
+    'sentry.push.title': 'Sentry Alert',
     'sentry.push.body': 'Someone is using {pc}',
   };
   const t = (key: string, params?: Record<string, string | number>) => {
@@ -40,10 +40,17 @@ function installBridge(status: unknown) {
   return requestPushPermission;
 }
 
+function stubReducedMotion(reduced: boolean) {
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: reduced, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+}
+
 const props = { enabled: true, resolvedThemeMode: 'dark' as const, themeStyle: {} };
 
 describe('PanelSentry', () => {
   beforeEach(() => {
+    stubReducedMotion(true);
     vi.mocked(registerPhonePush).mockResolvedValue(200);
     vi.mocked(fetchSentry).mockResolvedValue(state({}));
   });
@@ -52,6 +59,7 @@ describe('PanelSentry', () => {
     const w = window as unknown as NativeWindow;
     delete w.nexusNative;
     delete w.nexusNativePush;
+    delete (window as { matchMedia?: unknown }).matchMedia;
     vi.clearAllMocks();
   });
 
@@ -79,22 +87,97 @@ describe('PanelSentry', () => {
     expect(disarmSentry).toHaveBeenCalled();
   });
 
-  it('reports a not_locked refusal', async () => {
-    vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'not_locked' });
-    render(<PanelSentry {...props} />);
-    fireEvent.click(await screen.findByText('sentry.card.arm'));
-    await screen.findByText('sentry.card.notLocked');
-  });
-
-  it('does not repeat the not-locked line when the refusal refetch finds the PC unlocked', async () => {
+  it('shows the failure line on a not_locked refusal and refreshes the card', async () => {
     vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'not_locked' });
     const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
     const arm = await screen.findByText('sentry.card.arm');
     rerender(<PanelSentry {...props} openRequest={1} />);
     vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
     fireEvent.click(arm);
-    await waitFor(() => expect(screen.getByText('sentry.card.arm').closest('button')).toBeDisabled());
-    expect(screen.getAllByText('sentry.card.notLocked')).toHaveLength(1);
+    await screen.findByText('sentry.card.failed');
+    await screen.findByText('sentry.card.lockAndArm');
+  });
+
+  it('unlocked: Lock and Arm sends lock:true, shows Locking while waiting, then armed', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
+    let resolve: (v: Awaited<ReturnType<typeof armSentry>>) => void = () => {};
+    vi.mocked(armSentry).mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
+    await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
+    rerender(<PanelSentry {...props} openRequest={1} />);
+    await screen.findByText('sentry.card.promptLock');
+    fireEvent.click(screen.getByText('sentry.card.lockAndArm'));
+    expect(armSentry).toHaveBeenCalledWith(true);
+    expect(screen.getByText('sentry.card.locking').closest('button')).toBeDisabled();
+    expect(screen.getByText('sentry.card.lockingPc')).toBeTruthy();
+    await act(async () => { resolve({ ok: true, state: state({ armed: true }) }); });
+    await screen.findByText('sentry.card.disarm');
+    expect(screen.getByText('sentry.card.armedTitle')).toBeTruthy();
+  });
+
+  it('unlocked: a lock failure returns to idle with the failure line', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
+    vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'failed' });
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
+    await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
+    rerender(<PanelSentry {...props} openRequest={1} />);
+    fireEvent.click(await screen.findByText('sentry.card.lockAndArm'));
+    await screen.findByText('sentry.card.failed');
+    expect(screen.getByText('sentry.card.lockAndArm').closest('button')).toBeEnabled();
+    expect(screen.queryByText('sentry.card.disarm')).toBeNull();
+  });
+
+  it('plays the arming animation for the minimum duration before showing armed', async () => {
+    stubReducedMotion(false);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+      render(<PanelSentry {...props} />);
+      fireEvent.click(await screen.findByText('sentry.card.arm'));
+      await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+      expect(armSentry).toHaveBeenCalledWith(false);
+      expect(screen.getByText('sentry.card.arming', { selector: 'button *' }).closest('button')).toBeDisabled();
+      expect(screen.queryByText('sentry.card.disarm')).toBeNull();
+      await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+      await screen.findByText('sentry.card.disarm');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reduced motion skips the minimum duration', async () => {
+    vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+    render(<PanelSentry {...props} />);
+    fireEvent.click(await screen.findByText('sentry.card.arm'));
+    await screen.findByText('sentry.card.disarm');
+  });
+
+  it('tapping the icon while idle arms like the button', async () => {
+    vi.mocked(armSentry).mockResolvedValue({ ok: true, state: state({ armed: true }) });
+    render(<PanelSentry {...props} />);
+    await screen.findByText('sentry.card.arm');
+    fireEvent.click(screen.getAllByRole('button', { name: 'sentry.card.arm' })[0]);
+    await screen.findByText('sentry.card.disarm');
+    expect(armSentry).toHaveBeenCalledWith(false);
+  });
+
+  it('a desktop_only refusal falls back to the lock-first hint with a disabled Arm for the session', async () => {
+    vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
+    vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'desktop_only' });
+    const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
+    await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
+    rerender(<PanelSentry {...props} openRequest={1} />);
+    fireEvent.click(await screen.findByText('sentry.card.lockAndArm'));
+    await screen.findByText('sentry.card.notLocked');
+    expect(screen.queryByText('sentry.card.failed')).toBeNull();
+    expect(screen.getByText('sentry.card.arm').closest('button')).toBeDisabled();
+    expect(armSentry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the alerts setup line while permission is at prompt', async () => {
+    installBridge({ platform: 'ios', permission: 'prompt', token: null, environment: 'production' });
+    render(<PanelSentry {...props} />);
+    await screen.findByText('sentry.card.alertsSetup');
   });
 
   it('shows no separate alerts button', async () => {
@@ -160,14 +243,14 @@ describe('PanelSentry', () => {
     await screen.findByText('sentry.card.title');
   });
 
-  it('opened from the menu while unlocked: shows the lock hint and a disabled Arm', async () => {
+  it('opened from the menu while unlocked: shows the lock hint and an enabled Lock and Arm', async () => {
     vi.mocked(fetchSentry).mockResolvedValue(state({ locked: false }));
     const { rerender } = render(<PanelSentry {...props} openRequest={0} />);
     await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
     expect(screen.queryByText('sentry.card.title')).toBeNull();
     rerender(<PanelSentry {...props} openRequest={1} />);
-    await screen.findByText('sentry.card.notLocked');
-    expect(screen.getByText('sentry.card.arm').closest('button')).toBeDisabled();
+    await screen.findByText('sentry.card.promptLock');
+    expect(screen.getByText('sentry.card.lockAndArm').closest('button')).toBeEnabled();
   });
 
   it('opened from the menu while armed and unlocked: Disarm still works', async () => {
@@ -177,7 +260,7 @@ describe('PanelSentry', () => {
     await waitFor(() => expect(fetchSentry).toHaveBeenCalled());
     rerender(<PanelSentry {...props} openRequest={1} />);
     fireEvent.click(await screen.findByText('sentry.card.disarm'));
-    await screen.findByText('sentry.card.arm');
+    await screen.findByText('sentry.card.lockAndArm');
     expect(disarmSentry).toHaveBeenCalled();
   });
 
@@ -194,7 +277,7 @@ describe('PanelSentry', () => {
     installBridge({ platform: 'ios', permission: 'granted', token: 'ab12', environment: 'sandbox' });
     render(<PanelSentry {...props} />);
     await waitFor(() => expect(registerPhonePush).toHaveBeenCalledWith({
-      platform: 'ios', token: 'ab12', environment: 'sandbox', title: 'Sentry', body: 'Someone is using {pc}',
+      platform: 'ios', token: 'ab12', environment: 'sandbox', title: 'Sentry Alert', body: 'Someone is using {pc}',
     }));
   });
 
@@ -285,20 +368,19 @@ describe('PanelSentry', () => {
     }
   });
 
-  it('drops a stale not_locked error once the card hides', async () => {
+  it('drops a stale failure line once the card hides', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'not_locked' });
-      vi.mocked(fetchSentry).mockResolvedValueOnce(state({})).mockResolvedValueOnce(state({}))
-        .mockResolvedValueOnce(state({ locked: false }))
+      vi.mocked(armSentry).mockResolvedValue({ ok: false, reason: 'failed' });
+      vi.mocked(fetchSentry).mockResolvedValueOnce(state({})).mockResolvedValueOnce(state({ locked: false }))
         .mockResolvedValue(state({}));
       render(<PanelSentry {...props} />);
       fireEvent.click(await screen.findByText('sentry.card.arm'));
-      await screen.findByText('sentry.card.notLocked');
+      await screen.findByText('sentry.card.failed');
       await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
       await act(async () => { await vi.advanceTimersByTimeAsync(5100); });
       await screen.findByText('sentry.card.arm');
-      expect(screen.queryByText('sentry.card.notLocked')).toBeNull();
+      expect(screen.queryByText('sentry.card.failed')).toBeNull();
     } finally {
       vi.useRealTimers();
     }
