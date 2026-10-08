@@ -102,7 +102,7 @@ export function HydroShift2CurveSettings() {
 
   const commitBrightness = useCallback((value: number) => {
     brightnessDirtyRef.current = false;
-    if (serverBrightnessRef.current === value || brightnessInFlightRef.current === value) return;
+    if ((brightnessInFlightRef.current ?? serverBrightnessRef.current) === value) return;
     brightnessInFlightRef.current = value;
     void write({ screenSaverBrightness: value }).finally(() => {
       if (brightnessInFlightRef.current === value) brightnessInFlightRef.current = null;

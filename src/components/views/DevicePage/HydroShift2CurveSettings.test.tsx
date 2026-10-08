@@ -181,6 +181,21 @@ describe('HydroShift2CurveSettings', () => {
     expect(mockSetSettings).toHaveBeenLastCalledWith({ screenSaverBrightness: 50 });
   });
 
+  it('dragging back to the server value while a write is in flight still sends it', async () => {
+    await renderSettings({ screenSaverMinutes: 15 });
+    const slider = screen.getByRole('slider', { name: 'devices.lianliCurve.saverBrightnessAria' });
+    let finish: (ok: boolean) => void = () => {};
+    mockSetSettings.mockReturnValueOnce(new Promise<boolean>((resolve) => { finish = resolve; }));
+    fireEvent.change(slider, { target: { value: '50' } });
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledTimes(1));
+    fireEvent.change(slider, { target: { value: '40' } });
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledTimes(2));
+    expect(mockSetSettings).toHaveBeenLastCalledWith({ screenSaverBrightness: 40 });
+    await act(async () => { finish(true); });
+  });
+
   it('stops polling on unmount', async () => {
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     mockGetSettings.mockResolvedValue(settings);
