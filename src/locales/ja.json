@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "ヘッドの高さ",
   "devices.lianliCurve.heightHint": "0 は中央位置です。",
   "devices.lianliCurve.mediaDeleteAria": "動画を削除",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} を Nexus とクーラーから削除します。",
+  "devices.lianliCurve.mediaDeleteMessage": "「{name}」をライブラリから削除しますか?",
   "devices.lianliCurve.mediaDeleteTitle": "動画を削除しますか？",
   "devices.lianliCurve.mediaEmpty": "動画はまだありません",
   "devices.lianliCurve.mediaEmptyHint": "動画をアップロードすると、クーラーの画面で再生できます。",

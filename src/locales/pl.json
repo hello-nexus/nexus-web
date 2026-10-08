@@ -872,7 +872,7 @@
   "devices.lianliCurve.heightAria": "Wysokość głowicy",
   "devices.lianliCurve.heightHint": "0 oznacza pozycję środkową.",
   "devices.lianliCurve.mediaDeleteAria": "Usuń film",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} zostanie usunięty z Nexusa i chłodzenia.",
+  "devices.lianliCurve.mediaDeleteMessage": "Usunąć \"{name}\" z biblioteki?",
   "devices.lianliCurve.mediaDeleteTitle": "Usunąć film?",
   "devices.lianliCurve.mediaEmpty": "Brak filmów",
   "devices.lianliCurve.mediaEmptyHint": "Prześlij film, aby odtwarzać go na ekranie chłodzenia.",

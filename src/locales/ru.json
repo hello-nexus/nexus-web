@@ -872,7 +872,7 @@
   "devices.lianliCurve.heightAria": "Высота головки",
   "devices.lianliCurve.heightHint": "0 соответствует центральному положению.",
   "devices.lianliCurve.mediaDeleteAria": "Удалить видео",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} будет удалено из Nexus и с кулера.",
+  "devices.lianliCurve.mediaDeleteMessage": "Удалить \"{name}\" из библиотеки?",
   "devices.lianliCurve.mediaDeleteTitle": "Удалить видео?",
   "devices.lianliCurve.mediaEmpty": "Видео пока нет",
   "devices.lianliCurve.mediaEmptyHint": "Загрузите видео, чтобы воспроизводить его на экране кулера.",

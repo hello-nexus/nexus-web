@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "Altura del cabezal",
   "devices.lianliCurve.heightHint": "0 es la posición central.",
   "devices.lianliCurve.mediaDeleteAria": "Eliminar vídeo",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} se quitará de Nexus y del enfriador.",
+  "devices.lianliCurve.mediaDeleteMessage": "¿Quitar \"{name}\" de la biblioteca?",
   "devices.lianliCurve.mediaDeleteTitle": "¿Eliminar el vídeo?",
   "devices.lianliCurve.mediaEmpty": "Aún no hay vídeos",
   "devices.lianliCurve.mediaEmptyHint": "Sube un vídeo para reproducirlo en la pantalla del enfriador.",

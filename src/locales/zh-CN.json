@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "冷头高度",
   "devices.lianliCurve.heightHint": "0 为居中位置。",
   "devices.lianliCurve.mediaDeleteAria": "删除视频",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} 将从 Nexus 和冷头中移除。",
+  "devices.lianliCurve.mediaDeleteMessage": "从媒体库中移除\"{name}\"？",
   "devices.lianliCurve.mediaDeleteTitle": "删除视频？",
   "devices.lianliCurve.mediaEmpty": "暂无视频",
   "devices.lianliCurve.mediaEmptyHint": "上传视频即可在冷头屏幕上播放。",

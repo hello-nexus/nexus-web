@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "Hoogte van de pompkop",
   "devices.lianliCurve.heightHint": "0 is de middenpositie.",
   "devices.lianliCurve.mediaDeleteAria": "Video verwijderen",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} wordt verwijderd uit Nexus en van de koeler.",
+  "devices.lianliCurve.mediaDeleteMessage": "\"{name}\" uit je mediabibliotheek verwijderen?",
   "devices.lianliCurve.mediaDeleteTitle": "Video verwijderen?",
   "devices.lianliCurve.mediaEmpty": "Nog geen video's",
   "devices.lianliCurve.mediaEmptyHint": "Upload een video om die op het scherm van de koeler af te spelen.",

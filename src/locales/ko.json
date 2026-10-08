@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "헤드 높이",
   "devices.lianliCurve.heightHint": "0은 중앙 위치입니다.",
   "devices.lianliCurve.mediaDeleteAria": "동영상 삭제",
-  "devices.lianliCurve.mediaDeleteMessage": "{name}을(를) Nexus와 쿨러에서 제거합니다.",
+  "devices.lianliCurve.mediaDeleteMessage": "라이브러리에서 \"{name}\"를 제거할까요?",
   "devices.lianliCurve.mediaDeleteTitle": "동영상을 삭제할까요?",
   "devices.lianliCurve.mediaEmpty": "아직 동영상이 없습니다",
   "devices.lianliCurve.mediaEmptyHint": "동영상을 업로드하면 쿨러 화면에서 재생할 수 있습니다.",

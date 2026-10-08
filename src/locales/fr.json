@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "Hauteur de la tête",
   "devices.lianliCurve.heightHint": "0 correspond à la position centrale.",
   "devices.lianliCurve.mediaDeleteAria": "Supprimer la vidéo",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} sera retirée de Nexus et du refroidisseur.",
+  "devices.lianliCurve.mediaDeleteMessage": "Retirer « {name} » de la bibliothèque ?",
   "devices.lianliCurve.mediaDeleteTitle": "Supprimer la vidéo ?",
   "devices.lianliCurve.mediaEmpty": "Aucune vidéo pour le moment",
   "devices.lianliCurve.mediaEmptyHint": "Importez une vidéo pour la lire sur l'écran du refroidisseur.",

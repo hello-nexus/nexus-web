@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "Altura da cabeça da bomba",
   "devices.lianliCurve.heightHint": "0 é a posição central.",
   "devices.lianliCurve.mediaDeleteAria": "Eliminar vídeo",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} será removido do Nexus e do cooler.",
+  "devices.lianliCurve.mediaDeleteMessage": "Remover \"{name}\" da biblioteca?",
   "devices.lianliCurve.mediaDeleteTitle": "Eliminar o vídeo?",
   "devices.lianliCurve.mediaEmpty": "Ainda sem vídeos",
   "devices.lianliCurve.mediaEmptyHint": "Carregue um vídeo para o reproduzir no ecrã do cooler.",

@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "Head height",
   "devices.lianliCurve.heightHint": "0 is the centered position.",
   "devices.lianliCurve.mediaDeleteAria": "Delete video",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} will be removed from Nexus and the cooler.",
+  "devices.lianliCurve.mediaDeleteMessage": "Remove \"{name}\" from your media library?",
   "devices.lianliCurve.mediaDeleteTitle": "Delete video?",
   "devices.lianliCurve.mediaEmpty": "No videos yet",
   "devices.lianliCurve.mediaEmptyHint": "Upload a video to play it on the cooler's screen.",

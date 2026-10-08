@@ -865,7 +865,7 @@
   "devices.lianliCurve.heightAria": "Altezza della testa",
   "devices.lianliCurve.heightHint": "0 è la posizione centrale.",
   "devices.lianliCurve.mediaDeleteAria": "Elimina video",
-  "devices.lianliCurve.mediaDeleteMessage": "{name} verrà rimosso da Nexus e dal dissipatore.",
+  "devices.lianliCurve.mediaDeleteMessage": "Rimuovere \"{name}\" dalla libreria?",
   "devices.lianliCurve.mediaDeleteTitle": "Eliminare il video?",
   "devices.lianliCurve.mediaEmpty": "Ancora nessun video",
   "devices.lianliCurve.mediaEmptyHint": "Carica un video per riprodurlo sullo schermo del dissipatore.",
