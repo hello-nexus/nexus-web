@@ -82,9 +82,9 @@ export const DEFAULT_SLOTS: SlotConfig[] = [
   { device: 'quick', sensor: 'summary/cpu-clock',    design: DEFAULT_DESIGN },
 ];
 
-// Design a slot renders when none is stored for it.
+// Design a slot renders when none is stored for it; a small cell starts on Large Value.
 export function defaultSlotDesign(size: PanelWidgetSize, slotIndex: number, layout?: SlotLayout): GaugeDesignKey {
-  if (layout && isSplitLayout(size, layout)) return HERO_SMALL_DESIGN_KEYS[0];
+  if (layout && isSmallCell(size, layout, slotIndex)) return HERO_SMALL_DESIGN_KEYS[0];
   if (size === '2x2round') return DEFAULT_ROUND_DESIGN;
   return DEFAULT_SLOTS[slotIndex]?.design ?? DEFAULT_DESIGN;
 }
@@ -273,34 +273,52 @@ export function resolvedSlotLayout(
   );
 }
 
-// The Hero layout's small slots hold a reading and nothing else, so they are
-// limited to the two value-first designs.
+// The value-first designs every small cell offers, and its default. The wide
+// and grid Hero small cells (4x2, 4x4) hold only these.
 export const HERO_SMALL_DESIGN_KEYS: GaugeDesignKey[] = ['text', 'numberfill'];
 
-// Split cells lead with the hero's value-first designs. A side-by-side cell is
-// tall and narrow, so a ring's value overflows it; a stacked cell is short, so
-// a figure above the value (line graphs, dial, thermometer) shrinks to a sliver.
-export const SPLIT_COLUMNS_DESIGN_KEYS: GaugeDesignKey[] = [
+// Small cells add the designs that still read at their shape. A tall narrow
+// cell (side by side, 2x4 Hero small) overflows a ring's value; a short wide
+// one (stacked, 2x2 Hero top) shrinks a figure above the value to a sliver.
+export const NARROW_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
   ...HERO_SMALL_DESIGN_KEYS,
   'sparkline', 'line', 'mirrorwave', 'backdrop', 'microbars', 'heatmap', 'segments',
   'bar', 'fill', 'thermo', 'battery', 'hbar', 'dotgrid', 'halfgauge', 'wedge', 'dial',
 ];
-export const SPLIT_ROWS_DESIGN_KEYS: GaugeDesignKey[] = [
+export const SHORT_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
   ...HERO_SMALL_DESIGN_KEYS,
   'backdrop', 'segments', 'bar', 'fill', 'battery', 'dotgrid',
 ];
+// The 2x2 Hero's bottom cells, the smallest: Dot Grid overlaps the value there.
+export const COMPACT_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
+  ...HERO_SMALL_DESIGN_KEYS,
+  'backdrop', 'bar', 'fill', 'battery',
+];
+
+function heroSmallDesignKeys(size: PanelWidgetSize, slotIndex: number): GaugeDesignKey[] {
+  switch (widgetLayoutSize(size)) {
+    case '2x2': return slotIndex === 0 ? SHORT_CELL_DESIGN_KEYS : COMPACT_CELL_DESIGN_KEYS;
+    case '2x4': return NARROW_CELL_DESIGN_KEYS;
+    default: return HERO_SMALL_DESIGN_KEYS;
+  }
+}
+
+function isSmallCell(size: PanelWidgetSize, layout: SlotLayout, slotIndex: number): boolean {
+  if (isSplitLayout(size, layout)) return true;
+  const spec = heroSpecForSize(size);
+  return !!spec && isHeroLayout(size, layout.count, layout.hero) && slotIndex >= spec.large;
+}
 
 // Which gauge designs a given slot may use. Every size offers the same list -
-// no surface has designs of its own - unless the Hero layout narrows it.
+// no surface has designs of its own - unless a small cell narrows it.
 export function designKeysForSlot(
   size: PanelWidgetSize,
   layout: SlotLayout,
   slotIndex: number,
 ): GaugeDesignKey[] {
-  if (isSplitLayout(size, layout)) return layout.split === 'rows' ? SPLIT_ROWS_DESIGN_KEYS : SPLIT_COLUMNS_DESIGN_KEYS;
-  const spec = heroSpecForSize(size);
-  if (!spec || !isHeroLayout(size, layout.count, layout.hero)) return GAUGE_DESIGN_KEYS;
-  return slotIndex < spec.large ? GAUGE_DESIGN_KEYS : HERO_SMALL_DESIGN_KEYS;
+  if (isSplitLayout(size, layout)) return layout.split === 'rows' ? SHORT_CELL_DESIGN_KEYS : NARROW_CELL_DESIGN_KEYS;
+  if (!isSmallCell(size, layout, slotIndex)) return GAUGE_DESIGN_KEYS;
+  return heroSmallDesignKeys(size, slotIndex);
 }
 
 // Clamp a stored design to what the slot currently allows, so a layout or size
