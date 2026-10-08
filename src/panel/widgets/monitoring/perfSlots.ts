@@ -287,9 +287,9 @@ export const NARROW_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
 ];
 export const SHORT_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
   ...HERO_SMALL_DESIGN_KEYS,
-  'backdrop', 'segments', 'bar', 'fill', 'battery', 'dotgrid',
+  'backdrop', 'segments', 'bar', 'fill', 'battery',
 ];
-// The 2x2 Hero's bottom cells, the smallest: Dot Grid overlaps the value there.
+// The 2x2 Hero's bottom cells, the smallest: Segments shrinks to a dotted line there.
 export const COMPACT_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
   ...HERO_SMALL_DESIGN_KEYS,
   'backdrop', 'bar', 'fill', 'battery',

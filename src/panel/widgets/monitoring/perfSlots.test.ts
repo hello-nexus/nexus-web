@@ -311,6 +311,7 @@ describe('perfSlots', () => {
       expect(NARROW_CELL_DESIGN_KEYS).toContain('sparkline');
       expect(SHORT_CELL_DESIGN_KEYS).not.toContain('sparkline');
       expect(SHORT_CELL_DESIGN_KEYS).toContain('backdrop');
+      expect(SHORT_CELL_DESIGN_KEYS).not.toContain('dotgrid');
     });
 
     it('defaults every split cell to Large Value and clamps a design the orientation drops', () => {
