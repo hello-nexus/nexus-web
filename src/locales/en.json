@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "Upload video",
   "devices.lianliCurve.mediaUploadFailed": "Upload failed",
   "devices.lianliCurve.mediaUploading": "Uploading...",
-  "devices.lianliCurve.offlineClock": "Cooler screen when Nexus is not running",
-  "devices.lianliCurve.offlineClockHint": "When Nexus closes, the cooler goes back to its own coolant and pump screen.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Pump follows motherboard",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "When Nexus is not controlling the pump, it follows the motherboard fan header it is wired to instead of its default speed.",
   "devices.lianliCurve.pumpSection": "Pump",

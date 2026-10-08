@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "Subir vídeo",
   "devices.lianliCurve.mediaUploadFailed": "Error al subir",
   "devices.lianliCurve.mediaUploading": "Subiendo...",
-  "devices.lianliCurve.offlineClock": "Pantalla del enfriador cuando Nexus no está en ejecución",
-  "devices.lianliCurve.offlineClockHint": "Cuando Nexus se cierra, el enfriador vuelve a su propia pantalla de refrigerante y bomba.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La bomba sigue a la placa base",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Cuando Nexus no controla la bomba, esta sigue el conector de ventilador de la placa base al que está conectada en lugar de su velocidad predeterminada.",
   "devices.lianliCurve.pumpSection": "Bomba",

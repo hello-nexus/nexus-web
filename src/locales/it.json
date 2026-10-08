@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "Carica video",
   "devices.lianliCurve.mediaUploadFailed": "Caricamento non riuscito",
   "devices.lianliCurve.mediaUploading": "Caricamento...",
-  "devices.lianliCurve.offlineClock": "Schermo del dissipatore quando Nexus non è in esecuzione",
-  "devices.lianliCurve.offlineClockHint": "Quando Nexus si chiude, il dissipatore torna al proprio schermo di liquido e pompa.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La pompa segue la scheda madre",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Quando Nexus non controlla la pompa, questa segue il connettore ventola della scheda madre a cui è collegata invece della velocità predefinita.",
   "devices.lianliCurve.pumpSection": "Pompa",

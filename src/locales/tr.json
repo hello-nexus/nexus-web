@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "Video yükle",
   "devices.lianliCurve.mediaUploadFailed": "Yükleme başarısız",
   "devices.lianliCurve.mediaUploading": "Yükleniyor...",
-  "devices.lianliCurve.offlineClock": "Nexus çalışmıyorken soğutucu ekranı",
-  "devices.lianliCurve.offlineClockHint": "Nexus kapandığında soğutucu, kendi soğutma sıvısı ve pompa ekranına geri döner.",
   "devices.lianliCurve.pumpFollowsMotherboard": "Pompa anakartı izler",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Nexus pompayı kontrol etmediğinde pompa, varsayılan hızı yerine bağlı olduğu anakart fan başlığını izler.",
   "devices.lianliCurve.pumpSection": "Pompa",

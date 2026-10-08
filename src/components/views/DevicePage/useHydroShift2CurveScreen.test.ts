@@ -14,7 +14,6 @@ const base = {
   screenMode: 'nexus',
   screenSaverMinutes: 0,
   screenSaverBrightness: 40,
-  offlineClock: false,
   pumpFollowsMotherboard: false,
 };
 

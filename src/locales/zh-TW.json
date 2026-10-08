@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "上傳影片",
   "devices.lianliCurve.mediaUploadFailed": "上傳失敗",
   "devices.lianliCurve.mediaUploading": "正在上傳...",
-  "devices.lianliCurve.offlineClock": "Nexus 未執行時的冷頭螢幕",
-  "devices.lianliCurve.offlineClockHint": "Nexus 關閉後，冷頭會恢復顯示內建的冷卻液和水泵畫面。",
   "devices.lianliCurve.pumpFollowsMotherboard": "水泵跟隨主機板",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Nexus 未控制水泵時，水泵會跟隨其所連接的主機板風扇接頭，而不是使用預設轉速。",
   "devices.lianliCurve.pumpSection": "水泵",

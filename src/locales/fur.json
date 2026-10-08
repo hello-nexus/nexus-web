@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "Cjame video",
   "devices.lianliCurve.mediaUploadFailed": "Cjamament falît",
   "devices.lianliCurve.mediaUploading": "Cjamament...",
-  "devices.lianliCurve.offlineClock": "Schermi dal refredadôr cuant che Nexus nol è in esecuzion",
-  "devices.lianliCurve.offlineClockHint": "Cuant che Nexus al siere, il refredadôr al torne al so schermi dal liquit di refredament e de pompe.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La pompe e sta daûr de schede mari",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Cuant che Nexus nol controle la pompe, e sta daûr dal conetôr de ventule de schede mari a cui che e je colegade, invezit de sô velocitât predefinide.",
   "devices.lianliCurve.pumpSection": "Pompe",

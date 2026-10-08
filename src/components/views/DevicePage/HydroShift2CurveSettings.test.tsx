@@ -46,7 +46,6 @@ const settings: Settings = {
   screenMode: 'nexus',
   screenSaverMinutes: 0,
   screenSaverBrightness: 40,
-  offlineClock: false,
   pumpFollowsMotherboard: false,
 };
 
@@ -128,16 +127,6 @@ describe('HydroShift2CurveSettings', () => {
     expect(mockSetSettings).not.toHaveBeenCalled();
   });
 
-  it('shows the clock toggle only for the Nexus panel', async () => {
-    await renderSettings();
-    expect(screen.getByRole('switch', { name: 'devices.lianliCurve.offlineClock' })).toBeInTheDocument();
-  });
-
-  it('hides the clock toggle in video mode', async () => {
-    await renderSettings({ screenMode: 'video' });
-    expect(screen.queryByRole('switch', { name: 'devices.lianliCurve.offlineClock' })).not.toBeInTheDocument();
-  });
-
   it('shows the localized failure when an upload fails', async () => {
     mockUpload.mockResolvedValue(null);
     await renderSettings({ screenMode: 'video' });
@@ -185,11 +174,11 @@ describe('HydroShift2CurveSettings', () => {
     let resolveStale: (v: Settings) => void = () => {};
     mockGetSettings.mockImplementationOnce(() => new Promise<Settings>(r => { resolveStale = r; }));
     await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-    mockGetSettings.mockResolvedValue({ ...settings, offlineClock: true });
-    fireEvent.click(screen.getByRole('switch', { name: 'devices.lianliCurve.offlineClock' }));
-    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ offlineClock: true }));
-    await act(async () => { resolveStale({ ...settings, offlineClock: false }); });
-    expect(screen.getByRole('switch', { name: 'devices.lianliCurve.offlineClock' })).toBeChecked();
+    mockGetSettings.mockResolvedValue({ ...settings, pumpFollowsMotherboard: true });
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.lianliCurve.pumpFollowsMotherboard' }));
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ pumpFollowsMotherboard: true }));
+    await act(async () => { resolveStale({ ...settings, pumpFollowsMotherboard: false }); });
+    expect(screen.getByRole('switch', { name: 'devices.lianliCurve.pumpFollowsMotherboard' })).toBeChecked();
   });
 
   it('a poll mid-drag keeps the dragged brightness', async () => {
@@ -288,10 +277,8 @@ describe('HydroShift2CurveSettings', () => {
     await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ screenSaverBrightness: 70 }));
   });
 
-  it('PUTs the clock and pump toggles', async () => {
+  it('PUTs the pump toggle', async () => {
     await renderSettings();
-    fireEvent.click(screen.getByRole('switch', { name: 'devices.lianliCurve.offlineClock' }));
-    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ offlineClock: true }));
     fireEvent.click(screen.getByRole('switch', { name: 'devices.lianliCurve.pumpFollowsMotherboard' }));
     await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ pumpFollowsMotherboard: true }));
   });

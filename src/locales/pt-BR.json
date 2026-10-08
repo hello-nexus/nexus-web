@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "Enviar vídeo",
   "devices.lianliCurve.mediaUploadFailed": "Falha no envio",
   "devices.lianliCurve.mediaUploading": "Enviando...",
-  "devices.lianliCurve.offlineClock": "Tela do cooler quando o Nexus não está em execução",
-  "devices.lianliCurve.offlineClockHint": "Quando o Nexus é fechado, o cooler volta à sua própria tela de líquido de arrefecimento e bomba.",
   "devices.lianliCurve.pumpFollowsMotherboard": "A bomba segue a placa-mãe",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Quando o Nexus não controla a bomba, ela segue o conector de ventoinha da placa-mãe ao qual está ligada, em vez da velocidade padrão.",
   "devices.lianliCurve.pumpSection": "Bomba",

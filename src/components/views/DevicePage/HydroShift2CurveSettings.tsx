@@ -189,15 +189,6 @@ export function HydroShift2CurveSettings({ screen }: { screen: HydroShift2CurveS
             )}
           </div>
         )}
-
-        {!videoMode && (
-          <SettingToggle
-            label={t('devices.lianliCurve.offlineClock')}
-            description={t('devices.lianliCurve.offlineClockHint')}
-            checked={settings.offlineClock}
-            onChange={offlineClock => { void write({ offlineClock }); }}
-          />
-        )}
       </SettingsSection>
 
       <SettingsSection title={t('devices.lianliCurve.saverSection')}>

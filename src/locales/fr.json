@@ -875,8 +875,6 @@
   "devices.lianliCurve.mediaUpload": "Importer une vidéo",
   "devices.lianliCurve.mediaUploadFailed": "Échec de l'importation",
   "devices.lianliCurve.mediaUploading": "Importation...",
-  "devices.lianliCurve.offlineClock": "Écran du refroidisseur quand Nexus n'est pas lancé",
-  "devices.lianliCurve.offlineClockHint": "Quand Nexus se ferme, le refroidisseur revient à son propre écran de liquide de refroidissement et de pompe.",
   "devices.lianliCurve.pumpFollowsMotherboard": "La pompe suit la carte mère",
   "devices.lianliCurve.pumpFollowsMotherboardHint": "Quand Nexus ne contrôle pas la pompe, elle suit le connecteur de ventilateur de la carte mère auquel elle est reliée au lieu de sa vitesse par défaut.",
   "devices.lianliCurve.pumpSection": "Pompe",

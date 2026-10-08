@@ -50,7 +50,6 @@ export interface HydroShift2CurveSettings {
   screenSaverMinutes: number;
   screenSaverVideo?: string | null;
   screenSaverBrightness: number;
-  offlineClock: boolean;
   pumpFollowsMotherboard: boolean;
 }
 
