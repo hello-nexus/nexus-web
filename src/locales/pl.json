@@ -872,6 +872,7 @@
   "devices.lianliCurve.heightAria": "Wysokość głowicy",
   "devices.lianliCurve.heightHint": "0 oznacza pozycję środkową.",
   "devices.lianliCurve.mediaDeleteAria": "Usuń film",
+  "devices.lianliCurve.mediaDeleteFailed": "Nie udało się usunąć filmu.",
   "devices.lianliCurve.mediaDeleteMessage": "Usunąć \"{name}\" z biblioteki?",
   "devices.lianliCurve.mediaDeleteTitle": "Usunąć film?",
   "devices.lianliCurve.mediaEmpty": "Brak filmów",

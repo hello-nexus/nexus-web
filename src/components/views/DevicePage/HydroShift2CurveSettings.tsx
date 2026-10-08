@@ -41,7 +41,7 @@ export function HydroShift2CurveSettings() {
   const [media, setMedia] = useState<HydroShift2CurveMediaItem[]>([]);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<'upload' | 'delete' | null>(null);
   const [pendingDelete, setPendingDelete] = useState<HydroShift2CurveMediaItem | null>(null);
   const aliveRef = useRef(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -49,13 +49,16 @@ export function HydroShift2CurveSettings() {
   const writesInFlightRef = useRef(0);
   const writeGenRef = useRef(0);
   const brightnessDirtyRef = useRef(false);
-  const lastBrightnessSentRef = useRef<number | null>(null);
+  const serverBrightnessRef = useRef<number | null>(null);
+  const brightnessInFlightRef = useRef<number | null>(null);
+  const cropTargetRef = useRef<CropTarget | null>(null);
 
   const refreshSettings = useCallback(async () => {
     const gen = writeGenRef.current;
     const s = await getHydroShift2CurveSettings();
     if (!aliveRef.current || !s) return;
     if (writesInFlightRef.current > 0 || gen !== writeGenRef.current) return;
+    serverBrightnessRef.current = s.screenSaverBrightness;
     setSettings(prev => (prev && brightnessDirtyRef.current
       ? { ...s, screenSaverBrightness: prev.screenSaverBrightness }
       : s));
@@ -74,6 +77,7 @@ export function HydroShift2CurveSettings() {
     return () => {
       aliveRef.current = false;
       window.clearInterval(id);
+      if (cropTargetRef.current) URL.revokeObjectURL(cropTargetRef.current.src);
     };
   }, [refreshSettings, refreshMedia]);
 
@@ -87,34 +91,37 @@ export function HydroShift2CurveSettings() {
   const write = useCallback(async (patch: HydroShift2CurveSettingsPatch) => {
     setSettings(prev => (prev ? { ...prev, ...patch } : prev));
     writesInFlightRef.current += 1;
-    let ok = false;
     try {
-      ok = await setHydroShift2CurveSettings(patch);
+      await setHydroShift2CurveSettings(patch);
     } finally {
       writesInFlightRef.current -= 1;
       writeGenRef.current += 1;
     }
-    if (!ok && 'screenSaverBrightness' in patch) lastBrightnessSentRef.current = null;
     await refreshSettings();
   }, [refreshSettings]);
 
   const commitBrightness = useCallback((value: number) => {
     brightnessDirtyRef.current = false;
-    if (lastBrightnessSentRef.current === value) return;
-    lastBrightnessSentRef.current = value;
-    void write({ screenSaverBrightness: value });
+    if (serverBrightnessRef.current === value || brightnessInFlightRef.current === value) return;
+    brightnessInFlightRef.current = value;
+    void write({ screenSaverBrightness: value }).finally(() => {
+      if (brightnessInFlightRef.current === value) brightnessInFlightRef.current = null;
+    });
   }, [write]);
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    setUploadError(null);
-    setCropTarget({ src: URL.createObjectURL(file), file });
+    setMediaError(null);
+    const target = { src: URL.createObjectURL(file), file };
+    cropTargetRef.current = target;
+    setCropTarget(target);
   };
 
   const closeCropper = useCallback((target: CropTarget) => {
     URL.revokeObjectURL(target.src);
+    cropTargetRef.current = null;
     setCropTarget(null);
   }, []);
 
@@ -122,8 +129,8 @@ export function HydroShift2CurveSettings() {
     if (!cropTarget) return;
     setUploading(true);
     try {
-      const failure = await uploadHydroShift2CurveMedia(cropTarget.file, crop);
-      if (aliveRef.current) setUploadError(failure === null ? null : (failure || t('devices.lianliCurve.mediaUploadFailed')));
+      const ok = await uploadHydroShift2CurveMedia(cropTarget.file, crop);
+      if (aliveRef.current) setMediaError(ok ? null : 'upload');
       await refreshMedia();
     } finally {
       if (aliveRef.current) {
@@ -131,7 +138,7 @@ export function HydroShift2CurveSettings() {
         closeCropper(cropTarget);
       }
     }
-  }, [cropTarget, closeCropper, refreshMedia, t]);
+  }, [cropTarget, closeCropper, refreshMedia]);
 
   if (!settings || !settings.connected) return null;
 
@@ -176,7 +183,13 @@ export function HydroShift2CurveSettings() {
                 </span>
               )}
             </div>
-            {uploadError && <p className={styles.customNote}>{uploadError}</p>}
+            {mediaError && (
+              <p className={styles.customNote} role="alert">
+                {mediaError === 'upload'
+                  ? t('devices.lianliCurve.mediaUploadFailed')
+                  : t('devices.lianliCurve.mediaDeleteFailed')}
+              </p>
+            )}
 
             {media.length > 0 ? (
               <div className={styles.mediaGrid}>
@@ -186,7 +199,7 @@ export function HydroShift2CurveSettings() {
                       key={item.name}
                       asDiv
                       label={item.label}
-                      thumbUrl={item.thumb}
+                      thumbUrl={item.thumb ?? null}
                       thumbStatic
                       thumbAspect={HYDROSHIFT2_CURVE_SCREEN_ASPECT}
                       active={item.name === settings.video}
@@ -201,11 +214,11 @@ export function HydroShift2CurveSettings() {
                       nonInteractive
                       label={item.label}
                       meta={t('devices.lianliCurve.mediaProcessing')}
-                      thumbUrl={item.thumb}
+                      thumbUrl={item.thumb ?? null}
                       thumbStatic
                       thumbAspect={HYDROSHIFT2_CURVE_SCREEN_ASPECT}
                       active={false}
-                      thumbOverlay={<span className={styles.mediaOverlay}><Spinner size={26} /></span>}
+                      thumbOverlay={<span className={styles.mediaOverlay} role="status" aria-label={t('devices.lianliCurve.mediaProcessing')}><Spinner size={26} /></span>}
                     />
                   )
                 ))}
@@ -245,9 +258,9 @@ export function HydroShift2CurveSettings() {
         <SettingSelect
           label={t('devices.lianliCurve.saverVideo')}
           value={saverVideoValue}
-          onChange={v => { void write({ screenSaverVideo: v || null }); }}
+          onChange={v => { void write({ screenSaverVideo: v }); }}
           options={[
-            ...(saverVideoValue === '' ? [{ value: '', label: t('devices.lianliCurve.saverVideoNone') }] : []),
+            { value: '', label: t('devices.lianliCurve.saverVideoNone') },
             ...readyMedia.map(m => ({ value: m.name, label: m.label })),
           ]}
           disabled={!saverOn || readyMedia.length === 0}
@@ -290,7 +303,11 @@ export function HydroShift2CurveSettings() {
         onConfirm={() => {
           const item = pendingDelete;
           setPendingDelete(null);
-          if (item) void deleteHydroShift2CurveMedia(item.name).then(() => Promise.all([refreshMedia(), refreshSettings()]));
+          if (!item) return;
+          void deleteHydroShift2CurveMedia(item.name).then(ok => {
+            if (aliveRef.current) setMediaError(ok ? null : 'delete');
+            return Promise.all([refreshMedia(), refreshSettings()]);
+          });
         }}
       />
 

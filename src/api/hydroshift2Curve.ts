@@ -42,11 +42,12 @@ export const HYDROSHIFT2_CURVE_SAVER_MINUTES = [0, 5, 10, 15, 30, 45, 60] as con
 export interface HydroShift2CurveSettings {
   connected: boolean;
   screenMode: HydroShift2CurveScreenMode;
-  video: string | null;
+  /** The service omits null fields from the JSON. */
+  video?: string | null;
   /** Media currently on the glass: the video in video mode or a running screen saver. */
-  playing: string | null;
+  playing?: string | null;
   screenSaverMinutes: number;
-  screenSaverVideo: string | null;
+  screenSaverVideo?: string | null;
   screenSaverBrightness: number;
   offlineClock: boolean;
   pumpFollowsMotherboard: boolean;
@@ -57,9 +58,9 @@ export type HydroShift2CurveSettingsPatch = Partial<Omit<HydroShift2CurveSetting
 export interface HydroShift2CurveMediaItem {
   name: string;
   label: string;
-  thumb: string | null;
-  durationSec: number | null;
-  /** False while the service is still transcoding the upload. */
+  thumb?: string | null;
+  durationSec?: number | null;
+  /** False while the upload is still importing. */
   ready: boolean;
 }
 
@@ -83,14 +84,12 @@ export async function getHydroShift2CurveMedia(): Promise<HydroShift2CurveMediaI
   return res?.media ?? null;
 }
 
-/** Resolves to null on success, otherwise the failure message (empty when the service gave none). */
-export async function uploadHydroShift2CurveMedia(file: File, crop: NormalizedCrop): Promise<string | null> {
+export async function uploadHydroShift2CurveMedia(file: File, crop: NormalizedCrop): Promise<boolean> {
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('crop', serializeCrop(crop));
   const res = await postServiceForm<OkResponse>(`${BASE_DEVICE}/media`, form);
-  if (res && !res.error) return null;
-  return res?.msg ?? '';
+  return !!res && !res.error;
 }
 
 export async function deleteHydroShift2CurveMedia(name: string): Promise<boolean> {

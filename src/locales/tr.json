@@ -865,6 +865,7 @@
   "devices.lianliCurve.heightAria": "Pompa kafası yüksekliği",
   "devices.lianliCurve.heightHint": "0 orta konumdur.",
   "devices.lianliCurve.mediaDeleteAria": "Videoyu sil",
+  "devices.lianliCurve.mediaDeleteFailed": "Video silinemedi.",
   "devices.lianliCurve.mediaDeleteMessage": "\"{name}\" kütüphaneden kaldırılsın mı?",
   "devices.lianliCurve.mediaDeleteTitle": "Video silinsin mi?",
   "devices.lianliCurve.mediaEmpty": "Henüz video yok",

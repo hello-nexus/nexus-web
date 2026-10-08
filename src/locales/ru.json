@@ -872,6 +872,7 @@
   "devices.lianliCurve.heightAria": "Высота головки",
   "devices.lianliCurve.heightHint": "0 соответствует центральному положению.",
   "devices.lianliCurve.mediaDeleteAria": "Удалить видео",
+  "devices.lianliCurve.mediaDeleteFailed": "Не удалось удалить видео.",
   "devices.lianliCurve.mediaDeleteMessage": "Удалить \"{name}\" из библиотеки?",
   "devices.lianliCurve.mediaDeleteTitle": "Удалить видео?",
   "devices.lianliCurve.mediaEmpty": "Видео пока нет",

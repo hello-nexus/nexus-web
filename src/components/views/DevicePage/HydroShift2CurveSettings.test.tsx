@@ -38,17 +38,14 @@ vi.mock('../../../api/hydroshift2Curve', async importOriginal => ({
 const settings: Settings = {
   connected: true,
   screenMode: 'nexus',
-  video: null,
-  playing: null,
   screenSaverMinutes: 0,
-  screenSaverVideo: null,
   screenSaverBrightness: 40,
   offlineClock: false,
   pumpFollowsMotherboard: false,
 };
 
 const clip = (name: string, ready = true): HydroShift2CurveMediaItem =>
-  ({ name, label: name, thumb: null, durationSec: 5, ready });
+  ({ name, label: name, ready });
 
 async function renderSettings(s: Partial<Settings> = {}, media: HydroShift2CurveMediaItem[] = []) {
   mockGetSettings.mockResolvedValue({ ...settings, ...s });
@@ -61,7 +58,7 @@ async function renderSettings(s: Partial<Settings> = {}, media: HydroShift2Curve
 beforeEach(() => {
   vi.clearAllMocks();
   mockSetSettings.mockResolvedValue(true);
-  mockUpload.mockResolvedValue(null);
+  mockUpload.mockResolvedValue(true);
   mockDelete.mockResolvedValue(true);
   URL.createObjectURL = vi.fn(() => 'blob:x');
   URL.revokeObjectURL = vi.fn();
@@ -106,13 +103,13 @@ describe('HydroShift2CurveSettings', () => {
     expect(mockUpload).toHaveBeenCalledWith(file, { x: 0.1, y: 0.2, w: 0.5, h: 0.4 });
   });
 
-  it('shows the service refusal when an upload fails', async () => {
-    mockUpload.mockResolvedValue('too long');
+  it('shows the localized failure when an upload fails', async () => {
+    mockUpload.mockResolvedValue(false);
     await renderSettings({ screenMode: 'video' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['x'], 'c.mp4')] } });
     fireEvent.click(await screen.findByText(/^cropper:/));
-    expect(await screen.findByText('too long')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('devices.lianliCurve.mediaUploadFailed');
   });
 
   it('deletes a clip after confirming', async () => {
@@ -120,6 +117,82 @@ describe('HydroShift2CurveSettings', () => {
     fireEvent.click(screen.getByLabelText('devices.lianliCurve.mediaDeleteAria'));
     fireEvent.click(await screen.findByRole('button', { name: 'common.delete' }));
     await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('a.mp4'));
+  });
+
+  it('shows an error when a delete fails', async () => {
+    mockDelete.mockResolvedValue(false);
+    await renderSettings({ screenMode: 'video' }, [clip('a.mp4')]);
+    fireEvent.click(screen.getByLabelText('devices.lianliCurve.mediaDeleteAria'));
+    fireEvent.click(await screen.findByRole('button', { name: 'common.delete' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('devices.lianliCurve.mediaDeleteFailed');
+  });
+
+  it('marks a processing clip with a status overlay', async () => {
+    await renderSettings({ screenMode: 'video' }, [clip('a.mp4', false)]);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+  });
+
+  it('revokes the cropper object URL when unmounted with the cropper open', async () => {
+    mockGetSettings.mockResolvedValue({ ...settings, screenMode: 'video' });
+    mockGetMedia.mockResolvedValue([]);
+    let unmount = () => {};
+    await act(async () => { unmount = render(<HydroShift2CurveSettings />).unmount; });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'c.mp4')] } });
+    await screen.findByText(/^cropper:/);
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:x');
+  });
+
+  it('a stale poll issued before a write does not undo it', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    await renderSettings();
+    let resolveStale: (v: Settings) => void = () => {};
+    mockGetSettings.mockImplementationOnce(() => new Promise<Settings>(r => { resolveStale = r; }));
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    mockGetSettings.mockResolvedValue({ ...settings, offlineClock: true });
+    fireEvent.click(screen.getByRole('switch', { name: 'devices.lianliCurve.offlineClock' }));
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ offlineClock: true }));
+    await act(async () => { resolveStale({ ...settings, offlineClock: false }); });
+    expect(screen.getByRole('switch', { name: 'devices.lianliCurve.offlineClock' })).toBeChecked();
+  });
+
+  it('a poll mid-drag keeps the dragged brightness', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    await renderSettings({ screenSaverMinutes: 15 });
+    const slider = screen.getByRole('slider', { name: 'devices.lianliCurve.saverBrightnessAria' }) as HTMLInputElement;
+    fireEvent.change(slider, { target: { value: '70' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(mockGetSettings.mock.calls.length).toBeGreaterThan(1);
+    expect(slider.value).toBe('70');
+  });
+
+  it('re-committing a brightness the server changed away from sends again', async () => {
+    await renderSettings({ screenSaverMinutes: 15 });
+    const slider = screen.getByRole('slider', { name: 'devices.lianliCurve.saverBrightnessAria' });
+    mockGetSettings.mockResolvedValue({ ...settings, screenSaverMinutes: 15, screenSaverBrightness: 70 });
+    fireEvent.change(slider, { target: { value: '50' } });
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect((slider as HTMLInputElement).value).toBe('70'));
+    fireEvent.change(slider, { target: { value: '50' } });
+    fireEvent.pointerUp(slider);
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledTimes(2));
+    expect(mockSetSettings).toHaveBeenLastCalledWith({ screenSaverBrightness: 50 });
+  });
+
+  it('stops polling on unmount', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    mockGetSettings.mockResolvedValue(settings);
+    mockGetMedia.mockResolvedValue([clip('a.mp4', false)]);
+    let unmount = () => {};
+    await act(async () => { unmount = render(<HydroShift2CurveSettings />).unmount; });
+    unmount();
+    const s0 = mockGetSettings.mock.calls.length;
+    const m0 = mockGetMedia.mock.calls.length;
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+    expect(mockGetSettings.mock.calls.length).toBe(s0);
+    expect(mockGetMedia.mock.calls.length).toBe(m0);
   });
 
   it('polls the library while a clip is still processing', async () => {
@@ -154,6 +227,10 @@ describe('HydroShift2CurveSettings', () => {
     fireEvent.click(screen.getByLabelText('devices.lianliCurve.saverVideo'));
     fireEvent.click(await screen.findByRole('option', { name: 'b.mp4' }));
     await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ screenSaverVideo: 'b.mp4' }));
+
+    fireEvent.click(screen.getByLabelText('devices.lianliCurve.saverVideo'));
+    fireEvent.click(await screen.findByRole('option', { name: 'devices.lianliCurve.saverVideoNone' }));
+    await waitFor(() => expect(mockSetSettings).toHaveBeenCalledWith({ screenSaverVideo: '' }));
 
     const slider = screen.getByRole('slider', { name: 'devices.lianliCurve.saverBrightnessAria' });
     fireEvent.change(slider, { target: { value: '70' } });

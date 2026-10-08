@@ -865,6 +865,7 @@
   "devices.lianliCurve.heightAria": "Hoogte van de pompkop",
   "devices.lianliCurve.heightHint": "0 is de middenpositie.",
   "devices.lianliCurve.mediaDeleteAria": "Video verwijderen",
+  "devices.lianliCurve.mediaDeleteFailed": "De video kon niet worden verwijderd.",
   "devices.lianliCurve.mediaDeleteMessage": "\"{name}\" uit je mediabibliotheek verwijderen?",
   "devices.lianliCurve.mediaDeleteTitle": "Video verwijderen?",
   "devices.lianliCurve.mediaEmpty": "Nog geen video's",

@@ -865,6 +865,7 @@
   "devices.lianliCurve.heightAria": "Altura del cabezal",
   "devices.lianliCurve.heightHint": "0 es la posición central.",
   "devices.lianliCurve.mediaDeleteAria": "Eliminar vídeo",
+  "devices.lianliCurve.mediaDeleteFailed": "No se pudo eliminar el vídeo.",
   "devices.lianliCurve.mediaDeleteMessage": "¿Quitar \"{name}\" de la biblioteca?",
   "devices.lianliCurve.mediaDeleteTitle": "¿Eliminar el vídeo?",
   "devices.lianliCurve.mediaEmpty": "Aún no hay vídeos",

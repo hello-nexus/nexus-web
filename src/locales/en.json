@@ -865,6 +865,7 @@
   "devices.lianliCurve.heightAria": "Head height",
   "devices.lianliCurve.heightHint": "0 is the centered position.",
   "devices.lianliCurve.mediaDeleteAria": "Delete video",
+  "devices.lianliCurve.mediaDeleteFailed": "Could not delete the video.",
   "devices.lianliCurve.mediaDeleteMessage": "Remove \"{name}\" from your media library?",
   "devices.lianliCurve.mediaDeleteTitle": "Delete video?",
   "devices.lianliCurve.mediaEmpty": "No videos yet",

@@ -865,6 +865,7 @@
   "devices.lianliCurve.heightAria": "Höhe des Pumpenkopfs",
   "devices.lianliCurve.heightHint": "0 ist die mittlere Position.",
   "devices.lianliCurve.mediaDeleteAria": "Video löschen",
+  "devices.lianliCurve.mediaDeleteFailed": "Das Video konnte nicht gelöscht werden.",
   "devices.lianliCurve.mediaDeleteMessage": "\"{name}\" aus der Medienbibliothek entfernen?",
   "devices.lianliCurve.mediaDeleteTitle": "Video löschen?",
   "devices.lianliCurve.mediaEmpty": "Noch keine Videos",

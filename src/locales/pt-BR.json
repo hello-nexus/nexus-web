@@ -865,6 +865,7 @@
   "devices.lianliCurve.heightAria": "Altura da cabeça da bomba",
   "devices.lianliCurve.heightHint": "0 é a posição central.",
   "devices.lianliCurve.mediaDeleteAria": "Excluir vídeo",
+  "devices.lianliCurve.mediaDeleteFailed": "Não foi possível excluir o vídeo.",
   "devices.lianliCurve.mediaDeleteMessage": "Remover \"{name}\" da biblioteca?",
   "devices.lianliCurve.mediaDeleteTitle": "Excluir o vídeo?",
   "devices.lianliCurve.mediaEmpty": "Nenhum vídeo ainda",
