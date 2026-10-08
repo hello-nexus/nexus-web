@@ -99,6 +99,7 @@ import { QSeriesCoolerSettings } from './QSeriesCoolerSettings';
 import { KrakenCoolerSettings } from './KrakenCoolerSettings';
 import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { HydroShift2RingSettings } from './HydroShift2RingSettings';
+import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
@@ -412,6 +413,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   // way the Kraken's cooler does. Other 'lcd-round' panels have no control channel.
   const isCorsairLinkLcdPanel = recordFamily === 'corsair-link-lcd' && !isSimulated;
   const isHydroShift2Panel = recordFamily === 'lianli-hydroshift2' && !isSimulated;
+  const isHydroShift2CurvePanel = recordFamily === 'lianli-hydroshift2-curve' && !isSimulated;
   // Cooler LCDs whose firmware takes a backlight command. The service decides
   // which those are and stamps the capability on the record, so a new dimmable
   // model needs no edit here. The setting lives on the record, so it rides the
@@ -1728,6 +1730,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   {activeTab === 'settings' && isHydroShift2Panel && (
                     <div className={styles.settingsContent}>
                       <HydroShift2RingSettings onSectionNavigate={onSectionNavigate} />
+                    </div>
+                  )}
+                  {activeTab === 'settings' && isHydroShift2CurvePanel && (
+                    <div className={styles.settingsContent}>
+                      <HydroShift2CurveHeadSettings />
                     </div>
                   )}
                   {activeTab === 'settings' && surface === 'kraken' && !isSimulated && (
