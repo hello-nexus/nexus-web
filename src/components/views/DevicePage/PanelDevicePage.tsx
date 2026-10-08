@@ -6,7 +6,7 @@ import { Notice } from '../../common/Notice/Notice';
 import { SIZE_ICONS } from '../../../panel/widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../../../panel/widgets/common/WidgetControlGroup';
 import { PanelGaugeGradientProvider, type PanelGaugeGradientValue } from '../../../panel/widgets/common/PanelGaugeGradientContext';
-import { heroLabelKey, slotLayoutOptionsForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../../../panel/widgets/monitoring/perfSlots';
+import { slotLayoutLabelKey, slotLayoutOptionsForSize, slotLayoutPatch, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../../../panel/widgets/monitoring/perfSlots';
 import { SlotLayoutIcon } from '../../../panel/widgets/monitoring/SlotCountIcons';
 import {
   BLANK_PAGE_ID,
@@ -2025,7 +2025,7 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
 
   const handleSlotLayout = (layout: SlotLayout) => {
     setSelectedMonitoringSlot(slot => Math.min(slot, layout.count - 1));
-    handleConfigUpdate({ slotCount: layout.count, slotHero: layout.hero });
+    handleConfigUpdate(slotLayoutPatch(layout));
   };
 
   const Icon = def?.meta.icon;
@@ -2119,14 +2119,15 @@ function InlineWidgetSettings({ widget, surface, deviceTouch, themeMode = 'dark'
             {isMonitoringWidget && slotLayoutOptions.length > 0 && (
               <WidgetControlGroup title={t('devices.panels.widgetSettings.slots')}>
                 {slotLayoutOptions.map(option => {
-                  const slotLabel = option.hero
-                    ? t(`devices.panels.widgetSettings.${heroLabelKey(widget.size)}`)
+                  const named = slotLayoutLabelKey(widget.size, option);
+                  const slotLabel = named
+                    ? t(`devices.panels.widgetSettings.${named}`)
                     : t('devices.panels.widgetSettings.slotCount', { count: option.count });
                   return (
                     <IconLabelButton
                       key={slotLayoutKey(option)}
                       className={styles.inlineIconButton}
-                      active={option.count === slotLayout.count && option.hero === slotLayout.hero}
+                      active={slotLayoutKey(option) === slotLayoutKey(slotLayout)}
                       icon={<SlotLayoutIcon layout={option} size={widget.size} aria-hidden="true" />}
                       ariaLabel={slotLabel}
                       title={slotLabel}

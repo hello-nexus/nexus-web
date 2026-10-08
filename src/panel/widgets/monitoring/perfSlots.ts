@@ -82,8 +82,9 @@ export const DEFAULT_SLOTS: SlotConfig[] = [
   { device: 'quick', sensor: 'summary/cpu-clock',    design: DEFAULT_DESIGN },
 ];
 
-// Design a slot renders when none is stored for it.
-export function defaultSlotDesign(size: PanelWidgetSize, slotIndex: number): GaugeDesignKey {
+// Design a slot renders when none is stored for it; a small cell starts on Large Value.
+export function defaultSlotDesign(size: PanelWidgetSize, slotIndex: number, layout?: SlotLayout): GaugeDesignKey {
+  if (layout && isSmallCell(size, layout, slotIndex)) return HERO_SMALL_DESIGN_KEYS[0];
   if (size === '2x2round') return DEFAULT_ROUND_DESIGN;
   return DEFAULT_SLOTS[slotIndex]?.design ?? DEFAULT_DESIGN;
 }
@@ -176,25 +177,59 @@ export function isHeroLayout(size: PanelWidgetSize, count: number, hero: boolean
 }
 
 // Locale key suffix naming a size's hero layout in the slot pickers.
-export function heroLabelKey(size: PanelWidgetSize): 'slotHero' | 'slotHeroWide' | 'slotHeroGrid' {
+function heroLabelKey(size: PanelWidgetSize): 'slotHero' | 'slotHeroWide' | 'slotHeroGrid' {
   const large = heroSpecForSize(size)?.large;
   return large === 4 ? 'slotHeroGrid' : large === 2 ? 'slotHeroWide' : 'slotHero';
 }
 
-// One entry in the editor's slot picker. Hero can reuse a plain count, so the flag is
-// part of the identity.
+// Two sensors on a 2x2, side by side ('columns') or stacked ('rows'). Larger
+// tiles take their two-slot orientation from their shape and store none.
+export type SlotSplit = 'columns' | 'rows';
+export const SPLIT_COUNT = 2;
+
+// One entry in the editor's slot picker. Hero and split can reuse a plain
+// count, so their flags are part of the identity.
 export interface SlotLayout {
   count: number;
   hero: boolean;
+  split?: SlotSplit;
+}
+
+export function splitSupportsSize(rawSize: PanelWidgetSize): boolean {
+  return widgetLayoutSize(rawSize) === '2x2';
+}
+
+export function isSplitLayout(size: PanelWidgetSize, layout: SlotLayout): boolean {
+  return layout.split != null && layout.count === SPLIT_COUNT && splitSupportsSize(size);
 }
 
 // Stable React key / aria discriminator for a picker entry.
 export function slotLayoutKey(layout: SlotLayout): string {
-  return layout.hero ? `hero${layout.count}` : String(layout.count);
+  if (layout.hero) return `hero${layout.count}`;
+  return layout.split ? `${layout.count}${layout.split}` : String(layout.count);
+}
+
+// The config patch that stores a picked layout; null clears a stale split.
+export function slotLayoutPatch(layout: SlotLayout): Record<string, PanelConfigValue> {
+  return { slotCount: layout.count, slotHero: layout.hero, slotSplit: layout.split ?? null };
+}
+
+// Locale key suffix for a picker entry with its own name; null means the plain count label.
+export function slotLayoutLabelKey(size: PanelWidgetSize, layout: SlotLayout):
+  'slotHero' | 'slotHeroWide' | 'slotHeroGrid' | 'slotSplitColumns' | 'slotSplitRows' | null {
+  if (layout.hero) return heroLabelKey(size);
+  if (layout.split) return layout.split === 'rows' ? 'slotSplitRows' : 'slotSplitColumns';
+  return null;
 }
 
 export function slotLayoutOptionsForSize(rawSize: PanelWidgetSize): SlotLayout[] {
   const options: SlotLayout[] = slotCountOptionsForSize(rawSize).map(count => ({ count, hero: false }));
+  if (splitSupportsSize(rawSize)) {
+    const afterSolo = options.findIndex(o => o.count === 1) + 1;
+    options.splice(afterSolo, 0,
+      { count: SPLIT_COUNT, hero: false, split: 'columns' },
+      { count: SPLIT_COUNT, hero: false, split: 'rows' });
+  }
   const spec = heroSpecForSize(rawSize);
   if (!spec) return options;
   // Hero holds independent multi-sensor slots, so it belongs with the
@@ -210,40 +245,80 @@ export function resolvedSlotLayoutForSize(
   size: PanelWidgetSize,
   configuredCount: number | undefined,
   configuredHero: boolean | undefined,
+  configuredSplit?: SlotSplit,
 ): SlotLayout {
   // A hero count need not be in slotCountOptionsForSize, so it skips that check.
   if (configuredCount != null && isHeroLayout(size, configuredCount, configuredHero)) {
     return { count: configuredCount, hero: true };
   }
+  // A split needs its stored flag, so a two-slot count carried over by a resize
+  // from a larger tile keeps resolving to the size default.
+  if (configuredCount === SPLIT_COUNT && configuredSplit && splitSupportsSize(size)) {
+    return { count: SPLIT_COUNT, hero: false, split: configuredSplit };
+  }
   return { count: resolvedSlotCountForSize(size, configuredCount), hero: false };
 }
 
-// Decodes the stored `slotCount` / `slotHero` pair.
+// Decodes the stored `slotCount` / `slotHero` / `slotSplit` keys.
 export function resolvedSlotLayout(
   size: PanelWidgetSize,
   config: Record<string, PanelConfigValue> | undefined,
 ): SlotLayout {
+  const split = config?.slotSplit;
   return resolvedSlotLayoutForSize(
     size,
     config?.slotCount as number | undefined,
     config?.slotHero === true,
+    split === 'columns' || split === 'rows' ? split : undefined,
   );
 }
 
-// The Hero layout's small slots hold a reading and nothing else, so they are
-// limited to the two value-first designs.
+// The value-first designs every small cell offers, and its default. The wide
+// and grid Hero small cells (4x2, 4x4) hold only these.
 export const HERO_SMALL_DESIGN_KEYS: GaugeDesignKey[] = ['text', 'numberfill'];
 
+// Small cells add the designs that still read at their shape. A tall narrow
+// cell (side by side, 2x4 Hero small) overflows a ring's value; a short wide
+// one (stacked, 2x2 Hero top) shrinks a figure above the value to a sliver.
+export const NARROW_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
+  ...HERO_SMALL_DESIGN_KEYS,
+  'sparkline', 'line', 'mirrorwave', 'backdrop', 'microbars', 'heatmap', 'segments',
+  'bar', 'fill', 'thermo', 'battery', 'hbar', 'dotgrid', 'halfgauge', 'wedge', 'dial',
+];
+export const SHORT_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
+  ...HERO_SMALL_DESIGN_KEYS,
+  'backdrop', 'segments', 'bar', 'fill', 'battery',
+];
+// The 2x2 Hero's bottom cells, the smallest: Segments shrinks to a dotted line there.
+export const COMPACT_CELL_DESIGN_KEYS: GaugeDesignKey[] = [
+  ...HERO_SMALL_DESIGN_KEYS,
+  'backdrop', 'bar', 'fill', 'battery',
+];
+
+function heroSmallDesignKeys(size: PanelWidgetSize, slotIndex: number): GaugeDesignKey[] {
+  switch (widgetLayoutSize(size)) {
+    case '2x2': return slotIndex === 0 ? SHORT_CELL_DESIGN_KEYS : COMPACT_CELL_DESIGN_KEYS;
+    case '2x4': return NARROW_CELL_DESIGN_KEYS;
+    default: return HERO_SMALL_DESIGN_KEYS;
+  }
+}
+
+function isSmallCell(size: PanelWidgetSize, layout: SlotLayout, slotIndex: number): boolean {
+  if (isSplitLayout(size, layout)) return true;
+  const spec = heroSpecForSize(size);
+  return !!spec && isHeroLayout(size, layout.count, layout.hero) && slotIndex >= spec.large;
+}
+
 // Which gauge designs a given slot may use. Every size offers the same list -
-// no surface has designs of its own - unless the Hero layout narrows it.
+// no surface has designs of its own - unless a small cell narrows it.
 export function designKeysForSlot(
   size: PanelWidgetSize,
   layout: SlotLayout,
   slotIndex: number,
 ): GaugeDesignKey[] {
-  const spec = heroSpecForSize(size);
-  if (!spec || !isHeroLayout(size, layout.count, layout.hero)) return GAUGE_DESIGN_KEYS;
-  return slotIndex < spec.large ? GAUGE_DESIGN_KEYS : HERO_SMALL_DESIGN_KEYS;
+  if (isSplitLayout(size, layout)) return layout.split === 'rows' ? SHORT_CELL_DESIGN_KEYS : NARROW_CELL_DESIGN_KEYS;
+  if (!isSmallCell(size, layout, slotIndex)) return GAUGE_DESIGN_KEYS;
+  return heroSmallDesignKeys(size, slotIndex);
 }
 
 // Clamp a stored design to what the slot currently allows, so a layout or size

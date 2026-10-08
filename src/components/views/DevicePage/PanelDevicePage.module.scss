@@ -441,13 +441,22 @@
   overflow: hidden;
 }
 
-// The round card's own rules (panel/styles/tokens.scss) apply here, so the
-// preview is a circle like the canvas. No .cellScaler inserts an inscribed
-// square in this path, so the widget box is the whole card and a figure scaling
-// to the frame has nothing to divide out.
+// The round card's own rules (panel/styles/tokens.scss) make the preview a
+// circle like the canvas. The widget lays out at its 2x2 size and is scaled by
+// the card's fit, as the canvas .cellScaler does (PanelApp.module.scss), so the
+// two crop alike; gallery and SDK apps take the full diameter there too.
 :global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'] {
-  --panel-round-fit: 1;
   padding: 0;
+
+  > * {
+    transform: scale(var(--panel-round-fit, 0.85));
+  }
+}
+
+:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type='gallery'] > *,
+:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type^='app:'] > *,
+:global(.panel-card).inlineSettingsPreviewCard[data-size='2x2round'][data-widget-type^='marketplace:'] > * {
+  transform: none;
 }
 
 .inlineSettingsBody {

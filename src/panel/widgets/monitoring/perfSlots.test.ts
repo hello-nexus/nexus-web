@@ -22,7 +22,12 @@ import {
   resolveSlotDesign,
   resolvedSlotLayout,
   slotLayoutKey,
+  slotLayoutLabelKey,
   slotLayoutOptionsForSize,
+  slotLayoutPatch,
+  COMPACT_CELL_DESIGN_KEYS,
+  NARROW_CELL_DESIGN_KEYS,
+  SHORT_CELL_DESIGN_KEYS,
 } from './perfSlots';
 import { FRAME_FILLING_DESIGNS, GAUGE_DESIGN_KEYS } from './gauges';
 
@@ -198,6 +203,8 @@ describe('perfSlots', () => {
       ]);
       expect(slotLayoutOptionsForSize('2x2')).toEqual([
         { count: 1, hero: false },
+        { count: 2, hero: false, split: 'columns' },
+        { count: 2, hero: false, split: 'rows' },
         { count: 3, hero: true },
         { count: MICRO_MIN_COUNT, hero: false },
         { count: MICRO_MAX_COUNT, hero: false },
@@ -254,12 +261,74 @@ describe('perfSlots', () => {
     });
   });
 
+  describe('split layout', () => {
+    const columns = { count: 2, hero: false, split: 'columns' as const };
+    const rows = { count: 2, hero: false, split: 'rows' as const };
+
+    it('is offered only on the 2x2 tiles', () => {
+      expect(slotLayoutOptionsForSize('2x2round')).toContainEqual(columns);
+      expect(slotLayoutOptionsForSize('2x2round')).toContainEqual(rows);
+      for (const size of ['4x2', '2x4', '4x4'] as const) {
+        expect(slotLayoutOptionsForSize(size).some(o => o.split)).toBe(false);
+      }
+    });
+
+    it('resolves a two-slot 2x2 only with the stored split', () => {
+      expect(resolvedSlotLayout('2x2', { slotCount: 2, slotSplit: 'columns' })).toEqual(columns);
+      expect(resolvedSlotLayout('2x2round', { slotCount: 2, slotSplit: 'rows' })).toEqual(rows);
+      // A two-slot count carried over from a larger tile keeps the single-gauge default.
+      expect(resolvedSlotLayout('2x2', { slotCount: 2 })).toEqual({ count: 1, hero: false });
+      expect(resolvedSlotLayout('2x2', { slotCount: 2, slotSplit: null })).toEqual({ count: 1, hero: false });
+      expect(resolvedSlotLayout('2x2', { slotCount: 2, slotSplit: 'diagonal' })).toEqual({ count: 1, hero: false });
+      expect(resolvedSlotLayout('2x2', { slotCount: 1, slotSplit: 'rows' })).toEqual({ count: 1, hero: false });
+    });
+
+    it('drops the split on a size that takes its orientation from its shape', () => {
+      expect(resolvedSlotLayout('4x2', { slotCount: 2, slotSplit: 'rows' })).toEqual({ count: 2, hero: false });
+      expect(resolvedSlotLayout('2x4', { slotCount: 2, slotSplit: 'columns' })).toEqual({ count: 2, hero: false });
+    });
+
+    it('keys, labels and stores each split apart', () => {
+      expect(slotLayoutKey(columns)).toBe('2columns');
+      expect(slotLayoutKey(rows)).toBe('2rows');
+      expect(slotLayoutKey({ count: 2, hero: false })).toBe('2');
+      expect(slotLayoutLabelKey('2x2', columns)).toBe('slotSplitColumns');
+      expect(slotLayoutLabelKey('2x2', rows)).toBe('slotSplitRows');
+      expect(slotLayoutLabelKey('2x2', { count: 3, hero: true })).toBe('slotHero');
+      expect(slotLayoutLabelKey('4x2', { count: 2, hero: false })).toBeNull();
+      expect(slotLayoutPatch(rows)).toEqual({ slotCount: 2, slotHero: false, slotSplit: 'rows' });
+      // Picking any other layout clears the split so a later resize cannot revive it.
+      expect(slotLayoutPatch({ count: 3, hero: true })).toEqual({ slotCount: 3, slotHero: true, slotSplit: null });
+    });
+
+    it('offers the value-first designs first and a per-orientation set after them', () => {
+      expect(designKeysForSlot('2x2', columns, 0)).toEqual(NARROW_CELL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x2round', rows, 1)).toEqual(SHORT_CELL_DESIGN_KEYS);
+      for (const keys of [NARROW_CELL_DESIGN_KEYS, SHORT_CELL_DESIGN_KEYS]) {
+        expect(keys.slice(0, HERO_SMALL_DESIGN_KEYS.length)).toEqual(HERO_SMALL_DESIGN_KEYS);
+        for (const key of keys) expect(GAUGE_DESIGN_KEYS).toContain(key);
+      }
+      expect(NARROW_CELL_DESIGN_KEYS).toContain('sparkline');
+      expect(SHORT_CELL_DESIGN_KEYS).not.toContain('sparkline');
+      expect(SHORT_CELL_DESIGN_KEYS).toContain('backdrop');
+      expect(SHORT_CELL_DESIGN_KEYS).not.toContain('dotgrid');
+    });
+
+    it('defaults every split cell to Large Value and clamps a design the orientation drops', () => {
+      expect(defaultSlotDesign('2x2', 0, columns)).toBe('text');
+      expect(defaultSlotDesign('2x2round', 1, rows)).toBe('text');
+      expect(resolveSlotDesign('2x2', columns, 0, 'sparkline')).toBe('sparkline');
+      expect(resolveSlotDesign('2x2', rows, 0, 'sparkline')).toBe('text');
+      expect(resolveSlotDesign('2x2', columns, 1, 'caterpillar')).toBe('text');
+    });
+  });
+
   describe('designKeysForSlot', () => {
-    it('narrows the hero small cells to the value-first designs', () => {
+    it('gives the tall 2x4 hero small cells the narrow-cell designs', () => {
       const hero = { count: 3, hero: true };
       expect(designKeysForSlot('2x4', hero, 0)).toEqual(GAUGE_DESIGN_KEYS);
-      expect(designKeysForSlot('2x4', hero, 1)).toEqual(HERO_SMALL_DESIGN_KEYS);
-      expect(designKeysForSlot('2x4', hero, 2)).toEqual(HERO_SMALL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x4', hero, 1)).toEqual(NARROW_CELL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x4', hero, 2)).toEqual(NARROW_CELL_DESIGN_KEYS);
     });
 
     it('keeps every design on the wide and grid hero large slots', () => {
@@ -273,10 +342,20 @@ describe('perfSlots', () => {
       expect(designKeysForSlot('4x4', grid, 6)).toEqual(HERO_SMALL_DESIGN_KEYS);
     });
 
-    it('narrows every 2x2 hero cell, the top one included', () => {
+    it('narrows every 2x2 hero cell by its shape, the top one included', () => {
       const hero = { count: 3, hero: true };
-      expect(designKeysForSlot('2x2', hero, 0)).toEqual(HERO_SMALL_DESIGN_KEYS);
-      expect(designKeysForSlot('2x2', hero, 1)).toEqual(HERO_SMALL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x2', hero, 0)).toEqual(SHORT_CELL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x2round', hero, 1)).toEqual(COMPACT_CELL_DESIGN_KEYS);
+      expect(designKeysForSlot('2x2', hero, 2)).toEqual(COMPACT_CELL_DESIGN_KEYS);
+      expect(COMPACT_CELL_DESIGN_KEYS).not.toContain('dotgrid');
+    });
+
+    it('starts every small cell on Large Value, whatever the slot default', () => {
+      const hero = { count: 3, hero: true };
+      expect(defaultSlotDesign('2x4', 0, hero)).toBe('sparkline');
+      expect(defaultSlotDesign('2x4', 1, hero)).toBe('text');
+      expect(defaultSlotDesign('2x4', 2, hero)).toBe('text');
+      expect(defaultSlotDesign('2x2', 0, hero)).toBe('text');
     });
 
     it('offers the same design list on the round glass as anywhere else', () => {
@@ -293,7 +372,9 @@ describe('perfSlots', () => {
   describe('resolveSlotDesign', () => {
     it('clamps a design the slot no longer offers to the first allowed one', () => {
       const hero = { count: 3, hero: true };
-      expect(resolveSlotDesign('2x4', hero, 1, 'sparkline')).toBe(HERO_SMALL_DESIGN_KEYS[0]);
+      expect(resolveSlotDesign('2x4', hero, 1, 'caterpillar')).toBe(HERO_SMALL_DESIGN_KEYS[0]);
+      expect(resolveSlotDesign('2x4', hero, 1, 'sparkline')).toBe('sparkline');
+      expect(resolveSlotDesign('2x2', hero, 1, 'dotgrid')).toBe(HERO_SMALL_DESIGN_KEYS[0]);
       expect(resolveSlotDesign('2x4', hero, 1, 'numberfill')).toBe('numberfill');
     });
 

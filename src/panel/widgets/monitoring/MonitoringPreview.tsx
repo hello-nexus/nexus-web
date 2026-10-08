@@ -77,9 +77,8 @@ function buildGauge(slot: PreviewSlot, design: GaugeDesignKey) {
 // frozen and looks populated.
 export function MonitoringPreview({ widget }: WidgetProps) {
   const size = widgetLayoutSize(widget.size);
-  // 2x2 has no valid 2-gauge layout (slot options are 1 or micro 3/4, never 2),
-  // so its default is a single solo gauge - show one sensor, not two squished
-  // side-by-side. Larger tiles keep the CPU+memory pair.
+  // A 2x2 defaults to one gauge (two sensors there need a picked split), so the
+  // catalog shows one sensor. Larger tiles keep the CPU+memory pair.
   const solo = size === '2x2';
   const slots = useMemo(
     () => (solo ? PREVIEW_SLOTS.slice(0, 1) : PREVIEW_SLOTS)

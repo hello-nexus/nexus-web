@@ -205,7 +205,7 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i)),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i, layout)),
     ),
     scale: ((widget.config?.[`slot${i}_scale`] as ScaleMode | undefined) ?? DEFAULT_SCALE_MODE),
     fixedMin: widget.config?.[`slot${i}_min`] as number | undefined,
@@ -248,7 +248,8 @@ export function MonitoringWidget({ widget, selectedSlot, onSelectSlot }: WidgetP
   const layoutClass = isHeroLayout(widget.size, count, layout.hero)
     ? (heroLarge === 2 ? styles.gridHeroWide : heroLarge === 4 ? styles.gridHeroGrid : styles.gridHero)
     : count >= 4 ? styles.grid2x2
-    : count === 2 && (widget.size === '4x4' || widget.size === '2x4') ? styles.grid2row
+    : layout.split === 'columns' ? styles.gridSplitColumns
+    : count === 2 && (layout.split === 'rows' || widget.size === '4x4' || widget.size === '2x4') ? styles.grid2row
     : count === 2 ? styles.grid2col
     : styles.solo;
   // A frame-filling design on the round glass scales its figure to the rim.

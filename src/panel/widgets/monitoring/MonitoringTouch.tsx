@@ -41,7 +41,7 @@ function slotsOf(widget: PanelWidget, layout: SlotLayout): ImmersiveSlot[] {
       widget.size,
       layout,
       i,
-      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i)),
+      ((widget.config?.[`slot${i}_design`] as GaugeDesignKey | undefined) ?? defaultSlotDesign(widget.size, i, layout)),
     ),
     // Carried so a cell grades against the same window the tile does; without
     // the range a Fixed slot would colour off the absolute limits instead.
