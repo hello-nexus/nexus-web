@@ -479,6 +479,7 @@
   "cooling.guard.inactive": "CPU 温度を読み取れないため、保護は動作できません。",
   "cooling.guard.label": "CPU サーマルガード",
   "cooling.guard.latched": "冷却エンジンが停止を繰り返したため、Nexus はファンを BIOS に戻しました。停止のない状態が 5 分続くと、Nexus はファンの制御を再開します。今すぐ再開するには、設定でサーマルガードをオフにしてからオンにしてください。",
+  "cooling.guard.latchedHeld": "冷却エンジンが停止を繰り返したため、Nexus はファンを BIOS に戻しました。再開するには Nexus を再起動するか、設定でサーマルガードをオフにしてからオンにしてください。",
   "cooling.guard.limit.detectedDefault": "検出値: {temp} °C (既定値)",
   "cooling.guard.limit.detectedHardware": "検出値: {temp} °C (お使いの CPU から取得)",
   "cooling.guard.limit.detectedSpec": "検出値: {temp} °C (CPU の仕様より)",

@@ -479,6 +479,7 @@
   "cooling.guard.inactive": "Die CPU-Temperatur kann nicht gelesen werden, daher kann der Schutz nicht eingreifen.",
   "cooling.guard.label": "Thermischer CPU-Schutz",
   "cooling.guard.latched": "Nexus hat Ihre Lüfter an das BIOS übergeben, weil die Kühlungs-Engine immer wieder hängen blieb. Nexus übernimmt sie wieder, sobald die Engine 5 Minuten lang nicht mehr hängt. Um sofort fortzufahren, schalten Sie den thermischen Schutz in den Einstellungen aus und wieder ein.",
+  "cooling.guard.latchedHeld": "Nexus hat Ihre Lüfter an das BIOS übergeben, weil die Kühlungs-Engine immer wieder hängen blieb. Starten Sie Nexus neu oder schalten Sie den thermischen Schutz in den Einstellungen aus und wieder ein, um fortzufahren.",
   "cooling.guard.limit.detectedDefault": "Erkannt: {temp} °C (Standardwert)",
   "cooling.guard.limit.detectedHardware": "Erkannt: {temp} °C, von Ihrer CPU ausgelesen",
   "cooling.guard.limit.detectedSpec": "Erkannt: {temp} °C laut CPU-Spezifikation",

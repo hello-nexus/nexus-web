@@ -71,7 +71,7 @@ export function ThermalGuardPanel({ guard, onUndo, onKeep, error = null }: Therm
     <div className={styles.panel}>
       {guard.watchdogLatched && (
         <Notice tone="critical" role="alert">
-          <span>{t('cooling.guard.latched')}</span>
+          <span>{t(guard.watchdogResumes === true ? 'cooling.guard.latched' : 'cooling.guard.latchedHeld')}</span>
         </Notice>
       )}
       {banner && (

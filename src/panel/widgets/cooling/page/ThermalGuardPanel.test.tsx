@@ -41,8 +41,13 @@ describe('ThermalGuardPanel', () => {
   });
 
   it('shows the latched banner when the watchdog handed the fans to the BIOS', () => {
-    render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true }} onUndo={() => {}} onKeep={() => {}} />);
-    expect(screen.getByRole('alert').textContent).toContain('cooling.guard.latched');
+    render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true, watchdogResumes: true }} onUndo={() => {}} onKeep={() => {}} />);
+    expect(screen.getByRole('alert').textContent).toMatch(/cooling\.guard\.latched$/);
+  });
+
+  it.each([[false], [undefined]])('says only a restart or a guard toggle clears a latch when watchdogResumes is %s', (watchdogResumes) => {
+    render(<ThermalGuardPanel guard={{ ...base, watchdogLatched: true, watchdogResumes }} onUndo={() => {}} onKeep={() => {}} />);
+    expect(screen.getByRole('alert').textContent).toContain('cooling.guard.latchedHeld');
   });
 
   it.each([

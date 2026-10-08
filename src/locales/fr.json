@@ -479,6 +479,7 @@
   "cooling.guard.inactive": "Impossible de lire la température du CPU : la protection ne peut pas agir.",
   "cooling.guard.label": "Protection thermique du CPU",
   "cooling.guard.latched": "Nexus a rendu vos ventilateurs au BIOS car le moteur de refroidissement n'arrêtait pas de se bloquer. Nexus les reprend après 5 minutes sans blocage. Pour reprendre maintenant, désactivez puis réactivez la protection thermique dans les paramètres.",
+  "cooling.guard.latchedHeld": "Nexus a rendu vos ventilateurs au BIOS car le moteur de refroidissement n'arrêtait pas de se bloquer. Redémarrez Nexus ou désactivez puis réactivez la protection thermique dans les paramètres pour reprendre.",
   "cooling.guard.limit.detectedDefault": "Détectée : {temp} °C (par défaut)",
   "cooling.guard.limit.detectedHardware": "Détectée : {temp} °C, lue depuis votre CPU",
   "cooling.guard.limit.detectedSpec": "Détectée : {temp} °C selon les spécifications du CPU",

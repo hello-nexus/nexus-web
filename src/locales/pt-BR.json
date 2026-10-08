@@ -479,6 +479,7 @@
   "cooling.guard.inactive": "Não é possível ler a temperatura da CPU, então a proteção não pode agir.",
   "cooling.guard.label": "Proteção térmica da CPU",
   "cooling.guard.latched": "O Nexus devolveu suas ventoinhas à BIOS porque o motor de refrigeração continuava travando. O Nexus as retoma após 5 minutos sem travamentos. Para retomar agora, desative e ative novamente a proteção térmica nas configurações.",
+  "cooling.guard.latchedHeld": "O Nexus devolveu suas ventoinhas à BIOS porque o motor de refrigeração continuava travando. Reinicie o Nexus ou desative e ative novamente a proteção térmica nas configurações para retomar.",
   "cooling.guard.limit.detectedDefault": "Detectado: {temp} °C (padrão)",
   "cooling.guard.limit.detectedHardware": "Detectado: {temp} °C, lido da sua CPU",
   "cooling.guard.limit.detectedSpec": "Detectado: {temp} °C conforme as especificações da CPU",

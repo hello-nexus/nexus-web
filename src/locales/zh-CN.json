@@ -479,6 +479,7 @@
   "cooling.guard.inactive": "无法读取 CPU 温度，因此保护功能无法生效。",
   "cooling.guard.label": "CPU 温度保护",
   "cooling.guard.latched": "由于散热引擎反复停滞，Nexus 已将风扇交还给 BIOS。引擎连续 5 分钟未停滞后，Nexus 会重新接管风扇。如需立即恢复，请在设置中先关闭再开启温度保护。",
+  "cooling.guard.latchedHeld": "由于散热引擎反复停滞，Nexus 已将风扇交还给 BIOS。请重启 Nexus，或在设置中先关闭再开启温度保护以恢复。",
   "cooling.guard.limit.detectedDefault": "检测值：{temp} °C（默认值）",
   "cooling.guard.limit.detectedHardware": "检测值：{temp} °C（从你的 CPU 读取）",
   "cooling.guard.limit.detectedSpec": "检测值：{temp} °C（来自 CPU 规格）",
