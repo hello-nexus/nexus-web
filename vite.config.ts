@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import hoverGuard from './scripts/hover-guard-postcss'
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
+import { dirname, resolve, sep } from 'path'
 
 const appVersion = (() => {
   try {
@@ -35,8 +35,45 @@ const officialBuild = (() => {
   }
 })()
 
+// Release CI sets WEB_SOURCEMAPS=1 to keep maps for symbolicating error
+// reports. They carry paths and mappings but no source text, and leave dist
+// so the csproj never copies them into the shipped wwwroot.
+const releaseSourcemaps = process.env.WEB_SOURCEMAPS === '1'
+
+function moveSourcemapsOutOfDist(): Plugin {
+  const outDir = resolve(__dirname, 'sourcemaps')
+  return {
+    name: 'nexus-release-sourcemaps',
+    apply: 'build',
+    buildStart() {
+      rmSync(outDir, { recursive: true, force: true })
+    },
+    // writeBundle, not generateBundle: Vite prepends its preload helper to the
+    // entry chunk and fixes the map after user generateBundle hooks run, so an
+    // earlier copy is off by a line.
+    writeBundle(options, bundle) {
+      const distDir = options.dir ?? resolve(__dirname, 'dist')
+      for (const fileName of Object.keys(bundle)) {
+        if (!fileName.endsWith('.map')) continue
+        const from = resolve(distDir, fileName)
+        const source = readFileSync(from, 'utf8')
+        for (const entry of (JSON.parse(source) as { sources: string[] }).sources) {
+          // Only this public repo and its npm dependencies may appear in a map.
+          if (!resolve(dirname(from), entry).startsWith(__dirname + sep)) {
+            this.error(`sourcemap source outside nexus-web: ${entry}`)
+          }
+        }
+        const target = resolve(outDir, fileName)
+        mkdirSync(dirname(target), { recursive: true })
+        writeFileSync(target, source)
+        rmSync(from)
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: releaseSourcemaps ? [react(), moveSourcemapsOutOfDist()] : [react()],
   // Runs after the sass preprocessor, so it sees resolved selectors rather
   // than the `&:hover` most of them are authored as. Pairs with
   // src/lib/hoverGuard.ts.
@@ -65,7 +102,9 @@ export default defineConfig({
     // The service build must emit the SPA alone: the csproj BuildWebForService
     // target copies dist/** verbatim into the shipped app's wwwroot, and
     // marketing content must never ride along.
+    sourcemap: releaseSourcemaps ? 'hidden' : false,
     rollupOptions: {
+      output: { sourcemapExcludeSources: true },
       input: isServiceBuild
         ? resolve(__dirname, 'index.html')
         : {

@@ -177,6 +177,11 @@ file, so avoid writing it in a fixture or a doc comment.
   default, and every public clone) those surfaces are absent and the client is
   local-only; the token itself is never put in the bundle. Falls back to
   `~/.nexus-build/client-token` so a lab machine does not have to export it.
+- `WEB_SOURCEMAPS` - set to `1` (release CI does) to write hidden sourcemaps
+  for symbolicating error reports. They hold paths and mappings but no source
+  text, land in `sourcemaps/` rather than `dist/`, and leave the shipped
+  bundle byte-identical. The build fails if a map references a file outside
+  this repo.
 - `VITE_RELAY_URL` - relay origin override for local relay testing.
 - `VITE_LAN_SEALED` - set to `1` to force the LAN-sealed transport (also
   toggleable at runtime via `localStorage['nexus.lanSealed']`). Debug flag.
