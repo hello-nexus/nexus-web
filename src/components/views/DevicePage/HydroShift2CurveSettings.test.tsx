@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HydroShift2CurveSettings } from './HydroShift2CurveSettings';
+import { useHydroShift2CurveScreen } from './useHydroShift2CurveScreen';
 import type { HydroShift2CurveMediaItem, HydroShift2CurveSettings as Settings } from '../../../api/hydroshift2Curve';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -35,6 +36,11 @@ vi.mock('../../../api/hydroshift2Curve', async importOriginal => ({
   deleteHydroShift2CurveMedia: (...a: any[]) => mockDelete(...a),
 }));
 
+function Harness() {
+  const screen = useHydroShift2CurveScreen(true);
+  return <HydroShift2CurveSettings screen={screen} />;
+}
+
 const settings: Settings = {
   connected: true,
   screenMode: 'nexus',
@@ -51,14 +57,14 @@ async function renderSettings(s: Partial<Settings> = {}, media: HydroShift2Curve
   mockGetSettings.mockResolvedValue({ ...settings, ...s });
   mockGetMedia.mockResolvedValue(media);
   await act(async () => {
-    render(<HydroShift2CurveSettings />);
+    render(<Harness />);
   });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockSetSettings.mockResolvedValue(true);
-  mockUpload.mockResolvedValue(true);
+  mockUpload.mockResolvedValue({ name: 'new.mp4' });
   mockDelete.mockResolvedValue(true);
   URL.createObjectURL = vi.fn(() => 'blob:x');
   URL.revokeObjectURL = vi.fn();
@@ -103,8 +109,37 @@ describe('HydroShift2CurveSettings', () => {
     expect(mockUpload).toHaveBeenCalledWith(file, { x: 0.1, y: 0.2, w: 0.5, h: 0.4 });
   });
 
+  it('selects the uploaded clip right after the upload', async () => {
+    await renderSettings({ screenMode: 'video' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'c.mp4')] } });
+    fireEvent.click(await screen.findByText(/^cropper:/));
+    await waitFor(() =>
+      expect(mockSetSettings).toHaveBeenCalledWith({ screenMode: 'video', video: 'new.mp4' }));
+  });
+
+  it('does not select anything when the upload fails', async () => {
+    mockUpload.mockResolvedValue(null);
+    await renderSettings({ screenMode: 'video' });
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'c.mp4')] } });
+    fireEvent.click(await screen.findByText(/^cropper:/));
+    await screen.findByRole('alert');
+    expect(mockSetSettings).not.toHaveBeenCalled();
+  });
+
+  it('shows the clock toggle only for the Nexus panel', async () => {
+    await renderSettings();
+    expect(screen.getByRole('switch', { name: 'devices.lianliCurve.offlineClock' })).toBeInTheDocument();
+  });
+
+  it('hides the clock toggle in video mode', async () => {
+    await renderSettings({ screenMode: 'video' });
+    expect(screen.queryByRole('switch', { name: 'devices.lianliCurve.offlineClock' })).not.toBeInTheDocument();
+  });
+
   it('shows the localized failure when an upload fails', async () => {
-    mockUpload.mockResolvedValue(false);
+    mockUpload.mockResolvedValue(null);
     await renderSettings({ screenMode: 'video' });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['x'], 'c.mp4')] } });
@@ -136,7 +171,7 @@ describe('HydroShift2CurveSettings', () => {
     mockGetSettings.mockResolvedValue({ ...settings, screenMode: 'video' });
     mockGetMedia.mockResolvedValue([]);
     let unmount = () => {};
-    await act(async () => { unmount = render(<HydroShift2CurveSettings />).unmount; });
+    await act(async () => { unmount = render(<Harness />).unmount; });
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(['x'], 'c.mp4')] } });
     await screen.findByText(/^cropper:/);
@@ -201,7 +236,7 @@ describe('HydroShift2CurveSettings', () => {
     mockGetSettings.mockResolvedValue(settings);
     mockGetMedia.mockResolvedValue([clip('a.mp4', false)]);
     let unmount = () => {};
-    await act(async () => { unmount = render(<HydroShift2CurveSettings />).unmount; });
+    await act(async () => { unmount = render(<Harness />).unmount; });
     unmount();
     const s0 = mockGetSettings.mock.calls.length;
     const m0 = mockGetMedia.mock.calls.length;

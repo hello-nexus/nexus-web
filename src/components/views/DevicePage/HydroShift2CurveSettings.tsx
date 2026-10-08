@@ -13,19 +13,15 @@ import {
   HYDROSHIFT2_CURVE_SCREEN_ASPECT,
   deleteHydroShift2CurveMedia,
   getHydroShift2CurveMedia,
-  getHydroShift2CurveSettings,
-  setHydroShift2CurveSettings,
   uploadHydroShift2CurveMedia,
   type HydroShift2CurveMediaItem,
-  type HydroShift2CurveSettings as Settings,
-  type HydroShift2CurveSettingsPatch,
 } from '../../../api/hydroshift2Curve';
 import { useUnitPrefs } from '../../../hooks/useUiSettings';
 import { useTranslation } from '../../../lib/i18n';
 import { localizeNumbers } from '../../../lib/units';
+import type { HydroShift2CurveScreen } from './useHydroShift2CurveScreen';
 import styles from './LianLiDevicePage.module.scss';
 
-const SETTINGS_POLL_MS = 5000;
 const MEDIA_POLL_MS = 2000;
 
 interface CropTarget {
@@ -34,10 +30,10 @@ interface CropTarget {
 }
 
 /** The HydroShift II Curved screen (Nexus panel or an uploaded video), screen saver, clock and pump options. */
-export function HydroShift2CurveSettings() {
+export function HydroShift2CurveSettings({ screen }: { screen: HydroShift2CurveScreen }) {
+  const { settings, write, previewBrightness, commitBrightness, refresh: refreshSettings } = screen;
   const { t } = useTranslation();
   const { numberFormat } = useUnitPrefs();
-  const [settings, setSettings] = useState<Settings | null>(null);
   const [media, setMedia] = useState<HydroShift2CurveMediaItem[]>([]);
   const [cropTarget, setCropTarget] = useState<CropTarget | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -45,24 +41,7 @@ export function HydroShift2CurveSettings() {
   const [pendingDelete, setPendingDelete] = useState<HydroShift2CurveMediaItem | null>(null);
   const aliveRef = useRef(true);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  // A poll that was issued before the latest write finished may carry the old value.
-  const writesInFlightRef = useRef(0);
-  const writeGenRef = useRef(0);
-  const brightnessDirtyRef = useRef(false);
-  const serverBrightnessRef = useRef<number | null>(null);
-  const brightnessInFlightRef = useRef<number | null>(null);
   const cropTargetRef = useRef<CropTarget | null>(null);
-
-  const refreshSettings = useCallback(async () => {
-    const gen = writeGenRef.current;
-    const s = await getHydroShift2CurveSettings();
-    if (!aliveRef.current || !s) return;
-    if (writesInFlightRef.current > 0 || gen !== writeGenRef.current) return;
-    serverBrightnessRef.current = s.screenSaverBrightness;
-    setSettings(prev => (prev && brightnessDirtyRef.current
-      ? { ...s, screenSaverBrightness: prev.screenSaverBrightness }
-      : s));
-  }, []);
 
   const refreshMedia = useCallback(async () => {
     const m = await getHydroShift2CurveMedia();
@@ -71,15 +50,12 @@ export function HydroShift2CurveSettings() {
 
   useEffect(() => {
     aliveRef.current = true;
-    void refreshSettings();
     void refreshMedia();
-    const id = window.setInterval(() => { if (!document.hidden) void refreshSettings(); }, SETTINGS_POLL_MS);
     return () => {
       aliveRef.current = false;
-      window.clearInterval(id);
       if (cropTargetRef.current) URL.revokeObjectURL(cropTargetRef.current.src);
     };
-  }, [refreshSettings, refreshMedia]);
+  }, [refreshMedia]);
 
   const processing = media.some(m => !m.ready);
   useEffect(() => {
@@ -87,27 +63,6 @@ export function HydroShift2CurveSettings() {
     const id = window.setInterval(() => { if (!document.hidden) void refreshMedia(); }, MEDIA_POLL_MS);
     return () => window.clearInterval(id);
   }, [processing, refreshMedia]);
-
-  const write = useCallback(async (patch: HydroShift2CurveSettingsPatch) => {
-    setSettings(prev => (prev ? { ...prev, ...patch } : prev));
-    writesInFlightRef.current += 1;
-    try {
-      await setHydroShift2CurveSettings(patch);
-    } finally {
-      writesInFlightRef.current -= 1;
-      writeGenRef.current += 1;
-    }
-    await refreshSettings();
-  }, [refreshSettings]);
-
-  const commitBrightness = useCallback((value: number) => {
-    brightnessDirtyRef.current = false;
-    if ((brightnessInFlightRef.current ?? serverBrightnessRef.current) === value) return;
-    brightnessInFlightRef.current = value;
-    void write({ screenSaverBrightness: value }).finally(() => {
-      if (brightnessInFlightRef.current === value) brightnessInFlightRef.current = null;
-    });
-  }, [write]);
 
   const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,8 +84,9 @@ export function HydroShift2CurveSettings() {
     if (!cropTarget) return;
     setUploading(true);
     try {
-      const ok = await uploadHydroShift2CurveMedia(cropTarget.file, crop);
-      if (aliveRef.current) setMediaError(ok ? null : 'upload');
+      const uploaded = await uploadHydroShift2CurveMedia(cropTarget.file, crop);
+      if (aliveRef.current) setMediaError(uploaded ? null : 'upload');
+      if (uploaded?.name) void write({ screenMode: 'video', video: uploaded.name });
       await refreshMedia();
     } finally {
       if (aliveRef.current) {
@@ -138,7 +94,7 @@ export function HydroShift2CurveSettings() {
         closeCropper(cropTarget);
       }
     }
-  }, [cropTarget, closeCropper, refreshMedia]);
+  }, [cropTarget, closeCropper, refreshMedia, write]);
 
   if (!settings || !settings.connected) return null;
 
@@ -234,12 +190,14 @@ export function HydroShift2CurveSettings() {
           </div>
         )}
 
-        <SettingToggle
-          label={t('devices.lianliCurve.offlineClock')}
-          description={t('devices.lianliCurve.offlineClockHint')}
-          checked={settings.offlineClock}
-          onChange={offlineClock => { void write({ offlineClock }); }}
-        />
+        {!videoMode && (
+          <SettingToggle
+            label={t('devices.lianliCurve.offlineClock')}
+            description={t('devices.lianliCurve.offlineClockHint')}
+            checked={settings.offlineClock}
+            onChange={offlineClock => { void write({ offlineClock }); }}
+          />
+        )}
       </SettingsSection>
 
       <SettingsSection title={t('devices.lianliCurve.saverSection')}>
@@ -277,8 +235,7 @@ export function HydroShift2CurveSettings() {
           ariaLabel={t('devices.lianliCurve.saverBrightnessAria')}
           disabled={!saverOn}
           onChange={(v: number, done?: boolean) => {
-            brightnessDirtyRef.current = true;
-            setSettings(prev => (prev ? { ...prev, screenSaverBrightness: v } : prev));
+            previewBrightness(v);
             if (done) commitBrightness(v);
           }}
           onCommit={commitBrightness}

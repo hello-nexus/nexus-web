@@ -1,5 +1,6 @@
 import { serializeCrop, type NormalizedCrop } from '../components/common/MediaCropper/mediaCrop';
-import { fetchService, postService, postServiceForm, putService } from './service';
+import { getTokenSync } from './auth';
+import { fetchService, postService, postServiceForm, putService, resolveHttp } from './service';
 
 export interface HydroShift2CurveHead {
   connected: boolean;
@@ -84,15 +85,23 @@ export async function getHydroShift2CurveMedia(): Promise<HydroShift2CurveMediaI
   return res?.media ?? null;
 }
 
-export async function uploadHydroShift2CurveMedia(file: File, crop: NormalizedCrop): Promise<boolean> {
+/** The stored clip's name, or null when the upload failed. */
+export async function uploadHydroShift2CurveMedia(file: File, crop: NormalizedCrop): Promise<{ name: string | null } | null> {
   const form = new FormData();
   form.append('file', file, file.name);
   form.append('crop', serializeCrop(crop));
   const res = await postServiceForm<OkResponse>(`${BASE_DEVICE}/media`, form);
-  return !!res && !res.error;
+  return res && !res.error ? { name: res.name ?? null } : null;
 }
 
 export async function deleteHydroShift2CurveMedia(name: string): Promise<boolean> {
   const res = await postService<OkResponse>(`${BASE_DEVICE}/media/delete`, { name });
   return !!res && !res.error;
+}
+
+/** Browser-playable preview of a clip; a media element cannot send a Bearer header, so the token rides the query. */
+export function hydroShift2CurveMediaPreviewUrl(name: string): string {
+  const base = resolveHttp(`${BASE_DEVICE}/media/${encodeURIComponent(name)}/preview`);
+  const tok = getTokenSync();
+  return tok ? `${base}?token=${encodeURIComponent(tok)}` : base;
 }
