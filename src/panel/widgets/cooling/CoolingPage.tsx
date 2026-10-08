@@ -1489,6 +1489,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
           <div className={styles.paneTitleGroup}>
             <span className={styles.paneTitle}>{t('cooling.label.fan')}</span>
             <Badge label={String(visibleChannels.length)} compact color="var(--text-dim)" />
+          </div>
+          <div className={styles.fanHeaderActions}>
+            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('cooling.fan.search')} />
             <HoverTooltip
               body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
               side="bottom"
@@ -1502,9 +1505,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 onClick={() => updateUiSettings({ showUncontrolledCoolingDevices: hideUncontrolled })}
               />
             </HoverTooltip>
-            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('cooling.fan.search')} />
-          </div>
-          <div className={styles.fanHeaderActions}>
+            <span className={styles.headerSep} aria-hidden />
             <HoverTooltip
               body={calibrating ? t('cooling.calibrate.running').split('-')[0].trim() : t('cooling.calibrate.button')}
               side="bottom"

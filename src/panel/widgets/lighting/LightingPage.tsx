@@ -2324,6 +2324,9 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           <div className={styles.paneTitleGroup}>
             <span className={styles.paneTitle}>{t('lighting.rightPane.devices')}</span>
             <Badge label={String(railDevices.length)} compact color="var(--text-dim)" />
+          </div>
+          <div className={styles.deviceHeaderActions}>
+            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('lighting.devices.search')} />
             <HoverTooltip
               body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
               side="bottom"
@@ -2337,9 +2340,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onClick={() => updateUiSettings({ showUncontrolledLightingDevices: hideUncontrolled })}
               />
             </HoverTooltip>
-            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('lighting.devices.search')} />
-          </div>
-          <div className={styles.deviceHeaderActions}>
+            <span className={styles.headerSep} aria-hidden />
             <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             {selectAllIds.length > 0 && (
             <>
