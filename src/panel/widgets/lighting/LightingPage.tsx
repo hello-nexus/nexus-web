@@ -2326,25 +2326,8 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
             <Badge label={String(railDevices.length)} compact color="var(--text-dim)" />
           </div>
           <div className={styles.deviceHeaderActions}>
-            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('lighting.devices.search')} />
-            <HoverTooltip
-              body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
-              side="bottom"
-            >
-              <Button
-                tone="ghost"
-                size="sm"
-                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
-                aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
-                aria-pressed={hideUncontrolled}
-                onClick={() => updateUiSettings({ showUncontrolledLightingDevices: hideUncontrolled })}
-              />
-            </HoverTooltip>
-            <span className={styles.headerSep} aria-hidden />
-            <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
             {selectAllIds.length > 0 && (
             <>
-              <span className={styles.headerSep} aria-hidden />
               {/* Icon-only: the rail is too narrow for both labels beside the title. */}
               <HoverTooltip body={t('lighting.pane.selectAllControlled')} side="bottom">
                 <Button
@@ -2366,8 +2349,25 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                   onClick={() => handleSetSelection(new Set(), null)}
                 />
               </HoverTooltip>
+              <span className={styles.headerSep} aria-hidden />
             </>
             )}
+            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('lighting.devices.search')} />
+            <HoverTooltip
+              body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+              side="bottom"
+            >
+              <Button
+                tone="ghost"
+                size="sm"
+                icon={hideUncontrolled ? <EyeOff /> : <Eye />}
+                aria-label={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
+                aria-pressed={hideUncontrolled}
+                onClick={() => updateUiSettings({ showUncontrolledLightingDevices: hideUncontrolled })}
+              />
+            </HoverTooltip>
+            <span className={styles.headerSep} aria-hidden />
+            <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerCenter}`}>

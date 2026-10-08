@@ -1491,6 +1491,32 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             <Badge label={String(visibleChannels.length)} compact color="var(--text-dim)" />
           </div>
           <div className={styles.fanHeaderActions}>
+            {selectableFanIds.length > 0 && (
+            <>
+              {/* Icon-only, matching the lighting rail: too narrow for labels. */}
+              <HoverTooltip body={t('lighting.pane.selectAllControlled')} side="bottom">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={<CheckCheck />}
+                  aria-label={t('lighting.pane.selectAllControlled')}
+                  disabled={allFansSelected}
+                  onClick={() => setSelectedFanIds(new Set(selectableFanIds))}
+                />
+              </HoverTooltip>
+              <HoverTooltip body={t('lightingOnboarding.selectNone')} side="bottom">
+                <Button
+                  tone="ghost"
+                  size="sm"
+                  icon={<Ban />}
+                  aria-label={t('lightingOnboarding.selectNone')}
+                  disabled={selectedFanIds.size === 0}
+                  onClick={() => setSelectedFanIds(new Set())}
+                />
+              </HoverTooltip>
+              <span className={styles.headerSep} aria-hidden />
+            </>
+            )}
             <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('cooling.fan.search')} />
             <HoverTooltip
               body={hideUncontrolled ? t('devices.hidden.show') : t('devices.hidden.hide')}
@@ -1519,32 +1545,6 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 onClick={() => setCalConfirmOpen(true)}
               />
             </HoverTooltip>
-            {selectableFanIds.length > 0 && (
-            <>
-              <span className={styles.headerSep} aria-hidden />
-              {/* Icon-only, matching the lighting rail: too narrow for labels. */}
-              <HoverTooltip body={t('lighting.pane.selectAllControlled')} side="bottom">
-                <Button
-                  tone="ghost"
-                  size="sm"
-                  icon={<CheckCheck />}
-                  aria-label={t('lighting.pane.selectAllControlled')}
-                  disabled={allFansSelected}
-                  onClick={() => setSelectedFanIds(new Set(selectableFanIds))}
-                />
-              </HoverTooltip>
-              <HoverTooltip body={t('lightingOnboarding.selectNone')} side="bottom">
-                <Button
-                  tone="ghost"
-                  size="sm"
-                  icon={<Ban />}
-                  aria-label={t('lightingOnboarding.selectNone')}
-                  disabled={selectedFanIds.size === 0}
-                  onClick={() => setSelectedFanIds(new Set())}
-                />
-              </HoverTooltip>
-            </>
-            )}
           </div>
         </div>
         <div className={`${styles.paneHeader} ${styles.headerRight}`}>
