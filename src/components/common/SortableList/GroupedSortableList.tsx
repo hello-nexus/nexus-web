@@ -50,6 +50,8 @@ export interface GroupedSortableListProps extends NestingRules {
   renderGroup: (id: string, args: SortableRowArgs, children: ReactNode, isDropTarget: boolean) => ReactNode;
   className?: string;
   ariaLabel?: string;
+  /** Rows render in place but cannot be dragged: a filtered list would rewrite arrangements from only the rows it shows. */
+  disabled?: boolean;
 }
 
 // Same guard SortableList uses: a press inside [data-no-dnd] (buttons, the
@@ -108,11 +110,12 @@ function DropTail() {
  * fake is ever drawn. A member that is itself a group renders through the
  * same row renderer, body and all.
  */
-function GroupBody({ groupId, members, renderRow, openBodies }: {
+function GroupBody({ groupId, members, renderRow, openBodies, disabled }: {
   groupId: string;
   members: string[];
   renderRow: (id: string, args: SortableRowArgs) => ReactNode;
   openBodies: Set<string>;
+  disabled: boolean;
 }) {
   const { setNodeRef } = useDroppable({ id: bodyDroppableId(groupId) });
   // A collapsed group's shell does not mount its body, so presence here is
@@ -122,7 +125,7 @@ function GroupBody({ groupId, members, renderRow, openBodies }: {
     return () => { openBodies.delete(groupId); };
   }, [openBodies, groupId]);
   return (
-    <SortableContext items={members} strategy={verticalListSortingStrategy}>
+    <SortableContext items={members} strategy={verticalListSortingStrategy} disabled={disabled}>
       <div ref={setNodeRef} className={styles.list} role="list">
         {members.map(id => <Row key={id} id={id} render={renderRow} />)}
       </div>
@@ -131,7 +134,7 @@ function GroupBody({ groupId, members, renderRow, openBodies }: {
 }
 
 export function GroupedSortableList({
-  arrangement, onArrange, renderBlock, renderGroup, className, ariaLabel, nestGroups, groupBlock, holdsGroup,
+  arrangement, onArrange, renderBlock, renderGroup, className, ariaLabel, nestGroups, groupBlock, holdsGroup, disabled = false,
 }: GroupedSortableListProps) {
   const rules: NestingRules = { nestGroups, groupBlock, holdsGroup };
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -208,7 +211,7 @@ export function GroupedSortableList({
     ? renderGroup(
         id,
         args,
-        <GroupBody groupId={id} members={live.groupMembers[id] ?? []} renderRow={renderRow} openBodies={openBodies} />,
+        <GroupBody groupId={id} members={live.groupMembers[id] ?? []} renderRow={renderRow} openBodies={openBodies} disabled={disabled} />,
         insideGroup(id),
       )
     : renderBlock(id, args);
@@ -226,7 +229,7 @@ export function GroupedSortableList({
     >
       {/* The tail rides in the item list so hovering it previews the row at the
           end; an id dnd-kit cannot index has no transform to give. */}
-      <SortableContext items={[...live.rowIds, TAIL]} strategy={verticalListSortingStrategy}>
+      <SortableContext items={[...live.rowIds, TAIL]} strategy={verticalListSortingStrategy} disabled={disabled}>
         <div
           className={[styles.list, styles.groupedList, className].filter(Boolean).join(' ')}
           aria-label={ariaLabel}

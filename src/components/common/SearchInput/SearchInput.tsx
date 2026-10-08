@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, KeyboardEvent } from 'react';
 import { useTranslation } from '../../../lib/i18n';
 import styles from './SearchInput.module.scss';
 
@@ -19,10 +19,11 @@ export interface SearchInputProps {
   autoFocus?: boolean;
   ariaLabel?: string;
   className?: string;
+  onKeyDown?: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
 export function SearchInput({
-  value, onChange, placeholder, autoFocus, ariaLabel, className,
+  value, onChange, placeholder, autoFocus, ariaLabel, className, onKeyDown,
 }: SearchInputProps) {
   const { t } = useTranslation();
   const hasValue = value.length > 0;
@@ -37,6 +38,7 @@ export function SearchInput({
         onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
+        onKeyDown={onKeyDown}
         aria-label={ariaLabel ?? placeholder}
       />
       {hasValue && (

@@ -76,8 +76,20 @@ export function blockKey(b: DeviceBlock): string {
  * interleave in that order and any block reorders the same way a card does.
  *
  * Shared so the device rail and the immersive Static picker group identically.
+ *
+ * `shape` is the same build over the unfiltered list. Passed while a search
+ * narrows `devices`, it keeps every split and group in the form it has there,
+ * so a lone matching zone keeps the row id its user group stores.
  */
-export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
+export function buildDeviceBlocks(devices: LightingDevice[], shape?: readonly DeviceBlock[]): DeviceBlock[] {
+  const shapeSplits = new Map<string, Extract<ZoneBlock, { kind: 'split' }>>();
+  const shapeGroups = new Set<string>();
+  for (const s of shape ?? []) {
+    if (s.kind === 'group') shapeGroups.add(s.groupKey);
+    for (const z of s.kind === 'group' ? s.blocks : [s]) {
+      if (z.kind === 'split') shapeSplits.set(z.deviceId, z);
+    }
+  }
   const blocks: DeviceBlock[] = [];
   const groupIndex = new Map<string, number>();
   const addToGroup = (key: string, make: () => Extract<DeviceBlock, { kind: 'group' }>, d: LightingDevice) => {
@@ -124,11 +136,11 @@ export function buildDeviceBlocks(devices: LightingDevice[]): DeviceBlock[] {
   for (let i = 0; i < blocks.length; i++) {
     const b = blocks[i];
     if (b.kind !== 'group') continue;
-    b.blocks = zoneBlocksOf(b.devices);
+    b.blocks = zoneBlocksOf(b.devices, shapeSplits);
     b.devices = b.blocks.flatMap(z => z.kind === 'single' ? [z.device] : z.devices);
     // A device rename lands as deviceName; a service before that field names a
     // standalone device (the keeb) through its parent rename instead.
-    if (!b.isBrand && !b.isSmartHub && !keepsHubHeader(b.parentDeviceId) && b.blocks.length === 1) {
+    if (!b.isBrand && !b.isSmartHub && !keepsHubHeader(b.parentDeviceId) && b.blocks.length === 1 && !shapeGroups.has(b.groupKey)) {
       const only = b.blocks[0];
       blocks[i] = only.kind === 'split'
         ? { ...only, label: only.devices[0].deviceName ?? only.devices[0].parentName ?? only.stripLabel }
@@ -152,7 +164,7 @@ function keepsHubHeader(parentDeviceId: string | undefined): boolean {
 // alone on its device stays a card. That is what tells a board port with a
 // fan chain on it from a port with one product: both hang off the board.
 // A service that sends no deviceId gets one card per row, as before.
-function zoneBlocksOf(devices: LightingDevice[]): ZoneBlock[] {
+function zoneBlocksOf(devices: LightingDevice[], shapeSplits?: ReadonlyMap<string, Extract<ZoneBlock, { kind: 'split' }>>): ZoneBlock[] {
   const byDevice = new Map<string, LightingDevice[]>();
   for (const d of devices) {
     const key = d.deviceId || d.id;
@@ -161,7 +173,9 @@ function zoneBlocksOf(devices: LightingDevice[]): ZoneBlock[] {
     else byDevice.set(key, [d]);
   }
   return [...byDevice].map(([deviceId, members]) => {
-    if (members.length === 1) return { kind: 'single', device: members[0] };
+    const full = shapeSplits?.get(deviceId);
+    if (members.length === 1 && !full) return { kind: 'single', device: members[0] };
+    if (full) return { ...full, devices: members };
     const stripLabel = commonNamePrefix(members) || deriveParentName(members[0]);
     return { kind: 'split', groupKey: 'mb:' + deviceId, deviceId, label: stripLabel, stripLabel, devices: members };
   });

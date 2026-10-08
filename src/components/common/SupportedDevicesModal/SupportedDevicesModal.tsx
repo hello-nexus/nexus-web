@@ -5,6 +5,7 @@ import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { SupportedDevicesList } from '../SupportedDevicesList/SupportedDevicesList';
 import { SupportedDevicesPager, SUPPORTED_DEVICES_PAGE_SIZE as PAGE_SIZE } from '../SupportedDevicesPager/SupportedDevicesPager';
 import { SearchInput } from '../SearchInput/SearchInput';
+import { matchesAllWords } from '../../../search/match';
 import styles from './SupportedDevicesModal.module.scss';
 
 interface SupportedDevicesModalProps {
@@ -44,15 +45,7 @@ export function SupportedDevicesModal({
     if (categoryFilter && categoryFilter.length > 0) {
       list = list.filter(d => categoryFilter.includes(d.category));
     }
-    const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-    if (words.length > 0) {
-      list = list.filter(d => {
-        // The newline keeps a word from matching across vendor and model.
-        const text = `${d.vendor}\n${d.model}`.toLowerCase();
-        return words.every(w => text.includes(w));
-      });
-    }
-    return list;
+    return list.filter(d => matchesAllWords(query, [d.vendor, d.model]));
   }, [devices, query, categoryFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));

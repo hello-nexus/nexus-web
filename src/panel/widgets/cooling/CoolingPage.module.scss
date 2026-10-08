@@ -302,6 +302,8 @@
   padding-right: var(--rail-gap);
   overflow-y: auto;
 }
+.railSearch { flex: none; }
+.railSearchEmpty { color: var(--text-dim); font-size: var(--type-small); text-align: center; padding: 1rem 0; margin: 0; }
 // Fan cards inside a hub group: indented under the shared CollapsibleSection
 // header, identical to the lighting device groups.
 .fanGroupChildren {

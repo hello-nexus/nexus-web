@@ -66,9 +66,11 @@ import { type Arrangement } from '../../../components/common/SortableList/groupe
 import { DeviceGroupIcon } from '../../../components/common/DeviceGroupIcon/DeviceGroupIcon';
 import { type GroupMove } from '../../../components/common/DeviceCanvas/groupMenuItems';
 import {
-  addGroup, applyArrangement, arrangementOf, canGroupIn, groupedRows, groupOf, groupRows, groupsIn, hardwareContainerOf,
+  addGroup, applyArrangement, arrangementOf, canGroupIn, groupedRows, groupNamesOf, groupOf, groupRows, groupsIn, hardwareContainerOf,
   MAX_DEVICE_GROUPS, moveBlock, removeGroup, renameGroup, type DeviceGroup,
 } from '../../../lib/deviceGroups';
+import { matchesAllWords } from '../../../search/match';
+import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { FanGroupHeader } from './page/FanGroupHeader';
 import { coolingGroupAnchor } from '../../../lib/pageAnchors';
 import { ServiceRequired } from '../../../components/views/ServiceRequired';
@@ -179,7 +181,9 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // starts collapsed so a calibration-flagged-unresponsive fan doesn't
   // visually dominate the section; hub groups start expanded.
   const [collapsedFanGroups, setCollapsedFanGroups] = usePersistentState<string[]>('cooling.collapsedFanGroups', ['disconnected']);
-  const isFanGroupCollapsed = (key: string) => collapsedFanGroups.includes(key);
+  const railSearch = useRailSearch();
+  // A search opens every group, so a match is never folded away.
+  const isFanGroupCollapsed = (key: string) => !railSearch.active && collapsedFanGroups.includes(key);
   const toggleFanGroup = (key: string) =>
     setCollapsedFanGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   const activeCoolingProfileRef = useRef('');
@@ -1196,11 +1200,19 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // the eye hides it here rather than showing a card that drives nothing. The
   // unfiltered list stays available for the group headers' indicator.
   const hideUncontrolled = !uiSettings.showUncontrolledCoolingDevices;
+  // What the rail search matches a fan on: its names, its hub or board block,
+  // and every user group above it.
+  const railSearchFields = useCallback((c: FanChannel) => {
+    const block = blockIdOf(c);
+    const blockName = block === MOTHERBOARD_BLOCK_ID
+      ? (c.deviceName || boardBlockName)
+      : fanDeviceGroupName(block, c.deviceName);
+    return [c.name, c.originalName, blockName, c.originalDeviceName, ...groupNamesOf(fanGroups, [block, c.id])];
+  }, [boardBlockName, fanGroups]);
   const visibleChannels = useMemo(
-    () => hideUncontrolled
-      ? orderedChannels.filter(c => c.controlled !== false && !isFanDisconnected(c))
-      : orderedChannels,
-    [orderedChannels, hideUncontrolled],
+    () => orderedChannels.filter(c => (!hideUncontrolled || (c.controlled !== false && !isFanDisconnected(c)))
+      && matchesAllWords(railSearch.query, railSearchFields(c))),
+    [orderedChannels, hideUncontrolled, railSearch.query, railSearchFields],
   );
   // Ids the eye is holding back. A drag rebuilds fanOrder from what is on
   // screen, and orderedChannels DROPS any channel missing from that order, so
@@ -1223,14 +1235,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
   // deliberately left to its firmware - and is hidden outright when the page
   // is hiding uncontrolled devices, so selecting it would build a selection
   // the user cannot see.
+  // A search narrows it to the matches, for the same reason.
   const selectableFanIds = useMemo(
-    () => orderedChannels
+    () => (railSearch.active ? visibleChannels : orderedChannels)
       .filter(c => !isFanDisconnected(c)
         && !(c.readOnly ?? false)
         && c.classification !== 'Fixed'
         && c.controlled !== false)
       .map(c => c.id),
-    [orderedChannels],
+    [orderedChannels, visibleChannels, railSearch.active],
   );
   const allFansSelected = selectableFanIds.length > 0
     && selectableFanIds.every(id => selectedFanIds.has(id));
@@ -1489,6 +1502,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 onClick={() => updateUiSettings({ showUncontrolledCoolingDevices: hideUncontrolled })}
               />
             </HoverTooltip>
+            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('cooling.fan.search')} />
           </div>
           <div className={styles.fanHeaderActions}>
             <HoverTooltip
@@ -1560,6 +1574,15 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
             </div>
           )}
 
+          {railSearch.open && (
+            <RailSearchField
+              className={styles.railSearch}
+              query={railSearch.query}
+              onChange={railSearch.setQuery}
+              onClose={railSearch.close}
+              placeholder={t('cooling.fan.searchPlaceholder')}
+            />
+          )}
           <div className={styles.fanListWrap}>
             {calibrating && (
               <div className={styles.calibrationOverlay} role="status" aria-live="polite">
@@ -1645,14 +1668,16 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               // A fan's row sits in its own hub or board block, or in a user
               // group inside it; the fan only ever moves among those groups.
               const containerOfFan = (ch: FanChannel) => groupOf(fanGroups, ch.id)?.id ?? blockIdOf(ch);
+              // A search hides siblings, which a new group anchors among.
               const groupFans = (fans: readonly FanChannel[]): (() => void) | undefined => {
                 const first = fans[0];
-                if (!first) return undefined;
+                if (!first || railSearch.active) return undefined;
                 const container = containerOfFan(first);
                 if (fans.some(c => containerOfFan(c) !== container) || !canGroupIn(fanGroups, container)) return undefined;
                 return () => setFanGroups(groupRows(fanGroups, t('cooling.fan.groupDefaultName'), container, fans.map(c => c.id), siblingsIn(container)));
               };
-              const groupMoveFor = (ch: FanChannel): GroupMove => {
+              const groupMoveFor = (ch: FanChannel): GroupMove | undefined => {
+                if (railSearch.active) return undefined;
                 const current = groupOf(fanGroups, ch.id);
                 const hardware = blockIdOf(ch);
                 const reachable = fanGroups.filter(g => g.id !== current?.id && hardwareContainerOf(fanGroups, g.id) === hardware);
@@ -1667,7 +1692,8 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
               };
               // A hub or board block is a group in its own right: it only
               // enters a top-level group, and none while it holds a group.
-              const blockGroupMove = (blockId: string): GroupMove => {
+              const blockGroupMove = (blockId: string): GroupMove | undefined => {
+                if (railSearch.active) return undefined;
                 const current = groupOf(fanGroups, blockId);
                 const holds = groupsIn(fanGroups, blockId).length > 0;
                 const targets = holds ? [] : fanGroups.filter(g => g.id !== current?.id && g.parent == null);
@@ -1750,6 +1776,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                 if (hideUncontrolled && groupAll.length > 0
                   && groupAll.every(isHiddenFan)) return null;
                 const members = fansIn(arr, groupId);
+                if (railSearch.active && members.length === 0) return null;
                 return (
                   <FanGroupHeader
                     name={group.name}
@@ -1830,6 +1857,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                   >
                     <div className={styles.fanGroupChildren}>
                       <GroupedSortableList
+                        disabled={railSearch.active}
                         arrangement={inner}
                         onArrange={handleInnerArrange}
                         renderBlock={(fanId, fa) => {
@@ -1846,8 +1874,12 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
 
               return (
                 <>
+                  {railSearch.active && visibleChannels.length === 0 && (
+                    <p className={styles.railSearchEmpty}>{t('cooling.fan.noMatches')}</p>
+                  )}
                   {blockIds.length > 0 && (
                     <GroupedSortableList
+                      disabled={railSearch.active}
                       arrangement={arrangement}
                       onArrange={handleArrange}
                       renderBlock={renderBlock}
@@ -1857,7 +1889,7 @@ export function CoolingPage({ serviceOnline, serviceState, connectionState, acti
                       renderGroup={(groupId, a, children, isDropTarget) => renderUserGroup(arrangement, groupId, a, children, isDropTarget)}
                     />
                   )}
-                  {fanGroups.length < MAX_DEVICE_GROUPS && (
+                  {fanGroups.length < MAX_DEVICE_GROUPS && !railSearch.active && (
                     <button
                       type="button"
                       className={styles.addFanGroup}

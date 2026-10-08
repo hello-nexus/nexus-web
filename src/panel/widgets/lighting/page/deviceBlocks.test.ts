@@ -314,3 +314,27 @@ describe('sortZonesWithinDevice', () => {
     expect(sortZonesWithinDevice(input)).toBe(input);
   });
 });
+
+describe('buildDeviceBlocks with the unfiltered shape', () => {
+  const board = [zone('openrgb-0-0', 'B650E - ARGB header 1'), zone('openrgb-0-1', 'B650E - ARGB header 2')];
+  const keeb = [keebZone('keys'), keebZone('underglow')];
+
+  it('collapses a lone surviving row without a shape', () => {
+    const [only] = buildDeviceBlocks([board[1]]);
+    expect(only.kind).toBe('single');
+  });
+
+  it('keeps a board group whole when one header matches', () => {
+    const [only] = buildDeviceBlocks([board[1]], buildDeviceBlocks(board));
+    expect(only.kind === 'group' && only.groupKey).toBe('mb:openrgb-0');
+    expect(only.kind === 'group' && only.devices.map(d => d.id)).toEqual(['openrgb-0-1']);
+  });
+
+  it('keeps a split under its row id when one zone matches', () => {
+    const full = buildDeviceBlocks(keeb);
+    const [only] = buildDeviceBlocks([keeb[1]], full);
+    expect(only.kind).toBe('split');
+    expect(only.kind === 'split' && only.groupKey).toBe(full[0].kind === 'split' && full[0].groupKey);
+    expect(only.kind === 'split' && only.devices.map(d => d.id)).toEqual(['keeb:tkl-1:underglow']);
+  });
+});

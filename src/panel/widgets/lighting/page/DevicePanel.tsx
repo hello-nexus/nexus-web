@@ -33,7 +33,7 @@ import styles from '../LightingPage.module.scss';
  * using the same component/styling as a motherboard group: a chevron, the brand
  * name, a group power switch, and its lights as indented child cards.
  */
-export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
+export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, filtering = false, header, devicePicks, versionForSlot, ledFullscreen, lockable = false, onSetLock, lockFlash, selectedIds, onSetSelection, onTogglePower, onSetPower, onToggleControlled, onSetControlled, lightingOff, onOpenSettings, onOpenColorTuning, keyReactiveIds, keyReactiveOnIds, onOpenKeyReactions, onRenameDevice, onDeviceReorder, communityCounts, onOpenCommunity, lianLiFirmwareHubs, onLianLiTakeControl, firmwareDeviceIds, onFirmwareTakeControl, onOpenSmartLights, discovery, rgbRunning = false, groups = [], onGroupsChange, stacks = [], onStacksChange }: {
   devices: LightingDevice[];
   /** Optional control rendered at the top of the scrolling list (master brightness). */
   /** Every device before the Nexus-Control-off filter, so a group header can
@@ -43,6 +43,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
    *  inferred from the two list lengths, which are equal whenever nothing is
    *  uncontrolled and so cannot tell the two states apart. */
   hidingUncontrolled?: boolean;
+  /** True while the rail search narrows `devices`: dragging is off, since a drop would rewrite groups and order from only the matches. */
+  filtering?: boolean;
   header?: ReactNode;
   /** Per-device static pick keyed by device id; it overrides what the card's
    *  LED strip samples from the effect canvas. Each pick names its own preset
@@ -120,12 +122,13 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   // Persisted per-group collapse state (survives restart via localStorage).
   // Keyed by the block key ('mb:<parentId>' / 'brand:<prefix>'); default expanded.
   const [collapsedGroups, setCollapsedGroups] = usePersistentState<string[]>('lighting.collapsedDeviceGroups', []);
-  const isCollapsed = (key: string) => collapsedGroups.includes(key);
+  // A search opens every group, so a match is never folded away.
+  const isCollapsed = (key: string) => !filtering && collapsedGroups.includes(key);
   const toggleCollapsed = (key: string) =>
     setCollapsedGroups(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
 
-  const blocks = buildDeviceBlocks(devices);
   const every = allDevices ?? devices;
+  const blocks = buildDeviceBlocks(devices, filtering ? buildDeviceBlocks(every) : undefined);
 
   // Block-level ids for the top-level list: single device id for singles,
   // groupKey for stacks and hardware groups.
@@ -172,7 +175,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   // stack when their rows share a container. A header stacks its whole group
   // whatever its rows' containers, since the group is the container.
   const stackFor = (deviceIds: readonly string[], name = '', whole = false): { stack?: () => void; unstack?: () => void } => {
-    if (!onStacksChange || deviceIds.length < 2) return {};
+    // A header under a search holds only the matching rows, not the group it names.
+    if (!onStacksChange || deviceIds.length < 2 || (whole && filtering)) return {};
     if (isStackedSet(stacks, deviceIds)) return { unstack: () => onStacksChange(unstackDevices(stacks, deviceIds)) };
     if (!whole && !canStack(blocks, groups, deviceIds)) return {};
     return { stack: () => onStacksChange(stackDevices(stacks, deviceIds, name)) };
@@ -203,7 +207,8 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   // Wraps the rows of `deviceIds` in a new group where they sit, when every
   // one shares a container with room under the nesting limit.
   const groupDevices = (deviceIds: readonly string[]): (() => void) | undefined => {
-    if (!onGroupsChange) return undefined;
+    // A search hides siblings, which a new group anchors among.
+    if (!onGroupsChange || filtering) return undefined;
     const rows = deviceIds.map(rowOfDevice);
     const first = rows[0];
     if (!first || rows.some(r => r === undefined || r.container !== first.container)) return undefined;
@@ -215,7 +220,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
   // A hardware group is a group in its own right: it only enters a top-level
   // group, and none at all while it holds a group of its own.
   const blockGroupMove = (blockId: string): GroupMove | undefined => {
-    if (!onGroupsChange) return undefined;
+    if (!onGroupsChange || filtering) return undefined;
     const current = groupOf(groups, blockId);
     const holds = groupsIn(groups, blockId).length > 0;
     const targets = holds ? [] : groups.filter(g => g.id !== current?.id && g.parent == null);
@@ -233,7 +238,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
 
   const groupMoveFor = (deviceId: string): GroupMove | undefined => {
     const row = rowOfDevice(deviceId);
-    if (!onGroupsChange || !row) return undefined;
+    if (!onGroupsChange || filtering || !row) return undefined;
     const current = groupOf(groups, row.rowId);
     // A row moves among the groups of its own hardware group, or, outside one,
     // among the groups that sit in none.
@@ -524,6 +529,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
         {...headerStack(members.map(z => z.id), label)}
         drag={a ?? undefined}>
         <GroupedSortableList
+          disabled={filtering}
           arrangement={inner}
           onArrange={handleInnerArrange}
           renderBlock={renderRow}
@@ -536,6 +542,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
             // Off the unfiltered list, the same way the top-level group counts.
             const heldAll = group.members.flatMap(m => every.filter(d => d.id === m || `mb:${d.deviceId || d.id}` === m));
             if (hidingUncontrolled && heldAll.length > 0 && heldAll.every(d => d.controlled === false)) return null;
+            if (filtering && held.length === 0) return null;
             return (
               <MotherboardGroup
                 parentName={group.name}
@@ -589,9 +596,10 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
       <div className={styles.deviceList}>
         {header}
         {devices.length === 0 && (
-          <p className={styles.deviceEmpty}>{t(lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
+          <p className={styles.deviceEmpty}>{t(filtering ? 'lighting.devices.noMatches' : lightingOff ? 'lighting.devices.selectModeHint' : 'lighting.devices.empty')}</p>
         )}
         <GroupedSortableList
+          disabled={filtering}
           arrangement={arrangement}
           onArrange={handleArrange}
           renderBlock={(blockId, a) => {
@@ -621,6 +629,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
             const groupAll = allIn(groupId);
             if (hidingUncontrolled && groupAll.length > 0
               && groupAll.every(d => d.controlled === false)) return null;
+            if (filtering && members.length === 0) return null;
             return (
               <MotherboardGroup
                 parentName={group.name}
@@ -647,7 +656,7 @@ export function DevicePanel({ devices, allDevices, hidingUncontrolled = false, h
           }}
         />
         {discovery && <DeviceDiscoveryCard state={discovery} rgbRunning={rgbRunning} />}
-        {canAddGroup && (
+        {canAddGroup && !filtering && (
           <button
             type="button"
             className={styles.addSmartLights}

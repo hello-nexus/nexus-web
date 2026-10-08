@@ -347,6 +347,22 @@ export function groupOf(groups: readonly DeviceGroup[], blockId: string): Device
   return groups.find(g => g.members.includes(blockId)) ?? null;
 }
 
+/** Names of the user groups holding any of `rowIds`, up through the groups holding those. */
+export function groupNamesOf(groups: readonly DeviceGroup[], rowIds: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const id of rowIds) {
+    let g = groupOf(groups, id);
+    while (g && !seen.has(g.id)) {
+      seen.add(g.id);
+      names.push(g.name);
+      const parent = parentOf(g);
+      g = parent === null ? null : groups.find(x => x.id === parent) ?? null;
+    }
+  }
+  return names;
+}
+
 /** The groups sitting directly in `container`. */
 export function groupsIn(groups: readonly DeviceGroup[], container: string | null): DeviceGroup[] {
   return groups.filter(g => parentOf(g) === container);

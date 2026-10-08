@@ -15,7 +15,9 @@ import {
   type LightingDevice, type LedMapEntry, type PostProcessSettings, type GameSyncDevice,
   type GameSyncGame, type DeviceLayoutDto, type PresetApp,
 } from '../../../api/lighting';
-import { type DeviceGroup } from '../../../lib/deviceGroups';
+import { groupNamesOf, type DeviceGroup } from '../../../lib/deviceGroups';
+import { matchesAllWords } from '../../../search/match';
+import { RailSearchButton, RailSearchField, useRailSearch } from '../../../components/common/RailSearch/RailSearch';
 import { useUndoRedo } from '../../../hooks/useUndoRedo';
 import { useLayoutPresets, devicesToLayouts, devicesToPower } from './page/useLayoutPresets';
 import { mediaIdle, playCurrentOrFirstMedia } from '../../../api/mediaLibrary';
@@ -27,7 +29,7 @@ import { useTopicCallback } from '../../../hooks/useMultiplexSocket';
 import type { ServiceState } from '../../../hooks/useServiceState';
 import type { ConnectionState } from '../../../hooks/useServiceStatus';
 import type { DashboardSectionNavigate } from '../../engine/panelLayoutHelpers';
-import { buildDeviceBlocks, sortZonesWithinDevice } from './page/deviceBlocks';
+import { buildDeviceBlocks, sortZonesWithinDevice, type ZoneBlock } from './page/deviceBlocks';
 import { canStack, isStackedSet, setStackLayout, stackDevices, stackOf, unstackDevices, withStacked, type DeviceStack } from './page/deviceStacks';
 import { controlGroupOf } from './page/controlGroupOf';
 import { stackLayoutOf, type StackLayout } from '../../../lib/stackSlots';
@@ -1432,9 +1434,33 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
   // Nexus Control off means a vendor app owns the device, so the eye hides it
   // from the rail. The unfiltered list stays for the group headers' indicator.
   const hideUncontrolled = !uiSettings.showUncontrolledLightingDevices;
+  const railSearch = useRailSearch();
+  // What the rail search matches a card on: its names, the hardware group and
+  // split it sits in, and every user group above it.
+  const railSearchFields = useMemo(() => {
+    const out = new Map<string, (string | undefined)[]>();
+    const addZones = (b: ZoneBlock, labels: string[], rowIds: string[]) => {
+      if (b.kind === 'single') {
+        out.set(b.device.id, [b.device.name, b.device.originalName, ...labels, ...groupNamesOf(deviceGroups, [...rowIds, b.device.id])]);
+        return;
+      }
+      for (const d of b.devices) {
+        out.set(d.id, [d.name, d.originalName, ...labels, b.label, ...groupNamesOf(deviceGroups, [...rowIds, b.groupKey, d.id])]);
+      }
+    };
+    for (const block of buildDeviceBlocks(orderedDevices)) {
+      if (block.kind === 'group') {
+        for (const b of block.blocks) addZones(b, [block.label], [block.groupKey]);
+      } else {
+        addZones(block, [], []);
+      }
+    }
+    return out;
+  }, [orderedDevices, deviceGroups]);
   const railDevices = useMemo(
-    () => hideUncontrolled ? orderedDevices.filter(d => d.controlled !== false) : orderedDevices,
-    [orderedDevices, hideUncontrolled],
+    () => orderedDevices.filter(d => (!hideUncontrolled || d.controlled !== false)
+      && matchesAllWords(railSearch.query, railSearchFields.get(d.id) ?? [d.name])),
+    [orderedDevices, hideUncontrolled, railSearch.query, railSearchFields],
   );
 
   const selectableIds = useMemo(
@@ -1448,10 +1474,12 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
     [orderedDevices],
   );
   // Select all takes dark cards too, but skips Nexus Control off ones, which the
-  // eye can hide - so it never builds a selection the user cannot see.
+  // eye can hide - so it never builds a selection the user cannot see. A search
+  // narrows it to the matches for the same reason.
   const selectAllIds = useMemo(
-    () => orderedDevices.filter(d => !zoneCardUnavailable(d) && d.controlled !== false).map(d => d.id),
-    [orderedDevices],
+    () => (railSearch.active ? railDevices : orderedDevices)
+      .filter(d => !zoneCardUnavailable(d) && d.controlled !== false).map(d => d.id),
+    [orderedDevices, railDevices, railSearch.active],
   );
 
   // Colour tuning. The modal owns its own device scope, but it opens on what
@@ -2309,6 +2337,7 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
                 onClick={() => updateUiSettings({ showUncontrolledLightingDevices: hideUncontrolled })}
               />
             </HoverTooltip>
+            <RailSearchButton open={railSearch.open} onToggle={railSearch.toggle} label={t('lighting.devices.search')} />
           </div>
           <div className={styles.deviceHeaderActions}>
             <OpenRgbButton rgbRunning={rgb.running} scanning={rgb.scanning} />
@@ -2389,10 +2418,20 @@ export function LightingPage({ serviceOnline, serviceState, connectionState, act
           </div>
         )}
         <div className={styles.devicePane}>
+          {railSearch.open && (
+            <RailSearchField
+              className={styles.railSearch}
+              query={railSearch.query}
+              onChange={railSearch.setQuery}
+              onClose={railSearch.close}
+              placeholder={t('lighting.devices.searchPlaceholder')}
+            />
+          )}
           <DevicePanel
             devices={railDevices}
             allDevices={orderedDevices}
             hidingUncontrolled={hideUncontrolled}
+            filtering={railSearch.active}
             // A mode that reaches every device overrides what any one of them
             // was assigned, so the picks stop applying - the strips go back to
             // sampling the shared canvas. They are kept, not cleared, so

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addGroup, anchorGroups, applyArrangement, arrangementOf, canGroupIn, containerDepth, groupOf, groupRows, groupedRows,
+  addGroup, anchorGroups, applyArrangement, arrangementOf, canGroupIn, containerDepth, groupNamesOf, groupOf, groupRows, groupedRows,
   groupsIn, hardwareContainerOf, MAX_DEVICE_GROUPS, moveBlock, nextGroupName, removeGroup, renameGroup,
   type DeviceGroup, type GroupedRow,
 } from './deviceGroups';
@@ -444,5 +444,33 @@ describe('a row whose group sits in another container', () => {
     expect(groupedRows(['r1', 'x'], idOf, [{ id: 'n', name: 'N', parent: 'mb:P', members: ['r1'] }]).map(r => r.id)).toEqual(['r1', 'x']);
     // A hardware group's zone claimed by a top-level group.
     expect(groupedRows(['z1', 'z2'], idOf, [{ id: 'g', name: 'G', members: ['z1'] }], 'hw').map(r => r.id)).toEqual(['z1', 'z2']);
+  });
+});
+
+describe('groupNamesOf', () => {
+  it('names the group holding a row and every group above it', () => {
+    const groups: DeviceGroup[] = [
+      { id: 'outer', name: 'Desk', members: ['mb:P'] },
+      { id: 'inner', name: 'Front', parent: 'mb:P', members: ['z1'] },
+    ];
+    expect(groupNamesOf(groups, ['z1'])).toEqual(['Front']);
+    expect(groupNamesOf(groups, ['mb:P', 'z1'])).toEqual(['Desk', 'Front']);
+  });
+
+  it('follows a nested user group up to its parent', () => {
+    const groups: DeviceGroup[] = [
+      { id: 'top', name: 'Case', members: [] },
+      { id: 'sub', name: 'Top fans', parent: 'top', members: ['f1'] },
+    ];
+    expect(groupNamesOf(groups, ['f1'])).toEqual(['Top fans', 'Case']);
+  });
+
+  it('is empty for an ungrouped row and survives a parent cycle', () => {
+    expect(groupNamesOf([group('g1', 'Desk', 'b')], ['a'])).toEqual([]);
+    const cyclic: DeviceGroup[] = [
+      { id: 'x', name: 'X', parent: 'y', members: ['r'] },
+      { id: 'y', name: 'Y', parent: 'x', members: [] },
+    ];
+    expect(groupNamesOf(cyclic, ['r'])).toEqual(['X', 'Y']);
   });
 });

@@ -1,6 +1,15 @@
 import type { SearchEntry } from './types';
 
 const BOUNDARY = /[\s\-_/.·›]/;
+
+/** True when every whitespace-separated word of `query` appears in one of `fields`, case-insensitive; an empty query matches. */
+export function matchesAllWords(query: string, fields: readonly (string | null | undefined)[]): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return true;
+  // The newline keeps a word from matching across two fields.
+  const text = fields.filter(Boolean).join('\n').toLowerCase();
+  return words.every(w => text.includes(w));
+}
 const EXACT = 10_000;
 
 /**

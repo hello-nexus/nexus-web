@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { fuzzyScore, scoreEntry } from './match';
+import { fuzzyScore, matchesAllWords, scoreEntry } from './match';
 import type { SearchEntry } from './types';
 
 const entry = (over: Partial<SearchEntry>): SearchEntry => ({
@@ -62,5 +62,26 @@ describe('scoreEntry', () => {
 
   it('returns null when nothing matches', () => {
     expect(scoreEntry('zzzz', entry({ title: 'Lighting' }))).toBeNull();
+  });
+});
+
+describe('matchesAllWords', () => {
+  it('matches when every word appears in some field, in any order', () => {
+    expect(matchesAllWords('strimer lian', ['Lian Li', 'Strimer L Connect'])).toBe(true);
+    expect(matchesAllWords('LIAN', ['Lian Li Uni Hub'])).toBe(true);
+  });
+
+  it('fails when any word is missing', () => {
+    expect(matchesAllWords('lian kraken', ['Lian Li Uni Hub'])).toBe(false);
+  });
+
+  it('never matches one word across two fields', () => {
+    expect(matchesAllWords('lili', ['Li', 'Li'])).toBe(false);
+  });
+
+  it('matches everything on an empty or blank query, and skips missing fields', () => {
+    expect(matchesAllWords('', [])).toBe(true);
+    expect(matchesAllWords('   ', ['x'])).toBe(true);
+    expect(matchesAllWords('fan', [undefined, null, 'Rear fan'])).toBe(true);
   });
 });

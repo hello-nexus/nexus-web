@@ -164,6 +164,13 @@
   margin-right: calc(-1 * var(--rail-gap));
 }
 
+// The rail search field: clear of the gap .devicePane reaches into, so it
+// lines up with the cards below it.
+.railSearch {
+  flex: none;
+  padding: 0 var(--rail-gap) 0.5rem 0;
+}
+
 // Effect and Effect Editor each sit on their own card surface, matching the
 // cooling page's curve block; the device rail stays bare.
 .main {

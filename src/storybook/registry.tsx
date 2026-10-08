@@ -53,6 +53,7 @@ import { SupportedDevicesPager } from '../components/common/SupportedDevicesPage
 import { Overlay } from '../components/common/Overlay/Overlay';
 import { ColorPickerWithPresets } from '../components/common/ColorPickerWithPresets/ColorPickerWithPresets';
 import { SearchInput } from '../components/common/SearchInput/SearchInput';
+import { RailSearchButton, RailSearchField, useRailSearch } from '../components/common/RailSearch/RailSearch';
 import { Pager } from '../components/common/Pager/Pager';
 import { Toggle } from '../components/common/Toggle/Toggle';
 import { EmptyState } from '../components/common/EmptyState/EmptyState';
@@ -1208,6 +1209,18 @@ function PreviewPager() {
 function PreviewSearchInput() {
   const [q, setQ] = useState('');
   return <SearchInput value={q} onChange={setQ} placeholder="Search..." />;
+}
+
+function PreviewRailSearch() {
+  const search = useRailSearch();
+  return (
+    <div className={styles.previewStack}>
+      <RailSearchButton open={search.open} onToggle={search.toggle} label="Search devices" />
+      {search.open && (
+        <RailSearchField query={search.query} onChange={search.setQuery} onClose={search.close} placeholder="Name or group..." />
+      )}
+    </div>
+  );
 }
 
 function PreviewToggle() {
@@ -2435,6 +2448,11 @@ export const REGISTRY: StorybookEntry[] = [
     name: 'SearchInput', category: 'inputs',
     filePath: 'src/components/common/SearchInput/SearchInput.tsx',
     description: 'Themed text input with a leading search icon and a clear button when non-empty. Replaces the duplicate inline implementations in SupportedDevicesModal, AppPicker, and the panel add-widget filter.', Preview: PreviewSearchInput,
+  },
+  {
+    name: 'RailSearch', category: 'inputs',
+    filePath: 'src/components/common/RailSearch/RailSearch.tsx',
+    description: 'Looking-glass filter for a page device rail (lighting devices, cooling fans): RailSearchButton sits in the rail header, RailSearchField opens a focused SearchInput above the list, useRailSearch holds the state. Closing (button or Escape) clears the query. Pages match with matchesAllWords and pass the active flag down to switch off rail drag while filtered.', Preview: PreviewRailSearch,
   },
   {
     name: 'Toggle', category: 'inputs',
