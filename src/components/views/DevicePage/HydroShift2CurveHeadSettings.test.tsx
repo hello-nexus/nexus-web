@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
 import type { HydroShift2CurveHead } from '../../../api/hydroshift2Curve';
 
@@ -41,6 +41,12 @@ async function renderSettings(data: HydroShift2CurveHead = head) {
     render(<HydroShift2CurveHeadSettings />);
   });
 }
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+const tiltSlider = () => screen.getByRole('slider', { name: 'devices.lianliCurve.tiltAria' }) as HTMLInputElement;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -97,5 +103,40 @@ describe('HydroShift2CurveHeadSettings', () => {
   it('shows the moving state', async () => {
     await renderSettings({ ...head, moving: true });
     expect(screen.getByText('devices.lianliCurve.statusMoving')).toBeInTheDocument();
+  });
+
+  it('a poll arriving mid-drag does not overwrite the dragged value', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    await renderSettings();
+    fireEvent.change(tiltSlider(), { target: { value: '30' } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(mockGet.mock.calls.length).toBeGreaterThan(1);
+    expect(tiltSlider().value).toBe('30');
+  });
+
+  it('a typed edit sends exactly one PUT', async () => {
+    await renderSettings();
+    fireEvent.click(screen.getByRole('button', { name: 'devices.lianliCurve.tiltAria' }));
+    const input = screen.getByRole('spinbutton') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '25' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(mockSet).toHaveBeenCalled());
+    await act(async () => { await Promise.resolve(); });
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    expect(mockSet).toHaveBeenCalledWith({ tilt: 25 });
+  });
+
+  it('re-committing the same value after a failed PUT sends again', async () => {
+    mockSet.mockResolvedValueOnce(null);
+    await renderSettings();
+    const commitTilt = async () => {
+      fireEvent.change(tiltSlider(), { target: { value: '30' } });
+      fireEvent.pointerUp(tiltSlider());
+    };
+    await commitTilt();
+    await waitFor(() => expect(mockSet).toHaveBeenCalledTimes(1));
+    await act(async () => { await Promise.resolve(); });
+    await commitTilt();
+    await waitFor(() => expect(mockSet).toHaveBeenCalledTimes(2));
   });
 });

@@ -16,6 +16,7 @@ import { localizeNumbers } from '../../../lib/units';
 const POLL_MS = 1000;
 
 type Axis = 'tilt' | 'slide';
+const AXES: Axis[] = ['tilt', 'slide'];
 
 /** The HydroShift II Curved pump head: tilt angle and height, plus end-stop recalibration. */
 export function HydroShift2CurveHeadSettings() {
@@ -23,19 +24,38 @@ export function HydroShift2CurveHeadSettings() {
   const { numberFormat } = useUnitPrefs();
   const [head, setHead] = useState<HydroShift2CurveHead | null>(null);
   const aliveRef = useRef(true);
-  // Axes mid-drag keep their local value instead of snapping to the polled one.
-  const dirtyRef = useRef<Record<Axis, boolean>>({ tilt: false, slide: false });
-  const sentRef = useRef<Record<Axis, number | null>>({ tilt: null, slide: null });
+  // An axis is dirty while dragged or from commit until a poll reports that target.
+  const draggingRef = useRef<Record<Axis, boolean>>({ tilt: false, slide: false });
+  const pendingRef = useRef<Record<Axis, number | null>>({ tilt: null, slide: null });
+  const inFlightRef = useRef<Record<Axis, number | null>>({ tilt: null, slide: null });
+  const polledRef = useRef<Record<Axis, number | null>>({ tilt: null, slide: null });
+  const issuedRef = useRef(0);
+  const appliedRef = useRef(0);
+  // Polls issued up to this id predate the latest finished PUT and may carry the old target.
+  const putDoneRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const issued = ++issuedRef.current;
     const h = await getHydroShift2CurveHead();
     if (!aliveRef.current || !h) return;
+    if (issued < appliedRef.current || issued <= putDoneRef.current) return;
+    appliedRef.current = issued;
+    if (h.calibrating || !h.connected) {
+      for (const axis of AXES) {
+        draggingRef.current[axis] = false;
+        pendingRef.current[axis] = null;
+      }
+    }
+    polledRef.current = { tilt: h.targetTilt, slide: h.targetSlide };
+    if (pendingRef.current.tilt === h.targetTilt) pendingRef.current.tilt = null;
+    if (pendingRef.current.slide === h.targetSlide) pendingRef.current.slide = null;
+    const dirty = (axis: Axis) => draggingRef.current[axis] || pendingRef.current[axis] !== null;
     setHead(prev => {
       if (!prev) return h;
       return {
         ...h,
-        targetTilt: dirtyRef.current.tilt ? prev.targetTilt : h.targetTilt,
-        targetSlide: dirtyRef.current.slide ? prev.targetSlide : h.targetSlide,
+        targetTilt: dirty('tilt') ? prev.targetTilt : h.targetTilt,
+        targetSlide: dirty('slide') ? prev.targetSlide : h.targetSlide,
       };
     });
   }, []);
@@ -43,7 +63,7 @@ export function HydroShift2CurveHeadSettings() {
   useEffect(() => {
     aliveRef.current = true;
     void refresh();
-    const id = window.setInterval(() => { void refresh(); }, POLL_MS);
+    const id = window.setInterval(() => { if (!document.hidden) void refresh(); }, POLL_MS);
     return () => {
       aliveRef.current = false;
       window.clearInterval(id);
@@ -51,16 +71,20 @@ export function HydroShift2CurveHeadSettings() {
   }, [refresh]);
 
   const commit = useCallback(async (axis: Axis, value: number) => {
-    if (sentRef.current[axis] === value) {
-      dirtyRef.current[axis] = false;
-      return;
-    }
-    sentRef.current[axis] = value;
+    draggingRef.current[axis] = false;
+    const pending = pendingRef.current[axis];
+    const unchanged = pending === null && polledRef.current[axis] === value;
+    if (inFlightRef.current[axis] === value || pending === value || unchanged) return;
+    inFlightRef.current[axis] = value;
+    pendingRef.current[axis] = value;
     const patch: HydroShift2CurveHeadPatch = { [axis]: value };
+    let res: unknown | null = null;
     try {
-      await setHydroShift2CurveHead(patch);
+      res = await setHydroShift2CurveHead(patch);
     } finally {
-      dirtyRef.current[axis] = false;
+      inFlightRef.current[axis] = null;
+      putDoneRef.current = issuedRef.current;
+      if (res === null && pendingRef.current[axis] === value) pendingRef.current[axis] = null;
     }
     await refresh();
   }, [refresh]);
@@ -101,7 +125,7 @@ export function HydroShift2CurveHeadSettings() {
       ariaLabel={ariaLabel}
       disabled={busy}
       onChange={(v: number, done?: boolean) => {
-        dirtyRef.current[axis] = true;
+        draggingRef.current[axis] = true;
         setHead(prev => (prev
           ? { ...prev, [axis === 'tilt' ? 'targetTilt' : 'targetSlide']: v }
           : prev));
