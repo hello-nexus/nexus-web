@@ -170,6 +170,48 @@
   }
 }
 
+// The transport keeps the seek bar and controls one unit, so the bar reads as
+// part of the controls rather than trailing the text.
+.transport {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  // Small: the taller play button already sits the other glyphs lower.
+  @include vgap(2px);
+}
+
+.tall.full,
+.square.full {
+  .transport {
+    align-self: center;
+    width: 100%;
+    max-width: 220px;
+
+    .progressTrack {
+      margin-top: 0;
+    }
+
+    // Pulled out by the bare buttons' glyph inset so the outer glyphs end
+    // where the bar does.
+    .controls {
+      justify-content: space-between;
+      margin: 0 -8px;
+    }
+  }
+}
+
+// 4x4 touch: the art takes the height the text and transport leave, capped at
+// its square, so a two-line title shrinks it instead of overflowing the tile.
+.square.full:not(.statusOnly) .artWrap {
+  @supports (aspect-ratio: 1) {
+    flex: 1 1 0;
+    min-height: 0;
+    width: auto;
+    max-width: 100%;
+    max-height: 220px;
+  }
+}
+
 // Centred in the playback column, which ends at the volume rail - or at the
 // tile's edge when the rail is off.
 .full .controls {
