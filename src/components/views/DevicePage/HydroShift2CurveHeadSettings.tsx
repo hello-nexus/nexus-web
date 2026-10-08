@@ -33,6 +33,7 @@ export function HydroShift2CurveHeadSettings() {
   const appliedRef = useRef(0);
   // Polls issued up to this id predate the latest finished PUT and may carry the old target.
   const putDoneRef = useRef(0);
+  const axisPutDoneRef = useRef<Record<Axis, number>>({ tilt: 0, slide: 0 });
 
   const refresh = useCallback(async () => {
     const issued = ++issuedRef.current;
@@ -47,8 +48,12 @@ export function HydroShift2CurveHeadSettings() {
       }
     }
     polledRef.current = { tilt: h.targetTilt, slide: h.targetSlide };
-    if (pendingRef.current.tilt === h.targetTilt) pendingRef.current.tilt = null;
-    if (pendingRef.current.slide === h.targetSlide) pendingRef.current.slide = null;
+    // The first poll issued after an axis's PUT finished is authoritative, whatever it reports.
+    for (const axis of AXES) {
+      if (inFlightRef.current[axis] === null && issued > axisPutDoneRef.current[axis]) {
+        pendingRef.current[axis] = null;
+      }
+    }
     const dirty = (axis: Axis) => draggingRef.current[axis] || pendingRef.current[axis] !== null;
     setHead(prev => {
       if (!prev) return h;
@@ -64,8 +69,11 @@ export function HydroShift2CurveHeadSettings() {
     aliveRef.current = true;
     void refresh();
     const id = window.setInterval(() => { if (!document.hidden) void refresh(); }, POLL_MS);
+    const onVisible = () => { if (!document.hidden) void refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       aliveRef.current = false;
+      document.removeEventListener('visibilitychange', onVisible);
       window.clearInterval(id);
     };
   }, [refresh]);
@@ -82,8 +90,9 @@ export function HydroShift2CurveHeadSettings() {
     try {
       res = await setHydroShift2CurveHead(patch);
     } finally {
-      inFlightRef.current[axis] = null;
+      if (inFlightRef.current[axis] === value) inFlightRef.current[axis] = null;
       putDoneRef.current = issuedRef.current;
+      axisPutDoneRef.current[axis] = issuedRef.current;
       if (res === null && pendingRef.current[axis] === value) pendingRef.current[axis] = null;
     }
     await refresh();

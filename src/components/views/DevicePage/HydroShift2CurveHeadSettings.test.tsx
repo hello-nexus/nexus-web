@@ -139,4 +139,15 @@ describe('HydroShift2CurveHeadSettings', () => {
     await commitTilt();
     await waitFor(() => expect(mockSet).toHaveBeenCalledTimes(2));
   });
+
+  it('a poll after the PUT finished wins even when the service ended elsewhere', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    await renderSettings();
+    mockGet.mockResolvedValue({ ...head, targetTilt: 12 });
+    fireEvent.change(tiltSlider(), { target: { value: '30' } });
+    fireEvent.pointerUp(tiltSlider());
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(mockSet).toHaveBeenCalledWith({ tilt: 30 });
+    expect(tiltSlider().value).toBe('12');
+  });
 });
