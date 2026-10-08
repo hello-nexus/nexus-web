@@ -64,3 +64,16 @@ describe('CommandPaletteProvider global shortcut', () => {
     expect(state.textContent).toBe('closed');
   });
 });
+
+describe('CommandPaletteProvider non-keyboard keydown', () => {
+  it('ignores a keydown that is a plain Event without getModifierState', () => {
+    const state = renderProbe();
+    // jsdom reports a throwing listener on window 'error' instead of rethrowing.
+    const onError = vi.fn((ev: ErrorEvent) => ev.preventDefault());
+    window.addEventListener('error', onError);
+    window.dispatchEvent(new Event('keydown'));
+    window.removeEventListener('error', onError);
+    expect(onError).not.toHaveBeenCalled();
+    expect(state.textContent).toBe('closed');
+  });
+});

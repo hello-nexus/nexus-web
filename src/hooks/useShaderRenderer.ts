@@ -241,7 +241,10 @@ export function useShaderRenderer(
         }
         if (options?.visibleRef?.current === false || !shouldDraw(ts)) { rafRef.current = requestAnimationFrame(render); return; }
         const g = glRef.current;
-        const c = canvasRef.current!;
+        // The host can drop the canvas while the hook stays mounted; stop drawing
+        // into a context whose canvas is gone.
+        const c = canvasRef.current;
+        if (!c) return;
         const devicePixelRatio = window.devicePixelRatio || 1;
         const maxDevicePixelRatio = options?.maxDevicePixelRatio ?? devicePixelRatio;
         const dpr = Math.min(devicePixelRatio, maxDevicePixelRatio);

@@ -39,7 +39,8 @@ export function CommandPaletteProvider({ navigate, onPairPhone, children }: Prop
       }
       // AltGr (reported as Ctrl+Alt) types '/' on some layouts; allow it, but
       // reject a real Ctrl-/Alt-/Meta-modified chord.
-      const altGraph = e.getModifierState('AltGraph');
+      // Autofill and IME can dispatch a plain Event, which has no getModifierState.
+      const altGraph = typeof e.getModifierState === 'function' && e.getModifierState('AltGraph');
       if (e.key === '/' && !e.metaKey && (altGraph || (!e.ctrlKey && !e.altKey))) {
         const active = document.activeElement;
         // A literal slash must still type normally in any editable surface.
