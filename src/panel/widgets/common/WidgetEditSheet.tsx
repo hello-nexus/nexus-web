@@ -17,7 +17,8 @@ import { IconLabelButton } from '../../../components/common/IconLabelButton/Icon
 import { useModalA11y } from '../../../components/common/Overlay/useModalA11y';
 import {
   slotLayoutOptionsForSize,
-  heroLabelKey,
+  slotLayoutLabelKey,
+  slotLayoutPatch,
   resolvedSlotLayout,
   slotLayoutKey,
   type SlotLayout,
@@ -244,7 +245,7 @@ export function WidgetEditSheet({
 
   const handleSlotLayout = (layout: SlotLayout) => {
     setSelectedMonitoringSlot(prev => Math.min(prev, layout.count - 1));
-    onUpdate(widget.id, { slotCount: layout.count, slotHero: layout.hero });
+    onUpdate(widget.id, slotLayoutPatch(layout));
   };
 
   const sheetStyle = {
@@ -307,14 +308,15 @@ export function WidgetEditSheet({
           {isMonitoringWidget && slotLayoutOptions.length > 0 && (
             <WidgetControlGroup title={t('panel.widget.editSheet.slots')}>
               {slotLayoutOptions.map(option => {
-                const slotLabel = option.hero
-                  ? t(`panel.editor.${heroLabelKey(widget.size)}`)
+                const named = slotLayoutLabelKey(widget.size, option);
+                const slotLabel = named
+                  ? t(`panel.editor.${named}`)
                   : t(pluralKey('panel.editor.slotCount', language, option.count), { count: option.count });
                 return (
                   <IconLabelButton
                     key={slotLayoutKey(option)}
                     className={styles.controlButton}
-                    active={option.count === slotLayout?.count && option.hero === slotLayout?.hero}
+                    active={!!slotLayout && slotLayoutKey(option) === slotLayoutKey(slotLayout)}
                     icon={<SlotLayoutIcon layout={option} size={widget.size} aria-hidden="true" />}
                     ariaLabel={slotLabel}
                     title={slotLabel}
