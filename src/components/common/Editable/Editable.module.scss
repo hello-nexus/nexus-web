@@ -9,6 +9,9 @@
    around it and takes its cursor from whatever it sits on. */
 .displayStatic {
   cursor: inherit;
+  /* Anchors the visually hidden label: unanchored, it escapes a scrolling ancestor and
+     stretches the page below the fold. */
+  position: relative;
 }
 
 .visuallyHidden {
