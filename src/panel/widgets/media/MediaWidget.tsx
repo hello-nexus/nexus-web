@@ -73,6 +73,7 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
     !preview && !!active?.session.playback.playing && !active.session.playback.stopped,
   );
   const artSignature = mediaArtSignature(active?.session);
+  const artVersion = active?.session.song.artVersion ?? 0;
   const showVolume = volumeAllowed && volume.supported;
   const showSource = widget.config?.showSource === true;
   const artResolved = preview || (artAsset.key === activeKey && artAsset.signature === artSignature);
@@ -85,25 +86,26 @@ export function MediaWidget({ widget, surface, deviceTouch }: WidgetProps) {
     if (preview) return;
     if (!activeKey) return;
     let cancelled = false;
-    let blobUrl: string | null = null;
 
     fetchServiceBlob(`/api/media/${encodeURIComponent(activeKey)}/album-art`).then(blob => {
       if (cancelled || !blob) {
         if (!cancelled) setArtAsset({ key: activeKey, signature: artSignature, url: '' });
         return;
       }
-      const url = URL.createObjectURL(blob);
-      blobUrl = url;
-      setArtAsset({ key: activeKey, signature: artSignature, url });
+      setArtAsset({ key: activeKey, signature: artSignature, url: URL.createObjectURL(blob) });
     }).catch(() => {
       if (!cancelled) setArtAsset({ key: activeKey, signature: artSignature, url: '' });
     });
 
-    return () => {
-      cancelled = true;
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-    };
-  }, [preview, activeKey, artSignature]);
+    return () => { cancelled = true; };
+  }, [preview, activeKey, artSignature, artVersion]);
+
+  // Revoked when the next result replaces it, so an artVersion refetch keeps
+  // the same track's art on screen instead of dropping to the placeholder.
+  useEffect(() => {
+    const url = artAsset.url;
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [artAsset.url]);
 
   const control = (action: string) => {
     if (!active) return;

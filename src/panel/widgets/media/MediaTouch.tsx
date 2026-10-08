@@ -67,6 +67,7 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   const active = pickActive(sessions);
   const activeKey = active?.key ?? '';
   const artSig = mediaArtSignature(active?.session);
+  const artVersion = active?.session.song.artVersion ?? 0;
   const artResolved = artAsset.key === activeKey && artAsset.signature === artSig;
   const artUrl = artResolved ? artAsset.url : '';
   const hdArtUrl = hdArtAsset.key === activeKey && hdArtAsset.signature === artSig ? hdArtAsset.url : '';
@@ -74,23 +75,24 @@ export function MediaTouch({ widget, surface, deviceTouch, immersiveGrid, onUpda
   useEffect(() => {
     if (!activeKey) return;
     let cancelled = false;
-    let blobUrl: string | null = null;
     fetchServiceBlob(`/api/media/${encodeURIComponent(activeKey)}/album-art`).then(blob => {
       if (cancelled || !isImageBlob(blob)) {
         if (!cancelled) setArtAsset({ key: activeKey, signature: artSig, url: '' });
         return;
       }
-      const url = URL.createObjectURL(blob);
-      blobUrl = url;
-      setArtAsset({ key: activeKey, signature: artSig, url });
+      setArtAsset({ key: activeKey, signature: artSig, url: URL.createObjectURL(blob) });
     }).catch(() => {
       if (!cancelled) setArtAsset({ key: activeKey, signature: artSig, url: '' });
     });
-    return () => {
-      cancelled = true;
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-    };
-  }, [activeKey, artSig]);
+    return () => { cancelled = true; };
+  }, [activeKey, artSig, artVersion]);
+
+  // Revoked when the next result replaces it, so an artVersion refetch keeps
+  // the same track's art on screen instead of dropping to the placeholder.
+  useEffect(() => {
+    const url = artAsset.url;
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [artAsset.url]);
 
   // Optional high-res upgrade for the immersive view: swaps in only when the
   // service resolves catalog art; any miss leaves the standard art in place.

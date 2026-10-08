@@ -4,7 +4,8 @@ import { useTopic } from './useMultiplexSocket';
 export interface MediaSession {
   sourceAppName: string;
   isFocused?: boolean;
-  song: { title: string; artist: string; album: string };
+  // Bumps when the player republishes its properties, e.g. art set after the title.
+  song: { title: string; artist: string; album: string; artVersion?: number };
   playback: {
     playing: boolean;
     stopped: boolean;
