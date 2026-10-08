@@ -478,7 +478,7 @@
   "cooling.guard.heal.was.nonCpuSensor": "{name} (was following a non-CPU sensor)",
   "cooling.guard.inactive": "Can't read the CPU temperature, so the guard can't act.",
   "cooling.guard.label": "CPU thermal guard",
-  "cooling.guard.latched": "Nexus handed your fans to the BIOS because the cooling engine kept stalling. Restart Nexus or switch the thermal guard off and on in Settings to resume.",
+  "cooling.guard.latched": "Nexus handed your fans to the BIOS because the cooling engine kept stalling. Nexus takes them back after 5 minutes without a stall. To resume now, switch the thermal guard off and on in Settings.",
   "cooling.guard.limit.detectedDefault": "Detected: {temp} °C (default)",
   "cooling.guard.limit.detectedHardware": "Detected: {temp} °C, read from your CPU",
   "cooling.guard.limit.detectedSpec": "Detected: {temp} °C from the CPU spec",

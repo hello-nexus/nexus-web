@@ -478,7 +478,7 @@
   "cooling.guard.heal.was.nonCpuSensor": "{name} (seguiva un sensore non della CPU)",
   "cooling.guard.inactive": "Impossibile leggere la temperatura della CPU, quindi la protezione non può intervenire.",
   "cooling.guard.label": "Protezione termica della CPU",
-  "cooling.guard.latched": "Nexus ha restituito le tue ventole al BIOS perché il motore di raffreddamento continuava a bloccarsi. Riavvia Nexus o disattiva e riattiva la protezione termica nelle impostazioni per riprendere.",
+  "cooling.guard.latched": "Nexus ha restituito le tue ventole al BIOS perché il motore di raffreddamento continuava a bloccarsi. Nexus le riprende dopo 5 minuti senza blocchi. Per riprendere subito, disattiva e riattiva la protezione termica nelle impostazioni.",
   "cooling.guard.limit.detectedDefault": "Rilevato: {temp} °C (predefinito)",
   "cooling.guard.limit.detectedHardware": "Rilevato: {temp} °C, letto dalla tua CPU",
   "cooling.guard.limit.detectedSpec": "Rilevato: {temp} °C dalle specifiche della CPU",

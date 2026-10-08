@@ -482,7 +482,7 @@
   "cooling.guard.heal.was.nonCpuSensor": "{name} (poprzednio: zależność od czujnika spoza procesora)",
   "cooling.guard.inactive": "Nie można odczytać temperatury procesora, więc ochrona nie może zadziałać.",
   "cooling.guard.label": "Ochrona termiczna procesora",
-  "cooling.guard.latched": "Nexus oddał wentylatory BIOS-owi, ponieważ silnik chłodzenia wielokrotnie się zawieszał. Uruchom Nexus ponownie lub wyłącz i włącz ochronę termiczną w Ustawieniach, aby wznowić.",
+  "cooling.guard.latched": "Nexus oddał wentylatory BIOS-owi, ponieważ silnik chłodzenia wielokrotnie się zawieszał. Nexus przejmie je z powrotem po 5 minutach bez zawieszeń. Aby wznowić teraz, wyłącz i włącz ochronę termiczną w Ustawieniach.",
   "cooling.guard.limit.detectedDefault": "Wykryto: {temp} °C (domyślnie)",
   "cooling.guard.limit.detectedHardware": "Wykryto: {temp} °C, odczytano z Twojego procesora",
   "cooling.guard.limit.detectedSpec": "Wykryto: {temp} °C według specyfikacji procesora",

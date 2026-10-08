@@ -478,7 +478,7 @@
   "cooling.guard.heal.was.nonCpuSensor": "{name} (CPU dışı bir sensörü izliyordu)",
   "cooling.guard.inactive": "CPU sıcaklığı okunamıyor, bu yüzden koruma devreye giremez.",
   "cooling.guard.label": "CPU termal koruması",
-  "cooling.guard.latched": "Nexus, soğutma motoru sürekli takıldığı için fanlarınızı BIOS'a devretti. Devam etmek için Nexus'u yeniden başlatın veya Ayarlar'da termal korumayı kapatıp yeniden açın.",
+  "cooling.guard.latched": "Nexus, soğutma motoru sürekli takıldığı için fanlarınızı BIOS'a devretti. Nexus, 5 dakika boyunca takılma olmazsa fanları geri alır. Hemen devam etmek için Ayarlar'da termal korumayı kapatıp yeniden açın.",
   "cooling.guard.limit.detectedDefault": "Algılanan: {temp} °C (varsayılan)",
   "cooling.guard.limit.detectedHardware": "Algılanan: {temp} °C, CPU'nuzdan okundu",
   "cooling.guard.limit.detectedSpec": "Algılanan: {temp} °C, CPU belirtimine göre",

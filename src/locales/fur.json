@@ -478,7 +478,7 @@
   "cooling.guard.heal.was.nonCpuSensor": "{name} (al seguive un sensôr no dal CPU)",
   "cooling.guard.inactive": "Impussibil lei la temperadure dal CPU, par chel la protezion no pues intervignî.",
   "cooling.guard.label": "Protezion termiche dal CPU",
-  "cooling.guard.latched": "Nexus al à tornât i ventilatôrs al BIOS parcè che il motôr di refredament al se blocave in continuazion. Torne invie Nexus o distude e impie la protezion termiche tes impostazions par ripleâ.",
+  "cooling.guard.latched": "Nexus al à tornât i ventilatôrs al BIOS parcè che il motôr di refredament al se blocave in continuazion. Nexus ju torne a cjapâ dopo 5 minûts cence blocs. Par ripleâ subit, distude e impie la protezion termiche tes impostazions.",
   "cooling.guard.limit.detectedDefault": "Rilevât: {temp} °C (predefinît)",
   "cooling.guard.limit.detectedHardware": "Rilevât: {temp} °C, lett dal to CPU",
   "cooling.guard.limit.detectedSpec": "Rilevât: {temp} °C des specifichis dal CPU",
