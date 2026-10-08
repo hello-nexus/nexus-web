@@ -12,6 +12,19 @@
 .grid2row { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
 .grid2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 
+// A side-by-side 2x2 cell is as narrow as a hero small cell, so it takes the
+// same caption size and a narrower gap; with either alone "CPU USAGE"
+// truncates on Windows Edge.
+.gridSplitColumns {
+  grid-template-columns: 1fr 1fr;
+  /* c83:allow - .performance is display: grid */
+  column-gap: 6px;
+
+  > * {
+    --type-gauge-caption: calc(var(--type-tiny) * 0.85);
+  }
+}
+
 // Hero: the first slot spans the top row, the other two share the bottom one.
 // The top row is the taller of the two so the headline sensor reads as the
 // primary one rather than as a third equal cell.

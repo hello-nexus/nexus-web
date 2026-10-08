@@ -216,7 +216,7 @@ export function SlotLayoutIcon({
   }
   if (count >= 4) return <FourSlotsIcon {...props} />;
   if (count === 2) {
-    return size === '4x4' || size === '2x4' ? <TwoRectangleSlotsIcon {...props} /> : <TwoSquareSlotsIcon {...props} />;
+    return layout.split === 'rows' || size === '4x4' || size === '2x4' ? <TwoRectangleSlotsIcon {...props} /> : <TwoSquareSlotsIcon {...props} />;
   }
   return size === '4x2' || size === '2x4' ? <OneRectangleSlotIcon {...props} /> : <OneSquareSlotIcon {...props} />;
 }

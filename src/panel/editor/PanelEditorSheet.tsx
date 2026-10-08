@@ -10,7 +10,7 @@ import { SIZE_ICONS } from '../widgets/common/SizeIcons';
 import { WidgetControlGroup } from '../widgets/common/WidgetControlGroup';
 import { SettingsSection, SettingsToggle } from '../widgets/common/SettingsRow/SettingsRow';
 import { SlotLayoutIcon } from '../widgets/monitoring/SlotCountIcons';
-import { heroLabelKey, slotLayoutOptionsForSize, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
+import { slotLayoutLabelKey, slotLayoutOptionsForSize, slotLayoutPatch, resolvedSlotLayout, slotLayoutKey, type SlotLayout } from '../widgets/monitoring/perfSlots';
 import { PanelWidgetCatalog } from './PanelWidgetCatalog';
 import { PanelHostNameSetting } from './PanelHostNameSetting';
 import type { PanelBackdrop } from '../background/panelBackground';
@@ -285,7 +285,7 @@ export function PanelEditorSheet({
   const handleSlotLayout = (layout: SlotLayout) => {
     if (!editingWidget) return;
     onSelectedMonitoringSlotChange(Math.min(selectedMonitoringSlot, layout.count - 1));
-    onUpdate(editingWidget.id, { slotCount: layout.count, slotHero: layout.hero });
+    onUpdate(editingWidget.id, slotLayoutPatch(layout));
   };
 
   return (
@@ -377,14 +377,15 @@ export function PanelEditorSheet({
                   {isMonitoringWidget && slotLayoutOptions.length > 0 && (
                     <WidgetControlGroup title={t('panel.editor.slots')}>
                       {slotLayoutOptions.map(option => {
-                        const slotLabel = option.hero
-                          ? t(`panel.editor.${heroLabelKey(editingWidget.size)}`)
+                        const named = slotLayoutLabelKey(editingWidget.size, option);
+                        const slotLabel = named
+                          ? t(`panel.editor.${named}`)
                           : t(pluralKey('panel.editor.slotCount', language, option.count), { count: option.count });
                         return (
                           <IconLabelButton
                             key={slotLayoutKey(option)}
                             className={styles.editorControlButton}
-                            active={option.count === slotLayout?.count && option.hero === slotLayout?.hero}
+                            active={!!slotLayout && slotLayoutKey(option) === slotLayoutKey(slotLayout)}
                             icon={<SlotLayoutIcon layout={option} size={editingWidget.size} aria-hidden="true" />}
                             ariaLabel={slotLabel}
                             title={slotLabel}
