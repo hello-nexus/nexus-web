@@ -14,6 +14,7 @@ import { useConflictResolveAll } from '../../../hooks/useConflictResolveAll';
 import { useConflictRoster } from '../../../hooks/useConflictRoster';
 import { HYTE_NEXUS2_CONFLICT_ID, type DetectedConflict } from '../../../api/conflicts';
 import { uninstallNexus2 } from '../../../api/migration';
+import { reportConflictStep, type ConflictStepAction } from '../../../api/onboarding';
 import styles from './ConflictOnboardingScreen.module.scss';
 
 const HERO_ICON_SIZE = 40;
@@ -63,11 +64,22 @@ export function ConflictOnboardingScreen({
   const uninstallLabelId = useId();
   const heading = t('conflicts.onboarding.title');
 
+  // Fire-and-forget: the line is for support bundles and never holds the step.
+  const report = useCallback((action: ConflictStepAction) => {
+    void reportConflictStep({
+      action,
+      listed: entries.map(e => e.conflict.id),
+      whitelisted: entries.filter(e => whitelisted.has(e.conflict.id)).map(e => e.conflict.id),
+      alreadyEnded: entries.filter(e => e.terminated).map(e => e.conflict.id),
+    }).catch(() => null);
+  }, [entries, whitelisted]);
+
   // Best-effort throughout: a kill or uninstall that did not stick is not a
   // reason to hold the user here - the top-bar badge keeps offering it.
   const handleResolveAll = useCallback(async () => {
     if (busy) return;
     setBusy(true);
+    report('resolveAll');
     try {
       if (pending) await resolveAll();
       if (nexus2Installed && uninstallN2) await uninstallNexus2().catch(() => null);
@@ -75,7 +87,7 @@ export function ConflictOnboardingScreen({
       setBusy(false);
     }
     onComplete();
-  }, [busy, pending, resolveAll, nexus2Installed, uninstallN2, onComplete]);
+  }, [busy, report, pending, resolveAll, nexus2Installed, uninstallN2, onComplete]);
 
   return (
     <Overlay
@@ -97,7 +109,9 @@ export function ConflictOnboardingScreen({
             {t('nav.back')}
           </Button>
         ) : <span />}
-        {onSkipOnboarding ? <SkipOnboardingButton onSkip={onSkipOnboarding} disabled={busy} /> : <span />}
+        {onSkipOnboarding ? (
+          <SkipOnboardingButton onSkip={() => { report('skipOnboarding'); onSkipOnboarding(); }} disabled={busy} />
+        ) : <span />}
       </div>
 
       <div className={styles.hero}>
@@ -151,7 +165,7 @@ export function ConflictOnboardingScreen({
       </div>
 
       <div className={styles.footerRow}>
-        <Button tone="ghost" size="lg" disabled={busy} onClick={onComplete}>
+        <Button tone="ghost" size="lg" disabled={busy} onClick={() => { report('skip'); onComplete(); }}>
           {t('conflicts.onboarding.skip')}
         </Button>
         <Button
