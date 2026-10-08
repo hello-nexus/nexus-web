@@ -100,6 +100,7 @@ import { KrakenCoolerSettings } from './KrakenCoolerSettings';
 import { CorsairLcdSettings } from './CorsairLcdSettings';
 import { HydroShift2RingSettings } from './HydroShift2RingSettings';
 import { HydroShift2CurveHeadSettings } from './HydroShift2CurveHeadSettings';
+import { HydroShift2CurveSettings } from './HydroShift2CurveSettings';
 import { useFirmwareStatus } from '../../../hooks/useFirmwareStatus';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
 import { Button } from '../../common/Button/Button';
@@ -1735,6 +1736,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   {activeTab === 'settings' && isHydroShift2CurvePanel && (
                     <div className={styles.settingsContent}>
                       <HydroShift2CurveHeadSettings />
+                      <HydroShift2CurveSettings />
                     </div>
                   )}
                   {activeTab === 'settings' && surface === 'kraken' && !isSimulated && (
