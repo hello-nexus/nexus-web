@@ -194,7 +194,7 @@ export interface DeckPage {
 }
 
 // ── Dials (Stream Deck Plus, Plus XL, Studio, Galleon) ──
-// `step` is percent points per tick (service default 2; 5x while held).
+// `step` is percent points per tick; the service multiplies it while the dial is held.
 export type DeckDialAction =
   | { type: 'volume'; deviceId?: string; step?: number }
   | { type: 'micVolume'; deviceId?: string; step?: number }

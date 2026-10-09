@@ -20,7 +20,7 @@ import { DeckDialInspector, DeckDialDragPreview } from '../../../panel/widgets/d
 import { assignDialAction, parseDialDndId, parseDialPickId } from '../../../panel/widgets/deck/deckDials';
 import { DeckKeyInspector, DeckDefaultTitleSettings, DeckActionDragPreview, slotForPickerKind, type DeckPickerKind } from '../../../panel/widgets/deck/DeckKeyInspector';
 import { DeckPageStrip } from '../../../panel/widgets/deck/DeckPageStrip';
-import { padSlots, pageHasContent, countBoundSlots, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
+import { padSlots, pageHasContent, countBoundFolder, MAX_DECK_PAGES } from '../../../panel/widgets/deck/deckLayout';
 import { withPageIndicatorDisplay } from '../../../panel/widgets/deck/deckIcons';
 import { resolveTargetDials, resolveTargetView, slotCountAtDepth } from '../../../panel/widgets/deck/deckTarget';
 import { isLocalhostUnreachable } from '../../../api/service';
@@ -121,7 +121,13 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const target = instance.target;
 
   // Key and dial selection are mutually exclusive.
-  const setSelectedSlot = useCallback((i: number) => { setSelectedSlotState(i); setSelectedDial(null); }, []);
+  const setSelectedSlot = useCallback((i: number) => { setSelectedSlotState(i); setSelectedDial(null); setDialEntry(0); }, []);
+  const navRef = useRef({ page, folderPath });
+  const selectedDialRef = useRef(selectedDial);
+  useEffect(() => {
+    navRef.current = { page, folderPath };
+    selectedDialRef.current = selectedDial;
+  });
   const selectDial = useCallback((i: number) => { setSelectedDial(i); setDialEntry(0); }, []);
 
   // Recent Apps has no authored preset content to render - every key comes
@@ -235,7 +241,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
 
   useEffect(() => {
     if (pendingFlashDial == null || !target) return;
-    const segment = previewStageRef.current?.querySelector<HTMLElement>(`[data-deck-dial-index="${pendingFlashDial}"]`);
+    const segment = previewStageRef.current?.querySelector<HTMLElement>(`[data-deck-dial-index="${pendingFlashDial}"], [data-deck-knob-index="${pendingFlashDial}"]`);
     if (!segment) return;
     setPendingFlashDial(null);
     segment.animate?.(
@@ -290,12 +296,16 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   useTopicCallback('streamdeck', !isLocalhostUnreachable() && !!serial, useCallback((data: unknown) => {
     const f = data as { kind?: string; serial?: string; page?: number; folderPath?: number[] };
     if (f.kind !== 'nav' || f.serial !== serial) return;
+    const nextFolder = Array.isArray(f.folderPath) ? f.folderPath : [];
+    const moved = (typeof f.page === 'number' && f.page !== navRef.current.page)
+      || nextFolder.join('.') !== navRef.current.folderPath.join('.');
     if (typeof f.page === 'number') {
       setPage(f.page);
       if (recentAppsMode) setRecentPage(f.page);
     }
-    setFolderPath(Array.isArray(f.folderPath) ? f.folderPath : []);
-    setSelectedSlot(0);
+    setFolderPath(nextFolder);
+    // A nav frame that changes nothing (around a long touch) keeps the dial a hold-to-edit just opened.
+    if (moved || selectedDialRef.current == null) setSelectedSlot(0);
   }, [serial, recentAppsMode, setSelectedSlot]));
 
   // Mirror an editor-initiated nav onto the hardware (desktop -> device). Only
@@ -418,7 +428,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const clearSlot = (i: number) => { if (target) target.updateSlot(page, folderPath, i, {}); };
   const requestDelete = (i: number) => {
     const s = viewSlots[i];
-    const count = s?.folder ? countBoundSlots(s.folder.slots) : 0;
+    const count = s?.folder ? countBoundFolder(s.folder) : 0;
     if (count > 0) setDeleteConfirm({ index: i, count });
     else clearSlot(i);
   };
@@ -566,7 +576,6 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                       page={page}
                       folderPath={folderPath}
                       selectedDial={dialSel}
-                      onSelectedDialChange={selectDial}
                       entryIndex={dialEntry}
                       onEntryIndexChange={setDialEntry}
                       // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
@@ -621,6 +630,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     desktopEditor
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="picker"
+                    pickerInert={dialSel != null}
                   />
                 )}
                 {!recentAppsMode && target && encoders > 0 && (
@@ -629,7 +639,6 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     page={page}
                     folderPath={folderPath}
                     selectedDial={dialSel}
-                    onSelectedDialChange={selectDial}
                     entryIndex={dialEntry}
                     onEntryIndexChange={setDialEntry}
                     // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value

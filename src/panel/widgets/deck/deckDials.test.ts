@@ -26,10 +26,11 @@ describe('dial ids and paths', () => {
     expect(dialSlotPathAt([1, 3], 0)).toBe('1.3.dial:0');
   });
 
-  it('falls back to the page-level frame inside a folder', () => {
+  it('reads only the frame of the current page and folder view', () => {
     const tiles = new Map([['0:dial:1', 'page'], ['0:2.dial:1', 'folder']]);
     expect(dialLiveTile(tiles, 0, [2], 1)).toBe('folder');
-    expect(dialLiveTile(tiles, 0, [5], 1)).toBe('page');
+    expect(dialLiveTile(tiles, 0, [5], 1)).toBeUndefined();
+    expect(dialLiveTile(tiles, 0, [], 1)).toBe('page');
     expect(dialLiveTile(tiles, 0, [], 0)).toBeUndefined();
     expect(dialLiveTile(undefined, 0, [], 0)).toBeUndefined();
   });
@@ -81,10 +82,11 @@ describe('dial stack', () => {
     expect(writeDialEntry({ stack: [{ label: 'a' }, { label: 'b' }] }, 1, { label: 'B' })).toEqual({ stack: [{ label: 'a' }, { label: 'B' }] });
   });
 
-  it('dialIsEmpty looks at the shown entry', () => {
+  it('dialIsEmpty looks at every stack entry', () => {
     expect(dialIsEmpty({})).toBe(true);
     expect(dialIsEmpty({ label: 'a' })).toBe(false);
-    expect(dialIsEmpty({ stack: [{}, { label: 'b' }] })).toBe(true);
+    expect(dialIsEmpty({ stack: [{}, { label: 'b' }] })).toBe(false);
+    expect(dialIsEmpty({ stack: [{}, {}] })).toBe(true);
   });
 });
 

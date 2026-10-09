@@ -13,7 +13,7 @@ import { IconPicker } from '../common/IconPicker';
 import { canEditFreeText } from '../../types';
 import type { PanelSurface } from '../../types';
 import {
-  ActionEditor, Field, NESTED_KINDS, SelectField, SwatchRow, kindsForTarget, useMonitoringPicker, useServiceOptions,
+  ActionEditor, Field, NESTED_KINDS, SelectField, SwatchRow, kindsForTarget, useDisplayOptions, useMonitoringPicker, useServiceOptions,
   defaultActionFor,
 } from './DeckKeyInspector';
 import { DECK_ICONS } from './deckIcons';
@@ -21,6 +21,7 @@ import {
   DIAL_PICKER_CATEGORIES, MAX_DIAL_STACK, assignDialAction, dialAutoIconName, dialEntryAt, isDialStack, stackAddEntry,
   stackMoveEntry, stackRemoveEntry, writeDialEntry,
 } from './deckDials';
+import { dialsInherited } from './deckLayout';
 import { resolveTargetDials, type DeckTarget } from './deckTarget';
 import type { DeckAction, DeckDial, DeckDialAction, DeckDialActionType, DeckMonitoringCategory, DeckMonitoringPress } from './types';
 import keyStyles from './DeckKeyInspector.module.scss';
@@ -129,23 +130,24 @@ function AppField({ action, onChange }: { action: Extract<DeckDialAction, { type
   );
 }
 
-function DisplayField({ action, onChange }: { action: Extract<DeckDialAction, { type: 'displayBrightness' }>; onChange: (a: DeckDialAction) => void }) {
+function DisplayField({ action, onChange, inherited }: { action: Extract<DeckDialAction, { type: 'displayBrightness' }>; onChange: (a: DeckDialAction) => void; inherited: boolean }) {
   const { t } = useTranslation();
-  const displays = useServiceOptions('/displays', d => ((d as { displays?: { id: string; name?: string; label?: string }[] })?.displays ?? []).map(x => ({ value: x.id, label: x.name ?? x.label ?? x.id })));
+  const displays = useDisplayOptions();
+  // A write would copy the enclosing level's dials into the folder, so an inherited dial is never seeded on view.
   useEffect(() => {
-    if (!action.displayId && displays.length > 0) onChange({ ...action, displayId: displays[0].value });
-  }, [action, displays, onChange]);
+    if (!inherited && !action.displayId && displays.length > 0) onChange({ ...action, displayId: displays[0].value });
+  }, [action, displays, onChange, inherited]);
   return <SelectField label={t('panel.settings.deck.display')} value={action.displayId} options={displays} onChange={displayId => onChange({ ...action, displayId })} />;
 }
 
-function MonitoringDialFields({ action, onChange, surface, desktopEditor }: {
-  action: Extract<DeckDialAction, { type: 'monitoring' }>; onChange: (a: DeckDialAction) => void; surface?: PanelSurface; desktopEditor?: boolean;
+function MonitoringDialFields({ action, onChange, surface, desktopEditor, inherited }: {
+  action: Extract<DeckDialAction, { type: 'monitoring' }>; onChange: (a: DeckDialAction) => void; surface?: PanelSurface; desktopEditor?: boolean; inherited: boolean;
 }) {
   const { t } = useTranslation();
   const { categoryOptions, sensorOptions, sensorValue } = useMonitoringPicker(action.category, action.sensor);
   useEffect(() => {
-    if (sensorValue && sensorValue !== action.sensor) onChange({ ...action, sensor: sensorValue });
-  }, [sensorValue, action, onChange]);
+    if (!inherited && sensorValue && sensorValue !== action.sensor) onChange({ ...action, sensor: sensorValue });
+  }, [sensorValue, action, onChange, inherited]);
   const canType = canEditFreeText(surface, desktopEditor);
   return (
     <>
@@ -226,8 +228,8 @@ function CustomDialFields({ action, onChange, target, surface, desktopEditor }: 
   );
 }
 
-function DialActionFields({ action, onChange, target, surface, desktopEditor }: {
-  action: DeckDialAction; onChange: (a: DeckDialAction) => void; target: DeckTarget; surface?: PanelSurface; desktopEditor?: boolean;
+function DialActionFields({ action, onChange, target, surface, desktopEditor, inherited }: {
+  action: DeckDialAction; onChange: (a: DeckDialAction) => void; target: DeckTarget; surface?: PanelSurface; desktopEditor?: boolean; inherited: boolean;
 }) {
   const { t } = useTranslation();
   switch (action.type) {
@@ -238,7 +240,7 @@ function DialActionFields({ action, onChange, target, surface, desktopEditor }: 
     case 'appVolume':
       return (<><AppField action={action} onChange={onChange} /><StepField action={action} onChange={onChange} /></>);
     case 'displayBrightness':
-      return (<><DisplayField action={action} onChange={onChange} /><StepField action={action} onChange={onChange} /></>);
+      return (<><DisplayField action={action} onChange={onChange} inherited={inherited} /><StepField action={action} onChange={onChange} /></>);
     case 'deckBrightness':
     case 'lightingBrightness':
     case 'y70Brightness':
@@ -246,10 +248,23 @@ function DialActionFields({ action, onChange, target, surface, desktopEditor }: 
     case 'page':
       return <p className={keyStyles.description}>{t('panel.settings.deck.dial.pageHint')}</p>;
     case 'monitoring':
-      return <MonitoringDialFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} />;
+      return <MonitoringDialFields action={action} onChange={onChange} surface={surface} desktopEditor={desktopEditor} inherited={inherited} />;
     case 'custom':
       return <CustomDialFields action={action} onChange={onChange} target={target} surface={surface} desktopEditor={desktopEditor} />;
   }
+}
+
+/** Selected entry after entry `from` moves one step toward `direction`. */
+function followMove(selected: number, from: number, direction: -1 | 1): number {
+  const to = from + direction;
+  if (selected === from) return to;
+  return selected === to ? from : selected;
+}
+
+/** Selected entry after entry `removed` leaves a stack of `length`. */
+function followRemove(selected: number, removed: number, length: number): number {
+  const next = selected > removed ? selected - 1 : selected;
+  return Math.max(0, Math.min(next, length - 2));
 }
 
 export interface DeckDialInspectorProps {
@@ -257,7 +272,6 @@ export interface DeckDialInspectorProps {
   page: number;
   folderPath: readonly number[];
   selectedDial: number | null;
-  onSelectedDialChange: (index: number) => void;
   /** Stack entry being edited; 0 for a dial without a stack. */
   entryIndex: number;
   onEntryIndexChange: (index: number) => void;
@@ -268,10 +282,11 @@ export interface DeckDialInspectorProps {
 }
 
 /** Dial counterpart of DeckKeyInspector: the dial action list and the selected dial's action, look and stack editor. */
-export function DeckDialInspector({ target, page, folderPath, selectedDial, onSelectedDialChange, entryIndex, onEntryIndexChange, surface, desktopEditor, part }: DeckDialInspectorProps) {
+export function DeckDialInspector({ target, page, folderPath, selectedDial, entryIndex, onEntryIndexChange, surface, desktopEditor, part }: DeckDialInspectorProps) {
   const { t } = useTranslation();
   const dials = resolveTargetDials(target, page, folderPath);
-  const index = selectedDial == null ? 0 : Math.min(selectedDial, Math.max(0, dials.length - 1));
+  const index = Math.min(selectedDial ?? 0, Math.max(0, dials.length - 1));
+  const inherited = dialsInherited(target.config, page, folderPath);
   const dial: DeckDial = dials[index] ?? {};
   const stacked = isDialStack(dial);
   const entryAt = stacked ? Math.min(entryIndex, dial.stack!.length - 1) : 0;
@@ -298,7 +313,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, onSe
                     key={type}
                     type={type}
                     active={selectedDial != null && entry.action?.type === type}
-                    onPick={picked => { writeDial(assignDialAction(dial, entryAt, picked)); onSelectedDialChange(index); }}
+                    onPick={picked => { if (selectedDial != null) writeDial(assignDialAction(dial, entryAt, picked)); }}
                   />
                 ))}
               </div>
@@ -319,9 +334,9 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, onSe
                 {t('panel.settings.deck.dial.stack.entry', { n: i + 1 })}
                 {e.action ? ` - ${t(`panel.settings.deck.dial.action.${e.action.type}`)}` : ''}
               </button>
-              <Button type="button" tone="ghost" size="sm" icon={<ArrowUp size={14} aria-hidden />} disabled={i === 0} aria-label={t('panel.settings.deck.dial.stack.moveUp')} onClick={() => { writeDial(stackMoveEntry(dial, i, -1)); if (i === entryAt) onEntryIndexChange(i - 1); }} />
-              <Button type="button" tone="ghost" size="sm" icon={<ArrowDown size={14} aria-hidden />} disabled={i === dial.stack!.length - 1} aria-label={t('panel.settings.deck.dial.stack.moveDown')} onClick={() => { writeDial(stackMoveEntry(dial, i, 1)); if (i === entryAt) onEntryIndexChange(i + 1); }} />
-              <Button type="button" tone="ghost" size="sm" icon={<Trash2 size={14} aria-hidden />} aria-label={t('panel.settings.deck.dial.stack.remove')} onClick={() => { writeDial(stackRemoveEntry(dial, i)); onEntryIndexChange(Math.max(0, Math.min(entryAt, dial.stack!.length - 2))); }} />
+              <Button type="button" tone="ghost" size="sm" icon={<ArrowUp size={14} aria-hidden />} disabled={i === 0} aria-label={t('panel.settings.deck.dial.stack.moveUp')} onClick={() => { writeDial(stackMoveEntry(dial, i, -1)); onEntryIndexChange(followMove(entryAt, i, -1)); }} />
+              <Button type="button" tone="ghost" size="sm" icon={<ArrowDown size={14} aria-hidden />} disabled={i === dial.stack!.length - 1} aria-label={t('panel.settings.deck.dial.stack.moveDown')} onClick={() => { writeDial(stackMoveEntry(dial, i, 1)); onEntryIndexChange(followMove(entryAt, i, 1)); }} />
+              <Button type="button" tone="ghost" size="sm" icon={<Trash2 size={14} aria-hidden />} aria-label={t('panel.settings.deck.dial.stack.remove')} onClick={() => { writeDial(stackRemoveEntry(dial, i)); onEntryIndexChange(followRemove(entryAt, i, dial.stack!.length)); }} />
             </div>
           ))}
         </div>
@@ -349,7 +364,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, onSe
       {action ? (
         <SettingsSection title={t(`panel.settings.deck.dial.action.${action.type}`)}>
           <div className={keyStyles.fieldStack}>
-            <DialActionFields action={action} onChange={a => writeEntry({ ...entry, action: a })} target={target} surface={surface} desktopEditor={desktopEditor} />
+            <DialActionFields action={action} onChange={a => writeEntry({ ...entry, action: a })} target={target} surface={surface} desktopEditor={desktopEditor} inherited={inherited} />
           </div>
         </SettingsSection>
       ) : (

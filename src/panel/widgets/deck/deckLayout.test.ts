@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   innerGridForSize, normalizeDeckConfig, padSlots, resolveViewSlots, updateSlotAt, swapSlots, emptyDeck,
   addPage, removePage, pageHasContent, countBoundSlots, countConfiguredSlots,
-  resolveViewDials, updateDialAt, swapDialsAt, padDials,
+  resolveViewDials, updateDialAt, swapDialsAt, padDials, dialsInherited, countBoundFolder,
 } from './deckLayout';
 import type { DeckConfig } from './types';
 
@@ -355,5 +355,30 @@ describe('dials', () => {
     expect(afterUpdate.pages[0].slots[1].folder?.dials).toEqual([{ label: 'own' }]);
     const afterSwap = swapSlots(deck, 0, [], 0, 1, 4);
     expect(afterSwap.pages[0].dials).toEqual(deck.pages[0].dials);
+  });
+
+  it('a write on a deck with fewer dials keeps the preset\'s extra dials', () => {
+    const wide: DeckConfig = { pages: [{ slots: [], dials: [{ label: '1' }, { label: '2' }, { label: '3' }, { label: '4' }, { label: '5' }, { label: '6' }] }] };
+    expect(updateDialAt(wide, 0, [], 0, { label: 'X' }, 4).pages[0].dials).toHaveLength(6);
+    expect(swapDialsAt(wide, 0, [], 0, 1, 4).pages[0].dials).toHaveLength(6);
+  });
+
+  it('materializing a folder\'s dials copies the whole inherited set', () => {
+    const wide: DeckConfig = { pages: [{ slots: [{ folder: { slots: [] } }], dials: [{ label: '1' }, { label: '2' }, { label: '3' }] }] };
+    expect(updateDialAt(wide, 0, [0], 0, { label: 'X' }, 2).pages[0].slots[0].folder?.dials).toEqual([{ label: 'X' }, { label: '2' }, { label: '3' }]);
+  });
+
+  it('reports a folder without its own dials as inheriting', () => {
+    expect(dialsInherited(deck, 0, [])).toBe(false);
+    expect(dialsInherited(deck, 0, [0])).toBe(true);
+    expect(dialsInherited(deck, 0, [1])).toBe(false);
+  });
+
+  it('dial-only pages and folders count as content', () => {
+    expect(pageHasContent({ slots: [], dials: [{ action: { type: 'page' } }] })).toBe(true);
+    expect(pageHasContent({ slots: [], dials: [{}] })).toBe(false);
+    expect(pageHasContent({ slots: [{ folder: { slots: [], dials: [{ stack: [{}, { label: 'x' }] }] } }] })).toBe(true);
+    expect(countBoundFolder({ slots: [{ label: 'a', action: { type: 'page', op: 'next' } }], dials: [{ label: 'd' }, {}] })).toBe(2);
+    expect(countConfiguredSlots([{ folder: { slots: [], dials: [{ label: 'd' }] } }])).toBe(2);
   });
 });

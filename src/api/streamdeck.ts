@@ -43,19 +43,20 @@ export interface StreamDeckSummary {
   warning?: string | null;
   /** ConflictAppCatalog id to pass to POST /conflicts/kill when warning is set. */
   conflictAppId?: string | null;
-  /** Key image transform the hardware applies. Always sent by the DTO; optional here so older test fixtures need not set it. */
+  // The capability fields below are always sent by the DTO; optional here so older test fixtures need not set them.
+  /** Key image transform the hardware applies. */
   transform?: StreamDeckTransform;
-  /** Dial count: 0, 2, 4 or 6. Always sent by the DTO; optional here for the same reason. */
+  /** Dial count. */
   encoders?: number;
-  /** Where the dials sit relative to the keys; null when the model has none. Always sent; optional here for the same reason. */
+  /** Where the dials sit relative to the keys; null when the model has none. */
   dialPlacement?: StreamDeckDialPlacement | null;
-  /** The strip/screen beyond the keys, split into `encoders` equal segments for touchStrip and dialScreen; null when none. Always sent; optional here for the same reason. */
+  /** The strip/screen beyond the keys, split into `encoders` equal segments for touchStrip and dialScreen; null when none. */
   screen?: StreamDeckScreen | null;
-  /** Neo touch keys after the main keys. Always sent; optional here for the same reason. */
+  /** Neo touch keys after the main keys. */
   touchKeys?: number;
-  /** LEDs per dial ring (Studio 24, Galleon 4, else 0). Always sent; optional here for the same reason. */
+  /** LEDs per dial ring. */
   encoderRingLeds?: number;
-  /** Key pixel size; keyPixels stays min(w, h). Always sent; optional here for the same reason. */
+  /** Key pixel size; keyPixels stays min(w, h). */
   keyWidth?: number;
   keyHeight?: number;
   /** Neo info screen mode, default 'clock'. */

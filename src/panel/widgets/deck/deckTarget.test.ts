@@ -415,4 +415,9 @@ describe('makePresetDeckTarget - dials', () => {
     target.addPage();
     expect((save.mock.calls[1][0] as DeckConfig).pages[0].dials).toEqual(dialDeck.pages[0].dials);
   });
+
+  it('removePageKeyCount counts the page\'s configured dials', () => {
+    const target = makePresetDeckTarget(preset({ pages: [{ slots: [{ label: 'a' }], dials: [{ label: 'd' }, {}] }] }), { ...IDENTITY_GRID, dials: 2 }, 'physical', vi.fn());
+    expect(target.removePageKeyCount(0)).toBe(2);
+  });
 });

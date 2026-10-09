@@ -1,3 +1,4 @@
+import { dialHasContent } from './deckDials';
 import type { PanelWidgetSize } from '../../types';
 import type { DeckAction, DeckConfig, DeckDial, DeckMonitoringStyle, DeckPage, DeckSlot } from './types';
 
@@ -163,6 +164,11 @@ export function padDials(dials: readonly DeckDial[], count: number): DeckDial[] 
   return out;
 }
 
+// Writes pad to this instance's dial count without truncating a longer list: presets are shared by decks with different dial counts.
+function growDials(dials: readonly DeckDial[], count: number): DeckDial[] {
+  return padDials(dials, Math.max(count, dials.length));
+}
+
 interface DialContainer { slots: DeckSlot[]; dials?: DeckDial[]; }
 
 /**
@@ -186,6 +192,19 @@ export function resolveViewDials(
   return padDials(dials ?? [], count);
 }
 
+/** Whether the dials shown at a folder path come from an enclosing level (the folder has none of its own). */
+export function dialsInherited(deck: DeckConfig, page: number, folderPath: readonly number[]): boolean {
+  let container: DialContainer = pageAt(deck, page);
+  let inherited = false;
+  for (const idx of folderPath) {
+    const folder: DialContainer | undefined = container.slots[idx]?.folder;
+    if (!folder) return true;
+    container = folder;
+    inherited = !folder.dials;
+  }
+  return inherited;
+}
+
 // A folder without its own dials inherits the enclosing level's, so the first
 // write inside it materializes that inherited set as the folder's own.
 function mapDialsLevel<T extends DialContainer>(
@@ -197,7 +216,7 @@ function mapDialsLevel<T extends DialContainer>(
   fn: (dials: DeckDial[]) => DeckDial[],
 ): T {
   const own = container.dials ?? inherited;
-  if (depth === folderPath.length) return { ...container, dials: fn(padDials(own ?? [], count)) };
+  if (depth === folderPath.length) return { ...container, dials: fn(growDials(own ?? [], count)) };
   const idx = folderPath[depth];
   return {
     ...container,
@@ -318,8 +337,18 @@ export function removePage(deck: DeckConfig, page: number): DeckConfig {
 
 function slotHasContent(slot: DeckSlot): boolean {
   if (slot.action || slot.icon || slot.label) return true;
-  if (slot.folder) return slot.folder.slots.some(slotHasContent);
+  if (slot.folder) return slot.folder.slots.some(slotHasContent) || !!slot.folder.dials?.some(dialHasContent);
   return false;
+}
+
+/** Configured dials in a list, counting each dial once however many stack entries it holds. */
+export function countConfiguredDials(dials: readonly DeckDial[] | undefined): number {
+  return dials ? dials.filter(dialHasContent).length : 0;
+}
+
+/** Bound keys plus configured dials inside a folder, for a delete confirm. */
+export function countBoundFolder(folder: { slots: readonly DeckSlot[]; dials?: readonly DeckDial[] }): number {
+  return countBoundSlots(folder.slots) + countConfiguredDials(folder.dials);
 }
 
 /**
@@ -332,14 +361,14 @@ export function countBoundSlots(slots: readonly DeckSlot[]): number {
   let n = 0;
   for (const s of slots) {
     if (s.action || s.folder) n++;
-    if (s.folder) n += countBoundSlots(s.folder.slots);
+    if (s.folder) n += countBoundSlots(s.folder.slots) + countConfiguredDials(s.folder.dials);
   }
   return n;
 }
 
 /** Whether any slot on this page (including nested folders) is configured. */
 export function pageHasContent(pageConfig: DeckPage): boolean {
-  return pageConfig.slots.some(slotHasContent);
+  return pageConfig.slots.some(slotHasContent) || !!pageConfig.dials?.some(dialHasContent);
 }
 
 /**
@@ -353,7 +382,7 @@ export function countConfiguredSlots(slots: readonly DeckSlot[]): number {
   let n = 0;
   for (const s of slots) {
     if (slotHasContent(s)) n++;
-    if (s.folder) n += countConfiguredSlots(s.folder.slots);
+    if (s.folder) n += countConfiguredSlots(s.folder.slots) + countConfiguredDials(s.folder.dials);
   }
   return n;
 }

@@ -76,9 +76,17 @@ export function shownDialEntry(dial: DeckDial, shown = 0): DeckDial {
   return stack[shown] ?? stack[0];
 }
 
+function entryHasContent(entry: DeckDial): boolean {
+  return !!entry.action || !!entry.icon || !!entry.label;
+}
+
+/** Whether any entry of the dial (every stack entry, or the dial itself) is configured. */
+export function dialHasContent(dial: DeckDial): boolean {
+  return isDialStack(dial) ? dial.stack!.some(entryHasContent) : entryHasContent(dial);
+}
+
 export function dialIsEmpty(dial: DeckDial): boolean {
-  const entry = shownDialEntry(dial);
-  return !entry.action && !entry.icon && !entry.label;
+  return !dialHasContent(dial);
 }
 
 /** Slot path the service broadcasts a dial segment under: `dial:<i>` at the root, `<folder path>.dial:<i>` inside a folder. */
@@ -87,16 +95,14 @@ export function dialSlotPathAt(folderPath: readonly number[], index: number): st
   return folderPath.length === 0 ? dial : `${folderPath.join('.')}.${dial}`;
 }
 
-/** The live tile of a dial segment: the folder-qualified frame, else the page-level one a folder without its own dials keeps showing. */
+/** The live tile of a dial segment for the current page and folder view. */
 export function dialLiveTile(
   liveTiles: ReadonlyMap<string, string> | undefined,
   page: number,
   folderPath: readonly number[],
   index: number,
 ): string | undefined {
-  if (!liveTiles) return undefined;
-  return liveTiles.get(`${page}:${dialSlotPathAt(folderPath, index)}`)
-    ?? (folderPath.length > 0 ? liveTiles.get(`${page}:${dialSlotPathAt([], index)}`) : undefined);
+  return liveTiles?.get(`${page}:${dialSlotPathAt(folderPath, index)}`);
 }
 
 /** Starts a stack from a plain dial: its own fields become entry 0 and a blank entry follows. */

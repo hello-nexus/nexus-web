@@ -3,7 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { useTranslation } from '../../../lib/i18n';
 import { ConfirmModal } from '../../../components/common/ConfirmModal/ConfirmModal';
-import { countBoundSlots, padSlots, pageHasContent, MAX_DECK_PAGES } from './deckLayout';
+import { countBoundFolder, padSlots, pageHasContent, MAX_DECK_PAGES } from './deckLayout';
 import { withPageIndicatorDisplay } from './deckIcons';
 import { resolveTargetView, slotCountAtDepth, type DeckTarget } from './deckTarget';
 import { DeckGrid } from './DeckGrid';
@@ -72,7 +72,7 @@ export function DeckEditor({ target, page: pageProp, onPageChange, folderPath, o
 
   const onDeleteSlot = () => {
     const folder = viewSlots[selSlot]?.folder;
-    const count = folder ? countBoundSlots(folder.slots) : 0;
+    const count = folder ? countBoundFolder(folder) : 0;
     if (count > 0) setDeleteConfirm({ page, folderPath, index: selSlot, count });
     else target.updateSlot(page, folderPath, selSlot, {});
   };

@@ -98,7 +98,7 @@ describe('DeckDevicePreview', () => {
     expect(screen.getByText('panel.settings.deck.dial.action.page')).toBeInTheDocument();
   });
 
-  it('a folder-qualified live tile wins, falling back to the page-level one', () => {
+  it('a segment shows only the live tile of the current folder view', () => {
     const tiles = new Map([['0:dial:0', 'data:a'], ['0:1.dial:0', 'data:b']]);
     const deck = { encoders: 1, dialPlacement: 'below' as const, screen: { width: 200, height: 100, kind: 'touchStrip' as const } };
     const dials = [{ action: { type: 'volume' as const } }];
@@ -106,6 +106,6 @@ describe('DeckDevicePreview', () => {
     expect(inFolder.container.querySelector('[data-deck-dial-index="0"] img')).toHaveAttribute('src', 'data:b');
     inFolder.unmount();
     const otherFolder = renderPreview({ deck, dials, grid: { ...GRID, liveTiles: tiles, folderPath: [2] } });
-    expect(otherFolder.container.querySelector('[data-deck-dial-index="0"] img')).toHaveAttribute('src', 'data:a');
+    expect(otherFolder.container.querySelector('[data-deck-dial-index="0"] img')).toBeNull();
   });
 });

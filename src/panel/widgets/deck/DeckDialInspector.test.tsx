@@ -49,8 +49,8 @@ function preset(deck: DeckConfig): DeckPresetFull {
 
 const saved: { config: DeckConfig } = { config: { pages: [] } };
 
-function Harness({ dials, part, selected = 0 }: { dials: DeckDial[]; part: 'picker' | 'editor'; selected?: number | null }) {
-  const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: [], dials }] });
+function Harness({ dials, part, selected = 0, base }: { dials: DeckDial[]; part: 'picker' | 'editor'; selected?: number | null; base?: DeckConfig }) {
+  const [config, setConfig] = useState<DeckConfig>(base ?? { pages: [{ slots: [], dials }] });
   const [entry, setEntry] = useState(0);
   const save = (next: DeckConfig) => { saved.config = next; setConfig(next); };
   const target = makePresetDeckTarget(preset(config), { cols: 4, rows: 2, dials: 4 }, 'physical', save);
@@ -61,7 +61,6 @@ function Harness({ dials, part, selected = 0 }: { dials: DeckDial[]; part: 'pick
         page={0}
         folderPath={[]}
         selectedDial={selected}
-        onSelectedDialChange={() => {}}
         entryIndex={entry}
         onEntryIndexChange={setEntry}
         surface="desktop"
@@ -166,6 +165,37 @@ describe('DeckDialInspector editor', () => {
   });
 });
 
+describe('DeckDialInspector selection and inheritance', () => {
+  it('a pick with no dial selected changes nothing', () => {
+    saved.config = { pages: [] };
+    render(<Harness dials={[{ label: 'Keep' }]} part="picker" selected={null} />);
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.dial.action.volume' }));
+    expect(saved.config.pages).toEqual([]);
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.dial.action.volume' })).toHaveAttribute('aria-selected', 'false');
+  });
+
+  it('viewing an inherited folder dial does not seed a sensor or display into the folder', async () => {
+    saved.config = { pages: [] };
+    const base: DeckConfig = {
+      pages: [{ slots: [{ folder: { slots: [{ label: 'f' }] } }], dials: [{ action: { type: 'monitoring', category: 'quick', sensor: '', press: 'none' } }, { action: { type: 'displayBrightness', displayId: '' } }] }],
+    };
+    const Folder = () => {
+      const [config, setConfig] = useState<DeckConfig>(base);
+      const target = makePresetDeckTarget(preset(config), { cols: 4, rows: 2, dials: 4 }, 'physical', next => { saved.config = next; setConfig(next); });
+      return (
+        <DndContext>
+          <DeckDialInspector target={target} page={0} folderPath={[0]} selectedDial={0} entryIndex={0} onEntryIndexChange={() => {}} surface="desktop" desktopEditor part="editor" />
+          <DeckDialInspector target={target} page={0} folderPath={[0]} selectedDial={1} entryIndex={0} onEntryIndexChange={() => {}} surface="desktop" desktopEditor part="editor" />
+        </DndContext>
+      );
+    };
+    render(<Folder />);
+    await screen.findAllByLabelText('panel.settings.deck.monitoringPressOp');
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(saved.config.pages).toEqual([]);
+  });
+});
+
 describe('DeckDialInspector stack', () => {
   it('adding to a plain dial starts a two-entry stack and selects the new entry', () => {
     render(<Harness dials={[{ label: 'a', action: { type: 'volume' } }]} part="editor" />);
@@ -185,6 +215,15 @@ describe('DeckDialInspector stack', () => {
     expect(dialsOf()[0].stack?.[1]).toEqual({ action: { type: 'page' }, label: 'Second' });
     fireEvent.click(screen.getAllByRole('button', { name: 'panel.settings.deck.dial.stack.remove' })[0]);
     expect(dialsOf()[0]).toEqual({ action: { type: 'page' }, label: 'Second' });
+  });
+
+  it('keeps the edited entry selected across a move and a removal', () => {
+    render(<Harness dials={[{ stack: [{ label: 'a', action: { type: 'page' } }, { label: 'b' }, { label: 'c' }] }]} part="editor" />);
+    fireEvent.click(screen.getAllByRole('button', { name: /panel.settings.deck.dial.stack.entry/ })[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'panel.settings.deck.dial.stack.moveDown' })[0]);
+    expect(screen.getByText('panel.settings.deck.dial.pageHint')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'panel.settings.deck.dial.stack.remove' })[2]);
+    expect(screen.getByText('panel.settings.deck.dial.pageHint')).toBeInTheDocument();
   });
 
   it('reorders entries', () => {

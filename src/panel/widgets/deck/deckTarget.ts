@@ -5,7 +5,7 @@
 import type { DeckPresetFull } from '../../../api/deck';
 import type { DeckConfig, DeckDial, DeckSlot, DeckTitleStyle } from './types';
 import {
-  addPage, countConfiguredSlots, removePage, resolveViewDials, resolveViewSlots, swapDialsAt, swapSlots, updateDialAt, updateSlotAt, fitToGridWithOrigins,
+  addPage, countConfiguredDials, countConfiguredSlots, removePage, resolveViewDials, resolveViewSlots, swapDialsAt, swapSlots, updateDialAt, updateSlotAt, fitToGridWithOrigins,
   type DepthCount, type FittedSlotOrigin,
 } from './deckLayout';
 
@@ -195,7 +195,8 @@ export function makePresetDeckTarget(
     },
     removePageKeyCount(page) {
       const authoredPage = fitted.pageOrigins[page] ?? 0;
-      return countConfiguredSlots(preset.deck.pages[authoredPage]?.slots ?? []);
+      const authored = preset.deck.pages[authoredPage];
+      return countConfiguredSlots(authored?.slots ?? []) + countConfiguredDials(authored?.dials);
     },
     authoredPageCount: preset.deck.pages.length,
     setTitleDefault(next) {

@@ -64,9 +64,9 @@ vi.mock('../../../hooks/useMultiplexSocket', () => ({
 }));
 
 vi.mock('../../../panel/widgets/deck/DeckKeyInspector', () => ({
-  DeckKeyInspector: ({ selectedSlot, part, onDeleteSlot }: { selectedSlot?: number; part?: string; onDeleteSlot?: () => void }) => (
+  DeckKeyInspector: ({ selectedSlot, part, onDeleteSlot, pickerInert }: { selectedSlot?: number; part?: string; onDeleteSlot?: () => void; pickerInert?: boolean }) => (
     <>
-      <div data-testid={`deck-key-inspector-${part ?? 'all'}`}>{selectedSlot}</div>
+      <div data-testid={`deck-key-inspector-${part ?? 'all'}`} data-inert={pickerInert ? 'true' : undefined}>{selectedSlot}</div>
       {onDeleteSlot && <button type="button" onClick={onDeleteSlot}>editor-delete</button>}
     </>
   ),
@@ -993,6 +993,42 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByTestId('deck-dial-inspector-editor')).toBeNull();
       expect(screen.getByTestId('deck-key-inspector-editor').textContent).toBe('1');
       expect(container.querySelector('[data-deck-dial-index="2"]')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('the key picker goes inert while a dial is selected', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      const { container } = await renderPage();
+      expect(screen.getByTestId('deck-key-inspector-picker')).not.toHaveAttribute('data-inert');
+      fireEvent.click(container.querySelector('[data-deck-dial-index="0"]')!);
+      expect(screen.getByTestId('deck-key-inspector-picker')).toHaveAttribute('data-inert', 'true');
+    });
+
+    it('a nav frame that moves nothing keeps the selected dial, one that moves clears it', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
+      plusInstance();
+      const { container } = await renderPage();
+      fireEvent.click(container.querySelector('[data-deck-dial-index="1"]')!);
+
+      act(() => { capturedCallbacks.streamdeck?.({ kind: 'nav', serial: 'SN1', page: 0, folderPath: [] }); });
+      expect(screen.getByTestId('deck-dial-inspector-editor').textContent).toBe('1');
+
+      act(() => { capturedCallbacks.streamdeck?.({ kind: 'nav', serial: 'SN1', page: 1, folderPath: [] }); });
+      expect(screen.queryByTestId('deck-dial-inspector-editor')).toBeNull();
+    });
+
+    it('a hold-to-edit on a knob-only layout pulses the knob', async () => {
+      mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ model: 'Studio', rows: 2, cols: 16, keyCount: 32, encoders: 2, dialPlacement: 'sides', screen: null })]));
+      const animate = vi.fn();
+      const original = Element.prototype.animate;
+      Element.prototype.animate = animate as unknown as typeof Element.prototype.animate;
+      try {
+        requestOpenDeckEditor({ serial: 'SN1', page: 0, folderPath: [], keyIndex: 0, dialIndex: 1 });
+        await renderPage();
+        expect(animate).toHaveBeenCalled();
+      } finally {
+        Element.prototype.animate = original;
+      }
     });
 
     it('selecting a knob selects the same dial as its segment', async () => {

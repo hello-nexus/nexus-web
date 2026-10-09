@@ -232,6 +232,10 @@ export function pickerKindIcon(kind: DeckPickerKind) {
   return DECK_ICONS[name] ?? Plus;
 }
 
+export function useDisplayOptions() {
+  return useServiceOptions('/displays', d => ((d as { displays?: { id: string; name?: string; label?: string }[] })?.displays ?? []).map(x => ({ value: x.id, label: x.name ?? x.label ?? x.id })));
+}
+
 export function useServiceOptions(path: string, map: (data: unknown) => { value: string; label: string }[]): { value: string; label: string }[] {
   const [opts, setOpts] = useState<{ value: string; label: string }[]>([]);
   useEffect(() => {
@@ -277,7 +281,7 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
   const { t } = useTranslation();
   const audioOut = useServiceOptions('/system/audio/devices', d => ((d as { outputs?: { id: string; name: string }[] })?.outputs ?? []).map(x => ({ value: x.id, label: x.name })));
   const audioIn = useServiceOptions('/system/audio/devices', d => ((d as { inputs?: { id: string; name: string }[] })?.inputs ?? []).map(x => ({ value: x.id, label: x.name })));
-  const displays = useServiceOptions('/displays', d => ((d as { displays?: { id: string; name?: string; label?: string }[] })?.displays ?? []).map(x => ({ value: x.id, label: x.name ?? x.label ?? x.id })));
+  const displays = useDisplayOptions();
   // The native picker dialog runs on the host PC and can stay open for as
   // long as the user takes to answer it - this only guards against a
   // double-click re-opening a second dialog, not a brief request gap.
@@ -333,7 +337,10 @@ function ActionFields({ action, onChange, allowed, surface, desktopEditor, pageC
     }
     case 'system': {
       const a = action.action;
-      const ops = ['volumeUp', 'volumeDown', 'volumeSet', 'muteToggle', 'mediaPlayPause', 'mediaNext', 'mediaPrev', 'brightnessUp', 'brightnessDown', 'brightnessSet', 'openSettings', 'screenshot', 'screenRecord'];
+      // Capture ops run on the host through a physical deck's service handler; a widget target never offers them.
+      const physical = allowed.some(k => PHYSICAL_ONLY_KINDS.has(k));
+      const ops = ['volumeUp', 'volumeDown', 'volumeSet', 'muteToggle', 'mediaPlayPause', 'mediaNext', 'mediaPrev', 'brightnessUp', 'brightnessDown', 'brightnessSet', 'openSettings']
+        .concat(physical || a.op === 'screenshot' || a.op === 'screenRecord' ? ['screenshot', 'screenRecord'] : []);
       return (
         <>
           <SelectField label={t('panel.settings.deck.systemOp')} value={a.op} options={ops.map(o => ({ value: o, label: t(`panel.settings.deck.system.${o}`) }))} onChange={op => onChange({ type: 'system', action: { ...a, op: op as typeof a.op } })} />
@@ -986,7 +993,7 @@ export function DeckActionDragPreview({ kind }: { kind: DeckPickerKind }) {
  * never hidden inside a collapsed group.
  */
 function ActionCategoryPicker({ categories, activeKind, onPick, onClose, surface, desktopEditor }: {
-  categories: DeckActionCategory[]; activeKind: DeckPickerKind; onPick: (k: DeckPickerKind) => void;
+  categories: DeckActionCategory[]; activeKind: DeckPickerKind | null; onPick: (k: DeckPickerKind) => void;
   /** Set when the list was reopened over a bound key: renders the close
    *  button beside the search bar that folds it back without a pick. */
   onClose?: () => void;
@@ -995,10 +1002,10 @@ function ActionCategoryPicker({ categories, activeKind, onPick, onClose, surface
   const { t } = useTranslation();
   const [openKeys, setOpenKeys] = useState<Set<string>>(() => new Set(categories.map(c => c.key)));
   const [query, setQuery] = useState('');
-  const activeCategoryKey = categoryForKind(activeKind).key;
+  const activeCategoryKey = activeKind ? categoryForKind(activeKind).key : null;
   const locked = deckAuthoringLocked(surface, desktopEditor);
   useEffect(() => {
-    setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));
+    if (activeCategoryKey) setOpenKeys(prev => (prev.has(activeCategoryKey) ? prev : new Set(prev).add(activeCategoryKey)));
   }, [activeCategoryKey]);
   const toggleOpen = (key: string) => setOpenKeys(prev => {
     const next = new Set(prev);
@@ -1298,6 +1305,8 @@ export interface DeckKeyInspectorProps {
    * folder with bound content - matching the grid's own onDeleteSlot).
    */
   onDeleteSlot?: () => void;
+  /** The picker is visible but its selection is elsewhere (a dial is selected): picks do nothing and nothing is highlighted. */
+  pickerInert?: boolean;
 }
 
 /**
@@ -1306,7 +1315,7 @@ export interface DeckKeyInspectorProps {
  * grid and this inspector in separate panes while the touch widget keeps
  * composing them together via DeckEditor.
  */
-export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot }: DeckKeyInspectorProps) {
+export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange, selectedSlot, onSelectedSlotChange, surface, desktopEditor, part = 'all', gridEntersFolders = false, onDeleteSlot, pickerInert = false }: DeckKeyInspectorProps) {
   const { t } = useTranslation();
   const viewCount = slotCountAtDepth(target, folderPath.length);
   const viewSlots = resolveTargetView(target, page, folderPath) ?? padSlots([], viewCount);
@@ -1351,6 +1360,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
   // otherwise reseed the action and drop what the key already had configured.
   // (An unbound slot reads as 'launchApp' too, so the guard needs hasBinding.)
   const onKindChange = (k: DeckPickerKind) => {
+    if (pickerInert) return;
     if (!hasBinding || k !== kind) writeSlot(slotForPickerKind(k, slot, target.config.defaultTitleStyle));
     setPickerOpen(false);
   };
@@ -1409,7 +1419,7 @@ export function DeckKeyInspector({ target, page, folderPath, onFolderPathChange,
       {showPicker && (
         <SettingsSection title={t('panel.settings.deck.actionType')}>
           {pickerExpanded ? (
-            <ActionCategoryPicker categories={categories} activeKind={kind} onPick={onKindChange} onClose={closePicker} surface={surface} desktopEditor={desktopEditor} />
+            <ActionCategoryPicker categories={categories} activeKind={pickerInert ? null : kind} onPick={onKindChange} onClose={closePicker} surface={surface} desktopEditor={desktopEditor} />
           ) : (
             <SettingsRow icon={<KindIcon size={14} aria-hidden />} label={t(`panel.settings.deck.action.${kind}`)}>
               <Button type="button" size="sm" tone="neutral" onClick={() => setPickerOpen(true)}>

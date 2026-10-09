@@ -150,8 +150,8 @@ describe('defaultActionFor - new Stream Deck action kinds', () => {
  * (the same factory StreamDeckDevicePage uses) over a useState-backed config
  * so picker interactions round-trip exactly like production.
  */
-function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot }: {
-  initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean; part?: 'all' | 'picker' | 'editor'; onDeleteSlot?: () => void;
+function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot, pickerInert }: {
+  initialSlots: DeckSlot[]; surface?: PanelSurface; desktopEditor?: boolean; part?: 'all' | 'picker' | 'editor'; onDeleteSlot?: () => void; pickerInert?: boolean;
 }) {
   const [config, setConfig] = useState<DeckConfig>({ pages: [{ slots: initialSlots }] });
   const target = makePresetDeckTarget(testPreset(config, initialSlots.length, 1), { cols: initialSlots.length, rows: 1 }, 'physical', setConfig);
@@ -167,6 +167,7 @@ function Harness({ initialSlots, surface, desktopEditor, part, onDeleteSlot }: {
       desktopEditor={desktopEditor}
       part={part}
       onDeleteSlot={onDeleteSlot}
+      pickerInert={pickerInert}
     />
   );
 }
@@ -1244,5 +1245,31 @@ describe('DeckKeyInspector - privileged action authoring lock (phone companion)'
     expect(textarea).not.toBeDisabled();
     expect(textarea).not.toHaveAttribute('readonly');
     expect(screen.queryByText('common.desktopOnly')).toBeNull();
+  });
+});
+
+describe('capture ops and the inert picker', () => {
+  const capture = { type: 'system' as const, action: { op: 'volumeUp' as const } };
+
+  it('a physical target offers screenshot and screen recording', async () => {
+    render(<Harness initialSlots={[{ action: capture }]} part="editor" />);
+    fireEvent.click(await screen.findByLabelText('panel.settings.deck.systemOp'));
+    expect(await screen.findByRole('option', { name: 'panel.settings.deck.system.screenshot' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'panel.settings.deck.system.screenRecord' })).toBeInTheDocument();
+  });
+
+  it('a widget target hides them', async () => {
+    renderWidgetInspector([{ action: capture }]);
+    fireEvent.click(await screen.findByLabelText('panel.settings.deck.systemOp'));
+    await screen.findByRole('option', { name: 'panel.settings.deck.system.openSettings' });
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.system.screenshot' })).toBeNull();
+  });
+
+  it('an inert picker ignores picks and highlights nothing', () => {
+    const slots: DeckSlot[] = [{ action: { type: 'power', action: 'lock' } }];
+    render(<Harness initialSlots={slots} part="picker" pickerInert />);
+    fireEvent.click(screen.getByRole('option', { name: /panel.settings.deck.action.openUrl/ }));
+    expect(screen.getAllByRole('option').every(o => o.getAttribute('aria-selected') === 'false')).toBe(true);
+    expect(screen.getByRole('option', { name: /panel.settings.deck.action.power/ })).toHaveAttribute('aria-selected', 'false');
   });
 });
