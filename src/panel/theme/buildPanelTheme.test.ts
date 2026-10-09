@@ -107,4 +107,10 @@ describe('buildPanelTheme Widget size', () => {
     expect(small.widgetPadding).toBe(buildPanelTheme(null, y70()).widgetPadding);
     expect(small.backgroundMode).toBe('shader');
   });
+
+  it('passes the widget opacity as a number for engines without color-mix', () => {
+    const vars = buildPanelThemeVars(buildPanelTheme(null, y70({ widgetOpacity: 0.55 })), 'dark') as Record<string, string>;
+    expect(vars['--panel-card-bg-opacity']).toBe('55%');
+    expect(vars['--panel-card-bg-alpha']).toBe('0.55');
+  });
 });

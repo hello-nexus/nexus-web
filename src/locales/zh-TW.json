@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "使用新網格",
   "devices.panels.widgetSize.confirmMessage": "以下小工具放不進新網格，將被移除：",
   "devices.panels.widgetSize.confirmTitle": "要變更網格嗎?",
-  "devices.panels.widgetSize.label": "小工具尺寸",
+  "devices.panels.widgetSize.label": "小工具縮放",
   "devices.panels.widgetSize.large": "大",
   "devices.panels.widgetSize.small": "小",
   "devices.q60.coolingFirmwareSection": "散熱韌體",

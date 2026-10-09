@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "Use the new grid",
   "devices.panels.widgetSize.confirmMessage": "These widgets don't fit the new grid and will be removed:",
   "devices.panels.widgetSize.confirmTitle": "Change grid?",
-  "devices.panels.widgetSize.label": "Widget size",
+  "devices.panels.widgetSize.label": "Widget scale",
   "devices.panels.widgetSize.large": "Large",
   "devices.panels.widgetSize.small": "Small",
   "devices.q60.coolingFirmwareSection": "Cooling firmware",

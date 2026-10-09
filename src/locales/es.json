@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "Usar la nueva cuadrícula",
   "devices.panels.widgetSize.confirmMessage": "Estos widgets no caben en la nueva cuadrícula y se quitarán:",
   "devices.panels.widgetSize.confirmTitle": "¿Cambiar la cuadrícula?",
-  "devices.panels.widgetSize.label": "Tamaño de widgets",
+  "devices.panels.widgetSize.label": "Escala de widgets",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Pequeño",
   "devices.q60.coolingFirmwareSection": "Firmware de refrigeración",

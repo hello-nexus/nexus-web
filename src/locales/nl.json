@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "Nieuw raster gebruiken",
   "devices.panels.widgetSize.confirmMessage": "Deze widgets passen niet in het nieuwe raster en worden verwijderd:",
   "devices.panels.widgetSize.confirmTitle": "Raster wijzigen?",
-  "devices.panels.widgetSize.label": "Widgetgrootte",
+  "devices.panels.widgetSize.label": "Schaal van widgets",
   "devices.panels.widgetSize.large": "Groot",
   "devices.panels.widgetSize.small": "Klein",
   "devices.q60.coolingFirmwareSection": "Koelingsfirmware",

@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "Utiliser la nouvelle grille",
   "devices.panels.widgetSize.confirmMessage": "Ces widgets ne tiennent pas dans la nouvelle grille et seront retirés :",
   "devices.panels.widgetSize.confirmTitle": "Changer la grille ?",
-  "devices.panels.widgetSize.label": "Taille des widgets",
+  "devices.panels.widgetSize.label": "Échelle des widgets",
   "devices.panels.widgetSize.large": "Grande",
   "devices.panels.widgetSize.small": "Petite",
   "devices.q60.coolingFirmwareSection": "Micrologiciel de refroidissement",

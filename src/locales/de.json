@@ -1096,7 +1096,7 @@
   "devices.panels.widgetSize.confirm": "Neues Raster verwenden",
   "devices.panels.widgetSize.confirmMessage": "Diese Widgets passen nicht in das neue Raster und werden entfernt:",
   "devices.panels.widgetSize.confirmTitle": "Raster ändern?",
-  "devices.panels.widgetSize.label": "Widget-Größe",
+  "devices.panels.widgetSize.label": "Widget-Skalierung",
   "devices.panels.widgetSize.large": "Groß",
   "devices.panels.widgetSize.small": "Klein",
   "devices.q60.coolingFirmwareSection": "Kühlungs-Firmware",

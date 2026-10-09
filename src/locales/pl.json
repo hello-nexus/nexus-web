@@ -1103,7 +1103,7 @@
   "devices.panels.widgetSize.confirm": "Użyj nowej siatki",
   "devices.panels.widgetSize.confirmMessage": "Te widżety nie mieszczą się w nowej siatce i zostaną usunięte:",
   "devices.panels.widgetSize.confirmTitle": "Zmienić siatkę?",
-  "devices.panels.widgetSize.label": "Rozmiar widżetów",
+  "devices.panels.widgetSize.label": "Skala widżetów",
   "devices.panels.widgetSize.large": "Duże",
   "devices.panels.widgetSize.small": "Małe",
   "devices.q60.coolingFirmwareSection": "Oprogramowanie chłodzenia",

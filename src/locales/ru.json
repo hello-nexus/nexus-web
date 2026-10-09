@@ -1103,7 +1103,7 @@
   "devices.panels.widgetSize.confirm": "Использовать новую сетку",
   "devices.panels.widgetSize.confirmMessage": "Эти виджеты не помещаются в новую сетку и будут удалены:",
   "devices.panels.widgetSize.confirmTitle": "Изменить сетку?",
-  "devices.panels.widgetSize.label": "Размер виджетов",
+  "devices.panels.widgetSize.label": "Масштаб виджетов",
   "devices.panels.widgetSize.large": "Крупные",
   "devices.panels.widgetSize.small": "Мелкие",
   "devices.q60.coolingFirmwareSection": "Прошивка охлаждения",

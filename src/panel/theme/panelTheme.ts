@@ -127,6 +127,7 @@ export function buildPanelThemeVars(theme: PanelThemeState, resolvedThemeMode: R
     '--panel-card-bg': 'var(--surface)',
     '--panel-card-fill': 'var(--panel-card-fill-opaque)',
     '--panel-card-bg-opacity': `${widgetOpacityPct}%`,
+    '--panel-card-bg-alpha': String(widgetOpacityPct / 100),
     '--panel-accent': accentVars['--accent'],
     '--panel-accent-glow': accentVars['--accent-glow'],
     '--panel-accent-soft': accentVars['--accent-soft'],
