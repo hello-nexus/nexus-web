@@ -548,6 +548,7 @@ input[type="range"][data-range-knob] {
 // Labelled variant (ChipGroup label): a caption, then the chips.
 .chip-group-labelled {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
@@ -556,7 +557,7 @@ input[type="range"][data-range-knob] {
 .chip-group-label {
   flex-shrink: 0;
   color: var(--text-dim);
-  font-size: 0.8125rem;
+  font-size: var(--type-small);
   font-weight: 600;
 }
 
