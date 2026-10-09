@@ -102,7 +102,7 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { isSingleWidgetSurface, surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, panelCanvasEditable, surfaceSupportsTouch } from './types';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
@@ -763,6 +763,9 @@ export function PanelContent({
   // the edited widget reads dimmed under it. q60 is display-only so editing
   // never engages. See .cellEditorDocked rules.
   const editorDockSupported = surfaceSupportsTouch(surface, deviceTouch);
+  // Widgets still get the device's own touch, so a display-only panel's widgets stay
+  // non-interactive while its preview is edited by mouse.
+  const dragEditable = panelCanvasEditable(surface, deviceTouch, simulator);
   const isLandscape = useIsLandscape(surface);
   const capacity = useMemo<PaginateCapacity>(
     () => ({ gridCols: gridColumns, pageRows }),
@@ -1456,9 +1459,9 @@ export function PanelContent({
       ? { activationConstraint: { distance: 6 } }
       : { activationConstraint: { delay: PANEL_CONTEXT_MENU_TRIGGER_MS, tolerance: 8 } },
   );
-  // Non-touch surfaces (Q60) can't move widgets; register no drag sensor so a
-  // pointer press never lifts a cell. Desktop mouse-drag and touch panels keep it.
-  const sensors = useSensors(surfaceSupportsTouch(surface, deviceTouch) ? pointerSensor : null);
+  // A panel that can't be drag-edited (single-widget glass; display-only glass outside
+  // the preview) registers no drag sensor, so a pointer press never lifts a cell.
+  const sensors = useSensors(dragEditable ? pointerSensor : null);
 
   const { clearEdgeAdvance, evaluateEdgeAdvance } = useEdgeAdvance(setActivePageIndex, pageCountRef);
   // Gesture refs for the collision detector. startX/Y is dnd-kit's press
@@ -1863,14 +1866,15 @@ export function PanelContent({
                                 ? (cfg => updateWidgetConfig(w.id, cfg)) : undefined}
                               editorPreview={simulator}
                               clickthrough={embedded && surface === 'desktop' && Boolean(onSectionNavigate) && isDashboardClickthroughType(w.type)}
-                              onContextMenu={surfaceSupportsTouch(surface, deviceTouch) ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
-                              cellPointers={surfaceSupportsTouch(surface, deviceTouch) ? touch.bindCellPointers(w) : noopCellPointers}
-                              // Non-touch sim surfaces (Q-series) can't reach
+                              movable={dragEditable}
+                              onContextMenu={dragEditable ? e => touch.handleContextMenu(e, w) : (e => e.preventDefault())}
+                              cellPointers={dragEditable ? touch.bindCellPointers(w) : noopCellPointers}
+                              // Single-widget sim surfaces (Q-series) can't reach
                               // onCellTap via the pointer pipeline; a plain
                               // click opens the edit sheet from an iframe tap.
                               // The blank widget has nothing to edit, so it takes
                               // neither the click nor the hover notice.
-                              onSimulatorClick={simulator && w.type !== 'blank' && !surfaceSupportsTouch(surface, deviceTouch) ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
+                              onSimulatorClick={simulator && w.type !== 'blank' && !dragEditable ? () => onSimulatorWidgetClicked?.(w.id) : undefined}
                               // Device-page preview only: nothing else says a
                               // widget in the canvas is click-to-edit (NEX-6),
                               // so hovering one fades in a full-cell notice.
@@ -1989,8 +1993,11 @@ export function PanelContent({
         if (!def) return null;
         // eslint-disable-next-line i18next/no-literal-string -- orientation enum key
         const orientationKey = isLandscape ? 'landscape' : 'portrait';
+        // A display-only panel edited from the preview keeps resize and remove, but its
+        // glass has no way to leave an immersive view.
         const immersiveAvailable = Boolean(def.Touch)
-          && def.meta.supportsImmersive[orientationKey];
+          && def.meta.supportsImmersive[orientationKey]
+          && surfaceSupportsTouch(surface, deviceTouch);
         const ctxWidget = touch.ctxMenu.widget;
         const ctxPoint = { x: touch.ctxMenu.x, y: touch.ctxMenu.y };
         // "Add to desktop" always pins another floating overlay copy; multiple

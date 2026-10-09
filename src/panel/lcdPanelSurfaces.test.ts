@@ -4,6 +4,7 @@ import {
   SINGLE_WIDGET_SIZES,
   isSingleWidgetSurface,
   singleWidgetSurfaceSize,
+  panelCanvasEditable,
   surfaceSupportsTouch,
   widgetLayoutSize,
   type PanelSurface,
@@ -83,5 +84,24 @@ describe('wide cooler glass lays its tile out landscape', () => {
     const square = panelGridCapacityForCanvas(1600, 720, { surface: 'lcd-square', gap: 0, padding: 0 });
 
     expect(wide.cellSize / wide.rowSize).toBeLessThan(square.cellSize / square.rowSize);
+  });
+});
+
+describe('canvas editing', () => {
+  it('lets the device-page preview edit any multi-widget panel, touch glass or not', () => {
+    expect(panelCanvasEditable('monitor', false, true)).toBe(true);
+    expect(panelCanvasEditable('y70', undefined, true)).toBe(true);
+  });
+
+  it('never lets a single-widget surface rearrange, even in the preview', () => {
+    for (const surface of ['q60', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide'] as const) {
+      expect(panelCanvasEditable(surface, undefined, true)).toBe(false);
+    }
+  });
+
+  it('follows the glass on the device itself', () => {
+    expect(panelCanvasEditable('monitor', false, false)).toBe(false);
+    expect(panelCanvasEditable('monitor', true, false)).toBe(true);
+    expect(panelCanvasEditable('y70', undefined, false)).toBe(true);
   });
 });
