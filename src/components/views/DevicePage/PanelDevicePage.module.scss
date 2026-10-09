@@ -286,15 +286,15 @@
   margin: 4px 0 8px;
 }
 
-// Widget size and Single / Playlist share one row, each half of it.
+// Grid and Mode share one row; with both shown, Mode starts at the halfway line.
 .widgetModeRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
 
-  > * {
-    flex: 1 1 0;
-    min-width: 0;
-  }
+.widgetModeHalf {
+  grid-column: 2;
 }
 
 // --- Theme Panel ---
