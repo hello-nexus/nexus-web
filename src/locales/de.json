@@ -654,6 +654,8 @@
   "devices.lcd.flip180": "Um 180° drehen",
   "devices.lcd.mirror": "Spiegeln",
   "devices.lcd.mounting": "Montage",
+  "devices.lcd.portrait": "Hochformat-Montage",
+  "devices.lcd.portraitHint": "Der Bildschirm steht auf der kurzen Seite; Nexus richtet das Panel hochkant aus.",
   "devices.lcd.secondaryMonitor": "Als zweiten Bildschirm verwenden",
   "devices.lcd.secondaryMonitorDriverMissing": "Der Anzeigetreiber für den zweiten Bildschirm ist auf diesem PC nicht installiert.",
   "devices.lcd.secondaryMonitorFailed": "Windows konnte den Bildschirm nicht erstellen. Schalten Sie die Einstellung aus und wieder ein, oder prüfen Sie das Nexus-Dienstprotokoll.",

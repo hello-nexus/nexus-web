@@ -350,6 +350,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
   const [recordMirror, setRecordMirror] = useState(false);
+  const [recordPortrait, setRecordPortrait] = useState(false);
+  const [recordSupportsPortrait, setRecordSupportsPortrait] = useState(false);
   const [recordLcdBrightness, setRecordLcdBrightness] = useState(DEFAULT_LCD_BRIGHTNESS);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
   // Curated display family (capabilities.family, e.g. 'xeneon-edge') off the
@@ -576,6 +578,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordFlip180(match?.flip180 ?? false);
       setRecordMirror(match?.mirror ?? false);
+      setRecordPortrait(match?.portrait ?? false);
+      setRecordSupportsPortrait(match?.capabilities?.supportsPortrait ?? false);
       setRecordLcdBrightness(match?.lcdBrightness ?? DEFAULT_LCD_BRIGHTNESS);
       setRecordSupportsBrightness(match?.capabilities?.supportsBrightness ?? false);
       setRecordSupportsSecondaryMonitor(match?.capabilities?.supportsSecondaryMonitor ?? false);
@@ -1675,10 +1679,22 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
                       (its own section below), so the software flip would double-apply. */}
-                  {activeTab === 'settings' && surfaceSupportsMountOrientation(surface) && !isSimulated
-                    && !isCorsairLinkLcdPanel && (
+                  {activeTab === 'settings' && (surfaceSupportsMountOrientation(surface) || recordSupportsPortrait)
+                    && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
+                        {recordSupportsPortrait && (
+                          <SettingToggle
+                            label={t('devices.lcd.portrait')}
+                            description={t('devices.lcd.portraitHint')}
+                            checked={recordPortrait}
+                            onChange={() => {
+                              const next = !recordPortrait;
+                              setRecordPortrait(next);
+                              if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { portrait: next }).catch(() => {});
+                            }}
+                          />
+                        )}
                         <SettingToggle
                           label={t('devices.lcd.flip180')}
                           checked={recordFlip180}

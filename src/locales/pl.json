@@ -661,6 +661,8 @@
   "devices.lcd.flip180": "Obróć o 180°",
   "devices.lcd.mirror": "Odbicie lustrzane",
   "devices.lcd.mounting": "Montaż",
+  "devices.lcd.portrait": "Montaż pionowy",
+  "devices.lcd.portraitHint": "Ekran stoi na krótszym boku; Nexus układa panel pionowo.",
   "devices.lcd.secondaryMonitor": "Użyj jako dodatkowy monitor",
   "devices.lcd.secondaryMonitorDriverMissing": "Sterownik wyświetlacza dla trybu dodatkowego monitora nie jest zainstalowany na tym komputerze.",
   "devices.lcd.secondaryMonitorFailed": "Windows nie utworzył monitora. Wyłącz i włącz ponownie to ustawienie albo sprawdź dziennik usługi Nexus.",

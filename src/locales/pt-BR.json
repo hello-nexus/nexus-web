@@ -654,6 +654,8 @@
   "devices.lcd.flip180": "Girar 180°",
   "devices.lcd.mirror": "Espelhar",
   "devices.lcd.mounting": "Montagem",
+  "devices.lcd.portrait": "Montagem vertical",
+  "devices.lcd.portraitHint": "A tela fica apoiada no lado mais curto; o Nexus organiza o painel na vertical.",
   "devices.lcd.secondaryMonitor": "Usar como monitor secundário",
   "devices.lcd.secondaryMonitorDriverMissing": "O driver de exibição do modo de monitor secundário não está instalado neste PC.",
   "devices.lcd.secondaryMonitorFailed": "O Windows não conseguiu criar o monitor. Desative e ative a configuração novamente, ou verifique o log do serviço Nexus.",

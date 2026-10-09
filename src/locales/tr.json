@@ -654,6 +654,8 @@
   "devices.lcd.flip180": "180° döndür",
   "devices.lcd.mirror": "Aynala",
   "devices.lcd.mounting": "Montaj",
+  "devices.lcd.portrait": "Dikey montaj",
+  "devices.lcd.portraitHint": "Ekran kısa kenarı üzerinde durur; Nexus paneli dikey yerleştirir.",
   "devices.lcd.secondaryMonitor": "İkincil monitör olarak kullan",
   "devices.lcd.secondaryMonitorDriverMissing": "İkincil monitör modu için görüntü sürücüsü bu PC'de yüklü değil.",
   "devices.lcd.secondaryMonitorFailed": "Windows monitörü oluşturamadı. Ayarı kapatıp tekrar açın veya Nexus hizmet günlüğünü kontrol edin.",
