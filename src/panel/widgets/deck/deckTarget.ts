@@ -3,9 +3,9 @@
 // one DeckTarget shape, so the grid + inspector never branch on which kind of
 // instance is editing it.
 import type { DeckPresetFull } from '../../../api/deck';
-import type { DeckConfig, DeckSlot, DeckTitleStyle } from './types';
+import type { DeckConfig, DeckDial, DeckSlot, DeckTitleStyle } from './types';
 import {
-  addPage, countConfiguredSlots, removePage, resolveViewSlots, swapSlots, updateSlotAt, fitToGridWithOrigins,
+  addPage, countConfiguredSlots, removePage, resolveViewDials, resolveViewSlots, swapDialsAt, swapSlots, updateDialAt, updateSlotAt, fitToGridWithOrigins,
   type DepthCount, type FittedSlotOrigin,
 } from './deckLayout';
 
@@ -26,6 +26,11 @@ export interface DeckTarget {
   config: DeckConfig;
   updateSlot(page: number, folderPath: readonly number[], slotIndex: number, next: DeckSlot): void;
   swapSlots(page: number, folderPath: readonly number[], from: number, to: number): void;
+  /** Dial count of this instance (0 for a widget or a deck without dials). */
+  dialCount: number;
+  /** A folder without its own dials writes a copy of the enclosing level's set. */
+  updateDial(page: number, folderPath: readonly number[], dialIndex: number, next: DeckDial): void;
+  swapDials(page: number, folderPath: readonly number[], from: number, to: number): void;
   /** Appends a new (fitted-space-empty) page to the AUTHORED preset. */
   addPage(): void;
   /**
@@ -73,6 +78,11 @@ export function resolveTargetView(target: DeckTarget, page: number, folderPath: 
   return resolveViewSlots(target.config, page, folderPath, depthCount(target));
 }
 
+/** Dials shown for a page + folder path (a folder without its own keeps the enclosing level's). */
+export function resolveTargetDials(target: Pick<DeckTarget, 'config' | 'dialCount'>, page: number, folderPath: readonly number[]): DeckDial[] {
+  return resolveViewDials(target.config, page, folderPath, target.dialCount);
+}
+
 /**
  * Root-level authored depth-count: the AUTHORED page's own key count (grown
  * to the instance's fitted key count on the rare case a small preset is
@@ -96,7 +106,7 @@ function authoredDepthCount(fitted: Pick<DeckTarget, 'kind' | 'keyCount'>, autho
  */
 export function makePresetDeckTarget(
   presetIn: DeckPresetFull,
-  instanceGrid: { cols: number; rows: number },
+  instanceGrid: { cols: number; rows: number; dials?: number },
   kind: 'widget' | 'physical',
   save: (next: DeckConfig) => void,
 ): DeckTarget {
@@ -105,7 +115,7 @@ export function makePresetDeckTarget(
   // slot instead of letting it throw deeper in fitToGridWithOrigins.
   const preset: DeckPresetFull = {
     ...presetIn,
-    deck: { ...presetIn.deck, pages: presetIn.deck.pages.map(p => ({ slots: p.slots.map(s => s ?? {}) })) },
+    deck: { ...presetIn.deck, pages: presetIn.deck.pages.map(p => ({ ...p, slots: p.slots.map(s => s ?? {}) })) },
   };
   const authoredKeyCount = preset.cols * preset.rows;
   const fitted = fitToGridWithOrigins(
@@ -124,6 +134,15 @@ export function makePresetDeckTarget(
   // saved deck with sparse holes) a write to one of them.
   const authoredCountFor = (...rootIndices: number[]) =>
     authoredDepthCount(target, Math.max(authoredKeyCount, target.keyCount, ...rootIndices.map(i => i + 1)));
+
+  const dialCount = instanceGrid.dials ?? 0;
+  // Dials live on the authored page a fitted chunk came from (every chunk carries the same set).
+  const dialPathFor = (page: number, folderPath: readonly number[]): { authoredPage: number; authoredFolderPath: number[] } | null => {
+    if (folderPath.length === 0) return { authoredPage: fitted.pageOrigins[page] ?? 0, authoredFolderPath: [] };
+    const origin = rootOriginAt(page, folderPath[0]);
+    if (!origin || origin.kind === 'auto') return null;
+    return { authoredPage: origin.page, authoredFolderPath: [origin.slotIndex, ...folderPath.slice(1)] };
+  };
 
   return {
     kind,
@@ -152,6 +171,18 @@ export function makePresetDeckTarget(
       }
       const authoredFolderPath = [origin.slotIndex, ...folderPath.slice(1)];
       const nextConfig = swapSlots(preset.deck, origin.page, authoredFolderPath, from, to, authoredCountFor(origin.slotIndex));
+      if (nextConfig !== preset.deck) save(nextConfig);
+    },
+    dialCount,
+    updateDial(page, folderPath, dialIndex, next) {
+      const at = dialPathFor(page, folderPath);
+      if (!at || dialIndex < 0 || dialIndex >= dialCount) return;
+      save(updateDialAt(preset.deck, at.authoredPage, at.authoredFolderPath, dialIndex, next, dialCount));
+    },
+    swapDials(page, folderPath, from, to) {
+      const at = dialPathFor(page, folderPath);
+      if (!at || from < 0 || to < 0 || from >= dialCount || to >= dialCount) return;
+      const nextConfig = swapDialsAt(preset.deck, at.authoredPage, at.authoredFolderPath, from, to, dialCount);
       if (nextConfig !== preset.deck) save(nextConfig);
     },
     addPage() {

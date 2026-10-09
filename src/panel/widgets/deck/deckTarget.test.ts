@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from 'vitest';
-import { makePresetDeckTarget, resolveTargetView, slotCountAtDepth, slotPathAt, type DeckTarget } from './deckTarget';
+import { makePresetDeckTarget, resolveTargetDials, resolveTargetView, slotCountAtDepth, slotPathAt, type DeckTarget } from './deckTarget';
 import type { DeckPresetFull } from '../../../api/deck';
 import type { DeckConfig, DeckSlot } from './types';
 
@@ -339,5 +339,71 @@ describe('resolveTargetView', () => {
     const target: DeckTarget = makePresetDeckTarget(preset(config), IDENTITY_GRID, 'physical', vi.fn());
     const view = resolveTargetView(target, 1, []);
     expect(view![0].label).toBe('p1');
+  });
+});
+
+describe('makePresetDeckTarget - dials', () => {
+  const dialDeck: DeckConfig = {
+    pages: [{ slots: [{ label: 'a' }], dials: [{ label: 'd0' }, { label: 'd1' }] }],
+  };
+
+  it('exposes the instance dial count and resolves the page dials', () => {
+    const target = makePresetDeckTarget(preset(dialDeck), { ...IDENTITY_GRID, dials: 4 }, 'physical', vi.fn());
+    expect(target.dialCount).toBe(4);
+    expect(resolveTargetDials(target, 0, [])).toEqual([{ label: 'd0' }, { label: 'd1' }, {}, {}]);
+  });
+
+  it('a widget target has no dials', () => {
+    const target = makePresetDeckTarget(preset(dialDeck), IDENTITY_GRID, 'widget', vi.fn());
+    expect(target.dialCount).toBe(0);
+    target.updateDial(0, [], 0, { label: 'x' });
+  });
+
+  it('updateDial saves through to the authored page and keeps the slots', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(preset(dialDeck), { ...IDENTITY_GRID, dials: 2 }, 'physical', save);
+    target.updateDial(0, [], 1, { label: 'D1' });
+    const saved = save.mock.calls[0][0] as DeckConfig;
+    expect(saved.pages[0].dials).toEqual([{ label: 'd0' }, { label: 'D1' }]);
+    expect(saved.pages[0].slots[0].label).toBe('a');
+  });
+
+  it('updateDial ignores an index past the dial count', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(preset(dialDeck), { ...IDENTITY_GRID, dials: 2 }, 'physical', save);
+    target.updateDial(0, [], 2, { label: 'x' });
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('swapDials swaps the page dials', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(preset(dialDeck), { ...IDENTITY_GRID, dials: 2 }, 'physical', save);
+    target.swapDials(0, [], 0, 1);
+    expect((save.mock.calls[0][0] as DeckConfig).pages[0].dials).toEqual([{ label: 'd1' }, { label: 'd0' }]);
+  });
+
+  it('a dial write on an overflow chunk lands on the authored page', () => {
+    const save = vi.fn();
+    const slots: DeckSlot[] = Array.from({ length: 5 }, (_, i) => ({ label: String(i) }));
+    const target = makePresetDeckTarget(preset({ pages: [{ slots, dials: [{ label: 'd0' }] }] }, 5, 1), { cols: 3, rows: 1, dials: 1 }, 'physical', save);
+    expect(target.config.pages.length).toBeGreaterThan(1);
+    expect(target.config.pages[1].dials).toEqual([{ label: 'd0' }]);
+    target.updateDial(1, [], 0, { label: 'D' });
+    expect((save.mock.calls[0][0] as DeckConfig).pages[0].dials).toEqual([{ label: 'D' }]);
+  });
+
+  it('a folder dial write targets the authored folder', () => {
+    const save = vi.fn();
+    const deck: DeckConfig = { pages: [{ slots: [{ folder: { slots: [] } }], dials: [{ label: 'd0' }] }] };
+    const target = makePresetDeckTarget(preset(deck), { ...IDENTITY_GRID, dials: 1 }, 'physical', save);
+    target.updateDial(0, [0], 0, { label: 'F' });
+    expect((save.mock.calls[0][0] as DeckConfig).pages[0].slots[0].folder?.dials).toEqual([{ label: 'F' }]);
+  });
+
+  it('slot edits through the target never drop the dials', () => {
+    const save = vi.fn();
+    const target = makePresetDeckTarget(preset(dialDeck), { ...IDENTITY_GRID, dials: 2 }, 'physical', save);
+    target.updateSlot(0, [], 0, { label: 'b' });
+    expect((save.mock.calls[0][0] as DeckConfig).pages[0].dials).toEqual(dialDeck.pages[0].dials);
   });
 });

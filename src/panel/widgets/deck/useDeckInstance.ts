@@ -100,7 +100,7 @@ export const DeckInstanceProvider = DeckInstanceContext.Provider;
 export function useDeckInstance(
   instanceId: string | null,
   kind: 'physical' | 'widget',
-  instanceGrid: { cols: number; rows: number },
+  instanceGrid: { cols: number; rows: number; dials?: number },
   editing = false,
 ): UseDeckInstanceResult {
   const shared = useContext(DeckInstanceContext);
@@ -112,7 +112,7 @@ export function useDeckInstance(
 function useOwnDeckInstance(
   instanceId: string | null,
   kind: 'physical' | 'widget',
-  instanceGrid: { cols: number; rows: number },
+  instanceGrid: { cols: number; rows: number; dials?: number },
   editing: boolean,
 ): UseDeckInstanceResult {
   const [instance, setInstance] = useState<DeckInstance | null>(null);
@@ -279,7 +279,7 @@ function useOwnDeckInstance(
     if (!preset) return null;
     return makePresetDeckTarget(preset, instanceGrid, kind, commitDeck);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preset, kind, commitDeck, instanceGrid.cols, instanceGrid.rows]);
+  }, [preset, kind, commitDeck, instanceGrid.cols, instanceGrid.rows, instanceGrid.dials]);
 
   const setMode = useCallback((mode: DeckInstanceMode) => {
     if (!instanceId) return;
