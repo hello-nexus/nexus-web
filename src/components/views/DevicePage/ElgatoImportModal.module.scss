@@ -43,17 +43,6 @@
     border-color: var(--accent);
     background: var(--accent-soft);
   }
-
-  &:disabled {
-    cursor: default;
-    opacity: 0.5;
-  }
-}
-
-.rowTitle {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
 }
 
 .rowName {

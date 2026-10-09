@@ -32,8 +32,10 @@ export interface DeckPresetToolbarProps {
   onUndo: () => void;
   onRedo: () => void;
   onReset: () => void;
-  /** Opens the host's import modal (starter presets, Elgato profiles); omitted hides the option. */
+  /** Import into a host-wide preset (Elgato import); omitted hides the option. */
   onImport?: () => void;
+  /** Opens the host's starter presets modal; omitted hides the option. */
+  onImportStarters?: () => void;
 }
 
 /**
@@ -42,7 +44,7 @@ export interface DeckPresetToolbarProps {
  * bound preset whenever its app is in focus, in every mode but Recent Apps.
  */
 export function DeckPresetToolbar({
-  deck, desktopActions, rail, activatePreset, onDelete, onUndo, onRedo, onReset, onImport,
+  deck, desktopActions, rail, activatePreset, onDelete, onUndo, onRedo, onReset, onImport, onImportStarters,
 }: DeckPresetToolbarProps) {
   const { t } = useTranslation();
   const toast = useToastSafe();
@@ -128,6 +130,7 @@ export function DeckPresetToolbar({
         onDelete={onDelete}
         onManageApps={desktopActions ? () => { if (activeSummary) setAppsTarget({ id: activeSummary.id, name: activeSummary.name, apps: activeSummary.apps ?? [] }); } : undefined}
         onImport={onImport}
+        onImportStarters={onImportStarters}
         onExport={desktopActions ? id => void exportDeckPreset(id) : undefined}
         onImportFile={desktopActions ? () => importFileInputRef.current?.click() : undefined}
         canUndo={deck.canUndo}

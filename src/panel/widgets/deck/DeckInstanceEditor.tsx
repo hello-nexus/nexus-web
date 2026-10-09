@@ -8,6 +8,7 @@ import { DeckEditor } from './DeckEditor';
 import { DeckRecentAppsSection } from './DeckRecentAppsSection';
 import { DeckPresetToolbar, modeOnPick } from './DeckPresetToolbar';
 import { ElgatoImportModal } from '../../../components/views/DevicePage/ElgatoImportModal';
+import { StarterPresetsModal } from '../../../components/views/DevicePage/StarterPresetsModal';
 import type { UseDeckInstanceResult } from './useDeckInstance';
 import type { DeckInstanceMode } from '../../../api/deck';
 import type { PanelSurface } from '../../types';
@@ -72,6 +73,7 @@ export function DeckInstanceEditor({
   const { t } = useTranslation();
   const mode = deck.instance?.mode ?? 'custom';
   const [importOpen, setImportOpen] = useState(false);
+  const [startersOpen, setStartersOpen] = useState(false);
 
   // Presence-only: the payload is ignored. Mounted for as long as this editor
   // is on screen (unmounts on a tab switch or the widget sheet closing), so
@@ -116,18 +118,27 @@ export function DeckInstanceEditor({
           onRedo={deck.redo}
           onReset={deck.reset}
           onImport={desktopActions ? () => setImportOpen(true) : undefined}
+          onImportStarters={desktopActions ? () => setStartersOpen(true) : undefined}
         />
       )}
       {bodyMode === 'full' && desktopActions && (
-        <ElgatoImportModal
-          open={importOpen}
-          onClose={() => setImportOpen(false)}
-          deckCols={instanceGrid.cols}
-          deckRows={instanceGrid.rows}
-          existingPresetNames={deck.presets.map(p => p.name)}
-          addedTemplateIds={deck.presets.flatMap(p => (p.templateId ? [p.templateId] : []))}
-          onImported={id => activatePreset(id, modeOnPick(deck))}
-        />
+        <>
+          <ElgatoImportModal
+            open={importOpen}
+            onClose={() => setImportOpen(false)}
+            deckCols={instanceGrid.cols}
+            deckRows={instanceGrid.rows}
+            existingPresetNames={deck.presets.map(p => p.name)}
+            onImported={id => activatePreset(id, modeOnPick(deck))}
+          />
+          <StarterPresetsModal
+            open={startersOpen}
+            onClose={() => setStartersOpen(false)}
+            presetCount={deck.presets.length}
+            addedTemplateIds={deck.presets.flatMap(p => (p.templateId ? [p.templateId] : []))}
+            onImported={id => activatePreset(id, modeOnPick(deck))}
+          />
+        </>
       )}
 
       {mode === 'recentApps' && <DeckRecentAppsSection showPreviewNote={bodyMode === 'full'} desktopActions={desktopActions} />}

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeckPresetToolbar, modeOnPick } from './DeckPresetToolbar';
 import type { UseDeckInstanceResult } from './useDeckInstance';
@@ -113,6 +113,18 @@ describe('DeckPresetToolbar - dropdown contents', () => {
     setup({ onImport: vi.fn() });
     open();
     expect(screen.getByRole('option', { name: 'panel.settings.deck.presets.importOption' })).toBeInTheDocument();
+  });
+
+  it('offers Import starter presets only when onImportStarters is supplied, and routes the pick to it', () => {
+    setup();
+    open();
+    expect(screen.queryByRole('option', { name: 'panel.settings.deck.presets.importStartersOption' })).toBeNull();
+    cleanup();
+    const onImportStarters = vi.fn();
+    setup({ onImportStarters });
+    open();
+    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.presets.importStartersOption' }));
+    expect(onImportStarters).toHaveBeenCalled();
   });
 });
 

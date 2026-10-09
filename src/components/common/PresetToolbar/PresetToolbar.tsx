@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import, AppWindow, Download, Upload } from 'lucide-react';
+import { RotateCcw, Undo2, Redo2, Pencil, Trash2, Plus, Import, AppWindow, Download, Upload, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../../lib/i18n';
 import { isApplePlatform } from '../../../lib/platform';
 import { isNameTaken } from '../../../lib/nameCollision';
@@ -49,6 +49,9 @@ interface PresetToolbarProps {
   /** Greys the import option out while the caller cannot accept one (the
    *  cooling page during a fan calibration), on top of the cap rule. */
   importDisabled?: boolean;
+  /** Appends an "Import starter presets..." option after "Import preset...",
+   *  labelled `${translationPrefix}.importStartersOption`. Omit to hide it. */
+  onImportStarters?: () => void;
   /** Appends an "Export..." option next to Rename/Apps/Delete, for the
    *  active preset. Omit to hide the option entirely (every existing caller). */
   onExport?: (id: string) => void;
@@ -100,7 +103,7 @@ interface PresetToolbarProps {
 
 export function PresetToolbar({
   presets, activeId, presetCount, cap = PRESET_CAP,
-  onLoad, onCreate, onRename, onDelete, onImport, importLabelKey, importDisabled, onManageApps,
+  onLoad, onCreate, onRename, onDelete, onImport, importLabelKey, importDisabled, onImportStarters, onManageApps,
   onExport, onImportFile,
   showHistory = true, canUndo = false, canRedo = false, onReset, onUndo, onRedo,
   translationPrefix = 'lighting.layoutPresets',
@@ -145,6 +148,7 @@ export function PresetToolbar({
   const actionOptions = [
     ...(allowCreateRename ? [{ value: '__create__', label: t(key('newOption')), className: styles.createOption, disabled: atCap, icon: <Plus size={14} /> }] : []),
     ...(onImport ? [{ value: '__import__', label: t(importKey), className: styles.createOption, disabled: atCap || !!importDisabled, icon: <Import size={14} /> }] : []),
+    ...(onImportStarters ? [{ value: '__importStarters__', label: t(key('importStartersOption')), className: styles.createOption, disabled: atCap, icon: <Sparkles size={14} /> }] : []),
     ...(onImportFile ? [{ value: '__importFile__', label: t(key('importFileOption')), className: styles.createOption, disabled: atCap, icon: <Upload size={14} /> }] : []),
   ];
 
@@ -164,6 +168,7 @@ export function PresetToolbar({
     if (value.startsWith(BUILTIN_PREFIX)) { onSelectBuiltin?.(value.slice(BUILTIN_PREFIX.length)); return; }
     if (presets.some(p => p.id === value)) { onLoad(value); return; }
     if (value === '__import__') { onImport?.(); return; }
+    if (value === '__importStarters__') { onImportStarters?.(); return; }
     if (value === '__create__') {
       setPromptMode('create');
       setCreateError(null);

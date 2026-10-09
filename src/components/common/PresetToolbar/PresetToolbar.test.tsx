@@ -388,3 +388,24 @@ describe('PresetToolbar built-in entries', () => {
   });
 });
 
+describe('PresetToolbar import starter presets option', () => {
+  it('is absent unless onImportStarters is supplied', () => {
+    render(<PresetToolbar {...defaultProps()} />);
+    expect(screen.queryByRole('option', { name: 'lighting.layoutPresets.importStartersOption' })).toBeNull();
+  });
+
+  it('follows Import preset and routes to onImportStarters', () => {
+    const onImportStarters = vi.fn();
+    render(<PresetToolbar {...defaultProps({ onImport: vi.fn(), onImportStarters })} />);
+    const names = screen.getAllByRole('option').map(o => o.textContent);
+    expect(names.indexOf('lighting.layoutPresets.importStartersOption')).toBe(names.indexOf('lighting.layoutPresets.importOption') + 1);
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__importStarters__' } });
+    expect(onImportStarters).toHaveBeenCalled();
+  });
+
+  it('is disabled at the cap', () => {
+    const presets = Array.from({ length: 10 }, (_, i) => ({ id: `p${i}`, name: `Preset ${i}` }));
+    render(<PresetToolbar {...defaultProps({ presets, presetCount: 10, onImportStarters: vi.fn() })} />);
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.importStartersOption' })).toBeDisabled();
+  });
+});

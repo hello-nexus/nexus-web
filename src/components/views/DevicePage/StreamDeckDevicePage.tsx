@@ -30,6 +30,7 @@ import type { DeckDialActionType, DeckSlot } from '../../../panel/widgets/deck/t
 import { ConfirmModal } from '../../common/ConfirmModal/ConfirmModal';
 import { Notice } from '../../common/Notice/Notice';
 import { ElgatoImportModal } from './ElgatoImportModal';
+import { StarterPresetsModal } from './StarterPresetsModal';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import type { TabDef } from '../../common/Tabs/Tabs';
 import { EmptyState } from '../../common/EmptyState/EmptyState';
@@ -120,6 +121,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const [activeDragDial, setActiveDragDial] = useState<DeckDialActionType | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; count: number } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [startersOpen, setStartersOpen] = useState(false);
   const dragSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const deck = decks.find(d => d.serial === serial) ?? null;
@@ -468,6 +470,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       onRedo={handleRedoDeck}
       onReset={handleDeckReset}
       onImport={() => setImportOpen(true)}
+      onImportStarters={() => setStartersOpen(true)}
     />
   );
 
@@ -768,6 +771,14 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
           deckCols={deck.cols}
           deckRows={deck.rows}
           existingPresetNames={instance.presets.map(p => p.name)}
+          onImported={id => void onDeckPresetLoad(id, modeOnPick(instance))}
+        />
+      )}
+      {serial && (
+        <StarterPresetsModal
+          open={startersOpen}
+          onClose={() => setStartersOpen(false)}
+          presetCount={instance.presets.length}
           addedTemplateIds={instance.presets.flatMap(p => (p.templateId ? [p.templateId] : []))}
           onImported={id => void onDeckPresetLoad(id, modeOnPick(instance))}
         />
