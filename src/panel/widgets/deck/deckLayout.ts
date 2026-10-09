@@ -346,16 +346,17 @@ export function countConfiguredDials(dials: readonly DeckDial[] | undefined): nu
   return dials ? dials.filter(dialHasContent).length : 0;
 }
 
-/** Bound keys plus configured dials inside a folder, for a delete confirm. */
+/** Bound items (keys plus configured dials) inside a folder, for a delete confirm. */
 export function countBoundFolder(folder: { slots: readonly DeckSlot[]; dials?: readonly DeckDial[] }): number {
   return countBoundSlots(folder.slots) + countConfiguredDials(folder.dials);
 }
 
 /**
- * Total bound keys inside a folder (recursively), so a delete-folder confirm
- * can tell the user how many keys go with it. Counts only keys that DO
- * something (action or folder); slotHasContent above is deliberately wider
- * (a bare icon/label counts) because removing a page also discards styling.
+ * Total bound items inside a folder (recursively: keys that act or hold a
+ * folder, plus configured dials of nested folders), so a delete-folder confirm
+ * can tell the user how much goes with it. slotHasContent above is
+ * deliberately wider (a bare icon/label counts) because removing a page also
+ * discards styling.
  */
 export function countBoundSlots(slots: readonly DeckSlot[]): number {
   let n = 0;

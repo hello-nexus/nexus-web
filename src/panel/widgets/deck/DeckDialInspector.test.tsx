@@ -10,6 +10,7 @@ vi.mock('../common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () =>
 vi.mock('../../../api/service', () => ({
   fetchService: vi.fn((path: string) => Promise.resolve(path === '/system/audio/devices'
     ? { outputs: [{ id: 'out1', name: 'Speakers' }], inputs: [{ id: 'in1', name: 'Headset mic' }] }
+    : path === '/devices/lighting-devices/layout-presets' ? { presets: [{ id: 'p1', name: 'Preset one' }] }
     : path === '/displays' ? { displays: [{ id: 'd1', name: 'Left monitor' }] } : null)),
   isRelayActive: vi.fn(() => false),
   isDirectActive: vi.fn(() => false),
@@ -49,7 +50,7 @@ function preset(deck: DeckConfig): DeckPresetFull {
 
 const saved: { config: DeckConfig } = { config: { pages: [] } };
 
-function Harness({ dials, part, selected = 0, base }: { dials: DeckDial[]; part: 'picker' | 'editor'; selected?: number | null; base?: DeckConfig }) {
+function Harness({ dials, part, selected = 0, base }: { dials: DeckDial[]; part: 'picker' | 'editor'; selected?: number; base?: DeckConfig }) {
   const [config, setConfig] = useState<DeckConfig>(base ?? { pages: [{ slots: [], dials }] });
   const [entry, setEntry] = useState(0);
   const save = (next: DeckConfig) => { saved.config = next; setConfig(next); };
@@ -166,14 +167,6 @@ describe('DeckDialInspector editor', () => {
 });
 
 describe('DeckDialInspector selection and inheritance', () => {
-  it('a pick with no dial selected changes nothing', () => {
-    saved.config = { pages: [] };
-    render(<Harness dials={[{ label: 'Keep' }]} part="picker" selected={null} />);
-    fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.dial.action.volume' }));
-    expect(saved.config.pages).toEqual([]);
-    expect(screen.getByRole('option', { name: 'panel.settings.deck.dial.action.volume' })).toHaveAttribute('aria-selected', 'false');
-  });
-
   it('viewing an inherited folder dial does not seed a sensor or display into the folder', async () => {
     saved.config = { pages: [] };
     const base: DeckConfig = {
@@ -193,6 +186,33 @@ describe('DeckDialInspector selection and inheritance', () => {
     await screen.findAllByLabelText('panel.settings.deck.monitoringPressOp');
     await new Promise(resolve => setTimeout(resolve, 20));
     expect(saved.config.pages).toEqual([]);
+  });
+
+  it('viewing an inherited custom dial does not re-seed a deleted lighting preset into the folder', async () => {
+    saved.config = { pages: [] };
+    const base: DeckConfig = {
+      pages: [{
+        slots: [{ folder: { slots: [{ label: 'f' }] } }],
+        dials: [{ action: { type: 'custom', push: { type: 'nexus', action: { op: 'lightingPreset', presetId: 'gone' } } } }],
+      }],
+    };
+    const Folder = ({ folderPath }: { folderPath: number[] }) => {
+      const [config, setConfig] = useState<DeckConfig>(base);
+      const target = makePresetDeckTarget(preset(config), { cols: 4, rows: 2, dials: 4 }, 'physical', next => { saved.config = next; setConfig(next); });
+      return (
+        <DndContext>
+          <DeckDialInspector target={target} page={0} folderPath={folderPath} selectedDial={0} entryIndex={0} onEntryIndexChange={() => {}} surface="desktop" desktopEditor part="editor" />
+        </DndContext>
+      );
+    };
+    const inFolder = render(<Folder folderPath={[0]} />);
+    await screen.findByLabelText('panel.settings.deck.preset');
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(saved.config.pages).toEqual([]);
+    inFolder.unmount();
+
+    render(<Folder folderPath={[]} />);
+    await vi.waitFor(() => expect(saved.config.pages[0]?.dials?.[0].action).toMatchObject({ push: { action: { presetId: 'p1' } } }));
   });
 });
 

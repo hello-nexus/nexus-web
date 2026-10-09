@@ -97,10 +97,16 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const { numberFormat } = useUnitPrefs();
   const { decks, loaded, rename, setBrightness, setOrientation, setSleepAfterSeconds, setSleepWhenLocked, setInfoScreen } = useStreamDecks(true);
   const serial = device.streamdeckSerial ?? null;
-  const [page, setPage] = useState(0);
-  const [folderPath, setFolderPath] = useState<number[]>([]);
+  const [page, setPageState] = useState(0);
+  const [folderPath, setFolderPathState] = useState<number[]>([]);
   const [selectedSlot, setSelectedSlotState] = useState(0);
-  const [selectedDial, setSelectedDial] = useState<number | null>(null);
+  const [selectedDial, setSelectedDialState] = useState<number | null>(null);
+  // Written with the state so a nav frame or hold-to-edit handled before the next commit sees the latest values.
+  const navRef = useRef<{ page: number; folderPath: number[] }>({ page: 0, folderPath: [] });
+  const selectedDialRef = useRef<number | null>(null);
+  const setPage = useCallback((next: number) => { navRef.current.page = next; setPageState(next); }, []);
+  const setFolderPath = useCallback((next: number[]) => { navRef.current.folderPath = next; setFolderPathState(next); }, []);
+  const setSelectedDial = useCallback((next: number | null) => { selectedDialRef.current = next; setSelectedDialState(next); }, []);
   const [dialEntry, setDialEntry] = useState(0);
   const [pendingFlashSlot, setPendingFlashSlot] = useState<number | null>(null);
   const [pendingFlashDial, setPendingFlashDial] = useState<number | null>(null);
@@ -121,14 +127,8 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   const target = instance.target;
 
   // Key and dial selection are mutually exclusive.
-  const setSelectedSlot = useCallback((i: number) => { setSelectedSlotState(i); setSelectedDial(null); setDialEntry(0); }, []);
-  const navRef = useRef({ page, folderPath });
-  const selectedDialRef = useRef(selectedDial);
-  useEffect(() => {
-    navRef.current = { page, folderPath };
-    selectedDialRef.current = selectedDial;
-  });
-  const selectDial = useCallback((i: number) => { setSelectedDial(i); setDialEntry(0); }, []);
+  const setSelectedSlot = useCallback((i: number) => { setSelectedSlotState(i); setSelectedDial(null); setDialEntry(0); }, [setSelectedDial]);
+  const selectDial = useCallback((i: number) => { setSelectedDial(i); setDialEntry(0); }, [setSelectedDial]);
 
   // Recent Apps has no authored preset content to render - every key comes
   // from the live ring, painted server-side and pushed over streamdeckTiles
@@ -162,7 +162,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     seededNavRef.current = true;
     if (typeof deck.currentPage === 'number') setPage(deck.currentPage);
     if (Array.isArray(deck.folderPath)) setFolderPath(deck.folderPath);
-  }, [deck]);
+  }, [deck, setPage, setFolderPath]);
 
   // A blank-key hold-to-edit that navigated here (or fired while already on
   // this deck) selects the held key on the Customize tab, and pulses it once
@@ -184,7 +184,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     }
     setSelectedSlot(editTarget.keyIndex);
     setPendingFlashSlot(editTarget.keyIndex);
-  }, [serial, setSelectedSlot]);
+  }, [serial, setSelectedSlot, setPage, setFolderPath, setSelectedDial]);
   useEffect(() => {
     applyEditorTarget();
     return onDeckOpenEditor(applyEditorTarget);
@@ -261,7 +261,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     setPage(0);
     setFolderPath([]);
     setSelectedSlot(0);
-  }, [instance, clearLiveTiles, setSelectedSlot]);
+  }, [instance, clearLiveTiles, setSelectedSlot, setPage, setFolderPath]);
 
   // Deleting the active preset promotes the first remaining one server-side;
   // re-render from page 1 so the view shows the promoted preset rather than
@@ -275,7 +275,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       setSelectedSlot(0);
       clearLiveTiles();
     }
-  }, [instance, clearLiveTiles, setSelectedSlot]);
+  }, [instance, clearLiveTiles, setSelectedSlot, setPage, setFolderPath]);
 
   const handleUndoDeck = useCallback(() => { clearLiveTiles(); instance.undo(); }, [instance, clearLiveTiles]);
   const handleRedoDeck = useCallback(() => { clearLiveTiles(); instance.redo(); }, [instance, clearLiveTiles]);
@@ -306,7 +306,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
     setFolderPath(nextFolder);
     // A nav frame that changes nothing (around a long touch) keeps the dial a hold-to-edit just opened.
     if (moved || selectedDialRef.current == null) setSelectedSlot(0);
-  }, [serial, recentAppsMode, setSelectedSlot]));
+  }, [serial, recentAppsMode, setSelectedSlot, setPage, setFolderPath]));
 
   // Mirror an editor-initiated nav onto the hardware (desktop -> device). Only
   // user actions call this; the `nav`-frame subscription above (device ->
@@ -617,7 +617,9 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
 
               <div className={styles.pickerPane}>
                 {instanceEditor}
-                {!recentAppsMode && target && dialSel == null && (
+                {!recentAppsMode && target && (
+                  // Hidden, not unmounted, while a dial is selected, so its search and collapsed groups survive a dial/key switch.
+                  <div hidden={dialSel != null}>
                   <DeckKeyInspector
                     target={target}
                     page={page}
@@ -631,6 +633,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
                     // eslint-disable-next-line i18next/no-literal-string -- render-part enum value
                     part="picker"
                   />
+                  </div>
                 )}
                 {!recentAppsMode && target && dialSel != null && (
                   <DeckDialInspector

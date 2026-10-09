@@ -258,14 +258,12 @@ export interface DeckGridProps {
   folderPath?: readonly number[];
   /** Key height over width for a non-square model (Studio); square mode only. */
   keyAspect?: number;
-  /** Width in px a sibling (side dials) takes from the preview stage; square mode only. */
-  reservedWidth?: number;
   /** Tighter key gap for decks with many columns; square mode only. */
   dense?: boolean;
 }
 
 /** Pure icon grid for one folder level. The back affordance is overlaid by DeckWidget. */
-export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square, onDeleteSlot, liveTiles, page, folderPath, keyAspect = 1, reservedWidth = 0, dense = false }: DeckGridProps) {
+export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedIndex, onCell, backCell, square, onDeleteSlot, liveTiles, page, folderPath, keyAspect = 1, dense = false }: DeckGridProps) {
   const { t } = useTranslation();
   const [ctxMenu, setCtxMenu] = useState<{ index: number; x: number; y: number } | null>(null);
   const Cell = dragEnabled ? DraggableCell : StaticCell;
@@ -300,7 +298,6 @@ export function DeckGrid({ slots, cols, rows, selectable, dragEnabled, selectedI
         gridTemplateColumns: `repeat(${cols}, ${colSize})`,
         gridTemplateRows: `repeat(${rows}, ${rowSize})`,
         '--deck-cols': cols,
-        ...(reservedWidth > 0 ? { '--deck-reserved': `${reservedWidth}px` } : {}),
       } as CSSProperties}
     >
       {backCell && (

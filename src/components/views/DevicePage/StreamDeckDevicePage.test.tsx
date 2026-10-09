@@ -998,10 +998,13 @@ describe('StreamDeckDevicePage', () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck(PLUS)]));
       plusInstance();
       const { container } = await renderPage();
-      expect(screen.getByTestId('deck-key-inspector-picker')).toBeInTheDocument();
+      expect(screen.getByTestId('deck-key-inspector-picker')).toBeVisible();
       expect(screen.queryByTestId('deck-dial-inspector-picker')).toBeNull();
+      const keyPicker = screen.getByTestId('deck-key-inspector-picker');
       fireEvent.click(container.querySelector('[data-deck-dial-index="0"]')!);
-      expect(screen.queryByTestId('deck-key-inspector-picker')).toBeNull();
+      // Stays mounted (search and collapsed groups survive) but hidden.
+      expect(screen.getByTestId('deck-key-inspector-picker')).toBe(keyPicker);
+      expect(keyPicker).not.toBeVisible();
       expect(screen.getByTestId('deck-dial-inspector-picker')).toBeInTheDocument();
     });
 

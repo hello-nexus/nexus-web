@@ -19,7 +19,6 @@ export interface DeckDevicePreviewProps {
   onSelectDial: (index: number) => void;
 }
 
-const SIDE_KNOB_RESERVE_PX = 130;
 const DENSE_COLS = 12;
 
 /** Keys plus the model's dials, touch strip or screen, and Neo touch keys, arranged like the hardware. */
@@ -49,7 +48,7 @@ export function DeckDevicePreview({ deck, grid, dials, selectedDial, onSelectDia
   const segmentAspect = deck.screen && encoders > 0 ? deck.screen.width / encoders / deck.screen.height : 2;
   const indices = Array.from({ length: encoders }, (_, i) => i);
 
-  const keys = <DeckGrid {...grid} keyAspect={keyAspect} dense={dense} reservedWidth={layout === 'dialsSides' ? SIDE_KNOB_RESERVE_PX : 0} />;
+  const keys = <DeckGrid {...grid} keyAspect={keyAspect} dense={dense} />;
 
   if (layout === 'dialsBelow') {
     return (
@@ -64,7 +63,7 @@ export function DeckDevicePreview({ deck, grid, dials, selectedDial, onSelectDia
   if (layout === 'dialsAbove') {
     const split = Math.ceil(encoders / 2);
     return (
-      <div className={styles.root}>
+      <div className={`${styles.root} ${styles.knobLayout}`}>
         <div className={`${styles.inset} ${styles.aboveRow}`}>
           <div className={styles.knobRow}>{indices.slice(0, split).map(knob)}</div>
           <div className={styles.screenSegments} style={columns(encoders)}>{indices.map(i => segment(i, segmentAspect))}</div>
@@ -78,7 +77,7 @@ export function DeckDevicePreview({ deck, grid, dials, selectedDial, onSelectDia
   if (layout === 'dialsSides') {
     const split = Math.ceil(encoders / 2);
     return (
-      <div className={styles.sidesRow}>
+      <div className={`${styles.sidesRow} ${styles.knobLayout}`}>
         {indices.slice(0, split).map(knob)}
         {keys}
         {indices.slice(split).map(knob)}

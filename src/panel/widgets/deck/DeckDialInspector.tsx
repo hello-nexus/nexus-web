@@ -13,7 +13,7 @@ import { IconPicker } from '../common/IconPicker';
 import { canEditFreeText } from '../../types';
 import type { PanelSurface } from '../../types';
 import {
-  ActionEditor, Field, NESTED_KINDS, SelectField, SwatchRow, kindsForTarget, useDisplayOptions, useMonitoringPicker, useServiceOptions,
+  ActionEditor, DeckEditContext, Field, NESTED_KINDS, SelectField, SwatchRow, kindsForTarget, useDisplayOptions, useMonitoringPicker, useServiceOptions,
   defaultActionFor,
 } from './DeckKeyInspector';
 import { DECK_ICONS } from './deckIcons';
@@ -271,7 +271,7 @@ export interface DeckDialInspectorProps {
   target: DeckTarget;
   page: number;
   folderPath: readonly number[];
-  selectedDial: number | null;
+  selectedDial: number;
   /** Stack entry being edited; 0 for a dial without a stack. */
   entryIndex: number;
   onEntryIndexChange: (index: number) => void;
@@ -285,7 +285,7 @@ export interface DeckDialInspectorProps {
 export function DeckDialInspector({ target, page, folderPath, selectedDial, entryIndex, onEntryIndexChange, surface, desktopEditor, part }: DeckDialInspectorProps) {
   const { t } = useTranslation();
   const dials = resolveTargetDials(target, page, folderPath);
-  const index = Math.min(selectedDial ?? 0, Math.max(0, dials.length - 1));
+  const index = Math.min(selectedDial, Math.max(0, dials.length - 1));
   const inherited = dialsInherited(target.config, page, folderPath);
   const dial: DeckDial = dials[index] ?? {};
   const stacked = isDialStack(dial);
@@ -312,8 +312,8 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
                   <DialPickerItem
                     key={type}
                     type={type}
-                    active={selectedDial != null && entry.action?.type === type}
-                    onPick={picked => { if (selectedDial != null) writeDial(assignDialAction(dial, entryAt, picked)); }}
+                    active={entry.action?.type === type}
+                    onPick={picked => writeDial(assignDialAction(dial, entryAt, picked))}
                   />
                 ))}
               </div>
@@ -358,6 +358,7 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
 
   const action = entry.action;
   return (
+    <DeckEditContext.Provider value={{ physical: target.kind === 'physical', freezeSeed: inherited }}>
     <div className={keyStyles.root}>
       {stackSection}
 
@@ -399,5 +400,6 @@ export function DeckDialInspector({ target, page, folderPath, selectedDial, entr
         {t('panel.settings.deck.dial.clear')}
       </Button>
     </div>
+    </DeckEditContext.Provider>
   );
 }

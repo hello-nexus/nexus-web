@@ -30,13 +30,20 @@
   align-items: center;
 }
 
-// The screen spans the keys' width; the flanking knobs (52px + gap) hang outside it.
+// Knobs flank the keys; the keys grid reads --deck-reserved to leave room for both.
+.knobLayout {
+  --knob-size: 52px;
+  --knob-gap: 12px;
+  --deck-reserved: calc(2 * (var(--knob-size) + var(--knob-gap)));
+}
+
+// The screen spans the keys' width; the flanking knobs hang outside it.
 .aboveRow {
-  margin: 0 -64px;
+  margin: 0 calc(-1 * (var(--knob-size) + var(--knob-gap)));
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 12px;
+  gap: var(--knob-gap);
 }
 
 .screenSegments {
@@ -48,7 +55,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--knob-gap);
 }
 
 .infoRow {

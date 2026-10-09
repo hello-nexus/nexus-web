@@ -41,8 +41,9 @@ export interface DeckTarget {
    */
   removePage(page: number): number;
   /**
-   * Configured-key count (deckLayout.ts's countConfiguredSlots, the same
-   * definition pageHasContent uses) of the AUTHORED page that
+   * Configured item count (keys plus dials; deckLayout.ts's
+   * countConfiguredSlots and countConfiguredDials, the same definition
+   * pageHasContent uses) of the AUTHORED page that
    * `removePage(page)` would delete - on an overflow-chunked page this can
    * exceed what's visible in the one fitted chunk `page` shows, since
    * removing any of its chunks removes the whole authored page.
