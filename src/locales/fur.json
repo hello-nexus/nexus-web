@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "Rotazion",
   "devices.corsair.screenSection": "Schermi",
   "devices.experimental.badge": "Sperimentâl",
+  "devices.experimental.confirm": "O ai capît, continue",
   "devices.experimental.tooltip.body": "Il supuart par chest dispositîf al è sperimentâl e al pò jessi instabil. Dopralu sot la tô responsabilitât.",
   "devices.experimental.tooltip.title": "Supuart sperimentâl",
   "devices.firmware.column.current": "Version instalade",

@@ -8,6 +8,8 @@ import styles from './ConfirmModal.module.scss';
 interface ConfirmModalProps {
   open: boolean;
   title: string;
+  /** Optional icon left of the title, as in DeviceModal's header. */
+  icon?: ReactNode;
   /** Body text. May contain plain newlines; they are rendered as paragraph breaks. */
   message: string;
   /** Optional bulleted list rendered below the message (e.g. items affected). */
@@ -54,6 +56,7 @@ interface ConfirmModalProps {
 export function ConfirmModal({
   open,
   title,
+  icon,
   message,
   bullets,
   size = 'default',
@@ -85,7 +88,12 @@ export function ConfirmModal({
   return (
     <Overlay open={open} onClose={onDismiss ?? onCancel} variant="alert" onEnter={confirmDisabled || hideConfirm ? undefined : onConfirm}
       className={size === 'wide' ? `${styles.modal} ${styles.wide}` : styles.modal} ariaLabel={title}>
-      <h2 className={styles.title}>{title}</h2>
+      {icon ? (
+        <div className={styles.titleRow}>
+          <span className={styles.icon}>{icon}</span>
+          <h2 className={styles.title}>{title}</h2>
+        </div>
+      ) : <h2 className={styles.title}>{title}</h2>}
       <div className={styles.body}>
         {paragraphs.map((p, i) => <p key={i} className={styles.text}>{p}</p>)}
         {bullets && bullets.length > 0 && (

@@ -28,6 +28,7 @@ import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
 import { Button } from '../../common/Button/Button';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { ExperimentalBadge } from '../../common/ExperimentalBadge/ExperimentalBadge';
+import { ExperimentalEnableModal } from '../../common/ExperimentalEnableModal/ExperimentalEnableModal';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useUiSettings } from '../../../hooks/useUiSettings';
@@ -340,6 +341,7 @@ export function NexusControlOff({ deviceName, conflictAppId, experimental, requi
   // unknown rather than confirmed clear - keep the enable toggle disabled so
   // the user can't turn Control on while a real conflict may still surface.
   const resolvingConflict = Boolean(conflictAppId) && !ready;
+  const [confirmingExperimental, setConfirmingExperimental] = useState(false);
   return (
     <section className={styles.page}>
       <div className={styles.controlOff}>
@@ -368,12 +370,17 @@ export function NexusControlOff({ deviceName, conflictAppId, experimental, requi
           ) : (
             <>
               <p className={styles.controlOffHint}>{t('devices.nexusControlOff.enableHint')}</p>
-              <NexusControlCard checked={false} disabled={resolvingConflict} onChange={onEnable} />
+              <NexusControlCard checked={false} disabled={resolvingConflict} onChange={experimental ? () => setConfirmingExperimental(true) : onEnable} />
             </>
           )}
         </div>
         {experimental && <ExperimentalBadge />}
       </div>
+      <ExperimentalEnableModal
+        open={confirmingExperimental}
+        onConfirm={() => { setConfirmingExperimental(false); onEnable(); }}
+        onCancel={() => setConfirmingExperimental(false)}
+      />
     </section>
   );
 }

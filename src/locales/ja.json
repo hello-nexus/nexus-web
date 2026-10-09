@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "回転",
   "devices.corsair.screenSection": "画面",
   "devices.experimental.badge": "実験的",
+  "devices.experimental.confirm": "理解して続行",
   "devices.experimental.tooltip.body": "このデバイスのサポートは実験的であり、不安定な場合があります。ご自身の責任でご利用ください。",
   "devices.experimental.tooltip.title": "実験的なサポート",
   "devices.firmware.column.current": "インストール済みバージョン",

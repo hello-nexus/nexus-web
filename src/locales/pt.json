@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "Rotação",
   "devices.corsair.screenSection": "Ecrã",
   "devices.experimental.badge": "Experimental",
+  "devices.experimental.confirm": "Compreendo, continuar",
   "devices.experimental.tooltip.body": "O suporte para este dispositivo é experimental e pode ser instável. Utilize por sua conta e risco.",
   "devices.experimental.tooltip.title": "Suporte experimental",
   "devices.firmware.column.current": "Versão instalada",

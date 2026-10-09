@@ -604,6 +604,7 @@
   "devices.corsair.screenRotation": "회전",
   "devices.corsair.screenSection": "화면",
   "devices.experimental.badge": "실험적",
+  "devices.experimental.confirm": "이해하고 계속",
   "devices.experimental.tooltip.body": "이 장치에 대한 지원은 실험적이며 불안정할 수 있습니다. 사용에 따른 책임은 본인에게 있습니다.",
   "devices.experimental.tooltip.title": "실험적 지원",
   "devices.firmware.column.current": "설치된 버전",

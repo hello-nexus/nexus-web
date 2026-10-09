@@ -611,6 +611,7 @@
   "devices.corsair.screenRotation": "Поворот",
   "devices.corsair.screenSection": "Экран",
   "devices.experimental.badge": "Экспериментально",
+  "devices.experimental.confirm": "Понятно, продолжить",
   "devices.experimental.tooltip.body": "Поддержка этого устройства является экспериментальной и может быть нестабильной. Используйте на свой страх и риск.",
   "devices.experimental.tooltip.title": "Экспериментальная поддержка",
   "devices.firmware.column.current": "Установленная версия",
