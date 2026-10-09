@@ -170,6 +170,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const retryAttemptRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recoverStartRef = useRef(() => {});
+  const switchFailedRef = useRef<(detail: string) => void>(() => {});
   const switchMode = channelSwitch !== undefined;
   // A channel switch installs the version it was opened for, which may be older than the running one.
   const targetVersion = channelSwitch?.version ?? status?.latestVersion ?? '';
@@ -225,6 +226,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
 
   useEffect(() => {
     recoverStartRef.current = () => { void recoverStart(); };
+    switchFailedRef.current = (detail: string) => failSwitch(t('update.switch.failed'), true, detail);
   });
 
   // Progress poll: runs while the modal is open. Transitions to 'reconnecting'
@@ -280,7 +282,11 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       const failed = p.phase === 'failed' || (!p.active && !p.success && p.error !== '');
       if (failed && fresh) {
         clearInterval(id);
-        if (installActiveRef.current) {
+        if (installActiveRef.current && channelSwitchRef.current) {
+          // A switch that failed after it started (download, verify, launch) changed
+          // nothing: report the service's reason instead of restarting it.
+          switchFailedRef.current(p.error || p.message);
+        } else if (installActiveRef.current) {
           recoverStartRef.current();
         } else {
           // A recovery waiting out its backoff keeps the progress view.

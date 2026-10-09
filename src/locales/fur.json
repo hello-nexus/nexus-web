@@ -5148,6 +5148,7 @@
   "update.modal.version": "Version {version}",
   "update.switch.alreadyOn": "Tu âs za la version {version}, la ultime di {channel}.",
   "update.switch.body": "Nexus al discjariarà la version {version} e le instalarà cumò.",
+  "update.switch.failed": "Il cambi nol è stât completât. Nol è stât cambiât nuie.",
   "update.switch.install": "Instale {version}",
   "update.switch.loadFailed": "No si à podût controlâ il canal {channel}. Par plasê torne a provâ.",
   "update.switch.loading": "Daûr a cirî la version plui resinte...",

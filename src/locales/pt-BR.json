@@ -5148,6 +5148,7 @@
   "update.modal.version": "Versão {version}",
   "update.switch.alreadyOn": "Você já está na versão {version}, a mais recente de {channel}.",
   "update.switch.body": "O Nexus vai baixar a versão {version} e instalá-la agora.",
+  "update.switch.failed": "A troca não foi concluída. Nada foi alterado.",
   "update.switch.install": "Instalar {version}",
   "update.switch.loadFailed": "Não foi possível verificar o canal {channel}. Por favor, tente novamente.",
   "update.switch.loading": "Procurando a versão mais recente...",

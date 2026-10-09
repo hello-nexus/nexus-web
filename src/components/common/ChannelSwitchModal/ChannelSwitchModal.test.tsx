@@ -261,6 +261,21 @@ describe('ChannelSwitchModal after Continue', () => {
     expect(screen.getByRole('button', { name: CLOSE_X })).toBeInTheDocument();
   });
 
+  it('ends a switch whose download fails with the service reason, without restarting it', async () => {
+    let frames = 0;
+    progressReply = () => (++frames < 3
+      ? { ...idle, active: true, phase: 'downloading', percent: 10, version: '3.1.0' }
+      : { ...idle, phase: 'failed', version: '3.1.0', error: 'HttpIOException: The response ended prematurely.' });
+    render(<ChannelSwitchModal open channel="production" onClose={vi.fn()} />);
+    await cont();
+    await advance(8_000);
+
+    expect(screen.getByText('update.switch.failed')).toBeInTheDocument();
+    expect(screen.getByText(/response ended prematurely/)).toBeInTheDocument();
+    expect(switchCalls()).toBe(1);
+    expect(screen.getByRole('button', { name: CLOSE_X })).toBeInTheDocument();
+  });
+
   it('does not adopt another install launching while the switch runs', async () => {
     progressReply = () => ({ ...idle, active: true, phase: 'launching', version: '9.9.9' });
     render(<ChannelSwitchModal open channel="production" onClose={vi.fn()} />);

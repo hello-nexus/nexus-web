@@ -5148,6 +5148,7 @@
   "update.modal.version": "버전 {version}",
   "update.switch.alreadyOn": "이미 {channel}의 최신 릴리스인 {version}을(를) 사용 중입니다.",
   "update.switch.body": "Nexus가 버전 {version}을(를) 다운로드하여 지금 설치합니다.",
+  "update.switch.failed": "전환이 완료되지 않았습니다. 변경된 내용은 없습니다.",
   "update.switch.install": "{version} 설치",
   "update.switch.loadFailed": "{channel} 채널을 확인할 수 없습니다. 다시 시도하세요.",
   "update.switch.loading": "최신 버전을 확인하는 중...",

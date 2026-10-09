@@ -5195,6 +5195,7 @@
   "update.modal.version": "Версия {version}",
   "update.switch.alreadyOn": "У вас уже установлена версия {version}, последняя в канале {channel}.",
   "update.switch.body": "Nexus скачает версию {version} и сразу установит её.",
+  "update.switch.failed": "Переключение не завершено. Ничего не изменилось.",
   "update.switch.install": "Установить {version}",
   "update.switch.loadFailed": "Не удалось проверить канал {channel}. Повторите попытку.",
   "update.switch.loading": "Поиск последней версии...",

@@ -5148,6 +5148,7 @@
   "update.modal.version": "Sürüm {version}",
   "update.switch.alreadyOn": "Zaten {version} sürümündesiniz, {channel} kanalının en son sürümü.",
   "update.switch.body": "Nexus {version} sürümünü indirip hemen yükleyecek.",
+  "update.switch.failed": "Geçiş tamamlanmadı. Hiçbir şey değiştirilmedi.",
   "update.switch.install": "{version} sürümünü yükle",
   "update.switch.loadFailed": "{channel} kanalı kontrol edilemedi. Lütfen tekrar deneyin.",
   "update.switch.loading": "En son sürüm aranıyor...",

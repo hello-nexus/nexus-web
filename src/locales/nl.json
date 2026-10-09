@@ -5148,6 +5148,7 @@
   "update.modal.version": "Versie {version}",
   "update.switch.alreadyOn": "Je gebruikt al {version}, de nieuwste {channel}-release.",
   "update.switch.body": "Nexus downloadt versie {version} en installeert die nu.",
+  "update.switch.failed": "De overstap is niet voltooid. Er is niets gewijzigd.",
   "update.switch.install": "{version} installeren",
   "update.switch.loadFailed": "Het kanaal {channel} kon niet worden gecontroleerd. Probeer het opnieuw.",
   "update.switch.loading": "Nieuwste versie zoeken...",

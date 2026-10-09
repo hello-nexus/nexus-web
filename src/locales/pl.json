@@ -5195,6 +5195,7 @@
   "update.modal.version": "Wersja {version}",
   "update.switch.alreadyOn": "Masz już wersję {version}, najnowsze wydanie na kanale {channel}.",
   "update.switch.body": "Nexus pobierze wersję {version} i zainstaluje ją teraz.",
+  "update.switch.failed": "Przełączanie nie zostało ukończone. Nic nie zostało zmienione.",
   "update.switch.install": "Zainstaluj {version}",
   "update.switch.loadFailed": "Nie udało się sprawdzić kanału {channel}. Spróbuj ponownie.",
   "update.switch.loading": "Szukanie najnowszej wersji...",

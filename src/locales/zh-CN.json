@@ -5148,6 +5148,7 @@
   "update.modal.version": "版本 {version}",
   "update.switch.alreadyOn": "您已在使用 {version}，即{channel}渠道的最新版本。",
   "update.switch.body": "Nexus 将下载 {version} 版本并立即安装。",
+  "update.switch.failed": "切换未完成。未做任何更改。",
   "update.switch.install": "安装 {version}",
   "update.switch.loadFailed": "无法检查{channel}渠道，请重试。",
   "update.switch.loading": "正在查找最新版本...",
