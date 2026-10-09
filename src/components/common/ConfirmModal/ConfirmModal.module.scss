@@ -22,6 +22,17 @@
   color: var(--text);
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  @include hgap(0.6rem);
+}
+
+.icon {
+  display: flex;
+  color: var(--accent);
+}
+
 .body {
   display: flex;
   flex-direction: column;
