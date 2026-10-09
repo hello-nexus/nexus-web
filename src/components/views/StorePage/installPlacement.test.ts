@@ -269,3 +269,21 @@ describe('commitPlacement', () => {
     expect(patchPanelDevice).toHaveBeenCalledWith('new-rec', expect.anything());
   });
 });
+
+describe('planPlacement on a Small Q-series record', () => {
+  it('reads the record canvas as physical px, so the grid is four wide', () => {
+    const record = {
+      id: 'rec-q', displayName: 'Q60', firstSeenAt: 0, lastSeenAt: 0, widgetSize: 'small',
+      capabilities: { surface: 'q60', cssWidth: 720, cssHeight: 1280, dpr: 1.5 },
+    } as PanelDeviceRecord;
+    const target: PlacementTarget = { key: 'panel-q60', name: 'Q60', iconSrc: null, surface: 'q60' };
+    const layout: PanelLayout = { layoutSchemaVersion: 1, surface: 'monitor', pages: [{ id: 'p0', widgets: [] }] };
+
+    const plan = planPlacement(target, { layout, record }, 'app:com.example.fish', {
+      type: 'app:com.example.fish', i18nKey: 'Fish', icon: (() => null) as never, sizes: ['2x2', '4x2'], defaultSize: '4x2',
+      supportsImmersive: { portrait: false, landscape: false }, singleInstance: false, hasConfig: false, touch: false,
+    }, 6);
+
+    expect(plan?.capacity.gridCols).toBe(4);
+  });
+});

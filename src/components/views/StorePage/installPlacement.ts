@@ -118,7 +118,8 @@ function layoutOf(target: PlacementTarget, record?: PanelDeviceRecord): { surfac
 
 function screenOf(target: PlacementTarget, record?: PanelDeviceRecord): { width: number; height: number; dpr: number } | undefined {
   const caps = record?.capabilities;
-  if (caps?.cssWidth && caps.cssHeight) return { width: caps.cssWidth, height: caps.cssHeight, dpr: caps.dpr || 1 };
+  // The Q-series WebView reports physical px as its css size.
+  if (caps?.cssWidth && caps.cssHeight) return { width: caps.cssWidth, height: caps.cssHeight, dpr: target.surface === 'q60' ? 1 : caps.dpr || 1 };
   return target.screen ? { ...target.screen, dpr: target.screenDpr || 1 } : undefined;
 }
 

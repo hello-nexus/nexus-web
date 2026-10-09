@@ -418,6 +418,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const deviceTouch = surface === glassSurface ? glassTouch : surfaceSupportsTouch(glassSurface, glassTouch);
   const pagesAllowed = surfaceAllowsPages(surface, deviceTouch);
   const layoutDpi = panelLayoutDpi(glassSurface, recordFamily, recordWidgetSize, liveDpi, DEFAULT_SURFACE_DPI);
+  // The Q-series WebView reports physical px as its css size, so its live canvas takes no DPR.
+  const liveCanvasDpr = glassSurface === 'q60' ? 1 : liveDpr;
   const shortSideSlots = panelShortSideSlots(glassSurface, recordFamily, recordWidgetSize);
   const gridLandscape = isLandscapeCanvas(liveCanvas ?? device?.previewSize);
   const forcedGrid = useMemo(() => forcedGridOf(shortSideSlots, gridLandscape), [shortSideSlots, gridLandscape]);
@@ -725,7 +727,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // Physical px = canvas x dpr. liveCanvas and a real record's
       // previewSize are CSS px (scaled by the record dpr); a simulated
       // preset's previewSize is native px with no previewDpr (dpr 1).
-      const dpr = (liveCanvas ? liveDpr : device?.previewDpr) || 1;
+      const dpr = (liveCanvas ? liveCanvasDpr : device?.previewDpr) || 1;
       return monitorGridCapacity(monitorCanvas, dpr, layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor, paddingRatio, shortSideSlots);
     }
     if (surface === 'monitor') return { gridCols: 8, pageRows: 6 };
@@ -768,7 +770,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       );
     }
     return { gridCols: 4, pageRows: 16 };
-  }, [surface, shortSideSlots, liveCanvas, liveDpr, liveDpi, layoutDpi, device?.previewSize, device?.previewDpi, device?.previewDpr, theme.widgetPadding]);
+  }, [surface, shortSideSlots, liveCanvas, liveDpr, liveCanvasDpr, liveDpi, layoutDpi, device?.previewSize, device?.previewDpi, device?.previewDpr, theme.widgetPadding]);
 
   // True when editorCapacity reflects the device's real grid rather than a
   // fallback guess. Single-widget and y70 fixed grids ARE the runtime grid; monitor is
@@ -1095,14 +1097,14 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     if (targetSlots === undefined || !canvas || surfaceAllowsPages(target, targetTouch)) return { layout: normalized, removed };
     const capacity = monitorGridCapacity(
       canvas,
-      (liveCanvas ? liveDpr : device?.previewDpr) || 1,
+      (liveCanvas ? liveCanvasDpr : device?.previewDpr) || 1,
       layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor,
       panelWidgetPaddingRatio(normalizePanelWidgetPadding(theme.widgetPadding)),
       targetSlots,
     );
     const fit = fitLayoutToSinglePage(normalized, capacity);
     return { layout: fit.layout, removed: [...removed, ...fit.dropped] };
-  }, [device?.previewDpi, device?.previewDpr, device?.previewSize, glassSurface, glassTouch, layout, layoutDpi, liveCanvas, liveDpr, theme.widgetPadding, widgetSizeOptions]);
+  }, [device?.previewDpi, device?.previewDpr, device?.previewSize, glassSurface, glassTouch, layout, layoutDpi, liveCanvas, liveCanvasDpr, theme.widgetPadding, widgetSizeOptions]);
   const widgetsRemovedBy = useCallback((mode: PanelWidgetSizeMode) => planWidgetSize(mode).removed, [planWidgetSize]);
   const applyWidgetSize = useCallback((mode: PanelWidgetSizeMode) => {
     setPendingWidgetSize(null);
@@ -2059,7 +2061,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                 // the record fetch fills liveCanvas.
                 canvasIsCssPixels={!!liveCanvas || isMonitorPanel}
                 gridDpi={liveCanvas && layoutDpi
-                  ? layoutDpi / (liveDpr && liveDpr > 0 ? liveDpr : 1)
+                  ? layoutDpi / (liveCanvasDpr && liveCanvasDpr > 0 ? liveCanvasDpr : 1)
                   : (surface === 'monitor' && (layoutDpi ?? device?.previewDpi)
                     ? (layoutDpi ?? device?.previewDpi ?? DEFAULT_SURFACE_DPI.monitor) / (device?.previewDpr || 1)
                     : undefined)}
