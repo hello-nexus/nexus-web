@@ -654,6 +654,8 @@
   "devices.lcd.flip180": "Flip 180°",
   "devices.lcd.mirror": "Mirror",
   "devices.lcd.mounting": "Mounting",
+  "devices.lcd.portrait": "Portrait mount",
+  "devices.lcd.portraitHint": "The screen stands on its short side; Nexus lays the panel out tall.",
   "devices.lcd.secondaryMonitor": "Use as a secondary monitor",
   "devices.lcd.secondaryMonitorDriverMissing": "The display driver for secondary monitor mode isn't installed on this PC.",
   "devices.lcd.secondaryMonitorFailed": "Windows didn't create the monitor. Turn the setting off and on again, or check the Nexus service log.",

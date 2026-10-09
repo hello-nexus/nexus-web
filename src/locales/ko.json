@@ -654,6 +654,8 @@
   "devices.lcd.flip180": "180° 회전",
   "devices.lcd.mirror": "좌우 반전",
   "devices.lcd.mounting": "장착",
+  "devices.lcd.portrait": "세로 방향 장착",
+  "devices.lcd.portraitHint": "화면을 짧은 쪽으로 세워 장착합니다. Nexus가 패널을 세로로 배치합니다.",
   "devices.lcd.secondaryMonitor": "보조 모니터로 사용",
   "devices.lcd.secondaryMonitorDriverMissing": "이 PC에 보조 모니터 모드용 디스플레이 드라이버가 설치되어 있지 않습니다.",
   "devices.lcd.secondaryMonitorFailed": "Windows가 모니터를 만들지 못했습니다. 설정을 껐다가 다시 켜거나 Nexus 서비스 로그를 확인하세요.",

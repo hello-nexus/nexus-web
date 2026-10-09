@@ -350,6 +350,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
   const [recordKeepCursorOff, setRecordKeepCursorOff] = useState(false);
   const [recordFlip180, setRecordFlip180] = useState(false);
   const [recordMirror, setRecordMirror] = useState(false);
+  const [recordPortrait, setRecordPortrait] = useState(false);
+  const [recordSupportsPortrait, setRecordSupportsPortrait] = useState(false);
   const [recordLcdBrightness, setRecordLcdBrightness] = useState(DEFAULT_LCD_BRIGHTNESS);
   const [recordTouch, setRecordTouch] = useState<boolean | undefined>(undefined);
   // Curated display family (capabilities.family, e.g. 'xeneon-edge') off the
@@ -491,8 +493,9 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
     // settings tab. A simulated one has no cooler to talk to, so the tab would
     // open empty.
     || (surface === 'kraken' && !isSimulated)
-    // Cooler glass fed pushed frames: the tab hosts its mount orientation.
-    || (surfaceSupportsMountOrientation(surface) && !isSimulated)
+    // Cooler glass fed pushed frames, or any panel that mounts either way up:
+    // the tab hosts its mount orientation.
+    || ((surfaceSupportsMountOrientation(surface) || recordSupportsPortrait) && !isSimulated)
     // A dimmable panel earns the tab on its own, so the capability does not
     // depend on the surface also being mount-orientable.
     || isDimmableLcdPanel
@@ -576,6 +579,8 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       setRecordKeepCursorOff(match?.keepCursorOff ?? false);
       setRecordFlip180(match?.flip180 ?? false);
       setRecordMirror(match?.mirror ?? false);
+      setRecordPortrait(match?.portrait ?? false);
+      setRecordSupportsPortrait(match?.capabilities?.supportsPortrait ?? false);
       setRecordLcdBrightness(match?.lcdBrightness ?? DEFAULT_LCD_BRIGHTNESS);
       setRecordSupportsBrightness(match?.capabilities?.supportsBrightness ?? false);
       setRecordSupportsSecondaryMonitor(match?.capabilities?.supportsSecondaryMonitor ?? false);
@@ -754,6 +759,7 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
       // must track every broadcast rather than only the initial load.
       setRecordSecondaryMonitor(record.secondaryMonitor ?? false);
       setRecordSecondaryMonitorState(record.secondaryMonitorState ?? null);
+      setRecordPortrait(record.portrait ?? false);
       // Only the LAYOUT can be stale here: a local layout write cannot age a
       // canvas or orientation fact, and those setters have no other source
       // after mount - discarding them strands a rotation until remount, and a
@@ -1675,10 +1681,22 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                   )}
                   {/* The iCUE LINK LCD rotates in firmware across all four quarter turns
                       (its own section below), so the software flip would double-apply. */}
-                  {activeTab === 'settings' && surfaceSupportsMountOrientation(surface) && !isSimulated
-                    && !isCorsairLinkLcdPanel && (
+                  {activeTab === 'settings' && (surfaceSupportsMountOrientation(surface) || recordSupportsPortrait)
+                    && !isSimulated && !isCorsairLinkLcdPanel && (
                     <div className={styles.settingsContent}>
                       <SettingsSection title={t('devices.lcd.mounting')} boxClassName={styles.deviceSettingsBox}>
+                        {recordSupportsPortrait && (
+                          <SettingToggle
+                            label={t('devices.lcd.portrait')}
+                            description={t('devices.lcd.portraitHint')}
+                            checked={recordPortrait}
+                            onChange={() => {
+                              const next = !recordPortrait;
+                              setRecordPortrait(next);
+                              if (device?.panelRecordId) void patchPanelDevice(device.panelRecordId, { portrait: next }).catch(() => {});
+                            }}
+                          />
+                        )}
                         <SettingToggle
                           label={t('devices.lcd.flip180')}
                           checked={recordFlip180}

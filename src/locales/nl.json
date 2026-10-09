@@ -654,6 +654,8 @@
   "devices.lcd.flip180": "180° draaien",
   "devices.lcd.mirror": "Spiegelen",
   "devices.lcd.mounting": "Montage",
+  "devices.lcd.portrait": "Staande montage",
+  "devices.lcd.portraitHint": "Het scherm staat op de korte kant; Nexus deelt het paneel staand in.",
   "devices.lcd.secondaryMonitor": "Gebruiken als tweede monitor",
   "devices.lcd.secondaryMonitorDriverMissing": "Het schermstuurprogramma voor de tweede-monitormodus is niet geïnstalleerd op deze pc.",
   "devices.lcd.secondaryMonitorFailed": "Windows kon de monitor niet aanmaken. Schakel de instelling uit en weer in, of controleer het Nexus-servicelog.",

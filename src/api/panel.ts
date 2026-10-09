@@ -45,6 +45,8 @@ export interface PanelDeviceCapabilitiesDto {
   // This panel's driver can drive it as a Windows secondary monitor.
   // Absent/false hides the setting entirely.
   supportsSecondaryMonitor?: boolean;
+  // The glass mounts either way up; the record's portrait picks the render shape.
+  supportsPortrait?: boolean;
 }
 
 export interface PanelGaugeGradientStopDto {
@@ -118,6 +120,9 @@ export interface PanelDeviceRecord {
   // the service transport, so everything else renders upright. Absent/null = off.
   flip180?: boolean;
   mirror?: boolean;
+  // Panels whose capabilities carry supportsPortrait: mounted on the short side,
+  // so the panel renders tall. Absent/null = landscape.
+  portrait?: boolean | null;
   // Cooler LCDs whose panel takes a brightness command: backlight percent
   // 0-100. Absent/null = the panel's default; the hardware reset writes null.
   lcdBrightness?: number | null;
@@ -192,6 +197,8 @@ export interface PanelDevicePatch {
   lcdBrightness?: number;
   // Streamed panels whose driver supports it only; ignored for other panels.
   secondaryMonitor?: boolean;
+  // Panels whose capabilities carry supportsPortrait only; ignored for other panels.
+  portrait?: boolean;
   capabilities?: PanelDeviceCapabilitiesDto;
 }
 
