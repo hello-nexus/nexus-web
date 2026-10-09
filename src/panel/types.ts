@@ -131,6 +131,12 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
   return singleWidgetSurfaceSize(surface) !== undefined;
 }
 
+// A panel with no stored background starts solid, except a Q-series cooler, whose
+// page runs on the cooler's own SoC rather than the PC.
+export function surfaceDefaultsToAnimatedBackground(surface: PanelSurface): boolean {
+  return surface === 'q60';
+}
+
 // Whether a press on the canvas can drag, resize or remove widgets. The device-page
 // preview is edited with the dashboard's mouse, so any multi-widget panel qualifies
 // there; on the glass itself only a touch surface does.
