@@ -13,7 +13,6 @@ const handlers = new Set<Handler>();
 // builds, so a dashboard reached over the relay or a LAN address has no entry.
 export const canSwitchChannel = (): boolean => OFFICIAL_BUILD && !isRemoteOrigin && !isRemotePaired;
 
-
 export function requestChannelSwitch(channel: UpdateChannel): void {
   handlers.forEach(h => h(channel));
 }

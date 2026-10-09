@@ -251,6 +251,12 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
         }
         return;
       }
+      if (p.active && channelSwitchRef.current && p.version !== channelSwitchRef.current.version) {
+        // Another install is running: recoverStart ends the switch with otherInstall.
+        clearInterval(id);
+        recoverStartRef.current();
+        return;
+      }
       if (fresh || p.active) setProgress(p);
       const launching = p.phase === 'launching' || p.phase === 'installing';
       // Activity the modal did not start (such as the background stage its own

@@ -261,6 +261,16 @@ describe('ChannelSwitchModal after Continue', () => {
     expect(screen.getByRole('button', { name: CLOSE_X })).toBeInTheDocument();
   });
 
+  it('does not adopt another install launching while the switch runs', async () => {
+    progressReply = () => ({ ...idle, active: true, phase: 'launching', version: '9.9.9' });
+    render(<ChannelSwitchModal open channel="production" onClose={vi.fn()} />);
+    await cont();
+    await advance(3_000);
+
+    expect(screen.getByText('update.switch.otherInstall')).toBeInTheDocument();
+    expect(screen.queryByText('update.modal.reconnecting')).not.toBeInTheDocument();
+  });
+
   it('ends in a closable failure with no Try again when the service never comes back', async () => {
     progressReply = () => ({ ...idle, active: true, phase: 'installing', version: '3.1.0' });
     render(<ChannelSwitchModal open channel="production" onClose={vi.fn()} />);
