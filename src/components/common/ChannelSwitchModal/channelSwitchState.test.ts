@@ -29,13 +29,18 @@ describe('previewState', () => {
     expect(previewState(target({ version: '' }))).toBe('noRelease');
   });
 
+  it('tells apart a channel with no release from one the build already runs the latest of', () => {
+    expect(previewState(target({ direction: 'none', version: '' }))).toBe('noRelease');
+    expect(previewState(target({ direction: 'none', version: '3.1.0', currentVersion: '3.1.0' }))).toBe('alreadyOn');
+  });
+
   it('asks for a manual install where the service cannot install', () => {
     expect(previewState(target({ canAutoInstall: false }))).toBe('manual');
   });
 
   it('is ready for an upgrade or a downgrade', () => {
     expect(previewState(target())).toBe('ready');
-    expect(previewState(target({ channel: 'production', version: '3.1.0', direction: 'downgrade' }))).toBe('ready');
+    expect(previewState(target({ channel: 'production', currentVersion: '3.1.1-beta.1', version: '3.1.0', direction: 'downgrade' }))).toBe('ready');
   });
 });
 

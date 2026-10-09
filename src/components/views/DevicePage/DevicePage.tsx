@@ -32,7 +32,8 @@ import { ExperimentalEnableModal } from '../../common/ExperimentalEnableModal/Ex
 import { Spinner } from '../../common/Spinner/Spinner';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import { requestChannelSwitch } from '../../../lib/channelSwitch';
+import { canSwitchChannel, requestChannelSwitch } from '../../../lib/channelSwitch';
+import { getUpdateStatus } from '../../../api/update';
 import { useToast } from '../../common/Toast/Toast';
 import { promoteDisplayToPanel } from '../../../api/displays';
 import { isLianLiHubId } from '../../../api/lianli';
@@ -307,13 +308,21 @@ function BetaRequiredNotice() {
   const { t } = useTranslation();
   const { settings } = useUiSettings();
   const onBeta = settings.updateChannel === 'beta';
+  // The same rule as the Settings update options: only where the service installs updates itself.
+  const [selfUpdating, setSelfUpdating] = useState(false);
+  useEffect(() => {
+    if (!canSwitchChannel()) return;
+    let cancelled = false;
+    getUpdateStatus().then(s => { if (!cancelled && s) setSelfUpdating(s.canAutoInstall); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   return (
     <>
       <Notice tone="info" role="status" className={styles.controlOffNotice}>
         <span>{t('devices.requiresBeta.notice')}</span>
         <NoticeSecondary>{t(onBeta ? 'devices.requiresBeta.onBeta' : 'devices.requiresBeta.hint')}</NoticeSecondary>
       </Notice>
-      {!onBeta && (
+      {!onBeta && selfUpdating && (
         <Button type="button" tone="accent" className={styles.controlOffAction} onClick={() => requestChannelSwitch('beta')}>
           {t('devices.requiresBeta.switch')}
         </Button>

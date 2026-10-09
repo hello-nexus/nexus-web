@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NexusControlOff } from './DevicePage';
 
@@ -8,6 +8,8 @@ const h = vi.hoisted(() => ({
   conflicts: [] as any[],
   ready: true,
   updateChannel: 'production',
+  canSwitch: true,
+  canAutoInstall: true,
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -33,6 +35,11 @@ vi.mock('../../../api/profiles', () => ({
 
 vi.mock('../../../lib/channelSwitch', () => ({
   requestChannelSwitch: (...args: any[]) => mockRequestChannelSwitch(...args),
+  canSwitchChannel: () => h.canSwitch,
+}));
+
+vi.mock('../../../api/update', () => ({
+  getUpdateStatus: () => Promise.resolve({ canAutoInstall: h.canAutoInstall }),
 }));
 
 const mockKillConflict = vi.fn();
@@ -45,6 +52,8 @@ beforeEach(() => {
   h.conflicts = [];
   h.ready = true;
   h.updateChannel = 'production';
+  h.canSwitch = true;
+  h.canAutoInstall = true;
   mockKillConflict.mockReset();
   mockSavePreferences.mockReset().mockResolvedValue({ success: true });
   mockRequestChannelSwitch.mockReset();
@@ -114,16 +123,28 @@ describe('NexusControlOff', () => {
     expect(onEnable).not.toHaveBeenCalled();
   });
 
-  it('offers the beta channel in place of the switch for a device that requires a beta build', () => {
+  it('offers the beta channel in place of the switch for a device that requires a beta build', async () => {
     render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental requiresBeta onEnable={vi.fn()} />);
 
     expect(screen.getByText('devices.requiresBeta.notice')).toBeInTheDocument();
     expect(screen.queryByText('devices.nexusControlOff.enableHint')).not.toBeInTheDocument();
     expect(screen.queryByRole('switch', { name: 'devices.nexusControl' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'devices.requiresBeta.switch' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'devices.requiresBeta.switch' }));
     expect(mockRequestChannelSwitch).toHaveBeenCalledWith('beta');
     expect(mockSavePreferences).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['off the local official surface', { canSwitch: false, canAutoInstall: true }],
+    ['where the service cannot install updates itself', { canSwitch: true, canAutoInstall: false }],
+  ])('keeps the hint but hides the switch-to-beta button %s', async (_name, gate) => {
+    Object.assign(h, gate);
+    render(<NexusControlOff deviceName="Lian Li Uni Hub" requiresBeta onEnable={vi.fn()} />);
+    await waitFor(() => expect(screen.getByText('devices.requiresBeta.hint')).toBeInTheDocument());
+    await Promise.resolve();
+
+    expect(screen.queryByRole('button', { name: 'devices.requiresBeta.switch' })).not.toBeInTheDocument();
   });
 
   it('drops the switch-to-beta button once the update channel is already beta', () => {

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
-import { GitBranch, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
+import { Spinner } from '../Spinner/Spinner';
 import { UpdateModal } from '../UpdateModal/UpdateModal';
 import { getChannelTarget, type ChannelTarget, type UpdateChannel } from '../../../api/update';
+import { savePreferences } from '../../../api/profiles';
 import { useTranslation } from '../../../lib/i18n';
 import { manualDownloadUrl, previewState } from './channelSwitchState';
 import styles from './ChannelSwitchModal.module.scss';
@@ -22,11 +24,14 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
   const [target, setTarget] = useState<ChannelTarget | null | undefined>(null);
   const [attempt, setAttempt] = useState(0);
   const [running, setRunning] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     setRunning(false);
+    setSaveFailed(false);
     setTarget(null);
     getChannelTarget(channel).then(res => {
       if (!cancelled) setTarget(res ?? undefined);
@@ -47,20 +52,34 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
         autoCheck={false}
         startedInstall
         channelSwitch={{ channel, version: target.version }}
+        onSwitchRestart={() => setAttempt(a => a + 1)}
       />
     );
   }
+
+  // The build already runs this channel's latest release, so only what updates follow changes.
+  const followChannel = async () => {
+    setSaving(true);
+    setSaveFailed(false);
+    const saved = await savePreferences({ update: { updateChannel: channel } });
+    setSaving(false);
+    if (saved === null) {
+      setSaveFailed(true);
+      return;
+    }
+    onClose();
+  };
 
   const openDownload = () => {
     if (target) window.open(manualDownloadUrl(target), '_blank', 'noopener,noreferrer');
   };
 
   return (
-    <DeviceModal open={open} onClose={onClose} title={title} icon={<GitBranch size={18} />} fit>
+    <DeviceModal open={open} onClose={onClose} title={title} icon={<RefreshCw size={18} />} fit>
       <div className={styles.modal}>
         {state === 'loading' && (
           <div className={styles.centered} role="status">
-            <RefreshCw size={28} className={styles.spinIcon} />
+            <Spinner size={28} />
             <span>{t('update.switch.loading')}</span>
           </div>
         )}
@@ -80,6 +99,19 @@ export function ChannelSwitchModal({ open, channel, onClose }: ChannelSwitchModa
             <p className={styles.text}>{t('update.switch.noRelease', { channel: channelLabel })}</p>
             <div className={styles.buttons}>
               <Button tone="neutral" size="md" onClick={onClose}>{t('update.modal.close')}</Button>
+            </div>
+          </>
+        )}
+
+        {state === 'alreadyOn' && target && (
+          <>
+            <p className={styles.text}>{t('update.switch.alreadyOn', { version: target.version, channel: channelLabel })}</p>
+            {saveFailed && <p className={styles.error}>{t('update.switch.saveFailed')}</p>}
+            <div className={styles.buttons}>
+              <Button tone="neutral" size="md" onClick={onClose}>{t('confirm.cancel')}</Button>
+              <Button tone="accent" size="md" loading={saving} onClick={() => void followChannel()}>
+                {t('update.switch.useChannel', { channel: channelLabel })}
+              </Button>
             </div>
           </>
         )}

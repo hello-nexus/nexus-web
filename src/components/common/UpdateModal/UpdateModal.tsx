@@ -31,6 +31,8 @@ interface UpdateModalProps {
   // and cannot be dismissed until the install fails for good. A successful
   // switch ends in a page reload onto the new build.
   channelSwitch?: { channel: UpdateChannel; version: string };
+  // Switch mode: a failure whose version may be stale ends at the preview, which looks the target up again.
+  onSwitchRestart?: () => void;
 }
 
 type ModalView = 'progress' | 'reconnecting' | 'notes' | 'whatsNew';
@@ -139,7 +141,7 @@ function formatReleaseDate(unixSeconds: number, locale: string, dateFormat: Date
   return formatDate(new Date(unixSeconds * 1000), dateFormat, { variant: 'year', locale, system: { year: 'numeric', month: 'short', day: 'numeric' } });
 }
 
-export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true, channelSwitch }: UpdateModalProps) {
+export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true, channelSwitch, onSwitchRestart }: UpdateModalProps) {
   const { t, language } = useTranslation();
   const { dateFormat } = useUnitPrefs();
   const [view, setView] = useState<ModalView>('notes');
@@ -171,6 +173,9 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const switchMode = channelSwitch !== undefined;
   // A channel switch installs the version it was opened for, which may be older than the running one.
   const targetVersion = channelSwitch?.version ?? status?.latestVersion ?? '';
+  // The service's reason for refusing the switch, and whether Try again must re-preview.
+  const [refusal, setRefusal] = useState('');
+  const [restartPreview, setRestartPreview] = useState(false);
   const channelSwitchRef = useRef(channelSwitch);
   channelSwitchRef.current = channelSwitch;
 
@@ -180,7 +185,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // never trapped behind an empty modal.
   const isInstallActive = !reconnectGaveUp
     && ((view === 'progress' && (progress?.active ?? false)) || view === 'reconnecting');
-  // A channel switch is dismissable only once it ended in a failure.
   const switchFailed = switchMode && (reconnectGaveUp || startError !== '');
 
   // On open, capture justUpdatedTo into a ref before any re-fetch can clear it,
@@ -193,6 +197,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     startPendingRef.current = false;
     sawActiveRef.current = false;
     setStartError('');
+    setRefusal('');
+    setRestartPreview(false);
     setStarting(false);
     setChecking(false);
     setChecked(false);
@@ -407,12 +413,28 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     if (token !== startTokenRef.current) return;
     startPendingRef.current = false;
     setStarting(false);
-    if (!resp?.started) {
+    if (resp && 'kind' in resp && resp.kind === 'refused') {
+      // The service answered no: retrying the same version cannot change that.
+      installActiveRef.current = false;
+      neverActiveDeadlineRef.current = 0;
+      cancelRetry();
+      failSwitch(t('update.switch.refused'), true, resp.msg);
+      return;
+    }
+    const started = resp && 'kind' in resp ? resp.kind === 'started' : resp?.started;
+    if (!started) {
       void recoverStart();
       return;
     }
     setView('progress');
     setPollGen(g => g + 1);
+  };
+
+  const failSwitch = (message: string, previewAgain: boolean, detail: string) => {
+    setStartError(message);
+    setRefusal(detail);
+    setRestartPreview(previewAgain);
+    setView('notes');
   };
 
   // A start that did not take: follow an install the service is already
@@ -427,6 +449,10 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     setStarting(false);
     const p = await getUpdateProgress();
     if (token !== startTokenRef.current) return;
+    if (p?.active && channelSwitchRef.current && p.version !== channelSwitchRef.current.version) {
+      failSwitch(t('update.switch.otherInstall'), true, '');
+      return;
+    }
     if (p?.active) {
       installActiveRef.current = true;
       sawActiveRef.current = true;
@@ -487,8 +513,13 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   };
 
   const handleSwitchRetry = () => {
+    if (restartPreview) {
+      onSwitchRestart?.();
+      return;
+    }
     cancelRetry();
     setStartError('');
+    setRefusal('');
     setReconnectGaveUp(false);
     setView('progress');
     void startInstall();
@@ -541,6 +572,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
             <p className={styles.failedMessage}>
               {reconnectGaveUp ? t('update.modal.reconnectGaveUp') : startError}
             </p>
+            {!reconnectGaveUp && refusal && <p className={styles.failedMessage}>{refusal}</p>}
             <div className={styles.buttonRow}>
               <div className={styles.buttonRowRight}>
                 <Button tone="neutral" size="md" onClick={onClose}>

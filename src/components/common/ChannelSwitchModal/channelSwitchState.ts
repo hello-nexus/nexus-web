@@ -1,13 +1,16 @@
 import type { ChannelTarget } from '../../../api/update';
 
-export type PreviewState = 'loading' | 'failed' | 'noRelease' | 'manual' | 'ready';
+export type PreviewState = 'loading' | 'failed' | 'noRelease' | 'alreadyOn' | 'manual' | 'ready';
 
 // What the preview shows for a target lookup. null is a lookup still in
 // flight, undefined a lookup that got no usable answer.
 export function previewState(target: ChannelTarget | null | undefined): PreviewState {
   if (target === null) return 'loading';
   if (target === undefined || target.error !== '') return 'failed';
-  if (target.direction === 'none' || target.version === '') return 'noRelease';
+  if (target.version === '') return 'noRelease';
+  // The build already runs the channel's latest release: only the preference is stale.
+  if (target.version === target.currentVersion) return 'alreadyOn';
+  if (target.direction === 'none') return 'noRelease';
   if (!target.canAutoInstall) return 'manual';
   return 'ready';
 }

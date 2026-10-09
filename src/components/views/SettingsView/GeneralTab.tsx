@@ -20,7 +20,7 @@ import {
 } from '../../../lib/settings';
 import { getUpdateStatus, type UpdateChannel, type UpdateMode } from '../../../api/update';
 import { OFFICIAL_BUILD } from '../../../lib/officialBuild';
-import { requestChannelSwitch } from '../../../lib/channelSwitch';
+import { canSwitchChannel, requestChannelSwitch } from '../../../lib/channelSwitch';
 import { DISCORD_INVITE_URL } from '../../../lib/externalLinks';
 import { DiscordGlyph } from '../../icons/NexusBrand';
 import friuliFlag from '../../../assets/flags/friuli.png';
@@ -259,7 +259,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             ]}
             onChange={v => updateGeneral({ updateMode: v as UpdateMode })}
           />
-          <SettingSelect
+          {canSwitchChannel() && <SettingSelect
             label={t('settings.updates.channel.label')}
             anchorId="set-update-channel"
             icon={<GitBranch />}
@@ -274,7 +274,7 @@ export function GeneralTab({ settings, updateGeneral, serviceOnline, platform }:
             ]}
             // The channel changes only once the switch modal's install completes.
             onChange={v => { if (v !== (settings.general.updateChannel ?? 'production')) requestChannelSwitch(v as UpdateChannel); }}
-          />
+          />}
         </SettingsSection>
       )}
 

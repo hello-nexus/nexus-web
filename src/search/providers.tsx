@@ -32,7 +32,7 @@ import {
 } from '../api/diagnostics';
 import { postService } from '../api/service';
 import type { UpdateMode, UpdateChannel } from '../api/update';
-import { requestChannelSwitch } from '../lib/channelSwitch';
+import { canSwitchChannel, requestChannelSwitch } from '../lib/channelSwitch';
 import { COOLING_MODES, type CoolingModeKey } from '../panel/widgets/cooling/page/coolingModes';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
@@ -624,7 +624,7 @@ const updatePrefs: SearchSource = (ctx) => {
       hint: ctx.settings.updateMode === mode ? active : undefined,
       run: () => ctx.updateSettings({ updateMode: mode }),
     })),
-    ...UPDATE_CHANNELS.map((ch) => act(`update-channel:${ch}`, {
+    ...(canSwitchChannel() ? UPDATE_CHANNELS : []).map((ch) => act(`update-channel:${ch}`, {
       title: `${ctx.t('settings.updates.channel.label')} · ${ctx.t(`settings.updates.channel.${ch}`)}`,
       icon: <Download size={18} />,
       keywords: ['update', 'updates', 'channel', ch],

@@ -1,4 +1,4 @@
-import { fetchService, postService } from './service';
+import { authFetchWithStatus, fetchService, postService } from './service';
 
 export type UpdateChannel = 'production' | 'beta';
 export type UpdateMode = 'notify' | 'download' | 'always';
@@ -83,5 +83,20 @@ export interface ChannelTarget {
 export const getChannelTarget = (channel: UpdateChannel) =>
   fetchService<ChannelTarget>(`/update/channel-target?channel=${channel}`);
 
-export const switchChannel = (channel: UpdateChannel, version: string) =>
-  postService<StartUpdateResponse>('/update/switch-channel', { channel, version });
+// started: the install is running. refused: the service answered and declined
+// (a 409 carries why in msg). unreachable: no answer, worth retrying.
+export type SwitchChannelResult =
+  | { kind: 'started' }
+  | { kind: 'refused'; msg: string }
+  | { kind: 'unreachable' };
+
+export async function switchChannel(channel: UpdateChannel, version: string): Promise<SwitchChannelResult> {
+  const { response, status } = await authFetchWithStatus('/update/switch-channel', { method: 'POST', body: { channel, version } });
+  if (!response || status === 0) return { kind: 'unreachable' };
+  let body: { started?: boolean; msg?: string } | null = null;
+  try {
+    body = (await response.json()) as { started?: boolean; msg?: string };
+  } catch { /* a refusal without a JSON body still refuses */ }
+  if (response.ok && body?.started) return { kind: 'started' };
+  return { kind: 'refused', msg: body?.msg ?? '' };
+}
