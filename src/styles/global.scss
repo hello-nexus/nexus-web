@@ -545,6 +545,22 @@ input[type="range"][data-range-knob] {
   }
 }
 
+// Labelled variant (ChipGroup label): a caption, then the chips.
+.chip-group-labelled {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.chip-group-label {
+  flex-shrink: 0;
+  color: var(--text-dim);
+  font-size: var(--type-small);
+  font-weight: 600;
+}
+
 // Page-width contract. Every view's content root picks one. Constrained caps
 // at the shared --page-content-max so dense label/value reports stay readable;
 // fluid fills the available width. Both center within their column.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowLeft, Trash2, LayoutGrid, Square, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Trash2, LayoutGrid, Palette, Settings, Download, Unplug, Camera, Wallpaper, TvMinimal, ExternalLink } from 'lucide-react';
 import { ViewHeader } from '../../common/ViewHeader/ViewHeader';
 import { SettingsSection } from '../../common/SettingsSection/SettingsSection';
 import { Notice } from '../../common/Notice/Notice';
@@ -1497,42 +1497,33 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                         {((widgetSizeOptions && widgetSizeMode) || widgetPlaylist) && (
                           <div className={styles.playlistPanel}>
                             <div className={styles.widgetModeRow}>
-                            {widgetSizeOptions && widgetSizeMode && (
-                              <ChipGroup
-                                fullWidth
-                                ariaLabel={t('devices.panels.widgetSize.label')}
-                                activeKey={widgetSizeMode}
-                                onChange={requestWidgetSize}
-                                options={[
-                                  {
-                                    key: WIDGET_SIZE_LARGE,
-                                    label: <><Square size={14} aria-hidden />{t('devices.panels.widgetSize.large')}</>,
-                                    disabled: !editingDeviceId,
-                                  },
-                                  {
-                                    key: WIDGET_SIZE_SMALL,
-                                    label: <><LayoutGrid size={14} aria-hidden />{t('devices.panels.widgetSize.small')}</>,
-                                    disabled: !editingDeviceId,
-                                  },
-                                ]}
-                              />
-                            )}
-                            {widgetPlaylist && (
-                            <ChipGroup
-                              fullWidth
-                              ariaLabel={t('panel.playlist.mode')}
-                              options={[
-                                { key: WIDGET_MODE_SINGLE, label: t('panel.playlist.single') },
-                                { key: WIDGET_MODE_PLAYLIST, label: t('panel.playlist.playlist') },
-                              ]}
-                              activeKey={playlistMode ? WIDGET_MODE_PLAYLIST : WIDGET_MODE_SINGLE}
-                              onChange={key => updateLayout(setWidgetPlaylistEnabled(
-                                layout,
-                                key === WIDGET_MODE_PLAYLIST,
-                                catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
-                              ))}
-                            />
-                            )}
+                              {widgetSizeOptions && widgetSizeMode && (
+                                <ChipGroup
+                                  label={t('devices.panels.widgetSize.label')}
+                                  activeKey={widgetSizeMode}
+                                  onChange={requestWidgetSize}
+                                  options={[
+                                    { key: WIDGET_SIZE_LARGE, label: t('devices.panels.widgetSize.large'), disabled: !editingDeviceId },
+                                    { key: WIDGET_SIZE_SMALL, label: t('devices.panels.widgetSize.small'), disabled: !editingDeviceId },
+                                  ]}
+                                />
+                              )}
+                              {widgetPlaylist && (
+                                <ChipGroup
+                                  className={widgetSizeOptions ? styles.widgetModeHalf : undefined}
+                                  label={t('panel.playlist.mode')}
+                                  options={[
+                                    { key: WIDGET_MODE_SINGLE, label: t('panel.playlist.single') },
+                                    { key: WIDGET_MODE_PLAYLIST, label: t('panel.playlist.playlist') },
+                                  ]}
+                                  activeKey={playlistMode ? WIDGET_MODE_PLAYLIST : WIDGET_MODE_SINGLE}
+                                  onChange={key => updateLayout(setWidgetPlaylistEnabled(
+                                    layout,
+                                    key === WIDGET_MODE_PLAYLIST,
+                                    catalogEntriesFor(surface, { remote: remotePanel, deviceTouch }).map(([type]) => type),
+                                  ))}
+                                />
+                              )}
                             </div>
                             {widgetPlaylist && playlistMode && (
                               <WidgetPlaylistEditor

@@ -136,3 +136,18 @@ describe('ChipGroup multi-select', () => {
     expect(onToggleKey).not.toHaveBeenCalled();
   });
 });
+
+describe('ChipGroup label', () => {
+  it('shows a caption that names the group', () => {
+    render(
+      <ChipGroup
+        label="Grid"
+        activeKey="large"
+        onChange={vi.fn()}
+        options={[{ key: 'large', label: 'Large' }, { key: 'small', label: 'Small' }]}
+      />,
+    );
+    expect(screen.getByText('Grid')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', { name: 'Grid' })).toBeInTheDocument();
+  });
+});
