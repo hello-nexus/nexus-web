@@ -286,15 +286,12 @@
   margin: 4px 0 8px;
 }
 
-// Grid and Mode share one row; with both shown, Mode starts at the halfway line.
+// Left-aligned Grid and Mode groups, spaced wider than each caption from its chips.
 .widgetModeRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.widgetModeHalf {
-  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-xl);
 }
 
 // --- Theme Panel ---

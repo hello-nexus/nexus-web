@@ -1510,7 +1510,6 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                               )}
                               {widgetPlaylist && (
                                 <ChipGroup
-                                  className={widgetSizeOptions ? styles.widgetModeHalf : undefined}
                                   label={t('panel.playlist.mode')}
                                   options={[
                                     { key: WIDGET_MODE_SINGLE, label: t('panel.playlist.single') },
