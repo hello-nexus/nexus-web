@@ -29,6 +29,17 @@ describe('buildPanelTheme', () => {
     expect(buildPanelTheme(null, y70()).backdrop).toBe('wallpaper');
   });
 
+  it('starts every panel with no stored background solid except the Q-series', () => {
+    const on = (surface: string, over: Partial<PanelDeviceRecord> = {}) =>
+      buildPanelTheme(null, { ...y70(over), capabilities: { surface } } as PanelDeviceRecord).backgroundMode;
+    expect(on('q60')).toBe('shader');
+    for (const surface of ['y70', 'monitor', 'phone', 'kraken', 'lcd-round', 'lcd-square', 'lcd-wide']) {
+      expect(on(surface), surface).toBe('solid');
+    }
+    expect(on('lcd-wide', { backgroundMode: 'shader' })).toBe('shader');
+    expect(on('q60', { backgroundMode: 'solid' })).toBe('solid');
+  });
+
   it('keeps a stored backdrop', () => {
     expect(buildPanelTheme(null, y70({ backdrop: 'desktop' })).backdrop).toBe('desktop');
   });
