@@ -362,9 +362,9 @@ describe('useDeckInstance - mode and preset management', () => {
     const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
-    act(() => result.current.setMode('appAware'));
-    expect(result.current.instance?.mode).toBe('appAware');
-    expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { mode: 'appAware' });
+    act(() => result.current.setMode('recentApps'));
+    expect(result.current.instance?.mode).toBe('recentApps');
+    expect(updateDeckInstanceMock).toHaveBeenCalledWith('streamdeck:SN1', { mode: 'recentApps' });
   });
 
   it('setMode reverts the optimistic mode when the PUT is refused (resolves null)', async () => {
@@ -372,8 +372,8 @@ describe('useDeckInstance - mode and preset management', () => {
     await waitFor(() => expect(result.current.loaded).toBe(true));
 
     updateDeckInstanceMock.mockResolvedValue(null);
-    act(() => { result.current.setMode('appAware'); });
-    expect(result.current.instance?.mode).toBe('appAware');
+    act(() => { result.current.setMode('recentApps'); });
+    expect(result.current.instance?.mode).toBe('recentApps');
 
     await waitFor(() => expect(result.current.instance?.mode).toBe('custom'));
   });

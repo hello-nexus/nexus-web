@@ -914,7 +914,7 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.queryByRole('button', { name: 'panel.settings.deck.page.remove' })).toBeNull();
     });
 
-    it('shows the Recent Apps editor section instead of the fixed/appAware placeholder', async () => {
+    it('shows the Recent Apps editor section instead of the custom placeholder', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck({ cols: 3, rows: 2 })]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' } }));
       await renderPage();
@@ -939,7 +939,7 @@ describe('StreamDeckDevicePage', () => {
   });
 
   describe('live tiles clear on a mode switch', () => {
-    it('a switch from Fixed to App Aware drops a stale live-tile frame instead of showing through the new mode', async () => {
+    it('a switch from Custom to Recent Apps drops a stale live-tile frame instead of showing through the new mode', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       // A truly empty slot never shows a liveSrc frame (DeckGrid's own
       // stale-clear rule for a self-cleared key) - slot 0 needs real content.
@@ -952,7 +952,7 @@ describe('StreamDeckDevicePage', () => {
       });
       expect(container.querySelector('img[src="data:image/jpeg;base64,stale"]')).toBeInTheDocument();
 
-      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'appAware', activePresetId: 'p1' }, target }));
+      mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'recentApps', activePresetId: 'p1' }, target }));
       await act(async () => {
         rerender(<StreamDeckDevicePage device={makeUnifiedDevice()} controlDevice={mockControlDevice} />);
       });

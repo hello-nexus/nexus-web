@@ -94,11 +94,6 @@ describe('DeckInstanceEditor - sections', () => {
     expect(screen.getByTestId('recent-apps-section')).toBeInTheDocument();
   });
 
-  it('a persisted appAware mode behaves as custom: no Recent Apps section, editor body shown', () => {
-    render(<DeckInstanceEditor {...baseProps({ deck: deckResult({ instance: { mode: 'appAware', activePresetId: 'p1' } }) })} />);
-    expect(screen.queryByTestId('recent-apps-section')).toBeNull();
-    expect(screen.getByTestId('deck-editor')).toBeInTheDocument();
-  });
 
   it('tells the Recent Apps section whether it owns the preview note (bodyMode full vs headerRail)', () => {
     const recent = deckResult({ instance: { mode: 'recentApps', activePresetId: 'p1' } });
