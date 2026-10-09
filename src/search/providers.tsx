@@ -32,6 +32,7 @@ import {
 } from '../api/diagnostics';
 import { postService } from '../api/service';
 import type { UpdateMode, UpdateChannel } from '../api/update';
+import { requestChannelSwitch } from '../lib/channelSwitch';
 import { COOLING_MODES, type CoolingModeKey } from '../panel/widgets/cooling/page/coolingModes';
 import { EFFECTS, MODES, BASE_DEFAULTS, categoryOf, type LightingMode } from '../types/lighting';
 import { appAvailableForSurface, getCatalogEntries } from '../panel/widgets/registry';
@@ -628,7 +629,7 @@ const updatePrefs: SearchSource = (ctx) => {
       icon: <Download size={18} />,
       keywords: ['update', 'updates', 'channel', ch],
       hint: ctx.settings.updateChannel === ch ? active : undefined,
-      run: () => ctx.updateSettings({ updateChannel: ch }),
+      run: () => { if ((ctx.settings.updateChannel ?? 'production') !== ch) requestChannelSwitch(ch); },
     })),
   ];
 };

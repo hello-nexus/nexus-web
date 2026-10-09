@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildEntries } from './providers';
 import { scoreEntry } from './match';
 import enLocale from '../locales/en.json';
 import type { CommandContext } from './types';
+import { requestChannelSwitch } from '../lib/channelSwitch';
+
+vi.mock('../lib/channelSwitch', () => ({ requestChannelSwitch: vi.fn() }));
 import { EMPTY_LIVE_STATE, type SearchLiveState } from './useSearchLiveState';
 import type { LightingDevice } from '../api/lighting';
 
@@ -215,6 +218,17 @@ describe('buildEntries', () => {
     // macOS-only: the menu-bar toggle.
     expect(mac.has('toggle:menubar')).toBe(true);
     expect(win.has('toggle:menubar')).toBe(false);
+  });
+
+  it('opens the channel switch modal for a channel change instead of saving it', () => {
+    const updateSettings = vi.fn();
+    const entries = buildEntries(ctx(true, { updateSettings }));
+    entries.find((e) => e.id === 'update-channel:beta')?.run?.();
+    expect(requestChannelSwitch).toHaveBeenCalledWith('beta');
+    vi.mocked(requestChannelSwitch).mockClear();
+    entries.find((e) => e.id === 'update-channel:production')?.run?.();
+    expect(requestChannelSwitch).not.toHaveBeenCalled();
+    expect(updateSettings).not.toHaveBeenCalled();
   });
 
   it('exposes live-state toggles: telemetry, tracking, mute, per-device power, smart lights', () => {

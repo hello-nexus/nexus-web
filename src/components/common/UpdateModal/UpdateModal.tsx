@@ -4,7 +4,7 @@ import { DeviceModal } from '../DeviceModal/DeviceModal';
 import { Button } from '../Button/Button';
 import { SettingsSection } from '../SettingsSection/SettingsSection';
 import { GithubGlyph } from '../../icons/NexusBrand';
-import { checkForUpdate, getUpdateProgress, getUpdateStatus, startUpdate, type UpdateStatus, type UpdateProgress, type UpdatePhase } from '../../../api/update';
+import { checkForUpdate, getUpdateProgress, getUpdateStatus, startUpdate, switchChannel, type UpdateChannel, type UpdateStatus, type UpdateProgress, type UpdatePhase } from '../../../api/update';
 import { pingService } from '../../../api/service';
 import { requestBuildCheck } from '../../../lib/buildReloadWatcher';
 import { useTranslation } from '../../../lib/i18n';
@@ -27,6 +27,10 @@ interface UpdateModalProps {
   // Default true. Set false to suppress the auto-check-on-open (e.g. the
   // Storybook preview, which must not fire a live POST /update/check).
   autoCheck?: boolean;
+  // Channel switch mode: installs `version` from `channel` as soon as it opens
+  // and cannot be dismissed until the install fails for good. A successful
+  // switch ends in a page reload onto the new build.
+  channelSwitch?: { channel: UpdateChannel; version: string };
 }
 
 type ModalView = 'progress' | 'reconnecting' | 'notes' | 'whatsNew';
@@ -135,7 +139,7 @@ function formatReleaseDate(unixSeconds: number, locale: string, dateFormat: Date
   return formatDate(new Date(unixSeconds * 1000), dateFormat, { variant: 'year', locale, system: { year: 'numeric', month: 'short', day: 'numeric' } });
 }
 
-export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true }: UpdateModalProps) {
+export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdateNow, startedInstall, autoCheck = true, channelSwitch }: UpdateModalProps) {
   const { t, language } = useTranslation();
   const { dateFormat } = useUnitPrefs();
   const [view, setView] = useState<ModalView>('notes');
@@ -164,6 +168,11 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   const retryAttemptRef = useRef(0);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recoverStartRef = useRef(() => {});
+  const switchMode = channelSwitch !== undefined;
+  // A channel switch installs the version it was opened for, which may be older than the running one.
+  const targetVersion = channelSwitch?.version ?? status?.latestVersion ?? '';
+  const channelSwitchRef = useRef(channelSwitch);
+  channelSwitchRef.current = channelSwitch;
 
   // Non-closable ONLY while a genuine install is in flight: live active progress
   // or the post-install reconnect. A 'progress' view with no active progress (the
@@ -171,6 +180,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   // never trapped behind an empty modal.
   const isInstallActive = !reconnectGaveUp
     && ((view === 'progress' && (progress?.active ?? false)) || view === 'reconnecting');
+  // A channel switch is dismissable only once it ended in a failure.
+  const switchFailed = switchMode && (reconnectGaveUp || startError !== '');
 
   // On open, capture justUpdatedTo into a ref before any re-fetch can clear it,
   // resolve the initial view, and reset all per-open latches.
@@ -209,8 +220,6 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
   useEffect(() => {
     recoverStartRef.current = () => { void recoverStart(); };
   });
-
-  const targetVersion = status?.latestVersion ?? '';
 
   // Progress poll: runs while the modal is open. Transitions to 'reconnecting'
   // as soon as the service goes away mid-install or phase reaches launching/installing.
@@ -312,7 +321,12 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     const poll = async () => {
       const p = await pingService();
       if (cancelled) return;
-      if (p && (!status?.latestVersion || p.version === status.latestVersion)) {
+      if (p && (!targetVersion || p.version === targetVersion)) {
+        if (channelSwitchRef.current) {
+          // The new build brings its own bundle and channel: a full reload picks both up.
+          window.location.reload();
+          return;
+        }
         // The new service usually serves a new web bundle: reload onto it now,
         // and refresh status so the notes do not offer the installed version.
         requestBuildCheck();
@@ -334,7 +348,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       cancelled = true;
       clearInterval(id);
     };
-  }, [open, view, status?.latestVersion, onStatusRefreshed]);
+  }, [open, view, targetVersion, onStatusRefreshed]);
 
   const handleCheck = async () => {
     setChecking(true);
@@ -374,7 +388,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     retryAttemptRef.current = 0;
   };
 
-  const startInstall = async (version = status?.latestVersion) => {
+  const startInstall = async (version = targetVersion) => {
     const token = ++startTokenRef.current;
     // Latch before calling start so the poll can drive reconnecting if the
     // service goes away before the 2s poll sees a launching/installing frame.
@@ -386,7 +400,10 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     neverActiveDeadlineRef.current = Date.now() + NEVER_ACTIVE_TIMEOUT_MS;
     // The poll runs the watchdog, which also covers a start that never answers.
     setPollGen(g => g + 1);
-    const resp = await startUpdate(version, { reopenAfter: true });
+    const sw = channelSwitchRef.current;
+    const resp = sw
+      ? await switchChannel(sw.channel, sw.version)
+      : await startUpdate(version, { reopenAfter: true });
     if (token !== startTokenRef.current) return;
     startPendingRef.current = false;
     setStarting(false);
@@ -417,7 +434,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       setPollGen(g => g + 1);
       return;
     }
-    const checkedStatus = await checkForUpdate();
+    // A switch has no "nothing to install" outcome to check for.
+    const checkedStatus = channelSwitchRef.current ? null : await checkForUpdate();
     if (token !== startTokenRef.current) return;
     // A failed check says nothing about what is available.
     const s = checkedStatus && !checkedStatus.lastCheckError ? checkedStatus : null;
@@ -440,7 +458,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     }
     retryAttemptRef.current += 1;
     setView('progress');
-    retryTimerRef.current = setTimeout(() => { void startInstall(s?.latestVersion); }, delay);
+    retryTimerRef.current = setTimeout(() => { void startInstall(s?.latestVersion ?? targetVersion); }, delay);
   };
 
   const handleUpdateNow = () => {
@@ -468,7 +486,17 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
     if (downloadUrl) window.open(downloadUrl, '_blank', 'noopener,noreferrer');
   };
 
-  let title = t('update.modal.title');
+  const handleSwitchRetry = () => {
+    cancelRetry();
+    setStartError('');
+    setReconnectGaveUp(false);
+    setView('progress');
+    void startInstall();
+  };
+
+  let title = switchMode
+    ? t(channelSwitch.channel === 'beta' ? 'update.switch.titleBeta' : 'update.switch.titleProduction')
+    : t('update.modal.title');
   if (view === 'reconnecting' && !reconnectGaveUp) title = t('update.modal.reconnecting');
 
   return (
@@ -477,7 +505,7 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
       onClose={onClose}
       title={title}
       icon={<RefreshCw size={18} />}
-      closable={!isInstallActive}
+      closable={switchMode ? switchFailed : !isInstallActive}
       fit
     >
       <div className={styles.modal}>
@@ -486,8 +514,8 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
             <div className={styles.phaseLabel}>
               {isActive ? phaseLabel(t, phase) : t('update.modal.starting')}
             </div>
-            {status?.latestVersion && (
-              <div className={styles.version}>{t('update.modal.version', { version: status.latestVersion })}</div>
+            {targetVersion && (
+              <div className={styles.version}>{t('update.modal.version', { version: targetVersion })}</div>
             )}
             <div className={styles.progressBar}>
               <div
@@ -508,7 +536,27 @@ export function UpdateModal({ open, onClose, status, onStatusRefreshed, onUpdate
           </div>
         )}
 
-        {(view === 'notes' || view === 'whatsNew' || reconnectGaveUp) && (
+        {switchMode && switchFailed && (
+          <div className={styles.notesView}>
+            <p className={styles.failedMessage}>
+              {reconnectGaveUp ? t('update.modal.reconnectGaveUp') : startError}
+            </p>
+            <div className={styles.buttonRow}>
+              <div className={styles.buttonRowRight}>
+                <Button tone="neutral" size="md" onClick={onClose}>
+                  {t('update.modal.close')}
+                </Button>
+                {!reconnectGaveUp && (
+                  <Button tone="accent" size="md" onClick={handleSwitchRetry}>
+                    {t('update.switch.tryAgain')}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!switchMode && (view === 'notes' || view === 'whatsNew' || reconnectGaveUp) && (
           <div className={styles.notesView}>
             {view === 'notes' && status?.latestVersion && (
               <div className={styles.versionHeader}>

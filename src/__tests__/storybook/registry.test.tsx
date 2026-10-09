@@ -17,6 +17,7 @@ const REPO_ROOT = join(__dirname, '..', '..', '..');
 // Non-visual utilities that live under components/common but are not catalog
 // material. Add here only with a reason.
 const COMMON_EXCLUSIONS: Record<string, string> = {
+  ChannelSwitchModal: 'Continue starts a real install of another update channel; a preview would trigger it',
   ContextMenu: 'side-effect contextmenu suppressor, renders null; has its own unit test',
   ErrorBoundary: 'render-time error catcher, nothing to preview',
   PairRemote: 'live-state pairing orchestration (QR mint, sessions poll, socket); not stub-renderable',

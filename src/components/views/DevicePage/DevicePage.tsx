@@ -32,8 +32,7 @@ import { ExperimentalEnableModal } from '../../common/ExperimentalEnableModal/Ex
 import { Spinner } from '../../common/Spinner/Spinner';
 import { useConflictApps } from '../../../hooks/useConflictApps';
 import { useUiSettings } from '../../../hooks/useUiSettings';
-import { savePreferences } from '../../../api/profiles';
-import { checkForUpdate } from '../../../api/update';
+import { requestChannelSwitch } from '../../../lib/channelSwitch';
 import { useToast } from '../../common/Toast/Toast';
 import { promoteDisplayToPanel } from '../../../api/displays';
 import { isLianLiHubId } from '../../../api/lianli';
@@ -303,21 +302,11 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
   );
 }
 
-/** Stable builds never control experimental hardware; offers the beta update channel, which the updater then installs from. */
+/** Stable builds never control experimental hardware; offers the beta update channel through the channel switch modal. */
 function BetaRequiredNotice() {
   const { t } = useTranslation();
   const { settings } = useUiSettings();
-  const [switching, setSwitching] = useState(false);
   const onBeta = settings.updateChannel === 'beta';
-  const switchToBeta = async () => {
-    setSwitching(true);
-    try {
-      // Written directly rather than through the debounced settings update, so the check below reads the new channel.
-      if (await savePreferences({ update: { updateChannel: 'beta' } }) !== null) await checkForUpdate();
-    } finally {
-      setSwitching(false);
-    }
-  };
   return (
     <>
       <Notice tone="info" role="status" className={styles.controlOffNotice}>
@@ -325,7 +314,7 @@ function BetaRequiredNotice() {
         <NoticeSecondary>{t(onBeta ? 'devices.requiresBeta.onBeta' : 'devices.requiresBeta.hint')}</NoticeSecondary>
       </Notice>
       {!onBeta && (
-        <Button type="button" tone="accent" className={styles.controlOffAction} disabled={switching} onClick={() => void switchToBeta()}>
+        <Button type="button" tone="accent" className={styles.controlOffAction} onClick={() => requestChannelSwitch('beta')}>
           {t('devices.requiresBeta.switch')}
         </Button>
       )}

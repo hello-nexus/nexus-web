@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NexusControlOff } from './DevicePage';
 
@@ -25,14 +25,14 @@ vi.mock('../../../hooks/useUiSettings', () => ({
 }));
 
 const mockSavePreferences = vi.fn();
-const mockCheckForUpdate = vi.fn();
+const mockRequestChannelSwitch = vi.fn();
 
 vi.mock('../../../api/profiles', () => ({
   savePreferences: (...args: any[]) => mockSavePreferences(...args),
 }));
 
-vi.mock('../../../api/update', () => ({
-  checkForUpdate: (...args: any[]) => mockCheckForUpdate(...args),
+vi.mock('../../../lib/channelSwitch', () => ({
+  requestChannelSwitch: (...args: any[]) => mockRequestChannelSwitch(...args),
 }));
 
 const mockKillConflict = vi.fn();
@@ -47,7 +47,7 @@ beforeEach(() => {
   h.updateChannel = 'production';
   mockKillConflict.mockReset();
   mockSavePreferences.mockReset().mockResolvedValue({ success: true });
-  mockCheckForUpdate.mockReset().mockResolvedValue(null);
+  mockRequestChannelSwitch.mockReset();
 });
 
 describe('NexusControlOff', () => {
@@ -114,7 +114,7 @@ describe('NexusControlOff', () => {
     expect(onEnable).not.toHaveBeenCalled();
   });
 
-  it('offers the beta channel in place of the switch for a device that requires a beta build', async () => {
+  it('offers the beta channel in place of the switch for a device that requires a beta build', () => {
     render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental requiresBeta onEnable={vi.fn()} />);
 
     expect(screen.getByText('devices.requiresBeta.notice')).toBeInTheDocument();
@@ -122,8 +122,8 @@ describe('NexusControlOff', () => {
     expect(screen.queryByRole('switch', { name: 'devices.nexusControl' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'devices.requiresBeta.switch' }));
-    await waitFor(() => expect(mockCheckForUpdate).toHaveBeenCalledTimes(1));
-    expect(mockSavePreferences).toHaveBeenCalledWith({ update: { updateChannel: 'beta' } });
+    expect(mockRequestChannelSwitch).toHaveBeenCalledWith('beta');
+    expect(mockSavePreferences).not.toHaveBeenCalled();
   });
 
   it('drops the switch-to-beta button once the update channel is already beta', () => {
