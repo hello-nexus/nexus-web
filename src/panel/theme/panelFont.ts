@@ -4,7 +4,7 @@ export const PANEL_FONTS = [
   { id: 'oswald', family: 'Oswald' },
   { id: 'tektur', family: 'Tektur' },
   { id: 'jura', family: 'Jura' },
-  { id: 'spectral', family: 'Spectral' },
+  { id: 'piazzolla', family: 'Piazzolla' },
 ] as const;
 
 export type PanelFontId = (typeof PANEL_FONTS)[number]['id'];
