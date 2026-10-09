@@ -131,6 +131,77 @@ export function isSingleWidgetSurface(surface: PanelSurface): boolean {
   return singleWidgetSurfaceSize(surface) !== undefined;
 }
 
+// Pages are reached by swiping, so a panel without touch keeps one page.
+export function surfaceAllowsPages(surface: PanelSurface, deviceTouch?: boolean): boolean {
+  return surfaceSupportsTouch(surface, deviceTouch);
+}
+
+// Widget size: 'large' shows fewer, bigger widgets; 'small' a denser grid. A panel
+// that offers the switch lays out each size as another surface does, while its own
+// surface keeps driving the hardware (touch, render cost, offline behaviour).
+export const PANEL_WIDGET_SIZE_MODES = ['large', 'small'] as const;
+export type PanelWidgetSizeMode = typeof PANEL_WIDGET_SIZE_MODES[number];
+
+export const ICUE_LINK_LCD5_FAMILY = 'icue-link-lcd5';
+export const HYDROSHIFT2_CURVE_FAMILY = 'lianli-hydroshift2-curve';
+
+interface PanelWidgetSizeOptions {
+  default: PanelWidgetSizeMode;
+  layoutSurface: Readonly<Record<PanelWidgetSizeMode, PanelSurface>>;
+  // Physical px/inch of the glass, for a size laid out as a density-sized grid.
+  dpi?: number;
+}
+
+// The Q-series and the iCUE LINK 5" LCD share one portrait glass size: Large is the
+// Q-series' one full-screen tile, Small a monitor grid sized by the glass's density.
+const ONE_TILE_OR_GRID: Readonly<Record<PanelWidgetSizeMode, PanelSurface>> = { large: 'q60', small: 'monitor' };
+
+export function panelWidgetSizeOptions(surface: PanelSurface, family?: string | null): PanelWidgetSizeOptions | undefined {
+  if (surface === 'q60') return { default: 'large', layoutSurface: ONE_TILE_OR_GRID };
+  if (surface === 'monitor' && family === ICUE_LINK_LCD5_FAMILY) return { default: 'small', layoutSurface: ONE_TILE_OR_GRID };
+  // HydroShift II OLED Curved: Large is its one wide tile, Small a landscape grid
+  // sized by the glass's physical density at its rendered resolution.
+  if (surface === 'lcd-wide' && family === HYDROSHIFT2_CURVE_FAMILY) {
+    return { default: 'large', layoutSurface: { large: 'lcd-wide', small: 'monitor' }, dpi: 379 };
+  }
+  return undefined;
+}
+
+// Density for a panel's grid: the record's own, else the glass's when Widget size
+// lays it out as another surface (whose estimate would be wrong for this glass).
+export function panelLayoutDpi(
+  surface: PanelSurface,
+  family: string | null | undefined,
+  widgetSize: string | null | undefined,
+  recordDpi: number | null | undefined,
+  surfaceDpi: Readonly<Record<PanelSurface, number>>,
+): number | undefined {
+  if (recordDpi) return recordDpi;
+  if (panelLayoutSurface(surface, family, widgetSize) === surface) return undefined;
+  return panelWidgetSizeOptions(surface, family)?.dpi ?? surfaceDpi[surface];
+}
+
+export function resolvePanelWidgetSize(
+  surface: PanelSurface,
+  family: string | null | undefined,
+  widgetSize: string | null | undefined,
+): PanelWidgetSizeMode | undefined {
+  const options = panelWidgetSizeOptions(surface, family);
+  if (!options) return undefined;
+  return widgetSize === 'large' || widgetSize === 'small' ? widgetSize : options.default;
+}
+
+// The surface whose layout rules (grid, single tile, sizes, playlist) the panel follows.
+export function panelLayoutSurface(
+  surface: PanelSurface,
+  family: string | null | undefined,
+  widgetSize: string | null | undefined,
+): PanelSurface {
+  const options = panelWidgetSizeOptions(surface, family);
+  const mode = resolvePanelWidgetSize(surface, family, widgetSize);
+  return options && mode ? options.layoutSurface[mode] : surface;
+}
+
 // A panel with no stored background starts solid, except a Q-series cooler, whose
 // page runs on the cooler's own SoC rather than the PC.
 export function surfaceDefaultsToAnimatedBackground(surface: PanelSurface): boolean {

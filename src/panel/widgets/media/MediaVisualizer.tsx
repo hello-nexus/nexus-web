@@ -6,6 +6,7 @@ import type { PanelSurface } from '../../types';
 import { useArtPaletteStops } from './artPalette';
 import { visualizerState } from './mediaVisualizers';
 import styles from './MediaTouch.module.scss';
+import { usePanelGlassSurface } from '../common/PanelGlassSurfaceContext';
 
 interface MediaVisualizerProps {
   effect: string;
@@ -42,9 +43,10 @@ export function MediaVisualizer({ effect, artUrl, surface, onUnavailable }: Medi
 
   // Same half-DPR cap PanelBackgroundShader applies: the Q-series panel GPU
   // cannot hold frame rate on a heavy shader at native resolution.
+  const glass = usePanelGlassSurface(surface);
   const renderOptions = useMemo(
-    () => ({ maxDevicePixelRatio: surface === 'q60' ? 0.5 : 1, paletteRef, audioTime: true }),
-    [surface, paletteRef],
+    () => ({ maxDevicePixelRatio: glass === 'q60' ? 0.5 : 1, paletteRef, audioTime: true }),
+    [glass, paletteRef],
   );
   const { ready, error } = useShaderRenderer(canvasRef, effect, stateRef, audioRef, renderOptions);
 

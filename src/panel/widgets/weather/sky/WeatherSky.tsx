@@ -9,6 +9,7 @@ import { useWallClock } from '../useWallClock';
 import skyFrag from './weathersky.frag?raw';
 import { anchorWind, weatherSkyParams, WIND_ANCHOR_ZERO, windUniforms, type WeatherSkyParams, type WindAnchor } from './weatherSkyParams';
 import styles from './WeatherSky.module.scss';
+import { usePanelGlassSurface } from '../../common/PanelGlassSurfaceContext';
 
 // Bundled, never fetched: not a lighting effect, so the service has no such shader.
 const EFFECT = 'weather-sky';
@@ -113,7 +114,7 @@ export function WeatherSky({ snap, surface, round, children }: WeatherSkyProps) 
   }, []);
 
   // The Q-series panel GPU cannot hold frame rate at native resolution.
-  const lowEnd = surface === 'q60';
+  const lowEnd = usePanelGlassSurface(surface) === 'q60';
   const renderOptions = useMemo(
     // A streamed panel's capture rate can sit below the cap; drawing faster is thrown away.
     () => ({ maxDevicePixelRatio: lowEnd ? 0.5 : 1, maxFps: Math.min(MAX_FPS, streamFrameCap(window.location.search) ?? MAX_FPS), screenSize: true, visibleRef }),

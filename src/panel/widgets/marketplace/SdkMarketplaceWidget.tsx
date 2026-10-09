@@ -21,6 +21,7 @@ import { useSdkBundle, useSdkRuntime } from './useSdkBundle';
 import { isStreamedPanelSurface, surfaceInputMode, widgetDisplayShape, type PanelSurface, type PanelWidgetSize } from '../../types';
 import { sizeToSpan } from '../../engine/grid';
 import styles from './MarketplaceWidget.module.scss';
+import { usePanelGlassSurface } from '../common/PanelGlassSurfaceContext';
 
 export interface SdkMarketplaceWidgetProps {
   listing: AppInstalledListing;
@@ -67,7 +68,8 @@ export function SdkMarketplaceWidget({ listing, instanceId, sandboxSurface, size
   const mediaImport = useMemo(() => listing.capabilities.mediaImport ?? [], [listing]);
   const appData = !!listing.capabilities.appData;
   const audio = !!listing.capabilities.audio;
-  const streamed = surface != null && isStreamedPanelSurface(surface, displayBound);
+  const glass = usePanelGlassSurface(surface);
+  const streamed = glass != null && isStreamedPanelSurface(glass, displayBound);
   const displayShape = widgetDisplayShape(size);
   const displayInput = surfaceInputMode(surface ?? 'desktop', deviceTouch);
   // The fullscreen view has no grid span.

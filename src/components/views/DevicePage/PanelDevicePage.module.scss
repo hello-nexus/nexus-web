@@ -251,6 +251,17 @@
   flex-direction: column;
 }
 
+// Widget size switch above the preview.
+.previewPane[data-widget-size] {
+  flex-direction: column;
+}
+
+.widgetSizeBar {
+  flex-shrink: 0;
+  width: 100%;
+  margin: 0 0 12px;
+}
+
 .troubleshootLink {
   display: inline-flex;
   align-items: center;

@@ -9,6 +9,7 @@ import {
   panelBackgroundState,
 } from './panelBackground';
 import styles from '../PanelApp.module.scss';
+import { usePanelGlassSurface } from '../widgets/common/PanelGlassSurfaceContext';
 
 interface PanelBackgroundShaderProps {
   effect: string;
@@ -44,9 +45,10 @@ export function PanelBackgroundShader({ effect, template, opacity, effectState, 
   // the desktop simulator, which renders on the host GPU.
   const visibleRef = useRef(!covered);
   visibleRef.current = !covered;
+  const glass = usePanelGlassSurface(surface);
   const renderOptions = useMemo(() => (
-    { maxDevicePixelRatio: surface === 'q60' && !fullRes ? 0.5 : 1, visibleRef }
-  ), [surface, fullRes]);
+    { maxDevicePixelRatio: glass === 'q60' && !fullRes ? 0.5 : 1, visibleRef }
+  ), [glass, fullRes]);
   const { ready, error } = useShaderRenderer(
     canvasRef,
     normalizedEffect,

@@ -122,6 +122,21 @@ describe('planPlacement', () => {
     expect(plan).toBeNull();
   });
 
+  it('places into the grid of a Q-series set to small widgets, never past its one page', () => {
+    const record = { id: 'rec-q', displayName: 'Q60', firstSeenAt: 0, lastSeenAt: 0, widgetSize: 'small', capabilities: { surface: 'q60' } } as PanelDeviceRecord;
+    const q60Grid: PlacementTarget = { ...q60, screen: { width: 720, height: 1280 }, screenDpi: 240 };
+    const open = layoutOf('monitor', [{ type: 'clock', size: '4x2', col: 0, row: 0 }]);
+
+    const plan = planPlacement(q60Grid, { layout: open, record }, TYPE, meta, 6);
+
+    expect(plan?.surface).toBe('monitor');
+    expect(plan?.replaces).toBeUndefined();
+    expect(plan?.layout.pages[0].widgets).toHaveLength(2);
+
+    const full = layoutOf('monitor', [0, 2, 4].map(row => ({ type: 'clock', size: '4x2' as const, col: 0, row })));
+    expect(planPlacement(q60Grid, { layout: full, record }, TYPE, { ...meta, singleInstance: false }, 6)).toBeNull();
+  });
+
   it('shows the page a multi-widget panel lands it on', () => {
     const full = Array.from({ length: 8 }, (_, r) => ({ type: 'clock', size: '4x2' as const, col: 0, row: r * 2 }));
 

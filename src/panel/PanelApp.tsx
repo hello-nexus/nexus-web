@@ -102,7 +102,8 @@ import {
   type PanelWidget,
   type PanelWidgetSize,
 } from './types';
-import { isSingleWidgetSurface, panelCanvasEditable, surfaceSupportsTouch } from './types';
+import { isSingleWidgetSurface, panelCanvasEditable, panelLayoutDpi, panelLayoutSurface, surfaceAllowsPages, surfaceSupportsTouch } from './types';
+import { PanelGlassSurfaceProvider } from './widgets/common/PanelGlassSurfaceContext';
 import { q60OfflineClockPages } from './engine/q60OfflineClock';
 import { inferSurfaceFromViewport } from './device/inferSurface';
 import { PanelBackgroundShader } from './background/PanelBackgroundShader';
@@ -125,6 +126,7 @@ import {
   parseDragTarget,
 } from './engine/panelLayoutHelpers';
 import {
+  DEFAULT_SURFACE_DPI,
   DESKTOP_ACTION_TRAY_HEIGHT,
   MAX_PANEL_PAGES,
   PHONE_WIDGET_REFERENCE_CELL,
@@ -195,12 +197,19 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // The record's own capabilities where it has them; a viewport inference
   // keeps the panel mounting when the server has no record for this id.
   const caps = record?.capabilities;
-  const resolved = useMemo(() => ({
-    surface: (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface,
-    touch: caps?.touch,
-    dpi: caps?.dpi,
-    displayBound: !!record?.displayId,
-  }), [caps?.surface, caps?.touch, caps?.dpi, record?.displayId]);
+  const resolved = useMemo(() => {
+    const glassSurface = (caps?.surface ?? inferSurfaceFromViewport(false)) as PanelSurface;
+    const surface = panelLayoutSurface(glassSurface, caps?.family, record?.widgetSize);
+    const relaid = surface !== glassSurface;
+    return {
+      surface,
+      glassSurface,
+      // Touch and density belong to the glass, whichever surface it lays out as.
+      touch: relaid ? surfaceSupportsTouch(glassSurface, caps?.touch) : caps?.touch,
+      dpi: panelLayoutDpi(glassSurface, caps?.family, record?.widgetSize, caps?.dpi, DEFAULT_SURFACE_DPI),
+      displayBound: !!record?.displayId,
+    };
+  }, [caps?.surface, caps?.family, caps?.touch, caps?.dpi, record?.widgetSize, record?.displayId]);
   const recordCapsRef = useRef<PanelDeviceCapabilitiesDto | null>(null);
   const hasCaps = !!caps;
   useEffect(() => { recordCapsRef.current = caps ?? null; }, [caps]);
@@ -231,7 +240,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
   // behind. Debounced past the rotation's resize storm; the patched record's
   // panel/device broadcast then updates any open editor live.
   useEffect(() => {
-    if (resolved.surface !== 'y70' || resolved.displayBound) return undefined;
+    if (resolved.glassSurface !== 'y70' || resolved.displayBound) return undefined;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const report = () => {
       timer = null;
@@ -274,7 +283,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('orientationchange', onResize);
     };
-  }, [resolved.surface, resolved.displayBound, deviceId, hasCaps]);
+  }, [resolved.glassSurface, resolved.displayBound, deviceId, hasCaps]);
   if (!loaded) {
     return <PanelLoadingGate surface={resolved.surface} />;
   }
@@ -283,6 +292,7 @@ export default function PanelApp({ deviceId }: { deviceId: string }) {
       recordState={recordState}
       deviceId={deviceId}
       surface={resolved.surface}
+      glassSurface={resolved.glassSurface}
       deviceTouch={resolved.touch}
       deviceDpi={resolved.dpi}
       displayBound={resolved.displayBound}
@@ -315,7 +325,7 @@ export function PanelEmbeddedContent({ layoutState, openCatalogSignal = 0, appAc
   );
 }
 
-function PanelKioskContent({ recordState, deviceId, surface, deviceTouch, deviceDpi, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; displayBound?: boolean }) {
+function PanelKioskContent({ recordState, deviceId, surface, glassSurface, deviceTouch, deviceDpi, displayBound }: { recordState: PanelRecordState; deviceId: string; surface: PanelSurface; glassSurface: PanelSurface; deviceTouch?: boolean; deviceDpi?: number; displayBound?: boolean }) {
   const layoutState = usePanelLayout(recordState, deviceId, surface, deviceTouch);
   return (
     <ErrorBoundary
@@ -323,7 +333,9 @@ function PanelKioskContent({ recordState, deviceId, surface, deviceTouch, device
       label="Panel"
     >
       <PanelDisplayBoundProvider value={!!displayBound}>
-        <PanelContent recordState={recordState} surface={surface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
+        <PanelGlassSurfaceProvider value={glassSurface}>
+          <PanelContent recordState={recordState} surface={surface} glassSurface={glassSurface} deviceId={deviceId} deviceTouch={deviceTouch} deviceDpi={deviceDpi} displayBound={displayBound} layoutState={layoutState} />
+        </PanelGlassSurfaceProvider>
       </PanelDisplayBoundProvider>
     </ErrorBoundary>
   );
@@ -332,6 +344,7 @@ function PanelKioskContent({ recordState, deviceId, surface, deviceTouch, device
 export function PanelContent({
   recordState = INERT_PANEL_RECORD,
   surface,
+  glassSurface = surface,
   deviceId,
   deviceTouch,
   deviceDpi,
@@ -352,6 +365,8 @@ export function PanelContent({
   onSectionNavigate,
 }: {
   surface: PanelSurface;
+  // The physical glass when Widget size lays it out as another surface.
+  glassSurface?: PanelSurface;
   deviceId?: string;
   // Per-device touch capability (promoted monitors). Undefined falls back to
   // the surface default in surfaceSupportsTouch.
@@ -448,7 +463,7 @@ export function PanelContent({
   // tearing down an open editor. Cabled surfaces (q60, USB phone) and WiFi/relay
   // phones keep the instant offline response so a real unplug / signal loss
   // surfaces right away.
-  const isHostDisplay = wiredPanelClass(surface) === 'host-display';
+  const isHostDisplay = wiredPanelClass(glassSurface) === 'host-display';
   const serviceStatus = useServiceStatus(kioskBehavior, isHostDisplay ? HOST_DISPLAY_OFFLINE_GRACE_MS : 0);
   const multiplex = useMultiplex();
   // The context menu's "Pin to Sidebar" gates on the current pinned-tail
@@ -621,7 +636,7 @@ export function PanelContent({
   // desktop look with no icons, taskbar, or windows, which per-pixel window
   // transparency could not exclude. See supportsDesktopWallpaper for why
   // surface alone is not the gate.
-  const wallpaperBackgroundAvailable = supportsDesktopWallpaper(surface, displayBound);
+  const wallpaperBackgroundAvailable = supportsDesktopWallpaper(glassSurface, displayBound);
   // Y70-class chrome: editor/add-widget sheets scale with the panel content.
   const touchPanelChrome = usesTouchPanelChrome(surface, displayBound, deviceTouch);
   // The sheet backdrop is scaled panel content on touch-chrome panels; give
@@ -869,7 +884,10 @@ export function PanelContent({
   // stored (addWidget creates it), though activePageId can point at it so every
   // surface shows the same page. A drag mints its own trailing page.
   const [blankPageId] = useState(createUuid);
+  // The dashboard has one page by design; a panel without touch has no way to swipe.
+  const singlePage = (embedded && surface === 'desktop') || !surfaceAllowsPages(surface, deviceTouch);
   const blankPageEligible = (layout.activePageId === BLANK_PAGE_ID || (kioskBehavior && surfaceSupportsTouch(surface, deviceTouch)))
+    && !singlePage
     && !isSingleWidgetSurface(surface)
     && !activeDragId
     && paginatedLayout.pages.length < MAX_PANEL_PAGES;
@@ -879,7 +897,7 @@ export function PanelContent({
     // theme, chrome) and swap only the rendered widgets for the clock widget.
     // Render-only - paginatedLayout (persistence) is untouched, so the real
     // widgets return on reconnect.
-    if (surface === 'q60' && isOffline) {
+    if (glassSurface === 'q60' && isOffline) {
       return q60OfflineClockPages(dragLayout.pages, surface);
     }
     const pages = shownPlaylistWidget
@@ -902,7 +920,7 @@ export function PanelContent({
     return blankPageEligible && lastPage && lastPage.widgets.length > 0
       ? [...filtered, { id: blankPageId, widgets: [] }]
       : filtered;
-  }, [dragLayout.pages, surface, deviceTouch, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
+  }, [dragLayout.pages, surface, glassSurface, deviceTouch, isOffline, shownPlaylistWidget, blankPageEligible, blankPageId]);
 
   // An opaque tile filling a single-widget panel hides the background, so it
   // stops animating.
@@ -1294,9 +1312,6 @@ export function PanelContent({
       row: 0,
       ...(defaultConfig ? { config: defaultConfig } : {}),
     };
-    // Dashboard is single-page: appendWidget no-ops if page 0 is full
-    // instead of spawning a new page. Other surfaces keep multi-page.
-    const dashboardSinglePage = embedded && surface === 'desktop';
     // On the blank page: create it as a real page that other clients follow.
     const onBlankPage = allFiltered[activePageIndex]?.id === blankPageId;
     const newPageId = createUuid();
@@ -1304,7 +1319,7 @@ export function PanelContent({
       ? { ...paginatedLayout, pages: [...paginatedLayout.pages, { id: newPageId, widgets: [] }], activePageId: newPageId }
       : paginatedLayout;
     const appended = appendWidget(base, next, capacity, {
-      singlePage: dashboardSinglePage,
+      singlePage,
       // Land on the page the user is looking at when it has room, not the
       // first page with a slot.
       preferredPageId: base.pages[activePageIndex]?.id,
@@ -1316,10 +1331,10 @@ export function PanelContent({
     setLayout(onBlankPage ? pruneEmptyPages(appended) : appended);
     setPendingScrollId(next.id);
     closeSheet();
-  }, [activePageIndex, allFiltered, blankPageId, closeSheet, embedded, paginatedLayout, capacity, setLayout, surface]);
+  }, [activePageIndex, allFiltered, blankPageId, closeSheet, paginatedLayout, capacity, setLayout, singlePage]);
 
-  // The dashboard cannot spill onto a new page, so a full grid has no room and
-  // the catalog dims what will not fit. Multi-page surfaces always accept a
+  // A single-page panel cannot spill onto a new page, so a full grid has no room
+  // and the catalog dims what will not fit. Multi-page surfaces always accept a
   // widget, so they get no predicate and nothing is dimmed.
   // Every type currently on the panel, across pages: a single-instance widget
   // is one per panel, not one per page.
@@ -1329,12 +1344,12 @@ export function PanelContent({
   );
 
   const canAddSize = useMemo(() => {
-    if (!(embedded && surface === 'desktop')) return undefined;
+    if (!singlePage) return undefined;
     return (size: PanelWidgetSize) => canAppendWidget(paginatedLayout, size, capacity, {
       singlePage: true,
       preferredPageId: paginatedLayout.pages[activePageIndex]?.id,
     });
-  }, [activePageIndex, embedded, paginatedLayout, capacity, surface]);
+  }, [activePageIndex, paginatedLayout, capacity, singlePage]);
 
   const updateWidgetConfig = useCallback((widgetId: string, config: Record<string, PanelConfigValue>) => {
     const standInType = playlistTypeOfWidgetId(widgetId);
@@ -1567,13 +1582,12 @@ export function PanelContent({
     }
     // Mint a phantom trailing page so the user can drag onto a new empty page.
     // Skipped when:
-    //  - Dashboard (single-page surface).
+    //  - The panel is single-page (dashboard, or no touch).
     //  - Already at MAX_PANEL_PAGES.
     //  - The last page is empty (free trailing page exists).
     //  - The source page holds only the active widget: moving it across leaves
     //    the source empty and the new page with one - a net no-op page count.
-    const dashboardSinglePage = embedded && surface === 'desktop';
-    if (!dashboardSinglePage && paginatedLayout.pages.length < MAX_PANEL_PAGES) {
+    if (!singlePage && paginatedLayout.pages.length < MAX_PANEL_PAGES) {
       const lastPage = paginatedLayout.pages[paginatedLayout.pages.length - 1];
       const sourcePage = paginatedLayout.pages.find(p => p.widgets.some(w => w.id === id));
       const sourceHasOthers = sourcePage ? sourcePage.widgets.length > 1 : false;
@@ -1633,7 +1647,7 @@ export function PanelContent({
         && !pinnedTail.includes(widget.type)) {
       setDraggingPinnableType(widget.type);
     }
-  }, [paginatedLayout, touch, widgetById, embedded, surface, setDraggingPinnableType, pinnedTail]);
+  }, [paginatedLayout, touch, widgetById, embedded, surface, singlePage, setDraggingPinnableType, pinnedTail]);
 
   return (
     <TouchViaPointerContext.Provider value={mouseAsTouch}>
@@ -2147,8 +2161,8 @@ export function PanelContent({
           onThemeBackgroundMediaOrderCommit={panelTheme.commitBackgroundMediaOrder}
           showMediaTab={surface !== 'desktop' && !isTunnelActive()}
           deviceAspect={typeof window !== 'undefined' ? window.innerWidth / window.innerHeight : undefined}
-          deviceW={surface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}
-          deviceH={surface === 'q60' ? 1280 : (typeof window !== 'undefined' ? Math.round(window.innerHeight * window.devicePixelRatio) : undefined)}
+          deviceW={glassSurface === 'q60' ? 720 : (typeof window !== 'undefined' ? Math.round(window.innerWidth * window.devicePixelRatio) : undefined)}
+          deviceH={glassSurface === 'q60' ? 1280 : (typeof window !== 'undefined' ? Math.round(window.innerHeight * window.devicePixelRatio) : undefined)}
           onThemeWidgetOpacityPreview={panelTheme.previewWidgetOpacity}
           onThemeWidgetOpacityCommit={panelTheme.commitWidgetOpacity}
           onThemeWidgetLabelsCommit={panelTheme.commitWidgetLabels}
@@ -2179,7 +2193,7 @@ export function PanelContent({
       {kioskBehavior && (
         <PanelOfflineOverlay
           state={serviceStatus.state}
-          surface={surface}
+          surface={glassSurface}
           resolvedThemeMode={resolvedThemeMode}
           themeStyle={panelThemeVars}
           nativeBridgeAvailable={nativeSettings.available}

@@ -36,7 +36,7 @@ import { normalizePanelFont, panelFontVars, type PanelFontId } from './panelFont
 import { saveAnimateTemplates } from '../../api/lighting';
 import type { EffectState } from '../../types/lighting';
 import type { PanelSlideshowSettings, PanelThemeSettingsState, ResolvedPanelThemeMode } from '../editor/PanelThemeSettings';
-import { isSingleWidgetSurface, surfaceDefaultsToAnimatedBackground, type PanelSurface } from '../types';
+import { isSingleWidgetSurface, panelLayoutSurface, surfaceDefaultsToAnimatedBackground, type PanelSurface } from '../types';
 import { supportsDesktopWallpaper } from '../device/wiredPanel';
 
 export type PanelThemeState = PanelThemeSettingsState;
@@ -177,7 +177,8 @@ export function buildPanelTheme(prefs: Preferences | null, record: PanelDeviceRe
   const t = prefs?.theme;
   const r = record;
   const surface = r?.capabilities?.surface as PanelSurface;
-  const single = isSingleWidgetSurface(surface);
+  // Card defaults follow the layout (Widget size); the background default follows the glass.
+  const single = isSingleWidgetSurface(panelLayoutSurface(surface, r?.capabilities?.family, r?.widgetSize));
   // Back-compat: seed the active shader's preset from the legacy scalar when
   // the per-shader map does not carry it.
   const effect = normalizePanelBackgroundEffect(r?.backgroundEffect);

@@ -139,6 +139,18 @@ describe('sizeToSpan', () => {
     });
   });
 
+  // Widget size Small: the HydroShift II Curved, and the glass the Q-series and the
+  // iCUE LINK 5" LCD share, at default widget padding.
+  it('gives the Small widget size its grids', () => {
+    const paddingRatio = panelWidgetPaddingRatio(PANEL_WIDGET_PADDING_DEFAULT_PERCENT);
+    expect(panelGridCapacityForCanvas(2288, 1080, { surface: 'monitor', dpi: 379, paddingRatio }))
+      .toMatchObject({ columns: 8, rows: 4 });
+    expect(panelGridCapacityForCanvas(720, 1280, { surface: 'monitor', dpi: 294, paddingRatio }))
+      .toMatchObject({ columns: 4, rows: 6 });
+    expect(panelGridCapacityForCanvas(720, 1280, { surface: 'monitor', dpi: 220, paddingRatio }))
+      .toMatchObject({ columns: 4, rows: 6 });
+  });
+
   it('gives the Xeneon Edge 4 columns of large cells in portrait', () => {
     expect(panelGridCapacityForCanvas(720, 2560, { surface: 'monitor', dpi: 183 })).toMatchObject({
       columns: 4,

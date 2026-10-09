@@ -96,3 +96,15 @@ describe('buildPanelTheme', () => {
     expect(theme.appAccentColor).toBe('#ff0000');
   });
 });
+
+describe('buildPanelTheme Widget size', () => {
+  it('gives a Small Q-series grid card defaults and keeps its animated background', () => {
+    const large = buildPanelTheme(null, y70({ capabilities: { surface: 'q60' } }));
+    const small = buildPanelTheme(null, y70({ capabilities: { surface: 'q60' }, widgetSize: 'small' }));
+
+    expect(large.widgetOpacity).toBe(0);
+    expect(small.widgetOpacity).toBe(buildPanelTheme(null, y70()).widgetOpacity);
+    expect(small.widgetPadding).toBe(buildPanelTheme(null, y70()).widgetPadding);
+    expect(small.backgroundMode).toBe('shader');
+  });
+});
