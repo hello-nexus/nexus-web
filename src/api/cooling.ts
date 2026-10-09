@@ -336,8 +336,10 @@ export interface GuardResponse {
   sinceUtcMs: number | null;
   lastTrip: GuardLastTrip | null;
   heal: HealState;
-  /** The engine watchdog handed the fans to the BIOS and stays latched until a restart or a guard off/on. */
+  /** The engine watchdog handed the fans to the BIOS. */
   watchdogLatched?: boolean;
+  /** The latch clears itself after steady ticks. False, or absent on an older service whose latch never clears itself: only a restart or a guard off/on clears it. */
+  watchdogResumes?: boolean;
   /** Whether fans that can stop while the CPU is hot are flagged; absent on an older service (treat as on). */
   lintWarnings?: boolean;
   /** Critical hazards in the saved config; empty while warnings are off. Absent on an older service. */

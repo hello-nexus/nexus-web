@@ -141,7 +141,7 @@ describe('CoolingPage thermal guard', () => {
   it('renders the guard notices below the tabs, not above them', async () => {
     svc.guard = { ...svc.guard, watchdogLatched: true };
     renderAdvanced();
-    const notice = await screen.findByText('cooling.guard.latched');
+    const notice = await screen.findByText('cooling.guard.latchedHeld');
     const tab = screen.getAllByRole('tab')[0];
     expect(tab.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -156,7 +156,7 @@ describe('CoolingPage thermal guard', () => {
         <CoolingPage serviceOnline serviceState={serviceState} />
       </UiSettingsProvider>,
     );
-    const notice = await screen.findByText('cooling.guard.latched');
+    const notice = await screen.findByText('cooling.guard.latchedHeld');
     const tab = screen.getAllByRole('tab')[0];
     expect(tab.compareDocumentPosition(notice) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
@@ -182,7 +182,7 @@ describe('CoolingPage thermal guard', () => {
   });
 
   it('shows the latched banner when the watchdog latched', async () => {
-    svc.guard = { ...svc.guard, watchdogLatched: true };
+    svc.guard = { ...svc.guard, watchdogLatched: true, watchdogResumes: true };
     renderAdvanced();
     expect(await screen.findByText('cooling.guard.latched')).toBeTruthy();
   });

@@ -24,10 +24,15 @@ import { NollieDevicePage } from './NollieDevicePage';
 import { TryxDevicePage } from './TryxDevicePage';
 import { StreamDeckDevicePage } from './StreamDeckDevicePage';
 import { NexusControlCard } from '../../common/NexusControlCard/NexusControlCard';
+import { Notice, NoticeSecondary } from '../../common/Notice/Notice';
+import { Button } from '../../common/Button/Button';
 import { ConflictAppCard } from '../../common/ConflictAppCard/ConflictAppCard';
 import { ExperimentalBadge } from '../../common/ExperimentalBadge/ExperimentalBadge';
 import { Spinner } from '../../common/Spinner/Spinner';
 import { useConflictApps } from '../../../hooks/useConflictApps';
+import { useUiSettings } from '../../../hooks/useUiSettings';
+import { savePreferences } from '../../../api/profiles';
+import { checkForUpdate } from '../../../api/update';
 import { useToast } from '../../common/Toast/Toast';
 import { promoteDisplayToPanel } from '../../../api/displays';
 import { isLianLiHubId } from '../../../api/lianli';
@@ -151,6 +156,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
         deviceName={device.name}
         conflictAppId={device.conflictAppId}
         experimental={device.experimental}
+        requiresBeta={device.requiresBeta}
         onEnable={() => {
           detectReportedRef.current = false;
           setDetectingKey(device.key);
@@ -296,7 +302,37 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
   );
 }
 
-export function NexusControlOff({ deviceName, conflictAppId, experimental, detecting, onEnable }: { deviceName: string; conflictAppId?: string; experimental?: boolean; detecting?: boolean; onEnable: () => void }) {
+/** Stable builds never control experimental hardware; offers the beta update channel, which the updater then installs from. */
+function BetaRequiredNotice() {
+  const { t } = useTranslation();
+  const { settings } = useUiSettings();
+  const [switching, setSwitching] = useState(false);
+  const onBeta = settings.updateChannel === 'beta';
+  const switchToBeta = async () => {
+    setSwitching(true);
+    try {
+      // Written directly rather than through the debounced settings update, so the check below reads the new channel.
+      if (await savePreferences({ update: { updateChannel: 'beta' } }) !== null) await checkForUpdate();
+    } finally {
+      setSwitching(false);
+    }
+  };
+  return (
+    <>
+      <Notice tone="info" role="status" className={styles.controlOffNotice}>
+        <span>{t('devices.requiresBeta.notice')}</span>
+        <NoticeSecondary>{t(onBeta ? 'devices.requiresBeta.onBeta' : 'devices.requiresBeta.hint')}</NoticeSecondary>
+      </Notice>
+      {!onBeta && (
+        <Button type="button" tone="accent" className={styles.controlOffAction} disabled={switching} onClick={() => void switchToBeta()}>
+          {t('devices.requiresBeta.switch')}
+        </Button>
+      )}
+    </>
+  );
+}
+
+export function NexusControlOff({ deviceName, conflictAppId, experimental, requiresBeta, detecting, onEnable }: { deviceName: string; conflictAppId?: string; experimental?: boolean; requiresBeta?: boolean; detecting?: boolean; onEnable: () => void }) {
   const { t } = useTranslation();
   const { conflicts, ready } = useConflictApps(true);
   const activeConflict = conflictAppId ? conflicts.find(c => c.id === conflictAppId) : undefined;
@@ -309,7 +345,9 @@ export function NexusControlOff({ deviceName, conflictAppId, experimental, detec
       <div className={styles.controlOff}>
         <h2 className={styles.controlOffTitle}>{deviceName}</h2>
         <div className={styles.controlOffBody}>
-          {activeConflict ? (
+          {requiresBeta ? (
+            <BetaRequiredNotice />
+          ) : activeConflict ? (
             <>
               <p className={styles.controlOffHint}>{t('devices.nexusControlOff.conflictHint', { app: activeConflict.displayName })}</p>
               <ConflictAppCard conflict={activeConflict} />

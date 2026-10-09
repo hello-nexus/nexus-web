@@ -59,6 +59,8 @@ export interface UnifiedDevice {
   // panel devices (no promoted-monitor handler is experimental) and whenever
   // supportsNexusControl is false.
   experimental: boolean;
+  // True for an experimental device on a stable build: Nexus Control stays off and its switch is locked.
+  requiresBeta: boolean;
   // Device-level issue code (e.g. "usb-disconnected") surfaced as a warning
   // icon on the sidebar row and the Devices-page card; undefined = no issue.
   warning?: string;
@@ -232,6 +234,7 @@ export function useUnifiedDevices(enabled: boolean) {
         nexusControlEnabled: deckControlEnabled,
         supportsNexusControl: deckSupportsControl,
         experimental: false,
+        requiresBeta: false,
         warning: deck.warning ?? undefined,
         conflictAppId: deck.conflictAppId ?? undefined,
         bus: 'usb',
@@ -256,6 +259,7 @@ export function useUnifiedDevices(enabled: boolean) {
         nexusControlEnabled: true,
         supportsNexusControl: false,
         experimental: false,
+        requiresBeta: false,
         bus: 'usb',
       });
     }
@@ -321,6 +325,7 @@ function buildUnifiedList(
         ? false
         : isPromotedMonitor ? true : (backing?.supportsNexusControl ?? false),
       experimental: backing?.experimental ?? false,
+      requiresBeta: backing?.requiresBeta ?? false,
       warning: p.warning ?? undefined,
       conflictAppId: backing?.conflictAppId,
       bus: 'usb',
@@ -351,6 +356,7 @@ function buildUnifiedList(
       nexusControlEnabled: d.nexusControlEnabled ?? true,
       supportsNexusControl: d.supportsNexusControl ?? false,
       experimental: d.experimental ?? false,
+      requiresBeta: d.requiresBeta ?? false,
       warning: d.warning ?? undefined,
       conflictAppId: d.conflictAppId,
       bus: d.bus ?? 'usb',
@@ -371,6 +377,7 @@ function buildUnifiedList(
       nexusControlEnabled: true,
       supportsNexusControl: false,
       experimental: false,
+      requiresBeta: false,
       bus: 'usb',
     });
   }

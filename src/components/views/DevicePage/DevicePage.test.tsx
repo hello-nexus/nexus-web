@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NexusControlOff } from './DevicePage';
 
@@ -7,6 +7,7 @@ import { NexusControlOff } from './DevicePage';
 const h = vi.hoisted(() => ({
   conflicts: [] as any[],
   ready: true,
+  updateChannel: 'production',
 }));
 
 vi.mock('../../../lib/i18n', () => ({
@@ -19,6 +20,21 @@ vi.mock('../../../hooks/useConflictApps', () => ({
   useConflictApps: () => ({ conflicts: h.conflicts, ready: h.ready }),
 }));
 
+vi.mock('../../../hooks/useUiSettings', () => ({
+  useUiSettings: () => ({ settings: { updateChannel: h.updateChannel } }),
+}));
+
+const mockSavePreferences = vi.fn();
+const mockCheckForUpdate = vi.fn();
+
+vi.mock('../../../api/profiles', () => ({
+  savePreferences: (...args: any[]) => mockSavePreferences(...args),
+}));
+
+vi.mock('../../../api/update', () => ({
+  checkForUpdate: (...args: any[]) => mockCheckForUpdate(...args),
+}));
+
 const mockKillConflict = vi.fn();
 
 vi.mock('../../../api/conflicts', () => ({
@@ -28,7 +44,10 @@ vi.mock('../../../api/conflicts', () => ({
 beforeEach(() => {
   h.conflicts = [];
   h.ready = true;
+  h.updateChannel = 'production';
   mockKillConflict.mockReset();
+  mockSavePreferences.mockReset().mockResolvedValue({ success: true });
+  mockCheckForUpdate.mockReset().mockResolvedValue(null);
 });
 
 describe('NexusControlOff', () => {
@@ -81,6 +100,26 @@ describe('NexusControlOff', () => {
     expect(toggle).toBeDisabled();
     fireEvent.click(toggle);
     expect(onEnable).not.toHaveBeenCalled();
+  });
+
+  it('offers the beta channel in place of the switch for a device that requires a beta build', async () => {
+    render(<NexusControlOff deviceName="Lian Li Uni Hub" experimental requiresBeta onEnable={vi.fn()} />);
+
+    expect(screen.getByText('devices.requiresBeta.notice')).toBeInTheDocument();
+    expect(screen.queryByText('devices.nexusControlOff.enableHint')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'devices.nexusControl' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'devices.requiresBeta.switch' }));
+    await waitFor(() => expect(mockCheckForUpdate).toHaveBeenCalledTimes(1));
+    expect(mockSavePreferences).toHaveBeenCalledWith({ update: { updateChannel: 'beta' } });
+  });
+
+  it('drops the switch-to-beta button once the update channel is already beta', () => {
+    h.updateChannel = 'beta';
+    render(<NexusControlOff deviceName="Lian Li Uni Hub" requiresBeta onEnable={vi.fn()} />);
+
+    expect(screen.getByText('devices.requiresBeta.onBeta')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'devices.requiresBeta.switch' })).not.toBeInTheDocument();
   });
 
   it('shows the experimental badge under the switch only for experimental devices', () => {
