@@ -473,18 +473,16 @@ describe('StreamDeckDevicePage', () => {
       expect(!!(grid.compareDocumentPosition(editor) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
       // Right column: the action picker follows the whole left column in DOM order.
       expect(!!(editor.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
-      // The mode chip heads the right column: after the left column, before the picker.
-      const modeChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.custom' });
-      expect(!!(editor.compareDocumentPosition(modeChip) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
-      expect(!!(modeChip.compareDocumentPosition(picker) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+      // The mode chip row is gone: Recent Apps is a dropdown entry now.
+      expect(screen.queryByRole('radio', { name: 'panel.settings.deck.mode.custom' })).toBeNull();
     });
 
-    it('keeps the focused mode chip mounted across a Custom to Recent Apps switch', async () => {
+    it('keeps the focused preset dropdown mounted across a Custom to Recent Apps switch', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'custom', activePresetId: 'p1' } }));
       const { rerender } = await renderPage();
 
-      const recentChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' });
+      const recentChip = screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' });
       recentChip.focus();
       expect(document.activeElement).toBe(recentChip);
 
@@ -492,8 +490,8 @@ describe('StreamDeckDevicePage', () => {
       await act(async () => {
         rerender(<StreamDeckDevicePage device={makeUnifiedDevice()} controlDevice={mockControlDevice} />);
       });
-      // Same node, still focused: the right column sits outside the mode branch.
-      expect(screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' })).toBe(recentChip);
+      // Same node, still focused: the header rail sits outside the mode branch.
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBe(recentChip);
       expect(document.activeElement).toBe(recentChip);
       expect(screen.queryByTestId('deck-key-inspector-picker')).toBeNull();
     });
@@ -568,16 +566,15 @@ describe('StreamDeckDevicePage', () => {
     });
   });
 
-  describe('Mode chip', () => {
-    it('reflects the instance\'s current mode and switching it calls setMode', async () => {
+  describe('Recent Apps dropdown entry', () => {
+    it('lists Recent Apps in the header rail and selecting it calls setMode', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ instance: { mode: 'custom', activePresetId: 'p1' } }));
       await renderPage();
 
-      const customChip = screen.getByRole('radio', { name: 'panel.settings.deck.mode.custom' });
-      expect(customChip).toHaveAttribute('aria-checked', 'true');
-
-      fireEvent.click(screen.getByRole('radio', { name: 'panel.settings.deck.mode.recentApps' }));
+      expect(screen.queryByRole('radiogroup', { name: 'panel.settings.deck.mode.label' })).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' }));
+      fireEvent.click(screen.getByRole('option', { name: 'panel.settings.deck.mode.recentApps' }));
       expect(mockSetMode).toHaveBeenCalledWith('recentApps');
     });
   });
@@ -594,13 +591,13 @@ describe('StreamDeckDevicePage', () => {
       expect(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeInTheDocument();
     });
 
-    it('is not shown on the Settings tab', async () => {
+    it('stays in the header rail on the Settings tab, like Lighting', async () => {
       mockUseStreamDecks.mockReturnValue(decksReturn([makeDeck()]));
       mockUseDeckInstance.mockReturnValue(deckInstanceReturn({ presets: [{ id: 'p1', name: 'A' }] }));
       await renderPage();
       switchToSettingsTab();
 
-      expect(screen.queryByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeNull();
+      expect(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeInTheDocument();
     });
 
     it('shows Reset/Undo/Redo controls, disabled per canUndo/canRedo', async () => {

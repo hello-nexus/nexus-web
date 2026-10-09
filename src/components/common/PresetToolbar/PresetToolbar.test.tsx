@@ -352,3 +352,48 @@ describe('PresetToolbar (onImportFile)', () => {
     expect(screen.getByRole('option', { name: 'lighting.layoutPresets.importFileOption' })).toBeDisabled();
   });
 });
+
+describe('PresetToolbar built-in and suggestion entries', () => {
+  const builtins = [{ id: 'recent', label: 'Recent Apps' }];
+  const suggestions = [{ id: 'tpl', label: 'Discord' }];
+  // The mocked Select renders dividers as empty-label options.
+  const names = () => screen.getAllByRole('option').map(o => o.textContent).filter(Boolean);
+
+  it('orders built-ins, presets, suggestions, preset actions, then create', () => {
+    render(<PresetToolbar {...defaultProps({ presets: [PRESET_A], activeId: 'a', presetCount: 1, builtins, suggestions, onManageApps: vi.fn() })} />);
+    const list = names();
+    expect(list.slice(0, 3)).toEqual(['Recent Apps', 'My Preset', 'Discord']);
+    expect(list.indexOf('lighting.layoutPresets.rename')).toBeGreaterThan(2);
+    expect(list.indexOf('lighting.layoutPresets.newOption')).toBeGreaterThan(list.indexOf('lighting.layoutPresets.rename'));
+  });
+
+  it('routes a built-in and a suggestion pick to their own callbacks, not onLoad', () => {
+    const onSelectBuiltin = vi.fn();
+    const onSelectSuggestion = vi.fn();
+    const onLoad = vi.fn();
+    render(<PresetToolbar {...defaultProps({ builtins, suggestions, onSelectBuiltin, onSelectSuggestion, onLoad })} />);
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__builtin__:recent' } });
+    fireEvent.change(screen.getByTestId('preset-select'), { target: { value: '__suggest__:tpl' } });
+    expect(onSelectBuiltin).toHaveBeenCalledWith('recent');
+    expect(onSelectSuggestion).toHaveBeenCalledWith('tpl');
+    expect(onLoad).not.toHaveBeenCalled();
+  });
+
+  it('while a built-in is active, hides rename/apps/export/delete and the history controls', () => {
+    render(<PresetToolbar {...defaultProps({
+      presets: [PRESET_A], activeId: 'a', presetCount: 1, builtins, activeBuiltinId: 'recent', onManageApps: vi.fn(), onExport: vi.fn(), onReset: vi.fn(),
+    })} />);
+    expect(screen.getByTestId('preset-select')).toHaveValue('__builtin__:recent');
+    for (const k of ['rename', 'apps', 'export', 'delete']) {
+      expect(screen.queryByRole('option', { name: `lighting.layoutPresets.${k}` })).toBeNull();
+    }
+    expect(screen.queryByRole('button', { name: 'lighting.layoutPresets.undo' })).toBeNull();
+    expect(screen.getByRole('option', { name: 'lighting.layoutPresets.newOption' })).toBeInTheDocument();
+  });
+
+  it('a disabled suggestion is disabled', () => {
+    render(<PresetToolbar {...defaultProps({ suggestions: [{ id: 'tpl', label: 'Discord', disabled: true }] })} />);
+    expect(screen.getByRole('option', { name: 'Discord' })).toBeDisabled();
+  });
+});
+

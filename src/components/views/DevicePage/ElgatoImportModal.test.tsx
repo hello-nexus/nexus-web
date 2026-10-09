@@ -107,6 +107,33 @@ describe('ElgatoImportModal import flow', () => {
     expect(screen.getByText('devices.streamdeck.import.reason.plugin')).toBeInTheDocument();
   });
 
+  it('renders a dial entry as page and dial, with a key distinct from a key entry on the same page', async () => {
+    vi.mocked(fetchElgatoProfiles).mockResolvedValue({ status: 'ok', profiles: [PROFILE_A] });
+    const config = { pages: [{ slots: [] }] };
+    vi.mocked(importElgatoProfile).mockResolvedValue({
+      config,
+      report: {
+        totalKeys: 3,
+        mappedKeys: 1,
+        unmapped: [
+          { page: 1, position: '', dial: 2, name: 'Volume', reason: 'plugin' as const },
+          { page: 1, position: '', dial: 3, name: 'Light', reason: 'unsupported' as const },
+        ],
+      },
+    });
+    vi.mocked(createDeckPreset).mockResolvedValue({ id: 'new1', name: 'Default Profile', cols: 5, rows: 3, pageCount: 1, deck: config });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    renderModal();
+    fireEvent.click(await screen.findByText('Default Profile'));
+    fireEvent.click(screen.getByText('devices.streamdeck.import.import'));
+
+    expect(await screen.findByText(`devices.streamdeck.import.unmappedPositionDial:${JSON.stringify({ page: 1, dial: 2 })}`)).toBeInTheDocument();
+    expect(screen.getByText(`devices.streamdeck.import.unmappedPositionDial:${JSON.stringify({ page: 1, dial: 3 })}`)).toBeInTheDocument();
+    expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining('same key'), expect.anything());
+    errorSpy.mockRestore();
+  });
+
   it('dedupes the created preset name against existing presets', async () => {
     vi.mocked(fetchElgatoProfiles).mockResolvedValue({ status: 'ok', profiles: [PROFILE_A] });
     vi.mocked(importElgatoProfile).mockResolvedValue({ config: { pages: [{ slots: [] }] }, report: { totalKeys: 1, mappedKeys: 1, unmapped: [] } });

@@ -11,7 +11,7 @@ import type { UseDeckInstanceResult } from '../../../panel/widgets/deck/useDeckI
 // off too.
 vi.mock('../../../lib/devTools', () => ({ DEV_TOOLS: false }));
 
-vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => false }));
+vi.mock('../../../api/service', () => ({ isLocalhostUnreachable: () => false, fetchService: () => Promise.resolve(null) }));
 vi.mock('../../../panel/widgets/common/AppPicker', () => ({ useAppIcon: () => null, AppPicker: () => null }));
 vi.mock('../../../hooks/useConflictApps', () => ({
   useConflictApps: () => ({ conflicts: [], ready: true }),

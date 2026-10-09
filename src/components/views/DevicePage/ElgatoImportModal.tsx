@@ -172,9 +172,11 @@ export function ElgatoImportModal({ open, onClose, deckCols, deckRows, existingP
                 <p className={styles.unmappedHeader}>{t('devices.streamdeck.import.unmappedHeader')}</p>
                 <ul className={styles.unmappedList}>
                   {result.report.unmapped.map(item => (
-                    <li key={`${item.page}-${item.position}`} className={styles.unmappedItem}>
+                    <li key={item.dial != null ? `${item.page}-dial-${item.dial}` : `${item.page}-${item.position}`} className={styles.unmappedItem}>
                       <span className={styles.unmappedPosition}>
-                        {t('devices.streamdeck.import.unmappedPosition', { page: item.page, position: item.position })}
+                        {item.dial != null
+                          ? t('devices.streamdeck.import.unmappedPositionDial', { page: item.page, dial: item.dial })
+                          : t('devices.streamdeck.import.unmappedPosition', { page: item.page, position: item.position })}
                       </span>
                       <span className={styles.unmappedName}>{item.name}</span>
                       <span className={styles.unmappedReason}>{t(unmappedReasonKey(item.reason))}</span>

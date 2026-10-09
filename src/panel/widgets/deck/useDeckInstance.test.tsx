@@ -118,6 +118,14 @@ describe('useDeckInstance - initial load', () => {
     expect(result.current.instance?.mode).toBe('custom');
   });
 
+  it('reads a persisted "appAware" mode as "custom"', async () => {
+    getDeckInstanceMock.mockResolvedValue({ mode: 'appAware', activePresetId: 'p1' } as unknown as DeckInstance);
+    const { result } = renderHook(() => useDeckInstance('streamdeck:SN1', 'physical', { cols: 3, rows: 2 }));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+
+    expect(result.current.instance?.mode).toBe('custom');
+  });
+
   it('normalizes a zero-page preset from the server to one empty page so it stays editable', async () => {
     const ZERO_PAGE_PRESET: DeckPresetFull = { id: 'p1', name: 'Streaming', cols: 3, rows: 2, pageCount: 0, deck: { pages: [] } };
     getDeckPresetMock.mockResolvedValue(ZERO_PAGE_PRESET);

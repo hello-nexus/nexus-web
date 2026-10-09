@@ -11,6 +11,7 @@ import { saveBlobToFile } from '../lib/saveFile';
 import { sanitizeFileName } from '../panel/widgets/lighting/page/mappingUtils';
 import type { DeckConfig } from '../panel/widgets/deck/types';
 
+/** 'appAware' is retired: a stored one is read as 'custom' (see useDeckInstance's normalizeInstance). */
 export type DeckInstanceMode = 'custom' | 'recentApps' | 'appAware';
 
 /** Same shape as lighting's PresetApp (api/lighting.ts) - an app bound to auto-activate this preset. */

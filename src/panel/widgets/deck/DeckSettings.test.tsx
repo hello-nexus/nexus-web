@@ -98,10 +98,11 @@ describe('DeckSettings (touch widget)', () => {
     expect(screen.queryByText('This widget')).toBeNull();
   });
 
-  it('hosts the shared instance editor: mode chip + preset toolbar + key inspector', () => {
+  it('hosts the shared instance editor: preset toolbar + key inspector', () => {
     renderSettings();
 
-    expect(screen.getByRole('radiogroup', { name: 'panel.settings.deck.mode.label' })).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup', { name: 'panel.settings.deck.mode.label' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'panel.settings.deck.presets.placeholder' })).toBeInTheDocument();
     expect(screen.getByText('panel.settings.deck.actionType')).toBeInTheDocument();
     expect(screen.getByText('panel.settings.icon')).toBeInTheDocument();
     expect(screen.getByText('panel.settings.deck.titleStyle.section')).toBeInTheDocument();

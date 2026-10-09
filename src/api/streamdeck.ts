@@ -221,7 +221,10 @@ export type ElgatoUnmappedReason =
 
 export interface ElgatoUnmappedKey {
   page: number;
+  /** Key position; empty for a dial entry. */
   position: string;
+  /** 1-based dial number; set only for a dial entry. */
+  dial?: number;
   name: string;
   reason: ElgatoUnmappedReason;
   detail?: string;

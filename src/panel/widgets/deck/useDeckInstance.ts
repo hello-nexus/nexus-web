@@ -22,10 +22,13 @@ function normalizePresetDeck(full: DeckPresetFull): DeckPresetFull {
   return { ...full, deck: normalizeDeckConfig(full.deck) };
 }
 
-// An older paired service build still reports the deck-mode chip as
-// 'fixed'; treat it as 'custom' wherever an instance arrives from the wire.
+// Retired modes persisted on an older instance: 'fixed' (an older paired
+// service build) and 'appAware' (every non-Recent-Apps instance now follows
+// its presets' app bindings) both mean 'custom' wherever an instance arrives
+// from the wire.
 function normalizeInstance(instance: DeckInstance): DeckInstance {
-  return (instance.mode as string) === 'fixed' ? { ...instance, mode: 'custom' } : instance;
+  const mode = instance.mode as string;
+  return mode === 'fixed' || mode === 'appAware' ? { ...instance, mode: 'custom' } : instance;
 }
 
 export interface UseDeckInstanceResult {

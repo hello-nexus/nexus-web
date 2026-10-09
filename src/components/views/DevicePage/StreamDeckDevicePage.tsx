@@ -13,6 +13,7 @@ import { useDeckInstance } from '../../../panel/widgets/deck/useDeckInstance';
 import { useRecentApps } from '../../../panel/widgets/deck/useRecentApps';
 import { buildRecentAppsView, type RecentAppsViewKey } from '../../../panel/widgets/deck/recentAppsView';
 import { DeckInstanceEditor } from '../../../panel/widgets/deck/DeckInstanceEditor';
+import { DeckPresetToolbar } from '../../../panel/widgets/deck/DeckPresetToolbar';
 import { takePendingDeckEditorTarget, onDeckOpenEditor } from '../../../panel/widgets/deck/deckOpenEditorNav';
 import { DeckGrid } from '../../../panel/widgets/deck/DeckGrid';
 import { DeckDevicePreview } from '../../../panel/widgets/deck/DeckDevicePreview';
@@ -86,7 +87,8 @@ interface StreamDeckDevicePageProps {
  * Routed device page for one physical Stream Deck, in the standard device-page
  * split: the Customize tab has the top-aligned deck preview with page-number
  * pagination and the shared key inspector on the left and, on the right, the
- * mode chip + mode section + preset toolbar above the action picker; the
+ * mode section above the action picker (the preset dropdown sits in the page
+ * header rail, across both tabs); the
  * Settings tab has device prefs on the left and a read-only preview of the
  * same grid on the right. Each connected/persisted deck gets its own sidebar
  * entry (see useUnifiedDevices), so `device` always identifies exactly one
@@ -202,7 +204,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
   // since the grid it feeds isn't mounted on Settings.
   const [liveTiles, setLiveTiles] = useState<Map<string, string>>(new Map());
   const clearLiveTiles = useCallback(() => setLiveTiles(new Map()), []);
-  // A mode switch (Custom/Recent Apps/App Aware) repaints every key with
+  // A mode switch (Custom/Recent Apps) repaints every key with
   // different content at the same page:slotPath keys - clear so a stale
   // frame from the previous mode can never show through the new one. The
   // ref skips the initial undefined -> first-loaded-mode transition, which
@@ -447,14 +449,22 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
       // eslint-disable-next-line i18next/no-literal-string -- PanelSurface enum value
       surface="desktop"
       desktopEditor
-      onImport={() => setImportOpen(true)}
-      onLoad={id => void onDeckPresetLoad(id)}
+      // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
+      bodyMode="headerRail"
+    />
+  );
+
+  const presetRail = (
+    <DeckPresetToolbar
+      rail
+      deck={instance}
+      desktopActions
+      activatePreset={id => void onDeckPresetLoad(id)}
       onDelete={id => void onDeckPresetDelete(id)}
       onUndo={handleUndoDeck}
       onRedo={handleRedoDeck}
       onReset={handleDeckReset}
-      // eslint-disable-next-line i18next/no-literal-string -- render-mode enum value
-      bodyMode="toolbarOnly"
+      onImport={() => setImportOpen(true)}
     />
   );
 
@@ -470,6 +480,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         tabs={TABS}
         activeTab={tab}
         onTabChange={k => handleTabChange(k as StreamDeckTab)}
+        tabActions={presetRail}
       />
       <div className={`${styles.pageBody} pageBody`}>
         {deck.warning && (
@@ -480,7 +491,7 @@ export function StreamDeckDevicePage({ device }: StreamDeckDevicePageProps) {
         {tab === 'customize' ? (
           // One DndContext and one split for every mode (inert in Recent Apps,
           // which has no draggables), so the right column never remounts on a
-          // mode switch and the chip that committed it keeps focus.
+          // mode switch and the control that committed it keeps focus.
           <DndContext sensors={dragSensors} collisionDetection={dropCollision} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
             <div className={styles.customizeSplit}>
               {recentAppsMode ? (
