@@ -53,7 +53,7 @@ export const SIMULATED_PANEL_PRESETS: readonly SimulatedPanelDefinition[] = [
   { id: 'lcd-round-240', name: 'Cooler LCD 240 Round', surface: 'lcd-round', width: 240, height: 240, dpi: 160 },
   // Corsair Xeneon Edge 14.5" 2560x720 strip; rides the promoted-monitor
   // surface (a real one registers via POST /displays/{id}/panel).
-  { id: 'xeneon-edge', name: 'Xeneon Edge', surface: 'monitor', width: 2560, height: 720, dpi: 183 },
+  { id: 'xeneon-edge', name: 'Corsair Xeneon Edge', surface: 'monitor', width: 2560, height: 720, dpi: 183 },
   { id: 'phone', name: 'Phone Panel', surface: 'phone', width: 1206, height: 2622, dpi: 460 },
   { id: 'tablet', name: 'Tablet Panel', surface: 'phone', width: 1640, height: 2360, dpi: 264 },
 ];

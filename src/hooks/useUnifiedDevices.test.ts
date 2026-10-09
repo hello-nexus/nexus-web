@@ -29,7 +29,7 @@ vi.mock('../lib/i18n', () => ({
   }),
 }));
 
-import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, type UnifiedDevice } from './useUnifiedDevices';
+import { useUnifiedDevices, isSimulatedDevice, sidebarDeviceName, deviceTitle, type UnifiedDevice } from './useUnifiedDevices';
 
 function makeHandlerRow(over: Partial<DeviceListItem> = {}): DeviceListItem {
   return {
@@ -91,7 +91,7 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
 
   it('uses the brand-prefixed product name for shortName and keys the entry by serial', () => {
     mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
-    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1', model: 'Mini' })] });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ serial: 'SN1', model: 'Mini', name: '' })] });
 
     const { result } = renderHook(() => useUnifiedDevices(true));
     const entry = result.current.unified.find(d => d.curatedId === 'streamdeck');
@@ -113,9 +113,8 @@ describe('useUnifiedDevices - Stream Deck per-deck entries', () => {
     const { result } = renderHook(() => useUnifiedDevices(true));
     const entries = result.current.unified.filter(d => d.curatedId === 'streamdeck');
 
-    // Both share the product name, but `name` carries each deck's own identity.
-    expect(entries.every(d => d.shortName === 'Elgato Stream Deck Mini')).toBe(true);
-    expect(entries.map(d => d.name).sort()).toEqual(['Editing Deck', 'Streaming Deck']);
+    // shortName (what every surface shows) is each deck's own persisted name.
+    expect(entries.map(d => d.shortName).sort()).toEqual(['Editing Deck', 'Streaming Deck']);
   });
 
   it('marks a simulated deck simulated, and a real one not', () => {
@@ -481,7 +480,7 @@ describe('useUnifiedDevices - curated-backed panel entries unaffected by the pro
 describe('sidebarDeviceName', () => {
   it('drops the brand a Stream Deck row already shows as the Elgato logo', () => {
     mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
-    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ displayName: 'Elgato Stream Deck +' })] });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ displayName: 'Elgato Stream Deck +', name: 'Elgato Stream Deck +' })] });
 
     const { result } = renderHook(() => useUnifiedDevices(true));
     const entry = result.current.unified.find(d => d.curatedId === 'streamdeck')!;
@@ -492,7 +491,7 @@ describe('sidebarDeviceName', () => {
 
   it('gives the Corsair Galleon the Corsair logo, not the Elgato one', () => {
     mockUseDevices.mockReturnValue({ devices: [makeHandlerRow({ connected: true })], controlDevice: vi.fn() });
-    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ model: 'Galleon K100 SD', displayName: 'Corsair Galleon K100 SD' })] });
+    mockUseStreamDecks.mockReturnValue({ decks: [makeDeck({ model: 'Galleon K100 SD', displayName: 'Corsair Galleon K100 SD', name: 'Corsair Galleon K100 SD' })] });
 
     const { result } = renderHook(() => useUnifiedDevices(true));
     const entry = result.current.unified.find(d => d.curatedId === 'streamdeck')!;
@@ -518,5 +517,18 @@ describe('sidebarDeviceName', () => {
   it('keeps the brand when the icon is not that brand\'s logo', () => {
     const entry = { shortName: 'Corsair iCUE LINK LCD', iconSrc: '/assets/devices/monitor.svg' } as UnifiedDevice;
     expect(sidebarDeviceName(entry)).toBe('Corsair iCUE LINK LCD');
+  });
+});
+
+describe('deviceTitle', () => {
+  it('returns the full shortName, including a Stream Deck custom name, and undefined for an unknown key', () => {
+    const list = [
+      { key: 'curated-corsair', name: 'Corsair iCUE LINK', shortName: 'Corsair iCUE LINK Hub' },
+      { key: 'streamdeck:SN1', name: 'Streaming Deck', shortName: 'Streaming Deck' },
+    ] as UnifiedDevice[];
+
+    expect(deviceTitle(list, 'curated-corsair')).toBe('Corsair iCUE LINK Hub');
+    expect(deviceTitle(list, 'streamdeck:SN1')).toBe('Streaming Deck');
+    expect(deviceTitle(list, 'missing')).toBeUndefined();
   });
 });

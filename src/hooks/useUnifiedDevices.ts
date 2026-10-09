@@ -123,6 +123,11 @@ export function sidebarDeviceName(device: UnifiedDevice): string {
     : device.shortName;
 }
 
+/** Title for a device's page (top bar, header): the same full name the Devices row shows. */
+export function deviceTitle(unified: readonly UnifiedDevice[], key: string | null | undefined): string | undefined {
+  return unified.find(d => d.key === key)?.shortName;
+}
+
 /** Sidebar sort key: the brand its logo shows, then the label, so rows group by brand. */
 export function sidebarSortName(device: UnifiedDevice): string {
   const brand = logoBrand(device);
@@ -217,8 +222,8 @@ export function useUnifiedDevices(enabled: boolean) {
     // are handler-level (one on/off gate for every deck), so every entry
     // mirrors the same handler row; warning/conflictAppId come straight off
     // each deck since the service already computes them per deck. shortName
-    // is the product name; name is the deck's own persisted name so the
-    // Devices-page card still tells two same-model decks apart.
+    // is the deck's own persisted name (falling back to the product name) so
+    // every surface still tells two same-model decks apart.
     const streamdeckHandler = devices.find(d => d.id === 'streamdeck');
     const deckSupportsControl = streamdeckHandler?.supportsNexusControl ?? false;
     const deckControlEnabled = streamdeckHandler?.nexusControlEnabled ?? true;
@@ -245,7 +250,7 @@ export function useUnifiedDevices(enabled: boolean) {
       if (!deck.connected && !deckPresentWhileReleased) continue;
       list.push({
         key: `streamdeck:${deck.serial}`,
-        shortName: deck.displayName,
+        shortName: deck.name || deck.displayName,
         name: deck.name,
         subtitle: streamdeckHandler?.category ?? 'controller',
         category: streamdeckHandler?.category ?? 'controller',
