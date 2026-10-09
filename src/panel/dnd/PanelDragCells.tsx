@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom';
 import { Check, Pencil } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
-import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
 import { sizeToSpan } from '../engine/grid';
 import { lookupApp } from '../widgets/registry';
 import type { DeckEditView } from '../widgets/types';
@@ -499,7 +499,7 @@ export function PanelCatalogCell({
   selected?: boolean;
   /** No room on the target grid: dimmed, unactivatable, out of the tab order. */
   disabled?: boolean;
-  /** Why a disabled card cannot be added, shown on hover or tap. */
+  /** Why a disabled card cannot be added: a hover tooltip, and its accessible description. */
   disabledHint?: string;
   onClick?: () => void;
   /** Presentational mounts (marketing phone mock) drop the name strip. */
@@ -517,9 +517,11 @@ export function PanelCatalogCell({
   drag?: CatalogCellDrag;
 }) {
   const { t } = useTranslation();
+  const hintId = useId();
   const def = lookupApp(widget.type);
   const span = sizeToSpan(widget.size);
   if (!def) return null;
+  const hint = disabled ? disabledHint : undefined;
   // Prefer a static preview facet so streaming-data tiles (monitoring) show
   // frozen mock data in the catalog instead of animating live.
   const Comp = def.Preview ?? def.Widget;
@@ -568,6 +570,7 @@ export function PanelCatalogCell({
       aria-label={label}
       aria-pressed={selected || undefined}
       aria-disabled={disabled || undefined}
+      aria-describedby={hint ? hintId : undefined}
       onClick={disabled ? undefined : activate}
       onKeyDown={disabled ? undefined : onKeyDown}
       // pointerleave covers touch and pen (a tap's implicit release) as well as
@@ -606,9 +609,10 @@ export function PanelCatalogCell({
           <WidgetCellLabel label={label} />
         </div>
       )}
+      {hint && <span id={hintId} className={styles.cellHint}>{hint}</span>}
     </div>
   );
-  return disabled && disabledHint ? <HoverTooltip body={disabledHint}>{card}</HoverTooltip> : card;
+  return hint ? <HoverTooltip body={hint}>{card}</HoverTooltip> : card;
 }
 
 // Renders inside @dnd-kit's DragOverlay (portaled to body). Carries the panel

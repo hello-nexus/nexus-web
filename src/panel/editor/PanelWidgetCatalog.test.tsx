@@ -215,6 +215,7 @@ describe('PanelWidgetCatalog', () => {
 
       expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toBeDisabled();
       expect(screen.getByRole('button', { name: 'panel.widget.clock' })).not.toHaveAttribute('data-hint');
+      expect(screen.getByRole('button', { name: 'panel.widget.clock' })).toBeEnabled();
       expect(screen.getByRole('button', { name: 'panel.widget.media' })).toBeEnabled();
       expect(screen.getByRole('status')).toBeEmptyDOMElement();
       expect(screen.getByRole('button', { name: 'panel.widget.lighting' })).toHaveAttribute('data-hint', 'panel.add.someTooLarge');

@@ -1465,13 +1465,11 @@ export function PanelDevicePage({ device, onOpenFirmware, onSectionNavigate }: P
                                   {
                                     key: WIDGET_SIZE_LARGE,
                                     label: <><Square size={14} aria-hidden />{t('devices.panels.widgetSize.large')}</>,
-                                    tooltip: t('devices.panels.widgetSize.label'),
                                     disabled: !editingDeviceId,
                                   },
                                   {
                                     key: WIDGET_SIZE_SMALL,
                                     label: <><LayoutGrid size={14} aria-hidden />{t('devices.panels.widgetSize.small')}</>,
-                                    tooltip: t('devices.panels.widgetSize.label'),
                                     disabled: !editingDeviceId,
                                   },
                                 ]}
