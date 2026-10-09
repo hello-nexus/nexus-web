@@ -660,7 +660,7 @@
   "devices.lcd.renderMode": "Render mode",
   "devices.lcd.renderMode.performance": "High performance",
   "devices.lcd.renderMode.resolution": "High resolution",
-  "devices.lcd.renderModeHint": "High performance renders at half resolution and scales it up, which uses less CPU.",
+  "devices.lcd.renderModeHint": "High performance renders at a lower resolution and scales it up, which uses less CPU.",
   "devices.lcd.rendering": "Rendering",
   "devices.lcd.secondaryMonitor": "Use as a secondary monitor",
   "devices.lcd.secondaryMonitorDriverMissing": "The display driver for secondary monitor mode isn't installed on this PC.",

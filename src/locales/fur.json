@@ -660,7 +660,7 @@
   "devices.lcd.renderMode": "Modalitât di rapresentazion",
   "devices.lcd.renderMode.performance": "Prestazions altis",
   "devices.lcd.renderMode.resolution": "Risoluzion alte",
-  "devices.lcd.renderModeHint": "Prestazions altis al rapresente a mieze risoluzion e po le ingrandìs, cun mancul ûs de CPU.",
+  "devices.lcd.renderModeHint": "Prestazions altis al rapresente a une risoluzion plui basse e po le ingrandìs, cun mancul ûs de CPU.",
   "devices.lcd.rendering": "Rapresentazion",
   "devices.lcd.secondaryMonitor": "Dopre come monitor secondari",
   "devices.lcd.secondaryMonitorDriverMissing": "Il driver di visualizazion pal mût monitor secondari nol è instalât su chest PC.",

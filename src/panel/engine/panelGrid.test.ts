@@ -79,7 +79,7 @@ describe('readRuntimePanelGrid in a streamed panel render', () => {
     }
   };
 
-  it('keeps the native grid when the stream renders at half resolution', () => {
+  it('keeps the native grid when the stream renders at a lower resolution', () => {
     expect(at(0.5, '?streamFps=30')).toEqual(at(1, '?streamFps=30'));
     expect(at(0.5, '')).not.toEqual(at(1, ''));
   });

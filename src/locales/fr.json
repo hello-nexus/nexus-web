@@ -660,7 +660,7 @@
   "devices.lcd.renderMode": "Mode de rendu",
   "devices.lcd.renderMode.performance": "Haute performance",
   "devices.lcd.renderMode.resolution": "Haute résolution",
-  "devices.lcd.renderModeHint": "Haute performance effectue le rendu à mi-résolution puis l'agrandit, ce qui sollicite moins le CPU.",
+  "devices.lcd.renderModeHint": "Haute performance effectue le rendu à une résolution plus basse puis l'agrandit, ce qui sollicite moins le CPU.",
   "devices.lcd.rendering": "Rendu",
   "devices.lcd.secondaryMonitor": "Utiliser comme moniteur secondaire",
   "devices.lcd.secondaryMonitorDriverMissing": "Le pilote d'affichage du mode moniteur secondaire n'est pas installé sur ce PC.",

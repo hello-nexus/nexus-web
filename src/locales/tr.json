@@ -660,7 +660,7 @@
   "devices.lcd.renderMode": "İşleme modu",
   "devices.lcd.renderMode.performance": "Yüksek performans",
   "devices.lcd.renderMode.resolution": "Yüksek çözünürlük",
-  "devices.lcd.renderModeHint": "Yüksek performans yarı çözünürlükte işleyip büyütür, böylece daha az CPU kullanır.",
+  "devices.lcd.renderModeHint": "Yüksek performans daha düşük çözünürlükte işleyip büyütür, böylece daha az CPU kullanır.",
   "devices.lcd.rendering": "İşleme",
   "devices.lcd.secondaryMonitor": "İkincil monitör olarak kullan",
   "devices.lcd.secondaryMonitorDriverMissing": "İkincil monitör modu için görüntü sürücüsü bu PC'de yüklü değil.",

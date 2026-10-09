@@ -126,7 +126,7 @@ export interface PanelDeviceRecord {
   // so the panel renders tall. Absent/null = landscape.
   portrait?: boolean | null;
   // Panels whose capabilities carry supportsRenderScale: render at native resolution
-  // instead of half. Absent/null = half (high performance).
+  // instead of a lower one. Absent/null = lower (high performance).
   highResolution?: boolean | null;
   // Cooler LCDs whose panel takes a brightness command: backlight percent
   // 0-100. Absent/null = the panel's default; the hardware reset writes null.

@@ -660,7 +660,7 @@
   "devices.lcd.renderMode": "レンダリングモード",
   "devices.lcd.renderMode.performance": "高パフォーマンス",
   "devices.lcd.renderMode.resolution": "高解像度",
-  "devices.lcd.renderModeHint": "高パフォーマンスは半分の解像度で描画して拡大するため、CPU 使用率が下がります。",
+  "devices.lcd.renderModeHint": "高パフォーマンスは低い解像度で描画して拡大するため、CPU 使用率が下がります。",
   "devices.lcd.rendering": "レンダリング",
   "devices.lcd.secondaryMonitor": "セカンドモニターとして使用",
   "devices.lcd.secondaryMonitorDriverMissing": "セカンドモニターモード用のディスプレイドライバーがこの PC にインストールされていません。",

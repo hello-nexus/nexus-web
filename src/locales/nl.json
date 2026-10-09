@@ -660,7 +660,7 @@
   "devices.lcd.renderMode": "Weergavemodus",
   "devices.lcd.renderMode.performance": "Hoge prestaties",
   "devices.lcd.renderMode.resolution": "Hoge resolutie",
-  "devices.lcd.renderModeHint": "Hoge prestaties rendert op halve resolutie en schaalt op, wat minder CPU gebruikt.",
+  "devices.lcd.renderModeHint": "Hoge prestaties rendert op een lagere resolutie en schaalt op, wat minder CPU gebruikt.",
   "devices.lcd.rendering": "Weergave",
   "devices.lcd.secondaryMonitor": "Gebruiken als tweede monitor",
   "devices.lcd.secondaryMonitorDriverMissing": "Het schermstuurprogramma voor de tweede-monitormodus is niet geïnstalleerd op deze pc.",

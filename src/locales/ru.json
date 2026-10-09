@@ -667,7 +667,7 @@
   "devices.lcd.renderMode": "Режим отрисовки",
   "devices.lcd.renderMode.performance": "Высокая производительность",
   "devices.lcd.renderMode.resolution": "Высокое разрешение",
-  "devices.lcd.renderModeHint": "Высокая производительность отрисовывает в половинном разрешении и масштабирует, снижая нагрузку на ЦП.",
+  "devices.lcd.renderModeHint": "Высокая производительность отрисовывает в пониженном разрешении и масштабирует, снижая нагрузку на ЦП.",
   "devices.lcd.rendering": "Отрисовка",
   "devices.lcd.secondaryMonitor": "Использовать как второй монитор",
   "devices.lcd.secondaryMonitorDriverMissing": "Драйвер дисплея для режима второго монитора не установлен на этом ПК.",

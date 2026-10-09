@@ -660,7 +660,7 @@
   "devices.lcd.renderMode": "Modo de renderização",
   "devices.lcd.renderMode.performance": "Alto desempenho",
   "devices.lcd.renderMode.resolution": "Alta resolução",
-  "devices.lcd.renderModeHint": "Alto desempenho renderiza na metade da resolução e amplia, usando menos CPU.",
+  "devices.lcd.renderModeHint": "Alto desempenho renderiza em uma resolução menor e amplia, usando menos CPU.",
   "devices.lcd.rendering": "Renderização",
   "devices.lcd.secondaryMonitor": "Usar como monitor secundário",
   "devices.lcd.secondaryMonitorDriverMissing": "O driver de exibição do modo de monitor secundário não está instalado neste PC.",
