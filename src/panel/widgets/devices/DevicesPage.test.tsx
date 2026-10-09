@@ -460,6 +460,19 @@ describe('DevicesPage Available tab bus sections', () => {
 });
 
 describe('DevicesPage device order', () => {
+  it('shows and sorts by the full brand-prefixed shortName, not the service name', () => {
+    mockUnified = [
+      curatedRow({ key: 'c-h', name: 'NP50', shortName: 'HYTE NP50' }),
+      curatedRow({ key: 'c-c', name: 'Corsair iCUE LINK', shortName: 'Corsair iCUE LINK Hub' }),
+    ];
+    render(<DevicesPage serviceOnline onDeviceSelect={() => {}} />);
+
+    expect(screen.queryByText('Corsair iCUE LINK')).toBeNull();
+    const corsair = screen.getByText('Corsair iCUE LINK Hub');
+    const hyte = screen.getByText('HYTE NP50');
+    expect(corsair.compareDocumentPosition(hyte) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('lists cards alphabetically by name, whatever the connection or page state', () => {
     mockUnified = [
       curatedRow({ key: 'c-z', name: 'Zeta Hub', shortName: 'Zeta Hub' }),

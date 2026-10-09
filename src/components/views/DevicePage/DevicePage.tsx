@@ -154,7 +154,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     return (
       <NexusControlOff
         key={device.key}
-        deviceName={device.name}
+        deviceName={device.shortName}
         conflictAppId={device.conflictAppId}
         experimental={device.experimental}
         requiresBeta={device.requiresBeta}
@@ -179,7 +179,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
     return (
       <NexusControlOff
         key={device.key}
-        deviceName={device.name}
+        deviceName={device.shortName}
         onEnable={() => {
           void promoteDisplayToPanel(offMonitorDisplayId).then(record => {
             if (!record) push({ title: t('displays.error.promote') });
@@ -194,7 +194,7 @@ export function DevicePage({ deviceKey, serviceOnline, connectionState, onOpenFi
   return (
     <>
       {holdBody && (
-        <NexusControlOff key={device.key} deviceName={device.name} experimental={device.experimental} detecting onEnable={() => {}} />
+        <NexusControlOff key={device.key} deviceName={device.shortName} experimental={device.experimental} detecting onEnable={() => {}} />
       )}
       <div className={holdBody ? styles.bodyHeld : styles.bodyShown}>
         <DeviceDetectingContext.Provider value={reportWaiting}>
@@ -297,7 +297,7 @@ function DeviceBody({ device, controlDevice, onOpenFirmware, onSectionNavigate }
   // sidebar deep link still lands on something readable.
   return (
     <section>
-      <ViewHeader title={device.name} />
+      <ViewHeader title={device.shortName} />
       <Placeholder title={t('devices.page.noPageYet', { category: device.category })} />
     </section>
   );

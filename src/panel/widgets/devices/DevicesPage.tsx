@@ -97,10 +97,10 @@ export function DevicesPage({ serviceOnline, connectionState, onDeviceSelect, ta
     return set;
   }, [allUsb.devices]);
 
-  // Alphabetical by the card label, key breaking ties so the order holds across polls.
+  // Alphabetical by the card label (shortName, the sidebar's name plus its brand), key breaking ties so the order holds across polls.
   const orderedDevices = useMemo(
     () => [...unified].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })
+      a.shortName.localeCompare(b.shortName, undefined, { sensitivity: 'base', numeric: true })
       || a.key.localeCompare(b.key)),
     [unified],
   );
@@ -303,7 +303,7 @@ function DeviceCard({
         />
       </span>
       <div className={styles.rowInfo}>
-        <span className={styles.rowName}>{device.name}</span>
+        <span className={styles.rowName}>{device.shortName}</span>
         {meta && <span className={styles.rowMeta}>{meta}</span>}
       </div>
       {device.warning && <DeviceWarningIcon code={device.warning} />}
